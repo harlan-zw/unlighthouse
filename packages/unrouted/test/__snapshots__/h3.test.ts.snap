@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`h3 provider serving static works 1`] = `
+"<html>
+<head>
+    <meta charset=\\"UTF-8\\">
+    <meta name=\\"viewport\\"
+          content=\\"width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0\\">
+    <meta http-equiv=\\"X-UA-Compatible\\" content=\\"ie=edge\\">
+    <title>Document</title>
+</head>
+<body>
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Architecto asperiores deserunt ducimus eius enim et, facere fugit laborum nemo nostrum officia pariatur possimus recusandae reprehenderit sed tempore totam ullam velit.</p>
+</body>
+</html>
+"
+`;

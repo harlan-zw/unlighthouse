@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "strict": true,
+    "declaration": true,
+    "types": [
+      "@types/koa",
+      "node",
+      "jest"
+    ]
+  },
+  "include": [
+    "src"
+  ]
+}
