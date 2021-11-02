@@ -1,9 +1,0 @@
-{
-  "name": "nuxt-module-utils",
-  "version": "0.1.0",
-  "description": "Extra helper functions for Nuxt.js modules.",
-  "main": "index.ts",
-  "author": "harlan-zw",
-  "license": "MIT",
-  "private": true
-}

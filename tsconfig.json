@@ -10,7 +10,6 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*",
-    "src/types"
+    "packages/**/*",
   ]
 }

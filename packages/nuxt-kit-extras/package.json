@@ -1,0 +1,14 @@
+{
+  "name": "nuxt-kit-extras",
+  "version": "0.1.0",
+  "description": "Extra helper functions for Nuxt.js modules.",
+  "main": "index.ts",
+  "author": "harlan-zw",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "highwayhash": "^3.1.1",
+    "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
+    "ufo": "^0.7.9"
+  }
+}

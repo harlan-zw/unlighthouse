@@ -1,0 +1,105 @@
+{
+  "name": "unplugin-lighthouse",
+  "version": "0.1.0",
+  "description": "Register global imports on demand for Vite and Webpack",
+  "keywords": [
+    "unplugin",
+    "vite",
+    "webpack",
+    "rollup",
+    "transform"
+  ],
+  "homepage": "https://github.com/antfu/unplugin-lighthouse#readme",
+  "bugs": {
+    "url": "https://github.com/antfu/unplugin-lighthouse/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/antfu/unplugin-lighthouse.git"
+  },
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    },
+    "./vite": {
+      "require": "./dist/vite.js",
+      "import": "./dist/vite.mjs"
+    },
+    "./webpack": {
+      "require": "./dist/webpack.js",
+      "import": "./dist/webpack.mjs"
+    },
+    "./rollup": {
+      "require": "./dist/rollup.js",
+      "import": "./dist/rollup.mjs"
+    },
+    "./nuxt": {
+      "require": "./dist/nuxt.js",
+      "import": "./dist/nuxt.mjs"
+    },
+    "./types": {
+      "require": "./dist/types.js",
+      "import": "./dist/types.mjs"
+    },
+    "./*": "./*"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "export DEBUG=* && tsup --watch packages/unplugin-lighthouse/src",
+    "build:fix": "esno scripts/postbuild.ts",
+    "dev:client": "vite build packages/unplugin-lighthouse/src/client --watch",
+    "build:client": "vite build packages/unplugin-lighthouse/src/client",
+    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "lint:fix": "npm run lint -- --fix",
+    "play": "npm -C playground run dev",
+    "play:pokemon": "npm -C packages/unplugin-lighthouse/test/fixtures/nuxt-pokemon run dev",
+    "prepublishOnly": "npm run build",
+    "release": "bumpp --commit --push --tag && pnpm publish",
+    "start": "esno packages/unplugin-lighthouse/src/index.ts",
+    "test": "jest",
+    "test:update": "jest -u"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.175",
+    "@vue/reactivity": "^3.2.20",
+    "cheerio": "^1.0.0-rc.10",
+    "defu": "^5.0.0",
+    "lighthouse": "^8.5.1",
+    "lodash": "^4.17.21",
+    "minimist": "^1.2.5",
+    "puppeteer": "^10.4.0",
+    "puppeteer-cluster": "^0.22.0",
+    "ufo": "^0.7.9",
+    "unplugin": "^0.2.16",
+    "unrouted": "workspace:*",
+    "nuxt-kit-extras": "workspace:*"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^0.8.2",
+    "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.10.3",
+    "bumpp": "^7.1.1",
+    "eslint": "^7.32.0",
+    "eslint-plugin-jest": "^24.7.0",
+    "esno": "^0.9.1",
+    "fast-glob": "^3.2.7",
+    "jest": "^27.2.5",
+    "nodemon": "^2.0.13",
+    "ohmyfetch": "^0.3.1",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.58.0",
+    "ts-jest": "^27.0.5",
+    "tsup": "^4.14.0",
+    "typescript": "^4.4.3"
+  }
+}
