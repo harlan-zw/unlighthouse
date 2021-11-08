@@ -1,15 +1,25 @@
 {
   "compilerOptions": {
-    "target": "es2017",
-    "module": "esnext",
-    "lib": ["esnext", "DOM"],
-    "moduleResolution": "node",
-    "esModuleInterop": true,
+    "baseUrl": ".",
+    "module": "ESNext",
+    "target": "es2016",
+    "lib": ["DOM", "ESNext"],
     "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "noUnusedLocals": true,
     "strictNullChecks": true,
-    "resolveJsonModule": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "~/*": ["src/*"],
+      "@shared": ["shared/index.ts"]
+    }
   },
   "include": [
     "packages/**/*",
-  ]
+    "@vue/runtime-core/dist/runtime-core.d.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
 }

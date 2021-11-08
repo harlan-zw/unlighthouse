@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "cli": "esno packages/unplugin-lighthouse/src/cli.ts --host https://kintell.com",
     "dev": "export DEBUG=* && tsup --watch packages/unplugin-lighthouse/src",
     "build:fix": "esno packages/unplugin-lighthouse/scripts/postbuild.ts",
     "dev:client": "vite build packages/unplugin-lighthouse/src/client --watch",
@@ -34,5 +35,8 @@
     "ts-jest": "^27.0.5",
     "tsup": "^4.14.0",
     "typescript": "^4.4.3"
+  },
+  "dependencies": {
+    "sitemapper": "^3.1.15"
   }
 }

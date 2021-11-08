@@ -25,6 +25,10 @@ export interface RouteReport {
 export type NamedRouteReports = Map<string, RouteReport>
 
 export interface Options {
+  /**
+   * Have logger debug displayed when running.
+   */
+  debug: boolean
   // define your plugin options here
   outputPath: string
   host: string
@@ -33,7 +37,7 @@ export interface Options {
   puppeteerClusterOptions: Record<string, unknown>
 }
 
-export type TaskFunctionArgs = { routeReport: RouteReport; options: Options }
-export type TaskFunctionReturn = false|RouteReport
+export type LighthouseTaskArgs = { routeReport: RouteReport; options: Options }
+export type LighthouseTaskReturn = false|RouteReport
 
 

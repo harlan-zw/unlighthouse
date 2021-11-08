@@ -1,22 +1,25 @@
 import { createHash } from 'crypto'
 import defu from 'defu'
-import { Cluster } from 'puppeteer-cluster'
-import { RouteDefinition } from '../types/nuxt'
 import { Options, RouteReport } from '../types'
+import {$URL} from "ufo";
 
 export const generateReportIdFromRoute
-    = (route: RouteDefinition) => createHash('md5')
-      .update(route.path === '/' ? 'home' : route.path.replaceAll('/', ''))
-      .digest('hex')
-      .substring(0, 6)
-
-export const generateRouteReportInput
-    = (route: RouteDefinition, options: Options): RouteReport => {
-      const reportId = generateReportIdFromRoute(route)
+    = (route: $URL) => {
+    return createHash('md5')
+        .update(route.pathname === '/' ? 'home' : route.pathname.replace('/', ''))
+        .digest('hex')
+        .substring(0, 6)
+}
+export const normaliseRouteJobInput
+    = (url: $URL, options: Options): RouteReport => {
+      const reportId = generateReportIdFromRoute(url)
       return {
-        route,
+        route: {
+            ...url,
+            fullRoute: url.toString(),
+        },
         reportId,
-        fullRoute: `${options.host}${route.path}`,
+        fullRoute:  url.toString(),
         reportHtml: `${options.outputPath}/${reportId}.html`,
         reportJson: `${options.outputPath}/${reportId}.json`,
         resolved: false,

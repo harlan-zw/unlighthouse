@@ -6,6 +6,7 @@ export const NUXT_CONFIG_KEY = 'lighthouse'
 
 export const defaultOptions = {
     outputPath: './.lighthouse',
+    debug: true,
     puppeteerOptions: {
         args: [],
     },

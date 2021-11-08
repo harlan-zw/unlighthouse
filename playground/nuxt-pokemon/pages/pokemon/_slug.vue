@@ -12,8 +12,6 @@ export default defineComponent({
     const router = useRouter()
     const context = useContext()
 
-    console.log(context)
-
     const pokemon = getPokemonForSlug(route.value.params.slug)
 
 

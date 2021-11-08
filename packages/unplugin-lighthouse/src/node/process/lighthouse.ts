@@ -1,5 +1,5 @@
 import fs from 'fs'
-import lighthouse from 'packages/unplugin-lighthouse/src/node/process/lighthouse'
+import lighthouse from 'lighthouse'
 import minimist from 'minimist'
 import { RouteReport, Options } from '../../types';
 

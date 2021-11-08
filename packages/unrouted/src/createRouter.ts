@@ -98,7 +98,9 @@ export function createRouter(options = {} as UnroutedOptions): UnroutedRouter {
         return true
 
       const type = typeof val
-      if (type === 'string') {
+      if (type === 'boolean') {
+        return send(res, val.toString(), MIMES.html)
+      }else if (type === 'string') {
         return send(res, val, MIMES.html)
       }
       else if (type === 'object' && val !== undefined) {

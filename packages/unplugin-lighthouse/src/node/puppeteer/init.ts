@@ -1,8 +1,8 @@
 import { Cluster } from 'puppeteer-cluster'
-import { Options, TaskFunctionArgs, TaskFunctionReturn } from '../../types'
+import { Options, LighthouseTaskArgs, LighthouseTaskReturn } from '../../types'
 
 export const init = async(options: Options) => {
-  const cluster: Cluster<TaskFunctionArgs, TaskFunctionReturn> = await Cluster.launch({
+  const cluster: Cluster<LighthouseTaskArgs, LighthouseTaskReturn> = await Cluster.launch({
     puppeteerOptions: {
       ...options.puppeteerOptions,
     },

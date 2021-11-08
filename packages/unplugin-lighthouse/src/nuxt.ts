@@ -1,18 +1,15 @@
-import { join, resolve, relative } from 'path'
-import fs from 'fs'
+import { join, resolve } from 'path'
 import {addServerMiddleware, addVitePlugin, addWebpackPlugin, requireModulePkg} from '@nuxt/kit'
 import { $fetch } from 'ohmyfetch'
 import NuxtModuleUtils from 'nuxt-kit-extras'
 import { Options } from './types'
 import {defaultOptions, formatBytes, NAME, NUXT_CONFIG_KEY, PLUGIN_PATH_PREFIX} from './core'
-import { createApi } from './node/server'
-import { usesClusterForRouteProcessing } from './node/composition/usesClusterForRouteProcessing'
-import logger from './core/logger'
 import unplugin from './index'
 import {
   defineNuxtModule,
 } from '@nuxt/kit'
 import { version } from '../package.json'
+import { createEngine } from './node/engine'
 
 export default defineNuxtModule<Options>(nuxt => ({
   name: NAME,
@@ -28,8 +25,6 @@ export default defineNuxtModule<Options>(nuxt => ({
     if (!options.host) {
       options.host = `http${server.https ? 's' : ''}://${server.host}:${server.port}`
     }
-
-    const { processRoute, reports, processRoutes, runningTasks, hasStarted } = await usesClusterForRouteProcessing(options)
 
     const { addMiddleware, addStartCliBadgeLink, getRoutes } = NuxtModuleUtils.call(nuxt)
     //
@@ -57,37 +52,10 @@ export default defineNuxtModule<Options>(nuxt => ({
 
     nuxt.options.ignore.push('.lighthouse')
 
-    if (!fs.existsSync(options.outputPath))
-      fs.mkdirSync(options.outputPath)
-
     addStartCliBadgeLink(PLUGIN_PATH_PREFIX, 'Routes')
 
-    const runtimeModuleCount = nuxt.options.modules.length
-    const buildModuleCount = nuxt.options.buildModules.length
-
-    const onAppVisit = async() => {
-      // has started processing
-      if (hasStarted())
-        return
-      // maybe start processing routes once they visit the app
-      const routes = await getRoutes()
-      processRoutes(routes)
-      logger.info(`Started processing with ${routes.length} static routes.`)
-    }
-
-    const api = createApi({
-      processRoute,
-      onAppVisit,
+    const { api } = createEngine({
       routes: getRoutes,
-      async reports() {
-        await onAppVisit()
-        return reports().map((report) => {
-          if (report.route.component)
-            report.route.component = relative(rootDir, report.route.component)
-
-          return report
-        })
-      },
       async stats() {
         const routes = await getRoutes()
         let appBytes = '0B'
@@ -125,6 +93,8 @@ export default defineNuxtModule<Options>(nuxt => ({
               // @ts-ignore
               .reduce((s, a) => s + a, 0) / data.length
         }
+        const runtimeModuleCount = nuxt.options.modules.length
+        const buildModuleCount = nuxt.options.buildModules.length
 
         return {
           runtimeModuleCount,
@@ -150,7 +120,7 @@ export default defineNuxtModule<Options>(nuxt => ({
           ],
           staticRoutes: routes.filter(route => !route.path.includes(':')).length,
           dynamicRoutes: routes.filter(route => route.path.includes(':')).length,
-          runningTasks: runningTasks(),
+          // runningTasks: runningTasks(),
           modules: {
             app: {
               size: appBytes,
@@ -164,7 +134,7 @@ export default defineNuxtModule<Options>(nuxt => ({
           },
         }
       },
-    })
+    }, options)
 
     addServerMiddleware({
       handler: api,
