@@ -24,20 +24,30 @@ export interface RouteReport {
 
 export type NamedRouteReports = Map<string, RouteReport>
 
+export interface CliOptions extends Options {
+  root?: string
+  open?: boolean
+  host: string
+}
+
+
 export interface Options {
   /**
    * Have logger debug displayed when running.
    */
-  debug: boolean
+  debug?: boolean
   // define your plugin options here
-  outputPath: string
-  host: string
-  lighthouse: LH.Flags
-  puppeteerOptions: Record<string, unknown>
-  puppeteerClusterOptions: Record<string, unknown>
+  outputPath?: string
+  lighthouse?: LH.Flags
+  puppeteerOptions?: Record<string, unknown>
+  puppeteerClusterOptions?: Record<string, unknown>
 }
 
 export type LighthouseTaskArgs = { routeReport: RouteReport; options: Options }
 export type LighthouseTaskReturn = false|RouteReport
 
+export interface Provider {
+  routes: () => Promise<RouteDefinition[]>
+  stats?: () => Promise<Record<string, any>>
+}
 

@@ -13,7 +13,9 @@ export async function createRouteWorkerCluster(options: Options) {
   const logger = useLogger()
   const cluster = await initCluster(options)
 
-  const jobMap = new Map()
+  // @todo each job has a queue list, input output etc
+  const finishedRoutes = new Map()
+  const queuedJobs = []
 
   const jobs = {
     inspectHtmlTask,
@@ -29,7 +31,7 @@ export async function createRouteWorkerCluster(options: Options) {
 
     // don't run on named routes
     // @todo check for route params
-    if (jobMap.has(path)) {
+    if (finishedRoutes.has(path)) {
       logger.debug(`${path} has already been processed, skipping`)
       return
     }
@@ -37,13 +39,12 @@ export async function createRouteWorkerCluster(options: Options) {
     const routeReport = normaliseRouteJobInput(url, options)
     logger.debug(`${path} has been queued.`)
 
-    jobMap.set(path, routeReport)
+    finishedRoutes.set(path, routeReport)
 
     const taskOptions = {
       routeReport,
       options,
     }
-
 
     Object.values(jobs)
       .forEach((job, key) => cluster.execute(taskOptions, job)
@@ -52,7 +53,7 @@ export async function createRouteWorkerCluster(options: Options) {
             return
           const jobName = Object.keys(jobs)[key]
           logger.info(`${path} has finished processing job ${jobName}.`)
-          jobMap.set(path, response)
+          finishedRoutes.set(path, response)
         }),
       )
   }
@@ -62,16 +63,16 @@ export async function createRouteWorkerCluster(options: Options) {
   }
 
   const runningTasks = () => {
-    return Array.from(jobMap.values()).filter(report => !report.resolved).length
+    return Array.from(finishedRoutes.values()).filter(report => !report.resolved).length
   }
 
   const hasStarted = () => {
-    return jobMap.size > 0
+    return finishedRoutes.size > 0
   }
 
   const reports = () => {
     const r: RouteReport[] = []
-    jobMap.forEach((val) => {
+    finishedRoutes.forEach((val) => {
       r.push(val)
     })
     return r

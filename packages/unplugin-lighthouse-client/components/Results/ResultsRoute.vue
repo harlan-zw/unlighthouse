@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {LH} from "lighthouse";
+import PassValue from "../Value/PassValue.vue";
 
 const props = defineProps<{
   report: {
@@ -47,7 +48,7 @@ const findForegroundColor = (str: string) => {
 }
 </script>
 <template>
-<div class="grid grid-cols-12 text-sm mb-3 text-gray-400">
+<div class="grid grid-cols-12 gap-4 text-sm mb-3 text-gray-400">
   <div class="col-span-2">
     <div class="text-gray-300 text-sm mb-3 w-200px flex-basis-200px">
       <div class="mb-2">
@@ -125,10 +126,11 @@ const findForegroundColor = (str: string) => {
   </template>
   <template v-else-if="activeTab === 2">
   <div class="col-span-4">
-    <template v-if="report.report.audits['color-contrast'].details.items">
+    <div v-if="report.report.audits['color-contrast'].details.items" class="max-h-100px overflow-y-auto">
     <div
         v-for="({ node }, key) in report.report.audits['color-contrast'].details.items"
          :key="key"
+        class="mb-1 p-1"
          :style="{
       color: findForegroundColor(node.explanation),
       backgroundColor: findBackgroundColor(node.explanation),
@@ -136,9 +138,31 @@ const findForegroundColor = (str: string) => {
     >
       {{ node.nodeLabel }}
       </div>
-    </template>
+    </div>
   </div>
   <div class="col-span-3">
+  </div>
+  </template>
+  <template v-else-if="activeTab === 3">
+  <div class="col-span-1">
+    <pass-value :pass="report.report.audits['errors-in-console'].details.items.length === 0">
+      {{ report.report.audits['errors-in-console'].details.items.length }}
+    </pass-value>
+  </div>
+  <div class="col-span-2">
+    <pass-value :pass="report.report.audits['no-vulnerable-libraries'].details.items.length === 0">
+      {{ report.report.audits['no-vulnerable-libraries'].details.items.length }}
+    </pass-value>
+  </div>
+  <div class="col-span-2">
+    <pass-value :pass="report.report.audits['external-anchors-use-rel-noopener'].details.items.length === 0">
+      {{ report.report.audits['external-anchors-use-rel-noopener'].details.items.length }}
+    </pass-value>
+  </div>
+  <div class="col-span-2">
+    <pass-value :pass="report.report.audits['external-anchors-use-rel-noopener'].details.items.length === 0">
+      {{ report.report.audits['external-anchors-use-rel-noopener'].details.items.length }}
+    </pass-value>
   </div>
   </template>
   <template v-else-if="activeTab === 4">
@@ -146,10 +170,27 @@ const findForegroundColor = (str: string) => {
     <i-carbon-checkmark-outline v-if="report.report.audits['is-crawlable'].score === 1" class="text-green-500" />
     <i-carbon-close-outline v-else class="text-red-500" />
   </div>
-  <div class="col-span-3 text-xs">
+  <div class="col-span-2 text-xs">
+    <div class="text-xs uppercase opacity-40 mb-1">
+      Title
+    </div>
+    {{ report.seo.title }}
+    <div class="text-xs uppercase opacity-40 mb-1 mt-3">
+      Description
+    </div>
     {{ report.seo.description }}
   </div>
-  <div class="col-span-3 text-xs">
+  <div class="col-span-2 text-xs">
+    <div class="text-xs uppercase opacity-40 mb-1">
+      Title
+    </div>
+    {{ report.seo.og.title }}
+    <div class="text-xs uppercase opacity-40 mb-1 mt-3">
+      Description
+    </div>
+    {{ report.seo.og.description }}
+  </div>
+  <div class="col-span-2 text-xs">
     <img :src="report.seo.image" width="200" height="100"/>
   </div>
   </template>

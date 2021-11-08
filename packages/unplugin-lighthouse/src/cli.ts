@@ -1,10 +1,8 @@
 import { resolve } from 'path'
 import cac from 'cac'
 import { version } from '../package.json'
-// import { runAnalysis } from './analysis'
-// import { startServer } from './server'
-// import { generateBuild } from './build'
 import { startServer } from './api'
+import {CliOptions} from "./types";
 
 const cli = cac('lighthouse')
 
@@ -24,14 +22,10 @@ async function run() {
     if (parsed.options.help)
         return
 
-    // await generateBuild({
-    //     root,
-    //     outDir: parsed.options.html,
-    // })
-
+    const options = parsed.options as unknown as CliOptions
 
     await startServer({
-        ...parsed.options,
+        ...options,
         root,
     })
 }

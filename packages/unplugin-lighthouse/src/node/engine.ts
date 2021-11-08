@@ -1,13 +1,13 @@
 import {createRouteWorkerCluster} from "./composition/createRouteProcessor";
 import fs from "fs";
-import {Options} from "../types";
+import {Options, Provider} from "../types";
 import {createApi} from "../api";
 import {defaultOptions, createLogger } from "../core";
 import defu from 'defu'
 import {$URL} from 'ufo'
 
-export const createEngine = async(provider: {}, options: Options) => {
-    options = defu(options, defaultOptions)
+export const createEngine = async(provider: Provider, options: Options) => {
+    options = defu(options, defaultOptions) as Options
 
     const logger = createLogger(options.debug)
 
@@ -29,6 +29,14 @@ export const createEngine = async(provider: {}, options: Options) => {
     })
 
 
-    return { api, routeProcessor }
+    return {
+        api,
+        routeProcessor,
+        start: async() => {
+            (await provider.routes()).forEach(route => {
+                routeProcessor.processRoute(route)
+            })
+        }
+    }
 
 }

@@ -1,6 +1,6 @@
 import Sitemapper from "sitemapper";
 
-export const extractSiteRoutes = async (site) => {
+export const extractSitemapRoutes = async (site: string) => {
     const sitemap = new Sitemapper({
         timeout: 15000, // 15 seconds
     });

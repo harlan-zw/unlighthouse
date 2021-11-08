@@ -25,5 +25,10 @@ export const processSeoMeta = ($: CheerioAPI) => {
         title: $('head > title').text(),
         description: $('meta[name=\'description\']').attr('content'),
         image: $('meta[property=\'image\']').attr('content') || $('meta[property=\'og:image\']').attr('content'),
+        og: {
+            image: $('meta[property=\'og:image\']').attr('content'),
+            description: $('meta[property=\'og:description\']').attr('content'),
+            title: $('meta[property=\'og:title\']').attr('content')
+        }
     }
 }

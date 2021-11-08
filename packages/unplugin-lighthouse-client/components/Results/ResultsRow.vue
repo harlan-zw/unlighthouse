@@ -17,7 +17,7 @@ const reportsScore = computed(() => {
 <div>
   <disclosure-handle>
     <template #label>
-    <div class="grid grid-cols-12 text-sm w-full">
+    <div class="grid grid-cols-12 gap-4 text-sm w-full">
       <div class="flex items-center col-span-2">
         {{ routeName }}
         <span v-if="reports.length > 1" class="text-xs text-gray-400/70 ml-2">

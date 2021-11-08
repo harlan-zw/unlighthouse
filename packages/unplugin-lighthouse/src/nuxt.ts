@@ -84,22 +84,12 @@ export default defineNuxtModule<Options>(nuxt => ({
         catch (e) {
           // do nothing
         }
-        const data = reports()
-        let score = 0
-        if (data && data.length > 0) {
-          // @ts-ignore
-          score = data
-              .map(r => r.score)
-              // @ts-ignore
-              .reduce((s, a) => s + a, 0) / data.length
-        }
         const runtimeModuleCount = nuxt.options.modules.length
         const buildModuleCount = nuxt.options.buildModules.length
 
         return {
           runtimeModuleCount,
           buildModuleCount,
-          score,
           framework: [
             {
               id: 'nuxt',

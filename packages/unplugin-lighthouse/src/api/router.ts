@@ -4,24 +4,21 @@ import { createRouter, useBody, useParams } from 'unrouted'
 import cors from 'cors'
 import { RouteDefinition } from 'nuxt-kit-extras/types'
 // import { PLUGIN_PATH_PREFIX } from '../core'
-import {Options, RouteReport} from '../types'
+import {Options, Provider, RouteReport} from '../types'
 import logger from "../core/logger";
-import {extractSiteRoutes} from "../node/sitemap";
+import {extractSitemapRoutes} from "../node/sitemap";
 
 export type RuntimeAppData = {
   routeProcessor: {
     // cluster,
     processRoute: (route: RouteDefinition) => void,
     // processRoutes,
-    // runningTasks,
+    runningTasks: () => number,
     hasStarted: () => boolean,
     reports: () => RouteReport[],
   },
   options: Options
-  provider: {
-    routes: () => Promise<RouteDefinition[]>
-    stats: () => Promise<any>
-  }
+  provider: Provider
 }
 
 export const createApi = ({ routeProcessor, provider, options }: RuntimeAppData) => {
@@ -35,7 +32,7 @@ export const createApi = ({ routeProcessor, provider, options }: RuntimeAppData)
     // },
   })
 
-  const reports = async() => {
+  const reports = () => {
     // await onAppVisit()
     return routeProcessor.reports().map((report) => {
       if (report.route.component)
@@ -55,7 +52,7 @@ export const createApi = ({ routeProcessor, provider, options }: RuntimeAppData)
       if (!scannedSites.has(site)) {
         scannedSites.add(site)
 
-        const { sites } = await extractSiteRoutes(site)
+        const { sites } = await extractSitemapRoutes(site)
 
         sites.forEach(route => routeProcessor.processRoute(route))
       }
@@ -65,13 +62,30 @@ export const createApi = ({ routeProcessor, provider, options }: RuntimeAppData)
     get('reports', () => routeProcessor.reports())
     get('reports/:id', async() => {
       const { id } = useParams<{ id: string }>()
-      const report = (await routeProcessor.reports())
-        .filter(report => report.reportId === id)[0]
+      const report = routeProcessor.reports().filter(report => report.reportId === id)[0]
       return fs.readFileSync(report.reportHtml, 'utf-8')
     })
 
     get('routes', () => provider.routes())
-    get('stats', () => provider.stats())
+    get('stats', () => {
+      const stats = provider.stats ? provider.stats() : {}
+      const data = routeProcessor.reports()
+      let score = 0
+      if (data && data.length > 0) {
+        // @ts-ignore
+        score = data
+            .map(r => r.score)
+            // @ts-ignore
+            .reduce((s, a) => s + a, 0) / data.length
+      }
+
+      return {
+        score,
+        runningTasks: routeProcessor.runningTasks(),
+        staticRoutes: data.length,
+        ...stats,
+      }
+    })
 
     post('known-routes', async() => {
         // has started processing

@@ -27,15 +27,17 @@ onMounted(() => {
   </span>
   <div class="flex text-xs ml-5">
 
-    <div class="mr-3">
+    <div class="mr-5">
       <div class="uppercase opacity-40 ">
         Website
       </div>
       <div class="text-sm flex items-center">
-        {{ website }}
+        <a :href="website" class="flex items-center" target="_blank">
+          <img :src="website + '/favicon.ico'" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '') }}
+        </a>
       </div>
     </div>
-    <div class="mr-3">
+    <div class="mr-5">
       <div class="uppercase opacity-40 ">
         Status
       </div>

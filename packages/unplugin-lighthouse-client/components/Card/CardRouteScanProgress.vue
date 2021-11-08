@@ -18,14 +18,14 @@ const props = defineProps<{
         Static Routes
       </div> {{ stats.staticRoutes }}
     </div>
-    <div class="mb-2">
+    <div class="mb-2" v-if="stats.dynamicRoutes">
       <div class="text-xs uppercase opacity-40">
         Dynamic Routes
       </div> {{ stats.dynamicRoutes }}
     </div>
   </div>
   <div>
-    <metric-guage :score="stats.score" label="Total Overall" />
+    <metric-guage :score="stats.score" label="Site Score" />
   </div>
 </div>
 </card>

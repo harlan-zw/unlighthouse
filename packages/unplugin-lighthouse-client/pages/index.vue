@@ -70,8 +70,10 @@ const resultColumns = computed(() => {
   else if (activeTab.value === 3) {
     columns = [
       ...columns,
-      { cols: 1, label: 'Console Errors', sortable: true, key: 'size' },
-      { cols: 2, label: 'Meta Description' },
+      { cols: 1, label: 'Errors', sortable: true, key: 'size' },
+      { cols: 2, label: 'Vulnerable Libraries', sortable: true, key: 'size' },
+      { cols: 2, label: 'Unsafe Links', sortable: true, key: 'size' },
+      { cols: 2, label: 'Source Maps', sortable: true, key: 'size' },
     ]
   }
   // SEO
@@ -79,8 +81,9 @@ const resultColumns = computed(() => {
     columns = [
       ...columns,
       { cols: 1, label: 'Indexable', sortable: true, key: 'size' },
-      { cols: 3, label: 'Meta Description' },
-      { cols: 3, label: 'Share Previews' },
+      { cols: 2, label: 'Meta' },
+      { cols: 2, label: 'Share Meta' },
+      { cols: 2, label: 'Share Preview' },
     ]
   }
   columns.push({ label: 'Actions', slot: 'actions', classes: ['justify-between'] })
@@ -107,7 +110,7 @@ onMounted(() => {
 <template>
 <div>
   <NavBar />
-  <div class="container mx-auto mt-5">
+  <div class="container mx-auto mt-2">
     <static-onboard v-if="!website" @submit="submitSite('https://kintell.com')" />
     <template v-else>
     <div v-if="stats" class="grid grid-cols-3 gap-8 text-lg w-full mb-5">
@@ -125,10 +128,10 @@ onMounted(() => {
         >
           <button
               :class="[
-                'w-full py-2.5 text-sm leading-5 font-medium text-blue-700 rounded-lg',
-                'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-blue-400 ring-white ring-opacity-60',
+                'w-full py-2 text-sm leading-5 font-medium text-blue-700 rounded-lg',
+                'focus:outline-none focus:ring-1 ring-offset-blue-400 ring-white ring-opacity-60',
                 selected
-                  ? 'bg-white shadow'
+                  ? 'bg-blue-900 text-blue-300 shadow'
                   : 'text-blue-100 hover:bg-white/[0.12] hover:text-white',
               ]"
           >
@@ -144,10 +147,7 @@ onMounted(() => {
             @sort="incrementSort"
         >
           <template #routeName>
-          <div class="flex items-center">
             <search-box />
-          </div>
-
           </template>
           <template #actions>
           <button class="self-end justify-self-end bg-gray-900/80 px-2 py-1 mr-2 text-xs rounded-lg flex items-center">
