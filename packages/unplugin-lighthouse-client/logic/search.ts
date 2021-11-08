@@ -29,12 +29,11 @@ export const searchResults = computed<Record<string, RouteReport[]>>(() => {
     data = fuse.search<RouteReport>(searchText.value).map(i => i.item)
   }
 
-  console.log(sorting.value)
   if (!isEmpty(sorting.value))
     data = orderBy(data, Object.keys(sorting.value), Object.values(sorting.value))
 
   return groupBy(
     data,
-    report => report.route.name,
+    report => report.route.pathname,
   )
 })

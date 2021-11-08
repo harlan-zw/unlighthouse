@@ -9,7 +9,6 @@ import AutoImport from 'unplugin-auto-import/vite'
 import { HeadlessUiResolver } from 'unplugin-vue-components/resolvers'
 
 export default defineConfig({
-  base: '/__routes/',
   mode: 'development',
 
   plugins: [

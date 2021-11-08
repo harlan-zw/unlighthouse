@@ -39,7 +39,8 @@ const reportsScore = computed(() => {
         <div class="mb-2">
           <div class="text-xs uppercase opacity-40 mb-1">
             URL
-          </div><a :href="report.fullRoute" target="_blank" class="underline">{{ report.route.path }}</a>
+          </div>
+          <a :href="report.fullRoute" target="_blank" class="underline">link</a>
         </div>
         <template v-if="report.seo">
         <div class="mb-2">

@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { refetchReports, refetchStats, searchResults, stats, sorting } from '../logic'
+import { refetchReports, refetchStats, searchResults, stats, sorting, website } from '../logic'
+import {useFetch} from "@vueuse/core";
 
 const isOpen = ref(false)
 const modalReport = ref(false)
+
+const submitSite = (site) => {
+  useFetch('http://localhost:3000/api/site')
+      .post({ site })
+  website.value = site
+}
 
 const closeModal = () => {
   isOpen.value = false
@@ -101,6 +108,8 @@ onMounted(() => {
 <div>
   <NavBar />
   <div class="container mx-auto mt-5">
+    <static-onboard v-if="!website" @submit="submitSite('https://kintell.com')" />
+    <template v-else>
     <div v-if="stats" class="grid grid-cols-3 gap-8 text-lg w-full mb-5">
       <card-route-scan-progress :stats="stats" />
       <card-module-sizes :stats="stats" />
@@ -181,6 +190,7 @@ onMounted(() => {
         </results-table-body>
       </results-panel>
     </TabGroup>
+    </template>
   </div>
 </div>
 <TransitionRoot appear :show="isOpen" as="template">
@@ -216,7 +226,7 @@ onMounted(() => {
           <div
               class="inline-block w-full max-w-3xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl"
           >
-            <iframe :src="`http://localhost:3000/__routes/api/reports/${modalReport.reportId}`" class="w-full h-700px bg-white"></iframe>
+            <iframe :src="`http://localhost:3000/api/reports/${modalReport.reportId}`" class="w-full h-700px bg-white"></iframe>
           </div>
         </TransitionChild>
       </div>

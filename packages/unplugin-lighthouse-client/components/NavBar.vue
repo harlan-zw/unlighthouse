@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {isDark, toggleDark, refetchStats, stats } from '../logic'
+import {isDark, toggleDark, refetchStats, stats, website } from '../logic'
 
 defineProps<{
   id?: string
@@ -23,9 +23,18 @@ onMounted(() => {
   <template v-else>
   <i-vscode-icons-file-type-lighthouse class="text-5xl" />
   <span class="text-md font-bold text-teal-700 dark:text-teal-200">
-    Unplugin Lighthouse
+    UnLighthouse
   </span>
   <div class="flex text-xs ml-5">
+
+    <div class="mr-3">
+      <div class="uppercase opacity-40 ">
+        Website
+      </div>
+      <div class="text-sm flex items-center">
+        {{ website }}
+      </div>
+    </div>
     <div class="mr-3">
       <div class="uppercase opacity-40 ">
         Status

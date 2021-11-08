@@ -1,6 +1,14 @@
 <script lang="ts" setup>
+import {LH} from "lighthouse";
+
 const props = defineProps<{
-  report: LH.Result,
+  report: {
+    fullRoute: string
+    route: {
+      pathname: string
+    }
+    report: LH.Result,
+  }
   activeTab: number
 }>()
 
@@ -45,7 +53,7 @@ const findForegroundColor = (str: string) => {
       <div class="mb-2">
         <div class="text-xs uppercase opacity-40 mb-1">
           URL
-        </div><a :href="report.fullRoute" target="_blank" class="underline">{{ report.route.path }}</a>
+        </div><a :href="report.fullRoute" target="_blank" class="underline">{{ report.route.pathname }}</a>
       </div>
       <template v-if="report.seo">
       <div class="mb-2">
@@ -101,6 +109,12 @@ const findForegroundColor = (str: string) => {
     <div class="text-xs text-gray-500">
       {{ report.report.audits['diagnostics'].details.items[0].numStylesheets }} Stylesheets
     </div>
+    <div class="text-xs text-gray-500">
+      {{ report.report.audits['diagnostics'].details.items[0].numFonts }} Fonts
+    </div>
+    <div class="text-xs text-gray-500">
+      {{ report.report.audits['network-requests'].details.items.filter(i => i.resourceType === 'Image').length }} Images
+    </div>
   </div>
   <div class="col-span-2">
     {{ Math.round(report.report.audits['diagnostics'].details.items[0].totalByteWeight / 1024) }} kB
@@ -134,6 +148,9 @@ const findForegroundColor = (str: string) => {
   </div>
   <div class="col-span-3 text-xs">
     {{ report.seo.description }}
+  </div>
+  <div class="col-span-3 text-xs">
+    <img :src="report.seo.image" width="200" height="100"/>
   </div>
   </template>
   <div class="flex flex-col col-span-2">

@@ -18,9 +18,7 @@
     "url": "git+https://github.com/antfu/unplugin-lighthouse.git"
   },
   "license": "MIT",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "main": "dist/index.html",
   "files": [
     "dist",
     "*.d.ts"

@@ -7,13 +7,13 @@ export const onRefetchResults = createEventHook<void>()
 export const onRefetchStats = createEventHook<void>()
 
 export const fetchedReports = reactive(
-  useFetch('http://localhost:3000/__routes/api/reports')
+  useFetch('http://localhost:3000/api/reports')
     .get()
     .json<RouteReport[]>(),
 )
 
 export const fetchedStats = reactive(
-  useFetch('http://localhost:3000/__routes/api/stats')
+  useFetch('http://localhost:3000/api/stats')
     .get()
     .json<{ stats: {} }>(),
 )
@@ -23,8 +23,7 @@ export const stats = computed(() => {
 })
 
 export const reports = computed(() => {
-  const reports = groupBy(fetchedReports.data, report => report.route.name) || []
-  console.log(reports)
+  const reports = groupBy(fetchedReports.data, report => report.route.pathname) || []
 
   return reports
 })
