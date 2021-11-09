@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { refetchReports, refetchStats, searchResults, stats, sorting, website } from '../logic'
 import {useFetch} from "@vueuse/core";
 
@@ -42,10 +41,12 @@ const resultColumns = computed(() => {
     },
   ]
   if (activeTab.value === 0) {
+    if (!website.value) {
+      columns.push({ label: 'Component' })
+    }
     columns = [
       ...columns,
-      { label: 'Component' },
-      { label: 'Screenshot', cols: 2 },
+      { label: 'Screenshot', cols: !website.value ? 2 : 4 },
     ]
   }
   else if (activeTab.value === 1) {
@@ -62,8 +63,9 @@ const resultColumns = computed(() => {
   else if (activeTab.value === 2) {
     columns = [
       ...columns,
-      { cols: 4, label: 'Color Contrast' },
-      { cols: 3, label: 'Image Alt', sortable: true, key: 'size' },
+      { cols: 3, label: 'Color Contrast' },
+      { cols: 2, label: 'Missing Image Alts', sortable: true, key: 'size' },
+      { cols: 2, label: 'Missing Link Names', sortable: true, key: 'size' },
     ]
   }
   // best practices
@@ -73,7 +75,7 @@ const resultColumns = computed(() => {
       { cols: 1, label: 'Errors', sortable: true, key: 'size' },
       { cols: 2, label: 'Vulnerable Libraries', sortable: true, key: 'size' },
       { cols: 2, label: 'Unsafe Links', sortable: true, key: 'size' },
-      { cols: 2, label: 'Source Maps', sortable: true, key: 'size' },
+      { cols: 2, label: 'Image Aspect Ratio', sortable: true, key: 'size' },
     ]
   }
   // SEO
@@ -113,11 +115,11 @@ onMounted(() => {
   <div class="container mx-auto mt-2">
     <static-onboard v-if="!website" @submit="submitSite('https://kintell.com')" />
     <template v-else>
-    <div v-if="stats" class="grid grid-cols-3 gap-8 text-lg w-full mb-5">
-      <card-route-scan-progress :stats="stats" />
-      <card-module-sizes :stats="stats" />
-      <card-packages :stats="stats" />
-    </div>
+<!--    <div v-if="stats" class="grid grid-cols-3 gap-8 text-lg w-full mb-5">-->
+<!--      <card-route-scan-progress :stats="stats" />-->
+<!--      <card-module-sizes :stats="stats" />-->
+<!--      <card-packages :stats="stats" />-->
+<!--    </div>-->
     <TabGroup @change="changedTab">
       <TabList class="flex p-1 space-x-1 bg-blue-900/20 rounded-xl mb-2">
         <Tab
@@ -168,6 +170,9 @@ onMounted(() => {
               :active-tab="activeTab"
               class="mb-3">
             <template #actions="{ report }">
+            <div class="text-xs uppercase opacity-40 mb-1">
+              Reports
+            </div>
             <div class="flex items-center justify-start">
               <button
                   v-if="report.report"
@@ -175,16 +180,31 @@ onMounted(() => {
                   class="inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
                   @click="openModal(report)"
               >
-                <i-vscode-icons-file-type-lighthouse class="text-3xl mr-1" />
-                Report
+                <i-vscode-icons-file-type-lighthouse class="text-xl mr-2" />
+                Lighthouse
               </button>
-              <button class="icon-btn text-lg mr-3" title="Refetch" @click="refetch()">
-                <i-carbon-renew />
-              </button>
-              <button class="icon-btn text-lg" title="Refetch" @click="refetch()">
-                <i-carbon-trash-can />
+              <button
+                  v-if="report.report"
+                  type="button"
+                  class="inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+                  @click="openModal(report)"
+              >
+                <i-carbon-chart-treemap class="text-sm mr-2 opacity-50" />
+                Treemap
               </button>
             </div>
+            <div class="text-xs uppercase opacity-40 mb-1 mt-3">
+              Actions
+            </div>
+            <button
+                v-if="report.report"
+                type="button"
+                class="inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+                @click="refetch()"
+            >
+              <i-carbon-renew class="text-sm mr-2  opacity-50" />
+              Rescan
+            </button>
             </template>
           </results-row>
         </results-table-body>

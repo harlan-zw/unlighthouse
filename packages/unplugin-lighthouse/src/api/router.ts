@@ -70,14 +70,12 @@ export const createApi = ({ routeProcessor, provider, options }: RuntimeAppData)
     get('stats', () => {
       const stats = provider.stats ? provider.stats() : {}
       const data = routeProcessor.reports()
-      let score = 0
-      if (data && data.length > 0) {
-        // @ts-ignore
-        score = data
-            .map(r => r.score)
-            // @ts-ignore
-            .reduce((s, a) => s + a, 0) / data.length
-      }
+      const reportsWithScore = data.filter(r => !!r.score)
+      // @ts-ignore
+      const score = (reportsWithScore
+          .map(r => r.score)
+          // @ts-ignore
+          .reduce((s, a) => s + a, 0) / reportsWithScore.length) || 0
 
       return {
         score,

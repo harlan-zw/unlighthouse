@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {LH} from "lighthouse";
-import PassValue from "../Value/PassValue.vue";
+import { website } from '../../logic'
 
 const props = defineProps<{
   report: {
@@ -82,25 +82,25 @@ const findForegroundColor = (str: string) => {
   </div>
   </template>
   <template v-if="activeTab === 0">
-  <div class="col-span-2">
+  <div class="col-span-2" v-if="!website">
     <div class="flex items-center">
       <i-logos-vue class="h-12px"></i-logos-vue>
       <a class="inline ml-1" :href="`http://localhost:3000/__open-in-editor?file=${report.route.component}`">{{ report.route.component }}</a>
     </div>
   </div>
-  <div class="col-span-2">
+  <div :class="[!website ? 'col-span-2' : 'col-span-4']">
     <img v-if="report.report" class="h-100px" height="100" :src="report.report.audits['final-screenshot'].details.data" />
   </div>
   </template>
   <template v-else-if="activeTab === 1">
   <div class="col-span-1">
-    {{ report.report.audits['first-contentful-paint'].displayValue }}
+    <audit-result :value="report.report.audits['first-contentful-paint']" />
   </div>
   <div class="col-span-1">
-    {{ report.report.audits['total-blocking-time'].displayValue }}
+    <audit-result :value="report.report.audits['total-blocking-time']" />
   </div>
   <div class="col-span-1">
-    {{ report.report.audits['cumulative-layout-shift'].displayValue }}
+    <audit-result :value="report.report.audits['cumulative-layout-shift']" />
   </div>
   <div class="col-span-2">
     {{ report.report.audits['diagnostics'].details.items[0].numRequests }}
@@ -125,7 +125,7 @@ const findForegroundColor = (str: string) => {
   </div>
   </template>
   <template v-else-if="activeTab === 2">
-  <div class="col-span-4">
+  <div class="col-span-3">
     <div v-if="report.report.audits['color-contrast'].details.items" class="max-h-100px overflow-y-auto">
     <div
         v-for="({ node }, key) in report.report.audits['color-contrast'].details.items"
@@ -140,35 +140,30 @@ const findForegroundColor = (str: string) => {
       </div>
     </div>
   </div>
-  <div class="col-span-3">
+  <div class="col-span-2">
+    <audit-result-items-length :value="report.report.audits['image-alt']" />
+  </div>
+  <div class="col-span-2">
+    <audit-result-items-length :value="report.report.audits['link-name']" />
   </div>
   </template>
   <template v-else-if="activeTab === 3">
   <div class="col-span-1">
-    <pass-value :pass="report.report.audits['errors-in-console'].details.items.length === 0">
-      {{ report.report.audits['errors-in-console'].details.items.length }}
-    </pass-value>
+    <audit-result-items-length :value="report.report.audits['errors-in-console']" />
   </div>
   <div class="col-span-2">
-    <pass-value :pass="report.report.audits['no-vulnerable-libraries'].details.items.length === 0">
-      {{ report.report.audits['no-vulnerable-libraries'].details.items.length }}
-    </pass-value>
+    <audit-result-items-length :value="report.report.audits['no-vulnerable-libraries']" />
   </div>
   <div class="col-span-2">
-    <pass-value :pass="report.report.audits['external-anchors-use-rel-noopener'].details.items.length === 0">
-      {{ report.report.audits['external-anchors-use-rel-noopener'].details.items.length }}
-    </pass-value>
+    <audit-result-items-length :value="report.report.audits['external-anchors-use-rel-noopener']" />
   </div>
   <div class="col-span-2">
-    <pass-value :pass="report.report.audits['external-anchors-use-rel-noopener'].details.items.length === 0">
-      {{ report.report.audits['external-anchors-use-rel-noopener'].details.items.length }}
-    </pass-value>
+    <audit-result-items-length :value="report.report.audits['image-aspect-ratio']" />
   </div>
   </template>
   <template v-else-if="activeTab === 4">
   <div class="col-span-1">
-    <i-carbon-checkmark-outline v-if="report.report.audits['is-crawlable'].score === 1" class="text-green-500" />
-    <i-carbon-close-outline v-else class="text-red-500" />
+    <audit-result :value="report.report.audits['is-crawlable']" />
   </div>
   <div class="col-span-2 text-xs">
     <div class="text-xs uppercase opacity-40 mb-1">
@@ -182,11 +177,11 @@ const findForegroundColor = (str: string) => {
   </div>
   <div class="col-span-2 text-xs">
     <div class="text-xs uppercase opacity-40 mb-1">
-      Title
+      og:title
     </div>
     {{ report.seo.og.title }}
     <div class="text-xs uppercase opacity-40 mb-1 mt-3">
-      Description
+      og:description
     </div>
     {{ report.seo.og.description }}
   </div>
@@ -194,7 +189,7 @@ const findForegroundColor = (str: string) => {
     <img :src="report.seo.image" width="200" height="100"/>
   </div>
   </template>
-  <div class="flex flex-col col-span-2">
+  <div class="col-span-2">
     <slot name="actions" :report="report" />
   </div>
 </div>

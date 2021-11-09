@@ -23,34 +23,54 @@ onMounted(() => {
   <template v-else>
   <i-vscode-icons-file-type-lighthouse class="text-5xl" />
   <span class="text-md font-bold text-teal-700 dark:text-teal-200">
-    UnLighthouse
+    Unlighted
   </span>
-  <div class="flex text-xs ml-5">
+  <div class="flex w-full justify-between text-xs ml-5">
 
-    <div class="mr-5">
-      <div class="uppercase opacity-40 ">
-        Website
+    <div class="flex">
+      <div class="mr-5">
+        <div class="uppercase opacity-40 ">
+          Website
+        </div>
+        <div class="text-sm flex items-center">
+          <a :href="website" class="flex items-center" target="_blank">
+            <img :src="website + '/favicon.ico'" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '') }}
+          </a>
+        </div>
       </div>
-      <div class="text-sm flex items-center">
-        <a :href="website" class="flex items-center" target="_blank">
-          <img :src="website + '/favicon.ico'" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '') }}
-        </a>
+      <div class="mr-5">
+        <div class="uppercase opacity-40 ">
+          Site Score
+        </div>
+        <div class=" flex items-center">
+          <metric-guage :score="stats.score" stripped class="font-bold text-sm" />
+        </div>
+      </div>
+      <div class="mr-5">
+        <div class="uppercase opacity-40 ">
+          Routes
+        </div>
+        <div class=" flex items-center">
+          <span class="text-sm mr-1">{{ stats.staticRoutes }}</span>
+        </div>
       </div>
     </div>
-    <div class="mr-5">
-      <div class="uppercase opacity-40 ">
-        Status
+    <div class="flex">
+      <div class="mr-5">
+        <div class="uppercase opacity-40 ">
+          Worker Status
+        </div>
+        <div class=" flex items-center">
+          <span class="text-sm mr-1">{{ stats.runningTasks > 0 ? 'Working' : 'Listening' }}</span>
+          <loading-spinner v-if="stats.runningTasks > 0 " />
+        </div>
       </div>
-      <div class=" flex items-center">
-        <span class="text-sm mr-1">{{ stats.runningTasks > 0 ? 'Working' : 'Listening' }}</span>
-        <loading-spinner v-if="stats.runningTasks > 0 " />
+      <div>
+        <div class="uppercase opacity-40">
+          Running Tasks
+        </div>
+        <span class="text-sm">{{ stats.runningTasks }}</span>
       </div>
-    </div>
-    <div>
-      <div class="uppercase opacity-40">
-        Running Tasks
-      </div>
-      <span class="text-sm">{{ stats.runningTasks }}</span>
     </div>
   </div>
   <div class="flex-auto"></div>

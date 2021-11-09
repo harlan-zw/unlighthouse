@@ -41,21 +41,22 @@ const guageArcStyle = computed(() => {
 </script>
 <template>
 <div v-if="stripped" :class="guageModifiers">
-  {{ Math.round(score * 100) }}
+  <audit-result :value="{ score, displayValue: Math.round(score * 100)}" />
 </div>
-  <div v-else class="guage__wrapper guage__wrapper--huge" :class="guageModifiers">
-    <div
+
+<div v-else class="guage__wrapper guage__wrapper--huge" :class="guageModifiers">
+  <div
       class="guage__svg-wrapper relative"
-    >
-      <svg class="guage" viewBox="0 0 120 120">
-        <circle
+  >
+    <svg class="guage" viewBox="0 0 120 120">
+      <circle
           class="guage-base"
           r="56"
           cx="60"
           cy="60"
           stroke-width="8"
-        ></circle>
-        <circle
+      ></circle>
+      <circle
           ref="arc"
           class="guage-arc"
           r="56"
@@ -63,15 +64,15 @@ const guageArcStyle = computed(() => {
           cy="60"
           stroke-width="8"
           :style="guageArcStyle"
-        ></circle>
-      </svg>
-      <div
-          class="font-5xl font-bold left-[50%] top-[50%] transform translate-y-[-50%] translate-x-[-50%] absolute"
-      >{{ Math.round(score * 100) }}
-      </div>
+      ></circle>
+    </svg>
+    <div
+        class="font-5xl font-bold left-[50%] top-[50%] transform translate-y-[-50%] translate-x-[-50%] absolute"
+    >{{ Math.round(score * 100) }}
     </div>
-    <div class="text-xs mt-2">{{ label }}</div>
   </div>
+  <div class="text-xs mt-2">{{ label }}</div>
+</div>
 </template>
 <style>
 * {
