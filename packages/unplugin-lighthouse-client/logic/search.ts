@@ -4,23 +4,24 @@ import Fuse from 'fuse.js'
 import groupBy from 'lodash/groupBy'
 import { isEmpty, orderBy } from 'lodash'
 import { RouteReport } from '../../types'
-import { fetchedReports } from './state'
+import {wsReports} from './state'
 
 type SortDirection = 'asc'|'desc'
 
 export const searchText = useStorage('unplugin-lighthouse-search-text', '')
 export const sorting = useStorage<{
   score?: SortDirection
-  ['route.name']?: SortDirection
-}>('unplugin-lighthouse-sort', {})
+  ['route.definition.name']?: SortDirection
+}>('unplugin-lighthouse-sort', { ['route.definition.name']: 'asc' })
 
 export const searchResults = computed<Record<string, RouteReport[]>>(() => {
-  let data: RouteReport[] = fetchedReports.data || []
+  let data: RouteReport[] = [...wsReports.values()]
   if (searchText.value) {
     const fuse = new Fuse(data, {
+      threshold: 0.3,
       shouldSort: isEmpty(sorting.value),
       keys: [
-        'route.name',
+        'route.definition.name',
         'route.path',
         'seo.title',
       ],
@@ -34,6 +35,6 @@ export const searchResults = computed<Record<string, RouteReport[]>>(() => {
 
   return groupBy(
     data,
-    report => report.route.pathname,
+    report => report.route.definition.name,
   )
 })

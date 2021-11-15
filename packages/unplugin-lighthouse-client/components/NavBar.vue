@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import {isDark, toggleDark, refetchStats, stats, website } from '../logic'
+import {isDark, toggleDark, stats, website } from '../logic'
+import { formatDistance } from 'date-fns'
 
 defineProps<{
   id?: string
 }>()
 
-onMounted(() => {
-  setInterval(() => {
-    refetchStats()
-  }, 10000)
+const timeRemaining = computed(() => {
+  return formatDistance(0, stats.value.monitor.timeRemining, { includeSeconds: true })
 })
 </script>
 
@@ -23,9 +22,9 @@ onMounted(() => {
   <template v-else>
   <i-vscode-icons-file-type-lighthouse class="text-5xl" />
   <span class="text-md font-bold text-teal-700 dark:text-teal-200">
-    Unlighted
+    UnLighthouse
   </span>
-  <div class="flex w-full justify-between text-xs ml-5">
+  <div class="flex w-full justify-between items-center text-xs ml-5">
 
     <div class="flex">
       <div class="mr-5">
@@ -55,21 +54,36 @@ onMounted(() => {
         </div>
       </div>
     </div>
+    <div>
+      <search-box />
+    </div>
     <div class="flex">
       <div class="mr-5">
         <div class="uppercase opacity-40 ">
-          Worker Status
+          Worker Progress
         </div>
         <div class=" flex items-center">
-          <span class="text-sm mr-1">{{ stats.runningTasks > 0 ? 'Working' : 'Listening' }}</span>
-          <loading-spinner v-if="stats.runningTasks > 0 " />
+          <span class="text-sm mr-1">
+            {{ stats.monitor.donePercStr }}% <span class="text-xs opacity-60">{{ stats.monitor.doneTargets }}/{{ stats.monitor.allTargets }}</span></span>
         </div>
+      </div>
+      <div class="mr-5">
+        <div class="uppercase opacity-40">
+          Time Remaining
+        </div>
+        <span class="text-sm">{{ stats.monitor.status === 'completed' ? '-' : timeRemaining }}</span>
+      </div>
+      <div class="mr-5">
+        <div class="uppercase opacity-40">
+          CPU
+        </div>
+        <span class="text-sm">{{ stats.monitor.status === 'completed' ? '-' : stats.monitor.cpuUsage }}</span>
       </div>
       <div>
         <div class="uppercase opacity-40">
-          Running Tasks
+          Memory
         </div>
-        <span class="text-sm">{{ stats.runningTasks }}</span>
+        <span class="text-sm">{{ stats.monitor.status === 'completed' ? '-' : stats.monitor.memoryUsage }}</span>
       </div>
     </div>
   </div>

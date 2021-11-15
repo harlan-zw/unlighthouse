@@ -90,24 +90,6 @@ export default defineNuxtModule<Options>(nuxt => ({
         return {
           runtimeModuleCount,
           buildModuleCount,
-          framework: [
-            {
-              id: 'nuxt',
-              name: 'Nuxt.js',
-              version: requireModulePkg('nuxt').version,
-            },
-            {
-              id: 'vue',
-              name: 'Vue.js',
-              version: requireModulePkg('vue').version,
-            },
-            {
-              id: 'windicss',
-              icon: 'simple-icons-windicss',
-              name: 'WindiCSS',
-              version: requireModulePkg('windicss').version,
-            },
-          ],
           staticRoutes: routes.filter(route => !route.path.includes(':')).length,
           dynamicRoutes: routes.filter(route => route.path.includes(':')).length,
           // runningTasks: runningTasks(),

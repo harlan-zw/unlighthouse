@@ -1,7 +1,7 @@
 import { resolve } from 'path'
 import cac from 'cac'
 import { version } from '../package.json'
-import { startServer } from './api'
+import { startServer } from './server'
 import {CliOptions} from "./types";
 
 const cli = cac('lighthouse')
@@ -10,6 +10,7 @@ cli
     .help()
     .version(version)
     .option('--host <host>', 'Host')
+    .option('--app-path <app-path>', 'Path')
     .option('--port <port>', 'Port', { default: 8115 })
     .option('--open', 'Open in browser', { default: true })
     .option('--json [filepath]', 'Output analysis result file in JSON')

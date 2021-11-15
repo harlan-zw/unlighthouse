@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { refetchReports, refetchStats, searchResults, stats, sorting, website } from '../logic'
+import {refetch, refetchStats, searchResults, stats, sorting, website, wsReports} from '../logic'
 import {useFetch} from "@vueuse/core";
 
 const isOpen = ref(false)
@@ -30,23 +30,21 @@ const resultColumns = computed(() => {
     {
       label: 'Route Name',
       slot: 'routeName',
-      key: 'route.name',
+      key: 'route.path',
       sortable: true,
     },
     {
       label: 'Score',
-      key: 'score',
+      key: 'report.score',
       cols: activeTab.value === 0 ? 4 : 1,
       sortable: true,
     },
   ]
   if (activeTab.value === 0) {
-    if (!website.value) {
-      columns.push({ label: 'Component' })
-    }
     columns = [
       ...columns,
-      { label: 'Screenshot', cols: !website.value ? 2 : 4 },
+      { label: 'Component' },
+      { label: 'Screenshot', cols: 2 },
     ]
   }
   else if (activeTab.value === 1) {
@@ -83,9 +81,8 @@ const resultColumns = computed(() => {
     columns = [
       ...columns,
       { cols: 1, label: 'Indexable', sortable: true, key: 'size' },
-      { cols: 2, label: 'Meta' },
-      { cols: 2, label: 'Share Meta' },
-      { cols: 2, label: 'Share Preview' },
+      { cols: 4, label: 'Meta Description' },
+      { cols: 2, label: 'Share Image' },
     ]
   }
   columns.push({ label: 'Actions', slot: 'actions', classes: ['justify-between'] })
@@ -104,9 +101,8 @@ const incrementSort = (key: string) => {
 
 onMounted(() => {
   setInterval(() => {
-    refetchReports()
     refetchStats()
-  }, 10000)
+  }, 5000)
 })
 </script>
 <template>
@@ -148,14 +144,6 @@ onMounted(() => {
             :sorting="sorting"
             @sort="incrementSort"
         >
-          <template #routeName>
-            <search-box />
-          </template>
-          <template #actions>
-          <button class="self-end justify-self-end bg-gray-900/80 px-2 py-1 mr-2 text-xs rounded-lg flex items-center">
-            Collapse All
-          </button>
-          </template>
         </results-table-head>
         <results-table-body>
           <div v-if="searchResults.length === 0" class="px-4 py-3">
@@ -167,12 +155,8 @@ onMounted(() => {
               :key="routeName"
               :reports="reports"
               :route-name="routeName"
-              :active-tab="activeTab"
-              class="mb-3">
+              :active-tab="activeTab">
             <template #actions="{ report }">
-            <div class="text-xs uppercase opacity-40 mb-1">
-              Reports
-            </div>
             <div class="flex items-center justify-start">
               <button
                   v-if="report.report"
@@ -200,7 +184,7 @@ onMounted(() => {
                 v-if="report.report"
                 type="button"
                 class="inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
-                @click="refetch()"
+                @click="refetch(report.route)"
             >
               <i-carbon-renew class="text-sm mr-2  opacity-50" />
               Rescan

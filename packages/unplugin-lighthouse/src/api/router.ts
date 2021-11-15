@@ -1,27 +1,33 @@
-import {basename, dirname, relative} from 'path'
+import {dirname} from 'path'
 import fs from 'fs'
 import { createRouter, useBody, useParams } from 'unrouted'
 import cors from 'cors'
 import { RouteDefinition } from 'nuxt-kit-extras/types'
 // import { PLUGIN_PATH_PREFIX } from '../core'
-import {Options, Provider, RouteReport} from '../types'
-import logger from "../core/logger";
-import {extractSitemapRoutes} from "../node/sitemap";
+import {Options, Provider, UnlighthouseRouteReport, WorkerHooks} from '../types'
+import { useLogger } from "../core"
+import WS from "../server/ws";
+import type {Hookable} from "hookable";
 
 export type RuntimeAppData = {
-  routeProcessor: {
+  ws: WS
+  worker: {
+    routeReports: Map<string, UnlighthouseRouteReport>
+    hooks: Hookable<WorkerHooks>
+    monitor: () => Record<string, string>
     // cluster,
     processRoute: (route: RouteDefinition) => void,
     // processRoutes,
     runningTasks: () => number,
     hasStarted: () => boolean,
-    reports: () => RouteReport[],
+    reports: () => UnlighthouseRouteReport[],
   },
   options: Options
   provider: Provider
 }
 
-export const createApi = ({ routeProcessor, provider, options }: RuntimeAppData) => {
+export const createApi = ({ ws, worker, provider, options }: RuntimeAppData) => {
+  const logger = useLogger()
   const { serve, group, handle, get, } = createRouter({
     // prefix: PLUGIN_PATH_PREFIX,
     // hooks: {
@@ -32,69 +38,82 @@ export const createApi = ({ routeProcessor, provider, options }: RuntimeAppData)
     // },
   })
 
-  const reports = () => {
-    // await onAppVisit()
-    return routeProcessor.reports().map((report) => {
-      if (report.route.component)
-        report.route.component = relative(rootDir, report.route.component)
-
-      return report
-    })
-  }
+  worker.hooks.hook('job-complete', (path, response) => {
+    ws.broadcast({ response })
+  })
+  worker.hooks.hook('job-added', (path, response) => {
+    ws.broadcast({ response })
+  })
 
 
-  const scannedSites = new Set<string>()
   get('*', cors())
 
   group('/api', ({ get, post }) => {
-    post('site', async () => {
-      const { site } = useBody<{ site: string }>()
-      if (!scannedSites.has(site)) {
-        scannedSites.add(site)
 
-        const { sites } = await extractSitemapRoutes(site)
+    group('/reports', ({ get, post }) => {
 
-        sites.forEach(route => routeProcessor.processRoute(route))
-      }
-      return site
+      get('/:id', async () => {
+        const {id} = useParams<{ id: string }>()
+        const report = worker.reports().filter(report => report.reportId === id)[0]
+        return fs.readFileSync(report.reportHtml, 'utf-8')
+      })
+
+      post('/:id/rescan', () => {
+        const { id } = useParams<{ id: string }>()
+        const route = worker.routeReports.get(id)
+        if (route) {
+          // clean up report files
+          fs.rmSync(route.reportHtml)
+          fs.rmSync(route.reportJson)
+          fs.rmSync(route.htmlPayload)
+          worker.routeReports.delete(id)
+          worker.processRoute(route.route)
+        }
+      })
     })
 
-    get('reports', () => routeProcessor.reports())
+
+
+    get('ws', (req) => ws.serve(req))
+
+    get('reports', () => worker.reports())
     get('reports/:id', async() => {
       const { id } = useParams<{ id: string }>()
-      const report = routeProcessor.reports().filter(report => report.reportId === id)[0]
+      const report = worker.reports().filter(report => report.reportId === id)[0]
       return fs.readFileSync(report.reportHtml, 'utf-8')
     })
 
-    get('routes', () => provider.routes())
     get('stats', () => {
       const stats = provider.stats ? provider.stats() : {}
-      const data = routeProcessor.reports()
-      const reportsWithScore = data.filter(r => !!r.score)
+      const data = worker.reports()
+      const reportsWithScore = data.filter(r => r.report?.score)
       // @ts-ignore
       const score = (reportsWithScore
-          .map(r => r.score)
+          .map(r => r.report?.score)
           // @ts-ignore
           .reduce((s, a) => s + a, 0) / reportsWithScore.length) || 0
 
       return {
+        monitor: worker.monitor(),
         score,
-        runningTasks: routeProcessor.runningTasks(),
+        runningTasks: worker.runningTasks(),
         staticRoutes: data.length,
         ...stats,
       }
     })
 
+
+
     post('known-routes', async() => {
         // has started processing
-        if (routeProcessor.hasStarted())
+        if (worker.hasStarted())
           return
         // maybe start processing routes once they visit the app
         const routes = await getRoutes()
         processRoutes(routes)
         logger.info(`Started processing with ${routes.length} static routes.`)
 
-      routeProcessor.processRoute(useBody<RouteDefinition>())
+      worker.processRoute(useBody<RouteDefinition>())
       return { success: true }
     })
   })

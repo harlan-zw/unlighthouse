@@ -5,6 +5,6 @@ export const extractSitemapRoutes = async (site: string) => {
         timeout: 15000, // 15 seconds
     });
 
-    const { sites } = await sitemap.fetch(site + '/sitemap-pages.xml');
+    const { sites } = await sitemap.fetch(site + '/sitemap.xml');
     return sites
 }

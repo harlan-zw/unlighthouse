@@ -67,7 +67,7 @@ const guageArcStyle = computed(() => {
       ></circle>
     </svg>
     <div
-        class="font-5xl font-bold left-[50%] top-[50%] transform translate-y-[-50%] translate-x-[-50%] absolute"
+        class="font-5xl font-bold left-[50%] top-[50%] transform -translate-y-[50%] -translate-x-[50%] absolute"
     >{{ Math.round(score * 100) }}
     </div>
   </div>

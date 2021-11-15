@@ -7,10 +7,11 @@
   ],
   "scripts": {
     "build": "tsup",
-    "cli": "pnpm run build:client && esno packages/unplugin-lighthouse/src/cli.ts --host https://kintell.com",
+    "cli:kintell": "pnpm run build:client && esno packages/unplugin-lighthouse/src/cli.ts --host https://kintell.com --app-path /home/harlan/sites/kintell.com",
+    "cli:ody": "pnpm run build:client && esno packages/unplugin-lighthouse/src/cli.ts --host https://www.odysseytraveller.com --app-path /home/harlan/sites/odysseytraveller.com-app",
     "dev": "export DEBUG=* && tsup --watch packages/unplugin-lighthouse/src",
     "build:fix": "esno packages/unplugin-lighthouse/scripts/postbuild.ts",
-    "dev:client": "vite build packages/unplugin-lighthouse-client --watch",
+    "dev:client": "vite packages/unplugin-lighthouse-client",
     "build:client": "vite build packages/unplugin-lighthouse-client",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
@@ -25,18 +26,19 @@
   "devDependencies": {
     "@antfu/eslint-config": "^0.8.2",
     "@types/jest": "^27.0.2",
-    "@types/node": "^16.11.6",
+    "@types/node": "^16.11.7",
     "eslint": "^7.32.0",
     "eslint-plugin-jest": "^24.7.0",
     "esno": "^0.9.1",
     "jest": "^27.3.1",
     "rimraf": "^3.0.2",
-    "rollup": "^2.59.0",
-    "ts-jest": "^27.0.5",
+    "rollup": "^2.60.0",
+    "ts-jest": "^27.0.7",
     "tsup": "^4.14.0",
-    "typescript": "^4.4.3"
+    "typescript": "^4.4.4",
+    "vite-plugin-windicss": "^1.5.1"
   },
   "dependencies": {
-    "sitemapper": "^3.1.15"
+    "sitemapper": "^3.2.0"
   }
 }

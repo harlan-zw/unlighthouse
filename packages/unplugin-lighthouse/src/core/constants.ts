@@ -11,14 +11,15 @@ export const defaultOptions = {
         args: [],
     },
     puppeteerClusterOptions: {
-        monitor: false,
+        monitor: true,
         workerCreationDelay: 500,
         retryLimit: 5,
         timeout: 5 * 60 * 1000, // wait for up to 5 minutes.
-        maxConcurrency: 2,
+        maxConcurrency: 5,
         skipDuplicateUrls: false,
         retryDelay: 1000,
-        concurrency: Cluster.CONCURRENCY_BROWSER, // Important, when using Lighthouse we want browser isolation.
+        // Important, when using Lighthouse we want browser isolation.
+        concurrency: Cluster.CONCURRENCY_BROWSER,
     },
     lighthouse: {
         // desktop @todo swap out depending what we're testing
