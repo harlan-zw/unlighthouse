@@ -15,7 +15,7 @@
     "nuxt-vite": "^0.2.4",
     "slugify": "^1.6.0",
     "vue": "^2.6.14",
-    "unplugin-lighthouse": "workspace:*"
+    "unlighthouse": "workspace:*"
   },
   "devDependencies": {
     "@nuxt/types": "^2.15.7",

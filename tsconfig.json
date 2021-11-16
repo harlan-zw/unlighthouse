@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "module": "ESNext",
-    "target": "es2016",
+    "target": "ESNext",
     "lib": ["DOM", "ESNext"],
     "strict": true,
     "esModuleInterop": true,
@@ -13,11 +13,11 @@
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "~/*": ["src/*"],
-      "@shared": ["shared/index.ts"]
+      "@shared": ["packages/unlighthouse-shared/index.ts"],
     }
   },
   "include": [
+    "@types/fs-extra",
     "packages/**/*",
     "@vue/runtime-core/dist/runtime-core.d.ts"
   ],

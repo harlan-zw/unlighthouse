@@ -1,0 +1,270 @@
+<script setup lang="ts">
+import { useFetch } from '@vueuse/core'
+import { rescanRoute, refetchStats, searchResults, sorting, website, wsConnect } from '../logic'
+
+const isOpen = ref(false)
+const modalReport = ref(false)
+
+const submitSite = (site) => {
+  useFetch('http://localhost:3000/api/site')
+      .post({ site })
+  website.value = site
+}
+
+const closeModal = () => {
+  isOpen.value = false
+}
+const openModal = (report: any) => {
+  modalReport.value = report
+  isOpen.value = true
+}
+
+const activeTab = ref(0)
+
+const changedTab = (index: number) => {
+  activeTab.value = index
+}
+
+const resultColumns = computed(() => {
+  let columns = [
+    {
+      label: 'Route Name',
+      slot: 'routeName',
+      key: 'route.path',
+      sortable: true,
+    },
+    {
+      label: 'Score',
+      key: 'report.score',
+      cols: activeTab.value === 0 ? 4 : 1,
+      sortable: true,
+    },
+  ]
+  if (activeTab.value === 0) {
+    columns = [
+      ...columns,
+      { label: 'Component' },
+      { label: 'Screenshot', cols: 2 },
+    ]
+  }
+  else if (activeTab.value === 1) {
+    columns = [
+      ...columns,
+      { cols: 1, label: 'FCP', sortable: true, key: 'report.audits.first-contentful-paint.numericValue' },
+      { cols: 1, label: 'TBT', sortable: true, key: 'report.audits.total-blocking-time.numericValue' },
+      { cols: 1, label: 'CLS', sortable: true, key: 'report.audits.cumulative-layout-shift.numericValue' },
+      { cols: 2, label: 'Requests', sortable: true, key: 'requests' },
+      { cols: 2, label: 'Size', sortable: true, key: 'size' },
+    ]
+  }
+  // Accessibility 2
+  else if (activeTab.value === 2) {
+    columns = [
+      ...columns,
+      { cols: 3, label: 'Color Contrast' },
+      { cols: 2, label: 'Missing Image Alts', sortable: true, key: 'size' },
+      { cols: 2, label: 'Missing Link Names', sortable: true, key: 'size' },
+    ]
+  }
+  // best practices
+  else if (activeTab.value === 3) {
+    columns = [
+      ...columns,
+      { cols: 1, label: 'Errors', sortable: true, key: 'size' },
+      { cols: 2, label: 'Vulnerable Libraries', sortable: true, key: 'size' },
+      { cols: 2, label: 'Unsafe Links', sortable: true, key: 'size' },
+      { cols: 2, label: 'Image Aspect Ratio', sortable: true, key: 'size' },
+    ]
+  }
+  // SEO
+  else if (activeTab.value === 4) {
+    columns = [
+      ...columns,
+      { cols: 1, label: 'Indexable', sortable: true, key: 'size' },
+      { cols: 4, label: 'Meta Description' },
+      { cols: 2, label: 'Share Image' },
+    ]
+  }
+  columns.push({ label: 'Actions', slot: 'actions', classes: ['items-end'] })
+  return columns
+})
+
+const incrementSort = (key: string) => {
+  const currentValue = sorting.value[key]
+  if (typeof currentValue === 'undefined')
+    sorting.value[key] = 'asc'
+  else if (currentValue === 'asc')
+    sorting.value[key] = 'desc'
+  else
+    delete sorting.value[key]
+}
+
+onMounted(() => {
+  wsConnect()
+  setInterval(() => {
+    refetchStats()
+  }, 5000)
+})
+</script>
+<template>
+<div>
+  <NavBar />
+  <div class="container mx-auto mt-2">
+    <static-onboard v-if="!website" @submit="submitSite('https://kintell.com')" />
+    <template v-else>
+    <TabGroup @change="changedTab">
+      <TabList class="flex p-1 space-x-1 bg-blue-900/20 rounded-xl mb-2">
+        <Tab
+            v-for="category in ['Overview', 'Performance', 'Accessibility', 'Best Practices', 'SEO']"
+            :key="category"
+            v-slot="{ selected }"
+            as="template"
+        >
+          <button
+              :class="[
+                  'w-full py-2 text-sm leading-5 font-medium text-blue-700 rounded-lg',
+                  'focus:outline-none focus:ring-1 ring-offset-blue-400 ring-white ring-opacity-60',
+                  selected
+                    ? 'bg-blue-900 text-blue-300 shadow'
+                    : 'text-blue-100 hover:bg-white/[0.12] hover:text-white',
+                ]"
+          >
+            {{ category }}
+          </button>
+        </Tab>
+      </TabList>
+
+      <results-panel>
+        <results-table-head
+            :columns="resultColumns"
+            :sorting="sorting"
+            @sort="incrementSort"
+        >
+        </results-table-head>
+        <results-table-body>
+          <div v-if="searchResults.length === 0" class="px-4 py-3">
+            Waiting for route data..
+          </div>
+          <results-row
+              v-for="(reports, routeName) in searchResults"
+              v-else
+              :key="routeName"
+              :reports="reports"
+              :route-name="routeName"
+              :active-tab="activeTab"
+          >
+            <template #actions="{ report }">
+            <Popover v-slot="{ open }" class="relative flex items-center justify-end">
+              <PopoverButton
+                  :class="open ? '' : 'text-opacity-90'"
+                  class="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-teal-700 rounded-md group hover:text-opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+              >
+                <span>Actions</span>
+                <i-carbon-chevron-down
+                    :class="open ? '' : 'text-opacity-70'"
+                    class="w-5 h-5 ml-2 text-teal-500 transition duration-150 ease-in-out group-hover:text-opacity-80"
+                    aria-hidden="true"
+                />
+              </PopoverButton>
+
+              <transition
+                  enter-active-class="transition duration-200 ease-out"
+                  enter-from-class="translate-y-1 opacity-0"
+                  enter-to-class="translate-y-0 opacity-100"
+                  leave-active-class="transition duration-150 ease-in"
+                  leave-from-class="translate-y-0 opacity-100"
+                  leave-to-class="translate-y-1 opacity-0"
+              >
+                <PopoverPanel
+                    class="absolute z-10 px-4 mt-3 transform -translate-x-3/4 left-1/2 sm:px-0"
+                >
+                  <div
+                      class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5"
+                  >
+                    <div class="relative p-5 bg-teal-900">
+                      <div class="flex items-center justify-start">
+                        <button
+                            v-if="report.report"
+                            type="button"
+                            class="inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+                            @click="openModal(report)"
+                        >
+                          <i-vscode-icons-file-type-lighthouse class="text-xl mr-2" />
+                          Lighthouse
+                        </button>
+                        <button
+                            v-if="report.report"
+                            type="button"
+                            class="inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+                            @click="openModal(report)"
+                        >
+                          <i-carbon-chart-treemap class="text-sm mr-2 opacity-50" />
+                          Treemap
+                        </button>
+                      </div>
+                      <div class="text-xs uppercase opacity-40 mb-1 mt-3">
+                        Actions
+                      </div>
+                      <button
+                          v-if="report.report"
+                          type="button"
+                          class="inline-flex w-100px items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+                          @click="rescanRoute(report.route)"
+                      >
+                        <i-carbon-renew class="text-sm mr-2  opacity-50" />
+                        Rescan
+                      </button>
+                    </div>
+                  </div>
+                </PopoverPanel>
+              </transition>
+            </Popover>
+            </template>
+          </results-row>
+        </results-table-body>
+      </results-panel>
+    </TabGroup>
+    </template>
+  </div>
+</div>
+<TransitionRoot appear :show="isOpen" as="template">
+  <Dialog as="div" @close="closeModal">
+    <DialogOverlay class="fixed inset-0 bg-black opacity-40" />
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+      <div class="min-h-screen px-4 text-center">
+        <TransitionChild
+            as="template"
+            enter="duration-300 ease-out"
+            enter-from="opacity-0"
+            enter-to="opacity-100"
+            leave="duration-200 ease-in"
+            leave-from="opacity-100"
+            leave-to="opacity-0"
+        >
+          <DialogOverlay class="fixed inset-0" />
+        </TransitionChild>
+
+        <span class="inline-block h-screen align-middle" aria-hidden="true">
+            &#8203;
+          </span>
+
+        <TransitionChild
+            as="template"
+            enter="duration-300 ease-out"
+            enter-from="opacity-0 scale-95"
+            enter-to="opacity-100 scale-100"
+            leave="duration-200 ease-in"
+            leave-from="opacity-100 scale-100"
+            leave-to="opacity-0 scale-95"
+        >
+          <div
+              class="inline-block w-full max-w-3xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl"
+          >
+            <iframe :src="`http://localhost:3000/api/reports/${modalReport.reportId}`" class="w-full h-700px bg-white"></iframe>
+          </div>
+        </TransitionChild>
+      </div>
+    </div>
+  </Dialog>
+</TransitionRoot>
+</template>
