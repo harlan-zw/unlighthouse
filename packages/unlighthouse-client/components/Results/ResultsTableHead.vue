@@ -1,12 +1,7 @@
 <script lang="ts" setup>
+import { resultColumns } from '../../logic'
+
 const props = defineProps<{
-  columns: { label: string
-    sortable?: boolean
-    key?: string
-    cols?: number
-    slot?: string
-    classes?: string[]
-  }[]
   sorting: Record<string, 'desc'|'asc'|undefined>
 }>()
 
@@ -18,7 +13,7 @@ const emits = defineEmits<{
   <div class="bg-blue-900/30">
     <div class="mb-3 pl-4 pr-10 py-2">
       <div class="grid grid-cols-12 gap-4 text-sm text-gray-400">
-        <div v-for="(column, key) in columns" :key="key" class="flex flex-col" :class="[`col-span-${(column.cols || 2)}`, ...(column.classes || [])]">
+        <div v-for="(column, key) in resultColumns" :key="key" class="flex flex-col" :class="[`col-span-${(column.cols || 2)}`, ...(column.classes || [])]">
           <div class="flex">
             {{ column.label }}
             <button v-if="column.sortable && column.key" class="ml-1" @click="$emit('sort', column.key)">

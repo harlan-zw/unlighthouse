@@ -2,7 +2,7 @@ import type { LH } from 'lighthouse'
 import type { $URL } from 'ufo'
 import type { Hookable } from 'hookable'
 import Cluster from './cluster'
-import type WS from '~/server/ws'
+import type WS from '../unlighthouse/src/server/ws'
 import {TaskFunction} from "puppeteer-cluster/dist/Cluster"
 
 export interface RouteDefinition {
@@ -25,9 +25,9 @@ export interface NormalisedRoute {
   path: string
   url: string
   $url: $URL
-  definition: RouteDefinition
-  static: boolean
-  dynamic: boolean
+  definition?: RouteDefinition
+  static?: boolean
+  dynamic?: boolean
 }
 
 export type LighthouseReport = Partial<LH.Result> & {
@@ -50,6 +50,21 @@ export interface UnlighthouseRouteReport {
   seo?: { title?: string; description?: string; image?: string }
 }
 
+export interface UnlighthouseColumn {
+  label: string
+  component?: () => Promise<unknown>
+  key?: string
+  cols?: number
+  sortable?: boolean
+  classes?: string[]
+}
+
+declare global {
+  interface Window {
+    __unlighthouse_options: Options
+  }
+}
+
 export interface Options {
   resolvedClient: string
   apiPrefix: string
@@ -57,12 +72,18 @@ export interface Options {
   /** @default 5 */
   dynamicRouteSampleSize: number
   host: string
+  columns: UnlighthouseColumn[][],
+  wsUrl: string
+  apiUrl: string
+  groupRoutes: boolean
+  hasDefinitions: boolean
   /**
    * Have logger debug displayed when running.
    */
   debug?: boolean
   // define your plugin options here
-  outputPath?: string
+  outputPath: string
+  clientPath: string
   lighthouse?: LH.Flags
   puppeteerOptions?: Record<string, unknown>
   puppeteerClusterOptions?: Record<string, unknown>
@@ -123,10 +144,11 @@ export interface StatsResponse {
 }
 
 export type UnlighthouseEngineContext = {
+  routeDefinitions?: RouteDefinition[]
   client: string
   api: any
   ws: WS
-  start: () => Promise<void>
+  start: (serverUrl: string) => Promise<void>
   worker: UnlighthouseWorker
   options: Options
   provider: Provider

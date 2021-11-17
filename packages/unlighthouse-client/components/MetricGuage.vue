@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 const props = defineProps<{
-  score: number
+  score?: number
   stripped?: boolean
   label?: string
 }>()
@@ -57,6 +57,7 @@ const guageArcStyle = computed(() => {
           stroke-width="8"
         ></circle>
         <circle
+          v-if="score !== null"
           ref="arc"
           class="guage-arc"
           r="56"
@@ -69,7 +70,7 @@ const guageArcStyle = computed(() => {
       <div
         class="font-5xl font-bold left-[50%] top-[50%] transform -translate-y-[50%] -translate-x-[50%] absolute"
       >
-        {{ Math.round(score * 100) }}
+        {{ score === null ? '?' : Math.round(score * 100) }}
       </div>
     </div>
     <div class="text-xs mt-2">

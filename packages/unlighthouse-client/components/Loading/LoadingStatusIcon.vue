@@ -28,8 +28,8 @@ const label = computed(() => {
 })
 </script>
 <template>
-<div class="inline-block">
-  <div :class="[color]" class="rounded-full h-3 w-3 inline-block"></div>
+<div class="inline-flex items-center">
+  <div :class="[color]" class="rounded-full h-3 w-3 inline-block mr-1"></div>
   {{ label }}
 </div>
 </template>

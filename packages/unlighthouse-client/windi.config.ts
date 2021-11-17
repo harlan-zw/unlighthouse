@@ -10,6 +10,13 @@ export default defineConfig({
     'border-main': 'border-gray-400 border-opacity-30',
     'bg-main': 'bg-gray-400',
   },
+  safelist: [
+    'col-span-6',
+    'col-span-5',
+    'col-span-4',
+    'col-span-3',
+    'col-span-2',
+  ],
   theme: {
     extend: {
       colors: {

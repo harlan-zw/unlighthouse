@@ -6,7 +6,7 @@ import { RouteDefinition } from 'nuxt-kit-extras/types'
 import { UnlighthouseEngineContext } from '@shared'
 import { useLogger } from '../core'
 
-export const createApi = ({ ws, worker, provider, options, client }: UnlighthouseEngineContext) => {
+export const createApi = ({ ws, worker, provider, options }: UnlighthouseEngineContext) => {
   const logger = useLogger()
   const { serve, group, handle, get } = createRouter({
     // prefix: PLUGIN_PATH_PREFIX,
@@ -36,11 +36,7 @@ export const createApi = ({ ws, worker, provider, options, client }: Unlighthous
         const reports = [...worker.routeReports.values()]
         worker.routeReports.clear()
         reports.forEach((route) => {
-          if (route.resolved) {
-            fs.rmSync(route.reportHtml, { force: true })
-            fs.rmSync(route.reportJson, { force: true })
-            fs.rmSync(route.htmlPayload, { force: true })
-          }
+          fs.rmdirSync(dirname(route.reportHtml), { recursive: true })
         })
         worker.processRoutes(reports.map(report => report.route))
         return true
@@ -104,7 +100,7 @@ export const createApi = ({ ws, worker, provider, options, client }: Unlighthous
     })
   })
 
-  serve('/', client)
+  serve('/', options.clientPath)
 
   return handle
 }

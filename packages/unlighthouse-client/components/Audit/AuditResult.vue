@@ -19,7 +19,7 @@ const mark = computed(() => {
 <template>
   <div class="flex items-center" :class="[mark]">
     <div class="icon w-2 h-2 mr-2"></div>
-    <div v-if="typeof value.displayValue !== 'undefined'">
+    <div v-if="typeof value.displayValue !== 'undefined'" class="text-base">
       {{ value.displayValue }}
     </div>
   </div>

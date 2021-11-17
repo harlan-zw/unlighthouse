@@ -5,6 +5,7 @@ import groupBy from 'lodash/groupBy'
 import { isEmpty, orderBy } from 'lodash'
 import { UnlighthouseRouteReport } from '@shared'
 import { wsReports } from './state'
+import { groupRoutes } from './static'
 
 type SortDirection = 'asc'|'desc'
 
@@ -34,7 +35,7 @@ export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>
     data = orderBy(data, Object.keys(sorting.value), Object.values(sorting.value))
 
   return groupBy(
-    data,
-    report => report.route.definition.name,
+      data,
+      groupRoutes ? 'route.definition.name' : 'route.path',
   )
 })

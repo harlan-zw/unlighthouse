@@ -9,6 +9,8 @@
     "build": "tsup",
     "cli:kintell": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --host https://kintell.com --app-path /home/harlan/sites/kintell.com",
     "cli:ody": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --host https://www.odysseytraveller.com --app-path /home/harlan/sites/odysseytraveller.com-app",
+    "cli:mm": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --host https://massivemonster.co --app-path /home/harlan/sites/massivemonster.co",
+    "cli:hzw": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --host https://harlanzw.com/",
     "dev": "export DEBUG=* && tsup --watch packages/unlighthouse/src",
     "build:fix": "esno packages/unlighthouse/scripts/postbuild.ts",
     "dev:client": "vite packages/unlighthouse-client",

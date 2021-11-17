@@ -1,15 +1,16 @@
 import { ensureDirSync } from 'fs-extra'
 import defu from 'defu'
-import { $URL } from 'ufo'
+import {$URL, joinURL} from 'ufo'
 import groupBy from 'lodash/groupBy'
 import map from 'lodash/map'
 import sampleSize from 'lodash/sampleSize'
-import { NormalisedRoute, Options, Provider, UnlighthouseEngineContext } from '@shared'
+import {NormalisedRoute, Options, Provider, RouteDefinition, UnlighthouseEngineContext} from '@shared'
 import { createApi, createMockRouter, normaliseRoute } from '../router'
 import { defaultOptions, createLogger } from '../core'
 import { generateBuild } from '../core/build'
 import WS from '../server/ws'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from '../puppeteer'
+import {join} from "path";
 
 export const createEngine = async(provider: Provider, options: Options) => {
   options = defu(options, defaultOptions) as Options
@@ -18,7 +19,20 @@ export const createEngine = async(provider: Provider, options: Options) => {
 
   const $url = new $URL(options.host)
 
-  options.outputPath = `${options.outputPath}/${$url.hostname}`
+  // for local urls we disable throttling
+  if (options.lighthouse && $url.hostname.startsWith('localhost')) {
+    options.lighthouse.throttling = {
+      rttMs: 0,
+      throughputKbps: 0,
+      cpuSlowdownMultiplier: 0,
+      requestLatencyMs: 0, // 0 means unset
+      downloadThroughputKbps: 0,
+      uploadThroughputKbps: 0,
+    }
+  }
+
+  options.outputPath = join(options.outputPath, $url.hostname)
+  options.clientPath = join(options.outputPath, '__client')
 
   logger.info(`Saving lighthouse reports to: ${options.outputPath}`)
 
@@ -33,12 +47,18 @@ export const createEngine = async(provider: Provider, options: Options) => {
 
   const ws = new WS()
 
-  const client = await generateBuild({
-    ...options
-  })
+  let routeDefinitions: RouteDefinition[]|undefined = undefined
+  if (provider.routeDefinitions) {
+    routeDefinitions = await provider.routeDefinitions()
+  }
+  options.hasDefinitions = !!routeDefinitions
+  if (!routeDefinitions) {
+    console.log('disabling group routing')
+    options.groupRoutes = false
+  }
 
   const ctx: Partial<UnlighthouseEngineContext> = {
-    client,
+    routeDefinitions,
     ws,
     worker,
     provider,
@@ -48,12 +68,14 @@ export const createEngine = async(provider: Provider, options: Options) => {
   ctx.api = createApi(ctx as UnlighthouseEngineContext)
 
   const initialScanPaths: () => Promise<NormalisedRoute[]> = async() => {
-    if (!provider.urls || !provider.routeDefinitions)
+    // @todo automatic sitemap / crawler url discovery
+    if (!provider.urls)
       return []
 
-    const routeDefinitions = await provider.routeDefinitions()
-    if (!routeDefinitions)
-      return []
+    // no route definitions provided
+    if (!routeDefinitions) {
+      return (await provider.urls()).map(url => normaliseRoute(url))
+    }
 
     const mockRouter = createMockRouter(routeDefinitions)
 
@@ -61,28 +83,33 @@ export const createEngine = async(provider: Provider, options: Options) => {
 
     // group all urls by their route definition path name
     const pathsChunkedToRouteName = groupBy(
-      urls
-        .map(url => normaliseRoute(url, mockRouter))
-        .filter(route => route !== false) as NormalisedRoute[],
-      u => u.definition.name,
+        urls
+            .map(url => normaliseRoute(url, mockRouter))
+            .filter(route => route !== false) as NormalisedRoute[],
+        u => u.definition.name,
     )
 
     const pathsSampleChunkedToRouteName = map(
-      pathsChunkedToRouteName,
-      // we're matching dynamic rates here, only taking a sample to avoid duplicate tests
-      (group) => {
-        // whatever the sampling rate is
-        return sampleSize(group, options.dynamicRouteSampleSize)
-      })
+        pathsChunkedToRouteName,
+        // we're matching dynamic rates here, only taking a sample to avoid duplicate tests
+        (group) => {
+          // whatever the sampling rate is
+          return sampleSize(group, options.dynamicRouteSampleSize)
+        })
 
     return pathsSampleChunkedToRouteName.flat()
   }
 
-  ctx.start = async() => {
-    (await initialScanPaths()).forEach((route) => {
-      worker.processRoute(route)
+  ctx.start = async(serverUrl: string) => {
+    const $url = new $URL(serverUrl)
+    const apiUrl = joinURL($url.toString(), options.apiPrefix)
+    ctx.client = await generateBuild({
+      ...options,
+      apiUrl,
+      wsUrl: 'ws://' + joinURL($url.host, options.apiPrefix, '/ws')
     })
+    worker.processRoutes(await initialScanPaths())
   }
 
-  return ctx
+  return ctx as UnlighthouseEngineContext
 }

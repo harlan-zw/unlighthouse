@@ -10,15 +10,13 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<string> 
 }
 
 export const processSeoMeta = ($: CheerioAPI) => {
-  const ogImage = $('meta[property=\'og:image\']').attr('content')
   return {
-    title: $('head > title').text(),
+    title: $('meta[name=\'title\'], head > title').text(),
     description: $('meta[name=\'description\']').attr('content'),
-    image: $('meta[property=\'image\']').attr('content') || ogImage,
     og: {
-      image: ogImage,
-      description: $('meta[property=\'og:description\']').attr('content'),
-      title: $('meta[property=\'og:title\']').attr('content'),
+      image: $('meta[property=\'og:image\'], meta[name=\'og:image\']').attr('content'),
+      description: $('meta[property=\'og:description\'], meta[name=\'og:description\']').attr('content'),
+      title: $('meta[property=\'og:title\'], meta[name=\'og:title\']').attr('content'),
     },
   }
 }

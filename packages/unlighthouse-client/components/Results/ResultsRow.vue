@@ -1,9 +1,8 @@
 <script lang="ts" setup>
-import { UnlighthouseRouteReport } from '@shared'
+import { UnlighthouseRouteReport} from '@shared'
 
 const props = defineProps<{
   routeName: string
-  activeTab: number
   reports: UnlighthouseRouteReport[]
 }>()
 
@@ -18,10 +17,10 @@ const reportsScore = computed(() => {
     <disclosure-handle>
       <template #label>
         <div class="grid grid-cols-12 gap-4 text-xs w-full">
-          <div class="flex items-center col-span-2 text-gray-400/90">
-            {{ routeName }}
+          <div class="flex items-center justify-between col-span-2 text-gray-400">
+            <span>{{ routeName }}</span>
             <span v-if="reports.length > 1" class="text-xs text-gray-400/70 ml-2">
-              {{ reports.length }} urls
+              {{ reports.length }} routes
             </span>
           </div>
           <div class="flex items-center col-span-2">
@@ -30,7 +29,7 @@ const reportsScore = computed(() => {
         </div>
       </template>
       <template v-for="(report, index) in reports" :key="index">
-        <results-route :active-tab="activeTab" :report="report">
+        <results-route :report="report">
           <template #actions>
             <slot name="actions" :report="report" />
           </template>

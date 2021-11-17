@@ -10,6 +10,43 @@ export const defineOptions = (options: Partial<Options>) => {
 export const defaultOptions = defineOptions({
   resolvedClient: require.resolve('unlighthouse-client'),
   host: '',
+  groupRoutes: true,
+  columns: [
+    [
+      { label: 'Screenshot', key: 'report.audits.screenshot-thumbnails', cols: 6 },
+    ],
+    [
+      { cols: 1, label: 'FCP', sortable: true, key: 'report.audits.first-contentful-paint' },
+      { cols: 1, label: 'TBT', sortable: true, key: 'report.audits.total-blocking-time' },
+      { cols: 1, label: 'CLS', sortable: true, key: 'report.audits.cumulative-layout-shift' },
+      { cols: 1, label: 'FID', sortable: true, key: 'report.audits.max-potential-fid' },
+      { cols: 1, label: 'TTI', sortable: true, key: 'report.audits.interactive' },
+      { cols: 2, label: 'Network Requests', sortable: true, key: 'report.audits.network-requests' },
+      { cols: 1, label: 'Size', sortable: true, key: 'report.audits.diagnostics' },
+    ],
+    // accessibility
+    [
+      { cols: 3, label: 'Color Contrast', key: 'report.audits.color-contrast' },
+      { cols: 2, label: 'Heading Order', sortable: true, key: 'report.audits.heading-order'  },
+      { cols: 1, label: 'Labels', sortable: true, key: 'report.audits.label'  },
+      { cols: 1, label: 'Image Alts', sortable: true, key: 'report.audits.image-alt'  },
+      { cols: 1, label: 'Link Names', sortable: true, key: 'report.audits.link-name'  },
+    ],
+    // best practices
+    [
+      { cols: 2, label: 'Errors', sortable: true, key: 'report.audits.errors-in-console' },
+      { cols: 2, label: 'Inspector Issues', sortable: true, key: 'report.audits.inspector-issues' },
+      { cols: 2, label: 'Images Responsive', sortable: true, key: 'report.audits.image-size-responsive' },
+      { cols: 2, label: 'Image Aspect Ratio', sortable: true, key: 'report.audits.image-aspect-ratio' },
+    ],
+    // seo
+    [
+      { cols: 1, label: 'Indexable', sortable: true, key: 'report.audits.is-crawlable' },
+      { cols: 2, label: 'Tap Targets', sortable: true, key: 'report.audits.tap-targets' },
+      { cols: 3, label: 'Meta Description', key: 'seo.description' },
+      { cols: 2, label: 'Share Image', key: 'seo.og.image' },
+    ]
+  ],
   clientPrefix: '/__lighthouse',
   apiPrefix: '/api',
   outputPath: './.lighthouse',
@@ -31,17 +68,7 @@ export const defaultOptions = defineOptions({
     concurrency: Cluster.CONCURRENCY_BROWSER,
   },
   lighthouse: {
-    // desktop @todo swap out depending what we're testing
-    formFactor: 'desktop',
-    screenEmulation: { disabled: true },
-    throttling: {
-      rttMs: 0,
-      throughputKbps: 0,
-      cpuSlowdownMultiplier: 0,
-      requestLatencyMs: 0, // 0 means unset
-      downloadThroughputKbps: 0,
-      uploadThroughputKbps: 0,
-    },
+    formFactor: 'mobile',
     onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
   },
 })

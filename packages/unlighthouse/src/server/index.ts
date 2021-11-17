@@ -7,9 +7,16 @@ import defu from 'defu'
 import { CliOptions } from '@shared'
 import { createEngine } from '../core'
 import { extractSitemapRoutes } from '../util/sitemap'
+import {hasProtocol, withoutTrailingSlash} from "ufo";
 
 const startServer = async(options: CliOptions) => {
   options = defu(options, {}) as CliOptions
+
+  // normalise host
+  options.host = withoutTrailingSlash(options.host)
+  if (!hasProtocol(options.host)) {
+    options.host = 'https://' + options.host
+  }
 
   const app = createApp()
 
@@ -25,11 +32,11 @@ const startServer = async(options: CliOptions) => {
 
   app.use(api)
 
-  await start()
-
   const server = await listen(app, {
     open: options.open,
   })
+
+  await start(server.url)
 
   server.server.on('upgrade', (request: IncomingMessage, socket) => {
     ws.handleUpgrade(request, socket as Socket)

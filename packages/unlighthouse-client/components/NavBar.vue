@@ -21,18 +21,23 @@ const timeRemaining = computed(() => {
         Unlighthouse
       </span>
       <div class="flex w-full justify-between items-center text-xs ml-5">
-        <div v-if="stats"  class="flex">
+        <div class="flex items-center">
           <div v-if="website" class="mr-5">
             <div class="uppercase opacity-40 ">
               Website
             </div>
             <div class="text-sm flex items-center">
-              <a :href="website" class="flex items-center" target="_blank">
+              <a :href="website" class="flex items-center pt-1" target="_blank">
                 <img :src="website + '/favicon.ico'" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '') }}
               </a>
             </div>
           </div>
-          <div class="mr-5">
+          <div v-if="!stats">
+            <div class="text-sm opacity-70">
+              Disconnected from server...
+            </div>
+          </div>
+          <div v-if="stats?.score" class="mr-5">
             <div class="uppercase opacity-40 ">
               Site Score
             </div>
@@ -40,16 +45,16 @@ const timeRemaining = computed(() => {
               <metric-guage  :score="stats.score" stripped class="font-bold text-sm" />
             </div>
           </div>
-          <div class="mr-5">
+          <div v-if="stats?.monitor" class="mr-5">
             <div class="uppercase opacity-40 ">
               Routes
             </div>
             <div class=" flex items-center">
-              <span class="text-sm mr-1">{{ stats.monitor.allTargets / 2 }}</span>
+              <span class="text-base mr-1">{{ stats.monitor.allTargets / 2 }}</span>
             </div>
           </div>
         </div>
-        <div class="flex flex-grow">
+        <div v-if="stats?.monitor?.allTargets > 0" class="flex flex-grow">
           <search-box />
           <button
               type="button"
@@ -60,7 +65,7 @@ const timeRemaining = computed(() => {
             Rescan Site
           </button>
         </div>
-        <div class="flex">
+        <div v-if="stats?.monitor" class="flex">
           <div class="mr-5">
             <div class="uppercase opacity-40 ">
               Worker Progress
@@ -89,6 +94,7 @@ const timeRemaining = computed(() => {
             <span class="text-sm">{{ stats.monitor.status === 'completed' ? '-' : stats.monitor.memoryUsage }}</span>
           </div>
         </div>
+
       </div>
       <div class="flex-auto"></div>
       <btn-icon

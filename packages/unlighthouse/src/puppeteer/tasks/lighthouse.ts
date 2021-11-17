@@ -2,39 +2,24 @@ import { join } from 'path'
 import fs from 'fs-extra'
 import execa from 'execa'
 import { LH } from 'lighthouse'
-import { pick } from 'lodash'
-import { LighthouseReport, PuppeteerTask } from '@shared'
+import {pick, sumBy} from 'lodash'
+import {LighthouseReport, Options, PuppeteerTask} from '@shared'
 
-export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport => {
+export const normaliseLighthouseResult = (result: LH.Result, options: Options): LighthouseReport => {
   const measuredCategories = Object.values(result.categories)
-    .filter(c => !!c.score) as { score: number }[]
+    .filter(c => typeof c.score !== 'undefined') as { score: number }[]
+
+  const columnFields = options.columns.flat()
+      .filter(c => !!c.key)
+      .map(c => c.key?.replace('report.', '')) as string[]
   // map the json report to what values we actually need
   return {
     ...pick(result, [
       'categories',
-      // overview
       'audits.final-screenshot',
-      // performance
-      'audits.first-contentful-paint',
-      'audits.total-blocking-time',
-      'audits.cumulative-layout-shift',
-      'audits.diagnostics',
-      'audits.network-requests',
-      // accessibility
-      'audits.color-contrast',
-      'audits.image-alt',
-      'audits.link-name',
-      // best practices
-      'audits.errors-in-console',
-      'audits.no-vulnerable-libraries',
-      'audits.external-anchors-use-rel-noopener',
-      'audits.image-aspect-ratio',
-      // seo
-      'audits.is-crawlable',
+      ...columnFields,
     ]),
-    score: measuredCategories
-      .map(c => c.score)
-      .reduce((s, a) => s + a, 0) / measuredCategories.length,
+    score: sumBy(measuredCategories, 'score') / measuredCategories.length,
   }
 }
 
@@ -65,9 +50,8 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     if (response.failed)
       return false
   }
-  routeReport.resolved = true
 
   const jsonReport = fs.readJsonSync(routeReport.reportJson, { encoding: 'utf-8' }) as LH.Result
-  routeReport.report = normaliseLighthouseResult(jsonReport)
+  routeReport.report = normaliseLighthouseResult(jsonReport, options)
   return routeReport
 }

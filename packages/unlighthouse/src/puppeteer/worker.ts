@@ -13,6 +13,7 @@ import { normaliseRouteForTask, useLogger } from '../core'
 import {
   launchCluster,
 } from './cluster'
+import {sortBy} from "lodash";
 
 export async function createUnlighthouseWorker(tasks: Record<string, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>, options: Options): Promise<UnlighthouseWorker> {
   const hooks = createHooks<WorkerHooks>()
@@ -62,7 +63,8 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
   }
 
   const queueRoutes = (routes: NormalisedRoute[]) => {
-    routes.forEach(route => queueRoute(route))
+    const sortedRoutes = sortBy(routes, 'definition.name')
+    sortedRoutes.forEach(route => queueRoute(route))
   }
 
   const hasStarted = () => {

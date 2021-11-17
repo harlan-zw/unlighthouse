@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useFetch } from '@vueuse/core'
-import { rescanRoute, refetchStats, searchResults, sorting, website, wsConnect } from '../logic'
+import { changedTab, rescanRoute, refetchStats, searchResults, sorting, website, wsConnect, apiUrl } from '../logic'
 
 const isOpen = ref(false)
 const modalReport = ref(false)
@@ -19,75 +19,6 @@ const openModal = (report: any) => {
   isOpen.value = true
 }
 
-const activeTab = ref(0)
-
-const changedTab = (index: number) => {
-  activeTab.value = index
-}
-
-const resultColumns = computed(() => {
-  let columns = [
-    {
-      label: 'Route Name',
-      slot: 'routeName',
-      key: 'route.path',
-      sortable: true,
-    },
-    {
-      label: 'Score',
-      key: 'report.score',
-      cols: activeTab.value === 0 ? 4 : 1,
-      sortable: true,
-    },
-  ]
-  if (activeTab.value === 0) {
-    columns = [
-      ...columns,
-      { label: 'Component' },
-      { label: 'Screenshot', cols: 2 },
-    ]
-  }
-  else if (activeTab.value === 1) {
-    columns = [
-      ...columns,
-      { cols: 1, label: 'FCP', sortable: true, key: 'report.audits.first-contentful-paint.numericValue' },
-      { cols: 1, label: 'TBT', sortable: true, key: 'report.audits.total-blocking-time.numericValue' },
-      { cols: 1, label: 'CLS', sortable: true, key: 'report.audits.cumulative-layout-shift.numericValue' },
-      { cols: 2, label: 'Requests', sortable: true, key: 'requests' },
-      { cols: 2, label: 'Size', sortable: true, key: 'size' },
-    ]
-  }
-  // Accessibility 2
-  else if (activeTab.value === 2) {
-    columns = [
-      ...columns,
-      { cols: 3, label: 'Color Contrast' },
-      { cols: 2, label: 'Missing Image Alts', sortable: true, key: 'size' },
-      { cols: 2, label: 'Missing Link Names', sortable: true, key: 'size' },
-    ]
-  }
-  // best practices
-  else if (activeTab.value === 3) {
-    columns = [
-      ...columns,
-      { cols: 1, label: 'Errors', sortable: true, key: 'size' },
-      { cols: 2, label: 'Vulnerable Libraries', sortable: true, key: 'size' },
-      { cols: 2, label: 'Unsafe Links', sortable: true, key: 'size' },
-      { cols: 2, label: 'Image Aspect Ratio', sortable: true, key: 'size' },
-    ]
-  }
-  // SEO
-  else if (activeTab.value === 4) {
-    columns = [
-      ...columns,
-      { cols: 1, label: 'Indexable', sortable: true, key: 'size' },
-      { cols: 4, label: 'Meta Description' },
-      { cols: 2, label: 'Share Image' },
-    ]
-  }
-  columns.push({ label: 'Actions', slot: 'actions', classes: ['items-end'] })
-  return columns
-})
 
 const incrementSort = (key: string) => {
   const currentValue = sorting.value[key]
@@ -136,7 +67,6 @@ onMounted(() => {
 
       <results-panel>
         <results-table-head
-            :columns="resultColumns"
             :sorting="sorting"
             @sort="incrementSort"
         >
@@ -151,7 +81,6 @@ onMounted(() => {
               :key="routeName"
               :reports="reports"
               :route-name="routeName"
-              :active-tab="activeTab"
           >
             <template #actions="{ report }">
             <Popover v-slot="{ open }" class="relative flex items-center justify-end">
@@ -176,12 +105,15 @@ onMounted(() => {
                   leave-to-class="translate-y-1 opacity-0"
               >
                 <PopoverPanel
-                    class="absolute z-10 px-4 mt-3 transform -translate-x-3/4 left-1/2 sm:px-0"
+                    class="absolute z-10 px-4 mt-3 transform -translate-x-[100%] left-1/2 sm:px-0"
                 >
                   <div
                       class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5"
                   >
                     <div class="relative p-5 bg-teal-900">
+                      <div class="text-xs uppercase opacity-40 mb-1 mt-3">
+                        Reports
+                      </div>
                       <div class="flex items-center justify-start">
                         <button
                             v-if="report.report"
@@ -260,7 +192,7 @@ onMounted(() => {
           <div
               class="inline-block w-full max-w-3xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl"
           >
-            <iframe :src="`http://localhost:3000/api/reports/${modalReport.reportId}`" class="w-full h-700px bg-white"></iframe>
+            <iframe :src="`${apiUrl}/reports/${modalReport.reportId}`" class="w-full h-700px bg-white"></iframe>
           </div>
         </TransitionChild>
       </div>
