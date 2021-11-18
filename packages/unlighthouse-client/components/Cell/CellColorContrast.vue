@@ -12,9 +12,9 @@ const props = defineProps<{
   <div class="mb-2">
     <audit-result-items-length :value="value" />
   </div>
-  <div v-if="report.report.audits['color-contrast'].details.items" class="max-h-80px overflow-y-auto w-full">
+  <div v-if="value.details?.items" class="max-h-80px overflow-y-auto w-full">
     <div
-        v-for="({ node }, key) in report.report.audits['color-contrast'].details.items"
+        v-for="({ node }, key) in value.details.items"
         :key="key"
         class="mb-1 p-1 text-xs"
         :style="{

@@ -47,15 +47,18 @@ export interface UnlighthouseRouteReport {
   reportId: string
   // set on report completion
   report?: LighthouseReport
-  seo?: { title?: string; description?: string; image?: string }
+  seo?: { title?: string; description?: string; image?: string, internalLinks?: number }
+  internalLinks?: string[]
 }
 
 export interface UnlighthouseColumn {
   label: string
+  tooltip?: string
   component?: () => Promise<unknown>
   key?: string
   cols?: number
   sortable?: boolean
+  sortKey?: string
   classes?: string[]
 }
 
@@ -84,7 +87,7 @@ export interface Options {
   // define your plugin options here
   outputPath: string
   clientPath: string
-  lighthouse?: LH.Flags
+  lighthouseOptions?: LH.Flags
   puppeteerOptions?: Record<string, unknown>
   puppeteerClusterOptions?: Record<string, unknown>
 }
@@ -108,7 +111,7 @@ export interface Provider {
 export type WorkerHooks = {
   'task-added': (path: string, response: UnlighthouseRouteReport) => void
   'task-started': (path: string, response: UnlighthouseRouteReport) => void
-  'task-complete': (path: string, response: UnlighthouseRouteReport) => void
+  'task-complete': (path: string, response: UnlighthouseRouteReport, taskName: string) => void
 }
 
 export type MockRouter = { match: (path: string) => RouteDefinition }
@@ -139,12 +142,14 @@ export interface UnlighthouseWorkerStats {
 }
 
 export interface StatsResponse {
+  routes: number
   monitor: UnlighthouseWorkerStats
   score: number
 }
 
 export type UnlighthouseEngineContext = {
   routeDefinitions?: RouteDefinition[]
+  routes?: NormalisedRoute[]
   client: string
   api: any
   ws: WS

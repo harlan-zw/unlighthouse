@@ -5,8 +5,10 @@ import cors from 'cors'
 import { RouteDefinition } from 'nuxt-kit-extras/types'
 import { UnlighthouseEngineContext } from '@shared'
 import { useLogger } from '../core'
+import {readJsonSync} from "fs-extra";
+import {LH} from "lighthouse";
 
-export const createApi = ({ ws, worker, provider, options }: UnlighthouseEngineContext) => {
+export const createApi = ({ ws, worker, provider, options, routes }: UnlighthouseEngineContext) => {
   const logger = useLogger()
   const { serve, group, handle, get } = createRouter({
     // prefix: PLUGIN_PATH_PREFIX,
@@ -36,16 +38,48 @@ export const createApi = ({ ws, worker, provider, options }: UnlighthouseEngineC
         const reports = [...worker.routeReports.values()]
         worker.routeReports.clear()
         reports.forEach((route) => {
-          fs.rmdirSync(dirname(route.reportHtml), { recursive: true })
+          const dir = dirname(route.reportHtml)
+          if (fs.existsSync(dir))
+            fs.rmdirSync(dir, { recursive: true })
         })
         worker.processRoutes(reports.map(report => report.route))
         return true
       })
 
-      get('/:id', async() => {
+      get('/:id/lighthouse', async() => {
         const { id } = useParams<{ id: string }>()
         const report = worker.reports().filter(report => report.reportId === id)[0]
+        if (!report) {
+          return false
+        }
         return fs.readFileSync(report.reportHtml, 'utf-8')
+      })
+
+      get('/:id/full-page-screenshot', async() => {
+        const { id } = useParams<{ id: string }>()
+        const report = worker.reports().filter(report => report.reportId === id)[0]
+        if (!report) {
+          return false
+        }
+        const json = readJsonSync(report.reportJson) as LH.Result
+        const screenshot = json.audits?.['full-page-screenshot'].details.screenshot
+        // inline html
+        return `<img style="display: block; margin: 0 auto;"
+                     src="${screenshot.data}"
+                     width="${screenshot.width}" 
+                     height="${screenshot.height}" 
+                 />`
+      })
+
+      get('/:id/treemap', async() => {
+        const { id } = useParams<{ id: string }>()
+        const report = worker.reports().filter(report => report.reportId === id)[0]
+        if (!report) {
+          return false
+        }
+        const json = readJsonSync(report.reportJson) as LH.Result
+        // inline html
+        return
       })
 
       post('/:id/rescan', () => {
@@ -76,11 +110,12 @@ export const createApi = ({ ws, worker, provider, options }: UnlighthouseEngineC
       const data = worker.reports()
       const reportsWithScore = data.filter(r => r.report?.score) as { report: { score: number }}[]
       const score = (reportsWithScore
-        .map(r => r.report.score)
-        .reduce((s, a) => s + a, 0) / reportsWithScore.length) || 0
+          .map(r => r.report.score)
+          .reduce((s, a) => s + a, 0) / reportsWithScore.length) || 0
 
       return {
         monitor: worker.monitor(),
+        routes: routes?.length || 0,
         score,
         ...stats,
       }

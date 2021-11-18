@@ -7,6 +7,8 @@ import CellMetaDescription from '../components/Cell/CellMetaDescription.vue'
 import CellIndexable from '../components/Cell/CellIndexable.vue'
 import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnails.vue'
 import CellImage from '../components/Cell/CellImage.vue'
+import CellTapTargets from '../components/Cell/CellTapTargets.vue'
+import startCase from 'lodash/startCase'
 
 const {
     host,
@@ -14,12 +16,16 @@ const {
     wsUrl,
     apiUrl,
     groupRoutes,
-    hasDefinitions
+    hasDefinitions,
+    lighthouseOptions
 } = window.__unlighthouse_options
 
-export { wsUrl, apiUrl, groupRoutes, hasDefinitions }
+export { wsUrl, apiUrl, groupRoutes, hasDefinitions, lighthouseOptions }
 
 export const website = host
+
+export const categories = (lighthouseOptions?.onlyCategories ||  ['performance', 'accessibility', 'best-practices', 'seo'])
+export const tabs = ['Overview', ...categories.map((c) => c === 'seo' ? 'SEO' : startCase(c))]
 
 // map the column components
 export const columns = configColumns
@@ -49,6 +55,9 @@ export const columns = configColumns
                     break
                 case 'seo.og.image':
                     column.component = CellImage
+                    break
+                case 'report.audits.tap-targets':
+                    column.component = CellTapTargets
                     break
             }
             return column

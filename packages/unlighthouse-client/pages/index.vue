@@ -1,33 +1,39 @@
 <script setup lang="ts">
-import { useFetch } from '@vueuse/core'
-import { changedTab, rescanRoute, refetchStats, searchResults, sorting, website, wsConnect, apiUrl } from '../logic'
-
-const isOpen = ref(false)
-const modalReport = ref(false)
-
-const submitSite = (site) => {
-  useFetch('http://localhost:3000/api/site')
-      .post({ site })
-  website.value = site
-}
-
-const closeModal = () => {
-  isOpen.value = false
-}
-const openModal = (report: any) => {
-  modalReport.value = report
-  isOpen.value = true
-}
+import {
+  changedTab,
+  rescanRoute,
+  refetchStats,
+  searchResults,
+  sorting,
+  wsConnect,
+  Sorting,
+  categoryScores,
+  tabs,
+  isIframeModalOpen,
+  iframeModelUrl,
+  openLighthouseReportIframeModal,
+  closeIframeModal,
+  openTreemapReportIframeModal
+} from '../logic'
 
 
 const incrementSort = (key: string) => {
-  const currentValue = sorting.value[key]
-  if (typeof currentValue === 'undefined')
-    sorting.value[key] = 'asc'
-  else if (currentValue === 'asc')
-    sorting.value[key] = 'desc'
-  else
-    delete sorting.value[key]
+  const val = sorting.value as Sorting
+
+  // increment the sort
+  if (val.key === key) {
+
+    const sort = val.dir
+    if (typeof sort === 'undefined')
+      sorting.value.dir = 'asc'
+    else if (sort === 'asc')
+      sorting.value.dir = 'desc'
+    else
+      sorting.value = {}
+  } else {
+    sorting.value.key = key
+    sorting.value.dir = 'asc'
+  }
 }
 
 onMounted(() => {
@@ -41,19 +47,17 @@ onMounted(() => {
 <div>
   <NavBar />
   <div class="container mx-auto mt-2">
-    <static-onboard v-if="!website" @submit="submitSite('https://kintell.com')" />
-    <template v-else>
     <TabGroup @change="changedTab">
       <TabList class="flex p-1 space-x-1 bg-blue-900/20 rounded-xl mb-2">
         <Tab
-            v-for="category in ['Overview', 'Performance', 'Accessibility', 'Best Practices', 'SEO']"
-            :key="category"
+            v-for="(category, key) in tabs"
+            :key="key"
             v-slot="{ selected }"
             as="template"
         >
           <button
               :class="[
-                  'w-full py-2 text-sm leading-5 font-medium text-blue-700 rounded-lg',
+                  'flex items-center justify-around w-full py-2 text-sm leading-5 font-medium text-blue-700 rounded-lg',
                   'focus:outline-none focus:ring-1 ring-offset-blue-400 ring-white ring-opacity-60',
                   selected
                     ? 'bg-blue-900 text-blue-300 shadow'
@@ -61,6 +65,7 @@ onMounted(() => {
                 ]"
           >
             {{ category }}
+            <metric-guage v-if="category !== 'Overview' && !Number.isNaN(categoryScores[key - 1])" :score="categoryScores[key - 1]" stripped class="ml-3 font-bold text-sm" />
           </button>
         </Tab>
       </TabList>
@@ -118,20 +123,20 @@ onMounted(() => {
                         <button
                             v-if="report.report"
                             type="button"
-                            class="inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
-                            @click="openModal(report)"
+                            class="whitespace-nowrap inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+                            @click="openLighthouseReportIframeModal(report)"
                         >
                           <i-vscode-icons-file-type-lighthouse class="text-xl mr-2" />
-                          Lighthouse
+                          Open Lighthouse Report
                         </button>
                         <button
                             v-if="report.report"
                             type="button"
-                            class="inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
-                            @click="openModal(report)"
+                            class="whitespace-nowrap inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+                            @click="openTreemapReportIframeModal(report)"
                         >
                           <i-carbon-chart-treemap class="text-sm mr-2 opacity-50" />
-                          Treemap
+                          Open Treemap Report
                         </button>
                       </div>
                       <div class="text-xs uppercase opacity-40 mb-1 mt-3">
@@ -140,11 +145,11 @@ onMounted(() => {
                       <button
                           v-if="report.report"
                           type="button"
-                          class="inline-flex w-100px items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+                          class="whitespace-nowrap inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
                           @click="rescanRoute(report.route)"
                       >
                         <i-carbon-renew class="text-sm mr-2  opacity-50" />
-                        Rescan
+                        Rescan Route
                       </button>
                     </div>
                   </div>
@@ -156,11 +161,10 @@ onMounted(() => {
         </results-table-body>
       </results-panel>
     </TabGroup>
-    </template>
   </div>
 </div>
-<TransitionRoot appear :show="isOpen" as="template">
-  <Dialog as="div" @close="closeModal">
+<TransitionRoot appear :show="isIframeModalOpen" as="template">
+  <Dialog as="div" @close="closeIframeModal">
     <DialogOverlay class="fixed inset-0 bg-black opacity-40" />
     <div class="fixed inset-0 z-10 overflow-y-auto">
       <div class="min-h-screen px-4 text-center">
@@ -192,7 +196,7 @@ onMounted(() => {
           <div
               class="inline-block w-full max-w-3xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl"
           >
-            <iframe :src="`${apiUrl}/reports/${modalReport.reportId}`" class="w-full h-700px bg-white"></iframe>
+            <iframe :src="iframeModelUrl" class="w-full h-700px bg-white"></iframe>
           </div>
         </TransitionChild>
       </div>

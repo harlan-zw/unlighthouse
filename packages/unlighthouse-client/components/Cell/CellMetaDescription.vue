@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import get from "lodash/get";
+import {UnlighthouseColumn, UnlighthouseRouteReport} from "@shared";
 
 const props = defineProps<{
   report: UnlighthouseRouteReport,
@@ -15,7 +16,7 @@ const issue = computed(() => {
   if (length <= 0) {
     return 'empty'
   }
-  if (length <= 40) {
+  if (length < 50) {
     return 'too-short'
   }
   if (length >= 200) {

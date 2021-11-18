@@ -23,9 +23,9 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
   const routeReports = new Map<string, UnlighthouseRouteReport>()
 
   const queueRoute = (route: NormalisedRoute) => {
-    const { path } = route
+    const { id, path } = route
 
-    if (routeReports.has(path)) {
+    if (routeReports.has(id)) {
       logger.debug(`${path} has already been processed, skipping.`)
       return
     }
@@ -33,7 +33,7 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     const routeReport = normaliseRouteForTask(route, options)
     logger.debug(`${path} has been queued.`)
 
-    routeReports.set(route.id, routeReport)
+    routeReports.set(id, routeReport)
     hooks.callHook('task-added', path, routeReport)
 
     const taskOptions = {
@@ -56,8 +56,8 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
                   return
                 response.tasks[taskName] = 'completed'
                 logger.info(`${path} has finished processing task ${taskName}.`)
-                routeReports.set(route.id, response)
-                hooks.callHook('task-complete', path, response)
+                routeReports.set(id, response)
+                hooks.callHook('task-complete', path, response, taskName)
               })
         })
   }

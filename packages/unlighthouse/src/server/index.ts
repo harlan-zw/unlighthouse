@@ -6,7 +6,6 @@ import { listen } from 'listhen'
 import defu from 'defu'
 import { CliOptions } from '@shared'
 import { createEngine } from '../core'
-import { extractSitemapRoutes } from '../util/sitemap'
 import {hasProtocol, withoutTrailingSlash} from "ufo";
 
 const startServer = async(options: CliOptions) => {
@@ -24,9 +23,6 @@ const startServer = async(options: CliOptions) => {
     routeDefinitions() {
       if (options.appPath)
         return fs.readJsonSync(`${options.appPath}/.nuxt/routes.json`)
-    },
-    async urls() {
-      return await extractSitemapRoutes(options.host)
     },
   }, options)
 

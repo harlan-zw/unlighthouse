@@ -14,6 +14,8 @@
       const setting = localStorage.getItem('color-schema') || 'auto'
       if (setting === 'dark' || (prefersDark && setting !== 'light'))
         document.documentElement.classList.toggle('dark', true)
+
+      document.title = __unlighthouse_options.host + ' | Unlighthouse'
     })()
   </script>
   <script type="module" src="/main.ts"></script>

@@ -11,7 +11,7 @@ import { UnlighthouseRouteReport, Options } from '@shared';
   try {
     // @ts-ignore
     const runnerResult = await lighthouse(routeReportJson.route.url, {
-      ...optionsJson.lighthouse,
+      ...optionsJson.lighthouseOptions,
       output: ['html', 'json'],
       port,
     })

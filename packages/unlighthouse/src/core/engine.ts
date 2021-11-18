@@ -11,6 +11,7 @@ import { generateBuild } from '../core/build'
 import WS from '../server/ws'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from '../puppeteer'
 import {join} from "path";
+import {extractSitemapRoutes} from "../util/sitemap";
 
 export const createEngine = async(provider: Provider, options: Options) => {
   options = defu(options, defaultOptions) as Options
@@ -20,8 +21,8 @@ export const createEngine = async(provider: Provider, options: Options) => {
   const $url = new $URL(options.host)
 
   // for local urls we disable throttling
-  if (options.lighthouse && $url.hostname.startsWith('localhost')) {
-    options.lighthouse.throttling = {
+  if (options.lighthouseOptions && $url.hostname.startsWith('localhost')) {
+    options.lighthouseOptions.throttling = {
       rttMs: 0,
       throughputKbps: 0,
       cpuSlowdownMultiplier: 0,
@@ -53,7 +54,6 @@ export const createEngine = async(provider: Provider, options: Options) => {
   }
   options.hasDefinitions = !!routeDefinitions
   if (!routeDefinitions) {
-    console.log('disabling group routing')
     options.groupRoutes = false
   }
 
@@ -68,25 +68,24 @@ export const createEngine = async(provider: Provider, options: Options) => {
   ctx.api = createApi(ctx as UnlighthouseEngineContext)
 
   const initialScanPaths: () => Promise<NormalisedRoute[]> = async() => {
-    // @todo automatic sitemap / crawler url discovery
-    if (!provider.urls)
-      return []
+    let urls: string[]
+    if (!provider.urls) {
+      urls = await extractSitemapRoutes(options.host)
+    } else {
+      urls = await provider.urls()
+    }
 
     // no route definitions provided
     if (!routeDefinitions) {
-      return (await provider.urls()).map(url => normaliseRoute(url))
+      return urls.map(url => normaliseRoute(url, options.host))
     }
 
     const mockRouter = createMockRouter(routeDefinitions)
 
-    const urls = await provider.urls()
-
     // group all urls by their route definition path name
     const pathsChunkedToRouteName = groupBy(
-        urls
-            .map(url => normaliseRoute(url, mockRouter))
-            .filter(route => route !== false) as NormalisedRoute[],
-        u => u.definition.name,
+        urls.map(url => normaliseRoute(url, options.host, mockRouter)),
+        u => u.definition?.name,
     )
 
     const pathsSampleChunkedToRouteName = map(
@@ -108,7 +107,19 @@ export const createEngine = async(provider: Provider, options: Options) => {
       apiUrl,
       wsUrl: 'ws://' + joinURL($url.host, options.apiPrefix, '/ws')
     })
-    worker.processRoutes(await initialScanPaths())
+    const paths = await initialScanPaths()
+    // no sitemap available
+    if (paths.length === 0) {
+      // just the host, need to enable relative link discovery within the html payload logic
+      paths.push(normaliseRoute(options.host, options.host))
+      worker.hooks.hook('task-complete', (path, report, taskName) => {
+        if (taskName === 'inspectHtmlTask' && report.internalLinks) {
+          worker.processRoutes(report.internalLinks.map(url => normaliseRoute(url, options.host)))
+        }
+      })
+    }
+    ctx.routes = paths
+    worker.processRoutes(ctx.routes)
   }
 
   return ctx as UnlighthouseEngineContext

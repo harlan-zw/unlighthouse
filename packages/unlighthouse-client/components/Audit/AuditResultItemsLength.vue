@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const props = defineProps<{
   value: {
+    scoreDisplayMode?: string
+    errorMessage?: string
     score: number
     details: {
       items: []
@@ -9,5 +11,7 @@ const props = defineProps<{
 }>()
 </script>
 <template>
-  <audit-result :value="{ score: value.score, displayValue: value.details.items.length }" />
+<div>
+<audit-result :value="{ score: value.score, displayValue: value.details.items.length }" />
+</div>
 </template>

@@ -1,12 +1,15 @@
 <script setup lang="ts">
 const props = defineProps<{
   value: {
-    score: number
+    score: number|null
     displayValue?: string
   }
 }>()
 
 const mark = computed(() => {
+  if (props.value.score === null) {
+    return 'na'
+  }
   if (props.value.score >= 0.9)
     return 'pass'
 
@@ -34,7 +37,12 @@ const mark = computed(() => {
 .fail {
   @apply text-red-500;
 }
-
+.na {
+  @apply text-gray-500;
+}
+.na .icon {
+  @apply bg-gray-500 rounded-full;
+}
 .pass .icon {
   @apply bg-green-500 rounded-full;
 }

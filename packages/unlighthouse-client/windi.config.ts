@@ -11,6 +11,9 @@ export default defineConfig({
     'bg-main': 'bg-gray-400',
   },
   safelist: [
+    'grid-cols-4',
+    'grid-cols-5',
+    'grid-cols-3',
     'col-span-6',
     'col-span-5',
     'col-span-4',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatDistance } from 'date-fns'
-import { isDark, toggleDark, stats, website, rescanAll } from '../logic'
+import { isDark, toggleDark, stats, website, rescanSite, isRescanSiteRequestRunning } from '../logic'
 
 const timeRemaining = computed(() => {
   return formatDistance(0, stats.value.monitor.timeRemaining, { includeSeconds: true })
@@ -37,12 +37,12 @@ const timeRemaining = computed(() => {
               Disconnected from server...
             </div>
           </div>
-          <div v-if="stats?.score" class="mr-5">
+          <div v-if="stats" class="mr-5">
             <div class="uppercase opacity-40 ">
               Site Score
             </div>
-            <div class=" flex items-center">
-              <metric-guage  :score="stats.score" stripped class="font-bold text-sm" />
+            <div class="flex items-center">
+              <metric-guage v-if="stats?.score" :score="stats.score" stripped class="font-bold text-sm" />
             </div>
           </div>
           <div v-if="stats?.monitor" class="mr-5">
@@ -50,7 +50,7 @@ const timeRemaining = computed(() => {
               Routes
             </div>
             <div class=" flex items-center">
-              <span class="text-base mr-1">{{ stats.monitor.allTargets / 2 }}</span>
+              <span class="text-base mr-1">{{ stats.routes }}</span>
             </div>
           </div>
         </div>
@@ -58,12 +58,41 @@ const timeRemaining = computed(() => {
           <search-box />
           <button
               type="button"
-              @click="rescanAll"
+              @click="rescanSite"
               class="ml-3 inline-flex items-center mr-2 px-2 py-1 text-sm font-medium text-white bg-black rounded-md bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+              :disabled="isRescanSiteRequestRunning"
           >
-            <i-carbon-renew class="text-sm mr-2  opacity-50" />
+            <i-carbon-renew class="text-sm mr-2 opacity-50" :class="isRescanSiteRequestRunning ? ['animated animate-spin '] : []" />
             Rescan Site
           </button>
+        </div>
+        <div v-if="stats?.monitor" class="mr-5">
+          <div class="uppercase opacity-40 ">
+            Emulation
+          </div>
+          <div class=" flex items-center text-xs ">
+            <tooltip width="400">
+            <i-akar-icons-mobile-device class=""/>
+            <span class="mr-1">Moto G4 - Slow 4g</span>
+              <template #tooltip>
+              <ul class="lh-meta__items">
+                <li class="lh-meta__item lh-report-icon lh-report-icon--date">
+                  Captured at Nov 18, 2021, 6:50 PM GMT+11
+                </li>
+                <li class="lh-meta__item lh-tooltip-boundary lh-report-icon lh-report-icon--devices">
+                  Emulated Moto G4 with Lighthouse 9.0.0<div class="lh-tooltip">CPU/Memory Power: 1586
+                CPU throttling: 4x slowdown (Simulated)
+                Axe version: 4.2.3</div>
+                </li>
+                <li class="lh-meta__item lh-tooltip-boundary lh-report-icon lh-report-icon--samples-one">
+                  Single page load<div class="lh-tooltip">This data is taken from a single page load, as opposed to field data summarizing many sessions.</div></li>
+                <li class="lh-meta__item lh-report-icon lh-report-icon--stopwatch">Initial page load</li>
+                <li class="lh-meta__item lh-tooltip-boundary lh-report-icon lh-report-icon--networkspeed">Slow 4G throttling<div class="lh-tooltip">Network throttling: 150&nbsp;ms TCP RTT, 1,638.4&nbsp;Kbps throughput (Simulated)</div></li>
+                <li class="lh-meta__item lh-tooltip-boundary lh-report-icon lh-report-icon--chrome">Using HeadlessChromium 93.0.4577.0 with node<div class="lh-tooltip">User agent (network): "Mozilla/5.0 (Linux; Android 7.0; Moto G (4)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4695.0 Mobile Safari/537.36 Chrome-Lighthouse"</div></li>
+              </ul>
+              </template>
+            </tooltip>
+          </div>
         </div>
         <div v-if="stats?.monitor" class="flex">
           <div class="mr-5">

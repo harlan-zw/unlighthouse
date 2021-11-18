@@ -9,14 +9,14 @@
     "rollup",
     "transform"
   ],
-  "homepage": "https://github.com/antfu/unplugin-lighthouse#readme",
+  "homepage": "https://github.com/antfu/unlighthouse#readme",
   "bugs": {
-    "url": "https://github.com/antfu/unplugin-lighthouse/issues"
+    "url": "https://github.com/antfu/unlighthouse/issues"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/antfu/unplugin-lighthouse.git"
+    "url": "git+https://github.com/antfu/unlighthouse.git"
   },
   "files": [
     "dist",
@@ -25,7 +25,7 @@
   "main": "dist/index.html",
   "scripts": {
     "dev": "vite .",
-    "build": "vite build packages/unplugin-lighthouse/src/client",
+    "build": "vite build packages/unlighthouse/src/client",
     "test": "jest",
     "test:update": "jest -u"
   },
