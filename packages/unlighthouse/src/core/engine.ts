@@ -1,126 +1,140 @@
+import { join } from 'path'
+import { IncomingMessage } from 'http'
+import { Socket } from 'node:net'
 import { ensureDirSync } from 'fs-extra'
-import defu from 'defu'
-import {$URL, joinURL} from 'ufo'
-import groupBy from 'lodash/groupBy'
-import map from 'lodash/map'
-import sampleSize from 'lodash/sampleSize'
-import {NormalisedRoute, Options, Provider, RouteDefinition, UnlighthouseEngineContext} from '@shared'
-import { createApi, createMockRouter, normaliseRoute } from '../router'
-import { defaultOptions, createLogger } from '../core'
-import { generateBuild } from '../core/build'
-import WS from '../server/ws'
+import { $URL, joinURL } from 'ufo'
+import {
+  MockRouter,
+  Provider,
+  ResolvedUserConfig,
+  RouteDefinition,
+  RuntimeSettings,
+  UnlighthouseEngineContext,
+  UserConfig,
+  WorkerHooks,
+} from '@shared'
+import { createContext } from 'unctx'
+import { createHooks } from 'hookable'
+import { listen } from 'listhen'
+import { createApp } from 'h3'
+import { createApi, createMockRouter } from '../router'
+import { WS, createBroadcastingEvents } from '../router/broadcasting'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from '../puppeteer'
-import {join} from "path";
-import {extractSitemapRoutes} from "../util/sitemap";
+import { generateClient } from './build'
+import { discoverProvider, resolveReportableRoutes } from './discovery'
+import { resolveUserConfig } from './config'
+import { CLIENT_NAME } from './constants'
+import { createLogger } from './logger'
+import open from 'open'
 
-export const createEngine = async(provider: Provider, options: Options) => {
-  options = defu(options, defaultOptions) as Options
+const engineContext = createContext<UnlighthouseEngineContext>()
 
-  const logger = createLogger(options.debug)
+export const useUnlighthouseEngine = engineContext.use as () => UnlighthouseEngineContext
 
-  const $url = new $URL(options.host)
+const setupRuntimeSettings = (config: ResolvedUserConfig) => {
+  const $host = new $URL(config.host)
+  const outputPath = join(config.root, config.outputPath, $host.hostname)
+  const generatedClientPath = join(outputPath, 'client')
+  const resolvedClientPath = require.resolve(CLIENT_NAME)
 
-  // for local urls we disable throttling
-  if (options.lighthouseOptions && $url.hostname.startsWith('localhost')) {
-    options.lighthouseOptions.throttling = {
-      rttMs: 0,
-      throughputKbps: 0,
-      cpuSlowdownMultiplier: 0,
-      requestLatencyMs: 0, // 0 means unset
-      downloadThroughputKbps: 0,
-      uploadThroughputKbps: 0,
+  return {
+    $host,
+    resolvedClientPath,
+    outputPath,
+    generatedClientPath,
+    isLocalhost: $host.hostname.startsWith('localhost'),
+  }
+}
+
+export const createUnlighthouse = async(config: UserConfig, provider?: Provider) => {
+  const resolvedConfig = resolveUserConfig(config)
+  const hooks = createHooks<WorkerHooks>()
+
+  const logger = createLogger(resolvedConfig.debug)
+  logger.info(`Booting Unlighthouse: ${resolvedConfig.host}`)
+
+  const runtimeSettings = setupRuntimeSettings(resolvedConfig) as unknown as RuntimeSettings
+
+  // if no provider was provided we can try and discover it ourselves
+  if (!provider) {
+    const discoveredProvider = discoverProvider(resolvedConfig)
+    if (discoveredProvider) {
+      provider = discoveredProvider
+    } else {
+      logger.info(`Missing provider, assuming static scan.`)
     }
   }
 
-  options.outputPath = join(options.outputPath, $url.hostname)
-  options.clientPath = join(options.outputPath, '__client')
+  let routeDefinitions: RouteDefinition[]|undefined
+  if (provider?.routeDefinitions)
+    routeDefinitions = await provider.routeDefinitions()
 
-  logger.info(`Saving lighthouse reports to: ${options.outputPath}`)
+  let mockRouter: MockRouter|null = null
+  runtimeSettings.hasRouteDefinitions = !!routeDefinitions
+  if (routeDefinitions)
+    mockRouter = createMockRouter(routeDefinitions)
 
-  ensureDirSync(options.outputPath)
+  ensureDirSync(resolvedConfig.outputPath)
+
+  // web socket instance for broadcasting
+  const ws = new WS()
+
+  const ctx = {
+    runtimeSettings,
+    hooks,
+    resolvedConfig,
+    routeDefinitions,
+    ws,
+    provider,
+    mockRouter,
+  } as UnlighthouseEngineContext
+  engineContext.set(ctx, true)
 
   const tasks = {
     inspectHtmlTask,
     runLighthouseTask,
   }
 
-  const worker = await createUnlighthouseWorker(tasks, options)
+  const worker = await createUnlighthouseWorker(tasks)
 
-  const ws = new WS()
+  ctx.worker = worker
+  ctx.api = createApi()
 
-  let routeDefinitions: RouteDefinition[]|undefined = undefined
-  if (provider.routeDefinitions) {
-    routeDefinitions = await provider.routeDefinitions()
-  }
-  options.hasDefinitions = !!routeDefinitions
-  if (!routeDefinitions) {
-    options.groupRoutes = false
-  }
+  ctx.start = async(serverUrl) => {
+    const $host = new $URL(serverUrl)
+    ctx.runtimeSettings.apiUrl = joinURL($host.toString(), resolvedConfig.api.prefix)
+    ctx.runtimeSettings.websocketUrl = `ws://${joinURL($host.host, resolvedConfig.api.prefix, '/ws')}`
 
-  const ctx: Partial<UnlighthouseEngineContext> = {
-    routeDefinitions,
-    ws,
-    worker,
-    provider,
-    options,
-  }
-
-  ctx.api = createApi(ctx as UnlighthouseEngineContext)
-
-  const initialScanPaths: () => Promise<NormalisedRoute[]> = async() => {
-    let urls: string[]
-    if (!provider.urls) {
-      urls = await extractSitemapRoutes(options.host)
+    ctx.routes = await resolveReportableRoutes()
+    await generateClient()
+    await createBroadcastingEvents()
+    worker.queueRoutes(ctx.routes)
+    const mode = ctx.routes.length <= 1 ? 'crawl' : 'sitemap'
+    if (mode === 'crawl') {
+      logger.info(`Unlighthouse started, crawling host for routes...`)
     } else {
-      urls = await provider.urls()
+      logger.info(`Unlighthouse started, sampling \`${ctx.routes.length}\` routes from sitemap...`)
     }
-
-    // no route definitions provided
-    if (!routeDefinitions) {
-      return urls.map(url => normaliseRoute(url, options.host))
-    }
-
-    const mockRouter = createMockRouter(routeDefinitions)
-
-    // group all urls by their route definition path name
-    const pathsChunkedToRouteName = groupBy(
-        urls.map(url => normaliseRoute(url, options.host, mockRouter)),
-        u => u.definition?.name,
-    )
-
-    const pathsSampleChunkedToRouteName = map(
-        pathsChunkedToRouteName,
-        // we're matching dynamic rates here, only taking a sample to avoid duplicate tests
-        (group) => {
-          // whatever the sampling rate is
-          return sampleSize(group, options.dynamicRouteSampleSize)
-        })
-
-    return pathsSampleChunkedToRouteName.flat()
   }
 
-  ctx.start = async(serverUrl: string) => {
-    const $url = new $URL(serverUrl)
-    const apiUrl = joinURL($url.toString(), options.apiPrefix)
-    ctx.client = await generateBuild({
-      ...options,
-      apiUrl,
-      wsUrl: 'ws://' + joinURL($url.host, options.apiPrefix, '/ws')
+  ctx.startWithServer = async() => {
+    const app = createApp()
+    app.use(ctx.api)
+    const server = await listen(app, {
+      ...resolvedConfig.server,
+      // delay opening the server until the app is ready
+      open: false,
     })
-    const paths = await initialScanPaths()
-    // no sitemap available
-    if (paths.length === 0) {
-      // just the host, need to enable relative link discovery within the html payload logic
-      paths.push(normaliseRoute(options.host, options.host))
-      worker.hooks.hook('task-complete', (path, report, taskName) => {
-        if (taskName === 'inspectHtmlTask' && report.internalLinks) {
-          worker.processRoutes(report.internalLinks.map(url => normaliseRoute(url, options.host)))
-        }
-      })
+    await ctx.start(server.url)
+
+    server.server.on('upgrade', (request: IncomingMessage, socket) => {
+      ws.handleUpgrade(request, socket as Socket)
+    })
+
+    if (resolvedConfig.server.open) {
+      await open(server.url)
     }
-    ctx.routes = paths
-    worker.processRoutes(ctx.routes)
   }
 
-  return ctx as UnlighthouseEngineContext
+  return ctx
 }

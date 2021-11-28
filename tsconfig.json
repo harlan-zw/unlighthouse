@@ -14,6 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@shared": ["packages/unlighthouse-shared/index.ts"],
+      "@util/*": ["packages/unlighthouse-shared/*"]
     }
   },
   "include": [

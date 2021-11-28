@@ -20,8 +20,8 @@ const mark = computed(() => {
 })
 </script>
 <template>
-  <div class="flex items-center" :class="[mark]">
-    <div class="icon w-2 h-2 mr-2"></div>
+  <div class="flex items-center text-mono font-mono" :class="[mark]">
+    <div class="icon hidden md:inline w-2 h-2 mr-2"></div>
     <div v-if="typeof value.displayValue !== 'undefined'" class="text-base">
       {{ value.displayValue }}
     </div>
@@ -29,13 +29,13 @@ const mark = computed(() => {
 </template>
 <style scoped>
 .pass {
-  @apply text-green-500;
+  @apply dark:(text-green-500) text-green-700;
 }
 .average {
-  @apply text-yellow-500;
+  @apply dark:(text-yellow-500) text-yellow-700;
 }
 .fail {
-  @apply text-red-500;
+  @apply dark:(text-red-500) text-red-700;
 }
 .na {
   @apply text-gray-500;
@@ -44,13 +44,13 @@ const mark = computed(() => {
   @apply bg-gray-500 rounded-full;
 }
 .pass .icon {
-  @apply bg-green-500 rounded-full;
+  @apply bg-green-700 dark:bg-green-500 rounded-full;
 }
 .average .icon {
-  @apply bg-yellow-500;
+  @apply bg-yellow-700 dark:bg-yellow-500;
 }
 .fail .icon {
-  @apply border-red-500;
+  @apply border-red-700 dark:border-red-500;
   border-left: 0.25rem solid transparent;
   border-right: 0.25rem solid transparent;
   border-bottom: 0.5rem solid;

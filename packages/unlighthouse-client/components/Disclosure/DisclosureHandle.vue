@@ -1,12 +1,12 @@
 <template>
 <Disclosure v-slot="{ open }" default-open ref="disclosure">
   <DisclosureButton
-      class="flex justify-between w-full px-2 py-1 my-2 text-sm font-medium text-left text-purple-900 bg-purple-100 dark:(bg-blue-900/10 text-blue-100) rounded-lg hover:bg-blue-900/50 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75"
+      class="flex transition justify-between w-full px-2 py-1 my-1 text-sm font-medium text-left border-2 border-blue-900/30 text-blue-900/70 hover:(text-blue-700 bg-blue-200) dark:(border-none bg-blue-900/30 text-blue-100) dark:hover:(bg-blue-900/50 text-blue-50) rounded-lg focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75"
   >
     <slot name="label"></slot>
     <i-carbon-chevron-up
         :class="open ? 'transform rotate-180' : ''"
-        class="w-4 h-4 text-blue-200"
+        class="w-5 h-5 color-current transition"
     />
   </DisclosureButton>
   <transition
@@ -17,7 +17,7 @@
       leave-from-class="transform scale-100 opacity-100"
       leave-to-class="transform scale-95 opacity-0"
   >
-    <DisclosurePanel class="px-2 text-sm text-gray-500">
+    <DisclosurePanel class="bg-teal-50 dark:(bg-transparent)">
       <slot />
     </DisclosurePanel>
   </transition>

@@ -1,9 +1,5 @@
 <script lang="ts" setup>
 const isShowing = ref(false)
-
-const props = defineProps<{
-  width: number,
-}>()
 </script>
 <template>
 <div class="relative">

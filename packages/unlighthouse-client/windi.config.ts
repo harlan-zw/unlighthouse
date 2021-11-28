@@ -1,5 +1,9 @@
 import { defineConfig } from 'windicss/helpers'
 
+function range(size: number, startAt = 1) {
+  return Array.from(Array(size).keys()).map(i => i + startAt)
+}
+
 export default defineConfig({
   darkMode: 'class',
   attributify: true,
@@ -11,17 +15,20 @@ export default defineConfig({
     'bg-main': 'bg-gray-400',
   },
   safelist: [
-    'grid-cols-4',
-    'grid-cols-5',
-    'grid-cols-3',
-    'col-span-6',
-    'col-span-5',
-    'col-span-4',
-    'col-span-3',
-    'col-span-2',
+      ...['sm', 'md', 'lg', 'xl', '2xl'].map(s => [`${s}:flex`, `${s}:block`]).flat(),
+    ...range(7).map(i => `col-span-${i}`),
+    ...range(7).map(i => `md:col-span-${i}`),
+    ...range(7).map(i => `lg:col-span-${i}`),
+    ...range(7).map(i => `xl:col-span-${i}`),
+    ...range(7).map(i => `grid-cols-${i}`),
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: 'DM Sans',
+        serif: 'DM Serif Display',
+        mono: 'DM Mono'
+      },
       colors: {
         teal: {
           50: '#f7f9f9',

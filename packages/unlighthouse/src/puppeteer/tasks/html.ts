@@ -2,24 +2,46 @@ import fs from 'fs-extra'
 import cheerio, { CheerioAPI } from 'cheerio'
 import { Page } from 'puppeteer'
 import { PuppeteerTask } from '@shared'
-import {useLogger} from "../../core";
+import { useUnlighthouseEngine } from '../../core/engine'
+import { useLogger } from '../../core/logger'
+import {trimSlashes} from "../../core/util";
+import {normaliseRoute} from "../../router";
 
-const logger = useLogger()
-
-export const extractHtmlPayload: (page: Page, route: string) => Promise<string|false> = async(page, route) => {
+export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; message?: string; payload?: string }> = async(page, route) => {
+  const { worker } = useUnlighthouseEngine()
   // get page html content
   try {
-    const pageVisit = await page.goto(route, {waitUntil: 'domcontentloaded'})
-    return await pageVisit.text()
-  } catch (e) {
-    logger.warn(`Failed to load page ${route}.`, e)
-    return false
+    const pageVisit = await page.goto(route, { waitUntil: 'domcontentloaded' })
+    // only 2xx we'll consider valid
+    const { 'content-type': contentType, location } = pageVisit.headers()
+
+    const statusCode = pageVisit.status()
+    if (statusCode === 301 || statusCode === 302 && location) {
+      // redirect, failure but we'll queue the other url
+      worker.queueRoute(normaliseRoute(location))
+      return { success: false, message: `Redirect, queued the new URL: ${location}.`}
+    }
+    if (statusCode < 200 || statusCode >= 300) {
+      return { success: false, message: `Invalid status code: ${statusCode}.`}
+    }
+    // only consider html content types
+    if (contentType && !contentType.includes('text/html')) {
+      return { success: false, message: `Invalid content-type header: ${contentType}.`}
+    }
+    const payload = await pageVisit.text()
+    return {
+      success: true,
+      payload,
+    }
+  }
+  catch (e) {
+    return { success: false, message: `Exception thrown when visiting route: ${e}.`}
   }
 }
 
 export const processSeoMeta = ($: CheerioAPI) => {
   return {
-    icon: $('link[rel="icon"]').attr('href'),
+    favicon: $('link[rel~="icon"]').attr('href') || '/favicon.ico',
     title: $('meta[name=\'title\'], head > title').text(),
     description: $('meta[name=\'description\']').attr('content'),
     og: {
@@ -31,9 +53,9 @@ export const processSeoMeta = ($: CheerioAPI) => {
 }
 
 export const inspectHtmlTask: PuppeteerTask = async(props) => {
-  const { page, data } = props
-  const { routeReport, options } = data
-
+  const { resolvedConfig, hooks } = useUnlighthouseEngine()
+  const { page, data: routeReport } = props
+  const logger = useLogger()
   let html: string
 
   // basic caching based on saving html payloads
@@ -41,22 +63,47 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
     html = fs.readFileSync(routeReport.htmlPayload, { encoding: 'utf-8' })
   }
   else {
-    const payload = await extractHtmlPayload(page, routeReport.route.url)
-    if (payload === false) {
+    const response = await extractHtmlPayload(page, routeReport.route.url)
+    if (!response.success || !response.payload) {
+      routeReport.tasks.inspectHtmlTask = 'failed'
+      logger.warn(`Failed to extract HTML payload from route \`${routeReport.route.path}\`: ${response.message}`)
       return routeReport
     }
-    html = payload
+
+    html = response.payload
     fs.writeFileSync(routeReport.htmlPayload, html)
   }
 
   const $ = cheerio.load(html)
   routeReport.seo = processSeoMeta($)
   const internalLinks: string[] = []
-  $(`a[href^='/'], a[href^='${options.host}']`).each(function () {
-    internalLinks.push($(this).attr('href') as string)
+  const externalLinks: string[] = []
+  $(`a`).each(function() {
+    const href = $(this).attr('href')
+    if (!href) {
+      return
+    }
+    // if the URL doesn't end with a slash we may be dealing with a file
+    if (!href.endsWith('/')) {
+      // need to check for a dot, meaning a file
+      const parts = href.split('.')
+      // 1 part means there is no extension, or no dot in the url
+      if (parts.length > 1) {
+        // presumably the last part will be the extension
+        const extension = trimSlashes(parts[parts.length - 1]).replace('.', '')
+        if (extension !== 'html') {
+          return
+        }
+      }
+    }
+    if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(resolvedConfig.host)) {
+      internalLinks.push(href)
+    } else {
+      externalLinks.push(href)
+    }
   })
-  routeReport.internalLinks = internalLinks
+  await hooks.callHook('discovered-internal-links', routeReport.route.path, internalLinks)
   routeReport.seo.internalLinks = internalLinks.length
-  console.log(routeReport.route.url, routeReport.seo?.internalLinks)
+  routeReport.seo.externalLinks = externalLinks.length
   return routeReport
 }

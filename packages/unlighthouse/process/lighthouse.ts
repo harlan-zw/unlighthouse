@@ -1,26 +1,29 @@
 import fs from 'fs'
-import lighthouse from 'lighthouse'
+import lighthouse, {LH} from 'lighthouse'
 import minimist from 'minimist'
-import { UnlighthouseRouteReport, Options } from '@shared';
+import { UnlighthouseRouteReport } from '@shared';
 
 (async() => {
-  const { routeReport, port, options }: { options: string; routeReport: string; port: number } = minimist(process.argv.slice(2))
+  const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded } =
+      minimist<{ options: string; routeReport: string; port: number }>(process.argv.slice(2))
 
   const routeReportJson: UnlighthouseRouteReport = JSON.parse(routeReport)
-  const optionsJson: Options = JSON.parse(options)
+  const lighthouseOptions: LH.Flags = {
+    ...JSON.parse(lighthouseOptionsEncoded),
+    // always generate html / json reports
+    output: ['html', 'json'],
+    // we tell lighthouse the port
+    port,
+  }
   try {
     // @ts-ignore
-    const runnerResult = await lighthouse(routeReportJson.route.url, {
-      ...optionsJson.lighthouseOptions,
-      output: ['html', 'json'],
-      port,
-    })
-
+    const runnerResult = await lighthouse(routeReportJson.route.url, lighthouseOptions)
     fs.writeFileSync(routeReportJson.reportJson, runnerResult.report[1])
     fs.writeFileSync(routeReportJson.reportHtml, runnerResult.report[0])
-    return runnerResult
+    return true
   }
   catch (e) {
     console.error(e)
   }
+  return false
 })()

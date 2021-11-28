@@ -5,60 +5,67 @@ import { $fetch } from 'ohmyfetch'
 import CellRouteName from "../components/Cell/CellRouteName.vue";
 import CellScoresOverview from "../components/Cell/CellScoresOverview.vue";
 import CellScoreSingle from "../components/Cell/CellScoreSingle.vue";
-import {columns, apiUrl, wsUrl, hasDefinitions, categories } from "./static";
+import {columns, apiUrl, wsUrl, categories} from "./static";
 import sum from "lodash/sum";
+import {sorting} from "./search";
 
 export const activeTab = ref(0)
 
-export const isIframeModalOpen = ref(false)
-export const iframeModelUrl = ref('')
+export const isModalOpen = ref<boolean>(false)
+export const iframeModelUrl = ref<string|null>()
 
 export const closeIframeModal = () => {
-  isIframeModalOpen.value = false
+  isModalOpen.value = false
   iframeModelUrl.value = ''
-}
-export const openTreemapReportIframeModal = (report: UnlighthouseRouteReport) => {
-  iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/treemap`
-  isIframeModalOpen.value = true
 }
 export const openLighthouseReportIframeModal = (report: UnlighthouseRouteReport, tab?: string) => {
   iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/lighthouse${tab ? '#' + tab : ''}`
-  isIframeModalOpen.value = true
+  isModalOpen.value = true
 }
 export const openFullScreenshotIframeModal = (report: UnlighthouseRouteReport) => {
   iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/full-page-screenshot`
-  isIframeModalOpen.value = true
+  isModalOpen.value = true
 }
 
 export const changedTab = (index: number) => {
   activeTab.value = index
+  sorting.value = {}
 }
 
 export const resultColumns = computed(() => {
-  const showRouteDefinitions = activeTab.value === 0 && hasDefinitions
   return [
     {
       label: 'Route Name',
       slot: 'routeName',
       key: 'route.path',
       sortable: true,
-      component: CellRouteName
+      component: CellRouteName,
+      cols: {
+        xs: 4,
+        lg: 3,
+        xl: 2,
+      }
     },
     {
       label: 'Score',
-      key: 'report.score',
-      cols: activeTab.value === 0 ? 3 : 1,
+      key: activeTab.value === 0 ? 'report.score' : `report.categories.${categories[activeTab.value - 1]}.score`,
       sortable: true,
+      cols: activeTab.value === 0 ? {
+        xs: 7,
+        'lg': 4,
+        xl: 3,
+      } : {
+        xs: 2,
+        xl: 1,
+      },
       component: activeTab.value === 0 ?
           CellScoresOverview :
           CellScoreSingle
     },
-      // dynamically add the component column if we have route definitions
-    ...(showRouteDefinitions ?
-        [ { label: 'Component', cols: 1, key: 'route.definition.componentBaseName', sortable: true }] :
-        []),
     ...columns[activeTab.value],
-    { label: 'Actions', cols: 1, slot: 'actions', classes: ['items-end justify-end'] }
+    { label: 'Actions', cols: {
+        xs: 1,
+      }, slot: 'actions', classes: ['items-end justify-end'] }
   ]
 })
 

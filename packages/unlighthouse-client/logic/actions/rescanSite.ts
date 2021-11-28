@@ -4,9 +4,12 @@ import {Ref} from "vue";
 
 export const rescanSiteRequest : Ref<UseFetchReturn<any>|null> = ref(null)
 
-export const rescanSite = () => {
-    rescanSiteRequest.value = useFetch(`${apiUrl}/reports/rescan`)
-        .post()
+export const rescanSite = (done : () => void) => {
+    const fetch = useFetch(`${apiUrl}/reports/rescan`).post()
+    rescanSiteRequest.value = fetch
+    fetch.onFetchResponse(() => {
+        done()
+    })
 }
 
 export const isRescanSiteRequestRunning = computed(() => {

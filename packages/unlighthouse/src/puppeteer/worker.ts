@@ -1,83 +1,104 @@
-import { createHooks } from 'hookable'
 import {
   NormalisedRoute,
-  Options,
   UnlighthouseRouteReport,
-  WorkerHooks,
   UnlighthouseWorker,
   PuppeteerTaskArgs,
-  PuppeteerTaskReturn, UnlighthouseWorkerStats,
+  PuppeteerTaskReturn,
+  UnlighthouseWorkerStats,
 } from '@shared'
 import { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
-import { normaliseRouteForTask, useLogger } from '../core'
+import { filter, sortBy } from 'lodash'
+import get from 'lodash/get'
+import { createTaskReportFromRoute } from '../core/util'
+import { useUnlighthouseEngine } from '../core/engine'
+import { useLogger } from '../core/logger'
 import {
   launchCluster,
 } from './cluster'
-import {sortBy} from "lodash";
 
-export async function createUnlighthouseWorker(tasks: Record<string, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>, options: Options): Promise<UnlighthouseWorker> {
-  const hooks = createHooks<WorkerHooks>()
+
+export async function createUnlighthouseWorker(tasks: Record<string, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>): Promise<UnlighthouseWorker> {
+  const { hooks, runtimeSettings, resolvedConfig } = useUnlighthouseEngine()
   const logger = useLogger()
-  const cluster = await launchCluster(options)
+  const cluster = await launchCluster()
 
   const routeReports = new Map<string, UnlighthouseRouteReport>()
 
   const queueRoute = (route: NormalisedRoute) => {
     const { id, path } = route
 
-    if (routeReports.has(id)) {
-      logger.debug(`${path} has already been processed, skipping.`)
+    // no duplicate queueing, manually need to purge the reports to re-queue
+    if (routeReports.has(id))
       return
+
+    /*
+     * Allow sampling of named routes.
+     *
+     * Note: this is somewhat similar to the logic in discovery/routes.ts, that's because we need to sample the routes
+     * from the sitemap or as provided. This logic is for ensuring crawled URLs don't exceed the group limit.
+     */
+    if (resolvedConfig.scanner.dynamicSampling > 0) {
+      const routeGroup = get(route, resolvedConfig.client.groupRoutesKey.replace('route.', ''))
+      // group all urls by their route definition path name
+      const routesInGroup = filter(
+          [...routeReports.values()],
+          r => get(r, resolvedConfig.client.groupRoutesKey) === routeGroup,
+      ).length
+      if (routesInGroup >= resolvedConfig.scanner.dynamicSampling) {
+        logger.debug(`Route has been skipped \`${path}\`, too many routes in group \`${routeGroup}\` ${routesInGroup}/${resolvedConfig.scanner.dynamicSampling}.`)
+        return
+      }
     }
 
-    const routeReport = normaliseRouteForTask(route, options)
-    logger.debug(`${path} has been queued.`)
+    const routeReport = createTaskReportFromRoute(route)
+    logger.debug(`Route has been queued \`${path}\`.`)
 
     routeReports.set(id, routeReport)
     hooks.callHook('task-added', path, routeReport)
 
-    const taskOptions = {
-      routeReport,
-      options,
+    const runTaskIndex = (idx: number = 0) => {
+      // queue the html payload extraction before we perform the lighthouse scan
+      const taskName = Object.keys(tasks)?.[idx]
+      // handle invalid index
+      if (!taskName) {
+        return
+      }
+      const task = Object.values(tasks)[idx]
+      routeReport.tasks[taskName] = 'waiting'
+      cluster
+          .execute(routeReport, (arg) => {
+            routeReport.tasks[taskName] = 'in-progress'
+            hooks.callHook('task-started', path, routeReport)
+            return task(arg)
+          })
+          .then((response) => {
+            if (response.tasks[taskName] === 'failed') {
+              return
+            }
+            response.tasks[taskName] = 'completed'
+            logger.debug(`Completed task \`${taskName}\` for \`${path}\`.`)
+            routeReports.set(id, response)
+            hooks.callHook('task-complete', path, response, taskName)
+            // run the next task
+            runTaskIndex(idx + 1)
+          })
     }
 
-    Object.values(tasks)
-        .forEach((task, key) => {
-          const taskName = Object.keys(tasks)[key]
-          routeReport.tasks[taskName] = 'waiting'
-          cluster
-              .execute(taskOptions, (arg) => {
-                routeReport.tasks[taskName] = 'in-progress'
-                hooks.callHook('task-started', path, routeReport)
-                return task(arg)
-              })
-              .then((response) => {
-                if (!response)
-                  return
-                response.tasks[taskName] = 'completed'
-                logger.info(`${path} has finished processing task ${taskName}.`)
-                routeReports.set(id, response)
-                hooks.callHook('task-complete', path, response, taskName)
-              })
-        })
+    // run the tasks sequentially
+    runTaskIndex()
   }
 
   const queueRoutes = (routes: NormalisedRoute[]) => {
-    const sortedRoutes = sortBy(routes, 'definition.name')
+    const sortedRoutes = sortBy(routes,
+        // we're sort all routes by their route name if provided, otherwise use the path
+        runtimeSettings.hasRouteDefinitions ? 'definition.name' : 'path',
+    )
     sortedRoutes.forEach(route => queueRoute(route))
   }
 
-  const hasStarted = () => {
-    return routeReports.size > 0
-  }
+  const hasStarted = () => cluster.workers.length || cluster.workersStarting
 
-  const reports = () => {
-    const r: UnlighthouseRouteReport[] = []
-    routeReports.forEach((val) => {
-      r.push(val)
-    })
-    return r
-  }
+  const reports = () => [...routeReports.values()]
 
   const monitor: () => UnlighthouseWorkerStats = () => {
     const now = Date.now()
@@ -114,12 +135,14 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     }
   }
 
+  const findReport = (id :string ) => reports().filter(report => report.reportId === id)?.[0]
+
   return {
-    hooks,
     cluster,
     routeReports,
-    processRoute: queueRoute,
-    processRoutes: queueRoutes,
+    queueRoute,
+    queueRoutes,
+    findReport,
     monitor,
     hasStarted,
     reports,

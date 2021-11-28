@@ -5,7 +5,7 @@ import groupBy from 'lodash/groupBy'
 import { isEmpty, orderBy } from 'lodash'
 import { UnlighthouseRouteReport } from '@shared'
 import { wsReports } from './state'
-import { groupRoutes, columns } from './static'
+import { groupRoutesKey, columns } from './static'
 import get from "lodash/get";
 
 type SortDirection = 'asc'|'desc'
@@ -17,23 +17,36 @@ export type Sorting = {
 export const searchText = useStorage('unlighthouse-search-text', '')
 export const sorting = useStorage<Sorting>('unlighthouse-sort', { key: 'route.definition.name', dir: 'asc' })
 
+export const incrementSort = (key: string) => {
+  const val = sorting.value as Sorting
+
+  // increment the sort
+  if (val.key === key) {
+
+    const sort = val.dir
+    if (typeof sort === 'undefined')
+      sorting.value.dir = 'asc'
+    else if (sort === 'asc')
+      sorting.value.dir = 'desc'
+    else
+      sorting.value = {}
+  } else {
+    sorting.value.key = key
+    sorting.value.dir = 'asc'
+  }
+}
+
 export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>(() => {
   let data = [...wsReports.values()]
   if (searchText.value) {
 
-    const sortKeys = columns
-        .flat()
-        .filter(c => (c.sortable === true || !!c.sortKey) && typeof c.key === 'string')
-        .map(c => c.key) as string[]
-
-    const fuse = new Fuse(data, {
+    const fuse = new Fuse(  data, {
       threshold: 0.3,
       shouldSort: isEmpty(sorting.value),
       keys: [
         'route.definition.name',
         'route.path',
         'seo.title',
-        ...sortKeys,
       ],
     })
 
@@ -42,6 +55,7 @@ export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>
 
   if (sorting.value.key) {
     let sortKey = sorting.value.key
+    console.log(sortKey)
     let doLengthSort = false
     const columnDefinition = columns.flat().find(c => c.key === sortKey)
     if (columnDefinition?.sortKey) {
@@ -56,10 +70,13 @@ export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>
         (i) => get(i, sortKey)?.length || 0 :
         sortKey, sorting.value.dir
     )
+  } else {
+    // sort by the group routes key
+    data = orderBy(data, groupRoutesKey, 'asc')
   }
 
   return groupBy(
       data,
-      groupRoutes && !sorting.value.key ? 'route.definition.name' : 'route.path',
+      !sorting.value.key ? groupRoutesKey : 'route.path',
   )
 })

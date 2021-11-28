@@ -82,8 +82,7 @@
     "puppeteer-cluster": "^0.22.0",
     "ufo": "^0.7.9",
     "unlighthouse-client": "workspace:*",
-    "unplugin": "^0.2.21",
-    "unrouted": "workspace:*"
+    "unplugin": "^0.2.21"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.10.0",
@@ -108,6 +107,7 @@
     "ts-jest": "^27.0.5",
     "tsup": "^4.14.0",
     "typescript": "^4.4.3",
+    "unctx": "^1.0.2",
     "ws": "^8.2.3"
   }
 }

@@ -17,13 +17,13 @@ const reportsScore = computed(() => {
     <disclosure-handle>
       <template #label>
         <div class="grid grid-cols-12 gap-4 text-xs w-full">
-          <div class="flex items-center justify-between col-span-2 text-gray-400">
+          <div class="flex items-center justify-between col-span-4 lg:col-span-3 xl:col-span-2">
             <span>{{ routeName }}</span>
-            <span v-if="reports.length > 1" class="text-xs text-gray-400/70 ml-2">
+            <span v-if="reports.length > 1" class="ml-2 opacity-90">
               {{ reports.length }} routes
             </span>
           </div>
-          <div class="flex items-center col-span-2">
+          <div class="items-center col-span-2 hidden lg:flex">
             <metric-guage v-if="reportsScore" :score="reportsScore" stripped />
           </div>
         </div>
@@ -31,7 +31,7 @@ const reportsScore = computed(() => {
       <template v-for="(report, index) in reports" :key="index">
         <results-route :report="report">
           <template #actions>
-            <slot name="actions" :report="report" />
+            <slot name="actions" :report="report" v-if="report?.report" />
           </template>
         </results-route>
       </template>

@@ -1,7 +1,6 @@
 // pull out client accessible options
-import CellComponentName from '../components/Cell/CellComponentName.vue'
 import CellNetworkRequests from '../components/Cell/CellNetworkRequests.vue'
-import CellDiagnostics from '../components/Cell/CellDiagnostics.vue'
+import CellImageIssues from '../components/Cell/CellImageIssues.vue'
 import CellColorContrast from '../components/Cell/CellColorContrast.vue'
 import CellMetaDescription from '../components/Cell/CellMetaDescription.vue'
 import CellIndexable from '../components/Cell/CellIndexable.vue'
@@ -12,34 +11,48 @@ import startCase from 'lodash/startCase'
 
 const {
     host,
-    columns: configColumns,
-    wsUrl,
+    client: {
+        columns: configColumns,
+        groupRoutesKey
+    },
+    hasRouteDefinitions,
+    websocketUrl: wsUrl,
     apiUrl,
-    groupRoutes,
-    hasDefinitions,
-    lighthouseOptions
+    lighthouseOptions,
+    scanner: {
+        throttle
+    }
 } = window.__unlighthouse_options
 
-export { wsUrl, apiUrl, groupRoutes, hasDefinitions, lighthouseOptions }
+export { wsUrl, apiUrl, groupRoutesKey, lighthouseOptions, hasRouteDefinitions, throttle }
 
 export const website = host
 
 export const categories = (lighthouseOptions?.onlyCategories ||  ['performance', 'accessibility', 'best-practices', 'seo'])
-export const tabs = ['Overview', ...categories.map((c) => c === 'seo' ? 'SEO' : startCase(c))]
+console.log(categories)
+export const tabs = [
+    'Overview',
+    ...categories.map((c) => {
+        if (c === 'seo') {
+            return 'SEO'
+        }
+        if (c == 'pwa') {
+            return 'PWA'
+        }
+        return startCase(c)
+    })
+]
 
 // map the column components
-export const columns = configColumns
+export const columns = Object.values(configColumns)
     .map(columns => {
         return columns.map((column) => {
             switch(column.key) {
-                case 'route.definition.componentBaseName':
-                    column.component = CellComponentName
-                    break
                 case 'report.audits.network-requests':
                     column.component = CellNetworkRequests
                     break
                 case 'report.audits.diagnostics':
-                    column.component = CellDiagnostics
+                    column.component = CellImageIssues
                     break
                 case 'report.audits.color-contrast':
                     column.component = CellColorContrast

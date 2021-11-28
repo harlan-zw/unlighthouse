@@ -15,9 +15,10 @@ const value = computed(() => get(props.report, props.column.key))
 type GroupedItems = [{transferSize: number, resourceType: string}[]]
 
 const requests = computed<GroupedItems>(() => {
-
   return groupBy(value.value?.details?.items || [], (i) => i.resourceType) as unknown as GroupedItems
 })
+
+const totalTransfer = computed(() => formatBytes(sum(value.value?.details?.items.map(i => i.transferSize))))
 
 const requestsMapped = computed(() => {
   const res : Record<string, { count: number; size: string }> = {}
@@ -32,8 +33,12 @@ const requestsMapped = computed(() => {
 })
 </script>
 <template>
-<div class="text-sm">
-  {{ value.details.items.length }}
+<div v-if="value" class="text-sm">
+
+  <div class="text-xs opacity-90 flex items-center">
+    <span>{{ value.details.items.length }}</span>
+    <span class="opacity-70 ml-2">{{ totalTransfer }}</span>
+  </div>
   <div v-for="(group, resourceType) in requestsMapped" :key="resourceType" class="text-xs opacity-90 flex items-center">
     <span>{{ group.count }} {{ resourceType }}</span>
     <span class="opacity-70 ml-2">{{ group.size }}</span>

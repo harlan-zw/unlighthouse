@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { extractBgColor, extractFgColor } from '../../logic'
+import {UnlighthouseColumn, UnlighthouseRouteReport} from "@shared";
 
 const props = defineProps<{
   report: UnlighthouseRouteReport,
@@ -8,11 +9,11 @@ const props = defineProps<{
 }>()
 </script>
 <template>
-<div class="w-full">
+<div v-if="value" class="w-full">
   <div class="mb-2">
     <audit-result-items-length :value="value" />
   </div>
-  <div v-if="value.details?.items" class="max-h-80px overflow-y-auto w-full">
+  <div v-if="value.details?.items" class="max-h-80px overflow-y-auto w-full hidden md:block">
     <div
         v-for="({ node }, key) in value.details.items"
         :key="key"

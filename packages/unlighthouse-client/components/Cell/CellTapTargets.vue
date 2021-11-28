@@ -1,14 +1,12 @@
 <script lang="ts" setup>
-import get from "lodash/get";
+import { UnlighthouseColumn, UnlighthouseRouteReport } from "@shared"
 
 const props = defineProps<{
   report: UnlighthouseRouteReport,
   column: UnlighthouseColumn,
   value: any
 }>()
-
-const value = computed(() => get(props.report, props.column.key))
 </script>
 <template>
-<audit-result :value="{ score: value.score, displayValue: value.displayValue.replace(' appropriately sized tap targets', '') }" />
+<audit-result v-if="value" :value="{ score: value.score, displayValue: value.displayValue.replace(' appropriately sized tap targets', '') }" />
 </template>

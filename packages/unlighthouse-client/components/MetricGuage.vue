@@ -68,7 +68,7 @@ const guageArcStyle = computed(() => {
         ></circle>
       </svg>
       <div
-        class="font-5xl font-bold left-[50%] top-[50%] transform -translate-y-[50%] -translate-x-[50%] absolute"
+        class="font-5xl font-bold left-[50%] top-[50%] transform -translate-y-[50%] -translate-x-[50%] absolute text-mono font-mono"
       >
         {{ score === null ? '?' : Math.round(score * 100) }}
       </div>
@@ -117,20 +117,14 @@ const guageArcStyle = computed(() => {
   --color-not-applicable: var(--color-gray-600);
 }
 .guage__wrapper--pass {
-  color: var(--color-pass);
-  fill: var(--color-pass);
-  stroke: var(--color-pass);
+  @apply dark:(text-green-500) text-green-700 fill-current stroke-current;
 }
 .guage__wrapper--average {
-  color: var(--color-average);
-  fill: var(--color-average);
-  stroke: var(--color-average);
+  @apply dark:(text-yellow-500) text-yellow-700 fill-current stroke-current;
 }
 
 .guage__wrapper--fail {
-  color: var(--color-fail);
-  fill: var(--color-fail);
-  stroke: var(--color-fail);
+  @apply dark:(text-red-500) text-red-700 fill-current stroke-current;
 }
 
 .guage__wrapper--not-applicable {

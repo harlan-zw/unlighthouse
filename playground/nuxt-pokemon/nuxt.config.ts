@@ -1,5 +1,5 @@
 import defu from "defu";
-import UnpluginLighthouse from 'unplugin-lighthouse/nuxt'
+import UnpluginLighthouse from 'unlighthouse/src/providers/nuxt/module'
 
 const config = defu.arrayFn(require('../nuxt-shared/nuxt.config').default, {
   delayHydration: {
