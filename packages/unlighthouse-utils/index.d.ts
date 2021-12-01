@@ -1,15 +1,16 @@
 import type { LH } from 'lighthouse'
 import type { $URL } from 'ufo'
 import type { Hookable } from 'hookable'
-import Cluster from './cluster'
+import type Cluster from './cluster'
 import type { WS } from '../unlighthouse/src/router/broadcasting'
-import {ClusterOptionsArgument, TaskFunction} from "puppeteer-cluster/dist/Cluster"
-import {LaunchOptions} from "puppeteer";
+import type { TaskFunction} from "puppeteer-cluster/dist/Cluster"
+import type { ConcurrencyImplementationClassType } from 'puppeteer-cluster/dist/concurrency/ConcurrencyImplementation'
+import type {LaunchOptions} from "puppeteer/lib/types.d.ts";
 import { DeepPartial } from "./utilTypes";
-import {ListenOptions} from "listhen";
-
-export * from './constants'
-export * from './logger'
+import type {ListenOptions } from "listhen";
+import type { App as H3App } from 'h3'
+import type http from "http";
+import type https from "https";
 
 export interface RouteDefinition {
   name: string
@@ -88,7 +89,7 @@ declare global {
   }
 }
 
-export type LighthouseCategories = 'performance'|'best-practices'|'accessibility'|'seo'|'pwa'
+export type UnlighthouseTabs = 'overview'|'performance'|'best-practices'|'accessibility'|'seo'|'pwa'
 
 export interface ResolvedUserConfig {
   /**
@@ -97,6 +98,15 @@ export interface ResolvedUserConfig {
    * @default cwd()
    */
   root: string
+  /**
+   * Should reports be cached between runs for the host.
+   *
+   * @default true
+   */
+  cacheReports: boolean
+  /**
+   * Router options
+   */
   router: {
     /**
      * The path that the Unlighthouse middleware should run from. Useful when you want to serve the application from
@@ -115,13 +125,17 @@ export interface ResolvedUserConfig {
     /**
      * The columns to show for each lighthouse category.
      */
-    columns: Record<LighthouseCategories, UnlighthouseColumn[]>
+    columns: Record<UnlighthouseTabs, UnlighthouseColumn[]>
     /**
      * Which key to use to group the routes.
      */
     groupRoutesKey: string
   }
   scanner: {
+    /**
+     * Does javascript need to be executed in order to fetch internal links and SEO data.
+     */
+    isHtmlSSR: boolean
     /**
      * How many samples of each route should be done. This is used to improve false-positive results.
      *
@@ -174,16 +188,37 @@ export interface ResolvedUserConfig {
   /**
    * Change the behaviour of puppeteer-cluster.
    */
-  puppeteerClusterOptions: ClusterOptionsArgument
+  puppeteerClusterOptions: Partial<{
+    concurrency: number | ConcurrencyImplementationClassType;
+    maxConcurrency: number;
+    workerCreationDelay: number;
+    puppeteerOptions: LaunchOptions;
+    perBrowserOptions: LaunchOptions[] | undefined;
+    monitor: boolean;
+    timeout: number;
+    retryLimit: number;
+    retryDelay: number;
+    skipDuplicateUrls: boolean;
+    sameDomainDelay: number;
+    puppeteer: any;
+  }>
 }
 
 export type UserConfig = DeepPartial<ResolvedUserConfig>
 
 export interface RuntimeSettings {
   /**
+   * The URL of the server running the API and client.
+   */
+  serverUrl: string
+  /**
    * The API using the servers host name.
    */
   apiUrl: string
+  /**
+   * The path of the api without the host details.
+   */
+  apiPath: string
   /**
    * Whether we have managed to resolve definitions for the routes.
    */
@@ -198,6 +233,10 @@ export interface RuntimeSettings {
    */
   generatedClientPath: string
   /**
+   * The URL to the client, used for opening it automatically.
+   */
+  clientUrl: string
+  /**
    * The resolved local path to the client dist.
    */
   resolvedClientPath: string
@@ -209,6 +248,10 @@ export interface RuntimeSettings {
    * Helper variable for determining if we're scanning a site in development.
    */
   isLocalhost: boolean
+  /**
+   * The root directory of the module.
+   */
+  moduleWorkingDir: string
 }
 
 export type PuppeteerTaskArgs = UnlighthouseRouteReport
@@ -216,12 +259,16 @@ export type PuppeteerTaskReturn = UnlighthouseRouteReport
 export type PuppeteerTask = TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>
 
 export interface Provider {
+  name?: string
   urls?: () => Promise<string[]>
-  routeDefinitions?: () => Promise<RouteDefinition[]>
+  mockRouter?: MockRouter
+  routeDefinitions?: RouteDefinition[]|(() => RouteDefinition[]|Promise<RouteDefinition[]>)
   stats?: () => Promise<Record<string, any>>
 }
 
 export type WorkerHooks = {
+  'route-definitions-provided': (routeDefinitions: any[]) => void
+  'visited-client': () => void
   'task-added': (path: string, response: UnlighthouseRouteReport) => void
   'task-started': (path: string, response: UnlighthouseRouteReport) => void
   'task-complete': (path: string, response: UnlighthouseRouteReport, taskName: string) => void
@@ -250,6 +297,13 @@ export interface UnlighthouseWorker {
    */
   queueRoutes: (routes: NormalisedRoute[]) => void
   /**
+   * Re-queues a report, avoiding the usual caching involved and makes sure we unlink any of the previous reports data or
+   * tasks.
+   *
+   * @param report
+   */
+  requeueReport: (report: UnlighthouseRouteReport) => void
+  /**
    * Has the worker started processing the queue.
    */
   hasStarted: () => boolean
@@ -266,6 +320,15 @@ export interface UnlighthouseWorker {
    * @param id
    */
   findReport: (id: string) => UnlighthouseRouteReport|null
+
+  /**
+   * Iterates through route reports checking for a match on the route definition component, if there is a match
+   * then the route is re-queued.
+   *
+   * @param file
+   * @return True if an invalidation occurred on the routes.
+   */
+  invalidateFile(file: string): boolean;
 }
 
 export interface UnlighthouseWorkerStats {
@@ -288,7 +351,9 @@ export interface StatsResponse {
   score: number
 }
 
-export type UnlighthouseEngineContext = {
+type ServerContextArg = { url: string; server: http.Server | https.Server; app: H3App }
+
+export type UnlighthouseContext = {
   mockRouter?: MockRouter
   runtimeSettings: RuntimeSettings
   hooks: Hookable<WorkerHooks>
@@ -297,8 +362,11 @@ export type UnlighthouseEngineContext = {
   routes?: NormalisedRoute[]
   api: any
   ws: WS
-  start: (serverUrl: string) => Promise<void>
-  startWithServer: () => Promise<void>
   worker: UnlighthouseWorker
   provider: Provider
+
+  // functions
+  setServerContext: (arg: ServerContextArg) => void
+  start: () => Promise<void>
+  startWithServer: () => Promise<void>
 }

@@ -2,7 +2,7 @@
 import get from "lodash/get";
 import sum from "lodash/sum";
 import {formatBytes} from "../../logic";
-import {UnlighthouseColumn, UnlighthouseRouteReport} from "@shared";
+import {UnlighthouseColumn, UnlighthouseRouteReport} from "unlighthouse-utils";
 import groupBy from "lodash/groupBy";
 
 const props = defineProps<{

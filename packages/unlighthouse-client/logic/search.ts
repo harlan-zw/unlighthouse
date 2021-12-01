@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Fuse from 'fuse.js'
 import groupBy from 'lodash/groupBy'
 import { isEmpty, orderBy } from 'lodash'
-import { UnlighthouseRouteReport } from '@shared'
+import { UnlighthouseRouteReport } from 'unlighthouse-utils'
 import { wsReports } from './state'
 import { groupRoutesKey, columns } from './static'
 import get from "lodash/get";
@@ -15,7 +15,7 @@ export type Sorting = {
 }
 
 export const searchText = useStorage('unlighthouse-search-text', '')
-export const sorting = useStorage<Sorting>('unlighthouse-sort', { key: 'route.definition.name', dir: 'asc' })
+export const sorting = useStorage<Sorting>('unlighthouse-sort', { key: groupRoutesKey, dir: 'asc' })
 
 export const incrementSort = (key: string) => {
   const val = sorting.value as Sorting
@@ -55,7 +55,6 @@ export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>
 
   if (sorting.value.key) {
     let sortKey = sorting.value.key
-    console.log(sortKey)
     let doLengthSort = false
     const columnDefinition = columns.flat().find(c => c.key === sortKey)
     if (columnDefinition?.sortKey) {
@@ -77,6 +76,6 @@ export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>
 
   return groupBy(
       data,
-      !sorting.value.key ? groupRoutesKey : 'route.path',
+      (!sorting.value.key || sorting.value.key === groupRoutesKey) ? groupRoutesKey : 'route.path',
   )
 })

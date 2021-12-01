@@ -1,6 +1,6 @@
 import { useFetch } from '@vueuse/core'
 import { computed, reactive } from 'vue'
-import {NormalisedRoute, StatsResponse, UnlighthouseRouteReport} from '@shared'
+import {NormalisedRoute, StatsResponse, UnlighthouseRouteReport} from 'unlighthouse-utils'
 import { $fetch } from 'ohmyfetch'
 import CellRouteName from "../components/Cell/CellRouteName.vue";
 import CellScoresOverview from "../components/Cell/CellScoresOverview.vue";

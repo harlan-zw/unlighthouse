@@ -2,47 +2,42 @@
   "name": "unlighthouse-monorepo",
   "private": true,
   "workspaces": [
-    "packages/*",
-    "playground/*"
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsup",
+    "dev": "pnpm run prepack && pnpm run stub",
+    "prepack": "pnpm -r --parallel --filter ./packages run prepack",
+    "stub": "pnpm -r --parallel --filter ./packages run prepack -- --stub",
+    "build": "cd packages/unlighthouse && tsup",
     "cli:kintell": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --host https://kintell.com --root /home/harlan/sites/kintell.com",
     "cli:ody": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --debug --host https://www.odysseytraveller.com --root /home/harlan/sites/odysseytraveller.com-app",
     "cli:mm": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --debug --host https://massivemonster.co --root /home/harlan/sites/massivemonster.co",
-    "cli:hzw": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --host https://harlanzw.com/ --debug",
+    "cli:hzw": "pnpm run build:client && esno packages/unlighthouse/dist/providers/cli.cjs --host https://harlanzw.com/ --debug",
     "cli:windi": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --host https://windicss.org/",
     "cli:nuxt": "pnpm run build:client && esno packages/unlighthouse/src/providers/cli/index.ts --host https://nuxtjs.org/",
-    "dev": "export DEBUG=* && tsup --watch packages/unlighthouse/src",
     "build:fix": "esno packages/unlighthouse/scripts/postbuild.ts",
     "dev:client": "vite packages/unlighthouse-client",
-    "build:client": "vite build packages/unlighthouse-client",
+    "build:client": "vite build packages/unlighthouse-client --watch",
     "lint": "eslint \"packages/**/{src,test}/**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
     "play": "npm -C playground run dev",
     "play:pokemon": "npm -C packages/unlighthouse/test/fixtures/nuxt-pokemon run dev",
-    "prepublishOnly": "npm run build",
-    "release": "bumpp --commit --push --tag && pnpm publish",
     "start": "esno packages/unlighthouse/src/index.ts",
     "test": "jest",
     "test:update": "jest -u"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.10.0",
+    "@antfu/eslint-config": "^0.11.1",
     "@types/jest": "^27.0.3",
-    "@types/node": "^16.11.8",
-    "eslint": "^8.2.0",
-    "eslint-plugin-jest": "^25.2.4",
+    "@types/node": "^16.11.11",
+    "eslint": "^8.3.0",
+    "eslint-plugin-jest": "^25.3.0",
     "esno": "^0.12.1",
-    "jest": "^27.3.1",
+    "jest": "^27.4.2",
     "rimraf": "^3.0.2",
-    "rollup": "^2.60.0",
+    "rollup": "^2.60.2",
     "ts-jest": "^27.0.7",
-    "tsup": "^5.7.2",
-    "typescript": "^4.5.2",
-    "vite-plugin-windicss": "^1.5.1"
-  },
-  "dependencies": {
-    "sitemapper": "^3.2.0"
+    "tsup": "^5.10.0",
+    "typescript": "^4.5.2"
   }
 }

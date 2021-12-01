@@ -22,7 +22,18 @@
       ]
     },
     "types": [
+      "unlighthouse",
+      "unlighthouse/nuxt.d.ts",
+      "unlighthouse/nuxt",
       "@nuxt/types"
     ]
-  }
+  },
+  "include": [
+    "node_modules/unlighthouse/nuxt.d.ts",
+  ],
+  "references": [
+    {
+      "path": "../../"
+    }
+  ]
 }

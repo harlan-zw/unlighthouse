@@ -4,8 +4,7 @@ import { defineComponent } from '@nuxtjs/composition-api'
 
 export default defineComponent({
   head: {
-    title: 'Home page test',
-
+    title: 'Home test :)',
   },
   setup () {
     return {

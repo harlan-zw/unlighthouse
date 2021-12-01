@@ -1,15 +1,25 @@
-import defu from "defu";
-import UnpluginLighthouse from 'unlighthouse/src/providers/nuxt/module'
+import Unlighthouse from 'unlighthouse/nuxt'
 
-const config = defu.arrayFn(require('../nuxt-shared/nuxt.config').default, {
-  delayHydration: {
-    mode: 'mount',
-    debug: true,
-    replayLastPointerEvent: true,
+const config = {
+  target: 'static',
+  head: {
+    htmlAttrs: {
+      lang: 'en',
+      dir: 'ltr',
+    },
+    meta: [
+      { charset: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+    ],
   },
   buildModules: [
-    UnpluginLighthouse
+    Unlighthouse,
+      'nuxt-vite',
+    '@nuxt/typescript-build',
+    '@nuxtjs/composition-api/module',
+    'nuxt-windicss',
   ],
+  components: true,
   generate: {
     async routes() {
       const getPokedex = () => import('./pokedex.json').then(m => m.default || m)
@@ -26,6 +36,6 @@ const config = defu.arrayFn(require('../nuxt-shared/nuxt.config').default, {
       })
     }
   }
-})
+}
 
 export default config

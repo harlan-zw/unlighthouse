@@ -1,10 +1,10 @@
-import { IncomingMessage } from 'http'
-import { Socket } from 'node:net'
+import type { IncomingMessage } from 'http'
+import type { Socket } from 'node:net'
 import WebSocket from 'ws'
-import { useUnlighthouseEngine } from '../core/engine'
+import { useUnlighthouse } from '../core/unlighthouse'
 
 export const createBroadcastingEvents = () => {
-  const { hooks, ws } = useUnlighthouseEngine()
+  const { hooks, ws } = useUnlighthouse()
 
   hooks.hook('task-started', (path, response) => {
     ws.broadcast({ response })

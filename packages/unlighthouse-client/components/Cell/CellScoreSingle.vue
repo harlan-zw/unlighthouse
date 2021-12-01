@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { UnlighthouseColumn, UnlighthouseRouteReport } from "@shared"
+import { UnlighthouseColumn, UnlighthouseRouteReport } from "unlighthouse-utils"
 import { activeTab, openLighthouseReportIframeModal } from '../../logic'
 
 const props = defineProps<{

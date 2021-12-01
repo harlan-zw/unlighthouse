@@ -1,7 +1,8 @@
 import { join } from 'path'
-import { Provider, ResolvedUserConfig } from '@shared'
+import type { Provider, ResolvedUserConfig } from 'unlighthouse-utils'
 import fs from 'fs-extra'
 import { useLogger } from '../logger'
+import {createMockRouter} from "../../router";
 
 export const discoverProvider: (config: ResolvedUserConfig) => Provider|void = (config) => {
   const logger = useLogger()
@@ -9,10 +10,11 @@ export const discoverProvider: (config: ResolvedUserConfig) => Provider|void = (
   const nuxtRouteDefinitionPath = join(config.root, '.nuxt', 'routes.json')
   if (fs.existsSync(nuxtRouteDefinitionPath)) {
     logger.info('Discovered provider Nuxt.js, using \`.nuxt/routes.json\` for route definitions.')
+    const routeDefinitions = fs.readJsonSync(nuxtRouteDefinitionPath)
     return {
-      routeDefinitions() {
-        return fs.readJsonSync(nuxtRouteDefinitionPath)
-      },
+      name: 'nuxt',
+      mockRouter: createMockRouter(routeDefinitions),
+      routeDefinitions,
     }
   }
 }

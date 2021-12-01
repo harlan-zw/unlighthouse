@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "module": "ESNext",
-    "target": "ESNext",
+    "target": "es2017",
     "lib": ["DOM", "ESNext"],
     "strict": true,
     "esModuleInterop": true,
@@ -11,16 +11,17 @@
     "resolveJsonModule": true,
     "noUnusedLocals": true,
     "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
-    "paths": {
-      "@shared": ["packages/unlighthouse-shared/index.ts"],
-      "@util/*": ["packages/unlighthouse-shared/*"]
-    }
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "@types/fs-extra",
     "packages/**/*",
-    "@vue/runtime-core/dist/runtime-core.d.ts"
+    "packages/unlighthouse/dist/*.d.ts",
+    "node_modules/puppeteer/lib/types.d.ts",
+    "node_modules/webpack/types.d.ts",
+    "node_modules/@nuxt/kit-edge/dist/index.d.ts",
+    "node_modules/@nuxt/schema/dist/index.d.ts",
+    "node_modules/@nuxt/schema-edge/dist/index.d.ts"
   ],
-  "exclude": ["dist", "node_modules"]
+  "exclude": [
+  ]
 }

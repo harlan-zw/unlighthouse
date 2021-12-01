@@ -16,9 +16,9 @@ export default defineComponent({
 
 
     useMeta({
-      title: pokemon.name.english,
+      title: pokemon.name.english + ' - Pokemon (:',
       meta: [
-        { hid: 'description', name: 'description', content: `Pokemon #${pokemon.id}: ${pokemon.name.english}. Types are ${pokemon.type.join(', ')}.` },
+        { hid: 'description', name: 'description', content: `Pokemon #${pokemon.id}: ${pokemon.name.english}. Types are ${pokemon.type.join(', ')}. There is much to say about this pokemon but you'll need to click to find more.` },
         { hid: 'image', property: 'image', content: `http://localhost:3000${pokemon.thumbnail}` }
       ]
     })
@@ -35,7 +35,7 @@ export default defineComponent({
   <div class="mx-10">
     <div class="bg-green-50 rounded p-5 w-500px max-w-full mx-auto text-center mb-10">
       <h1 class="text-5xl text-white mb-3 text-green-900">{{ pokemon.name.english }}</h1>
-      <img :src="pokemon.thumbnail" width="100" height="100" class="mb-2 mx-auto" >
+      <img :src="pokemon.thumbnail" :alt="pokemon.name.english" width="100" height="100" class="mb-2 mx-auto" >
       <div class="mb-3">
     <span v-for="(type, key) in pokemon.type" :key="key" class="bg-pink-500 rounded-full px-2 py-1 text-white mx-1">
       {{ type }}

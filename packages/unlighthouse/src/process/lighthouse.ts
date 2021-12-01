@@ -1,11 +1,11 @@
 import fs from 'fs'
-import lighthouse, {LH} from 'lighthouse'
+import lighthouse, { LH } from 'lighthouse'
 import minimist from 'minimist'
-import { UnlighthouseRouteReport } from '@shared';
+import { UnlighthouseRouteReport } from 'unlighthouse-utils';
 
 (async() => {
-  const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded } =
-      minimist<{ options: string; routeReport: string; port: number }>(process.argv.slice(2))
+  const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded }
+      = minimist<{ options: string; routeReport: string; port: number }>(process.argv.slice(2))
 
   const routeReportJson: UnlighthouseRouteReport = JSON.parse(routeReport)
   const lighthouseOptions: LH.Flags = {

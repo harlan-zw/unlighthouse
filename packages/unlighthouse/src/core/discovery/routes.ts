@@ -1,9 +1,9 @@
-import { NormalisedRoute } from '@shared'
+import type { NormalisedRoute } from 'unlighthouse-utils'
 import groupBy from 'lodash/groupBy'
 import map from 'lodash/map'
 import sampleSize from 'lodash/sampleSize'
 import { extractSitemapRoutes } from '../../util/sitemap'
-import { useUnlighthouseEngine } from '../engine'
+import { useUnlighthouse } from '../unlighthouse'
 import { normaliseRoute } from '../../router'
 import { useLogger } from '../logger'
 
@@ -17,7 +17,7 @@ import { useLogger } from '../logger'
  */
 export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async() => {
   const logger = useLogger()
-  const { resolvedConfig, provider, hooks, worker } = useUnlighthouseEngine()
+  const { resolvedConfig, provider, hooks, worker } = useUnlighthouse()
 
   // the urls function may be null
   let urls = (provider?.urls ? await provider?.urls() : [resolvedConfig.host])
@@ -30,9 +30,11 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
       ...urls,
       ...sitemapUrls,
     ]
-  } else if (resolvedConfig.scanner.crawler) {
-    logger.info(`Sitemap appears to be missing, falling back to crawler mode.`)
-  } else {
+  }
+  else if (resolvedConfig.scanner.crawler) {
+    logger.info('Sitemap appears to be missing, falling back to crawler mode.')
+  }
+  else {
     logger.error('Failed to find sitemap.xml and \`routes.crawler\` has been disabled. Please enable to do a sitewide scan.')
   }
 

@@ -14,7 +14,7 @@ const isShowing = ref(false)
       leave-from="opacity-100 scale-100 "
       leave-to="opacity-0 scale-95 "
   >
-    <div role="tooltip" class="max-width-450px absolute min-w-150px z-10 top-[115%] inline-block bg-gray-900/90 font-medium shadow-sm text-white py-2 px-3 text-sm rounded-lg">
+    <div role="tooltip" class="max-width-450px z-500 absolute min-w-150px z-10 top-[115%] inline-block bg-gray-900/90 font-medium shadow-sm text-white py-2 px-3 text-sm rounded-lg">
       <slot name="tooltip"></slot>
     </div>
   </TransitionRoot>

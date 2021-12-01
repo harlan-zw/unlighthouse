@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { UnlighthouseRouteReport} from '@shared'
+import { UnlighthouseRouteReport} from 'unlighthouse-utils'
 import { resultColumns, } from '../../logic'
 
 const props = defineProps<{

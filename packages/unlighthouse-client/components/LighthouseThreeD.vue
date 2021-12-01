@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Camera, AmbientLight, PointLight, Renderer, RendererPublicInterface, Scene, FbxModel } from 'troisjs'
 import type { Group } from 'three'
-import { stats } from '../logic'
+import { stats, basePath } from '../logic'
 import { useElementHover } from '@vueuse/core'
 
 const rendererC = ref()
@@ -53,7 +53,7 @@ const onReady = (object: Group) => {
         <AmbientLight />
         <FbxModel
             ref="meshC"
-            src="/assets/lighthouse.fbx"
+            :src="basePath + '/assets/lighthouse.fbx'"
             @load="onReady"
         />
       </Scene>

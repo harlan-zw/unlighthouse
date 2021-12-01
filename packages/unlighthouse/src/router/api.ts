@@ -1,36 +1,42 @@
-import { dirname } from 'path'
+import {dirname, join} from 'path'
 import fs from 'fs'
-import { createUnrouted, useParams } from 'unrouted'
+import { createUnrouted, useParams, useQuery } from 'unrouted'
 import { readJsonSync } from 'fs-extra'
-import { LH } from 'lighthouse'
-import { useUnlighthouseEngine } from '../core/engine'
-import {useLogger} from "../core/logger";
-
+import type { LH } from 'lighthouse'
+import { useUnlighthouse } from '../core/unlighthouse'
+import { useLogger } from '../core/logger'
+import launch from 'launch-editor'
 
 export const createApi = () => {
   const logger = useLogger()
-  const { ws, resolvedConfig, runtimeSettings } = useUnlighthouseEngine()
+  const { ws, resolvedConfig, runtimeSettings, hooks } = useUnlighthouse()
   const useReport = () => {
-    const { worker } = useUnlighthouseEngine()
+    const { worker } = useUnlighthouse()
 
     const { id } = useParams<{ id: string }>()
     return worker.findReport(id)
   }
 
-  const { serve, group, handle } = createUnrouted({
+  const { serve, group, handle, redirect } = createUnrouted({
     prefix: resolvedConfig.router.prefix,
     hooks: {
-      'serve:before-route:/': () => {
-        // start processing when the user visits the page
-        // appData.onAppVisit()
+      'serve:before-route': () => {
+        hooks.callHook('visited-client')
       },
     },
   })
 
+  // handle typos
+  redirect('/__lighthouse/', resolvedConfig.router.prefix)
+
   group('/api', ({ get }) => {
+    get('__open-in-editor', (req) => {
+      const { file } = useQuery(req)
+      launch(join(resolvedConfig.root, file as string))
+    })
     group('/reports', ({ get, post }) => {
       post('/rescan', () => {
-        const { worker } = useUnlighthouseEngine()
+        const { worker } = useUnlighthouse()
 
         const reports = [...worker.routeReports.values()]
         logger.info(`Doing site rescan, clearing ${reports.length} reports.`)
@@ -38,7 +44,7 @@ export const createApi = () => {
         reports.forEach((route) => {
           const dir = dirname(route.reportHtml)
           if (fs.existsSync(dir))
-            fs.rmdirSync(dir, { recursive: true })
+            fs.rmSync(dir, { recursive: true })
         })
         worker.queueRoutes(reports.map(report => report.route))
         return true
@@ -69,7 +75,7 @@ export const createApi = () => {
 
       post('/:id/rescan', () => {
         const report = useReport()
-        const { worker } = useUnlighthouseEngine()
+        const { worker } = useUnlighthouse()
 
         if (report) {
           // clean up report files
@@ -85,20 +91,20 @@ export const createApi = () => {
     get('ws', req => ws.serve(req))
 
     get('reports', () => {
-      const { worker } = useUnlighthouseEngine()
+      const { worker } = useUnlighthouse()
 
       return worker.reports()
     })
     get('reports/:id', async() => {
       const report = useReport()
-      if (!report){
+      if (!report)
         return false
-      }
+
       return fs.readFileSync(report.reportHtml, 'utf-8')
     })
 
     get('stats', () => {
-      const { worker } = useUnlighthouseEngine()
+      const { worker } = useUnlighthouse()
 
       const data = worker.reports()
       const reportsWithScore = data.filter(r => r.report?.score) as { report: { score: number }}[]

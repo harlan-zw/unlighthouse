@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {UnlighthouseColumn} from "@shared";
+import {UnlighthouseColumn} from "unlighthouse-utils";
 import {useColumnClasses} from "../../logic/column";
 
 const props = defineProps<{

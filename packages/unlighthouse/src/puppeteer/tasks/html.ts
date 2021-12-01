@@ -1,41 +1,56 @@
 import fs from 'fs-extra'
 import cheerio, { CheerioAPI } from 'cheerio'
-import { Page } from 'puppeteer'
-import { PuppeteerTask } from '@shared'
-import { useUnlighthouseEngine } from '../../core/engine'
+import type { Page } from 'puppeteer'
+import type { PuppeteerTask } from 'unlighthouse-utils'
+import { useUnlighthouse } from '../../core/unlighthouse'
 import { useLogger } from '../../core/logger'
-import {trimSlashes} from "../../core/util";
-import {normaliseRoute} from "../../router";
+import { trimSlashes } from '../../core/util'
+import { normaliseRoute } from '../../router'
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; message?: string; payload?: string }> = async(page, route) => {
-  const { worker } = useUnlighthouseEngine()
+  const { worker, resolvedConfig } = useUnlighthouse()
   // get page html content
   try {
-    const pageVisit = await page.goto(route, { waitUntil: 'domcontentloaded' })
+    await page.setCacheEnabled(false)
+    await page.setRequestInterception(true)
+    page.on('request', (request) => {
+      if (['image', 'stylesheet', 'font', 'other'].includes(request.resourceType()))
+        request.abort()
+      else
+        request.continue()
+    })
+
+    const pageVisit = await page.goto(route, { waitUntil: resolvedConfig.scanner.isHtmlSSR ? 'domcontentloaded' : 'networkidle0' })
     // only 2xx we'll consider valid
     const { 'content-type': contentType, location } = pageVisit.headers()
 
     const statusCode = pageVisit.status()
-    if (statusCode === 301 || statusCode === 302 && location) {
+    if ((statusCode === 301 || statusCode === 302) && location) {
       // redirect, failure but we'll queue the other url
       worker.queueRoute(normaliseRoute(location))
-      return { success: false, message: `Redirect, queued the new URL: ${location}.`}
+      return { success: false, message: `Redirect, queued the new URL: ${location}.` }
     }
-    if (statusCode < 200 || statusCode >= 300) {
-      return { success: false, message: `Invalid status code: ${statusCode}.`}
-    }
+    if (statusCode < 200 || statusCode >= 300)
+      return { success: false, message: `Invalid status code: ${statusCode}.` }
+
     // only consider html content types
-    if (contentType && !contentType.includes('text/html')) {
-      return { success: false, message: `Invalid content-type header: ${contentType}.`}
-    }
-    const payload = await pageVisit.text()
+    if (contentType && !contentType.includes('text/html'))
+      return { success: false, message: `Invalid content-type header: ${contentType}.` }
+
+    // handle vite / spa's
+    const payload = await (
+        resolvedConfig.scanner.isHtmlSSR ?
+            pageVisit.text() :
+            page.evaluate(() => document.querySelector('*')?.outerHTML)
+    )
+
     return {
       success: true,
       payload,
     }
   }
   catch (e) {
-    return { success: false, message: `Exception thrown when visiting route: ${e}.`}
+    return { success: false, message: `Exception thrown when visiting route: ${e}.` }
   }
 }
 
@@ -53,7 +68,7 @@ export const processSeoMeta = ($: CheerioAPI) => {
 }
 
 export const inspectHtmlTask: PuppeteerTask = async(props) => {
-  const { resolvedConfig, hooks } = useUnlighthouseEngine()
+  const { resolvedConfig, hooks } = useUnlighthouse()
   const { page, data: routeReport } = props
   const logger = useLogger()
   let html: string
@@ -61,6 +76,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   // basic caching based on saving html payloads
   if (fs.existsSync(routeReport.htmlPayload)) {
     html = fs.readFileSync(routeReport.htmlPayload, { encoding: 'utf-8' })
+    logger.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
   }
   else {
     const response = await extractHtmlPayload(page, routeReport.route.url)
@@ -78,11 +94,11 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   routeReport.seo = processSeoMeta($)
   const internalLinks: string[] = []
   const externalLinks: string[] = []
-  $(`a`).each(function() {
+  $('a').each(function() {
     const href = $(this).attr('href')
-    if (!href) {
+    if (!href)
       return
-    }
+
     // if the URL doesn't end with a slash we may be dealing with a file
     if (!href.endsWith('/')) {
       // need to check for a dot, meaning a file
@@ -91,16 +107,14 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
       if (parts.length > 1) {
         // presumably the last part will be the extension
         const extension = trimSlashes(parts[parts.length - 1]).replace('.', '')
-        if (extension !== 'html') {
+        if (extension !== 'html')
           return
-        }
       }
     }
-    if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(resolvedConfig.host)) {
+    if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(resolvedConfig.host))
       internalLinks.push(href)
-    } else {
+    else
       externalLinks.push(href)
-    }
   })
   await hooks.callHook('discovered-internal-links', routeReport.route.path, internalLinks)
   routeReport.seo.internalLinks = internalLinks.length

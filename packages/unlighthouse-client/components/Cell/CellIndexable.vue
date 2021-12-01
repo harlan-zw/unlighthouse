@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import get from "lodash/get";
-import {UnlighthouseColumn, UnlighthouseRouteReport} from "@shared";
+import {UnlighthouseColumn, UnlighthouseRouteReport} from "unlighthouse-utils";
 
 const props = defineProps<{
   report: UnlighthouseRouteReport,

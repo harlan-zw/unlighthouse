@@ -2,13 +2,30 @@
   "name": "nuxt-kit-extras",
   "version": "0.1.0",
   "description": "Extra helper functions for Nuxt.js modules.",
-  "main": "index.ts",
   "author": "harlan-zw",
   "license": "MIT",
   "private": true,
+  "scripts": {
+    "prepack": "unbuild",
+    "dev": "unbuild stub"
+  },
   "dependencies": {
+    "@nuxt/kit-edge": "^3.0.0-27296423.f3082ca",
     "highwayhash": "^3.1.1",
-    "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
     "ufo": "^0.7.9"
-  }
+  },
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    },
+    "./*": "./*"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "*.d.ts"
+  ]
 }

@@ -1,9 +1,9 @@
 import { Cluster } from 'puppeteer-cluster'
-import { UnlighthouseCluster } from '@shared'
-import { useUnlighthouseEngine } from '../core/engine'
+import type { UnlighthouseCluster } from 'unlighthouse-utils'
+import { useUnlighthouse } from '../core/unlighthouse'
 
 export const launchCluster = async(): Promise<UnlighthouseCluster> => {
-  const { resolvedConfig } = useUnlighthouseEngine()
+  const { resolvedConfig } = useUnlighthouse()
   const cluster = await Cluster.launch({
     puppeteerOptions: {
       ...resolvedConfig.puppeteerOptions,

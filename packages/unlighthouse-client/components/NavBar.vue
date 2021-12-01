@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatDistance } from 'date-fns'
-import { isDark, toggleDark, stats, website, rescanSite, isRescanSiteRequestRunning, throttle } from '../logic'
+import { isDark, toggleDark, stats, website, rescanSite, isRescanSiteRequestRunning, throttle, isLocalhost } from '../logic'
 
 const timeRemaining = computed(() => {
   return formatDistance(0, stats.value.monitor.timeRemaining, { includeSeconds: true })
@@ -14,7 +14,7 @@ const timeRemaining = computed(() => {
       </span>
   <div class="flex w-full justify-between items-center text-xs md:ml-5">
     <div class="flex items-center">
-      <div v-if="website" class="mr-5 hidden xl:block">
+      <div v-if="website && !website.includes('localhost')" class="mr-5 hidden xl:block">
         <div class="uppercase opacity-55 ">
           Website
         </div>
@@ -126,7 +126,7 @@ const timeRemaining = computed(() => {
   <div class="hidden md:flex-auto"></div>
   <btn-icon
       class="icon-btn text-lg"
-      href="https://github.com/antfu/vite-plugin-inspect"
+      href="https://github.com/harlan-zw/unlighthouse"
       target="_blank"
   >
     <i-carbon-logo-github />

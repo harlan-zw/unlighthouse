@@ -1,9 +1,8 @@
-import {UnlighthouseColumn, WindiResponsiveClasses} from "@shared";
+import {UnlighthouseColumn, WindiResponsiveClasses} from "unlighthouse-utils";
 import {Ref} from "vue";
 
 export const useColumnClasses = (columnRef: Ref<UnlighthouseColumn>) => {
     return computed(() => {
-        console.log('recomputing column classes', columnRef.value)
         const column = columnRef.value
         const classes = column.classes || []
         if (column.cols) {

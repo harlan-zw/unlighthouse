@@ -2,7 +2,7 @@
 import get from "lodash/get";
 import {iframeModelUrl, isModalOpen, website} from '../../logic'
 import {withBase, $URL} from 'ufo'
-import {UnlighthouseColumn, UnlighthouseRouteReport} from "@shared";
+import {UnlighthouseColumn, UnlighthouseRouteReport} from "unlighthouse-utils";
 
 const props = defineProps<{
   report: UnlighthouseRouteReport,

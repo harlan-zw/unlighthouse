@@ -9,14 +9,14 @@
     "rollup",
     "transform"
   ],
-  "homepage": "https://github.com/antfu/unlighthouse#readme",
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
   "bugs": {
-    "url": "https://github.com/antfu/unlighthouse/issues"
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/antfu/unlighthouse.git"
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git"
   },
   "files": [
     "dist",
@@ -40,7 +40,6 @@
     "vue-router": "4"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.10.0",
     "@iconify/json": "^1.1.428",
     "@types/jest": "^27.0.2",
     "@types/node": "^16.11.7",
@@ -48,30 +47,24 @@
     "@unocss/reset": "^0.9.3",
     "@vitejs/plugin-vue": "^1.9.4",
     "@vue/compiler-sfc": "^3.2.22",
-    "@vue/composition-api": "^1.4.0",
     "@vueuse/core": "^6.9.1",
     "@vueuse/router": "^6.9.1",
-    "bumpp": "^7.1.1",
     "date-fns": "^2.25.0",
-    "eslint": "^8.2.0",
-    "eslint-plugin-jest": "^25.2.4",
-    "esno": "^0.12.0",
-    "fast-glob": "^3.2.7",
+    "es-module-lexer": "^0.9.3",
     "jest": "^27.3.1",
     "nodemon": "^2.0.15",
     "ohmyfetch": "^0.4.6",
-    "rimraf": "^3.0.2",
-    "rollup": "^2.60.0",
     "three": "^0.134.0",
     "troisjs": "^0.3.3",
     "ts-jest": "^27.0.5",
-    "tsup": "^5.7.0",
     "typescript": "^4.4.3",
     "unocss": "^0.9.3",
     "unplugin-auto-import": "^0.4.14",
     "unplugin-icons": "^0.12.18",
     "unplugin-vue-components": "^0.17.2",
     "vite": "^2.6.14",
-    "vite-plugin-pages": "^0.18.2"
+    "unlighthouse-utils": "workspace:*",
+    "vite-plugin-pages": "^0.18.2",
+    "vite-plugin-windicss": "^1.5.3"
   }
 }

@@ -15,21 +15,23 @@ const {
         columns: configColumns,
         groupRoutesKey
     },
-    hasRouteDefinitions,
     websocketUrl: wsUrl,
     apiUrl,
     lighthouseOptions,
     scanner: {
         throttle
+    },
+    isLocalhost,
+    router: {
+        prefix: basePath
     }
 } = window.__unlighthouse_options
 
-export { wsUrl, apiUrl, groupRoutesKey, lighthouseOptions, hasRouteDefinitions, throttle }
+export { wsUrl, basePath, isLocalhost, apiUrl, groupRoutesKey, lighthouseOptions, throttle }
 
 export const website = host
 
 export const categories = (lighthouseOptions?.onlyCategories ||  ['performance', 'accessibility', 'best-practices', 'seo'])
-console.log(categories)
 export const tabs = [
     'Overview',
     ...categories.map((c) => {

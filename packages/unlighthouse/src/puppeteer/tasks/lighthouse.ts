@@ -1,17 +1,17 @@
 import { join } from 'path'
-import fs, {readJsonSync} from 'fs-extra'
-import execa from 'execa'
-import { LH } from 'lighthouse'
-import { pick, sumBy } from 'lodash'
-import { LighthouseReport, PuppeteerTask } from '@shared'
-import { useUnlighthouseEngine } from '../../core/engine'
+import fs, { readJsonSync } from 'fs-extra'
+import type { LH } from 'lighthouse'
+import pick from 'lodash/pick'
+import sumBy from 'lodash/sumBy'
+import type { LighthouseReport, PuppeteerTask } from 'unlighthouse-utils'
+import sum from 'lodash/sum'
+import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run'
+import { useUnlighthouse } from '../../core/unlighthouse'
 import { useLogger } from '../../core/logger'
 // @ts-ignore
-import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run'
-import sum from "lodash/sum";
 
 export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport => {
-  const { resolvedConfig } = useUnlighthouseEngine()
+  const { resolvedConfig } = useUnlighthouse()
 
   const measuredCategories = Object.values(result.categories)
       .filter(c => typeof c.score !== 'undefined') as { score: number }[]
@@ -41,25 +41,28 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     computed: {
       imageIssues: {
         displayValue: imageIssues,
-        score: imageIssues > 0 ? 0 : 1
-      }
+        score: imageIssues > 0 ? 0 : 1,
+      },
     },
     score: sumBy(measuredCategories, 'score') / measuredCategories.length,
   }
 }
 
+
 export const runLighthouseTask: PuppeteerTask = async(props) => {
   const logger = useLogger()
-  const { resolvedConfig } = useUnlighthouseEngine()
+  const { resolvedConfig, runtimeSettings } = useUnlighthouse()
   const { page, data: routeReport } = props
 
   // if the report doesn't exist we're going to run a new lighthouse process to generate it
   if (fs.existsSync(routeReport.reportJson)) {
-    const report = fs.readJsonSync(routeReport.reportJson, {encoding: 'utf-8'}) as LH.Result
+    const report = fs.readJsonSync(routeReport.reportJson, { encoding: 'utf-8' }) as LH.Result
     routeReport.report = normaliseLighthouseResult(report)
     logger.debug(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\` using cache. (Score \`${routeReport.report.score}\`)`)
     return routeReport
   }
+
+  const lighthouseProcessPath = require.resolve(join(runtimeSettings.moduleWorkingDir, '..', 'process', 'lighthouse.ts'))
 
   const browser = page.browser()
   const port = new URL(browser.wsEndpoint()).port
@@ -74,16 +77,17 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
   for (let i = 0; i < resolvedConfig.scanner.samples; i++) {
     try {
       // Spawn a worker process
-      const worker = execa('jiti', [join(__dirname, '..', '..', '..', 'process', 'lighthouse.ts'), ...args], {
-        timeout: 6 * 60 * 1000,
-      })
+      const worker = (await import('execa'))
+          .execa('jiti', [lighthouseProcessPath, ...args], {
+            timeout: 6 * 60 * 1000,
+          })
       worker.stdout!.pipe(process.stdout)
       worker.stderr!.pipe(process.stderr)
       const res = await worker
-      if (res) {
+      if (res)
         samples.push(readJsonSync(routeReport.reportJson))
-      }
-    } catch (e) {
+    }
+    catch (e) {
       logger.error('Failed to run lighthouse for route', e)
     }
   }

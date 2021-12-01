@@ -8,7 +8,7 @@ const props = defineProps<{
   <PopoverButton
       :class="open ? 'bg-teal-100 ring-2' : ''"
       :title="open ? 'Close Actions' : 'Open Actions'"
-      class="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-blue-50 dark:(bg-teal-700/30 hover:bg-teal-700/70) rounded-md group hover:(text-opacity-100 bg-blue-100) transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+      class="inline-flex items-center px-2 py-1 text-sm font-medium text-white rounded-md group bg-blue-50 dark:(bg-teal-700/30 hover:bg-teal-700/70) hover:(text-opacity-100 bg-blue-100) transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
   >
     <i-mdi-dots-horizontal
         :class="open ? 'rotate-270 scale-125' : ''"

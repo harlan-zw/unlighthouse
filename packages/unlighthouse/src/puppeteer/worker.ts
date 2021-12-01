@@ -1,24 +1,25 @@
-import {
+import fs from 'fs'
+import type {
   NormalisedRoute,
   UnlighthouseRouteReport,
   UnlighthouseWorker,
   PuppeteerTaskArgs,
   PuppeteerTaskReturn,
   UnlighthouseWorkerStats,
-} from '@shared'
-import { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
-import { filter, sortBy } from 'lodash'
+} from 'unlighthouse-utils'
+import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
+import filter from 'lodash/filter'
+import sortBy from 'lodash/sortBy'
 import get from 'lodash/get'
 import { createTaskReportFromRoute } from '../core/util'
-import { useUnlighthouseEngine } from '../core/engine'
+import { useUnlighthouse } from '../core/unlighthouse'
 import { useLogger } from '../core/logger'
 import {
   launchCluster,
 } from './cluster'
 
-
 export async function createUnlighthouseWorker(tasks: Record<string, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>): Promise<UnlighthouseWorker> {
-  const { hooks, runtimeSettings, resolvedConfig } = useUnlighthouseEngine()
+  const { hooks, runtimeSettings, resolvedConfig } = useUnlighthouse()
   const logger = useLogger()
   const cluster = await launchCluster()
 
@@ -41,11 +42,12 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
       const routeGroup = get(route, resolvedConfig.client.groupRoutesKey.replace('route.', ''))
       // group all urls by their route definition path name
       const routesInGroup = filter(
-          [...routeReports.values()],
-          r => get(r, resolvedConfig.client.groupRoutesKey) === routeGroup,
+        [...routeReports.values()],
+        r => get(r, resolvedConfig.client.groupRoutesKey) === routeGroup,
       ).length
       if (routesInGroup >= resolvedConfig.scanner.dynamicSampling) {
-        logger.debug(`Route has been skipped \`${path}\`, too many routes in group \`${routeGroup}\` ${routesInGroup}/${resolvedConfig.scanner.dynamicSampling}.`)
+        // too verbose
+        // logger.debug(`Route has been skipped \`${path}\`, too many routes in group \`${routeGroup}\` ${routesInGroup}/${resolvedConfig.scanner.dynamicSampling}.`)
         return
       }
     }
@@ -56,32 +58,32 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     routeReports.set(id, routeReport)
     hooks.callHook('task-added', path, routeReport)
 
-    const runTaskIndex = (idx: number = 0) => {
+    const runTaskIndex = (idx = 0) => {
       // queue the html payload extraction before we perform the lighthouse scan
       const taskName = Object.keys(tasks)?.[idx]
       // handle invalid index
-      if (!taskName) {
+      if (!taskName)
         return
-      }
+
       const task = Object.values(tasks)[idx]
       routeReport.tasks[taskName] = 'waiting'
       cluster
-          .execute(routeReport, (arg) => {
-            routeReport.tasks[taskName] = 'in-progress'
-            hooks.callHook('task-started', path, routeReport)
-            return task(arg)
-          })
-          .then((response) => {
-            if (response.tasks[taskName] === 'failed') {
-              return
-            }
-            response.tasks[taskName] = 'completed'
-            logger.debug(`Completed task \`${taskName}\` for \`${path}\`.`)
-            routeReports.set(id, response)
-            hooks.callHook('task-complete', path, response, taskName)
-            // run the next task
-            runTaskIndex(idx + 1)
-          })
+        .execute(routeReport, (arg) => {
+          routeReport.tasks[taskName] = 'in-progress'
+          hooks.callHook('task-started', path, routeReport)
+          return task(arg)
+        })
+        .then((response) => {
+          if (response.tasks[taskName] === 'failed')
+            return
+
+          response.tasks[taskName] = 'completed'
+          logger.debug(`Completed task \`${taskName}\` for \`${path}\`.`)
+          routeReports.set(id, response)
+          hooks.callHook('task-complete', path, response, taskName)
+          // run the next task
+          runTaskIndex(idx + 1)
+        })
     }
 
     // run the tasks sequentially
@@ -90,10 +92,32 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
 
   const queueRoutes = (routes: NormalisedRoute[]) => {
     const sortedRoutes = sortBy(routes,
-        // we're sort all routes by their route name if provided, otherwise use the path
-        runtimeSettings.hasRouteDefinitions ? 'definition.name' : 'path',
+      // we're sort all routes by their route name if provided, otherwise use the path
+        resolvedConfig.client.groupRoutesKey.replace('route.', '')
     )
     sortedRoutes.forEach(route => queueRoute(route))
+  }
+
+  const requeueReport = (report: UnlighthouseRouteReport) => {
+    logger.info(`Requeing the report for route \`${report.route.path}\``)
+    fs.rmSync(report.reportHtml, { force: true })
+    fs.rmSync(report.reportJson, { force: true })
+    fs.rmSync(report.htmlPayload, { force: true })
+    routeReports.delete(report.reportId)
+    setTimeout(() => {
+      queueRoute(report.route)
+    }, 3000)
+  }
+
+  const invalidateFile = (file: string) => {
+    const matched = reports()
+      .filter(r => r.route.definition.component === file)
+    if (matched.length > 0) {
+      logger.info(`Invalidating file ${file}, matched ${matched.length} routes.`)
+    }
+    matched
+      .forEach(r => requeueReport(r))
+    return matched.length > 0
   }
 
   const hasStarted = () => cluster.workers.length || cluster.workersStarting
@@ -107,8 +131,8 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     const donePercentage = cluster.allTargetCount === 0 ? 1 : (doneTargets / cluster.allTargetCount)
     const donePercStr = (100 * donePercentage).toFixed(0)
     const errorPerc = doneTargets === 0
-        ? '0.00'
-        : (100 * cluster.errorCount / doneTargets).toFixed(2)
+      ? '0.00'
+      : (100 * cluster.errorCount / doneTargets).toFixed(2)
     const timeRunning = timeDiff
     let timeRemainingMillis = -1
     if (donePercentage !== 0)
@@ -118,8 +142,8 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     const cpuUsage = `${cluster.systemMonitor.getCpuUsage().toFixed(1)}%`
     const memoryUsage = `${cluster.systemMonitor.getMemoryUsage().toFixed(1)}%`
     const pagesPerSecond = doneTargets === 0
-        ? '0'
-        : (doneTargets * 1000 / timeDiff).toFixed(2)
+      ? '0'
+      : (doneTargets * 1000 / timeDiff).toFixed(2)
     return {
       status: cluster.allTargetCount === doneTargets ? 'completed' : 'working',
       timeRunning,
@@ -135,11 +159,13 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     }
   }
 
-  const findReport = (id :string ) => reports().filter(report => report.reportId === id)?.[0]
+  const findReport = (id: string) => reports().filter(report => report.reportId === id)?.[0]
 
   return {
     cluster,
     routeReports,
+    requeueReport,
+    invalidateFile,
     queueRoute,
     queueRoutes,
     findReport,

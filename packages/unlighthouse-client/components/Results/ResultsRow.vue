@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { UnlighthouseRouteReport} from '@shared'
+import { UnlighthouseRouteReport} from 'unlighthouse-utils'
 
 const props = defineProps<{
   routeName: string
@@ -20,7 +20,13 @@ const reportsScore = computed(() => {
           <div class="flex items-center justify-between col-span-4 lg:col-span-3 xl:col-span-2">
             <span>{{ routeName }}</span>
             <span v-if="reports.length > 1" class="ml-2 opacity-90">
-              {{ reports.length }} routes
+               <tooltip>
+                <span class="whitespace-nowrap">{{ reports.length }} routes</span>
+                <template #tooltip>
+                <p>Sampling of dynamic routes enabled.</p>
+                See <code>scanner.sampling</code>.
+                </template>
+              </tooltip>
             </span>
           </div>
           <div class="items-center col-span-2 hidden lg:flex">

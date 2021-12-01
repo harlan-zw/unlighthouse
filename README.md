@@ -1,13 +1,13 @@
-# unplugin-lighthouse
+# unlighthouse
 
-[![NPM version](https://img.shields.io/npm/v/unplugin-lighthouse?color=a1b858&label=)](https://www.npmjs.com/package/unplugin-lighthouse)
+[![NPM version](https://img.shields.io/npm/v/unlighthouse?color=a1b858&label=)](https://www.npmjs.com/package/unlighthouse)
 
 Starter template for [unplugin](https://github.com/unjs/unplugin).
 
 ## Install
 
 ```bash
-npm i unplugin-lighthouse
+npm i unlighthouse
 ```
 
 <details>
@@ -15,7 +15,7 @@ npm i unplugin-lighthouse
 
 ```ts
 // vite.config.ts
-import Starter from 'unplugin-lighthouse/vite'
+import Starter from 'unlighthouse/vite'
 
 export default defineConfig({
   plugins: [
@@ -33,7 +33,7 @@ Example: [`playground/`](./playground/)
 
 ```ts
 // rollup.config.js
-import Starter from 'unplugin-lighthouse/rollup'
+import Starter from 'unlighthouse/rollup'
 
 export default {
   plugins: [
@@ -53,7 +53,7 @@ export default {
 module.exports = {
   /* ... */
   plugins: [
-    require('unplugin-lighthouse/webpack')({ /* options */ })
+    require('unlighthouse/webpack')({ /* options */ })
   ]
 }
 ```
@@ -67,7 +67,7 @@ module.exports = {
 // nuxt.config.js
 export default {
   buildModules: [
-    ['unplugin-lighthouse/nuxt', { /* options */ }],
+    ['unlighthouse/nuxt', { /* options */ }],
   ],
 }
 ```
@@ -84,7 +84,7 @@ export default {
 module.exports = {
   configureWebpack: {
     plugins: [
-      require('unplugin-lighthouse/webpack')({ /* options */ }),
+      require('unlighthouse/webpack')({ /* options */ }),
     ],
   },
 }

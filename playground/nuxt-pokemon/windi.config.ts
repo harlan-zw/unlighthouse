@@ -3,7 +3,7 @@
  **
  ** Docs: https://next.windicss.org/guide/configuration.html
  */
-import { defineConfig } from 'windicss/helpers'
+import { defineConfig } from 'vite-plugin-windicss'
 import defaultTheme from  'windicss/defaultTheme'
 
 export default defineConfig({

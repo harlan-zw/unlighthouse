@@ -9,105 +9,141 @@
     "rollup",
     "transform"
   ],
-  "homepage": "https://github.com/antfu/unplugin-lighthouse#readme",
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
   "bugs": {
-    "url": "https://github.com/antfu/unplugin-lighthouse/issues"
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/antfu/unplugin-lighthouse.git"
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git"
   },
   "license": "MIT",
   "exports": {
     ".": {
-      "require": "./dist/index.js",
+      "require": "./dist/index.cjs",
       "import": "./dist/index.mjs"
     },
+    "./config": {
+      "require": "./dist/config.cjs",
+      "import": "./dist/config.mjs"
+    },
     "./vite": {
-      "require": "./dist/vite.js",
+      "require": "./dist/vite.cjs",
       "import": "./dist/vite.mjs"
     },
     "./webpack": {
-      "require": "./dist/webpack.js",
+      "require": "./dist/webpack.cjs",
       "import": "./dist/webpack.mjs"
     },
     "./rollup": {
-      "require": "./dist/rollup.js",
+      "require": "./dist/rollup.cjs",
       "import": "./dist/rollup.mjs"
     },
     "./nuxt": {
-      "require": "./dist/nuxt.js",
+      "require": "./dist/nuxt.cjs",
       "import": "./dist/nuxt.mjs"
     },
+    "./cli": {
+      "require": "./dist/cli.cjs",
+      "import": "./dist/cli.mjs"
+    },
     "./types": {
-      "require": "./dist/types.js",
+      "require": "./dist/types.cjs",
       "import": "./dist/types.mjs"
     },
     "./*": "./*"
   },
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "type": "module",
   "files": [
     "dist",
     "*.d.ts"
   ],
+  "peerDependenciesMeta": {
+    "rollup": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
+  "peerDependencies": {
+    "rollup": "^2.50.0",
+    "vite": "^2.3.0",
+    "webpack": "4 || 5"
+  },
   "scripts": {
     "prepack": "unbuild",
-    "build": "tsup",
-    "dev": "export DEBUG=* && tsup --watch packages/unplugin-lighthouse/src",
+    "dev": "unbuild . --stub",
     "build:fix": "esno scripts/postbuild.ts",
-    "dev:client": "vite build packages/unplugin-lighthouse/src/client --watch",
-    "build:client": "vite build packages/unplugin-lighthouse/src/client",
+    "dev:client": "vite build packages/unlighthouse/src/client --watch",
+    "build:client": "vite build packages/unlighthouse/src/client",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
     "play": "npm -C playground run dev",
-    "play:pokemon": "npm -C packages/unplugin-lighthouse/test/fixtures/nuxt-pokemon run dev",
+    "play:pokemon": "npm -C packages/unlighthouse/test/fixtures/nuxt-pokemon run dev",
     "prepublishOnly": "npm run build",
     "release": "bumpp --commit --push --tag && pnpm publish",
-    "start": "esno packages/unplugin-lighthouse/src/index.ts",
+    "start": "esno packages/unlighthouse/src/index.ts",
     "test": "jest",
     "test:update": "jest -u"
   },
   "dependencies": {
+    "@nuxt/kit-edge": "^3.0.0-27296423.f3082ca",
     "@types/lodash": "^4.14.177",
-    "@vue/reactivity": "^3.2.22",
+    "cac": "^6.7.12",
     "cheerio": "^1.0.0-rc.10",
+    "consola": "^2.15.3",
     "defu": "^5.0.0",
-    "lighthouse": "^9.0.0",
+    "execa": "^6.0.0",
+    "fs-extra": "^10.0.0",
+    "globby": "^12.0.2",
+    "h3": "^0.3.5",
+    "hookable": "^5.0.0",
+    "jiti": "^1.12.9",
+    "launch-editor": "^2.2.1",
+    "launch-editor-middleware": "^2.2.1",
+    "lighthouse": "^9.1.0",
+    "listhen": "^0.2.5",
     "lodash": "^4.17.21",
     "minimist": "^1.2.5",
     "nuxt-kit-extras": "workspace:*",
-    "puppeteer": "^11.0.0",
+    "object-hash": "^2.2.0",
+    "puppeteer": "^12.0.1",
     "puppeteer-cluster": "^0.22.0",
+    "regexparam": "^2.0.0",
+    "sanitize-filename": "^1.6.3",
+    "sitemapper": "^3.2.0",
+    "slugify": "^1.6.3",
     "ufo": "^0.7.9",
+    "unconfig": "^0.0.3",
+    "unctx": "^1.0.2",
     "unlighthouse-client": "workspace:*",
-    "unplugin": "^0.2.21"
+    "unlighthouse-utils": "workspace:*",
+    "unplugin": "^0.2.21",
+    "ws": "^8.3.0"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.10.0",
-    "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
     "@types/fs-extra": "^9.0.13",
-    "@types/jest": "^27.0.2",
-    "@types/node": "^16.10.3",
-    "@types/ws": "^8.2.0",
-    "bumpp": "^7.1.1",
-    "eslint": "^7.32.0",
-    "eslint-plugin-jest": "^24.7.0",
-    "esno": "^0.9.1",
+    "@types/jest": "^27.0.3",
+    "@types/minimist": "^1.2.2",
+    "@types/node": "^16.11.10",
+    "@types/object-hash": "^2.2.1",
+    "@types/ws": "^8.2.1",
+    "esno": "^0.12.1",
     "fast-glob": "^3.2.7",
-    "fs-extra": "^10.0.0",
-    "hookable": "^5.0.0",
-    "jest": "^27.2.5",
-    "nodemon": "^2.0.13",
-    "ohmyfetch": "^0.4.6",
+    "jest": "^27.4.0",
+    "ohmyfetch": "^0.4.8",
     "rimraf": "^3.0.2",
-    "rollup": "^2.58.0",
-    "sanitize-filename": "^1.6.3",
+    "rollup": "^2.60.1",
     "ts-jest": "^27.0.5",
-    "tsup": "^4.14.0",
-    "typescript": "^4.4.3",
-    "unctx": "^1.0.2",
-    "ws": "^8.2.3"
+    "tsup": "^5.10.0",
+    "typescript": "^4.5.2",
+    "unbuild": "^0.5.13"
   }
 }

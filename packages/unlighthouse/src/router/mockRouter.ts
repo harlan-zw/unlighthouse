@@ -1,5 +1,5 @@
 import { parse } from 'regexparam'
-import { RouteDefinition, MockRouter } from '@shared'
+import type { RouteDefinition, MockRouter } from 'unlighthouse-utils'
 
 export const createMockRouter: (routeDefinitions: RouteDefinition[]) => MockRouter
     = (routeDefinitions: RouteDefinition[]) => {
