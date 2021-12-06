@@ -19,9 +19,9 @@ const reportsScore = computed(() => {
         <div class="grid grid-cols-12 gap-4 text-xs w-full">
           <div class="flex items-center justify-between col-span-4 lg:col-span-3 xl:col-span-2">
             <span>{{ routeName }}</span>
-            <span v-if="reports.length > 1" class="ml-2 opacity-90">
+            <span v-if="reports.length > 1">
                <tooltip>
-                <span class="whitespace-nowrap">{{ reports.length }} routes</span>
+                <span class="whitespace-nowrap ml-2 opacity-90">{{ reports.length }} routes</span>
                 <template #tooltip>
                 <p>Sampling of dynamic routes enabled.</p>
                 See <code>scanner.sampling</code>.

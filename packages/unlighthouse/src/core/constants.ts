@@ -1,11 +1,11 @@
 import os from 'os'
 import { Cluster } from 'puppeteer-cluster'
-import defineConfig from "./defineConfig";
+import defineConfig from './defineConfig'
 
 export const APP_NAME = 'unlighthouse'
 export const CLIENT_NAME = 'unlighthouse-client'
 export const MODULE_ROUTER_PREFIX = '/__unlighthouse'
-
+export const TAG_LINE = 'Shine a light on your sites performance, accessibility and SEO issues.'
 
 const tinyThenHiddenCols = {
   xs: 0,
@@ -15,11 +15,6 @@ const tinyThenHiddenCols = {
 const tinyThenGrowsCols = {
   xs: 2,
   xl: 1,
-}
-
-const midThenGrowsCols = {
-  xs: 4,
-  xl: 2,
 }
 
 const midThenHiddenCols = {
@@ -220,11 +215,33 @@ export const defaultColumns = {
     },
   ],
   'pwa': [
-    { cols: tinyThenHiddenCols, label: 'Manifest', key: 'report.audits.installable-manifest' },
-    { cols: midThenGrowsCols, label: 'Service Worker', key: 'report.audits.service-worker' },
-    { cols: midThenHiddenCols, label: 'Splash Screen', key: 'report.audits.splash-screen' },
-    { cols: tinyThenHiddenCols, label: 'Viewport', key: 'report.audits.viewport' },
-    { cols: midThenGrowsCols, label: 'Content Width', key: 'report.audits.content-width' },
+    {
+      cols: {
+        xs: 3,
+        xl: 2,
+      },
+      label: 'Manifest',
+      key: 'report.audits.installable-manifest',
+    },
+    { cols: tinyThenHiddenCols, label: 'Service Worker', key: 'report.audits.service-worker' },
+    { cols: tinyThenHiddenCols, label: 'Splash Screen', key: 'report.audits.splash-screen' },
+    {
+      cols: {
+        xs: 2,
+        lg: 3,
+        xl: 2,
+      },
+      label: 'Viewport',
+      key: 'report.audits.viewport',
+    },
+    {
+      cols: {
+        xs: 0,
+        xl: 2,
+      },
+      label: 'Content Width',
+      key: 'report.audits.content-width',
+    },
   ],
 }
 
@@ -239,9 +256,9 @@ export const defaultConfig = defineConfig({
   cacheReports: true,
   client: {
     /**
-         * By default try and group routes by the definition name, if no definition is found this will resolve
-         * to the route.path.
-         */
+     * By default try and group routes by the definition name, if no definition is found this will resolve
+     * to the route.path.
+     */
     groupRoutesKey: 'route.definition.name',
     columns: defaultColumns,
   },
@@ -253,8 +270,11 @@ export const defaultConfig = defineConfig({
     dynamicSampling: 5,
   },
   server: {
+    port: 5678,
+    showURL: false,
     open: true,
   },
+  discovery: false,
   root: process.cwd(),
   outputPath: '.lighthouse',
   debug: false,

@@ -10,7 +10,7 @@ export default defineConfig({
     },
     outputPath: '.l',
     lighthouseOptions: {
-        onlyCategories: ['performance', 'seo', 'accessibility']
+        onlyCategories: ['performance', 'seo', 'accessibility', 'pwa']
     },
     debug: true,
 })

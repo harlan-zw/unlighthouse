@@ -3,6 +3,9 @@ import type { Socket } from 'node:net'
 import WebSocket from 'ws'
 import { useUnlighthouse } from '../core/unlighthouse'
 
+/**
+ * When certain hooks are triggered we need to broadcast data via the web socket.
+ */
 export const createBroadcastingEvents = () => {
   const { hooks, ws } = useUnlighthouse()
 

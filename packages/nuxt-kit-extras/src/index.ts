@@ -1,6 +1,6 @@
-import {useNuxt} from '@nuxt/kit-edge'
+import { useNuxt } from '@nuxt/kit-edge'
 import { joinURL, withTrailingSlash } from 'ufo'
-import {  RouteDefinition } from './types'
+import { RouteDefinition } from './types'
 
 export const getRoutes = () => new Promise<RouteDefinition[]>((resolve) => {
   const nuxt = useNuxt()

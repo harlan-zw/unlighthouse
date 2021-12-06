@@ -81,4 +81,4 @@ dist
 .idea
 /*.d.ts
 
-.lighthouse
+**/.lighthouse

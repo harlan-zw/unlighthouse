@@ -39,9 +39,9 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
 
     // handle vite / spa's
     const payload = await (
-        resolvedConfig.scanner.isHtmlSSR ?
-            pageVisit.text() :
-            page.evaluate(() => document.querySelector('*')?.outerHTML)
+      resolvedConfig.scanner.isHtmlSSR
+        ? pageVisit.text()
+        : page.evaluate(() => document.querySelector('*')?.outerHTML)
     )
 
     return {

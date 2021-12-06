@@ -9,14 +9,12 @@ export default defineComponent({
   },
   setup () {
     const route = useRoute()
-    const router = useRouter()
-    const context = useContext()
 
     const pokemon = getPokemonForSlug(route.value.params.slug)
 
 
     useMeta({
-      title: pokemon.name.english + ' - Pokemon (:',
+      title: pokemon.name.english + ' - Pokemon :)',
       meta: [
         { hid: 'description', name: 'description', content: `Pokemon #${pokemon.id}: ${pokemon.name.english}. Types are ${pokemon.type.join(', ')}. There is much to say about this pokemon but you'll need to click to find more.` },
         { hid: 'image', property: 'image', content: `http://localhost:3000${pokemon.thumbnail}` }

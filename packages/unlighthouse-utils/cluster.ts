@@ -3,7 +3,7 @@
 import {EventEmitter} from "events";
 import {TaskFunction, ClusterOptionsArgument} from "puppeteer-cluster/dist/Cluster";
 
-// replaces Cluster.d.ts with all fields public
+// hacky solution to get around Cluster.d.ts private fields
 export default class Cluster<JobData = any, ReturnData = any> extends EventEmitter {
     static CONCURRENCY_PAGE: number;
     static CONCURRENCY_CONTEXT: number;

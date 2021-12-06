@@ -3,6 +3,10 @@ import lighthouse, { LH } from 'lighthouse'
 import minimist from 'minimist'
 import { UnlighthouseRouteReport } from 'unlighthouse-utils';
 
+/*
+ * This file is intended to be run in its own process and should not rely on any global state.
+ */
+
 (async() => {
   const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded }
       = minimist<{ options: string; routeReport: string; port: number }>(process.argv.slice(2))

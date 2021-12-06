@@ -1,2 +1,2 @@
 export * from './routes'
-export * from './provider'
+export * from './routeDefinitions'

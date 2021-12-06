@@ -1,6 +1,13 @@
 import { parse } from 'regexparam'
 import type { RouteDefinition, MockRouter } from 'unlighthouse-utils'
 
+/**
+ * The default mock router using regexparam as the matcher
+ *
+ * Used by nuxt and the default route definition discoverer.
+ *
+ * @param routeDefinitions
+ */
 export const createMockRouter: (routeDefinitions: RouteDefinition[]) => MockRouter
     = (routeDefinitions: RouteDefinition[]) => {
       const patterns = routeDefinitions.map((r) => {

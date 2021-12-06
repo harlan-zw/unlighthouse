@@ -10,7 +10,7 @@ const props = defineProps<{
 }>()
 
 const openEditorRequest = () => {
-  fetch(`${apiUrl}/__open-in-editor?file=${props.report.route.definition.component}`)
+  fetch(`${apiUrl}/__launch?file=${props.report.route.definition.component}`)
 }
 </script>
 <template>

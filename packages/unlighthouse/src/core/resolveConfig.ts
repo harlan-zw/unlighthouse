@@ -1,10 +1,18 @@
 import type { ResolvedUserConfig, UserConfig } from 'unlighthouse-utils'
 import defu from 'defu'
+import pick from 'lodash/pick'
+import { UnlighthouseTabs } from 'unlighthouse-utils'
 import { defaultConfig } from './constants'
 import { normaliseHost } from './util'
-import pick from 'lodash/pick'
-import {UnlighthouseTabs} from "unlighthouse-utils";
 
+/**
+ * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.
+ *
+ * Mostly normalisation of data and provided sane runtime defaults when configuration hasn't been fully provided, also
+ * includes configuration alias helpers though such as `scanner.throttle`.
+ *
+ * @param userConfig
+ */
 export const resolveUserConfig: (userConfig: UserConfig) => ResolvedUserConfig = (userConfig) => {
   // apply default config
   const config = defu(userConfig, defaultConfig)

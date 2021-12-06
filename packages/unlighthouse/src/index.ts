@@ -1,122 +1,131 @@
 import { createUnplugin } from 'unplugin'
-import type {RouteDefinition, UserConfig} from 'unlighthouse-utils'
-import {APP_NAME, MODULE_ROUTER_PREFIX} from './core/constants'
+import type { UserConfig } from 'unlighthouse-utils'
+import { once } from 'lodash'
+import type { Compiler as WebpackCompiler } from 'webpack'
+import type WebpackDevServer from 'webpack-dev-server'
+import defu from 'defu'
+import { APP_NAME, MODULE_ROUTER_PREFIX } from './core/constants'
 import { useLogger } from './core/logger'
-import {createUnlighthouse, useUnlighthouse} from "./core/unlighthouse";
-import {createServer} from "./core/server";
-import { createRouter, createMemoryHistory } from 'vue-router'
+import { createUnlighthouse, useUnlighthouse } from './core/unlighthouse'
+import { createServer } from './core/server'
+import { normaliseHost } from './core/util'
+import { createMockVueRouter } from './router/mockVueRouter'
 
-export default createUnplugin<UserConfig>((config, meta) => ({
-  name: APP_NAME,
+const setupWebpack = once(async(config: any, compiler: WebpackCompiler) => {
+  const logger = useLogger()
+  if (compiler.options.mode !== 'development') {
+    logger.debug(`Not starting ${APP_NAME}, webpack is not in development mode.`)
+    return
+  }
 
-
-  /*async buildEnd() {
-    // nuxt leverages the in-built server and has it's own logic
-    if (unlighthouse.provider.name === 'nuxt') {
-      return
+  // always register the HMR
+  compiler.hooks.invalid.tap(APP_NAME, (resource) => {
+    if (resource) {
+      const { worker } = useUnlighthouse()
+      worker.invalidateFile(resource)
     }
-    const unlighthouse = useUnlighthouse() || await createUnlighthouse(config || {})
+  })
 
-    const { server, app } = await createServer()
-    unlighthouse.setServerContext({ url: server.url, server: server.server, app })
+  let unlighthouse = useUnlighthouse()
+  // has already been booted, possibly nuxt
+  if (unlighthouse)
+    return
 
-    // only start once user visits the page
-    unlighthouse.hooks.hookOnce('visited-client', () => {
-      unlighthouse.start()
-    })
-  },*/
+  unlighthouse = await createUnlighthouse({
+    ...config,
+    root: compiler.options.context,
+    router: {
+      prefix: MODULE_ROUTER_PREFIX,
+    },
+  }, {
+    name: 'webpack',
+  })
+
+  const { server, app } = await createServer()
+  unlighthouse.setServerContext({ url: server.url, server: server.server, app })
+
+  const devServer: WebpackDevServer.Configuration = {
+    proxy: {
+      [unlighthouse.resolvedConfig.router.prefix]: server.url,
+    },
+    onListening(devServer: WebpackDevServer) {
+      unlighthouse.resolvedConfig.host = normaliseHost(devServer.server.address()?.toString() || '')
+      unlighthouse.setServerContext({ url: server.url, server: server.server, app })
+    },
+  }
+
+  compiler.options.devServer = defu(compiler.options.devServer || {}, devServer)
+})
+
+export default createUnplugin<UserConfig>(config => ({
+  name: APP_NAME,
 
   vite: {
     apply: 'serve',
 
-    configResolved(config) {
-      if (!config.server.proxy) {
-        config.server.proxy = {}
-      }
-      config.server.proxy['/__unlighthouse'] = 'http://localhost:3000'
-    },
-    configureServer(viteServer) {
+    async configureServer(viteServer) {
+      let unlighthouse = useUnlighthouse()
+      // has already been booted, possibly nuxt
+      if (unlighthouse)
+        return
 
-      const ensureUnlighthouse = async (host: string) =>{
-        const preInited = useUnlighthouse()
-        if (preInited) {
-          return preInited
-        }
-        const unlighthouse = await createUnlighthouse({
-          host: host,
-          cacheReports: false,
-          root: viteServer.config.root,
-          router: {
-            prefix: '/__unlighthouse',
-          },
-          scanner: {
-            isHtmlSSR: false,
-          },
-          debug: true,
-        }, {
-          name: 'vite',
-        })
-        unlighthouse.hooks.hookOnce('route-definitions-provided', (routeDefinitions) => {
-          unlighthouse.provider.routeDefinitions = routeDefinitions
-          // create a vue-router instance to figure out the path
-          const router = createRouter({
-            history: createMemoryHistory(),
-            routes: routeDefinitions
-          })
-          unlighthouse.provider.mockRouter = {
-            match(path) {
-              const { name } = router.resolve(path) as RouteDefinition
-              return routeDefinitions.filter(d => d.name === name)[0]
-            }
-          }
-        })
+      unlighthouse = await createUnlighthouse({
+        ...config,
+        root: viteServer.config.root,
+        router: {
+          prefix: MODULE_ROUTER_PREFIX,
+        },
+        scanner: {
+          isHtmlSSR: false,
+        },
+      }, {
+        name: 'vite',
+      })
 
-        const { server, app } = await createServer()
+      const { server, app } = await createServer()
+      if (!viteServer.config.server.proxy)
+        viteServer.config.server.proxy = {}
+
+      viteServer.config.server.proxy[unlighthouse.resolvedConfig.router.prefix] = server.url
+
+      const setHost = once((host) => {
+        unlighthouse.resolvedConfig.host = normaliseHost(host)
         unlighthouse.setServerContext({ url: server.url, server: server.server, app })
+      })
 
-        unlighthouse.hooks.hookOnce('visited-client', () => {
-          unlighthouse.start()
-        })
-        return unlighthouse
-      }
+      // wait until the user visits a page so we can capture the host
+      // @todo find a less hacky solution
+      viteServer.middlewares.use(async(req, res, next) => {
+        const host = req.headers.host || ''
+        // make sure we don't match the proxy request
+        if (!host.startsWith(unlighthouse.resolvedConfig.router.prefix))
+          setHost(req.headers.host || '')
 
-      viteServer.middlewares.use(async (req, res, next) => {
-        await ensureUnlighthouse(`http://${req.headers.host}`)
         next()
-        /*
-        console.log(req.url)
-        if (req.url?.startsWith('/__unlighthouse')) {
-          const {api} = await ensureUnlighthouse(`http://${req.headers.host}`)
-          return api(req, res, next)
-        }
-        next()
-         */
+      })
+
+      unlighthouse.hooks.hookOnce('route-definitions-provided', (routeDefinitions) => {
+        unlighthouse.provider.routeDefinitions = routeDefinitions
+        // create a vue-router instance to figure out the path
+        unlighthouse.provider.mockRouter = createMockVueRouter(routeDefinitions)
       })
     },
     handleHotUpdate(hmr) {
-      const { worker } = useUnlighthouse()
-      worker.invalidateFile(hmr.file)
+      const unlighthouse = useUnlighthouse()
+      if (unlighthouse)
+        unlighthouse.worker.invalidateFile(hmr.file)
     },
   },
 
   rollup: {
     watchChange(resource) {
-      const { worker } = useUnlighthouse()
-      worker.invalidateFile(resource)
+      const unlighthouse = useUnlighthouse()
+      if (unlighthouse)
+        unlighthouse.worker.invalidateFile(resource)
     },
   },
 
-  webpack: (compiler) => {
-    const logger = useLogger()
-    if (meta.framework === 'webpack' && compiler.options.mode !== 'development') {
-      logger.debug(`Not starting ${APP_NAME}, wepback is not in development mode.`)
-      return
-    }
-    compiler.hooks.invalid.tap(APP_NAME, (resource?: string) => {
-      if (resource) {
-        const { worker } = useUnlighthouse()
-        worker.invalidateFile(resource)
-      }
-    })
+  webpack: async(compiler: WebpackCompiler) => {
+    setupWebpack(config, compiler)
   },
 }))

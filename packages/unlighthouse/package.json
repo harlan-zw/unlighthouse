@@ -43,6 +43,14 @@
       "require": "./dist/nuxt.cjs",
       "import": "./dist/nuxt.mjs"
     },
+    "./vitepress": {
+      "require": "./dist/vitepress.cjs",
+      "import": "./dist/vitepress.mjs"
+    },
+    "./next": {
+      "require": "./dist/next.cjs",
+      "import": "./dist/next.mjs"
+    },
     "./cli": {
       "require": "./dist/cli.cjs",
       "import": "./dist/cli.mjs"
@@ -94,16 +102,19 @@
     "test:update": "jest -u"
   },
   "dependencies": {
+    "@nuxt/cli": "^2.15.8",
     "@nuxt/kit-edge": "^3.0.0-27296423.f3082ca",
+    "@nuxt/utils": "^2.15.8",
     "@types/lodash": "^4.14.177",
     "cac": "^6.7.12",
+    "chalk": "^5.0.0",
     "cheerio": "^1.0.0-rc.10",
     "consola": "^2.15.3",
     "defu": "^5.0.0",
     "execa": "^6.0.0",
     "fs-extra": "^10.0.0",
     "globby": "^12.0.2",
-    "h3": "^0.3.5",
+    "h3": "^0.3.8",
     "hookable": "^5.0.0",
     "jiti": "^1.12.9",
     "launch-editor": "^2.2.1",
@@ -114,6 +125,7 @@
     "minimist": "^1.2.5",
     "nuxt-kit-extras": "workspace:*",
     "object-hash": "^2.2.0",
+    "open": "^8.4.0",
     "puppeteer": "^12.0.1",
     "puppeteer-cluster": "^0.22.0",
     "regexparam": "^2.0.0",
@@ -121,29 +133,33 @@
     "sitemapper": "^3.2.0",
     "slugify": "^1.6.3",
     "ufo": "^0.7.9",
-    "unconfig": "^0.0.3",
+    "unconfig": "^0.2.2",
     "unctx": "^1.0.2",
     "unlighthouse-client": "workspace:*",
     "unlighthouse-utils": "workspace:*",
     "unplugin": "^0.2.21",
+    "vue-router": "4",
     "ws": "^8.3.0"
   },
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
     "@types/jest": "^27.0.3",
     "@types/minimist": "^1.2.2",
-    "@types/node": "^16.11.10",
+    "@types/node": "^16.11.11",
     "@types/object-hash": "^2.2.1",
+    "@types/webpack": "^5.28.0",
+    "@types/webpack-dev-server": "^4.5.0",
     "@types/ws": "^8.2.1",
     "esno": "^0.12.1",
     "fast-glob": "^3.2.7",
-    "jest": "^27.4.0",
+    "jest": "^27.4.3",
     "ohmyfetch": "^0.4.8",
     "rimraf": "^3.0.2",
-    "rollup": "^2.60.1",
-    "ts-jest": "^27.0.5",
-    "tsup": "^5.10.0",
+    "rollup": "^2.60.2",
+    "ts-jest": "^27.1.0",
+    "tsup": "^5.10.1",
     "typescript": "^4.5.2",
-    "unbuild": "^0.5.13"
+    "unbuild": "^0.6.3",
+    "webpack-dev-server": "^4.6.0"
   }
 }

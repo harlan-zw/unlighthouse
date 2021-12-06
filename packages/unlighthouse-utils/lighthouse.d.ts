@@ -1,3 +1,5 @@
+// This is just the lighthouse types, we can't use them directly from node_modules as they aren't exported correctly
+
 declare module 'lighthouse' {
 
   namespace LH {

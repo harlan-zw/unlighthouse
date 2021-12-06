@@ -79,7 +79,7 @@ export const fetchedStats = reactive(
 
 export const rescanRoute = (route: NormalisedRoute) => useFetch(`${apiUrl}/reports/${route.id}/rescan`).post()
 
-export const stats = computed<StatsResponse>(() => fetchedStats.data)
+export const stats = computed<StatsResponse|null>(() => fetchedStats.data)
 
 export function refetchStats() {
   return fetchedStats.execute()

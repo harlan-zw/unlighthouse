@@ -4,8 +4,14 @@ import type { NormalisedRoute } from 'unlighthouse-utils'
 import { hashPathName, trimSlashes } from '../core/util'
 import { useUnlighthouse } from '../core/unlighthouse'
 
+/**
+ * Due to working with routes from all different frameworks or no framework, we need to do some magic to
+ * have all routes make sense to unlighthouse.
+ *
+ * @param url
+ */
 export const normaliseRoute = (url: string): NormalisedRoute => {
-  const { resolvedConfig, provider, runtimeSettings } = useUnlighthouse()
+  const { resolvedConfig, provider } = useUnlighthouse()
 
   url = withBase(url, resolvedConfig.host)
 
@@ -21,7 +27,7 @@ export const normaliseRoute = (url: string): NormalisedRoute => {
   }
 
   // if a router is provided
-  if (provider.mockRouter) {
+  if (provider.mockRouter && typeof provider.mockRouter !== 'function') {
     const definition = provider.mockRouter.match(path)
     // if a route definition is found
     if (definition) {

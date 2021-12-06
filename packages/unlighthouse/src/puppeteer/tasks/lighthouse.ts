@@ -5,21 +5,21 @@ import pick from 'lodash/pick'
 import sumBy from 'lodash/sumBy'
 import type { LighthouseReport, PuppeteerTask } from 'unlighthouse-utils'
 import sum from 'lodash/sum'
+// @ts-ignore
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run'
 import { useUnlighthouse } from '../../core/unlighthouse'
 import { useLogger } from '../../core/logger'
-// @ts-ignore
 
 export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport => {
   const { resolvedConfig } = useUnlighthouse()
 
   const measuredCategories = Object.values(result.categories)
-      .filter(c => typeof c.score !== 'undefined') as { score: number }[]
+    .filter(c => typeof c.score !== 'undefined') as { score: number }[]
 
   const columnFields = Object.values(resolvedConfig.client.columns)
-      .flat()
-      .filter(c => !!c.key)
-      .map(c => c.key?.replace('report.', '')) as string[]
+    .flat()
+    .filter(c => !!c.key)
+    .map(c => c.key?.replace('report.', '')) as string[]
 
   const imageIssues = sum([
     result.audits['unsized-images']?.details?.items?.length || 0,
@@ -47,7 +47,6 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     score: sumBy(measuredCategories, 'score') / measuredCategories.length,
   }
 }
-
 
 export const runLighthouseTask: PuppeteerTask = async(props) => {
   const logger = useLogger()
@@ -78,9 +77,9 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     try {
       // Spawn a worker process
       const worker = (await import('execa'))
-          .execa('jiti', [lighthouseProcessPath, ...args], {
-            timeout: 6 * 60 * 1000,
-          })
+        .execa('jiti', [lighthouseProcessPath, ...args], {
+          timeout: 6 * 60 * 1000,
+        })
       worker.stdout!.pipe(process.stdout)
       worker.stderr!.pipe(process.stderr)
       const res = await worker

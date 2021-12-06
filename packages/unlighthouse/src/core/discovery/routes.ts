@@ -35,7 +35,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
     logger.info('Sitemap appears to be missing, falling back to crawler mode.')
   }
   else {
-    logger.error('Failed to find sitemap.xml and \`routes.crawler\` has been disabled. Please enable to do a sitewide scan.')
+    logger.error('Failed to find sitemap.xml and \`routes.crawler\` has been disabled. Please enable the crawler to continue scan.')
   }
 
   // setup this hook to queue any discovered internal links

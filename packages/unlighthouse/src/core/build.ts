@@ -4,8 +4,12 @@ import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { useUnlighthouse } from './unlighthouse'
 
 /**
- * Copies the file contents of the unlighthouse-client package and injects js into the head of index.html for the
- * runtime options of the engine.
+ * Copies the file contents of the unlighthouse-client package and does transformation based on the provided configuration.
+ *
+ * The main transformation is injecting the unlighthouse configuration into the head of the document, making it accessible
+ * to the client.
+ *
+ * An additional transforming is needed to modify the vite base URL which is a bit more involved.
  */
 export const generateClient = async() => {
   const { runtimeSettings, resolvedConfig } = useUnlighthouse()

@@ -5,6 +5,16 @@ import { isDark, toggleDark, stats, website, rescanSite, isRescanSiteRequestRunn
 const timeRemaining = computed(() => {
   return formatDistance(0, stats.value.monitor.timeRemaining, { includeSeconds: true })
 })
+
+const favIcon = computed(() => {
+  if (!stats.value?.hostMeta?.favicon) {
+    return '/favicon.ico'
+  } else if (stats.value?.hostMeta?.favicon?.startsWith('http')) {
+    return stats.value?.hostMeta?.favicon
+  }
+
+  return website + (stats.value?.hostMeta?.favicon)
+})
 </script>
 
 <template>
@@ -20,7 +30,7 @@ const timeRemaining = computed(() => {
         </div>
         <div class="text-sm flex items-center">
           <a :href="website" class="flex items-center pt-1" target="_blank">
-            <img :src="website + (stats?.hostMeta?.favicon || '/favicon.ico')" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '') }}
+            <img :src="favIcon" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '') }}
           </a>
         </div>
       </div>

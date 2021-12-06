@@ -21,7 +21,7 @@ const mark = computed(() => {
 </script>
 <template>
   <div class="flex items-center text-mono font-mono" :class="[mark]">
-    <div class="icon hidden md:inline w-2 h-2 mr-2"></div>
+    <div class="icon w-2 h-2 mr-2" :class="typeof value.displayValue !== 'undefined' && value.displayValue ? ['hidden', 'md:inline'] : []"></div>
     <div v-if="typeof value.displayValue !== 'undefined'" class="text-base">
       {{ value.displayValue }}
     </div>

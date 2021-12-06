@@ -1,12 +1,18 @@
-import {dirname, join} from 'path'
+import { dirname, join } from 'path'
 import fs from 'fs'
 import { createUnrouted, useParams, useQuery } from 'unrouted'
 import { readJsonSync } from 'fs-extra'
 import type { LH } from 'lighthouse'
+// @ts-ignore
+import launch from 'launch-editor'
 import { useUnlighthouse } from '../core/unlighthouse'
 import { useLogger } from '../core/logger'
-import launch from 'launch-editor'
 
+/**
+ * The API layer of unlighthouse.
+ *
+ * Internally this uses unrouted which provides an elegant and batteries packed solution.
+ */
 export const createApi = () => {
   const logger = useLogger()
   const { ws, resolvedConfig, runtimeSettings, hooks } = useUnlighthouse()
@@ -20,8 +26,10 @@ export const createApi = () => {
   const { serve, group, handle, redirect } = createUnrouted({
     prefix: resolvedConfig.router.prefix,
     hooks: {
+      // @ts-ignore
       'serve:before-route': () => {
-        hooks.callHook('visited-client')
+        // before we serve a route to the user we trigger a hook to let unlighthouse context know
+        return hooks.callHook('visited-client')
       },
     },
   })
@@ -30,10 +38,6 @@ export const createApi = () => {
   redirect('/__lighthouse/', resolvedConfig.router.prefix)
 
   group('/api', ({ get }) => {
-    get('__open-in-editor', (req) => {
-      const { file } = useQuery(req)
-      launch(join(resolvedConfig.root, file as string))
-    })
     group('/reports', ({ get, post }) => {
       post('/rescan', () => {
         const { worker } = useUnlighthouse()
@@ -86,6 +90,15 @@ export const createApi = () => {
           worker.queueRoute(report.route)
         }
       })
+    })
+
+    get('__launch', (req) => {
+      const query = useQuery(req)
+      const file = query.file as string
+      const path = file.replace(resolvedConfig.root, '')
+      const resolved = join(resolvedConfig.root, path)
+      logger.info(`Launching file in editor: \`${path}\``)
+      launch(resolved)
     })
 
     get('ws', req => ws.serve(req))

@@ -15,13 +15,19 @@ import { createTaskReportFromRoute } from '../core/util'
 import { useUnlighthouse } from '../core/unlighthouse'
 import { useLogger } from '../core/logger'
 import {
-  launchCluster,
+  launchPuppeteerCluster,
 } from './cluster'
 
+/**
+ * The unlighthouse worker is a wrapper for the puppeteer-cluster. It handles the queuing of the tasks with more control
+ * over the clusters monitoring and queue management while providing a tight integration with unlighthouse.
+ *
+ * @param tasks
+ */
 export async function createUnlighthouseWorker(tasks: Record<string, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>): Promise<UnlighthouseWorker> {
-  const { hooks, runtimeSettings, resolvedConfig } = useUnlighthouse()
+  const { hooks, resolvedConfig } = useUnlighthouse()
   const logger = useLogger()
-  const cluster = await launchCluster()
+  const cluster = await launchPuppeteerCluster()
 
   const routeReports = new Map<string, UnlighthouseRouteReport>()
 
@@ -31,6 +37,18 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     // no duplicate queueing, manually need to purge the reports to re-queue
     if (routeReports.has(id))
       return
+
+    if (resolvedConfig.scanner.include) {
+      // must match
+      if (resolvedConfig.scanner.include.filter(rule => (new RegExp(rule).test(path))).length === 0)
+        return
+    }
+
+    if (resolvedConfig.scanner.exclude) {
+      // must not match
+      if (resolvedConfig.scanner.exclude.filter(rule => (new RegExp(rule).test(path))).length > 0)
+        return
+    }
 
     /*
      * Allow sampling of named routes.
@@ -53,7 +71,7 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     }
 
     const routeReport = createTaskReportFromRoute(route)
-    logger.debug(`Route has been queued \`${path}\`.`)
+    logger.debug(`Route has been queued. Path: \`${path}\` Name: ${routeReport.route.definition?.name}.`)
 
     routeReports.set(id, routeReport)
     hooks.callHook('task-added', path, routeReport)
@@ -93,7 +111,7 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
   const queueRoutes = (routes: NormalisedRoute[]) => {
     const sortedRoutes = sortBy(routes,
       // we're sort all routes by their route name if provided, otherwise use the path
-        resolvedConfig.client.groupRoutesKey.replace('route.', '')
+      resolvedConfig.client.groupRoutesKey.replace('route.', ''),
     )
     sortedRoutes.forEach(route => queueRoute(route))
   }
@@ -109,20 +127,20 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     }, 3000)
   }
 
+  const hasStarted = () => cluster.workers.length || cluster.workersStarting
+
+  const reports = () => [...routeReports.values()]
+
   const invalidateFile = (file: string) => {
     const matched = reports()
       .filter(r => r.route.definition.component === file)
-    if (matched.length > 0) {
+    if (matched.length > 0)
       logger.info(`Invalidating file ${file}, matched ${matched.length} routes.`)
-    }
+
     matched
       .forEach(r => requeueReport(r))
     return matched.length > 0
   }
-
-  const hasStarted = () => cluster.workers.length || cluster.workersStarting
-
-  const reports = () => [...routeReports.values()]
 
   const monitor: () => UnlighthouseWorkerStats = () => {
     const now = Date.now()
