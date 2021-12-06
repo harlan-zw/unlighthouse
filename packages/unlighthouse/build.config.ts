@@ -2,8 +2,6 @@ import { defineBuildConfig } from 'unbuild'
 
 export default defineBuildConfig({
   declaration: true,
-  cjsBridge: true,
-  emitCJS: true,
   entries: [
     // { input: 'src/index' },
     { input: 'src/process/lighthouse', name: 'process/lighthouse', declaration: false, format: 'esm', ext: 'ts' },
@@ -18,7 +16,6 @@ export default defineBuildConfig({
     { input: 'src/frameworks/next', name: 'next' },
     { input: '../unlighthouse-utils/index.d.ts', name: 'types' },
   ],
-  clean: false,
   externals: [
     'unrouted',
     'node:net',

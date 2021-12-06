@@ -123,6 +123,7 @@
     "listhen": "^0.2.5",
     "lodash": "^4.17.21",
     "minimist": "^1.2.5",
+    "mlly": "^0.3.15",
     "nuxt-kit-extras": "workspace:*",
     "object-hash": "^2.2.0",
     "open": "^8.4.0",

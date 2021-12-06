@@ -27,6 +27,8 @@ import { resolveUserConfig } from './resolveConfig'
 import { APP_NAME, CLIENT_NAME, TAG_LINE } from './constants'
 import { createLogger } from './logger'
 import { normaliseHost } from './util'
+import { resolvePath } from 'mlly'
+
 
 const engineContext = createContext<UnlighthouseContext>()
 
@@ -117,7 +119,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       outputPath,
       apiPath,
       generatedClientPath: join(outputPath, 'client'),
-      resolvedClientPath: require.resolve(CLIENT_NAME),
+      resolvedClientPath: await resolvePath(CLIENT_NAME, { url: import.meta.url }),
       clientUrl,
       apiUrl: joinURL($server.toString(), apiPath),
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,

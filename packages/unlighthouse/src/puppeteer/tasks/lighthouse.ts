@@ -9,6 +9,7 @@ import sum from 'lodash/sum'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run'
 import { useUnlighthouse } from '../../core/unlighthouse'
 import { useLogger } from '../../core/logger'
+import { resolve } from 'mlly'
 
 export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport => {
   const { resolvedConfig } = useUnlighthouse()
@@ -61,7 +62,11 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     return routeReport
   }
 
-  const lighthouseProcessPath = require.resolve(join(runtimeSettings.moduleWorkingDir, '..', 'process', 'lighthouse.ts'))
+
+  const lighthouseProcessPath = await resolve(
+      join(runtimeSettings.moduleWorkingDir, '..', 'process', 'lighthouse'),
+      { url: import.meta.url, extensions: ['.cjs', '.mjs', '.ts'] }
+  )
 
   const browser = page.browser()
   const port = new URL(browser.wsEndpoint()).port
