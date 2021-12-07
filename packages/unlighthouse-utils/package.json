@@ -1,6 +1,6 @@
 {
   "name": "unlighthouse-utils",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "Shared types for unlighthouse",
   "license": "MIT",
