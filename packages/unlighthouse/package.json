@@ -75,7 +75,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "unbuild",
-    "dev": "unbuild . --stub",
+    "stub": "unbuild --stub",
     "build:fix": "esno scripts/postbuild.ts",
     "dev:client": "vite build packages/unlighthouse/src/client --watch",
     "build:client": "vite build packages/unlighthouse/src/client",

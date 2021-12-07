@@ -9,19 +9,18 @@
     "cli:windi": "esmo packages/unlighthouse/src/cli.ts  --host https://windicss.org/",
     "cli:nuxt": "esmo packages/unlighthouse/src/cli.ts  --host https://nuxtjs.org/",
     "cli:vue": "esmo packages/unlighthouse/src/cli.ts  --host https://v3.vuejs.org/",
-
     "build": "pnpm -r --filter ./packages run build",
-    "stub": "pnpm -r --parallel --filter ./packages run prepack -- --stub",
-    "dev": "pnpm run build && pnpm run stub",
-
+    "stub": "pnpm -r --parallel --filter ./packages run stub",
+    "dev": "pnpm run stub && pnpm run watch:client",
     "dev:client": "pnpm -r --filter ./packages/unlighthouse-client run dev",
     "build:client": "pnpm -r --filter ./packages/unlighthouse-client run build",
-
+    "watch:client": "pnpm -r --filter ./packages/unlighthouse-client run build:watch",
     "lint": "eslint \"packages/**/*.{ts,vue,json,yml}\"",
     "lint:fix": "npm run lint -- --fix",
-
     "start": "esmo packages/unlighthouse/src/index.ts",
-    "test": "esno packages/unlighthouse/dist/ci.cjs --host https://harlanzw.com --budget 80"
+    "release": "bumpp package.json packages/*/package.json --commit --push --tag",
+    "test": "vitest",
+    "test:update": "vitest -u"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.12.1",
@@ -35,6 +34,7 @@
     "rollup": "^2.60.2",
     "ts-jest": "^27.1.0",
     "tsup": "^5.10.1",
-    "typescript": "^4.5.2"
+    "typescript": "^4.5.2",
+    "vitest": "^0.0.28"
   }
 }

@@ -3,8 +3,11 @@ import type { UserConfig } from 'unlighthouse-utils'
 import { version } from '../package.json'
 import { createUnlighthouse } from './core/unlighthouse'
 import { useLogger } from './core/logger'
+import {APP_NAME} from "./core/constants";
+import fs from 'fs-extra'
+import {join} from "path";
 
-const cli = cac('lighthouse')
+const cli = cac(APP_NAME)
 
 cli
   .help()
@@ -39,6 +42,7 @@ async function run() {
     cacheReports: false,
     ...options,
   }, { name: 'ci' })
+  console.log(unlighthouse.resolvedConfig)
   if (!unlighthouse.resolvedConfig.ci?.budget) {
     logger.error('No CI budget has been set, not running. Please set a budget with the config (`ci.budget`) or --budget <number>.')
     process.exit(0)
@@ -46,7 +50,7 @@ async function run() {
   }
   unlighthouse.setCiContext()
   await unlighthouse.start()
-  unlighthouse.hooks.hook('worker-finished', () => {
+  unlighthouse.hooks.hook('worker-finished', async () => {
     logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.host}, running score budgets.`)
     let hadError = false
     unlighthouse.worker
@@ -70,6 +74,12 @@ async function run() {
       })
     if (!hadError) {
       logger.success('All routes passed.')
+      await fs.writeJson(join(unlighthouse.resolvedConfig.root, unlighthouse.resolvedConfig.outputPath, 'ci-result.json'), unlighthouse.worker.reports().map(report => {
+        return {
+          path: report.route.path,
+          score: report.report?.score
+        }
+      }))
       process.exit(0)
     }
     else {

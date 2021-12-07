@@ -11,18 +11,14 @@
     "resolveJsonModule": true,
     "noUnusedLocals": true,
     "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
   },
   "include": [
     "packages/**/*",
-    "packages/unlighthouse/*.d.ts",
-    "packages/nuxt-kit-extras/*.d.ts",
-    "node_modules/puppeteer/lib/types.d.ts",
-    "node_modules/webpack/types.d.ts",
-    "node_modules/@nuxt/kit-edge/dist/index.d.ts",
-    "node_modules/@nuxt/schema/dist/index.d.ts",
-    "node_modules/@nuxt/schema-edge/dist/index.d.ts"
   ],
   "exclude": [
+    "**/dist/**",
+    "**/.lighthouse/**",
+    "**/node_modules/**"
   ]
 }

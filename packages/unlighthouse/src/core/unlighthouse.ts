@@ -45,6 +45,7 @@ export const useUnlighthouse = engineContext.use as () => UnlighthouseContext
  */
 export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provider) => {
   const { __dirname } = createCommonJS(import.meta.url)
+  console.log(userConfig)
 
   let configFile: string|null = null
   // support loading configuration files
@@ -64,6 +65,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   })
 
   if (configDefinition.sources?.[0]) {
+    console.log('def', configDefinition)
     configFile = configDefinition.sources[0]
     userConfig = defu(configDefinition.config, userConfig)
   }
