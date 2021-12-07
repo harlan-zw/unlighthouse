@@ -5,28 +5,23 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm run prepack && pnpm run stub",
-    "prepack": "pnpm -r --parallel --filter ./packages run prepack",
+    "cli:hzw": "esmo packages/unlighthouse/src/cli.ts --host https://harlanzw.com/ --root /home/harlan/sites/harlanzw.com/ --debug",
+    "cli:windi": "esmo packages/unlighthouse/src/cli.ts  --host https://windicss.org/",
+    "cli:nuxt": "esmo packages/unlighthouse/src/cli.ts  --host https://nuxtjs.org/",
+    "cli:vue": "esmo packages/unlighthouse/src/cli.ts  --host https://v3.vuejs.org/",
+
+    "build": "pnpm -r --filter ./packages run build",
     "stub": "pnpm -r --parallel --filter ./packages run prepack -- --stub",
-    "build": "cd packages/unlighthouse && tsup",
-    "cli:kintell": "esno packages/unlighthouse/dist/cli.mjs --host https://kintell.com --root /home/harlan/sites/kintell.com",
-    "cli:ody": "esno packages/unlighthouse/dist/cli.mjs --debug --host https://www.odysseytraveller.com --root /home/harlan/sites/odysseytraveller.com-app",
-    "cli:mm": "esno packages/unlighthouse/dist/cli.mjs --debug --host https://massivemonster.co --root /home/harlan/sites/massivemonster.co",
-    "cli:hzw": "esno packages/unlighthouse/dist/cli.mjs --host https://harlanzw.com/ --root /home/harlan/sites/harlanzw.com/ --debug",
-    "cli:windi": "esno packages/unlighthouse/dist/cli.mjs --host https://windicss.org/",
-    "cli:nuxt": "esno packages/unlighthouse/dist/cli.mjs --host https://nuxtjs.org/",
-    "cli:vue": "esno packages/unlighthouse/dist/cli.mjs --host https://v3.vuejs.org/",
-    "build:fix": "esno packages/unlighthouse/scripts/postbuild.ts",
-    "dev:client": "vite packages/unlighthouse-client",
-    "build:client": "vite build packages/unlighthouse-client",
-    "watch:client": "vite build packages/unlighthouse-client --watch",
-    "lint": "eslint \"packages/**/{src,test}/**/*.ts\"",
+    "dev": "pnpm run build && pnpm run stub",
+
+    "dev:client": "pnpm -r --filter ./packages/unlighthouse-client run dev",
+    "build:client": "pnpm -r --filter ./packages/unlighthouse-client run build",
+
+    "lint": "eslint \"packages/**/*.{ts,vue,json,yml}\"",
     "lint:fix": "npm run lint -- --fix",
-    "play": "npm -C playground run dev",
-    "play:pokemon": "npm -C packages/unlighthouse/test/fixtures/nuxt-pokemon run dev",
-    "start": "esno packages/unlighthouse/src/index.ts",
-    "test": "jest",
-    "test:update": "jest -u"
+
+    "start": "esmo packages/unlighthouse/src/index.ts",
+    "test": "esno packages/unlighthouse/dist/ci.cjs --host https://harlanzw.com --budget 80"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.12.1",

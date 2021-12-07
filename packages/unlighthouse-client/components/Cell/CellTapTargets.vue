@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import { UnlighthouseColumn, UnlighthouseRouteReport } from "unlighthouse-utils"
+import { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse-utils'
 
 const props = defineProps<{
-  report: UnlighthouseRouteReport,
-  column: UnlighthouseColumn,
+  report: UnlighthouseRouteReport
+  column: UnlighthouseColumn
   value: any
 }>()
 </script>
 <template>
-<audit-result v-if="value" :value="{ score: value.score, displayValue: value.displayValue.replace(' appropriately sized tap targets', '') }" />
+  <audit-result v-if="value" :value="{ score: value.score, displayValue: value.displayValue.replace(' appropriately sized tap targets', '') }" />
 </template>

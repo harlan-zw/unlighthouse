@@ -15,7 +15,8 @@
   },
   "include": [
     "packages/**/*",
-    "packages/unlighthouse/dist/*.d.ts",
+    "packages/unlighthouse/*.d.ts",
+    "packages/nuxt-kit-extras/*.d.ts",
     "node_modules/puppeteer/lib/types.d.ts",
     "node_modules/webpack/types.d.ts",
     "node_modules/@nuxt/kit-edge/dist/index.d.ts",

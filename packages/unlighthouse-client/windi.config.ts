@@ -15,7 +15,7 @@ export default defineConfig({
     'bg-main': 'bg-gray-400',
   },
   safelist: [
-      ...['sm', 'md', 'lg', 'xl', '2xl'].map(s => [`${s}:flex`, `${s}:block`]).flat(),
+    ...['sm', 'md', 'lg', 'xl', '2xl'].map(s => [`${s}:flex`, `${s}:block`]).flat(),
     ...range(7).map(i => `col-span-${i}`),
     ...range(7).map(i => `md:col-span-${i}`),
     ...range(7).map(i => `lg:col-span-${i}`),
@@ -27,7 +27,7 @@ export default defineConfig({
       fontFamily: {
         sans: 'DM Sans',
         serif: 'DM Serif Display',
-        mono: 'DM Mono'
+        mono: 'DM Mono',
       },
       colors: {
         teal: {

@@ -1,6 +1,6 @@
 import { createUnplugin } from 'unplugin'
 import type { UserConfig } from 'unlighthouse-utils'
-import { once } from 'lodash'
+import once from 'lodash/once'
 import type { Compiler as WebpackCompiler } from 'webpack'
 import type WebpackDevServer from 'webpack-dev-server'
 import defu from 'defu'
@@ -9,7 +9,7 @@ import { useLogger } from './core/logger'
 import { createUnlighthouse, useUnlighthouse } from './core/unlighthouse'
 import { createServer } from './core/server'
 import { normaliseHost } from './core/util'
-import { createMockVueRouter } from './router/mockVueRouter'
+import { createMockVueRouter } from './router'
 
 const setupWebpack = once(async(config: any, compiler: WebpackCompiler) => {
   const logger = useLogger()

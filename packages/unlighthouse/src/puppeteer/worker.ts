@@ -5,7 +5,7 @@ import type {
   UnlighthouseWorker,
   PuppeteerTaskArgs,
   PuppeteerTaskReturn,
-  UnlighthouseWorkerStats,
+  UnlighthouseWorkerStats, UnlighthouseTask,
 } from 'unlighthouse-utils'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
 import filter from 'lodash/filter'
@@ -24,12 +24,47 @@ import {
  *
  * @param tasks
  */
-export async function createUnlighthouseWorker(tasks: Record<string, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>): Promise<UnlighthouseWorker> {
+export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>): Promise<UnlighthouseWorker> {
   const { hooks, resolvedConfig } = useUnlighthouse()
   const logger = useLogger()
   const cluster = await launchPuppeteerCluster()
 
   const routeReports = new Map<string, UnlighthouseRouteReport>()
+
+  const monitor: () => UnlighthouseWorkerStats = () => {
+    const now = Date.now()
+    const timeDiff = now - cluster.startTime
+    const doneTargets = cluster.allTargetCount - cluster.jobQueue.size() - cluster.workersBusy.length
+    const donePercentage = cluster.allTargetCount === 0 ? 1 : (doneTargets / cluster.allTargetCount)
+    const donePercStr = (100 * donePercentage).toFixed(0)
+    const errorPerc = doneTargets === 0
+      ? '0.00'
+      : (100 * cluster.errorCount / doneTargets).toFixed(2)
+    const timeRunning = timeDiff
+    let timeRemainingMillis = -1
+    if (donePercentage !== 0)
+      timeRemainingMillis = Math.round(((timeDiff) / donePercentage) - timeDiff)
+
+    const timeRemaining = timeRemainingMillis
+    const cpuUsage = `${cluster.systemMonitor.getCpuUsage().toFixed(1)}%`
+    const memoryUsage = `${cluster.systemMonitor.getMemoryUsage().toFixed(1)}%`
+    const pagesPerSecond = doneTargets === 0
+      ? '0'
+      : (doneTargets * 1000 / timeDiff).toFixed(2)
+    return {
+      status: cluster.allTargetCount === doneTargets ? 'completed' : 'working',
+      timeRunning,
+      doneTargets,
+      allTargets: cluster.allTargetCount,
+      donePercStr,
+      errorPerc,
+      timeRemaining,
+      pagesPerSecond,
+      cpuUsage,
+      memoryUsage,
+      workers: cluster.workers.length + cluster.workersStarting,
+    }
+  }
 
   const queueRoute = (route: NormalisedRoute) => {
     const { id, path } = route
@@ -78,10 +113,15 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
 
     const runTaskIndex = (idx = 0) => {
       // queue the html payload extraction before we perform the lighthouse scan
-      const taskName = Object.keys(tasks)?.[idx]
+      const taskName = Object.keys(tasks)?.[idx] as UnlighthouseTask
       // handle invalid index
-      if (!taskName)
+      if (!taskName) {
+        // tasks are finished
+        if (monitor().status === 'completed')
+          hooks.callHook('worker-finished')
+
         return
+      }
 
       const task = Object.values(tasks)[idx]
       routeReport.tasks[taskName] = 'waiting'
@@ -96,7 +136,6 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
             return
 
           response.tasks[taskName] = 'completed'
-          logger.debug(`Completed task \`${taskName}\` for \`${path}\`.`)
           routeReports.set(id, response)
           hooks.callHook('task-complete', path, response, taskName)
           // run the next task
@@ -117,14 +156,15 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
   }
 
   const requeueReport = (report: UnlighthouseRouteReport) => {
-    logger.info(`Requeing the report for route \`${report.route.path}\``)
+    logger.info(`Submitting \`${report.route.path}\` for a re-queue.`)
     fs.rmSync(report.reportHtml, { force: true })
     fs.rmSync(report.reportJson, { force: true })
     fs.rmSync(report.htmlPayload, { force: true })
     routeReports.delete(report.reportId)
+    // arbitrary wait for HMR, lil dodgy
     setTimeout(() => {
       queueRoute(report.route)
-    }, 3000)
+    }, 3500)
   }
 
   const hasStarted = () => cluster.workers.length || cluster.workersStarting
@@ -140,41 +180,6 @@ export async function createUnlighthouseWorker(tasks: Record<string, TaskFunctio
     matched
       .forEach(r => requeueReport(r))
     return matched.length > 0
-  }
-
-  const monitor: () => UnlighthouseWorkerStats = () => {
-    const now = Date.now()
-    const timeDiff = now - cluster.startTime
-    const doneTargets = cluster.allTargetCount - cluster.jobQueue.size() - cluster.workersBusy.length
-    const donePercentage = cluster.allTargetCount === 0 ? 1 : (doneTargets / cluster.allTargetCount)
-    const donePercStr = (100 * donePercentage).toFixed(0)
-    const errorPerc = doneTargets === 0
-      ? '0.00'
-      : (100 * cluster.errorCount / doneTargets).toFixed(2)
-    const timeRunning = timeDiff
-    let timeRemainingMillis = -1
-    if (donePercentage !== 0)
-      timeRemainingMillis = Math.round(((timeDiff) / donePercentage) - timeDiff)
-
-    const timeRemaining = timeRemainingMillis
-    const cpuUsage = `${cluster.systemMonitor.getCpuUsage().toFixed(1)}%`
-    const memoryUsage = `${cluster.systemMonitor.getMemoryUsage().toFixed(1)}%`
-    const pagesPerSecond = doneTargets === 0
-      ? '0'
-      : (doneTargets * 1000 / timeDiff).toFixed(2)
-    return {
-      status: cluster.allTargetCount === doneTargets ? 'completed' : 'working',
-      timeRunning,
-      doneTargets,
-      allTargets: cluster.allTargetCount,
-      donePercStr,
-      errorPerc,
-      timeRemaining,
-      pagesPerSecond,
-      cpuUsage,
-      memoryUsage,
-      workers: cluster.workers.length + cluster.workersStarting,
-    }
   }
 
   const findReport = (id: string) => reports().filter(report => report.reportId === id)?.[0]

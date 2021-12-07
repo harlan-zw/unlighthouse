@@ -55,7 +55,7 @@ importers:
       '@types/webpack-dev-server': ^4.5.0
       '@types/ws': ^8.2.1
       cac: ^6.7.12
-      chalk: ^5.0.0
+      chalk: ^4
       cheerio: ^1.0.0-rc.10
       consola: ^2.15.3
       defu: ^5.0.0
@@ -74,6 +74,7 @@ importers:
       listhen: ^0.2.5
       lodash: ^4.17.21
       minimist: ^1.2.5
+      mlly: ^0.3.15
       nuxt-kit-extras: workspace:*
       object-hash: ^2.2.0
       ohmyfetch: ^0.4.8
@@ -105,7 +106,7 @@ importers:
       '@nuxt/utils': 2.15.8
       '@types/lodash': 4.14.177
       cac: 6.7.12
-      chalk: 5.0.0
+      chalk: 4.1.2
       cheerio: 1.0.0-rc.10
       consola: 2.15.3
       defu: 5.0.0
@@ -121,6 +122,7 @@ importers:
       listhen: 0.2.5
       lodash: 4.17.21
       minimist: 1.2.5
+      mlly: 0.3.15
       nuxt-kit-extras: link:../nuxt-kit-extras
       object-hash: 2.2.0
       open: 8.4.0
@@ -171,6 +173,7 @@ importers:
       '@vue/compiler-sfc': ^3.2.22
       '@vueuse/core': ^7.1.2
       '@vueuse/router': ^7.1.2
+      cross-env: ^7.0.3
       date-fns: ^2.27.0
       defu: ^5.0.0
       es-module-lexer: ^0.9.3
@@ -211,6 +214,7 @@ importers:
       '@vue/compiler-sfc': 3.2.23
       '@vueuse/core': 7.1.2_vue@3.2.21
       '@vueuse/router': 7.1.2_vue-router@4.0.12+vue@3.2.21
+      cross-env: 7.0.3
       date-fns: 2.27.0
       es-module-lexer: 0.9.3
       jest: 27.4.3
@@ -1024,7 +1028,7 @@ packages:
       hash-sum: 2.0.0
       jiti: 1.12.9
       lodash.template: 4.5.0
-      mlly: 0.3.13
+      mlly: 0.3.15
       pathe: 0.2.0
       pkg-types: 0.3.1
       rc9: 1.2.0
@@ -2529,6 +2533,7 @@ packages:
   /chalk/5.0.0:
     resolution: {integrity: sha512-/duVOqst+luxCQRKEo4bNxinsOQtMP80ZYm7mMqzuh5PociNL0PvmHFvREJ9ueYL2TxlHjBcmLCdmocx9Vg+IQ==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
+    dev: true
 
   /char-regex/1.0.2:
     resolution: {integrity: sha512-kWWXztvZ5SBQV+eRgKFeh8q5sLuZY2+8WUIzlxWVTg+oGwY14qylx1KbKzHd8P6ZYkAg0xyIDU9JMHhyJMZ1jw==}
@@ -2801,6 +2806,14 @@ packages:
   /create-require/1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
     dev: false
+
+  /cross-env/7.0.3:
+    resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
+    engines: {node: '>=10.14', npm: '>=6', yarn: '>=1'}
+    hasBin: true
+    dependencies:
+      cross-spawn: 7.0.3
+    dev: true
 
   /cross-spawn/6.0.5:
     resolution: {integrity: sha512-eTVLrBSt7fjbDygz805pMnstIs2VTBNkRm0qxZd+M7A5XDdxVRWO5MxGBXZhjY4cqLYLdtrGqRf8mBPmzwSpWQ==}
@@ -6312,13 +6325,8 @@ packages:
       import-meta-resolve: 1.1.1
     dev: true
 
-  /mlly/0.3.13:
-    resolution: {integrity: sha512-EXpbSPqSQLR9NEdB25uoyIYLSUvAqDEI7wUeM1HwXHsPF5Gx7cP7kuby5Mz2LfCPxBrgMnbcyPhcTCJRTQ+uvA==}
-    dev: false
-
   /mlly/0.3.15:
     resolution: {integrity: sha512-3btbOX6XaoIMXRhLu0T/D9jPRrjJXl4R7Dl+EbpN7BYcQwehmt5UAYrIa2m9D/ywcXIUvDM+OTCON+ShFggndg==}
-    dev: true
 
   /mri/1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
@@ -6874,7 +6882,7 @@ packages:
     resolution: {integrity: sha512-BjECNgz/tsyqg0/T4Z/U7WbFQXUT24nfkxPbALcrk/uHVeZf9MrGG4tfvYtu+jsrHCFMseLQ6woQddDEBATw3A==}
     dependencies:
       jsonc-parser: 3.0.0
-      mlly: 0.3.13
+      mlly: 0.3.15
       pathe: 0.2.0
     dev: false
 

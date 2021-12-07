@@ -6,7 +6,7 @@ const props = defineProps<{
 }>()
 
 const color = computed(() => {
-  switch(props.status) {
+  switch (props.status) {
     case 'completed':
       return 'bg-green-500'
     case 'in-progress':
@@ -17,7 +17,7 @@ const color = computed(() => {
 })
 
 const label = computed(() => {
-  switch(props.status) {
+  switch (props.status) {
     case 'completed':
       return 'Completed'
     case 'in-progress':
@@ -28,8 +28,8 @@ const label = computed(() => {
 })
 </script>
 <template>
-<div class="inline-flex items-center">
-  <div :class="[color]" class="rounded-full h-3 w-3 inline-block mr-1"></div>
-  {{ label }}
-</div>
+  <div class="inline-flex items-center">
+    <div :class="[color]" class="rounded-full h-3 w-3 inline-block mr-1" />
+    {{ label }}
+  </div>
 </template>

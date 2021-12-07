@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { Camera, AmbientLight, PointLight, Renderer, RendererPublicInterface, Scene, FbxModel } from 'troisjs'
 import type { Group } from 'three'
-import { stats, basePath } from '../logic'
 import { useElementHover } from '@vueuse/core'
+import { stats, basePath } from '../logic'
 
 const rendererC = ref()
 const lighthouse = shallowRef<Group>()
 
 onMounted(() => {
   const renderer = rendererC.value as RendererPublicInterface
-  if (!renderer) {
+  if (!renderer)
     return
-  }
+
   renderer.onBeforeRender(() => {
     if (lighthouse.value) {
       // set initial position
@@ -52,9 +52,9 @@ const onReady = (object: Group) => {
         <PointLight :position="{ x: 160, y: -71, z: 0 }" />
         <AmbientLight />
         <FbxModel
-            ref="meshC"
-            :src="basePath + '/assets/lighthouse.fbx'"
-            @load="onReady"
+          ref="meshC"
+          :src="basePath + '/assets/lighthouse.fbx'"
+          @load="onReady"
         />
       </Scene>
     </Renderer>

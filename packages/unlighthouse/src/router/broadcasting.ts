@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'http'
 import type { Socket } from 'node:net'
-import WebSocket from 'ws'
+import { WebSocketServer } from 'ws'
 import { useUnlighthouse } from '../core/unlighthouse'
 
 /**
@@ -8,6 +8,10 @@ import { useUnlighthouse } from '../core/unlighthouse'
  */
 export const createBroadcastingEvents = () => {
   const { hooks, ws } = useUnlighthouse()
+
+  // ws may not be set, for example in a CI environment
+  if (!ws)
+    return
 
   hooks.hook('task-started', (path, response) => {
     ws.broadcast({ response })
@@ -21,9 +25,9 @@ export const createBroadcastingEvents = () => {
 }
 
 export class WS {
-  private wss: WebSocket.Server
+  private wss: WebSocketServer
   constructor() {
-    this.wss = new WebSocket.Server({ noServer: true })
+    this.wss = new WebSocketServer({ noServer: true })
   }
 
   serve(req: IncomingMessage) {
@@ -31,7 +35,7 @@ export class WS {
   }
 
   handleUpgrade(request: IncomingMessage, socket: Socket) {
-    return this.wss.handleUpgrade(request, socket, Buffer.alloc(0), (client: WebSocket) => {
+    return this.wss.handleUpgrade(request, socket, Buffer.alloc(0), (client) => {
       this.wss.emit('connection', client, request)
     })
   }

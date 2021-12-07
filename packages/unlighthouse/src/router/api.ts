@@ -1,7 +1,6 @@
 import { dirname, join } from 'path'
-import fs from 'fs'
 import { createUnrouted, useParams, useQuery } from 'unrouted'
-import { readJsonSync } from 'fs-extra'
+import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
 // @ts-ignore
 import launch from 'launch-editor'
@@ -67,7 +66,7 @@ export const createApi = () => {
         if (!report)
           return false
 
-        const json = readJsonSync(report.reportJson) as LH.Result
+        const json = fs.readJsonSync(report.reportJson) as LH.Result
         const screenshot = json.audits?.['full-page-screenshot'].details.screenshot
         // inline html
         return `<img style="display: block; margin: 0 auto;"

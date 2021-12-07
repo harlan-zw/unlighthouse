@@ -1,13 +1,13 @@
 import { useFetch } from '@vueuse/core'
 import { computed, reactive } from 'vue'
-import {NormalisedRoute, StatsResponse, UnlighthouseRouteReport} from 'unlighthouse-utils'
+import { NormalisedRoute, StatsResponse, UnlighthouseRouteReport } from 'unlighthouse-utils'
 import { $fetch } from 'ohmyfetch'
-import CellRouteName from "../components/Cell/CellRouteName.vue";
-import CellScoresOverview from "../components/Cell/CellScoresOverview.vue";
-import CellScoreSingle from "../components/Cell/CellScoreSingle.vue";
-import {columns, apiUrl, wsUrl, categories} from "./static";
-import sum from "lodash/sum";
-import {sorting} from "./search";
+import sum from 'lodash/sum'
+import CellRouteName from '../components/Cell/CellRouteName.vue'
+import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
+import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
+import { columns, apiUrl, wsUrl, categories } from './static'
+import { sorting } from './search'
 
 export const activeTab = ref(0)
 
@@ -19,7 +19,7 @@ export const closeIframeModal = () => {
   iframeModelUrl.value = ''
 }
 export const openLighthouseReportIframeModal = (report: UnlighthouseRouteReport, tab?: string) => {
-  iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/lighthouse${tab ? '#' + tab : ''}`
+  iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/lighthouse${tab ? `#${tab}` : ''}`
   isModalOpen.value = true
 }
 export const openFullScreenshotIframeModal = (report: UnlighthouseRouteReport) => {
@@ -44,37 +44,44 @@ export const resultColumns = computed(() => {
         xs: 4,
         lg: 3,
         xl: 2,
-      }
+      },
     },
     {
       label: 'Score',
       key: activeTab.value === 0 ? 'report.score' : `report.categories.${categories[activeTab.value - 1]}.score`,
       sortable: true,
-      cols: activeTab.value === 0 ? {
-        xs: 7,
-        'lg': 4,
-        xl: 3,
-      } : {
-        xs: 2,
-        xl: 1,
-      },
-      component: activeTab.value === 0 ?
-          CellScoresOverview :
-          CellScoreSingle
+      cols: activeTab.value === 0
+        ? {
+          xs: 7,
+          lg: 4,
+          xl: 3,
+        }
+        : {
+          xs: 2,
+          xl: 1,
+        },
+      component: activeTab.value === 0
+        ? CellScoresOverview
+        : CellScoreSingle,
     },
     ...columns[activeTab.value],
-    { label: 'Actions', cols: {
+    {
+      label: 'Actions',
+      cols: {
         xs: 1,
-      }, slot: 'actions', classes: ['items-end justify-end'] }
+      },
+      slot: 'actions',
+      classes: ['items-end justify-end'],
+    },
   ]
 })
 
 export const wsReports: Map<string, UnlighthouseRouteReport> = reactive(new Map<string, UnlighthouseRouteReport>())
 
 export const fetchedStats = reactive(
-    useFetch(`${apiUrl}/stats`)
-        .get()
-        .json<StatsResponse>(),
+  useFetch(`${apiUrl}/stats`)
+    .get()
+    .json<StatsResponse>(),
 )
 
 export const rescanRoute = (route: NormalisedRoute) => useFetch(`${apiUrl}/reports/${route.id}/rescan`).post()
@@ -99,8 +106,8 @@ export const wsConnect = async() => {
 
 export const categoryScores = computed(() => {
   const reportsFinished = [...wsReports.values()].filter(r => !!r.report)
-  return categories.map(c => {
-    return sum(reportsFinished.map(r => {
+  return categories.map((c) => {
+    return sum(reportsFinished.map((r) => {
       return r.report?.categories?.[c].score
     })) / reportsFinished.length
   })

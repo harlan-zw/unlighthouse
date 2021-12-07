@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import sum from "lodash/sum";
-import {UnlighthouseColumn, UnlighthouseRouteReport} from "unlighthouse-utils";
+import sum from 'lodash/sum'
+import { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse-utils'
 
 const props = defineProps<{
-  report: UnlighthouseRouteReport,
-  column: UnlighthouseColumn,
+  report: UnlighthouseRouteReport
+  column: UnlighthouseColumn
 }>()
 
 const imageIssues = computed(() => {
@@ -20,7 +20,7 @@ const imageIssues = computed(() => {
 })
 </script>
 <template>
-<div>
-  <audit-result :value="{ displayValue: imageIssues, score: imageIssues === 0 ? 1 : 0 }" />
-</div>
+  <div>
+    <audit-result :value="{ displayValue: imageIssues, score: imageIssues === 0 ? 1 : 0 }" />
+  </div>
 </template>

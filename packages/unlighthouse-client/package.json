@@ -25,7 +25,8 @@
   "main": "dist/index.html",
   "scripts": {
     "dev": "vite .",
-    "build": "vite build packages/unlighthouse/src/client",
+    "build:watch": "vite build --watch",
+    "build": "cross-env NODE_ENV=production vite build --mode production",
     "test": "jest",
     "test:update": "jest -u"
   },
@@ -48,6 +49,7 @@
     "@vue/compiler-sfc": "^3.2.22",
     "@vueuse/core": "^7.1.2",
     "@vueuse/router": "^7.1.2",
+    "cross-env": "^7.0.3",
     "date-fns": "^2.27.0",
     "es-module-lexer": "^0.9.3",
     "jest": "^27.4.3",

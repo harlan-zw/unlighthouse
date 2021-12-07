@@ -1,16 +1,16 @@
+import type http from 'http'
+import type https from 'https'
 import type { LH } from 'lighthouse'
 import type { $URL } from 'ufo'
 import type { Hookable } from 'hookable'
-import type Cluster from './cluster'
-import type { WS } from '../unlighthouse/src/router/broadcasting'
-import type { TaskFunction} from "puppeteer-cluster/dist/Cluster"
+import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
 import type { ConcurrencyImplementationClassType } from 'puppeteer-cluster/dist/concurrency/ConcurrencyImplementation'
-import type {LaunchOptions} from "puppeteer/lib/types.d.ts";
-import { DeepPartial } from "./utilTypes";
-import type {ListenOptions } from "listhen";
+import type { LaunchOptions } from 'puppeteer/lib/types.d.ts'
+import type { ListenOptions } from 'listhen'
 import type { App as H3App } from 'h3'
-import type http from "http";
-import type https from "https";
+import type { WS } from '../unlighthouse/src/router/broadcasting'
+import { DeepPartial } from './utilTypes'
+import type Cluster from './cluster'
 
 /**
  * A route definition is a mapping of a component, and it's URL path (or paths) that it represents.
@@ -66,8 +66,6 @@ export type LighthouseReport = Partial<LH.Result> & {
   }
 }
 
-export type UnlighthousePuppeteerCluster = Cluster<PuppeteerTaskArgs, PuppeteerTaskReturn>
-
 /**
  * Tasks that Unlighthouse will run, used to track their status.
  */
@@ -115,13 +113,13 @@ export interface UnlighthouseRouteReport {
    * The SEO meta-data, only set once the html payload has been extracted and passed.
    */
   seo?: {
-    title?: string;
-    description?: string;
+    title?: string
+    description?: string
     internalLinks?: number
     externalLinks?: number
     favicon?: string
     og?: {
-      image?: string,
+      image?: string
     }
   }
 }
@@ -171,19 +169,12 @@ export interface UnlighthouseColumn {
   classes?: string[]
 }
 
-declare global {
-  interface Window {
-    /**
-     * Lighthouse client runtime settings and resolved configurations.
-     */
-    __unlighthouse_options: ResolvedUserConfig & RuntimeSettings
-  }
-}
-
 /**
  * All available tab keys.
  */
-export type UnlighthouseTabs = 'overview'|'performance'|'best-practices'|'accessibility'|'seo'|'pwa'
+export type LighthouseCategories = 'performance'|'best-practices'|'accessibility'|'seo'|'pwa'
+export type UnlighthouseTabs = 'overview'|LighthouseCategories
+export type MockRouter = { match: (path: string) => RouteDefinition }
 
 export type DiscoveryOptions = {
   /**
@@ -236,6 +227,9 @@ export interface ResolvedUserConfig {
      * a frameworks existing server.
      */
     prefix: string
+  }
+  ci: {
+    budget: number|Record<Partial<LighthouseCategories>, number>
   }
   api: {
     /**
@@ -317,18 +311,18 @@ export interface ResolvedUserConfig {
    * Change the behaviour of puppeteer-cluster.
    */
   puppeteerClusterOptions: Partial<{
-    concurrency: number | ConcurrencyImplementationClassType;
-    maxConcurrency: number;
-    workerCreationDelay: number;
-    puppeteerOptions: LaunchOptions;
-    perBrowserOptions: LaunchOptions[] | undefined;
-    monitor: boolean;
-    timeout: number;
-    retryLimit: number;
-    retryDelay: number;
-    skipDuplicateUrls: boolean;
-    sameDomainDelay: number;
-    puppeteer: any;
+    concurrency: number | ConcurrencyImplementationClassType
+    maxConcurrency: number
+    workerCreationDelay: number
+    puppeteerOptions: LaunchOptions
+    perBrowserOptions: LaunchOptions[] | undefined
+    monitor: boolean
+    timeout: number
+    retryLimit: number
+    retryDelay: number
+    skipDuplicateUrls: boolean
+    sameDomainDelay: number
+    puppeteer: any
   }>
 }
 
@@ -386,9 +380,57 @@ export interface RuntimeSettings {
   moduleWorkingDir: string
 }
 
+export interface UnlighthouseWorkerStats {
+  /**
+   * Status of the worker, completed when all tasks have been completed.
+   */
+  status: 'completed' | 'working'
+  /**
+   * Time in ms that the worker has been running
+   */
+  timeRunning: number
+  /**
+   * How many tasks have been completed.
+   */
+  doneTargets: number
+  /**
+   * Total number of tasks including completed, pending and working.
+   */
+  allTargets: number
+  /**
+   * The % of work completed.
+   */
+  donePercStr: string
+  /**
+   * The % of errors.
+   */
+  errorPerc: string
+  /**
+   * The remaining time until all tasks are completed.
+   */
+  timeRemaining: number
+  /**
+   * How many tasks per second are being processed.
+   */
+  pagesPerSecond: string
+  /**
+   * The devices CPU usage % out of 100
+   */
+  cpuUsage: string
+  /**
+   * The devices memory usage % out of 100
+   */
+  memoryUsage: string
+  /**
+   * How many workers are now working, usually the cpu count of the device.
+   */
+  workers: number
+}
+
 export type PuppeteerTaskArgs = UnlighthouseRouteReport
 export type PuppeteerTaskReturn = UnlighthouseRouteReport
 export type PuppeteerTask = TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>
+export type UnlighthousePuppeteerCluster = Cluster<PuppeteerTaskArgs, PuppeteerTaskReturn>
 
 /**
  * Each integration will potentially have their own way of providing the route definitions and the routing of those
@@ -406,7 +448,7 @@ export interface Provider {
   /**
    * To match a URL path to a route definition we need a router. Different definitions need different routes.
    */
-  mockRouter?: MockRouter | ((routeDefinitions : RouteDefinition[]) => MockRouter)
+  mockRouter?: MockRouter | ((routeDefinitions: RouteDefinition[]) => MockRouter)
   /**
    * The collection of route definitions belonging to the provider. These can be inferred but aren't 100% correct,
    * frameworks that can provide these should do so.
@@ -417,6 +459,13 @@ export interface Provider {
 export type HookResult = Promise<void>|void
 
 export type UnlighthouseHooks = {
+  /**
+   * Called when the worker has finished processing all queued routes. Will be called multiple times if routes are
+   * re-queued.
+   *
+   * Mostly useful for the CI environment.
+   */
+  'worker-finished': () => HookResult
   /**
    * When route definitions are provided to Unlighthouse this function will be called, useful for delaying internal logic
    * until the definitions are found.
@@ -453,8 +502,6 @@ export type UnlighthouseHooks = {
    */
   'discovered-internal-links': (path: string, internalLinks: string[]) => HookResult
 }
-
-export type MockRouter = { match: (path: string) => RouteDefinition }
 
 export interface UnlighthouseWorker {
   /**
@@ -507,54 +554,7 @@ export interface UnlighthouseWorker {
    * @param file
    * @return True if an invalidation occurred on the routes.
    */
-  invalidateFile: (file: string) => boolean;
-}
-
-export interface UnlighthouseWorkerStats {
-  /**
-   * Status of the worker, completed when all tasks have been completed.
-   */
-  status: 'completed' | 'working'
-  /**
-   * Time in ms that the worker has been running
-   */
-  timeRunning: number
-  /**
-   * How many tasks have been completed.
-   */
-  doneTargets: number
-  /**
-   * Total number of tasks including completed, pending and working.
-   */
-  allTargets: number
-  /**
-   * The % of work completed.
-   */
-  donePercStr: string,
-  /**
-   * The % of errors.
-   */
-  errorPerc: string,
-  /**
-   * The remaining time until all tasks are completed.
-   */
-  timeRemaining: number,
-  /**
-   * How many tasks per second are being processed.
-   */
-  pagesPerSecond: string,
-  /**
-   * The devices CPU usage % out of 100
-   */
-  cpuUsage: string,
-  /**
-   * The devices memory usage % out of 100
-   */
-  memoryUsage: string,
-  /**
-   * How many workers are now working, usually the cpu count of the device.
-   */
-  workers: number,
+  invalidateFile: (file: string) => boolean
 }
 
 export interface StatsResponse {
@@ -626,14 +626,26 @@ export type UnlighthouseContext = {
   provider: Provider
 
   /**
-   * For Unlighthouse to work it needs a server / app to register the API and client middleware, providing the context
-   * if one part in accessing the client and processed reports.
+   * To use Unlighthouse with a client, it needs a server / app to register the API and client middleware.
    *
    * @param arg
    */
   setServerContext: (arg: ServerContextArg) => void
   /**
+   * Running Unlighthouse via CI does not require a server or the client so we have a special utility for it.
+   */
+  setCiContext: () => void
+  /**
    * Start the client and the queue worker. A server context must be provided before this function is called.
    */
   start: () => Promise<void>
+}
+
+declare global {
+  interface Window {
+    /**
+     * Lighthouse client runtime settings and resolved configurations.
+     */
+    __unlighthouse_options: ResolvedUserConfig & RuntimeSettings
+  }
 }

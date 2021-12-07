@@ -2,6 +2,7 @@ import fs from 'fs-extra'
 import cheerio, { CheerioAPI } from 'cheerio'
 import type { Page } from 'puppeteer'
 import type { PuppeteerTask } from 'unlighthouse-utils'
+import { formatBytes } from 'unlighthouse-client/logic/util'
 import { useUnlighthouse } from '../../core/unlighthouse'
 import { useLogger } from '../../core/logger'
 import { trimSlashes } from '../../core/util'
@@ -119,5 +120,6 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   await hooks.callHook('discovered-internal-links', routeReport.route.path, internalLinks)
   routeReport.seo.internalLinks = internalLinks.length
   routeReport.seo.externalLinks = externalLinks.length
+  logger.success(`Completed \`inspectHtmlTask\` for \`${routeReport.route.path}\`. (Size \`${formatBytes(html.length)}\`)`)
   return routeReport
 }

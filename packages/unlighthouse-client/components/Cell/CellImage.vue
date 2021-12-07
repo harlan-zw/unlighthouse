@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import get from "lodash/get";
-import {iframeModelUrl, isModalOpen, website} from '../../logic'
-import {withBase, $URL} from 'ufo'
-import {UnlighthouseColumn, UnlighthouseRouteReport} from "unlighthouse-utils";
+import get from 'lodash/get'
+import { withBase, $URL } from 'ufo'
+import { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse-utils'
+import { iframeModelUrl, isModalOpen, website } from '../../logic'
 
 const props = defineProps<{
-  report: UnlighthouseRouteReport,
+  report: UnlighthouseRouteReport
   column: UnlighthouseColumn
   value: any
 }>()
@@ -14,9 +14,8 @@ const image = computed(() => {
   if (props.value) {
     // need to fix up relative image URLs
     const $url = new $URL(props.value)
-    if (!$url.hostname) {
+    if (!$url.hostname)
       return withBase(props.value, website)
-    }
   }
   return props.value
 })
@@ -32,19 +31,18 @@ const openModal = () => {
 }
 // reset on modal closing
 watch(isModalOpen, () => {
-  if (!isModalOpen.value) {
+  if (!isModalOpen.value)
     showingModal.value = false
-  }
 })
 </script>
 <template>
-<div>
-  <btn-action v-if="value" @click="openModal" title="Open full image">
-    <img loading="lazy" class="h-100px object-contain w-full object-top object-left" height="100" :src="image" alt="share image" />
-  </btn-action>
-  <audit-result v-else :value="{ displayValue: 'Missing', score: 0 }" />
-  <teleport v-if="isModalOpen && showingModal" to="#modal-portal">
-    <img :src="image" alt="share image" class="mx-auto" />
-  </teleport>
-</div>
+  <div>
+    <btn-action v-if="value" title="Open full image" @click="openModal">
+      <img loading="lazy" class="h-100px object-contain w-full object-top object-left" height="100" :src="image" alt="share image">
+    </btn-action>
+    <audit-result v-else :value="{ displayValue: 'Missing', score: 0 }" />
+    <teleport v-if="isModalOpen && showingModal" to="#modal-portal">
+      <img :src="image" alt="share image" class="mx-auto">
+    </teleport>
+  </div>
 </template>
