@@ -63,7 +63,6 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     ],
   })
 
-
   if (configDefinition.sources?.[0]) {
     configFile = configDefinition.sources[0]
     userConfig = defu(configDefinition.config, userConfig)
@@ -190,7 +189,6 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       logger.debug('No route definitions provided, discovering them ourselves.')
       ctx.routeDefinitions = await discoverRouteDefinitions()
     }
-
 
     if (ctx.routeDefinitions?.length) {
       if (typeof ctx.provider.mockRouter === 'function')
