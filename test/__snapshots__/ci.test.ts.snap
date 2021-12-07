@@ -11,12 +11,12 @@ Array [
     "score": 0.98,
   },
   Object {
-    "path": "/blog/scale-your-vue-components/",
-    "score": 0.92,
-  },
-  Object {
     "path": "/blog/how-the-heck-does-vite-work/",
     "score": 0.64,
+  },
+  Object {
+    "path": "/blog/scale-your-vue-components/",
+    "score": 0.92,
   },
   Object {
     "path": "/blog/vue-automatic-component-imports/",

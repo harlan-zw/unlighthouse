@@ -10,13 +10,13 @@ import { APP_NAME } from './core/constants'
 const cli = cac(APP_NAME)
 
 cli
-  .help()
-  .version(version)
-  .option('--host <host>', 'Host')
-  .option('--root <root>', 'Root')
-  .option('--budget <budget>', 'Budget')
-  .option('--config-file <config-file>', 'Config File')
-  .option('--debug', 'Debug')
+    .help()
+    .version(version)
+    .option('--host <host>', 'Host')
+    .option('--root <root>', 'Root')
+    .option('--budget <budget>', 'Budget')
+    .option('--config-file <config-file>', 'Config File')
+    .option('--debug', 'Debug')
 
 const parsed = cli.parse()
 
@@ -53,32 +53,37 @@ async function run() {
     logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.host}, running score budgets.`)
     let hadError = false
     unlighthouse.worker
-      .reports()
-      .forEach((report) => {
-        const categories = report.report?.categories
-        if (!categories)
-          return
+        .reports()
+        .forEach((report) => {
+          const categories = report.report?.categories
+          if (!categories)
+            return
 
-        Object.values(categories).forEach((category) => {
-          let budget = unlighthouse.resolvedConfig.ci.budget
-          if (!Number.isInteger(budget)) {
-            // @ts-ignore
-            budget = unlighthouse.resolvedConfig.ci.budget[category.id]
-          }
-          if (category.score && (category.score * 100) < budget) {
-            logger.error(`${report.route.path} has invalid score \`${category.score}\` for category \`${category.id}\`.`)
-            hadError = true
-          }
+          Object.values(categories).forEach((category) => {
+            let budget = unlighthouse.resolvedConfig.ci.budget
+            if (!Number.isInteger(budget)) {
+              // @ts-ignore
+              budget = unlighthouse.resolvedConfig.ci.budget[category.id]
+            }
+            if (category.score && (category.score * 100) < budget) {
+              logger.error(`${report.route.path} has invalid score \`${category.score}\` for category \`${category.id}\`.`)
+              hadError = true
+            }
+          })
         })
-      })
     if (!hadError) {
       logger.success('All routes passed.')
-      await fs.writeJson(join(unlighthouse.resolvedConfig.root, unlighthouse.resolvedConfig.outputPath, 'ci-result.json'), unlighthouse.worker.reports().map((report) => {
-        return {
-          path: report.route.path,
-          score: report.report?.score,
-        }
-      }))
+      await fs.writeJson(join(unlighthouse.resolvedConfig.root, unlighthouse.resolvedConfig.outputPath, 'ci-result.json'),
+          unlighthouse.worker.reports()
+              .map((report) => {
+                return {
+                  path: report.route.path,
+                  score: report.report?.score,
+                }
+              })
+              // make the list ordering consistent
+              .sort((a, b) => a.path.localeCompare(b.path))
+      )
       process.exit(0)
     }
     else {

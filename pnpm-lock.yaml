@@ -13,6 +13,7 @@ importers:
       execa: ^6.0.0
       fs-extra: ^10.0.0
       jest: ^27.4.3
+      jiti: ^1.12.9
       rimraf: ^3.0.2
       rollup: ^2.60.2
       ts-jest: ^27.1.0
@@ -29,6 +30,7 @@ importers:
       execa: 6.0.0
       fs-extra: 10.0.0
       jest: 27.4.3
+      jiti: 1.12.9
       rimraf: 3.0.2
       rollup: 2.60.2
       ts-jest: 27.1.0_d967a5c71b36617f9eaef12c091f7695
