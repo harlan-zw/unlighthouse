@@ -147,7 +147,6 @@ importers:
       unconfig: 0.2.2
       unctx: 1.0.2
       unlighthouse-client: link:../unlighthouse-client
-      unlighthouse-utils: link:../unlighthouse-utils
       unplugin: 0.2.21_rollup@2.60.2
       unrouted: 0.1.1
       vue-router: 4.0.12
@@ -171,6 +170,7 @@ importers:
       tsup: 5.10.1_typescript@4.5.2
       typescript: 4.5.2
       unbuild: 0.6.3
+      unlighthouse-utils: link:../unlighthouse-utils
       webpack-dev-server: 4.6.0
 
   packages/unlighthouse-client:
