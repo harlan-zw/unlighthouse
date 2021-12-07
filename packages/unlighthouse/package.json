@@ -1,13 +1,13 @@
 {
   "name": "unlighthouse",
   "version": "0.1.2",
-  "description": "Register global imports on demand for Vite and Webpack",
+  "description": "Delightfully navigate your sites performance, accessibility and SEO issues.",
   "keywords": [
-    "unplugin",
-    "vite",
-    "webpack",
-    "rollup",
-    "transform"
+    "lighthouse",
+    "audit",
+    "seo",
+    "performance",
+    "speed"
   ],
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
   "bugs": {
