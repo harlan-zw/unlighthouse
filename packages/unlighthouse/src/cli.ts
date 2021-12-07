@@ -4,7 +4,7 @@ import open from 'open'
 import { version } from '../package.json'
 import { createUnlighthouse } from './core/unlighthouse'
 import { createServer } from './core/server'
-import {APP_NAME} from "./core/constants";
+import { APP_NAME } from './core/constants'
 
 const cli = cac(APP_NAME)
 

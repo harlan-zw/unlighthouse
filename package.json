@@ -29,6 +29,8 @@
     "eslint": "^8.4.0",
     "eslint-plugin-jest": "^25.3.0",
     "esno": "^0.12.1",
+    "execa": "^6.0.0",
+    "fs-extra": "^10.0.0",
     "jest": "^27.4.3",
     "rimraf": "^3.0.2",
     "rollup": "^2.60.2",

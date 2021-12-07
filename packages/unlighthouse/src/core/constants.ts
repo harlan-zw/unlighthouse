@@ -5,7 +5,7 @@ import defineConfig from './defineConfig'
 export const APP_NAME = 'unlighthouse'
 export const CLIENT_NAME = 'unlighthouse-client'
 export const MODULE_ROUTER_PREFIX = '/__unlighthouse'
-export const TAG_LINE = 'Efficiently navigate your sites performance, accessibility and SEO issues.'
+export const TAG_LINE = 'Delightfully navigate your sites performance, accessibility and SEO issues.'
 
 const tinyThenHiddenCols = {
   xs: 0,
