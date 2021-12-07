@@ -1,6 +1,6 @@
 {
   "name": "nuxt-kit-extras",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Extra helper functions for Nuxt.js modules.",
   "license": "MIT",
   "author": "harlan-zw",
