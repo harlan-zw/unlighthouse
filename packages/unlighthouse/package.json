@@ -1,6 +1,6 @@
 {
   "name": "unlighthouse",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Register global imports on demand for Vite and Webpack",
   "keywords": [
     "unplugin",
