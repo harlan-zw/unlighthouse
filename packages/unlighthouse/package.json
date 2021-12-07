@@ -125,6 +125,7 @@
     "launch-editor-middleware": "^2.2.1",
     "lighthouse": "^9.1.0",
     "listhen": "^0.2.5",
+    "unrouted": "latest",
     "lodash": "^4.17.21",
     "minimist": "^1.2.5",
     "mlly": "^0.3.15",

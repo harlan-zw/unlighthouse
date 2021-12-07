@@ -17,6 +17,7 @@ export const discoverRouteDefinitions = async() => {
 
   const { supportedExtensions, pagesDir } = resolvedConfig.discovery
 
+
   // handle pages being in the root
   const root = pagesDir === '' ? dirname(resolvedConfig.root) : resolvedConfig.root
   const pages = pagesDir === '' ? resolvedConfig.root.replace(`${root}/`, '') : pagesDir

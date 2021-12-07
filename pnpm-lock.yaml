@@ -105,6 +105,7 @@ importers:
       unlighthouse-client: workspace:*
       unlighthouse-utils: workspace:*
       unplugin: ^0.2.21
+      unrouted: latest
       vue-router: '4'
       webpack-dev-server: ^4.6.0
       ws: ^8.3.0
@@ -146,6 +147,7 @@ importers:
       unlighthouse-client: link:../unlighthouse-client
       unlighthouse-utils: link:../unlighthouse-utils
       unplugin: 0.2.21_rollup@2.60.2
+      unrouted: 0.1.1
       vue-router: 4.0.12
       ws: 8.3.0
     devDependencies:
@@ -1074,6 +1076,10 @@ packages:
       signal-exit: 3.0.6
       ua-parser-js: 0.7.31
       ufo: 0.7.9
+    dev: false
+
+  /@polka/url/1.0.0-next.21:
+    resolution: {integrity: sha512-a5Sab1C4/icpTZVzZc5Ghpz88yQtGOyNqYXcZgOssB2uuAr+wF/MvN6bgtW32q7HHrvBki+BsZ0OuNv6EV3K9g==}
     dev: false
 
   /@rollup/plugin-alias/3.1.8_rollup@2.60.2:
@@ -6716,6 +6722,11 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
+  /mrmime/1.0.0:
+    resolution: {integrity: sha512-a70zx7zFfVO7XpnQ2IX1Myh9yY4UYvfld/dikWRnsXxbyvMcfz+u6UfgNAtH+k2QqtJuzVpv6eLTx1G2+WKZbQ==}
+    engines: {node: '>=10'}
+    dev: false
+
   /ms/2.0.0:
     resolution: {integrity: sha1-VgiurfwAvmwpAd9fmGF4jeDVl8g=}
 
@@ -7538,6 +7549,10 @@ packages:
     engines: {node: '>=10'}
     dev: false
 
+  /radix3/0.1.0:
+    resolution: {integrity: sha512-OeAaZXMTjUn3u3kE4jF2m26AiA3ERoI5AwZZtUHByBPTDbU5BXVU7/M0+JbBrbwp7K7jn8RIk+hy522EldSvSQ==}
+    dev: false
+
   /randombytes/2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
     dependencies:
@@ -8047,6 +8062,15 @@ packages:
       supports-color: 7.2.0
     dev: true
 
+  /sirv/1.0.19:
+    resolution: {integrity: sha512-JuLThK3TnZG1TAKDwNIqNq6QA2afLOCcm+iE8D1Kj3GA40pSPsxQjjJl0J8X3tsR7T+CP1GavpzLwYkgVLWrZQ==}
+    engines: {node: '>= 10'}
+    dependencies:
+      '@polka/url': 1.0.0-next.21
+      mrmime: 1.0.0
+      totalist: 1.1.0
+    dev: false
+
   /sisteransi/1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
     dev: true
@@ -8552,6 +8576,11 @@ packages:
     resolution: {integrity: sha512-yaOH/Pk/VEhBWWTlhI+qXxDFXlejDGcQipMlyxda9nthulaxLZUNcUqFxokp0vcYnvteJln5FNQDRrxj3YcbVw==}
     engines: {node: '>=0.6'}
 
+  /totalist/1.1.0:
+    resolution: {integrity: sha512-gduQwd1rOdDMGxFG1gEvhV88Oirdo2p+KjoYFU7k2g+i7n6AFFbDQ5kMPUsW0pNbfQsB/cwXvT1i4Bue0s9g5g==}
+    engines: {node: '>=6'}
+    dev: false
+
   /touch/3.1.0:
     resolution: {integrity: sha512-WBx8Uy5TLtOSRtIq+M03/sKDrXCLHxwDcquSP2c43Le03/9serjQBIztjRz6FkJez9D/hleyAXTBGLwwZUw9lA==}
     hasBin: true
@@ -8971,6 +9000,18 @@ packages:
       vite: 2.6.14
       webpack-virtual-modules: 0.4.3
     dev: true
+
+  /unrouted/0.1.1:
+    resolution: {integrity: sha512-tkKmzlYe41msGCRL3e9gin/MssKVpfBoQQRQxTsTJoInzEkupL77ZGmSPXY++eW4oqrTaZlVvlCjJELDn/Evzw==}
+    dependencies:
+      defu: 5.0.0
+      h3: 0.3.8
+      hookable: 5.0.0
+      radix3: 0.1.0
+      sirv: 1.0.19
+      ufo: 0.7.9
+      unctx: 1.0.2
+    dev: false
 
   /untyped/0.3.0:
     resolution: {integrity: sha512-n4M5/T1wWlHFmohk0EhS+yM7W/h5dOtQldOV3MVEbZY1fTy5A47UL8+d8GLW1iwmaAwNrM5ERy3qe1k0T/Yc7A==}
