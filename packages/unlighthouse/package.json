@@ -144,13 +144,13 @@
     "unconfig": "^0.2.2",
     "unctx": "^1.0.2",
     "unlighthouse-client": "workspace:*",
-    "unlighthouse-utils": "workspace:*",
     "unplugin": "^0.2.21",
     "unrouted": "latest",
     "vue-router": "4",
     "ws": "^8.3.0"
   },
   "devDependencies": {
+    "unlighthouse-utils": "workspace:*",
     "@types/fs-extra": "^9.0.13",
     "@types/jest": "^27.0.3",
     "@types/minimist": "^1.2.2",
