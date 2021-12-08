@@ -30,7 +30,7 @@ const reportsScore = computed(() => {
             </span>
           </div>
           <div class="items-center col-span-2 hidden lg:flex">
-            <metric-guage v-if="reportsScore" :score="reportsScore" stripped />
+            <metric-guage v-if="reportsScore" :score="reportsScore" :stripped="true" />
           </div>
         </div>
       </template>

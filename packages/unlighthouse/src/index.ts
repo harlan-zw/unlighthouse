@@ -1,6 +1,6 @@
 import { createUnplugin } from 'unplugin'
 import type { UserConfig } from 'unlighthouse-utils'
-import once from 'lodash/once'
+import { once } from 'lodash-es'
 import type { Compiler as WebpackCompiler } from 'webpack'
 import type WebpackDevServer from 'webpack-dev-server'
 import defu from 'defu'

@@ -16,7 +16,7 @@ export default defineBuildConfig({
     { input: 'src/frameworks/vitepress', name: 'vitepress' },
     { input: 'src/frameworks/next', name: 'next' },
     { input: '../unlighthouse-utils/index.d.ts', name: 'types' },
-    { input: 'src/process/lighthouse', outDir: 'dist/process/lighthouse.ts', builder: 'mkdist', declaration: false },
+    { input: 'src/process', outDir: 'dist/process', builder: 'mkdist', declaration: false },
   ],
   externals: [
     'unrouted',

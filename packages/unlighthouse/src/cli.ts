@@ -22,12 +22,10 @@ async function run() {
   if (parsed.options.help)
     return
 
-  const options = parsed.options as unknown as UserConfig
+  if (parsed.options?.['--'])
+    delete parsed.options['--']
 
-  // @ts-ignore
-  if (options?.['--'])
-    // @ts-ignore
-    delete options['--']
+  const options = parsed.options as unknown as UserConfig
 
   const unlighthouse = await createUnlighthouse(options, { name: 'cli' })
   const { server, app } = await createServer()

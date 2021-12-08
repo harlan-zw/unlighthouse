@@ -1,6 +1,6 @@
 import type { ResolvedUserConfig, UserConfig } from 'unlighthouse-utils'
 import defu from 'defu'
-import pick from 'lodash/pick'
+import { pick } from 'lodash-es'
 import { UnlighthouseTabs } from 'unlighthouse-utils'
 import { defaultConfig } from './constants'
 import { normaliseHost } from './util'

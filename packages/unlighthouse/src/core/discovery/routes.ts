@@ -1,7 +1,5 @@
 import type { NormalisedRoute } from 'unlighthouse-utils'
-import groupBy from 'lodash/groupBy'
-import map from 'lodash/map'
-import sampleSize from 'lodash/sampleSize'
+import { map, groupBy, sampleSize } from 'lodash-es'
 import { extractSitemapRoutes } from '../../util/sitemap'
 import { useUnlighthouse } from '../unlighthouse'
 import { normaliseRoute } from '../../router'

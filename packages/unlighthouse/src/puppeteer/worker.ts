@@ -8,9 +8,7 @@ import type {
   UnlighthouseWorkerStats, UnlighthouseTask,
 } from 'unlighthouse-utils'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
-import filter from 'lodash/filter'
-import sortBy from 'lodash/sortBy'
-import get from 'lodash/get'
+import { get, sortBy, filter } from 'lodash-es'
 import { createTaskReportFromRoute } from '../core/util'
 import { useUnlighthouse } from '../core/unlighthouse'
 import { useLogger } from '../core/logger'

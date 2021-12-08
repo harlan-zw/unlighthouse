@@ -43,7 +43,7 @@ const favIcon = computed(() => {
             Site Score
           </div>
           <div class="flex items-center">
-            <metric-guage v-if="stats?.score" :score="stats.score" stripped class="font-bold text-sm" />
+            <metric-guage v-if="stats?.score" :score="stats.score" :stripped="true" class="font-bold text-sm" />
             <loading-spinner v-else class="h-24px" />
           </div>
         </div>

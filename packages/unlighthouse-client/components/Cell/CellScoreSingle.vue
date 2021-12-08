@@ -31,6 +31,6 @@ const category = computed(() => {
     @click="openLighthouseReportIframeModal(report, categoryKey)"
   >
     <metric-guage class="hidden lg:flex" :score="category.score" :label="category.title" />
-    <metric-guage class="lg:hidden" stripped :score="category.score" :label="category.title" />
+    <metric-guage class="lg:hidden" :stripped="true" :score="category.score" :label="category.title" />
   </button>
 </template>

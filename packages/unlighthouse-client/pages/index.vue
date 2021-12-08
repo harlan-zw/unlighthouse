@@ -40,7 +40,7 @@ onMounted(() => {
               :selected="selected"
             >
               <span>{{ category }}</span>
-              <metric-guage v-if="category !== 'Overview' && !Number.isNaN(categoryScores[key - 1])" :score="categoryScores[key - 1]" stripped class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
+              <metric-guage v-if="category !== 'Overview' && !Number.isNaN(categoryScores[key - 1])" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
             </btn-tab>
           </Tab>
         </TabList>

@@ -5,7 +5,7 @@ const props = defineProps<{
   label?: string
 }>()
 
-const { score, label } = toRefs(props)
+const { score, label, stripped } = toRefs(props)
 
 const arc = ref(null)
 
