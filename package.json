@@ -9,7 +9,7 @@
     "cli:windi": "esmo packages/unlighthouse/src/cli.ts  --host https://windicss.org/",
     "cli:nuxt": "esmo packages/unlighthouse/src/cli.ts  --host https://nuxtjs.org/",
     "cli:vue": "esmo packages/unlighthouse/src/cli.ts  --host https://v3.vuejs.org/",
-    "build": "pnpm -r --filter ./packages run build",
+    "build": "ultra -r --filter ./packages run build",
     "stub": "pnpm -r --parallel --filter ./packages run stub",
     "dev": "pnpm run stub && pnpm run watch:client",
     "dev:client": "pnpm -r --filter ./packages/unlighthouse-client run dev",

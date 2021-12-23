@@ -1,0 +1,49 @@
+{
+  "name": "@unlighthouse/webpack",
+  "version": "0.1.7",
+  "description": "Webpack plugin for Unlighthouse",
+  "keywords": [
+    "unlighthouse",
+    "webpack"
+  ],
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/webpack"
+  },
+  "funding": "https://github.com/sponsors/harlan-zw",
+  "author": "Harlan Wilton <harlan@harlanzw.com>",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "require": "./index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "main": "./index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "unbuild",
+    "stub": "unbuild --stub"
+  },
+  "peerDependencies": {
+    "webpack": "^4 || ^5"
+  },
+  "dependencies": {
+    "@unlighthouse/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/webpack": "^5.28.0",
+    "@types/webpack-dev-server": "^4.5.0",
+    "webpack": "^5.64.4"
+  }
+}

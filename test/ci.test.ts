@@ -4,7 +4,7 @@ import { expect, it, beforeAll, describe, afterAll } from 'vitest'
 import { execa } from 'execa'
 
 export const cacheDir = resolve(__dirname, '.cache')
-export const ci = resolve(__dirname, '../packages/unlighthouse/src/ci.ts')
+export const ci = resolve(__dirname, '../packages/cli/src/ci.ts')
 
 beforeAll(async() => {
     await fs.remove(cacheDir)

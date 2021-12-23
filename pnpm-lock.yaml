@@ -40,18 +40,96 @@ importers:
       typescript: 4.5.2
       vitest: 0.0.28
 
-  packages/nuxt-kit-extras:
+  packages/cli:
     specifiers:
-      '@nuxt/kit-edge': ^3.0.0-27296423.f3082ca
-      highwayhash: ^3.1.1
-      ufo: ^0.7.9
+      '@unlighthouse/core': workspace:*
+      '@unlighthouse/server': workspace:*
+      cac: ^6.7.12
+      consola: ^2.15.3
+      fs-extra: ^10.0.0
+      lodash-es: ^4.17.21
+      open: ^8.4.0
     dependencies:
-      '@nuxt/kit-edge': 3.0.0-27296423.f3082ca
-      highwayhash: 3.1.1
-      ufo: 0.7.9
+      '@unlighthouse/core': link:../core
+      '@unlighthouse/server': link:../server
+      cac: 6.7.12
+      consola: 2.15.3
+      fs-extra: 10.0.0
+      lodash-es: 4.17.21
+      open: 8.4.0
 
-  packages/unlighthouse:
+  packages/client:
     specifiers:
+      '@headlessui/vue': ^1.4.2
+      '@iconify/json': ^1.1.439
+      '@types/jest': ^27.0.3
+      '@types/lodash': ^4.14.177
+      '@types/node': ^16.11.12
+      '@types/three': ^0.135.0
+      '@unlighthouse/types': workspace:*
+      '@vitejs/plugin-vue': ^1.10.2
+      '@vue/compiler-sfc': ^3.2.24
+      '@vueuse/core': ^7.1.2
+      '@vueuse/router': ^7.1.2
+      cross-env: ^7.0.3
+      date-fns: ^2.27.0
+      defu: ^5.0.0
+      fuse.js: ^6.4.6
+      jest: ^27.4.3
+      lodash-es: ^4.17.21
+      nodemon: ^2.0.15
+      ohmyfetch: ^0.4.8
+      three: ^0.135.0
+      troisjs: ^0.3.3
+      ts-jest: ^27.1.0
+      typescript: ^4.5.2
+      ufo: ^0.7.9
+      unplugin-auto-import: ^0.5.1
+      unplugin-icons: ^0.12.22
+      unplugin-vue-components: ^0.17.6
+      vite: ^2.7.1
+      vite-plugin-pages: ^0.18.2
+      vite-plugin-windicss: ^1.5.4
+      vue: ^3.2.21
+      vue-router: '4'
+    dependencies:
+      '@headlessui/vue': 1.4.2_vue@3.2.21
+      defu: 5.0.0
+      fuse.js: 6.4.6
+      lodash-es: 4.17.21
+      ufo: 0.7.9
+      vue: 3.2.21
+      vue-router: 4.0.12_vue@3.2.21
+    devDependencies:
+      '@iconify/json': 1.1.439
+      '@types/jest': 27.0.3
+      '@types/lodash': 4.14.177
+      '@types/node': 16.11.12
+      '@types/three': 0.135.0
+      '@unlighthouse/types': link:../types
+      '@vitejs/plugin-vue': 1.10.2_vite@2.7.1
+      '@vue/compiler-sfc': 3.2.24
+      '@vueuse/core': 7.1.2_vue@3.2.21
+      '@vueuse/router': 7.1.2_vue-router@4.0.12+vue@3.2.21
+      cross-env: 7.0.3
+      date-fns: 2.27.0
+      jest: 27.4.3
+      nodemon: 2.0.15
+      ohmyfetch: 0.4.8
+      three: 0.135.0
+      troisjs: 0.3.3
+      ts-jest: 27.1.0_d967a5c71b36617f9eaef12c091f7695
+      typescript: 4.5.2
+      unplugin-auto-import: 0.5.1_69abf59a625e55ec796b58ad5e16e7eb
+      unplugin-icons: 0.12.22_44411707da94e7313d69a4cdc39e4a81
+      unplugin-vue-components: 0.17.6_62aaf63e8ba1b4020fde853e106229fe
+      vite: 2.7.1
+      vite-plugin-pages: 0.18.2_a6229ccc81e9fcdd34e6873f3e06b01a
+      vite-plugin-windicss: 1.5.4_vite@2.7.1
+
+  packages/core:
+    specifiers:
+      '@harlan-zw/nuxt-kit-extras': workspace:*
       '@nuxt/cli': ^2.15.8
       '@nuxt/kit-edge': ^3.0.0-27296423.f3082ca
       '@nuxt/utils': ^2.15.8
@@ -64,6 +142,8 @@ importers:
       '@types/webpack': ^5.28.0
       '@types/webpack-dev-server': ^4.5.0
       '@types/ws': ^8.2.2
+      '@unlighthouse/client': workspace:*
+      '@unlighthouse/types': workspace:*
       cac: ^6.7.12
       chalk: ^4
       cheerio: ^1.0.0-rc.10
@@ -74,18 +154,14 @@ importers:
       fast-glob: ^3.2.7
       fs-extra: ^10.0.0
       globby: ^12.0.2
-      h3: ^0.3.8
       hookable: ^5.0.0
       jest: ^27.4.3
       jiti: ^1.12.9
       launch-editor: ^2.2.1
-      launch-editor-middleware: ^2.2.1
       lighthouse: ^9.1.0
-      listhen: ^0.2.5
       lodash-es: ^4.17.21
       minimist: ^1.2.5
       mlly: ^0.3.15
-      nuxt-kit-extras: workspace:*
       object-hash: ^2.2.0
       ohmyfetch: ^0.4.8
       open: ^8.4.0
@@ -104,17 +180,17 @@ importers:
       unbuild: ^0.6.3
       unconfig: ^0.2.2
       unctx: ^1.0.2
-      unlighthouse-client: workspace:*
-      unlighthouse-utils: workspace:*
       unplugin: ^0.2.21
       unrouted: ^0.1.2
       vue-router: '4'
       webpack-dev-server: ^4.6.0
       ws: ^8.3.0
     dependencies:
+      '@harlan-zw/nuxt-kit-extras': link:../nuxt-kit-extras
       '@nuxt/cli': 2.15.8
       '@nuxt/kit-edge': 3.0.0-27296423.f3082ca
       '@nuxt/utils': 2.15.8
+      '@unlighthouse/client': link:../client
       cac: 6.7.12
       chalk: 4.1.2
       cheerio: 1.0.0-rc.10
@@ -123,17 +199,13 @@ importers:
       execa: 6.0.0
       fs-extra: 10.0.0
       globby: 12.0.2
-      h3: 0.3.8
       hookable: 5.0.0
       jiti: 1.12.9
       launch-editor: 2.2.1
-      launch-editor-middleware: 2.2.1
       lighthouse: 9.1.0
-      listhen: 0.2.5
       lodash-es: 4.17.21
       minimist: 1.2.5
       mlly: 0.3.15
-      nuxt-kit-extras: link:../nuxt-kit-extras
       object-hash: 2.2.0
       open: 8.4.0
       puppeteer: 12.0.1
@@ -145,7 +217,6 @@ importers:
       ufo: 0.7.9
       unconfig: 0.2.2
       unctx: 1.0.2
-      unlighthouse-client: link:../unlighthouse-client
       unplugin: 0.2.21_rollup@2.60.2
       unrouted: 0.1.2
       vue-router: 4.0.12
@@ -160,6 +231,7 @@ importers:
       '@types/webpack': 5.28.0
       '@types/webpack-dev-server': 4.5.0
       '@types/ws': 8.2.2
+      '@unlighthouse/types': link:../types
       esno: 0.12.1_typescript@4.5.2
       fast-glob: 3.2.7
       jest: 27.4.3
@@ -170,82 +242,83 @@ importers:
       tsup: 5.10.3_typescript@4.5.2
       typescript: 4.5.2
       unbuild: 0.6.3
-      unlighthouse-utils: link:../unlighthouse-utils
       webpack-dev-server: 4.6.0
 
-  packages/unlighthouse-client:
+  packages/nuxt:
     specifiers:
-      '@headlessui/vue': ^1.4.2
-      '@iconify/json': ^1.1.439
-      '@types/jest': ^27.0.3
-      '@types/lodash': ^4.14.177
-      '@types/node': ^16.11.12
-      '@types/three': ^0.135.0
-      '@vitejs/plugin-vue': ^1.10.2
-      '@vue/compiler-sfc': ^3.2.24
-      '@vueuse/core': ^7.1.2
-      '@vueuse/router': ^7.1.2
-      cross-env: ^7.0.3
-      date-fns: ^2.27.0
-      defu: ^5.0.0
-      es-module-lexer: ^0.9.3
-      fuse.js: ^6.4.6
-      jest: ^27.4.3
-      lodash: ^4.17.21
-      nodemon: ^2.0.15
-      ohmyfetch: ^0.4.8
-      three: ^0.135.0
-      troisjs: ^0.3.3
-      ts-jest: ^27.1.0
-      typescript: ^4.5.2
-      ufo: ^0.7.9
-      unlighthouse-utils: workspace:*
-      unplugin-auto-import: ^0.5.1
-      unplugin-icons: ^0.12.22
-      unplugin-vue-components: ^0.17.6
-      vite: ^2.7.1
-      vite-plugin-pages: ^0.18.2
-      vite-plugin-windicss: ^1.5.4
-      vue: ^3.2.21
-      vue-router: '4'
+      '@harlan-zw/nuxt-kit-extras': workspace:*
+      '@nuxt/kit': npm:@nuxt/kit-edge@latest
+      '@nuxt/schema': npm:@nuxt/schema-edge@latest
+      '@unlighthouse/core': workspace:*
+      '@unlighthouse/vite': workspace:*
+      '@unlighthouse/webpack': workspace:*
     dependencies:
-      '@headlessui/vue': 1.4.2_vue@3.2.21
-      '@types/lodash': 4.14.177
-      defu: 5.0.0
-      fuse.js: 6.4.6
-      lodash: 4.17.21
-      ufo: 0.7.9
-      vue: 3.2.21
-      vue-router: 4.0.12_vue@3.2.21
+      '@harlan-zw/nuxt-kit-extras': link:../nuxt-kit-extras
+      '@nuxt/kit': /@nuxt/kit-edge/3.0.0-27313139.1c88580
+      '@unlighthouse/core': link:../core
+      '@unlighthouse/vite': link:../vite
+      '@unlighthouse/webpack': link:../webpack
     devDependencies:
-      '@iconify/json': 1.1.439
-      '@types/jest': 27.0.3
-      '@types/node': 16.11.12
-      '@types/three': 0.135.0
-      '@vitejs/plugin-vue': 1.10.2_vite@2.7.1
-      '@vue/compiler-sfc': 3.2.24
-      '@vueuse/core': 7.1.2_vue@3.2.21
-      '@vueuse/router': 7.1.2_vue-router@4.0.12+vue@3.2.21
-      cross-env: 7.0.3
-      date-fns: 2.27.0
-      es-module-lexer: 0.9.3
-      jest: 27.4.3
-      nodemon: 2.0.15
-      ohmyfetch: 0.4.8
-      three: 0.135.0
-      troisjs: 0.3.3
-      ts-jest: 27.1.0_d967a5c71b36617f9eaef12c091f7695
-      typescript: 4.5.2
-      unlighthouse-utils: link:../unlighthouse-utils
-      unplugin-auto-import: 0.5.1_69abf59a625e55ec796b58ad5e16e7eb
-      unplugin-icons: 0.12.22_44411707da94e7313d69a4cdc39e4a81
-      unplugin-vue-components: 0.17.6_62aaf63e8ba1b4020fde853e106229fe
-      vite: 2.7.1
-      vite-plugin-pages: 0.18.2_a6229ccc81e9fcdd34e6873f3e06b01a
-      vite-plugin-windicss: 1.5.4_vite@2.7.1
+      '@nuxt/schema': /@nuxt/schema-edge/3.0.0-27313139.1c88580
 
-  packages/unlighthouse-utils:
+  packages/nuxt-kit-extras:
+    specifiers:
+      '@nuxt/kit-edge': ^3.0.0-27296423.f3082ca
+      highwayhash: ^3.1.1
+      ufo: ^0.7.9
+    dependencies:
+      '@nuxt/kit-edge': 3.0.0-27296423.f3082ca
+      highwayhash: 3.1.1
+      ufo: 0.7.9
+
+  packages/server:
+    specifiers:
+      '@unlighthouse/core': workspace:*
+      h3: ^0.3.8
+      listhen: ^0.2.5
+    dependencies:
+      '@unlighthouse/core': link:../core
+      h3: 0.3.8
+      listhen: 0.2.5
+
+  packages/types:
     specifiers: {}
+
+  packages/unlighthouse:
+    specifiers:
+      '@unlighthouse/core': workspace:*
+    dependencies:
+      '@unlighthouse/core': link:../core
+
+  packages/vite:
+    specifiers:
+      '@harlan-zw/nuxt-kit-extras': workspace:*
+      '@nuxt/kit': npm:@nuxt/kit-edge@latest
+      '@nuxt/schema': npm:@nuxt/schema-edge@latest
+      '@unlighthouse/core': workspace:*
+      '@unlighthouse/vite': workspace:*
+      '@unlighthouse/webpack': workspace:*
+    dependencies:
+      '@harlan-zw/nuxt-kit-extras': link:../nuxt-kit-extras
+      '@nuxt/kit': /@nuxt/kit-edge/3.0.0-27313139.1c88580
+      '@unlighthouse/core': link:../core
+      '@unlighthouse/vite': 'link:'
+      '@unlighthouse/webpack': link:../webpack
+    devDependencies:
+      '@nuxt/schema': /@nuxt/schema-edge/3.0.0-27313139.1c88580
+
+  packages/webpack:
+    specifiers:
+      '@types/webpack': ^5.28.0
+      '@types/webpack-dev-server': ^4.5.0
+      '@unlighthouse/core': workspace:*
+      webpack: ^5.64.4
+    dependencies:
+      '@unlighthouse/core': link:../core
+    devDependencies:
+      '@types/webpack': 5.28.0
+      '@types/webpack-dev-server': 4.5.0
+      webpack: 5.64.4
 
 packages:
 
@@ -1052,7 +1125,29 @@ packages:
       lodash.template: 4.5.0
       mlly: 0.3.15
       pathe: 0.2.0
-      pkg-types: 0.3.1
+      pkg-types: 0.3.2
+      rc9: 1.2.0
+      scule: 0.2.1
+      semver: 7.3.5
+      unctx: 1.0.2
+      untyped: 0.3.0
+    dev: false
+
+  /@nuxt/kit-edge/3.0.0-27313139.1c88580:
+    resolution: {integrity: sha512-QQwmTaF5YkP1dZZ38DC7A3tCH2SQUlzsXN3QgNqys+WzZnZB0dPuyvSqgD6L/Ts7MwIFrooOEIRz0i9iwnJPMQ==}
+    engines: {node: ^14.16.0 || ^16.11.0 || ^17.0.0}
+    dependencies:
+      '@nuxt/schema': /@nuxt/schema-edge/3.0.0-27313139.1c88580
+      consola: 2.15.3
+      defu: 5.0.0
+      dotenv: 10.0.0
+      globby: 11.0.4
+      hash-sum: 2.0.0
+      jiti: 1.12.9
+      lodash.template: 4.5.0
+      mlly: 0.3.15
+      pathe: 0.2.0
+      pkg-types: 0.3.2
       rc9: 1.2.0
       scule: 0.2.1
       semver: 7.3.5
@@ -1072,6 +1167,18 @@ packages:
       std-env: 3.0.1
       ufo: 0.7.9
     dev: false
+
+  /@nuxt/schema-edge/3.0.0-27313139.1c88580:
+    resolution: {integrity: sha512-RW4jvMAQK/PK2UdAskRaEnLetafm2n/0g82QymZJi8MsbdpgNbo/6hWx6cGDbljueUhMc/EBrTpYeGSC4FMC1A==}
+    engines: {node: ^14.16.0 || ^16.11.0 || ^17.0.0}
+    dependencies:
+      create-require: 1.1.1
+      defu: 5.0.0
+      jiti: 1.12.9
+      pathe: 0.2.0
+      scule: 0.2.1
+      std-env: 3.0.1
+      ufo: 0.7.9
 
   /@nuxt/utils/2.15.8:
     resolution: {integrity: sha512-e0VBarUbPiQ4ZO1T58puoFIuXme7L5gk1QfwyxOONlp2ryE7aRyZ8X/mryuOiIeyP64c4nwSUtN7q9EUWRb7Lg==}
@@ -1426,6 +1533,7 @@ packages:
 
   /@types/lodash/4.14.177:
     resolution: {integrity: sha512-0fDwydE2clKe9MNfvXHBHF9WEahRuj+msTuQqOmAApNORFvhMYZKNGGJdCzuhheVjMps/ti0Ak/iJPACMaevvw==}
+    dev: true
 
   /@types/mime/1.3.2:
     resolution: {integrity: sha512-YATxVxgRqNH6nHEIsvg6k2Boc1JHI9ZbH5iWFFv/MTkchz3b1ieGDa5T0a9RznNdI0KhVbdbWSN+KWWrQZRxTw==}
@@ -1739,7 +1847,7 @@ packages:
       '@vue/shared': 3.2.21
       estree-walker: 2.0.2
       magic-string: 0.25.7
-      postcss: 8.3.11
+      postcss: 8.4.4
       source-map: 0.6.1
     dev: false
 
@@ -2714,7 +2822,7 @@ packages:
       css-select: 4.1.3
       css-what: 5.0.1
       domelementtype: 2.2.0
-      domhandler: 4.2.2
+      domhandler: 4.3.0
       domutils: 2.8.0
     dev: false
 
@@ -2724,7 +2832,7 @@ packages:
     dependencies:
       cheerio-select: 1.5.0
       dom-serializer: 1.3.2
-      domhandler: 4.2.2
+      domhandler: 4.3.0
       htmlparser2: 6.1.0
       parse5: 6.0.1
       parse5-htmlparser2-tree-adapter: 6.0.1
@@ -2993,7 +3101,6 @@ packages:
 
   /create-require/1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
-    dev: false
 
   /cross-env/7.0.3:
     resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
@@ -3039,7 +3146,7 @@ packages:
     dependencies:
       boolbase: 1.0.0
       css-what: 5.0.1
-      domhandler: 4.2.2
+      domhandler: 4.3.0
       domutils: 2.8.0
       nth-check: 2.0.1
     dev: false
@@ -3130,6 +3237,7 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.2
+    dev: false
 
   /debug/4.3.3:
     resolution: {integrity: sha512-/zxw5+vh1Tfv+4Qn7a5nsbcJKPaSvCDhojn6FEl9vupwK2VCSDtEiEtqr8DFtzYFOdz63LBkxec7DYuc2jon6Q==}
@@ -3380,13 +3488,6 @@ packages:
     dependencies:
       webidl-conversions: 7.0.0
     dev: true
-
-  /domhandler/4.2.2:
-    resolution: {integrity: sha512-PzE9aBMsdZO8TK4BnuJwH0QT41wgMbRzuZrHUcpYncEjmQazq8QEaBWgLG7ZyC/DAZKEgglpIA6j4Qn/HmxS3w==}
-    engines: {node: '>= 4'}
-    dependencies:
-      domelementtype: 2.2.0
-    dev: false
 
   /domhandler/4.3.0:
     resolution: {integrity: sha512-fC0aXNQXqKSFTr2wDNZDhsEYjCiYsDWl3D01kwt25hm1YIPyDGHvvi3rw+PLqHAl/m71MaiF7d5zvBr0p5UB2g==}
@@ -4985,7 +5086,7 @@ packages:
     resolution: {integrity: sha512-gyyPk6rgonLFEDGoeRgQNaEUvdJ4ktTmmUh/h2t7s+M8oPpIPxgNACWa+6ESR57kXstwqPiCut0V8NRpcwgU7A==}
     dependencies:
       domelementtype: 2.2.0
-      domhandler: 4.2.2
+      domhandler: 4.3.0
       domutils: 2.8.0
       entities: 2.2.0
     dev: false
@@ -6319,12 +6420,6 @@ packages:
     dependencies:
       package-json: 6.5.0
 
-  /launch-editor-middleware/2.2.1:
-    resolution: {integrity: sha512-s0UO2/gEGiCgei3/2UN3SMuUj1phjQN8lcpnvgLSz26fAzNWPQ6Nf/kF5IFClnfU2ehp6LrmKdMU/beveO+2jg==}
-    dependencies:
-      launch-editor: 2.2.1
-    dev: false
-
   /launch-editor/2.2.1:
     resolution: {integrity: sha512-On+V7K2uZK6wK7x691ycSUbLD/FyKKelArkbaAMSSJU8JmqmhwN2+mnJDNINuJWSrh2L0kDk+ZQtbC/gOWUwLw==}
     dependencies:
@@ -7388,21 +7483,12 @@ packages:
     dependencies:
       find-up: 4.1.0
 
-  /pkg-types/0.3.1:
-    resolution: {integrity: sha512-BjECNgz/tsyqg0/T4Z/U7WbFQXUT24nfkxPbALcrk/uHVeZf9MrGG4tfvYtu+jsrHCFMseLQ6woQddDEBATw3A==}
-    dependencies:
-      jsonc-parser: 3.0.0
-      mlly: 0.3.15
-      pathe: 0.2.0
-    dev: false
-
   /pkg-types/0.3.2:
     resolution: {integrity: sha512-eBYzX/7NYsQEOR2alWY4rnQB49G62oHzFpoi9Som56aUr8vB8UGcmcIia9v8fpBeuhH3Ltentuk2OGpp4IQV3Q==}
     dependencies:
       jsonc-parser: 3.0.0
       mlly: 0.3.15
       pathe: 0.2.0
-    dev: true
 
   /pluralize/8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
@@ -7432,15 +7518,6 @@ packages:
       yaml: 1.10.2
     dev: true
 
-  /postcss/8.3.11:
-    resolution: {integrity: sha512-hCmlUAIlUiav8Xdqw3Io4LcpA1DOt7h3LSTAC4G6JGHFFaWzI6qvFt9oilvl8BmkbBRX1IhM90ZAmpk68zccQA==}
-    engines: {node: ^10 || ^12 || >=14}
-    dependencies:
-      nanoid: 3.1.30
-      picocolors: 1.0.0
-      source-map-js: 0.6.2
-    dev: false
-
   /postcss/8.4.4:
     resolution: {integrity: sha512-joU6fBsN6EIer28Lj6GDFoC/5yOZzLCfn0zHAn/MYXI7aPt4m4hK5KC5ovEZXy+lnCjmYIbQWngvju2ddyEr8Q==}
     engines: {node: ^10 || ^12 || >=14}
@@ -7448,7 +7525,6 @@ packages:
       nanoid: 3.1.30
       picocolors: 1.0.0
       source-map-js: 1.0.1
-    dev: true
 
   /prebuild-install/6.1.4:
     resolution: {integrity: sha512-Z4vpywnK1lBg+zdPCVCsKq0xO66eEV9rWo2zrROGGiRS4JtueBOdlB1FnY8lcy7JsUud/Q3ijUxyWN26Ika0vQ==}
@@ -7580,7 +7656,7 @@ packages:
     peerDependencies:
       puppeteer: ^1.5.0 || ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
     dependencies:
-      debug: 4.3.2
+      debug: 4.3.3
       puppeteer: 12.0.1
     transitivePeerDependencies:
       - supports-color
@@ -8190,15 +8266,9 @@ packages:
       websocket-driver: 0.7.4
     dev: true
 
-  /source-map-js/0.6.2:
-    resolution: {integrity: sha512-/3GptzWzu0+0MBQFrDKzw/DvvMTUORvgY6k6jd/VS6iCR4RDTKWH6v6WPwQoUO8667uQEf9Oe38DxAYWY5F/Ug==}
-    engines: {node: '>=0.10.0'}
-    dev: false
-
   /source-map-js/1.0.1:
     resolution: {integrity: sha512-4+TN2b3tqOCd/kaGRJ/sTYA0tR0mdXx26ipdolxcwtJVqEnqNYvlCAt1q3ypy4QMlYus+Zh34RNtYLoq2oQ4IA==}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /source-map-support/0.5.21:
     resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
@@ -8308,7 +8378,6 @@ packages:
 
   /std-env/3.0.1:
     resolution: {integrity: sha512-mC1Ps9l77/97qeOZc+HrOL7TIaOboHqMZ24dGVQrlxFcpPpfCHpH+qfUT7Dz+6mlG8+JPA1KfBQo19iC/+Ngcw==}
-    dev: false
 
   /string-argv/0.3.1:
     resolution: {integrity: sha512-a1uQGz7IyVy9YwhqjZIZu1c8JO8dNIe20xBmSS6qu9kv++k3JGzCVmprbNN5Kn+BgzD5E7YYwg1CcjuJMRNsvg==}
@@ -9232,7 +9301,7 @@ packages:
     dependencies:
       '@antfu/utils': 0.3.0
       '@vue/compiler-sfc': 3.2.24
-      debug: 4.3.2
+      debug: 4.3.3
       deep-equal: 2.0.5
       fast-glob: 3.2.7
       json5: 2.2.0

@@ -91,3 +91,13 @@ module.exports = {
 ```
 
 <br></details>
+
+
+#### VitePress
+
+```js
+    discovery: {
+      pagesDir: '',
+      supportedExtensions: ['md'],
+    },
+```

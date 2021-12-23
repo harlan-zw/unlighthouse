@@ -1,0 +1,52 @@
+{
+  "name": "@unlighthouse/nuxt",
+  "version": "0.1.7",
+  "description": "Nuxt module for Unlighthouse",
+  "keywords": [
+    "unlighthouse",
+    "nuxt-module",
+    "nuxt",
+    "nuxt3"
+  ],
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/nuxt"
+  },
+  "funding": "https://github.com/sponsors/harlan-zw",
+  "author": "Harlan Wilton <harlan@harlanzw.com>",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "index.cjs",
+    "runtime"
+  ],
+  "exports": {
+    ".": {
+      "require": "./index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "main": "./index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "unbuild",
+    "stub": "unbuild --stub"
+  },
+  "dependencies": {
+    "@harlan-zw/nuxt-kit-extras": "workspace:*",
+    "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
+    "@unlighthouse/core": "workspace:*",
+    "@unlighthouse/vite": "workspace:*",
+    "@unlighthouse/webpack": "workspace:*"
+  },
+  "devDependencies": {
+    "@nuxt/schema": "npm:@nuxt/schema-edge@latest"
+  }
+}

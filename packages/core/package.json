@@ -1,0 +1,133 @@
+{
+  "name": "@unlighthouse/core",
+  "version": "0.1.7",
+  "description": "Delightfully navigate your sites performance, accessibility and SEO issues.",
+  "keywords": [
+    "lighthouse",
+    "audit",
+    "seo",
+    "performance",
+    "speed"
+  ],
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/core"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "*.d.ts"
+  ],
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    },
+    "./types": {
+      "require": "./dist/types.cjs",
+      "import": "./dist/types.mjs"
+    },
+    "./*": "./*"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "unbuild",
+    "stub": "unbuild --stub",
+    "build:fix": "esno scripts/postbuild.ts",
+    "dev:client": "vite build packages/unlighthouse/src/client --watch",
+    "build:client": "vite build packages/unlighthouse/src/client",
+    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "lint:fix": "npm run lint -- --fix",
+    "play": "npm -C playground run dev",
+    "play:pokemon": "npm -C packages/unlighthouse/test/fixtures/nuxt-pokemon run dev",
+    "prepublishOnly": "npm run build",
+    "release": "bumpp --commit --push --tag && pnpm publish",
+    "start": "esno packages/unlighthouse/src/index.ts",
+    "test": "jest",
+    "test:update": "jest -u"
+  },
+  "peerDependencies": {
+    "rollup": "^2.50.0",
+    "vite": "^2.3.0",
+    "webpack": "4 || 5"
+  },
+  "peerDependenciesMeta": {
+    "rollup": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@harlan-zw/nuxt-kit-extras": "workspace:*",
+    "@nuxt/cli": "^2.15.8",
+    "@nuxt/kit-edge": "^3.0.0-27296423.f3082ca",
+    "@nuxt/utils": "^2.15.8",
+    "@unlighthouse/client": "workspace:*",
+    "cac": "^6.7.12",
+    "chalk": "^4",
+    "cheerio": "^1.0.0-rc.10",
+    "consola": "^2.15.3",
+    "defu": "^5.0.0",
+    "execa": "^6.0.0",
+    "fs-extra": "^10.0.0",
+    "globby": "^12.0.2",
+    "hookable": "^5.0.0",
+    "jiti": "^1.12.9",
+    "launch-editor": "^2.2.1",
+    "lighthouse": "^9.1.0",
+    "lodash-es": "^4.17.21",
+    "minimist": "^1.2.5",
+    "mlly": "^0.3.15",
+    "object-hash": "^2.2.0",
+    "open": "^8.4.0",
+    "puppeteer": "^12.0.1",
+    "puppeteer-cluster": "^0.22.0",
+    "regexparam": "^2.0.0",
+    "sanitize-filename": "^1.6.3",
+    "sitemapper": "^3.2.0",
+    "slugify": "^1.6.3",
+    "ufo": "^0.7.9",
+    "unconfig": "^0.2.2",
+    "unctx": "^1.0.2",
+    "unplugin": "^0.2.21",
+    "unrouted": "^0.1.2",
+    "vue-router": "4",
+    "ws": "^8.3.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.13",
+    "@types/jest": "^27.0.3",
+    "@types/lodash-es": "^4.17.5",
+    "@types/minimist": "^1.2.2",
+    "@types/node": "^16.11.12",
+    "@types/object-hash": "^2.2.1",
+    "@types/webpack": "^5.28.0",
+    "@types/webpack-dev-server": "^4.5.0",
+    "@types/ws": "^8.2.2",
+    "@unlighthouse/types": "workspace:*",
+    "esno": "^0.12.1",
+    "fast-glob": "^3.2.7",
+    "jest": "^27.4.3",
+    "ohmyfetch": "^0.4.8",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.60.2",
+    "ts-jest": "^27.1.0",
+    "tsup": "^5.10.3",
+    "typescript": "^4.5.2",
+    "unbuild": "^0.6.3",
+    "webpack-dev-server": "^4.6.0"
+  }
+}

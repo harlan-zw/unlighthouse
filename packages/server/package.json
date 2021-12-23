@@ -1,13 +1,10 @@
 {
-  "name": "unlighthouse",
+  "name": "@unlighthouse/server",
   "version": "0.1.7",
-  "description": "Delightfully navigate your sites performance, accessibility and SEO issues.",
+  "description": "Server for Unlighthouse",
   "keywords": [
-    "lighthouse",
-    "audit",
-    "seo",
-    "performance",
-    "speed"
+    "unlighthouse",
+    "server"
   ],
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
   "bugs": {
@@ -18,6 +15,7 @@
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git"
   },
+  "type": "module",
   "files": [
     "dist",
     "*.d.ts"
@@ -25,18 +23,19 @@
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.mjs"
     }
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
-  "types": "index.d.ts",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
   },
   "dependencies": {
-    "@unlighthouse/core": "workspace:*"
+    "@unlighthouse/core": "workspace:*",
+    "h3": "^0.3.8",
+    "listhen": "^0.2.5"
   }
 }

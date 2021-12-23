@@ -12,9 +12,16 @@
     "noUnusedLocals": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "unlighthouse": ["./packages/unlighthouse/src/index.ts"],
+      "@unlighthouse/core": ["./packages/core/src/index.ts"],
+      "@unlighthouse/server": ["./packages/server/src/index.ts"],
+      "@unlighthouse/types": ["./packages/types/index.d.ts"],
+      "@unlighthouse/vite": ["./packages/vite/src/index.ts"]
+    }
   },
   "include": [
-    "packages/**/*",
+    "**/*.d.ts",
   ],
   "exclude": [
     "**/dist/**",
