@@ -156,6 +156,7 @@ importers:
       '@types/node': ^17.0.8
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.2.2
+      '@unlighthouse/client': workspace:*
       chalk: ^5.0.0
       cheerio: ^1.0.0-rc.10
       consola: ^2.15.3
@@ -195,6 +196,7 @@ importers:
     dependencies:
       '@nuxt/cli': 2.15.8
       '@nuxt/utils': 2.15.8
+      '@unlighthouse/client': link:../client
       chalk: 5.0.0
       cheerio: 1.0.0-rc.10
       consola: 2.15.3

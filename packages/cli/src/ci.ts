@@ -2,7 +2,7 @@ import { join } from 'path'
 import cac from 'cac'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
-import { createUnlighthouse, normaliseHost, useLogger } from '@unlighthouse/core'
+import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { pick } from 'lodash-es'
 import { version } from '../package.json'
 import { handleError } from './errors'
@@ -33,15 +33,14 @@ async function run() {
     }
   }
 
-  resolvedOptions.host = normaliseHost(resolvedOptions.host!)
-  validateOptions(resolvedOptions)
-
   const unlighthouse = await createUnlighthouse({
     ...resolvedOptions,
     cacheReports: false,
   },
   { name: 'ci' },
   )
+
+  validateOptions(unlighthouse.resolvedConfig)
 
   if (!unlighthouse.resolvedConfig.ci?.budget) {
     handleError('No CI budget has been set, not running. Please set a budget with the config (`ci.budget`) or --budget <number>.')

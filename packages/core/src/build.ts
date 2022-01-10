@@ -2,6 +2,7 @@ import { dirname, join, resolve } from 'path'
 import fs from 'fs-extra'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { useUnlighthouse } from './unlighthouse'
+import type { UnlighthouseContext } from './types'
 
 /**
  * Copies the file contents of the @unlighthouse/client package and does transformation based on the provided configuration.
@@ -11,8 +12,11 @@ import { useUnlighthouse } from './unlighthouse'
  *
  * An additional transforming is needed to modify the vite base URL which is a bit more involved.
  */
-export const generateClient = async() => {
-  const { runtimeSettings, resolvedConfig } = useUnlighthouse()
+export const generateClient = async(unlighthouse?: UnlighthouseContext) => {
+  if (!unlighthouse)
+    unlighthouse = useUnlighthouse()
+
+  const { runtimeSettings, resolvedConfig } = unlighthouse
 
   const headScript = `
 window.__unlighthouse_options = ${JSON.stringify({ ...runtimeSettings, ...resolvedConfig })}

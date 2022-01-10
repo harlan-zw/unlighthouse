@@ -26,10 +26,10 @@ async function run() {
 
   const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])
 
-  resolvedOptions.host = normaliseHost(resolvedOptions.host!)
-  validateOptions(resolvedOptions)
+  const unlighthouse = await createUnlighthouse(resolvedOptions, { name: 'cli' })
 
-  const unlighthouse = await createUnlighthouse(options, { name: 'cli' })
+  validateOptions(unlighthouse.resolvedConfig)
+
   const { server, app } = await createServer()
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
   await unlighthouse.start()
