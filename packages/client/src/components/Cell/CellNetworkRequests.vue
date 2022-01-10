@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { get, sum, groupBy } from 'lodash-es'
-import { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import { get, groupBy, sum } from 'lodash-es'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { formatBytes } from '../../logic'
 
 const props = defineProps<{
@@ -10,7 +10,7 @@ const props = defineProps<{
 
 const value = computed(() => get(props.report, props.column.key))
 
-type GroupedItems = [{transferSize: number; resourceType: string}[]]
+type GroupedItems = [{ transferSize: number; resourceType: string }[]]
 
 const requests = computed<GroupedItems>(() => {
   return groupBy(value.value?.details?.items || [], i => i.resourceType) as unknown as GroupedItems

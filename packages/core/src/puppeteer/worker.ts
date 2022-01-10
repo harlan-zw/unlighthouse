@@ -1,13 +1,13 @@
 import fs from 'fs'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
-import { get, sortBy, filter } from 'lodash-es'
+import { filter, get, sortBy } from 'lodash-es'
 import type {
   NormalisedRoute,
-  UnlighthouseRouteReport,
-  UnlighthouseWorker,
   PuppeteerTaskArgs,
   PuppeteerTaskReturn,
-  UnlighthouseWorkerStats, UnlighthouseTask,
+  UnlighthouseRouteReport,
+  UnlighthouseTask,
+  UnlighthouseWorker, UnlighthouseWorkerStats,
 } from '../types'
 import { createTaskReportFromRoute } from '../util'
 import { useUnlighthouse } from '../unlighthouse'

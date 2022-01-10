@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { openFullScreenshotIframeModal, apiUrl } from '../../logic'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import { apiUrl, openFullScreenshotIframeModal } from '../../logic'
 import BtnAction from '../Btn/BtnAction.vue'
 
 const props = defineProps<{

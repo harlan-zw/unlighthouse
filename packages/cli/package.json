@@ -23,21 +23,20 @@
   ],
   "exports": {
     ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "require": "./dist/cli.cjs",
+      "import": "./dist/cli.mjs"
     },
     "./ci": {
       "require": "./dist/ci.cjs",
       "import": "./dist/ci.mjs"
     }
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
+  "main": "dist/cli.cjs",
+  "module": "dist/cli.mjs",
   "bin": {
     "unlighthouse": "bin/unlighthouse.cjs",
     "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
   },
-  "types": "dist/index.d.ts",
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"

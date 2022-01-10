@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { extractBgColor, extractFgColor } from '../../logic'
 
 const props = defineProps<{

@@ -18,7 +18,6 @@ export default defineConfig({
     }),
     Components({
       dirs: ['components'],
-      // @ts-ignore
       resolvers: [
         IconsResolver(),
         HeadlessUiResolver({}),
@@ -32,13 +31,7 @@ export default defineConfig({
         'vue-router',
       ],
     }),
-    WindiCSS({
-      scan: {
-        dirs: [
-          __dirname,
-        ],
-      },
-    }),
+    WindiCSS(),
   ],
 
   build: {

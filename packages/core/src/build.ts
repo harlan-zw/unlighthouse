@@ -1,4 +1,4 @@
-import { dirname, resolve, join } from 'path'
+import { dirname, join, resolve } from 'path'
 import fs from 'fs-extra'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { useUnlighthouse } from './unlighthouse'

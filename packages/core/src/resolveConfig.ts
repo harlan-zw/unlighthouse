@@ -1,6 +1,6 @@
 import defu from 'defu'
 import { pick } from 'lodash-es'
-import type { ResolvedUserConfig, UserConfig, UnlighthouseTabs } from './types'
+import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { defaultConfig } from './constants'
 import { normaliseHost } from './util'
 

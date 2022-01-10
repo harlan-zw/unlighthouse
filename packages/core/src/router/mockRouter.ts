@@ -1,5 +1,5 @@
 import { parse } from 'regexparam'
-import type { RouteDefinition, MockRouter } from '../types'
+import type { MockRouter, RouteDefinition } from '../types'
 
 /**
  * The default mock router using regexparam as the matcher

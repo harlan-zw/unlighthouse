@@ -1,11 +1,11 @@
-import http from 'http'
-import https from 'https'
-import { $URL } from 'ufo'
-import { LH } from 'lighthouse'
-import { LaunchOptions } from 'puppeteer'
-import { Hookable } from 'hookable'
-import { WS } from './router'
-import {Cluster, TaskFunction} from "../cluster";
+import type http from 'http'
+import type https from 'https'
+import type { $URL } from 'ufo'
+import type { LH } from 'lighthouse'
+import type { LaunchOptions } from 'puppeteer'
+import type { Hookable } from 'hookable'
+import type { Cluster, TaskFunction } from '../cluster'
+import type { WS } from './router'
 
 /**
  * A route definition is a mapping of a component, and it's URL path (or paths) that it represents.
@@ -169,9 +169,9 @@ export interface UnlighthouseColumn {
  */
 export type LighthouseCategories = 'performance'|'best-practices'|'accessibility'|'seo'|'pwa'
 export type UnlighthouseTabs = 'overview'|LighthouseCategories
-export type MockRouter = { match: (path: string) => RouteDefinition }
+export interface MockRouter { match: (path: string) => RouteDefinition }
 
-export type DiscoveryOptions = {
+export interface DiscoveryOptions {
   /**
      * The location of the page files that will be matched to routes.
      * Note: This is for fallback behaviour when the integration doesn't provide a way to gather the route definitions.
@@ -185,7 +185,7 @@ export type DiscoveryOptions = {
   supportedExtensions: string[]
 }
 
-export type ClientOptions = {
+export interface ClientOptions {
   /**
      * The columns to show for each lighthouse category.
      */
@@ -448,7 +448,7 @@ export interface Provider {
 
 export type HookResult = Promise<void>|void
 
-export type UnlighthouseHooks = {
+export interface UnlighthouseHooks {
   /**
      * Called when the worker has finished processing all queued routes. Will be called multiple times if routes are
      * re-queued.
@@ -577,7 +577,7 @@ export interface ServerContextArg {
 /**
  * The main core of Unlighthouse, provides access to all functionality and can be accessed anywhere using `useUnlighthouse()`.
  */
-export type UnlighthouseContext = {
+export interface UnlighthouseContext {
   /**
      * The mock router being used to match paths to route definitions.
      */

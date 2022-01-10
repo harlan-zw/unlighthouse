@@ -1,7 +1,8 @@
 import fs from 'fs'
-import lighthouse, { LH } from 'lighthouse'
+import type { LH } from 'lighthouse'
+import lighthouse from 'lighthouse'
 import minimist from 'minimist'
-import { UnlighthouseRouteReport } from '../types';
+import type { UnlighthouseRouteReport } from '../types';
 
 /*
  * This file is intended to be run in its own process and should not rely on any global state.
@@ -20,7 +21,7 @@ import { UnlighthouseRouteReport } from '../types';
     port,
   }
   try {
-    // @ts-ignore
+    // @ts-expect-error
     const runnerResult = await lighthouse(routeReportJson.route.url, lighthouseOptions)
     fs.writeFileSync(routeReportJson.reportJson, runnerResult.report[1])
     fs.writeFileSync(routeReportJson.reportHtml, runnerResult.report[0])

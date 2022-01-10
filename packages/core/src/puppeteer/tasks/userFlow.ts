@@ -1,7 +1,7 @@
-// @ts-ignore
+// @ts-expect-error
 import { startFlow } from 'lighthouse/lighthouse-core/fraggle-rock/api.js'
 import fs from 'fs-extra'
-import { PuppeteerTask } from '../../types'
+import type { PuppeteerTask } from '../../types'
 
 // @todo Implement. Currently this code does not work, presumably a conflict with puppeteer-cluster
 export const userFlowTask: PuppeteerTask = async(props) => {

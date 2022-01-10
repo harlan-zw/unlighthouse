@@ -2,7 +2,6 @@ import { dirname, join } from 'path'
 import { createUnrouted, useParams, useQuery } from 'unrouted'
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
-// @ts-ignore
 import launch from 'launch-editor'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
@@ -25,7 +24,6 @@ export const createApi = () => {
   const { serve, group, handle, redirect } = createUnrouted({
     prefix: resolvedConfig.router.prefix,
     hooks: {
-      // @ts-ignore
       'serve:before-route': () => {
         // before we serve a route to the user we trigger a hook to let unlighthouse context know
         return hooks.callHook('visited-client')
@@ -119,7 +117,7 @@ export const createApi = () => {
       const { worker } = useUnlighthouse()
 
       const data = worker.reports()
-      const reportsWithScore = data.filter(r => r.report?.score) as { report: { score: number }}[]
+      const reportsWithScore = data.filter(r => r.report?.score) as { report: { score: number } }[]
       const score = (reportsWithScore
         .map(r => r.report.score)
         .reduce((s, a) => s + a, 0) / reportsWithScore.length) || 0

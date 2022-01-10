@@ -1,5 +1,5 @@
-import { UnlighthouseColumn, WindiResponsiveClasses } from '@unlighthouse/core'
-import { Ref } from 'vue'
+import type { UnlighthouseColumn, WindiResponsiveClasses } from '@unlighthouse/core'
+import type { Ref } from 'vue'
 
 export const useColumnClasses = (columnRef: Ref<UnlighthouseColumn>) => {
   return computed(() => {

@@ -1,9 +1,9 @@
-import { map, groupBy, sampleSize } from 'lodash-es'
+import { groupBy, map, sampleSize } from 'lodash-es'
 import type { NormalisedRoute } from '../types'
-import { extractSitemapRoutes } from './sitemap'
 import { useUnlighthouse } from '../unlighthouse'
 import { normaliseRoute } from '../router'
 import { useLogger } from '../logger'
+import { extractSitemapRoutes } from './sitemap'
 
 /**
  * Discover the initial routes that we'll be working with.

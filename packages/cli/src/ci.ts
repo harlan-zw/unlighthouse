@@ -2,13 +2,12 @@ import { join } from 'path'
 import cac from 'cac'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
-import { createUnlighthouse, useLogger } from '@unlighthouse/core'
+import { createUnlighthouse, normaliseHost, useLogger } from '@unlighthouse/core'
 import { pick } from 'lodash-es'
 import { version } from '../package.json'
 import { handleError } from './errors'
-import { CiOptions } from './types'
-import { validateOptions} from './util'
-import {normaliseHost} from "@unlighthouse/core";
+import type { CiOptions } from './types'
+import { validateOptions } from './util'
 
 async function run() {
   const cli = cac('unlighthouse')
@@ -65,7 +64,7 @@ async function run() {
         Object.values(categories).forEach((category) => {
           let budget = unlighthouse.resolvedConfig.ci.budget
           if (!Number.isInteger(budget)) {
-            // @ts-ignore
+            // @ts-expect-error
             budget = unlighthouse.resolvedConfig.ci.budget[category.id]
           }
           if (category.score && (category.score * 100) < budget) {

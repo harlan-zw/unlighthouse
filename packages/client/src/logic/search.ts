@@ -1,13 +1,13 @@
 import { useStorage } from '@vueuse/core'
 import { computed } from 'vue'
 import Fuse from 'fuse.js'
-import { groupBy, get, isEmpty, orderBy } from 'lodash-es'
-import { UnlighthouseRouteReport } from '@unlighthouse/core'
+import { get, groupBy, isEmpty, orderBy } from 'lodash-es'
+import type { UnlighthouseRouteReport } from '@unlighthouse/core'
 import { wsReports } from './state'
-import { groupRoutesKey, columns } from './static'
+import { columns, groupRoutesKey } from './static'
 
 type SortDirection = 'asc'|'desc'
-export type Sorting = {
+export interface Sorting {
   key?: string
   dir?: SortDirection
 }

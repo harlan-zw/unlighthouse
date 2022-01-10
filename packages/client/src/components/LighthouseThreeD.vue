@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Camera, AmbientLight, PointLight, Renderer, RendererPublicInterface, Scene, FbxModel } from 'troisjs'
+import type { RendererPublicInterface } from 'troisjs'
+import { AmbientLight, Camera, FbxModel, PointLight, Renderer, Scene } from 'troisjs'
 import type { Group } from 'three'
 import { useElementHover } from '@vueuse/core'
-import { stats, basePath } from '../logic'
+import { basePath, stats } from '../logic'
 
 const rendererC = ref()
 const lighthouse = shallowRef<Group>()

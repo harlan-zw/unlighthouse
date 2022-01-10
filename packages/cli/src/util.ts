@@ -1,6 +1,6 @@
 import { URL } from 'url'
-import {handleError} from "./errors";
-import { UserConfig } from '@unlighthouse/core'
+import type { UserConfig } from '@unlighthouse/core'
+import { handleError } from './errors'
 
 export const isValidUrl = (s: string) => {
   try {

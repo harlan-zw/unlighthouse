@@ -1,6 +1,6 @@
 import os from 'os'
 import { Cluster } from 'puppeteer-cluster'
-import { UserConfig } from './types'
+import type { UserConfig } from './types'
 
 export const AppName = 'unlighthouse'
 export const ClientPkg = '@unlighthouse/client'
@@ -269,7 +269,7 @@ export const defaultConfig: UserConfig = {
     crawler: true,
     dynamicSampling: 5,
   },
-  // @ts-ignore
+  // @ts-expect-error
   server: {
     port: 5678,
     showURL: false,
@@ -277,7 +277,7 @@ export const defaultConfig: UserConfig = {
   },
   discovery: {
     supportedExtensions: ['vue', 'md'],
-    pagesDir: 'pages'
+    pagesDir: 'pages',
   },
   root: process.cwd(),
   outputPath: '.lighthouse',

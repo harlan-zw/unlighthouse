@@ -21,5 +21,4 @@ export default defineBuildConfig({
     'webpack',
     '@nuxt/schema',
   ],
-
 })

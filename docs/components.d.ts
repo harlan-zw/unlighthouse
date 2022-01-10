@@ -12,11 +12,6 @@ declare module 'vue' {
     DevelopmentWarning: typeof import('./src/components/DevelopmentWarning.vue')['default']
     FeaturesList: typeof import('./src/components/FeaturesList.vue')['default']
     Home: typeof import('./src/components/Home.vue')['default']
-    ICarbonFavoriteFilled: typeof import('~icons/carbon/favorite-filled')['default']
-    ICarbonLogoGithub: typeof import('~icons/carbon/logo-github')['default']
-    ICarbonLogoTwitter: typeof import('~icons/carbon/logo-twitter')['default']
-    ICarbonPageLast: typeof import('~icons/carbon/page-last')['default']
-    IMdiBash: typeof import('~icons/mdi/bash')['default']
     LighthouseThreeD: typeof import('./src/components/LighthouseThreeD.vue')['default']
   }
 }

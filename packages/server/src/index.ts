@@ -1,5 +1,6 @@
 import { createApp } from 'h3'
-import { listen, ListenOptions } from 'listhen'
+import type { ListenOptions } from 'listhen'
+import { listen } from 'listhen'
 import { useUnlighthouse } from '@unlighthouse/core'
 
 /**

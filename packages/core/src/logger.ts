@@ -1,4 +1,5 @@
-import consola, { Consola } from 'consola'
+import type { Consola } from 'consola'
+import consola from 'consola'
 import { createContext } from 'unctx'
 import { AppName } from './constants'
 

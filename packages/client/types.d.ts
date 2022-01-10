@@ -1,4 +1,4 @@
-import { ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/core'
+import type { ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/core'
 
 declare global {
   interface Window {

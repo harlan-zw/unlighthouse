@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { UnlighthouseTaskStatus } from '@unlighthouse/core'
+import type { UnlighthouseTaskStatus } from '@unlighthouse/core'
 
 const props = defineProps<{
   status: UnlighthouseTaskStatus

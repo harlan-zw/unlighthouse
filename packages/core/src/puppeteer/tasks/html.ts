@@ -1,5 +1,6 @@
 import fs from 'fs-extra'
-import cheerio, { CheerioAPI } from 'cheerio'
+import type { CheerioAPI } from 'cheerio'
+import cheerio from 'cheerio'
 import type { Page } from 'puppeteer'
 import type { PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'

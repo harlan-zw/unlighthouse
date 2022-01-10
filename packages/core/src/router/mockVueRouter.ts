@@ -1,5 +1,6 @@
-import { createRouter, createMemoryHistory, RouteRecordRaw } from 'vue-router'
-import { MockRouter, RouteDefinition } from '../types'
+import type { RouteRecordRaw } from 'vue-router'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import type { MockRouter, RouteDefinition } from '../types'
 
 /**
  * A mocker router using vue-router as the implementation.

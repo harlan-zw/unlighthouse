@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import {
+  categoryScores,
   changedTab,
-  rescanRoute,
+  closeIframeModal,
+  iframeModelUrl,
+  incrementSort,
+  isModalOpen,
+  openLighthouseReportIframeModal,
   refetchStats,
+  rescanRoute,
+  resultColumns,
   searchResults,
   searchText,
   sorting,
-  incrementSort,
-  wsConnect,
-  categoryScores,
   tabs,
-  isModalOpen,
-  iframeModelUrl,
-  openLighthouseReportIframeModal,
-  closeIframeModal,
-  resultColumns,
+  wsConnect,
 } from '../logic'
 
 onMounted(() => {

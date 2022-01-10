@@ -1,13 +1,12 @@
 import cac from 'cac'
 import type { UserConfig } from '@unlighthouse/core'
 import open from 'open'
-import {createUnlighthouse, useLogger} from '@unlighthouse/core'
+import { createUnlighthouse, normaliseHost, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
+import { pick } from 'lodash-es'
 import { version } from '../package.json'
-import {pick} from "lodash-es";
-import {validateOptions} from "./util";
-import { CliOptions} from "./types";
-import {normaliseHost} from "@unlighthouse/core";
+import { validateOptions } from './util'
+import type { CliOptions } from './types'
 
 const cli = cac('unlighthouse')
 

@@ -50,7 +50,7 @@ declare module 'lighthouse' {
       /** List of top-level warnings for this Lighthouse run. */
       runWarnings: string[]
       /** A top-level error message that, if present, indicates a serious enough problem that this Lighthouse result may need to be discarded. */
-      runtimeError?: {code: string; message: string}
+      runtimeError?: { code: string; message: string }
       /** The User-Agent string of the browser used run Lighthouse for these results. */
       userAgent: string
       /** Information about the environment in which Lighthouse was run. */
@@ -143,8 +143,8 @@ declare module 'lighthouse' {
     }
 
     export interface PrecomputedLanternData {
-      additionalRttByOrigin: { [origin: string]: number }
-      serverResponseTimeByOrigin: { [origin: string]: number }
+      additionalRttByOrigin: Record<string, number>
+      serverResponseTimeByOrigin: Record<string, number>
     }
 
     export type Locale =
@@ -233,7 +233,7 @@ declare module 'lighthouse' {
 
     export type OutputMode = 'json' | 'html' | 'csv'
 
-    export type ScreenEmulationSettings = {
+    export interface ScreenEmulationSettings {
       /** Overriding width value in pixels (minimum 0, maximum 10000000). 0 disables the override. */
       width: number
       /** Overriding height value in pixels (minimum 0, maximum 10000000). 0 disables the override. */

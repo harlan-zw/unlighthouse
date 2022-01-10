@@ -1,7 +1,7 @@
 import { join } from 'path'
 import { existsSync } from 'fs'
-import { IncomingMessage } from 'http'
-import { Socket } from 'node:net'
+import type { IncomingMessage } from 'http'
+import type { Socket } from 'node:net'
 import fs from 'fs-extra'
 import { $URL, joinURL } from 'ufo'
 import { createContext } from 'unctx'
@@ -9,21 +9,21 @@ import { createHooks } from 'hookable'
 import { loadConfig } from 'unconfig'
 import defu from 'defu'
 import objectHash from 'object-hash'
-// @ts-ignore
+// @ts-expect-error
 import { successBox } from '@nuxt/cli/dist/cli-index.js'
-import { resolvePath, createCommonJS } from 'mlly'
+import { createCommonJS, resolvePath } from 'mlly'
 import chalk from 'chalk'
 import { version } from '../package.json'
-import { createApi, createMockRouter, WS, createBroadcastingEvents } from './router'
+import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
 import type {
   Provider,
   UnlighthouseContext,
-  UserConfig,
   UnlighthouseHooks,
+  UserConfig,
 } from './types'
 import { generateClient } from './build'
-import { resolveReportableRoutes, discoverRouteDefinitions } from './discovery'
+import { discoverRouteDefinitions, resolveReportableRoutes } from './discovery'
 import { resolveUserConfig } from './resolveConfig'
 import { AppName, ClientPkg, TagLine } from './constants'
 import { createLogger } from './logger'
@@ -36,6 +36,14 @@ export { useLogger } from './logger'
  * Use the unlighthouse instance.
  */
 export const useUnlighthouse = engineContext.use as () => UnlighthouseContext
+
+/**
+ * A simple define wrapper to provide typings to config definitions.
+ * @param config
+ */
+export function defineConfig(config: UserConfig) {
+  return config
+}
 
 /**
  * Create a unique single unlighthouse instance that can be referenced globally with `useUnlighthouse()`. Scanning will
@@ -150,7 +158,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
     ctx.api = createApi()
     // make the router use our router
-    // @ts-ignore
+    // @ts-expect-error
     app.use((...args) => ctx.api(...args))
 
     if (ws) {

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { get } from 'lodash-es'
-import { withBase, $URL } from 'ufo'
-import { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import { $URL, withBase } from 'ufo'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { iframeModelUrl, isModalOpen, website } from '../../logic'
 
 const props = defineProps<{

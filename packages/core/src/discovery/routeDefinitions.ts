@@ -1,7 +1,7 @@
-import { join, dirname } from 'path'
-// @ts-ignore
+import { dirname, join } from 'path'
+// @ts-expect-error
 import { createRoutes } from '@nuxt/utils'
-import { RouteDefinition } from '../types'
+import type { RouteDefinition } from '../types'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 

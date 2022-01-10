@@ -1,5 +1,6 @@
-import { useFetch, UseFetchReturn } from '@vueuse/core'
-import { Ref } from 'vue'
+import type { UseFetchReturn } from '@vueuse/core'
+import { useFetch } from '@vueuse/core'
+import type { Ref } from 'vue'
 import { apiUrl } from '../static'
 
 export const rescanSiteRequest: Ref<UseFetchReturn<any>|null> = ref(null)
