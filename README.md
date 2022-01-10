@@ -59,12 +59,16 @@ Status: <b>Private Beta 🎉</b><br>
 
 [![](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://unlighthouse.dev/new)
 
-### Init Project Locally
+### Run Unlighthouse
 
 Install [Node.js >=14](https://nodejs.org/) and run the following command:
 
 ```bash
-npm add -G @unlighthouse/cli
+npm add -G unlighthouse
+```
+
+```bash
+unlighthouse --host https://unlighthouse.dev/
 ```
 
 Documentations:
