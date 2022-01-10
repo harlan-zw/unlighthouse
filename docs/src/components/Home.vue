@@ -12,12 +12,6 @@
         <span class="opacity-80">With the power of <a href="https://github.com/GoogleChrome/lighthouse" target="_blank" font="bold">Lighthouse️</a></span><br>
       </p>
 
-      <div class="flex items-center">
-        <i-mdi-bash class="inline-block text-4xl opacity-60" />
-        <code lang="bash" class="text-lg shadow rounded p-2 w-full ml-3 hover:bg-white transition">
-          <pre>npm install -G unlighthouse</pre>
-        </code>
-      </div>
       <div>
         <p class="font-bold bg-blue-100 inline-block rounded-full px-3 py-1 leading-7 tracking-wide text-blue-700">
           <span>Now In Early Access</span>
@@ -47,9 +41,6 @@
             <p class="break-none m-0 text-xl">
               Get Started
             </p>
-            <span class="opacity-85 text-sm">
-              Install Unlighthouse and start improving your site.
-            </span>
           </div>
         </btn-basic>
         <btn-basic
@@ -63,14 +54,22 @@
             <p class="break-none m-0 text-xl">
               Learn More
             </p>
-            <span class="opacity-85 text-sm">
-              Find out why Unlighthouse exists and how to make the most of it.
-            </span>
           </div>
         </btn-basic>
       </div>
+
+      <div class="mt-5 flex">
+        <div class="mx-auto">
+          <p>or try it now</p>
+          <div class="language-bash mt-2">
+            <pre>
+<code><span class="opacity-50"> </span><span class="token function">npm install -G</span> <span class="token text-[#408c9e] font-500">unlighthouse</span><span class="opacity-50">
+ </span><span class="token function">unlighthouse</span> <span class="token text-[#408c9e] font-500">--site https://harlanzw.com</span></code></pre>
+          </div>
+        </div>
+      </div>
     </div>
-    <div w="900px" h="527px" class="relative shadow-xl rounded-xl overflow-hidden">
+    <div w="900px" h="527px" class="relative shadow-xl rounded-xl overflow-hidden" style="box-shadow: 0 0 0 1px rgb(0 0 0 / 5%), 0 0 30px 1px rgb(0 0 0 / 15%);">
       <div style="background-image: url('/screenshot.png'); background-size: cover;" class="w-1171px h-527px absolute rounded-lg z-1">
       </div>
       <lighthouse-three-d class="mb-7 backdrop-blur-sm absolute top-15 left-70 z-2" />
