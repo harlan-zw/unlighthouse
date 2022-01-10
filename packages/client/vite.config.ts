@@ -21,7 +21,7 @@ export default defineConfig({
       // @ts-ignore
       resolvers: [
         IconsResolver(),
-        HeadlessUiResolver(),
+        HeadlessUiResolver({}),
       ],
     }),
     Icons(),

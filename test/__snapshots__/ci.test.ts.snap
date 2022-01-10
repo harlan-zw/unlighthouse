@@ -1,36 +1,36 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
 exports[`ci > tests harlanzw.com 1`] = `
-Array [
-  Object {
+[
+  {
     "path": "/",
     "score": 0.97,
   },
-  Object {
+  {
     "path": "/about/",
     "score": 0.98,
   },
-  Object {
+  {
     "path": "/blog/how-the-heck-does-vite-work/",
-    "score": 0.64,
+    "score": 0.93,
   },
-  Object {
+  {
     "path": "/blog/scale-your-vue-components/",
     "score": 0.92,
   },
-  Object {
+  {
     "path": "/blog/vue-automatic-component-imports/",
-    "score": 0.67,
+    "score": 0.97,
   },
-  Object {
+  {
     "path": "/contact/",
     "score": 0.98,
   },
-  Object {
+  {
     "path": "/open-blogging/",
     "score": 0.98,
   },
-  Object {
+  {
     "path": "/subscribe/",
     "score": 0.98,
   },

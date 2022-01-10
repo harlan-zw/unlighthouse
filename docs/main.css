@@ -1,0 +1,98 @@
+:root {
+  --c-brand: #047857;
+  --c-accent: #b45309;
+  --c-text: #151c23;
+  --font-family-base: DM Sans, ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont, sans-serif;
+  --font-family-mono: DM Mono, source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  --bg-gradient: 255,255,255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-bg: rgb(20,20,20) !important;
+    --c-text: rgb(255,255,255,87%) !important;
+    --c-text-light: #fdd888 !important;
+    --c-brand: #fdd888 !important;
+    --c-accent: #90C321 !important;
+    --bg-gradient: 20,20,20 !important;
+    --code-inline-bg-color: #282c34aa !important;
+  }
+
+  tr:nth-child(2n) {
+    background-color: var(--c-bg) !important;
+  }
+  tr {
+    border-top: 1px solid var(--code-inline-bg-color) !important;
+  }
+}
+
+.mono, .nav-bar-title {
+  font-family: var(--font-family-mono);
+}
+
+main.home ul > li {
+  opacity: 0.8;
+  transition: .1s ease;
+}
+main.home ul > li:hover {
+  opacity: 1;
+}
+
+main.home {
+
+  position: relative;
+  overflow-x: hidden;
+}
+
+main.home::before {
+  content: '';
+  inset: 0;
+  position: absolute;
+  z-index: -1;
+  background-image: url("/bg.png");
+  background-repeat: repeat;
+  background-size: 50%;
+}
+
+main {
+  @apply text-gray-700 dark:text-gray-200 overflow-y-hidden;
+}
+
+@media screen and (max-width: 768px) {
+  main.home {
+    background-size: 100%;
+  }
+}
+
+main.home {
+  background:
+    radial-gradient(ellipse, rgba(var(--bg-gradient),1) 50%, rgba(var(--bg-gradient),0.4) 120%),
+    radial-gradient(ellipse at top, rgba(var(--bg-gradient),0.8) 20%, rgba(var(--bg-gradient),0) 100%),
+    radial-gradient(ellipse at left, rgba(var(--bg-gradient),0.6) 20%, rgba(var(--bg-gradient),0) 100%),
+    radial-gradient(ellipse at right, rgba(var(--bg-gradient),0.6) 20%, rgba(var(--bg-gradient),0) 100%);
+}
+
+
+.custom-block.tip {
+  background-color: rgba(255, 229, 100, 0.1)
+}
+
+.custom-block.warning {
+  color: inherit;
+}
+
+.nav-bar-title .logo {
+  height: 1.5em !important;
+  margin-right: 0.5rem !important;
+}
+
+/* Overrides */
+
+.home-content {
+  max-width: 1800px !important;
+}
+
+.custom-block.tip {
+  border-color: var(--c-accent) !important;
+  background-color: #90C32130 !important;
+}

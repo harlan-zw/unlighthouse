@@ -1,0 +1,3 @@
+# Using Plugins
+
+Unlighthouse can be extended using plugins...
