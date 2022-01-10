@@ -1,0 +1,43 @@
+{
+  "name": "unlighthouse",
+  "version": "0.1.9",
+  "description": "Delightfully navigate your sites performance, accessibility and SEO issues.",
+  "keywords": [
+    "lighthouse",
+    "audit",
+    "seo",
+    "performance",
+    "speed"
+  ],
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git"
+  },
+  "files": [
+    "dist",
+    "*.d.ts"
+  ],
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "unbuild",
+    "stub": "unbuild --stub"
+  },
+  "dependencies": {
+    "@unlighthouse/cli": "workspace:*",
+    "@unlighthouse/core": "workspace:*"
+  }
+}

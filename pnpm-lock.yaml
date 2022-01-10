@@ -251,6 +251,14 @@ importers:
       h3: 0.3.8
       listhen: 0.2.5
 
+  packages/unlighthouse:
+    specifiers:
+      '@unlighthouse/cli': workspace:*
+      '@unlighthouse/core': workspace:*
+    dependencies:
+      '@unlighthouse/cli': link:../cli
+      '@unlighthouse/core': link:../core
+
 packages:
 
   /@algolia/autocomplete-core/1.5.0:
