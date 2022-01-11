@@ -12,6 +12,7 @@ const cli = createCli()
 const { options } = cli.parse() as unknown as { options: CliOptions }
 
 async function run() {
+  const start = new Date()
   if (options.help || options.version)
     return
 
@@ -26,8 +27,11 @@ async function run() {
   await unlighthouse.start()
 
   unlighthouse.hooks.hook('worker-finished', () => {
+    const end = new Date()
     const logger = useLogger()
-    logger.info('Unlighthouse has finished scanning your site.')
+
+    const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
+    logger.info(`Unlighthouse has finished scanning \`${unlighthouse.resolvedConfig.host}\`: ${unlighthouse.routes?.length || 0} routes in \`${seconds}s\`.`)
   })
 
   if (unlighthouse.resolvedConfig.server.open)
