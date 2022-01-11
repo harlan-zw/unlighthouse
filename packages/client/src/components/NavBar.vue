@@ -21,7 +21,7 @@ const favIcon = computed(() => {
     <span class="text-md font-bold text-teal-700 dark:text-teal-200 font-mono">
       Unlighthouse
     </span>
-    <div class="flex w-full justify-between items-center text-xs md:ml-5">
+    <div class="flex w-full justify-between items-center text-xs md:ml-5 md:mr-10">
       <div class="flex items-center">
         <div v-if="website && !website.includes('localhost')" class="mr-5 hidden xl:block">
           <div class="uppercase opacity-55 ">
@@ -104,7 +104,7 @@ const favIcon = computed(() => {
         </div>
       </div>
       <div v-if="stats?.monitor" class="hidden xl:flex">
-        <div class="mr-5">
+        <div class="mr-6">
           <div class="uppercase opacity-55 ">
             Worker Progress
           </div>
@@ -113,13 +113,13 @@ const favIcon = computed(() => {
               {{ stats.monitor.donePercStr }}% <span class="text-xs opacity-60">{{ stats.monitor.doneTargets }}/{{ stats.monitor.allTargets }}</span></span>
           </div>
         </div>
-        <div class="mr-5 hidden 2xl:block">
+        <div class="mr-6 hidden 2xl:block">
           <div class="uppercase opacity-55">
             Time Remaining
           </div>
           <span class="text-sm">{{ stats.monitor.status === 'completed' ? '-' : timeRemaining }}</span>
         </div>
-        <div class="mr-5 hidden 2xl:block">
+        <div class="mr-6 hidden 2xl:block">
           <div class="uppercase opacity-55">
             CPU
           </div>

@@ -48,10 +48,13 @@ onMounted(() => {
       <div class="hidden 2xl:block">
         <div class="px-2 text-center 2xl:text-left">
           <div class="text-xs opacity-75 2xl:mt-4">
-            Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
+            <a href="https://unlighthouse.dev" target="_blank" class="underline hover:no-underline">Documentation</a>
+          </div>
+          <div class="text-xs opacity-75 2xl:mt-4">
+            Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
           </div>
           <div class="text-xs opacity-50 2xl:mt-4 mt-1">
-            Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline">here</a>.
+            Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline hover:no-underline">here</a>.
           </div>
         </div>
         <lighthouse-three-d />

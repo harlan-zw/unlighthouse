@@ -19,10 +19,10 @@ const openEditorRequest = () => {
       <img v-if="report.report?.audits?.['final-screenshot']?.details?.data" :src="report.report.audits['final-screenshot'].details.data" height="112" width="68" class="w-68px h-112px">
     </btn-action>
     <div class="md:ml-3 flex-grow w-full">
-      <a v-if="report.seo?.title" :href="report.route.url" target="_blank" class="text-xs dark:(opacity-80) underline">
+      <a v-if="report.seo?.title" :href="report.route.url" target="_blank" class="text-xs dark:(opacity-80) underline hover:no-underline">
         {{ report.seo?.title }}
       </a>
-      <a v-else :href="report.route.url" target="_blank" class="text-xs opacity-80 underline break-all">
+      <a v-else :href="report.route.url" target="_blank" class="text-xs opacity-80 underline break-all hover:no-underline">
         {{ report.route.path }}
       </a>
       <div v-if="report.route.definition?.componentBaseName" class="flex items-center mt-2">
