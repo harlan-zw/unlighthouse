@@ -20,10 +20,10 @@
 <table>
 <tbody>
 <td align="center">
-<img width="2000" height="0"><br>
+<img width="2000" height="0" /><br>
 Status: <b>Private Beta 🎉</b><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a></sub><br>
-<img width="2000" height="0">
+<img width="2000" height="0" />
 </td>
 </tbody>
 </table>
@@ -31,30 +31,31 @@ Status: <b>Private Beta 🎉</b><br>
 
 ## Features
 
-- 📝 [**Markdown-based**](https://sli.dev/guide/syntax.html) - use your favorite editors and workflow
-- 🧑‍💻 [**Developer Friendly**](https://sli.dev/guide/syntax.html#code-blocks) - built-in syntax highlighting, live coding, etc.
-- 🎨 [**Themable**](https://sli.dev/themes/gallery.html) - theme can be shared and used with npm packages.
-- 🌈 [**Stylish**](https://sli.dev/guide/syntax.html#embedded-styles) - [Windi CSS](https://windicss.org/) on-demand utilities, easy-to-use embedded stylesheets.
-- 🤹 [**Interactive**](https://sli.dev/custom/directory-structure.html#components) - embedding Vue components seamlessly.
-- 🎙 [**Presenter Mode**](https://sli.dev/guide/presenter-mode.html) - use another window, or even your phone to control your slides.
-- 🧮 [**LaTeX**](https://sli.dev/guide/syntax.html#latex) - built-in LaTeX math equations support.
-- 📰 [**Diagrams**](https://sli.dev/guide/syntax.html#diagrams) - creates diagrams with textual descriptions
-- 🌟 [**Icons**](https://sli.dev/guide/syntax.html#icons) - access to icons from any iconset directly.
-- 💻 [**Editors**](https://sli.dev/guide/editors.html) - integrated editor, or [extension for VS Code](https://github.com/slidevjs/slidev-vscode)
-- 🎥 [**Recording**](https://sli.dev/guide/recording.html) - built-in recording and camera view.
-- 📤 [**Portable**](https://sli.dev/guide/exporting.html) - export into PDF, PNGs, or even a hostable SPA.
-- ⚡️ [**Fast**](https://vitejs.dev) - instant reloading powered by [Vite](https://vitejs.dev).
-- 🛠 [**Hackable**](https://sli.dev/custom/config-vite.html) - using Vite plugins, Vue components, or any npm packages.
+### ⚡️ [**Fast**](https://vitejs.dev)
+multi-threaded workers powered by [puppeteer-cluster](https://github.com/thomasdondorf/puppeteer-cluster)
+
+### 🐞 [**Ready to Crawl**](https://vitejs.dev)
+automatically discover all URLs with sitemap or link parsing
+
+### 🌈 [**Modern UI**](https://sli.dev/guide/syntax.html#embedded-styles)
+pre-packed with a Vite client to navigate your reports
+
+### ️🤓 [**Intelligent Sampling**](https://vitejs.dev)
+
+avoid scanning pages which will have the same audit result
+
+### 🧑‍💻 [**Integrated Development**](https://sli.dev/guide/syntax.html#code-blocks)
+run unlighthouse with your development sites, quickly navigate local files HMR for seamless issue fixing
+
+### 🤖 [**CI Ready**](https://sli.dev/guide/syntax.html#code-blocks)
+audit your entire site in your continuous integration pipeline
+
+### 🛠 [**Hackable**](https://vitejs.dev)
+modify any part of unlighthouse with it's extensible API
 
 ## Getting Started
 
-### Try it Online ⚡️
-
-[unlighthouse.dev/new](https://unlighthouse.dev/new)
-
-[![](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://unlighthouse.dev/new)
-
-### Run Unlighthouse
+### Unlighthouse - Live Sites
 
 Ensure you're using [Node.js >=14](https://nodejs.org/) and run the following command:
 
@@ -65,6 +66,19 @@ npm add -G unlighthouse
 ```bash
 unlighthouse --host https://unlighthouse.dev/
 ```
+
+
+### Unlighthouse - Development Sites
+
+See [integrations](https://unlighthouse.dev/integrations/) on how you can run Unlighthouse in your development environment.
+
+
+### Try it Online ⚡️
+
+[unlighthouse.dev/new](https://unlighthouse.dev/new)
+
+[![](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://unlighthouse.dev/new)
+
 
 ## Sponsors
 
