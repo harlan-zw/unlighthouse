@@ -30,6 +30,16 @@ Status: <b>Private Beta 🎉</b><br>
 </table>
 </p>
 
+## Why Unlighthouse?
+
+To scratch my own itch.
+
+There was no open-source solutions to elegantly scan your entire site with lighthouse and interpret the data, so I made one.
+
+While creating it I explored some ideas on how it can be made to scan larger sites, sites without sitemaps and how to extract SEO data.
+
+The end product is a tool which should provide values for most sites out of the box with minimal configuration.
+
 ## Features
 
 ### ⚡️ [**Fast**](https://vitejs.dev)

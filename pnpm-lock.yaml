@@ -157,7 +157,7 @@ importers:
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.2.2
       '@unlighthouse/client': workspace:*
-      chalk: ^5.0.0
+      chalk: ^4.1.2
       cheerio: ^1.0.0-rc.10
       consola: ^2.15.3
       defu: ^5.0.0
@@ -197,7 +197,7 @@ importers:
       '@nuxt/cli': 2.15.8
       '@nuxt/utils': 2.15.8
       '@unlighthouse/client': link:../client
-      chalk: 5.0.0
+      chalk: 4.1.2
       cheerio: 1.0.0-rc.10
       consola: 2.15.3
       defu: 5.0.0
@@ -2416,6 +2416,7 @@ packages:
   /chalk/5.0.0:
     resolution: {integrity: sha512-/duVOqst+luxCQRKEo4bNxinsOQtMP80ZYm7mMqzuh5PociNL0PvmHFvREJ9ueYL2TxlHjBcmLCdmocx9Vg+IQ==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
+    dev: true
 
   /char-regex/1.0.2:
     resolution: {integrity: sha512-kWWXztvZ5SBQV+eRgKFeh8q5sLuZY2+8WUIzlxWVTg+oGwY14qylx1KbKzHd8P6ZYkAg0xyIDU9JMHhyJMZ1jw==}

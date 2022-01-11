@@ -5,10 +5,10 @@
     "packages/*"
   ],
   "scripts": {
-    "cli:hzw": "esmo packages/cli/bin/unlighthouse.cjs --host https://harlanzw.com/ --root /home/harlan/sites/harlanzw.com/ --debug",
-    "cli:windi": "esmo packages/unlighthouse/src/cli.ts  --host https://windicss.org/",
-    "cli:nuxt": "esmo packages/unlighthouse/src/cli.ts  --host https://nuxtjs.org/",
-    "cli:vue": "esmo packages/unlighthouse/src/cli.ts  --host https://v3.vuejs.org/",
+    "cli:hzw": "esmo packages/unlighthouse/bin/unlighthouse.mjs --host https://harlanzw.com/ --root /home/harlan/sites/harlanzw.com/ --debug",
+    "cli:windi": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://windicss.org/",
+    "cli:nuxt": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://nuxtjs.org/",
+    "cli:vue": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://v3.vuejs.org/",
     "build": "pnpm -r --parallel  --filter ./packages run build",
     "stub": "pnpm -r --parallel --filter ./packages run stub",
     "dev": "pnpm run stub && pnpm run watch:client",
