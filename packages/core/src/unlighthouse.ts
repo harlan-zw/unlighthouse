@@ -216,7 +216,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     if (provider?.name !== 'ci') {
       let chalk = (await import('chalk'))
       if (chalk.default) {
-        // @ts-ignore
+        // @ts-expect-error
         chalk = chalk.default
       }
       // fancy CLI banner when we start
