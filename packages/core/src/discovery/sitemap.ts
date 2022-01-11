@@ -1,5 +1,5 @@
 import Sitemapper from 'sitemapper'
-import { useUnlighthouse } from '@unlighthouse/core'
+import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 
 /**
