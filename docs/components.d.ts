@@ -16,7 +16,6 @@ declare module 'vue' {
     ICarbonFavoriteFilled: typeof import('~icons/carbon/favorite-filled')['default']
     ICarbonLogoGithub: typeof import('~icons/carbon/logo-github')['default']
     ICarbonLogoTwitter: typeof import('~icons/carbon/logo-twitter')['default']
-    ICarbonPageLast: typeof import('~icons/carbon/page-last')['default']
     ICarbonTerminal: typeof import('~icons/carbon/terminal')['default']
     LighthouseThreeD: typeof import('./src/components/LighthouseThreeD.vue')['default']
   }

@@ -8,8 +8,9 @@
 </p>
 
 <br>
+
 <p align="center">
-:boat: Delightfully navigate your sites performance, accessibility and SEO with the power of Lighthouse :zap:
+Unlighthouse audits your entire site using Google Lighthouse and lets you navigate the reports with a modern UI. 
 </p>
 
 <p align="center">
@@ -32,26 +33,43 @@ Status: <b>Private Beta 🎉</b><br>
 ## Features
 
 ### ⚡️ [**Fast**](https://vitejs.dev)
-multi-threaded workers powered by [puppeteer-cluster](https://github.com/thomasdondorf/puppeteer-cluster)
 
-### 🐞 [**Ready to Crawl**](https://vitejs.dev)
-automatically discover all URLs with sitemap or link parsing
+Take advantage of your CPU with multi-threaded workers powered by [puppeteer-cluster](https://github.com/thomasdondorf/puppeteer-cluster) and use opportunistic throttling and categories for lightning quick scans.
+
+### 🐞 [**Dual Crawling**](https://vitejs.dev)
+
+Pre-packed with automatic URL discovery using [sitemap.xml crawling](https://github.com/seantomburke/sitemapper) or use internal link parsing.
 
 ### 🌈 [**Modern UI**](https://sli.dev/guide/syntax.html#embedded-styles)
-pre-packed with a Vite client to navigate your reports
+
+View your sites' health as a whole with the provided Vite UI. Easily see, search and sort your pages, re-scan individual pages and more. 
 
 ### ️🤓 [**Intelligent Sampling**](https://vitejs.dev)
 
-avoid scanning pages which will have the same audit result
+Scanning a website with thousands of pages? No problem.
+
+Hook up your local project with the scan, you can intelligently sample your URLs, only scanning ones which
+are generated with unique code.
+
+### 🍬️ [**SEO Goodies**](https://vitejs.dev)
+
+Easily see all of your pages share images, analyze your meta descriptions, see how many internal and external links you have.
 
 ### 🧑‍💻 [**Integrated Development**](https://sli.dev/guide/syntax.html#code-blocks)
-run unlighthouse with your development sites, quickly navigate local files HMR for seamless issue fixing
+
+Finding issues with your site is one thing, fixing them is another. Unlighthouse comes packed with local development plugins for most
+popular frameworks.
+
+See which file belongs to a URL, fix your issue, unlighthouse will automatically re-audit the page!
 
 ### 🤖 [**CI Ready**](https://sli.dev/guide/syntax.html#code-blocks)
-audit your entire site in your continuous integration pipeline
+
+Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.
 
 ### 🛠 [**Hackable**](https://vitejs.dev)
-modify any part of unlighthouse with it's extensible API
+
+Unlighthouse was built to modify, with isolate packages, robust API and a generous hook system.
+
 
 ## Getting Started
 

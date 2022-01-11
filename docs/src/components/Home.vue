@@ -47,17 +47,17 @@
         </btn-basic>
       </div>
 
-      <div class="mt-5">
-          <p class="mb-0">or try it now</p>
-          <div class="language-bash inline-block">
+      <p class="mt-3 mb-3">or try it now</p>
+      <div class="language-bash !mt-0 inline-block">
             <pre>
-<code><span class="opacity-50"> </span><span class="token function">npm install -G</span> <span class="token text-[#408c9e] font-500">unlighthouse</span><span class="opacity-50">
- </span><span class="token function">unlighthouse</span> <span class="token text-[#408c9e] font-500">--site https://harlanzw.com</span></code></pre>
-          </div>
+<code><span class="opacity-50"># Install Unlighthouse globally - can take a few minutes</span>
+<span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">unlighthouse</span><span class="opacity-50">
+</span><span class="opacity-50"># Scan your website</span>
+<span class="token function">unlighthouse</span> <span class="token text-[#408c9e] font-500">--host https://harlanzw.com</span></code></pre>
       </div>
     </div>
-    <div w="900px" h="527px" class="relative shadow-xl rounded-xl overflow-hidden" style="box-shadow: 0 0 0 1px rgb(0 0 0 / 5%), 0 0 30px 1px rgb(0 0 0 / 15%);">
-      <div style="background-image: url('/screenshot.png'); background-size: cover;" class="w-1171px h-527px absolute rounded-lg z-1">
+    <div w="900px" h="527px" class="relative shadow-xl rounded-xl overflow-hidden group" style="box-shadow: 0 0 0 1px rgb(0 0 0 / 5%), 0 0 30px 1px rgb(0 0 0 / 15%);">
+      <div style="background-image: url('/screenshot.png');" class="w-1171px h-527px absolute rounded-lg z-1">
       </div>
       <lighthouse-three-d class="mb-7 backdrop-blur-sm absolute top-15 left-70 z-2" />
     </div>
