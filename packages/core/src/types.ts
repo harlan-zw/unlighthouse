@@ -283,8 +283,8 @@ export interface ResolvedUserConfig {
   }
   // see h3
   server: {
-    port: number,
-    open: boolean,
+    port: number
+    open: boolean
     showURL: boolean
   }
   /**

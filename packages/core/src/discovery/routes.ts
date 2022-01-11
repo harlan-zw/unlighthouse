@@ -51,22 +51,22 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
 
   // group all urls by their route definition path name
   const pathsChunkedToGroup = groupBy(
-      urls.map(url => normaliseRoute(url)),
-      resolvedConfig.client.groupRoutesKey.replace('route.', ''),
+    urls.map(url => normaliseRoute(url)),
+    resolvedConfig.client.groupRoutesKey.replace('route.', ''),
   )
 
   const pathsSampleChunkedToGroup = map(
-      pathsChunkedToGroup,
-      // we're matching dynamic rates here, only taking a sample to avoid duplicate tests
-      (group) => {
-        const { dynamicSampling } = resolvedConfig.scanner
-        // allow config to bypass this behavior
-        if (!dynamicSampling)
-          return group
+    pathsChunkedToGroup,
+    // we're matching dynamic rates here, only taking a sample to avoid duplicate tests
+    (group) => {
+      const { dynamicSampling } = resolvedConfig.scanner
+      // allow config to bypass this behavior
+      if (!dynamicSampling)
+        return group
 
-        // whatever the sampling rate is
-        return sampleSize(group, dynamicSampling)
-      })
+      // whatever the sampling rate is
+      return sampleSize(group, dynamicSampling)
+    })
 
   return pathsSampleChunkedToGroup.flat()
 }
