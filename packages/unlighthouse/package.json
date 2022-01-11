@@ -22,10 +22,6 @@
     "dist",
     "*.d.ts"
   ],
-  "bin": {
-    "unlighthouse": "bin/unlighthouse.mjs",
-    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
-  },
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
@@ -35,6 +31,10 @@
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
+  "bin": {
+    "unlighthouse": "bin/unlighthouse.mjs",
+    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
+  },
   "types": "index.d.ts",
   "scripts": {
     "build": "unbuild",
@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@unlighthouse/cli": "workspace:*",
-    "@unlighthouse/core": "workspace:*",
-    "@unlighthouse/client": "workspace:*"
+    "@unlighthouse/client": "workspace:*",
+    "@unlighthouse/core": "workspace:*"
   }
 }
