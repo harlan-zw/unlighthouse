@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@unlighthouse/cli": "workspace:*",
-    "@unlighthouse/core": "workspace:*"
+    "@unlighthouse/core": "workspace:*",
+    "@unlighthouse/client": "workspace:*"
   }
 }

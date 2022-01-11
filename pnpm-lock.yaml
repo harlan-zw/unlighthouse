@@ -18,7 +18,7 @@ importers:
       ts-jest: ^27.1.2
       tsup: ^5.11.11
       typescript: ^4.5.4
-      vitest: ^0.0.139
+      vitest: ^0.0.140
     devDependencies:
       '@antfu/eslint-config': 0.15.0_eslint@8.6.0+typescript@4.5.4
       '@types/node': 17.0.8
@@ -34,7 +34,7 @@ importers:
       ts-jest: 27.1.2_jest@27.4.7+typescript@4.5.4
       tsup: 5.11.11_typescript@4.5.4
       typescript: 4.5.4
-      vitest: 0.0.139
+      vitest: 0.0.140
 
   docs:
     specifiers:
@@ -254,9 +254,11 @@ importers:
   packages/unlighthouse:
     specifiers:
       '@unlighthouse/cli': workspace:*
+      '@unlighthouse/client': workspace:*
       '@unlighthouse/core': workspace:*
     dependencies:
       '@unlighthouse/cli': link:../cli
+      '@unlighthouse/client': link:../client
       '@unlighthouse/core': link:../core
 
 packages:
@@ -7931,8 +7933,8 @@ packages:
       - stylus
     dev: true
 
-  /vitest/0.0.139:
-    resolution: {integrity: sha512-5AXMaEOJXgQpobgXkzBPGP8o4NpAhT2yczeRD1V94U0VWGxRObI1zjqtxBPEtgda8Q4rQKw0SVlHCR0P76h9QA==}
+  /vitest/0.0.140:
+    resolution: {integrity: sha512-tBv9rMKUH7AA7Vg9X5FMNZ7zyjGLNtNCBcKc2NNjPHKO1+cPttjF+jVvGIOP0Bo0l6pkRZWvsd3nywvktqVvvQ==}
     engines: {node: '>=14.14.0'}
     hasBin: true
     peerDependencies:
