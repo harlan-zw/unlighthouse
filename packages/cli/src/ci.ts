@@ -1,29 +1,21 @@
 import { join } from 'path'
-import cac from 'cac'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { pick } from 'lodash-es'
-import { version } from '../package.json'
 import { handleError } from './errors'
 import type { CiOptions } from './types'
 import { validateOptions } from './util'
+import createCli from './createCli'
 
 async function run() {
-  const cli = cac('unlighthouse')
+  const cli = createCli()
 
-  cli
-    .help()
-    .version(version)
-    .option('--host <host>', 'Host')
-    .option('--root <root>', 'Root')
-    .option('--budget <budget>', 'Budget')
-    .option('--config-file <config-file>', 'Config File')
-    .option('-d, --debug', 'Debug')
+  cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
-  if (options.help)
+  if (options.help || options.version)
     return
 
   const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])

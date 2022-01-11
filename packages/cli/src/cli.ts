@@ -1,27 +1,18 @@
-import cac from 'cac'
 import type { UserConfig } from '@unlighthouse/core'
 import open from 'open'
-import { createUnlighthouse, normaliseHost, useLogger } from '@unlighthouse/core'
+import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
 import { pick } from 'lodash-es'
-import { version } from '../package.json'
 import { validateOptions } from './util'
 import type { CliOptions } from './types'
+import createCli from './createCli'
 
-const cli = cac('unlighthouse')
-
-cli
-  .help()
-  .version(version)
-  .option('--host <host>', 'Host')
-  .option('--root <root>', 'Root')
-  .option('--config-file <config-file>', 'Config File')
-  .option('--debug', 'Debug')
+const cli = createCli()
 
 const { options } = cli.parse() as unknown as { options: CliOptions }
 
 async function run() {
-  if (options.help)
+  if (options.help || options.version)
     return
 
   const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])

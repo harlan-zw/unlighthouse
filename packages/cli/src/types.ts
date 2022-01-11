@@ -1,6 +1,7 @@
 export interface CliOptions {
   host: string
   help?: boolean
+  version?: boolean
   root?: string
   configFile?: string
   debug?: boolean
