@@ -32,8 +32,8 @@
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "bin": {
-    "unlighthouse": "bin/unlighthouse.mjs",
-    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
+    "unlighthouse": "bin/unlighthouse.cjs",
+    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
   },
   "types": "index.d.ts",
   "scripts": {
