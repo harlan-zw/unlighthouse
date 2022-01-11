@@ -1,22 +1,17 @@
 <template>
 <div class="flex flex-col items-center">
-  <div class="flex flex-row items-center justify-between my-10">
+  <div class="flex flex-row items-start justify-between my-10">
     <div class="flex flex-col items-left pt-10 pb-10 pr-20">
-      <p class=" font-bold text-5xl text-left leading-16 font-normal ">
-        <span class="opacity-95">Delightfully navigate your sites</span><br>
+      <p class="leading-16 font-bold text-5xl font-normal mt-0">
+        <span class="opacity-90">Delightfully navigate your sites</span><br>
       </p>
-      <div class="text-5xl font-bold" style="-webkit-text-fill-color: #0000;background-clip: text;-webkit-background-clip: text;-webkit-box-decoration-break: clone;background-image: linear-gradient(to bottom right,#047857 42%,#0d47ad 76%);">
-        <span>Performance</span> · <span>Accessibility</span> ·<span> SEO</span>
+      <div class="leading-15 text-5xl mb-3 flex items-center justify-center font-bold" style="-webkit-text-fill-color: #0000;background-clip: text;-webkit-background-clip: text;-webkit-box-decoration-break: clone;background-image: linear-gradient(to bottom right,#047857 42%,#0d47ad 76%);">
+        <span>Performance</span> <span class="px-3">·</span> <span>Accessibility</span> <span class="px-3">·</span><span> SEO</span>
       </div>
-      <p class="text-2xl text-left leading-16 font-normal">
-        <span class="opacity-80">With the power of <a href="https://github.com/GoogleChrome/lighthouse" target="_blank" font="bold">Lighthouse️</a></span><br>
+      <p class="text-xl opacity-90 font-normal">
+        <span class="opacity-90">Powered by <img src="/lighthouse-logo.svg" height="60" class="h-60px inline mr-2"><a href="https://github.com/GoogleChrome/lighthouse" target="_blank" font="bold" class="text-inherit">Google Lighthouse️</a></span><br>
       </p>
 
-      <div>
-        <p class="font-bold bg-blue-100 inline-block rounded-full px-3 py-1 leading-7 tracking-wide text-blue-700">
-          <span>Now In Early Access</span>
-        </p>
-      </div>
       <div
           class="
           text-center
@@ -32,24 +27,18 @@
 
         <btn-basic
             href="/guide/"
-            class="flex items-start bg-green-600 text-white hover:bg-green-700 w-300px transition children:hover:text-white"
+            class="flex items-center bg-green-600 text-white hover:bg-green-700 transition children:hover:text-white"
         >
-          <div  class="mr-2">
-            <i-carbon-page-last class="inline-block text-3xl opacity-90" />
-          </div>
-          <div class="text-left">
-            <p class="break-none m-0 text-xl">
-              Get Started
-            </p>
-          </div>
+          <i-carbon-terminal class="inline-block text-2xl opacity-90 mr-2" />
+          <p class="break-none m-0 text-xl">
+            Get Started
+          </p>
         </btn-basic>
         <btn-basic
             href="/guide/why"
-            class="flex items-start bg-blue-500 text-white hover:bg-blue-700 w-300px transition children:hover:text-white"
+            class="flex items-center bg-blue-500 text-white hover:bg-blue-700 transition children:hover:text-white"
         >
-          <div  class="mr-2">
-            <i-carbon-page-last class="inline-block text-3xl opacity-90" />
-          </div>
+          <i-carbon-book class="inline-block text-2xl opacity-90 mr-2" />
           <div class="text-left">
             <p class="break-none m-0 text-xl">
               Learn More
@@ -58,15 +47,13 @@
         </btn-basic>
       </div>
 
-      <div class="mt-5 flex">
-        <div class="mx-auto">
-          <p>or try it now</p>
-          <div class="language-bash mt-2">
+      <div class="mt-5">
+          <p class="mb-0">or try it now</p>
+          <div class="language-bash inline-block">
             <pre>
 <code><span class="opacity-50"> </span><span class="token function">npm install -G</span> <span class="token text-[#408c9e] font-500">unlighthouse</span><span class="opacity-50">
  </span><span class="token function">unlighthouse</span> <span class="token text-[#408c9e] font-500">--site https://harlanzw.com</span></code></pre>
           </div>
-        </div>
       </div>
     </div>
     <div w="900px" h="527px" class="relative shadow-xl rounded-xl overflow-hidden" style="box-shadow: 0 0 0 1px rgb(0 0 0 / 5%), 0 0 30px 1px rgb(0 0 0 / 15%);">
