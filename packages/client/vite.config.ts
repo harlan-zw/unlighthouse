@@ -31,7 +31,13 @@ export default defineConfig({
         'vue-router',
       ],
     }),
-    WindiCSS(),
+    WindiCSS({
+      scan: {
+        dirs: [
+          '**',
+        ],
+      },
+    }),
   ],
 
   build: {
