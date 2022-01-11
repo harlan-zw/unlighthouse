@@ -214,7 +214,11 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     worker.queueRoutes(ctx.routes)
 
     if (provider?.name !== 'ci') {
-      const chalk = (await import('chalk')).default
+      let chalk = (await import('chalk'))
+      if (chalk.default) {
+        // @ts-ignore
+        chalk = chalk.default
+      }
       // fancy CLI banner when we start
       const label = (name: string) => chalk.bold.magenta(`▸ ${name}:`)
       const mode = ctx.routes.length <= 1 ? 'crawl' : 'sitemap'
