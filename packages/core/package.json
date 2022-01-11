@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/core",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Delightfully navigate your sites performance, accessibility and SEO issues.",
   "keywords": [
     "lighthouse",
