@@ -12,7 +12,6 @@ import objectHash from 'object-hash'
 // @ts-expect-error
 import { successBox } from '@nuxt/cli/dist/cli-index.js'
 import { createCommonJS, resolvePath } from 'mlly'
-import chalk from 'chalk'
 import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
@@ -215,6 +214,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     worker.queueRoutes(ctx.routes)
 
     if (provider?.name !== 'ci') {
+      const chalk = (await import('chalk')).default
       // fancy CLI banner when we start
       const label = (name: string) => chalk.bold.magenta(`▸ ${name}:`)
       const mode = ctx.routes.length <= 1 ? 'crawl' : 'sitemap'
