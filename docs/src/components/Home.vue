@@ -68,10 +68,10 @@
   </h2>
   <FeaturesList class="mb-10" />
 
-  <h2 id="meet-the-team" op50 font-normal pb-2>
+  <h2 id="meet-the-team" class="text-4xl mb-7">
     Meet the Team
   </h2>
-  <div p-10>
+  <div class="p-10 grid gap-10 grid-cols-2">
     <Avatar
         name="Harlan Wilton"
         avatar="https://avatars.githubusercontent.com/u/5326365?v=4"
@@ -81,6 +81,10 @@
     >
       Self-employed Dev<br>Actively contributing to Open Source
     </Avatar>
+    <div class="text-center">
+      <h3>Want to appear here?</h3>
+      <p>I'm looking for developers to join the team.<br> Get in touch with <a href="https://twitter.com/harlan_zw" target="_blank">me</a> :)</p>
+    </div>
   </div>
   <h3 id="the-team" op50 font-normal pt-5 pb-2>
     Contributors
