@@ -70,7 +70,7 @@ const onReady = (object: Group) => {
 </script>
 
 <template>
-<div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['translate-y-0']" class="bg-gradient-to-b from-sky-900/90 to-teal-900/50 dark:(bg-none) rounded-full duration-2000 ease-in-out transform transition w-400px h-400px group-hover:scale-110">
+<div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['translate-y-0']" class="bg-gradient-to-b from-sky-900/90 to-teal-900/50 dark:(bg-none) rounded-full duration-2000 ease-in-out transform transition w-400px h-400px">
   <Renderer ref="rendererC" antialias :orbit-ctrl="{ enableDamping: true }" resize="true" :alpha="true">
     <Camera :position="{ x: 0, y: 0, z: 0 }" />
     <Scene>
