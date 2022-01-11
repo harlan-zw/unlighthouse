@@ -22,6 +22,10 @@
     "dist",
     "*.d.ts"
   ],
+  "bin": {
+    "unlighthouse": "bin/unlighthouse.mjs",
+    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
+  },
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
