@@ -270,6 +270,7 @@ export const defaultConfig: UserConfig = {
     dynamicSampling: 5,
     sitemap: true,
   },
+  // @ts-expect-error provided by server package, may not be provided in CI mode
   server: {
     port: 5678,
     showURL: false,

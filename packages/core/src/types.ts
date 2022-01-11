@@ -281,12 +281,6 @@ export interface ResolvedUserConfig {
      */
     sitemap: boolean
   }
-  // see h3
-  server: {
-    port: number
-    open: boolean
-    showURL: boolean
-  }
   /**
    * Where to emit lighthouse reports and the runtime client.
    * @default "./lighthouse/"
