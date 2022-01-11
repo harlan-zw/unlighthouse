@@ -268,8 +268,8 @@ export const defaultConfig: UserConfig = {
     throttle: true,
     crawler: true,
     dynamicSampling: 5,
+    sitemap: true,
   },
-  // @ts-expect-error
   server: {
     port: 5678,
     showURL: false,

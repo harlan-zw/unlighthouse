@@ -1,5 +1,6 @@
 import Sitemapper from 'sitemapper'
 import { useLogger } from '../logger'
+import {useUnlighthouse} from "@unlighthouse/core";
 
 /**
  * Fetches routes from a sitemap file.
@@ -7,9 +8,11 @@ import { useLogger } from '../logger'
  * @param site
  */
 export const extractSitemapRoutes = async(site: string) => {
+  const unlighthouse = useUnlighthouse()
   const logger = useLogger()
   const sitemap = new Sitemapper({
     timeout: 15000, // 15 seconds
+    debug: unlighthouse.resolvedConfig.debug
   })
 
   const sitemapUrl = `${site}/sitemap.xml`
