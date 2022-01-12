@@ -65,6 +65,8 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     { url: import.meta.url, extensions: ['.cjs', '.mjs', '.ts'] },
   )
 
+  logger.debug(`Lighthouse process file: \`${lighthouseProcessPath}\`.`)
+
   const browser = page.browser()
   const port = new URL(browser.wsEndpoint()).port
 
@@ -79,7 +81,7 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     try {
       // Spawn a worker process
       const worker = (await import('execa'))
-        .execa('jiti', [lighthouseProcessPath, ...args], {
+        .execa('node', [lighthouseProcessPath, ...args], {
           timeout: 6 * 60 * 1000,
         })
       worker.stdout!.pipe(process.stdout)
@@ -90,10 +92,11 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     }
     catch (e) {
       logger.error('Failed to run lighthouse for route', e)
+      return routeReport
     }
   }
 
-  const report = samples.length === 1 ? samples[0] : computeMedianRun(samples)
+  const report = samples.length <= 1 ? samples[0] : computeMedianRun(samples)
 
   if (!report) {
     logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)

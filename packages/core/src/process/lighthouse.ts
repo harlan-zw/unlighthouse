@@ -21,7 +21,6 @@ import type { UnlighthouseRouteReport } from '../types';
     port,
   }
   try {
-    // @ts-expect-error
     const runnerResult = await lighthouse(routeReportJson.route.url, lighthouseOptions)
     fs.writeFileSync(routeReportJson.reportJson, runnerResult.report[1])
     fs.writeFileSync(routeReportJson.reportHtml, runnerResult.report[0])
