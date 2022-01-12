@@ -28,9 +28,9 @@ onMounted(() => {
       }
     } else if (z.value !== 10) {
       if (z.value > 10) {
-        z.value -= 1
+        z.value -= 0.1
       } else {
-        z.value += 1
+        z.value += 0.1
       }
       if (rotation.value > 0.01) {
         rotation.value -= 0.001

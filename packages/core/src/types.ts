@@ -178,7 +178,7 @@ export interface DiscoveryOptions {
    */
   pagesDir: string
   /**
-   * Which files in the pages dir should be considered.
+   * Which file extensions in the pages dir should be considered.
    *
    * Note: This is for fallback behaviour when the integration doesn't provide a way to gather the route definitions.
    */
@@ -208,13 +208,15 @@ export interface ResolvedUserConfig {
    */
   root: string
   /**
-   * Should reports be cached between runs for the host.
+   * Should reports be saved to the local file system and re-used between runs for the scanned host.
+   *
+   * Note: This makes use of cache-bursting for when the configuration changes, since this may change the report output.
    *
    * @default true
    */
   cacheReports: boolean
   /**
-   * The users configured configuration file.
+   * Load the configuration from a custom config file. By default, it attempts to load configuration from `unlighthouse.config.ts`.
    */
   configFile?: string
   /**
@@ -228,7 +230,15 @@ export interface ResolvedUserConfig {
     prefix: string
   }
   ci: {
+    /**
+     * Provide a budget for each page as a numeric total score, or an object mapping the category to the score. Should be
+     * a number between 1-100.
+     */
     budget: number|Record<Partial<LighthouseCategories>, number>
+    /**
+     * Injects the required data into the client files, so it can be hosted statically.
+     */
+    buildStatic: boolean
   }
   api: {
     /**

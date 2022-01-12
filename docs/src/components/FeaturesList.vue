@@ -32,6 +32,7 @@
   <div>
     <h3 class="mt-0">🤖 <a href="/">CI Ready</a></h3>
     <p>Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.</p>
+    <p>Use the CI to upload your sites reports and access them all at any time, like <a href="https://inspect.unlighthouse.dev/">inspect.lighthouse.dev</a>.</p>
   </div>
   <div>
     <h3 class="mt-0">🛠 <a href="/">Hackable</a></h3>

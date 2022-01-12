@@ -76,6 +76,8 @@ See which file belongs to a URL, fix your issue, unlighthouse will automatically
 
 Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.
 
+Use the CI to upload your sites reports and access them all at any time, like <a href="https://inspect.unlighthouse.dev/">inspect.lighthouse.dev</a>.
+
 ### 🛠 [**Hackable**](https://vitejs.dev)
 
 Unlighthouse was built to modify, with isolate packages, robust API and a generous hook system.

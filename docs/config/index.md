@@ -1,328 +1,266 @@
-# Configuring Unlighthouse
+_# Configuring Unlighthouse
 
 ## Configuration
 
-`unlighthouse` will read your root `vite.config.ts` when it is present to match with the plugins and setup as your Vite app. If you want to have a different configuration for testing, you could either:
+There are multiple ways to configure unlighthouse, for this guide we'll be assuming you have a `unlighthouse.config.ts` in your root 
+directory.
 
-- Create `unlighthouse.config.ts`, which will have the higher priority
-- Pass `--config` option to CLI, e.g. `unlighthouse --config ./path/to/unlighthouse.config.ts`
-- Use `process.env.UNLIGHTHOUSE` to conditionally apply different configuration in `vite.config.ts`
+1. Load `unlighthouse.config.ts`
+2. Pass `--config-file` option to the CLI or package, e.g. `unlighthouse --config ./path/to/unlighthouse.config.ts`
 
-To configure `unlighthouse` itself, add `test` property in your Vite config. You'll also need to add a reference to Unlighthouse types using a [triple slash command](https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html#-reference-types-) at the top of your config file.
+Alternatively configuration can be setup inline for whichever integration you've gone for.
 
 ```ts
 /// <reference types="unlighthouse" />
-import { defineConfig } from 'vite'
+import { defineConfig } from '@unlighthouse/core'
 
 export default defineConfig({
-  test: {
-    // ...
-  },
+    // example
+    host: 'unlighthouse.dev',
+    debug: true,
 })
 ```
 
-## Options
+## Root Options
 
-### include
+### host
 
-- **Type:** `string[]`
-- **Default:** `['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}']`
+- **Type:** `string`
 
-Include globs for test files
-
-### exclude
-
-- **Type:** `string[]`
-- **Default:** `['node_modules', 'dist', '.idea', '.git', '.cache']`
-
-Exclude globs for test files
-
-### deps
-
-- **Type:** `{ external?, inline? }`
-
-Handling for dependencies inlining or externalizing
-
-#### deps.external
-
-- **Type:** `(string | RegExp)[]`
-- **Default:** `['**\/node_modules\/**']`
-
-Externalize means that Vite will bypass the package to native Node. Externalized dependencies will not be applied Vite's transformers and resolvers, so they do not support HMR on reload. Typically, packages under `node_modules` are externalized.
-
-#### deps.inline
-
-- **Type:** `(string | RegExp)[]`
-- **Default:** `[]`
-
-Vite will process inlined modules. This could be helpful to handle packages that ship `.js` in ESM format (that Node can't handle).
-
-### global
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-By default, `unlighthouse` does not provide global APIs for explicitness. If you prefer to use the APIs globally like Jest, you can pass the `--global` option to CLI or add `global: true` in the config.
-
-```ts
-// vite.config.ts
-import { defineConfig } from 'vite'
-
-export default defineConfig({
-  test: {
-    global: true,
-  },
-})
-```
-
-To get TypeScript working with the global APIs, add `unlighthouse/global` to the `types` filed in your `tsconfig.json`
-
-```json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "types": ["unlighthouse/global"]
-  }
-}
-```
-
-If you are already using [`unplugin-auto-import`](https://github.com/antfu/unplugin-vue-components) in your project, you can also use it directly for auto importing those APIs.
-
-```ts
-// vite.config.ts
-import { defineConfig } from 'vite'
-import AutoImport from 'unplugin-auto-import/vite'
-
-export default defineConfig({
-  plugins: [
-    AutoImport({
-      imports: ['unlighthouse'],
-      dts: true, // generate TypeScript declaration
-    }),
-  ],
-})
-```
-
-### environment
-
-- **Type:** `'node' | 'jsdom' | 'happy-dom'`
-- **Default:** `'node'`
-
-The environment that will be used for testing. The default environment in Unlighthouse
-is a Node.js environment. If you are building a web application, you can use
-browser-like environment through either [`jsdom`](https://github.com/jsdom/jsdom)
-or [`happy-dom`](https://github.com/capricorn86/happy-dom) instead.
-
-By adding a `@unlighthouse-environment` docblock or comment at the top of the file,
-you can specify another environment to be used for all tests in that file:
-
-Docblock style:
-
-```js
-/**
- * @unlighthouse-environment jsdom
- */
-
-test('use jsdom in this test file', () => {
-  const element = document.createElement('div')
-  expect(element).not.toBeNull()
-})
-```
-
-Comment style:
-
-```js
-// @unlighthouse-environment happy-dom
-
-test('use happy-dom in this test file', () => {
-  const element = document.createElement('div')
-  expect(element).not.toBeNull()
-})
-```
-
-For compatibility with Jest, there is also a `@jest-environment`:
-
-```js
-/**
- * @jest-environment jsdom
- */
-
-test('use jsdom in this test file', () => {
-  const element = document.createElement('div')
-  expect(element).not.toBeNull()
-})
-```
-
-### update
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Update snapshot files
-
-### watch
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Enable watch mode
+The site that will be scanned.
 
 ### root
 
 - **Type:** `string`
+- **Default:** `cwd()`
 
-Project root
+The path that we'll be performing the scan from, this should be the path to the app that represents the site. 
+Using this path we can auto-discover the provider
 
-### reporters
-
-- **Type:** `Reporter | Reporter[]`
-- **Default:** `'default'`
-
-Custom reporters for output. Reporters can be [a Reporter instance](https://github.com/unlighthouse-dev/unlighthouse/blob/main/packages/unlighthouse/src/types/reporter.ts) or a string to select built in reporters: 
-  - `'default'` - collapse suites when they pass
-  - `'verbose'` - keep the full task tree visible
-  - `'dot'` -  show each task as a single dot
-
-### threads
+### cacheReports
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Enable multi-threading using [tinypool](https://github.com/Aslemammad/tinypool) (a lightweight fork of [Piscina](https://github.com/piscinajs/piscina))
+Should reports be saved to the local file system and re-used between runs for the scanned host.
 
-### maxThreads
+Note: This makes use of cache-bursting for when the configuration changes, since this may change the report output.
 
-- **Type:** `number`
-- **Default:** _available CPUs_
+### configFile
 
-Maximum number of threads
+- **Type:** `string|null`
+- **Default:** `null`
 
-### minThreads
+Load the configuration from a custom config file. By default, it attempts to load configuration from `unlighthouse.config.ts`.
 
-- **Type:** `number`
-- **Default:** _available CPUs_
+### outputPath
 
-Minimum number of threads
+- **Type:** `string`
+- **Default:** `./lighthouse/`
 
-### interpretDefault
+Where to emit lighthouse reports and the runtime client.
 
-- **Type:** `boolean`
-
-### testTimeout
-
-- **Type:** `number`
-- **Default:** `5000`
-
-Default timeout of a test in milliseconds
-
-### hookTimeout
-
-- **Type:** `number`
-- **Default:** `5000`
-
-Default timeout of a hook in milliseconds
-
-### silent
+### debug
 
 - **Type:** `boolean`
 - **Default:** `false`
 
-Silent mode
+Have logger debug displayed when running.
 
-### setupFiles
+## Router Options
 
-- **Type:** `string | string[]`
+These options change the behaviour of the router used to serve the API and the client.
 
-Path to setup files
+### router.prefix
 
-### watchIgnore
+- **Type:** `string|null`
+- **Default:** `null`
 
-- **Type:** `(string | RegExp)[]`
-- **Default:** `['**\/node_modules\/**', '**\/dist/**']`
+The path that the Unlighthouse middleware should run from. Useful when you want to serve the application from a frameworks existing server.
 
-Pattern of file paths to be ignore from triggering watch rerun
-
-### isolate
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Isolate environment for each test file
-
-### coverage
-
-- **Type:** `C8Options`
-- **Default:** `undefined`
-
-Coverage options
-  
-### open
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Open Unlighthouse UI (WIP)
-
-### api
-
-- **Type:** `boolean | number`
-- **Default:** `false`
-
-Listen to port and serve API. When set to true, the default port is 55555
-
-### clearMocks
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Will call `.mockClear()` on all spies before each test
-
-### mockReset
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Will call `.mockReset()` on all spies before each test
-
-### restoreMocks
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Will call `.mockRestore()` on all spies before each test
-
-### transformMode
-
-- **Type:** `{ web?, ssr? }`
-
-Determine the transform method of modules
-
-#### transformMode.ssr
-
-- **Type:** `RegExp[]`
-- **Default:** `[/\.([cm]?[jt]sx?|json)$/]`
-
-Use SSR transform pipeline for the specified files.<br>
-Vite plugins will receive `ssr: true` flag when processing those files.
-
-#### transformMode.web
-
-- **Type:** `RegExp[]`
-- **Default:** *modules other than those specified in `transformMode.ssr`*
-
-First do a normal transform pipeline (targeting browser), then then do a SSR rewrite to run the code in Node.<br>
-Vite plugins will receive `ssr: false` flag when processing those files.
-
-When you use JSX as component models other than React (e.g. Vue JSX or SolidJS), you might want to config as following to make `.tsx` / `.jsx` transformed as client-side components:
+For example, you could run unlighthouse from `/__unlighthouse` if an existing server is running it.
 
 ```ts
-import { defineConfig } from 'vite'
+import { defineConfig } from '@unlighthouse/core'
 
 export default defineConfig({
-  test: {
-    transformMode: {
-      web: [/\.[jt]sx$/],
+    router: {
+        // serve client from /__unlighthouse
+        prefix: '/__unlighthouse'
     },
-  },
 })
 ```
+
+## CI Options
+
+Change the behaviour of unlighthouse in CI mode.
+
+### ci.budget
+
+- **Type:** `number|Record<Partial<LighthouseCategories>, number>`
+- **Default:** `null`
+
+Provide a budget for each page as a numeric total score, or an object mapping the category to the score. Should be
+a number between 1-100.
+
+For example if you wanted to make sure all of your pages met a specific accessibility score, you could do:
+
+```ts
+import { defineConfig } from '@unlighthouse/core'
+
+export default defineConfig({
+    ci: {
+        budget: {
+            accessibility: 90
+        }
+    },
+})
+```
+
+### ci.buildStatic
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Injects the required data into the client files, so it can be hosted statically.
+
+Combine this with uploading to a host, and you can see the results of your unlighthouse scan on a live site.
+
+## API Options
+
+### api.prefix
+
+- **Type:** `string`
+- **Default:** `/api/`
+
+The path that the API should be served from. 
+
+## Client Options
+
+### client.columns
+
+- **Type:** `Record<UnlighthouseTabs, UnlighthouseColumn[]>`
+
+Modify the default columns used on the client. 
+
+### client.groupRoutesKey
+
+- **Type:** `string`
+- **Default:** `route.definition.name`
+
+Which key to use to group the routes.
+
+## Discovery Options
+
+### discovery.pagesDir
+
+- **Type:** `string`
+- **Default:** `./pages/`
+
+The location of the page files that will be matched to routes.
+
+Note: This is for fallback behaviour when the integration doesn't provide a way to gather the route definitions
+
+### discovery.supportedExtensions
+
+- **Type:** `string`
+- **Default:** `./pages/`
+- 
+Which file extensions in the pages dir should be considered.
+
+## Scanner Options
+
+### scanner.include 
+
+- **Type:** `string[]|null`
+- **Default:** `null`
+
+Paths to explicitly include from the search, this will exclude any paths not listed here.
+
+### scanner.exclude
+
+- **Type:** `string[]|null`
+- **Default:** `null`
+
+Paths to ignore from scanning.
+
+### scanner.isHtmlSSR
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Does javascript need to be executed in order to fetch internal links and SEO data. 
+
+Disabling this can speed up scans but may break the parsing.
+
+### scanner.samples
+
+- **Type:** `number`
+- **Default:** `1`
+
+How many samples of each route should be done. This is used to improve false-positive results.
+
+See [Run Lighthouse Multiple Times](https://github.com/GoogleChrome/lighthouse/blob/master/docs/variability.md#run-lighthouse-multiple-times).
+
+### scanner.throttle
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Should lighthouse run with throttling enabled. This is an alias for manually configuring lighthouse.
+
+Note: This will be disabled by default for local scans.
+
+### scanner.crawler
+
+- **Type:** `boolean`
+- **Default:** `true`
+ 
+Should the crawler be used to detect URLs. This will parse the HTML of scanned pages for internal links and queue
+them for scanning.
+
+### scanner.dynamicSampling
+
+- **Type:** `number|false`
+- **Default:** `5`
+
+When a route definition is provided, you're able to configure the worker to sample the dynamic routes to avoid
+ redundant route reports.
+
+### scanner.sitemap
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether the sitemap.xml will be attempted to be read from the host.
+
+## Lighthouse Options
+
+Changes the default behaviour of lighthouse.
+
+Useful for changing which categories will be scanned or which device to use.
+
+```ts
+import { defineConfig } from '@unlighthouse/core'
+
+export default defineConfig({
+    lighthouseOptions: {
+        formFactor: 'desktop'
+    },
+})
+```
+See [Google Lighthouse options](https://github.com/GoogleChrome/lighthouse/blob/master/docs/configuration.md) for all available configurations.
+
+## Puppeteer Options
+
+Change the behaviour of puppeteer.
+
+See [puppeteer.connect(options)](https://pptr.dev/#?product=Puppeteer&version=v13.0.1&show=api-puppeteerconnectoptions) for all available configurations.
+
+## Puppeteer Cluster Options
+
+Change the behaviour of puppeteer-cluster.
+
+By default the concurrency will be set on the CPU cores you have available.
+
+See [Cluster.launch(options)](https://github.com/thomasdondorf/puppeteer-cluster#clusterlaunchoptions) for available configuration.

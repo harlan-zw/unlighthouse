@@ -1,12 +1,12 @@
 <template>
 <div class="flex flex-col items-center">
-  <div class="flex flex-row items-start justify-between my-10">
-    <div class="flex flex-col items-left pt-10 pb-10 pr-20">
-      <p class="leading-16 font-bold text-5xl font-normal mt-0">
+  <div class="xl:flex max-w-full items-center justify-between my-10">
+    <div class="flex flex-col items-left xl:pr-25">
+      <p class="lg:leading-16 font-bold text-3xl lg:text-5xl font-normal mt-0">
         <span class="opacity-90">Delightfully navigate your sites</span><br>
       </p>
-      <div class="leading-15 text-5xl mb-3 flex items-center justify-center font-bold" style="-webkit-text-fill-color: #0000;background-clip: text;-webkit-background-clip: text;-webkit-box-decoration-break: clone;background-image: linear-gradient(to bottom right,#047857 42%,#0d47ad 76%);">
-        <span>Performance</span> <span class="px-3">·</span> <span>Accessibility</span> <span class="px-3">·</span><span> SEO</span>
+      <div class="leading-15 text-5xl mb-3 flex lg:flex-row flex-col lg:items-center font-bold" style="-webkit-text-fill-color: #0000;background-clip: text;-webkit-background-clip: text;-webkit-box-decoration-break: clone;background-image: linear-gradient(to bottom right,#047857 42%,#0d47ad 76%);">
+        <span>Performance</span> <span class="px-3 hidden lg:block">·</span> <span>Accessibility</span> <span class="px-3 hidden lg:block">·</span><span> SEO</span>
       </div>
       <p class="text-xl opacity-90 font-normal">
         <span class="opacity-90">Powered by <img src="/lighthouse-logo.svg" height="60" class="h-60px inline mr-2"><a href="https://github.com/GoogleChrome/lighthouse" target="_blank" font="bold" class="text-inherit">Google Lighthouse️</a></span><br>
@@ -46,18 +46,23 @@
       </div>
 
       <p class="mt-4 mb-3">or try it now</p>
-      <div class="language-bash !mt-0 inline-block">
-            <pre>
-<code><span class="opacity-50"># Install Unlighthouse globally - can take a few minutes</span>
-<span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">unlighthouse</span><span class="opacity-50">
+      <div class="relative">
+        <div class="language-bash !mt-0 inline-block sponsor-banner-wrap">
+          <sponsor-banner class="sponsor-banner hidden absolute z-5" />
+          <pre>
+<code class="filter blur-sm select-none"><span class="opacity-50"># Install Unlighthouse globally - can take a few minutes</span>
+<span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">nice hacking skills :)</span><span class="opacity-50">
 </span><span class="opacity-50"># Scan your website</span>
 <span class="token function">unlighthouse</span> <span class="token text-[#408c9e] font-500">--host https://harlanzw.com</span></code></pre>
+        </div>
       </div>
     </div>
-    <div w="900px" h="527px" class="relative shadow-xl rounded-xl overflow-hidden group" style="box-shadow: 0 0 0 1px rgb(0 0 0 / 5%), 0 0 30px 1px rgb(0 0 0 / 15%);">
-      <div style="background-image: url('/screenshot.png');" class="w-1171px h-527px absolute rounded-lg z-1">
+    <div w="890px" h="700px" class="relative shadow-xl rounded-xl group max-w-full bg-image-wrap" style="box-shadow: rgb(0 0 0 / 20%) 0px 0px 0px 1px, rgb(0 0 0 / 50%) 0px 0px 30px 1px;">
+      <div style="background-image: url('/screenshot.png');" class="bg-image max-w-full w-1822px h-700px absolute rounded-xl z-1">
       </div>
-      <lighthouse-three-d class="mb-7 backdrop-blur-sm absolute top-15 left-70 z-2" />
+      <div class="w-full h-full absolute z-2 bg-gradient-to-l from-teal-800/60 rounded-xl">
+      </div>
+      <lighthouse-three-d class="hidden lg:block mb-7 backdrop-blur-sm hover:scale-110 absolute top-1/2 left-1/2 transform -translate-x-[50%] -translate-y-[50%] z-2" />
     </div>
   </div>
 
@@ -101,3 +106,29 @@
   <div class="mb-30" />
 </div>
 </template>
+<style>
+@keyframes moveBackground {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 100%;
+  }
+}
+.bg-image {
+  animation-name: moveBackground;
+  animation-duration: 6s;
+  animation-play-state: paused;
+  animation-direction: alternate;
+  animation-fill-mode: both;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.bg-image-wrap:hover .bg-image {
+  animation-play-state: running;
+}
+
+.sponsor-banner-wrap:hover .sponsor-banner {
+  display: flex;
+}
+</style>

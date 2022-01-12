@@ -39,6 +39,7 @@ importers:
   docs:
     specifiers:
       '@iconify-json/carbon': ^1.0.12
+      '@unlighthouse/core': workspace:*
       '@unocss/reset': ^0.22.0
       '@vitejs/plugin-vue': ^2.0.1
       '@vueuse/core': ^7.5.3
@@ -53,6 +54,7 @@ importers:
       vue: 3.2.26
     devDependencies:
       '@iconify-json/carbon': 1.0.12
+      '@unlighthouse/core': link:../packages/core
       '@unocss/reset': 0.22.0
       '@vitejs/plugin-vue': 2.0.1_vue@3.2.26
       unocss: 0.22.0

@@ -21,10 +21,9 @@ async function run() {
     return
 
   const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])
-  if (options.budget) {
-    resolvedOptions.ci = {
-      budget: options.budget,
-    }
+  resolvedOptions.ci = {
+    budget: options.budget || undefined,
+    buildStatic: options.buildStatic || false,
   }
 
   const unlighthouse = await createUnlighthouse({
