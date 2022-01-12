@@ -1,12 +1,12 @@
 import { useFetch } from '@vueuse/core'
 import { computed, reactive } from 'vue'
-import type { NormalisedRoute, StatsResponse, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { NormalisedRoute, ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { $fetch } from 'ohmyfetch'
 import { sum } from 'lodash-es'
 import CellRouteName from '../components/Cell/CellRouteName.vue'
 import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
 import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
-import { apiUrl, categories, columns, wsUrl } from './static'
+import { apiUrl, categories, columns, isStatic, wsUrl } from './static'
 import { sorting } from './search'
 
 export const activeTab = ref(0)
@@ -19,7 +19,13 @@ export const closeIframeModal = () => {
   iframeModelUrl.value = ''
 }
 export const openLighthouseReportIframeModal = (report: UnlighthouseRouteReport, tab?: string) => {
-  iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/lighthouse${tab ? `#${tab}` : ''}`
+  if (isStatic) {
+    const path = report.reportHtml.substring(report.reportHtml.indexOf('/routes/'))
+    iframeModelUrl.value = `${path}${tab ? `#${tab}` : ''}`
+  }
+  else {
+    iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/lighthouse${tab ? `#${tab}` : ''}`
+  }
   isModalOpen.value = true
 }
 export const openFullScreenshotIframeModal = (report: UnlighthouseRouteReport) => {
@@ -78,18 +84,28 @@ export const resultColumns = computed(() => {
 
 export const wsReports: Map<string, UnlighthouseRouteReport> = reactive(new Map<string, UnlighthouseRouteReport>())
 
-export const fetchedStats = reactive(
-  useFetch(`${apiUrl}/stats`)
-    .get()
-    .json<StatsResponse>(),
-)
+export const fetchedScanMeta = isStatic
+  ? null
+  : reactive(
+    useFetch(`${apiUrl}/scan-meta`)
+      .get()
+      .json<ScanMeta>(),
+  )
 
 export const rescanRoute = (route: NormalisedRoute) => useFetch(`${apiUrl}/reports/${route.id}/rescan`).post()
 
-export const stats = computed<StatsResponse|null>(() => fetchedStats.data)
+export const scanMeta = computed<ScanMeta|null>(() => {
+  if (isStatic)
+    return window.__unlighthouse_data?.scanMeta
 
-export function refetchStats() {
-  return fetchedStats.execute()
+  return fetchedScanMeta?.data || null
+})
+
+export function refreshScanMeta() {
+  if (!fetchedScanMeta)
+    return
+
+  return fetchedScanMeta.execute()
 }
 
 export const wsConnect = async() => {
@@ -105,7 +121,8 @@ export const wsConnect = async() => {
 }
 
 export const categoryScores = computed(() => {
-  const reportsFinished = [...wsReports.values()].filter(r => !!r.report)
+  const data = isStatic && window.__unlighthouse_data ? window.__unlighthouse_data.reports : [...wsReports.values()]
+  const reportsFinished = data.filter(r => !!r.report)
   return categories.map((c) => {
     return sum(reportsFinished.map((r) => {
       return r.report?.categories?.[c].score

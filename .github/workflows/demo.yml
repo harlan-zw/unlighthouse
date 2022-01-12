@@ -1,0 +1,58 @@
+name: Build Demo
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.15.1
+
+      - name: Use Node.js v16
+        uses: actions/setup-node@v2
+        with:
+          node-version: v16
+          registry-url: https://registry.npmjs.org/
+          cache: "pnpm"
+
+      - run: npx conventional-github-releaser -p angular
+        continue-on-error: true
+        env:
+          CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: PNPM build
+        run: pnpm run build
+
+      - name: Run Unlighthouse CI
+        run: node packages/unlighthouse/bin/unlighthouse-ci.cjs --host https://unlighthouse.dev --static-build
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v1.2
+        with:
+          publish-dir: './.lighthouse'
+          production-branch: main
+          production-deploy: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "New Release Deploy from GitHub Actions"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEMO_SITE_ID }}
+        timeout-minutes: 1

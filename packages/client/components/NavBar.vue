@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import { formatDistance } from 'date-fns'
-import { isDark, isLocalhost, isRescanSiteRequestRunning, rescanSite, stats, throttle, toggleDark, website } from '../logic'
+import { isDark, isRescanSiteRequestRunning, isStatic, rescanSite, scanMeta, throttle, toggleDark, website } from '../logic'
 
 const timeRemaining = computed(() => {
-  return formatDistance(0, stats.value.monitor.timeRemaining, { includeSeconds: true })
+  return formatDistance(0, scanMeta.value.monitor.timeRemaining, { includeSeconds: true })
 })
 
 const favIcon = computed(() => {
-  if (!stats.value?.hostMeta?.favicon)
+  if (!scanMeta.value?.favicon)
     return '/favicon.ico'
-  else if (stats.value?.hostMeta?.favicon?.startsWith('http'))
-    return stats.value?.hostMeta?.favicon
+  else if (scanMeta.value?.favicon?.startsWith('http'))
+    return scanMeta.value?.favicon
 
-  return website + (stats.value?.hostMeta?.favicon)
+  return website + (scanMeta.value?.favicon)
 })
 </script>
 
 <template>
   <nav class="bg-white dark:(bg-transparent) font-light border-b border-main flex items-center gap-4 children:my-auto px-3 md:px-6 py-2 ">
-    <span class="text-md font-bold text-teal-700 dark:text-teal-200 font-mono">
+    <a class="text-md font-medium text-teal-700 dark:text-teal-200 font-mono flex items-center" href="https://unlighthouse.dev" target="_blank">
+      <img src="/assets/logo-light.svg" height="24" width="24" class="w-24px h-24px mr-2 hidden dark:block">
+      <img src="/assets/logo-dark.svg" height="24" width="24" class="w-24px h-24px mr-2 block dark:hidden">
       Unlighthouse
-    </span>
+    </a>
     <div class="flex w-full justify-between items-center text-xs md:ml-5 md:mr-10">
       <div class="flex items-center">
         <div v-if="website && !website.includes('localhost')" class="mr-5 hidden xl:block">
@@ -33,35 +35,35 @@ const favIcon = computed(() => {
             </a>
           </div>
         </div>
-        <div v-if="!stats">
+        <div v-if="isStatic || !scanMeta" class="mr-5">
           <warning-chip>
-            Disconnected from server...
+            {{ isStatic ? 'Static' : 'Offline' }} Mode
           </warning-chip>
         </div>
-        <div v-if="stats" class="mr-5 hidden md:block">
+        <div v-if="isStatic || scanMeta" class="mr-5 hidden md:block">
           <div class="uppercase opacity-55">
             Site Score
           </div>
           <div class="flex items-center">
-            <metric-guage v-if="stats?.score" :score="stats.score" :stripped="true" class="font-bold text-sm" />
+            <metric-guage v-if="scanMeta?.score" :score="scanMeta.score" :stripped="true" class="font-bold text-sm" />
             <loading-spinner v-else class="h-24px" />
           </div>
         </div>
-        <div v-if="stats?.monitor" class="mr-5 hidden md:block">
+        <div v-if="isStatic || scanMeta?.monitor" class="mr-5 hidden md:block">
           <div class="uppercase opacity-55 ">
             Routes
           </div>
           <div class=" flex items-center">
-            <span class="text-base mr-1">{{ stats.routes }}</span>
+            <span class="text-base mr-1">{{ scanMeta?.routes || '0' }}</span>
           </div>
         </div>
       </div>
-      <div v-if="stats?.monitor?.allTargets > 0" class="flex flex-grow justify-around md:mr-5">
+      <div v-if="isStatic || scanMeta?.monitor?.allTargets > 0" class="flex flex-grow justify-around md:mr-5">
         <search-box class="flex-grow mr-3 md:mr-5" />
         <popover-actions v-slot="{ close }" position="bottom">
           <div class="w-225px flex flex-col">
             <btn-basic
-              :disabled="isRescanSiteRequestRunning ? 'disabled' : false"
+              :disabled="isRescanSiteRequestRunning || isStatic ? 'disabled' : false"
               class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
               @click="rescanSite(close)"
             >
@@ -80,7 +82,7 @@ const favIcon = computed(() => {
           </div>
         </popover-actions>
       </div>
-      <div v-if="stats?.monitor" class="mr-5 hidden xl:block">
+      <div v-if="isStatic || scanMeta?.monitor" class="mr-5 hidden xl:block">
         <div class="uppercase opacity-55 ">
           Throttling
         </div>
@@ -103,33 +105,35 @@ const favIcon = computed(() => {
           </template>
         </div>
       </div>
-      <div v-if="stats?.monitor" class="hidden xl:flex">
+      <div v-if="!isStatic && scanMeta?.monitor" class="hidden xl:flex">
         <div class="mr-6">
           <div class="uppercase opacity-55 ">
             Worker Progress
           </div>
           <div class=" flex items-center">
             <span class="text-sm mr-1">
-              {{ stats.monitor.donePercStr }}% <span class="text-xs opacity-60">{{ stats.monitor.doneTargets }}/{{ stats.monitor.allTargets }}</span></span>
+              {{ scanMeta.monitor.donePercStr }}% <span class="text-xs opacity-60">{{
+                scanMeta.monitor.doneTargets
+              }}/{{ scanMeta.monitor.allTargets }}</span></span>
           </div>
         </div>
         <div class="mr-6 hidden 2xl:block">
           <div class="uppercase opacity-55">
             Time Remaining
           </div>
-          <span class="text-sm">{{ stats.monitor.status === 'completed' ? '-' : timeRemaining }}</span>
+          <span class="text-sm">{{ scanMeta.monitor.status === 'completed' ? '-' : timeRemaining }}</span>
         </div>
         <div class="mr-6 hidden 2xl:block">
           <div class="uppercase opacity-55">
             CPU
           </div>
-          <span class="text-sm">{{ stats.monitor.status === 'completed' ? '-' : stats.monitor.cpuUsage }}</span>
+          <span class="text-sm">{{ scanMeta.monitor.status === 'completed' ? '-' : scanMeta.monitor.cpuUsage }}</span>
         </div>
         <div class="hidden 2xl:block">
           <div class="uppercase opacity-55">
             Memory
           </div>
-          <span class="text-sm">{{ stats.monitor.status === 'completed' ? '-' : stats.monitor.memoryUsage }}</span>
+          <span class="text-sm">{{ scanMeta.monitor.status === 'completed' ? '-' : scanMeta.monitor.memoryUsage }}</span>
         </div>
       </div>
     </div>

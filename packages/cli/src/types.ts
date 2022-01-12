@@ -9,4 +9,5 @@ export interface CliOptions {
 
 export interface CiOptions extends CliOptions {
   budget: number
+  buildStatic: boolean
 }

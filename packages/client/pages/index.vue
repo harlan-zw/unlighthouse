@@ -6,8 +6,9 @@ import {
   iframeModelUrl,
   incrementSort,
   isModalOpen,
+  isStatic,
   openLighthouseReportIframeModal,
-  refetchStats,
+  refreshScanMeta,
   rescanRoute,
   resultColumns,
   searchResults,
@@ -17,12 +18,14 @@ import {
   wsConnect,
 } from '../logic'
 
-onMounted(() => {
-  wsConnect()
-  setInterval(() => {
-    refetchStats()
-  }, 5000)
-})
+if (!isStatic) {
+  onMounted(() => {
+    wsConnect()
+    setInterval(() => {
+      refreshScanMeta()
+    }, 5000)
+  })
+}
 </script>
 <template>
   <NavBar />
@@ -117,6 +120,7 @@ onMounted(() => {
                   </div>
                 </btn-basic>
                 <btn-basic
+                  :disabled="isStatic ? 'disabled' : false"
                   class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
                   @click="rescanRoute(report.route)"
                 >

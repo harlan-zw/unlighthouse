@@ -20,7 +20,7 @@
           sm:flex-row
           flex-wrap
           items-center
-          gap-4
+          gap-6
           mt-5
           children:my0"
       >
@@ -29,25 +29,23 @@
             href="/guide/"
             class="flex items-center bg-green-600 text-white hover:bg-green-700 transition children:hover:text-white"
         >
-          <i-carbon-terminal class="inline-block text-2xl opacity-90 mr-2" />
+          <i-carbon-terminal class="inline-block text-xl opacity-90 mr-2" />
           <p class="break-none m-0 text-xl">
             Get Started
           </p>
         </btn-basic>
         <btn-basic
             href="/guide/why"
-            class="flex items-center bg-blue-500 text-white hover:bg-blue-700 transition children:hover:text-white"
+            class="flex items-center bg-blue-500/90 text-white hover:bg-blue-700 transition children:hover:text-white"
         >
-          <i-carbon-book class="inline-block text-2xl opacity-90 mr-2" />
-          <div class="text-left">
-            <p class="break-none m-0 text-xl">
-              Learn More
-            </p>
-          </div>
+          <img src="/logo-light.svg" width="24" height="24" class="mr-2">
+          <p class="break-none m-0 text-xl">
+            Open Demo
+          </p>
         </btn-basic>
       </div>
 
-      <p class="mt-3 mb-3">or try it now</p>
+      <p class="mt-4 mb-3">or try it now</p>
       <div class="language-bash !mt-0 inline-block">
             <pre>
 <code><span class="opacity-50"># Install Unlighthouse globally - can take a few minutes</span>
@@ -66,7 +64,7 @@
   <h2 id="features" class="text-4xl mb-7">
     Features
   </h2>
-  <FeaturesList class="mb-10" />
+  <FeaturesList class="mb-10 w-600px" />
 
   <h2 id="meet-the-team" class="text-4xl mb-7">
     Meet the Team

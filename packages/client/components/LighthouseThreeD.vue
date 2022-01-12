@@ -4,7 +4,7 @@ import { AmbientLight, Camera, FbxModel, PointLight, Renderer, Scene } from 'tro
 import type { Group } from 'three'
 import { useElementHover } from '@vueuse/core'
 import { ref } from 'vue'
-import { basePath, stats } from '../logic'
+import { basePath, scanMeta } from '../logic'
 
 const rendererC = ref()
 const lighthouseRef = ref()
@@ -59,7 +59,7 @@ onMounted(() => {
 })
 
 const showLighthouse = computed(() => {
-  return stats?.value?.monitor?.status === 'working' || isHovered.value
+  return scanMeta?.value?.monitor?.status === 'working' || isHovered.value
 })
 
 const onReady = (object: Group) => {

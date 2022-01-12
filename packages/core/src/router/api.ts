@@ -5,6 +5,7 @@ import type { LH } from 'lighthouse'
 import launch from 'launch-editor'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
+import { createScanMeta } from '../data'
 
 /**
  * The API layer of unlighthouse.
@@ -113,24 +114,7 @@ export const createApi = () => {
       return fs.readFileSync(report.reportHtml, 'utf-8')
     })
 
-    get('stats', () => {
-      const { worker } = useUnlighthouse()
-
-      const data = worker.reports()
-      const reportsWithScore = data.filter(r => r.report?.score) as { report: { score: number } }[]
-      const score = (reportsWithScore
-        .map(r => r.report.score)
-        .reduce((s, a) => s + a, 0) / reportsWithScore.length) || 0
-
-      return {
-        hostMeta: {
-          favicon: data?.[0]?.seo?.favicon,
-        },
-        monitor: worker.monitor(),
-        routes: data.length || 0,
-        score,
-      }
-    })
+    get('scan-meta', () => createScanMeta())
   })
 
   serve('/', runtimeSettings.generatedClientPath)

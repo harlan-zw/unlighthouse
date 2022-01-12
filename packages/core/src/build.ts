@@ -2,7 +2,8 @@ import { dirname, join, resolve } from 'path'
 import fs from 'fs-extra'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { useUnlighthouse } from './unlighthouse'
-import type { UnlighthouseContext } from './types'
+import type { GenerateClientOptions, UnlighthouseContext } from './types'
+import { createScanMeta } from './data'
 
 /**
  * Copies the file contents of the @unlighthouse/client package and does transformation based on the provided configuration.
@@ -12,15 +13,24 @@ import type { UnlighthouseContext } from './types'
  *
  * An additional transforming is needed to modify the vite base URL which is a bit more involved.
  */
-export const generateClient = async(unlighthouse?: UnlighthouseContext) => {
+export const generateClient = async(options: GenerateClientOptions = {}, unlighthouse?: UnlighthouseContext) => {
   if (!unlighthouse)
     unlighthouse = useUnlighthouse()
 
-  const { runtimeSettings, resolvedConfig } = unlighthouse
+  const { runtimeSettings, resolvedConfig, worker } = unlighthouse
 
-  const headScript = `
+  let headScript = `
 window.__unlighthouse_options = ${JSON.stringify({ ...runtimeSettings, ...resolvedConfig })}
 `
+  // in static mode we need to provide all of the reports and stats to the client
+  if (options.static) {
+    const staticData = {
+      scanMeta: createScanMeta(),
+      reports: worker.reports(),
+    }
+    headScript += `window.__unlighthouse_static = true
+window.__unlighthouse_data = ${JSON.stringify(staticData)}`
+  }
   const prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.router.prefix))
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
   await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)

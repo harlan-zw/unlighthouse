@@ -115,7 +115,12 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
     logger.debug(`Setting Unlighthouse CI Context [Host: ${$host}]`)
 
-    const outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $host.hostname, runtimeSettings.configCacheKey)
+    // avoid nesting reports for ci mode
+    let outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $host.hostname, runtimeSettings.configCacheKey)
+    if (provider?.name === 'ci') {
+      outputPath = join(resolvedConfig.root, resolvedConfig.outputPath)
+    }
+
     ctx.runtimeSettings = {
       ...ctx.runtimeSettings,
       outputPath,

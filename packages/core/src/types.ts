@@ -196,6 +196,10 @@ export interface ClientOptions {
   groupRoutesKey: string
 }
 
+export interface GenerateClientOptions {
+  static?: boolean
+}
+
 export interface ResolvedUserConfig {
   /**
    * The path that we'll be performing the scan from, this should be the path to the app that represents the site.
@@ -554,7 +558,7 @@ export interface UnlighthouseWorker {
   invalidateFile: (file: string) => boolean
 }
 
-export interface StatsResponse {
+export interface ScanMeta {
   /**
    * Total count of discovered routes
    */
@@ -562,17 +566,15 @@ export interface StatsResponse {
   /**
    * How are worker is operating
    */
-  monitor: UnlighthouseWorkerStats
+  monitor?: UnlighthouseWorkerStats
   /**
    * Aggregate score for the site
    */
   score: number
   /**
-   * Specific meta details for the host used for the UI.
+   * Discovered favicon of the host site.
    */
-  hostMeta?: {
-    favicon?: string
-  }
+  favicon?: string
 }
 
 export interface ServerContextArg {

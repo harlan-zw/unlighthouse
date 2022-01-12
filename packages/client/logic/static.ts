@@ -27,6 +27,8 @@ const {
   },
 } = window.__unlighthouse_options
 
+export const isStatic = window.__unlighthouse_static
+
 export { wsUrl, basePath, isLocalhost, apiUrl, groupRoutesKey, lighthouseOptions, throttle }
 
 export const website = host
