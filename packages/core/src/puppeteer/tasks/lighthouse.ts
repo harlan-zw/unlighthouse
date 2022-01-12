@@ -4,7 +4,7 @@ import type { LH } from 'lighthouse'
 import { pick, sum, sumBy } from 'lodash-es'
 // @ts-expect-error
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
-import { resolve } from 'mlly'
+import { resolvePath } from 'mlly'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
@@ -60,12 +60,12 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     return routeReport
   }
 
-  const lighthouseProcessPath = await resolve(
+  const lighthouseProcessPath = await resolvePath(
     join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse'),
     { url: import.meta.url, extensions: ['.cjs', '.mjs', '.ts'] },
   )
 
-  logger.debug(`Lighthouse process file: \`${lighthouseProcessPath}\`.`)
+  logger.debug(`Lighthouse process file: \`${lighthouseProcessPath}\`.`, { importMeta: import.meta })
 
   const browser = page.browser()
   const port = new URL(browser.wsEndpoint()).port
