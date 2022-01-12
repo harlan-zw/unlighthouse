@@ -60,9 +60,15 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     return routeReport
   }
 
+  const { globby } = (await import('globby'))
+
+  logger.debug(globby('**', {
+    cwd: join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse'),
+  }))
+
   const lighthouseProcessPath = await resolvePath(
     join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse'),
-    { url: import.meta.url, extensions: ['.cjs', '.mjs', '.ts'] },
+    { url: import.meta.url, extensions: ['.cjs', '.mjs'] },
   )
 
   logger.debug(`Lighthouse process file: \`${lighthouseProcessPath}\`.`, { importMeta: import.meta })
