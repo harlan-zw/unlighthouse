@@ -101,6 +101,6 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     routeReport.tasks.runLighthouseTask = 'failed'
   }
   routeReport.report = normaliseLighthouseResult(report)
-  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. (Score \`${routeReport.report.score}\`)`)
+  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. [Score: \`${routeReport.report.score}\`${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples}` : ''}]`)
   return routeReport
 }

@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { isAbsolute, join } from 'path'
 import { existsSync } from 'fs'
 import type { IncomingMessage } from 'http'
 import type { Socket } from 'node:net'
@@ -91,10 +91,15 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   // create a cache key for the users provided key so we can cache burst on config update
   runtimeSettings.configCacheKey = objectHash(userConfig).substring(0, 4)
 
-  const resolvedConfig = resolveUserConfig(userConfig)
+  const resolvedConfig = await resolveUserConfig(userConfig)
   const hooks = createHooks<UnlighthouseHooks>()
 
-  const logger = createLogger(resolvedConfig.debug)
+  // add hooks from config
+  if (resolvedConfig.hooks)
+    hooks.addHooks(resolvedConfig.hooks)
+
+  await hooks.callHook('resolved-config', resolvedConfig)
+
   logger.debug(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
 
   // web socket instance for broadcasting

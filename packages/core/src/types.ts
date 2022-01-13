@@ -3,7 +3,7 @@ import type https from 'https'
 import type { $URL } from 'ufo'
 import type { LH } from 'lighthouse'
 import type { LaunchOptions } from 'puppeteer'
-import type { Hookable } from 'hookable'
+import type { Hookable, NestedHooks } from 'hookable'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
@@ -225,6 +225,10 @@ export interface ResolvedUserConfig {
    */
   configFile?: string
   /**
+   * Hooks to run to augment the behaviour of Unlighthouse.
+   */
+  hooks?: NestedHooks<UnlighthouseHooks>
+  /**
    * Router options
    */
   router: {
@@ -280,11 +284,23 @@ export interface ResolvedUserConfig {
      */
     throttle: boolean
     /**
+     * Alias to switch the device used for scanning. Set to false if you want to manually configure it.
+     *
+     * @default 'mobile'
+     */
+    device: 'mobile'|'desktop'|false
+    /**
      * Should the crawler be used to detect URLs.
      *
      * @default true
      */
     crawler: boolean
+    /**
+     * Whether the sitemap.xml will be attempted to be read from the host.
+     *
+     * @default true
+     */
+    sitemap: boolean
     /**
      * When a route definition is provided, you're able to configure the worker to sample the dynamic routes to avoid
      * redundant route reports.
@@ -292,13 +308,6 @@ export interface ResolvedUserConfig {
      * @default 5
      */
     dynamicSampling: number|false
-
-    /**
-     * Whether the sitemap.xml will be attempted to be read from the host.
-     *
-     * @default true
-     */
-    sitemap: boolean
   }
   /**
    * Where to emit lighthouse reports and the runtime client.
@@ -476,6 +485,12 @@ export interface Provider {
 export type HookResult = Promise<void>|void
 
 export interface UnlighthouseHooks {
+  /**
+   * Once the config is resolved.
+   *
+   * @param resolvedConfig
+   */
+  'resolved-config': (resolvedConfig: ResolvedUserConfig) => HookResult
   /**
    * Called when the worker has finished processing all queued routes. Will be called multiple times if routes are
    * re-queued.

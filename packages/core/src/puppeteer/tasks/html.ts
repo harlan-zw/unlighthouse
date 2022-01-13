@@ -120,6 +120,6 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   await hooks.callHook('discovered-internal-links', routeReport.route.path, internalLinks)
   routeReport.seo.internalLinks = internalLinks.length
   routeReport.seo.externalLinks = externalLinks.length
-  logger.success(`Completed \`inspectHtmlTask\` for \`${routeReport.route.path}\`. (Size \`${formatBytes(html.length)}\`)`)
+  logger.success(`Completed \`inspectHtmlTask\` for \`${routeReport.route.path}\`. [Size: \`${formatBytes(html.length)}\`]`)
   return routeReport
 }

@@ -269,6 +269,7 @@ export const defaultConfig: UserConfig = {
     crawler: true,
     dynamicSampling: 5,
     sitemap: true,
+    device: 'mobile',
   },
   // @ts-expect-error provided by server package, may not be provided in CI mode
   server: {
@@ -298,6 +299,6 @@ export const defaultConfig: UserConfig = {
     concurrency: Cluster.CONCURRENCY_BROWSER,
   },
   lighthouseOptions: {
-    formFactor: 'mobile',
+    onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
   },
 }
