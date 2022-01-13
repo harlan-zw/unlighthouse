@@ -1,6 +1,6 @@
 # Route Sampling
 
-Making use of [Route Definitions](http://localhost:3333/glossary/#route-definition) we can implement intelligent sampling based
+Making use of [Route Definitions](/glossary/#route-definition) we can implement intelligent sampling based
 on the file used to generate the route.
 
 This is most common in sites which generate hundreds of pages based on dynamic data, where the DOM is very similar in structure.
