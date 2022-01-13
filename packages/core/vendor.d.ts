@@ -10,7 +10,7 @@ declare module '@nuxt/utils' {
 }
 
 declare module '@nuxt/cli/dist/cli-index.js' {
-  export function successBox(messages: string[], title: string[]): string
+  export function successBox(messages: string, title: string): string
 }
 
 declare module 'lighthouse/lighthouse-core/lib/median-run.js' {
