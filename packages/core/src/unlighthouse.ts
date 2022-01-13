@@ -51,12 +51,18 @@ export function defineConfig(config: UserConfig) {
  * @param provider
  */
 export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provider) => {
+  const logger = createLogger(userConfig.debug)
   const { __dirname } = createCommonJS(import.meta.url)
+  if (userConfig.root && !isAbsolute(userConfig.root))
+    userConfig.root = join(process.cwd(), userConfig.root)
+  else if (!userConfig.root)
+    userConfig.root = process.cwd()
 
+  logger.debug(`Starting Unlighthouse at root: \`${userConfig.root}\` cwd: ${process.cwd()}`)
   let configFile: string|null = null
   // support loading configuration files
   const configDefinition = await loadConfig<UserConfig>({
-    cwd: userConfig.root || process.cwd(),
+    cwd: userConfig.root,
     sources: [
       {
         files: [
@@ -65,14 +71,17 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
           ...(userConfig.configFile ? [userConfig.configFile] : []),
         ],
         // default extensions
-        extensions: ['ts', 'mts', 'cts', 'js', 'mjs', 'cjs', 'json', ''],
+        extensions: ['ts', 'js', 'mjs', 'cjs', 'json', ''],
       },
     ],
   })
+  logger.debug('Discovered config definition', configDefinition)
 
   if (configDefinition.sources?.[0]) {
     configFile = configDefinition.sources[0]
-    userConfig = defu(configDefinition.config, userConfig)
+    // @ts-expect-error fixes issue with default being returned for mjs loads
+    const config = configDefinition.config?.default || configFile
+    userConfig = defu(config, userConfig)
   }
   const runtimeSettings = {
     configFile,
@@ -116,9 +125,8 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
     // avoid nesting reports for ci mode
     let outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $host.hostname, runtimeSettings.configCacheKey)
-    if (provider?.name === 'ci') {
+    if (provider?.name === 'ci')
       outputPath = join(resolvedConfig.root, resolvedConfig.outputPath)
-    }
 
     ctx.runtimeSettings = {
       ...ctx.runtimeSettings,
