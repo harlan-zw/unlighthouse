@@ -20,7 +20,6 @@ describe('ci', () => {
 
         expect(output).toMatchSnapshot()
     })
-
 })
 
 async function runCli(configFileFixture: string) {
@@ -31,7 +30,7 @@ async function runCli(configFileFixture: string) {
     const config = await fs.readFile(configFileFixture, 'utf8')
     await fs.writeFile(join(testDir, 'unlighthouse.config.ts'), config)
 
-    const { exitCode, stdout, stderr } = await execa('jiti', [ci, '--root', testDir, '--debug'], {
+    const { exitCode, stdout, stderr } = await execa('node', [ci, '--root', testDir, '--debug', '--host', 'unlighthouse.dev'], {
         cwd: testDir,
     })
 
