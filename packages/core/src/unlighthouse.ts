@@ -9,7 +9,6 @@ import { createHooks } from 'hookable'
 import { loadConfig } from 'unconfig'
 import defu from 'defu'
 import objectHash from 'object-hash'
-// @ts-expect-error
 import { successBox } from '@nuxt/cli/dist/cli-index.js'
 import { createCommonJS, resolvePath } from 'mlly'
 import { version } from '../package.json'
@@ -162,7 +161,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
     ctx.api = createApi()
     // make the router use our router
-    // @ts-expect-error
+    // @ts-expect-error not sure how to resolve
     app.use((...args) => ctx.api(...args))
 
     if (ws) {
@@ -221,7 +220,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     if (provider?.name !== 'ci') {
       let chalk = (await import('chalk'))
       if (chalk.default) {
-        // @ts-expect-error
+        // @ts-expect-error hacky chalk fix for cjs / mjs issues
         chalk = chalk.default
       }
       // fancy CLI banner when we start

@@ -2,7 +2,6 @@ import { join } from 'path'
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
 import { pick, sum, sumBy } from 'lodash-es'
-// @ts-expect-error
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
 import { resolvePath } from 'mlly'
 import type { LighthouseReport, PuppeteerTask } from '../../types'

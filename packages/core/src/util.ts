@@ -68,8 +68,10 @@ export const createTaskReportFromRoute
       ensureDirSync(reportPath)
 
       return {
-        // @ts-expect-error
-        tasks: {},
+        tasks: {
+          runLighthouseTask: 'waiting',
+          inspectHtmlTask: 'waiting',
+        },
         route,
         reportId,
         htmlPayload: join(reportPath, 'payload.html'),
