@@ -1,4 +1,4 @@
-# Nuxt
+# CLI
 
 <sponsor-banner />
 

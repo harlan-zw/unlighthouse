@@ -18,6 +18,7 @@
       "vite-plugin-pages/client",
     ],
     "paths": {
+      "@unlighthouse/core": ["../packages/core/src/index.ts"],
       "~/*": ["src/*"]
     }
   },

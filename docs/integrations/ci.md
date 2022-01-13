@@ -1,4 +1,4 @@
-# Nuxt
+# CI
 
 <sponsor-banner />
 

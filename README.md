@@ -44,26 +44,25 @@ The end product is a tool which should provide values for most sites out of the 
 
 ### ⚡️ [**Fast**](https://vitejs.dev)
 
-Take advantage of your CPU with multi-threaded workers powered by [puppeteer-cluster](https://github.com/thomasdondorf/puppeteer-cluster) and use opportunistic throttling and categories for lightning quick scans.
-
-### 🐞 [**Dual Crawling**](https://vitejs.dev)
-
-Pre-packed with automatic URL discovery using [sitemap.xml crawling](https://github.com/seantomburke/sitemapper) or use internal link parsing.
+Take advantage of your CPU with multi-threaded workers powered by <a href="https://github.com/thomasdondorf/puppeteer-cluster" target="_blank" rel="noopener">puppeteer-cluster</a> and use opportunistic throttling and categories for lightning quick scans.
 
 ### 🌈 [**Modern UI**](https://sli.dev/guide/syntax.html#embedded-styles)
 
-View your sites' health as a whole with the provided Vite UI. Easily see, search and sort your pages, re-scan individual pages and more. 
+View your sites' health as a whole with the Unlighthouse client built with Vite. Easily see, search and sort your pages, re-scan individual pages and more.
 
-### ️🤓 [**Intelligent Sampling**](https://vitejs.dev)
+### 🐞 [**Advanced Crawling**](https://vitejs.dev)
+
+Pre-packed with fast, configurable URL discovery using <a href="https://github.com/seantomburke/sitemapper" target="_blank" rel="noopener">sitemap.xml</a> or internal link parsing.
+
+### ️🤓 [**Intelligent URL Sampling**](https://vitejs.dev)
 
 Scanning a website with thousands of pages? No problem.
 
-Hook up your local project with the scan, you can intelligently sample your URLs, only scanning ones which
-are generated with unique code.
+Point Unlighthouse to the local project for the scan and any dynamic routes will be sampled based on your page files.
 
 ### 🍬️ [**SEO Goodies**](https://vitejs.dev)
 
-Easily see all of your pages share images, analyze your meta descriptions, see how many internal and external links you have.
+View all of your pages titles, share images, meta descriptions, see how many internal and external links you have.
 
 ### 🧑‍💻 [**Integrated Development**](https://sli.dev/guide/syntax.html#code-blocks)
 
@@ -80,8 +79,7 @@ Use the CI to upload your sites reports and access them all at any time, like <a
 
 ### 🛠 [**Hackable**](https://vitejs.dev)
 
-Unlighthouse was built to modify, with isolate packages, robust API and a generous hook system.
-
+Unlighthouse was built to modify, with isolate packages, robust API and a generous hook system. You can even modify the columns in the client!
 
 ## Getting Started
 

@@ -41,12 +41,9 @@
       <div class="language-bash !m-0 inline-block">
           <pre>
 <code class="filter blur-sm select-none"><span class="opacity-50"># Install Unlighthouse globally - can take a few minutes</span>
-<span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">nice hacking skills :) `unlighthouse` if you must</span><span class="opacity-50">
+<span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">nice hacking skills :)</span><span class="opacity-50">
 </span><span class="opacity-50"># Scan your website</span>
-<span class="token function">unlighthouse</span> <span class="token text-[#408c9e] font-500">--host https://harlanzw.com</span></code></pre>
-      </div>
-      <div class="flex justify-center text-center">
-        <sponsor-banner class="max-w-full w-550px mb-5" />
+<span class="token function">unlighthouse-cli</span> <span class="token text-[#408c9e] font-500">--key value</span></code></pre>
       </div>
     </div>
     <div w="890px" class="relative h-450px xl:h-650px xl:w-890px w-full shadow-xl rounded-xl group max-w-full h-auto bg-image-wrap xl:mt-0 mt-10" style="box-shadow: rgb(0 0 0 / 20%) 0px 0px 0px 1px, rgb(0 0 0 / 50%) 0px 0px 30px 1px;">
@@ -71,15 +68,19 @@
     </div>
   </div>
 
-  <h2 id="features" class="text-4xl mb-7">
+  <div class="flex justify-center text-center">
+    <sponsor-banner class="lg:w-600px mb-5" />
+  </div>
+  <div class="flex flex-col items-center">
+  <h2 id="features" class="text-4xl mb-7 text-center">
     Features
   </h2>
-  <FeaturesList class="mb-10 w-600px" />
-
+  <FeaturesList class="mb-10 lg:w-600px" />
+  </div>
   <h2 id="meet-the-team" class="text-4xl mb-7">
     Meet the Team
   </h2>
-  <div class="p-10 grid gap-10 grid-cols-2">
+  <div class="p-10 sm:grid gap-10 grid-cols-2">
     <Avatar
         name="Harlan Wilton"
         avatar="https://avatars.githubusercontent.com/u/5326365?v=4"
@@ -100,7 +101,7 @@
   <p op80 text-lg max-w-150 text-center leading-7>
     <Contributors />
     <br>
-    <a href="https://chat.unlighthouse.dev">Join the community</a> and get involved!
+    <a href="https://unlighthouse.dev/chat">Join the community</a> and get involved!
   </p>
 
   <p class="text-center opacity-75">

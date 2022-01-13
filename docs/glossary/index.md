@@ -6,12 +6,12 @@
 
 ### Route Definition
 
-A route definition is a mapping of a component, and it's URL path (or paths) that it represents.
+A route definition is the mapping of a page file (such as a vue component or markdown file), and it's URL path (or paths) that it represents.
 
 The page component has multiple representations:
-- static route, whereby the name matches the path (/about.vue -> /about/),
-- dynamic route where a query is used to generate a set of paths (/posts/:id.vue -> /posts/my-first-post/)
-- catch-all route where the any missed paths will be caught (/404.vue -> /some-missing-page)
+1. _static route_ - name matches the path (/about.vue -> /about/),
+2. _dynamic route_ - a query is used to generate a set of paths (/posts/:id.vue -> /posts/my-first-post/)
+3. _catch-all route_ where the any missed paths will be caught (/404.vue -> /some-missing-page)
 
 Additional meta-data is provided to give more context of how the mapping behaves, such as which layout to use, which
 asset chunk it belongs to.
@@ -179,7 +179,7 @@ export interface UnlighthouseContext {
 Unlighthouse's intelligent sampling relies on knowing which URLs map to which files in your project.
 To achieve this it needs to create its own router with your files to test any URL that comes through.
 
-Different integrations will have different requirements from the router. For example different frameworks will 
+Different integrations will have different requirements from the router. For example different frameworks will
 resolve files that contain substitutes (for example `/posts/[post].vue` may work in one framework but not another).
 
 ```ts
@@ -192,7 +192,7 @@ export interface MockRouter { match: (path: string) => RouteDefinition }
 
 The worker will queue a route to run with multiple tasks. A task is a queued job and has their own id and status.
 
-Unlighthouse has two core tasks: 
+Unlighthouse has two core tasks:
 - `inspectHtmlTask` which dumps the HTML of the URL and extracts SEO data from it (title, description, image, internal links, etc)
 - `runLighthouseTask` runs the actual lighthouse process on the URL
 

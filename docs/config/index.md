@@ -1,5 +1,7 @@
 # Configuring Unlighthouse
 
+<sponsor-banner />
+
 ## Configuration
 
 There are multiple ways to configure unlighthouse, for this guide we'll be assuming you have a `unlighthouse.config.ts` in your root 

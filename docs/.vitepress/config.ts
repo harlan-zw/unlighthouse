@@ -57,6 +57,10 @@ export default defineConfig({
         text: 'Demo',
         link: 'https://inspect.unlighthouse.dev/'
       },
+      {
+        text: 'Discord',
+        link: 'https://unlighthouse.dev/chat'
+      },
     ],
 
     sidebar: {
@@ -72,34 +76,46 @@ export default defineConfig({
               link: '/guide/'
             },
             {
+              text: 'Configuring Unlighthouse',
+              link: '/guide/config'
+            },
+            {
               text: 'Lighthouse',
               link: '/guide/lighthouse'
             },
             {
-              text: 'Scanning',
-              link: '/guide/crawling'
-            },
-            {
-              text: 'Sampling',
+              text: 'Route Sampling',
               link: '/guide/sampling'
             },
             {
-              text: 'SEO Meta',
-              link: '/guide/seo-meta'
+              text: 'Route Discovery',
+              link: '/guide/route-discovery'
             },
             {
-              text: 'Client',
+              text: 'Scanning',
+              link: '/guide/scanning'
+            },
+            {
+              text: 'Crawling',
               link: '/guide/crawling'
             },
             {
-              text: 'Continuous Integration',
-              link: '/guide/ci'
+              text: 'Modifying Client',
+              link: '/guide/client'
             },
           ]
         },
         {
           text: 'Integrations',
           children: [
+            {
+              text: 'CLI',
+              link: '/integrations/cli'
+            },
+            {
+              text: 'Continuous Integration',
+              link: '/integrations/ci'
+            },
             {
               text: 'Nuxt.js',
               link: '/integrations/nuxt'

@@ -2,123 +2,57 @@
 
 <sponsor-banner />
 
-## Overview
+Unlighthouse is an entire site audit tool with a modern UI for scanning live and development sites using Google Lighthouse
 
-Unlighthouse audits your entire site using Google Lighthouse and lets you navigate the reports with a modern UI.
+To use Unlighthouse you'll need to decide which environment and provider makes sense for you.
 
-## Unlighthouse CLI
+## Production Scanning
 
-```bash
-# npm
-$ npm install --global unlighthouse
+Running Unlighthouse on production sites is the easiest to get familiar with it and recommended for new users.
 
-# yarn
-$ yarn add -D unlighthouse
+### Features
+<ul class="list-style-none mt-3 m-0">
+<li class="flex items-center pb-2 "><i-carbon-checkmark-outline class="text-green-500 mr-2" /> Accurate Performance Metrics</li>
+<li class="flex items-center pb-2 "><i-carbon-checkmark-outline class="text-green-500 mr-2" /> No setup required in most cases</li>
+</ul>
 
-# pnpm
-$ pnpm add -D unlighthouse
-```
+### Trade-offs
+<ul class="list-style-none mt-3 m-0">
+<li class="flex items-center pb-2 "><i-carbon-warning-alt class="text-yellow-600 mr-2" /> Less stable for edge-case sites</li>
+<li class="flex items-center"><i-carbon-warning-alt class="text-yellow-600 mr-2" /> No feedback when fixing bugs</li>
+</ul>
 
-:::tip
-Unlighthouse requires Node >=v14
-:::
+### Providers
 
-## Configuring Unlighthouse
+| Provider                 | Use Case                                                                                                                                                                                                                                            |
+|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [CLI](/integrations/cli) | Scan a production site such as [unlighthouse.dev](https://unlighthouse.dev).<br><br> You can manually provide a project mapping for [intelligent sampling](/guide/sampling).                                                                        |
+| [CI](/integrations/ci)   | Run scans on sites based on automation events, i.e releasing and make [assertions on scores](/integrations/ci#assertions).<br><br> Can also be used to generate report sites such as [inspect.unlighthouse.dev](https://inspect.unlighthouse.dev/). |
 
-One of the main advantages of Unlighthouse is its unified configuration with Vite. If present, `unlighthouse` will read your root `vite.config.ts` to match with the plugins and setup as your Vite app. For example, your Vite [resolve.alias](https://vitejs.dev/config/#resolve-alias) and [plugins](https://vitejs.dev/guide/using-plugins.html) configuration will work out-of-the-box. If you want a different configuration during testing, you can:
 
-- Create `unlighthouse.config.ts`, which will have the higher priority
-- Pass `--config` option to CLI, e.g. `unlighthouse --config ./path/to/unlighthouse.config.ts`
-- Use `process.env.UNLIGHTHOUSE` to conditionally apply different configuration in `vite.config.ts`
+## Development Scanning
 
-To configure `unlighthouse` itself, add `test` property in your Vite config. You'll also need to add a reference to Unlighthouse types using a [triple slash command](https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html#-reference-types-) at the top of your config file.
+### Features
+<ul class="list-style-none mt-3 m-0">
+<li class="flex items-center pb-2 "><i-carbon-checkmark-outline class="text-green-500 mr-2" /> Get immediate feedback on your fixes with changed pages being re-audited automatically</li>
+<li class="flex items-center pb-2 "><i-carbon-checkmark-outline class="text-green-500 mr-2" /> Get direct links to files for routes</li>
+<li class="flex items-center"><i-carbon-checkmark-outline class="text-green-500 mr-2" /> Less configuration to manage</li>
+</ul>
 
-```ts
-/// <reference types="unlighthouse" />
-import { defineConfig } from 'vite'
+### Trade-offs
+<ul class="list-style-none mt-3 m-0">
+<li class="flex items-center pb-2 "><i-carbon-warning-alt class="text-yellow-600 mr-2" /> Throttling is redundent</li>
+<li class="flex items-center"><i-carbon-warning-alt class="text-yellow-600 mr-2" /> Performance metrics may be off</li>
+</ul>
 
-export default defineConfig({
-  test: {
-    // ...
-  },
-})
-```
+### Providers
 
-See the list of config options in the [Config Reference](../config/)
-
-## Command Line Interface
-
-In a project where Unlighthouse is installed, you can use the `unlighthouse` binary in your npm scripts, or run it directly with `npx unlighthouse`. Here are the default npm scripts in a scaffolded Unlighthouse project:
-
-<!-- prettier-ignore -->
-```json5
-{
-  "scripts": {
-    "test": "unlighthouse",
-    "coverage": "unlighthouse --coverage"
-  }
-}
-```
-
-To run tests once without watching for file changes, use `unlighthouse run`.
-You can specify additional CLI options like `--port` or `--https`. For a full list of CLI options, run `npx unlighthouse --help` in your project.
-
-### CLI Commands
-
-### `unlighthouse watch`
-
-Run all test suites but watch for changes and rerun tests when they change. Same as calling `unlighthouse` without a command. In CI environments this command will fallback to `unlighthouse run`
-
-### `unlighthouse run`
-
-Perform a single run without watch mode.
-
-### `unlighthouse dev`
-
-Run unlighthouse in development mode.
-
-### `unlighthouse related`
-
-Run only tests that cover a list of source files. Works with static lazy imports, but not the dynamic ones. All files should be relative to root folder.
-
-Useful to run with [`lint-staged`](https://github.com/okonet/lint-staged) or with your CI setup.
-
-```bash
-unlighthouse related /src/index.ts /src/hello-world.js
-```
-
-### CLI Options
-
-| Options       |               |
-| ------------- | ------------- |
-| `-v, --version` | Display version number |
-| `-r, --root <path>` | Define the project root |
-| `-c, --config <path>` | Path to config file |
-| `-u, --update` | Update snapshots |
-| `-w, --watch` | Watch mode |
-| `-t, --testNamePattern <pattern>` | Run tests with names matching the pattern |
-| `--ui` | Open UI |
-| `--api [api]` | Serve API, available options: `--api.port <port>`, `--api.host [host]` and `--api.strictPort` |
-| `--threads` | Enable Threads (default: true) |
-| `--silent` | Silent console output from tests |
-| `--reporter <name>` | Select reporter: `default`, `verbose`, or `dot` |
-| `--coverage` | Use c8 for coverage |
-| `--run` | Do not watch |
-| `--global` | Inject APIs globally |
-| `--dom` | Mock browser api with happy-dom |
-| `--environment <env>` | Runner environment (default: node) |
-| `--passWithNoTests` | Pass when no tests found |
-| `-h, --help` | Display available CLI options |
-
-## Examples
-
-- [Unit Testing](https://github.com/unlighthouse-dev/unlighthouse/tree/main/test/core)
-- [Vue Component Testing](https://github.com/unlighthouse-dev/unlighthouse/tree/main/examples/vue)
-- [React Component Testing](https://github.com/unlighthouse-dev/unlighthouse/tree/main/examples/react)
-- [Svelte Component Testing](https://github.com/unlighthouse-dev/unlighthouse/tree/main/examples/svelte)
-- [Lit Component Testing](https://github.com/unlighthouse-dev/unlighthouse/tree/main/examples/lit)
-- [Vitesse Component Testing](https://github.com/unlighthouse-dev/unlighthouse/tree/main/examples/vitesse)
-- [All examples](https://github.com/unlighthouse-dev/unlighthouse/tree/main/examples)
+| Provider                         | Features                                                                                      | Status     |
+|----------------------------------|-----------------------------------------------------------------------------------------------|------------|
+| [Nuxt.js](/integrations/nuxt)    | <ul class="p-0 m-0"><li>Single Server</li><li>HMR</li><li>Automatic Route Discovery</li></ul> | Functional |
+| [Vite](/integrations/vite)       | <ul class="p-0 m-0"><li>HMR</li><li>Automatic Route Discovery</li></ul>                       | WIP        |
+| [webpack](/integrations/webpack) | <ul class="p-0 m-0"><li>HMR</li></ul>                                                         | WIP        |
+| [rollup](/integrations/rollup)  | <ul class="p-0 m-0"><li>TBA</li></ul>                                                         | WIP        |
 
 ## Community
 
