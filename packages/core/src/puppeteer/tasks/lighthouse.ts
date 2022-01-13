@@ -55,7 +55,7 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
   if (fs.existsSync(routeReport.reportJson)) {
     const report = fs.readJsonSync(routeReport.reportJson, { encoding: 'utf-8' }) as LH.Result
     routeReport.report = normaliseLighthouseResult(report)
-    logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\` using cache. (Score \`${routeReport.report.score}\`)`)
+    logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\` using cache. [Score \`${routeReport.report.score}\`]`)
     return routeReport
   }
 

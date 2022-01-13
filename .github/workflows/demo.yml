@@ -33,7 +33,7 @@ jobs:
         run: pnpm run build
 
       - name: Run Unlighthouse CI
-        run: node packages/unlighthouse/bin/unlighthouse-ci.cjs --host https://unlighthouse.dev --build-static --debug
+        run: node packages/unlighthouse/bin/unlighthouse-ci.cjs --host https://unlighthouse.dev --root docs --build-static --debug
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
