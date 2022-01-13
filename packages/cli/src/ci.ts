@@ -5,7 +5,6 @@ import { createUnlighthouse, generateClient, useLogger } from '@unlighthouse/cor
 import { pick } from 'lodash-es'
 import { handleError } from './errors'
 import type { CiOptions } from './types'
-import { validateOptions } from './util'
 import createCli from './createCli'
 
 async function run() {
@@ -36,8 +35,6 @@ async function run() {
   },
   { name: 'ci' },
   )
-
-  validateOptions(unlighthouse.resolvedConfig)
 
   let hasBudget = true
   if (!unlighthouse.resolvedConfig.ci?.budget) {
