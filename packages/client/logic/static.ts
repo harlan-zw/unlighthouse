@@ -20,7 +20,7 @@ const {
   lighthouseOptions,
   scanner: {
     throttle,
-    device
+    device,
   },
   isLocalhost,
   router: {

@@ -21,9 +21,8 @@ async function run() {
     return
 
   // allow site alias
-  if (options.site) {
+  if (options.site)
     options.host = options.site
-  }
 
   const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])
   resolvedOptions.ci = {
@@ -63,7 +62,7 @@ async function run() {
           Object.values(categories).forEach((category) => {
             let budget = unlighthouse.resolvedConfig.ci.budget
             if (!Number.isInteger(budget)) {
-              // @ts-expect-error
+              // @ts-expect-error need to fix
               budget = unlighthouse.resolvedConfig.ci.budget[category.id]
             }
             if (category.score && (category.score * 100) < budget) {

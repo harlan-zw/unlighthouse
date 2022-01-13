@@ -110,13 +110,13 @@ export const scanMeta = computed<ScanMeta|null>(() => {
   if (isStatic)
     return window.__unlighthouse_data?.scanMeta
 
-  if (fetchedScanMeta?.data) {
+  if (fetchedScanMeta?.data)
     return fetchedScanMeta?.data
-  }
+
   // scan meta is null, check the last meta to avoid corrupting the UI
-  if (lastScanMeta.value) {
+  if (lastScanMeta.value)
     return lastScanMeta.value
-  }
+
   return null
 })
 
@@ -125,9 +125,9 @@ export function refreshScanMeta() {
     return
 
   const res = fetchedScanMeta.execute()
-  if (fetchedScanMeta?.data) {
+  if (fetchedScanMeta?.data)
     lastScanMeta.value = fetchedScanMeta?.data
-  }
+
   return res
 }
 

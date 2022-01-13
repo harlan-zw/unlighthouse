@@ -7,9 +7,9 @@ const props = defineProps<{
 }>()
 
 const color = computed(() => {
-  if (isOffline.value && props.status !== 'completed') {
+  if (isOffline.value && props.status !== 'completed')
     return 'bg-gray-700'
-  }
+
   switch (props.status) {
     case 'completed':
       return 'bg-green-500'
@@ -21,9 +21,9 @@ const color = computed(() => {
 })
 
 const label = computed(() => {
-  if (isOffline.value && props.status !== 'completed') {
+  if (isOffline.value && props.status !== 'completed')
     return 'Offline'
-  }
+
   switch (props.status) {
     case 'completed':
       return 'Completed'

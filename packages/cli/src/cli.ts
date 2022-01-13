@@ -17,9 +17,8 @@ async function run() {
     return
 
   // allow site alias
-  if (options.site) {
+  if (options.site)
     options.host = options.site
-  }
 
   const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])
 

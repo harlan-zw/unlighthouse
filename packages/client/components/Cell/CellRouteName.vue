@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { apiUrl, openFullScreenshotIframeModal, isOffline } from '../../logic'
+import { apiUrl, isOffline, openFullScreenshotIframeModal } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport

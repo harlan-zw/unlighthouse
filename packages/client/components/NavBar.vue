@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatDistance } from 'date-fns'
-import { isDark, isRescanSiteRequestRunning, isStatic, device, rescanSite, scanMeta, throttle, toggleDark, website, isOffline } from '../logic'
+import { device, isDark, isOffline, isRescanSiteRequestRunning, isStatic, rescanSite, scanMeta, throttle, toggleDark, website } from '../logic'
 
 const timeRemaining = computed(() => {
   return formatDistance(0, scanMeta.value.monitor.timeRemaining, { includeSeconds: true })

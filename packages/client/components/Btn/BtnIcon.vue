@@ -22,8 +22,10 @@
 <script>
 export default {
   props: {
-    href: String,
-    required: false,
+    href: {
+      type: String,
+      required: false,
+    },
   },
 }
 </script>
