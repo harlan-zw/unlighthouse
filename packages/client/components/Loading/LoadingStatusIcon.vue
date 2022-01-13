@@ -1,11 +1,15 @@
 <script lang="ts" setup>
 import type { UnlighthouseTaskStatus } from '@unlighthouse/core'
+import { isOffline } from '../../logic'
 
 const props = defineProps<{
   status: UnlighthouseTaskStatus
 }>()
 
 const color = computed(() => {
+  if (isOffline.value && props.status !== 'completed') {
+    return 'bg-gray-700'
+  }
   switch (props.status) {
     case 'completed':
       return 'bg-green-500'
@@ -17,6 +21,9 @@ const color = computed(() => {
 })
 
 const label = computed(() => {
+  if (isOffline.value && props.status !== 'completed') {
+    return 'Offline'
+  }
   switch (props.status) {
     case 'completed':
       return 'Completed'

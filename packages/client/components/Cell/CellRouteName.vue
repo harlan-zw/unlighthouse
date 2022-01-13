@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { apiUrl, openFullScreenshotIframeModal } from '../../logic'
-import BtnAction from '../Btn/BtnAction.vue'
+import { apiUrl, openFullScreenshotIframeModal, isOffline } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -26,7 +25,7 @@ const openEditorRequest = () => {
         {{ report.route.path }}
       </a>
       <div v-if="report.route.definition?.componentBaseName" class="flex items-center mt-2">
-        <btn-action class="inline text-xs opacity-90 rounded-xl px-2 bg-blue-50 dark:(bg-teal-700/30 hover:bg-teal-700/70) hover:(text-opacity-100 bg-blue-100)" title="Open File" @click="openEditorRequest">
+        <btn-action :disabled="isOffline ? 'disabled' : false" class="inline text-xs opacity-90 rounded-xl px-2 bg-blue-50 dark:(bg-teal-700/30 hover:bg-teal-700/70) hover:(text-opacity-100 bg-blue-100)" title="Open File" @click="openEditorRequest">
           <i-logos-vue v-if="report.route.definition.componentBaseName.endsWith('.vue')" class="h-8px inline-block" />
           <i-la-markdown v-else-if="report.route.definition.componentBaseName.endsWith('.md')" class="h-12px mr-1 inline-block" />
           {{ report.route.definition.componentBaseName.split('.')[0] }}

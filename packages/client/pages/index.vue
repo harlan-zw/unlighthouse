@@ -7,6 +7,7 @@ import {
   incrementSort,
   isModalOpen,
   isStatic,
+  isOffline,
   openLighthouseReportIframeModal,
   refreshScanMeta,
   rescanRoute,
@@ -120,7 +121,7 @@ if (!isStatic) {
                   </div>
                 </btn-basic>
                 <btn-basic
-                  :disabled="isStatic ? 'disabled' : false"
+                  :disabled="isOffline ? 'disabled' : false"
                   class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
                   @click="rescanRoute(report.route)"
                 >

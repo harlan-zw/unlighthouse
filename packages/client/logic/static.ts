@@ -20,6 +20,7 @@ const {
   lighthouseOptions,
   scanner: {
     throttle,
+    device
   },
   isLocalhost,
   router: {
@@ -29,7 +30,7 @@ const {
 
 export const isStatic = window.__unlighthouse_static
 
-export { wsUrl, basePath, isLocalhost, apiUrl, groupRoutesKey, lighthouseOptions, throttle }
+export { wsUrl, basePath, isLocalhost, apiUrl, groupRoutesKey, lighthouseOptions, throttle, device }
 
 export const website = host
 

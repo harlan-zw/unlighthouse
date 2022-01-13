@@ -92,20 +92,43 @@ export const fetchedScanMeta = isStatic
       .json<ScanMeta>(),
   )
 
+export const lastScanMeta = ref<ScanMeta|null>(null)
+
+/**
+ * Has the users session gone from online to offline
+ */
+export const isOffline = computed<boolean>(() => {
+  if (isStatic)
+    return true
+
+  return !!(!fetchedScanMeta?.data && lastScanMeta.value)
+})
+
 export const rescanRoute = (route: NormalisedRoute) => useFetch(`${apiUrl}/reports/${route.id}/rescan`).post()
 
 export const scanMeta = computed<ScanMeta|null>(() => {
   if (isStatic)
     return window.__unlighthouse_data?.scanMeta
 
-  return fetchedScanMeta?.data || null
+  if (fetchedScanMeta?.data) {
+    return fetchedScanMeta?.data
+  }
+  // scan meta is null, check the last meta to avoid corrupting the UI
+  if (lastScanMeta.value) {
+    return lastScanMeta.value
+  }
+  return null
 })
 
 export function refreshScanMeta() {
   if (!fetchedScanMeta)
     return
 
-  return fetchedScanMeta.execute()
+  const res = fetchedScanMeta.execute()
+  if (fetchedScanMeta?.data) {
+    lastScanMeta.value = fetchedScanMeta?.data
+  }
+  return res
 }
 
 export const wsConnect = async() => {
