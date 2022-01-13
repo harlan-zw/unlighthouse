@@ -4,7 +4,7 @@ import { expect, it, beforeAll, describe, afterAll } from 'vitest'
 import { execa } from 'execa'
 
 export const cacheDir = resolve(__dirname, '.cache')
-export const ci = resolve(__dirname, '../packages/cli/src/ci.ts')
+export const ci = resolve(__dirname, '../packages/unlighthouse/bin/unlighthouse-ci.cjs')
 
 beforeAll(async() => {
     await fs.remove(cacheDir)
@@ -31,7 +31,7 @@ async function runCli(configFileFixture: string) {
     const config = await fs.readFile(configFileFixture, 'utf8')
     await fs.writeFile(join(testDir, 'unlighthouse.config.ts'), config)
 
-    const { exitCode, stdout, stderr } = await execa('jiti', [ci, '--root', testDir], {
+    const { exitCode, stdout, stderr } = await execa('jiti', [ci, '--root', testDir, '--debug'], {
         cwd: testDir,
     })
 
