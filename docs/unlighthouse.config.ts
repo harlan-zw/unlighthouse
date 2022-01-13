@@ -1,6 +1,4 @@
-import { defineConfig } from '@unlighthouse/core'
-
-export default defineConfig({
+export default {
     host: 'unlighthouse.dev',
     discovery: {
         supportedExtensions: ['md']
@@ -8,4 +6,4 @@ export default defineConfig({
     scanner: {
         sitemap: false,
     }
-})
+}
