@@ -16,6 +16,11 @@ async function run() {
   if (options.help || options.version)
     return
 
+  // allow site alias
+  if (options.site) {
+    options.host = options.site
+  }
+
   const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])
 
   const unlighthouse = await createUnlighthouse(resolvedOptions, { name: 'cli' })
@@ -31,7 +36,7 @@ async function run() {
     const logger = useLogger()
 
     const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
-    logger.info(`Unlighthouse has finished scanning \`${unlighthouse.resolvedConfig.host}\`: ${unlighthouse.routes?.length || 0} routes in \`${seconds}s\`.`)
+    logger.info(`Unlighthouse has finished scanning \`${unlighthouse.resolvedConfig.host}\`: ${unlighthouse.worker.reports().length} routes in \`${seconds}s\`.`)
   })
 
   if (unlighthouse.resolvedConfig.server.open)

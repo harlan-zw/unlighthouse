@@ -20,6 +20,11 @@ async function run() {
   if (options.help || options.version)
     return
 
+  // allow site alias
+  if (options.site) {
+    options.host = options.site
+  }
+
   const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])
   resolvedOptions.ci = {
     budget: options.budget || undefined,

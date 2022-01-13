@@ -8,6 +8,7 @@ export default function createCli() {
     .help()
     .version(version)
     .option('--host <host>', 'Host URL to scan')
+    .option('--site <site>', 'Alias for --host')
     .example('unlighthouse --host harlanzw.com')
     .option('--root <root>', 'Root ro run lighthouse. Useful for changing where the config is read from or setting up sampling.')
     .option('--config-file <config-file>', 'Config File Path. Where to load the configuration file from.')
