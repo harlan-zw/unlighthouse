@@ -1,10 +1,11 @@
 import { join } from 'path'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
-import { createUnlighthouse, generateClient, useLogger } from '@unlighthouse/core'
+import {createUnlighthouse, generateClient, useLogger, useUnlighthouse} from '@unlighthouse/core'
 import { pick } from 'lodash-es'
 import { handleError } from './errors'
 import type { CiOptions } from './types'
+import { validateOptions } from './util'
 import createCli from './createCli'
 
 async function run() {
@@ -29,27 +30,31 @@ async function run() {
     buildStatic: options.buildStatic || false,
   }
 
-  const unlighthouse = await createUnlighthouse({
+  await createUnlighthouse({
     ...resolvedOptions,
     cacheReports: false,
   },
   { name: 'ci' },
   )
 
+  const { resolvedConfig, setCiContext, hooks, worker, runtimeSettings } = useUnlighthouse()
+
+  validateOptions(resolvedConfig)
+
   let hasBudget = true
-  if (!unlighthouse.resolvedConfig.ci?.budget) {
+  if (!resolvedConfig.ci?.budget) {
     hasBudget = false
     logger.warn('Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>.')
   }
 
-  await (await unlighthouse.setCiContext()).start()
+  await (await setCiContext()).start()
 
-  unlighthouse.hooks.hook('worker-finished', async() => {
-    logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.host}`)
+  hooks.hook('worker-finished', async() => {
+    logger.success(`Unlighthouse has finished scanning ${resolvedConfig.host}`)
     let hadError = false
     if (hasBudget) {
-      logger.info('Running score budgets.', unlighthouse.resolvedConfig.ci.budget)
-      unlighthouse.worker
+      logger.info('Running score budgets.', resolvedConfig.ci.budget)
+      worker
         .reports()
         .forEach((report) => {
           const categories = report.report?.categories
@@ -57,10 +62,10 @@ async function run() {
             return
 
           Object.values(categories).forEach((category) => {
-            let budget = unlighthouse.resolvedConfig.ci.budget
+            let budget = resolvedConfig.ci.budget
             if (!Number.isInteger(budget)) {
               // @ts-expect-error need to fix
-              budget = unlighthouse.resolvedConfig.ci.budget[category.id]
+              budget = resolvedConfig.ci.budget[category.id]
             }
             if (category.score && (category.score * 100) < budget) {
               logger.error(`${report.route.path} has invalid score \`${category.score}\` for category \`${category.id}\`.`)
@@ -71,8 +76,8 @@ async function run() {
     }
     if (!hadError) {
       logger.success('All routes passed.')
-      await fs.writeJson(join(unlighthouse.resolvedConfig.root, unlighthouse.resolvedConfig.outputPath, 'ci-result.json'),
-        unlighthouse.worker.reports()
+      await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'),
+        worker.reports()
           .map((report) => {
             return {
               path: report.route.path,
@@ -87,12 +92,12 @@ async function run() {
         logger.info('Generating static client.')
         await generateClient({ static: true })
         // move the route files into the client package
-        const reportDir = join(unlighthouse.runtimeSettings.outputPath, 'routes')
-        const outDir = join(unlighthouse.runtimeSettings.generatedClientPath, 'routes')
+        const reportDir = join(runtimeSettings.outputPath, 'routes')
+        const outDir = join(runtimeSettings.generatedClientPath, 'routes')
         logger.debug(`Moving report dir ${reportDir} to ${outDir}`)
         await fs.move(reportDir, outDir, { overwrite: true })
 
-        logger.success(`Static client generated at \`${unlighthouse.runtimeSettings.generatedClientPath}\`, ready for hosting.`)
+        logger.success(`Static client generated at \`${runtimeSettings.generatedClientPath}\`, ready for hosting.`)
       }
 
       process.exit(0)

@@ -18,7 +18,8 @@ describe('ci', () => {
   it('tests harlanzw.com', async() => {
     const { output } = await runCli(resolve(__dirname, 'fixtures/harlanzw.config.ts'))
 
-    expect(output).toMatchSnapshot()
+    expect(output[0].path).toBeDefined()
+    expect(output[0].score).toBeDefined()
   })
 })
 
