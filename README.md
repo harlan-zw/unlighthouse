@@ -10,7 +10,7 @@
 <br>
 
 <p align="center">
-Unlighthouse audits your entire site using Google Lighthouse and lets you navigate the reports with a modern UI. 
+Unlighthouse is an entire site audit tool with a modern UI for scanning live and development sites using Google Lighthouse
 </p>
 
 <p align="center">
@@ -76,7 +76,7 @@ See which file belongs to a URL, fix your issue, unlighthouse will automatically
 
 Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.
 
-Use the CI to upload your sites reports and access them all at any time, like <a href="https://inspect.unlighthouse.dev/">inspect.lighthouse.dev</a>.
+Use the CI to upload your sites reports and access them all at any time, like <a href="https://inspect.unlighthouse.dev/">inspect.unlighthouse.dev</a>.
 
 ### 🛠 [**Hackable**](https://vitejs.dev)
 

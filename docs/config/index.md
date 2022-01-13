@@ -1,4 +1,4 @@
-_# Configuring Unlighthouse
+# Configuring Unlighthouse
 
 ## Configuration
 

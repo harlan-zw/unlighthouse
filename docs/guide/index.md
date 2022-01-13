@@ -1,30 +1,26 @@
-# Getting Started
+# Introduction
 
-<DevelopmentWarning/>
+<sponsor-banner />
 
 ## Overview
 
-Unlighthouse is universal site auditing powered by Lighthouse.
+Unlighthouse audits your entire site using Google Lighthouse and lets you navigate the reports with a modern UI.
 
-## Trying Unlighthouse Online
-
-You can try Unlighthouse online on [StackBlitz](https://unlighthouse.dev/new). It runs Unlighthouse directly in the browser, and it is almost identical to the local setup but doesn't require installing anything on your machine.
-
-## Adding Unlighthouse to your Project
+## Unlighthouse CLI
 
 ```bash
-// with npm
-$ npm install -D unlighthouse
+# npm
+$ npm install --global unlighthouse
 
-// or with yarn
+# yarn
 $ yarn add -D unlighthouse
 
-// or with pnpm
+# pnpm
 $ pnpm add -D unlighthouse
 ```
 
 :::tip
-Unlighthouse requires Vite >=v2.7.10 and Node >=v14
+Unlighthouse requires Node >=v14
 :::
 
 ## Configuring Unlighthouse
@@ -124,32 +120,6 @@ unlighthouse related /src/index.ts /src/hello-world.js
 - [Vitesse Component Testing](https://github.com/unlighthouse-dev/unlighthouse/tree/main/examples/vitesse)
 - [All examples](https://github.com/unlighthouse-dev/unlighthouse/tree/main/examples)
 
-## Projects using Unlighthouse
-
-- [unocss](https://github.com/antfu/unocss)
-- [unplugin-auto-import](https://github.com/antfu/unplugin-auto-import)
-- [unplugin-vue-components](https://github.com/antfu/unplugin-vue-components)
-- [vitesse](https://github.com/antfu/vitesse)
-- [vitesse-lite](https://github.com/antfu/vitesse-lite)
-- [fluent-vue](https://github.com/demivan/fluent-vue)
-- [vueuse](https://github.com/vueuse/vueuse)
-- [milkdown](https://github.com/Saul-Mirone/milkdown)
-
-## Using Unreleased Commits
-
-If you can't wait for a new release to test the latest features, you will need to clone the [unlighthouse repo](https://github.com/unlighthouse-dev/unlighthouse) to your local machine and then build and link it yourself ([pnpm](https://pnpm.io/) is required):
-
-```bash
-git clone https://github.com/unlighthouse-dev/unlighthouse.git
-cd unlighthouse
-pnpm install
-cd packages/unlighthouse
-pnpm run build
-pnpm link --global # you can use your preferred package manager for this step
-```
-
-Then go to the project where you are using Unlighthouse and run `pnpm link --global unlighthouse` (or the package manager that you used to link `unlighthouse` globally).
-
 ## Community
 
-If you have questions or need help, reach out to the community at [Discord](https://chat.unlighthouse.dev) and [GitHub Discussions](https://github.com/unlighthouse-dev/unlighthouse/discussions).
+If you have questions or need help, reach out to the community at [GitHub Discussions](https://github.com/harlan-zw/unlighthouse/discussions).

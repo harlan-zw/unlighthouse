@@ -5,15 +5,15 @@
     <p>Take advantage of your CPU with multi-threaded workers powered by <a href="https://github.com/thomasdondorf/puppeteer-cluster" target="_blank" rel="noopener">puppeteer-cluster</a> and use opportunistic throttling and categories for lightning quick scans.</p>
   </div>
   <div>
-    <h3 class="mt-0">🐞 <a href="/">Ready to Crawl</a></h3>
-    <p>Pre-packed with fast automatic URL discovery using <a href="https://github.com/seantomburke/sitemapper" target="_blank" rel="noopener">sitemap.xml crawling</a> or use internal link parsing.</p>
-  </div>
-  <div>
-    <h3 class="mt-0">🌈 <a href="/">Modern UI</a></h3>
+    <h3 class="mt-0">🌈 <a href="/">Unlighthouse Client</a></h3>
     <p>View your sites' health as a whole with the provided Vite UI. Easily see, search and sort your pages, re-scan individual pages and more.</p>
   </div>
   <div>
-    <h3 class="mt-0">🤓 <a href="/">Intelligent Sampling</a></h3>
+    <h3 class="mt-0">🐞 <a href="/">Advanced Crawling</a></h3>
+    <p>Pre-packed with fast, configurable URL discovery using <a href="https://github.com/seantomburke/sitemapper" target="_blank" rel="noopener">sitemap.xml</a> or internal link parsing.</p>
+  </div>
+  <div>
+    <h3 class="mt-0">🤓 <a href="/">Intelligent URL Sampling</a></h3>
     <p>Scanning a website with thousands of pages? No problem.</p>
     <p>Hook up your local project with the scan, you can intelligently sample your URLs, only scanning ones which
       are generated with unique code.</p>

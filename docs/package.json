@@ -13,8 +13,8 @@
     "vue": "^3.2.24"
   },
   "devDependencies": {
-    "@unlighthouse/core": "workspace:*",
     "@iconify-json/carbon": "^1.0.12",
+    "@unlighthouse/core": "workspace:*",
     "@unocss/reset": "^0.22.0",
     "@vitejs/plugin-vue": "^2.0.1",
     "unocss": "^0.22.0",

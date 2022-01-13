@@ -42,8 +42,9 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'API', link: '/api/' },
+      { text: 'Glossary', link: '/glossary/' },
       { text: 'Config', link: '/config/' },
-        // @todo maybe add discord
+      // @todo maybe add discord
       // {
       //   text: 'Discord',
       //   link: 'https://chat.unlighthouse.dev'
@@ -61,21 +62,38 @@ export default defineConfig({
     sidebar: {
       '/config/': 'auto',
       '/api/': 'auto',
+      '/glossary/': 'auto',
       '/': [
         {
           text: 'Guide',
           children: [
             {
-              text: 'Why Unlighthouse',
-              link: '/guide/why'
-            },
-            {
-              text: 'Getting Started',
+              text: 'Introduction',
               link: '/guide/'
             },
             {
-              text: 'Features',
-              link: '/guide/features'
+              text: 'Lighthouse',
+              link: '/guide/lighthouse'
+            },
+            {
+              text: 'Scanning',
+              link: '/guide/crawling'
+            },
+            {
+              text: 'Sampling',
+              link: '/guide/sampling'
+            },
+            {
+              text: 'SEO Meta',
+              link: '/guide/seo-meta'
+            },
+            {
+              text: 'Client',
+              link: '/guide/crawling'
+            },
+            {
+              text: 'Continuous Integration',
+              link: '/guide/ci'
             },
           ]
         },

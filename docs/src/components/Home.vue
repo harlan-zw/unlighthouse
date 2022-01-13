@@ -27,42 +27,47 @@
 
         <btn-basic
             href="/guide/"
-            class="flex items-center bg-green-600 text-white hover:bg-green-700 transition children:hover:text-white"
+            class="flex items-center bg-green-600 text-white hover:(bg-green-700 scale-105) transform transition children:hover:text-white"
         >
           <i-carbon-terminal class="inline-block text-xl opacity-90 mr-2" />
           <p class="break-none m-0 text-xl">
             Get Started
           </p>
         </btn-basic>
-        <btn-basic
-            href="/guide/why"
-            class="flex items-center bg-blue-500/90 text-white hover:bg-blue-700 transition children:hover:text-white"
-        >
-          <img src="/logo-light.svg" width="24" height="24" class="mr-2">
-          <p class="break-none m-0 text-xl">
-            Open Demo
-          </p>
-        </btn-basic>
+
       </div>
 
       <p class="mt-4 mb-3">or try it now</p>
-      <div class="relative">
-        <div class="language-bash !mt-0 inline-block sponsor-banner-wrap">
-          <sponsor-banner class="sponsor-banner hidden absolute z-5" />
+      <div class="language-bash !m-0 inline-block">
           <pre>
 <code class="filter blur-sm select-none"><span class="opacity-50"># Install Unlighthouse globally - can take a few minutes</span>
-<span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">nice hacking skills :)</span><span class="opacity-50">
+<span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">nice hacking skills :) `unlighthouse` if you must</span><span class="opacity-50">
 </span><span class="opacity-50"># Scan your website</span>
 <span class="token function">unlighthouse</span> <span class="token text-[#408c9e] font-500">--host https://harlanzw.com</span></code></pre>
-        </div>
+      </div>
+      <div class="flex justify-center text-center">
+        <sponsor-banner class="max-w-full w-550px mb-5" />
       </div>
     </div>
-    <div w="890px" h="700px" class="relative shadow-xl rounded-xl group max-w-full bg-image-wrap" style="box-shadow: rgb(0 0 0 / 20%) 0px 0px 0px 1px, rgb(0 0 0 / 50%) 0px 0px 30px 1px;">
-      <div style="background-image: url('/screenshot.png');" class="bg-image max-w-full w-1822px h-700px absolute rounded-xl z-1">
+    <div w="890px" class="relative h-450px xl:h-650px xl:w-890px w-full shadow-xl rounded-xl group max-w-full h-auto bg-image-wrap xl:mt-0 mt-10" style="box-shadow: rgb(0 0 0 / 20%) 0px 0px 0px 1px, rgb(0 0 0 / 50%) 0px 0px 30px 1px;">
+      <div style="background-image: url('/screenshot.png');" class="bg-image max-w-full  w-1822px h-450px xl:h-650px absolute rounded-xl z-1">
       </div>
-      <div class="w-full h-full absolute z-2 bg-gradient-to-l from-teal-800/60 rounded-xl">
+      <div class="w-full h-full absolute z-2 bg-gradient-to-l from-teal-800/20 rounded-xl">
       </div>
-      <lighthouse-three-d class="hidden lg:block mb-7 backdrop-blur-sm hover:scale-110 absolute top-1/2 left-1/2 transform -translate-x-[50%] -translate-y-[50%] z-2" />
+      <div class="absolute z-4 w-full flex items-center justify-center h-full">
+        <div>
+          <btn-basic
+              target="_blank"
+              href="https://inspect.unlighthouse.dev"
+              class=" flex items-center bg-blue-500/95 transform group-hover:scale-120 text-white hover:bg-blue-700 transition children:hover:text-white"
+          >
+            <img src="/logo-light.svg" width="24" height="24" class="mr-2">
+            <p class="break-none m-0 text-xl">
+              Open Static Demo
+            </p>
+          </btn-basic>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -126,9 +131,5 @@
 }
 .bg-image-wrap:hover .bg-image {
   animation-play-state: running;
-}
-
-.sponsor-banner-wrap:hover .sponsor-banner {
-  display: flex;
 }
 </style>

@@ -1,10 +1,14 @@
-# Features
+# Crawling
 
-<FeaturesList class="!gap-1 text-lg" />
-
-## Shared config between test, dev and build
+## Choose Categories Scanned
 
 Vite's config, transformers, resolvers, and plugins. Use the same setup from your app to run the tests
+
+## Enable/Disable Throttling
+
+## Configure Crawling
+
+## Configure URL Sampling
 
 ## Watch Mode
 

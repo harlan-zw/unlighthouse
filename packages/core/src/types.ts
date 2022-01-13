@@ -169,6 +169,11 @@ export interface UnlighthouseColumn {
  */
 export type LighthouseCategories = 'performance'|'best-practices'|'accessibility'|'seo'|'pwa'
 export type UnlighthouseTabs = 'overview'|LighthouseCategories
+
+/**
+ * Unlighthouse's intelligent sampling relies on knowing which URLs map to which files in your project.
+ * To achieve this it needs to create its own router with your files to test any URL that comes through.
+ */
 export interface MockRouter { match: (path: string) => RouteDefinition }
 
 export interface DiscoveryOptions {
@@ -444,8 +449,9 @@ export type PuppeteerTask = TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>
 export type UnlighthousePuppeteerCluster = Cluster<PuppeteerTaskArgs, PuppeteerTaskReturn>
 
 /**
- * Each integration will potentially have their own way of providing the route definitions and the routing of those
- * definitions.
+ * A provider is an integration of unlighthouse to a specific context, such as a framework or an environment.
+ *
+ * Each provider has their own unique name and defines how they will provide URLs and route definitions to unlighthouse.
  */
 export interface Provider {
   /**
@@ -485,7 +491,7 @@ export interface UnlighthouseHooks {
    */
   'route-definitions-provided': (routeDefinitions: any[]) => HookResult
   /**
-   * Called when a user visits the path of the @unlighthouse/client. Useful for starting the worker on-demand.
+   * Called when a user visits the path of the @unlighthouse/client for the first time. Useful for starting the worker on-demand.
    */
   'visited-client': () => HookResult
   /**
@@ -514,6 +520,10 @@ export interface UnlighthouseHooks {
   'discovered-internal-links': (path: string, internalLinks: string[]) => HookResult
 }
 
+/**
+ * The worker is the manager of puppeteer-cluster, it provides an API for managing the queued routes, monitoring the queue and
+ * fetching the results of the queued jobs.
+ */
 export interface UnlighthouseWorker {
   /**
    * puppeteer-cluster instance

@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { Camera, AmbientLight, PointLight, Renderer, RendererPublicInterface, Scene, FbxModel } from 'troisjs'
-import type { Group } from 'three'
 import { useElementHover } from '@vueuse/core'
 import { ref, shallowRef, onMounted, computed } from 'vue'
 
 const rendererC = ref()
-const lighthouse = shallowRef<Group>()
+const lighthouse = shallowRef()
 
 const lighthouseRef = ref()
 const isHovered = useElementHover(lighthouseRef)
 
 onMounted(() => {
-  const renderer = rendererC.value as RendererPublicInterface
+  const renderer = rendererC.value
   if (!renderer)
     return
 
@@ -38,7 +36,7 @@ onMounted(() => {
     }
     if (lighthouse.value) {
       // set initial position
-        lighthouse.value.position.set(184, -71, z.value)
+      lighthouse.value.position.set(184, -71, z.value)
       // lighthouse
       lighthouse.value.children[0].rotation.z += rotation.value
       // @ts-ignore
@@ -64,7 +62,7 @@ const showLighthouse = computed(() => {
   return isHovered.value
 })
 
-const onReady = (object: Group) => {
+const onReady = (object) => {
   lighthouse.value = object
 }
 </script>
