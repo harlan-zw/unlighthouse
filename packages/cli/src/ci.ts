@@ -37,7 +37,7 @@ async function run() {
   { name: 'ci' },
   )
 
-  const { resolvedConfig, setCiContext, hooks, worker, runtimeSettings } = useUnlighthouse()
+  const { resolvedConfig, setCiContext, hooks, worker } = useUnlighthouse()
 
   validateOptions(resolvedConfig)
 
@@ -90,6 +90,7 @@ async function run() {
 
       if (options.buildStatic) {
         logger.info('Generating static client.')
+        const { runtimeSettings } = useUnlighthouse()
         await generateClient({ static: true })
         // move the route files into the client package
         const reportDir = join(runtimeSettings.outputPath, 'routes')
