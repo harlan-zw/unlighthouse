@@ -5,7 +5,8 @@
     "packages/*"
   ],
   "scripts": {
-    "cli:hzw": "esmo packages/unlighthouse/bin/unlighthouse.cjs --host https://harlanzw.com/ --root /home/harlan/sites/harlanzw.com/ --debug",
+    "cli:hzw": "node packages/cli/dist/cli.mjs --host https://harlanzw.com/ --root /home/harlan/sites/harlanzw.com/ --debug",
+    "cli:ody": "node packages/cli/dist/cli.mjs --host https://www.odysseytraveller.com/ --root /home/harlan/sites/odysseytraveller.com-app/ --debug",
     "cli:windi": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://windicss.org/",
     "cli:nuxt": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://nuxtjs.org/",
     "cli:vue": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://v3.vuejs.org/",
@@ -31,7 +32,7 @@
     "@vitest/ui": "^0.1.12",
     "bumpp": "^7.1.1",
     "eslint": "^8.6.0",
-    "esno": "^0.13.0",
+    "esno": "^0.14.0",
     "execa": "^6.0.0",
     "fs-extra": "^10.0.0",
     "jest": "^27.4.7",
@@ -41,7 +42,7 @@
     "ts-jest": "^27.1.2",
     "tsup": "^5.11.11",
     "typescript": "^4.5.4",
-    "vitest": "^0.0.142"
+    "vitest": "^0.1.12"
   },
   "version": "0.1.21"
 }

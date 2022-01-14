@@ -9,7 +9,7 @@ importers:
       '@vitest/ui': ^0.1.12
       bumpp: ^7.1.1
       eslint: ^8.6.0
-      esno: ^0.13.0
+      esno: ^0.14.0
       execa: ^6.0.0
       fs-extra: ^10.0.0
       jest: ^27.4.7
@@ -19,14 +19,14 @@ importers:
       ts-jest: ^27.1.2
       tsup: ^5.11.11
       typescript: ^4.5.4
-      vitest: ^0.0.142
+      vitest: ^0.1.12
     devDependencies:
       '@antfu/eslint-config': 0.15.0_eslint@8.6.0+typescript@4.5.4
       '@types/node': 17.0.8
       '@vitest/ui': 0.1.12
       bumpp: 7.1.1
       eslint: 8.6.0
-      esno: 0.13.0_typescript@4.5.4
+      esno: 0.14.0_typescript@4.5.4
       execa: 6.0.0
       fs-extra: 10.0.0
       jest: 27.4.7
@@ -36,11 +36,12 @@ importers:
       ts-jest: 27.1.2_jest@27.4.7+typescript@4.5.4
       tsup: 5.11.11_typescript@4.5.4
       typescript: 4.5.4
-      vitest: 0.0.142_@vitest+ui@0.1.12
+      vitest: 0.1.12_@vitest+ui@0.1.12
 
   docs:
     specifiers:
       '@iconify-json/carbon': ^1.0.12
+      '@panelbear/panelbear-js': ^1.3.3
       '@unlighthouse/core': workspace:*
       '@unocss/reset': ^0.22.0
       '@vitejs/plugin-vue': ^2.0.1
@@ -51,6 +52,7 @@ importers:
       vitepress: ^0.21.4
       vue: ^3.2.24
     dependencies:
+      '@panelbear/panelbear-js': 1.3.3
       '@vueuse/core': 7.5.3_vue@3.2.26
       unplugin-icons: 0.13.0_rollup@2.63.0
       vue: 3.2.26
@@ -1186,6 +1188,10 @@ packages:
       signal-exit: 3.0.6
       ua-parser-js: 0.7.31
       ufo: 0.7.9
+    dev: false
+
+  /@panelbear/panelbear-js/1.3.3:
+    resolution: {integrity: sha512-LsAxdlvdvyoQy04no/VsSMQd1i1qGFNMy328VG/BI5N5hQXIa8CZjCWNXuOjIMbJcltt7QjESMr6BgHuEeo5AA==}
     dev: false
 
   /@polka/url/1.0.0-next.21:
@@ -3315,6 +3321,14 @@ packages:
       esbuild: 0.14.11
     dev: true
 
+  /esbuild-register/3.3.2_esbuild@0.14.11:
+    resolution: {integrity: sha512-jceAtTO6zxPmCfSD5cBb3rgIK1vmuqCKYwgylHiS1BF4pq0jJiJb4K2QMuqF4BEw7XDBRatYzip0upyTzfkgsQ==}
+    peerDependencies:
+      esbuild: '>=0.12 <1'
+    dependencies:
+      esbuild: 0.14.11
+    dev: true
+
   /esbuild-sunos-64/0.13.15:
     resolution: {integrity: sha512-lbivT9Bx3t1iWWrSnGyBP9ODriEvWDRiweAs69vI+miJoeKwHWOComSRukttbuzjZ8r1q0mQJ8Z7yUsDJ3hKdw==}
     cpu: [x64]
@@ -3769,6 +3783,19 @@ packages:
       esbuild: 0.14.11
       esbuild-node-loader: 0.6.3_typescript@4.5.4
       esbuild-register: 3.3.1_esbuild@0.14.11
+      import-meta-resolve: 1.1.1
+    transitivePeerDependencies:
+      - typescript
+    dev: true
+
+  /esno/0.14.0_typescript@4.5.4:
+    resolution: {integrity: sha512-KEij9fDbMSO+WxwZRZRXWRxSpd48tXKF1VUW8dPUezN7VbUM6jKUXBrYY3CAbnkVfHzEbD8RWkapCYwc+ZaYoA==}
+    hasBin: true
+    dependencies:
+      cross-spawn: 7.0.3
+      esbuild: 0.14.11
+      esbuild-node-loader: 0.6.3_typescript@4.5.4
+      esbuild-register: 3.3.2_esbuild@0.14.11
       import-meta-resolve: 1.1.1
     transitivePeerDependencies:
       - typescript
@@ -7921,6 +7948,30 @@ packages:
       fsevents: 2.3.2
     dev: true
 
+  /vite/2.7.12:
+    resolution: {integrity: sha512-KvPYToRQWhRfBeVkyhkZ5hASuHQkqZUUdUcE3xyYtq5oYEPIJ0h9LWiWTO6v990glmSac2cEPeYeXzpX5Z6qKQ==}
+    engines: {node: '>=12.2.0'}
+    hasBin: true
+    peerDependencies:
+      less: '*'
+      sass: '*'
+      stylus: '*'
+    peerDependenciesMeta:
+      less:
+        optional: true
+      sass:
+        optional: true
+      stylus:
+        optional: true
+    dependencies:
+      esbuild: 0.13.15
+      postcss: 8.4.5
+      resolve: 1.21.0
+      rollup: 2.63.0
+    optionalDependencies:
+      fsevents: 2.3.2
+    dev: true
+
   /vitepress/0.21.4:
     resolution: {integrity: sha512-r7zAOp65T3/3tX6tD1QfQaqHnPzr2Xkq0Cw8gjXDk2MGZ7e3BMwow1wRn/k1D2lBZ2kEE2vQCC2/zfoCzrDRuw==}
     engines: {node: '>=12.0.0'}
@@ -7942,8 +7993,8 @@ packages:
       - stylus
     dev: true
 
-  /vitest/0.0.142_@vitest+ui@0.1.12:
-    resolution: {integrity: sha512-d1Ya3Jd/RKYfH9qJHlrCw7AU3Xne7sjdjLfR0Kh+UsYmpRvdYsWAA8AkrIkv2U/N77wmA59LlqooMBI5GoK/ZQ==}
+  /vitest/0.1.12_@vitest+ui@0.1.12:
+    resolution: {integrity: sha512-uiGDO1aKX2rUWtkR7iNedbtN3ij/qr4l1DwAbX5cIADUD7VBuFimaUrL8KyFw3eSxdA56xJyl8JpvSAsvvpN7w==}
     engines: {node: '>=14.14.0'}
     hasBin: true
     peerDependencies:
@@ -7968,7 +8019,7 @@ packages:
       local-pkg: 0.4.1
       tinypool: 0.1.1
       tinyspy: 0.2.8
-      vite: 2.7.10
+      vite: 2.7.12
     transitivePeerDependencies:
       - less
       - sass
