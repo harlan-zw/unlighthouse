@@ -1,6 +1,6 @@
 import fs from 'fs'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
-import { filter, get, sortBy } from 'lodash-es'
+import { filter, get, sortBy, uniqBy } from 'lodash-es'
 import type {
   NormalisedRoute,
   PuppeteerTaskArgs,
@@ -146,14 +146,17 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
   }
 
   const queueRoutes = (routes: NormalisedRoute[]) => {
+    // remove duplicates, less sorting
+    routes = uniqBy(routes, 'path')
+
     const sortedRoutes = sortBy(routes,
       // we're sort all routes by their route name if provided, otherwise use the path
-      [
-        // order by nested route count
-        route => route.definition.name.split('-').length,
-        // then by definition name
-        resolvedConfig.client.groupRoutesKey.replace('route.', ''),
-      ],
+      (r) => {
+        if (resolvedConfig.discovery && r.definition)
+          return get(r, resolvedConfig.client.groupRoutesKey.replace('route.', ''))
+
+        return r.path
+      },
     )
     sortedRoutes.forEach(route => queueRoute(route))
   }

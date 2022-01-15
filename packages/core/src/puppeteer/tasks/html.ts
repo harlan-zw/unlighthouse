@@ -104,10 +104,9 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
       logger.warn(`Failed to extract HTML payload from route \`${routeReport.route.path}\`: ${response.message}`)
       return routeReport
     }
-    if (response.redirected) {
+    if (response.redirected)
       logger.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
       // check if redirect url is already queued, if so we bail on this route
-    }
 
     html = response.payload
     fs.writeFileSync(routeReport.htmlPayload, html)
