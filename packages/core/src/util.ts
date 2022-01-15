@@ -23,7 +23,12 @@ export const trimSlashes = (s: string) => withoutLeadingSlash(withoutTrailingSla
  * @return A sanitized URL, will retain the path hierarchy in the folder structure.
  */
 export const sanitiseUrlForFilePath = (url: string) => {
-  return trimSlashes(url)
+  url = trimSlashes(url)
+  // URLs such as /something.html and /something to be considered the same
+  if (url.endsWith('.html'))
+    url = url.replace(/\.html$/, '')
+
+  return url
     .split('/')
     .map(part => sanitize(slugify(part)))
     .join('/')
