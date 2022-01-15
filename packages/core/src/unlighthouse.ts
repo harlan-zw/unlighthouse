@@ -26,6 +26,7 @@ import { resolveUserConfig } from './resolveConfig'
 import { AppName, ClientPkg, TagLine } from './constants'
 import { createLogger } from './logger'
 import { normaliseHost } from './util'
+import { $fetch } from 'ohmyfetch'
 
 const engineContext = createContext<UnlighthouseContext>()
 
@@ -101,6 +102,23 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   await hooks.callHook('resolved-config', resolvedConfig)
 
   logger.debug(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
+
+  // test HTTP response from host
+  logger.info(`Testing host \`${resolvedConfig.host}\` is valid.`)
+  const response = await $fetch.raw(resolvedConfig.host)
+  if (response.status >= 300 && !response.redirected) {
+    // something is wrong with the host, bail
+    logger.fatal(`Request to host \`${resolvedConfig.host}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+    // bail on cli or ci
+    if (provider?.name === 'cli' || provider?.name === 'ci') {
+      process.exit(1)
+    }
+  }
+  // change the URL to the redirect one
+  if (response.redirected) {
+    logger.info(`Request to host \`${resolvedConfig.host}\` redirected to \`${response.url}\`, using that as the host.`)
+    resolvedConfig.host = normaliseHost(response.url)
+  }
 
   // web socket instance for broadcasting
   const ws = provider?.name === 'ci' ? null : new WS()

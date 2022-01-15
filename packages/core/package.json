@@ -97,7 +97,9 @@
     "unctx": "^1.0.2",
     "unrouted": "^0.1.2",
     "vue-router": "4",
-    "ws": "^8.4.0"
+    "ws": "^8.4.0",
+    "fetch": "^1.1.0",
+    "ohmyfetch": "^0.4.14"
   },
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
