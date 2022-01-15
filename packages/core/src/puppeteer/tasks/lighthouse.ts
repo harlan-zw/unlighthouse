@@ -59,12 +59,6 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     return routeReport
   }
 
-  const lighthouseProcessPath = await resolvePath(
-    join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
-  )
-
-  logger.debug(`Lighthouse process file: \`${lighthouseProcessPath}\`.`)
-
   const browser = page.browser()
   const port = new URL(browser.wsEndpoint()).port
 
@@ -79,7 +73,7 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     try {
       // Spawn a worker process
       const worker = (await import('execa'))
-        .execa('node', [lighthouseProcessPath, ...args], {
+        .execa('node', [runtimeSettings.lighthouseProcessPath, ...args], {
           timeout: 6 * 60 * 1000,
         })
       worker.stdout!.pipe(process.stdout)

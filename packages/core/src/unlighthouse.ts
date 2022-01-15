@@ -88,11 +88,21 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     configFile,
     moduleWorkingDir: __dirname,
     configCacheKey: '',
+    lighthouseProcessPath: ''
   }
+  // path to the lighthouse worker file
+  runtimeSettings.lighthouseProcessPath = await resolvePath(
+      join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
+      {
+        extensions: ['.ts', '.mjs']
+      }
+  )
   // create a cache key for the users provided key so we can cache burst on config update
   runtimeSettings.configCacheKey = objectHash(userConfig).substring(0, 4)
 
   const resolvedConfig = await resolveUserConfig(userConfig)
+  logger.debug('Post config resolution', resolvedConfig)
+
   const hooks = createHooks<UnlighthouseHooks>()
 
   // add hooks from config
