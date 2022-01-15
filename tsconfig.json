@@ -13,11 +13,11 @@
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "unlighthouse": ["./packages/unlighthouse/src/index.ts"],
-      "@unlighthouse/core": ["./packages/core/src/index.ts"],
-      "@unlighthouse/server": ["./packages/server/src/index.ts"],
-      "@unlighthouse/types": ["./packages/types/index.d.ts"],
-      "@unlighthouse/vite": ["./packages/vite/src/index.ts"]
+      "unlighthouse": ["./packages/unlighthouse/src"],
+      "@unlighthouse/client": ["./packages/client/src"],
+      "@unlighthouse/cli": ["./packages/cli/src"],
+      "@unlighthouse/core": ["./packages/core/src"],
+      "@unlighthouse/server": ["./packages/server/src"],
     }
   },
   "include": [
