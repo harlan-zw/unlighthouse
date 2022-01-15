@@ -93,7 +93,12 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
     logger.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
   }
   else {
+    const start = new Date()
     const response = await extractHtmlPayload(page, routeReport.route.url)
+    const end = new Date()
+    const seconds = Math.round(end.getTime() - start.getTime())
+    logger.debug(`HTML extract of \`${routeReport.route.url}\` took \`${seconds}\`ms`)
+
     if (!response.success || !response.payload) {
       routeReport.tasks.inspectHtmlTask = 'failed'
       logger.warn(`Failed to extract HTML payload from route \`${routeReport.route.path}\`: ${response.message}`)
