@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join} from 'path'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
@@ -10,7 +10,6 @@ import createCli from './createCli'
 async function run() {
   const start = new Date()
 
-  const logger = useLogger()
   const cli = createCli()
 
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
@@ -37,6 +36,8 @@ async function run() {
   const { resolvedConfig, setCiContext, hooks, worker } = useUnlighthouse()
 
   validateOptions(resolvedConfig)
+
+  const logger = useLogger()
 
   let hasBudget = true
   if (!resolvedConfig.ci?.budget) {
@@ -76,7 +77,7 @@ async function run() {
         })
     }
     if (!hadError) {
-      logger.success('All routes passed.')
+      logger.success('CI assertions on score budget has passed.')
       await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'),
         worker.reports()
           .map((report) => {
@@ -98,8 +99,13 @@ async function run() {
         const outDir = join(runtimeSettings.generatedClientPath, 'routes')
         logger.debug(`Moving report dir ${reportDir} to ${outDir}`)
         await fs.move(reportDir, outDir, { overwrite: true })
-        logger.debug(`Deleting html payloads`)
-        globby()
+        // delete the json lighthouse payloads, we don't need them for the static mode
+        const globby = (await import('globby'))
+        const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json'], { cwd: outDir, absolute: true })
+        logger.debug(`Deleting ${jsonPayloads.length} json payloads`)
+        for (const k in jsonPayloads) {
+          await fs.rm(jsonPayloads[k])
+        }
 
         logger.success(`Static client generated at \`${runtimeSettings.generatedClientPath}\`, ready for hosting.`)
       }
