@@ -56,16 +56,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   if (config.root && config.discovery && config.discovery.pagesDir === 'pages') {
     const pagesDirExist = await pathExists(join(config.root, config.discovery.pagesDir))
     if (!pagesDirExist) {
-      const packageJsonRoot = await pathExists(join(config.root, 'package.json'))
-      if (packageJsonRoot) {
-        logger.debug('Switching discovery pages directory to root.')
-        config.discovery.pagesDir = ''
-      }
-      else {
-        logger.info('Unable to locale page files, disabling route discovery.')
-        // disable discovery to avoid globbing entire file systems
-        config.discovery = false
-      }
+      logger.info('Unable to locale page files, disabling route discovery.')
+      // disable discovery to avoid globbing entire file systems
+      config.discovery = false
     }
   }
 
