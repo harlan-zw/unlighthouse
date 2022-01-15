@@ -1,9 +1,7 @@
-import type { UserConfig } from '@unlighthouse/core'
 import open from 'open'
 import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
-import { pick } from 'lodash-es'
-import { validateOptions } from './util'
+import { pickOptions, validateOptions } from './util'
 import type { CliOptions } from './types'
 import createCli from './createCli'
 
@@ -33,10 +31,10 @@ async function run() {
 
   unlighthouse.hooks.hook('worker-finished', () => {
     const end = new Date()
+    const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
     const logger = useLogger()
 
-    const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
-    logger.info(`Unlighthouse has finished scanning \`${unlighthouse.resolvedConfig.host}\`: ${unlighthouse.worker.reports().length} routes in \`${seconds}s\`.`)
+    logger.success(`Unlighthouse has finished scanning \`${unlighthouse.resolvedConfig.site}\`: ${unlighthouse.worker.reports().length} routes in \`${seconds}s\`.`)
   })
 
   if (unlighthouse.resolvedConfig.server.open)

@@ -1,14 +1,15 @@
 import { join } from 'path'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
-import {createUnlighthouse, generateClient, useLogger, useUnlighthouse} from '@unlighthouse/core'
-import { pick } from 'lodash-es'
+import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
 import { handleError } from './errors'
 import type { CiOptions } from './types'
-import { validateOptions } from './util'
+import { pickOptions, validateOptions } from './util'
 import createCli from './createCli'
 
 async function run() {
+  const start = new Date()
+
   const logger = useLogger()
   const cli = createCli()
 
@@ -24,7 +25,7 @@ async function run() {
   if (options.site)
     options.host = options.site
 
-  const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])
+  const resolvedOptions: UserConfig = pickOptions(options)
   resolvedOptions.ci = {
     budget: options.budget || undefined,
     buildStatic: options.buildStatic || false,
@@ -50,7 +51,11 @@ async function run() {
   await (await setCiContext()).start()
 
   hooks.hook('worker-finished', async() => {
-    logger.success(`Unlighthouse has finished scanning ${resolvedConfig.host}`)
+    const end = new Date()
+    const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
+
+    logger.success(`Unlighthouse has finished scanning \`${resolvedConfig.site}\`: ${worker.reports().length} routes in \`${seconds}s\`.`)
+
     let hadError = false
     if (hasBudget) {
       logger.info('Running score budgets.', resolvedConfig.ci.budget)
