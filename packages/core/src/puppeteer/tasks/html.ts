@@ -75,7 +75,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   let html: string
 
   // basic caching based on saving html payloads
-  if (fs.existsSync(routeReport.htmlPayload)) {
+  if (resolvedConfig.cache && fs.existsSync(routeReport.htmlPayload)) {
     html = fs.readFileSync(routeReport.htmlPayload, { encoding: 'utf-8' })
     logger.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
   }

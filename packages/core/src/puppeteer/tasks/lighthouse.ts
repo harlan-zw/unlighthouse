@@ -52,7 +52,7 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
   const { page, data: routeReport } = props
 
   // if the report doesn't exist we're going to run a new lighthouse process to generate it
-  if (fs.existsSync(routeReport.reportJson)) {
+  if (resolvedConfig.cache && fs.existsSync(routeReport.reportJson)) {
     const report = fs.readJsonSync(routeReport.reportJson, { encoding: 'utf-8' }) as LH.Result
     routeReport.report = normaliseLighthouseResult(report)
     logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\` using cache. [Score \`${routeReport.report.score}\`]`)
