@@ -5,11 +5,24 @@ import type { Page } from 'puppeteer'
 import type { PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
-import { formatBytes, trimSlashes } from '../../util'
+import { fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
 import { normaliseRoute } from '../../router'
 
-export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; message?: string; payload?: string }> = async(page, route) => {
+export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false|string; message?: string; payload?: string }> = async(page, route) => {
   const { worker, resolvedConfig } = useUnlighthouse()
+
+  // if we don't need to execute any javascript we can do a less expensive fetch of the URL
+  if (resolvedConfig.scanner.skipJavascript) {
+    const { valid, response } = await fetchUrlRaw(route)
+    if (!valid)
+      return { success: false, message: `Invalid response from URL ${route} code: ${response.status}.` }
+
+    return {
+      success: true,
+      redirected: response.redirected ? response.url : false,
+      payload: response.data,
+    }
+  }
   // get page html content
   try {
     await page.setCacheEnabled(false)
@@ -85,6 +98,10 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
       routeReport.tasks.inspectHtmlTask = 'failed'
       logger.warn(`Failed to extract HTML payload from route \`${routeReport.route.path}\`: ${response.message}`)
       return routeReport
+    }
+    if (response.redirected) {
+      logger.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
+      // check if redirect url is already queued, if so we bail on this route
     }
 
     html = response.payload
