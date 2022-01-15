@@ -28,7 +28,7 @@ export function pickOptions(options: CiOptions|CliOptions): UserConfig {
 
   return pick(options, [
     // root level options
-    'host',
+    'site',
     'root',
     'configFile',
     'debug',

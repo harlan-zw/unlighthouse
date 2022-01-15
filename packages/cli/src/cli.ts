@@ -14,10 +14,6 @@ async function run() {
   if (options.help || options.version)
     return
 
-  // allow site alias
-  if (options.site)
-    options.host = options.site
-
   const unlighthouse = await createUnlighthouse(
     pickOptions(options),
     { name: 'cli' },

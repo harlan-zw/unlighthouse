@@ -21,10 +21,6 @@ async function run() {
   if (options.help || options.version)
     return
 
-  // allow site alias
-  if (options.site)
-    options.host = options.site
-
   const resolvedOptions: UserConfig = pickOptions(options)
   resolvedOptions.ci = {
     budget: options.budget || undefined,
@@ -102,6 +98,8 @@ async function run() {
         const outDir = join(runtimeSettings.generatedClientPath, 'routes')
         logger.debug(`Moving report dir ${reportDir} to ${outDir}`)
         await fs.move(reportDir, outDir, { overwrite: true })
+        logger.debug(`Deleting html payloads`)
+        globby()
 
         logger.success(`Static client generated at \`${runtimeSettings.generatedClientPath}\`, ready for hosting.`)
       }
