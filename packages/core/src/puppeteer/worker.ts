@@ -148,7 +148,12 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
   const queueRoutes = (routes: NormalisedRoute[]) => {
     const sortedRoutes = sortBy(routes,
       // we're sort all routes by their route name if provided, otherwise use the path
-      resolvedConfig.client.groupRoutesKey.replace('route.', ''),
+      [
+        // order by nested route count
+        route => route.definition.name.split('-').length,
+        // then by definition name
+        resolvedConfig.client.groupRoutesKey.replace('route.', ''),
+      ],
     )
     sortedRoutes.forEach(route => queueRoute(route))
   }
