@@ -44,7 +44,8 @@ export const normaliseRoute = (url: string): NormalisedRoute => {
       }
     }
   }
-  else {
+  // if there was no match we can try and
+  if (!normalised.definition) {
     // we'll create them a runtime route definition based on the URL
     const parts = trimSlashes(path)
       .split('/')
