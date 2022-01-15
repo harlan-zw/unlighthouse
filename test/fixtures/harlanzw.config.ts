@@ -1,6 +1,6 @@
 export default {
-    host: 'https://harlanzw.com',
-    cacheReports: false,
+    site: 'https://harlanzw.com',
+    cache: false,
     scanner: {
         throttle: false,
     },
