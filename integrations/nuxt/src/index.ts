@@ -36,7 +36,7 @@ export default defineNuxtModule<UnlighthouseNuxtOptions>(nuxt => ({
     // when we vite mode, the HTML is not server side rendered so we need to tell the scanner this
     // so that it will execute the javascript to fetch internal links
     extendViteConfig(() => {
-      unlighthouse.resolvedConfig.scanner.isHtmlSSR = false
+      unlighthouse.resolvedConfig.scanner.skipJavascript = false
     })
 
     // watch config file

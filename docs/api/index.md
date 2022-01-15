@@ -40,7 +40,7 @@ Functions exposed from the `@unlighthouse/core` package.
   import { defineConfig } from '@unlighthouse/core'
 
   export default defineConfig({
-    host: 'harlanzw.com'
+    site: 'harlanzw.com'
   })
   ```
   

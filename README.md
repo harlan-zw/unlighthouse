@@ -92,7 +92,7 @@ npm add -G unlighthouse
 ```
 
 ```bash
-unlighthouse --host https://unlighthouse.dev/
+unlighthouse --site https://unlighthouse.dev/
 ```
 
 

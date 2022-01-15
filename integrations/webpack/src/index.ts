@@ -52,7 +52,7 @@ export default function WebpackPlugin(
           [unlighthouse.resolvedConfig.router.prefix]: server.url,
         },
         onListening(devServer: WebpackDevServer) {
-          unlighthouse.resolvedConfig.host = normaliseHost(devServer.server.address()?.toString() || '')
+          unlighthouse.resolvedConfig.site = normaliseHost(devServer.server.address()?.toString() || '')
           unlighthouse.setServerContext({ url: server.url, server: server.server, app })
         },
       }

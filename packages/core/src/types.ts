@@ -207,19 +207,23 @@ export interface GenerateClientOptions {
 
 export interface ResolvedUserConfig {
   /**
+   * The site that will be scanned.
+   */
+  site: string
+  /**
    * The path that we'll be performing the scan from, this should be the path to the app that represents the site.
    * Using this path we can auto-discover the provider
    * @default cwd()
    */
   root: string
   /**
-   * Should reports be saved to the local file system and re-used between runs for the scanned host.
+   * Should reports be saved to the local file system and re-used between runs for the scanned site.
    *
    * Note: This makes use of cache-bursting for when the configuration changes, since this may change the report output.
    *
    * @default true
    */
-  cacheReports: boolean
+  cache: boolean
   /**
    * Load the configuration from a custom config file. By default, it attempts to load configuration from `unlighthouse.config.ts`.
    */
@@ -228,6 +232,16 @@ export interface ResolvedUserConfig {
    * Hooks to run to augment the behaviour of Unlighthouse.
    */
   hooks?: NestedHooks<UnlighthouseHooks>
+  /**
+   * Where to emit lighthouse reports and the runtime client.
+   * @default "./lighthouse/"
+   */
+  outputPath: string
+  /**
+   * Have logger debug displayed when running.
+   * @default false
+   */
+  debug: boolean
   /**
    * Router options
    */
@@ -270,7 +284,7 @@ export interface ResolvedUserConfig {
     /**
      * Does javascript need to be executed in order to fetch internal links and SEO data.
      */
-    isHtmlSSR: boolean
+    skipJavascript: boolean
     /**
      * How many samples of each route should be done. This is used to improve false-positive results.
      *
@@ -296,7 +310,7 @@ export interface ResolvedUserConfig {
      */
     crawler: boolean
     /**
-     * Whether the sitemap.xml will be attempted to be read from the host.
+     * Whether the sitemap.xml will be attempted to be read from the site.
      *
      * @default true
      */
@@ -309,20 +323,6 @@ export interface ResolvedUserConfig {
      */
     dynamicSampling: number|false
   }
-  /**
-   * Where to emit lighthouse reports and the runtime client.
-   * @default "./lighthouse/"
-   */
-  outputPath: string
-  /**
-   * The site that will be scanned.
-   */
-  host: string
-  /**
-   * Have logger debug displayed when running.
-   * @default false
-   */
-  debug: boolean
   /**
    * Changes the default behaviour of lighthouse.
    */
@@ -354,16 +354,17 @@ export type DeepPartial<T> = T extends Function ? T : (T extends object ? { [P i
 export type UserConfig = DeepPartial<ResolvedUserConfig>
 
 export interface RuntimeSettings {
+  siteResponse: string
   /**
    * The URL of the server running the API and client.
    */
   serverUrl: string
   /**
-   * The API using the servers host name.
+   * The full URL for API.
    */
   apiUrl: string
   /**
-   * The path of the api without the host details.
+   * The path of the api without the site URL.
    */
   apiPath: string
   /**
@@ -611,7 +612,7 @@ export interface ScanMeta {
    */
   score: number
   /**
-   * Discovered favicon of the host site.
+   * Discovered site favicon.
    */
   favicon?: string
 }
@@ -643,7 +644,7 @@ export interface UnlighthouseContext {
    */
   resolvedConfig: ResolvedUserConfig
   /**
-   * The collection of route definitions associated to the host.
+   * The collection of route definitions associated to the site.
    */
   routeDefinitions?: RouteDefinition[]
   /**

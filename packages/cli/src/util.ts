@@ -1,6 +1,8 @@
 import { URL } from 'url'
 import type { UserConfig } from '@unlighthouse/core'
+import { pick } from 'lodash-es'
 import { handleError } from './errors'
+import type { CiOptions, CliOptions } from './types'
 
 export const isValidUrl = (s: string) => {
   try {
@@ -13,9 +15,24 @@ export const isValidUrl = (s: string) => {
 }
 
 export const validateOptions = (resolvedOptions: UserConfig) => {
-  if (!resolvedOptions.host)
-    return handleError('Please provide a site to scan with --host <url>.')
+  if (!resolvedOptions.site)
+    return handleError('Please provide a site to scan with --site <url>.')
 
-  if (!isValidUrl(resolvedOptions.host))
-    return handleError('Please provide a valid host URL.')
+  if (!isValidUrl(resolvedOptions.site))
+    return handleError('Please provide a valid site URL.')
+}
+
+export function pickOptions(options: CiOptions|CliOptions): UserConfig {
+  if (options.noCache)
+    options.cache = true
+
+  return pick(options, [
+    // root level options
+    'host',
+    'root',
+    'configFile',
+    'debug',
+    'cache',
+    'outputPath',
+  ])
 }

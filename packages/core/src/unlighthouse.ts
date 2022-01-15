@@ -25,8 +25,7 @@ import { discoverRouteDefinitions, resolveReportableRoutes } from './discovery'
 import { resolveUserConfig } from './resolveConfig'
 import { AppName, ClientPkg, TagLine } from './constants'
 import { createLogger } from './logger'
-import { normaliseHost } from './util'
-import { $fetch } from 'ohmyfetch'
+import { fetchUrlRaw, normaliseHost } from './util'
 
 const engineContext = createContext<UnlighthouseContext>()
 
@@ -88,14 +87,14 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     configFile,
     moduleWorkingDir: __dirname,
     configCacheKey: '',
-    lighthouseProcessPath: ''
+    lighthouseProcessPath: '',
   }
   // path to the lighthouse worker file
   runtimeSettings.lighthouseProcessPath = await resolvePath(
-      join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
-      {
-        extensions: ['.ts', '.mjs']
-      }
+    join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
+    {
+      extensions: ['.ts', '.mjs'],
+    },
   )
   // create a cache key for the users provided key so we can cache burst on config update
   runtimeSettings.configCacheKey = objectHash(userConfig).substring(0, 4)
@@ -113,21 +112,23 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
   logger.debug(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
 
-  // test HTTP response from host
-  logger.info(`Testing host \`${resolvedConfig.host}\` is valid.`)
-  const response = await $fetch.raw(resolvedConfig.host)
-  if (response.status >= 300 && !response.redirected) {
-    // something is wrong with the host, bail
-    logger.fatal(`Request to host \`${resolvedConfig.host}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+  // test HTTP response from site
+  logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
+  const { valid, response } = await fetchUrlRaw(resolvedConfig.site)
+  if (!valid) {
+    // something is wrong with the site, bail
+    logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
     // bail on cli or ci
-    if (provider?.name === 'cli' || provider?.name === 'ci') {
+    if (provider?.name === 'cli' || provider?.name === 'ci')
       process.exit(1)
-    }
+  }
+  else {
+    logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
   }
   // change the URL to the redirect one
   if (response.redirected) {
-    logger.info(`Request to host \`${resolvedConfig.host}\` redirected to \`${response.url}\`, using that as the host.`)
-    resolvedConfig.host = normaliseHost(response.url)
+    logger.info(`Request to site \`${resolvedConfig.site}\` redirected to \`${response.url}\`, using that as the site.`)
+    resolvedConfig.site = normaliseHost(response.url)
   }
 
   // web socket instance for broadcasting
@@ -152,12 +153,12 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   ctx.worker = worker
 
   ctx.setCiContext = async() => {
-    const $host = new $URL(resolvedConfig.host)
+    const $site = new $URL(resolvedConfig.site)
 
-    logger.debug(`Setting Unlighthouse CI Context [Host: ${$host}]`)
+    logger.debug(`Setting Unlighthouse CI Context [Site: ${$site}]`)
 
     // avoid nesting reports for ci mode
-    let outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $host.hostname, runtimeSettings.configCacheKey)
+    let outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $site.hostname, runtimeSettings.configCacheKey)
     if (provider?.name === 'ci')
       outputPath = join(resolvedConfig.root, resolvedConfig.outputPath)
 
@@ -168,7 +169,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       resolvedClientPath: await resolvePath(ClientPkg, { url: import.meta.url }),
     }
 
-    if (!resolvedConfig.cacheReports && existsSync(resolvedConfig.outputPath)) {
+    if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
       logger.debug(`\`cacheReports\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
       fs.rmSync(resolvedConfig.outputPath, { recursive: true })
     }
@@ -179,13 +180,13 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   ctx.setServerContext = async({ url, server, app }) => {
     const serverUrl = url
     const $server = new $URL(serverUrl)
-    if (!resolvedConfig.host)
-      resolvedConfig.host = normaliseHost(serverUrl)
-    const $host = new $URL(resolvedConfig.host)
+    if (!resolvedConfig.site)
+      resolvedConfig.site = normaliseHost(serverUrl)
+    const $site = new $URL(resolvedConfig.site)
 
-    logger.debug(`Setting Unlighthouse Server Context [Host: ${$host} Server: ${$server}]`)
+    logger.debug(`Setting Unlighthouse Server Context [Site: ${$site} Server: ${$server}]`)
 
-    const outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $host.hostname, runtimeSettings.configCacheKey)
+    const outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $site.hostname, runtimeSettings.configCacheKey)
     const clientUrl = joinURL($server.toString(), resolvedConfig.router.prefix)
     const apiPath = joinURL(resolvedConfig.router.prefix, resolvedConfig.api.prefix)
     ctx.runtimeSettings.serverUrl = url
@@ -211,7 +212,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       })
     }
 
-    if (!resolvedConfig.cacheReports && existsSync(resolvedConfig.outputPath)) {
+    if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
       logger.debug(`\`cacheReports\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
       fs.rmSync(resolvedConfig.outputPath, { recursive: true })
     }
@@ -233,7 +234,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       return ctx
     }
 
-    logger.debug(`Starting Unlighthouse [Server: ${ctx.runtimeSettings.clientUrl} Host: ${ctx.resolvedConfig.host} Debug: \`${ctx.resolvedConfig.debug}\`]`)
+    logger.debug(`Starting Unlighthouse [Server: ${ctx.runtimeSettings.clientUrl} Site: ${ctx.resolvedConfig.site} Debug: \`${ctx.resolvedConfig.debug}\`]`)
 
     if (typeof provider?.routeDefinitions === 'function')
       ctx.routeDefinitions = await provider.routeDefinitions()
@@ -279,7 +280,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
           '',
           chalk.dim.italic(TagLine),
           '',
-          `${label('Scanning')} ${resolvedConfig.host}`,
+          `${label('Scanning')} ${resolvedConfig.site}`,
           `${label('Route Discovery')} ${mode === 'crawl' ? 'Crawl' : 'Sitemap + Crawl'}`,
           `${label('Route Definitions')} ${!ctx.routeDefinitions ? 'None' : ctx.routeDefinitions.length}`,
         ].join('\n'),

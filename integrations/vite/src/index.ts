@@ -49,7 +49,7 @@ export default function UnlighthousePlugin(
             unlighthouse.setServerContext({ url: server.url, server: server.server, app })
           })
 
-          // wait until the user visits a page so we can capture the host
+          // wait until the user visits a page so we can capture the site
           // @todo find a less hacky solution
           viteServer.middlewares.use(async(req, res, next) => {
             const host = req.headers.host || ''

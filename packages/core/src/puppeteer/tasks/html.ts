@@ -21,7 +21,7 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
         request.continue()
     })
 
-    const pageVisit = await page.goto(route, { waitUntil: resolvedConfig.scanner.isHtmlSSR ? 'domcontentloaded' : 'networkidle0' })
+    const pageVisit = await page.goto(route, { waitUntil: resolvedConfig.scanner.skipJavascript ? 'domcontentloaded' : 'networkidle0' })
     // only 2xx we'll consider valid
     const { 'content-type': contentType, location } = pageVisit.headers()
 
@@ -40,7 +40,7 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
 
     // handle vite / spa's
     const payload = await (
-      resolvedConfig.scanner.isHtmlSSR
+      resolvedConfig.scanner.skipJavascript
         ? pageVisit.text()
         : page.evaluate(() => document.querySelector('*')?.outerHTML)
     )
@@ -112,7 +112,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
           return
       }
     }
-    if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(resolvedConfig.host))
+    if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(resolvedConfig.site))
       internalLinks.push(href)
     else
       externalLinks.push(href)

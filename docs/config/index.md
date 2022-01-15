@@ -18,14 +18,14 @@ import { defineConfig } from '@unlighthouse/core'
 
 export default defineConfig({
     // example
-    host: 'unlighthouse.dev',
+    site: 'unlighthouse.dev',
     debug: true,
 })
 ```
 
 ## Root Options
 
-### host
+### site
 
 - **Type:** `string`
 
@@ -39,12 +39,12 @@ The site that will be scanned.
 The path that we'll be performing the scan from, this should be the path to the app that represents the site. 
 Using this path we can auto-discover the provider
 
-### cacheReports
+### cache
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Should reports be saved to the local file system and re-used between runs for the scanned host.
+Should reports be saved to the local file system and re-used between runs for the scanned site.
 
 Note: This makes use of cache-bursting for when the configuration changes, since this may change the report output.
 
@@ -126,7 +126,7 @@ export default defineConfig({
 
 Injects the required data into the client files, so it can be hosted statically.
 
-Combine this with uploading to a host, and you can see the results of your unlighthouse scan on a live site.
+Combine this with uploading to a site, and you can see the results of your unlighthouse scan on a live site.
 
 ## API Options
 
@@ -186,7 +186,7 @@ Paths to explicitly include from the search, this will exclude any paths not lis
 
 Paths to ignore from scanning.
 
-### scanner.isHtmlSSR
+### scanner.skipJavascript
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -234,7 +234,7 @@ When a route definition is provided, you're able to configure the worker to samp
 - **Type:** `boolean`
 - **Default:** `true`
 
-Whether the sitemap.xml will be attempted to be read from the host.
+Whether the sitemap.xml will be attempted to be read from the site.
 
 ## Lighthouse Options
 

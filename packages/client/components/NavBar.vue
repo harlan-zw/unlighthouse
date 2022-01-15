@@ -75,7 +75,7 @@ const favIcon = computed(() => {
                   Rescan Site
                 </p>
                 <span class="opacity-70 text-xs">
-                  Crawl the host again and generate fresh new reports.
+                  Crawl the site again and generate fresh new reports.
                 </span>
               </div>
             </btn-basic>

@@ -53,7 +53,7 @@ If your page is an SPA or requires Javascript to parse the HTML meta, you can op
 ```ts
 export default defineConfig({
     scanner: {
-        isHtmlSSR: false
+        skipJavascript: false
     }
 })
 ```

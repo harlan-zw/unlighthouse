@@ -5,11 +5,12 @@
     "packages/*"
   ],
   "scripts": {
-    "cli:hzw": "node packages/cli/dist/cli.mjs --host https://harlanzw.com/ --root /home/harlan/sites/harlanzw.com/ --debug",
-    "cli:ody": "node packages/cli/dist/cli.mjs --host https://www.odysseytraveller.com/ --root /home/harlan/sites/odysseytraveller.com-app/ --debug",
-    "cli:windi": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://windicss.org/",
-    "cli:nuxt": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://nuxtjs.org/",
-    "cli:vue": "esmo packages/unlighthouse/bin/unlighthouse.mjs  --host https://v3.vuejs.org/",
+    "cli:docs": "node packages/cli/dist/cli.mjs --root docs --debug --no-cache",
+    "cli:hzw": "node packages/cli/dist/cli.mjs --site https://www.harlanzw.com/ --root /home/harlan/sites/harlanzw.com/ --debug",
+    "cli:ody": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/odysseytraveller.com-app/ --debug",
+    "cli:windi": "esmo packages/unlighthouse/bin/unlighthouse.mjs --site https://windicss.org/",
+    "cli:nuxt": "esmo packages/unlighthouse/bin/unlighthouse.mjs --site https://nuxtjs.org/",
+    "cli:vue": "esmo packages/unlighthouse/bin/unlighthouse.mjs --site https://v3.vuejs.org/",
     "build": "pnpm -r --parallel  --filter ./packages run build",
     "stub": "pnpm -r --parallel --filter ./packages run stub",
     "dev": "pnpm run stub && pnpm run watch:client",

@@ -27,15 +27,15 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   })
   const config = merger(userConfig, defaultConfig)
 
-  // it's possible we don't know the host at runtime
-  if (config.host) {
-    // normalise host
-    config.host = normaliseHost(config.host)
+  // it's possible we don't know the site at runtime
+  if (config.site) {
+    // normalise site
+    config.site = normaliseHost(config.site)
   }
   if (!config.lighthouseOptions)
     config.lighthouseOptions = {}
   // for local urls we disable throttling
-  if (!config.host || config.host.includes('localhost') || !config.scanner?.throttle) {
+  if (!config.site || config.site.includes('localhost') || !config.scanner?.throttle) {
     config.lighthouseOptions.throttlingMethod = 'provided'
     config.lighthouseOptions.throttling = {
       rttMs: 0,

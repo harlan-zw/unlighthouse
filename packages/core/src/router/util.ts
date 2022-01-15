@@ -1,5 +1,5 @@
 import { basename } from 'path'
-import { $URL, withBase, withLeadingSlash } from 'ufo'
+import { $URL, hasProtocol, withBase, withLeadingSlash } from 'ufo'
 import type { NormalisedRoute } from '../types'
 import { hashPathName, trimSlashes } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
@@ -14,9 +14,8 @@ export const normaliseRoute = (url: string): NormalisedRoute => {
   const { resolvedConfig, provider } = useUnlighthouse()
 
   // it's possible that we're serving a subdomain or something dodgy around www.
-  if (!hasProtocol(url)) {
-    url = withBase(url, resolvedConfig.host)
-  }
+  if (!hasProtocol(url))
+    url = withBase(url, resolvedConfig.site)
 
   const $url = new $URL(url)
   // make sure we start with a leading slash

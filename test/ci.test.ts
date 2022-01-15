@@ -31,7 +31,7 @@ async function runCli(configFileFixture: string) {
   const config = await fs.readFile(configFileFixture, 'utf8')
   await fs.writeFile(join(testDir, 'unlighthouse.config.ts'), config)
 
-  const { exitCode, stdout, stderr } = await execa('node', [ci, '--root', testDir, '--debug', '--host', 'harlanzw.com'], {
+  const { exitCode, stdout, stderr } = await execa('node', [ci, '--root', testDir, '--debug', '--site', 'harlanzw.com'], {
     cwd: testDir,
   })
 

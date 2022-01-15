@@ -2,7 +2,7 @@
 import { get } from 'lodash-es'
 import { $URL, withBase } from 'ufo'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { iframeModelUrl, isModalOpen, website, isOffline } from '../../logic'
+import { iframeModelUrl, isModalOpen, isOffline, website } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -24,9 +24,9 @@ const showingModal = ref(false)
 
 const openModal = () => {
   // don't open modal if we're offline
-  if (isOffline.value) {
+  if (isOffline.value)
     return
-  }
+
   isModalOpen.value = true
   iframeModelUrl.value = null
   nextTick(() => {

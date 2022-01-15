@@ -253,7 +253,7 @@ export const defaultConfig: UserConfig = {
   api: {
     prefix: '/api',
   },
-  cacheReports: true,
+  cache: true,
   client: {
     /**
      * By default try and group routes by the definition name, if no definition is found this will resolve
@@ -263,7 +263,7 @@ export const defaultConfig: UserConfig = {
     columns: DefaultColumns,
   },
   scanner: {
-    isHtmlSSR: true,
+    skipJavascript: true,
     samples: 1,
     throttle: true,
     crawler: true,

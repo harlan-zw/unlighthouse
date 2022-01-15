@@ -2,6 +2,8 @@ export interface CliOptions {
   host?: string
   help?: boolean
   site?: string
+  cache?: boolean
+  noCache?: boolean
   version?: boolean
   root?: string
   configFile?: string

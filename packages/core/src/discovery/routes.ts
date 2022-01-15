@@ -18,11 +18,11 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
   const { resolvedConfig, provider, hooks, worker } = useUnlighthouse()
 
   // the urls function may be null
-  let urls = (provider?.urls ? await provider?.urls() : [resolvedConfig.host])
+  let urls = (provider?.urls ? await provider?.urls() : [resolvedConfig.site])
 
   // if sitemap scanning is enabled
   if (resolvedConfig.scanner.sitemap) {
-    const sitemapUrls = await extractSitemapRoutes(resolvedConfig.host)
+    const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site)
     if (sitemapUrls.length) {
       logger.info(`Discovered ${sitemapUrls.length} routes from sitemap.xml.`)
       urls = [

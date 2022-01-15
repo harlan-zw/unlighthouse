@@ -32,7 +32,7 @@ async function run() {
 
   await createUnlighthouse({
     ...resolvedOptions,
-    cacheReports: false,
+    cache: false,
   },
   { name: 'ci' },
   )

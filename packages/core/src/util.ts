@@ -4,6 +4,8 @@ import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { hasProtocol, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import type { FetchResponse } from 'ohmyfetch'
+import { $fetch } from 'ohmyfetch'
 import type { NormalisedRoute, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
 
@@ -90,4 +92,18 @@ export const formatBytes = (bytes: number, decimals = 2) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
 
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
+
+export async function fetchUrlRaw(url: string): Promise<{ valid: boolean; response: FetchResponse<any> }> {
+  const response = await $fetch.raw(url)
+  if (response.status < 200 && response.status >= 300 && !response.redirected) {
+    return {
+      valid: false,
+      response,
+    }
+  }
+  return {
+    valid: true,
+    response,
+  }
 }

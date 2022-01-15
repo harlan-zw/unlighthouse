@@ -20,9 +20,10 @@ async function run() {
   if (options.site)
     options.host = options.site
 
-  const resolvedOptions: UserConfig = pick(options, ['host', 'root', 'configFile', 'debug'])
-
-  const unlighthouse = await createUnlighthouse(resolvedOptions, { name: 'cli' })
+  const unlighthouse = await createUnlighthouse(
+    pickOptions(options),
+    { name: 'cli' },
+  )
 
   validateOptions(unlighthouse.resolvedConfig)
 

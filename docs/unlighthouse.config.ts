@@ -1,8 +1,6 @@
 export default {
-    host: 'unlighthouse.dev',
-    discovery: {
-        supportedExtensions: ['md']
-    },
+    site: 'unlighthouse.dev',
+    discovery: false,
     scanner: {
         sitemap: false,
     }

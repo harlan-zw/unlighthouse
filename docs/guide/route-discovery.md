@@ -17,7 +17,7 @@ run the command in the projects directory.
 Say I want to scan [unlighthouse.dev](https://unlighthouse.dev) with the CLI and the project lives at `/home/harlan/packages/unlighthouse/docs`. 
 
 ```shell
-unlighthouse --host unlighthouse.dev --root /home/harlan/packages/unlighthouse/docs
+unlighthouse --site unlighthouse.dev --root /home/harlan/packages/unlighthouse/docs
 ```
 
 I need to provide configuration to tell Unlighthouse to load pages from the root directory.

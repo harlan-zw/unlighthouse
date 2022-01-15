@@ -16,7 +16,7 @@ import { defineConfig } from '@unlighthouse/core'
 
 export default defineConfig({
     // example
-    host: 'unlighthouse.dev',
+    site: 'unlighthouse.dev',
     debug: true,
 })
 ```
