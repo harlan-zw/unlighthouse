@@ -10,7 +10,7 @@ import CellImage from '../components/Cell/CellImage.vue'
 import CellTapTargets from '../components/Cell/CellTapTargets.vue'
 
 const {
-  host,
+  site,
   client: {
     columns: configColumns,
     groupRoutesKey,
@@ -32,7 +32,7 @@ export const isStatic = window.__unlighthouse_static
 
 export { wsUrl, basePath, isLocalhost, apiUrl, groupRoutesKey, lighthouseOptions, throttle, device }
 
-export const website = host
+export const website = site
 
 export const categories = (lighthouseOptions?.onlyCategories || ['performance', 'accessibility', 'best-practices', 'seo'])
 export const tabs = [
