@@ -41,11 +41,11 @@ watch(isModalOpen, () => {
 </script>
 <template>
   <div>
-    <btn-action v-if="!value" title="Open full image" @click="openModal">
+    <btn-action v-if="image" title="Open full image" @click="openModal">
       <img loading="lazy" class="h-100px object-contain w-full object-top object-left" height="100" :src="image" alt="share image">
     </btn-action>
     <audit-result v-else :value="{ displayValue: 'Missing', score: 0 }" />
-    <teleport v-if="isModalOpen && showingModal" to="#modal-portal">
+    <teleport v-if="image && isModalOpen && showingModal" to="#modal-portal">
       <img :src="image" alt="share image" class="mx-auto">
     </teleport>
   </div>
