@@ -35,7 +35,7 @@ export const incrementSort = (key: string) => {
 }
 
 export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>(() => {
-  let data = isStatic && window.__unlighthouse_data ? window.__unlighthouse_data.reports : [...wsReports.values()]
+  let data = isStatic && window.__unlighthouse_payload ? window.__unlighthouse_payload.reports : [...wsReports.values()]
   if (searchText.value) {
     const fuse = new Fuse(data, {
       threshold: 0.3,

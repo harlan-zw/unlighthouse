@@ -10,23 +10,25 @@ import CellImage from '../components/Cell/CellImage.vue'
 import CellTapTargets from '../components/Cell/CellTapTargets.vue'
 
 const {
-  site,
-  client: {
-    columns: configColumns,
-    groupRoutesKey,
-  },
-  websocketUrl: wsUrl,
-  apiUrl,
-  lighthouseOptions,
-  scanner: {
-    throttle,
-    device,
-  },
-  isLocalhost,
-  router: {
-    prefix: basePath,
-  },
-} = window.__unlighthouse_options
+  options: {
+    site,
+    client: {
+      columns: configColumns,
+      groupRoutesKey,
+    },
+    websocketUrl: wsUrl,
+    apiUrl,
+    lighthouseOptions,
+    scanner: {
+      throttle,
+      device,
+    },
+    isLocalhost,
+    router: {
+      prefix: basePath,
+    },
+  }
+} = window.__unlighthouse_payload
 
 export const isStatic = window.__unlighthouse_static
 

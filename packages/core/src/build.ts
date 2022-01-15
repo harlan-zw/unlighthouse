@@ -19,34 +19,41 @@ export const generateClient = async(options: GenerateClientOptions = {}, unlight
 
   const { runtimeSettings, resolvedConfig, worker } = unlighthouse
 
-  let headScript = `
-window.__unlighthouse_options = ${JSON.stringify({ ...runtimeSettings, ...resolvedConfig })}
-`
-  // in static mode we need to provide all of the reports and stats to the client
-  if (options.static) {
-    const staticData = {
-      scanMeta: createScanMeta(),
-      reports: worker.reports(),
-    }
-    headScript += `window.__unlighthouse_static = true
-window.__unlighthouse_data = ${JSON.stringify(staticData)}`
-  }
   const prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.router.prefix))
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
+
+  await fs.emptyDir(runtimeSettings.generatedClientPath)
   await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)
   // update the html with our config and base url if needed
+  const inlineScript = `window.__unlighthouse_static = ${options.static}`
   let indexHTML = await fs.readFile(runtimeSettings.resolvedClientPath, 'utf-8')
   indexHTML = indexHTML
-    .replace(/<script data-unlighthouse>.*?<\/script>/gms, `<script>${headScript}</script>`)
-    .replace(/(href|src)="\/assets\/(.*?)"/gm, `$1="${prefix}assets/$2"`)
+      .replace(/<script data-unlighthouse-inline>.*?<\/script>/gms, `<script data-unlighthouse-inline>${inlineScript}</script>`)
+      .replace(/(href|src)="\/assets\/(.*?)"/gm, `$1="${prefix}assets/$2"`)
   await fs.writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
+
+  const staticData = {
+    reports: [],
+    scanMeta: createScanMeta(),
+    options: { ...runtimeSettings, ...resolvedConfig }
+  }
+  if (options.static) {
+    // @ts-ignore
+    staticData.reports = worker.reports()
+  }
+  await fs.writeFile(
+      join(runtimeSettings.generatedClientPath, 'assets', 'payload.js'),
+      `window.__unlighthouse_payload = ${JSON.stringify(staticData)}`,
+      { encoding: 'utf-8' }
+  )
+
   // update the baseurl within the modules
   const globby = (await import('globby'))
   const indexJSGlobby = await globby.globby(join(dirname(runtimeSettings.resolvedClientPath), 'assets', 'index.*.js'))
   // should be a single entry
   let indexJS = await fs.readFile(indexJSGlobby[0], 'utf-8')
   indexJS = indexJS
-    .replace('const base = "/";', `const base = "${prefix}";`)
-    .replace('createWebHistory("/")', `createWebHistory("${prefix}")`)
+      .replace('const base = "/";', `const base = "${prefix}";`)
+      .replace('createWebHistory("/")', `createWebHistory("${prefix}")`)
   await fs.writeFile(indexJSGlobby[0].replace(clientPathFolder, runtimeSettings.generatedClientPath), indexJS, 'utf-8')
 }

@@ -108,7 +108,7 @@ export const rescanRoute = (route: NormalisedRoute) => useFetch(`${apiUrl}/repor
 
 export const scanMeta = computed<ScanMeta|null>(() => {
   if (isStatic)
-    return window.__unlighthouse_data?.scanMeta
+    return window.__unlighthouse_payload?.scanMeta
 
   if (fetchedScanMeta?.data)
     return fetchedScanMeta?.data
@@ -144,7 +144,7 @@ export const wsConnect = async() => {
 }
 
 export const categoryScores = computed(() => {
-  const data = isStatic && window.__unlighthouse_data ? window.__unlighthouse_data.reports : [...wsReports.values()]
+  const data = isStatic && window.__unlighthouse_payload ? window.__unlighthouse_payload.reports : [...wsReports.values()]
   const reportsFinished = data.filter(r => !!r.report)
   return categories.map((c) => {
     return sum(reportsFinished.map((r) => {
