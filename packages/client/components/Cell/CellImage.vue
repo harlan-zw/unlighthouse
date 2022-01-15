@@ -2,7 +2,7 @@
 import { get } from 'lodash-es'
 import { $URL, withBase } from 'ufo'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { iframeModelUrl, isModalOpen, website } from '../../logic'
+import { iframeModelUrl, isModalOpen, website, isOffline } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -23,6 +23,10 @@ const image = computed(() => {
 const showingModal = ref(false)
 
 const openModal = () => {
+  // don't open modal if we're offline
+  if (isOffline.value) {
+    return
+  }
   isModalOpen.value = true
   iframeModelUrl.value = null
   nextTick(() => {
@@ -37,7 +41,7 @@ watch(isModalOpen, () => {
 </script>
 <template>
   <div>
-    <btn-action v-if="value" title="Open full image" @click="openModal">
+    <btn-action v-if="!value" title="Open full image" @click="openModal">
       <img loading="lazy" class="h-100px object-contain w-full object-top object-left" height="100" :src="image" alt="share image">
     </btn-action>
     <audit-result v-else :value="{ displayValue: 'Missing', score: 0 }" />
