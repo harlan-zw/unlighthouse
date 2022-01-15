@@ -170,7 +170,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     }
 
     if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
-      logger.debug(`\`cacheReports\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
+      logger.debug(`\`cache\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
       fs.rmSync(resolvedConfig.outputPath, { recursive: true })
     }
     fs.ensureDirSync(ctx.runtimeSettings.outputPath)
@@ -213,7 +213,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     }
 
     if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
-      logger.debug(`\`cacheReports\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
+      logger.debug(`\`cache\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
       fs.rmSync(resolvedConfig.outputPath, { recursive: true })
     }
     fs.ensureDirSync(ctx.runtimeSettings.outputPath)
@@ -234,7 +234,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       return ctx
     }
 
-    logger.debug(`Starting Unlighthouse [Server: ${ctx.runtimeSettings.clientUrl} Site: ${ctx.resolvedConfig.site} Debug: \`${ctx.resolvedConfig.debug}\`]`)
+    logger.debug(`Starting Unlighthouse [Server: ${provider?.name === 'ci' ? 'N/A' : ctx.runtimeSettings.clientUrl} Site: ${ctx.resolvedConfig.site} Debug: \`${ctx.resolvedConfig.debug}\`]`)
 
     if (typeof provider?.routeDefinitions === 'function')
       ctx.routeDefinitions = await provider.routeDefinitions()

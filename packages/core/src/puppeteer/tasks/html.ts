@@ -109,7 +109,10 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
       // check if redirect url is already queued, if so we bail on this route
 
     html = response.payload
-    fs.writeFileSync(routeReport.htmlPayload, html)
+    // only need the html payload for caching purposes, unlike the lighthouse reports
+    if (resolvedConfig.cache) {
+      fs.writeFileSync(routeReport.htmlPayload, html)
+    }
   }
 
   const $ = cheerio.load(html)

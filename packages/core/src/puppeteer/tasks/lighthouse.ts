@@ -61,6 +61,7 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
   const port = new URL(browser.wsEndpoint()).port
 
   const args = [
+    `--cache=${JSON.stringify(resolvedConfig.cache)}`,
     `--routeReport=${JSON.stringify(pick(routeReport, ['route.url', 'reportJson', 'reportHtml']))}`,
     `--lighthouseOptions=${JSON.stringify(resolvedConfig.lighthouseOptions)}`,
     `--port=${port}`,
