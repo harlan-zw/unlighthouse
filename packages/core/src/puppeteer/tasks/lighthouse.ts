@@ -46,7 +46,7 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
 
 export const runLighthouseTask: PuppeteerTask = async(props) => {
   const logger = useLogger()
-  const { resolvedConfig, runtimeSettings } = useUnlighthouse()
+  const { resolvedConfig, runtimeSettings, worker } = useUnlighthouse()
   const { page, data: routeReport } = props
 
   // if the report doesn't exist we're going to run a new lighthouse process to generate it
@@ -93,6 +93,6 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     routeReport.tasks.runLighthouseTask = 'failed'
   }
   routeReport.report = normaliseLighthouseResult(report)
-  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. [Score: \`${routeReport.report.score}\`${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples}` : ''}]`)
+  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. [Score: \`${routeReport.report.score}\`${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete]`)
   return routeReport
 }

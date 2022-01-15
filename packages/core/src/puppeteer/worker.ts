@@ -64,9 +64,16 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     }
   }
 
+  const exceededMaxRoutes = () => {
+    return resolvedConfig.scanner.maxRoutes !== false && routeReports.size >= resolvedConfig.scanner.maxRoutes
+  }
+
   const queueRoute = (route: NormalisedRoute) => {
     const { id, path } = route
 
+    // exceed the max routes
+    if (exceededMaxRoutes())
+      return
     // no duplicate queueing, manually need to purge the reports to re-queue
     if (routeReports.has(id))
       return
@@ -193,6 +200,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
   return {
     cluster,
     routeReports,
+    exceededMaxRoutes,
     requeueReport,
     invalidateFile,
     queueRoute,

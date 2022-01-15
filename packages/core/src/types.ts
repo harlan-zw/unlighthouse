@@ -274,6 +274,13 @@ export interface ResolvedUserConfig {
   discovery: false|DiscoveryOptions
   scanner: {
     /**
+     * The maximum number of routes that should be processed. This helps avoid issues when the site requires specific
+     * configuration to be able to run properly
+     *
+     * @default 200
+     */
+    maxRoutes: number|false
+    /**
      * Paths to explicitly include from the search, this will exclude any paths not listed here.
      */
     include?: string[]
@@ -596,6 +603,11 @@ export interface UnlighthouseWorker {
    * @return True if an invalidation occurred on the routes.
    */
   invalidateFile: (file: string) => boolean
+
+  /**
+   * Checks if the amount of routes scanned surpasses the `scanner.maxRoutes` value.
+   */
+  exceededMaxRoutes: () => boolean
 }
 
 export interface ScanMeta {

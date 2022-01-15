@@ -263,6 +263,7 @@ export const defaultConfig: UserConfig = {
     columns: DefaultColumns,
   },
   scanner: {
+    maxRoutes: 200,
     skipJavascript: true,
     samples: 1,
     throttle: true,
