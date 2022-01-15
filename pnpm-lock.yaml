@@ -170,6 +170,7 @@ importers:
       esno: ^0.13.0
       execa: ^6.0.0
       fast-glob: ^3.2.9
+      fetch: ^1.1.0
       fs-extra: ^10.0.0
       globby: ^12.0.2
       hookable: ^5.1.1
@@ -207,6 +208,7 @@ importers:
       consola: 2.15.3
       defu: 5.0.0
       execa: 6.0.0
+      fetch: 1.1.0
       fs-extra: 10.0.0
       globby: 12.0.2
       hookable: 5.1.1
@@ -215,6 +217,7 @@ importers:
       lodash-es: 4.17.21
       mlly: 0.3.17
       object-hash: 2.2.0
+      ohmyfetch: 0.4.14
       puppeteer: 13.0.1
       puppeteer-cluster: 0.22.0_puppeteer@13.0.1
       regexparam: 2.0.0
@@ -237,7 +240,6 @@ importers:
       esno: 0.13.0_typescript@4.5.4
       fast-glob: 3.2.10
       jest: 27.4.7
-      ohmyfetch: 0.4.14
       rimraf: 3.0.2
       rollup: 2.63.0
       ts-jest: 27.1.2_9364f2ad0b7b67f00a4d081c662c6871
@@ -260,14 +262,10 @@ importers:
       '@unlighthouse/cli': workspace:*
       '@unlighthouse/client': workspace:*
       '@unlighthouse/core': workspace:*
-      fetch: ^1.1.0
-      ohmyfetch: ^0.4.14
     dependencies:
       '@unlighthouse/cli': link:../cli
       '@unlighthouse/client': link:../client
       '@unlighthouse/core': link:../core
-      fetch: 1.1.0
-      ohmyfetch: 0.4.14
 
 packages:
 
