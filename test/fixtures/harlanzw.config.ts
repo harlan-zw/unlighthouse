@@ -2,6 +2,7 @@ export default {
     site: 'https://harlanzw.com',
     cache: false,
     scanner: {
+        device: 'desktop',
         throttle: false,
     },
     ci: {
