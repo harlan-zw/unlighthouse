@@ -99,16 +99,24 @@ export const formatBytes = (bytes: number, decimals = 2) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-export async function fetchUrlRaw(url: string): Promise<{ valid: boolean; response: FetchResponse<any> }> {
-  const response = await $fetch.raw(url)
-  if (response.status < 200 && response.status >= 300 && !response.redirected) {
+export async function fetchUrlRaw(url: string): Promise<{ error?: any, valid: boolean; response?: FetchResponse<any> }> {
+  try {
+    const response = await $fetch.raw(url)
+    if (response.status < 200 && response.status >= 300 && !response.redirected) {
+      return {
+        valid: false,
+        response,
+      }
+    }
     return {
-      valid: false,
+      valid: true,
       response,
     }
+  } catch (e) {
+    return {
+      error: e,
+      valid: false,
+    }
   }
-  return {
-    valid: true,
-    response,
-  }
+
 }
