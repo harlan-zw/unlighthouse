@@ -16,7 +16,6 @@ export const normaliseRoute = (url: string): NormalisedRoute => {
   // it's possible that we're serving a subdomain or something dodgy around www.
   if (!hasProtocol(url)) {
     // need to provide the host URL if the link is relative
-    runtimeSettings.siteUrl.origin
     url = withBase(url, runtimeSettings.siteUrl.origin)
   }
 

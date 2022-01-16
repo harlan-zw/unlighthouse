@@ -10,12 +10,12 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
   const { resolvedConfig } = useUnlighthouse()
 
   const measuredCategories = Object.values(result.categories)
-      .filter(c => typeof c.score !== 'undefined') as { score: number }[]
+    .filter(c => typeof c.score !== 'undefined') as { score: number }[]
 
   const columnFields = Object.values(resolvedConfig.client.columns)
-      .flat()
-      .filter(c => !!c.key)
-      .map(c => c.key?.replace('report.', '')) as string[]
+    .flat()
+    .filter(c => !!c.key)
+    .map(c => c.key?.replace('report.', '')) as string[]
 
   const imageIssues = sum([
     result.audits['unsized-images']?.details?.items?.length || 0,
@@ -27,8 +27,8 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     result.audits['uses-responsive-images']?.details?.items?.length || 0,
   ])
   const ariaIssues = sum(Object.values(result.audits)
-      .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
-      .map(a => a.details?.items?.length),
+    .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
+    .map(a => a.details?.items?.length),
   )
   // map the json report to what values we actually need
   return {
@@ -85,14 +85,14 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     try {
       // Spawn a worker process
       const worker = (await import('execa'))
-          .execa(
-              // handles stubbing
-              runtimeSettings.lighthouseProcessPath.endsWith('.ts') ? 'jiti' : 'node',
-              [runtimeSettings.lighthouseProcessPath, ...args],
-              {
-                timeout: 6 * 60 * 1000,
-              }
-          )
+        .execa(
+          // handles stubbing
+          runtimeSettings.lighthouseProcessPath.endsWith('.ts') ? 'jiti' : 'node',
+          [runtimeSettings.lighthouseProcessPath, ...args],
+          {
+            timeout: 6 * 60 * 1000,
+          },
+        )
       worker.stdout!.pipe(process.stdout)
       worker.stderr!.pipe(process.stderr)
       const res = await worker

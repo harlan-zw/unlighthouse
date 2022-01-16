@@ -371,7 +371,10 @@ export type DeepPartial<T> = T extends Function ? T : (T extends object ? { [P i
 export type UserConfig = DeepPartial<ResolvedUserConfig>
 
 export interface RuntimeSettings {
-  siteUrl: $URL,
+  /**
+   * A URL instance of the site for easier use of the host.
+   */
+  siteUrl: $URL
   /**
    * The URL of the server running the API and client.
    */

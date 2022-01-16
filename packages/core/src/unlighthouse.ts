@@ -91,12 +91,12 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   }
   // path to the lighthouse worker file
   runtimeSettings.lighthouseProcessPath = await resolvePath(
-      join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
+    join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
   )
   // ts module in stub mode, not sure why extensions won't resolve
   if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
     runtimeSettings.lighthouseProcessPath = await resolvePath(
-        join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.ts'),
+      join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.ts'),
     )
   }
 
@@ -105,7 +105,6 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
   const resolvedConfig = await resolveUserConfig(userConfig)
   logger.debug('Post config resolution', resolvedConfig)
-
 
   const hooks = createHooks<UnlighthouseHooks>()
 
@@ -122,11 +121,11 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   const { valid, response, error, redirected } = await fetchUrlRaw(resolvedConfig.site)
   if (!valid) {
     // something is wrong with the site, bail
-    if (response?.status) {
+    if (response?.status)
       logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
-    } else {
+    else
       logger.fatal(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
-    }
+
     // bail on cli or ci
     if (provider?.name === 'cli' || provider?.name === 'ci')
       process.exit(1)
@@ -136,11 +135,12 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     if (redirected) {
       logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${response.request.responseURL}\`, using that as the site.`)
       resolvedConfig.site = normaliseHost(response.request.responseURL)
-    } else {
+    }
+    else {
       logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
     }
   }
-  // @ts-ignore @todo fix up types
+  // @ts-expect-error @todo fix up types
   runtimeSettings.siteUrl = new $URL(resolvedConfig.site)
 
   // web socket instance for broadcasting
@@ -281,21 +281,21 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       const label = (name: string) => chalk.bold.magenta(`▸ ${name}:`)
       const mode = ctx.routes.length <= 1 ? 'crawl' : 'sitemap'
       process.stdout.write(successBox(
-          // messages
-          [
-            `Root: ${chalk.dim(resolvedConfig.root)}`,
-            ctx.runtimeSettings.clientUrl ? `URL: ${ctx.runtimeSettings.clientUrl}` : '',
-          ].join('\n'),
-          // title
-          [
-            `⛵  ${chalk.bold.blueBright(AppName)} @ v${version}`,
-            '',
-            chalk.dim.italic(TagLine),
-            '',
-            `${label('Scanning')} ${resolvedConfig.site}`,
-            `${label('Route Discovery')} ${mode === 'crawl' ? 'Crawl' : 'Sitemap + Crawl'}`,
-            `${label('Route Definitions')} ${!ctx.routeDefinitions ? 'None' : ctx.routeDefinitions.length}`,
-          ].join('\n'),
+        // messages
+        [
+          `Root: ${chalk.dim(resolvedConfig.root)}`,
+          ctx.runtimeSettings.clientUrl ? `URL: ${ctx.runtimeSettings.clientUrl}` : '',
+        ].join('\n'),
+        // title
+        [
+          `⛵  ${chalk.bold.blueBright(AppName)} @ v${version}`,
+          '',
+          chalk.dim.italic(TagLine),
+          '',
+          `${label('Scanning')} ${resolvedConfig.site}`,
+          `${label('Route Discovery')} ${mode === 'crawl' ? 'Crawl' : 'Sitemap + Crawl'}`,
+          `${label('Route Definitions')} ${!ctx.routeDefinitions ? 'None' : ctx.routeDefinitions.length}`,
+        ].join('\n'),
       ))
     }
     return ctx

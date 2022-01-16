@@ -1,5 +1,6 @@
 // pull out client accessible options
 import { startCase } from 'lodash-es'
+import { $URL } from 'ufo'
 import CellNetworkRequests from '../components/Cell/CellNetworkRequests.vue'
 import CellImageIssues from '../components/Cell/CellImageIssues.vue'
 import CellColorContrast from '../components/Cell/CellColorContrast.vue'
@@ -9,7 +10,6 @@ import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnail
 import CellImage from '../components/Cell/CellImage.vue'
 import CellTapTargets from '../components/Cell/CellTapTargets.vue'
 import CellWebVitals from '../components/Cell/CellWebVitals.vue'
-import { $URL } from 'ufo'
 
 const {
   options: {

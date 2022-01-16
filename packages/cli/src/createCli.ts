@@ -9,7 +9,7 @@ export default function createCli() {
     .version(version)
     .option('--site <site>', 'Host URL to scan')
     .option('--site <site>', 'Alias for --site')
-      .option('--samples <scanner.samples>', 'Specify the amount of samples to run.')
+    .option('--samples <scanner.samples>', 'Specify the amount of samples to run.')
     .example('unlighthouse --site harlanzw.com')
     .option('--output-path <output-path>', 'Path to save the contents of the client and reports to.')
     .option('--root <root>', 'Root ro run lighthouse. Useful for changing where the config is read from or setting up sampling.')

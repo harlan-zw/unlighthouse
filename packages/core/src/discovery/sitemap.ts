@@ -1,7 +1,7 @@
 import Sitemapper from 'sitemapper'
+import { $URL } from 'ufo'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
-import {$URL} from "ufo";
 
 /**
  * Fetches routes from a sitemap file.

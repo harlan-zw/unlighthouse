@@ -4,9 +4,10 @@ import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { hasProtocol, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import type { AxiosResponse } from 'axios'
+import axios from 'axios'
 import type { NormalisedRoute, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
-import axios, {AxiosResponse} from 'axios'
 
 /**
  * Removes leading and trailing slashes from a string.
@@ -98,7 +99,7 @@ export const formatBytes = (bytes: number, decimals = 2) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-export async function fetchUrlRaw(url: string): Promise<{ error?: any, redirected?: boolean, valid: boolean; response?: AxiosResponse }> {
+export async function fetchUrlRaw(url: string): Promise<{ error?: any; redirected?: boolean; valid: boolean; response?: AxiosResponse }> {
   try {
     const response = await axios.get(url)
     const redirected = response.request.responseURL && response.request.responseURL !== url
@@ -114,11 +115,11 @@ export async function fetchUrlRaw(url: string): Promise<{ error?: any, redirecte
       redirected,
       response,
     }
-  } catch (e) {
+  }
+  catch (e) {
     return {
       error: e,
       valid: false,
     }
   }
-
 }
