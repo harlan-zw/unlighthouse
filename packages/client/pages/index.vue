@@ -45,7 +45,7 @@ if (!isStatic) {
             >
               <span class="inline-flex items-center">{{ category }}
                 <tooltip v-if="category === 'Performance'">
-                  <i-carbon-warning class="inline ml-2" />
+                  <i-carbon-warning class="inline ml-1" />
                   <template #tooltip>
                     Lighthouse is running with variability. Performance scores should not be considered accurate.
                   </template>
