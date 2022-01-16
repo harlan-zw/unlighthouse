@@ -4,10 +4,9 @@ import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { hasProtocol, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
-import type { FetchResponse } from 'ohmyfetch'
-import { $fetch } from 'ohmyfetch'
 import type { NormalisedRoute, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
+import axios, {AxiosResponse} from 'axios'
 
 /**
  * Removes leading and trailing slashes from a string.
@@ -99,17 +98,20 @@ export const formatBytes = (bytes: number, decimals = 2) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-export async function fetchUrlRaw(url: string): Promise<{ error?: any, valid: boolean; response?: FetchResponse<any> }> {
+export async function fetchUrlRaw(url: string): Promise<{ error?: any, redirected?: boolean, valid: boolean; response?: AxiosResponse }> {
   try {
-    const response = await $fetch.raw(url)
-    if (response.status < 200 && response.status >= 300 && !response.redirected) {
+    const response = await axios.get(url)
+    const redirected = response.request.responseURL && response.request.responseURL !== url
+    if (response.status < 200 || (response.status >= 300 && !redirected)) {
       return {
         valid: false,
+        redirected,
         response,
       }
     }
     return {
       valid: true,
+      redirected,
       response,
     }
   } catch (e) {

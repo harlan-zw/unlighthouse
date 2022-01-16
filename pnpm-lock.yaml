@@ -54,7 +54,7 @@ importers:
     dependencies:
       '@panelbear/panelbear-js': 1.3.3
       '@vueuse/core': 7.5.3_vue@3.2.26
-      unplugin-icons: 0.13.0_rollup@2.63.0
+      unplugin-icons: 0.13.0_rollup@2.64.0
       vue: 3.2.26
     devDependencies:
       '@iconify-json/carbon': 1.0.12
@@ -62,7 +62,7 @@ importers:
       '@unocss/reset': 0.22.0
       '@vitejs/plugin-vue': 2.0.1_vue@3.2.26
       unocss: 0.22.0
-      unplugin-vue-components: 0.17.11_rollup@2.63.0+vue@3.2.26
+      unplugin-vue-components: 0.17.11_rollup@2.64.0+vue@3.2.26
       vitepress: 0.21.4
 
   packages/cli:
@@ -165,6 +165,7 @@ importers:
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.2.2
       '@unlighthouse/client': workspace:*
+      axios: ^0.24.0
       chalk: ^4.1.2
       cheerio: ^1.0.0-rc.10
       consola: ^2.15.3
@@ -172,7 +173,6 @@ importers:
       esno: ^0.13.0
       execa: ^6.0.0
       fast-glob: ^3.2.9
-      fetch: ^1.1.0
       fs-extra: ^10.0.0
       globby: ^12.0.2
       hookable: ^5.1.1
@@ -205,12 +205,12 @@ importers:
       '@nuxt/cli': 2.15.8
       '@nuxt/utils': 2.15.8
       '@unlighthouse/client': link:../client
+      axios: 0.24.0
       chalk: 4.1.2
       cheerio: 1.0.0-rc.10
       consola: 2.15.3
       defu: 5.0.0
       execa: 6.0.0
-      fetch: 1.1.0
       fs-extra: 10.0.0
       globby: 12.0.2
       hookable: 5.1.1
@@ -219,7 +219,6 @@ importers:
       lodash-es: 4.17.21
       mlly: 0.3.17
       object-hash: 2.2.0
-      ohmyfetch: 0.4.14
       puppeteer: 13.0.1
       puppeteer-cluster: 0.22.0_puppeteer@13.0.1
       regexparam: 2.0.0
@@ -242,6 +241,7 @@ importers:
       esno: 0.13.0_typescript@4.5.4
       fast-glob: 3.2.10
       jest: 27.4.7
+      ohmyfetch: 0.4.14
       rimraf: 3.0.2
       rollup: 2.63.0
       ts-jest: 27.1.2_9364f2ad0b7b67f00a4d081c662c6871
@@ -2115,7 +2115,6 @@ packages:
       follow-redirects: 1.14.6
     transitivePeerDependencies:
       - debug
-    dev: true
 
   /babel-jest/27.4.6_@babel+core@7.16.7:
     resolution: {integrity: sha512-qZL0JT0HS1L+lOuH+xC2DVASR3nunZi/ozGhpgauJHgmI7f8rudxf6hUjEHympdQ/J64CdKmPkgfJ+A3U6QCrg==}
@@ -2201,13 +2200,6 @@ packages:
     resolution: {integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==}
     engines: {node: '>=8'}
     dev: true
-
-  /biskviit/1.0.1:
-    resolution: {integrity: sha1-A3oM1LcbnjMf2QoRIt4X3EnkIKc=}
-    engines: {node: '>=1.0.0'}
-    dependencies:
-      psl: 1.8.0
-    dev: false
 
   /bl/4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
@@ -2762,6 +2754,7 @@ packages:
   /data-uri-to-buffer/4.0.0:
     resolution: {integrity: sha512-Vr3mLBA8qWmcuschSLAOogKgQ/Jwxulv3RNE4FXnYWRGujzrRWQI4m12fQqRkwX06C0KanhLr4hK+GydchZsaA==}
     engines: {node: '>= 12'}
+    dev: true
 
   /data-urls/2.0.0:
     resolution: {integrity: sha512-X5eWTSXO/BJmpdIKCRuKUgSCgAN0OwliVK3yPKbwIWU1Tdw5BRajxlzMidvh+gwko9AfQ9zIj52pzF91Q3YAvQ==}
@@ -3020,12 +3013,6 @@ packages:
   /encodeurl/1.0.2:
     resolution: {integrity: sha1-rT/0yG7C0CkyL1oCw6mmBslbP1k=}
     engines: {node: '>= 0.8'}
-    dev: false
-
-  /encoding/0.1.12:
-    resolution: {integrity: sha1-U4tm8+5izRq1HsMjgp0flIDHS+s=}
-    dependencies:
-      iconv-lite: 0.4.24
     dev: false
 
   /end-of-stream/1.4.4:
@@ -3986,13 +3973,7 @@ packages:
     engines: {node: ^12.20 || >= 14.13}
     dependencies:
       web-streams-polyfill: 3.2.0
-
-  /fetch/1.1.0:
-    resolution: {integrity: sha1-CoJ58Gvjf58Ou1Z1YKMKSA2lmi4=}
-    dependencies:
-      biskviit: 1.0.1
-      encoding: 0.1.12
-    dev: false
+    dev: true
 
   /file-entry-cache/6.0.1:
     resolution: {integrity: sha512-7Gps/XWymbLk2QLYK4NzpMOrYjMhdIxXuIvy2QBsLE6ljuodKvdkWs/cpyJJ3CVIVpH0Oi1Hvg1ovbMzLdFBBg==}
@@ -4073,7 +4054,6 @@ packages:
     peerDependenciesMeta:
       debug:
         optional: true
-    dev: true
 
   /foreach/2.0.5:
     resolution: {integrity: sha1-C+4AUBiusmDQo6865ljdATbsG5k=}
@@ -4093,6 +4073,7 @@ packages:
     engines: {node: '>=12.20.0'}
     dependencies:
       fetch-blob: 3.1.3
+    dev: true
 
   /fresh/0.5.2:
     resolution: {integrity: sha1-PYyt2Q2XZWn6g1qx+OSyOhBWBac=}
@@ -4479,6 +4460,7 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       safer-buffer: 2.1.2
+    dev: true
 
   /ieee754/1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -5887,13 +5869,14 @@ packages:
       whatwg-url: 5.0.0
     dev: false
 
-  /node-fetch/3.1.0:
-    resolution: {integrity: sha512-QU0WbIfMUjd5+MUzQOYhenAazakV7Irh1SGkWCsRzBwvm4fAhzEUaHMJ6QLP7gWT6WO9/oH2zhKMMGMuIrDyKw==}
+  /node-fetch/3.1.1:
+    resolution: {integrity: sha512-SMk+vKgU77PYotRdWzqZGTZeuFKlsJ0hu4KPviQKkfY+N3vn2MIzr0rvpnYpR8MtB3IEuhlEcuOLbGvLRlA+yg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     dependencies:
       data-uri-to-buffer: 4.0.0
       fetch-blob: 3.1.3
       formdata-polyfill: 4.0.10
+    dev: true
 
   /node-forge/0.10.0:
     resolution: {integrity: sha512-PPmu8eEeG9saEUvI97fm4OYxXVB6bFvyNTyiUOBichBpFG8A1Ljw3bY62+5oOjDEMHRnd0Y7HQ+x7uzxOzC6JA==}
@@ -6060,9 +6043,10 @@ packages:
     resolution: {integrity: sha512-kWllHM3DVJdwB4BpEoHhe+JUviDArit3ZQyVI2X2sxhCYZXlGHAABrsjJ07bac0RG3tae08BnKWy4eRMPKMh4w==}
     dependencies:
       destr: 1.1.0
-      node-fetch: 3.1.0
+      node-fetch: 3.1.1
       ufo: 0.7.9
       undici: 4.12.1
+    dev: true
 
   /on-finished/2.3.0:
     resolution: {integrity: sha1-IPEzZIGwg811M3mSoWlxqi2QaUc=}
@@ -6417,6 +6401,7 @@ packages:
 
   /psl/1.8.0:
     resolution: {integrity: sha512-RIdOzyoavK+hA18OGGWDqUTsCLhtA7IcZ/6NCs4fFJaHBDab+pDDmDIByWFRQJq2Cd7r1OoQxBGKOaztq+hjIQ==}
+    dev: true
 
   /pstree.remy/1.1.8:
     resolution: {integrity: sha512-77DZwxQmxKnu3aR542U+X8FypNzbfJ+C5XQDk3uWjWxn6151aIMGthWYRXTqT1E5oJvg+ljaa2OJi+VfvCOQ8w==}
@@ -6755,6 +6740,7 @@ packages:
 
   /safer-buffer/2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
+    dev: true
 
   /sanitize-filename/1.6.3:
     resolution: {integrity: sha512-y/52Mcy7aw3gRm7IrcGDFx/bCk4AhRh2eI9luHOQM86nZsqwiRkkq2GekHXBBD+SmPidc8i2PqtYZl+pWJ8Oeg==}
@@ -7582,6 +7568,7 @@ packages:
   /undici/4.12.1:
     resolution: {integrity: sha512-MSfap7YiQJqTPP12C11PFRs9raZuVicDbwsZHTjB0a8+SsCqt7KdUis54f373yf7ZFhJzAkGJLaKm0202OIxHg==}
     engines: {node: '>=12.18'}
+    dev: true
 
   /unique-string/2.0.0:
     resolution: {integrity: sha512-uNaeirEPvpZWSgzwsPGtU2zVSTrn/8L5q/IexZmH0eH6SA73CmAA5U4GwORTxQAZs95TAXLNqeLoPPNO5gZfWg==}
@@ -7673,7 +7660,7 @@ packages:
       - webpack
     dev: true
 
-  /unplugin-icons/0.13.0_rollup@2.63.0:
+  /unplugin-icons/0.13.0_rollup@2.64.0:
     resolution: {integrity: sha512-CyAl0HV3bZUGT7ut9agpPRhEYXCvufr80Fh72yrkD57BVCTZ7ze10Rt63ZrvPXiJQpd+aI/Bizm2aqOf3WPSfg==}
     peerDependencies:
       '@svgr/core': ^5.5.0
@@ -7696,7 +7683,7 @@ packages:
       debug: 4.3.3
       kolorist: 1.5.1
       local-pkg: 0.4.1
-      unplugin: 0.2.21_rollup@2.63.0
+      unplugin: 0.2.21_rollup@2.64.0
     transitivePeerDependencies:
       - rollup
       - supports-color
@@ -7735,7 +7722,7 @@ packages:
       - webpack
     dev: true
 
-  /unplugin-vue-components/0.17.11_rollup@2.63.0+vue@3.2.26:
+  /unplugin-vue-components/0.17.11_rollup@2.64.0+vue@3.2.26:
     resolution: {integrity: sha512-u5MQ0TbikszRelCt6EA/HskGtGkGLDxi7tQ4/4tcEPWkH3yXSZRJCOeLF5MSdxN1SiGjaJ0I9zeHjoZFC3FvRw==}
     engines: {node: '>=14'}
     peerDependencies:
@@ -7757,7 +7744,7 @@ packages:
       magic-string: 0.25.7
       minimatch: 3.0.4
       resolve: 1.21.0
-      unplugin: 0.2.21_rollup@2.63.0
+      unplugin: 0.2.21_rollup@2.64.0
       vue: 3.2.26
     transitivePeerDependencies:
       - rollup
@@ -7766,7 +7753,7 @@ packages:
       - webpack
     dev: true
 
-  /unplugin/0.2.21_rollup@2.63.0:
+  /unplugin/0.2.21_rollup@2.64.0:
     resolution: {integrity: sha512-IJ15/L5XbhnV7J09Zjk0FT5HEkBjkXucWAXQWRsmEtUxmmxwh23yavrmDbCF6ZPxWiVB28+wnKIHePTRRpQPbQ==}
     peerDependencies:
       rollup: ^2.50.0
@@ -7780,7 +7767,7 @@ packages:
       webpack:
         optional: true
     dependencies:
-      rollup: 2.63.0
+      rollup: 2.64.0
       webpack-virtual-modules: 0.4.3
 
   /unplugin/0.2.21_rollup@2.64.0+vite@2.7.10:
@@ -8135,6 +8122,7 @@ packages:
   /web-streams-polyfill/3.2.0:
     resolution: {integrity: sha512-EqPmREeOzttaLRm5HS7io98goBgZ7IVz79aDvqjD0kYXLtFZTc0T/U6wHTPKyIjb+MdN7DFIIX6hgdBEpWmfPA==}
     engines: {node: '>= 8'}
+    dev: true
 
   /webidl-conversions/3.0.1:
     resolution: {integrity: sha1-JFNCdeKnvGvnvIZhHMFq4KVlSHE=}
