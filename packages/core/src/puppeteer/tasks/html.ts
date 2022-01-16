@@ -110,9 +110,8 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
 
     html = response.payload
     // only need the html payload for caching purposes, unlike the lighthouse reports
-    if (resolvedConfig.cache) {
+    if (resolvedConfig.cache)
       fs.writeFileSync(routeReport.htmlPayload, html)
-    }
   }
 
   const $ = cheerio.load(html)

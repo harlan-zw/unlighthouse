@@ -10,6 +10,6 @@ declare global {
     /**
      * Data provided for offline / demo mode.
      */
-    __unlighthouse_payload: { options: ResolvedUserConfig & RuntimeSettings, scanMeta: ScanMeta; reports: UnlighthouseRouteReport[] }
+    __unlighthouse_payload: { options: ResolvedUserConfig & RuntimeSettings; scanMeta: ScanMeta; reports: UnlighthouseRouteReport[] }
   }
 }

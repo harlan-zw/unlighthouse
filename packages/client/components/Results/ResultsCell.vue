@@ -12,11 +12,12 @@ const value = computed(() => {
   return get(props.report, props.column.key)
 })
 
-const { column: colRef } = toRefs(props)
-const classes = useColumnClasses(colRef)
 </script>
 <template>
-  <div :class="classes" class="flex items-center">
+  <div
+    :class="[`col-span-${column.cols || '2'}`, ...(column.classes ? column.classes : [])]"
+    class="flex items-center"
+  >
     <slot />
     <audit-result v-if="value?.scoreDisplayMode === 'error'" :value="{ score: 0, displayValue: value.errorMessage }" />
     <audit-result v-else-if="value?.scoreDisplayMode === 'notApplicable'" :value="{ score: null, displayValue: 'n/a' }" />

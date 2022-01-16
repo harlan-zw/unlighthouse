@@ -2,7 +2,7 @@
 const isShowing = ref(false)
 </script>
 <template>
-  <div class="relative">
+  <div class="relative" @mouseleave="isShowing = false">
     <TransitionRoot
       appear
       :show="isShowing"
@@ -14,13 +14,13 @@ const isShowing = ref(false)
       leave-from="opacity-100 scale-100 "
       leave-to="opacity-0 scale-95 "
     >
-      <div role="tooltip" class="max-width-500px z-500 flex absolute min-w-200px z-10 top-[115%] inline-block bg-gray-900/99 font-medium shadow-sm text-white py-2 px-3 text-sm rounded-lg">
+      <div role="tooltip" class="max-width-750px z-500 flex absolute min-w-200px z-10 top-[99%] inline-block bg-gray-900/99 font-medium shadow-sm text-white py-2 px-3 text-sm rounded-lg">
         <div>
           <slot name="tooltip" />
         </div>
       </div>
     </TransitionRoot>
-    <span @mouseenter="isShowing = true" @mouseleave="isShowing = false">
+    <span @mouseenter="isShowing = true">
       <slot />
     </span>
   </div>

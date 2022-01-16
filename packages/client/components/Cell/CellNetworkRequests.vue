@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { get, groupBy, sum } from 'lodash-es'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { formatBytes } from '../../logic'
+import { formatBytes, website } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -25,6 +25,7 @@ const requestsMapped = computed(() => {
     const items = requests.value[resourceType]
     res[resourceType] = {
       count: items.length,
+      items,
       size: formatBytes(sum(items.map(i => i.transferSize))),
     }
   }
@@ -33,13 +34,23 @@ const requestsMapped = computed(() => {
 </script>
 <template>
   <div v-if="value" class="text-sm">
-    <div class="text-xs opacity-90 flex items-center">
-      <span>{{ value.details.items.length }}</span>
+    <div class="opacity-90 flex items-center mb-2">
+      <span>{{ value.details.items.length }} total</span>
       <span class="opacity-70 ml-2">{{ totalTransfer }}</span>
     </div>
-    <div v-for="(group, resourceType) in requestsMapped" :key="resourceType" class="text-xs opacity-90 flex items-center">
-      <span>{{ group.count }} {{ resourceType }}</span>
-      <span class="opacity-70 ml-2">{{ group.size }}</span>
+    <div class="grid gap-4 grid-cols-2">
+      <div v-for="(group, resourceType) in requestsMapped" :key="resourceType" class="text-xs flex items-center">
+        <tooltip>
+          <span>{{ group.count }} {{ resourceType }}s</span>
+          <span class="opacity-70 ml-2">{{ group.size }}</span>
+          <template #tooltip>
+            <div v-for="(item, key) in group.items" :key="key" class="mb-2">
+              <span class="break-all">{{ item.url.replace(website, '') }}</span>
+              <span class="opacity-70 ml-2">{{ formatBytes(item.transferSize) }}</span>
+            </div>
+          </template>
+        </tooltip>
+      </div>
     </div>
   </div>
 </template>

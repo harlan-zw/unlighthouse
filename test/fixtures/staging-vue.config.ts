@@ -3,7 +3,7 @@ export default {
     cache: false,
     scanner: {
       samples: 3,
-      dynamicSampling: 15
+      dynamicSampling: 10
     },
     debug: true,
 }

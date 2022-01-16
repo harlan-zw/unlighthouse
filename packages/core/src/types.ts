@@ -57,7 +57,7 @@ export type LighthouseReport = Partial<LH.Result> & {
     imageIssues: {
       displayValue: string|number
       score: number
-    },
+    }
     ariaIssues: {
       displayValue: string|number
       score: number
@@ -154,8 +154,10 @@ export interface UnlighthouseColumn {
   key?: string
   /**
    * Column sizing definition, needed for a responsive UI.
+   *
+   * @default 2
    */
-  cols?: Partial<Record<WindiResponsiveClasses, number>>
+  cols?: number
   /**
    * Can the column can be sorted?
    *

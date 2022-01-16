@@ -46,26 +46,15 @@ export const resultColumns = computed(() => {
       key: 'route.path',
       sortable: true,
       component: CellRouteName,
-      cols: {
-        xs: 4,
-        lg: 3,
-        xl: 2,
-      },
+      cols: 2,
     },
     {
       label: 'Score',
       key: activeTab.value === 0 ? 'report.score' : `report.categories.${categories[activeTab.value - 1]}.score`,
       sortable: true,
       cols: activeTab.value === 0
-        ? {
-          xs: 7,
-          lg: 4,
-          xl: 3,
-        }
-        : {
-          xs: 2,
-          xl: 1,
-        },
+        ? 3
+        : 1,
       component: activeTab.value === 0
         ? CellScoresOverview
         : CellScoreSingle,
@@ -73,9 +62,7 @@ export const resultColumns = computed(() => {
     ...columns[activeTab.value],
     {
       label: 'Actions',
-      cols: {
-        xs: 1,
-      },
+      cols: 1,
       slot: 'actions',
       classes: ['items-end justify-end'],
     },
@@ -83,6 +70,10 @@ export const resultColumns = computed(() => {
 })
 
 export const wsReports: Map<string, UnlighthouseRouteReport> = reactive(new Map<string, UnlighthouseRouteReport>())
+
+export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
+  return isStatic ? window.__unlighthouse_payload?.reports : Array.from(wsReports.values())
+})
 
 export const fetchedScanMeta = isStatic
   ? null
@@ -144,8 +135,7 @@ export const wsConnect = async() => {
 }
 
 export const categoryScores = computed(() => {
-  const data = isStatic && window.__unlighthouse_payload ? window.__unlighthouse_payload.reports : [...wsReports.values()]
-  const reportsFinished = data.filter(r => !!r.report)
+  const reportsFinished = unlighthouseReports.value.filter(r => !!r.report)
   return categories.map((c) => {
     return sum(reportsFinished.map((r) => {
       return r.report?.categories?.[c].score

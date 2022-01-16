@@ -27,8 +27,8 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     result.audits['uses-responsive-images']?.details?.items?.length || 0,
   ])
   const ariaIssues = sum(Object.values(result.audits)
-      .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
-      .map(a => a.details?.items?.length)
+    .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
+    .map(a => a.details?.items?.length),
   )
   // map the json report to what values we actually need
   return {
@@ -51,7 +51,7 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
       ariaIssues: {
         displayValue: ariaIssues,
         score: ariaIssues > 0 ? 0 : 1,
-      }
+      },
     },
     score: Math.round(sumBy(measuredCategories, 'score') / measuredCategories.length * 100) / 100,
   }

@@ -18,7 +18,7 @@ const favIcon = computed(() => {
 
 <template>
   <nav class="bg-white dark:(bg-transparent) font-light border-b border-main flex items-center gap-4 children:my-auto px-3 md:px-6 py-2 ">
-    <a class="text-md font-medium text-teal-700 dark:text-teal-200 font-mono flex items-center" href="https://unlighthouse.dev" target="_blank">
+    <a class="text-md font-medium text-teal-700 dark:text-teal-200 font-mono items-center hidden md:flex" href="https://unlighthouse.dev" target="_blank">
       <img src="/assets/logo-light.svg" height="24" width="24" class="w-24px h-24px mr-2 hidden dark:block">
       <img src="/assets/logo-dark.svg" height="24" width="24" class="w-24px h-24px mr-2 block dark:hidden">
       Unlighthouse
@@ -35,7 +35,7 @@ const favIcon = computed(() => {
             </a>
           </div>
         </div>
-        <div v-if="isOffline" class="mr-5">
+        <div v-if="isOffline" class="mr-5 hidden md:block">
           <warning-chip>
             {{ isStatic ? 'Static' : 'Offline' }} Mode
           </warning-chip>

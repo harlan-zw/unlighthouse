@@ -8,6 +8,7 @@ import CellIndexable from '../components/Cell/CellIndexable.vue'
 import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnails.vue'
 import CellImage from '../components/Cell/CellImage.vue'
 import CellTapTargets from '../components/Cell/CellTapTargets.vue'
+import CellWebVitals from '../components/Cell/CellWebVitals.vue'
 
 const {
   options: {
@@ -27,7 +28,7 @@ const {
     router: {
       prefix: basePath,
     },
-  }
+  },
 } = window.__unlighthouse_payload
 
 export const isStatic = window.__unlighthouse_static
@@ -78,6 +79,11 @@ export const columns = Object.values(configColumns)
           break
         case 'report.audits.tap-targets':
           column.component = CellTapTargets
+          break
+      }
+      switch (column.label) {
+        case 'Core Web Vitals':
+          column.component = CellWebVitals
           break
       }
       return column

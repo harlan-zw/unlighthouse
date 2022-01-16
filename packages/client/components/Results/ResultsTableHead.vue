@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn } from '@unlighthouse/core'
-import { useColumnClasses } from '../../logic/column'
 
 const props = defineProps<{
   sorting: Record<string, 'desc'|'asc'|undefined>
@@ -10,13 +9,10 @@ const props = defineProps<{
 const emits = defineEmits<{
   (e: 'sort', key: string): void
 }>()
-
-const { column: colRef } = toRefs(props)
-const classes = useColumnClasses(colRef)
 </script>
 <template>
   <div
-    :class="classes"
+    :class="[`col-span-${column.cols || '2'}`, ...(column.classes ? column.classes : [])]"
     class="flex flex-col"
   >
     <div class="flex items-center ">
@@ -26,7 +22,7 @@ const classes = useColumnClasses(colRef)
           <i-carbon-information v-else class="ml-1 text-xs opacity-75" />
         </span>
         <template #tooltip>
-          {{ column.tooltip }}
+          <div v-html="column.tooltip" />
         </template>
       </tooltip>
       <div v-else>

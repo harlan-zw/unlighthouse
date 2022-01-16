@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import Fuse from 'fuse.js'
 import { get, groupBy, isEmpty, orderBy } from 'lodash-es'
 import type { UnlighthouseRouteReport } from '@unlighthouse/core'
-import { wsReports } from './state'
-import { columns, groupRoutesKey, isStatic } from './static'
+import { unlighthouseReports } from './state'
+import { columns, groupRoutesKey } from './static'
 
 type SortDirection = 'asc'|'desc'
 export interface Sorting {
@@ -35,7 +35,7 @@ export const incrementSort = (key: string) => {
 }
 
 export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>(() => {
-  let data = isStatic && window.__unlighthouse_payload ? window.__unlighthouse_payload.reports : [...wsReports.values()]
+  let data = unlighthouseReports.value
   if (searchText.value) {
     const fuse = new Fuse(data, {
       threshold: 0.3,

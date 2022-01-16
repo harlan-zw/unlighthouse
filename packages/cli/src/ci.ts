@@ -1,4 +1,4 @@
-import { join} from 'path'
+import { join } from 'path'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
@@ -103,9 +103,8 @@ async function run() {
         const globby = (await import('globby'))
         const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json'], { cwd: outDir, absolute: true })
         logger.debug(`Deleting ${jsonPayloads.length} json payloads`)
-        for (const k in jsonPayloads) {
+        for (const k in jsonPayloads)
           await fs.rm(jsonPayloads[k])
-        }
 
         logger.success(`Static client generated at \`${runtimeSettings.generatedClientPath}\`, ready for hosting.`)
       }

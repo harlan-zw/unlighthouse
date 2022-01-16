@@ -30,8 +30,8 @@ if (!isStatic) {
 </script>
 <template>
   <NavBar />
-  <div class="2xl:flex mx-3 mt-2">
-    <div class="mr-0 w-full 2xl:(mr-5 w-250px mb-0) mb-3">
+  <div class="2xl:flex mt-2">
+    <div class="px-3 mr-0 w-full 2xl:(mr-5 w-250px mb-0) mb-3">
       <TabGroup vertical @change="changedTab">
         <TabList class="p-1 dark:(bg-blue-900/20 border-none) border-2 border-blue-900/30 rounded-xl 2xl:(mt-8 block) flex">
           <Tab
@@ -43,7 +43,14 @@ if (!isStatic) {
             <btn-tab
               :selected="selected"
             >
-              <span>{{ category }}</span>
+              <span class="inline-flex items-center">{{ category }}
+                <tooltip v-if="category === 'Performance'">
+                  <i-carbon-warning class="inline ml-2" />
+                  <template #tooltip>
+                    Lighthouse is running with variability. Performance scores should not be considered accurate.
+                  </template>
+                </tooltip>
+              </span>
               <metric-guage v-if="category !== 'Overview' && !Number.isNaN(categoryScores[key - 1])" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
             </btn-tab>
           </Tab>
@@ -64,8 +71,8 @@ if (!isStatic) {
         <lighthouse-three-d />
       </div>
     </div>
-    <div class="w-full">
-      <div class="pr-10 py-1">
+    <div class="xl:w-full w-screen overflow-x-auto px-3">
+      <div class="pr-10 py-1 w-full min-w-1500px">
         <div class="grid grid-cols-12 gap-4 text-sm dark:(text-gray-300) text-gray-700">
           <results-table-head
             v-for="(column, key) in resultColumns"
@@ -76,7 +83,7 @@ if (!isStatic) {
           />
         </div>
       </div>
-      <div class="2xl:(max-h-[calc(100vh-100px)]) lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)] overflow-auto pr-5 mr-4">
+      <div class="w-full min-w-1500px 2xl:(max-h-[calc(100vh-100px)]) lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)] overflow-auto pr-5 mr-4">
         <div v-if="Object.values(searchResults).length === 0" class="px-4 py-3">
           <template v-if="searchText">
             <p class="mb-2">
@@ -146,8 +153,13 @@ if (!isStatic) {
   </div>
   <footer class="block 2xl:hidden my-2">
     <div class="px-2 text-center 2xl:text-left">
-      <div class="text-xs opacity-75 2xl:mt-4">
-        Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
+      <div class="flex items-center justify-around">
+        <div class="text-xs opacity-75 2xl:mt-4">
+          <a href="https://unlighthouse.dev" target="_blank" class="underline">Unlighthouse</a>
+        </div>
+        <div class="text-xs opacity-75 2xl:mt-4">
+          Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
+        </div>
       </div>
       <div class="text-xs opacity-50 2xl:mt-4 mt-1">
         Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline">here</a>.
