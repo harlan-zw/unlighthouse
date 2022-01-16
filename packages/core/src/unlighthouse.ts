@@ -91,16 +91,21 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   }
   // path to the lighthouse worker file
   runtimeSettings.lighthouseProcessPath = await resolvePath(
-    join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
-    {
-      extensions: ['.ts', '.mjs'],
-    },
+      join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
   )
+  // ts module in stub mode, not sure why extensions won't resolve
+  if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
+    runtimeSettings.lighthouseProcessPath = await resolvePath(
+        join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.ts'),
+    )
+  }
+
   // create a cache key for the users provided key so we can cache burst on config update
   runtimeSettings.configCacheKey = objectHash(userConfig).substring(0, 4)
 
   const resolvedConfig = await resolveUserConfig(userConfig)
   logger.debug('Post config resolution', resolvedConfig)
+
 
   const hooks = createHooks<UnlighthouseHooks>()
 
@@ -117,19 +122,22 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   const { valid, response } = await fetchUrlRaw(resolvedConfig.site)
   if (!valid) {
     // something is wrong with the site, bail
-    logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+    logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response?.status || '404'}\`. Please check the URL is valid.`)
     // bail on cli or ci
     if (provider?.name === 'cli' || provider?.name === 'ci')
       process.exit(1)
   }
-  else {
-    logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
+  else if (response) {
+    // change the URL to the redirect one
+    if (response.redirected) {
+      logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${response.url}\`, using that as the site.`)
+      resolvedConfig.site = normaliseHost(response.url)
+    } else {
+      logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
+    }
   }
-  // change the URL to the redirect one
-  if (response.redirected) {
-    logger.info(`Request to site \`${resolvedConfig.site}\` redirected to \`${response.url}\`, using that as the site.`)
-    resolvedConfig.site = normaliseHost(response.url)
-  }
+  // @ts-ignore @todo fix up types
+  runtimeSettings.siteUrl = new $URL(resolvedConfig.site)
 
   // web socket instance for broadcasting
   const ws = provider?.name === 'ci' ? null : new WS()
@@ -269,21 +277,21 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       const label = (name: string) => chalk.bold.magenta(`▸ ${name}:`)
       const mode = ctx.routes.length <= 1 ? 'crawl' : 'sitemap'
       process.stdout.write(successBox(
-        // messages
-        [
-          `Root: ${chalk.dim(resolvedConfig.root)}`,
-          ctx.runtimeSettings.clientUrl ? `URL: ${ctx.runtimeSettings.clientUrl}` : '',
-        ].join('\n'),
-        // title
-        [
-          `⛵  ${chalk.bold.blueBright(AppName)} @ v${version}`,
-          '',
-          chalk.dim.italic(TagLine),
-          '',
-          `${label('Scanning')} ${resolvedConfig.site}`,
-          `${label('Route Discovery')} ${mode === 'crawl' ? 'Crawl' : 'Sitemap + Crawl'}`,
-          `${label('Route Definitions')} ${!ctx.routeDefinitions ? 'None' : ctx.routeDefinitions.length}`,
-        ].join('\n'),
+          // messages
+          [
+            `Root: ${chalk.dim(resolvedConfig.root)}`,
+            ctx.runtimeSettings.clientUrl ? `URL: ${ctx.runtimeSettings.clientUrl}` : '',
+          ].join('\n'),
+          // title
+          [
+            `⛵  ${chalk.bold.blueBright(AppName)} @ v${version}`,
+            '',
+            chalk.dim.italic(TagLine),
+            '',
+            `${label('Scanning')} ${resolvedConfig.site}`,
+            `${label('Route Discovery')} ${mode === 'crawl' ? 'Crawl' : 'Sitemap + Crawl'}`,
+            `${label('Route Definitions')} ${!ctx.routeDefinitions ? 'None' : ctx.routeDefinitions.length}`,
+          ].join('\n'),
       ))
     }
     return ctx

@@ -11,11 +11,14 @@ import { useUnlighthouse } from '../unlighthouse'
  * @param url
  */
 export const normaliseRoute = (url: string): NormalisedRoute => {
-  const { resolvedConfig, provider } = useUnlighthouse()
+  const { runtimeSettings, provider } = useUnlighthouse()
 
   // it's possible that we're serving a subdomain or something dodgy around www.
-  if (!hasProtocol(url))
-    url = withBase(url, resolvedConfig.site)
+  if (!hasProtocol(url)) {
+    // need to provide the host URL if the link is relative
+    runtimeSettings.siteUrl.origin
+    url = withBase(url, runtimeSettings.siteUrl.origin)
+  }
 
   const $url = new $URL(url)
   // make sure we start with a leading slash

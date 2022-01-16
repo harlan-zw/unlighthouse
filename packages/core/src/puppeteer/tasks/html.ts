@@ -14,8 +14,8 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
   // if we don't need to execute any javascript we can do a less expensive fetch of the URL
   if (resolvedConfig.scanner.skipJavascript) {
     const { valid, response } = await fetchUrlRaw(route)
-    if (!valid)
-      return { success: false, message: `Invalid response from URL ${route} code: ${response.status}.` }
+    if (!valid || !response)
+      return { success: false, message: `Invalid response from URL ${route} code: ${response?.status || '404'}.` }
 
     return {
       success: true,
