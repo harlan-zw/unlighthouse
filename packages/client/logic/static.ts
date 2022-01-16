@@ -9,6 +9,7 @@ import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnail
 import CellImage from '../components/Cell/CellImage.vue'
 import CellTapTargets from '../components/Cell/CellTapTargets.vue'
 import CellWebVitals from '../components/Cell/CellWebVitals.vue'
+import { $URL } from 'ufo'
 
 const {
   options: {
@@ -21,6 +22,7 @@ const {
     apiUrl,
     lighthouseOptions,
     scanner: {
+      dynamicSampling,
       throttle,
       device,
     },
@@ -33,9 +35,9 @@ const {
 
 export const isStatic = window.__unlighthouse_static
 
-export { wsUrl, basePath, isLocalhost, apiUrl, groupRoutesKey, lighthouseOptions, throttle, device }
+export { wsUrl, basePath, isLocalhost, dynamicSampling, apiUrl, groupRoutesKey, lighthouseOptions, throttle, device }
 
-export const website = site
+export const website = new $URL(site).origin
 
 export const categories = (lighthouseOptions?.onlyCategories || ['performance', 'accessibility', 'best-practices', 'seo'])
 export const tabs = [
