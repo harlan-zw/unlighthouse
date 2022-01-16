@@ -137,6 +137,10 @@ export interface UnlighthouseColumn {
    */
   label: string
   /**
+   * Display the column header icon as a warning.
+   */
+  warning?: boolean
+  /**
    * If the user hovers over the label they'll see a tooltip for extra context.
    */
   tooltip?: string

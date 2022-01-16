@@ -21,7 +21,10 @@ const classes = useColumnClasses(colRef)
   >
     <div class="flex items-center ">
       <tooltip v-if="column.tooltip">
-        <span class="whitespace-nowrap">{{ column.label }}</span>
+        <span class="whitespace-nowrap flex items-center">{{ column.label }}
+          <i-carbon-warning-alt v-if="column?.warning" class="text-yellow-500 ml-1 text-xs opacity-75" />
+          <i-carbon-information v-else class="ml-1 text-xs opacity-75" />
+        </span>
         <template #tooltip>
           {{ column.tooltip }}
         </template>
