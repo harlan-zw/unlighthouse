@@ -119,10 +119,14 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
   // test HTTP response from site
   logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
-  const { valid, response } = await fetchUrlRaw(resolvedConfig.site)
+  const { valid, response, error } = await fetchUrlRaw(resolvedConfig.site)
   if (!valid) {
     // something is wrong with the site, bail
-    logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response?.status || '404'}\`. Please check the URL is valid.`)
+    if (response?.status) {
+      logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+    } else {
+      logger.fatal(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
+    }
     // bail on cli or ci
     if (provider?.name === 'cli' || provider?.name === 'ci')
       process.exit(1)
