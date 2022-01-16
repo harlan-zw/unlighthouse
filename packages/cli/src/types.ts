@@ -8,6 +8,7 @@ export interface CliOptions {
   root?: string
   configFile?: string
   debug?: boolean
+  ['scanner.samples']?: number
 }
 
 export interface CiOptions extends CliOptions {

@@ -28,6 +28,7 @@ export function pickOptions(options: CiOptions|CliOptions): UserConfig {
 
   return pick(options, [
     // root level options
+    'scanner.samples',
     'site',
     'root',
     'configFile',
