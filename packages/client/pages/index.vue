@@ -31,7 +31,7 @@ if (!isStatic) {
 <template>
   <NavBar />
   <div class="2xl:flex mt-2">
-    <div class="px-3 mr-0 w-full 2xl:(mr-5 w-250px mb-0) mb-3">
+    <div class="xl:ml-3 mx-3 mr-0 w-full 2xl:(mr-5 w-250px mb-0) mb-3">
       <TabGroup vertical @change="changedTab">
         <TabList class="p-1 dark:(bg-blue-900/20 border-none) border-2 border-blue-900/30 rounded-xl 2xl:(mt-8 block) flex">
           <Tab
