@@ -60,7 +60,7 @@ const props = defineProps<{
       </div>
     </div>
     <div class="text-xs opacity-90">
-      Variability in effect. Test with <a :href="report.route.url" target="_blank" class="underline hover:no-underline">PageSpeed Insights</a>.
+      Variability in effect. Test with <a :href="`https://pagespeed.web.dev/report?url=${encodeURIComponent(report.route.url)}`" target="_blank" class="underline hover:no-underline">PageSpeed Insights</a>.
     </div>
   </div>
 </template>
