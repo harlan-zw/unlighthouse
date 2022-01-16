@@ -57,6 +57,10 @@ export type LighthouseReport = Partial<LH.Result> & {
     imageIssues: {
       displayValue: string|number
       score: number
+    },
+    ariaIssues: {
+      displayValue: string|number
+      score: number
     }
   }
 }

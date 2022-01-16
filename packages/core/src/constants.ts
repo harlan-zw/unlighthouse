@@ -117,10 +117,15 @@ export const DefaultColumns = {
       key: 'report.audits.heading-order',
     },
     {
-      cols: {
-        xs: 0,
-        lg: 1,
-      },
+      cols: 1,
+      label: 'ARIA',
+      tooltip: 'An aggregate of all ARIA audits.',
+      sortKey: 'displayValue',
+      sortable: true,
+      key: 'report.computed.ariaIssues'
+    },
+    {
+      cols: 1,
       label: 'Labels',
       tooltip: 'Form elements have associated labels',
       sortKey: 'length:details.items',
