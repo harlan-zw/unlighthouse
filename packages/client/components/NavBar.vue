@@ -31,7 +31,7 @@ const favIcon = computed(() => {
           </div>
           <div class="text-sm flex items-center">
             <a :href="website" class="flex items-center pt-1" target="_blank">
-              <img :src="favIcon" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '') }}
+              <img :src="favIcon" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '').replace('www.', '') }}
             </a>
           </div>
         </div>
