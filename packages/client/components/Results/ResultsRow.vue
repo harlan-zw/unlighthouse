@@ -24,7 +24,7 @@ const reportsScore = computed(() => {
               <tooltip>
                 <span class="whitespace-nowrap ml-2 opacity-90">{{ reports.length }} routes</span>
                 <template #tooltip>
-                  <p><code>scanner.dynamicSampling</code> is set to {{ sampling }}</p>
+                  <p><code>scanner.dynamicSampling</code> is set to {{ dynamicSampling }}</p>
                 </template>
               </tooltip>
             </span>
