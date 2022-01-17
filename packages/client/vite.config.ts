@@ -7,7 +7,7 @@ import WindiCSS from 'vite-plugin-windicss'
 import IconsResolver from 'unplugin-icons/resolver'
 import AutoImport from 'unplugin-auto-import/vite'
 import { HeadlessUiResolver } from 'unplugin-vue-components/resolvers'
-import * as fs from "fs-extra";
+import * as fs from 'fs-extra'
 
 export default defineConfig({
   mode: 'development',
@@ -42,14 +42,13 @@ export default defineConfig({
       // remove our static data when we build
       name: 'unlighthouse-static-data-remover',
       // remove the development payload, minimise client build
-      async closeBundle () {
+      async closeBundle() {
         if (process.env.NODE_ENV === 'development')
           return
 
         const payloadPath = await this.resolve('./dist/assets/payload.js')
-        if (payloadPath) {
+        if (payloadPath)
           await fs.rm(payloadPath.id, {})
-        }
       },
     },
   ],

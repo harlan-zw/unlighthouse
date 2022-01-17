@@ -2,13 +2,13 @@ import { join } from 'path'
 import defu from 'defu'
 import { pick } from 'lodash-es'
 import { pathExists } from 'fs-extra'
+import { Launcher } from 'chrome-launcher'
+import puppeteer from 'puppeteer-core'
+import { resolve } from 'mlly'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { defaultConfig } from './constants'
 import { normaliseHost } from './util'
 import { useLogger } from './logger'
-import { Launcher } from 'chrome-launcher'
-import puppeteer from 'puppeteer-core'
-import {resolve} from "mlly";
 
 /**
  * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.
@@ -88,14 +88,15 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     if (chromePath) {
       logger.debug(`Found chrome at \`${chromePath}\`.`)
       // set default to puppeteer core
-      config.puppeteerClusterOptions = defu({puppeteer}, config.puppeteerClusterOptions || {})
+      config.puppeteerClusterOptions = defu({ puppeteer }, config.puppeteerClusterOptions || {})
       // point to our pre-installed chrome version
-      config.puppeteerOptions = defu({executablePath: Launcher.getFirstInstallation()}, config.puppeteerOptions || {})
+      config.puppeteerOptions = defu({ executablePath: Launcher.getFirstInstallation() }, config.puppeteerOptions || {})
     }
     // if we can't find their local chrome, we just need to make sure they have puppeteer
     try {
       await resolve('puppeteer')
-    } catch (e) {
+    }
+    catch (e) {
       logger.fatal('Failed to find a chrome / chromium binary to run. Add the puppeteer dependency to your project to resolve.', e)
       logger.info('npm install -g puppeteer')
     }
