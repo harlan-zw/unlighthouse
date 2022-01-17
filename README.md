@@ -94,6 +94,10 @@ If you have issues with that you can install puppeteer globally.
 npm install -g puppeteer
 ```
 
+#### gitignore
+
+Unlighthouse will save your reports in `outputDir` (`.lighthouse` by default), it's recommended you .gitignore this files.
+
 #### Debugging
 
 As Unlighthouse is in early access, it's recommended you run it in debug mode.
@@ -178,7 +182,7 @@ unlighthouse-ci --site <your-site> --debug --budget 50
 
 **Instructions**
 
-Install lighthouse and run the ci script
+Install Unlighthouse and run the ci script
 
 ```bash
 # NPM
