@@ -74,6 +74,8 @@ Unlighthouse was built to modify, with isolate packages, robust API and a genero
 
 ## Getting Started
 
+If at any point you get stuck and need a hand, please join the [Discord](https://unlighthouse.dev/chat) and I'll be happy to help you out.
+
 ### Unlighthouse - Live Sites
 
 Ensure you're using [Node.js >=14](https://nodejs.org/) and run the following command:
@@ -81,7 +83,7 @@ Ensure you're using [Node.js >=14](https://nodejs.org/) and run the following co
 ```bash
 # NPM
 npx unlighthouse --site <your-site>
-# PNPM
+# or PNPM
 pnpm dlx unlighthouse --site <your-site>
 ```
 
@@ -92,21 +94,66 @@ If you have issues with that you can install puppeteer globally.
 npm install -g puppeteer
 ```
 
+#### Debugging
+
+As Unlighthouse is in early access, it's recommended you run it in debug mode.
+
+```bash
+# NPM
+npx unlighthouse --site harlanzw.com --debug
+# or PNPM
+pnpm dlx unlighthouse --site harlanzw.com  --debug
+```
+
+#### Configuration
+
+The easiest way to configure the scan is to create a `unlighthouse.config.ts` in the directory
+you're running the command.
+
+```ts
+export default {
+    site: 'harlanzw.com',
+    scanner: {
+        // exclude specific routes
+        exclude: [
+            '/.*?pdf',
+            '.*/amp',
+            'en-*',
+        ],
+        // run lighthouse for each URL 3 times
+        samples: 3,
+        // use desktop to scan
+        device: 'desktop',
+        // enable the throttling mode
+        throttle: true,
+    },
+    debug: true,
+}
+```
+
+See [Config](https://unlighthouse.dev/config/#configuration) for the full details on what you can provide.
+
 ### Unlighthouse - Development Sites
 
 See [integrations](https://unlighthouse.dev/integrations/) on how you can run Unlighthouse in your development environment.
 
+#### Nuxt
+
+```bash
+# NPM
+npm add -d @unlighthouse/nuxt
+# or Yarn
+yarn add -D @unlighthouse/nuxt
+# or PNPM
+pnpm add -d @unlighthouse/nuxt
+```
+
+Within your `nuxt.config.ts`, add the module to your `buildModules`.
 
 
 ## Sponsors
 
-This project is made possible by all the sponsors supporting my work:
-
-<p align="center">
-  <a href="https://github.com/sponsors/harlan-zw">
-    <img src='https://cdn.jsdelivr.net/gh/harlan-zw/static/sponsors.svg'/>
-  </a>
-</p>
+This project is made possible by all the sponsors supporting my work.
 
 ## License
 

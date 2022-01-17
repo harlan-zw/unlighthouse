@@ -1,6 +1,7 @@
-import type { RouteRecordRaw } from 'vue-router'
-import { createMemoryHistory, createRouter } from 'vue-router'
-import type { MockRouter, RouteDefinition } from '../types'
+// @todo move this to integrations which need it
+// import type { RouteRecordRaw } from 'vue-router'
+// import { createMemoryHistory, createRouter } from 'vue-router'
+// import type { MockRouter, RouteDefinition } from '../types'
 
 /**
  * A mocker router using vue-router as the implementation.
@@ -9,7 +10,7 @@ import type { MockRouter, RouteDefinition } from '../types'
  *
  * @param routeDefinitions
  */
-export const createMockVueRouter: (routeDefinitions: RouteDefinition[]) => MockRouter
+/* export const createMockVueRouter: (routeDefinitions: RouteDefinition[]) => MockRouter
     = (routeDefinitions) => {
       const router = createRouter({
         history: createMemoryHistory(),
@@ -23,3 +24,4 @@ export const createMockVueRouter: (routeDefinitions: RouteDefinition[]) => MockR
         },
       }
     }
+*/

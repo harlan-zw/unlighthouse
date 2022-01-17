@@ -217,7 +217,6 @@ importers:
       unconfig: ^0.2.2
       unctx: ^1.0.2
       unrouted: ^0.1.2
-      vue-router: '4'
       ws: ^8.4.0
     dependencies:
       '@nuxt/cli': 2.15.8
@@ -248,7 +247,6 @@ importers:
       unconfig: 0.2.2
       unctx: 1.0.2
       unrouted: 0.1.2
-      vue-router: 4.0.12
       ws: 8.4.0
     devDependencies:
       '@types/fs-extra': 9.0.13
@@ -8378,14 +8376,6 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
-
-  /vue-router/4.0.12:
-    resolution: {integrity: sha512-CPXvfqe+mZLB1kBWssssTiWg4EQERyqJZes7USiqfW9B5N2x+nHlnsM1D3b5CaJ6qgCvMmYJnz+G0iWjNCvXrg==}
-    peerDependencies:
-      vue: ^3.0.0
-    dependencies:
-      '@vue/devtools-api': 6.0.0-beta.21.1
-    dev: false
 
   /vue-router/4.0.12_vue@3.2.26:
     resolution: {integrity: sha512-CPXvfqe+mZLB1kBWssssTiWg4EQERyqJZes7USiqfW9B5N2x+nHlnsM1D3b5CaJ6qgCvMmYJnz+G0iWjNCvXrg==}
