@@ -13,6 +13,25 @@
   "bugs": {
     "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
+  "pnpm": {
+    "packageExtensions": {
+      "puppeteer-cluster": {
+        "peerDependenciesMeta": {
+          "puppeteer": {
+            "optional": true
+          }
+        }
+      }
+    }
+  },
+  "peerDependenciesMeta": {
+    "puppeteer": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
   "license": "MIT",
   "repository": {
     "type": "git",

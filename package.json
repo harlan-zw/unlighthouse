@@ -16,6 +16,9 @@
     }
   },
   "peerDependenciesMeta": {
+    "puppeteer": {
+      "optional": true
+    },
     "rollup": {
       "optional": true
     },
