@@ -1,9 +1,9 @@
 import { URL } from 'url'
 import type { UserConfig } from '@unlighthouse/core'
 import { pick } from 'lodash-es'
+import defu from 'defu'
 import { handleError } from './errors'
 import type { CiOptions, CliOptions } from './types'
-import defu from 'defu'
 
 export const isValidUrl = (s: string) => {
   try {
@@ -24,17 +24,18 @@ export const validateOptions = (resolvedOptions: UserConfig) => {
 }
 
 export function pickOptions(options: CiOptions|CliOptions): UserConfig {
-  const picked : Record<string, any> = {}
+  const picked: Record<string, any> = {}
   if (options.noCache)
     picked.cache = true
 
   if (options.enableJavascript) {
     picked.scanner = {
-      skipJavascript: false
+      skipJavascript: false,
     }
-  } else if (options.disableJavascript) {
+  }
+  else if (options.disableJavascript) {
     picked.scanner = {
-      skipJavascript: true
+      skipJavascript: true,
     }
   }
 

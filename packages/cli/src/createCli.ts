@@ -5,9 +5,9 @@ export default function createCli() {
   const cli = cac('unlighthouse')
 
   cli
-      .help()
-      .version(version)
-      .example('unlighthouse --site harlanzw.com')
+    .help()
+    .version(version)
+    .example('unlighthouse --site harlanzw.com')
 
   cli.option('--site <site>', 'Host URL to scan')
   cli.option('--scanner.samples <samples>', 'Specify the amount of samples to run.')

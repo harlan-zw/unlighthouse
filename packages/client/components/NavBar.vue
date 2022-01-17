@@ -87,16 +87,14 @@ const favIcon = computed(() => {
           Throttling
         </div>
         <div class="flex items-center text-xs">
-          <template>
-            <div class="flex items-center mr-2">
-              <i-ic-outline-devices class="mr-1 opacity-65" />
-              <span class="text-sm opacity-90">{{ device === 'mobile' ? 'Moto G4' : 'Emulated Desktop' }}</span>
-            </div>
-            <div class="flex items-center">
-              <i-ic-baseline-network-check class="mr-1 opacity-65" />
-              <span class="text-sm opacity-90">Slow 4g</span>
-            </div>
-          </template>
+          <div class="flex items-center mr-2">
+            <i-ic-outline-devices class="mr-1 opacity-65" />
+            <span class="text-sm opacity-90">{{ device === 'mobile' ? 'Moto G4' : 'Emulated Desktop' }}</span>
+          </div>
+          <div class="flex items-center">
+            <i-ic-baseline-network-check class="mr-1 opacity-65" />
+            <span class="text-sm opacity-90">Slow 4g</span>
+          </div>
         </div>
       </div>
       <div v-if="!isOffline && scanMeta?.monitor" class="hidden xl:flex">

@@ -91,14 +91,16 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       config.puppeteerClusterOptions = defu({ puppeteer }, config.puppeteerClusterOptions || {})
       // point to our pre-installed chrome version
       config.puppeteerOptions = defu({ executablePath: Launcher.getFirstInstallation() }, config.puppeteerOptions || {})
-    } else {
+    }
+    else {
       // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
       // puppeteer-cluster will do, but we can provide a nicer error
       try {
         await resolve('puppeteer')
-      } catch (e) {
+      }
+      catch (e) {
         logger.fatal('Failed to find a chrome / chromium binary to run. Add the puppeteer dependency to your project to resolve.', e)
-        logger.info("Run the following: \`npm install -g puppeteer\`");
+        logger.info('Run the following: \`npm install -g puppeteer\`')
         process.exit(0)
       }
     }
