@@ -53,11 +53,11 @@ export const resultColumns = computed(() => {
       key: activeTab.value === 0 ? 'report.score' : `report.categories.${categories[activeTab.value - 1]}.score`,
       sortable: true,
       cols: activeTab.value === 0
-        ? 3
-        : 1,
+          ? 3
+          : 1,
       component: activeTab.value === 0
-        ? CellScoresOverview
-        : CellScoreSingle,
+          ? CellScoresOverview
+          : CellScoreSingle,
     },
     ...columns[activeTab.value],
     {
@@ -76,12 +76,12 @@ export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
 })
 
 export const fetchedScanMeta = isStatic
-  ? null
-  : reactive(
-    useFetch(`${apiUrl}/scan-meta`)
-      .get()
-      .json<ScanMeta>(),
-  )
+    ? null
+    : reactive(
+        useFetch(`${apiUrl}/scan-meta`)
+            .get()
+            .json<ScanMeta>(),
+    )
 
 export const lastScanMeta = ref<ScanMeta|null>(null)
 
@@ -137,8 +137,13 @@ export const wsConnect = async() => {
 export const categoryScores = computed(() => {
   const reportsFinished = unlighthouseReports.value.filter(r => !!r.report)
   return categories.map((c) => {
-    return sum(reportsFinished.map((r) => {
-      return r.report?.categories?.[c].score
-    })) / reportsFinished.length
+    const reportsWithGoodScore = reportsFinished
+        // make sure the score is valid, if it's ? we don't want to count it
+        .filter((r) => !!r.report?.categories?.[c].score)
+    return sum(
+        reportsWithGoodScore
+            // make sure the score is valid, if it's ? we don't want to count it
+            .map((r) => r.report?.categories?.[c].score)
+    ) / reportsWithGoodScore.length
   })
 })
