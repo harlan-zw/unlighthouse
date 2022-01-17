@@ -16,6 +16,7 @@ import {
   searchText,
   sorting,
   tabs,
+  throttle,
   wsConnect,
 } from '../logic'
 
@@ -44,10 +45,11 @@ if (!isStatic) {
               :selected="selected"
             >
               <span class="inline-flex items-center">{{ category }}
-                <tooltip v-if="category === 'Performance'">
+                <tooltip v-if="category === 'Performance'" class="text-left">
                   <i-carbon-warning class="inline ml-1" />
                   <template #tooltip>
-                    Lighthouse is running with variability. Performance scores should not be considered accurate.
+                    <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
+                    <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
                   </template>
                 </tooltip>
               </span>
