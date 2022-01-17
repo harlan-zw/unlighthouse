@@ -6,7 +6,7 @@
   --font-family-mono: DM Mono, source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
   --bg-gradient: 255,255,255;
 }
-
+/*
 @media (prefers-color-scheme: dark) {
   :root {
     --c-bg: rgb(20,20,20) !important;
@@ -24,7 +24,7 @@
   tr {
     border-top: 1px solid var(--code-inline-bg-color) !important;
   }
-}
+} */
 
 .mono, .nav-bar-title {
   font-family: var(--font-family-mono);
