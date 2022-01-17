@@ -82,12 +82,12 @@ const favIcon = computed(() => {
           </div>
         </popover-actions>
       </div>
-      <div v-if="scanMeta?.monitor" class="mr-5 hidden xl:block">
+      <div v-if="scanMeta?.monitor && throttle" class="mr-5 hidden xl:block">
         <div class="uppercase opacity-55 ">
           Throttling
         </div>
         <div class="flex items-center text-xs">
-          <template v-if="throttle">
+          <template>
             <div class="flex items-center mr-2">
               <i-ic-outline-devices class="mr-1 opacity-65" />
               <span class="text-sm opacity-90">{{ device === 'mobile' ? 'Moto G4' : 'Emulated Desktop' }}</span>
@@ -95,12 +95,6 @@ const favIcon = computed(() => {
             <div class="flex items-center">
               <i-ic-baseline-network-check class="mr-1 opacity-65" />
               <span class="text-sm opacity-90">Slow 4g</span>
-            </div>
-          </template>
-          <template v-else>
-            <div class="flex items-center">
-              <i-ic-baseline-network-check class="mr-1 opacity-65" />
-              <span class="text-sm opacity-90">None</span>
             </div>
           </template>
         </div>
