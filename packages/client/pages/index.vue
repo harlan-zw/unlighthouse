@@ -68,7 +68,7 @@ if (!isStatic) {
             Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline hover:no-underline">here</a>.
           </div>
         </div>
-        <lighthouse-three-d />
+        <lighthouse-three-d v-if="!isStatic" />
       </div>
     </div>
     <div class="xl:w-full w-screen overflow-x-auto px-3">

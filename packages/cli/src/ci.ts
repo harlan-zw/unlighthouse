@@ -101,8 +101,8 @@ async function run() {
         await fs.move(reportDir, outDir, { overwrite: true })
         // delete the json lighthouse payloads, we don't need them for the static mode
         const globby = (await import('globby'))
-        const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json'], { cwd: outDir, absolute: true })
-        logger.debug(`Deleting ${jsonPayloads.length} json payloads`)
+        const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'], { cwd: outDir, absolute: true })
+        logger.debug(`Deleting ${jsonPayloads.length} files not required for static build.`)
         for (const k in jsonPayloads)
           await fs.rm(jsonPayloads[k])
 
