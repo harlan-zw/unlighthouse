@@ -9,6 +9,8 @@ export interface CliOptions {
   configFile?: string
   debug?: boolean
   ['scanner.samples']?: number
+  enableJavascript?: boolean
+  disableJavascript?: boolean
 }
 
 export interface CiOptions extends CliOptions {
