@@ -1,26 +1,25 @@
 import { join } from 'path'
-import { defineNuxtModule, addServerMiddleware, extendViteConfig, addWebpackPlugin, addVitePlugin } from '@nuxt/kit-edge'
-import { addStartCliBadgeLink, waitForRoutes, waitForServer } from '@harlan-zw/nuxt-kit-extras'
+import { defineNuxtModule, addServerMiddleware, extendViteConfig } from '@nuxt/kit'
+import {addStartCliBadgeLink, getRoutes, waitForServer} from '@harlanzw/nuxt-kit-extras'
 import type { RouteDefinition, UserConfig } from '@unlighthouse/core'
 import { createUnlighthouse, useUnlighthouse } from '@unlighthouse/core'
-import VitePlugin from '@unlighthouse/vite'
-import WebpackPlugin from '@unlighthouse/webpack'
 
 export interface UnlighthouseNuxtOptions extends UserConfig {
   // @todo
 }
 
-export default defineNuxtModule<UnlighthouseNuxtOptions>(nuxt => ({
-  name: 'unlighthouse',
-  configKey: 'unlighthouse',
-  async setup(data) {
+export default defineNuxtModule<UnlighthouseNuxtOptions>({
+  meta: {
+    name: 'nuxt-unlighthouse',
+    configKey: 'unlighthouse',
+  },
+  async setup(data, nuxt) {
     // only run in dev
     if (!nuxt.options.dev)
       return
 
     const config = data as UserConfig
 
-    const routeDefinitions = waitForRoutes() as Promise<RouteDefinition[]>
     const unlighthouse = useUnlighthouse() || await createUnlighthouse({
       router: {
         prefix: '/__unlighthouse',
@@ -30,7 +29,7 @@ export default defineNuxtModule<UnlighthouseNuxtOptions>(nuxt => ({
       debug: true,
     }, {
       name: 'nuxt',
-      routeDefinitions: () => routeDefinitions,
+      routeDefinitions: () => getRoutes() as Promise<RouteDefinition[]>
     })
 
     // when we vite mode, the HTML is not server side rendered so we need to tell the scanner this
@@ -68,11 +67,8 @@ export default defineNuxtModule<UnlighthouseNuxtOptions>(nuxt => ({
       })
 
     nuxt.options.ignore.push(join(unlighthouse.resolvedConfig.outputPath, '**'))
-
-    addWebpackPlugin(WebpackPlugin)
-    addVitePlugin(VitePlugin)
   },
-}))
+})
 
 declare module '@nuxt/schema' {
   interface NuxtConfig {

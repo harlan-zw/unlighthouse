@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/nuxt",
-  "version": "0.1.7",
+  "version": "0.1.30",
   "description": "Nuxt module for Unlighthouse",
   "keywords": [
     "unlighthouse",
@@ -42,9 +42,7 @@
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "latest",
     "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
-    "@unlighthouse/core": "workspace:*",
-    "@unlighthouse/vite": "workspace:*",
-    "@unlighthouse/webpack": "workspace:*"
+    "@unlighthouse/core": "workspace:*"
   },
   "devDependencies": {
     "@nuxt/schema": "npm:@nuxt/schema-edge@latest"

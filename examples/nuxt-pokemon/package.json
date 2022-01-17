@@ -20,7 +20,7 @@
     "vue": "^2.6.14",
     "vue-router": "^3",
     "vue-template-compiler": "^2",
-    "unlighthouse": "link:../../packages/unlighthouse"
+    "@unlighthouse/nuxt": "link:../../integrations/nuxt"
   },
   "devDependencies": {
     "@nuxt/types": "^2.15.7",

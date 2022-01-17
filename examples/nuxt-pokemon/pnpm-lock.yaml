@@ -7,6 +7,7 @@ importers:
       '@nuxt/types': ^2.15.7
       '@nuxt/typescript-build': ^2.1.0
       '@nuxtjs/composition-api': ^0.29.0
+      '@unlighthouse/nuxt': link:../../integrations/nuxt
       '@vue/composition-api': ^1.2.4
       core-js: ^3.15.1
       highwayhash: ^3.1.1
@@ -15,12 +16,12 @@ importers:
       nuxt-windicss: ^2.0.12
       postcss: ^7
       slugify: ^1.6.0
-      unlighthouse: link:../../packages/unlighthouse
       vite-plugin-windicss: ^1.5.3
       vue: ^2.6.14
       vue-router: ^3
       vue-template-compiler: ^2
     dependencies:
+      '@unlighthouse/nuxt': link:../../integrations/nuxt
       '@vue/composition-api': 1.4.0_vue@2.6.14
       core-js: 3.19.1
       highwayhash: 3.1.1
@@ -28,7 +29,6 @@ importers:
       nuxt-vite: 0.2.4_a723fdf7ad709f20da75f6ef9a3149a5
       postcss: 7.0.39
       slugify: 1.6.3
-      unlighthouse: link:../../packages/unlighthouse
       vite-plugin-windicss: 1.5.3
       vue: 2.6.14
       vue-router: 3.5.3
@@ -1414,21 +1414,21 @@ packages:
       ufo: 0.7.9
     dev: false
 
-  /@nuxt/kit-edge/3.0.0-27303148.ac98373:
-    resolution: {integrity: sha512-eESI4BbtuMrdtcRq8mZXBUpJOQFNOQ5TxJvbcl6fGC/3MDxSCsssEd3vWAt2bFcvmStyDWZ9hs/H1lo9Qh52fw==}
+  /@nuxt/kit-edge/3.0.0-27369360.33ebb01:
+    resolution: {integrity: sha512-p38BaW9o83CPi52k06ao/XSr1uYCLeLcA52S/W7cr3QPPsDflma1JK3Pa8Dwc3Rhqut59+YvbKTmA3Bb/YGnsg==}
     engines: {node: ^14.16.0 || ^16.11.0 || ^17.0.0}
     dependencies:
-      '@nuxt/schema': /@nuxt/schema-edge/3.0.0-27303148.ac98373
+      '@nuxt/schema': /@nuxt/schema-edge/3.0.0-27369360.33ebb01
       consola: 2.15.3
-      defu: 5.0.0
-      dotenv: 10.0.0
-      globby: 11.0.4
+      defu: 5.0.1
+      dotenv: 11.0.0
+      globby: 12.1.0
       hash-sum: 2.0.0
       jiti: 1.12.9
       lodash.template: 4.5.0
-      mlly: 0.3.13
+      mlly: 0.3.17
       pathe: 0.2.0
-      pkg-types: 0.3.1
+      pkg-types: 0.3.2
       rc9: 1.2.0
       scule: 0.2.1
       semver: 7.3.5
@@ -1439,7 +1439,7 @@ packages:
   /@nuxt/kit/0.8.1-edge:
     resolution: {integrity: sha512-7kU+mYxRy3w9UohFK/rfrPkKXM9A4LWsTqpFN3MH7mxohy98SFBkf87B6nqE6ulXmztInK+MptS0Lr+VQa0E6w==}
     dependencies:
-      '@nuxt/kit-edge': 3.0.0-27303148.ac98373
+      '@nuxt/kit-edge': 3.0.0-27369360.33ebb01
     dev: true
 
   /@nuxt/loading-screen/2.0.4:
@@ -1462,12 +1462,12 @@ packages:
       node-fetch: 2.6.6
     dev: false
 
-  /@nuxt/schema-edge/3.0.0-27303148.ac98373:
-    resolution: {integrity: sha512-XT1nqGsISrmDfshGCh/PsfPG917iYRw/4tnt+fMBAaY+dREONf83OWLrNIS5xQRtVdMsQgMj+Yq2J2QTaq2BAA==}
+  /@nuxt/schema-edge/3.0.0-27369360.33ebb01:
+    resolution: {integrity: sha512-m90kfhAFP5zC4YWjrmbq/gNXhuXvMPYR13BDHHPW0kCOq9RD238DFBkVNQ+gBnRxAy0Cq4ko1pSG5o70yxrhCg==}
     engines: {node: ^14.16.0 || ^16.11.0 || ^17.0.0}
     dependencies:
       create-require: 1.1.1
-      defu: 5.0.0
+      defu: 5.0.1
       jiti: 1.12.9
       pathe: 0.2.0
       scule: 0.2.1
@@ -2454,6 +2454,12 @@ packages:
   /array-union/2.1.0:
     resolution: {integrity: sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==}
     engines: {node: '>=8'}
+    dev: false
+
+  /array-union/3.0.1:
+    resolution: {integrity: sha512-1OvF9IbWwaeiM9VhzYXVQacMibxpXOMYVNIvMtKRyX9SImBXpKcFr8XvFDeEslCyuH/t6KRt7HEO94AlP8Iatw==}
+    engines: {node: '>=12'}
+    dev: true
 
   /array-unique/0.3.2:
     resolution: {integrity: sha1-qJS3XUvE9s1nnvMkSp/Y9Gri1Cg=}
@@ -4078,6 +4084,10 @@ packages:
   /defu/5.0.0:
     resolution: {integrity: sha512-VHg73EDeRXlu7oYWRmmrNp/nl7QkdXUxkQQKig0Zk8daNmm84AbGoC8Be6/VVLJEKxn12hR0UBmz8O+xQiAPKQ==}
 
+  /defu/5.0.1:
+    resolution: {integrity: sha512-EPS1carKg+dkEVy3qNTqIdp2qV7mUP08nIsupfwQpz++slCVRw7qbQyWvSTig+kFPwz2XXp5/kIIkH+CwrJKkQ==}
+    dev: true
+
   /delegates/1.0.0:
     resolution: {integrity: sha1-hMbhWbgZBP3KWaDvRM2HDTElD5o=}
     dev: false
@@ -4203,9 +4213,9 @@ packages:
       is-obj: 2.0.0
     dev: false
 
-  /dotenv/10.0.0:
-    resolution: {integrity: sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==}
-    engines: {node: '>=10'}
+  /dotenv/11.0.0:
+    resolution: {integrity: sha512-Fp/b504Y5W+e+FpCxTFMUZ7ZEQkQYF0rx+KZtmwixJxGQbLHrhCwo3FjZgNC8vIfrSi29PABNbMoCGD9YoiXbQ==}
+    engines: {node: '>=12'}
     dev: true
 
   /dotenv/9.0.2:
@@ -5041,6 +5051,19 @@ packages:
       ignore: 5.1.9
       merge2: 1.4.1
       slash: 3.0.0
+    dev: false
+
+  /globby/12.1.0:
+    resolution: {integrity: sha512-YULDaNwsoUZkRy9TWSY/M7Obh0abamTKoKzTfOI3uU+hfpX2FZqOq8LFDxsjYheF1RH7ITdArgbQnsNBFgcdBA==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+    dependencies:
+      array-union: 3.0.1
+      dir-glob: 3.0.1
+      fast-glob: 3.2.7
+      ignore: 5.1.9
+      merge2: 1.4.1
+      slash: 4.0.0
+    dev: true
 
   /graceful-fs/4.2.8:
     resolution: {integrity: sha512-qkIilPUYcNhJpd33n0GBXTB1MMPp14TxEsEs0pTrsSVucApsYzW5V+Q8Qxhik6KU3evy+qkAAowTByymK0avdg==}
@@ -6274,8 +6297,8 @@ packages:
     hasBin: true
     dev: false
 
-  /mlly/0.3.13:
-    resolution: {integrity: sha512-EXpbSPqSQLR9NEdB25uoyIYLSUvAqDEI7wUeM1HwXHsPF5Gx7cP7kuby5Mz2LfCPxBrgMnbcyPhcTCJRTQ+uvA==}
+  /mlly/0.3.17:
+    resolution: {integrity: sha512-C3v8eHB9KqmS1ewOB5DUgljX13C3xuoaXZd5bOLtwpxk9pBZhA+wyVgYXPuP4aukQ9bKYWjy+YQVC+DmniIsgA==}
     dev: true
 
   /move-concurrently/1.0.1:
@@ -6978,11 +7001,11 @@ packages:
       find-up: 4.1.0
     dev: false
 
-  /pkg-types/0.3.1:
-    resolution: {integrity: sha512-BjECNgz/tsyqg0/T4Z/U7WbFQXUT24nfkxPbALcrk/uHVeZf9MrGG4tfvYtu+jsrHCFMseLQ6woQddDEBATw3A==}
+  /pkg-types/0.3.2:
+    resolution: {integrity: sha512-eBYzX/7NYsQEOR2alWY4rnQB49G62oHzFpoi9Som56aUr8vB8UGcmcIia9v8fpBeuhH3Ltentuk2OGpp4IQV3Q==}
     dependencies:
       jsonc-parser: 3.0.0
-      mlly: 0.3.13
+      mlly: 0.3.17
       pathe: 0.2.0
     dev: true
 
@@ -8399,6 +8422,12 @@ packages:
   /slash/3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
+    dev: false
+
+  /slash/4.0.0:
+    resolution: {integrity: sha512-3dOsAHXXUkQTpOYcoAxLIorMTp4gIQr5IW3iVb7A7lFIp0VHhnynm9izx6TssdrIcVIESAlVjtnO2K8bg+Coew==}
+    engines: {node: '>=12'}
+    dev: true
 
   /slugify/1.6.3:
     resolution: {integrity: sha512-1MPyqnIhgiq+/0iDJyqSJHENdnH5MMIlgJIBxmkRMzTNKlS/QsN5dXsB+MdDq4E6w0g9jFA4XOTRkVDjDae/2w==}

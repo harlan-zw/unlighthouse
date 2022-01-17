@@ -10,6 +10,7 @@ export default defineBuildConfig({
   clean: true,
   declaration: true,
   externals: [
+    '@nuxt/kit-edge',
     '@nuxt/kit',
     '@nuxt/schema',
     'pathe',

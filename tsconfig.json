@@ -18,6 +18,7 @@
       "@unlighthouse/cli": ["./packages/cli/src"],
       "@unlighthouse/core": ["./packages/core/src"],
       "@unlighthouse/server": ["./packages/server/src"],
+      "@unlighthouse/nuxt": ["./integrations/nuxt/src"]
     }
   },
   "include": [
