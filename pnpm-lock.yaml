@@ -1,5 +1,7 @@
 lockfileVersion: 5.3
 
+packageExtensionsChecksum: 8578afc05ea13eb87d096fbb150f4242
+
 importers:
 
   .:
@@ -71,6 +73,7 @@ importers:
       '@unlighthouse/server': workspace:*
       cac: ^6.7.12
       consola: ^2.15.3
+      defu: ^5.0.0
       fs-extra: ^10.0.0
       globby: ^12.0.2
       lodash-es: ^4.17.21
@@ -80,6 +83,7 @@ importers:
       '@unlighthouse/server': link:../server
       cac: 6.7.12
       consola: 2.15.3
+      defu: 5.0.0
       fs-extra: 10.0.0
       globby: 12.0.2
       lodash-es: 4.17.21
@@ -6431,6 +6435,9 @@ packages:
     resolution: {integrity: sha512-hmydtMwfVM+idFIDzS8OXetnujHGre7RY3BGL+3njy9+r8Dcu3VALkZHfuBEPf6byKssTCgzxU1BvLczifXd5w==}
     peerDependencies:
       puppeteer: ^1.5.0 || ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
+    peerDependenciesMeta:
+      puppeteer:
+        optional: true
     dependencies:
       debug: 4.3.3
     transitivePeerDependencies:
