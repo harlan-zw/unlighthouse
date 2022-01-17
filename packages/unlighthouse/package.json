@@ -24,14 +24,6 @@
       }
     }
   },
-  "peerDependenciesMeta": {
-    "puppeteer": {
-      "optional": true
-    },
-    "vue": {
-      "optional": true
-    }
-  },
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -54,11 +46,19 @@
     "unlighthouse": "bin/unlighthouse.cjs",
     "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
   },
-  "types": "index.d.ts",
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
   },
+  "peerDependenciesMeta": {
+    "puppeteer": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "types": "index.d.ts",
   "dependencies": {
     "@unlighthouse/cli": "workspace:*",
     "@unlighthouse/client": "workspace:*",

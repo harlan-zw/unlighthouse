@@ -57,6 +57,13 @@
   },
   "pnpm": {
     "packageExtensions": {
+      "vue-router": {
+        "peerDependenciesMeta": {
+          "vue": {
+            "optional": true
+          }
+        }
+      },
       "puppeteer-cluster": {
         "peerDependencies": {
           "puppeteer-core": "*"

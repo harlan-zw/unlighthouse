@@ -1,6 +1,6 @@
 # @unlighthouse/client
 
-The default UI of [Unlighthouse](https://github.com/harlan-zw/unlighthouse), built off of Vite.
+The default UI of [Unlighthouse](https://github.com/harlan-zw/unlighthouse), built using Vite.
 
 ## License
 

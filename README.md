@@ -30,15 +30,6 @@ Status: <b>Private Beta 🎉</b><br>
 </table>
 </p>
 
-## Why Unlighthouse?
-
-To scratch my own itch.
-
-There was no open-source solutions to elegantly scan your entire site with lighthouse and interpret the data, so I made one.
-
-While creating it I explored some ideas on how it can be made to scan larger sites, sites without sitemaps and how to extract SEO data.
-
-The end product is a tool which should provide values for most sites out of the box with minimal configuration.
 
 ## Features
 
@@ -88,24 +79,23 @@ Unlighthouse was built to modify, with isolate packages, robust API and a genero
 Ensure you're using [Node.js >=14](https://nodejs.org/) and run the following command:
 
 ```bash
-npm add -G unlighthouse
+# NPM
+npx unlighthouse --site <your-site>
+# PNPM
+pnpm dlx unlighthouse --site <your-site>
 ```
+
+By default, Unlighthouse will try and find your Google Chrome installation and use that with puppeteer.
+If you have issues with that you can install puppeteer globally.
 
 ```bash
-unlighthouse --site https://unlighthouse.dev/
+npm install -g puppeteer
 ```
-
 
 ### Unlighthouse - Development Sites
 
 See [integrations](https://unlighthouse.dev/integrations/) on how you can run Unlighthouse in your development environment.
 
-
-### Try it Online ⚡️
-
-[unlighthouse.dev/new](https://unlighthouse.dev/new)
-
-[![](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://unlighthouse.dev/new)
 
 
 ## Sponsors

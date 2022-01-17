@@ -5,9 +5,9 @@ The core engine of [Unlighthouse](https://github.com/harlan-zw/unlighthouse) wit
 ## Usage
 
 ```ts
-import { createUnlighthouse } from '@unocss/core'
+import { createUnlighthouse } from '@unlighthouse/core'
 
-const unlighthouse = createUnlighthouse({ /* user options */ }, { /* provider options */ })
+const unlighthouse = await createUnlighthouse({ /* user options */ }, { /* provider options */ })
 
 ```
 
