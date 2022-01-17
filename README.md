@@ -141,11 +141,11 @@ See [integrations](https://unlighthouse.dev/integrations/) on how you can run Un
 
 ```bash
 # NPM
-npm add -d @unlighthouse/nuxt
+npm add -D @unlighthouse/nuxt
 # or Yarn
 yarn add -D @unlighthouse/nuxt
 # or PNPM
-pnpm add -d @unlighthouse/nuxt
+pnpm add -D @unlighthouse/nuxt
 ```
 
 Within your `nuxt.config.ts`, add the module to your `buildModules`. Once you start your nuxt app you can visit `/__unlighthouse` to view
