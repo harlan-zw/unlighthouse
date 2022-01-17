@@ -217,17 +217,16 @@ export const defaultConfig: UserConfig = {
   puppeteerClusterOptions: {
     monitor: true,
     workerCreationDelay: 500,
-    retryLimit: 5,
+    retryLimit: 3,
     timeout: 5 * 60 * 1000, // wait for up to 5 minutes.
     // max concurrency is the amount of cpu cores we have
     maxConcurrency: os.cpus().length,
     skipDuplicateUrls: false,
-    retryDelay: 1000,
+    retryDelay: 2000,
     // Important, when using Lighthouse we want browser isolation.
     concurrency: Cluster.CONCURRENCY_BROWSER,
   },
   lighthouseOptions: {
-
     onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
   },
 }

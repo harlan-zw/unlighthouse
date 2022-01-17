@@ -8,9 +8,7 @@ import { useUnlighthouse } from '../unlighthouse'
 export const launchPuppeteerCluster = async(): Promise<UnlighthousePuppeteerCluster> => {
   const { resolvedConfig } = useUnlighthouse()
   const cluster = await Cluster.launch({
-    puppeteerOptions: {
-      ...resolvedConfig.puppeteerOptions,
-    },
+    puppeteerOptions: resolvedConfig.puppeteerOptions,
     ...resolvedConfig.puppeteerClusterOptions,
   }) as unknown as UnlighthousePuppeteerCluster
   // hacky solution to mock the display which avoids spamming the console while still monitoring system stats

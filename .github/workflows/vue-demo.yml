@@ -24,7 +24,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install Dependencies
-        run: pnpm install
+        run: pnpm install && pnpm add puppeteer
 
       - name: PNPM build
         run: pnpm run build

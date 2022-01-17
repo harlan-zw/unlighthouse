@@ -14,6 +14,7 @@ export default defineBuildConfig({
     { input: 'src/process', outDir: 'dist/process', builder: 'mkdist', declaration: false },
   ],
   externals: [
+    'puppeteer',
     'unrouted',
     'node:net',
     'vite',

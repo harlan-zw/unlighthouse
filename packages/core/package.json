@@ -51,12 +51,30 @@
     "test:update": "jest -u"
   },
   "peerDependencies": {
+    "puppeteer": "^13.0.1",
     "rollup": "^2.50.0",
     "vite": "^2.3.0",
     "webpack": "4 || 5"
   },
+  "pnpm": {
+    "packageExtensions": {
+      "puppeteer-cluster": {
+        "peerDependencies": {
+          "puppeteer-core": "*"
+        },
+        "peerDependenciesMeta": {
+          "puppeteer": {
+            "optional": true
+          }
+        }
+      }
+    }
+  },
   "peerDependenciesMeta": {
     "rollup": {
+      "optional": true
+    },
+    "puppeteer": {
       "optional": true
     },
     "vite": {
@@ -76,6 +94,7 @@
     "axios": "^0.24.0",
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0-rc.10",
+    "chrome-launcher": "^0.15.0",
     "consola": "^2.15.3",
     "defu": "^5.0.0",
     "execa": "^6.0.0",
@@ -87,7 +106,7 @@
     "lodash-es": "^4.17.21",
     "mlly": "^0.3.17",
     "object-hash": "^2.2.0",
-    "puppeteer": "^13.0.1",
+    "puppeteer-core": "^13.0.1",
     "puppeteer-cluster": "^0.22.0",
     "regexparam": "^2.0.0",
     "sanitize-filename": "^1.6.3",

@@ -168,6 +168,7 @@ importers:
       axios: ^0.24.0
       chalk: ^4.1.2
       cheerio: ^1.0.0-rc.10
+      chrome-launcher: ^0.15.0
       consola: ^2.15.3
       defu: ^5.0.0
       esno: ^0.13.0
@@ -183,8 +184,8 @@ importers:
       mlly: ^0.3.17
       object-hash: ^2.2.0
       ohmyfetch: ^0.4.14
-      puppeteer: ^13.0.1
       puppeteer-cluster: ^0.22.0
+      puppeteer-core: ^13.0.1
       regexparam: ^2.0.0
       rimraf: ^3.0.2
       rollup: ^2.63.0
@@ -208,6 +209,7 @@ importers:
       axios: 0.24.0
       chalk: 4.1.2
       cheerio: 1.0.0-rc.10
+      chrome-launcher: 0.15.0
       consola: 2.15.3
       defu: 5.0.0
       execa: 6.0.0
@@ -219,8 +221,8 @@ importers:
       lodash-es: 4.17.21
       mlly: 0.3.17
       object-hash: 2.2.0
-      puppeteer: 13.0.1
-      puppeteer-cluster: 0.22.0_puppeteer@13.0.1
+      puppeteer-cluster: 0.22.0
+      puppeteer-core: 13.0.1
       regexparam: 2.0.0
       sanitize-filename: 1.6.3
       sitemapper: 3.2.2
@@ -1946,7 +1948,7 @@ packages:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
     dependencies:
-      debug: 4.3.2
+      debug: 4.3.3
     transitivePeerDependencies:
       - supports-color
 
@@ -2791,6 +2793,7 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.2
+    dev: false
 
   /debug/4.3.3:
     resolution: {integrity: sha512-/zxw5+vh1Tfv+4Qn7a5nsbcJKPaSvCDhojn6FEl9vupwK2VCSDtEiEtqr8DFtzYFOdz63LBkxec7DYuc2jon6Q==}
@@ -3920,7 +3923,7 @@ packages:
     engines: {node: '>= 10.17.0'}
     hasBin: true
     dependencies:
-      debug: 4.3.2
+      debug: 4.3.3
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -4443,7 +4446,7 @@ packages:
     engines: {node: '>= 6'}
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.2
+      debug: 4.3.3
     transitivePeerDependencies:
       - supports-color
 
@@ -6424,21 +6427,19 @@ packages:
     dependencies:
       escape-goat: 2.1.1
 
-  /puppeteer-cluster/0.22.0_puppeteer@13.0.1:
+  /puppeteer-cluster/0.22.0:
     resolution: {integrity: sha512-hmydtMwfVM+idFIDzS8OXetnujHGre7RY3BGL+3njy9+r8Dcu3VALkZHfuBEPf6byKssTCgzxU1BvLczifXd5w==}
     peerDependencies:
       puppeteer: ^1.5.0 || ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
     dependencies:
       debug: 4.3.3
-      puppeteer: 13.0.1
     transitivePeerDependencies:
       - supports-color
     dev: false
 
-  /puppeteer/13.0.1:
-    resolution: {integrity: sha512-wqGIx59LzYqWhYcJQphMT+ux0sgatEUbjKG0lbjJxNVqVIT3ZC5m4Bvmq2gHE3qhb63EwS+rNkql08bm4BvO0A==}
+  /puppeteer-core/13.0.1:
+    resolution: {integrity: sha512-aKTN7Rtu7zJuhadihaxXnbC4fRPe/Q6VR8u6krJk3dnmTL7am01hl3XG1x9nNCkxi5fA4+e4ba9QmTvFiqGxSA==}
     engines: {node: '>=10.18.1'}
-    requiresBuild: true
     dependencies:
       debug: 4.3.2
       devtools-protocol: 0.0.937139
