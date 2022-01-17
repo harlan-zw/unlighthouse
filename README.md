@@ -22,7 +22,7 @@ Unlighthouse is an entire site audit tool with a modern UI for scanning live and
 <tbody>
 <td align="center">
 <img width="2000" height="0" /><br>
-Status: <b>Private Beta 🎉</b><br>
+Status: <b>Private Early Access 🎉</b><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a></sub><br>
 <img width="2000" height="0" />
 </td>
