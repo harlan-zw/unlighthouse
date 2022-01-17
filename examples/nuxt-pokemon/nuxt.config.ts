@@ -1,4 +1,4 @@
-import Unlighthouse from 'unlighthouse/nuxt'
+import Unlighthouse from '@unlighthouse/nuxt'
 
 const config = {
   target: 'static',
@@ -14,7 +14,7 @@ const config = {
   },
   buildModules: [
     Unlighthouse,
-      'nuxt-vite',
+    'nuxt-vite',
     '@nuxt/typescript-build',
     '@nuxtjs/composition-api/module',
     'nuxt-windicss',

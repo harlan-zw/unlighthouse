@@ -396,6 +396,10 @@ export interface RuntimeSettings {
    */
   configFile?: string
   /**
+   * When caching we need to generate a unique key based on config.
+   */
+  configCacheKey?: string
+  /**
    * The URL that the websocket will be served from, depends on the api.prefix. Will look something like:
    * "ws://localhost:3000/ws".
    */

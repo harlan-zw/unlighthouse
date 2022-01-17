@@ -15,7 +15,7 @@ import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
 import type {
-  Provider,
+  Provider, RuntimeSettings,
   UnlighthouseContext,
   UnlighthouseHooks,
   UserConfig,
@@ -83,8 +83,8 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     const config = configDefinition.config?.default || configDefinition.config
     userConfig = defu(config, userConfig)
   }
-  const runtimeSettings = {
-    configFile,
+  const runtimeSettings: { moduleWorkingDir: string; lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
+    configFile: configFile || undefined,
     moduleWorkingDir: __dirname,
     configCacheKey: '',
     lighthouseProcessPath: '',
@@ -116,32 +116,34 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
   logger.debug(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
 
-  // test HTTP response from site
-  logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
-  const { valid, response, error, redirected } = await fetchUrlRaw(resolvedConfig.site)
-  if (!valid) {
-    // something is wrong with the site, bail
-    if (response?.status)
-      logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
-    else
-      logger.fatal(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
+  // site will not be set from integrations yet
+  if (resolvedConfig.site) {
+    // test HTTP response from site
+    logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
+    const { valid, response, error, redirected } = await fetchUrlRaw(resolvedConfig.site)
+    if (!valid) {
+      // something is wrong with the site, bail
+      if (response?.status)
+        logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+      else
+        logger.fatal(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
 
-    // bail on cli or ci
-    if (provider?.name === 'cli' || provider?.name === 'ci')
-      process.exit(1)
-  }
-  else if (response) {
-    // change the URL to the redirect one
-    if (redirected) {
-      logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${response.request.responseURL}\`, using that as the site.`)
-      resolvedConfig.site = normaliseHost(response.request.responseURL)
+      // bail on cli or ci
+      if (provider?.name === 'cli' || provider?.name === 'ci')
+        process.exit(1)
     }
-    else {
-      logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
+    else if (response) {
+      // change the URL to the redirect one
+      if (redirected) {
+        logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${response.request.responseURL}\`, using that as the site.`)
+        resolvedConfig.site = normaliseHost(response.request.responseURL)
+      }
+      else {
+        logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
+      }
     }
+    runtimeSettings.siteUrl = new $URL(resolvedConfig.site)
   }
-  // @ts-expect-error @todo fix up types
-  runtimeSettings.siteUrl = new $URL(resolvedConfig.site)
 
   // web socket instance for broadcasting
   const ws = provider?.name === 'ci' ? null : new WS()
@@ -170,7 +172,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     logger.debug(`Setting Unlighthouse CI Context [Site: ${$site}]`)
 
     // avoid nesting reports for ci mode
-    let outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $site.hostname, runtimeSettings.configCacheKey)
+    let outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $site.hostname, runtimeSettings.configCacheKey || '')
     if (provider?.name === 'ci')
       outputPath = join(resolvedConfig.root, resolvedConfig.outputPath)
 
@@ -192,13 +194,14 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   ctx.setServerContext = async({ url, server, app }) => {
     const serverUrl = url
     const $server = new $URL(serverUrl)
-    if (!resolvedConfig.site)
+    if (!resolvedConfig.site) {
       resolvedConfig.site = normaliseHost(serverUrl)
-    const $site = new $URL(resolvedConfig.site)
+      runtimeSettings.siteUrl = new $URL(resolvedConfig.site)
+    }
 
-    logger.debug(`Setting Unlighthouse Server Context [Site: ${$site} Server: ${$server}]`)
+    logger.debug(`Setting Unlighthouse Server Context [Site: ${runtimeSettings.siteUrl} Server: ${$server}]`)
 
-    const outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, $site.hostname, runtimeSettings.configCacheKey)
+    const outputPath = join(resolvedConfig.root, resolvedConfig.outputPath, runtimeSettings.siteUrl?.hostname || '', runtimeSettings.configCacheKey || '')
     const clientUrl = joinURL($server.toString(), resolvedConfig.router.prefix)
     const apiPath = joinURL(resolvedConfig.router.prefix, resolvedConfig.api.prefix)
     ctx.runtimeSettings.serverUrl = url
