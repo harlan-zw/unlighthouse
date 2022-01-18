@@ -1,14 +1,14 @@
 import { join } from 'path'
-import { defineNuxtModule, addServerMiddleware, extendViteConfig } from '@nuxt/kit'
+import {defineNuxtModule, addServerMiddleware, extendViteConfig} from '@nuxt/kit'
 import {addStartCliBadgeLink, getRoutes, waitForServer} from '@harlanzw/nuxt-kit-extras'
 import type { RouteDefinition, UserConfig } from '@unlighthouse/core'
 import { createUnlighthouse, useUnlighthouse } from '@unlighthouse/core'
 
-export interface UnlighthouseNuxtOptions extends UserConfig {
-  // @todo
+export interface ModuleOptions extends UserConfig {
+
 }
 
-export default defineNuxtModule<UnlighthouseNuxtOptions>({
+export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-unlighthouse',
     configKey: 'unlighthouse',
@@ -26,7 +26,6 @@ export default defineNuxtModule<UnlighthouseNuxtOptions>({
       },
       ...config,
       root: nuxt.options.rootDir,
-      debug: true,
     }, {
       name: 'nuxt',
       routeDefinitions: () => getRoutes() as Promise<RouteDefinition[]>
@@ -57,24 +56,14 @@ export default defineNuxtModule<UnlighthouseNuxtOptions>({
         const engine = useUnlighthouse()
         if (!ctx.listeners[0])
           return
-
-        // for nuxt we can fully leverage the dev middleware server
-        engine.setServerContext({
-          url: ctx.listeners[0].url,
-          server: ctx.listeners[0].server,
-          app: ctx.app,
-        })
+          // for nuxt we can fully leverage the dev middleware server
+          engine.setServerContext({
+            url: ctx.listeners[0].url,
+            server: ctx.listeners[0].server,
+            app: ctx.app,
+          })
       })
 
     nuxt.options.ignore.push(join(unlighthouse.resolvedConfig.outputPath, '**'))
   },
 })
-
-declare module '@nuxt/schema' {
-  interface NuxtConfig {
-    unlighthouse?: UnlighthouseNuxtOptions
-  }
-  interface NuxtOptions {
-    unlighthouse?: UnlighthouseNuxtOptions
-  }
-}

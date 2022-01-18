@@ -8,7 +8,7 @@
     "nuxt",
     "nuxt3"
   ],
-  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "homepage": "https://github.com/harlan-zw/unlighthouse/integrations/nuxt#readme",
   "bugs": {
     "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
@@ -16,35 +16,38 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
-    "directory": "packages/nuxt"
+    "directory": "integrations/nuxt"
   },
   "funding": "https://github.com/sponsors/harlan-zw",
   "author": "Harlan Wilton <harlan@harlanzw.com>",
-  "sideEffects": false,
   "files": [
-    "dist",
-    "index.cjs",
-    "runtime"
+    "dist"
   ],
+  "type": "module",
   "exports": {
     ".": {
-      "require": "./index.cjs",
-      "import": "./dist/index.mjs"
+      "import": "./dist/module.mjs",
+      "require": "./dist/module.cjs"
     }
   },
-  "main": "./index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/module.cjs",
+  "types": "./dist/types.d.ts",
   "scripts": {
-    "build": "unbuild",
-    "stub": "unbuild --stub"
+    "stub": "nuxt-module-build --stub",
+    "prepack": "nuxt-module-build",
+    "play": "nuxi dev playground",
+    "play:build": "nuxi build playground",
+    "prepare": "nuxt-module-build --stub && nuxi prepare playground"
   },
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "latest",
     "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
-    "@unlighthouse/core": "workspace:*"
+    "@unlighthouse/core": "workspace:*",
+    "std-env": "^3.0.1"
   },
   "devDependencies": {
-    "@nuxt/schema": "npm:@nuxt/schema-edge@latest"
+    "@nuxt/module-builder": "latest",
+    "@nuxt/schema": "npm:@nuxt/schema-edge@latest",
+    "nuxt3": "latest"
   }
 }
