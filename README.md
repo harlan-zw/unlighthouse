@@ -218,7 +218,11 @@ For example using Github Actions with Netlify:
 
 ## Sponsors
 
-This project is made possible by all the sponsors supporting my work.
+<p align="center">
+  <a href="https://cdn.jsdelivr.net/gh/harlan-zw/static/sponsors.svg">
+    <img src='https://cdn.jsdelivr.net/gh/harlan-zw/static/sponsors.svg'/>
+  </a>
+</p>
 
 ## License
 
