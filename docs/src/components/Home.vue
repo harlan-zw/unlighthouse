@@ -42,7 +42,7 @@
         <div class="absolute p-2 bg-yellow-500/50 text-blue-50 rounded font-bold text-sm">
           Sponsors Only
         </div>
-          <pre>
+        <pre>
 <code class="filter blur-sm select-none"><span class="opacity-50"># Install Unlighthouse globally - can take a few minutes</span>
 <span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">nice hacking skills :)</span><span class="opacity-50">
 </span><span class="opacity-50"># Scan your website</span>
@@ -75,10 +75,10 @@
     <sponsor-banner class="lg:w-600px mb-5" />
   </div>
   <div class="flex flex-col items-center">
-  <h2 id="features" class="text-4xl mb-7 text-center">
-    Features
-  </h2>
-  <FeaturesList class="mb-10 lg:w-600px" />
+    <h2 id="features" class="text-4xl mb-7 text-center">
+      Features
+    </h2>
+    <FeaturesList class="mb-10 lg:w-600px" />
   </div>
   <h2 id="meet-the-team" class="text-4xl mb-7">
     Meet the Team
@@ -102,9 +102,7 @@
   <h2 id="contributors" class="text-4xl mb-7">
     Contributors
   </h2>
-  <p op80 text-lg max-w-150 text-center leading-7>
-    <Contributors />
-  </p>
+  <Contributors />
   <p>These people have financially supported the development of this package. Thanks!</p>
 
   <p><a href="https://unlighthouse.dev/chat">Join the community</a> and get involved!</p>
