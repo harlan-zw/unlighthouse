@@ -38,7 +38,10 @@
       </div>
 
       <p class="mt-4 mb-3">or try it now</p>
-      <div class="language-bash !m-0 inline-block">
+      <div class="language-bash !m-0 inline-block relative">
+        <div class="absolute p-2 bg-yellow-500/50 text-blue-50 rounded font-bold text-sm">
+          Sponsors Only
+        </div>
           <pre>
 <code class="filter blur-sm select-none"><span class="opacity-50"># Install Unlighthouse globally - can take a few minutes</span>
 <span class="token function">npm install --global</span> <span class="token text-[#408c9e] font-500">nice hacking skills :)</span><span class="opacity-50">
@@ -95,14 +98,16 @@
       <p>I'm looking for developers to join the team.<br> Get in touch with <a href="https://twitter.com/harlan_zw" target="_blank">me</a> :)</p>
     </div>
   </div>
-  <h3 id="the-team" op50 font-normal pt-5 pb-2>
+
+  <h2 id="contributors" class="text-4xl mb-7">
     Contributors
-  </h3>
+  </h2>
   <p op80 text-lg max-w-150 text-center leading-7>
     <Contributors />
-    <br>
-    <a href="https://unlighthouse.dev/chat">Join the community</a> and get involved!
   </p>
+  <p>These people have financially supported the development of this package. Thanks!</p>
+
+  <p><a href="https://unlighthouse.dev/chat">Join the community</a> and get involved!</p>
 
   <p class="text-center opacity-75">
     <a href="https://www.netlify.com">
