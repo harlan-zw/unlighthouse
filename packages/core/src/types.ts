@@ -41,6 +41,13 @@ export interface NormalisedRoute {
   definition: RouteDefinition
 }
 
+export type ComputedLighthouseReportAudit = {
+  details?: {
+    items?: any[]
+  },
+  displayValue: string|number
+  score: number
+}
 /**
  * An augmented Lighthouse Report type, we add custom types to the base report for specific functionality on the
  * @unlighthouse/client.
@@ -54,14 +61,8 @@ export type LighthouseReport = Partial<LH.Result> & {
     /**
      * An aggregation of multiple image audit results.
      */
-    imageIssues: {
-      displayValue: string|number
-      score: number
-    }
-    ariaIssues: {
-      displayValue: string|number
-      score: number
-    }
+    imageIssues: ComputedLighthouseReportAudit
+    ariaIssues: ComputedLighthouseReportAudit
   }
 }
 

@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { get } from 'lodash-es'
-import { useColumnClasses } from '../../logic/column'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -14,24 +13,38 @@ const value = computed(() => {
 
 </script>
 <template>
-  <div
+<div
     :class="[`col-span-${column.cols || '2'}`, ...(column.classes ? column.classes : [])]"
     class="flex items-center"
-  >
-    <slot />
-    <audit-result v-if="value?.scoreDisplayMode === 'error'" :value="{ score: 0, displayValue: value.errorMessage }" />
-    <audit-result v-else-if="value?.scoreDisplayMode === 'notApplicable'" :value="{ score: null, displayValue: 'n/a' }" />
-    <component :is="column.component" v-else-if="column.component" :report="report" :column="column" :value="value" />
-    <template v-else-if="!!value">
-      <div v-if="typeof value === 'number'" class="text-base font-mono">
-        {{ value }}
+>
+  <slot />
+  <audit-result v-if="value?.scoreDisplayMode === 'error'" :value="{ score: 0, displayValue: value.errorMessage }" />
+  <audit-result v-else-if="value?.scoreDisplayMode === 'notApplicable'" :value="{ score: null, displayValue: 'n/a' }" />
+  <component :is="column.component" v-else-if="column.component" :report="report" :column="column" :value="value" />
+  <template v-else-if="!!value">
+  <tooltip>
+    <div v-if="typeof value === 'number'" class="text-base font-mono">
+      {{ value }}
+    </div>
+    <div v-else-if="typeof value === 'string'" class="text-xs opacity-80 font-mono">
+      {{ value }}
+    </div>
+    <audit-result v-else-if="typeof value.displayValue !== 'undefined'" :value="value" />
+    <audit-result-items-length v-else-if="!!value.details?.items" :value="value" />
+    <audit-result v-else-if="typeof value.score !== 'undefined'" :value="{ score: value.score }" />
+    <template #tooltip>
+    <div v-if="!!value.details?.items" v-for="(item, key) in value.details.items" :key="key" class="mb-2 flex text-xs ">
+      <div class="mb-2" v-if="item.node?.nodeLabel">
+        <div class="break-all mb-1">{{ item.node?.nodeLabel }}</div>
+        <div class="break-all opacity-80">{{ item.node.snippet }}</div>
       </div>
-      <div v-else-if="typeof value === 'string'" class="text-xs opacity-80 font-mono">
-        {{ value }}
+      <div class="mb-2" v-else-if="item.description && item.sourceLocation">
+        <div class="break-all mb-1">{{ item.description }}</div>
+        <div class="break-all opacity-80">{{ item.sourceLocation.url }}</div>
       </div>
-      <audit-result v-else-if="typeof value.displayValue !== 'undefined'" :value="value" />
-      <audit-result-items-length v-else-if="!!value.details?.items" :value="value" />
-      <audit-result v-else-if="typeof value.score !== 'undefined'" :value="{ score: value.score }" />
+    </div>
     </template>
-  </div>
+  </tooltip>
+  </template>
+</div>
 </template>
