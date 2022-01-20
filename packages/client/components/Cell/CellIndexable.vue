@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { get } from 'lodash-es'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 
 const props = defineProps<{
@@ -11,6 +10,8 @@ const props = defineProps<{
 </script>
 <template>
   <div v-if="value" class="flex w-full justify-center">
+    <span v-if="value.details?.items[0]?.source.url.endsWith('robots.txt')"><a :href="value.details?.items[0]?.source.url" class="underline hover:no-underline">robots.txt</a> blocking</span>
+    <span v-else-if="value.details.items.length > 0">{{ value.details.items }}</span>
     <audit-result :value="{ score: value.score }" />
   </div>
 </template>
