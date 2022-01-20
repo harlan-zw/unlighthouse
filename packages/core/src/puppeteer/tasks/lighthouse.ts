@@ -78,6 +78,8 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
 
   const browser = page.browser()
   const port = new URL(browser.wsEndpoint()).port
+  // ignore csp errors
+  await page.setBypassCSP(true)
 
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,

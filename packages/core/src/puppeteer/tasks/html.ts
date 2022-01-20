@@ -3,7 +3,7 @@ import type { CheerioAPI } from 'cheerio'
 import cheerio from 'cheerio'
 import type { Page } from 'puppeteer-core'
 import { withoutTrailingSlash } from 'ufo'
-import type { PuppeteerTask } from '../../types'
+import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
@@ -17,6 +17,12 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
     const { valid, response, redirected, redirectUrl } = await fetchUrlRaw(route)
     if (!valid || !response)
       return { success: false, message: `Invalid response from URL ${route} code: ${response?.status || '404'}.` }
+
+    // ignore non-html
+    if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html')) {
+      if (!valid || !response)
+        return { success: false, message: `Invalid response from URL ${route} content type: ${response.headers['content-type']}.` }
+    }
 
     return {
       success: true,
@@ -69,8 +75,9 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
   }
 }
 
-export const processSeoMeta = ($: CheerioAPI) => {
+export const processSeoMeta = ($: CheerioAPI): HTMLExtractPayload => {
   return {
+    alternativeLangDefault: $('link[hreflang="x-default"]').attr('href'),
     favicon: $('link[rel~="icon"]').attr('href') || '/favicon.ico',
     title: $('meta[name=\'title\'], head > title').text(),
     description: $('meta[name=\'description\']').attr('content'),
@@ -101,28 +108,32 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
     logger.debug(`HTML extract of \`${routeReport.route.url}\` took \`${seconds}\`ms`)
 
     if (!response.success || !response.payload) {
-      routeReport.tasks.inspectHtmlTask = 'failed'
+      routeReport.tasks.inspectHtmlTask = 'ignore'
       logger.warn(`Failed to extract HTML payload from route \`${routeReport.route.path}\`: ${response.message}`)
       return routeReport
     }
     if (response.redirected) {
       if (!withoutTrailingSlash(response.redirected).startsWith(runtimeSettings.siteUrl.href)) {
-        routeReport.tasks.inspectHtmlTask = 'failed'
+        routeReport.tasks.inspectHtmlTask = 'ignore'
         logger.warn(`Redirected URL goes to a different domain, ignoring. \`${response.redirected}\.`)
         return routeReport
       }
-      logger.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
+      // ignore redirect from site to site/
+      if (withoutTrailingSlash(response.redirected) !== runtimeSettings.siteUrl.href)
+        logger.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
+
       // check if redirect url is already queued, if so we bail on this route
     }
 
     html = response.payload
-    // only need the html payload for caching purposes, unlike the lighthouse reports
-    if (resolvedConfig.cache)
-      fs.writeFileSync(routeReport.htmlPayload, html)
   }
 
   const $ = cheerio.load(html)
   routeReport.seo = processSeoMeta($)
+  if (routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
+    routeReport.tasks.inspectHtmlTask = 'ignore'
+    return routeReport
+  }
   const internalLinks: string[] = []
   const externalLinks: string[] = []
   $('a').each(function() {
@@ -152,5 +163,8 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   routeReport.seo.internalLinks = internalLinks.length
   routeReport.seo.externalLinks = externalLinks.length
   logger.success(`Completed \`inspectHtmlTask\` for \`${routeReport.route.path}\`. [Size: \`${formatBytes(html.length)}\`]`)
+  // only need the html payload for caching purposes, unlike the lighthouse reports
+  if (resolvedConfig.cache)
+    fs.writeFileSync(routeReport.htmlPayload, html)
   return routeReport
 }

@@ -28,6 +28,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
   const cluster = await launchPuppeteerCluster()
 
   const routeReports = new Map<string, UnlighthouseRouteReport>()
+  const ignoredRoutes = new Set<string>()
 
   const monitor: () => UnlighthouseWorkerStats = () => {
     const now = Date.now()
@@ -76,6 +77,8 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       return
     // no duplicate queueing, manually need to purge the reports to re-queue
     if (routeReports.has(id))
+      return
+    if (ignoredRoutes.has(id))
       return
 
     if (resolvedConfig.scanner.include) {
@@ -137,6 +140,13 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
           return task(arg)
         })
         .then((response) => {
+          // ignore this route
+          if (response.tasks[taskName] === 'ignore') {
+            routeReports.delete(id)
+            ignoredRoutes.add(id)
+            logger.debug(`Ignoring route \`${routeReport.route.path}\`.`)
+            return
+          }
           if (response.tasks[taskName] === 'failed')
             return
 

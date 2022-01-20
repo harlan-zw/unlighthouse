@@ -14,13 +14,16 @@ export const createBroadcastingEvents = () => {
     return
 
   hooks.hook('task-started', (path, response) => {
-    ws.broadcast({ response })
+    if (response.tasks.inspectHtmlTask === 'completed')
+      ws.broadcast({ response })
   })
   hooks.hook('task-complete', (path, response) => {
-    ws.broadcast({ response })
+    if (response.tasks.inspectHtmlTask === 'completed')
+      ws.broadcast({ response })
   })
   hooks.hook('task-added', (path, response) => {
-    ws.broadcast({ response })
+    if (response.tasks.inspectHtmlTask === 'completed')
+      ws.broadcast({ response })
   })
 }
 
