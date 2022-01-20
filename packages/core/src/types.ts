@@ -39,6 +39,11 @@ export interface NormalisedRoute {
   url: string
   $url: $URL
   definition: RouteDefinition
+  /**
+   * A runtime path that the route was discovered from, useful if the route is a 404 and we want to know what directed
+   * us to it.
+   */
+  discoveredFrom?: string
 }
 
 export type ComputedLighthouseReportAudit = {
