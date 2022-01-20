@@ -42,7 +42,19 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
   // setup this hook to queue any discovered internal links
   if (resolvedConfig.scanner.crawler) {
     hooks.hook('discovered-internal-links', (path, internalLinks) => {
-      worker.queueRoutes(internalLinks.map(url => normaliseRoute(url)))
+      // sanity check the internal links, may need javascript to run
+      if (path === '/' && internalLinks.length <= 0 && resolvedConfig.scanner.skipJavascript) {
+        resolvedConfig.scanner.skipJavascript = false
+        worker.routeReports.clear()
+        worker.queueRoute(normaliseRoute(path))
+        logger.info('No internal links discovered on home page. Switching crawler to execute javascript.')
+        return
+      }
+      worker.queueRoutes(internalLinks.map(url => normaliseRoute(url)).map((route) => {
+        // keep track of where we discovered this route
+        route.discoveredFrom = path
+        return route
+      }))
     })
   }
 

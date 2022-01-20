@@ -1,6 +1,6 @@
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
-import { pick, sum, sumBy } from 'lodash-es'
+import { flatten, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
@@ -17,18 +17,18 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     .filter(c => !!c.key)
     .map(c => c.key?.replace('report.', '')) as string[]
 
-  const imageIssues = sum([
-    result.audits['unsized-images']?.details?.items?.length || 0,
-    result.audits['preload-lcp-image']?.details?.items?.length || 0,
-    result.audits['offscreen-images']?.details?.items?.length || 0,
-    result.audits['modern-image-formats']?.details?.items?.length || 0,
-    result.audits['uses-optimized-images']?.details?.items?.length || 0,
-    result.audits['efficient-animated-content']?.details?.items?.length || 0,
-    result.audits['uses-responsive-images']?.details?.items?.length || 0,
+  const imageIssues = flatten([
+    result.audits['unsized-images']?.details?.items || [],
+    result.audits['preload-lcp-image']?.details?.items || [],
+    result.audits['offscreen-images']?.details?.items || [],
+    result.audits['modern-image-formats']?.details?.items || [],
+    result.audits['uses-optimized-images']?.details?.items || [],
+    result.audits['efficient-animated-content']?.details?.items || [],
+    result.audits['uses-responsive-images']?.details?.items || [],
   ])
-  const ariaIssues = sum(Object.values(result.audits)
+  const ariaIssues = flatten(Object.values(result.audits)
     .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
-    .map(a => a.details?.items?.length),
+    .map(a => a.details?.items),
   )
   // map the json report to what values we actually need
   return {
@@ -45,12 +45,18 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     ]),
     computed: {
       imageIssues: {
-        displayValue: imageIssues,
-        score: imageIssues > 0 ? 0 : 1,
+        details: {
+          items: imageIssues,
+        },
+        displayValue: imageIssues.length,
+        score: imageIssues.length > 0 ? 0 : 1,
       },
       ariaIssues: {
-        displayValue: ariaIssues,
-        score: ariaIssues > 0 ? 0 : 1,
+        details: {
+          items: ariaIssues,
+        },
+        displayValue: ariaIssues.length,
+        score: ariaIssues.length > 0 ? 0 : 1,
       },
     },
     score: Math.round(sumBy(measuredCategories, 'score') / measuredCategories.length * 100) / 100,
@@ -72,6 +78,8 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
 
   const browser = page.browser()
   const port = new URL(browser.wsEndpoint()).port
+  // ignore csp errors
+  await page.setBypassCSP(true)
 
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,
@@ -105,7 +113,15 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     }
   }
 
-  const report = samples.length <= 1 ? samples[0] : computeMedianRun(samples)
+  let report = samples[0]
+  if (samples.length > 1) {
+    try {
+      report = computeMedianRun(samples)
+    }
+    catch (e) {
+      logger.warn('Error when computing median score, possibly audit failed.', e)
+    }
+  }
 
   if (!report) {
     logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)

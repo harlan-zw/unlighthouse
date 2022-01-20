@@ -70,8 +70,8 @@ export const createApi = () => {
         // inline html
         return `<img style="display: block; margin: 0 auto;"
                      src="${screenshot.data}"
-                     width="${screenshot.width}" 
-                     height="${screenshot.height}" 
+                     width="${screenshot.width}"
+                     height="${screenshot.height}"
                  />`
       })
 
@@ -104,7 +104,7 @@ export const createApi = () => {
     get('reports', () => {
       const { worker } = useUnlighthouse()
 
-      return worker.reports()
+      return worker.reports().filter(r => r.tasks.inspectHtmlTask === 'completed')
     })
     get('reports/:id', async() => {
       const report = useReport()

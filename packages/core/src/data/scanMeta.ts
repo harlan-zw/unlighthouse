@@ -4,7 +4,7 @@ import type { ScanMeta } from '../types'
 export function createScanMeta(): ScanMeta {
   const { worker } = useUnlighthouse()
 
-  const data = worker.reports()
+  const data = worker.reports().filter(r => r.tasks.inspectHtmlTask === 'completed')
   const reportsWithScore = data.filter(r => r.report?.score) as { report: { score: number } }[]
   const score = (reportsWithScore
     .map(r => r.report.score)

@@ -10,7 +10,8 @@ export default function createCli() {
     .example('unlighthouse --site harlanzw.com')
 
   cli.option('--site <site>', 'Host URL to scan')
-  cli.option('--scanner.samples <samples>', 'Specify the amount of samples to run.')
+  cli.option('--samples <samples>', 'Specify the amount of samples to run.')
+  cli.option('--throttle', 'Enable the throttling')
   cli.option('--enable-javascript', 'When inspecting the HTML wait for the javascript to execute. Useful for SPAs.')
   cli.option('--disable-javascript', 'When inspecting the HTML, don\'t wait for the javascript to execute.')
   cli.option('--output-path <output-path>', 'Path to save the contents of the client and reports to.')

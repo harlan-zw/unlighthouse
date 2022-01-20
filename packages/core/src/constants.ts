@@ -190,6 +190,7 @@ export const defaultConfig: UserConfig = {
     columns: DefaultColumns,
   },
   scanner: {
+    ignoreI18nPages: true,
     maxRoutes: 200,
     skipJavascript: true,
     samples: 1,

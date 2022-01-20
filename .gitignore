@@ -84,3 +84,6 @@ dist
 **/.lighthouse
 
 **/.cache
+
+
+reports
