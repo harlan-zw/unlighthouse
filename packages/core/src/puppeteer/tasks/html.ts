@@ -128,7 +128,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   $('a').each(function() {
     const href = $(this).attr('href')
     // href must be provided and not be javascript
-    if (!href || href.includes('javascript:') || href === '#')
+    if (!href || href.includes('javascript:') || href.includes('mailto:') || href === '#')
       return
 
     // if the URL doesn't end with a slash we may be dealing with a file
