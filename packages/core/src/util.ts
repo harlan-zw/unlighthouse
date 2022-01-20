@@ -99,21 +99,24 @@ export const formatBytes = (bytes: number, decimals = 2) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-export async function fetchUrlRaw(url: string): Promise<{ error?: any; redirected?: boolean; valid: boolean; response?: AxiosResponse }> {
+export async function fetchUrlRaw(url: string): Promise<{ error?: any; redirected?: boolean; redirectUrl?: string; valid: boolean; response?: AxiosResponse }> {
   try {
     const response = await axios.get(url)
-    const redirected = response.request.responseURL && response.request.responseURL !== url
+    const redirected = response.request.res.responseUrl && response.request.res.responseUrl !== url
+    const redirectUrl = response.request.res.responseUrl
     if (response.status < 200 || (response.status >= 300 && !redirected)) {
       return {
         valid: false,
         redirected,
         response,
+        redirectUrl,
       }
     }
     return {
       valid: true,
       redirected,
       response,
+      redirectUrl,
     }
   }
   catch (e) {
