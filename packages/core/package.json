@@ -38,20 +38,8 @@
     "build": "unbuild",
     "stub": "unbuild --stub"
   },
-  "peerDependencies": {
-    "rollup": "^2.50.0",
-    "vite": "^2.3.0",
-    "webpack": "4 || 5"
-  },
   "pnpm": {
     "packageExtensions": {
-      "vue-router": {
-        "peerDependenciesMeta": {
-          "vue": {
-            "optional": true
-          }
-        }
-      },
       "puppeteer-cluster": {
         "peerDependencies": {
           "puppeteer-core": "*"
@@ -65,19 +53,7 @@
     }
   },
   "peerDependenciesMeta": {
-    "rollup": {
-      "optional": true
-    },
     "puppeteer": {
-      "optional": true
-    },
-    "vite": {
-      "optional": true
-    },
-    "vue": {
-      "optional": true
-    },
-    "webpack": {
       "optional": true
     }
   },
