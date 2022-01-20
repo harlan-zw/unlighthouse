@@ -120,7 +120,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   if (resolvedConfig.site) {
     // test HTTP response from site
     logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
-    const { valid, response, error, redirected } = await fetchUrlRaw(resolvedConfig.site)
+    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(resolvedConfig.site)
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
@@ -134,9 +134,9 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     }
     else if (response) {
       // change the URL to the redirect one
-      if (redirected) {
-        logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${response.request.responseURL}\`, using that as the site.`)
-        resolvedConfig.site = normaliseHost(response.request.responseURL)
+      if (redirected && redirectUrl) {
+        logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
+        resolvedConfig.site = normaliseHost(redirectUrl)
       }
       else {
         logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
