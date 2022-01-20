@@ -15,23 +15,6 @@
       }
     }
   },
-  "peerDependenciesMeta": {
-    "puppeteer": {
-      "optional": true
-    },
-    "rollup": {
-      "optional": true
-    },
-    "vite": {
-      "optional": true
-    },
-    "vue": {
-      "optional": true
-    },
-    "webpack": {
-      "optional": true
-    }
-  },
   "scripts": {
     "cli:docs": "node packages/cli/dist/cli.mjs --root docs --debug --no-cache",
     "cli:hzw": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/harlanzw.com/ --debug",
@@ -59,17 +42,11 @@
     "@vitest/ui": "^0.1.24",
     "bumpp": "^7.1.1",
     "eslint": "^8.7.0",
-    "esno": "^0.14.0",
-    "execa": "^6.0.0",
-    "fs-extra": "^10.0.0",
-    "jest": "^27.4.7",
-    "jiti": "^1.12.9",
-    "rimraf": "^3.0.2",
-    "rollup": "^2.64.0",
-    "ts-jest": "^27.1.3",
-    "tsup": "^5.11.11",
     "typescript": "^4.5.4",
     "vitest": "^0.1.24"
   },
-  "version": "0.1.34"
+  "version": "0.1.34",
+  "dependencies": {
+    "unbuild": "^0.6.7"
+  }
 }
