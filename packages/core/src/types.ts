@@ -46,10 +46,10 @@ export interface NormalisedRoute {
   discoveredFrom?: string
 }
 
-export type ComputedLighthouseReportAudit = {
+export interface ComputedLighthouseReportAudit {
   details?: {
     items?: any[]
-  },
+  }
   displayValue: string|number
   score: number
 }

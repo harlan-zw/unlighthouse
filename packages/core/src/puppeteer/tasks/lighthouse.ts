@@ -1,6 +1,6 @@
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
-import {flatten, pick, sumBy} from 'lodash-es'
+import { flatten, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
@@ -115,7 +115,8 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
   if (samples.length > 1) {
     try {
       report = computeMedianRun(samples)
-    } catch(e) {
+    }
+    catch (e) {
       logger.warn('Error when computing median score, possibly audit failed.', e)
     }
   }

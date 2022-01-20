@@ -2,12 +2,12 @@ import fs from 'fs-extra'
 import type { CheerioAPI } from 'cheerio'
 import cheerio from 'cheerio'
 import type { Page } from 'puppeteer-core'
+import { withoutTrailingSlash } from 'ufo'
 import type { PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
 import { normaliseRoute } from '../../router'
-import {withoutTrailingSlash} from "ufo";
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false|string; message?: string; payload?: string }> = async(page, route) => {
   const { worker, resolvedConfig } = useUnlighthouse()

@@ -50,7 +50,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
         logger.info('No internal links discovered on home page. Switching crawler to execute javascript.')
         return
       }
-      worker.queueRoutes(internalLinks.map(url => normaliseRoute(url)).map(route => {
+      worker.queueRoutes(internalLinks.map(url => normaliseRoute(url)).map((route) => {
         // keep track of where we discovered this route
         route.discoveredFrom = path
         return route

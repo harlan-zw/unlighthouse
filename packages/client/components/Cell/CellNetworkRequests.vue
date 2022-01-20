@@ -41,7 +41,7 @@ const requestsMapped = computed(() => {
     <div class="grid gap-4 grid-cols-2">
       <div v-for="(group, resourceType) in requestsMapped" :key="resourceType" class="text-xs flex items-center">
         <tooltip>
-          <span>{{ group.count > 1 ? group.count : '' }} {{ resourceType }}{{ group.count > 1 ? 's' : ''}}</span>
+          <span>{{ group.count > 1 ? group.count : '' }} {{ resourceType }}{{ group.count > 1 ? 's' : '' }}</span>
           <span class="opacity-70 ml-2">{{ group.size }}</span>
           <template #tooltip>
             <div v-for="(item, key) in group.items" :key="key" class="mb-2 flex text-xs ">

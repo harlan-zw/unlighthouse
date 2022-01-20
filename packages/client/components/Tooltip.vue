@@ -2,7 +2,7 @@
 const isShowing = ref(false)
 </script>
 <template>
-  <div class="relative" @mouseleave="isShowing = false" v-if="$slots.tooltip">
+  <div v-if="$slots.tooltip" class="relative" @mouseleave="isShowing = false">
     <TransitionRoot
       appear
       :show="isShowing"
