@@ -7,6 +7,7 @@ import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
 import { normaliseRoute } from '../../router'
+import {withoutTrailingSlash} from "ufo";
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false|string; message?: string; payload?: string }> = async(page, route) => {
   const { worker, resolvedConfig } = useUnlighthouse()
@@ -82,7 +83,7 @@ export const processSeoMeta = ($: CheerioAPI) => {
 }
 
 export const inspectHtmlTask: PuppeteerTask = async(props) => {
-  const { resolvedConfig, hooks } = useUnlighthouse()
+  const { resolvedConfig, hooks, runtimeSettings } = useUnlighthouse()
   const { page, data: routeReport } = props
   const logger = useLogger()
   let html: string
@@ -104,7 +105,12 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
       logger.warn(`Failed to extract HTML payload from route \`${routeReport.route.path}\`: ${response.message}`)
       return routeReport
     }
-    if (response.redirected)
+    if (response.redirected) {
+      if (!withoutTrailingSlash(response.redirected).startsWith(runtimeSettings.siteUrl.href)) {
+        routeReport.tasks.inspectHtmlTask = 'failed'
+        logger.warn(`Redirected URL goes to a different domain, ignoring. \`${response.redirected}\.`)
+        return routeReport
+      }
       logger.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
       // check if redirect url is already queued, if so we bail on this route
 
