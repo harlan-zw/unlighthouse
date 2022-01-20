@@ -2,13 +2,14 @@ export interface CliOptions {
   host?: string
   help?: boolean
   site?: string
+  throttle?: boolean
   cache?: boolean
   noCache?: boolean
   version?: boolean
   root?: string
   configFile?: string
   debug?: boolean
-  ['scanner.samples']?: number
+  samples?: number
   enableJavascript?: boolean
   disableJavascript?: boolean
 }

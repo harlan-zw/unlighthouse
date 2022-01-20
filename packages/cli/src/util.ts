@@ -24,32 +24,35 @@ export const validateOptions = (resolvedOptions: UserConfig) => {
 }
 
 export function pickOptions(options: CiOptions|CliOptions): UserConfig {
-  const picked: Record<string, any> = {}
+  const picked: Record<string, any> = {
+    scanner: {}
+  }
   if (options.noCache)
     picked.cache = true
-
+  if (options.throttle) {
+    picked.scanner.throttle = true
+  }
   if (options.enableJavascript) {
-    picked.scanner = {
-      skipJavascript: false,
-    }
+    picked.scanner.skipJavascript = false
   }
   else if (options.disableJavascript) {
-    picked.scanner = {
-      skipJavascript: true,
-    }
+    picked.scanner.skipJavascript = true
   }
 
+  if (options.samples)
+    picked.scanner.samples = options.samples
+
   return defu(
-    pick(options, [
-      // root level options
-      'scanner.samples',
-      'site',
-      'root',
-      'configFile',
-      'debug',
-      'cache',
-      'outputPath',
-    ]),
-    picked,
+      pick(options, [
+        // root level options
+        'samples',
+        'site',
+        'root',
+        'configFile',
+        'debug',
+        'cache',
+        'outputPath',
+      ]),
+      picked,
   )
 }
