@@ -8,7 +8,8 @@ const props = defineProps<{
 }>()
 </script>
 <template>
-  <loading-status-icon v-if="!report.report" :status="report.tasks.runLighthouseTask" />
+  <loading-status-icon v-if="!report.report && report.tasks.inspectHtmlTask === 'failed'" :status="report.tasks.inspectHtmlTask" />
+  <loading-status-icon v-else-if="!report.report" :status="report.tasks.runLighthouseTask" />
   <btn-action
     v-else
     :class="[`grid-cols-${categories.length}`]"
