@@ -113,6 +113,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
       }
       logger.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
       // check if redirect url is already queued, if so we bail on this route
+    }
 
     html = response.payload
     // only need the html payload for caching purposes, unlike the lighthouse reports
