@@ -111,7 +111,14 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     }
   }
 
-  const report = samples.length <= 1 ? samples[0] : computeMedianRun(samples)
+  let report = samples[0]
+  if (samples.length > 1) {
+    try {
+      report = computeMedianRun(samples)
+    } catch(e) {
+      logger.warn('Error when computing median score, possibly audit failed.', e)
+    }
+  }
 
   if (!report) {
     logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
