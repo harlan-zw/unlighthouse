@@ -34,11 +34,10 @@
   "types": "./dist/types.d.ts",
   "scripts": {
     "build": "nuxt-module-build",
-    "stub": "nuxt-module-build --stub",
     "prepack": "nuxt-module-build",
     "play": "nuxi dev playground",
     "play:build": "nuxi build playground",
-    "prepare": "nuxt-module-build --stub && nuxi prepare playground"
+    "stub": "nuxt-module-build --stub && nuxi prepare playground"
   },
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "^0.2.4",
