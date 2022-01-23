@@ -33,6 +33,7 @@
   "main": "./dist/module.cjs",
   "types": "./dist/types.d.ts",
   "scripts": {
+    "build": "nuxt-module-build",
     "stub": "nuxt-module-build --stub",
     "prepack": "nuxt-module-build",
     "play": "nuxi dev playground",
