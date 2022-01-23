@@ -40,7 +40,7 @@
     "stub": "nuxt-module-build --stub && nuxi prepare playground"
   },
   "dependencies": {
-    "@harlanzw/nuxt-kit-extras": "^0.2.4",
+    "@harlanzw/nuxt-kit-extras": "^0.2.10",
     "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
     "@unlighthouse/core": "workspace:*",
     "std-env": "^3.0.1"

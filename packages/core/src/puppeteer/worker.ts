@@ -196,9 +196,9 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
   const invalidateFile = (file: string) => {
     const matched = reports()
-      .filter(r => r.route.definition.component === file)
-    if (matched.length > 0)
-      logger.info(`Invalidating file ${file}, matched ${matched.length} routes.`)
+      .filter(r => r.route.definition.component === file || r.route.definition.component?.endsWith(file))
+
+    logger.info(`Invalidating file ${file}, matched ${matched.length} routes.`)
 
     matched
       .forEach(r => requeueReport(r))

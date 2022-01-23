@@ -6,5 +6,7 @@ export default defineNuxtConfig({
     MyModule
   ],
   unlighthouse: {
+    debug: true,
+    cache: false,
   }
 })

@@ -31,7 +31,7 @@ export default defineNuxtModule<ModuleOptions>({
     }, {
       name: 'nuxt',
       // @ts-ignore
-      routeDefinitions: async () => await routePromise
+      routeDefinitions: () => routePromise
     })
 
     // when we vite mode, the HTML is not server side rendered so we need to tell the scanner this
@@ -66,6 +66,20 @@ export default defineNuxtModule<ModuleOptions>({
       logger.success('⛵  Unlighthouse ready: ' + engine.runtimeSettings.clientUrl)
     })
 
-    nuxt.options.ignore.push(join(unlighthouse.resolvedConfig.outputPath, '**'))
+    nuxt.options.ignore.push(join(unlighthouse.resolvedConfig.outputPath))
+
+    nuxt.hooks.hook('builder:watch', (event, filePath) => {
+      const { worker } = useUnlighthouse()
+
+      // ignore seems to be buggy
+      if (filePath.startsWith(unlighthouse.resolvedConfig.outputPath)) {
+        return
+      }
+
+      if (event === 'change') {
+        worker.invalidateFile(filePath)
+      }
+    })
+
   },
 })

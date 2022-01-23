@@ -23,6 +23,7 @@ import type { WS } from './router'
 export interface RouteDefinition {
   name: string
   path: string
+  file?: string
   component?: string
   componentBaseName?: string
   chunkName?: string

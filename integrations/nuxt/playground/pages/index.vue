@@ -1,6 +1,6 @@
 <template>
 <div>
-  Nuxt module playground!
+  Nuxt module !
   <nuxt-link to="/page2">page 2</nuxt-link>
 </div>
 </template>
