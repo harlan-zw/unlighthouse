@@ -1,7 +1,8 @@
 import { join } from 'path'
 import {defineNuxtModule, addServerMiddleware, extendViteConfig, useNuxt } from '@nuxt/kit'
-import type { RouteDefinition, UserConfig } from '@unlighthouse/core'
+import type { UserConfig } from '@unlighthouse/core'
 import { createUnlighthouse, useUnlighthouse, useLogger } from '@unlighthouse/core'
+import {waitForRoutes, waitForDevServer} from "@harlanzw/nuxt-kit-extras";
 
 export interface ModuleOptions extends UserConfig {
 
@@ -19,11 +20,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     const config = data as UserConfig
 
-    const routes = new Promise<RouteDefinition[]>(resolve => {
-      nuxt.hooks.hook('pages:extend', pages => {
-        resolve(pages as RouteDefinition[])
-      })
-    })
+    const routePromise = waitForRoutes()
 
     const unlighthouse = useUnlighthouse() || await createUnlighthouse({
       router: {
@@ -33,7 +30,8 @@ export default defineNuxtModule<ModuleOptions>({
       root: nuxt.options.rootDir,
     }, {
       name: 'nuxt',
-      routeDefinitions: () => routes
+      // @ts-ignore
+      routeDefinitions: async () => await routePromise
     })
 
     // when we vite mode, the HTML is not server side rendered so we need to tell the scanner this
@@ -55,17 +53,17 @@ export default defineNuxtModule<ModuleOptions>({
       },
     })
 
-    nuxt.hooks.hook('listen', async (server, listener) => {
+    waitForDevServer().then(async ({ listenerServer, listener }) => {
       const engine = useUnlighthouse()
       const nuxtApp = useNuxt()
       // for nuxt we can fully leverage the dev middleware server
       await engine.setServerContext({
         url: listener.url,
-        server: server,
+        server: listenerServer,
         app: nuxtApp.server.app,
       })
       const logger = useLogger()
-      logger.success('⛵  Unlighthouse ready:' + engine.runtimeSettings.clientUrl)
+      logger.success('⛵  Unlighthouse ready: ' + engine.runtimeSettings.clientUrl)
     })
 
     nuxt.options.ignore.push(join(unlighthouse.resolvedConfig.outputPath, '**'))
