@@ -17,6 +17,7 @@
   ],
   "main": "dist/index.html",
   "scripts": {
+    "stub": "pnpm run build",
     "dev": "vite .",
     "build:watch": "vite build --watch",
     "build": "cross-env NODE_ENV=production vite build --mode production"

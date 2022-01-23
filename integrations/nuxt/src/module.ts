@@ -1,14 +1,14 @@
 import { join } from 'path'
-import { defineNuxtModule, addServerMiddleware, extendViteConfig } from '@nuxt/kit'
-import {addStartCliBadgeLink, getRoutes, waitForServer} from '@harlanzw/nuxt-kit-extras'
-import type { RouteDefinition, UserConfig } from '@unlighthouse/core'
-import { createUnlighthouse, useUnlighthouse } from '@unlighthouse/core'
+import {defineNuxtModule, addServerMiddleware, extendViteConfig, useNuxt } from '@nuxt/kit'
+import type { UserConfig } from '@unlighthouse/core'
+import { createUnlighthouse, useUnlighthouse, useLogger } from '@unlighthouse/core'
+import {waitForRoutes, waitForDevServer} from "@harlanzw/nuxt-kit-extras";
 
-export interface UnlighthouseNuxtOptions extends UserConfig {
-  // @todo
+export interface ModuleOptions extends UserConfig {
+
 }
 
-export default defineNuxtModule<UnlighthouseNuxtOptions>({
+export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-unlighthouse',
     configKey: 'unlighthouse',
@@ -20,16 +20,18 @@ export default defineNuxtModule<UnlighthouseNuxtOptions>({
 
     const config = data as UserConfig
 
+    const routePromise = waitForRoutes()
+
     const unlighthouse = useUnlighthouse() || await createUnlighthouse({
       router: {
         prefix: '/__unlighthouse',
       },
       ...config,
       root: nuxt.options.rootDir,
-      debug: true,
     }, {
       name: 'nuxt',
-      routeDefinitions: () => getRoutes() as Promise<RouteDefinition[]>
+      // @ts-ignore
+      routeDefinitions: async () => await routePromise
     })
 
     // when we vite mode, the HTML is not server side rendered so we need to tell the scanner this
@@ -42,7 +44,6 @@ export default defineNuxtModule<UnlighthouseNuxtOptions>({
     if (unlighthouse.runtimeSettings.configFile)
       nuxt.options.watch.push(unlighthouse.runtimeSettings.configFile)
 
-    addStartCliBadgeLink(unlighthouse.resolvedConfig.router.prefix, '⛵  Unlighthouse')
 
     addServerMiddleware({
       path: config.router?.prefix,
@@ -52,29 +53,19 @@ export default defineNuxtModule<UnlighthouseNuxtOptions>({
       },
     })
 
-    waitForServer()
-      .then((ctx) => {
-        const engine = useUnlighthouse()
-        if (!ctx.listeners[0])
-          return
-
-        // for nuxt we can fully leverage the dev middleware server
-        engine.setServerContext({
-          url: ctx.listeners[0].url,
-          server: ctx.listeners[0].server,
-          app: ctx.app,
-        })
+    waitForDevServer().then(async ({ listenerServer, listener }) => {
+      const engine = useUnlighthouse()
+      const nuxtApp = useNuxt()
+      // for nuxt we can fully leverage the dev middleware server
+      await engine.setServerContext({
+        url: listener.url,
+        server: listenerServer,
+        app: nuxtApp.server.app,
       })
+      const logger = useLogger()
+      logger.success('⛵  Unlighthouse ready: ' + engine.runtimeSettings.clientUrl)
+    })
 
     nuxt.options.ignore.push(join(unlighthouse.resolvedConfig.outputPath, '**'))
   },
 })
-
-declare module '@nuxt/schema' {
-  interface NuxtConfig {
-    unlighthouse?: UnlighthouseNuxtOptions
-  }
-  interface NuxtOptions {
-    unlighthouse?: UnlighthouseNuxtOptions
-  }
-}

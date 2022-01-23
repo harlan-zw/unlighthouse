@@ -16,6 +16,7 @@
     }
   },
   "scripts": {
+    "prepare": "pnpm -r --parallel --filter !@unlighthouse/nuxt run stub && pnpm -r --parallel --filter @unlighthouse/nuxt run stub",
     "cli:docs": "node packages/cli/dist/cli.mjs --root docs --debug --no-cache",
     "cli:hzw": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/harlanzw.com/ --debug",
     "cli:ody": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/odysseytraveller.com-app/ --debug",
@@ -24,7 +25,7 @@
     "cli:vue": "node packages/cli/dist/cli.mjs --config-file test/fixtures/staging-vue.config.ts --debug",
     "ci:vue": "node packages/cli/dist/ci.mjs --config-file test/fixtures/staging-vue.config.ts --build-static --debug",
     "ci:docs": "node packages/cli/dist/ci.mjs --root docs --build-static --debug",
-    "build": "pnpm -r --parallel run build",
+    "build": "pnpm -r --parallel --filter !@unlighthouse/nuxt run build && pnpm -r --parallel --filter @unlighthouse/nuxt run build",
     "stub": "pnpm -r --parallel run stub",
     "dev": "pnpm run stub && pnpm run watch:client",
     "lint": "eslint \"packages/**/*.{ts,vue,json,yml}\"",
