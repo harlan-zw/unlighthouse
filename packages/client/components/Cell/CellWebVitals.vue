@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import { isLocalhost } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -59,7 +60,7 @@ const props = defineProps<{
         <audit-result :value="report.report.audits['interactive']" class="ml-2" />
       </div>
     </div>
-    <div class="text-xs opacity-90">
+    <div v-if="!isLocalhost" class="text-xs opacity-90">
       Variability in effect. Test with <a :href="`https://pagespeed.web.dev/report?url=${encodeURIComponent(report.route.url)}`" target="_blank" class="underline hover:no-underline">PageSpeed Insights</a>.
     </div>
   </div>
