@@ -2,7 +2,7 @@ import { join } from 'path'
 import {defineNuxtModule, addServerMiddleware, extendViteConfig, useNuxt } from '@nuxt/kit'
 import type { UserConfig } from '@unlighthouse/core'
 import { createUnlighthouse, useUnlighthouse, useLogger } from '@unlighthouse/core'
-import {waitForRoutes, waitForDevServer} from "@harlanzw/nuxt-kit-extras";
+import {waitForRoutes, waitForDevServer, useHooks } from "@harlanzw/nuxt-kit-extras";
 
 export interface ModuleOptions extends UserConfig {
 
@@ -68,7 +68,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.ignore.push(join(unlighthouse.resolvedConfig.outputPath))
 
-    nuxt.hooks.hook('builder:watch', (event, filePath) => {
+    const { hook } = useHooks()
+
+    hook('builder:watch', (event, filePath) => {
       const { worker } = useUnlighthouse()
 
       // ignore seems to be buggy
