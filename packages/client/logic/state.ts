@@ -1,13 +1,12 @@
-import { useFetch } from '@vueuse/core'
 import { computed, reactive } from 'vue'
 import type { NormalisedRoute, ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { $fetch } from 'ohmyfetch'
 import { sum } from 'lodash-es'
 import CellRouteName from '../components/Cell/CellRouteName.vue'
 import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
 import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
 import { apiUrl, categories, columns, isStatic, wsUrl } from './static'
 import { sorting } from './search'
+import { useFetch } from './fetch'
 
 export const activeTab = ref(0)
 
@@ -78,7 +77,7 @@ export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
 export const fetchedScanMeta = isStatic
   ? null
   : reactive(
-    useFetch(`${apiUrl}/scan-meta`)
+    useFetch(`/scan-meta`)
       .get()
       .json<ScanMeta>(),
   )
@@ -95,7 +94,7 @@ export const isOffline = computed<boolean>(() => {
   return !!(!fetchedScanMeta?.data && lastScanMeta.value)
 })
 
-export const rescanRoute = (route: NormalisedRoute) => useFetch(`${apiUrl}/reports/${route.id}/rescan`).post()
+export const rescanRoute = (route: NormalisedRoute) => useFetch(`/reports/${route.id}/rescan`).post()
 
 export const scanMeta = computed<ScanMeta|null>(() => {
   if (isStatic)
@@ -128,8 +127,8 @@ export const wsConnect = async() => {
     const { response } = JSON.parse(message.data)
     wsReports.set(response.route.path, response)
   }
-  const reports = await $fetch<UnlighthouseRouteReport[]>(`${apiUrl}/reports`)
-  reports.forEach((report) => {
+  const reports = await useFetch(`/reports`).get().json<UnlighthouseRouteReport[]>()
+  reports.data.value?.forEach((report) => {
     wsReports.set(report.route.path, report)
   })
 }
