@@ -216,7 +216,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,
     }
 
-    ctx.api = createApi()
+    ctx.api = await createApi()
     // make the router use our router
     // @ts-expect-error not sure how to resolve
     app.use((...args) => ctx.api(...args))
