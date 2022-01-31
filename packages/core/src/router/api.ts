@@ -1,5 +1,5 @@
 import { dirname, join } from 'path'
-import { createUnrouted, useParams, useQuery, redirect, group, serve, post, get, setStatusCode } from 'unrouted'
+import { createUnrouted, get, group, post, redirect, serve, setStatusCode, useParams, useQuery } from 'unrouted'
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
 import launch from 'launch-editor'
@@ -12,7 +12,7 @@ import { createScanMeta } from '../data'
  *
  * Internally, this uses unrouted which provides an elegant and batteries-packed solution.
  */
-export const createApi = async () => {
+export const createApi = async() => {
   const logger = useLogger()
   const { ws, resolvedConfig, runtimeSettings, hooks } = useUnlighthouse()
   const useReport = () => {

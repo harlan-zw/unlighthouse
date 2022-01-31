@@ -77,7 +77,7 @@ export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
 export const fetchedScanMeta = isStatic
   ? null
   : reactive(
-    useFetch(`/scan-meta`)
+    useFetch('/scan-meta')
       .get()
       .json<ScanMeta>(),
   )
@@ -127,7 +127,7 @@ export const wsConnect = async() => {
     const { response } = JSON.parse(message.data)
     wsReports.set(response.route.path, response)
   }
-  const reports = await useFetch(`/reports`).get().json<UnlighthouseRouteReport[]>()
+  const reports = await useFetch('/reports').get().json<UnlighthouseRouteReport[]>()
   reports.data.value?.forEach((report) => {
     wsReports.set(report.route.path, report)
   })

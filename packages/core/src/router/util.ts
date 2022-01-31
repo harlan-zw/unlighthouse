@@ -36,9 +36,9 @@ export const normaliseRoute = (url: string): NormalisedRoute => {
     // if a route definition is found
     if (definition) {
       // nuxt 3
-      if (definition.file && !definition.component) {
+      if (definition.file && !definition.component)
         definition.component = definition.file
-      }
+
       // add extra meta data from the definition
       normalised = {
         ...normalised,
