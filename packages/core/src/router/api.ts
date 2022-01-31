@@ -1,5 +1,5 @@
 import { dirname, join } from 'path'
-import { createUnrouted, useParams, useQuery, redirect, group, serve, post, get } from 'unrouted'
+import { createUnrouted, useParams, useQuery, redirect, group, serve, post, get, setStatusCode } from 'unrouted'
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
 import launch from 'launch-editor'
@@ -91,9 +91,12 @@ export const createApi = async () => {
         })
       })
 
-      get('__launch', (req) => {
-        const query = useQuery(req)
-        const file = query.file as string
+      get('__launch', () => {
+        const { file } = useQuery<{ file: string }>()
+        if (!file) {
+          setStatusCode(400)
+          return false
+        }
         const path = file.replace(resolvedConfig.root, '')
         const resolved = join(resolvedConfig.root, path)
         logger.info(`Launching file in editor: \`${path}\``)

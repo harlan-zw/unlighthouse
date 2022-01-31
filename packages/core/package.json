@@ -85,7 +85,7 @@
     "ufo": "^0.7.9",
     "unconfig": "^0.2.2",
     "unctx": "^1.0.2",
-    "unrouted": "^0.2.1",
+    "unrouted": "^0.3.2",
     "ws": "^8.4.0"
   },
   "devDependencies": {

@@ -218,8 +218,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
     ctx.api = await createApi()
     // make the router use our router
-    // @ts-expect-error not sure how to resolve
-    app.use((...args) => ctx.api(...args))
+    app.use(ctx.api)
 
     if (ws) {
       server.on('upgrade', (request: IncomingMessage, socket) => {
