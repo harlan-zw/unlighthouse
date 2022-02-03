@@ -14,8 +14,10 @@ export default defineBuildConfig({
     { input: 'src/process', outDir: 'dist/process', builder: 'mkdist', declaration: false },
   ],
   externals: [
+    '@unrouted/core',
+    'h3',
+    'radix3',
     'puppeteer',
-    'unrouted',
     'node:net',
     'vite',
     'rollup',

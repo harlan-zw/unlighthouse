@@ -9,4 +9,9 @@ export default defineBuildConfig({
   },
   clean: true,
   declaration: true,
+  externals: [
+    'vite',
+    'esbuild',
+    'postcss'
+  ]
 })

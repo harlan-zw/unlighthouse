@@ -60,7 +60,6 @@
   "dependencies": {
     "@nuxt/cli": "^2.15.8",
     "@nuxt/utils": "^2.15.8",
-    "@unlighthouse/client": "workspace:*",
     "axios": "^0.25.0",
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0-rc.10",
