@@ -3,6 +3,7 @@ import Components from 'unplugin-vue-components/vite'
 import WindiCSS from 'vite-plugin-windicss'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
+import Unlighthouse from '@unlighthouse/vite'
 
 export default defineConfig({
   plugins: [
@@ -21,6 +22,13 @@ export default defineConfig({
         ],
       },
     }),
+    Unlighthouse({
+      debug: true,
+      discovery: {
+        supportedExtensions: ['md'],
+        pagesDir: '',
+      },
+    })
   ],
 
   optimizeDeps: {

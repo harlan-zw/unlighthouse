@@ -4,14 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:serve": "vitepress serve docs"
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs",
+    "serve": "vitepress serve docs"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "vitepress": "^0.20.1",
-    "unlighthouse": "link:../../packages/unlighthouse"
+    "@unlighthouse/vite": "link:../../integrations/vite"
   }
 }

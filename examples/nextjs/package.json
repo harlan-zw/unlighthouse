@@ -6,7 +6,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "unlighthouse": "link:../../packages/unlighthouse",
+    "@unlighthouse/webpack": "link:../../integrations/webpack",
     "next": "latest",
     "react": "17.0.2",
     "react-dom": "17.0.2"

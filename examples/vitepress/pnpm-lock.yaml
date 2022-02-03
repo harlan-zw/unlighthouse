@@ -4,10 +4,10 @@ importers:
 
   .:
     specifiers:
-      unlighthouse: link:../../packages/unlighthouse
+      '@unlighthouse/vite': link:../../integrations/vite
       vitepress: ^0.20.1
     devDependencies:
-      unlighthouse: link:../../packages/unlighthouse
+      '@unlighthouse/vite': link:../../integrations/vite
       vitepress: 0.20.1
 
 packages:

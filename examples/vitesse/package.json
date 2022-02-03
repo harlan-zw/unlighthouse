@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "unlighthouse": "link:../../packages/unlighthouse",
+    "@unlighthouse/vite": "link:../../integrations/vite",
     "@vueuse/core": "^7.1.2",
     "@vueuse/head": "^0.7.2",
     "nprogress": "^0.2.0",

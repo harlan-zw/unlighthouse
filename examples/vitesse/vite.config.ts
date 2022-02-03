@@ -5,7 +5,7 @@ import Pages from 'vite-plugin-pages'
 import Layouts from 'vite-plugin-vue-layouts'
 import Icons from 'unplugin-icons/vite'
 import IconsResolver from 'unplugin-icons/resolver'
-import Unlighthouse from 'unlighthouse/vite'
+import Unlighthouse from '@unlighthouse/vite'
 import Components from 'unplugin-vue-components/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Markdown from 'vite-plugin-md'
@@ -35,7 +35,7 @@ export default defineConfig({
       extensions: ['vue', 'md'],
       onRoutesGenerated(routes) {
         const { hooks } = useUnlighthouse()
-        console.log(routes)
+        console.log('vite-plugin-pages', routes)
         hooks.callHook('route-definitions-provided', routes)
       }
     }),

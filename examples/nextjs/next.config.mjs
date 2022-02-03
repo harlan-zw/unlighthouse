@@ -1,11 +1,15 @@
-import useUnlighthouse from 'unlighthouse/next'
+import WebpackPlugin from '@unlighthouse/webpack'
 
 export default {
   webpack(config, app) {
-    useUnlighthouse({
-        /* unlighthouse options  */
-      },
-      { config, app }
+    console.log('webpack plugin')
+    config.plugins.unshift(
+      WebpackPlugin(
+        {
+          site: 'http://localhost:3000',
+          debug: true,
+        }
+      )
     )
     return config
   }

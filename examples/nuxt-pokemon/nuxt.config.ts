@@ -12,12 +12,15 @@ const config = {
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
     ],
   },
+  unlighthouse: {
+    debug: true,
+  },
   buildModules: [
     Unlighthouse,
     'nuxt-vite',
     '@nuxt/typescript-build',
     '@nuxtjs/composition-api/module',
-    'nuxt-windicss',
+    // 'nuxt-windicss',
   ],
   components: true,
   generate: {
