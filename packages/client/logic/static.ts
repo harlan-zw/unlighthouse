@@ -26,7 +26,6 @@ const {
       throttle,
       device,
     },
-    isLocalhost,
     router: {
       prefix: basePath,
     },
@@ -35,7 +34,7 @@ const {
 
 export const isStatic = window.__unlighthouse_static
 
-export { wsUrl, basePath, isLocalhost, dynamicSampling, apiUrl, groupRoutesKey, lighthouseOptions, throttle, device }
+export { wsUrl, basePath, dynamicSampling, apiUrl, groupRoutesKey, lighthouseOptions, throttle, device }
 
 export const website = new $URL(site).origin
 
