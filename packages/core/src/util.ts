@@ -3,7 +3,7 @@ import { join } from 'path'
 import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
-import { hasProtocol, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import { hasProtocol, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 import type { AxiosResponse } from 'axios'
 import axios from 'axios'
 import type { NormalisedRoute, UnlighthouseRouteReport } from './types'
@@ -52,10 +52,9 @@ export const hashPathName = (path: string) => {
  * @param host
  */
 export const normaliseHost = (host: string) => {
-  host = withoutTrailingSlash(host)
   if (!hasProtocol(host))
     host = `http${host.startsWith('localhost') ? '' : 's'}://${host}`
-  return host
+  return withTrailingSlash(host)
 }
 
 /**

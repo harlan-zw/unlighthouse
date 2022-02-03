@@ -1,9 +1,40 @@
 import { URL } from 'url'
-import type { UserConfig } from '@unlighthouse/core'
+import type { ResolvedUserConfig, UserConfig } from '@unlighthouse/core'
 import { pick } from 'lodash-es'
 import defu from 'defu'
+import { fetchUrlRaw, normaliseHost, useLogger } from '@unlighthouse/core'
 import { handleError } from './errors'
 import type { CiOptions, CliOptions } from './types'
+
+export const validateHost = async(resolvedConfig: ResolvedUserConfig) => {
+  const logger = useLogger()
+  // site will not be set from integrations yet
+  if (resolvedConfig.site) {
+    // test HTTP response from site
+    logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
+    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(resolvedConfig.site)
+    if (!valid) {
+      // something is wrong with the site, bail
+      if (response?.status)
+        logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+      else
+        logger.fatal(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
+
+      // bail on cli or ci
+      process.exit(1)
+    }
+    else if (response) {
+      // change the URL to the redirect one
+      if (redirected && redirectUrl) {
+        logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
+        resolvedConfig.site = normaliseHost(redirectUrl)
+      }
+      else {
+        logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
+      }
+    }
+  }
+}
 
 export const isValidUrl = (s: string) => {
   try {

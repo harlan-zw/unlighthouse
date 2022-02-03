@@ -1,7 +1,7 @@
 import open from 'open'
 import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
-import { pickOptions, validateOptions } from './util'
+import { pickOptions, validateHost, validateOptions } from './util'
 import type { CliOptions } from './types'
 import createCli from './createCli'
 
@@ -15,7 +15,14 @@ async function run() {
     return
 
   const unlighthouse = await createUnlighthouse(
-    pickOptions(options),
+    {
+      ...pickOptions(options),
+      hooks: {
+        'resolved-config': async(config) => {
+          await validateHost(config)
+        },
+      },
+    },
     { name: 'cli' },
   )
 

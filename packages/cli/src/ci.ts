@@ -4,7 +4,7 @@ import fs from 'fs-extra'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
 import { handleError } from './errors'
 import type { CiOptions } from './types'
-import { pickOptions, validateOptions } from './util'
+import { pickOptions, validateHost, validateOptions } from './util'
 import createCli from './createCli'
 
 async function run() {
@@ -28,6 +28,11 @@ async function run() {
 
   await createUnlighthouse({
     ...resolvedOptions,
+    hooks: {
+      'resolved-config': async(config) => {
+        await validateHost(config)
+      },
+    },
     cache: false,
   },
   { name: 'ci' },

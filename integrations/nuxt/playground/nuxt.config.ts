@@ -3,10 +3,10 @@ import MyModule from '..'
 
 export default defineNuxtConfig({
   modules: [
-    MyModule
+    MyModule,
   ],
   unlighthouse: {
     debug: true,
     cache: false,
-  }
+  },
 })

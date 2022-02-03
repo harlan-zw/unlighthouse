@@ -23,6 +23,8 @@ export const createApi = async() => {
   }
 
   const { handle, setup } = await createUnrouted({
+    name: 'unlighthouse-api',
+    debug: resolvedConfig.debug,
     prefix: resolvedConfig.router.prefix,
     hooks: {
       'serve:before-route': () => {

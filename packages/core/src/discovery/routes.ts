@@ -1,7 +1,7 @@
 import { groupBy, map, sampleSize } from 'lodash-es'
 import type { NormalisedRoute } from '../types'
 import { useUnlighthouse } from '../unlighthouse'
-import { normaliseRoute } from '../router'
+import { isScanOrigin, normaliseRoute } from '../router'
 import { useLogger } from '../logger'
 import { extractSitemapRoutes } from './sitemap'
 
@@ -57,6 +57,9 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
       }))
     })
   }
+
+  // ensure the urls are for the right domain
+  urls = urls.filter(url => isScanOrigin(url))
 
   if (!resolvedConfig.scanner.dynamicSampling)
     return urls.map(url => normaliseRoute(url))

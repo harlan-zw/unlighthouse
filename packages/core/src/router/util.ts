@@ -1,8 +1,18 @@
 import { basename } from 'path'
-import { $URL, hasProtocol, withBase, withLeadingSlash } from 'ufo'
+import { $URL, hasProtocol, isRelative, withBase, withLeadingSlash } from 'ufo'
 import type { NormalisedRoute } from '../types'
 import { hashPathName, trimSlashes } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
+
+export const isScanOrigin = (url: string): boolean => {
+  if (isRelative(url))
+    return true
+
+  const { runtimeSettings } = useUnlighthouse()
+
+  const $url = new $URL(url)
+  return $url.hostname === runtimeSettings.siteUrl.hostname
+}
 
 /**
  * Due to working with routes from all different frameworks or no framework, we need to do some magic to

@@ -196,7 +196,7 @@ export type UnlighthouseTabs = 'overview'|LighthouseCategories
  * Unlighthouse's intelligent sampling relies on knowing which URLs map to which files in your project.
  * To achieve this it needs to create its own router with your files to test any URL that comes through.
  */
-export interface MockRouter { match: (path: string) => RouteDefinition }
+export interface MockRouter { match: (path: string) => RouteDefinition|false }
 
 export interface DiscoveryOptions {
   /**
@@ -440,10 +440,6 @@ export interface RuntimeSettings {
    */
   outputPath: string
   /**
-   * Helper variable for determining if we're scanning a site in development.
-   */
-  isLocalhost: boolean
-  /**
    * The root directory of the module.
    */
   moduleWorkingDir: string
@@ -451,6 +447,11 @@ export interface RuntimeSettings {
    * The path to the lighthouse worker.
    */
   lighthouseProcessPath: string
+
+  /**
+   * The server instance.
+   */
+  server: http.Server | https.Server
 }
 
 export interface UnlighthouseWorkerStats {
@@ -533,6 +534,7 @@ export interface Provider {
 export type HookResult = Promise<void>|void
 
 export interface UnlighthouseHooks {
+  'site-changed': (site: string) => HookResult
   /**
    * Once the config is resolved.
    *
@@ -722,6 +724,11 @@ export interface UnlighthouseContext {
    * @param arg
    */
   setServerContext: (arg: ServerContextArg) => Promise<UnlighthouseContext>
+  /**
+   *
+   * @param url
+   */
+  setSiteUrl: (url: string) => void
   /**
    * Running Unlighthouse via CI does not require a server or the client so we have a special utility for it.
    */
