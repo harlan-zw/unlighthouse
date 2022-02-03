@@ -17,7 +17,7 @@ export const discoverRouteDefinitions = async() => {
   const { supportedExtensions, pagesDir } = resolvedConfig.discovery
 
   // handle pages being in the root
-  const pages = pagesDir === '' ? resolvedConfig.root.replace(`${resolvedConfig.root}/`, '') : pagesDir
+  const dir = pagesDir === '' ? resolvedConfig.root.replace(`${resolvedConfig.root}/`, '') : pagesDir
 
   const resolveFiles = async(dir: string) => {
     const { globby } = (await import('globby'))
@@ -39,9 +39,8 @@ export const discoverRouteDefinitions = async() => {
 
   const files: Record<string, string> = {}
   const ext = new RegExp(`\\.(${supportedExtensions.join('|')})$`)
-  const resolvedPages = await resolveFiles(pages)
-  logger.debug(`Resolved \`${resolvedPages.length}\` pages for route definitions`)
-  logger.debug(resolvedPages)
+  const resolvedPages = await resolveFiles(dir)
+
   for (const page of resolvedPages) {
     const key = page.replace(ext, '')
     // .vue file takes precedence over other extensions
@@ -49,12 +48,15 @@ export const discoverRouteDefinitions = async() => {
       files[key] = page.replace(/(['"])/g, '\\$1')
   }
 
-  logger.debug(`Found ${Object.values(files).length} page files to map to route definitions.`)
+  logger.debug(`Discovered \`${resolvedPages.length}\` page files from  \`${join(resolvedConfig.root, dir)}\`. Mapping to route definitions.`)
+  if (resolvedPages.length) {
+    logger.debug(resolvedPages)
+  }
 
   return createRoutes({
     files: Object.values(files),
     srcDir: resolvedConfig.root,
-    pagesDir: pages,
+    pagesDir: dir,
     routeNameSplitter: '-',
     supportedExtensions,
     trailingSlash: undefined,
@@ -65,7 +67,10 @@ export const discoverRouteDefinitions = async() => {
       .map((n) => {
         // some fixes for next.js routing
         if (n.startsWith('[') && n.endsWith(']')) {
-          const strippedNode = n.replace('[', '').replace(']', '').replace('...', '')
+          const strippedNode = n
+            .replace('[', '')
+            .replace(']', '')
+            .replace('...', '')
           return `:${strippedNode}`
         }
         return n
