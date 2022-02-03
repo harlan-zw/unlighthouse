@@ -24,7 +24,7 @@
     "cli:vue": "node packages/cli/dist/cli.mjs --config-file test/fixtures/staging-vue.config.ts --debug",
     "ci:vue": "node packages/cli/dist/ci.mjs --config-file test/fixtures/staging-vue.config.ts --build-static --debug",
     "ci:docs": "node packages/cli/dist/ci.mjs --root docs --build-static --debug",
-    "build": "pnpm run build:pkg && pnpm run build:docs && pnpm run build:integrations",
+    "build": "pnpm run build:pkg && pnpm run build:integrations && pnpm run build:docs ",
     "build:integrations": "pnpm -r --filter ./integrations run build",
     "build:docs": "pnpm -r --filter docs run build",
     "build:pkg": "pnpm -r --filter ./packages run build",
