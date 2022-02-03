@@ -67,7 +67,6 @@ importers:
       '@unlighthouse/vite': workspace:*
       '@unlighthouse/webpack': workspace:*
       nuxt3: latest
-      std-env: ^3.0.1
     dependencies:
       '@harlanzw/nuxt-kit-extras': 0.3.1
       '@nuxt/kit': /@nuxt/kit-edge/3.0.0-27398071.f867841
@@ -75,7 +74,6 @@ importers:
       '@unlighthouse/server': link:../../packages/server
       '@unlighthouse/vite': link:../vite
       '@unlighthouse/webpack': link:../webpack
-      std-env: 3.0.1
     devDependencies:
       '@nuxt/module-builder': 0.1.7
       '@nuxt/schema': /@nuxt/schema-edge/3.0.0-27398071.f867841

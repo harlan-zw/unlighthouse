@@ -33,7 +33,7 @@
   "main": "./dist/module.cjs",
   "types": "./dist/types.d.ts",
   "scripts": {
-    "build": "nuxt-module-build",
+    "build": "nuxi prepare playgroun && nuxt-module-build",
     "prepack": "nuxt-module-build",
     "play": "nuxi dev playground",
     "play:build": "nuxi build playground",
@@ -45,8 +45,7 @@
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
     "@unlighthouse/vite": "workspace:*",
-    "@unlighthouse/webpack": "workspace:*",
-    "std-env": "^3.0.1"
+    "@unlighthouse/webpack": "workspace:*"
   },
   "devDependencies": {
     "@nuxt/module-builder": "latest",
