@@ -49,9 +49,8 @@ export const discoverRouteDefinitions = async() => {
   }
 
   logger.debug(`Discovered \`${resolvedPages.length}\` page files from  \`${join(resolvedConfig.root, dir)}\`. Mapping to route definitions.`)
-  if (resolvedPages.length) {
+  if (resolvedPages.length)
     logger.debug(resolvedPages)
-  }
 
   return createRoutes({
     files: Object.values(files),
