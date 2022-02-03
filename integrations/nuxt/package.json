@@ -33,7 +33,7 @@
   "main": "./dist/module.cjs",
   "types": "./dist/types.d.ts",
   "scripts": {
-    "build": "nuxi prepare playgroun && nuxt-module-build",
+    "build": "nuxi prepare playground && nuxt-module-build",
     "prepack": "nuxt-module-build",
     "play": "nuxi dev playground",
     "play:build": "nuxi build playground",
