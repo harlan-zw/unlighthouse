@@ -1,5 +1,6 @@
 import { parse } from 'regexparam'
 import type { MockRouter, RouteDefinition } from '../types'
+import { useLogger } from '../logger'
 
 /**
  * The default mock router using regexparam as the matcher
@@ -9,17 +10,30 @@ import type { MockRouter, RouteDefinition } from '../types'
  * @param routeDefinitions
  */
 export const createMockRouter: (routeDefinitions: RouteDefinition[]) => MockRouter
-    = (routeDefinitions: RouteDefinition[]) => {
-      const patterns = routeDefinitions.map((r) => {
-        return {
-          routeDefinition: r,
-          matcher: parse(r.path),
+  = (routeDefinitions: RouteDefinition[]) => {
+    const logger = useLogger()
+    const patterns = routeDefinitions
+      .map((r) => {
+        try {
+          return {
+            routeDefinition: r,
+            matcher: parse(r.path),
+          }
         }
+        catch (e) {
+          logger.debug('Failed to parse path', r.path, e)
+        }
+        return false
       })
+      .filter(r => r !== false)
 
-      return {
-        match(path: string) {
-          return patterns.filter(p => p.matcher.pattern.test(path))[0]?.routeDefinition
-        },
-      }
+    return {
+      match(path: string) {
+        const matched = patterns.filter(p => p && p.matcher.pattern.test(path))
+        if (matched.length > 0 && matched[0])
+          return matched[0].routeDefinition
+
+        return false
+      },
     }
+  }
