@@ -217,6 +217,7 @@ importers:
       '@types/node': ^17.0.14
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.2.2
+      '@unlighthouse/client': workspace:*
       axios: ^0.25.0
       chalk: ^4.1.2
       cheerio: ^1.0.0-rc.10
@@ -246,6 +247,7 @@ importers:
     dependencies:
       '@nuxt/cli': 2.15.8
       '@nuxt/utils': 2.15.8
+      '@unlighthouse/client': link:../client
       axios: 0.25.0
       chalk: 4.1.2
       cheerio: 1.0.0-rc.10
