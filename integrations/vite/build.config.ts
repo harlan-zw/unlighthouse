@@ -5,11 +5,8 @@ export default defineBuildConfig({
     'src/index',
   ],
   rollup: {
-    emitCJS: false,
+    emitCJS: true,
   },
   clean: true,
   declaration: true,
-  externals: [
-    '@nuxt/schema',
-  ],
 })

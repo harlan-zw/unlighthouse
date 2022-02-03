@@ -20,31 +20,29 @@
   "author": "Harlan Wilton <harlan@harlanzw.com>",
   "sideEffects": false,
   "files": [
-    "dist",
-    "index.cjs",
-    "runtime"
+    "dist"
   ],
   "exports": {
     ".": {
-      "require": "./index.cjs",
+      "require": "./dist/index.cjs",
       "import": "./dist/index.mjs"
     }
   },
-  "main": "./index.cjs",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
   },
   "dependencies": {
-    "@harlan-zw/nuxt-kit-extras": "workspace:*",
-    "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
     "@unlighthouse/core": "workspace:*",
-    "@unlighthouse/vite": "workspace:*",
-    "@unlighthouse/webpack": "workspace:*"
+    "@unlighthouse/server": "workspace:*",
+    "defu": "^5.0.1",
+    "lodash-es": "^4.17.21",
+    "unplugin": "^0.3.2"
   },
+  "types": "./dist/index.d.ts",
   "devDependencies": {
-    "@nuxt/schema": "npm:@nuxt/schema-edge@latest"
+    "vite": "^2.7.13"
   }
 }

@@ -1,8 +1,15 @@
 import { join } from 'path'
-import {defineNuxtModule, addServerMiddleware, extendViteConfig, useNuxt } from '@nuxt/kit'
+import {
+  addVitePlugin,
+  addWebpackPlugin,
+  defineNuxtModule,
+  extendViteConfig,
+} from '@nuxt/kit'
 import type { UserConfig } from '@unlighthouse/core'
-import { createUnlighthouse, useUnlighthouse, useLogger } from '@unlighthouse/core'
-import {waitForRoutes, waitForDevServer, useHooks } from "@harlanzw/nuxt-kit-extras";
+import { createUnlighthouse, useUnlighthouse } from '@unlighthouse/core'
+import { waitForDevServer, waitForRoutes } from '@harlanzw/nuxt-kit-extras'
+import WebpackPlugin from '@unlighthouse/webpack'
+import VitePlugin from '@unlighthouse/vite'
 
 export interface ModuleOptions extends UserConfig {
 
@@ -23,15 +30,12 @@ export default defineNuxtModule<ModuleOptions>({
     const routePromise = waitForRoutes()
 
     const unlighthouse = useUnlighthouse() || await createUnlighthouse({
-      router: {
-        prefix: '/__unlighthouse',
-      },
       ...config,
       root: nuxt.options.rootDir,
     }, {
       name: 'nuxt',
-      // @ts-ignore
-      routeDefinitions: () => routePromise
+      // @ts-expect-error nuxt has multiple definitions for the routes
+      routeDefinitions: () => routePromise,
     })
 
     // when we vite mode, the HTML is not server side rendered so we need to tell the scanner this
@@ -40,48 +44,24 @@ export default defineNuxtModule<ModuleOptions>({
       unlighthouse.resolvedConfig.scanner.skipJavascript = false
     })
 
+    const pluginOptions = {
+      dev: true,
+      server: true,
+    }
+    addVitePlugin(VitePlugin(config), pluginOptions)
+    addWebpackPlugin(WebpackPlugin(config), pluginOptions)
+
     // watch config file
     if (unlighthouse.runtimeSettings.configFile)
       nuxt.options.watch.push(unlighthouse.runtimeSettings.configFile)
 
+    waitForDevServer()
+      .then(async({ listener }) => {
+        const { setSiteUrl } = useUnlighthouse()
 
-    addServerMiddleware({
-      path: config.router?.prefix,
-      handler(req: any, sr: any, next: any) {
-        const { api } = useUnlighthouse()
-        return api(req, sr, next)
-      },
-    })
-
-    waitForDevServer().then(async ({ listenerServer, listener }) => {
-      const engine = useUnlighthouse()
-      const nuxtApp = useNuxt()
-      // for nuxt we can fully leverage the dev middleware server
-      await engine.setServerContext({
-        url: listener.url,
-        server: listenerServer,
-        app: nuxtApp.server.app,
+        setSiteUrl(listener.url)
       })
-      const logger = useLogger()
-      logger.success('⛵  Unlighthouse ready: ' + engine.runtimeSettings.clientUrl)
-    })
 
     nuxt.options.ignore.push(join(unlighthouse.resolvedConfig.outputPath))
-
-    const { hook } = useHooks()
-
-    hook('builder:watch', (event, filePath) => {
-      const { worker } = useUnlighthouse()
-
-      // ignore seems to be buggy
-      if (filePath.startsWith(unlighthouse.resolvedConfig.outputPath)) {
-        return
-      }
-
-      if (event === 'change') {
-        worker.invalidateFile(filePath)
-      }
-    })
-
   },
 })

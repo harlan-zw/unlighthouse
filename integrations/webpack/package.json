@@ -24,11 +24,11 @@
   ],
   "exports": {
     ".": {
-      "require": "./index.cjs",
+      "require": "./dist/index.cjs",
       "import": "./dist/index.mjs"
     }
   },
-  "main": "./index.cjs",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -39,9 +39,14 @@
     "webpack": "^4 || ^5"
   },
   "dependencies": {
-    "@unlighthouse/core": "workspace:*"
+    "@unlighthouse/core": "workspace:*",
+    "@unlighthouse/server": "workspace:*",
+    "defu": "^5.0.1",
+    "lodash-es": "^4.17.21",
+    "unplugin": "^0.3.2"
   },
   "devDependencies": {
+    "@types/express": "^4.17.13",
     "@types/webpack": "^5.28.0",
     "@types/webpack-dev-server": "^4.5.0",
     "webpack": "^5.64.4"

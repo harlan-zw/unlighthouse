@@ -20,10 +20,10 @@
   },
   "funding": "https://github.com/sponsors/harlan-zw",
   "author": "Harlan Wilton <harlan@harlanzw.com>",
+  "type": "module",
   "files": [
     "dist"
   ],
-  "type": "module",
   "exports": {
     ".": {
       "import": "./dist/module.mjs",
@@ -43,6 +43,9 @@
     "@harlanzw/nuxt-kit-extras": "^0.3.1",
     "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
     "@unlighthouse/core": "workspace:*",
+    "@unlighthouse/server": "workspace:*",
+    "@unlighthouse/vite": "workspace:*",
+    "@unlighthouse/webpack": "workspace:*",
     "std-env": "^3.0.1"
   },
   "devDependencies": {
