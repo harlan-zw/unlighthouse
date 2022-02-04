@@ -5,7 +5,7 @@ import type { UnlighthouseColumn, UnlighthouseTabs, UserConfig } from './types'
 export const AppName = 'unlighthouse'
 export const ClientPkg = '@unlighthouse/client'
 export const DefaultModuleRouterPrefix = '/__unlighthouse'
-export const TagLine = 'Delightfully navigate your sites performance, accessibility and SEO issues.'
+export const TagLine = 'Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.'
 
 export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
   'overview': [
