@@ -12,6 +12,6 @@ export default defineBuildConfig({
   externals: [
     'vite',
     'esbuild',
-    'postcss'
-  ]
+    'postcss',
+  ],
 })

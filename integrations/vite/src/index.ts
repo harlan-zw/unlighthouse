@@ -48,16 +48,15 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
       // may not be using the httpServer, such as the nuxt integration
       if (viteServer.httpServer) {
         viteServer.httpServer.on('listening', () => {
-          let host: string = ''
+          let host = ''
           const address = viteServer.httpServer?.address()
           if (typeof address === 'string')
             host = address as string
           else if (address?.port)
             host = `localhost:${address.port}`
 
-          if (host) {
+          if (host)
             setHost(host)
-          }
         })
       }
       else {

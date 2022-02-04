@@ -60,8 +60,8 @@
   },
   "types": "index.d.ts",
   "dependencies": {
-    "@unlighthouse/client": "workspace:*",
     "@unlighthouse/cli": "workspace:*",
+    "@unlighthouse/client": "workspace:*",
     "@unlighthouse/core": "workspace:*"
   }
 }
