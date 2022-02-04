@@ -21,7 +21,7 @@ export const isScanOrigin = (url: string): boolean => {
  * @param url
  */
 export const normaliseRoute = (url: string): NormalisedRoute => {
-  const { runtimeSettings, provider } = useUnlighthouse()
+  const { runtimeSettings, provider, resolvedConfig } = useUnlighthouse()
 
   // it's possible that we're serving a subdomain or something dodgy around www.
   if (!hasProtocol(url)) {
@@ -40,8 +40,25 @@ export const normaliseRoute = (url: string): NormalisedRoute => {
     path,
   }
 
+  // check our custom sampling first
+  for (const matcher in resolvedConfig.scanner.customSampling) {
+    if (!(new RegExp(matcher).test(path)))
+      continue
+
+    const definition = resolvedConfig.scanner.customSampling[matcher]
+    normalised = {
+      ...normalised,
+      definition: {
+        ...definition,
+        path,
+        componentBaseName: basename(definition.component || ''),
+      },
+    }
+    break
+  }
+
   // if a router is provided
-  if (provider.mockRouter && typeof provider.mockRouter !== 'function') {
+  if (!normalised.definition && provider.mockRouter && typeof provider.mockRouter !== 'function') {
     const definition = provider.mockRouter.match(path)
     // if a route definition is found
     if (definition) {

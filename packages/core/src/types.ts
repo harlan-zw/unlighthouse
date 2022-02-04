@@ -296,14 +296,24 @@ export interface ResolvedUserConfig {
   discovery: false|DiscoveryOptions
   scanner: {
     /**
-     * When the page HTML is extracted and processed we look for an x-default link to identify if the page is an i18n
-     * copy of another page. If it is then we skip it because it would be a duplicate scan.
+     * Setup custom mappings for a regex string to a route definition.
+     * This is useful when you have a complex site which doesn't use URL path segments
+     * to separate pages.
+     *
+     * @default {}
+     */
+    customSampling: Record<string, RouteDefinition>
+    /**
+     * When the page HTML is extracted and processed, we look for a x-default link to identify if the page is an i18n
+     * copy of another page.
+     * If it is, then we skip it because it would be a duplicate scan.
      *
      * @default true
      */
     ignoreI18nPages: boolean
     /**
-     * The maximum number of routes that should be processed. This helps avoid issues when the site requires specific
+     * The maximum number of routes that should be processed.
+     * This helps avoid issues when the site requires a specific
      * configuration to be able to run properly
      *
      * @default 200
@@ -322,19 +332,21 @@ export interface ResolvedUserConfig {
      */
     skipJavascript: boolean
     /**
-     * How many samples of each route should be done. This is used to improve false-positive results.
+     * How many samples of each route should be done.
+     * This is used to improve false-positive results.
      *
      * @default 1
      */
     samples: number
     /**
-     * Should lighthouse run with throttling enabled. This is an alias for manually configuring lighthouse.
+     * Should lighthouse run with throttling enabled? This is an alias for manually configuring lighthouse.
      *
      * @default false
      */
     throttle: boolean
     /**
-     * Alias to switch the device used for scanning. Set to false if you want to manually configure it.
+     * Alias to switch the device used for scanning.
+     * Set to false if you want to manually configure it.
      *
      * @default 'mobile'
      */
