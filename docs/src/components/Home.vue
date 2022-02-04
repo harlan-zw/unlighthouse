@@ -2,7 +2,7 @@
 <div class="flex flex-col items-center">
   <div class="xl:flex max-w-full items-center justify-between my-10">
     <div class="flex flex-col items-left xl:pr-25">
-      <p class="lg:leading-16 font-bold text-3xl lg:text-3xl font-normal mt-0">
+      <p class="lg:leading-16 font-bold text-2xl lg:text-3xl font-normal mt-0">
         <span class="opacity-90">Delightfully scan your entire website with <br><img src="/lighthouse-logo.svg" height="60" class="h-60px inline mr-2"><a href="https://github.com/GoogleChrome/lighthouse" target="_blank" font="bold" class="text-inherit">Google Lighthouse️</a>. Navigate your</span><br>
       </p>
       <div class="leading-15 text-5xl mb-3 flex lg:flex-row flex-col lg:items-center font-bold" style="-webkit-text-fill-color: #0000;background-clip: text;-webkit-background-clip: text;-webkit-box-decoration-break: clone;background-image: linear-gradient(to bottom right,#047857 42%,#0d47ad 76%);">
