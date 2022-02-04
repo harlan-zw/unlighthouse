@@ -83,16 +83,10 @@ importers:
     specifiers:
       '@unlighthouse/core': workspace:*
       '@unlighthouse/server': workspace:*
-      defu: ^5.0.1
-      lodash: ^4.17.21
-      unplugin: ^0.3.2
       vite: ^2.7.13
     dependencies:
       '@unlighthouse/core': link:../../packages/core
       '@unlighthouse/server': link:../../packages/server
-      defu: 5.0.1
-      lodash: 4.17.21
-      unplugin: 0.3.2_vite@2.7.13
     devDependencies:
       vite: 2.7.13
 
@@ -213,7 +207,7 @@ importers:
       '@nuxt/cli': ^2.15.8
       '@nuxt/utils': ^2.15.8
       '@types/fs-extra': ^9.0.13
-      '@types/lodash': ^4.14.178
+      '@types/lodash-es': latest
       '@types/node': ^17.0.14
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.2.2
@@ -230,7 +224,7 @@ importers:
       hookable: ^5.1.1
       launch-editor: ^2.3.0
       lighthouse: ^9.3.1
-      lodash: ^4.17.21
+      lodash-es: ^4.17.15
       mlly: ^0.3.17
       object-hash: ^2.2.0
       puppeteer-cluster: ^0.23.0
@@ -260,7 +254,7 @@ importers:
       hookable: 5.1.1
       launch-editor: 2.3.0
       lighthouse: 9.3.1
-      lodash: 4.17.21
+      lodash-es: 4.17.21
       mlly: 0.3.19
       object-hash: 2.2.0
       puppeteer-cluster: 0.23.0
@@ -276,7 +270,7 @@ importers:
       ws: 8.4.2
     devDependencies:
       '@types/fs-extra': 9.0.13
-      '@types/lodash': 4.14.178
+      '@types/lodash-es': 4.17.5
       '@types/node': 17.0.14
       '@types/object-hash': 2.2.1
       '@types/ws': 8.2.2
@@ -2074,6 +2068,12 @@ packages:
     dependencies:
       '@types/node': 17.0.14
     dev: false
+
+  /@types/lodash-es/4.17.5:
+    resolution: {integrity: sha512-SHBoI8/0aoMQWAgUHMQ599VM6ZiSKg8sh/0cFqqlQQMyY9uEplc0ULU5yQNzcvdR4ZKa0ey8+vFmahuRbOCT1A==}
+    dependencies:
+      '@types/lodash': 4.14.178
+    dev: true
 
   /@types/lodash/4.14.178:
     resolution: {integrity: sha512-0d5Wd09ItQWH1qFbEyQ7oTQ3GZrMfth5JkbN3EvTKLXcHLRDSXeLnlvlOn0wvxVIwK5o2M8JzP/OWz7T3NRsbw==}
@@ -11051,6 +11051,7 @@ packages:
     dependencies:
       vite: 2.7.13
       webpack-virtual-modules: 0.4.3
+    dev: true
 
   /unplugin/0.3.2_webpack@5.67.0:
     resolution: {integrity: sha512-5d0DMYNKZU+S9eZUiBfw6Co32eRg8myUgBPoWSqG/wDFCUE/WznfSsJnZWi1P9l69x4uLJqt2qVq1xW/AsXFrw==}

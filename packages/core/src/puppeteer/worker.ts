@@ -1,9 +1,6 @@
 import fs from 'fs'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
-import filter from 'lodash/filter'
-import get from 'lodash/get'
-import sortBy from 'lodash/sortBy'
-import uniqBy from 'lodash/uniqBy'
+import { get, sortBy, uniqBy } from 'lodash-es'
 import type {
   NormalisedRoute,
   PuppeteerTaskArgs,
@@ -105,8 +102,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     if (resolvedConfig.scanner.dynamicSampling > 0) {
       const routeGroup = get(route, resolvedConfig.client.groupRoutesKey.replace('route.', ''))
       // group all urls by their route definition path name
-      const routesInGroup = filter(
-        [...routeReports.values()],
+      const routesInGroup = [...routeReports.values()].filter(
         r => get(r, resolvedConfig.client.groupRoutesKey) === routeGroup,
       ).length
       if (routesInGroup >= resolvedConfig.scanner.dynamicSampling) {

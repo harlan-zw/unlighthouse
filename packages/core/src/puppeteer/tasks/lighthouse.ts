@@ -1,8 +1,6 @@
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
-import flatten from 'lodash/flatten'
-import pick from 'lodash/pick'
-import sumBy from 'lodash/sumBy'
+import { pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
@@ -19,7 +17,7 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     .filter(c => !!c.key)
     .map(c => c.key?.replace('report.', '')) as string[]
 
-  const imageIssues = flatten([
+  const imageIssues = [
     result.audits['unsized-images']?.details?.items || [],
     result.audits['preload-lcp-image']?.details?.items || [],
     result.audits['offscreen-images']?.details?.items || [],
@@ -27,11 +25,11 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     result.audits['uses-optimized-images']?.details?.items || [],
     result.audits['efficient-animated-content']?.details?.items || [],
     result.audits['uses-responsive-images']?.details?.items || [],
-  ])
-  const ariaIssues = flatten(Object.values(result.audits)
+  ].flat()
+  const ariaIssues = Object.values(result.audits)
     .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
-    .map(a => a.details?.items),
-  )
+    .map(a => a.details?.items)
+    .flat()
   // map the json report to what values we actually need
   return {
     ...pick(result, [
