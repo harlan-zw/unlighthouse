@@ -12,10 +12,12 @@ declare module 'vue' {
     DevelopmentWarning: typeof import('./src/components/DevelopmentWarning.vue')['default']
     FeaturesList: typeof import('./src/components/FeaturesList.vue')['default']
     Home: typeof import('./src/components/Home.vue')['default']
+    ICarbonCheckmarkOutline: typeof import('~icons/carbon/checkmark-outline')['default']
     ICarbonFavoriteFilled: typeof import('~icons/carbon/favorite-filled')['default']
     ICarbonLogoGithub: typeof import('~icons/carbon/logo-github')['default']
     ICarbonLogoTwitter: typeof import('~icons/carbon/logo-twitter')['default']
     ICarbonTerminal: typeof import('~icons/carbon/terminal')['default']
+    ICarbonWarningAlt: typeof import('~icons/carbon/warning-alt')['default']
     IMdiCardsHeartOutline: typeof import('~icons/mdi/cards-heart-outline')['default']
     SponsorBanner: typeof import('./src/components/SponsorBanner.vue')['default']
   }
