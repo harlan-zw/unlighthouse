@@ -1,6 +1,6 @@
 import type { UserConfig } from '@unlighthouse/core'
 import { createUnlighthouse, useLogger, useUnlighthouse } from '@unlighthouse/core'
-import { once } from 'lodash-es'
+import once from 'lodash/once'
 import { createServer } from '@unlighthouse/server'
 import type { Plugin, ViteDevServer } from 'vite'
 

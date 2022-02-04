@@ -69,11 +69,11 @@
     "defu": "^5.0.0",
     "execa": "^6.0.0",
     "fs-extra": "^10.0.0",
-    "globby": "^13.1.0",
+    "globby": "^13.1.1",
     "hookable": "^5.1.1",
     "launch-editor": "^2.3.0",
     "lighthouse": "^9.3.1",
-    "lodash-es": "^4.17.21",
+    "lodash": "^4.17.21",
     "mlly": "^0.3.17",
     "object-hash": "^2.2.0",
     "puppeteer-cluster": "^0.23.0",
@@ -90,7 +90,7 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
-    "@types/lodash-es": "^4.17.5",
+    "@types/lodash": "^4.14.178",
     "@types/node": "^17.0.14",
     "@types/object-hash": "^2.2.1",
     "@types/ws": "^8.2.2"

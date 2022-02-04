@@ -1,6 +1,6 @@
 import { join } from 'path'
 import defu from 'defu'
-import { pick } from 'lodash-es'
+import pick from 'lodash/pick'
 import { pathExists } from 'fs-extra'
 import { Launcher } from 'chrome-launcher'
 import puppeteer from 'puppeteer-core'

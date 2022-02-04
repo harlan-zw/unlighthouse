@@ -1,6 +1,9 @@
 import fs from 'fs'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
-import { filter, get, sortBy, uniqBy } from 'lodash-es'
+import filter from 'lodash/filter'
+import get from 'lodash/get'
+import sortBy from 'lodash/sortBy'
+import uniqBy from 'lodash/uniqBy'
 import type {
   NormalisedRoute,
   PuppeteerTaskArgs,

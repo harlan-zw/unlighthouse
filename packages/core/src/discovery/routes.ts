@@ -1,4 +1,6 @@
-import { groupBy, map, sampleSize } from 'lodash-es'
+import groupBy from 'lodash/groupBy'
+import map from 'lodash/map'
+import sampleSize from 'lodash/sampleSize'
 import type { NormalisedRoute } from '../types'
 import { useUnlighthouse } from '../unlighthouse'
 import { isScanOrigin, normaliseRoute } from '../router'
