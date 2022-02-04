@@ -19,6 +19,7 @@
   "funding": "https://github.com/sponsors/harlan-zw",
   "author": "Harlan Wilton <harlan@harlanzw.com>",
   "sideEffects": false,
+  "type": "module",
   "files": [
     "dist"
   ],
@@ -36,10 +37,7 @@
   },
   "dependencies": {
     "@unlighthouse/core": "workspace:*",
-    "@unlighthouse/server": "workspace:*",
-    "defu": "^5.0.1",
-    "lodash": "^4.17.21",
-    "unplugin": "^0.3.2"
+    "@unlighthouse/server": "workspace:*"
   },
   "types": "./dist/index.d.ts",
   "devDependencies": {
