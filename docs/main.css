@@ -30,12 +30,12 @@
   font-family: var(--font-family-mono);
 }
 
-main.home ul > li {
-  opacity: 0.8;
-  transition: .1s ease;
+li {
+  @apply pb-2;
 }
-main.home ul > li:hover {
-  opacity: 1;
+
+ul {
+  @apply list-disc;
 }
 
 main.home {
@@ -94,7 +94,8 @@ main.home {
 /* Overrides */
 
 .home-content {
-  max-width: 1800px !important;
+  max-width: 100% !important;
+  padding: 0 !important;
 }
 
 .custom-block.tip {

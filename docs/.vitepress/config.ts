@@ -2,14 +2,14 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'Unlighthouse',
-  description: 'Universal site auditing powered by Lighthouse',
+  description: 'Scan your entire website with Google Lighthouse',
   head: [
     ['meta', { property: 'og:title', content: 'Unlighthouse' }],
-    ['meta', { property: 'og:description', content: 'Universal site auditing powered by Lighthouse' }],
+    ['meta', { property: 'og:description', content: 'Scan your entire website with Google Lighthouse' }],
     ['meta', { property: 'og:url', content: 'https://unlighthouse.dev/' }],
     ['meta', { property: 'og:image', content: 'https://unlighthouse.dev/og.png' }],
     ['meta', { name: 'twitter:title', content: 'Unlighthouse' }],
-    ['meta', { name: 'twitter:description', content: 'Universal site auditing powered by Lighthouse' }],
+    ['meta', { name: 'twitter:description', content: 'Scan your entire website with Google Lighthouse' }],
     ['meta', { name: 'twitter:image', content: 'https://unlighthouse.dev/og.png' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['link', { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' }],
@@ -44,11 +44,6 @@ export default defineConfig({
       { text: 'API', link: '/api/' },
       { text: 'Glossary', link: '/glossary/' },
       { text: 'Config', link: '/config/' },
-      // @todo maybe add discord
-      // {
-      //   text: 'Discord',
-      //   link: 'https://chat.unlighthouse.dev'
-      // },
       {
         text: 'Twitter',
         link: 'https://twitter.com/harlan_zw'
@@ -76,20 +71,28 @@ export default defineConfig({
               link: '/guide/'
             },
             {
+              text: 'How it works',
+              link: '/guide/how-it-works'
+            },
+            {
               text: 'Configuring Unlighthouse',
               link: '/guide/config'
             },
             {
-              text: 'Lighthouse',
+              text: 'Configure Google Lighthouse',
               link: '/guide/lighthouse'
             },
             {
-              text: 'Route Sampling',
-              link: '/guide/sampling'
+              text: 'Handling Large Sites',
+              link: '/guide/large-sites'
             },
             {
-              text: 'Route Discovery',
-              link: '/guide/route-discovery'
+              text: 'Improving Accuracy',
+              link: '/guide/improving-accuracy'
+            },
+            {
+              text: 'Providing Route Definitions',
+              link: '/guide/route-definitions'
             },
             {
               text: 'Scanning',

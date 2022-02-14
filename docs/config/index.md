@@ -172,6 +172,24 @@ Which file extensions in the pages dir should be considered.
 
 ## Scanner Options
 
+### scanner.ignoreI18nPages
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+When the page HTML is extracted and processed, we look for an `x-default` link to identify if the page is an i18n
+copy of another page.
+If it is, then we skip it because it would be a duplicate scan.
+
+### scanner.maxRoutes
+
+- **Type:** `number|false`
+- **Default:** `200`
+
+The maximum number of routes that should be processed.
+This helps avoid issues when the site requires a specific
+configuration to be able to run properly
+
 ### scanner.include 
 
 - **Type:** `string[]|null`

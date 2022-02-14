@@ -35,12 +35,12 @@ defineProps<{
   <br>
   <btn-basic
       v-if="sponsors"
-      class="text-white mt-1 bg-pink-500 hover:bg-pink-600"
+      class="text-white inline-flex items-center mt-1 bg-pink-500 hover:bg-pink-600"
       target="_blank"
       :href="`https://github.com/sponsors/${github}`"
   >
-    <i-carbon-favorite-filled class="inline-block" />
-    Sponsor
+    <i-carbon-favorite-filled class="inline-block mr-1" />
+    <span>Sponsor</span>
   </btn-basic>
 </div>
 </template>

@@ -16,14 +16,11 @@ export default defineConfig({
     'resolved-config'(config) {
       // replace FCP column with server response time
       config.client.columns.performance[2] = {
-          cols: {
-              xs: 2,
-              xl: 1,
-          },
-          label: 'Response Time',
-          tooltip: 'Time for the server to respond',
-          sortKey: 'numericValue',
-          key: 'report.audits.server-response-time',
+        cols: 1,
+        label: 'Response Time',
+        tooltip: 'Time for the server to respond',
+        sortKey: 'numericValue',
+        key: 'report.audits.server-response-time',
       }
     }
   }

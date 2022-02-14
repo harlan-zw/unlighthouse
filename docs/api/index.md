@@ -135,6 +135,12 @@ Functions exposed from unlighthouse context provided by `useUnlighthouse()` or `
 
   To use Unlighthouse with a client, it needs a server / app to register the API and client middleware.
 
+### setSiteUrl
+
+- **Type:** `(url: string) => void`
+
+  Sets the site URL that will be scanned if it's not known at initialisation.
+
 ## Hooks
 
 Unlighthouse provides hooks using [hookable](https://github.com/unjs/hookable) which allow you tailor the core behaviour.
@@ -154,6 +160,18 @@ hooks.hook('task-complete', (path, response) => {
    console.log('task is finished at path', path)
 })
 ```
+
+### site-changed
+
+- **Type:** `(site: string) => HookResult`
+
+  It's possible the site is not known at initialisation, this hook is called when it's set or changed.
+
+  ```ts
+  hooks.hook('site-changed', (site) => {
+    // generate payload for site
+  })
+  ```
 
 ### worker-finished
 

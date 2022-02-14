@@ -546,6 +546,10 @@ export interface Provider {
 export type HookResult = Promise<void>|void
 
 export interface UnlighthouseHooks {
+  /**
+   * It's possible the site is not known at initialisation, this hook is called when it's set or changed.
+   * @param site The site that was set.
+   */
   'site-changed': (site: string) => HookResult
   /**
    * Once the config is resolved.
@@ -737,7 +741,7 @@ export interface UnlighthouseContext {
    */
   setServerContext: (arg: ServerContextArg) => Promise<UnlighthouseContext>
   /**
-   *
+   * Sets the site URL that will be scanned if it's not known at initialisation.
    * @param url
    */
   setSiteUrl: (url: string) => void

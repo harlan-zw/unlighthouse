@@ -6,9 +6,9 @@ If you want to strictly follow the sitemap pages and disable the crawling featur
 
 ```ts
 export default defineConfig({
-    scanner: {
-        crawler: false
-    }
+  scanner: {
+    crawler: false
+  }
 })
 ```
 
@@ -18,8 +18,8 @@ If your site does not have a sitemap to scan, you can disable Unlighthouse's che
 
 ```ts
 export default defineConfig({
-    scanner: {
-        sitemap: false
-    }
+  scanner: {
+    sitemap: false
+  }
 })
 ```

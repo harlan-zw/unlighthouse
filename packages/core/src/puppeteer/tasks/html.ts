@@ -130,7 +130,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
 
   const $ = cheerio.load(html)
   routeReport.seo = processSeoMeta($)
-  if (routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
+  if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
     routeReport.tasks.inspectHtmlTask = 'ignore'
     return routeReport
   }

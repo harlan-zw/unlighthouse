@@ -12,13 +12,13 @@ Alternatively configuration can be setup inline for whichever integration you've
 
 ```ts
 /// <reference types="unlighthouse" />
-import { defineConfig } from '@unlighthouse/core'
+import {defineConfig} from '@unlighthouse/core'
 
 export default defineConfig({
-    // example
-    site: 'unlighthouse.dev',
-    debug: true,
+  // example
+  site: 'unlighthouse.dev',
+  debug: true,
 })
 ```
 
-See the list of config options in the [Config Reference](/config/)
+See the list of config options in the [Config Reference](/config/).

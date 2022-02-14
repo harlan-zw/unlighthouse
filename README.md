@@ -1,4 +1,4 @@
-![unlighthouse - Delightfully navigate your sites performance, accessibility and seo.](https://repository-images.githubusercontent.com/423079536/995fb12f-5cd8-4486-8967-f71fa958b2cb)
+![unlighthouse - Scan your entire website with Google Lighthouse.](https://repository-images.githubusercontent.com/423079536/995fb12f-5cd8-4486-8967-f71fa958b2cb)
 <p align="center">
 <a href="https://www.npmjs.com/package/@unlighthouse/core" target="__blank"><img src="https://img.shields.io/npm/v/@unlighthouse/core?color=2B90B6&label=" alt="NPM version"></a>
 <a href="https://www.npmjs.com/package/@unlighthouse/core" target="__blank"><img alt="NPM Downloads" src="https://img.shields.io/npm/dm/@unlighthouse/core?color=349dbe&label="></a>
@@ -22,7 +22,7 @@ Unlighthouse is an entire site audit tool with a modern UI for scanning live and
 <tbody>
 <td align="center">
 <img width="2000" height="0" /><br>
-Status: <b>Private Early Access 🎉</b><br>
+Status: <b>Public Early Access 🎉</b><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a><br> Follow me <a href="https://twitter.com/harlan_zw">@harlan_zw</a> 🐦</sub><br>
 <img width="2000" height="0" />
 </td>
@@ -35,7 +35,7 @@ Status: <b>Private Early Access 🎉</b><br>
 
 ### ⚡️ [**Fast**](https://vitejs.dev)
 
-Take advantage of your CPU with multi-threaded workers powered by <a href="https://github.com/thomasdondorf/puppeteer-cluster" target="_blank" rel="noopener">puppeteer-cluster</a> and use opportunistic throttling and categories for lightning quick scans.
+Take advantage of your CPU with multithreaded workers powered by <a href="https://github.com/thomasdondorf/puppeteer-cluster" target="_blank" rel="noopener">puppeteer-cluster</a> and use opportunistic throttling and categories for lightning quick scans.
 
 ### 🌈 [**Modern UI**](https://sli.dev/guide/syntax.html#embedded-styles)
 
@@ -140,81 +140,6 @@ See [Config](https://unlighthouse.dev/config/#configuration) for the full detail
 ### Unlighthouse - Development Sites
 
 See [integrations](https://unlighthouse.dev/integrations/) on how you can run Unlighthouse in your development environment.
-
-#### Nuxt
-
-```bash
-# NPM
-npm add -D @unlighthouse/nuxt
-# or Yarn
-yarn add -D @unlighthouse/nuxt
-# or PNPM
-pnpm add -D @unlighthouse/nuxt
-```
-
-Within your `nuxt.config.ts`, add the module to your `buildModules`. Once you start your nuxt app you can visit `/__unlighthouse` to view
-the client.
-
-### Unlighthouse - CI
-
-Unlighthouse can be ran in a CI mode to:
-- to perform an assertion on a specific score budget
-- generate a static build of the report
-
-#### Budget
-
-Unlighthouse simplifies budget assertions. You can provide a single budget number which will be used
-to validate all pages and on all selected categories. 
-
-```bash
-# Install unlighthouse
-npm install -g unlighthouse
-# Run the CI with a budget, will fail if any pages report any category less than 50
-unlighthouse-ci --site <your-site> --debug --budget 50
-```
-
-
-#### Static Build
-
-**Examples**
-- https://vue-demo.unlighthouse.dev/
-- https://inspect.unlighthouse.dev/
-
-**Instructions**
-
-Install Unlighthouse and run the ci script
-
-```bash
-# NPM
-npm install -g unlighthouse
-unlighthouse-ci --site harlanzw.com --debug --build-static
-```
-
-This will generate files in your `outputPath` (`.lighthouse` by default).
-
-You can upload the directory `client` to a static host from there. 
-
-For example using Github Actions with Netlify:
-
-```yml
-  - name: Deploy to Netlify
-    uses: nwtgck/actions-netlify@v1.2
-    with:
-      publish-dir: './.lighthouse/client'
-      production-branch: main
-      production-deploy: true
-      github-token: ${{ secrets.GITHUB_TOKEN }}
-      deploy-message: "New Release Deploy from GitHub Actions"
-      enable-pull-request-comment: false
-      enable-commit-comment: true
-      overwrites-pull-request-comment: true
-    env:
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEMO_SITE_ID }}
-    timeout-minutes: 1
-```
-
-
 
 ## Sponsors
 
