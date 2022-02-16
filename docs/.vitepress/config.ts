@@ -83,6 +83,10 @@ export default defineConfig({
               link: '/guide/lighthouse'
             },
             {
+              text: 'Change Scan Device',
+              link: '/guide/device'
+            },
+            {
               text: 'Handling Large Sites',
               link: '/guide/large-sites'
             },
@@ -95,8 +99,8 @@ export default defineConfig({
               link: '/guide/route-definitions'
             },
             {
-              text: 'Scanning',
-              link: '/guide/scanning'
+              text: 'Handling SPAs',
+              link: '/guide/spa'
             },
             {
               text: 'Crawling',
@@ -130,10 +134,6 @@ export default defineConfig({
             {
               text: 'Webpack',
               link: '/integrations/webpack'
-            },
-            {
-              text: 'Rollup',
-              link: '/integrations/rollup'
             },
           ]
         },

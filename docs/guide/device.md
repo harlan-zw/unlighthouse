@@ -1,28 +1,21 @@
-# Scanning
+# Change Scan Device
 
-Change the behaviour of the Unlighthouse route scanning.
+Unlighthouse uses the [lighthouse node module](https://github.com/GoogleChrome/lighthouse) to perform scans.
 
-## Wait for Javascript
+By default, Unlighthouse will uses the default lighthouse configuration, which emulates a mobile device. Unlighthouse 
+does _not throttle_ by default.
 
-When performing the HTML extraction task, Unlighthouse will by default, not wait for the Javascript to load.
+The device dimensions details are:
+- **width**: 375
+- **height**: 667
 
-This is to speed up the performance of the parse.
-
-If your page is an SPA or requires Javascript to parse the HTML meta, you can opt-in to the wait with.
-
-```ts
-export default defineConfig({
-  scanner: {
-    skipJavascript: false
-  }
-})
-```
+Config alises are provided to modify the emulated device behaviour.
 
 ## Alias: Switching between mobile and desktop
 
 By default, Unlighthouse will run the audit using an emulated mobile desktop.
 
-To change it to desktop you can do:
+To change it to desktop:
 
 ```ts
 export default defineConfig({
@@ -32,7 +25,33 @@ export default defineConfig({
 })
 ```
 
+
+To change it to mobile (default):
+
+```ts
+export default defineConfig({
+  scanner: {
+    device: 'mobile',
+  }
+})
+```
+
 Note: This is an alias for setting the option yourself manually via `lighthouseOptions`.
+
+## Change device dimensions
+
+Changing the device dimensions can be useful if you want to test content that is only shown as specific dimensions.
+
+```ts
+export default defineConfig({
+  lighthouseOptions: {
+    screenEmulation: {
+      width: 1800,
+      height: 1000,
+    }
+  }
+})
+```
 
 ## Alias: Enable/Disable Throttling
 
@@ -55,5 +74,3 @@ export default defineConfig({
 ```
 
 Note: `throttle` is an alias for modifying `lighthouseOptions.throttlingMethod` and `lighthouseOptions.throttling`.
-
-
