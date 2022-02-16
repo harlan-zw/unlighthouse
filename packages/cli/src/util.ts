@@ -72,6 +72,11 @@ export function pickOptions(options: CiOptions|CliOptions): UserConfig {
   if (options.samples)
     picked.scanner.samples = options.samples
 
+  if (options.enableI18nPages)
+    picked.scanner.ignoreI18nPages = false
+  else if (options.disableI18nPages)
+    picked.scanner.ignoreI18nPages = true
+
   return defu(
     pick(options, [
       // root level options
