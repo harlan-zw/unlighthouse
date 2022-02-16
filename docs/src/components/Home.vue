@@ -88,7 +88,7 @@ const features2 = [
       <div class="shadow-xl rounded">
         <div class="language-bash border-2 border-blue-900/10 w-full !m-0 rounded relative">
         <pre>
-<code><span class="token function">npx unlighthouse --site</span> <span class="token text-[#408c9e] font-500">harlanzw.com</span></code></pre>
+<code><span class="token function">npx unlighthouse --site</span> <span class="token text-[#408c9e] font-500">&lsaquo;your-site&rsaquo;</span></code></pre>
         </div>
       </div>
       <p class="italic opacity-70 text-sm">Requires Node.js >= 14.x.</p>
