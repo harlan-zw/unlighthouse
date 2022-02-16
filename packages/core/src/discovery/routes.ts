@@ -29,6 +29,10 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
         ...urls,
         ...sitemapUrls,
       ]
+      if (sitemapUrls.length) {
+        resolvedConfig.scanner.crawler = false
+        logger.info('Disabling crawler mode as sitemap is provided indicating a medium-sized site.')
+      }
     }
 
     else if (resolvedConfig.scanner.crawler) {
