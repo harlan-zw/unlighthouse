@@ -132,6 +132,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   routeReport.seo = processSeoMeta($)
   if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
     routeReport.tasks.inspectHtmlTask = 'ignore'
+    logger.debug(`Page has an alternative lang, ignoring \`${routeReport.route.path}\`: ${routeReport.seo.alternativeLangDefault}`)
     return routeReport
   }
   const internalLinks: string[] = []

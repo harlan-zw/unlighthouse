@@ -49,6 +49,6 @@
     "@types/express": "^4.17.13",
     "@types/webpack": "^5.28.0",
     "@types/webpack-dev-server": "^4.7.2",
-    "webpack": "^5.68.0"
+    "webpack": "^5.69.0"
   }
 }

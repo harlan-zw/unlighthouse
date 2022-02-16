@@ -5,7 +5,7 @@ import { hashPathName, trimSlashes } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 
 export const isScanOrigin = (url: string): boolean => {
-  if (isRelative(url))
+  if (isRelative(url) || (url.startsWith('/') && !url.startsWith('//')))
     return true
 
   const { runtimeSettings } = useUnlighthouse()

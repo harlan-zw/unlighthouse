@@ -10,6 +10,8 @@ export interface CliOptions {
   configFile?: string
   debug?: boolean
   samples?: number
+  enableI18nPages?: boolean
+  disableI18nPages?: boolean
   enableJavascript?: boolean
   disableJavascript?: boolean
 }

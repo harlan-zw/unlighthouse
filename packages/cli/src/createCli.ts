@@ -14,6 +14,8 @@ export default function createCli() {
   cli.option('--throttle', 'Enable the throttling')
   cli.option('--enable-javascript', 'When inspecting the HTML wait for the javascript to execute. Useful for SPAs.')
   cli.option('--disable-javascript', 'When inspecting the HTML, don\'t wait for the javascript to execute.')
+  cli.option('--enable-i18n-pages', 'Enable scanning pages which use x-default.')
+  cli.option('--disable-i18n-pages', 'Disable scanning pages which use x-default.')
   cli.option('--output-path <output-path>', 'Path to save the contents of the client and reports to.')
   cli.option('--root <root>', 'Root ro run lighthouse. Useful for changing where the config is read from or setting up sampling.')
   cli.option('--config-file <config-file>', 'Config File Path. Where to load the configuration file from.')

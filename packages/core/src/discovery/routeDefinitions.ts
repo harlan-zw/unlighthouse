@@ -27,6 +27,7 @@ export const discoverRouteDefinitions = async() => {
 
     return await globby([
       join(dir, '**', `*.${extensions}`),
+      '!**/README.md',
       '!**/node_modules',
     ], {
       cwd: resolvedConfig.root,

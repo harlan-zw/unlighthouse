@@ -41,14 +41,14 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.16.1",
-    "@types/node": "^17.0.16",
-    "@vitest/ui": "^0.2.8",
+    "@types/node": "^17.0.18",
+    "@vitest/ui": "^0.3.6",
     "bumpp": "^7.1.1",
-    "eslint": "^8.8.0",
+    "eslint": "^8.9.0",
     "typescript": "^4.5.5",
-    "vitest": "^0.2.8"
+    "vitest": "^0.3.6"
   },
-  "version": "0.1.43",
+  "version": "0.1.44",
   "dependencies": {
     "unbuild": "^0.6.9"
   }

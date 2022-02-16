@@ -15,7 +15,7 @@ import { extractSitemapRoutes } from './sitemap'
  */
 export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async() => {
   const logger = useLogger()
-  const { resolvedConfig, provider, hooks, worker } = useUnlighthouse()
+  const { resolvedConfig, provider, hooks, worker, routeDefinitions } = useUnlighthouse()
 
   // the urls function may be null
   let urls = (provider?.urls ? await provider?.urls() : [resolvedConfig.site])
@@ -29,6 +29,10 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
         ...urls,
         ...sitemapUrls,
       ]
+      if (sitemapUrls.length) {
+        resolvedConfig.scanner.crawler = false
+        logger.info('Disabling crawler mode as sitemap is provided indicating a medium-sized site.')
+      }
     }
 
     else if (resolvedConfig.scanner.crawler) {
@@ -38,6 +42,17 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
       logger.error('Failed to find sitemap.xml and \`routes.crawler\` has been disabled. Please enable the crawler to continue scan.')
     }
   }
+
+  // add static routes from definitions if the sitemap failed
+  if (urls.length <= 1 && routeDefinitions?.length) {
+    urls = [
+      ...urls,
+      ...routeDefinitions
+        .filter(r => !r.path.includes(':'))
+        .map(r => r.path),
+    ]
+  }
+
 
   // setup this hook to queue any discovered internal links
   if (resolvedConfig.scanner.crawler) {
