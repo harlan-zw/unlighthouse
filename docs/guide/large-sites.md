@@ -22,7 +22,7 @@ DOM is very similar. Using the configuration we can select exactly how many post
 
 To make the most intelligent sampling decisions, Unlighthouse needs to know which page files are available. When running
 using the
-[integrations](/integrations/index.html) API, Unlighthouse will automatically provide this information.
+integration API, Unlighthouse will automatically provide this information.
 
 Using the CLI you should follow the [providing route definitions](/guide/route-definitions.html) guide.
 
