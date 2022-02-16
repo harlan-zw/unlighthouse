@@ -5,12 +5,12 @@ export default defineConfig({
   description: 'Scan your entire website with Google Lighthouse',
   head: [
     ['meta', { property: 'og:title', content: 'Unlighthouse' }],
-    ['meta', { property: 'og:description', content: 'Scan your entire website with Google Lighthouse' }],
-    ['meta', { property: 'og:url', content: 'https://unlighthouse.dev/' }],
-    ['meta', { property: 'og:image', content: 'https://unlighthouse.dev/og.png' }],
+    ['meta', { property: 'og:description', content: 'Scan your entire website with Google Lighthouse - in minutes.' }],
+    ['meta', { property: 'og:url', content: 'https://next.unlighthouse.dev/' }],
+    ['meta', { property: 'og:image', content: 'https://next.unlighthouse.dev/og.png' }],
     ['meta', { name: 'twitter:title', content: 'Unlighthouse' }],
-    ['meta', { name: 'twitter:description', content: 'Scan your entire website with Google Lighthouse' }],
-    ['meta', { name: 'twitter:image', content: 'https://unlighthouse.dev/og.png' }],
+    ['meta', { name: 'twitter:description', content: 'Scan your entire website with Google Lighthouse - in minutes.' }],
+    ['meta', { name: 'twitter:image', content: 'https://next.unlighthouse.dev/og.png' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['link', { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' }],
     ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Serif+Display:ital@0;1&display=swap'}]
