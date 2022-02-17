@@ -19,7 +19,7 @@ run the command in the projects directory.
 Say I want to scan [unlighthouse.dev](https://unlighthouse.dev) with the CLI and the project lives
 at `/home/harlan/packages/unlighthouse/docs`.
 
-```sh
+```bash
 unlighthouse --site unlighthouse.dev --root /home/harlan/packages/unlighthouse/docs
 ```
 

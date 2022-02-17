@@ -13,13 +13,13 @@ Using the CLI is the quickest way to get familiar with Unlighthouse and is recom
 
 Using pnpm dlx (recommended) - requires pnpm
 
-```sh
+```bash
 pnpm dlx unlighthouse --site <your-site>
 ```
 
 Using npx
 
-```sh
+```bash
 npx unlighthouse --site <your-site>
 ```
 

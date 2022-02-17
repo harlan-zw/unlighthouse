@@ -8,11 +8,11 @@ export default {
 }
 </script>
 <template>
-<div class="grid gap-10 grid-cols-3 mt-12">
+<div class="grid gap-10 md:grid-cols-3 md:mt-10">
   <div v-for="(feat, i) in features" class="flex items-start">
-    <span class="text-4xl mr-5" v-html="feat.icon"></span>️
+    <span class="md:text-4xl text-2xl mr-5" v-html="feat.icon"></span>️
     <div>
-      <h3 class="mt-0">{{ feat.title }}</h3>
+      <h3 class="mt-0 text-xl">{{ feat.title }}</h3>
       <div v-html="feat.content">
       </div>
     </div>
