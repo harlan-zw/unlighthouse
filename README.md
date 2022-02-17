@@ -1,4 +1,4 @@
-![unlighthouse - Scan your entire website with Google Lighthouse.](https://repository-images.githubusercontent.com/423079536/995fb12f-5cd8-4486-8967-f71fa958b2cb)
+![unlighthouse - Scan your entire website with Google Lighthouse.](https://next.unlighthouse.dev/og.png)
 <p align="center">
 <a href="https://www.npmjs.com/package/@unlighthouse/core" target="__blank"><img src="https://img.shields.io/npm/v/@unlighthouse/core?color=2B90B6&label=" alt="NPM version"></a>
 <a href="https://www.npmjs.com/package/@unlighthouse/core" target="__blank"><img alt="NPM Downloads" src="https://img.shields.io/npm/dm/@unlighthouse/core?color=349dbe&label="></a>
@@ -10,7 +10,7 @@
 <br>
 
 <p align="center">
-Unlighthouse is an entire site audit tool with a modern UI for scanning live and development sites using Google Lighthouse
+Unlighthouse is an entire site audit tool with a modern UI for scanning live and development sites using Google Lighthouse.
 </p>
 
 <p align="center">
