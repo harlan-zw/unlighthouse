@@ -13,9 +13,7 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
       const unlighthouse = useUnlighthouse() || await createUnlighthouse({
         ...config,
         root: viteServer.config.root,
-        router: {
-          prefix: '/__unlighthouse',
-        },
+        routerPrefix: '/__unlighthouse',
         scanner: {
           skipJavascript: false,
         },

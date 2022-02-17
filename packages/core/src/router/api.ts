@@ -25,7 +25,7 @@ export const createApi = async() => {
   const { handle, setup } = await createUnrouted({
     name: 'unlighthouse-api',
     debug: resolvedConfig.debug,
-    prefix: resolvedConfig.router.prefix,
+    prefix: resolvedConfig.routerPrefix,
     hooks: {
       'serve:before-route': () => {
         // before we serve a route to the user we trigger a hook to let unlighthouse context know
@@ -36,7 +36,7 @@ export const createApi = async() => {
 
   await setup(() => {
     // handle typos
-    redirect('/__lighthouse/', resolvedConfig.router.prefix)
+    redirect('/__lighthouse/', resolvedConfig.routerPrefix)
 
     group('/api', () => {
       group('/reports', () => {

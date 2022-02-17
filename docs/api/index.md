@@ -1,7 +1,5 @@
 # API Reference
 
-<sponsor-banner />
-
 ## @unlighthouse/core
 
 Functions exposed from the `@unlighthouse/core` package.
@@ -10,9 +8,9 @@ Functions exposed from the `@unlighthouse/core` package.
 
 - **Type:** `(userConfig: UserConfig, provider?: Provider) => Promise<UnlighthouseContext>`
 
-  This is the entry point to using Unlighthouse, it will initialise unlighthouse with the provided configuration and an optional provider.
+  This is the entry point to using Unlighthouse, it will initialise Unlighthouse with the provided configuration and an optional provider.
 
-  When no provider is given a default provider is created which will try and resolve route definitions and URLs.
+  When no provider is given, a default provider is created which will try and resolve route definitions and URLs.
 
   ```ts
   import { createUnlighthouse } from '@unlighthouse/core'
@@ -50,7 +48,7 @@ Functions exposed from the `@unlighthouse/core` package.
 
   This copies over the client from `@unlighthouse/client` to be used to render our scans details.
 
-  It's publicly exposed to provide tight integrations for custom client builds, such as the CI build.
+  It's publicly exposed to provide a tight integrations for custom client builds, such as the CI build.
 
   ```ts
   import { generateClient } from '@unlighthouse/core'
@@ -65,7 +63,7 @@ Functions exposed from the `@unlighthouse/core` package.
 - **Type:** `() => UnlighthouseContext`
 
   Unlighthouse makes use of a [composition API](https://github.com/unjs/unctx) to retain the core state. This allows you to access unlighthouse _anywhere_, 
-  which is great for avoiding transferring state between your logic.
+  which is great to avoid transferring state between your logic.
 
   ```ts
   import { useUnlighthouse } from '@unlighthouse/core'
@@ -95,7 +93,7 @@ Functions exposed from the `@unlighthouse/core` package.
 Functions exposed from the `@unlighthouse/server` package.
 
 This package is used for instances where unlighthouse is running without a provider which has an accessible web server. For instance
-running unlighthouse with the `cli` provider will use this package.
+running Unlighthouse with the `cli` provider will use this package.
 
 ### createServer
 
@@ -127,7 +125,7 @@ Functions exposed from unlighthouse context provided by `useUnlighthouse()` or `
 
 - **Type:** `() => Promise<UnlighthouseContext>`
 
-  Running Unlighthouse via CI does not require a server or the client so we have a special utility for it.
+  Running Unlighthouse via CI does not require a server or the client, so we have a special utility for it.
 
 ### setServerContext
 
@@ -191,7 +189,7 @@ hooks.hook('task-complete', (path, response) => {
 
 - **Type:** `(routeDefinitions: any[]) => HookResult`
 
-  When route definitions are provided to Unlighthouse this function will be called, useful for delaying internal logic
+  When route definitions are provided to Unlighthouse this function will be called useful for delaying internal logic
   until the definitions are found.
 
 ### visited-client

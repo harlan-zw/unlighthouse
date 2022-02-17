@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'Unlighthouse',
-  description: 'Scan your entire website with Google Lighthouse',
+  description: 'Unlighthouse is an entire site audit tool with a modern UI for scanning live and development sites using Google Lighthouse.',
   head: [
     ['meta', { property: 'og:title', content: 'Unlighthouse' }],
     ['meta', { property: 'og:description', content: 'Scan your entire website with Google Lighthouse - in minutes.' }],

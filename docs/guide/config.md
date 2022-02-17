@@ -2,7 +2,7 @@
 
 ## unlighthouse.config.ts
 
-There are multiple ways to configure unlighthouse, the easiest way is to use a `unlighthouse.config.ts` in your root
+There are multiple ways to configure Unlighthouse, the easiest way is to use a `unlighthouse.config.ts` in your root
 directory.
 
 1. Load `unlighthouse.config.ts`

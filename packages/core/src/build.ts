@@ -19,7 +19,7 @@ export const generateClient = async(options: GenerateClientOptions = {}, unlight
 
   const { runtimeSettings, resolvedConfig, worker } = unlighthouse
 
-  const prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.router.prefix))
+  const prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.routerPrefix))
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
 
   await fs.emptyDir(runtimeSettings.generatedClientPath)

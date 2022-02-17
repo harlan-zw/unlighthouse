@@ -30,11 +30,11 @@ Note: When no route definitions are provided it will match based on URL fragment
 mapped to
 `blog-slug`.
 
-### Exclude URL Patterns
+## Exclude URL Patterns
 
 Paths to ignore from scanning.
 
-For example, if your site has a documentation section that doesn't need to be scanned
+For example, if your site has a documentation section, that doesn't need to be scanned.
 
 ```ts
 export default {
@@ -46,9 +46,9 @@ export default {
 }
 ```
 
-### Include URL Patterns
+## Include URL Patterns
 
-Explicitly include paths, this will exclude any paths not listed here.
+Explicitly include paths; this will exclude any paths not listed here.
 
 For example, if you run a blog and want to only scan your article and author pages.
 

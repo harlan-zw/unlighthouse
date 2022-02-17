@@ -187,8 +187,8 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
     logger.debug(`Setting Unlighthouse Server Context [Server: ${$server}]`)
 
-    const clientUrl = joinURL($server.toString(), resolvedConfig.router.prefix)
-    const apiPath = joinURL(resolvedConfig.router.prefix, resolvedConfig.api.prefix)
+    const clientUrl = joinURL($server.toString(), resolvedConfig.routerPrefix)
+    const apiPath = joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)
     ctx.runtimeSettings.serverUrl = url
     ctx.runtimeSettings = {
       ...ctx.runtimeSettings,
