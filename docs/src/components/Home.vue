@@ -55,7 +55,7 @@ const features2 = [
         - in 2 minutes.<sup class="opacity-50 text-2xl ml-3 whitespace-nowrap">(on average)</sup>
       </h1>
       <div class="mb-5">
-        <div v-for="(f, i) in ['Open-source', 'Completely Free', 'Zero Setup']" :key="i" class="md:(mr-5 pl-3 pr-4 p-1 text-lg mb-10) opacity-90 mb-5 text-sm rounded-xl mr-2 inline-flex items-center border-1 border-green-500  bg-green-50 pl-2 pr-3 py-1">
+        <div v-for="(f, i) in ['Open-source', 'Fully Configurable', 'Minimal Setup']" :key="i" class="md:(mr-5 pl-3 pr-4 p-1 text-lg mb-10) opacity-90 mb-5 text-sm rounded-xl mr-2 inline-flex items-center border-1 border-green-500  bg-green-50 pl-2 pr-3 py-1">
           <i-carbon-checkmark-outline class="mr-2 text-green-500" />
           {{ f }}
         </div>

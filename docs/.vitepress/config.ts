@@ -1,4 +1,5 @@
-import { defineConfig } from 'vitepress'
+import {defineConfig} from 'vitepress'
+import type MarkdownIt from 'markdown-it'
 
 export default defineConfig({
   title: 'Unlighthouse',
@@ -17,6 +18,30 @@ export default defineConfig({
     ['link', { rel: 'icon', href: '/logo-light.svg', type: 'image/svg+xml', media: '(prefers-color-scheme:light)' }],
     ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Serif+Display:ital@0;1&display=swap'}]
   ],
+  markdown: {
+    config(md) {
+      md.use((md: MarkdownIt) => {
+        const fence = md.renderer.rules.fence!
+        // @ts-ignore
+        md.renderer.rules.fence = (...args) => {
+          const [tokens, idx] = args
+          const token = tokens[idx]
+          const langInfo = token.info.split(' ')
+          const langName = langInfo?.length ? langInfo[0] : ''
+          const filename = langName.length && langInfo[1] ? langInfo[1] : null
+
+          // remove filename
+          token.info = langName
+
+          const rawCode = fence(...args)
+
+          return filename
+            ? rawCode.replace(/<div class="language-(\w+)">/, `<div class="language-$1 with-filename"><div class="code-block-filename">${filename}</div>`)
+            : rawCode
+        }
+      })
+    },
+  },
   themeConfig: {
     repo: 'harlan-zw/unlighthouse',
     docsDir: 'docs',
@@ -66,7 +91,7 @@ export default defineConfig({
       '/glossary/': 'auto',
       '/': [
         {
-          text: 'Guide',
+          text: 'Unlighthouse',
           children: [
             {
               text: 'Introduction',
@@ -76,6 +101,11 @@ export default defineConfig({
               text: 'How it works',
               link: '/guide/how-it-works'
             },
+          ]
+        },
+        {
+          text: 'Guide',
+          children: [
             {
               text: 'Configuring Unlighthouse',
               link: '/guide/config'

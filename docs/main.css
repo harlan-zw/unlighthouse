@@ -102,3 +102,15 @@ main.home {
   border-color: var(--c-accent) !important;
   background-color: #90C32130 !important;
 }
+
+div[class*='language-'][class*='with-filename'] {
+  @apply relative pt-4;
+}
+
+div[class*='language-'] .code-block-filename {
+  @apply absolute top-0 left-0 py-1 px-2 text-xs text-cool-gray-200 dark:text-cool-gray-400 bg-dark-500 dark:bg-dark-300 rounded-br;
+}
+
+div[class*='language-'] {
+  @apply shadow-sm shadow-gray-200 dark:shadow-dark-500;
+}

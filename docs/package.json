@@ -18,9 +18,10 @@
     "@iconify-json/carbon": "^1.1.1",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/vite": "workspace:*",
-    "@unocss/reset": "^0.24.4",
+    "@unocss/reset": "^0.25.0",
     "@vitejs/plugin-vue": "^2.2.0",
-    "unocss": "^0.24.4",
+    "markdown-it": "^12.3.2",
+    "unocss": "^0.25.0",
     "unplugin-vue-components": "^0.17.18",
     "vitepress": "^0.22.2"
   }
