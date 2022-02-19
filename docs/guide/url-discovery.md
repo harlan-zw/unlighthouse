@@ -27,9 +27,14 @@ export default {
 }
 ```
 
+## Crawler
+
+When enabled, the crawler will inspect the HTML payload of a page and extract internal links. 
+These internal links will be queued up and scanned if they haven't already been scanned.
+
 ## Disable crawling
 
-If you want to strictly follow the sitemap pages and disable the crawling feature, you can do:
+If you have many pages with many internal links, it may be a good idea to disable the crawling.
 
 ```ts
 export default {

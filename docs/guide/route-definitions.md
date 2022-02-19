@@ -1,50 +1,30 @@
 # Providing Route Definitions
 
-When you run Unlighthouse it will try and map your page files to URLs,
-creating [route definitions](/glossary/#route-definition). This is used for [handling large sites](/guide/large-sites)
-and file edit hints.
+Route definitions are an optional feature of Unlighthouse. 
 
-Running Unlighthouse with the CLI or a missing provider, the route discovery will likely fail. To help Unlighthouse
-discover the route definitions you can provide extra configuration.
+Providing them will give you more intelligent sampling and file hints.
 
-This is optional and only needed for large sites which can benefit from sampling.
+When you start Unlighthouse, it will try and map your page files to [route definitions](/glossary/#route-definition). 
 
-By default, the `/pages/` dir is scanned for files with extensions `.vue` and `.md`.
+Using Unlighthouse with the provided integrations, the route definitions should be discovered on their own. 
+If you have a custom setup or are using the CLI, you will need to manually set up the discovery.
 
-## Point the root directory to your files
+## Pages directory
 
-When running unlighthouse you should point the root directory to where the files for your project are, or more simply
-run the command in the projects directory.
+By default, the `pages/` dir is scanned for files with extensions `.vue` and `.md`, from the `root` directory.
 
-Say I want to scan [unlighthouse.dev](https://unlighthouse.dev) with the CLI and the project lives
-at `/home/harlan/packages/unlighthouse/docs`.
-
-```bash
-unlighthouse --site unlighthouse.dev --root /home/harlan/packages/unlighthouse/docs
-```
-
-I need to provide configuration to tell Unlighthouse to load pages from the root directory.
+If your project has a different setup you can modify the configuration.
 
 ```ts
 export default {
+  root: './app',
   discovery: {
-    pagesDir: './'
+    pagesDir: 'routes',
+    fileExtensions: ['jsx', 'md'],
   }
 }
 ```
 
-## Custom extensions
-
-If you have a different pages setup you can do:
-
-```ts
-export default {
-  discovery: {
-    pagesDir: './',
-    fileExtensions: ['js', 'jxs']
-  }
-}
-```
 
 ## Custom sampling
 
