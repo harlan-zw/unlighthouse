@@ -35,7 +35,8 @@ Functions exposed from the `@unlighthouse/core` package.
   config file `unlighthouse.config.ts`
 
   ```ts
-  import { defineConfig } from '@unlighthouse/core'
+  /// <reference types="unlighthouse" />
+  import { defineConfig } from 'unlighthouse'
 
   export default defineConfig({
     site: 'harlanzw.com'
@@ -228,3 +229,9 @@ Fired when a task has completed it's work.
 - **Type:** `(path: string, internalLinks: string[]) => HookResult`
 
 Fired when a path discovered internal links, used for "crawl" mode.
+
+### puppeteer:before-goto
+
+- **Type:** `(page: Page) => HookResult`
+
+After a page has been visited with puppeteer. Useful for running

@@ -115,6 +115,10 @@ export default defineConfig({
               link: '/guide/lighthouse'
             },
             {
+              text: 'Configure Puppeteer',
+              link: '/guide/puppeteer'
+            },
+            {
               text: 'Change Scan Device',
               link: '/guide/device'
             },

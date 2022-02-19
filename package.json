@@ -30,7 +30,7 @@
     "build:pkg": "pnpm -r --filter ./packages run build",
     "stub": "pnpm -r --parallel run stub",
     "dev": "pnpm run stub && pnpm run watch:client",
-    "lint": "eslint \"{packages,integrations}/**/*.{ts,vue,json,yml}\"",
+    "lint": "eslint \"{packages,integrations,docs}/**/*.{ts,vue,json,yml}\"",
     "lint:fix": "npm run lint -- --fix",
     "release": "bumpp package.json integrations/nuxt/package.json packages/*/package.json --commit --push --tag",
     "test": "vitest",

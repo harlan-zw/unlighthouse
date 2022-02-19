@@ -11,7 +11,7 @@ See the [glossary guide](/glossary/#columns) for the columns to understand the A
 ### Example: Replace FCP Column with Server Response
 
 ```ts
-export default defineConfig({
+export default {
   hooks: {
     'resolved-config'(config) {
       // replace FCP column with server response time
@@ -24,6 +24,6 @@ export default defineConfig({
       }
     }
   }
-})
+}
 ```
 

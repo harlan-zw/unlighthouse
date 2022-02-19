@@ -77,20 +77,19 @@ export function pickOptions(options: CiOptions|CliOptions): UserConfig {
   else if (options.disableI18nPages)
     picked.scanner.ignoreI18nPages = true
 
-  if (options.urls) {
+  if (options.urls)
     picked.urls = options.urls.split(',')
-  }
 
   const config = pick(options, [
-      // root level options
-      'samples',
-      'site',
-      'root',
-      'configFile',
-      'debug',
-      'cache',
-      'outputPath',
-    ])
+    // root level options
+    'samples',
+    'site',
+    'root',
+    'configFile',
+    'debug',
+    'cache',
+    'outputPath',
+  ])
   return defu(
     config,
     picked,

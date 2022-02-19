@@ -18,22 +18,22 @@ By default, Unlighthouse will run the audit using an emulated mobile desktop.
 To change it to desktop:
 
 ```ts
-export default defineConfig({
+export default {
   scanner: {
     device: 'desktop',
   }
-})
+}
 ```
 
 
 To change it to mobile (default):
 
 ```ts
-export default defineConfig({
+export default {
   scanner: {
     device: 'mobile',
   }
-})
+}
 ```
 
 Note: This is an alias for setting the option yourself manually via `lighthouseOptions`.
@@ -43,14 +43,14 @@ Note: This is an alias for setting the option yourself manually via `lighthouseO
 Changing the device dimensions can be useful if you want to test content that is only shown as specific dimensions.
 
 ```ts
-export default defineConfig({
+export default {
   lighthouseOptions: {
     screenEmulation: {
       width: 1800,
       height: 1000,
     }
   }
-})
+}
 ```
 
 ## Alias: Enable/Disable Throttling
@@ -66,11 +66,11 @@ skew the results.
 If you would like to modify the throttling for each environment you can do:
 
 ```ts
-export default defineConfig({
+export default {
   scanner: {
     throttle: true
   }
-})
+}
 ```
 
 Note: `throttle` is an alias for modifying `lighthouseOptions.throttlingMethod` and `lighthouseOptions.throttling`.

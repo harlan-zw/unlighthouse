@@ -18,6 +18,13 @@ changing some of the following:
 For example, when scanning a blog with thousands of posts, it may be redundant to scan every single blog post, as the
 DOM is very similar. Using the configuration we can select exactly how many posts should be scanned.
 
+## Manually select URLs
+
+You can configure Unlighthouse to use an explicit list of relative paths. This can be useful if you have a fairly complex
+and large site.
+
+See [Manually providing URLs](/guide/url-discovery.html#manually-providing-urls) for more information.
+
 ## Provide Route Definitions (optional)
 
 To make the most intelligent sampling decisions, Unlighthouse needs to know which page files are available. When running
@@ -86,14 +93,13 @@ will be sampled.
 For these instances you may want to disable the sample as follows:
 
 ```ts
-export default defineConfig({
+export default {
   scanner: {
     // no dynamic sampling
     dynamicSampling: false
   }
-})
+}
 ```
-
 
 
 

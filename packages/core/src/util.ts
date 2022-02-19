@@ -6,14 +6,13 @@ import slugify from 'slugify'
 import { hasProtocol, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 import type { AxiosResponse } from 'axios'
 import axios from 'axios'
-import type {NormalisedRoute, RouteDefinition, UnlighthouseRouteReport} from './types'
+import type { NormalisedRoute, RouteDefinition, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
 
 export const provideRoutes = (routes: RouteDefinition[]) => {
   const unlighthouse = useUnlighthouse()
-  if (unlighthouse?.hooks) {
+  if (unlighthouse?.hooks)
     unlighthouse?.hooks.callHook('route-definitions-provided', routes)
-  }
 }
 
 /**

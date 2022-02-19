@@ -26,11 +26,11 @@ unlighthouse --site unlighthouse.dev --root /home/harlan/packages/unlighthouse/d
 I need to provide configuration to tell Unlighthouse to load pages from the root directory.
 
 ```ts
-export default defineConfig({
+export default {
   discovery: {
     pagesDir: './'
   }
-})
+}
 ```
 
 ## Custom extensions
@@ -38,12 +38,12 @@ export default defineConfig({
 If you have a different pages setup you can do:
 
 ```ts
-export default defineConfig({
+export default {
   discovery: {
     pagesDir: './',
     fileExtensions: ['js', 'jxs']
   }
-})
+}
 ```
 
 ## Custom sampling

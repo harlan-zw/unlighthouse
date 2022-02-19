@@ -7,7 +7,7 @@ Unlighthouse comes with multiple methods for URL discovery in the form of crawli
 2. Manually providing URLs via the `--urls` flag or `urls` on the provider.
 3. `sitemap` - Reading sitemap.xml, if it exists 
 4. `crawler` - Inspecting internal links 
-5. Using provided static [route definitions](/glossary#route-definition)
+5. Using provided static [route definitions](/glossary/#route-definition)
 
 
 ## Sitemap
@@ -32,11 +32,11 @@ export default {
 If you want to strictly follow the sitemap pages and disable the crawling feature, you can do:
 
 ```ts
-export default defineConfig({
+export default {
   scanner: {
     crawler: false
   }
-})
+}
 ```
 
 ## Manually Providing URLs

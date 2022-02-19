@@ -11,11 +11,11 @@ This is to speed up the performance of the parse.
 If your page is an SPA or requires Javascript to parse the HTML meta, you can opt-in to the wait with.
 
 ```ts
-export default defineConfig({
+export default {
   scanner: {
     skipJavascript: false
   }
-})
+}
 ```
 
 

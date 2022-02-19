@@ -23,7 +23,7 @@ import type {
 import { generateClient } from './build'
 import { discoverRouteDefinitions, resolveReportableRoutes } from './discovery'
 import { resolveUserConfig } from './resolveConfig'
-import { AppName, ClientPkg, TagLine } from './constants'
+import { AppName, ClientPkg } from './constants'
 import { createLogger } from './logger'
 import { normaliseHost } from './util'
 
@@ -266,20 +266,20 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       // fancy CLI banner when we start
       const label = (name: string) => chalk.bold.magenta(`▸ ${name}:`)
       let mode = resolvedConfig.urls.length > 0 ? 'manual' : ''
-      if (resolvedConfig.urls.length) {
+      if (resolvedConfig.urls.length)
         mode = 'Manual'
-      }
-      if (resolvedConfig.scanner.sitemap) {
+
+      if (resolvedConfig.scanner.sitemap)
         mode += 'Sitemap'
-      }
-      if (resolvedConfig.scanner.crawler) {
+
+      if (resolvedConfig.scanner.crawler)
         mode += mode.length > 0 ? ' + Crawler' : 'Crawler'
-      }
+
       const title = [
         `⛵  ${chalk.bold.blueBright(AppName)} ${chalk.dim(`${provider?.name} @ v${version}`)}`,
         '',
         `${label('Scanning')} ${resolvedConfig.site}`,
-        `${label('Route Discovery')} ${mode} ${chalk.dim(ctx.routes.length + ' initial URLs')}`,
+        `${label('Route Discovery')} ${mode} ${chalk.dim(`${ctx.routes.length} initial URLs`)}`,
       ]
       if (ctx.routeDefinitions?.length)
         title.push(`${label('Route Definitions')} ${ctx.routeDefinitions.length}`)

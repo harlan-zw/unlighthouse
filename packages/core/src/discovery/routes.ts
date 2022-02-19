@@ -17,16 +17,16 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
   const logger = useLogger()
   const { resolvedConfig, hooks, worker, routeDefinitions } = useUnlighthouse()
 
-  let urls = new Set<string>([resolvedConfig.site])
+  const urls = new Set<string>([resolvedConfig.site])
   // the urls function may be null
   if (resolvedConfig.urls) {
     let urlsToAdd
-    if (typeof resolvedConfig.urls === 'function') {
+    if (typeof resolvedConfig.urls === 'function')
       urlsToAdd = [...(await resolvedConfig.urls())]
-    } else {
+    else
       urlsToAdd = [...resolvedConfig.urls]
-    }
-    urlsToAdd.forEach((url) => urls.add(url))
+
+    urlsToAdd.forEach(url => urls.add(url))
     if (urlsToAdd.length) {
       resolvedConfig.scanner.sitemap = false
       resolvedConfig.scanner.crawler = false
@@ -39,7 +39,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
     const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site)
     if (sitemapUrls.length) {
       logger.info(`Discovered ${sitemapUrls.length} routes from sitemap.xml.`)
-      sitemapUrls.forEach((url) => urls.add(url))
+      sitemapUrls.forEach(url => urls.add(url))
       // sitemap threshold for disabling crawler
       if (sitemapUrls.length >= 50) {
         resolvedConfig.scanner.crawler = false
