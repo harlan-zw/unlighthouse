@@ -1,6 +1,7 @@
 export interface CliOptions {
   host?: string
   help?: boolean
+  urls?: string
   site?: string
   throttle?: boolean
   cache?: boolean

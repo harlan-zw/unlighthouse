@@ -135,8 +135,8 @@ export default defineConfig({
               link: '/guide/spa'
             },
             {
-              text: 'Crawling',
-              link: '/guide/crawling'
+              text: 'URL Discovery',
+              link: '/guide/url-discovery'
             },
             {
               text: 'Modifying Client',

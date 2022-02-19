@@ -288,6 +288,14 @@ export interface ResolvedUserConfig {
    * @default /api/
    */
   apiPrefix: string
+  /**
+   * Provide a list of URLs that should be used explicitly.
+   * Will disable sitemap and crawler.
+   *
+   * @see https://unlighthouse.dev/guide/url-discovery.html#manually-providing-urls
+   * @default []
+   */
+  urls: string[]|(() => string[])|(() => Promise<string[]>)
   ci: {
     /**
      * Provide a budget for each page as a numeric total score, or an object mapping the category to the score. Should be
@@ -552,10 +560,6 @@ export interface Provider {
    * Used to debug.
    */
   name?: string
-  /**
-   * Optionally provide a list of URLs that should be used before pulling them from a sitemap or manual crawl.
-   */
-  urls?: () => Promise<string[]>
   /**
    * To match a URL path to a route definition we need a router. Different definitions need different routes.
    */

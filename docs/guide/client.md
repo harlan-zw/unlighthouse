@@ -1,6 +1,6 @@
 # Modifying Client
 
-## Modify columns
+## Changing columns
 
 Unlighthouse was built to be hacked. That includes the columns used to display your lighthouse data.
 

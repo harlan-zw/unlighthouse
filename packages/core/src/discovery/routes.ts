@@ -15,23 +15,35 @@ import { extractSitemapRoutes } from './sitemap'
  */
 export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async() => {
   const logger = useLogger()
-  const { resolvedConfig, provider, hooks, worker, routeDefinitions } = useUnlighthouse()
+  const { resolvedConfig, hooks, worker, routeDefinitions } = useUnlighthouse()
 
+  let urls = new Set<string>([resolvedConfig.site])
   // the urls function may be null
-  let urls = (provider?.urls ? await provider?.urls() : [resolvedConfig.site])
+  if (resolvedConfig.urls) {
+    let urlsToAdd
+    if (typeof resolvedConfig.urls === 'function') {
+      urlsToAdd = [...(await resolvedConfig.urls())]
+    } else {
+      urlsToAdd = [...resolvedConfig.urls]
+    }
+    urlsToAdd.forEach((url) => urls.add(url))
+    if (urlsToAdd.length) {
+      resolvedConfig.scanner.sitemap = false
+      resolvedConfig.scanner.crawler = false
+      logger.info(`${urlsToAdd.length} manual URLs have been provided for scanning. Disabling sitemap and crawler.`)
+    }
+  }
 
   // if sitemap scanning is enabled
   if (resolvedConfig.scanner.sitemap) {
     const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site)
     if (sitemapUrls.length) {
       logger.info(`Discovered ${sitemapUrls.length} routes from sitemap.xml.`)
-      urls = [
-        ...urls,
-        ...sitemapUrls,
-      ]
-      if (sitemapUrls.length) {
+      sitemapUrls.forEach((url) => urls.add(url))
+      // sitemap threshold for disabling crawler
+      if (sitemapUrls.length >= 50) {
         resolvedConfig.scanner.crawler = false
-        logger.info('Disabling crawler mode as sitemap is provided indicating a medium-sized site.')
+        logger.info('Disabling crawler mode as sitemap has been provided.')
       }
     }
 
@@ -44,15 +56,12 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
   }
 
   // add static routes from definitions if the sitemap failed
-  if (urls.length <= 1 && routeDefinitions?.length) {
-    urls = [
-      ...urls,
-      ...routeDefinitions
-        .filter(r => !r.path.includes(':'))
-        .map(r => r.path),
-    ]
+  if (urls.size <= 1 && routeDefinitions?.length) {
+    routeDefinitions
+      .filter(r => !r.path.includes(':'))
+      .map(r => r.path)
+      .forEach(url => urls.add(url))
   }
-
 
   // setup this hook to queue any discovered internal links
   if (resolvedConfig.scanner.crawler) {
@@ -74,15 +83,14 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
   }
 
   // ensure the urls are for the right domain
-  urls = urls
-    .filter(url => isScanOrigin(url))
+  const validUrls = [...urls.values()].filter(url => isScanOrigin(url))
 
   if (!resolvedConfig.scanner.dynamicSampling)
-    return urls.map(url => normaliseRoute(url))
+    return validUrls.map(url => normaliseRoute(url))
 
   // group all urls by their route definition path name
   const pathsChunkedToGroup = groupBy(
-    urls.map(url => normaliseRoute(url)),
+    validUrls.map(url => normaliseRoute(url)),
     resolvedConfig.client.groupRoutesKey.replace('route.', ''),
   )
 

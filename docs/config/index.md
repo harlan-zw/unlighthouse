@@ -93,6 +93,15 @@ export default {
 
 The path that the API should be served from.
 
+### urls
+
+- **Type:** `string[]|(() => string[])|(() => Promise<string[]>)`
+- **Default:** `[]`
+
+Provide a list of URLs that should be used explicitly. Will disable sitemap and crawler.
+
+See [Manually Providing URLs](/guide/url-discovery.html#manually-providing-urls).
+
 ## CI Options
 
 Change the behaviour of unlighthouse in CI mode.
@@ -252,7 +261,7 @@ See [Toggling Throttling](/guide/device.html#alias-enable-disable-throttling) fo
 Should the crawler be used to detect URLs. This will parse the HTML of scanned pages for internal links and queue
 them for scanning.
 
-See [Crawling](/guide/crawling.html) for more information.
+See [URL Discovery](/guide/url-discovery.html) for more information.
 
 ### scanner.dynamicSampling
 

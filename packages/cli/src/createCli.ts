@@ -21,6 +21,7 @@ export default function createCli() {
   cli.option('--config-file <config-file>', 'Config File Path. Where to load the configuration file from.')
   cli.option('--no-cache', 'Disable the caching.')
   cli.option('--cache', 'Enable the caching.')
+  cli.option('--urls', 'Specify explicit relative URLs as a comma-seperated list.')
   cli.option('-d, --debug', 'Debug. Enable debugging in the logger.')
 
   return cli

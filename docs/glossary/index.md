@@ -41,10 +41,6 @@ export interface Provider {
    */
   name?: string
   /**
-   * Optionally provide a list of URLs that should be used before pulling them from a sitemap or manual crawl.
-   */
-  urls?: () => Promise<string[]>
-  /**
    * To match a URL path to a route definition we need a router. Different definitions need different routes.
    */
   mockRouter?: MockRouter | ((routeDefinitions: RouteDefinition[]) => MockRouter)

@@ -50,6 +50,6 @@
   "devDependencies": {
     "@nuxt/module-builder": "latest",
     "@nuxt/schema": "npm:@nuxt/schema-edge@latest",
-    "nuxt3": "^3.0.0-27415326.3c563fa"
+    "nuxt3": "^3.0.0-27420403.16e2a54"
   }
 }
