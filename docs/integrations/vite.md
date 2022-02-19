@@ -21,6 +21,15 @@ npm add -D @unlighthouse/vite
 # pnpm add -D @unlighthouse/vite
 ```
 
+### Git ignore reports
+
+Unlighthouse will save your reports in `outputDir` (`.lighthouse` by default),
+it's recommended you .gitignore these files.
+
+```gitignore .gitignore
+.lighthouse
+```
+
 ## Usage
 
 To begin using Unlighthouse, you'll need to add the plugin to `plugins`.
