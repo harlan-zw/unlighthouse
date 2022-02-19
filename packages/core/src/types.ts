@@ -2,7 +2,7 @@ import type http from 'http'
 import type https from 'https'
 import type { $URL } from 'ufo'
 import type { LH } from 'lighthouse'
-import type { LaunchOptions } from 'puppeteer-core'
+import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
@@ -627,6 +627,11 @@ export interface UnlighthouseHooks {
    * @param internalLinks
    */
   'discovered-internal-links': (path: string, internalLinks: string[]) => HookResult
+  /**
+   * After a page has been visited with puppeteer. Useful for running
+   * @param page
+   */
+  'puppeteer:before-goto': (page: Page) => HookResult
 }
 
 /**
