@@ -5,10 +5,10 @@
 There are multiple ways to configure Unlighthouse. See the configuration documentation for your implementation.
 
 - [Config file - unlighthouse.config.ts](/guide/config.html)
-- [CLI arguments](/integrations/cli.html)
-- [Nuxt module options](/integrations/nuxt.html)
-- [webpack plugin options](/integrations/webpack.html)
-- [Vite plugin options](/integrations/vite.html)
+- [CLI arguments](/integrations/cli.html#configuration)
+- [Nuxt module options](/integrations/nuxt.html#configuration)
+- [webpack plugin options](/integrations/webpack.html#configuration)
+- [Vite plugin options](/integrations/vite.html#configuration)
 
 ## Root Options
 

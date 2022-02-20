@@ -74,8 +74,53 @@ This will generate files in your `outputPath` (`.lighthouse` by default).
 
 You can upload the directory `client` to a static host from there.
 
+## Configuration
 
-## Example
+Configuring the CLI can be done either through the CI arguments or through a config file.
+
+### CI Options
+
+| Options                    |                                                                                         |
+|----------------------------|-----------------------------------------------------------------------------------------|
+| `-v, --version`            | Display version number.                                                                 |
+| `--site <url>`             | Host URL to scan.                                                                |
+| `--root <path>`            | Define the project root.                                                                |
+| `--config-file <path>`     | Path to config file.                                                                    |
+| `--output-path <path>`     | Path to save the contents of the client and reports to.                                 |
+| `--budget <number>`        | Budget (1-100), the minimum score which can pass.                                |
+| `--build-static` | Build a static website for the reports which can be uploaded.                                |
+| `--cache`                  | Enable the caching.                                 |
+| `--no-cache`               | Disable the caching.                     |
+| `--throttle`               | Enable the throttling.                                                                  |
+| `--samples`                | Specify the amount of samples to run.                                                                 |
+| `--urls`                   | Specify explicit relative URLs as a comma-seperated list.                                                                |
+| `--enable-javascript`      | When inspecting the HTML wait for the javascript to execute. Useful for SPAs.           |
+| `--disable-javascript`     | When inspecting the HTML, don't wait for the javascript to execute.                     |
+| `--enable-i18n-pages`      | Enable scanning pages which use x-default.                                              |
+| `--disable-i18n-pages`     | Disable scanning pages which use x-default.                                             |
+| `-d, --debug`              | Debug. Enable debugging in the logger.                                                          |
+| `-h, --help`               | Display available CLI options                                                           |
+
+
+### Config File
+
+If you want to configure Unlighthouse, you can create a `unlighthouse.config.ts` file in your cwd.
+
+```ts unlighthouse.config.ts
+
+export default {
+  site: 'example.com',
+  debug: true,
+  scanner: {
+    device: 'desktop'
+  }
+}
+```
+
+See the [Configuration](#configuration) section for more details and the guides.
+
+
+## Github Actions & Netlify Example
 
 This example is for Github Actions and deploys a static client build to Netlify.
 

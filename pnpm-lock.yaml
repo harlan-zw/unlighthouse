@@ -8,22 +8,22 @@ importers:
     specifiers:
       '@antfu/eslint-config': ^0.16.1
       '@types/node': ^17.0.18
-      '@vitest/ui': ^0.4.1
+      '@vitest/ui': ^0.4.2
       bumpp: ^7.1.1
       eslint: ^8.9.0
       typescript: ^4.5.5
       unbuild: ^0.6.9
-      vitest: ^0.4.1
+      vitest: ^0.4.2
     dependencies:
       unbuild: 0.6.9
     devDependencies:
       '@antfu/eslint-config': 0.16.1_eslint@8.9.0+typescript@4.5.5
       '@types/node': 17.0.18
-      '@vitest/ui': 0.4.1
+      '@vitest/ui': 0.4.2
       bumpp: 7.1.1
       eslint: 8.9.0
       typescript: 4.5.5
-      vitest: 0.4.1_@vitest+ui@0.4.1
+      vitest: 0.4.2_@vitest+ui@0.4.2
 
   docs:
     specifiers:
@@ -2093,8 +2093,8 @@ packages:
       vue: 3.2.31
     dev: true
 
-  /@vitest/ui/0.4.1:
-    resolution: {integrity: sha512-SafvnG2QJZ0AaCuGNGy/9+XDb7pyqcbWuK80rCYP21Q4DaCELdOCQvOD5ck0Wff17FXlmeblrR5iecxv/1O/jQ==}
+  /@vitest/ui/0.4.2:
+    resolution: {integrity: sha512-qpdnAHqV2L3+EUmDKl1yMHzsHXvOtHbVMe1cJWaB7/tfSM7OAax6KbiUXWZQwTGbG+NhveHn8PputK22vnrgAw==}
     dependencies:
       sirv: 2.0.2
     dev: true
@@ -9845,8 +9845,8 @@ packages:
       - sass
       - stylus
 
-  /vitest/0.4.1_@vitest+ui@0.4.1:
-    resolution: {integrity: sha512-zDqUYOUoyBiC0DgWw9RyQqhUktaFA+hJmrZskYrnVslSuZiuzI7SYj2GmXGwHvSx1FfdWI5lRFN9IWB7Ug5cYg==}
+  /vitest/0.4.2_@vitest+ui@0.4.2:
+    resolution: {integrity: sha512-f5kclFhkCuIKQ96lsAveESeyfTf9ihT79ZQcLDNCoJbMDNTHQdSMnU7aq9KAeOmZVh4la3NANKWECWM7HfP1ng==}
     engines: {node: '>=14.14.0'}
     hasBin: true
     peerDependencies:
@@ -9866,7 +9866,7 @@ packages:
     dependencies:
       '@types/chai': 4.3.0
       '@types/chai-subset': 1.3.3
-      '@vitest/ui': 0.4.1
+      '@vitest/ui': 0.4.2
       chai: 4.3.6
       local-pkg: 0.4.1
       tinypool: 0.1.2

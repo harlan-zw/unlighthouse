@@ -1,14 +1,15 @@
-# Scanning
+# Handling Single Page Apps 
 
-Change the behaviour of the Unlighthouse route scanning.
+Unlighthouse assumes that the page being scanned is SSR,
+meaning that it can parse internal links without executing the javascript.
+
+By not executing javascript, Unlighthouse makes use of a basic fetch of the page HTML, decreasing scan time.
+
+If you're using an SPA and relying on the `scanner.crawler` mode for URL discovery, you may want to change this behaviour.
 
 ## Wait for Javascript
 
-When performing the HTML extraction task, Unlighthouse will by default, not wait for the Javascript to load.
-
-This is to speed up the performance of the parse.
-
-If your page is an SPA or requires Javascript to parse the HTML meta, you can opt in to the wait with.
+By toggling this option, the HTML payload will be extracted by puppeteer once javascript is executed.
 
 ```ts
 export default {

@@ -3,22 +3,20 @@ const scanFeatures = [
   {
     icon: '⚡',
     title: 'Fast',
-    content: '<p>Take advantage of your CPU with multi-threaded workers powered by <a href="https://github.com/thomasdondorf/puppeteer-cluster" target="_blank" rel="noopener">puppeteer-cluster</a> and use opportunistic throttling and categories for lightning quick scans.</p>',
+    content: '<p>Take advantage of your CPU with threaded workers and use opportunistic throttling and categories for lightning quick scans.</p>',
   },
   {
     icon: '🐞',
-    title: 'Advanced Crawling',
-    content: '<p>Pre-packed with fast, configurable URL discovery using <a href="https://github.com/seantomburke/sitemapper" target="_blank" rel="noopener">sitemap.xml</a> or internal link parsing.</p>',
+    title: 'Automated URL Discovery',
+    content: '<p>Fast, configurable URL discovery using sitemap.xml parsing, internal link crawling and project file scanning.</p>',
   },
   {
-    icon: '🤓',
-    title: 'Intelligent URL Sampling',
-    content: ' <p>Scanning a website with thousands of pages? No problem.</p>\n'
-      + '<p>Point Unlighthouse to the local project for the scan and any dynamic routes will be sampled based on your page files.</p>',
+    icon: '🍣',
+    title: 'Dynamic Route Sampling',
+    content: ' <p>Fewer URLs to scan with automatic sampling of dynamic routes. Hook up your local project files to make it even smarter.</p>'
   },
 ]
-const features = [
-
+const clientFeatures = [
   {
     icon: '🌈',
     title: 'Modern UI',
@@ -29,19 +27,28 @@ const features = [
     title: 'SEO Goodies',
     content: '<p>View all of your pages titles, share images, meta descriptions, see how many internal and external links you have.</p>',
   },
+  {
+    icon: '✅️',
+    title: 'Accessibility Summary',
+    content: '<p>See how your sites accessibility stacks up, find high-leverage issues to fix easily and visually see colour contrast issues.</p>',
+  },
 ]
 
-const features2 = [
+const devFeatures = [
   {
     icon: '🤖',
-    title: 'CI Ready',
+    title: 'CI Budget Testing',
     content: ' <p>Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.</p>'
-      + '<p>Use the CI to upload your sites reports and access them all at any time, like <a href="https://inspect.unlighthouse.dev/">inspect.lighthouse.dev</a>.</p>',
   },
   {
     icon: '🛠',
     title: 'Hackable',
-    content: '<p>Unlighthouse was built to modify, with isolate packages, robust API and a generous hook system. You can even modify the columns in the client!</p>',
+    content: '<p>Unlighthouse was built to modify, with isolated packages, robust API and a generous hook system. You can even modify the columns in the client!</p>',
+  },
+  {
+    icon: '🏠',
+    title: 'Static Client Builds',
+    content: '<p>Use the CI to upload your sites reports and access them all at any time.</p>',
   },
 ]
 </script>
@@ -166,18 +173,18 @@ const features2 = [
     <div class="bg-gradient-to-r from-yellow-100 to-emerald-100 md:py-15 py-10 w-full">
       <div class="container px-7 md:px-15 mx-auto flex flex-col items-start">
         <h2 id="client" class="md:text-4xl text-3xl mb-10 ">
-          Visualise, sort and filter results + goodies
+          Visualise your sites health
         </h2>
-        <FeaturesList class="mb-10" :features="features" />
+        <FeaturesList class="mb-10" :features="clientFeatures" />
       </div>
     </div>
 
     <div class="md:py-15 py-10 w-full">
       <div class="container px-7 md:px-15  mx-auto flex flex-col items-start">
         <h2 id="features" class="md:text-4xl mt-0 text-3xl mb-10 text-center ">
-          Developer first
+          Built for Developers
         </h2>
-        <FeaturesList class="mb-10" :features="features2" />
+        <FeaturesList class="mb-10" :features="devFeatures" />
       </div>
     </div>
 

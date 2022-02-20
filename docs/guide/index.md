@@ -9,20 +9,6 @@ To start using Unlighthouse with production sites, you'll be using the CLI.
 
 Using the CLI is the quickest way to get familiar with Unlighthouse and is recommended for new users.
 
-Using pnpm dlx (recommended) - requires [pnpm](https://pnpm.io/).
-
-```bash
-pnpm dlx unlighthouse --site <your-site>
-```
-
-Using npx
-
-```bash
-npx unlighthouse --site <your-site>
-```
-
-To see all available options, visit the [CLI integration](/integrations/cli).
-
 ### Features
 
 <ul class="list-style-none mt-3 m-0">
@@ -36,6 +22,24 @@ To see all available options, visit the [CLI integration](/integrations/cli).
 <li class="flex items-center pb-2 "><i-carbon-warning-alt class="text-yellow-600 mr-2" /> Less stable for edge-case sites</li>
 <li class="flex items-center"><i-carbon-warning-alt class="text-yellow-600 mr-2" /> No feedback when fixing bugs</li>
 </ul>
+
+
+### Example Run
+
+Using pnpm dlx (recommended) - requires [pnpm](https://pnpm.io/).
+
+```bash
+pnpm dlx unlighthouse --site <your-site>
+```
+
+Using npx
+
+```bash
+npx unlighthouse --site <your-site>
+```
+
+
+It's now recommended that you continue on to the [CLI](/integrations/cli) so you can get set up properly.
 
 ### Providers
 
