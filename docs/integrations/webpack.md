@@ -15,6 +15,8 @@ your development site.
 
 ## Install
 
+<sponsor-banner />
+
 ```bash
 npm add -D @unlighthouse/webpack
 # yarn add -D @unlighthouse/webpack

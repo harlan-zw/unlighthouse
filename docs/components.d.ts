@@ -21,6 +21,7 @@ declare module 'vue' {
     ILogosNuxtIcon: typeof import('~icons/logos/nuxt-icon')['default']
     ILogosVitejs: typeof import('~icons/logos/vitejs')['default']
     ILogosWebpack: typeof import('~icons/logos/webpack')['default']
+    IMdiCardsHeartOutline: typeof import('~icons/mdi/cards-heart-outline')['default']
     SponsorBanner: typeof import('./src/components/SponsorBanner.vue')['default']
   }
 }

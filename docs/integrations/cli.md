@@ -13,6 +13,8 @@ Using the Unlighthouse CLI is the primary way to scan entire production sites.
 
 ## Install
 
+<sponsor-banner />
+
 ### Single run
 
 If you prefer not to add a global dependency you can run Unlighthouse once off.

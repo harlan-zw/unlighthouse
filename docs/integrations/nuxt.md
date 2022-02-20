@@ -15,6 +15,8 @@ development site.
 
 ## Install
 
+<sponsor-banner />
+
 ```bash
 npm add -D @unlighthouse/nuxt
 # yarn add -D @unlighthouse/nuxt

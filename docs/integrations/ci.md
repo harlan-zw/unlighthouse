@@ -13,6 +13,8 @@ Using the Unlighthouse CI helps you to avoid regressions on your entire sites Go
 
 ## Install
 
+<sponsor-banner />
+
 Unlighthouse aims to keep the installation size small, for this reason it depends natively on your locally installed chrome.
 
 To use Unlighthouse in a CI context, you'll need to install puppeteer alongside the cli.
