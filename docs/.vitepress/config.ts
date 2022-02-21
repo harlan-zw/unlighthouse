@@ -3,14 +3,14 @@ import type MarkdownIt from 'markdown-it'
 
 export default defineConfig({
   title: 'Unlighthouse',
-  description: 'Unlighthouse is an entire site audit tool with a modern UI for scanning live and development sites using Google Lighthouse.',
+  description: 'Unlighthouse scans your entire site using Google Lighthouse, with a modern UI, minimal config and smart sampling.',
   head: [
     ['meta', { property: 'og:title', content: 'Unlighthouse' }],
-    ['meta', { property: 'og:description', content: 'Scan your entire website with Google Lighthouse - in minutes.' }],
+    ['meta', { property: 'og:description', content: 'Unlighthouse scans your entire site using Google Lighthouse, with a modern UI, minimal config and smart sampling.' }],
     ['meta', { property: 'og:url', content: 'https://next.unlighthouse.dev/' }],
     ['meta', { property: 'og:image', content: 'https://next.unlighthouse.dev/og.png' }],
     ['meta', { name: 'twitter:title', content: 'Unlighthouse' }],
-    ['meta', { name: 'twitter:description', content: 'Scan your entire website with Google Lighthouse - in minutes.' }],
+    ['meta', { name: 'twitter:description', content: 'Unlighthouse scans your entire site using Google Lighthouse, with a modern UI, minimal config and smart sampling.' }],
     ['meta', { name: 'twitter:image', content: 'https://next.unlighthouse.dev/og.png' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['link', { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml', media: '(prefers-color-scheme:no-preference)' }],
@@ -51,7 +51,6 @@ export default defineConfig({
     editLinkText: 'Suggest changes to this page',
 
     /* TODO
-
     algolia: {
       apiKey: '...',
       indexName: 'unlighthouse',

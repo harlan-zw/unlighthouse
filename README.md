@@ -9,7 +9,7 @@
 
 
 <p align="center">
-Unlighthouse scans your entire sites using Google Lighthouse,<br> with a modern UI and minimal config.
+Unlighthouse scans your entire site using Google Lighthouse,<br> with a modern UI, minimal config and smart sampling.
 </p>
 
 <p align="center">
