@@ -7,14 +7,9 @@
 <a href="https://github.com/harlan-zw/unlighthouse" target="__blank"><img alt="GitHub stars" src="https://img.shields.io/github/stars/harlan-zw/unlighthouse?style=social"></a>
 </p>
 
-<br>
 
 <p align="center">
-Unlighthouse is an entire site audit tool with a modern UI for scanning live and development sites using Google Lighthouse.
-</p>
-
-<p align="center">
-  <a href="https://unlighthouse.dev/>Documentation</a>
+Unlighthouse scans your entire sites using Google Lighthouse,<br> with a modern UI and minimal config.
 </p>
 
 <p align="center">
