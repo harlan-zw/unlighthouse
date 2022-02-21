@@ -30,7 +30,7 @@
     "build:pkg": "pnpm -r --filter ./packages run build",
     "stub": "pnpm -r --parallel run stub",
     "dev": "pnpm run stub && pnpm run watch:client",
-    "lint": "eslint \"{packages,integrations}/**/*.{ts,vue,json,yml}\"",
+    "lint": "eslint \"{packages,integrations,docs}/**/*.{ts,vue,json,yml}\"",
     "lint:fix": "npm run lint -- --fix",
     "release": "bumpp package.json integrations/nuxt/package.json packages/*/package.json --commit --push --tag",
     "test": "vitest",
@@ -42,11 +42,11 @@
   "devDependencies": {
     "@antfu/eslint-config": "^0.16.1",
     "@types/node": "^17.0.18",
-    "@vitest/ui": "^0.3.6",
+    "@vitest/ui": "^0.4.2",
     "bumpp": "^7.1.1",
     "eslint": "^8.9.0",
     "typescript": "^4.5.5",
-    "vitest": "^0.3.6"
+    "vitest": "^0.4.2"
   },
   "version": "0.1.44",
   "dependencies": {

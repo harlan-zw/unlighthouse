@@ -1,6 +1,8 @@
 # @unlighthouse/cli
 
-CLI tool for [Unlighthouse](https://github.com/harlan-zw/unlighthouse).
+The CLI / CI integration for [Unlighthouse](https://github.com/harlan-zw/unlighthouse).
+
+See the [integration docs](https://unlighthouse.dev/integrations/cli.html) for more information.
 
 ## License
 

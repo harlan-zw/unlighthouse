@@ -1,7 +1,5 @@
 # Glossary
 
-<sponsor-banner />
-
 ## Core
 
 ### Route Definition
@@ -11,12 +9,12 @@ A route definition is the mapping of a page file (such as a vue component or mar
 The page component has multiple representations:
 1. _static route_ - name matches the path (/about.vue -> /about/),
 2. _dynamic route_ - a query is used to generate a set of paths (/posts/:id.vue -> /posts/my-first-post/)
-3. _catch-all route_ where the any missed paths will be caught (/404.vue -> /some-missing-page)
+3. _catch-all route_ where any missed paths will be caught (/404.vue -> /some-missing-page)
 
 Additional meta-data is provided to give more context of how the mapping behaves, such as which layout to use, which
 asset chunk it belongs to.
 
-Different frameworks represent this data differently, this one is based on Nuxt.js
+Different frameworks represent routes differently, This one is based on Nuxt.js
 
 ```ts
 export interface RouteDefinition {
@@ -32,9 +30,9 @@ export interface RouteDefinition {
 
 ### Provider
 
-A provider is an integration of unlighthouse to a specific context, such as a framework or an environment.
+A provider is an integration of Unlighthouse to a specific context, such as a framework or an environment.
 
-Each provider has their own unique name and defines how they will provide URLs and route definitions to unlighthouse.
+Each provider has their own unique name and defines how they will provide URLs and route definitions to Unlighthouse.
 
 ```ts
 export interface Provider {
@@ -42,10 +40,6 @@ export interface Provider {
    * Used to debug.
    */
   name?: string
-  /**
-   * Optionally provide a list of URLs that should be used before pulling them from a sitemap or manual crawl.
-   */
-  urls?: () => Promise<string[]>
   /**
    * To match a URL path to a route definition we need a router. Different definitions need different routes.
    */
@@ -60,8 +54,8 @@ export interface Provider {
 
 ### Route Report
 
-A fairly rigid representation of the puppeteer cluster task results (`extractHtmlPayload`, `runLighthouseTask`), combined
-with the normalised route.
+A fairly rigid representation of the puppeteer cluster task results (`extractHtmlPayload`, `runLighthouseTask`),
+combined with the normalised route.
 
 ```ts
 export interface UnlighthouseRouteReport {
@@ -97,12 +91,15 @@ export interface UnlighthouseRouteReport {
    * The SEO meta-data, only set once the html payload has been extracted and passed.
    */
   seo?: {
+    alternativeLangDefault?: string
     title?: string
     description?: string
     internalLinks?: number
     externalLinks?: number
     favicon?: string
     og?: {
+      description?: string
+      title?: string
       image?: string
     }
   }
@@ -111,8 +108,8 @@ export interface UnlighthouseRouteReport {
 
 ### Unlighthouse Context
 
-The unlighthouse context is provided by the `createUnlighthouse()` or `useUnlighthouse()` functions. It provides the central
-API to interacting with the behaviour of unlighthouse.
+The context is provided by the `createUnlighthouse()` or `useUnlighthouse()` functions. It provides the central
+API to interacting with the behaviour of Unlighthouse.
 
 ```ts
 export interface UnlighthouseContext {
@@ -133,7 +130,7 @@ export interface UnlighthouseContext {
    */
   resolvedConfig: ResolvedUserConfig
   /**
-   * The collection of route definitions associated to the host.
+   * The collection of route definitions associated to the site.
    */
   routeDefinitions?: RouteDefinition[]
   /**
@@ -164,6 +161,11 @@ export interface UnlighthouseContext {
    */
   setServerContext: (arg: ServerContextArg) => Promise<UnlighthouseContext>
   /**
+   * Sets the site URL that will be scanned if it's not known at initialisation.
+   * @param url
+   */
+  setSiteUrl: (url: string) => void
+  /**
    * Running Unlighthouse via CI does not require a server or the client so we have a special utility for it.
    */
   setCiContext: () => Promise<UnlighthouseContext>
@@ -176,11 +178,12 @@ export interface UnlighthouseContext {
 
 ### Mock Router
 
-Unlighthouse's intelligent sampling relies on knowing which URLs map to which files in your project.
-To achieve this it needs to create its own router with your files to test any URL that comes through.
+Unlighthouse provides intelligent sampling which relies on knowing which URLs map to which files in your project.
+To achieve this, it needs to create its own router with your files to test any URL that comes through.
 
-Different integrations will have different requirements from the router. For example different frameworks will
-resolve files that contain substitutes (for example `/posts/[post].vue` may work in one framework but not another).
+Different integrations will have different requirements from the router.
+For example, different frameworks will resolve files that contain substitutes 
+(for example `/posts/[post].vue` may work in one framework but not another).
 
 ```ts
 export interface MockRouter { match: (path: string) => RouteDefinition }
@@ -197,8 +200,6 @@ Unlighthouse has two core tasks:
 - `runLighthouseTask` runs the actual lighthouse process on the URL
 
 See [cluster.task(fn)](https://github.com/thomasdondorf/puppeteer-cluster) for more details.
-
-
 
 ```ts
 /**

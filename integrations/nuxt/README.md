@@ -1,12 +1,8 @@
 # @unlighthouse/nuxt
 
-The nuxt integration for [Unlighthouse](https://github.com/harlan-zw/unlighthouse).
+The Nuxt.js integration for [Unlighthouse](https://github.com/harlan-zw/unlighthouse).
 
-## Usage
-
-```ts
-import NuxtUnlighthouse from '@unlighthouse/nuxt'
-```
+See the [integration docs](https://unlighthouse.dev/integrations/nuxt.html) for more information.
 
 ## License
 

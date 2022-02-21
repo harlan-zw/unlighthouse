@@ -10,7 +10,7 @@ import { fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
 import { normaliseRoute } from '../../router'
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false|string; message?: string; payload?: string }> = async(page, route) => {
-  const { worker, resolvedConfig } = useUnlighthouse()
+  const { worker, resolvedConfig, hooks } = useUnlighthouse()
 
   // if we don't need to execute any javascript we can do a less expensive fetch of the URL
   if (resolvedConfig.scanner.skipJavascript) {
@@ -41,7 +41,10 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
         request.continue()
     })
 
+    await hooks.callHook('puppeteer:before-goto', page)
+
     const pageVisit = await page.goto(route, { waitUntil: resolvedConfig.scanner.skipJavascript ? 'domcontentloaded' : 'networkidle0' })
+
     // only 2xx we'll consider valid
     const { 'content-type': contentType, location } = pageVisit.headers()
 
@@ -130,7 +133,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
 
   const $ = cheerio.load(html)
   routeReport.seo = processSeoMeta($)
-  if (routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
+  if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
     routeReport.tasks.inspectHtmlTask = 'ignore'
     logger.debug(`Page has an alternative lang, ignoring \`${routeReport.route.path}\`: ${routeReport.seo.alternativeLangDefault}`)
     return routeReport

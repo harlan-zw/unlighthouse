@@ -26,9 +26,7 @@ const {
       throttle,
       device,
     },
-    router: {
-      prefix: basePath,
-    },
+    routerPrefix: basePath,
   },
 } = window.__unlighthouse_payload
 

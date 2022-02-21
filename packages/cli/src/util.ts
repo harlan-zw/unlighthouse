@@ -55,9 +55,9 @@ export const validateOptions = (resolvedOptions: UserConfig) => {
 }
 
 export function pickOptions(options: CiOptions|CliOptions): UserConfig {
-  const picked: Record<string, any> = {
-    scanner: {},
-  }
+  const picked: Omit<UserConfig, 'site'|'root'> = {}
+  picked.scanner = {}
+  picked.urls = []
   if (options.noCache)
     picked.cache = true
   if (options.throttle)
@@ -77,17 +77,21 @@ export function pickOptions(options: CiOptions|CliOptions): UserConfig {
   else if (options.disableI18nPages)
     picked.scanner.ignoreI18nPages = true
 
+  if (options.urls)
+    picked.urls = options.urls.split(',')
+
+  const config = pick(options, [
+    // root level options
+    'samples',
+    'site',
+    'root',
+    'configFile',
+    'debug',
+    'cache',
+    'outputPath',
+  ])
   return defu(
-    pick(options, [
-      // root level options
-      'samples',
-      'site',
-      'root',
-      'configFile',
-      'debug',
-      'cache',
-      'outputPath',
-    ]),
+    config,
     picked,
-  )
+  ) as UserConfig
 }

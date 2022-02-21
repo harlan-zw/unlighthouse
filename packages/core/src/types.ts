@@ -2,7 +2,7 @@ import type http from 'http'
 import type https from 'https'
 import type { $URL } from 'ufo'
 import type { LH } from 'lighthouse'
-import type { LaunchOptions } from 'puppeteer-core'
+import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
@@ -202,12 +202,16 @@ export interface DiscoveryOptions {
   /**
    * The location of the page files that will be matched to routes.
    * Note: This is for fallback behaviour when the integration doesn't provide a way to gather the route definitions.
+   *
+   * @default './pages'
    */
   pagesDir: string
   /**
    * Which file extensions in the pages dir should be considered.
    *
    * Note: This is for fallback behaviour when the integration doesn't provide a way to gather the route definitions.
+   *
+   * @default ['vue', 'md']
    */
   supportedExtensions: string[]
 }
@@ -247,33 +251,51 @@ export interface ResolvedUserConfig {
    */
   cache: boolean
   /**
-   * Load the configuration from a custom config file. By default, it attempts to load configuration from `unlighthouse.config.ts`.
+   * Load the configuration from a custom config file.
+   * By default, it attempts to load configuration from `unlighthouse.config.ts`.
+   *
+   * You can set up multiple configuration files for different sites you want to scan.
+   * For example:
+   * - `staging-unlighthouse.config.ts`
+   * - `production-unlighthouse.config.ts`
    */
   configFile?: string
+  /**
+   * Where to emit lighthouse reports and the runtime client.
+   *
+   * @default "./lighthouse/"
+   */
+  outputPath: string
+  /**
+   * Display the loggers' debug messages.
+   * @default false
+   */
+  debug: boolean
   /**
    * Hooks to run to augment the behaviour of Unlighthouse.
    */
   hooks?: NestedHooks<UnlighthouseHooks>
   /**
-   * Where to emit lighthouse reports and the runtime client.
-   * @default "./lighthouse/"
+   * The URL path prefix for the client and API to run from.
+   * Useful when you want to serve the application from an existing integrations server, you could use /__unlighthouse
+   *
+   * @default ''
    */
-  outputPath: string
+  routerPrefix: string
   /**
-   * Have logger debug displayed when running.
-   * @default false
+   * The path that the API should be served from.
+   *
+   * @default /api/
    */
-  debug: boolean
+  apiPrefix: string
   /**
-   * Router options
+   * Provide a list of URLs that should be used explicitly.
+   * Will disable sitemap and crawler.
+   *
+   * @see https://unlighthouse.dev/guide/url-discovery.html#manually-providing-urls
+   * @default []
    */
-  router: {
-    /**
-     * The path that the Unlighthouse middleware should run from. Useful when you want to serve the application from
-     * a frameworks existing server.
-     */
-    prefix: string
-  }
+  urls: string[]|(() => string[])|(() => Promise<string[]>)
   ci: {
     /**
      * Provide a budget for each page as a numeric total score, or an object mapping the category to the score. Should be
@@ -285,14 +307,13 @@ export interface ResolvedUserConfig {
      */
     buildStatic: boolean
   }
-  api: {
-    /**
-     * The path that the API should be served from.
-     * @default /api/
-     */
-    prefix: string
-  }
+  /**
+   * See https://unlighthouse.dev/guide/client.html
+   */
   client: ClientOptions
+  /**
+   * See https://unlighthouse.dev/guide/route-definitions.html
+   */
   discovery: false|DiscoveryOptions
   scanner: {
     /**
@@ -300,6 +321,7 @@ export interface ResolvedUserConfig {
      * This is useful when you have a complex site which doesn't use URL path segments
      * to separate pages.
      *
+     * @see https://unlighthouse.dev/guide/route-definitions.html#custom-sampling
      * @default {}
      */
     customSampling: Record<string, RouteDefinition>
@@ -321,42 +343,52 @@ export interface ResolvedUserConfig {
     maxRoutes: number|false
     /**
      * Paths to explicitly include from the search, this will exclude any paths not listed here.
+     *
+     * @see https://unlighthouse.dev/guide/large-sites.html#include-url-patterns
      */
     include?: string[]
     /**
      * Paths to ignore from scanning.
+     *
+     * @see https://unlighthouse.dev/guide/large-sites.html#exclude-url-patterns
      */
     exclude?: string[]
     /**
      * Does javascript need to be executed in order to fetch internal links and SEO data.
+     *
+     * @see https://unlighthouse.dev/guide/spa.html
      */
     skipJavascript: boolean
     /**
      * How many samples of each route should be done.
      * This is used to improve false-positive results.
      *
+     * @see https://unlighthouse.dev/guide/improving-accuracy.html
      * @default 1
      */
     samples: number
     /**
      * Should lighthouse run with throttling enabled? This is an alias for manually configuring lighthouse.
      *
+     * @see https://unlighthouse.dev/guide/device.html#alias-enable-disable-throttling
      * @default false
      */
     throttle: boolean
     /**
-     * Alias to switch the device used for scanning.
-     * Set to false if you want to manually configure it.
-     *
-     * @default 'mobile'
-     */
-    device: 'mobile'|'desktop'|false
-    /**
      * Should the crawler be used to detect URLs.
      *
+     * @see https://unlighthouse.dev/guide/crawling.html
      * @default true
      */
     crawler: boolean
+    /**
+     * When a route definition is provided, you're able to configure the worker to sample the dynamic routes to avoid
+     * redundant route reports.
+     *
+     * @see https://unlighthouse.dev/guide/large-sites.html#change-dynamic-sampling-limit
+     * @default 5
+     */
+    dynamicSampling: number|false
     /**
      * Whether the sitemap.xml will be attempted to be read from the site.
      *
@@ -364,12 +396,12 @@ export interface ResolvedUserConfig {
      */
     sitemap: boolean
     /**
-     * When a route definition is provided, you're able to configure the worker to sample the dynamic routes to avoid
-     * redundant route reports.
+     * Alias to switch the device used for scanning.
+     * Set to false if you want to manually configure it.
      *
-     * @default 5
+     * @default 'mobile'
      */
-    dynamicSampling: number|false
+    device: 'mobile'|'desktop'|false
   }
   /**
    * Changes the default behaviour of lighthouse.
@@ -529,10 +561,6 @@ export interface Provider {
    */
   name?: string
   /**
-   * Optionally provide a list of URLs that should be used before pulling them from a sitemap or manual crawl.
-   */
-  urls?: () => Promise<string[]>
-  /**
    * To match a URL path to a route definition we need a router. Different definitions need different routes.
    */
   mockRouter?: MockRouter | ((routeDefinitions: RouteDefinition[]) => MockRouter)
@@ -546,6 +574,10 @@ export interface Provider {
 export type HookResult = Promise<void>|void
 
 export interface UnlighthouseHooks {
+  /**
+   * It's possible the site is not known at initialisation, this hook is called when it's set or changed.
+   * @param site The site that was set.
+   */
   'site-changed': (site: string) => HookResult
   /**
    * Once the config is resolved.
@@ -595,6 +627,11 @@ export interface UnlighthouseHooks {
    * @param internalLinks
    */
   'discovered-internal-links': (path: string, internalLinks: string[]) => HookResult
+  /**
+   * After a page has been visited with puppeteer. Useful for running
+   * @param page
+   */
+  'puppeteer:before-goto': (page: Page) => HookResult
 }
 
 /**
@@ -686,7 +723,8 @@ export interface ServerContextArg {
 }
 
 /**
- * The main core of Unlighthouse, provides access to all functionality and can be accessed anywhere using `useUnlighthouse()`.
+ * The context is provided by the createUnlighthouse() or useUnlighthouse() functions.
+ * It provides the central API to interact with the behaviour of Unlighthouse..
  */
 export interface UnlighthouseContext {
   /**
@@ -737,7 +775,7 @@ export interface UnlighthouseContext {
    */
   setServerContext: (arg: ServerContextArg) => Promise<UnlighthouseContext>
   /**
-   *
+   * Sets the site URL that will be scanned if it's not known at initialisation.
    * @param url
    */
   setSiteUrl: (url: string) => void

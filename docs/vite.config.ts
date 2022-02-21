@@ -4,8 +4,7 @@ import WindiCSS from 'vite-plugin-windicss'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 
-export default defineConfig(async ({ command, mode }) => {
-
+export default defineConfig(async({ command }) => {
   const plugins = []
   if (command === 'serve') {
     const Unlighthouse = (await import('@unlighthouse/vite')).default

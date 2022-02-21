@@ -1,6 +1,6 @@
 # Modifying Client
 
-## Modify columns
+## Changing columns
 
 Unlighthouse was built to be hacked. That includes the columns used to display your lighthouse data.
 
@@ -11,22 +11,19 @@ See the [glossary guide](/glossary/#columns) for the columns to understand the A
 ### Example: Replace FCP Column with Server Response
 
 ```ts
-export default defineConfig({
+export default {
   hooks: {
     'resolved-config'(config) {
       // replace FCP column with server response time
       config.client.columns.performance[2] = {
-          cols: {
-              xs: 2,
-              xl: 1,
-          },
-          label: 'Response Time',
-          tooltip: 'Time for the server to respond',
-          sortKey: 'numericValue',
-          key: 'report.audits.server-response-time',
+        cols: 1,
+        label: 'Response Time',
+        tooltip: 'Time for the server to respond',
+        sortKey: 'numericValue',
+        key: 'report.audits.server-response-time',
       }
     }
   }
-})
+}
 ```
 

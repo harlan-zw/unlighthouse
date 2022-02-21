@@ -1,27 +1,14 @@
-# Configuring Unlighthouse
+# Config
 
-<sponsor-banner />
+## Configuring Unlighthouse
 
-## Configuration
+There are multiple ways to configure Unlighthouse. See the configuration documentation for your implementation.
 
-There are multiple ways to configure unlighthouse, for this guide we'll be assuming you have a `unlighthouse.config.ts` in your root 
-directory.
-
-1. Load `unlighthouse.config.ts`
-2. Pass `--config-file` option to the CLI or package, e.g. `unlighthouse --config ./path/to/unlighthouse.config.ts`
-
-Alternatively configuration can be setup inline for whichever integration you've gone for.
-
-```ts
-/// <reference types="unlighthouse" />
-import { defineConfig } from '@unlighthouse/core'
-
-export default defineConfig({
-    // example
-    site: 'unlighthouse.dev',
-    debug: true,
-})
-```
+- [Config file - unlighthouse.config.ts](/guide/config.html)
+- [CLI arguments](/integrations/cli.html#configuration)
+- [Nuxt module options](/integrations/nuxt.html#configuration)
+- [webpack plugin options](/integrations/webpack.html#configuration)
+- [Vite plugin options](/integrations/vite.html#configuration)
 
 ## Root Options
 
@@ -36,7 +23,7 @@ The site that will be scanned.
 - **Type:** `string`
 - **Default:** `cwd()`
 
-The path that we'll be performing the scan from, this should be the path to the app that represents the site. 
+The path that we'll be performing the scan from, this should be the path to the app that represents the site.
 Using this path we can auto-discover the provider
 
 ### cache
@@ -53,7 +40,14 @@ Note: This makes use of cache-bursting for when the configuration changes, since
 - **Type:** `string|null`
 - **Default:** `null`
 
-Load the configuration from a custom config file. By default, it attempts to load configuration from `unlighthouse.config.ts`.
+Load the configuration from a custom config file. By default, it attempts to load configuration
+from `unlighthouse.config.ts`.
+
+You can set up multiple configuration files for different sites you want to scan.
+For example:
+
+- `staging-unlighthouse.config.ts`
+- `production-unlighthouse.config.ts`
 
 ### outputPath
 
@@ -67,31 +61,46 @@ Where to emit lighthouse reports and the runtime client.
 - **Type:** `boolean`
 - **Default:** `false`
 
-Have logger debug displayed when running.
+Display the loggers' debug messages.
 
-## Router Options
+### hooks
 
-These options change the behaviour of the router used to serve the API and the client.
+- **Type:** `NestedHooks<UnlighthouseHooks>`
+- **Default:** `{}`
 
-### router.prefix
+Hooks to run. See the [Hooks](/api/#hooks) section for more information.
 
-- **Type:** `string|null`
-- **Default:** `null`
+### routerPrefix
 
-The path that the Unlighthouse middleware should run from. Useful when you want to serve the application from a frameworks existing server.
+- **Type:** `string`
+- **Default:** `''`
 
-For example, you could run unlighthouse from `/__unlighthouse` if an existing server is running it.
+The URL path prefix for the client and API to run from.
+Useful when you want to serve the application from an existing integrations server.
+
+For example, you could run Unlighthouse from `/__unlighthouse` .
 
 ```ts
-import { defineConfig } from '@unlighthouse/core'
-
-export default defineConfig({
-    router: {
-        // serve client from /__unlighthouse
-        prefix: '/__unlighthouse'
-    },
-})
+export default {
+  routerPrefix: '/__unlighthouse'
+}
 ```
+
+### apiPrefix
+
+- **Type:** `string`
+- **Default:** `/api/`
+
+The path that the API should be served from.
+
+### urls
+
+- **Type:** `string[]|(() => string[])|(() => Promise<string[]>)`
+- **Default:** `[]`
+
+Provide a list of URLs that should be used explicitly. Will disable sitemap and crawler.
+
+See [Manually Providing URLs](/guide/url-discovery.html#manually-providing-urls).
 
 ## CI Options
 
@@ -102,21 +111,19 @@ Change the behaviour of unlighthouse in CI mode.
 - **Type:** `number|Record<Partial<LighthouseCategories>, number>`
 - **Default:** `null`
 
-Provide a budget for each page as a numeric total score, or an object mapping the category to the score. Should be
-a number between 1-100.
+Provide a budget for each page as a numeric total score, or an object mapping the category to the score.
+Should be a number between 1-100.
 
-For example if you wanted to make sure all of your pages met a specific accessibility score, you could do:
+For example, if you wanted to make sure all of your pages met a specific accessibility score, you could do:
 
 ```ts
-import { defineConfig } from '@unlighthouse/core'
-
-export default defineConfig({
-    ci: {
-        budget: {
-            accessibility: 90
-        }
-    },
-})
+export default {
+  ci: {
+    budget: {
+      accessibility: 90
+    }
+  },
+}
 ```
 
 ### ci.buildStatic
@@ -128,22 +135,15 @@ Injects the required data into the client files, so it can be hosted statically.
 
 Combine this with uploading to a site, and you can see the results of your unlighthouse scan on a live site.
 
-## API Options
-
-### api.prefix
-
-- **Type:** `string`
-- **Default:** `/api/`
-
-The path that the API should be served from. 
-
 ## Client Options
+
+See [Modifying client](/guide/client.html) for more information.
 
 ### client.columns
 
 - **Type:** `Record<UnlighthouseTabs, UnlighthouseColumn[]>`
 
-Modify the default columns used on the client. 
+Modify the default columns used on the client.
 
 ### client.groupRoutesKey
 
@@ -154,30 +154,63 @@ Which key to use to group the routes.
 
 ## Discovery Options
 
+See [Route Definitions](/guide/route-definitions.html) for more information.
+
 ### discovery.pagesDir
 
 - **Type:** `string`
-- **Default:** `./pages/`
+- **Default:** `./pages`
 
-The location of the page files that will be matched to routes.
+The location of the page files that will be matched to the routes.
 
-Note: This is for fallback behaviour when the integration doesn't provide a way to gather the route definitions
+Note: This is for fallback behaviour when the integration doesn't provide a way to gather the route definitions.
 
 ### discovery.supportedExtensions
 
 - **Type:** `string`
-- **Default:** `./pages/`
-- 
+- **Default:** `['vue', 'md']`
+
 Which file extensions in the pages dir should be considered.
 
 ## Scanner Options
 
-### scanner.include 
+### scanner.customSampling
+
+- **Type:** `Record<string, RouteDefinition>`
+- **Default:** `{}`
+
+Setup custom mappings for a regex string to a route definition.
+This is useful when you have a complex site which doesn't use URL path segments
+to separate pages.
+
+See [custom sampling](/guide/route-definitions.html#custom-sampling) for more information.
+
+### scanner.ignoreI18nPages
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+When the page HTML is extracted and processed, we look for an `x-default` link to identify if the page is an i18n
+copy of another page.
+If it is, then we skip it because it would be a duplicate scan.
+
+### scanner.maxRoutes
+
+- **Type:** `number|false`
+- **Default:** `200`
+
+The maximum number of routes that should be processed.
+This helps avoid issues when the site requires a specific
+configuration to be able to run properly
+
+### scanner.include
 
 - **Type:** `string[]|null`
 - **Default:** `null`
 
 Paths to explicitly include from the search, this will exclude any paths not listed here.
+
+See [Include URL Patterns](/guide/large-sites.html#include-url-patterns) for more information.
 
 ### scanner.exclude
 
@@ -186,14 +219,18 @@ Paths to explicitly include from the search, this will exclude any paths not lis
 
 Paths to ignore from scanning.
 
+See [Exclude URL Patterns](/guide/large-sites.html#include-url-patterns) for more information.
+
 ### scanner.skipJavascript
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Does javascript need to be executed in order to fetch internal links and SEO data. 
+Does javascript need to be executed in order to fetch internal links and SEO data.
 
 Disabling this can speed up scans but may break the parsing.
+
+See [Handling SPAs](/guide/spa.html) for more information.
 
 ### scanner.samples
 
@@ -202,7 +239,8 @@ Disabling this can speed up scans but may break the parsing.
 
 How many samples of each route should be done. This is used to improve false-positive results.
 
-See [Run Lighthouse Multiple Times](https://github.com/GoogleChrome/lighthouse/blob/master/docs/variability.md#run-lighthouse-multiple-times).
+See [Run Lighthouse Multiple Times](https://github.com/GoogleChrome/lighthouse/blob/master/docs/variability.md#run-lighthouse-multiple-times)
+and [Improving Accuracy](/guide/improving-accuracy.html) for more information.
 
 ### scanner.throttle
 
@@ -213,13 +251,17 @@ Should lighthouse run with throttling enabled. This is an alias for manually con
 
 Note: This will be disabled by default for local scans.
 
+See [Toggling Throttling](/guide/device.html#alias-enable-disable-throttling) for more information.
+
 ### scanner.crawler
 
 - **Type:** `boolean`
 - **Default:** `true`
- 
+
 Should the crawler be used to detect URLs. This will parse the HTML of scanned pages for internal links and queue
 them for scanning.
+
+See [URL Discovery](/guide/url-discovery.html) for more information.
 
 ### scanner.dynamicSampling
 
@@ -227,7 +269,9 @@ them for scanning.
 - **Default:** `5`
 
 When a route definition is provided, you're able to configure the worker to sample the dynamic routes to avoid
- redundant route reports.
+redundant route reports.
+
+See [Change Dynamic Sampling Limit](/guide/large-sites.html#change-dynamic-sampling-limit) for more information.
 
 ### scanner.sitemap
 
@@ -236,28 +280,27 @@ When a route definition is provided, you're able to configure the worker to samp
 
 Whether the sitemap.xml will be attempted to be read from the site.
 
+### scanner.device
+
+- **Type:** `boolean`
+- **Default:** `mobile`
+
+Alias to switch the device used for scanning. Set to false if you want to manually configure it.
+
+See [Switching between mobile and desktop](/guide/device.html#alias-enable-disable-throttling) for more information.
+
 ## Lighthouse Options
 
-Changes the default behaviour of lighthouse.
+Changes the default behaviour of Google Lighthouse.
 
-Useful for changing which categories will be scanned or which device to use.
-
-```ts
-import { defineConfig } from '@unlighthouse/core'
-
-export default defineConfig({
-    lighthouseOptions: {
-        formFactor: 'desktop'
-    },
-})
-```
-See [Google Lighthouse options](https://github.com/GoogleChrome/lighthouse/blob/master/docs/configuration.md) for all available configurations.
+See [Configure Google Lighthouse](/guide/lighthouse.html) for more information.
 
 ## Puppeteer Options
 
 Change the behaviour of puppeteer.
 
-See [puppeteer.connect(options)](https://pptr.dev/#?product=Puppeteer&version=v13.0.1&show=api-puppeteerconnectoptions) for all available configurations.
+See [puppeteer.connect(options)](https://pptr.dev/#?product=Puppeteer&version=v13.0.1&show=api-puppeteerconnectoptions)
+for all available configurations.
 
 ## Puppeteer Cluster Options
 
@@ -265,4 +308,5 @@ Change the behaviour of puppeteer-cluster.
 
 By default the concurrency will be set on the CPU cores you have available.
 
-See [Cluster.launch(options)](https://github.com/thomasdondorf/puppeteer-cluster#clusterlaunchoptions) for available configuration.
+See [Cluster.launch(options)](https://github.com/thomasdondorf/puppeteer-cluster#clusterlaunchoptions) for available
+configuration.

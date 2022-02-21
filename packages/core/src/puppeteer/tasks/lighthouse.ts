@@ -65,10 +65,10 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
 
 export const runLighthouseTask: PuppeteerTask = async(props) => {
   const logger = useLogger()
-  const { resolvedConfig, runtimeSettings, worker } = useUnlighthouse()
+  const { resolvedConfig, runtimeSettings, worker, hooks } = useUnlighthouse()
   const { page, data: routeReport } = props
 
-  // if the report doesn't exist we're going to run a new lighthouse process to generate it
+  // if the report doesn't exist, we're going to run a new lighthouse process to generate it
   if (resolvedConfig.cache && fs.existsSync(routeReport.reportJson)) {
     const report = fs.readJsonSync(routeReport.reportJson, { encoding: 'utf-8' }) as LH.Result
     routeReport.report = normaliseLighthouseResult(report)
@@ -80,6 +80,8 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
   const port = new URL(browser.wsEndpoint()).port
   // ignore csp errors
   await page.setBypassCSP(true)
+  // allow changing behaviour of the page
+  await hooks.callHook('puppeteer:before-goto', page)
 
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,
