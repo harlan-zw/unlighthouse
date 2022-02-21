@@ -72,7 +72,7 @@ See which file belongs to a URL, fix your issue, unlighthouse will automatically
 
 Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.
 
-Use the CI to upload your sites reports and access them all at any time, like <a href="https://inspect.unlighthouse.dev/">inspect.unlighthouse.dev</a>.
+Use the CI to upload your sites reports and access them all at any time.
 
 ### 🛠 Hackable
 
@@ -114,15 +114,14 @@ As Unlighthouse is in early access, it's recommended you run it in debug mode.
 
 ```bash
 # NPM
-npx unlighthouse --site harlanzw.com --debug
+npx unlighthouse --site unlighthouse.dev --debug
 # or PNPM
-pnpm dlx unlighthouse --site harlanzw.com  --debug
+pnpm dlx unlighthouse --site unlighthouse.dev  --debug
 ```
 
 ## Docs
 
 Integration instructions, Guides, API and config spec can be found on [docs](https://unlighthouse.dev/) site.
-
 
 ## Sponsors
 

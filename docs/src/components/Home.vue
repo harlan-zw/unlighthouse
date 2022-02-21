@@ -13,7 +13,7 @@ const scanFeatures = [
   {
     icon: '🍣',
     title: 'Dynamic Route Sampling',
-    content: ' <p>Fewer URLs to scan with automatic sampling of dynamic routes. Hook up your local project files to make it even smarter.</p>'
+    content: '<p>Fewer URLs to scan with automatic sampling of dynamic routes. Hook up your local project files to make it even smarter.</p>',
   },
 ]
 const clientFeatures = [
@@ -38,7 +38,7 @@ const devFeatures = [
   {
     icon: '🤖',
     title: 'CI Budget Testing',
-    content: ' <p>Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.</p>'
+    content: ' <p>Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.</p>',
   },
   {
     icon: '🛠',
