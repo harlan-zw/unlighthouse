@@ -1,4 +1,4 @@
-# @unlighthouse/cli
+# @unlighthouse/server
 
 Server for [Unlighthouse](https://github.com/harlan-zw/unlighthouse).
 

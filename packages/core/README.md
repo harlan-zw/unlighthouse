@@ -8,7 +8,6 @@ The core engine of [Unlighthouse](https://github.com/harlan-zw/unlighthouse) wit
 import { createUnlighthouse } from '@unlighthouse/core'
 
 const unlighthouse = await createUnlighthouse({ /* user options */ }, { /* provider options */ })
-
 ```
 
 ## License
