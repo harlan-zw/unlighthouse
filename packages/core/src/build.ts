@@ -1,7 +1,7 @@
 import { dirname, join, resolve } from 'path'
 import fs from 'fs-extra'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
-import { useUnlighthouse } from './unlighthouse'
+import { useLogger, useUnlighthouse } from './unlighthouse'
 import type { GenerateClientOptions, ResolvedUserConfig, RuntimeSettings, ScanMeta, UnlighthouseContext, UnlighthouseRouteReport } from './types'
 import { createScanMeta } from './data'
 
@@ -14,6 +14,7 @@ import { createScanMeta } from './data'
  * An additional transforming is needed to modify the vite base URL which is a bit more involved.
  */
 export const generateClient = async(options: GenerateClientOptions = {}, unlighthouse?: UnlighthouseContext) => {
+  const logger = useLogger()
   if (!unlighthouse)
     unlighthouse = useUnlighthouse()
 
@@ -48,11 +49,18 @@ export const generateClient = async(options: GenerateClientOptions = {}, unlight
 
   // update the baseurl within the modules
   const globby = (await import('globby'))
-  const indexJSGlobby = await globby.globby(join(dirname(runtimeSettings.resolvedClientPath), 'assets', 'index.*.js'))
-  // should be a single entry
-  let indexJS = await fs.readFile(indexJSGlobby[0], 'utf-8')
-  indexJS = indexJS
-    .replace('const base = "/";', `const base = "${prefix}";`)
-    .replace('createWebHistory("/")', `createWebHistory("${prefix}")`)
-  await fs.writeFile(indexJSGlobby[0].replace(clientPathFolder, runtimeSettings.generatedClientPath), indexJS, 'utf-8')
+  const clientAssetsPath = join(dirname(runtimeSettings.resolvedClientPath), 'assets')
+  const indexFile = (await globby.globby(['index.*.js'], { cwd: clientAssetsPath }))?.[0]
+  if (indexFile) {
+    const indexPath = join(clientAssetsPath, indexFile)
+    // should be a single entry
+    let indexJS = await fs.readFile(indexPath, 'utf-8')
+    indexJS = indexJS
+      .replace('const base = "/";', `const base = "${prefix}";`)
+      .replace('createWebHistory("/")', `createWebHistory("${prefix}")`)
+    await fs.writeFile(indexPath.replace(clientPathFolder, runtimeSettings.generatedClientPath), indexJS, 'utf-8')
+  }
+  else {
+    logger.warn(`Failed to find index.[hash].js file from wd ${clientAssetsPath}.`)
+  }
 }
