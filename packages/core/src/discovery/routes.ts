@@ -48,9 +48,11 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async()
     }
 
     else if (resolvedConfig.scanner.crawler) {
+      resolvedConfig.scanner.sitemap = false
       logger.info('Sitemap appears to be missing, falling back to crawler mode.')
     }
     else {
+      resolvedConfig.scanner.sitemap = false
       logger.error('Failed to find sitemap.xml and \`routes.crawler\` has been disabled. Please enable the crawler to continue scan.')
     }
   }
