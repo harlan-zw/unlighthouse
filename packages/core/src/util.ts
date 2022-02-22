@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import { join } from 'path'
+import https from 'https'
 import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
@@ -106,7 +107,12 @@ export const formatBytes = (bytes: number, decimals = 2) => {
 
 export async function fetchUrlRaw(url: string): Promise<{ error?: any; redirected?: boolean; redirectUrl?: string; valid: boolean; response?: AxiosResponse }> {
   try {
-    const response = await axios.get(url)
+    const response = await axios.get(url, {
+      // allow all SSL's
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false,
+      }),
+    })
     const redirected = response.request.res.responseUrl && response.request.res.responseUrl !== url
     const redirectUrl = response.request.res.responseUrl
     if (response.status < 200 || (response.status >= 300 && !redirected)) {
