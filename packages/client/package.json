@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/client",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Built Vite client for Unlighthouse.",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
   "bugs": {
