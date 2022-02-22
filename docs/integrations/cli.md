@@ -53,9 +53,9 @@ chrome.
 If you do not have a chrome installation, you can install it with the following command:
 
 ```bash
-npm add -G @unlighthouse/cli puppeteer
+npm install -g unlighthouse puppeteer
 # yarn global add @unlighthouse/cli puppeteer
-# pnpm add -G @unlighthouse/cli puppeteer
+# pnpm install -g @unlighthouse/cli puppeteer
 ```
 
 ### Usage
