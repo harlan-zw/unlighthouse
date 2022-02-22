@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/vite",
-  "version": "0.1.7",
+  "version": "0.2.3",
   "description": "Vite plugin for Unlighthouse",
   "keywords": [
     "unlighthouse",
