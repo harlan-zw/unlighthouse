@@ -34,9 +34,9 @@ npx unlighthouse --site <your-site>
 ### Install Globally
 
 ```bash
-npm add -G @unlighthouse/cli
-# yarn global add @unlighthouse/cli
-# pnpm add -G @unlighthouse/cli
+npm install -g unlighthouse
+# yarn global add unlighthouse
+# pnpm install -g unlighthouse
 ```
 
 Once installed you'll be able to use the CLI from anywhere with `unlighthouse`.
