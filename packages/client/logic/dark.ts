@@ -1,4 +1,4 @@
-import { useToggle, useStorage } from '@vueuse/core'
+import { useStorage, useToggle } from '@vueuse/core'
 
 export const mode = useStorage('vueuse-color-scheme', 'dark')
 export const isDark = computed<boolean>({
@@ -17,7 +17,8 @@ watch(isDark, () => {
   if (isDark.value) {
     el.classList.add('dark')
     el.classList.remove('light')
-  } else {
+  }
+  else {
     el.classList.add('light')
     el.classList.remove('dark')
   }
