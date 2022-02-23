@@ -28,7 +28,7 @@ const category = computed(() => {
     v-else
     class="hover:bg-blue-900/50 transition lg:p-2 rounded"
     title="Open Lighthouse Report"
-    @click="openLighthouseReportIframeModal(report, categoryKey)"
+    @click="openLighthouseReportIframeModal(report, category.key)"
   >
     <metric-guage class="hidden lg:flex" :score="category.score" :label="category.title" />
     <metric-guage class="lg:hidden" :stripped="true" :score="category.score" :label="category.title" />

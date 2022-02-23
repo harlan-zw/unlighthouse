@@ -4,31 +4,29 @@ import { sum } from 'lodash-es'
 import CellRouteName from '../components/Cell/CellRouteName.vue'
 import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
 import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
-import { apiUrl, categories, columns, isStatic, wsUrl } from './static'
+import { categories, columns, isStatic, wsUrl } from './static'
 import { sorting } from './search'
 import { useFetch } from './fetch'
 
 export const activeTab = ref(0)
 
 export const isModalOpen = ref<boolean>(false)
-export const iframeModelUrl = ref<string|null>()
+export const iframeModalUrl = ref<string|null>()
+export const isDebugModalOpen = ref<boolean>(false)
 
 export const closeIframeModal = () => {
   isModalOpen.value = false
-  iframeModelUrl.value = ''
+  iframeModalUrl.value = ''
+  isDebugModalOpen.value = false
+}
+export const openDebugModal = () => {
+  isModalOpen.value = true
+  isDebugModalOpen.value = true
 }
 export const openLighthouseReportIframeModal = (report: UnlighthouseRouteReport, tab?: string) => {
-  if (isStatic) {
-    const path = report.reportHtml.substring(report.reportHtml.indexOf('/routes/'))
-    iframeModelUrl.value = `${path}${tab ? `#${tab}` : ''}`
-  }
-  else {
-    iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/lighthouse${tab ? `#${tab}` : ''}`
-  }
-  isModalOpen.value = true
-}
-export const openFullScreenshotIframeModal = (report: UnlighthouseRouteReport) => {
-  iframeModelUrl.value = `${apiUrl}/reports/${report.reportId}/full-page-screenshot`
+  const path = `${report.artifactUrl}/lighthouse.html`
+  iframeModalUrl.value = `${path}${tab ? `#${tab}` : ''}`
+  isDebugModalOpen.value = false
   isModalOpen.value = true
 }
 
@@ -135,14 +133,14 @@ export const wsConnect = async() => {
 
 export const categoryScores = computed(() => {
   const reportsFinished = unlighthouseReports.value.filter(r => !!r.report)
-  return categories.map((c) => {
+  return categories.map((c, i) => {
     const reportsWithGoodScore = reportsFinished
     // make sure the score is valid, if it's ? we don't want to count it
-      .filter(r => !!r.report?.categories?.[c].score)
+      .filter(r => !!r.report?.categories?.[i].score)
     return sum(
       reportsWithGoodScore
       // make sure the score is valid, if it's ? we don't want to count it
-        .map(r => r.report?.categories?.[c].score),
+        .map(r => r.report?.categories?.[i].score),
     ) / reportsWithGoodScore.length
   })
 })
