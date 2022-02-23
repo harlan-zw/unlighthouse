@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { apiUrl, iframeModelUrl, isModalOpen } from '../../logic'
+import { iframeModalUrl, isModalOpen } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -12,7 +12,7 @@ const showingModal = ref(false)
 
 const openModal = () => {
   isModalOpen.value = true
-  iframeModelUrl.value = null
+  iframeModalUrl.value = null
   nextTick(() => {
     showingModal.value = true
   })

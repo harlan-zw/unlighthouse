@@ -2,7 +2,7 @@
 import { get } from 'lodash-es'
 import { $URL, withBase } from 'ufo'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { iframeModelUrl, isModalOpen, isOffline, website } from '../../logic'
+import { iframeModalUrl, isModalOpen, isOffline, website } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -28,7 +28,7 @@ const openModal = () => {
     return
 
   isModalOpen.value = true
-  iframeModelUrl.value = null
+  iframeModalUrl.value = null
   nextTick(() => {
     showingModal.value = true
   })
