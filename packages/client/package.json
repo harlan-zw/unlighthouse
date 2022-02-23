@@ -32,7 +32,7 @@
     "vue-router": "4"
   },
   "devDependencies": {
-    "@iconify/json": "^2.1.4",
+    "@iconify/json": "^2.1.6",
     "@types/lodash": "^4.14.178",
     "@types/node": "^17.0.19",
     "@types/three": "^0.137.0",
