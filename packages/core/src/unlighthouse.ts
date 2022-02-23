@@ -101,7 +101,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   }
 
   // create a cache key for the users provided key so we can cache burst on config update
-  runtimeSettings.configCacheKey = objectHash(userConfig).substring(0, 4)
+  runtimeSettings.configCacheKey = objectHash({ ...userConfig, version }).substring(0, 4)
 
   const resolvedConfig = await resolveUserConfig(userConfig)
   logger.debug('Post config resolution', resolvedConfig)
