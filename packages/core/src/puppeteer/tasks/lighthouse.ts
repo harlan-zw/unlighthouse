@@ -1,6 +1,6 @@
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
-import { pick, sumBy } from 'lodash-es'
+import { map, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
 import { join } from 'pathe'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
@@ -34,10 +34,15 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     .flat()
   // map the json report to what values we actually need
   return {
+    // @ts-expect-error type override
+    categories: map(result.categories, (c, k) => {
+      return {
+        key: k,
+        ...pick(c, ['title', 'score']),
+      }
+    }),
     ...pick(result, [
-      'categories',
       'audits.redirects',
-      'audits.final-screenshot',
       // performance computed
       'audits.first-contentful-paint',
       'audits.total-blocking-time',

@@ -63,6 +63,7 @@ export type LighthouseReport = Partial<LH.Result> & {
    * The total score for the result, this is the sum of each category's result
    */
   score: number
+  categories: { score: number|null }[]
   computed: {
     /**
      * An aggregation of multiple image audit results.
