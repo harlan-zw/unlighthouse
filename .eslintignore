@@ -3,4 +3,4 @@ node_modules
 test/fixtures
 playground/*
 
-.lighthouse
+.unlighthouse

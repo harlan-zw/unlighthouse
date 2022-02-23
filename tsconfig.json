@@ -28,7 +28,7 @@
   ],
   "exclude": [
     "**/dist/**",
-    "**/.lighthouse/**",
+    "**/.unlighthouse/**",
     "**/node_modules/**"
   ]
 }

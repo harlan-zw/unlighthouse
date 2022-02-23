@@ -33,14 +33,14 @@ jobs:
         run: pnpm run build
 
       - name: Run Unlighthouse CI
-        run: pnpm ci:docs
+        run: pnpm ci:docs && ls docs/.unlighthouse
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v1.2
         with:
-          publish-dir: './docs/.lighthouse'
+          publish-dir: './docs/.unlighthouse'
           production-branch: main
           production-deploy: true
           github-token: ${{ secrets.GITHUB_TOKEN }}

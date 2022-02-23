@@ -207,7 +207,7 @@ export const defaultConfig: UserConfig = {
     pagesDir: 'pages',
   },
   root: process.cwd(),
-  outputPath: '.lighthouse',
+  outputPath: '.unlighthouse',
   debug: false,
 
   puppeteerOptions: {},

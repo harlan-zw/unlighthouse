@@ -40,7 +40,7 @@ async function runCli(configFileFixture: string) {
   if (exitCode !== 0)
     throw new Error(logs)
 
-  const output = await fs.readJson(resolve(testDir, '.lighthouse', 'ci-result.json'))
+  const output = await fs.readJson(resolve(testDir, '.unlighthouse', 'ci-result.json'))
 
   return {
     output,

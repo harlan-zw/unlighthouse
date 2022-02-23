@@ -72,7 +72,7 @@ Pass the `--build-static` flag to the binary to generate the static files needed
 unlighthouse-ci --site harlanzw.com --debug --build-static
 ```
 
-This will generate files in your `outputPath` (`.lighthouse` by default).
+This will generate files in your `outputPath` (`.unlighthouse` by default).
 
 You can upload the directory `client` to a static host from there.
 
@@ -149,7 +149,7 @@ jobs:
       - name: Deploy report to Netlify
         uses: nwtgck/actions-netlify@v1.2
         with:
-          publish-dir: './.lighthouse/client'
+          publish-dir: './.unlighthouse'
           production-branch: main
           production-deploy: true
           github-token: ${{ secrets.GITHUB_TOKEN }}

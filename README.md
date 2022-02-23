@@ -100,7 +100,7 @@ npm install -g puppeteer
 
 #### gitignore
 
-Unlighthouse will save your reports in `outputDir` (`.lighthouse` by default),
+Unlighthouse will save your reports in `outputDir` (`.unlighthouse` by default),
 it's recommended you .gitignore these files.
 
 #### Debugging

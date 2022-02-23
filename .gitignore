@@ -81,7 +81,7 @@ dist
 .idea
 /*.d.ts
 
-**/.lighthouse
+**/.unlighthouse
 
 **/.cache
 

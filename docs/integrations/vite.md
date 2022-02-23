@@ -25,11 +25,11 @@ npm add -D @unlighthouse/vite
 
 ### Git ignore reports
 
-Unlighthouse will save your reports in `outputDir` (`.lighthouse` by default),
+Unlighthouse will save your reports in `outputDir` (`.unlighthouse` by default),
 it's recommended you .gitignore these files.
 
 ```gitignore .gitignore
-.lighthouse
+.unlighthouse
 ```
 
 ## Usage
