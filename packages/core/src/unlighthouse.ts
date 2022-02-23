@@ -279,7 +279,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
         `⛵  ${chalk.bold.blueBright(AppName)} ${chalk.dim(`${provider?.name} @ v${version}`)}`,
         '',
         `${label('Scanning')} ${resolvedConfig.site}`,
-        `${label('Route Discovery')} ${mode} ${chalk.dim(`${ctx.routes.length} initial URLs`)}`,
+        `${label('Route Discovery')} ${mode} ${ctx.routes.length > 1 ? (chalk.dim(`${ctx.routes.length} initial URLs`)) : ''}`,
       ]
       if (ctx.routeDefinitions?.length)
         title.push(`${label('Route Definitions')} ${ctx.routeDefinitions.length}`)
