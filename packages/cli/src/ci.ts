@@ -51,9 +51,6 @@ async function run() {
   }
 
   await setCiContext()
-  if (options.buildStatic)
-    await generateClient({ static: true })
-
   await start()
 
   hooks.hook('worker-finished', async() => {
@@ -87,6 +84,7 @@ async function run() {
     }
     if (!hadError) {
       logger.success('CI assertions on score budget has passed.')
+
       await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'),
         worker.reports()
           .map((report) => {
@@ -95,13 +93,14 @@ async function run() {
               score: report.report?.score,
             }
           })
-        // make the list ordering consistent
+          // make the list ordering consistent
           .sort((a, b) => a.path.localeCompare(b.path)),
       )
 
       if (options.buildStatic) {
         logger.info('Generating static client.')
         const { runtimeSettings } = useUnlighthouse()
+        await generateClient({ static: true })
         // delete the json lighthouse payloads, we don't need them for the static mode
         const globby = (await import('globby'))
         const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'], { cwd: runtimeSettings.generatedClientPath, absolute: true })
