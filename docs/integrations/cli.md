@@ -81,24 +81,26 @@ See the [Configuration](#configuration) section for more details and the guides.
 
 ### CLI Options
 
-| Options                |                                                                                         |
-|------------------------|-----------------------------------------------------------------------------------------|
-| `-v, --version`        | Display version number.                                                                 |
-| `--site <url>`         | Host URL to scan.                                                                |
-| `--root <path>`        | Define the project root.                                                                |
-| `--config-file <path>` | Path to config file.                                                                    |
-| `--output-path <path>` | Path to save the contents of the client and reports to.                                 |
-| `--cache`              | Enable the caching.                                 |
-| `--no-cache`           | Disable the caching.                     |
-| `--throttle`           | Enable the throttling.                                                                  |
-| `--samples`            | Specify the amount of samples to run.                                                                 |
-| `--urls`               | Specify explicit relative URLs as a comma-seperated list.                                                                |
-| `--enable-javascript`  | When inspecting the HTML wait for the javascript to execute. Useful for SPAs.           |
-| `--disable-javascript` | When inspecting the HTML, don't wait for the javascript to execute.                     |
-| `--enable-i18n-pages`  | Enable scanning pages which use x-default.                                              |
-| `--disable-i18n-pages` | Disable scanning pages which use x-default.                                             |
-| `-d, --debug`          | Debug. Enable debugging in the logger.                                                          |
-| `-h, --help`           | Display available CLI options                                                           |
+| Options                |                                                                               |
+|------------------------|-------------------------------------------------------------------------------|
+| `-v, --version`        | Display version number.                                                       |
+| `--site <url>`         | Host URL to scan.                                                             |
+| `--root <path>`        | Define the project root.                                                      |
+| `--config-file <path>` | Path to config file.                                                          |
+| `--output-path <path>` | Path to save the contents of the client and reports to.                       |
+| `--cache`              | Enable the caching.                                                           |
+| `--no-cache`           | Disable the caching.                                                          |
+| `--desktop`            | Simulate device as desktop.                                                   |
+| `--mobile`             | Simulate device as mobile.                                                    |
+| `--throttle`           | Enable the throttling.                                                        |
+| `--samples`            | Specify the amount of samples to run.                                         |
+| `--urls`               | Specify explicit relative URLs as a comma-seperated list.                     |
+| `--enable-javascript`  | When inspecting the HTML wait for the javascript to execute. Useful for SPAs. |
+| `--disable-javascript` | When inspecting the HTML, don't wait for the javascript to execute.           |
+| `--enable-i18n-pages`  | Enable scanning pages which use x-default.                                    |
+| `--disable-i18n-pages` | Disable scanning pages which use x-default.                                   |
+| `-d, --debug`          | Debug. Enable debugging in the logger.                                        |
+| `-h, --help`           | Display available CLI options                                                 |
 
 
 ### Config File

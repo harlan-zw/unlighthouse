@@ -4,6 +4,8 @@ export interface CliOptions {
   urls?: string
   site?: string
   throttle?: boolean
+  desktop?: boolean
+  mobile?: boolean
   cache?: boolean
   noCache?: boolean
   version?: boolean

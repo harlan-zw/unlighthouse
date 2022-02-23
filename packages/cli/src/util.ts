@@ -77,6 +77,11 @@ export function pickOptions(options: CiOptions|CliOptions): UserConfig {
   else if (options.disableI18nPages)
     picked.scanner.ignoreI18nPages = true
 
+  if (options.desktop)
+    picked.scanner.device = 'desktop'
+  else if (options.mobile)
+    picked.scanner.device = 'mobile'
+
   if (options.urls)
     picked.urls = options.urls.split(',')
 

@@ -15,6 +15,9 @@ export default function createCli() {
   cli.option('--no-cache', 'Disable the caching.')
   cli.option('--cache', 'Enable the caching.')
 
+  cli.option('--desktop', 'Simulate device as desktop.')
+  cli.option('--mobile', 'Simulate device as mobile.')
+
   cli.option('--site <site>', 'Host URL to scan')
   cli.option('--samples <samples>', 'Specify the amount of samples to run.')
   cli.option('--throttle', 'Enable the throttling')
