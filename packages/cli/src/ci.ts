@@ -114,7 +114,7 @@ async function run() {
       process.exit(0)
     }
     else {
-      logger.success('Some routes failed the budget.')
+      logger.error('Some routes failed the budget.')
       process.exit(1)
     }
   })
