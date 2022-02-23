@@ -1,22 +1,27 @@
 <script setup lang="ts">
+import { useTitle } from '@vueuse/core'
 import {
+  apiUrl,
+  basePath,
   categoryScores,
   changedTab,
   closeIframeModal,
-  iframeModelUrl,
+  device,
+  dynamicSampling,
+  iframeModalUrl,
   incrementSort,
+  isDebugModalOpen,
   isModalOpen,
   isOffline,
   isStatic,
+  lighthouseOptions,
+  openDebugModal,
   openLighthouseReportIframeModal,
   refreshScanMeta,
   rescanRoute,
   resultColumns,
   searchResults,
-  searchText,
-  sorting,
-  tabs,
-  throttle,
+  searchText, sorting, tabs, throttle, website,
   wsConnect,
 } from '../logic'
 
@@ -28,6 +33,8 @@ if (!isStatic) {
     }, 5000)
   })
 }
+
+useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
 </script>
 <template>
   <NavBar />
@@ -62,6 +69,9 @@ if (!isStatic) {
         <div class="px-2 text-center 2xl:text-left">
           <div class="text-xs opacity-75 2xl:mt-4">
             <a href="https://unlighthouse.dev" target="_blank" class="underline hover:no-underline">Documentation</a>
+            <btn-action v-if="!isStatic" class="underline hover:no-underline ml-3" @click="openDebugModal">
+              Debug
+            </btn-action>
           </div>
           <div class="text-xs opacity-75 2xl:mt-4">
             Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
@@ -202,7 +212,36 @@ if (!isStatic) {
               class="inline-block w-full max-w-7xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:(bg-teal-900) shadow-xl rounded-2xl"
             >
               <div id="modal-portal" />
-              <iframe v-if="iframeModelUrl" :src="iframeModelUrl" class="w-full h-700px bg-white" />
+              <div v-if="isDebugModalOpen" class="p-5 bg-gray-100">
+                <div class="font-bold mb-3 text-xl">
+                  Core
+                </div>
+                <div class="mb-2">
+                  Base path: {{ basePath }}
+                </div>
+                <div class="mb-2">
+                  API URL: {{ apiUrl }}
+                </div>
+                <div class="font-bold mb-3 mt-5 text-xl">
+                  Scan
+                </div>
+                <div class="mb-2">
+                  Throttle: {{ throttle }}
+                </div>
+                <div class="mb-2">
+                  Device: {{ device }}
+                </div>
+                <div class="mb-2">
+                  Dynamic Sampling: {{ dynamicSampling }}
+                </div>
+                <div class="mb-2">
+                  Lighthouse Options: <code><pre>{{ lighthouseOptions }}</pre></code>
+                </div>
+                <div class="mb-2">
+                  Search Results: <code><pre>{{ searchResults }}</pre></code>
+                </div>
+              </div>
+              <iframe v-if="iframeModalUrl" :src="iframeModalUrl" class="w-full h-700px bg-white" />
             </div>
           </TransitionChild>
         </div>
