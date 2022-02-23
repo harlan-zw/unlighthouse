@@ -10,6 +10,14 @@ import axios from 'axios'
 import type { NormalisedRoute, RouteDefinition, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
 
+export const ReportArtifacts = {
+  html: 'payload.html',
+  reportHtml: 'lighthouse.html',
+  screenshot: 'screenshot.jpeg',
+  fullScreenScreenshot: 'full-screenshot.jpeg',
+  reportJson: 'lighthouse.json',
+}
+
 export const provideRoutes = (routes: RouteDefinition[]) => {
   const unlighthouse = useUnlighthouse()
   if (unlighthouse?.hooks)
@@ -70,28 +78,41 @@ export const normaliseHost = (host: string) => {
  * @param route
  */
 export const createTaskReportFromRoute
-    = (route: NormalisedRoute): UnlighthouseRouteReport => {
-      const { runtimeSettings } = useUnlighthouse()
+  = (route: NormalisedRoute): UnlighthouseRouteReport => {
+    const { runtimeSettings } = useUnlighthouse()
 
-      const reportId = hashPathName(route.path)
+    const reportId = hashPathName(route.path)
 
-      const reportPath = join(runtimeSettings.outputPath, 'routes', sanitiseUrlForFilePath(route.path))
+    const reportPath = join(runtimeSettings.generatedClientPath, 'reports', sanitiseUrlForFilePath(route.path))
 
-      // add missing dirs
-      ensureDirSync(reportPath)
+    // add missing dirs
+    ensureDirSync(reportPath)
 
-      return {
-        tasks: {
-          runLighthouseTask: 'waiting',
-          inspectHtmlTask: 'waiting',
-        },
-        route,
-        reportId,
-        htmlPayload: join(reportPath, 'payload.html'),
-        reportHtml: join(reportPath, 'lighthouse.html'),
-        reportJson: join(reportPath, 'lighthouse.json'),
-      }
+    return {
+      tasks: {
+        runLighthouseTask: 'waiting',
+        inspectHtmlTask: 'waiting',
+      },
+      route,
+      reportId,
+      artifactPath: reportPath,
+      artifactUrl: `/${join('reports', sanitiseUrlForFilePath(route.path))}`,
     }
+  }
+
+export const dataURItoByteArray = (dataURI: string) => {
+  let byteStr
+  if (dataURI.split(',')[0].includes('base64'))
+    byteStr = atob(dataURI.split(',')[1])
+  else
+    byteStr = unescape(dataURI.split(',')[1])
+
+  const arr = new Uint8Array(byteStr.length)
+  for (let i = 0; i < byteStr.length; i++)
+    arr[i] = byteStr.charCodeAt(i)
+
+  return arr
+}
 
 export const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes'

@@ -1,4 +1,5 @@
 import fs from 'fs'
+import { join } from 'path'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
 import { get, sortBy, uniqBy } from 'lodash-es'
 import type {
@@ -9,7 +10,7 @@ import type {
   UnlighthouseTask,
   UnlighthouseWorker, UnlighthouseWorkerStats,
 } from '../types'
-import { createTaskReportFromRoute } from '../util'
+import { ReportArtifacts, createTaskReportFromRoute } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 import {
@@ -179,9 +180,10 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
   const requeueReport = (report: UnlighthouseRouteReport) => {
     logger.info(`Submitting \`${report.route.path}\` for a re-queue.`)
-    fs.rmSync(report.reportHtml, { force: true })
-    fs.rmSync(report.reportJson, { force: true })
-    fs.rmSync(report.htmlPayload, { force: true })
+    // clean up artifacts
+    Object.values(ReportArtifacts).forEach((artifact) => {
+      fs.rmSync(join(report.artifactPath, artifact), { force: true })
+    })
     routeReports.delete(report.reportId)
     // arbitrary wait for HMR, lil dodgy
     setTimeout(() => {

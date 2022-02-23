@@ -1,3 +1,4 @@
+import { join } from 'path'
 import fs from 'fs-extra'
 import type { CheerioAPI } from 'cheerio'
 import cheerio from 'cheerio'
@@ -6,7 +7,7 @@ import { withoutTrailingSlash } from 'ufo'
 import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
-import { fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
+import { ReportArtifacts, fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
 import { normaliseRoute } from '../../router'
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false|string; message?: string; payload?: string }> = async(page, route) => {
@@ -99,8 +100,9 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   let html: string
 
   // basic caching based on saving html payloads
-  if (resolvedConfig.cache && fs.existsSync(routeReport.htmlPayload)) {
-    html = fs.readFileSync(routeReport.htmlPayload, { encoding: 'utf-8' })
+  const htmlPayloadPath = join(routeReport.artifactPath, ReportArtifacts.html)
+  if (resolvedConfig.cache && fs.existsSync(htmlPayloadPath)) {
+    html = fs.readFileSync(htmlPayloadPath, { encoding: 'utf-8' })
     logger.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
   }
   else {
@@ -169,6 +171,6 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   logger.success(`Completed \`inspectHtmlTask\` for \`${routeReport.route.path}\`. [Size: \`${formatBytes(html.length)}\`]`)
   // only need the html payload for caching purposes, unlike the lighthouse reports
   if (resolvedConfig.cache)
-    fs.writeFileSync(routeReport.htmlPayload, html)
+    fs.writeFileSync(htmlPayloadPath, html)
   return routeReport
 }

@@ -150,7 +150,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     ctx.runtimeSettings = {
       ...ctx.runtimeSettings,
       outputPath,
-      generatedClientPath: join(outputPath, 'client'),
+      generatedClientPath: outputPath,
       resolvedClientPath: await resolvePath(ClientPkg, { url: import.meta.url }),
     }
 
@@ -177,7 +177,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
     ctx.resolvedConfig.site = site
     ctx.runtimeSettings.outputPath = outputPath
-    ctx.runtimeSettings.generatedClientPath = join(outputPath, 'client')
+    ctx.runtimeSettings.generatedClientPath = outputPath
 
     await hooks.callHook('site-changed', site)
   }

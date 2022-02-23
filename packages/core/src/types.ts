@@ -92,17 +92,13 @@ export interface UnlighthouseRouteReport {
    */
   tasks: Record<UnlighthouseTask, UnlighthouseTaskStatus>
   /**
-   * Path to the HTML extracted payload.
+   * Path to where the artifacts from a URL scan are saved.
    */
-  htmlPayload: string
+  artifactPath: string
   /**
-   * Lighthouse Result report exported to HTML.
+   * URL of where the artifacts are stored, for static client access.
    */
-  reportHtml: string
-  /**
-   * Lighthouse Result report exported to JSON.
-   */
-  reportJson: string
+  artifactUrl: string
   /**
    * The route (URL Path) that the report belongs to.
    */

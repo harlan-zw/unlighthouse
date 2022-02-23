@@ -2,9 +2,11 @@ import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
 import { pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
+import { join } from 'pathe'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
+import { ReportArtifacts, dataURItoByteArray } from '../../util'
 
 export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport => {
   const { resolvedConfig } = useUnlighthouse()
@@ -69,8 +71,9 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
   const { page, data: routeReport } = props
 
   // if the report doesn't exist, we're going to run a new lighthouse process to generate it
-  if (resolvedConfig.cache && fs.existsSync(routeReport.reportJson)) {
-    const report = fs.readJsonSync(routeReport.reportJson, { encoding: 'utf-8' }) as LH.Result
+  const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
+  if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
+    const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as LH.Result
     routeReport.report = normaliseLighthouseResult(report)
     logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\` using cache. [Score \`${routeReport.report.score}\`]`)
     return routeReport
@@ -85,7 +88,7 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
 
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,
-    `--routeReport=${JSON.stringify(pick(routeReport, ['route.url', 'reportJson', 'reportHtml']))}`,
+    `--routeReport=${JSON.stringify(pick(routeReport, ['route.url', 'artifactPath']))}`,
     `--lighthouseOptions=${JSON.stringify(resolvedConfig.lighthouseOptions)}`,
     `--port=${port}`,
   ]
@@ -107,7 +110,7 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
       worker.stderr!.pipe(process.stderr)
       const res = await worker
       if (res)
-        samples.push(fs.readJsonSync(routeReport.reportJson))
+        samples.push(fs.readJsonSync(reportJsonPath))
     }
     catch (e) {
       logger.error('Failed to run lighthouse for route', e)
@@ -129,6 +132,13 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
     logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
     routeReport.tasks.runLighthouseTask = 'failed'
   }
+  // export the full screen image
+  if (report.audits?.['final-screenshot']?.details?.data)
+    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), dataURItoByteArray(report.audits['final-screenshot'].details.data))
+
+  if (report.audits?.['full-page-screenshot']?.details?.screenshot?.data)
+    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), dataURItoByteArray(report.audits['full-page-screenshot'].details.screenshot.data))
+
   routeReport.report = normaliseLighthouseResult(report)
   logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. [Score: \`${routeReport.report.score}\`${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete]`)
   return routeReport

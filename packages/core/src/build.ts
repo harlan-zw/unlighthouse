@@ -23,7 +23,6 @@ export const generateClient = async(options: GenerateClientOptions = {}, unlight
   const prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.routerPrefix))
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
 
-  await fs.emptyDir(runtimeSettings.generatedClientPath)
   await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)
   // update the html with our config and base url if needed
   const inlineScript = `window.__unlighthouse_static = ${options.static}`

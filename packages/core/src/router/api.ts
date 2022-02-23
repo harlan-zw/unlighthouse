@@ -1,7 +1,6 @@
-import { dirname, join } from 'path'
+import { join } from 'path'
 import { createUnrouted, get, group, post, redirect, serve, setStatusCode, useParams, useQuery } from 'unrouted'
 import fs from 'fs-extra'
-import type { LH } from 'lighthouse'
 import launch from 'launch-editor'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
@@ -47,7 +46,7 @@ export const createApi = async() => {
           logger.info(`Doing site rescan, clearing ${reports.length} reports.`)
           worker.routeReports.clear()
           reports.forEach((route) => {
-            const dir = dirname(route.reportHtml)
+            const dir = route.artifactPath
             if (fs.existsSync(dir))
               fs.rmSync(dir, { recursive: true })
           })
@@ -55,41 +54,12 @@ export const createApi = async() => {
           return true
         })
 
-        get('/:id/lighthouse', async() => {
-          const report = useReport()
-          if (!report)
-            return false
-
-          return fs.readFileSync(report.reportHtml, 'utf-8')
-        })
-
-        get('/:id/full-page-screenshot', async() => {
-          const report = useReport()
-          if (!report)
-            return false
-
-          const json = fs.readJsonSync(report.reportJson) as LH.Result
-          const screenshot = json.audits?.['full-page-screenshot'].details.screenshot
-          // inline html
-          return `<img style="display: block; margin: 0 auto;"
-                     src="${screenshot.data}"
-                     width="${screenshot.width}"
-                     height="${screenshot.height}"
-                 />`
-        })
-
         post('/:id/rescan', () => {
           const report = useReport()
           const { worker } = useUnlighthouse()
 
-          if (report) {
-            // clean up report files
-            fs.rmSync(report.reportHtml, { force: true })
-            fs.rmSync(report.reportJson, { force: true })
-            fs.rmSync(report.htmlPayload, { force: true })
-            worker.routeReports.delete(report.reportId)
-            worker.queueRoute(report.route)
-          }
+          if (report)
+            worker.requeueReport(report)
         })
       })
 
@@ -111,13 +81,6 @@ export const createApi = async() => {
         const { worker } = useUnlighthouse()
 
         return worker.reports().filter(r => r.tasks.inspectHtmlTask === 'completed')
-      })
-      get('reports/:id', async() => {
-        const report = useReport()
-        if (!report)
-          return false
-
-        return fs.readFileSync(report.reportHtml, 'utf-8')
       })
 
       get('scan-meta', () => createScanMeta())

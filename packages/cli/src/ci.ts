@@ -8,7 +8,7 @@ import { pickOptions, validateHost, validateOptions } from './util'
 import createCli from './createCli'
 
 async function run() {
-  const start = new Date()
+  const startTime = new Date()
 
   const cli = createCli()
 
@@ -38,7 +38,7 @@ async function run() {
   { name: 'ci' },
   )
 
-  const { resolvedConfig, setCiContext, hooks, worker } = useUnlighthouse()
+  const { resolvedConfig, setCiContext, hooks, worker, start } = useUnlighthouse()
 
   validateOptions(resolvedConfig)
 
@@ -50,11 +50,15 @@ async function run() {
     logger.warn('Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>.')
   }
 
-  await (await setCiContext()).start()
+  await setCiContext()
+  if (options.buildStatic)
+    await generateClient({ static: true })
+
+  await start()
 
   hooks.hook('worker-finished', async() => {
     const end = new Date()
-    const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
+    const seconds = Math.round((end.getTime() - startTime.getTime()) / 1000)
 
     logger.success(`Unlighthouse has finished scanning \`${resolvedConfig.site}\`: ${worker.reports().length} routes in \`${seconds}s\`.`)
 
@@ -98,15 +102,9 @@ async function run() {
       if (options.buildStatic) {
         logger.info('Generating static client.')
         const { runtimeSettings } = useUnlighthouse()
-        await generateClient({ static: true })
-        // move the route files into the client package
-        const reportDir = join(runtimeSettings.outputPath, 'routes')
-        const outDir = join(runtimeSettings.generatedClientPath, 'routes')
-        logger.debug(`Moving report dir ${reportDir} to ${outDir}`)
-        await fs.move(reportDir, outDir, { overwrite: true })
         // delete the json lighthouse payloads, we don't need them for the static mode
         const globby = (await import('globby'))
-        const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'], { cwd: outDir, absolute: true })
+        const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'], { cwd: runtimeSettings.generatedClientPath, absolute: true })
         logger.debug(`Deleting ${jsonPayloads.length} files not required for static build.`)
         for (const k in jsonPayloads)
           await fs.rm(jsonPayloads[k])
