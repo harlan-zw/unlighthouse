@@ -73,10 +73,10 @@ async function run() {
             let budget = resolvedConfig.ci.budget
             if (!Number.isInteger(budget)) {
               // @ts-expect-error need to fix
-              budget = resolvedConfig.ci.budget[category.id]
+              budget = resolvedConfig.ci.budget[category.key]
             }
             if (category.score && (category.score * 100) < budget) {
-              logger.error(`${report.route.path} has invalid score \`${category.score}\` for category \`${category.id}\`.`)
+              logger.error(`${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`)
               hadError = true
             }
           })

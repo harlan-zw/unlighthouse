@@ -38,6 +38,7 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     categories: map(result.categories, (c, k) => {
       return {
         key: k,
+        id: k,
         ...pick(c, ['title', 'score']),
       }
     }),
