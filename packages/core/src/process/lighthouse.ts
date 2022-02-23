@@ -4,7 +4,6 @@ import type { LH } from 'lighthouse'
 import lighthouse from 'lighthouse'
 import minimist from 'minimist'
 import type { UnlighthouseRouteReport } from '../types'
-import { ReportArtifacts } from '../util';
 
 /*
  * This file is intended to be run in its own process and should not rely on any global state.
@@ -24,8 +23,8 @@ import { ReportArtifacts } from '../util';
   }
   try {
     const runnerResult = await lighthouse(routeReportJson.route.url, lighthouseOptions)
-    fs.writeFileSync(join(routeReportJson.artifactPath, ReportArtifacts.reportJson), runnerResult.report[1])
-    fs.writeFileSync(join(routeReportJson.artifactPath, ReportArtifacts.reportHtml), runnerResult.report[0])
+    fs.writeFileSync(join(routeReportJson.artifactPath, 'lighthouse.json'), runnerResult.report[1])
+    fs.writeFileSync(join(routeReportJson.artifactPath, 'lighthouse.html'), runnerResult.report[0])
     return true
   }
   catch (e) {
