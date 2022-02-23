@@ -100,18 +100,8 @@ export const createTaskReportFromRoute
     }
   }
 
-export const dataURItoByteArray = (dataURI: string) => {
-  let byteStr
-  if (dataURI.split(',')[0].includes('base64'))
-    byteStr = atob(dataURI.split(',')[1])
-  else
-    byteStr = unescape(dataURI.split(',')[1])
-
-  const arr = new Uint8Array(byteStr.length)
-  for (let i = 0; i < byteStr.length; i++)
-    arr[i] = byteStr.charCodeAt(i)
-
-  return arr
+export const base64ToBuffer = (dataURI: string) => {
+  return Buffer.from(dataURI.split(',')[1], 'base64')
 }
 
 export const formatBytes = (bytes: number, decimals = 2) => {

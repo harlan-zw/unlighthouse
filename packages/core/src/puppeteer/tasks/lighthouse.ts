@@ -6,7 +6,7 @@ import { join } from 'path'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
-import { ReportArtifacts, dataURItoByteArray } from '../../util'
+import { ReportArtifacts, base64ToBuffer } from '../../util'
 
 export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport => {
   const { resolvedConfig } = useUnlighthouse()
@@ -139,10 +139,10 @@ export const runLighthouseTask: PuppeteerTask = async(props) => {
   }
   // export the full screen image
   if (report.audits?.['final-screenshot']?.details?.data)
-    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), dataURItoByteArray(report.audits['final-screenshot'].details.data))
+    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), base64ToBuffer(report.audits['final-screenshot'].details.data))
 
   if (report.audits?.['full-page-screenshot']?.details?.screenshot?.data)
-    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), dataURItoByteArray(report.audits['full-page-screenshot'].details.screenshot.data))
+    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.audits['full-page-screenshot'].details.screenshot.data))
 
   routeReport.report = normaliseLighthouseResult(report)
   logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. [Score: \`${routeReport.report.score}\`${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete]`)
