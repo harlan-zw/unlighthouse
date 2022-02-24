@@ -8,6 +8,7 @@ export default function createCli() {
     .help()
     .version(version)
     .example('unlighthouse --site unlighthouse.dev')
+    .example('unlighthouse --site unlighthouse.dev --urls /guide,/api,/glossary --desktop')
 
   cli.option('--root <root>', 'Define the project root. Useful for changing where the config is read from or setting up sampling.')
   cli.option('--config-file <config-file>', 'Path to config file.')
@@ -25,7 +26,7 @@ export default function createCli() {
   cli.option('--disable-javascript', 'When inspecting the HTML, don\'t wait for the javascript to execute.')
   cli.option('--enable-i18n-pages', 'Enable scanning pages which use x-default.')
   cli.option('--disable-i18n-pages', 'Disable scanning pages which use x-default.')
-  cli.option('--urls', 'Specify explicit relative URLs as a comma-seperated list.')
+  cli.option('--urls <urls>', 'Specify explicit relative URLs as a comma-seperated list.')
   cli.option('-d, --debug', 'Debug. Enable debugging in the logger.')
 
   return cli
