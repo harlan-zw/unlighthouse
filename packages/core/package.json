@@ -91,8 +91,8 @@
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
     "@types/lodash-es": "^4.17.6",
-    "@types/node": "^17.0.19",
+    "@types/node": "^17.0.21",
     "@types/object-hash": "^2.2.1",
-    "@types/ws": "^8.2.3"
+    "@types/ws": "^8.5.0"
   }
 }
