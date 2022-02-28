@@ -49,7 +49,7 @@
     "typescript": "^4.5.5",
     "vitest": "^0.5.8"
   },
-  "version": "0.3.4",
+  "version": "0.3.5",
   "dependencies": {
     "unbuild": "^0.6.9"
   }
