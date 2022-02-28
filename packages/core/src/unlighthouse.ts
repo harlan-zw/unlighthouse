@@ -265,8 +265,8 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       }
       // fancy CLI banner when we start
       const label = (name: string) => chalk.bold.magenta(`▸ ${name}:`)
-      let mode = resolvedConfig.urls.length > 0 ? 'manual' : ''
-      if (resolvedConfig.urls.length)
+      let mode = ''
+      if (resolvedConfig.urls?.length)
         mode = 'Manual'
 
       if (resolvedConfig.scanner.sitemap)
