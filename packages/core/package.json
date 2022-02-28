@@ -73,7 +73,6 @@
     "hookable": "^5.1.1",
     "launch-editor": "^2.3.0",
     "lighthouse": "^9.4.0",
-    "lodash-es": "^4.17.15",
     "mlly": "^0.3.17",
     "object-hash": "^3.0.0",
     "puppeteer-cluster": "^0.23.0",
@@ -89,6 +88,7 @@
     "ws": "^8.5.0"
   },
   "devDependencies": {
+    "lodash-es": "^4.17.15",
     "@types/fs-extra": "^9.0.13",
     "@types/lodash-es": "^4.17.6",
     "@types/node": "^17.0.21",

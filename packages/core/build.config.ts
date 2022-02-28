@@ -10,6 +10,7 @@ export default defineBuildConfig({
     { input: 'src/index' },
     { input: 'src/process', outDir: 'dist/process', builder: 'mkdist', declaration: false },
   ],
+  // Note: lodash-es is inlined on purpose
   externals: [
     '@unrouted/core',
     'h3',
