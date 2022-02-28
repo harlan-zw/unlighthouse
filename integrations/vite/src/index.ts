@@ -1,15 +1,27 @@
 import type { UserConfig } from '@unlighthouse/core'
-import { createUnlighthouse, useLogger, useUnlighthouse } from '@unlighthouse/core'
-import { createServer } from '@unlighthouse/server'
 import type { Plugin, ViteDevServer } from 'vite'
 import { once } from './util'
 
 export default function VitePlugin(config: UserConfig = {}): Plugin {
+  let bail = false
   return {
     name: 'unlighthouse:vite',
     apply: 'serve',
 
+    configResolved(config) {
+      // only run in development and serve
+      if (config.command !== 'serve' || config.isProduction) {
+        bail = true
+      }
+    },
+
     async configureServer(viteServer: ViteDevServer) {
+      if (bail) {
+        return
+      }
+      const { createUnlighthouse, useLogger, useUnlighthouse } = await import('@unlighthouse/core')
+      const { createServer } = await import('@unlighthouse/server')
+
       const unlighthouse = useUnlighthouse() || await createUnlighthouse({
         ...config,
         root: viteServer.config.root,
@@ -69,7 +81,8 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
         }
       }
     },
-    handleHotUpdate(hmr) {
+    async handleHotUpdate(hmr) {
+      const { useUnlighthouse } = await import('@unlighthouse/core')
       const { worker } = useUnlighthouse()
       worker.invalidateFile(hmr.file)
     },
