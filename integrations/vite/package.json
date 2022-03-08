@@ -41,6 +41,6 @@
   },
   "types": "./dist/index.d.ts",
   "devDependencies": {
-    "vite": "^2.8.6"
+    "vite": "^2.8.4"
   }
 }

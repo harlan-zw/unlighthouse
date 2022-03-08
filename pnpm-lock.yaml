@@ -54,7 +54,7 @@ importers:
       '@unocss/reset': 0.26.4
       '@vitejs/plugin-vue': 2.2.2_vite@2.8.4+vue@3.2.31
       markdown-it: 12.3.2
-      unocss: 0.26.4_@vitest+ui@0.5.8
+      unocss: 0.26.4_@vitest+ui@0.6.0
       unplugin-vue-components: 0.17.21_vite@2.8.4+vue@3.2.31
       vitepress: 0.22.3
 
@@ -85,7 +85,7 @@ importers:
     specifiers:
       '@unlighthouse/core': workspace:*
       '@unlighthouse/server': workspace:*
-      vite: ^2.8.6
+      vite: ^2.8.4
     dependencies:
       '@unlighthouse/core': link:../../packages/core
       '@unlighthouse/server': link:../../packages/server
@@ -255,9 +255,9 @@ importers:
       sitemapper: 3.2.2
       slugify: 1.6.5
       ufo: 0.7.11
-      unconfig: 0.3.1_@vitest+ui@0.5.9
+      unconfig: 0.3.1_@vitest+ui@0.6.0
       unctx: 1.0.2
-      unrouted: 0.3.5_@vitest+ui@0.5.9
+      unrouted: 0.3.5_@vitest+ui@0.6.0
       ws: 8.5.0
     devDependencies:
       '@types/fs-extra': 9.0.13
@@ -1837,12 +1837,12 @@ packages:
       eslint-visitor-keys: 3.3.0
     dev: true
 
-  /@unocss/cli/0.26.4_@vitest+ui@0.5.8:
+  /@unocss/cli/0.26.4_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-DKKcXt8OOfhKMIfToRhbUdRZ+lt3R69LZnBUmqLo4MQKhClNhOT35spA6VmvyOdbOkGgtNzJolG8qaRIDmROMg==}
     engines: {node: '>=14'}
     hasBin: true
     dependencies:
-      '@unocss/config': 0.26.4_@vitest+ui@0.5.8
+      '@unocss/config': 0.26.4_@vitest+ui@0.6.0
       '@unocss/core': 0.26.4
       '@unocss/preset-uno': 0.26.4
       cac: 6.7.12
@@ -1861,12 +1861,12 @@ packages:
       - stylus
     dev: true
 
-  /@unocss/config/0.26.4_@vitest+ui@0.5.8:
+  /@unocss/config/0.26.4_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-x2L2ovfPySGSpnWdcnoTEg6homCAwM6O/Y312r+6Hu3s1IBFLoqwPf/ihOH4ZhWaSKj/c8cAchS+pMaWYB1gyw==}
     engines: {node: '>=14'}
     dependencies:
       '@unocss/core': 0.26.4
-      unconfig: 0.3.1_@vitest+ui@0.5.8
+      unconfig: 0.3.1_@vitest+ui@0.6.0
     transitivePeerDependencies:
       - '@vitest/ui'
       - c8
@@ -1962,11 +1962,11 @@ packages:
       magic-string: 0.25.7
     dev: true
 
-  /@unocss/vite/0.26.4_@vitest+ui@0.5.8:
+  /@unocss/vite/0.26.4_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-oYCgYSaXIO43W/hs08Aj1GUpfpGZ6RhasxNZ6abjHTAfRHy6cXOswLvH1LnFA5oRJeuLZbo951/mJwkfwOnwvg==}
     dependencies:
       '@rollup/pluginutils': 4.1.2
-      '@unocss/config': 0.26.4_@vitest+ui@0.5.8
+      '@unocss/config': 0.26.4_@vitest+ui@0.6.0
       '@unocss/core': 0.26.4
       '@unocss/inspector': 0.26.4
       '@unocss/scope': 0.26.4
@@ -1981,7 +1981,7 @@ packages:
       - stylus
     dev: true
 
-  /@unrouted/core/0.3.5_@vitest+ui@0.5.9:
+  /@unrouted/core/0.3.5_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-rUfv5X7DVvI9wrVbHfp0sLZwkv/pakf5OF/Uzq6erBqVn/ZAAjizHMqVfYtIlGSEniJIwgm738xKR0AYJP+XkQ==}
     dependencies:
       consola: 2.15.3
@@ -1990,7 +1990,7 @@ packages:
       hookable: 5.1.1
       radix3: 0.1.0
       ufo: 0.7.11
-      unconfig: 0.3.1_@vitest+ui@0.5.9
+      unconfig: 0.3.1_@vitest+ui@0.6.0
       unctx: 1.0.2
     transitivePeerDependencies:
       - '@vitest/ui'
@@ -2002,10 +2002,10 @@ packages:
       - stylus
     dev: false
 
-  /@unrouted/preset-unrouted/0.3.5_@vitest+ui@0.5.9:
+  /@unrouted/preset-unrouted/0.3.5_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-riTG36Dv7YD208LsQcrFPvq1yBQzNBEvOqQM0a8yIyMtyfis6mPSpLpXe25P30/lBSfWxPMx4FgIiD1xZvRSew==}
     dependencies:
-      '@unrouted/core': 0.3.5_@vitest+ui@0.5.9
+      '@unrouted/core': 0.3.5_@vitest+ui@0.6.0
       cors: 2.8.5
       defu: 5.0.1
       fs-extra: 10.0.1
@@ -9071,13 +9071,13 @@ packages:
       through: 2.3.8
     dev: false
 
-  /unconfig/0.3.1_@vitest+ui@0.5.8:
+  /unconfig/0.3.1_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-aXy9NkXWcwMgzkiLBoKJP1frd1/h0z/uPgwpISre2RYG5pN4yaRFNGhcbpT6/RYziXOYVT+SeJt2tggm/eLhOg==}
     dependencies:
       '@antfu/utils': 0.5.0
       defu: 5.0.1
       jiti: 1.12.15
-      vitest: 0.2.8_@vitest+ui@0.5.8
+      vitest: 0.2.8_@vitest+ui@0.6.0
     transitivePeerDependencies:
       - '@vitest/ui'
       - c8
@@ -9086,24 +9086,6 @@ packages:
       - less
       - sass
       - stylus
-    dev: true
-
-  /unconfig/0.3.1_@vitest+ui@0.5.9:
-    resolution: {integrity: sha512-aXy9NkXWcwMgzkiLBoKJP1frd1/h0z/uPgwpISre2RYG5pN4yaRFNGhcbpT6/RYziXOYVT+SeJt2tggm/eLhOg==}
-    dependencies:
-      '@antfu/utils': 0.5.0
-      defu: 5.0.1
-      jiti: 1.12.15
-      vitest: 0.2.8_@vitest+ui@0.5.9
-    transitivePeerDependencies:
-      - '@vitest/ui'
-      - c8
-      - happy-dom
-      - jsdom
-      - less
-      - sass
-      - stylus
-    dev: false
 
   /unctx/1.0.2:
     resolution: {integrity: sha512-qxRfnQZWJqkg180JeOCJEvtjj5/7wnWVqkNHln8muY5/z8kMWBFqikFBPwIPCQrZJ+jtaSWkVHJkuHUAXls6zw==}
@@ -9144,11 +9126,11 @@ packages:
     resolution: {integrity: sha512-hAZsKq7Yy11Zu1DE0OzWjw7nnLZmJZYTDZZyEFHZdUhV8FkH5MCfoU1XMaxXovpyW5nq5scPqq0ZDP9Zyl04oQ==}
     engines: {node: '>= 10.0.0'}
 
-  /unocss/0.26.4_@vitest+ui@0.5.8:
+  /unocss/0.26.4_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-OHF8KkveKY/k8jvFOebOoL3zSkXWtx1QgKoYk/VTm+AVzw+c1+mbLMCZ9pJWGFxGTo/VQ3PpBgmmu5jXqJm3iA==}
     engines: {node: '>=14'}
     dependencies:
-      '@unocss/cli': 0.26.4_@vitest+ui@0.5.8
+      '@unocss/cli': 0.26.4_@vitest+ui@0.6.0
       '@unocss/core': 0.26.4
       '@unocss/preset-attributify': 0.26.4
       '@unocss/preset-icons': 0.26.4
@@ -9160,7 +9142,7 @@ packages:
       '@unocss/reset': 0.26.4
       '@unocss/transformer-directives': 0.26.4
       '@unocss/transformer-variant-group': 0.26.4
-      '@unocss/vite': 0.26.4_@vitest+ui@0.5.8
+      '@unocss/vite': 0.26.4_@vitest+ui@0.6.0
     transitivePeerDependencies:
       - '@vitest/ui'
       - c8
@@ -9456,11 +9438,11 @@ packages:
       webpack-virtual-modules: 0.4.3
     dev: false
 
-  /unrouted/0.3.5_@vitest+ui@0.5.9:
+  /unrouted/0.3.5_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-np3EPuVvu7r/PaP3uZQF5JE7Nhokojoa34nrZxf7WjidhtLK9HRuskQq35FZN7GzR4E/WO/PHrwLgK4Ysw24TA==}
     dependencies:
-      '@unrouted/core': 0.3.5_@vitest+ui@0.5.9
-      '@unrouted/preset-unrouted': 0.3.5_@vitest+ui@0.5.9
+      '@unrouted/core': 0.3.5_@vitest+ui@0.6.0
+      '@unrouted/preset-unrouted': 0.3.5_@vitest+ui@0.6.0
       h3: 0.3.9
     transitivePeerDependencies:
       - '@vitest/ui'
@@ -9673,7 +9655,7 @@ packages:
       - stylus
     dev: true
 
-  /vitest/0.2.8_@vitest+ui@0.5.8:
+  /vitest/0.2.8_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-shzN00EkvUNzP8cSykhrOCwB7MlGxcwJNjOtHhbayvexGnqX6oLOfEp3OQixWdDJpEaqNiE3Lcie0WsOnoQ3Og==}
     engines: {node: '>=14.14.0'}
     hasBin: true
@@ -9694,7 +9676,7 @@ packages:
     dependencies:
       '@types/chai': 4.3.0
       '@types/chai-subset': 1.3.3
-      '@vitest/ui': 0.5.8
+      '@vitest/ui': 0.6.0
       chai: 4.3.6
       local-pkg: 0.4.1
       tinypool: 0.1.2
@@ -9704,40 +9686,6 @@ packages:
       - less
       - sass
       - stylus
-    dev: true
-
-  /vitest/0.2.8_@vitest+ui@0.5.9:
-    resolution: {integrity: sha512-shzN00EkvUNzP8cSykhrOCwB7MlGxcwJNjOtHhbayvexGnqX6oLOfEp3OQixWdDJpEaqNiE3Lcie0WsOnoQ3Og==}
-    engines: {node: '>=14.14.0'}
-    hasBin: true
-    peerDependencies:
-      '@vitest/ui': '*'
-      c8: '*'
-      happy-dom: '*'
-      jsdom: '*'
-    peerDependenciesMeta:
-      '@vitest/ui':
-        optional: true
-      c8:
-        optional: true
-      happy-dom:
-        optional: true
-      jsdom:
-        optional: true
-    dependencies:
-      '@types/chai': 4.3.0
-      '@types/chai-subset': 1.3.3
-      '@vitest/ui': 0.5.9
-      chai: 4.3.6
-      local-pkg: 0.4.1
-      tinypool: 0.1.2
-      tinyspy: 0.2.10
-      vite: 2.8.3
-    transitivePeerDependencies:
-      - less
-      - sass
-      - stylus
-    dev: false
 
   /vitest/0.6.0_@vitest+ui@0.6.0:
     resolution: {integrity: sha512-FuIkLHCQxz6rO35MQROUtVdwcBaYnt198YpPGIrJXmuNHGolfPbrZIiwpD7bek0OiETxuphK3+KR5oJ5Qi1g5A==}
