@@ -76,7 +76,7 @@
     "mlly": "^0.3.17",
     "object-hash": "^3.0.0",
     "puppeteer-cluster": "^0.23.0",
-    "puppeteer-core": "^13.4.0",
+    "puppeteer-core": "^13.5.0",
     "regexparam": "^2.0.0",
     "sanitize-filename": "^1.6.3",
     "sitemapper": "^3.2.2",
@@ -88,11 +88,11 @@
     "ws": "^8.5.0"
   },
   "devDependencies": {
-    "lodash-es": "^4.17.15",
     "@types/fs-extra": "^9.0.13",
     "@types/lodash-es": "^4.17.6",
     "@types/node": "^17.0.21",
     "@types/object-hash": "^2.2.1",
-    "@types/ws": "^8.5.1"
+    "@types/ws": "^8.5.1",
+    "lodash-es": "^4.17.15"
   }
 }
