@@ -1,7 +1,7 @@
 import { URL } from 'url'
 import type { ResolvedUserConfig, UserConfig } from '@unlighthouse/core'
 import { pick } from 'lodash-es'
-import defu from 'defu'
+import { defu } from 'defu'
 import { fetchUrlRaw, normaliseHost, useLogger } from '@unlighthouse/core'
 import { handleError } from './errors'
 import type { CiOptions, CliOptions } from './types'

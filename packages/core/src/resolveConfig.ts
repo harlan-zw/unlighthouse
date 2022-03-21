@@ -1,5 +1,5 @@
 import { join } from 'path'
-import defu from 'defu'
+import { defu, createDefu } from 'defu'
 import { pick } from 'lodash-es'
 import { pathExists } from 'fs-extra'
 import { Launcher } from 'chrome-launcher'
@@ -21,7 +21,7 @@ import { useLogger } from './logger'
 export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUserConfig> = async(userConfig) => {
   const logger = useLogger()
   // create our own config resolution
-  const merger = defu.extend((obj, key, value) => {
+  const merger = createDefu((obj, key, value) => {
     // avoid joining arrays, instead replace them
     if ((key === 'supportedExtensions' || key === 'onlyCategories') && value) {
       obj[key] = value

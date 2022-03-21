@@ -41,9 +41,9 @@
   "dependencies": {
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
-    "defu": "^5.0.1",
+    "defu": "^6.0.0",
     "lodash-es": "^4.17.21",
-    "unplugin": "^0.4.0"
+    "unplugin": "^0.5.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
