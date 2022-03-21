@@ -51,7 +51,7 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
           unlighthouse.setSiteUrl(host)
           await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
 
-          logger.success(`⛵  Start Unlighthouse - http://${host}/__unlighthouse`)
+          logger.success(`⛵  Start Unlighthouse - ${server.url}`)
         }, 300)
       })
 
