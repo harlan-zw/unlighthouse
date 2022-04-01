@@ -31,6 +31,10 @@
   },
   "main": "dist/cli.mjs",
   "module": "dist/cli.mjs",
+  "bin": {
+    "unlighthouse": "bin/unlighthouse.cjs",
+    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+  },
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
