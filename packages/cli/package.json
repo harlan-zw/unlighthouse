@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/cli",
   "type": "module",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "CLI for Unlighthouse",
   "keywords": [
     "unlighthouse",
