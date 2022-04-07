@@ -36,8 +36,8 @@
     "stub": "unbuild --stub"
   },
   "dependencies": {
-    "@unlighthouse/core": "link:../core",
-    "@unlighthouse/server": "link:../server",
+    "@unlighthouse/core": "workspace:*",
+    "@unlighthouse/server": "workspace:*",
     "cac": "^6.7.12",
     "consola": "^2.15.3",
     "defu": "^6.0.0",

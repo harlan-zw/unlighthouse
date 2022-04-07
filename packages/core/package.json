@@ -60,7 +60,7 @@
   "dependencies": {
     "@nuxt/cli": "^2.15.8",
     "@nuxt/utils": "^2.15.8",
-    "@unlighthouse/client": "link:../client",
+    "@unlighthouse/client": "workspace:*",
     "@unrouted/core": "^0.4.11",
     "@unrouted/fetch": "^0.4.11",
     "@unrouted/plugins": "^0.4.11",
