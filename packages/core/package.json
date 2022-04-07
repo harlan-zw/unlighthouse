@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/core",
   "type": "module",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Scan your entire website with Google Lighthouse.",
   "keywords": [
     "lighthouse",

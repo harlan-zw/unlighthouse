@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/nuxt",
   "type": "module",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Nuxt module for Unlighthouse",
   "keywords": [
     "unlighthouse",

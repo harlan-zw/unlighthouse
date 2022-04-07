@@ -1,6 +1,6 @@
 {
   "name": "unlighthouse",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
   "keywords": [
     "lighthouse",
