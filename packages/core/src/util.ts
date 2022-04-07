@@ -4,10 +4,10 @@ import https from 'https'
 import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
-import { hasProtocol, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import { hasProtocol, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 import type { AxiosResponse } from 'axios'
 import axios from 'axios'
-import type { NormalisedRoute, RouteDefinition, UnlighthouseRouteReport } from './types'
+import type { NormalisedRoute, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
 
 export const ReportArtifacts = {
@@ -18,18 +18,19 @@ export const ReportArtifacts = {
   reportJson: 'lighthouse.json',
 }
 
-export const provideRoutes = (routes: RouteDefinition[]) => {
-  const unlighthouse = useUnlighthouse()
-  if (unlighthouse?.hooks)
-    unlighthouse?.hooks.callHook('route-definitions-provided', routes)
-}
-
 /**
  * Removes leading and trailing slashes from a string.
  *
  * @param s
  */
 export const trimSlashes = (s: string) => withoutLeadingSlash(withoutTrailingSlash(s))
+
+/**
+ * Ensures slashes on both sides of a string
+ *
+ * @param s
+ */
+export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s))
 
 /**
  * Sanitises the provided URL for use as a file system path.
