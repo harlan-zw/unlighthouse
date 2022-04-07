@@ -173,7 +173,7 @@ export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
 }
 
 export const defaultConfig: UserConfig = {
-  routerPrefix: '',
+  routerPrefix: '/',
   apiPrefix: '/api',
   cache: true,
   client: {

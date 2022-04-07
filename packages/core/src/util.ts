@@ -4,7 +4,7 @@ import https from 'https'
 import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
-import { hasProtocol, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import { hasProtocol, joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 import type { AxiosResponse } from 'axios'
 import axios from 'axios'
 import type { NormalisedRoute, UnlighthouseRouteReport } from './types'
@@ -30,7 +30,7 @@ export const trimSlashes = (s: string) => withoutLeadingSlash(withoutTrailingSla
  *
  * @param s
  */
-export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s))
+export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s)) || '/'
 
 /**
  * Sanitises the provided URL for use as a file system path.
@@ -80,7 +80,7 @@ export const normaliseHost = (host: string) => {
  */
 export const createTaskReportFromRoute
   = (route: NormalisedRoute): UnlighthouseRouteReport => {
-    const { runtimeSettings } = useUnlighthouse()
+    const { runtimeSettings, resolvedConfig } = useUnlighthouse()
 
     const reportId = hashPathName(route.path)
 
@@ -97,7 +97,7 @@ export const createTaskReportFromRoute
       route,
       reportId,
       artifactPath: reportPath,
-      artifactUrl: `${runtimeSettings.clientUrl}/${join('reports', sanitiseUrlForFilePath(route.path))}`,
+      artifactUrl: joinURL(resolvedConfig.routerPrefix, 'reports', sanitiseUrlForFilePath(route.path)),
     }
   }
 
