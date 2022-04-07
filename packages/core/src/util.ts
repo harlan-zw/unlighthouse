@@ -96,7 +96,7 @@ export const createTaskReportFromRoute
       route,
       reportId,
       artifactPath: reportPath,
-      artifactUrl: `/${join('reports', sanitiseUrlForFilePath(route.path))}`,
+      artifactUrl: `${runtimeSettings.clientUrl}/${join('reports', sanitiseUrlForFilePath(route.path))}`,
     }
   }
 
