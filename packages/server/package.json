@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/server",
   "type": "module",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Server for Unlighthouse",
   "keywords": [
     "unlighthouse",
