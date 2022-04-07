@@ -119,8 +119,8 @@ importers:
 
   packages/cli:
     specifiers:
-      '@unlighthouse/core': link:../core
-      '@unlighthouse/server': link:../server
+      '@unlighthouse/core': workspace:*
+      '@unlighthouse/server': workspace:*
       cac: ^6.7.12
       consola: ^2.15.3
       defu: ^6.0.0
@@ -146,7 +146,7 @@ importers:
       '@types/lodash': ^4.14.181
       '@types/node': ^17.0.23
       '@types/three': ^0.139.0
-      '@unlighthouse/core': link:../core
+      '@unlighthouse/core': workspace:*
       '@vitejs/plugin-vue': ^2.3.1
       '@vue/compiler-sfc': ^3.2.31
       '@vueuse/core': ^8.2.5
@@ -205,7 +205,7 @@ importers:
       '@types/node': ^17.0.23
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.5.3
-      '@unlighthouse/client': link:../client
+      '@unlighthouse/client': workspace:*
       '@unrouted/core': ^0.4.11
       '@unrouted/fetch': ^0.4.11
       '@unrouted/plugins': ^0.4.11
@@ -279,7 +279,7 @@ importers:
 
   packages/server:
     specifiers:
-      '@unlighthouse/core': link:../core
+      '@unlighthouse/core': workspace:*
       h3: ^0.6.0
       listhen: ^0.2.6
     dependencies:
@@ -289,9 +289,9 @@ importers:
 
   packages/unlighthouse:
     specifiers:
-      '@unlighthouse/cli': link:../cli
-      '@unlighthouse/client': link:../client
-      '@unlighthouse/core': link:../core
+      '@unlighthouse/cli': workspace:*
+      '@unlighthouse/client': workspace:*
+      '@unlighthouse/core': workspace:*
     dependencies:
       '@unlighthouse/cli': link:../cli
       '@unlighthouse/client': link:../client
@@ -1183,7 +1183,7 @@ packages:
       std-env: 3.0.1
       table: 6.8.0
       ufo: 0.8.3
-      unenv: 0.4.3
+      unenv: 0.4.6
       unstorage: 0.3.3
       vue-bundle-renderer: 0.3.5
       vue-server-renderer: 2.6.14
@@ -8788,20 +8788,6 @@ packages:
   /undici/4.16.0:
     resolution: {integrity: sha512-tkZSECUYi+/T1i4u+4+lwZmQgLXd4BLGlrc7KZPcLIW7Jpq99+Xpc30ONv7nS6F5UNOxp/HBZSSL9MafUrvJbw==}
     engines: {node: '>=12.18'}
-
-  /unenv/0.4.3:
-    resolution: {integrity: sha512-S1H/L2w3uZ7uD+hYpC+UTPlMhjKMn7SBExT6PNRzXRhMc2Vy+KPcnR7ktrzGWu+8r6hs/Vi/7Sw7cXP72L03oA==}
-    dependencies:
-      buffer: 6.0.3
-      defu: 5.0.1
-      events: 3.3.0
-      inherits: 2.0.4
-      mime: 2.6.0
-      node-fetch: 3.2.3
-      process: 0.11.10
-      upath: 2.0.1
-      util: 0.12.4
-    dev: true
 
   /unenv/0.4.6:
     resolution: {integrity: sha512-zu6y8SGki8o+7lTAXkvk6Xm9iHjvBxyIxhF7DP94KzSEhkkCtD7/Mbpx/qaM4nRIEnVuIzhYwauP2DWecictmQ==}
