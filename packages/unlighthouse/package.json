@@ -29,10 +29,9 @@
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git"
   },
-  "files": [
-    "dist",
-    "*.d.ts"
-  ],
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
@@ -40,8 +39,10 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
+  "files": [
+    "dist",
+    "*.d.ts"
+  ],
   "bin": {
     "unlighthouse": "bin/unlighthouse.cjs",
     "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
@@ -58,7 +59,6 @@
       "optional": true
     }
   },
-  "types": "index.d.ts",
   "dependencies": {
     "@unlighthouse/cli": "workspace:*",
     "@unlighthouse/client": "workspace:*",

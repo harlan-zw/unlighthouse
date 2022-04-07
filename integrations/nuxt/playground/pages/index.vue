@@ -1,3 +1,6 @@
+<script setup>
+</script>
+
 <template>
   <div>
     Nuxt module !
@@ -6,6 +9,3 @@
     </nuxt-link>
   </div>
 </template>
-
-<script setup>
-</script>

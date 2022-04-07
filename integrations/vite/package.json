@@ -1,5 +1,6 @@
 {
   "name": "@unlighthouse/vite",
+  "type": "module",
   "version": "0.3.7",
   "description": "Vite plugin for Unlighthouse",
   "keywords": [
@@ -11,26 +12,26 @@
     "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
   "license": "MIT",
+  "author": "Harlan Wilton <harlan@harlanzw.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
     "directory": "packages/vite"
   },
   "funding": "https://github.com/sponsors/harlan-zw",
-  "author": "Harlan Wilton <harlan@harlanzw.com>",
-  "sideEffects": false,
-  "type": "module",
-  "files": [
-    "dist"
-  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
       "import": "./dist/index.mjs"
     }
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
@@ -39,7 +40,6 @@
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*"
   },
-  "types": "./dist/index.d.ts",
   "devDependencies": {
     "vite": "^2.9.1"
   }

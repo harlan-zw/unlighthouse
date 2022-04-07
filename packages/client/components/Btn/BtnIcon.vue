@@ -1,3 +1,13 @@
+<script>
+export default {
+  props: {
+    href: {
+      type: String,
+      required: false,
+    },
+  },
+}
+</script>
 <template>
   <a
     v-if="href"
@@ -19,13 +29,3 @@
     <slot />
   </button>
 </template>
-<script>
-export default {
-  props: {
-    href: {
-      type: String,
-      required: false,
-    },
-  },
-}
-</script>

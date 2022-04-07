@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { defu, createDefu } from 'defu'
+import { createDefu, defu } from 'defu'
 import { pick } from 'lodash-es'
 import { pathExists } from 'fs-extra'
 import { Launcher } from 'chrome-launcher'

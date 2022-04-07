@@ -1,5 +1,6 @@
 {
   "name": "@unlighthouse/server",
+  "type": "module",
   "version": "0.3.7",
   "description": "Server for Unlighthouse",
   "keywords": [
@@ -15,20 +16,19 @@
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git"
   },
-  "type": "module",
-  "files": [
-    "dist",
-    "*.d.ts"
-  ],
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
       "import": "./dist/index.mjs"
     }
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "*.d.ts"
+  ],
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"

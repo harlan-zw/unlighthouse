@@ -1,5 +1,6 @@
 {
   "name": "@unlighthouse/cli",
+  "type": "module",
   "version": "0.3.7",
   "description": "CLI for Unlighthouse",
   "keywords": [
@@ -16,11 +17,8 @@
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
     "directory": "packages/core"
   },
-  "type": "module",
-  "files": [
-    "dist",
-    "*.d.ts"
-  ],
+  "main": "dist/cli.mjs",
+  "module": "dist/cli.mjs",
   "exports": {
     ".": {
       "import": "./dist/cli.mjs"
@@ -29,8 +27,10 @@
       "import": "./dist/ci.mjs"
     }
   },
-  "main": "dist/cli.mjs",
-  "module": "dist/cli.mjs",
+  "files": [
+    "dist",
+    "*.d.ts"
+  ],
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"

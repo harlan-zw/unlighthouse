@@ -11,11 +11,11 @@
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git"
   },
+  "main": "dist/index.html",
   "files": [
     "dist",
     "*.d.ts"
   ],
-  "main": "dist/index.html",
   "scripts": {
     "stub": "pnpm run build",
     "dev": "vite .",

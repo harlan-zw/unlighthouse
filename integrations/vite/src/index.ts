@@ -10,15 +10,14 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
 
     configResolved(config) {
       // only run in development and serve
-      if (config.command !== 'serve' || config.isProduction) {
+      if (config.command !== 'serve' || config.isProduction)
         bail = true
-      }
     },
 
     async configureServer(viteServer: ViteDevServer) {
-      if (bail) {
+      if (bail)
         return
-      }
+
       const { createUnlighthouse, useLogger, useUnlighthouse } = await import('@unlighthouse/core')
       const { createServer } = await import('@unlighthouse/server')
 

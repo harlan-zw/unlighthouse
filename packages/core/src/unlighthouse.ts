@@ -147,8 +147,8 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       resolvedConfig.root,
       resolvedConfig.outputPath,
       // fix windows not supporting : in paths
-      $site.hostname.replace(':', '꞉') ,
-      runtimeSettings.configCacheKey || ''
+      $site.hostname.replace(':', '꞉'),
+      runtimeSettings.configCacheKey || '',
     )
     if (provider?.name === 'ci')
       outputPath = join(resolvedConfig.root, resolvedConfig.outputPath)
@@ -207,9 +207,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,
     }
 
-    ctx.api = await createApi()
-    // make the router use our router
-    app.use(ctx.api)
+    ctx.api = await createApi(app)
 
     if (ws) {
       server.on('upgrade', (request: IncomingMessage, socket) => {

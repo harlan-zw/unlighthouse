@@ -1,5 +1,6 @@
 {
   "name": "@unlighthouse/nuxt",
+  "type": "module",
   "version": "0.3.7",
   "description": "Nuxt module for Unlighthouse",
   "keywords": [
@@ -13,25 +14,24 @@
     "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
   "license": "MIT",
+  "author": "Harlan Wilton <harlan@harlanzw.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
     "directory": "integrations/nuxt"
   },
   "funding": "https://github.com/sponsors/harlan-zw",
-  "author": "Harlan Wilton <harlan@harlanzw.com>",
-  "type": "module",
-  "files": [
-    "dist"
-  ],
+  "main": "./dist/module.cjs",
+  "types": "./dist/types.d.ts",
   "exports": {
     ".": {
       "import": "./dist/module.mjs",
       "require": "./dist/module.cjs"
     }
   },
-  "main": "./dist/module.cjs",
-  "types": "./dist/types.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "nuxi prepare playground && nuxt-module-build",
     "prepack": "nuxt-module-build",
