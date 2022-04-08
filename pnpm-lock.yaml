@@ -206,11 +206,11 @@ importers:
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.5.3
       '@unlighthouse/client': workspace:../client
-      '@unrouted/core': ^0.4.14
-      '@unrouted/fetch': ^0.4.14
-      '@unrouted/plugins': ^0.4.14
-      '@unrouted/preset-api': ^0.4.14
-      '@unrouted/preset-node': 0.4.14
+      '@unrouted/core': ^0.4.15
+      '@unrouted/fetch': ^0.4.15
+      '@unrouted/plugins': ^0.4.15
+      '@unrouted/preset-api': ^0.4.15
+      '@unrouted/preset-node': 0.4.15
       axios: ^0.26.1
       chalk: ^4.1.2
       cheerio: ^1.0.0-rc.10
@@ -240,11 +240,11 @@ importers:
       '@nuxt/cli': 2.15.8
       '@nuxt/utils': 2.15.8
       '@unlighthouse/client': link:../client
-      '@unrouted/core': 0.4.14_vite@2.9.1
-      '@unrouted/fetch': 0.4.14
-      '@unrouted/plugins': 0.4.14_vite@2.9.1
-      '@unrouted/preset-api': 0.4.14_vite@2.9.1
-      '@unrouted/preset-node': 0.4.14_vite@2.9.1
+      '@unrouted/core': 0.4.15_vite@2.9.1
+      '@unrouted/fetch': 0.4.15
+      '@unrouted/plugins': 0.4.15_vite@2.9.1
+      '@unrouted/preset-api': 0.4.15_vite@2.9.1
+      '@unrouted/preset-node': 0.4.15_vite@2.9.1
       axios: 0.26.1
       chalk: 4.1.2
       cheerio: 1.0.0-rc.10
@@ -1894,8 +1894,8 @@ packages:
       magic-string: 0.26.1
     dev: true
 
-  /@unrouted/core/0.4.14_vite@2.9.1:
-    resolution: {integrity: sha512-cyzK3hRRj0sU5y0DCMQ4Ea8eKmQ1wHwYcEhbqVMYE1hs8FhUXFD7bxmrDHqynK8KMLEz5S2oZyFf0uTH2CqSKA==}
+  /@unrouted/core/0.4.15_vite@2.9.1:
+    resolution: {integrity: sha512-oO6h2S9NGTNYMAI/gXrjmkYXfSaN4k1dEWdzNIniaThNXDdaj256QjiqYdVDIhK30x3bzu5+xAUlT/tyOznm0w==}
     dependencies:
       consola: 2.15.3
       defu: 6.0.0
@@ -1914,16 +1914,16 @@ packages:
       - webpack
     dev: false
 
-  /@unrouted/fetch/0.4.14:
-    resolution: {integrity: sha512-BPICPxogRcWLvPemGLDRGERO6JTDYO+kKAoC3QS86slkzVjfcO6Wzg0TAnB+MJ7ic6ntFy0Avx+kipUahd8s0Q==}
+  /@unrouted/fetch/0.4.15:
+    resolution: {integrity: sha512-GMVuf+FaKFI/giSO3afzMdjl5WHgc8CnRhnZ0ZDL2X9YC+6WwhceztT6NuUnVQfM6gSDuZwQ44kWxG/BxmUmcQ==}
     dependencies:
       ohmyfetch: 0.4.15
     dev: false
 
-  /@unrouted/plugins/0.4.14_vite@2.9.1:
-    resolution: {integrity: sha512-G9RjrglZ6ELLGVpl3+7OxAWx5PVTNNgRxdh8UG82DJagWmr1i6a7rw48lqbqfw4t+ARLjsdWXArEBBtFDTgI7A==}
+  /@unrouted/plugins/0.4.15_vite@2.9.1:
+    resolution: {integrity: sha512-qd+D41AuB/9APEzyAJohBzu0XC+989WcIjM6sePB0ZdunU00Uu8GFy+exiUQAKIzXn/ah/KfnBY8nUowKNBGXw==}
     dependencies:
-      '@unrouted/core': 0.4.14_vite@2.9.1
+      '@unrouted/core': 0.4.15_vite@2.9.1
       fs-extra: 10.0.1
       globby: 13.1.1
       mlly: 0.5.1
@@ -1938,10 +1938,10 @@ packages:
       - webpack
     dev: false
 
-  /@unrouted/preset-api/0.4.14_vite@2.9.1:
-    resolution: {integrity: sha512-/NzzRdwZ4SfAz3RJpbLBnGAGRXU16VCIxWISwhiignOgB7J2OHa7kRtlrgsNg3eibjUaJW7hUFv3Oi7k0IsAYA==}
+  /@unrouted/preset-api/0.4.15_vite@2.9.1:
+    resolution: {integrity: sha512-2L0YDCQanQfpvZxI6/uQJk+1Yt9cGvcomfkUNQ5E2u0Sn1W16mRvXX36DntVDKOt9uM5XdlklsgQq3exAfoPaA==}
     dependencies:
-      '@unrouted/core': 0.4.14_vite@2.9.1
+      '@unrouted/core': 0.4.15_vite@2.9.1
       cors: 2.8.5
     transitivePeerDependencies:
       - esbuild
@@ -1950,11 +1950,11 @@ packages:
       - webpack
     dev: false
 
-  /@unrouted/preset-node/0.4.14_vite@2.9.1:
-    resolution: {integrity: sha512-n7bw8Xmvugp1ZWGzLFvBOokmc3g37WqoFAY8qcbKc5ub/8Cvbn/O3gpz5O5lONMyuQ8pCpfO93v8x00ths/fmg==}
+  /@unrouted/preset-node/0.4.15_vite@2.9.1:
+    resolution: {integrity: sha512-QU9Hg8IKeL8zVBUp/75LYZm/eKXIfWR9BjXHI5A3uEysZ93vwcx3NJE1r1UH+T7EBXTukEKx7Sa1TDavcuX+TQ==}
     dependencies:
-      '@unrouted/core': 0.4.14_vite@2.9.1
-      '@unrouted/plugins': 0.4.14_vite@2.9.1
+      '@unrouted/core': 0.4.15_vite@2.9.1
+      '@unrouted/plugins': 0.4.15_vite@2.9.1
       compression: 1.7.4
       defu: 6.0.0
       h3: 0.7.1

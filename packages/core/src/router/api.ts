@@ -40,8 +40,7 @@ export const createApi = async(h3: App) => {
     presets: [
       presetApi(),
       presetNode({
-        generateTypes: true,
-        generateTypesPath: join(resolvedConfig.root, 'unrouted.d.ts'),
+        generateTypes: false,
       }),
     ],
   })
