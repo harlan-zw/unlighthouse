@@ -18,7 +18,6 @@
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "sideEffects": false,
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
@@ -30,12 +29,13 @@
     "dist",
     "*.d.ts"
   ],
+  "sideEffects": false,
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
   },
   "dependencies": {
-    "@unlighthouse/core": "*",
+    "@unlighthouse/core": "workspace:../core",
     "h3": "^0.6.0",
     "listhen": "^0.2.6"
   }

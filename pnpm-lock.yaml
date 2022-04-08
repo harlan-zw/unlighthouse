@@ -119,8 +119,8 @@ importers:
 
   packages/cli:
     specifiers:
-      '@unlighthouse/core': '*'
-      '@unlighthouse/server': '*'
+      '@unlighthouse/core': workspace:../core
+      '@unlighthouse/server': workspace:../server
       cac: ^6.7.12
       consola: ^2.15.3
       defu: ^6.0.0
@@ -146,7 +146,7 @@ importers:
       '@types/lodash': ^4.14.181
       '@types/node': ^17.0.23
       '@types/three': ^0.139.0
-      '@unlighthouse/core': '*'
+      '@unlighthouse/core': workspace:../core
       '@vitejs/plugin-vue': ^2.3.1
       '@vue/compiler-sfc': ^3.2.31
       '@vueuse/core': ^8.2.5
@@ -205,7 +205,7 @@ importers:
       '@types/node': ^17.0.23
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.5.3
-      '@unlighthouse/client': '*'
+      '@unlighthouse/client': workspace:../client
       '@unrouted/core': ^0.4.11
       '@unrouted/fetch': ^0.4.11
       '@unrouted/plugins': ^0.4.11
@@ -279,7 +279,7 @@ importers:
 
   packages/server:
     specifiers:
-      '@unlighthouse/core': '*'
+      '@unlighthouse/core': workspace:../core
       h3: ^0.6.0
       listhen: ^0.2.6
     dependencies:
@@ -289,9 +289,9 @@ importers:
 
   packages/unlighthouse:
     specifiers:
-      '@unlighthouse/cli': '*'
-      '@unlighthouse/client': '*'
-      '@unlighthouse/core': '*'
+      '@unlighthouse/cli': workspace:../cli
+      '@unlighthouse/client': workspace:../client
+      '@unlighthouse/core': workspace:../core
     dependencies:
       '@unlighthouse/cli': link:../cli
       '@unlighthouse/client': link:../client

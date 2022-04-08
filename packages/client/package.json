@@ -36,7 +36,7 @@
     "@types/lodash": "^4.14.181",
     "@types/node": "^17.0.23",
     "@types/three": "^0.139.0",
-    "@unlighthouse/core": "*",
+    "@unlighthouse/core": "workspace:../core",
     "@vitejs/plugin-vue": "^2.3.1",
     "@vue/compiler-sfc": "^3.2.31",
     "@vueuse/core": "^8.2.5",
