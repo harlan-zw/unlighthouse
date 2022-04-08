@@ -1,6 +1,5 @@
 {
   "name": "@unlighthouse/cli",
-  "type": "module",
   "version": "0.3.12",
   "description": "CLI for Unlighthouse",
   "keywords": [
@@ -27,6 +26,7 @@
       "import": "./dist/ci.mjs"
     }
   },
+  "sideEffects": false,
   "files": [
     "dist",
     "*.d.ts"

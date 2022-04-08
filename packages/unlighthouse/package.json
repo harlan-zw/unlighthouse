@@ -39,6 +39,7 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "sideEffects": false,
   "files": [
     "dist",
     "*.d.ts"
@@ -46,6 +47,9 @@
   "bin": {
     "unlighthouse": "bin/unlighthouse.cjs",
     "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+  },
+  "engines": {
+    "node": ">=14"
   },
   "scripts": {
     "build": "unbuild",

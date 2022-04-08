@@ -1,6 +1,5 @@
 {
   "name": "@unlighthouse/core",
-  "type": "module",
   "version": "0.3.12",
   "description": "Scan your entire website with Google Lighthouse.",
   "keywords": [
@@ -26,10 +25,11 @@
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
-    },
-    "./*": "./*"
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
   },
+  "sideEffects": false,
   "files": [
     "dist",
     "*.d.ts"
