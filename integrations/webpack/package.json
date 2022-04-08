@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/webpack",
-  "version": "0.3.20",
+  "version": "0.3.21",
   "description": "Webpack plugin for Unlighthouse",
   "keywords": [
     "unlighthouse",
