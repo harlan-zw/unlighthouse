@@ -206,11 +206,11 @@ importers:
       '@types/object-hash': ^2.2.1
       '@types/ws': ^8.5.3
       '@unlighthouse/client': workspace:../client
-      '@unrouted/core': ^0.4.11
-      '@unrouted/fetch': ^0.4.11
-      '@unrouted/plugins': ^0.4.11
-      '@unrouted/preset-api': ^0.4.11
-      '@unrouted/preset-node': 0.4.11
+      '@unrouted/core': ^0.4.13
+      '@unrouted/fetch': ^0.4.13
+      '@unrouted/plugins': ^0.4.13
+      '@unrouted/preset-api': ^0.4.13
+      '@unrouted/preset-node': 0.4.13
       axios: ^0.26.1
       chalk: ^4.1.2
       cheerio: ^1.0.0-rc.10
@@ -240,11 +240,11 @@ importers:
       '@nuxt/cli': 2.15.8
       '@nuxt/utils': 2.15.8
       '@unlighthouse/client': link:../client
-      '@unrouted/core': 0.4.11_vite@2.9.1
-      '@unrouted/fetch': 0.4.11
-      '@unrouted/plugins': 0.4.11_vite@2.9.1
-      '@unrouted/preset-api': 0.4.11
-      '@unrouted/preset-node': 0.4.11
+      '@unrouted/core': 0.4.13_vite@2.9.1
+      '@unrouted/fetch': 0.4.13
+      '@unrouted/plugins': 0.4.13_vite@2.9.1
+      '@unrouted/preset-api': 0.4.13_vite@2.9.1
+      '@unrouted/preset-node': 0.4.13_vite@2.9.1
       axios: 0.26.1
       chalk: 4.1.2
       cheerio: 1.0.0-rc.10
@@ -2018,12 +2018,12 @@ packages:
       magic-string: 0.26.1
     dev: true
 
-  /@unrouted/core/0.4.11_vite@2.9.1:
-    resolution: {integrity: sha512-HRuoIdNuurUCF84e8mORERATbhe7jMK8zAQYbYABQwniHfZu7QZy7Qvm7I1BXPZSb7dn9F7HJr77RiPctLrGWg==}
+  /@unrouted/core/0.4.13_vite@2.9.1:
+    resolution: {integrity: sha512-ilcSWX3xDMWMlhCS2HFvXbusqBqD6mVOzmCEwvSNZ8A4TuuGlZobM+Ynh8bUyum6Jp/qe03f8cSWbenH5Yq5DA==}
     dependencies:
       consola: 2.15.3
       defu: 6.0.0
-      h3: 0.5.7
+      h3: 0.7.1
       hookable: 5.1.1
       mlly: 0.5.1
       ohash: 0.1.0
@@ -2038,16 +2038,16 @@ packages:
       - webpack
     dev: false
 
-  /@unrouted/fetch/0.4.11:
-    resolution: {integrity: sha512-v+Nz6mB0Lt0hYJHWPN0IR9oZX7jpJnrCswl+4pkUfnUWpY+x8xSOgmDvunnHF03vJeydVqIKnQ14MQ1xp8N+bA==}
+  /@unrouted/fetch/0.4.13:
+    resolution: {integrity: sha512-+rFblYS3cikbj4n9eL1f8EK2W7LW+0DQkAGdaAugsDmYCQWJmcpFWlQdT7yZI5BFOuaythnVuXG7P8xoCfY9Ew==}
     dependencies:
       ohmyfetch: 0.4.15
     dev: false
 
-  /@unrouted/plugins/0.4.11_vite@2.9.1:
-    resolution: {integrity: sha512-JMRDRObb6L4jUo1ER2nKh7hrEHoQG3VdpLvsT0frZaC06DqhL57mvqLBtjZmyO9HbItVnunxqosLAPrJ9e1uDQ==}
+  /@unrouted/plugins/0.4.13_vite@2.9.1:
+    resolution: {integrity: sha512-fpPEB92bqPoCzH/22WW3U3TETaiX5qRnHn+zob/Gfa0B/w2DPB0Ek5N6ggdXbEE7F+igGURyvTxC9h/ydSp+Tw==}
     dependencies:
-      '@unrouted/core': link:../core
+      '@unrouted/core': 0.4.13_vite@2.9.1
       fs-extra: 10.0.1
       globby: 13.1.1
       mlly: 0.5.1
@@ -2062,24 +2062,35 @@ packages:
       - webpack
     dev: false
 
-  /@unrouted/preset-api/0.4.11:
-    resolution: {integrity: sha512-nVc4gAqcqaQp4TSioPmoMfhbqSC8hPx4telasTrTCdSbBwkoUGcDOHIJWkQF1/H0pJ7b5hgTyCYz40ncny9Iow==}
+  /@unrouted/preset-api/0.4.13_vite@2.9.1:
+    resolution: {integrity: sha512-DFDR8c1PRhybxxLmscRZgBhT5F6Ej2D/++rhg6Ox7Q8QTpXkfsACgbsLdLo2jticGRplPZ3tjtjeIcPXBj4STg==}
     dependencies:
-      '@unrouted/core': link:../core
+      '@unrouted/core': 0.4.13_vite@2.9.1
       cors: 2.8.5
+    transitivePeerDependencies:
+      - esbuild
+      - rollup
+      - vite
+      - webpack
     dev: false
 
-  /@unrouted/preset-node/0.4.11:
-    resolution: {integrity: sha512-6tNrn/a0d9CIC2WH9ZEWYfY9FD86ceswJBacg8M6bl7aUREi8c2PFfvtk24p8QPqzutBgJE8hN9PTWaw98sf2w==}
+  /@unrouted/preset-node/0.4.13_vite@2.9.1:
+    resolution: {integrity: sha512-FRs5KgNivSjTcJorqAyWfZlpSFfTwBr0IfHG9IM8wSeSPK0CBSB9EhqeQmxHzTY4wNd/GOHnt3MYVLI5MA/74A==}
     dependencies:
-      '@unrouted/core': link:../core
-      '@unrouted/plugins': link:../plugins
+      '@unrouted/core': 0.4.13_vite@2.9.1
+      '@unrouted/plugins': 0.4.13_vite@2.9.1
       compression: 1.7.4
       defu: 6.0.0
-      h3: 0.5.7
+      h3: 0.7.1
       pathe: 0.2.0
       sirv: 2.0.2
       ufo: 0.8.3
+    transitivePeerDependencies:
+      - esbuild
+      - rollup
+      - supports-color
+      - vite
+      - webpack
     dev: false
 
   /@vercel/nft/0.18.0:
@@ -4731,7 +4742,7 @@ packages:
     engines: {node: ^12.20 || >= 14.13}
     dependencies:
       node-domexception: 1.0.0
-      web-streams-polyfill: 3.2.0
+      web-streams-polyfill: 3.2.1
 
   /file-entry-cache/6.0.1:
     resolution: {integrity: sha512-7Gps/XWymbLk2QLYK4NzpMOrYjMhdIxXuIvy2QBsLE6ljuodKvdkWs/cpyJJ3CVIVpH0Oi1Hvg1ovbMzLdFBBg==}
@@ -5089,15 +5100,6 @@ packages:
       ufo: 0.7.11
     dev: true
 
-  /h3/0.5.7:
-    resolution: {integrity: sha512-q5nFn0KBEQ1sWoSvs35GRMgTkV8xetaziBKwOZyPxGcwOtz/TM9EKfuvGuRQ2nP+KRiy2DjloNd//xlDRlpvag==}
-    dependencies:
-      cookie-es: 0.5.0
-      destr: 1.1.1
-      radix3: 0.1.1
-      ufo: 0.7.11
-    dev: false
-
   /h3/0.6.0:
     resolution: {integrity: sha512-3maHdy2KGjl4ecsSetf+nQMRf2gaAlml6L0Y8rSBqOiJ/+Dz640XHwZIiIXQVzyo0f/n7u47nwnqf5t7m2t46A==}
     dependencies:
@@ -5114,7 +5116,6 @@ packages:
       destr: 1.1.1
       radix3: 0.1.1
       ufo: 0.7.11
-    dev: true
 
   /hable/3.0.0:
     resolution: {integrity: sha512-7+G0/2/COR8pwteYFqHIVYfQpuEiO2HXwJrhCBJVgrNrl9O5eaUoJVDGXUJX+0RpGncNVTuestexjk1afj01wQ==}
@@ -6075,8 +6076,8 @@ packages:
       yallist: 4.0.0
     dev: false
 
-  /lru-cache/7.7.3:
-    resolution: {integrity: sha512-WY9wjJNQt9+PZilnLbuFKM+SwDull9+6IAguOrarOMoOHTcJ9GnXSO11+Gw6c7xtDkBkthR57OZMtZKYr+1CEw==}
+  /lru-cache/7.8.0:
+    resolution: {integrity: sha512-AmXqneQZL3KZMIgBpaPTeI6pfwh+xQ2vutMsyqOu1TBdEXFZgpG/80wuJ531w2ZN7TI0/oc8CPxzh/DKQudZqg==}
     engines: {node: '>=12'}
 
   /lru_map/0.3.3:
@@ -7935,7 +7936,7 @@ packages:
     engines: {node: ^10.0.0 || ^12.0.0 || ^14.0.0 || >=16.0.0}
     hasBin: true
     dependencies:
-      lru-cache: 7.7.3
+      lru-cache: 7.8.0
 
   /send/0.17.2:
     resolution: {integrity: sha512-UJYB6wFSJE3G00nEivR5rgWp8c2xXvJ3OPWPhmuteU0IKj8nKbG3DrjiOmLwpnHGYWAVwA69zmTm++YG0Hmwww==}
@@ -9472,8 +9473,8 @@ packages:
       defaults: 1.0.3
     dev: true
 
-  /web-streams-polyfill/3.2.0:
-    resolution: {integrity: sha512-EqPmREeOzttaLRm5HS7io98goBgZ7IVz79aDvqjD0kYXLtFZTc0T/U6wHTPKyIjb+MdN7DFIIX6hgdBEpWmfPA==}
+  /web-streams-polyfill/3.2.1:
+    resolution: {integrity: sha512-e0MO3wdXWKrLbL0DgGnUV7WHVuw9OUvL4hjgnPkIeEvESk74gAITi5G606JtZPp39cd8HA9VQzCIvA49LpPN5Q==}
     engines: {node: '>= 8'}
 
   /webidl-conversions/3.0.1:
