@@ -35,7 +35,7 @@
     "stub": "unbuild --stub"
   },
   "dependencies": {
-    "@unlighthouse/core": "workspace:*",
+    "@unlighthouse/core": "*",
     "h3": "^0.6.0",
     "listhen": "^0.2.6"
   }
