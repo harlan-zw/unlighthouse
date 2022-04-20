@@ -33,22 +33,21 @@
     "dist"
   ],
   "scripts": {
-    "build": "nuxi prepare playground && nuxt-module-build",
+    "build": "nuxi prepare ../../examples/nuxt3 && nuxt-module-build",
     "prepack": "nuxt-module-build",
-    "play": "nuxi dev playground",
-    "play:build": "nuxi build playground",
-    "stub": "nuxt-module-build --stub && nuxi prepare playground"
+    "play": "nuxi dev ../../examples/nuxt3",
+    "play:build": "nuxi build ../../examples/nuxt3",
+    "stub": "nuxt-module-build --stub && nuxi prepare ../../examples/nuxt3"
   },
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "^0.3.1",
     "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
-    "@unlighthouse/core": "workspace:*",
-    "@unlighthouse/server": "workspace:*",
-    "@unlighthouse/vite": "workspace:*",
-    "@unlighthouse/webpack": "workspace:*"
+    "@unlighthouse/core": "link:../../packages/core",
+    "@unlighthouse/server": "link:../../packages/server",
+    "@unlighthouse/vite": "link:../../integrations/vite",
+    "@unlighthouse/webpack": "link:../../integrations/webpack"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "latest",
-    "nuxt": "npm:nuxt3@latest"
+    "@nuxt/module-builder": "latest"
   }
 }

@@ -1,0 +1,13 @@
+{
+  "name": "nuxt3-playground",
+  "private": true,
+  "scripts": {
+    "build": "nuxi prepare",
+    "dev": "nuxi dev",
+    "stub": "nuxi prepare"
+  },
+  "devDependencies": {
+    "@unlighthouse/nuxt": "link:../../integrations/nuxt",
+    "nuxt": "npm:nuxt3@latest"
+  }
+}
