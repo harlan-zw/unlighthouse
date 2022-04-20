@@ -49,7 +49,6 @@
   },
   "devDependencies": {
     "@nuxt/module-builder": "latest",
-    "@nuxt/schema": "npm:@nuxt/schema-edge@latest",
-    "nuxt3": "^3.0.0-27489614.315e5b5"
+    "nuxt": "npm:nuxt3@latest"
   }
 }
