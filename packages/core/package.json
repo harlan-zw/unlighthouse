@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/core",
-  "version": "0.3.21",
+  "version": "0.3.22",
   "description": "Scan your entire website with Google Lighthouse.",
   "keywords": [
     "lighthouse",
