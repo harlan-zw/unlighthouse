@@ -62,7 +62,7 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
           if (typeof address === 'string')
             host = address as string
           else if (address?.port)
-            host = `localhost:${address.port}`
+            host = `http://localhost:${address.port}`
 
           if (host)
             setHost(host)
