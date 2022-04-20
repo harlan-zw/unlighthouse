@@ -48,6 +48,7 @@
     "@unlighthouse/webpack": "link:../../integrations/webpack"
   },
   "devDependencies": {
+    "nuxt": "npm:nuxt3@latest",
     "@nuxt/module-builder": "latest"
   }
 }
