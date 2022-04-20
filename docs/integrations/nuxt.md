@@ -44,7 +44,7 @@ When you run your Nuxt app, it will give you the URL of client, only once you vi
 import { defineNuxtConfig } from 'nuxt3'
 
 export default defineNuxtConfig({
-  buildModules: [
+  modules: [
     '@unlighthouse/nuxt',
   ],
 })
