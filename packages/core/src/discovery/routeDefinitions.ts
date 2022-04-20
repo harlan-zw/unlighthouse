@@ -1,8 +1,8 @@
 import { join } from 'path'
-import { createRoutes } from '@nuxt/utils'
 import type { RouteDefinition } from '../types'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
+import { createRoutes } from '../util/createRoutes'
 
 /**
  * Using the configuration discovery details will try and resolve the route definitions using the file system.
@@ -59,7 +59,7 @@ export const discoverRouteDefinitions = async() => {
     pagesDir: dir,
     routeNameSplitter: '-',
     supportedExtensions,
-    trailingSlash: undefined,
+    trailingSlash: false,
   }).map((route: RouteDefinition) => {
     //
     const pathNodes = route.path.split('/')

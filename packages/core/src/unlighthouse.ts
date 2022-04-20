@@ -9,7 +9,6 @@ import { createHooks } from 'hookable'
 import { loadConfig } from 'unconfig'
 import { defu } from 'defu'
 import objectHash from 'object-hash'
-import { successBox } from '@nuxt/cli/dist/cli-index.js'
 import { createCommonJS, resolvePath } from 'mlly'
 import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
@@ -26,6 +25,7 @@ import { resolveUserConfig } from './resolveConfig'
 import { AppName, ClientPkg } from './constants'
 import { createLogger } from './logger'
 import { normaliseHost } from './util'
+import { successBox } from './util/cliFormatting'
 
 const engineContext = createContext<UnlighthouseContext>()
 
