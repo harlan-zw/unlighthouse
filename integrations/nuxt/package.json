@@ -42,10 +42,10 @@
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "^0.3.1",
     "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
-    "@unlighthouse/core": "link:../../packages/core",
-    "@unlighthouse/server": "link:../../packages/server",
-    "@unlighthouse/vite": "link:../../integrations/vite",
-    "@unlighthouse/webpack": "link:../../integrations/webpack"
+    "@unlighthouse/core": "workspace:*",
+    "@unlighthouse/server": "workspace:*",
+    "@unlighthouse/vite": "workspace:*",
+    "@unlighthouse/webpack": "workspace:*"
   },
   "devDependencies": {
     "nuxt": "npm:nuxt3@latest",
