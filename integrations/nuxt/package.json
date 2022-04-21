@@ -48,7 +48,7 @@
     "@unlighthouse/webpack": "workspace:*"
   },
   "devDependencies": {
-    "nuxt": "npm:nuxt3@latest",
-    "@nuxt/module-builder": "latest"
+    "@nuxt/module-builder": "latest",
+    "nuxt": "npm:nuxt3@latest"
   }
 }
