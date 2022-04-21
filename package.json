@@ -48,7 +48,7 @@
     "vite": "^2.9.5",
     "vitest": "^0.9.3"
   },
-  "version": "0.3.23",
+  "version": "0.3.24",
   "dependencies": {
     "unbuild": "^0.7.4"
   }
