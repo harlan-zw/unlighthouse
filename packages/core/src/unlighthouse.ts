@@ -92,7 +92,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
   // path to the lighthouse worker file
   runtimeSettings.lighthouseProcessPath = await resolvePath(
     join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
-  )
+  ).catch(() => {})
   // ts module in stub mode, not sure why extensions won't resolve
   if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
     runtimeSettings.lighthouseProcessPath = await resolvePath(
