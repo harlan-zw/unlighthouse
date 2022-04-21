@@ -1,66 +1,67 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-    <style>
-    button[disabled] {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    </style>
-    <script data-unlighthouse-inline>
-    window.__unlighthouse_static = true
-    // boilerplate options to run the client by itself
-    </script>
-    <script data-unlighthouse-payload src="/assets/payload.js"></script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" media="'(prefers-color-scheme:no-preference)'">
-    <link rel="icon" href="/assets/logo-dark.svg" type="image/svg+xml" media="'(prefers-color-scheme:dark)'">
-    <link rel="icon" href="/assets/logo-light.svg" type="image/svg+xml" media="'(prefers-color-scheme:light)'">
+  <style>
+  button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  </style>
 
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Serif+Display:ital@0;1&display=swap">
-    <title>Unlighthouse</title>
-    <style>
-    /* scroll bars courtesy of https://antfu.me/ */
-    :root {
-        --c-bg: #fff;
-        --c-scrollbar: #eee;
-        --c-scrollbar-hover: #bbb
-    }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" media="(prefers-color-scheme:no-preference)">
+  <link rel="icon" href="/assets/logo-dark.svg" type="image/svg+xml" media="(prefers-color-scheme:dark)">
+  <link rel="icon" href="/assets/logo-light.svg" type="image/svg+xml" media="(prefers-color-scheme:light)">
 
-    html.dark {
-        --c-bg: #050505;
-        --c-scrollbar: #111;
-        --c-scrollbar-hover: #222
-    }
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Serif+Display:ital@0;1&display=swap">
+  <title>Unlighthouse</title>
+  <script data-unlighthouse-inline>
+  window.__unlighthouse_static = true
+  // boilerplate options to run the client by itself
+  </script>
+  <script data-unlighthouse-payload src="/assets/payload.js"></script>
+  <style>
+  /* scroll bars courtesy of https://antfu.me/ */
+  :root {
+    --c-bg: #fff;
+    --c-scrollbar: #eee;
+    --c-scrollbar-hover: #bbb
+  }
 
-    * {
-        scrollbar-color: var(--c-scrollbar) var(--c-bg)
-    }
+  html.dark {
+    --c-bg: #050505;
+    --c-scrollbar: #111;
+    --c-scrollbar-hover: #222
+  }
 
-    ::-webkit-scrollbar {
-        width: 6px
-    }
+  * {
+    scrollbar-color: var(--c-scrollbar) var(--c-bg)
+  }
 
-    ::-webkit-scrollbar:horizontal {
-        height: 6px
-    }
+  ::-webkit-scrollbar {
+    width: 6px
+  }
 
-    ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
-        background: var(--c-bg);
-        border-radius: 10px
-    }
+  ::-webkit-scrollbar:horizontal {
+    height: 6px
+  }
 
-    ::-webkit-scrollbar-thumb {
-        background: var(--c-scrollbar);
-        border-radius: 10px
-    }
+  ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
+    background: var(--c-bg);
+    border-radius: 10px
+  }
 
-    ::-webkit-scrollbar-thumb:hover {
-        background: var(--c-scrollbar-hover)
-    }
-    </style>
+  ::-webkit-scrollbar-thumb {
+    background: var(--c-scrollbar);
+    border-radius: 10px
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--c-scrollbar-hover)
+  }
+  </style>
 </head>
 <body class="dark:bg-teal-900">
 <div id="app"></div>

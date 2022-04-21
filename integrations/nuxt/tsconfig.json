@@ -1,5 +1,5 @@
 {
-  "extends": "./playground/.nuxt/tsconfig.json",
+  "extends": "../../examples/nuxt3/.nuxt/tsconfig.json",
   "compilerOptions": {
     "paths": {
       "@unlighthouse/core": ["../../packages/core/src"],

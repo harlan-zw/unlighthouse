@@ -1,6 +1,6 @@
 {
   "name": "unlighthouse",
-  "version": "0.3.7",
+  "version": "0.3.23",
   "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
   "keywords": [
     "lighthouse",
@@ -29,10 +29,9 @@
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git"
   },
-  "files": [
-    "dist",
-    "*.d.ts"
-  ],
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
@@ -40,11 +39,17 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
+  "files": [
+    "dist",
+    "*.d.ts"
+  ],
   "bin": {
     "unlighthouse": "bin/unlighthouse.cjs",
     "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=14"
   },
   "scripts": {
     "build": "unbuild",
@@ -58,10 +63,9 @@
       "optional": true
     }
   },
-  "types": "index.d.ts",
   "dependencies": {
-    "@unlighthouse/cli": "workspace:*",
-    "@unlighthouse/client": "workspace:*",
-    "@unlighthouse/core": "workspace:*"
+    "@unlighthouse/cli": "workspace:../cli",
+    "@unlighthouse/client": "workspace:../client",
+    "@unlighthouse/core": "workspace:../core"
   }
 }

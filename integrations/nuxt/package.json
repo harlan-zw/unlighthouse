@@ -1,6 +1,7 @@
 {
   "name": "@unlighthouse/nuxt",
-  "version": "0.3.7",
+  "type": "module",
+  "version": "0.3.23",
   "description": "Nuxt module for Unlighthouse",
   "keywords": [
     "unlighthouse",
@@ -13,43 +14,41 @@
     "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
   "license": "MIT",
+  "author": "Harlan Wilton <harlan@harlanzw.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
     "directory": "integrations/nuxt"
   },
   "funding": "https://github.com/sponsors/harlan-zw",
-  "author": "Harlan Wilton <harlan@harlanzw.com>",
-  "type": "module",
-  "files": [
-    "dist"
-  ],
+  "main": "./dist/module.cjs",
+  "types": "./dist/types.d.ts",
   "exports": {
     ".": {
       "import": "./dist/module.mjs",
       "require": "./dist/module.cjs"
     }
   },
-  "main": "./dist/module.cjs",
-  "types": "./dist/types.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "nuxi prepare playground && nuxt-module-build",
+    "build": "nuxi prepare ../../examples/nuxt3 && nuxt-module-build",
     "prepack": "nuxt-module-build",
-    "play": "nuxi dev playground",
-    "play:build": "nuxi build playground",
-    "stub": "nuxt-module-build --stub && nuxi prepare playground"
+    "play": "nuxi dev ../../examples/nuxt3",
+    "play:build": "nuxi build ../../examples/nuxt3",
+    "stub": "nuxt-module-build --stub && nuxi prepare ../../examples/nuxt3"
   },
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "^0.3.1",
     "@nuxt/kit": "npm:@nuxt/kit-edge@latest",
-    "@unlighthouse/core": "workspace:*",
-    "@unlighthouse/server": "workspace:*",
-    "@unlighthouse/vite": "workspace:*",
-    "@unlighthouse/webpack": "workspace:*"
+    "@unlighthouse/core": "link:../../packages/core",
+    "@unlighthouse/server": "link:../../packages/server",
+    "@unlighthouse/vite": "link:../../integrations/vite",
+    "@unlighthouse/webpack": "link:../../integrations/webpack"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "latest",
-    "@nuxt/schema": "npm:@nuxt/schema-edge@latest",
-    "nuxt3": "^3.0.0-27460489.53fbca7"
+    "nuxt": "npm:nuxt3@latest",
+    "@nuxt/module-builder": "latest"
   }
 }

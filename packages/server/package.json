@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/server",
-  "version": "0.3.7",
+  "version": "0.3.23",
   "description": "Server for Unlighthouse",
   "keywords": [
     "unlighthouse",
@@ -15,27 +15,28 @@
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git"
   },
-  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist",
     "*.d.ts"
   ],
-  "exports": {
-    ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
-    }
-  },
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "sideEffects": false,
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
   },
   "dependencies": {
-    "@unlighthouse/core": "workspace:*",
-    "h3": "^0.4.2",
-    "listhen": "^0.2.6"
+    "@unlighthouse/core": "workspace:../core",
+    "h3": "^0.7.1",
+    "listhen": "^0.2.8"
   }
 }

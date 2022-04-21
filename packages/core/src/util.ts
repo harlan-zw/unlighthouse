@@ -4,10 +4,10 @@ import https from 'https'
 import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
-import { hasProtocol, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import { hasProtocol, joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 import type { AxiosResponse } from 'axios'
 import axios from 'axios'
-import type { NormalisedRoute, RouteDefinition, UnlighthouseRouteReport } from './types'
+import type { NormalisedRoute, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
 
 export const ReportArtifacts = {
@@ -18,18 +18,19 @@ export const ReportArtifacts = {
   reportJson: 'lighthouse.json',
 }
 
-export const provideRoutes = (routes: RouteDefinition[]) => {
-  const unlighthouse = useUnlighthouse()
-  if (unlighthouse?.hooks)
-    unlighthouse?.hooks.callHook('route-definitions-provided', routes)
-}
-
 /**
  * Removes leading and trailing slashes from a string.
  *
  * @param s
  */
 export const trimSlashes = (s: string) => withoutLeadingSlash(withoutTrailingSlash(s))
+
+/**
+ * Ensures slashes on both sides of a string
+ *
+ * @param s
+ */
+export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s)) || '/'
 
 /**
  * Sanitises the provided URL for use as a file system path.
@@ -79,7 +80,7 @@ export const normaliseHost = (host: string) => {
  */
 export const createTaskReportFromRoute
   = (route: NormalisedRoute): UnlighthouseRouteReport => {
-    const { runtimeSettings } = useUnlighthouse()
+    const { runtimeSettings, resolvedConfig } = useUnlighthouse()
 
     const reportId = hashPathName(route.path)
 
@@ -96,7 +97,7 @@ export const createTaskReportFromRoute
       route,
       reportId,
       artifactPath: reportPath,
-      artifactUrl: `/${join('reports', sanitiseUrlForFilePath(route.path))}`,
+      artifactUrl: joinURL(resolvedConfig.routerPrefix, 'reports', sanitiseUrlForFilePath(route.path)),
     }
   }
 
@@ -105,7 +106,8 @@ export const base64ToBuffer = (dataURI: string) => {
 }
 
 export const formatBytes = (bytes: number, decimals = 2) => {
-  if (bytes === 0) return '0 Bytes'
+  if (bytes === 0)
+    return '0 Bytes'
 
   const k = 1024
   const dm = decimals < 0 ? 0 : decimals

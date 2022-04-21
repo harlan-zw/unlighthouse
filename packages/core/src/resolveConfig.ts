@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { defu, createDefu } from 'defu'
+import { createDefu, defu } from 'defu'
 import { pick } from 'lodash-es'
 import { pathExists } from 'fs-extra'
 import { Launcher } from 'chrome-launcher'
@@ -7,7 +7,7 @@ import puppeteer from 'puppeteer-core'
 import { resolve } from 'mlly'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { defaultConfig } from './constants'
-import { normaliseHost } from './util'
+import { normaliseHost, withSlashes } from './util'
 import { useLogger } from './logger'
 
 /**
@@ -80,6 +80,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       }, config.lighthouseOptions.screenEmulation || {})
     }
   }
+
+  if (config.routerPrefix)
+    config.routerPrefix = withSlashes(config.routerPrefix)
 
   // if user is using the default chrome binary options
   if (!config.puppeteerOptions?.executablePath && !config.puppeteerClusterOptions?.puppeteer) {

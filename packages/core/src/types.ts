@@ -4,6 +4,7 @@ import type { $URL } from 'ufo'
 import type { LH } from 'lighthouse'
 import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
+import type { App } from 'h3'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
@@ -716,7 +717,7 @@ export interface ScanMeta {
 export interface ServerContextArg {
   url: string
   server: http.Server | https.Server
-  app: { use: any }
+  app: App
 }
 
 /**

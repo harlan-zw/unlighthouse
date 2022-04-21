@@ -1,4 +1,4 @@
-import {defineConfig} from 'vitepress'
+import { defineConfig } from 'vitepress'
 import type MarkdownIt from 'markdown-it'
 
 export default defineConfig({
@@ -16,13 +16,13 @@ export default defineConfig({
     ['link', { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml', media: '(prefers-color-scheme:no-preference)' }],
     ['link', { rel: 'icon', href: '/logo-dark.svg', type: 'image/svg+xml', media: '(prefers-color-scheme:dark)' }],
     ['link', { rel: 'icon', href: '/logo-light.svg', type: 'image/svg+xml', media: '(prefers-color-scheme:light)' }],
-    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Serif+Display:ital@0;1&display=swap'}]
+    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Serif+Display:ital@0;1&display=swap' }],
   ],
   markdown: {
     config(md) {
       md.use((md: MarkdownIt) => {
         const fence = md.renderer.rules.fence!
-        // @ts-ignore
+        // @ts-expect-error misc args
         md.renderer.rules.fence = (...args) => {
           const [tokens, idx] = args
           const token = tokens[idx]
@@ -72,15 +72,15 @@ export default defineConfig({
       { text: 'Config', link: '/config/' },
       {
         text: 'Twitter',
-        link: 'https://twitter.com/harlan_zw'
+        link: 'https://twitter.com/harlan_zw',
       },
       {
         text: 'Demo',
-        link: 'https://inspect.unlighthouse.dev/'
+        link: 'https://inspect.unlighthouse.dev/',
       },
       {
         text: 'Discord',
-        link: 'https://unlighthouse.dev/chat'
+        link: 'https://unlighthouse.dev/chat',
       },
     ],
 
@@ -94,85 +94,85 @@ export default defineConfig({
           children: [
             {
               text: 'Introduction',
-              link: '/guide/'
+              link: '/guide/',
             },
             {
               text: 'How it works',
-              link: '/guide/how-it-works'
+              link: '/guide/how-it-works',
             },
-          ]
+          ],
         },
         {
           text: 'Guide',
           children: [
             {
               text: 'Configuring Unlighthouse',
-              link: '/guide/config'
+              link: '/guide/config',
             },
             {
               text: 'Configure Google Lighthouse',
-              link: '/guide/lighthouse'
+              link: '/guide/lighthouse',
             },
             {
               text: 'Configure Puppeteer',
-              link: '/guide/puppeteer'
+              link: '/guide/puppeteer',
             },
             {
               text: 'Change Scan Device',
-              link: '/guide/device'
+              link: '/guide/device',
             },
             {
               text: 'Handling Large Sites',
-              link: '/guide/large-sites'
+              link: '/guide/large-sites',
             },
             {
               text: 'Improving Accuracy',
-              link: '/guide/improving-accuracy'
+              link: '/guide/improving-accuracy',
             },
             {
               text: 'Providing Route Definitions',
-              link: '/guide/route-definitions'
+              link: '/guide/route-definitions',
             },
             {
               text: 'Handling SPAs',
-              link: '/guide/spa'
+              link: '/guide/spa',
             },
             {
               text: 'URL Discovery',
-              link: '/guide/url-discovery'
+              link: '/guide/url-discovery',
             },
             {
               text: 'Modifying Client',
-              link: '/guide/client'
+              link: '/guide/client',
             },
-          ]
+          ],
         },
         {
           text: 'Integrations',
           children: [
             {
               text: 'CLI',
-              link: '/integrations/cli'
+              link: '/integrations/cli',
             },
             {
               text: 'Continuous Integration',
-              link: '/integrations/ci'
+              link: '/integrations/ci',
             },
             {
               text: 'Nuxt.js',
-              link: '/integrations/nuxt'
+              link: '/integrations/nuxt',
             },
             {
               text: 'Vite',
-              link: '/integrations/vite'
+              link: '/integrations/vite',
             },
             {
               text: 'Webpack',
-              link: '/integrations/webpack'
+              link: '/integrations/webpack',
             },
-          ]
+          ],
         },
-      ]
-    }
-  }
+      ],
+    },
+  },
 })

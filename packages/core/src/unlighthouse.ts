@@ -9,7 +9,6 @@ import { createHooks } from 'hookable'
 import { loadConfig } from 'unconfig'
 import { defu } from 'defu'
 import objectHash from 'object-hash'
-import { successBox } from '@nuxt/cli/dist/cli-index.js'
 import { createCommonJS, resolvePath } from 'mlly'
 import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
@@ -26,6 +25,7 @@ import { resolveUserConfig } from './resolveConfig'
 import { AppName, ClientPkg } from './constants'
 import { createLogger } from './logger'
 import { normaliseHost } from './util'
+import { successBox } from './util/cliFormatting'
 
 const engineContext = createContext<UnlighthouseContext>()
 
@@ -147,8 +147,8 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       resolvedConfig.root,
       resolvedConfig.outputPath,
       // fix windows not supporting : in paths
-      $site.hostname.replace(':', '꞉') ,
-      runtimeSettings.configCacheKey || ''
+      $site.hostname.replace(':', '꞉'),
+      runtimeSettings.configCacheKey || '',
     )
     if (provider?.name === 'ci')
       outputPath = join(resolvedConfig.root, resolvedConfig.outputPath)
@@ -207,9 +207,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,
     }
 
-    ctx.api = await createApi()
-    // make the router use our router
-    app.use(ctx.api)
+    ctx.api = await createApi(app)
 
     if (ws) {
       server.on('upgrade', (request: IncomingMessage, socket) => {

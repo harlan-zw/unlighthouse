@@ -4,7 +4,7 @@
 
 [build]
   publish = "docs/.vitepress/dist"
-  command = "npx pnpm i --store=node_modules/.pnpm-store && npm run docs:build"
+  command = "npm install -g pnpm && pnpm i --store=node_modules/.pnpm-store && pnpm run build:pkg && pnpm run build:integrations && pnpm run build:docs"
 
 [[redirects]]
   from = "/chat"

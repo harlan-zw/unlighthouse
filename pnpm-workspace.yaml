@@ -1,4 +1,4 @@
 packages:
-  - packages/*
-  - integrations/*
+  - 'packages/*'
+  - 'integrations/*'
   - docs

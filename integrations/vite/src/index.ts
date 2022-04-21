@@ -10,15 +10,14 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
 
     configResolved(config) {
       // only run in development and serve
-      if (config.command !== 'serve' || config.isProduction) {
+      if (config.command !== 'serve' || config.isProduction)
         bail = true
-      }
     },
 
     async configureServer(viteServer: ViteDevServer) {
-      if (bail) {
+      if (bail)
         return
-      }
+
       const { createUnlighthouse, useLogger, useUnlighthouse } = await import('@unlighthouse/core')
       const { createServer } = await import('@unlighthouse/server')
 
@@ -63,7 +62,7 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
           if (typeof address === 'string')
             host = address as string
           else if (address?.port)
-            host = `localhost:${address.port}`
+            host = `http://localhost:${address.port}`
 
           if (host)
             setHost(host)
