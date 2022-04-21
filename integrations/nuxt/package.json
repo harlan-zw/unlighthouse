@@ -33,7 +33,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "nuxi prepare ../../examples/nuxt3 && nuxt-module-build",
+    "build": "nuxt-module-build --stub && nuxi prepare ../../examples/nuxt3 && nuxt-module-build",
     "prepack": "nuxt-module-build",
     "play": "nuxi dev ../../examples/nuxt3",
     "play:build": "nuxi build ../../examples/nuxt3",
