@@ -1,5 +1,5 @@
 import { defineNuxtConfig } from 'nuxt'
-import MyModule from '@unlighthouse/nuxt'
+import MyModule from '../../integrations/nuxt'
 
 export default defineNuxtConfig({
   modules: [
