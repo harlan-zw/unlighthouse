@@ -26,6 +26,11 @@
       "import": "./dist/ci.mjs"
     }
   },
+  "main": "dist/cli.mjs",
+  "module": "dist/cli.mjs",
+  "bin": {
+    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+  },
   "files": [
     "dist",
     "*.d.ts"
