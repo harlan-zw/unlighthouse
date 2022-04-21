@@ -1,6 +1,6 @@
-import open from 'open'
 import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
+import open from 'better-opn'
 import { pickOptions, validateHost, validateOptions } from './util'
 import type { CliOptions } from './types'
 import createCli from './createCli'

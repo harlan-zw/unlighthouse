@@ -38,12 +38,12 @@
   "dependencies": {
     "@unlighthouse/core": "workspace:../core",
     "@unlighthouse/server": "workspace:../server",
+    "better-opn": "^3.0.2",
     "cac": "^6.7.12",
     "consola": "^2.15.3",
     "defu": "^6.0.0",
     "fs-extra": "^10.0.1",
     "globby": "^13.1.1",
-    "lodash-es": "^4.17.21",
-    "open": "^8.4.0"
+    "lodash-es": "^4.17.21"
   }
 }
