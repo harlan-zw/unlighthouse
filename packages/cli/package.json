@@ -16,8 +16,6 @@
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
     "directory": "packages/core"
   },
-  "main": "dist/cli.mjs",
-  "module": "dist/cli.mjs",
   "exports": {
     ".": {
       "import": "./dist/cli.mjs"
