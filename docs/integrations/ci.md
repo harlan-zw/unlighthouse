@@ -20,9 +20,9 @@ Unlighthouse aims to keep the installation size small, for this reason it depend
 To use Unlighthouse in a CI context, you'll need to install puppeteer alongside the cli.
 
 ```bash
-npm add @unlighthouse/cli puppeteer
-# yarn add @unlighthouse/cli puppeteer
-# pnpm add @unlighthouse/cli puppeteer
+npm install -g @unlighthouse/cli puppeteer
+# yarn global add @unlighthouse/cli puppeteer
+# pnpm install -g @unlighthouse/cli puppeteer
 ```
 
 ## Usage
