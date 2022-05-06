@@ -23,6 +23,7 @@ watch(isModalOpen, () => {
     showingModal.value = false
 })
 </script>
+
 <template>
   <btn-action v-if="value" title="Open full image" class="w-full" @click="openModal">
     <div class="w-full flex justify-between">

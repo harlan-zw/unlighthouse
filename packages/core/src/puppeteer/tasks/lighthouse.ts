@@ -71,7 +71,7 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
   }
 }
 
-export const runLighthouseTask: PuppeteerTask = async(props) => {
+export const runLighthouseTask: PuppeteerTask = async (props) => {
   const logger = useLogger()
   const { resolvedConfig, runtimeSettings, worker, hooks } = useUnlighthouse()
   const { page, data: routeReport } = props

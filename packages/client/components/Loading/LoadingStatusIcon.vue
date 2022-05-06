@@ -38,6 +38,7 @@ const label = computed(() => {
   }
 })
 </script>
+
 <template>
   <div class="inline-flex items-center">
     <div :class="[color]" class="rounded-full h-3 w-3 inline-block mr-1" />

@@ -56,7 +56,7 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.options.watch.push(unlighthouse.runtimeSettings.configFile)
 
     waitForDevServer()
-      .then(async({ listener }) => {
+      .then(async ({ listener }) => {
         const { setSiteUrl } = useUnlighthouse()
 
         setSiteUrl(listener.url)

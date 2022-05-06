@@ -13,7 +13,7 @@ import { extractSitemapRoutes } from './sitemap'
  * - sitemap: We will scan their sitemap.xml to discover all of their indexable URLs
  * - crawl: We process the root route and queue any discovered internal links
  */
-export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async() => {
+export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async () => {
   const logger = useLogger()
   const { resolvedConfig, hooks, worker, routeDefinitions } = useUnlighthouse()
 

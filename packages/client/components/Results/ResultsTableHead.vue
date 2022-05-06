@@ -2,7 +2,7 @@
 import type { UnlighthouseColumn } from '@unlighthouse/core'
 
 const props = defineProps<{
-  sorting: Record<string, 'desc'|'asc'|undefined>
+  sorting: Record<string, 'desc' | 'asc' | undefined>
   column: UnlighthouseColumn
 }>()
 
@@ -10,6 +10,7 @@ const emits = defineEmits<{
   (e: 'sort', key: string): void
 }>()
 </script>
+
 <template>
   <div
     :class="[`col-span-${column.cols || '2'}`, ...(column.classes ? column.classes : [])]"

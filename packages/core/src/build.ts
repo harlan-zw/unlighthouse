@@ -13,7 +13,7 @@ import { createScanMeta } from './data'
  *
  * An additional transforming is needed to modify the vite base URL which is a bit more involved.
  */
-export const generateClient = async(options: GenerateClientOptions = {}, unlighthouse?: UnlighthouseContext) => {
+export const generateClient = async (options: GenerateClientOptions = {}, unlighthouse?: UnlighthouseContext) => {
   const logger = useLogger()
   if (!unlighthouse)
     unlighthouse = useUnlighthouse()

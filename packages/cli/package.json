@@ -16,6 +16,8 @@
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
     "directory": "packages/core"
   },
+  "main": "dist/cli.mjs",
+  "module": "dist/cli.mjs",
   "exports": {
     ".": {
       "import": "./dist/cli.mjs"
@@ -24,15 +26,13 @@
       "import": "./dist/ci.mjs"
     }
   },
-  "main": "dist/cli.mjs",
-  "module": "dist/cli.mjs",
-  "bin": {
-    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
-  },
   "files": [
     "dist",
     "*.d.ts"
   ],
+  "bin": {
+    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+  },
   "sideEffects": false,
   "scripts": {
     "build": "unbuild",
@@ -45,7 +45,7 @@
     "cac": "^6.7.12",
     "consola": "^2.15.3",
     "defu": "^6.0.0",
-    "fs-extra": "^10.0.1",
+    "fs-extra": "^10.1.0",
     "globby": "^13.1.1",
     "lodash-es": "^4.17.21"
   }

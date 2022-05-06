@@ -10,7 +10,7 @@ declare module 'lighthouse' {
       /** The hostname to use for the debugging protocol, if manually connecting. */
       hostname?: string
       /** The level of logging to enable. */
-      logLevel?: 'silent'|'error'|'info'|'verbose'
+      logLevel?: 'silent' | 'error' | 'info' | 'verbose'
       /** The path to the config JSON. */
       configPath?: string
       /** Run the specified plugins. */
@@ -91,7 +91,7 @@ declare module 'lighthouse' {
         /** A description for the manual audits in the category. */
         manualDescription?: string
         /** The overall score of the category, the weighted average of all its audits. */
-        score: number|null
+        score: number | null
         /** An array of references to all the audit members of this category. */
         auditRefs: AuditRef[]
       }

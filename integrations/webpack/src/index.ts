@@ -10,7 +10,7 @@ import { createServer } from '@unlighthouse/server'
 
 const PLUGIN_NAME = 'unlighthouse:webpack'
 
-const setupWebpack = once(async(config: any, compiler: WebpackCompiler) => {
+const setupWebpack = once(async (config: any, compiler: WebpackCompiler) => {
   const logger = useLogger()
   logger.debug('Setting up unlighthouse webpack plugin.')
 
@@ -35,7 +35,7 @@ const setupWebpack = once(async(config: any, compiler: WebpackCompiler) => {
     worker.invalidateFile(resource)
   })
 
-  const ensureUnlighthouse = async() => {
+  const ensureUnlighthouse = async () => {
     const unlighthouse = useUnlighthouse()
     // has already been booted, possibly nuxt
     if (unlighthouse)
@@ -51,8 +51,8 @@ const setupWebpack = once(async(config: any, compiler: WebpackCompiler) => {
 
   const unlighthouse = await ensureUnlighthouse()
 
-  const setupServer = async() => {
-    const ensureServer = async(): Promise<http.Server | https.Server | any> => {
+  const setupServer = async () => {
+    const ensureServer = async (): Promise<http.Server | https.Server | any> => {
       // server may already be set
       if (unlighthouse.runtimeSettings.server)
         return unlighthouse.runtimeSettings.server
@@ -70,7 +70,7 @@ const setupWebpack = once(async(config: any, compiler: WebpackCompiler) => {
     await setupServer()
   }
   else {
-    unlighthouse.hooks.hookOnce('site-changed', async() => {
+    unlighthouse.hooks.hookOnce('site-changed', async () => {
       await setupServer()
     })
   }

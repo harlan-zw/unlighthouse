@@ -50,7 +50,7 @@ export function defineConfig(config: UserConfig) {
  * @param userConfig
  * @param provider
  */
-export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provider) => {
+export const createUnlighthouse = async (userConfig: UserConfig, provider?: Provider) => {
   const logger = createLogger(userConfig.debug)
   const { __dirname } = createCommonJS(import.meta.url)
   if (userConfig.root && !isAbsolute(userConfig.root))
@@ -59,7 +59,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     userConfig.root = process.cwd()
 
   logger.debug(`Starting Unlighthouse at root: \`${userConfig.root}\` cwd: ${process.cwd()}`)
-  let configFile: string|null = null
+  let configFile: string | null = null
   // support loading configuration files
   const configDefinition = await loadConfig<UserConfig>({
     cwd: userConfig.root,
@@ -137,7 +137,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
 
   ctx.worker = worker
 
-  ctx.setCiContext = async() => {
+  ctx.setCiContext = async () => {
     const $site = new $URL(resolvedConfig.site)
 
     logger.debug(`Setting Unlighthouse CI Context [Site: ${$site}]`)
@@ -168,7 +168,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     return ctx
   }
 
-  ctx.setSiteUrl = async(url: string) => {
+  ctx.setSiteUrl = async (url: string) => {
     const site = normaliseHost(url)
     ctx.runtimeSettings.siteUrl = new $URL(site)
 
@@ -189,7 +189,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     await hooks.callHook('site-changed', site)
   }
 
-  ctx.setServerContext = async({ url, server, app }) => {
+  ctx.setServerContext = async ({ url, server, app }) => {
     const $server = new $URL(url)
 
     logger.debug(`Setting Unlighthouse Server Context [Server: ${$server}]`)
@@ -231,7 +231,7 @@ export const createUnlighthouse = async(userConfig: UserConfig, provider?: Provi
     return ctx
   }
 
-  ctx.start = async() => {
+  ctx.start = async () => {
     if (worker.hasStarted()) {
       logger.debug('Attempted to start Unlighthouse, has already started.')
       return ctx

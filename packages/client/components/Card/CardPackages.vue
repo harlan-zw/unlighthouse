@@ -9,6 +9,7 @@ const props = defineProps<{
   }
 }>()
 </script>
+
 <template>
   <card>
     <div class="flex items-center">

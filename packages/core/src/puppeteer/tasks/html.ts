@@ -10,7 +10,7 @@ import { useLogger } from '../../logger'
 import { ReportArtifacts, fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
 import { normaliseRoute } from '../../router'
 
-export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false|string; message?: string; payload?: string }> = async(page, route) => {
+export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false | string; message?: string; payload?: string }> = async (page, route) => {
   const { worker, resolvedConfig, hooks } = useUnlighthouse()
 
   // if we don't need to execute any javascript we can do a less expensive fetch of the URL
@@ -93,7 +93,7 @@ export const processSeoMeta = ($: CheerioAPI): HTMLExtractPayload => {
   }
 }
 
-export const inspectHtmlTask: PuppeteerTask = async(props) => {
+export const inspectHtmlTask: PuppeteerTask = async (props) => {
   const { resolvedConfig, hooks, runtimeSettings } = useUnlighthouse()
   const { page, data: routeReport } = props
   const logger = useLogger()
@@ -142,7 +142,7 @@ export const inspectHtmlTask: PuppeteerTask = async(props) => {
   }
   const internalLinks: string[] = []
   const externalLinks: string[] = []
-  $('a').each(function() {
+  $('a').each(function () {
     const href = $(this).attr('href')
     // href must be provided and not be javascript
     if (!href || href.includes('javascript:') || href.includes('mailto:') || href === '#')

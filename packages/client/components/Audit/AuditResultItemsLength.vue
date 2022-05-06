@@ -10,6 +10,7 @@ const props = defineProps<{
   }
 }>()
 </script>
+
 <template>
   <div>
     <audit-result :value="{ score: value.score, displayValue: value.details.items.length }" />

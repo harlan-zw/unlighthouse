@@ -7,7 +7,7 @@ import { createRoutes } from '../util/createRoutes'
 /**
  * Using the configuration discovery details will try and resolve the route definitions using the file system.
  */
-export const discoverRouteDefinitions = async() => {
+export const discoverRouteDefinitions = async () => {
   const { resolvedConfig } = useUnlighthouse()
   if (!resolvedConfig.discovery)
     return []
@@ -19,7 +19,7 @@ export const discoverRouteDefinitions = async() => {
   // handle pages being in the root
   const dir = pagesDir === '' ? resolvedConfig.root.replace(`${resolvedConfig.root}/`, '') : pagesDir
 
-  const resolveFiles = async(dir: string) => {
+  const resolveFiles = async (dir: string) => {
     const { globby } = (await import('globby'))
 
     // can't wrap single extension in {} within regex

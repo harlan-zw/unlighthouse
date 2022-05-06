@@ -10,8 +10,8 @@ const props = defineProps<{
 const value = computed(() => {
   return get(props.report, props.column.key)
 })
-
 </script>
+
 <template>
   <div
     :class="[`col-span-${column.cols || '2'}`, ...(column.classes ? column.classes : [])]"

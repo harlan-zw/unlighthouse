@@ -5,7 +5,7 @@ import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import Unlighthouse from '@unlighthouse/vite'
 
-export default defineConfig(async() => {
+export default defineConfig(async () => {
   return {
     plugins: [
       Components({

@@ -8,7 +8,7 @@ import { useLogger } from '../logger'
  *
  * @param site
  */
-export const extractSitemapRoutes = async(site: string) => {
+export const extractSitemapRoutes = async (site: string) => {
   // make sure we're working from the host name
   site = new $URL(site).origin
   const unlighthouse = useUnlighthouse()

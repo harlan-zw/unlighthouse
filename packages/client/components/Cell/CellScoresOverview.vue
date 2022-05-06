@@ -7,6 +7,7 @@ const props = defineProps<{
   column: UnlighthouseColumn
 }>()
 </script>
+
 <template>
   <loading-status-icon v-if="!report.report && report.tasks.inspectHtmlTask === 'failed'" :status="report.tasks.inspectHtmlTask" />
   <loading-status-icon v-else-if="!report.report" :status="report.tasks.runLighthouseTask" />

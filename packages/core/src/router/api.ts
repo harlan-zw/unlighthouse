@@ -15,7 +15,7 @@ import { createScanMeta } from '../data'
  *
  * Internally, this uses unrouted which provides an elegant and batteries-packed solution.
  */
-export const createApi = async(h3: App) => {
+export const createApi = async (h3: App) => {
   const logger = useLogger()
   const { ws, resolvedConfig, runtimeSettings, hooks } = useUnlighthouse()
   const useReport = () => {

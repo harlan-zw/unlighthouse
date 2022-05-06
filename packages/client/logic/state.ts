@@ -11,7 +11,7 @@ import { useFetch } from './fetch'
 export const activeTab = ref(0)
 
 export const isModalOpen = ref<boolean>(false)
-export const iframeModalUrl = ref<string|null>()
+export const iframeModalUrl = ref<string | null>()
 export const isDebugModalOpen = ref<boolean>(false)
 
 export const closeIframeModal = () => {
@@ -80,7 +80,7 @@ export const fetchedScanMeta = isStatic
       .json<ScanMeta>(),
   )
 
-export const lastScanMeta = ref<ScanMeta|null>(null)
+export const lastScanMeta = ref<ScanMeta | null>(null)
 
 /**
  * Has the users session gone from online to offline
@@ -94,7 +94,7 @@ export const isOffline = computed<boolean>(() => {
 
 export const rescanRoute = (route: NormalisedRoute) => useFetch(`/reports/${route.id}/rescan`).post()
 
-export const scanMeta = computed<ScanMeta|null>(() => {
+export const scanMeta = computed<ScanMeta | null>(() => {
   if (isStatic)
     return window.__unlighthouse_payload?.scanMeta
 
@@ -119,7 +119,7 @@ export function refreshScanMeta() {
   return res
 }
 
-export const wsConnect = async() => {
+export const wsConnect = async () => {
   const ws = new WebSocket(wsUrl)
   ws.onmessage = (message) => {
     const { response } = JSON.parse(message.data)

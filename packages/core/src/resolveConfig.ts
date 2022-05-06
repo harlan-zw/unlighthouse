@@ -18,7 +18,7 @@ import { useLogger } from './logger'
  *
  * @param userConfig
  */
-export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUserConfig> = async(userConfig) => {
+export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUserConfig> = async (userConfig) => {
   const logger = useLogger()
   // create our own config resolution
   const merger = createDefu((obj, key, value) => {

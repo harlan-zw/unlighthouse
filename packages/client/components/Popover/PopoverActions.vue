@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 const props = defineProps<{
-  position: 'left'|'bottom'
+  position: 'left' | 'bottom'
 }>()
 </script>
+
 <template>
   <Popover v-slot="{ open, close }" class="relative flex items-center justify-end">
     <PopoverButton

@@ -52,6 +52,7 @@ const devFeatures = [
   },
 ]
 </script>
+
 <template>
   <div class="flex flex-col items-center">
     <div class="w-full px-7 md:px-15 xl:flex items-center justify-between md:(my-10 pb-20) my-7 pb-10">
@@ -80,8 +81,7 @@ const devFeatures = [
         >
           <a
             href="/guide/"
-            :class="'md:(px-7 py-3 text-2xl) px-4 py-2 text-xl font-bold hover:no-underline font-medium rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75'"
-            class="flex items-center p-10 bg-gradient-to-t from-sky-500 to-blue-500 text-white  hover:(bg-green-700 scale-105) transform transition children:hover:text-white"
+            class="md:(px-7 py-3 text-2xl) px-4 py-2 text-xl font-bold hover:no-underline font-medium rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 flex items-center p-10 bg-gradient-to-t from-sky-500 to-blue-500 text-white  hover:(bg-green-700 scale-105) transform transition children:hover:text-white"
           >
             <p class="break-none m-0 ">
               Read the docs
@@ -112,8 +112,7 @@ const devFeatures = [
         <a
           href="https://inspect.unlighthouse.dev/"
           target="_blank"
-          :class="'px-7 py-3 text-xl font-bold hover:no-underline font-medium rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75'"
-          class="absolute top-1/2 left-1/2 transform -translate-x-[50%] -translate-y-[50%] transition-all flex items-center p-10 bg-gradient-to-t from-sky-100 to-blue-100 text-blue-500  hover:(bg-green-700 scale-105) transform transition"
+          class="px-7 py-3 text-xl font-bold hover:no-underline font-medium rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 absolute top-1/2 left-1/2 transform -translate-x-[50%] -translate-y-[50%] transition-all flex items-center p-10 bg-gradient-to-t from-sky-100 to-blue-100 text-blue-500  hover:(bg-green-700 scale-105) transform transition"
         >
           <p class="break-none m-0 ">
             Open Demo

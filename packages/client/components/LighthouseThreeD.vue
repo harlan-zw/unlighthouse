@@ -76,7 +76,7 @@ const onReady = (object: Group) => {
         <AmbientLight />
         <FbxModel
           ref="meshC"
-          :src="basePath + 'assets/lighthouse.fbx'"
+          :src="`${basePath}assets/lighthouse.fbx`"
           @load="onReady"
         />
       </Scene>

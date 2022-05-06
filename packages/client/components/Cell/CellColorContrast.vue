@@ -8,6 +8,7 @@ const props = defineProps<{
   value: any
 }>()
 </script>
+
 <template>
   <div v-if="value" class="w-full">
     <div class="mb-2">

@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/monorepo",
   "private": true,
-  "packageManager": "pnpm@6.32.4",
+  "packageManager": "pnpm@7.0.0",
   "pnpm": {
     "packageExtensions": {
       "puppeteer-cluster": {
@@ -24,9 +24,9 @@
     "ci:vue": "node packages/cli/dist/ci.mjs --config-file test/fixtures/staging-vue.config.ts --build-static --debug",
     "ci:docs": "node packages/cli/dist/ci.mjs --root docs --build-static --debug",
     "build": "pnpm run build:pkg && pnpm run build:integrations && pnpm run build:docs",
-    "build:integrations": "pnpm -r --filter ./integrations --filter='!./integrations/nuxt' run build && pnpm -r --filter ./integrations/nuxt run build",
-    "build:docs": "pnpm -r --filter docs run build",
-    "build:pkg": "pnpm -r --filter ./packages run build",
+    "build:integrations": "pnpm -r --filter=./integrations/** --filter=!./integrations/nuxt run build && pnpm -r --filter=./integrations/nuxt run build",
+    "build:docs": "pnpm -r --filter=docs run build",
+    "build:pkg": "pnpm -r --filter=./packages/** run build",
     "stub": "pnpm -r --parallel run stub",
     "dev": "pnpm run stub && pnpm run watch:client",
     "lint": "eslint \"{packages,integrations,docs}/**/*.{ts,vue,json,yml}\"",
@@ -39,14 +39,14 @@
     "docs:serve": "npm -C docs run serve"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.20.6",
-    "@types/node": "^17.0.25",
-    "@vitest/ui": "^0.9.3",
+    "@antfu/eslint-config": "^0.23.0",
+    "@types/node": "^17.0.31",
+    "@vitest/ui": "^0.10.5",
     "bumpp": "^7.1.1",
-    "eslint": "^8.13.0",
-    "typescript": "^4.6.3",
-    "vite": "^2.9.5",
-    "vitest": "^0.9.3"
+    "eslint": "^8.14.0",
+    "typescript": "^4.6.4",
+    "vite": "^2.9.8",
+    "vitest": "^0.10.5"
   },
   "version": "0.3.26",
   "dependencies": {

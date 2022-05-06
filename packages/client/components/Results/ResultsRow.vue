@@ -13,6 +13,7 @@ const reportsScore = computed(() => {
   return Math.round(reports.value.map(c => c.report?.score).reduce((s, a) => s + a, 0) / reports.value.length * 100) / 100
 })
 </script>
+
 <template>
   <div>
     <disclosure-handle>

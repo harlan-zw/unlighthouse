@@ -43,13 +43,14 @@ const score = computed(() => {
   return 1
 })
 </script>
+
 <template>
   <div v-if="report.tasks.inspectHtmlTask === 'completed'">
     <div class="text-xs opacity-80 mb-2">
       {{ value }}
     </div>
     <div v-if="label">
-      <audit-result :value="{ displayValue: label, score: score }" />
+      <audit-result :value="{ displayValue: label, score }" />
     </div>
   </div>
 </template>

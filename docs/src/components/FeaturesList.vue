@@ -7,6 +7,7 @@ export default {
   },
 }
 </script>
+
 <template>
   <div class="grid gap-10 md:grid-cols-3 md:mt-10">
     <div v-for="(feat, i) in features" :key="i" class="flex items-start">

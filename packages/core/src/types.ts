@@ -52,7 +52,7 @@ export interface ComputedLighthouseReportAudit {
   details?: {
     items?: any[]
   }
-  displayValue: string|number
+  displayValue: string | number
   score: number
 }
 /**
@@ -64,7 +64,7 @@ export type LighthouseReport = Partial<LH.Result> & {
    * The total score for the result, this is the sum of each category's result
    */
   score: number
-  categories: { score: number|null }[]
+  categories: { score: number | null }[]
   computed: {
     /**
      * An aggregation of multiple image audit results.
@@ -77,12 +77,12 @@ export type LighthouseReport = Partial<LH.Result> & {
 /**
  * Tasks that Unlighthouse will run, used to track their status.
  */
-export type UnlighthouseTask = 'inspectHtmlTask'|'runLighthouseTask'
+export type UnlighthouseTask = 'inspectHtmlTask' | 'runLighthouseTask'
 
 /**
  * Each task ran by unlighthouse (extractHtmlPayload, runLighthouseTask) has a specific status which we can expose.
  */
-export type UnlighthouseTaskStatus = 'waiting'|'in-progress'|'completed'|'failed'|'ignore'
+export type UnlighthouseTaskStatus = 'waiting' | 'in-progress' | 'completed' | 'failed' | 'ignore'
 
 /**
  * A fairly rigid representation of the puppeteer cluster task results (extractHtmlPayload, runLighthouseTask), combined
@@ -133,7 +133,7 @@ export interface HTMLExtractPayload {
   }
 }
 
-export type WindiResponsiveClasses = 'xs'|'sm'|'md'|'lg'|'xl'|'2xl'
+export type WindiResponsiveClasses = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 
 /**
  * A column will generally be either a direct mapping to a lighthouse audit (such as console errors) or a computed mapping to
@@ -187,14 +187,14 @@ export interface UnlighthouseColumn {
 /**
  * All available tab keys.
  */
-export type LighthouseCategories = 'performance'|'best-practices'|'accessibility'|'seo'|'pwa'
-export type UnlighthouseTabs = 'overview'|LighthouseCategories
+export type LighthouseCategories = 'performance' | 'best-practices' | 'accessibility' | 'seo' | 'pwa'
+export type UnlighthouseTabs = 'overview' | LighthouseCategories
 
 /**
  * Unlighthouse's intelligent sampling relies on knowing which URLs map to which files in your project.
  * To achieve this it needs to create its own router with your files to test any URL that comes through.
  */
-export interface MockRouter { match: (path: string) => RouteDefinition|false }
+export interface MockRouter { match: (path: string) => RouteDefinition | false }
 
 export interface DiscoveryOptions {
   /**
@@ -293,13 +293,13 @@ export interface ResolvedUserConfig {
    * @see https://unlighthouse.dev/guide/url-discovery.html#manually-providing-urls
    * @default []
    */
-  urls: string[]|(() => string[])|(() => Promise<string[]>)
+  urls: string[] | (() => string[]) | (() => Promise<string[]>)
   ci: {
     /**
      * Provide a budget for each page as a numeric total score, or an object mapping the category to the score. Should be
      * a number between 1-100.
      */
-    budget: number|Record<Partial<LighthouseCategories>, number>
+    budget: number | Record<Partial<LighthouseCategories>, number>
     /**
      * Injects the required data into the client files, so it can be hosted statically.
      */
@@ -312,7 +312,7 @@ export interface ResolvedUserConfig {
   /**
    * See https://unlighthouse.dev/guide/route-definitions.html
    */
-  discovery: false|DiscoveryOptions
+  discovery: false | DiscoveryOptions
   scanner: {
     /**
      * Setup custom mappings for a regex string to a route definition.
@@ -338,7 +338,7 @@ export interface ResolvedUserConfig {
      *
      * @default 200
      */
-    maxRoutes: number|false
+    maxRoutes: number | false
     /**
      * Paths to explicitly include from the search, this will exclude any paths not listed here.
      *
@@ -386,7 +386,7 @@ export interface ResolvedUserConfig {
      * @see https://unlighthouse.dev/guide/large-sites.html#change-dynamic-sampling-limit
      * @default 5
      */
-    dynamicSampling: number|false
+    dynamicSampling: number | false
     /**
      * Whether the sitemap.xml will be attempted to be read from the site.
      *
@@ -399,7 +399,7 @@ export interface ResolvedUserConfig {
      *
      * @default 'mobile'
      */
-    device: 'mobile'|'desktop'|false
+    device: 'mobile' | 'desktop' | false
   }
   /**
    * Changes the default behaviour of lighthouse.
@@ -566,10 +566,10 @@ export interface Provider {
    * The collection of route definitions belonging to the provider. These can be inferred but aren't 100% correct,
    * frameworks that can provide these should do so.
    */
-  routeDefinitions?: RouteDefinition[]|(() => RouteDefinition[]|Promise<RouteDefinition[]>)
+  routeDefinitions?: RouteDefinition[] | (() => RouteDefinition[] | Promise<RouteDefinition[]>)
 }
 
-export type HookResult = Promise<void>|void
+export type HookResult = Promise<void> | void
 
 export interface UnlighthouseHooks {
   /**
@@ -678,7 +678,7 @@ export interface UnlighthouseWorker {
    * Find a report with the specified id.
    * @param id
    */
-  findReport: (id: string) => UnlighthouseRouteReport|null
+  findReport: (id: string) => UnlighthouseRouteReport | null
 
   /**
    * Iterates through route reports checking for a match on the route definition component, if there is a match

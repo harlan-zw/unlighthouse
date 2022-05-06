@@ -32,6 +32,7 @@ const requestsMapped = computed(() => {
   return res
 })
 </script>
+
 <template>
   <div v-if="value" class="text-sm">
     <div class="opacity-90 flex items-center mb-1">

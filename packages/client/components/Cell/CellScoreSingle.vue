@@ -22,6 +22,7 @@ const category = computed(() => {
   return props.report.report?.categories?.[categoryKey.value]
 })
 </script>
+
 <template>
   <loading-status-icon v-if="!category" :status="report.tasks.runLighthouseTask" />
   <button

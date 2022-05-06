@@ -29,7 +29,7 @@ async function run() {
   await createUnlighthouse({
     ...resolvedOptions,
     hooks: {
-      'resolved-config': async(config) => {
+      'resolved-config': async (config) => {
         await validateHost(config)
       },
     },
@@ -53,7 +53,7 @@ async function run() {
   await setCiContext()
   await start()
 
-  hooks.hook('worker-finished', async() => {
+  hooks.hook('worker-finished', async () => {
     const end = new Date()
     const seconds = Math.round((end.getTime() - startTime.getTime()) / 1000)
 

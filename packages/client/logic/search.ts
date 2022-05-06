@@ -6,7 +6,7 @@ import type { UnlighthouseRouteReport } from '@unlighthouse/core'
 import { unlighthouseReports } from './state'
 import { columns, groupRoutesKey } from './static'
 
-type SortDirection = 'asc'|'desc'
+type SortDirection = 'asc' | 'desc'
 export interface Sorting {
   key?: string
   dir?: SortDirection

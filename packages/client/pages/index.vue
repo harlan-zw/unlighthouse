@@ -36,6 +36,7 @@ if (!isStatic) {
 
 useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
 </script>
+
 <template>
   <NavBar />
   <div class="2xl:flex mt-2">

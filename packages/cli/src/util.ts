@@ -6,7 +6,7 @@ import { fetchUrlRaw, normaliseHost, useLogger } from '@unlighthouse/core'
 import { handleError } from './errors'
 import type { CiOptions, CliOptions } from './types'
 
-export const validateHost = async(resolvedConfig: ResolvedUserConfig) => {
+export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
   const logger = useLogger()
   // site will not be set from integrations yet
   if (resolvedConfig.site) {
@@ -54,8 +54,8 @@ export const validateOptions = (resolvedOptions: UserConfig) => {
     return handleError('Please provide a valid site URL.')
 }
 
-export function pickOptions(options: CiOptions|CliOptions): UserConfig {
-  const picked: Omit<UserConfig, 'site'|'root'> = {}
+export function pickOptions(options: CiOptions | CliOptions): UserConfig {
+  const picked: Omit<UserConfig, 'site' | 'root'> = {}
   picked.scanner = {}
   picked.urls = []
   if (options.noCache)

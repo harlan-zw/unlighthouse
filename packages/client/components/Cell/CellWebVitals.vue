@@ -2,14 +2,14 @@
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { website } from '../../logic'
 
-const isLocalhost = website.includes('localhost')
-
 const props = defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
 }>()
 
+const isLocalhost = website.includes('localhost')
 </script>
+
 <template>
   <div v-if="report.report">
     <div class="text-sm w-full grid gap-4 grid-cols-2 mb-2 pr-2">
@@ -54,12 +54,12 @@ const props = defineProps<{
           <span class="whitespace-nowrap flex items-start">TTI</span>
           <template #tooltip>
             <div class="font-bold mb-2">
-              {{ report.report.audits['interactive'].title }}
+              {{ report.report.audits.interactive.title }}
             </div>
-            <div>{{ report.report.audits['interactive'].description }}</div>
+            <div>{{ report.report.audits.interactive.description }}</div>
           </template>
         </tooltip>
-        <audit-result :value="report.report.audits['interactive']" class="ml-2" />
+        <audit-result :value="report.report.audits.interactive" class="ml-2" />
       </div>
     </div>
     <div v-if="!isLocalhost" class="text-xs opacity-90">

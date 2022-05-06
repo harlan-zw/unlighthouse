@@ -18,7 +18,7 @@ async function run() {
     {
       ...pickOptions(options),
       hooks: {
-        'resolved-config': async(config) => {
+        'resolved-config': async (config) => {
           await validateHost(config)
         },
       },

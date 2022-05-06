@@ -39,6 +39,7 @@ watch(isModalOpen, () => {
     showingModal.value = false
 })
 </script>
+
 <template>
   <div>
     <btn-action v-if="image" title="Open full image" @click="openModal">

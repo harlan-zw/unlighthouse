@@ -19,6 +19,7 @@ const imageIssues = computed(() => {
   ])
 })
 </script>
+
 <template>
   <div>
     <audit-result :value="{ displayValue: imageIssues, score: imageIssues === 0 ? 1 : 0 }" />

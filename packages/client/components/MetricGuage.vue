@@ -39,9 +39,10 @@ const guageArcStyle = computed(() => {
   }
 })
 </script>
+
 <template>
   <div v-if="stripped" :class="guageModifiers">
-    <audit-result :value="{ score, displayValue: Math.round(score * 100)}" />
+    <audit-result :value="{ score, displayValue: Math.round(score * 100) }" />
   </div>
 
   <div v-else class="guage__wrapper guage__wrapper--huge" :class="guageModifiers">
@@ -78,6 +79,7 @@ const guageArcStyle = computed(() => {
     </div>
   </div>
 </template>
+
 <style>
 * {
   --color-amber-50: #fff8e1;

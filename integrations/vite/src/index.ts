@@ -44,7 +44,7 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
 
       const setHost = once((host) => {
         // give vite a chance to display start messages
-        setTimeout(async() => {
+        setTimeout(async () => {
           const unlighthouse = useUnlighthouse()
           const logger = useLogger()
           unlighthouse.setSiteUrl(host)
@@ -74,7 +74,7 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
           setHost(unlighthouse.resolvedConfig.site)
         }
         else {
-          unlighthouse.hooks.hookOnce('site-changed', async() => {
+          unlighthouse.hooks.hookOnce('site-changed', async () => {
             setHost(unlighthouse.resolvedConfig.site)
           })
         }

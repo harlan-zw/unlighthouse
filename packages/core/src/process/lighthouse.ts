@@ -9,7 +9,7 @@ import type { UnlighthouseRouteReport } from '../types'
  * This file is intended to be run in its own process and should not rely on any global state.
  */
 
-(async() => {
+(async () => {
   const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded }
       = minimist<{ options: string; cache: boolean; routeReport: string; port: number }>(process.argv.slice(2))
 

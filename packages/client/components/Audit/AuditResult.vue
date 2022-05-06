@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   value: {
-    score: number|null
+    score: number | null
     displayValue?: string
   }
 }>()
@@ -19,6 +19,7 @@ const mark = computed(() => {
   return 'fail'
 })
 </script>
+
 <template>
   <div class="flex items-center text-mono font-mono" :class="[mark]">
     <div class="icon w-2 h-2 mr-2" :class="typeof value.displayValue !== 'undefined' && value.displayValue ? ['hidden', 'md:inline'] : []" />
@@ -27,6 +28,7 @@ const mark = computed(() => {
     </div>
   </div>
 </template>
+
 <style scoped>
 .pass {
   @apply dark:(text-green-500) text-green-700;

@@ -8,6 +8,7 @@ export default {
   },
 }
 </script>
+
 <template>
   <a
     v-if="href"

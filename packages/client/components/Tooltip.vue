@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 const isShowing = ref(false)
 </script>
+
 <template>
   <div v-if="$slots.tooltip" class="relative" @mouseleave="isShowing = false">
     <TransitionRoot

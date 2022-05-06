@@ -27,11 +27,12 @@ const openEditorRequest = () => {
   fetch(`${apiUrl}/__launch?file=${props.report.route.definition.component}`)
 }
 </script>
+
 <template>
   <div class="text-xs flex items-center w-full">
     <btn-action v-if="report.tasks.runLighthouseTask === 'completed'" class="hidden md:block" :style="{ flex: `0 0 ${device === 'mobile' ? '67' : '112'}px` }" title="Open Full Page Screenshot" @click="openModal()">
-      <img v-if="device === 'mobile'" :src="report.artifactUrl + '/screenshot.jpeg'" height="112" width="68" class="w-68px h-112px">
-      <img v-else :src="report.artifactUrl + '/screenshot.jpeg'" height="82" width="112" class="h-82px w-112px">
+      <img v-if="device === 'mobile'" :src="`${report.artifactUrl}/screenshot.jpeg`" height="112" width="68" class="w-68px h-112px">
+      <img v-else :src="`${report.artifactUrl}/screenshot.jpeg`" height="82" width="112" class="h-82px w-112px">
     </btn-action>
     <div class="md:ml-3 flex-grow w-full">
       <a v-if="report.seo?.title" :href="report.route.url" target="_blank" class="text-xs dark:(opacity-80) underline hover:no-underline">
@@ -47,7 +48,7 @@ const openEditorRequest = () => {
           {{ report.route.definition.componentBaseName.split('.')[0] }}
         </btn-action>
       </div>
-      <div v-if="report.report?.audits?.['redirects']?.score === 0" class="mt-2">
+      <div v-if="report.report?.audits?.redirects?.score === 0" class="mt-2">
         <div class="font-bold inline text-xs uppercase px-1 rounded-xl bg-red-300 text-red-700">
           Redirected
         </div>
@@ -55,6 +56,6 @@ const openEditorRequest = () => {
     </div>
   </div>
   <teleport v-if="isModalOpen && showingModal" to="#modal-portal">
-    <img :src="report.artifactUrl + '/full-screenshot.jpeg'" alt="full screenshot" class="mx-auto">
+    <img :src="`${report.artifactUrl}/full-screenshot.jpeg`" alt="full screenshot" class="mx-auto">
   </teleport>
 </template>
