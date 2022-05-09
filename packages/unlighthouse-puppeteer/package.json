@@ -1,6 +1,6 @@
 {
   "name": "unlighthouse-puppeteer",
-  "version": "0.3.28",
+  "version": "0.3.29",
   "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
   "keywords": [
     "lighthouse",
