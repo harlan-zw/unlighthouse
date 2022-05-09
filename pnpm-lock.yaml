@@ -299,6 +299,18 @@ importers:
       '@unlighthouse/client': link:../client
       '@unlighthouse/core': link:../core
 
+  packages/unlighthouse-puppeteer:
+    specifiers:
+      '@unlighthouse/cli': workspace:../cli
+      '@unlighthouse/client': workspace:../client
+      '@unlighthouse/core': workspace:../core
+      puppeteer: ^13.7.0
+    dependencies:
+      '@unlighthouse/cli': link:../cli
+      '@unlighthouse/client': link:../client
+      '@unlighthouse/core': link:../core
+      puppeteer: 13.7.0
+
 packages:
 
   /@algolia/autocomplete-core/1.5.2:
@@ -7672,6 +7684,30 @@ packages:
   /puppeteer-core/13.7.0:
     resolution: {integrity: sha512-rXja4vcnAzFAP1OVLq/5dWNfwBGuzcOARJ6qGV7oAZhnLmVRU8G5MsdeQEAOy332ZhkIOnn9jp15R89LKHyp2Q==}
     engines: {node: '>=10.18.1'}
+    dependencies:
+      cross-fetch: 3.1.5
+      debug: 4.3.4
+      devtools-protocol: 0.0.981744
+      extract-zip: 2.0.1
+      https-proxy-agent: 5.0.1
+      pkg-dir: 4.2.0
+      progress: 2.0.3
+      proxy-from-env: 1.1.0
+      rimraf: 3.0.2
+      tar-fs: 2.1.1
+      unbzip2-stream: 1.4.3
+      ws: 8.5.0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - utf-8-validate
+    dev: false
+
+  /puppeteer/13.7.0:
+    resolution: {integrity: sha512-U1uufzBjz3+PkpCxFrWzh4OrMIdIb2ztzCu0YEPfRHjHswcSwHZswnK+WdsOQJsRV8WeTg3jLhJR4D867+fjsA==}
+    engines: {node: '>=10.18.1'}
+    requiresBuild: true
     dependencies:
       cross-fetch: 3.1.5
       debug: 4.3.4
