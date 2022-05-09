@@ -23,26 +23,16 @@ Using pnpm dlx (recommended) - requires [pnpm](https://pnpm.io/).
 
 ```bash
 pnpm dlx unlighthouse --site <your-site>
+# or if that doesn't work try:
+# pnpm dlx unlighthouse-puppeteer --site example.com
 ```
 
 Using npx
 
 ```bash
 npx unlighthouse --site <your-site>
-```
-
-### Install Globally
-
-```bash
-npm install -g unlighthouse
-# yarn global add unlighthouse
-# pnpm install -g unlighthouse
-```
-
-Once installed you'll be able to use the CLI from anywhere with `unlighthouse`.
-
-```bash
-unlighthouse --site example.com
+# or if that doesn't work try:
+# npx unlighthouse-puppeteer --site example.com
 ```
 
 ### With Chrome Dependency
@@ -50,13 +40,14 @@ unlighthouse --site example.com
 Unlighthouse aims to keep the installation size small, for this reason it depends natively on your locally installed
 chrome.
 
-If you do not have a chrome installation, you can install it with the following command:
+If you get errors about puppeteer or chrome not being available, the easiest way to resolve it is 
+with the `unlighthouse-puppeteer` binary.
 
 ```bash
-npm install -g unlighthouse puppeteer
-# yarn global add @unlighthouse/cli puppeteer
-# pnpm install -g @unlighthouse/cli puppeteer
+unlighthouse-puppeteer --site example.com
 ```
+
+You will need to use `unlighthouse-puppeteer` anywhere it says `unlighthouse`.
 
 ### Usage
 

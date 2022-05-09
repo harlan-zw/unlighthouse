@@ -30,12 +30,16 @@ Using pnpm dlx (recommended) - requires [pnpm](https://pnpm.io/).
 
 ```bash
 pnpm dlx unlighthouse --site <your-site>
+# or if that doesn't work try:
+# pnpm dlx unlighthouse-puppeteer --site example.com
 ```
 
 Using npx
 
 ```bash
 npx unlighthouse --site <your-site>
+# or if that doesn't work try:
+# npx unlighthouse-puppeteer --site example.com
 ```
 
 
