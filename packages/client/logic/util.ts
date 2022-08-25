@@ -1,7 +1,7 @@
 export const extractBgColor = (str: string) => {
   const regex = /background color: (.*?),/gm
   const m = regex.exec(str)
-  // eslint-disable-next-line no-cond-assign
+
   if (m !== null) {
     // The result can be accessed through the `m`-variable.
     return m[1]
@@ -11,7 +11,7 @@ export const extractBgColor = (str: string) => {
 export const extractFgColor = (str: string) => {
   const regex = /foreground color: (.*?),/gm
   const m = regex.exec(str)
-  // eslint-disable-next-line no-cond-assign
+
   if (m !== null) {
     // The result can be accessed through the `m`-variable.
     return m[1]
@@ -28,5 +28,5 @@ export const formatBytes = (bytes: number, decimals = 2) => {
 
   const i = Math.floor(Math.log(bytes) / Math.log(k))
 
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+  return `${parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }

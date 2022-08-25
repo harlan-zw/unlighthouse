@@ -6,6 +6,7 @@ export default defineBuildConfig({
   rollup: {
     emitCJS: true,
   },
+  failOnWarn: false,
   entries: [
     { input: 'src/index' },
     { input: 'src/process', outDir: 'dist/process', builder: 'mkdist', declaration: false },

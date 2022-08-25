@@ -3,32 +3,32 @@
   "type": "module",
   "version": "0.3.29",
   "description": "Nuxt module for Unlighthouse",
+  "author": "Harlan Wilton <harlan@harlanzw.com>",
+  "license": "MIT",
+  "funding": "https://github.com/sponsors/harlan-zw",
+  "homepage": "https://github.com/harlan-zw/unlighthouse/integrations/nuxt#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "integrations/nuxt"
+  },
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
   "keywords": [
     "unlighthouse",
     "nuxt-module",
     "nuxt",
     "nuxt3"
   ],
-  "homepage": "https://github.com/harlan-zw/unlighthouse/integrations/nuxt#readme",
-  "bugs": {
-    "url": "https://github.com/harlan-zw/unlighthouse/issues"
-  },
-  "license": "MIT",
-  "author": "Harlan Wilton <harlan@harlanzw.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
-    "directory": "integrations/nuxt"
-  },
-  "funding": "https://github.com/sponsors/harlan-zw",
-  "main": "./dist/module.cjs",
-  "types": "./dist/types.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/module.mjs",
-      "require": "./dist/module.cjs"
+      "require": "./dist/module.cjs",
+      "import": "./dist/module.mjs"
     }
   },
+  "main": "./dist/module.cjs",
+  "types": "./dist/types.d.ts",
   "files": [
     "dist"
   ],
@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "^0.3.1",
-    "@nuxt/kit": "3.0.0-rc.2",
+    "@nuxt/kit": "3.0.0-rc.8",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
     "@unlighthouse/vite": "workspace:*",

@@ -2,6 +2,15 @@
   "name": "unlighthouse-puppeteer",
   "version": "0.3.29",
   "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
+  "license": "MIT",
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git"
+  },
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
   "keywords": [
     "lighthouse",
     "audit",
@@ -9,33 +18,24 @@
     "performance",
     "speed"
   ],
-  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
-  "bugs": {
-    "url": "https://github.com/harlan-zw/unlighthouse/issues"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/harlan-zw/unlighthouse.git"
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "index.d.ts",
-  "exports": {
-    ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
-    }
+  "bin": {
+    "unlighthouse-puppeteer": "bin/unlighthouse-puppeteer.cjs"
   },
   "files": [
     "dist",
     "*.d.ts"
   ],
-  "bin": {
-    "unlighthouse-puppeteer": "bin/unlighthouse-puppeteer.cjs"
-  },
-  "sideEffects": false,
   "engines": {
     "node": ">=14"
   },
@@ -55,6 +55,6 @@
     "@unlighthouse/cli": "workspace:../cli",
     "@unlighthouse/client": "workspace:../client",
     "@unlighthouse/core": "workspace:../core",
-    "puppeteer": "^13.7.0"
+    "puppeteer": "^16.2.0"
   }
 }

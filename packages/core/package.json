@@ -2,6 +2,16 @@
   "name": "@unlighthouse/core",
   "version": "0.3.29",
   "description": "Scan your entire website with Google Lighthouse.",
+  "license": "MIT",
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
   "keywords": [
     "lighthouse",
     "audit",
@@ -9,34 +19,74 @@
     "performance",
     "speed"
   ],
-  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
-  "bugs": {
-    "url": "https://github.com/harlan-zw/unlighthouse/issues"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
-    "directory": "packages/core"
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
-    }
-  },
   "files": [
     "dist",
     "*.d.ts"
   ],
-  "sideEffects": false,
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
+  },
+  "peerDependenciesMeta": {
+    "puppeteer": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@types/wrap-ansi": "^8.0.1",
+    "@unlighthouse/client": "workspace:../client",
+    "@unrouted/core": "0.4.18",
+    "@unrouted/fetch": "0.4.18",
+    "@unrouted/plugins": "0.4.18",
+    "@unrouted/preset-api": "0.4.18",
+    "@unrouted/preset-node": "0.4.18",
+    "axios": "^0.27.2",
+    "boxen": "^7.0.0",
+    "chalk": "^4.1.2",
+    "cheerio": "1.0.0-rc.12",
+    "chrome-launcher": "^0.15.1",
+    "consola": "^2.15.3",
+    "defu": "^6.1.0",
+    "execa": "^6.1.0",
+    "fs-extra": "^10.1.0",
+    "globby": "^13.1.2",
+    "h3": "^0.7.16",
+    "hookable": "^5.2.2",
+    "launch-editor": "^2.6.0",
+    "lighthouse": "^9.6.6",
+    "minimist": "^1.2.6",
+    "mlly": "^0.5.14",
+    "object-hash": "^3.0.0",
+    "puppeteer-cluster": "^0.23.0",
+    "puppeteer-core": "^16.2.0",
+    "regexparam": "^2.0.1",
+    "sanitize-filename": "^1.6.3",
+    "sitemapper": "^3.2.6",
+    "slugify": "^1.6.5",
+    "ufo": "^0.8.5",
+    "unconfig": "^0.3.5",
+    "unctx": "^2.0.1",
+    "wrap-ansi": "^8.0.1",
+    "ws": "^8.8.1"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.13",
+    "@types/lodash-es": "^4.17.6",
+    "@types/node": "^18.7.13",
+    "@types/object-hash": "^2.2.1",
+    "@types/ws": "^8.5.3",
+    "lodash-es": "^4.17.15"
   },
   "pnpm": {
     "packageExtensions": {
@@ -51,55 +101,5 @@
         }
       }
     }
-  },
-  "peerDependenciesMeta": {
-    "puppeteer": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "@types/wrap-ansi": "^8.0.1",
-    "@unlighthouse/client": "workspace:../client",
-    "@unrouted/core": "0.4.17",
-    "@unrouted/fetch": "0.4.17",
-    "@unrouted/plugins": "0.4.17",
-    "@unrouted/preset-api": "0.4.17",
-    "@unrouted/preset-node": "0.4.17",
-    "axios": "^0.27.2",
-    "boxen": "^6.2.1",
-    "chalk": "^4.1.2",
-    "cheerio": "^1.0.0-rc.10",
-    "chrome-launcher": "^0.15.0",
-    "consola": "^2.15.3",
-    "defu": "^6.0.0",
-    "execa": "^6.1.0",
-    "fs-extra": "^10.1.0",
-    "globby": "^13.1.1",
-    "h3": "^0.7.8",
-    "hookable": "^5.1.1",
-    "launch-editor": "^2.3.0",
-    "lighthouse": "^9.5.0",
-    "minimist": "^1.2.6",
-    "mlly": "^0.4.3",
-    "object-hash": "^3.0.0",
-    "puppeteer-cluster": "^0.23.0",
-    "puppeteer-core": "^13.7.0",
-    "regexparam": "^2.0.0",
-    "sanitize-filename": "^1.6.3",
-    "sitemapper": "^3.2.2",
-    "slugify": "^1.6.5",
-    "ufo": "^0.8.3",
-    "unconfig": "^0.3.4",
-    "unctx": "^1.1.4",
-    "wrap-ansi": "^8.0.1",
-    "ws": "^8.6.0"
-  },
-  "devDependencies": {
-    "@types/fs-extra": "^9.0.13",
-    "@types/lodash-es": "^4.17.6",
-    "@types/node": "^17.0.31",
-    "@types/object-hash": "^2.2.1",
-    "@types/ws": "^8.5.3",
-    "lodash-es": "^4.17.15"
   }
 }

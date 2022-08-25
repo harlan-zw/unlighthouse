@@ -2,22 +2,21 @@
   "name": "@unlighthouse/cli",
   "version": "0.3.29",
   "description": "CLI for Unlighthouse",
-  "keywords": [
-    "unlighthouse",
-    "cli"
-  ],
-  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
-  "bugs": {
-    "url": "https://github.com/harlan-zw/unlighthouse/issues"
-  },
   "license": "MIT",
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
     "directory": "packages/core"
   },
-  "main": "dist/cli.mjs",
-  "module": "dist/cli.mjs",
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
+  "keywords": [
+    "unlighthouse",
+    "cli"
+  ],
+  "sideEffects": false,
   "exports": {
     ".": {
       "import": "./dist/cli.mjs"
@@ -26,14 +25,15 @@
       "import": "./dist/ci.mjs"
     }
   },
+  "main": "dist/cli.mjs",
+  "module": "dist/cli.mjs",
+  "bin": {
+    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+  },
   "files": [
     "dist",
     "*.d.ts"
   ],
-  "bin": {
-    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
-  },
-  "sideEffects": false,
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
@@ -44,9 +44,9 @@
     "better-opn": "^3.0.2",
     "cac": "^6.7.12",
     "consola": "^2.15.3",
-    "defu": "^6.0.0",
+    "defu": "^6.1.0",
     "fs-extra": "^10.1.0",
-    "globby": "^13.1.1",
+    "globby": "^13.1.2",
     "lodash-es": "^4.17.21"
   }
 }

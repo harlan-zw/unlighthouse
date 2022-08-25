@@ -1,12 +1,12 @@
 export default {
-  site: 'https://vuejs.org/',
+  site: "beta.reactjs.org",
   debug: true,
   scanner: {
     device: "mobile",
     throttle: true,
     samples: 3,
     customSampling: {
-      '/guide/(.*?)': {
+      '/blog/(.*?)': {
         name: 'guide'
       }
     }

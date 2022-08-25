@@ -20,7 +20,7 @@ const totalTransfer = computed(() => formatBytes(sum(value.value?.details?.items
 
 const requestsMapped = computed(() => {
   const res: Record<string, { count: number; size: string }> = {}
-  /* eslint-disable no-restricted-syntax */
+
   for (const resourceType in requests.value) {
     const items = requests.value[resourceType]
     res[resourceType] = {

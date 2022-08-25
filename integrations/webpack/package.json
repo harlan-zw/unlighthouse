@@ -2,35 +2,35 @@
   "name": "@unlighthouse/webpack",
   "version": "0.3.29",
   "description": "Webpack plugin for Unlighthouse",
-  "keywords": [
-    "unlighthouse",
-    "webpack"
-  ],
-  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
-  "bugs": {
-    "url": "https://github.com/harlan-zw/unlighthouse/issues"
-  },
-  "license": "MIT",
   "author": "Harlan Wilton <harlan@harlanzw.com>",
+  "license": "MIT",
+  "funding": "https://github.com/sponsors/harlan-zw",
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
     "directory": "packages/webpack"
   },
-  "funding": "https://github.com/sponsors/harlan-zw",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
+  "keywords": [
+    "unlighthouse",
+    "webpack"
+  ],
+  "sideEffects": false,
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
       "import": "./dist/index.mjs"
     }
   },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
-  "sideEffects": false,
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
@@ -41,13 +41,13 @@
   "dependencies": {
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
-    "defu": "^6.0.0",
+    "defu": "^6.1.0",
     "lodash-es": "^4.17.21",
-    "unplugin": "^0.6.2"
+    "unplugin": "^0.9.4"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
     "@types/webpack": "^5.28.0",
-    "webpack": "^5.72.0"
+    "webpack": "^5.74.0"
   }
 }

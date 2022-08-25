@@ -141,7 +141,6 @@ export function createRoutes(options: { files: string[]; srcDir: string; pagesDi
   return cleanChildrenRoutes(routes, false, routeNameSplitter, trailingSlash)
 }
 
-// eslint-disable-next-line default-param-last
 function cleanChildrenRoutes(routes: NuxtRoute[], isChild = false, routeNameSplitter = '-', trailingSlash: boolean, parentRouteName = '') {
   const regExpIndex = new RegExp(`${routeNameSplitter}index$`)
   const regExpParentRouteName = new RegExp(`^${parentRouteName}${routeNameSplitter}`)
