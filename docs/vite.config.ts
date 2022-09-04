@@ -23,13 +23,13 @@ export default defineConfig(async () => {
           ],
         },
       }),
-      Unlighthouse({
-        debug: true,
-        discovery: {
-          supportedExtensions: ['md'],
-          pagesDir: '',
-        },
-      }),
+      // Unlighthouse({
+      //   debug: true,
+      //   discovery: {
+      //     supportedExtensions: ['md'],
+      //     pagesDir: '',
+      //   },
+      // }),
     ],
 
     optimizeDeps: {

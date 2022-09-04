@@ -5,6 +5,7 @@ export default defineConfig({
   title: 'Unlighthouse',
   description: 'Unlighthouse scans your entire site using Google Lighthouse, with a modern UI, minimal config and smart sampling.',
   head: [
+    ['script', { src: 'https://cdn.usefathom.com/script.js', ['data-site']: 'WPEZVIVE', defer: true }],
     ['meta', { property: 'og:title', content: 'Unlighthouse' }],
     ['meta', { property: 'og:description', content: 'Unlighthouse scans your entire site using Google Lighthouse, with a modern UI, minimal config and smart sampling.' }],
     ['meta', { property: 'og:url', content: 'https://next.unlighthouse.dev/' }],
