@@ -46,6 +46,7 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
       'audits.redirects',
       // performance computed
       'audits.first-contentful-paint',
+      'audits.largest-contentful-paint',
       'audits.total-blocking-time',
       'audits.max-potential-fid',
       'audits.interactive',
