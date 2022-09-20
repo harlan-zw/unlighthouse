@@ -12,6 +12,8 @@
 Unlighthouse scans your entire site using Google Lighthouse,<br> with a modern UI, minimal config and smart sampling.
 </p>
 
+<p align="center"><a href="https://inspect.unlighthouse.dev/">View Demo</a></p>
+
 <p align="center">
 <table>
 <tbody>
