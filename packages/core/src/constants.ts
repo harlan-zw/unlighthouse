@@ -18,7 +18,7 @@ export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
   'performance': [
     {
       cols: 2,
-      label: 'LCP',
+      label: 'Largest Contentful Paint',
       tooltip: 'Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more](https://web.dev/lighthouse-largest-contentful-paint/)',
       key: 'report.audits.largest-contentful-paint',
       sortKey: 'numericValue',
