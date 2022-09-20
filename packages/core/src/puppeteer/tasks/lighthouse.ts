@@ -44,7 +44,11 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     }),
     ...pick(result, [
       'audits.redirects',
-      // performance computed
+      // core web vitals
+      'audits.layout-shift-elements',
+      'audits.largest-contentful-paint-element',
+      'audits.largest-contentful-paint',
+      'audits.cumulative-layout-shift',
       'audits.first-contentful-paint',
       'audits.total-blocking-time',
       'audits.max-potential-fid',
