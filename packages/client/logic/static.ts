@@ -10,6 +10,8 @@ import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnail
 import CellImage from '../components/Cell/CellImage.vue'
 import CellTapTargets from '../components/Cell/CellTapTargets.vue'
 import CellWebVitals from '../components/Cell/CellWebVitals.vue'
+import CellLargestContentfulPaint from '../components/Cell/CellLargestContentfulPaint.vue'
+import CellLayoutShift from '../components/Cell/CellLayoutShift.vue'
 
 const {
   options: {
@@ -55,6 +57,12 @@ export const columns = Object.values(configColumns)
   .map((columns) => {
     return columns.map((column) => {
       switch (column.key) {
+        case 'report.audits.largest-contentful-paint':
+          column.component = CellLargestContentfulPaint
+          break
+        case 'report.audits.cumulative-layout-shift':
+          column.component = CellLayoutShift
+          break
         case 'report.audits.network-requests':
           column.component = CellNetworkRequests
           break
