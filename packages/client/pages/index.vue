@@ -54,7 +54,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             >
               <span class="inline-flex items-center">{{ category }}
                 <tooltip v-if="category === 'Performance'" class="text-left">
-                  <i-carbon-warning class="inline ml-1" />
+                  <i-carbon-warning class="inline text-xs mx-1" />
                   <template #tooltip>
                     <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
                     <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
@@ -210,7 +210,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             leave-to="opacity-0 scale-95"
           >
             <div
-              class="inline-block w-full max-w-7xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:(bg-teal-900) shadow-xl rounded-2xl"
+              class="inline-block w-auto max-w-7xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:(bg-teal-900) shadow-xl rounded-2xl"
             >
               <div id="modal-portal" />
               <div v-if="isDebugModalOpen" class="p-5 bg-gray-100">
@@ -242,7 +242,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                   Search Results: <code><pre>{{ searchResults }}</pre></code>
                 </div>
               </div>
-              <iframe v-if="iframeModalUrl" :src="iframeModalUrl" class="w-full h-700px bg-white" />
+              <iframe v-if="iframeModalUrl" :src="iframeModalUrl" class="w-1200px max-w-full h-700px bg-white" />
             </div>
           </TransitionChild>
         </div>
