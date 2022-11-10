@@ -60,6 +60,7 @@
     "defu": "^6.1.0",
     "execa": "^6.1.0",
     "fs-extra": "^10.1.0",
+    "lodash-es": "^4.17.15",
     "globby": "^13.1.2",
     "h3": "^0.7.16",
     "hookable": "^5.2.2",
@@ -68,6 +69,7 @@
     "minimist": "^1.2.6",
     "mlly": "^0.5.14",
     "object-hash": "^3.0.0",
+    "pathe": "^0.3.9",
     "puppeteer-cluster": "^0.23.0",
     "puppeteer-core": "^18.0.1",
     "regexparam": "^2.0.1",
@@ -85,8 +87,7 @@
     "@types/lodash-es": "^4.17.6",
     "@types/node": "^18.7.13",
     "@types/object-hash": "^2.2.1",
-    "@types/ws": "^8.5.3",
-    "lodash-es": "^4.17.15"
+    "@types/ws": "^8.5.3"
   },
   "pnpm": {
     "packageExtensions": {
