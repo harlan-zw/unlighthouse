@@ -93,8 +93,15 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   const port = new URL(browser.wsEndpoint()).port
   // ignore csp errors
   await page.setBypassCSP(true)
+
+  // Wait for Lighthouse to open url, then allow hook to run
+  browser.on('targetchanged', async (target) => {
+    const page = await target.page()
+    if (page)
+      await hooks.callHook('puppeteer:before-goto', page)
+  })
+
   // allow changing behaviour of the page
-  await hooks.callHook('puppeteer:before-goto', page)
 
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,
