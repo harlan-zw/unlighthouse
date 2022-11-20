@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@unlighthouse/core": "workspace:../core",
-    "h3": "^0.7.16",
-    "listhen": "0.2.15"
+    "h3": "^1.0.1",
+    "listhen": "1.0.0"
   }
 }

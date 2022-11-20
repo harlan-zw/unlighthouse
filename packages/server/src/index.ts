@@ -1,5 +1,5 @@
 import type { App } from 'h3'
-import { createApp } from 'h3'
+import { createApp, toNodeListener } from 'h3'
 import type { ListenOptions, Listener } from 'listhen'
 import { listen } from 'listhen'
 import { useUnlighthouse } from '@unlighthouse/core'
@@ -13,7 +13,7 @@ export async function createServer(): Promise<{ app: App; server: Listener }> {
   const { resolvedConfig } = useUnlighthouse()
 
   const app = createApp()
-  const server = await listen(app, {
+  const server = await listen(toNodeListener(app), {
     ...resolvedConfig.server,
     // delay opening the server until the app is ready
     open: false,

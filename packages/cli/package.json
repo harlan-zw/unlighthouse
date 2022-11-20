@@ -42,9 +42,9 @@
     "@unlighthouse/core": "workspace:../core",
     "@unlighthouse/server": "workspace:../server",
     "better-opn": "^3.0.2",
-    "cac": "^6.7.12",
+    "cac": "^6.7.14",
     "consola": "^2.15.3",
-    "defu": "^6.1.0",
+    "defu": "^6.1.1",
     "fs-extra": "^10.1.0",
     "globby": "^13.1.2",
     "lodash-es": "^4.17.21"

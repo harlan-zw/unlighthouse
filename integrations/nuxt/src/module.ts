@@ -52,8 +52,8 @@ export default defineNuxtModule<ModuleOptions>({
     addWebpackPlugin(WebpackPlugin(config), pluginOptions)
 
     // watch config file
-    if (unlighthouse.runtimeSettings.configFile)
-      nuxt.options.watch.push(unlighthouse.runtimeSettings.configFile)
+    // if (unlighthouse.runtimeSettings.configFile)
+    //   nuxt.options.watch.push(unlighthouse.runtimeSettings.configFile)
 
     waitForDevServer()
       .then(async ({ listener }) => {

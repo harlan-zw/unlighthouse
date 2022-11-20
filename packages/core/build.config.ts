@@ -5,13 +5,12 @@ export default defineBuildConfig({
   clean: true,
   rollup: {
     emitCJS: true,
+    inlineDependencies: true,
   },
-  failOnWarn: false,
   entries: [
     { input: 'src/index' },
     { input: 'src/process', outDir: 'dist/process', builder: 'mkdist', declaration: false },
   ],
-  // Note: lodash-es is inlined on purpose
   externals: [
     '@unrouted/core',
     'h3',

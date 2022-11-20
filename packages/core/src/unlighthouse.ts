@@ -33,7 +33,7 @@ export { useLogger } from './logger'
 /**
  * Use the unlighthouse instance.
  */
-export const useUnlighthouse = engineContext.use as () => UnlighthouseContext
+export const useUnlighthouse = engineContext.tryUse as () => UnlighthouseContext
 
 /**
  * A simple define wrapper to provide typings to config definitions.
