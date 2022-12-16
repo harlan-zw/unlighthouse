@@ -51,6 +51,7 @@
   },
   "version": "0.4.4",
   "dependencies": {
+    "nuxt-og-image": "0.4.7",
     "unbuild": "^1.0.1"
   }
 }
