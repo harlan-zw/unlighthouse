@@ -11,13 +11,11 @@ importers:
       '@vitest/ui': ^0.25.2
       bumpp: ^8.2.1
       eslint: ^8.28.0
-      nuxt-og-image: 0.4.7
       typescript: ^4.9.3
       unbuild: ^1.0.1
       vite: ^3.2.4
       vitest: ^0.25.2
     dependencies:
-      nuxt-og-image: 0.4.7
       unbuild: 1.0.1
     devDependencies:
       '@antfu/eslint-config': 0.31.0_hsf322ms6xhhd4b5ne6lb74y4a
@@ -933,12 +931,12 @@ packages:
     engines: {node: ^14.16.0 || ^16.10.0 || ^17.0.0 || ^18.0.0 || ^19.0.0}
     dependencies:
       '@nuxt/schema': 3.0.0_rollup@2.79.1
-      c12: 1.0.1
+      c12: 1.1.0
       consola: 2.15.3
       defu: 6.1.1
-      globby: 13.1.2
+      globby: 13.1.3
       hash-sum: 2.0.0
-      ignore: 5.2.0
+      ignore: 5.2.1
       jiti: 1.16.0
       knitwork: 1.0.0
       lodash.template: 4.5.0
@@ -947,8 +945,8 @@ packages:
       pkg-types: 1.0.1
       scule: 1.0.0
       semver: 7.3.8
-      unctx: 2.1.0
-      unimport: 1.0.1_rollup@2.79.1
+      unctx: 2.1.1
+      unimport: 1.0.2_rollup@2.79.1
       untyped: 1.0.0
     transitivePeerDependencies:
       - rollup
@@ -1015,7 +1013,7 @@ packages:
     resolution: {integrity: sha512-5fwsidhs5NjFzR8sIzHMXO0WFGkI3tCH3ViANn2W4N5qCwoYZ0n1sZBkQ9Esn1VoEed6RsIlTpWrPZPVtqNkGQ==}
     engines: {node: ^14.16.0 || ^16.10.0 || ^17.0.0 || ^18.0.0 || ^19.0.0}
     dependencies:
-      c12: 1.0.1
+      c12: 1.1.0
       create-require: 1.1.1
       defu: 6.1.1
       jiti: 1.16.0
@@ -1024,8 +1022,8 @@ packages:
       postcss-import-resolver: 2.0.0
       scule: 1.0.0
       std-env: 3.3.1
-      ufo: 1.0.0
-      unimport: 1.0.1_rollup@2.79.1
+      ufo: 1.0.1
+      unimport: 1.0.2_rollup@2.79.1
       untyped: 1.0.0
     transitivePeerDependencies:
       - rollup
@@ -2816,11 +2814,6 @@ packages:
   /chalk/5.1.2:
     resolution: {integrity: sha512-E5CkT4jWURs1Vy5qGJye+XwCkNj7Od3Af7CP6SujMetSMkLs8Do2RWJK5yx1wamHV/op8Rz+9rltjaTQWDnEFQ==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
-
-  /chalk/5.2.0:
-    resolution: {integrity: sha512-ree3Gqw/nazQAPuJJEy+avdl7QfZMcUvmHIKgEZkGL+xOBzRvup5Hxo6LHuMceSxOabuJLJm5Yp/92R9eMmMvA==}
-    engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
-    dev: false
 
   /character-entities-legacy/1.1.4:
     resolution: {integrity: sha512-3Xnr+7ZFS1uxeiUDvV02wQ+QDbc55o97tIV5zHScSPJpcLm/r0DFPcoY3tYRp+VZukxuMeKgXYmsXQHO05zQeA==}
@@ -6363,25 +6356,6 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /nuxt-og-image/0.4.7:
-    resolution: {integrity: sha512-Vj3FNUS3qQ/bFabAXT58CrGyGi+VFeF9zx77kfLBc4Gyh0jk90TTtKqKZnJAY88VbTUOTMdz/dBBzsBPUyzpgQ==}
-    dependencies:
-      '@nuxt/kit': 3.0.0
-      chalk: 5.2.0
-      chrome-launcher: 0.15.1
-      defu: 6.1.1
-      execa: 6.1.0
-      fast-glob: 3.2.12
-      ohash: 1.0.0
-      pathe: 1.0.0
-      playwright-core: 1.28.1
-      radix3: 1.0.0
-      ufo: 1.0.1
-    transitivePeerDependencies:
-      - rollup
-      - supports-color
-    dev: false
-
   /nuxt/3.0.0:
     resolution: {integrity: sha512-RNlD78uv04ZiXWmlx9f1tnJfrqsYAWHU+4gbgOTQpIBmQzHWPWiox+fm/1m93iKfEd5sJi9TJUoXX5yBObVZYw==}
     engines: {node: ^14.16.0 || ^16.10.0 || ^17.0.0 || ^18.0.0 || ^19.0.0}
@@ -6768,12 +6742,6 @@ packages:
       jsonc-parser: 3.2.0
       mlly: 1.0.0
       pathe: 1.0.0
-
-  /playwright-core/1.28.1:
-    resolution: {integrity: sha512-3PixLnGPno0E8rSBJjtwqTwJe3Yw72QwBBBxNoukIj3lEeBNXwbNiKrNuB1oyQgTBw5QHUhNO3SteEtHaMK6ag==}
-    engines: {node: '>=14'}
-    hasBin: true
-    dev: false
 
   /pluralize/8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
@@ -8364,6 +8332,24 @@ packages:
       unplugin: 1.0.1
     transitivePeerDependencies:
       - rollup
+
+  /unimport/1.0.2_rollup@2.79.1:
+    resolution: {integrity: sha512-DcYkDwl1XMZNmyEKUFzVzHAul0FZcj9m0OM/WRfaAtg6Gw1waYlypYJl6qAg31k57TnNPwGDCAxYPodYC5qomQ==}
+    dependencies:
+      '@rollup/pluginutils': 5.0.2_rollup@2.79.1
+      escape-string-regexp: 5.0.0
+      fast-glob: 3.2.12
+      local-pkg: 0.4.2
+      magic-string: 0.27.0
+      mlly: 1.0.0
+      pathe: 1.0.0
+      pkg-types: 1.0.1
+      scule: 1.0.0
+      strip-literal: 1.0.0
+      unplugin: 1.0.1
+    transitivePeerDependencies:
+      - rollup
+    dev: true
 
   /unique-string/2.0.0:
     resolution: {integrity: sha512-uNaeirEPvpZWSgzwsPGtU2zVSTrn/8L5q/IexZmH0eH6SA73CmAA5U4GwORTxQAZs95TAXLNqeLoPPNO5gZfWg==}

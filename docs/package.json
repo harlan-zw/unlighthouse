@@ -16,6 +16,7 @@
   "dependencies": {
     "@headlessui/vue": "^1.7.6",
     "@nuxtlabs/github-module": "^1.4.6",
+    "nuxt-og-image": "0.4.7",
     "playwright": "^1.28.1",
     "postcss-custom-properties": "^12.1.8",
     "vue-github-button": "^3.0.3"
