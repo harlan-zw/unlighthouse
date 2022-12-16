@@ -56,7 +56,7 @@ defineProps({
       </div>
 
       <div class="block-hero__right md:col-span-6 max-w-full">
-        <div class="flex relative items-center block-hero__inner md:p-10 bg-gradient-to-br to-green-200 from-blue-100 dark:from-green-500/10 dark:to-blue-500/20 rounded">
+        <div class="flex relative h-full items-center block-hero__inner md:p-10 bg-gradient-to-br to-green-200 from-blue-100 dark:from-green-500/10 dark:to-blue-500/20 rounded">
           <slot name="right">
             <Markdown :use="$slots.right" unwrap="p" />
           </slot>

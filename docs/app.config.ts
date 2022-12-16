@@ -4,6 +4,7 @@ export default defineAppConfig({
     name: 'Unlighthouse',
     description: 'Like Google Lighthouse, but it scans every single page.',
     url: 'https://unlighthouse.dev/',
+    image: 'https://unlighthouse.dev/og.png',
     layout: 'default',
     socials: {
       twitter: '@harlan_zw',
@@ -19,9 +20,6 @@ export default defineAppConfig({
     header: {
       title: 'Unlighthouse',
       logo: true,
-    },
-    cover: {
-      src: 'https://unlighthouse.dev/og.png',
     },
   }
 })

@@ -18,8 +18,8 @@ secondary:
 
 #right
 
-<div class="relative">
-  <video width="960" height="540" autoplay loop muted poster="/screenshot.png" class="max-w-full w-1822px rounded-xl z-1" style="box-shadow: rgb(0 0 0 / 20%) 0px 0px 0px 1px, rgb(0 0 0 / 50%) 0px 0px 30px 1px;">
+<div class="relative h-full">
+  <video width="960" height="540" autoplay loop muted poster="/screenshot.png" class="h-full max-w-full w-1822px rounded-xl z-1" style="object-fit: cover; box-shadow: rgb(0 0 0 / 20%) 0px 0px 0px 1px, rgb(0 0 0 / 50%) 0px 0px 30px 1px;">
     <source
       src="/demo.webm"
       type="video/webm"

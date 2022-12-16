@@ -1,4 +1,4 @@
-![unlighthouse - Scan your entire website with Google Lighthouse.](https://next.unlighthouse.dev/og.png)
+![unlighthouse - Scan your entire website with Google Lighthouse.](https://repository-images.githubusercontent.com/423079536/c88a81ee-43ec-40fc-a615-1d29bbeaaeb4)
 <p align="center">
 <a href="https://www.npmjs.com/package/@unlighthouse/core" target="__blank"><img src="https://img.shields.io/npm/v/@unlighthouse/core?color=2B90B6&label=" alt="NPM version"></a>
 <a href="https://www.npmjs.com/package/@unlighthouse/core" target="__blank"><img alt="NPM Downloads" src="https://img.shields.io/npm/dm/@unlighthouse/core?color=349dbe&label="></a>
@@ -27,64 +27,9 @@ Status: <b>Public Early Access 🎉</b><br>
 </table>
 </p>
 
+### Quick Setup
 
-## Scan your site quickly.
-
-### ⚡️ Fast
-
-Take advantage of your CPU with threaded workers and use opportunistic throttling and categories for lightning quick scans.
-
-### 🐞 Automated URL Discovery
-
-Fast, configurable URL discovery using sitemap.xml parsing, internal link crawling and project file scanning.
-
-### ️🍣 Dynamic Route Sampling
-
-Fewer URLs to scan with automatic sampling of dynamic routes. Hook up your local project files to make it even smarter.
-
-## Visualise your sites health
-
-### 🌈 Modern UI
-
-View your sites' health as a whole with the Unlighthouse client built with Vite. Easily see, search and sort your pages, re-scan individual pages and more.
-
-### 🍬️ SEO Goodies
-
-View all of your pages titles, share images, meta descriptions, see how many internal and external links you have.
-
-### ✅️ Accessibility Summary
-
-See how your sites accessibility stacks up, find high-leverage issues to fix easily and visually see colour contrast issues.
-
-## Built for Developers
-
-### 🧑‍💻 Integrated Development
-
-Finding issues with your site is one thing, fixing them is another. Unlighthouse comes packed with local development plugins for most
-popular frameworks.
-
-See which file belongs to a URL, fix your issue, unlighthouse will automatically re-audit the page!
-
-### 🤖 CI Ready
-
-Set a budget for all each category, scan all pages, know if any of the pages breaks the budget. Easy.
-
-Use the CI to upload your sites reports and access them all at any time.
-
-### 🛠 Hackable
-
-Unlighthouse was built to modify, with isolated packages, robust API and a generous hook system. 
-You can even modify the columns in the client!
-
-## Getting Started
-
-Install instructions for all integrations can be found on the [docs](https://unlighthouse.dev/) site.
-
-Need a hand? Join the [Discord](https://unlighthouse.dev/chat) for one-on-one help.
-
-### Quick Setup - CLI
-
-Ensure you're using [Node.js >=14](https://nodejs.org/) and run the following command:
+Run the following command:
 
 ```bash
 # NPM
@@ -99,6 +44,12 @@ If you have issues with that you can install puppeteer globally.
 ```bash
 npm install -g puppeteer
 ```
+
+## Getting Started
+
+Install instructions for all integrations can be found on the [docs](https://unlighthouse.dev/) site.
+
+Need a hand? Join the [Discord](https://unlighthouse.dev/chat) for one-on-one help.
 
 #### gitignore
 
