@@ -32,7 +32,6 @@ Status: <b>Beta</b><br>
 Run the following command:
 
 ```bash
-# NPM
 npx unlighthouse --site <your-site>
 # or PNPM
 pnpm dlx unlighthouse --site <your-site>
@@ -58,7 +57,7 @@ it's recommended you .gitignore these files.
 
 #### Debugging
 
-As Unlighthouse is in early access, it's recommended you run it in debug mode.
+As Unlighthouse is in beta, it's recommended you run it in debug mode.
 
 ```bash
 # NPM
