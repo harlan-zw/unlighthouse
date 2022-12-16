@@ -78,7 +78,7 @@ export default {
 You can either configure Unlighthouse via the plugin, or you can provide a `unlighthouse.config.ts` file
 in the root directory.
 
-See [Configuring Unlighthouse](/guide/config.html) for more information.
+See [Configuring Unlighthouse](/guide/guides/config) for more information.
 
 ### Example
 

@@ -7,13 +7,13 @@ Unlighthouse is configured by default to run on any sized site and only perform 
 Unlighthouse is configured by default to work on large sites. If you're scanning a smaller site you may consider
 changing some of the following:
 
-- [ignoreI18nPages](/config/#scanner-ignorei18npages) enabled
-- [maxRoutes](/config/#scanner-maxroutes) set to 200
-- [skipJavascript](/config/#scanner-skipjavascript) enabled
-- [samples](/config/#scanner-samples) set to 1
-- [throttling](/config/#scanner-throttle) disabled
-- [crawler](/config/#scanner-crawler) enabled
-- [dynamicSampling](/config/#scanner-crawler) set to 5
+- [ignoreI18nPages](/api/config/#scanner-ignorei18npages) enabled
+- [maxRoutes](/api/config/#scanner-maxroutes) set to 200
+- [skipJavascript](/api/config/#scanner-skipjavascript) enabled
+- [samples](/api/config/#scanner-samples) set to 1
+- [throttling](/api/config/#scanner-throttle) disabled
+- [crawler](/api/config/#scanner-crawler) enabled
+- [dynamicSampling](/api/config/#scanner-crawler) set to 5
 
 For example, when scanning a blog with thousands of posts, it may be redundant to scan every single blog post, as the
 DOM is very similar. Using the configuration we can select exactly how many posts should be scanned.
@@ -23,7 +23,7 @@ DOM is very similar. Using the configuration we can select exactly how many post
 You can configure Unlighthouse to use an explicit list of relative paths. This can be useful if you have a fairly complex
 and large site.
 
-See [Manually providing URLs](/guide/url-discovery#manually-providing-urls) for more information.
+See [Manually providing URLs](/guide/guides/url-discovery#manually-providing-urls) for more information.
 
 ## Provide Route Definitions (optional)
 
@@ -31,7 +31,7 @@ To make the most intelligent sampling decisions, Unlighthouse needs to know whic
 using the
 integration API, Unlighthouse will automatically provide this information.
 
-Using the CLI you should follow the [providing route definitions](/guide/route-definitions.html) guide.
+Using the CLI you should follow the [providing route definitions](/guide/guides/route-definitions) guide.
 
 Note: When no route definitions are provided it will match based on URL fragments, i.e `/blog/post-slug-3` will be
 mapped to

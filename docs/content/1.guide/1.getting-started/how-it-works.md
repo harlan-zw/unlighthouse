@@ -47,7 +47,7 @@ hooks.hookOnce('visited-client', () => {
 
 ### Context
 
-Discovery of the [route definitions](/glossary/#route-definition) is attempted. A virtual router for the route
+Discovery of the [route definitions](/api/glossary/#route-definition) is attempted. A virtual router for the route
 definitions is created.
 
 Start collecting the list of URLs to work with from the sitemap.xml, if no sitemap is discovered, the home page will be

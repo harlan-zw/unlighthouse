@@ -6,7 +6,7 @@ Unlighthouse was built to be hacked. That includes the columns used to display y
 
 You can customise the columns to show any aggregated data that is useful for you.
 
-See the [glossary guide](/glossary/#columns) for the columns to understand the API.
+See the [glossary guide](/api/glossary/#columns) for the columns to understand the API.
 
 ### Example: Replace FCP Column with Server Response
 

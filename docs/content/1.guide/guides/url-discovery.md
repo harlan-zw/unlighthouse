@@ -7,7 +7,7 @@ Unlighthouse comes with multiple methods for URL discovery in the form of crawli
 2. Manually providing URLs via the `--urls` flag or `urls` on the provider.
 3. `sitemap` - Reading sitemap.xml, if it exists 
 4. `crawler` - Inspecting internal links 
-5. Using provided static [route definitions](/glossary/#route-definition)
+5. Using provided static [route definitions](/api/glossary/#route-definition)
 
 
 ## Sitemap

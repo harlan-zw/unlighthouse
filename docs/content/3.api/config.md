@@ -4,7 +4,7 @@
 
 There are multiple ways to configure Unlighthouse. See the configuration documentation for your implementation.
 
-- [Config file - unlighthouse.config.ts](/guide/config.html)
+- [Config file - unlighthouse.config.ts](/guide/guides/config)
 - [CLI arguments](/integrations/cli#configuration)
 - [Nuxt module options](/integrations/nuxt#configuration)
 - [webpack plugin options](/integrations/webpack#configuration)
@@ -100,7 +100,7 @@ The path that the API should be served from.
 
 Provide a list of URLs that should be used explicitly. Will disable sitemap and crawler.
 
-See [Manually Providing URLs](/guide/url-discovery#manually-providing-urls).
+See [Manually Providing URLs](/guide/guides/url-discovery#manually-providing-urls).
 
 ## CI Options
 
@@ -137,7 +137,7 @@ Combine this with uploading to a site, and you can see the results of your unlig
 
 ## Client Options
 
-See [Modifying client](/guide/client.html) for more information.
+See [Modifying client](/guide/recipes/client) for more information.
 
 ### client.columns
 
@@ -154,7 +154,7 @@ Which key to use to group the routes.
 
 ## Discovery Options
 
-See [Route Definitions](/guide/route-definitions.html) for more information.
+See [Route Definitions](/guide/guides/route-definitions) for more information.
 
 ### discovery.pagesDir
 
@@ -183,7 +183,7 @@ Setup custom mappings for a regex string to a route definition.
 This is useful when you have a complex site which doesn't use URL path segments
 to separate pages.
 
-See [custom sampling](/guide/route-definitions#custom-sampling) for more information.
+See [custom sampling](/guide/guides/route-definitions#custom-sampling) for more information.
 
 ### scanner.ignoreI18nPages
 
@@ -210,7 +210,7 @@ configuration to be able to run properly
 
 Paths to explicitly include from the search, this will exclude any paths not listed here.
 
-See [Include URL Patterns](/guide/large-sites#include-url-patterns) for more information.
+See [Include URL Patterns](/guide/recipes/large-sites#include-url-patterns) for more information.
 
 ### scanner.exclude
 
@@ -219,7 +219,7 @@ See [Include URL Patterns](/guide/large-sites#include-url-patterns) for more inf
 
 Paths to ignore from scanning.
 
-See [Exclude URL Patterns](/guide/large-sites#include-url-patterns) for more information.
+See [Exclude URL Patterns](/guide/recipes/large-sites#include-url-patterns) for more information.
 
 ### scanner.skipJavascript
 
@@ -230,7 +230,7 @@ Does javascript need to be executed in order to fetch internal links and SEO dat
 
 Disabling this can speed up scans but may break the parsing.
 
-See [Handling SPAs](/guide/spa.html) for more information.
+See [Handling SPAs](/guide/recipes/spa) for more information.
 
 ### scanner.samples
 
@@ -240,7 +240,7 @@ See [Handling SPAs](/guide/spa.html) for more information.
 How many samples of each route should be done. This is used to improve false-positive results.
 
 See [Run Lighthouse Multiple Times](https://github.com/GoogleChrome/lighthouse/blob/master/docs/variability.md#run-lighthouse-multiple-times)
-and [Improving Accuracy](/guide/improving-accuracy.html) for more information.
+and [Improving Accuracy](/guide/recipes/improving-accuracy) for more information.
 
 ### scanner.throttle
 
@@ -251,7 +251,7 @@ Should lighthouse run with throttling enabled. This is an alias for manually con
 
 Note: This will be disabled by default for local scans.
 
-See [Toggling Throttling](/guide/device#alias-enable-disable-throttling) for more information.
+See [Toggling Throttling](/guide/guides/device#alias-enable-disable-throttling) for more information.
 
 ### scanner.crawler
 
@@ -261,7 +261,7 @@ See [Toggling Throttling](/guide/device#alias-enable-disable-throttling) for mor
 Should the crawler be used to detect URLs. This will parse the HTML of scanned pages for internal links and queue
 them for scanning.
 
-See [URL Discovery](/guide/url-discovery.html) for more information.
+See [URL Discovery](/guide/guides/url-discovery) for more information.
 
 ### scanner.dynamicSampling
 
@@ -271,7 +271,7 @@ See [URL Discovery](/guide/url-discovery.html) for more information.
 When a route definition is provided, you're able to configure the worker to sample the dynamic routes to avoid
 redundant route reports.
 
-See [Change Dynamic Sampling Limit](/guide/large-sites#change-dynamic-sampling-limit) for more information.
+See [Change Dynamic Sampling Limit](/guide/recipes/large-sites#change-dynamic-sampling-limit) for more information.
 
 ### scanner.sitemap
 
@@ -287,13 +287,13 @@ Whether the sitemap.xml will be attempted to be read from the site.
 
 Alias to switch the device used for scanning. Set to false if you want to manually configure it.
 
-See [Switching between mobile and desktop](/guide/device#alias-enable-disable-throttling) for more information.
+See [Switching between mobile and desktop](/guide/guides/device#alias-enable-disable-throttling) for more information.
 
 ## Lighthouse Options
 
 Changes the default behaviour of Google Lighthouse.
 
-See [Configure Google Lighthouse](/guide/lighthouse.html) for more information.
+See [Configure Google Lighthouse](/guide/guides/lighthouse) for more information.
 
 ## Puppeteer Options
 
