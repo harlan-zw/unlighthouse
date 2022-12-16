@@ -1,28 +1,23 @@
 {
-  "name": "docs",
   "private": true,
   "scripts": {
-    "dev": "vitepress --port 3333 --open",
-    "build": "vitepress build",
-    "serve": "vitepress serve",
-    "lint": "eslint . --ext=.ts,.vue"
-  },
-  "dependencies": {
-    "@panelbear/panelbear-js": "^1.3.3",
-    "@vueuse/core": "^8.4.2",
-    "unplugin-icons": "^0.14.3",
-    "vite": "^2.9.8",
-    "vue": "^3.2.33"
+    "dev": "nuxi dev",
+    "build": "nuxi build",
+    "generate": "nuxi build",
+    "preview": "nuxi preview"
   },
   "devDependencies": {
-    "@iconify-json/carbon": "^1.1.4",
-    "@unlighthouse/core": "workspace:*",
-    "@unlighthouse/vite": "workspace:*",
-    "@unocss/reset": "^0.33.2",
-    "@vitejs/plugin-vue": "^2.3.2",
-    "markdown-it": "^13.0.1",
-    "unocss": "^0.33.2",
-    "unplugin-vue-components": "^0.19.3",
-    "vitepress": "^0.22.4"
+    "@nuxt-themes/docus": "1.1.8",
+    "@nuxtjs/fontaine": "^0.2.3",
+    "nuxt": "3.0.0",
+    "nuxt-seo-kit": "^0.2.1",
+    "nuxt-windicss": "latest"
+  },
+  "dependencies": {
+    "@headlessui/vue": "^1.7.6",
+    "@nuxtlabs/github-module": "^1.4.6",
+    "playwright": "^1.28.1",
+    "postcss-custom-properties": "^12.1.8",
+    "vue-github-button": "^3.0.3"
   }
 }
