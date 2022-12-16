@@ -57,7 +57,7 @@ What's included
   #title
   **Speedy Scans**
   #description
-  ATake advantage of your CPU with threaded workers and use opportunistic throttling and categories for lightning quick scans.
+  Take advantage of your CPU with threaded workers and use opportunistic throttling and categories for lightning quick scans.
   ::
 
   ::card
