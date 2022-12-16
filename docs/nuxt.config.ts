@@ -20,7 +20,7 @@ export default defineNuxtConfig({
       indexable: true,
       siteUrl: 'https://unlighthouse.dev/',
       siteTitle: 'Unlighthouse',
-      siteDescription: 'Scan your entire website with Google Lighthouse.',
+      siteDescription: 'Like Google Lighthouse, but it scans every single page.',
       trailingSlash: false,
       language: 'en',
     }

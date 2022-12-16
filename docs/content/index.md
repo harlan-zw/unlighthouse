@@ -34,10 +34,10 @@ secondary:
 </div>
 
 #title
-Scan your entire website with Google Lighthouse
+Like Lighthouse, but it scans every single page.
 
 #description
-Open source, fully configurable with minimal setup. Complete site scan in 2 minutes (on average).
+Scan your entire site with Google Lighthouse in 2 minutes (on average). Open source, fully configurable with minimal setup. 
 ::
 
 

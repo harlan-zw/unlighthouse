@@ -2,7 +2,7 @@ export default defineAppConfig({
   docus: {
     title: 'Unlighthouse',
     name: 'Unlighthouse',
-    description: 'Simple and quick Schema.org for everyone, powered by unhead.',
+    description: 'Like Google Lighthouse, but it scans every single page.',
     url: 'https://unlighthouse.dev/',
     layout: 'default',
     socials: {
