@@ -24,7 +24,7 @@
     "ci:vue": "node packages/cli/dist/ci.mjs --config-file test/fixtures/staging-vue.config.ts --build-static --debug",
     "ci:react": "node packages/cli/dist/ci.mjs --config-file test/fixtures/react-beta.config.ts --build-static --debug",
     "ci:docs": "node packages/cli/dist/ci.mjs --site unlighthouse.dev --build-static --debug",
-    "build": "pnpm run build:pkg && pnpm run build:integrations && pnpm run build:docs",
+    "build": "pnpm run build:pkg && pnpm run build:integrations",
     "build:integrations": "pnpm -r --filter=./integrations/** --filter=!./integrations/nuxt run build && pnpm -r --filter=./integrations/nuxt run build",
     "build:docs": "cd docs && pnpm i && nuxi build",
     "build:pkg": "pnpm -r --filter=./packages/** run build",
