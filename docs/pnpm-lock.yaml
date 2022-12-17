@@ -10,7 +10,7 @@ importers:
       '@nuxtlabs/github-module': ^1.4.6
       nuxt: 3.0.0
       nuxt-og-image: 0.5.3
-      nuxt-seo-kit: ^0.2.1
+      nuxt-seo-kit: ^0.2.2
       nuxt-windicss: latest
       playwright: ^1.29.0
       postcss-custom-properties: ^12.1.8
@@ -26,7 +26,7 @@ importers:
       '@nuxt-themes/docus': 1.1.10_nuxt@3.0.0
       '@nuxtjs/fontaine': 0.2.3
       nuxt: 3.0.0
-      nuxt-seo-kit: 0.2.1
+      nuxt-seo-kit: 0.2.2
       nuxt-windicss: 2.6.0
 
 packages:
@@ -4793,25 +4793,6 @@ packages:
       - vue
     dev: true
 
-  /nuxt-og-image/0.4.7:
-    resolution: {integrity: sha512-Vj3FNUS3qQ/bFabAXT58CrGyGi+VFeF9zx77kfLBc4Gyh0jk90TTtKqKZnJAY88VbTUOTMdz/dBBzsBPUyzpgQ==}
-    dependencies:
-      '@nuxt/kit': 3.0.0
-      chalk: 5.2.0
-      chrome-launcher: 0.15.1
-      defu: 6.1.1
-      execa: 6.1.0
-      fast-glob: 3.2.12
-      ohash: 1.0.0
-      pathe: 1.0.0
-      playwright-core: 1.29.0
-      radix3: 1.0.0
-      ufo: 1.0.1
-    transitivePeerDependencies:
-      - rollup
-      - supports-color
-    dev: true
-
   /nuxt-og-image/0.5.3:
     resolution: {integrity: sha512-1ZOUmEIbmDuLADGo+0D+kGVw0qNRmOLIUa95x2w62FkVZkwqJkJ9AN/OBg+riGCuxmYE6Ux0mwEkjYeKssAZzQ==}
     dependencies:
@@ -4828,7 +4809,6 @@ packages:
     transitivePeerDependencies:
       - rollup
       - supports-color
-    dev: false
 
   /nuxt-schema-org/2.0.2:
     resolution: {integrity: sha512-ZTli2e3uXvvWHDimclux2OKfr+O0Qw+98l+hMprzi7SiO4AyS9cDs3plg/aHjar7yOZcUpmSUKHSrfpDXwC4Bg==}
@@ -4842,12 +4822,12 @@ packages:
       - supports-color
     dev: true
 
-  /nuxt-seo-kit/0.2.1:
-    resolution: {integrity: sha512-plfFtiIqeM/2kFpTbxFkVvTw0hWL/PkoHXcY7c4ykvvH7qx2v6daVLtFAY5TmDwNOnkdCz7bwoIH+zr88jR9JQ==}
+  /nuxt-seo-kit/0.2.2:
+    resolution: {integrity: sha512-DspAatezsXNwuY8rmCzHblMqCPB9ZE3WmP1bMfGKu1On+4ZEXVi8PxdnDhf+LHdgG4vHZhmxspiYjr/lX//lwA==}
     dependencies:
       '@nuxt/kit': 3.0.0
       defu: 6.1.1
-      nuxt-og-image: 0.4.7
+      nuxt-og-image: 0.5.3
       nuxt-schema-org: 2.0.2
       nuxt-simple-sitemap: 0.5.2
       nuxt-unhead: 1.0.8
@@ -5258,6 +5238,7 @@ packages:
     resolution: {integrity: sha512-pboOm1m0RD6z1GtwAbEH60PYRfF87vKdzOSRw2RyO0Y0a7utrMyWN2Au1ojGvQr4umuBMODkKTv607YIRypDSQ==}
     engines: {node: '>=14'}
     hasBin: true
+    dev: false
 
   /playwright/1.29.0:
     resolution: {integrity: sha512-vtXgX3FPNcAJq1QoIVCvmiHHKOLVTZkSYEo60n+EnX5MrNznAJzGquxT8c2sv+BG3CDyLeKm351e491HnF7yjw==}
