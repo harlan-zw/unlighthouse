@@ -31,7 +31,7 @@ jobs:
         run: pnpm run build
 
       - name: Run Unlighthouse CI
-        run: pnpm ci:docs && mv docs/.unlighthouse dist
+        run: pnpm ci:docs && mv .unlighthouse dist
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
