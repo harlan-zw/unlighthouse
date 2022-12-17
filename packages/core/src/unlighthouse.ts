@@ -150,6 +150,19 @@ export const createUnlighthouse = async (userConfig: UserConfig, provider?: Prov
       $site.hostname.replace(':', '꞉'),
       runtimeSettings.configCacheKey || '',
     )
+
+    try {
+      await fs.mkdir(join(resolvedConfig.root, resolvedConfig.outputPath), { recursive: true })
+    } catch (e) {
+      logger.error(`Failed to create output directory. Please check unlighthouse has permissions to: ${resolvedConfig.outputPath}`, e)
+    }
+
+    try {
+      await fs.mkdir(outputPath, { recursive: true })
+    } catch (e) {
+      logger.error(`Failed to create output directory. Please check unlighthouse has permission to create files and folders in: ${resolvedConfig.outputPath}`, e)
+    }
+
     if (provider?.name === 'ci')
       outputPath = join(resolvedConfig.root, resolvedConfig.outputPath)
 
