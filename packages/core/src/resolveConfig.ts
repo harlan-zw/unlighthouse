@@ -69,7 +69,12 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   if (!config.lighthouseOptions.formFactor) {
     if (config.scanner?.device === 'mobile') {
       config.lighthouseOptions.formFactor = 'mobile'
-      config.lighthouseOptions.screenEmulation = defu({ mobile: true }, config.lighthouseOptions.screenEmulation || {})
+      config.lighthouseOptions.screenEmulation = defu({
+        mobile: true,
+        width: 360,
+        height: 640,
+        deviceScaleFactor: 2,
+      }, config.lighthouseOptions.screenEmulation || {})
     }
     else if (config.scanner?.device === 'desktop') {
       config.lighthouseOptions.formFactor = 'desktop'
@@ -93,7 +98,14 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       // set default to puppeteer core
       config.puppeteerClusterOptions = defu({ puppeteer }, config.puppeteerClusterOptions || {})
       // point to our pre-installed chrome version
-      config.puppeteerOptions = defu({ executablePath: Launcher.getFirstInstallation() }, config.puppeteerOptions || {})
+      config.puppeteerOptions = defu({
+        executablePath: Launcher.getFirstInstallation(),
+        // set viewport
+        defaultViewport: {
+          width: config.lighthouseOptions?.screenEmulation?.width || 0,
+          height: config.lighthouseOptions?.screenEmulation?.height || 0,
+        }
+      }, config.puppeteerOptions || {})
     }
     else {
       // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
