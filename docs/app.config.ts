@@ -21,5 +21,5 @@ export default defineAppConfig({
       title: 'Unlighthouse',
       logo: true,
     },
-  }
+  },
 })

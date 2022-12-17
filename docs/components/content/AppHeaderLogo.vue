@@ -9,11 +9,13 @@ const title = computed(() => docus.value.header?.title || docus.value.title)
     <div class="flex items-center">
       <div class="flex items-center mr-5">
         <div>
-          <img src="/logo-dark.svg" alt="Unlighthouse Logo" class="block dark:hidden text-black dark:text-white w-5 h-5 mr-2" />
-          <img src="/logo-light.svg" alt="Unlighthouse Logo" class="hidden dark:block text-black dark:text-white w-5 h-5 mr-2" />
+          <img src="/logo-dark.svg" alt="Unlighthouse Logo" class="block dark:hidden text-black dark:text-white w-5 h-5 mr-2">
+          <img src="/logo-light.svg" alt="Unlighthouse Logo" class="hidden dark:block text-black dark:text-white w-5 h-5 mr-2">
         </div>
         <div class="flex flex-col">
-          <h1 class="font-bold text-xl">Unlighthouse</h1>
+          <h1 class="font-bold text-xl">
+            Unlighthouse
+          </h1>
         </div>
       </div>
     </div>

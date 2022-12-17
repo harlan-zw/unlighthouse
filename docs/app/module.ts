@@ -1,6 +1,4 @@
-import { fileURLToPath } from 'url'
-import {createResolver, defineNuxtModule} from '@nuxt/kit'
-import { resolve } from 'pathe'
+import { createResolver, defineNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 
 export default defineNuxtModule({
@@ -9,9 +7,9 @@ export default defineNuxtModule({
     version: '3.0.0',
     compatibility: {
       nuxt: '^3.0.0',
-      bridge: false
+      bridge: false,
     },
-    configKey: 'docs'
+    configKey: 'docs',
   },
   setup(_, nuxt) {
     const { resolve } = createResolver(import.meta.url)
@@ -29,5 +27,5 @@ export default defineNuxtModule({
       nitroConfig.plugins = nitroConfig.plugins || []
       nitroConfig.plugins.push('#docs/transformer')
     })
-  }
+  },
 })

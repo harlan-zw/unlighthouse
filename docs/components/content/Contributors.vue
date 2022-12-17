@@ -2,6 +2,5 @@
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-5 justify-center">
-  </div>
+  <div class="flex flex-wrap gap-5 justify-center" />
 </template>

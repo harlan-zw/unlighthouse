@@ -40,17 +40,17 @@
     "docs:serve": "npm -C docs run serve"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.31.0",
-    "@types/node": "^18.11.9",
-    "@vitest/ui": "^0.25.2",
+    "@antfu/eslint-config": "^0.34.0",
+    "@types/node": "^18.11.16",
+    "@vitest/ui": "^0.25.8",
     "bumpp": "^8.2.1",
-    "eslint": "^8.28.0",
-    "typescript": "^4.9.3",
+    "eslint": "^8.30.0",
+    "typescript": "^4.9.4",
     "vite": "^3.2.4",
-    "vitest": "^0.25.2"
+    "vitest": "^0.25.8"
   },
   "version": "0.4.4",
   "dependencies": {
-    "unbuild": "^1.0.1"
+    "unbuild": "^1.0.2"
   }
 }

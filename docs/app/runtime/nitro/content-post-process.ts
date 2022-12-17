@@ -1,4 +1,4 @@
-import { NitroAppPlugin } from 'nitropack'
+import type { NitroAppPlugin } from 'nitropack'
 import { StorageMeta } from './content/storage-meta'
 import { MetaNormaliser } from './content/meta-normaliser'
 
@@ -9,9 +9,8 @@ export const ContentPostProcess: NitroAppPlugin = (nitroApp) => {
         StorageMeta,
         MetaNormaliser,
       ]
-      for(const plugin of plugins) {
+      for (const plugin of plugins)
         content = await plugin(content)
-      }
     }
   })
 }

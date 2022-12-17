@@ -1,4 +1,4 @@
-import {ParsedContent} from "~/types";
+import type { ParsedContent } from '~/types'
 
 export function MetaNormaliser(content: ParsedContent) {
   content.schemaOrg = content.schemaOrg || {}

@@ -23,7 +23,7 @@ export default defineNuxtConfig({
       siteDescription: 'Like Google Lighthouse, but it scans every single page.',
       trailingSlash: false,
       language: 'en',
-    }
+    },
   },
 
   app: {
@@ -52,7 +52,7 @@ export default defineNuxtConfig({
     highlight: {
       theme: {
         dark: 'github-dark',
-        default: 'github-light'
+        default: 'github-light',
       },
     },
   },
