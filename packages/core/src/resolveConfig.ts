@@ -104,7 +104,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
         defaultViewport: {
           width: config.lighthouseOptions?.screenEmulation?.width || 0,
           height: config.lighthouseOptions?.screenEmulation?.height || 0,
-        }
+        },
       }, config.puppeteerOptions || {})
     }
     else {

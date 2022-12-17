@@ -153,13 +153,15 @@ export const createUnlighthouse = async (userConfig: UserConfig, provider?: Prov
 
     try {
       await fs.mkdir(join(resolvedConfig.root, resolvedConfig.outputPath), { recursive: true })
-    } catch (e) {
+    }
+    catch (e) {
       logger.error(`Failed to create output directory. Please check unlighthouse has permissions to: ${resolvedConfig.outputPath}`, e)
     }
 
     try {
       await fs.mkdir(outputPath, { recursive: true })
-    } catch (e) {
+    }
+    catch (e) {
       logger.error(`Failed to create output directory. Please check unlighthouse has permission to create files and folders in: ${resolvedConfig.outputPath}`, e)
     }
 
