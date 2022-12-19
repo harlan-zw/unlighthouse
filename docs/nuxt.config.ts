@@ -16,14 +16,15 @@ export default defineNuxtConfig({
   ],
 
   runtimeConfig: {
+    indexable: true,
     public: {
-      indexable: true,
+      titleSeparator: '·',
       siteUrl: 'https://unlighthouse.dev/',
-      siteTitle: 'Unlighthouse',
+      siteName: 'Unlighthouse',
       siteDescription: 'Like Google Lighthouse, but it scans every single page.',
-      trailingSlash: false,
       language: 'en',
-    },
+      trailingSlash: false,
+    }
   },
 
   app: {
