@@ -9,7 +9,7 @@
   "dependencies": {
     "@headlessui/vue": "^1.7.7",
     "@nuxtlabs/github-module": "^1.4.6",
-    "nuxt-og-image": "0.5.3",
+    "nuxt-og-image": "0.5.4",
     "playwright": "^1.29.0",
     "postcss-custom-properties": "^12.1.8",
     "vue-github-button": "^3.0.3"
@@ -18,7 +18,7 @@
     "@nuxt-themes/docus": "1.1.10",
     "@nuxtjs/fontaine": "^0.2.3",
     "nuxt": "3.0.0",
-    "nuxt-seo-kit": "^0.3.1",
+    "nuxt-seo-kit": "^0.3.2",
     "nuxt-windicss": "latest"
   }
 }
