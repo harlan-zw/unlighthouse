@@ -4,8 +4,8 @@ const route = useRoute()
 
 <template>
   <AppLayout>
-    <OgImageScreenshot v-if="route.path !== '/'" />
     <SeoKit />
+    <OgImageScreenshot v-if="route.path !== '/'" />
     <NuxtPage />
   </AppLayout>
 </template>
