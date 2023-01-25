@@ -8,17 +8,17 @@
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.7",
-    "@nuxtlabs/github-module": "^1.4.6",
-    "nuxt-og-image": "0.5.5",
-    "playwright": "^1.29.0",
-    "postcss-custom-properties": "^12.1.8",
+    "@nuxtlabs/github-module": "^1.6.1",
+    "nuxt-og-image": "1.1.1",
+    "playwright": "^1.30.0",
+    "postcss-custom-properties": "^13.1.0",
     "vue-github-button": "^3.0.3"
   },
   "devDependencies": {
-    "@nuxt-themes/docus": "1.1.10",
-    "@nuxtjs/fontaine": "^0.2.3",
-    "nuxt": "3.0.0",
-    "nuxt-seo-kit": "^0.4.1",
+    "@nuxt-themes/docus": "1.5.0",
+    "@nuxtjs/fontaine": "^0.2.4",
+    "nuxt": "3.1.0",
+    "nuxt-seo-kit": "^1.0.1",
     "nuxt-windicss": "latest"
   }
 }
