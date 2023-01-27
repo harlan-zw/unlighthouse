@@ -42,12 +42,12 @@
   "devDependencies": {
     "@antfu/eslint-config": "^0.34.1",
     "@types/node": "^18.11.18",
-    "@vitest/ui": "^0.28.1",
+    "@vitest/ui": "^0.28.2",
     "bumpp": "^8.2.1",
     "eslint": "^8.32.0",
     "typescript": "^4.9.4",
     "vite": "^4.0.4",
-    "vitest": "^0.28.1"
+    "vitest": "^0.28.2"
   },
   "version": "0.4.8",
   "dependencies": {

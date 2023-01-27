@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "^0.3.1",
-    "@nuxt/kit": "3.0.0",
+    "@nuxt/kit": "3.1.1",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
     "@unlighthouse/vite": "workspace:*",
@@ -49,6 +49,6 @@
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.2.1",
-    "nuxt": "^3.0.0"
+    "nuxt": "^3.1.1"
   }
 }
