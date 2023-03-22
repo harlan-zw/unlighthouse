@@ -1,6 +1,5 @@
 import fs from 'fs'
 import { join } from 'path'
-import type { LH } from 'lighthouse'
 import lighthouse from 'lighthouse'
 import minimist from 'minimist'
 import type { UnlighthouseRouteReport } from '../types'

@@ -3,12 +3,12 @@ import { createDefu, defu } from 'defu'
 import { pick } from 'lodash-es'
 import { pathExists } from 'fs-extra'
 import { Launcher } from 'chrome-launcher'
-import puppeteer from 'puppeteer-core'
-import { resolve } from 'mlly'
+import puppeteer, { BrowserFetcher } from 'puppeteer-core'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { defaultConfig } from './constants'
 import { normaliseHost, withSlashes } from './util'
 import { useLogger } from './logger'
+import { homedir } from 'node:os'
 
 /**
  * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.
@@ -91,32 +91,47 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
 
   // if user is using the default chrome binary options
   if (!config.puppeteerOptions?.executablePath && !config.puppeteerClusterOptions?.puppeteer) {
-    // we'll try and resolve their local chrome
-    const chromePath = Launcher.getFirstInstallation()
-    if (chromePath) {
-      logger.debug(`Found chrome at \`${chromePath}\`.`)
-      // set default to puppeteer core
-      config.puppeteerClusterOptions = defu({ puppeteer }, config.puppeteerClusterOptions || {})
-      // point to our pre-installed chrome version
-      config.puppeteerOptions = defu({
-        executablePath: Launcher.getFirstInstallation(),
-        // set viewport
-        defaultViewport: {
-          width: config.lighthouseOptions?.screenEmulation?.width || 0,
-          height: config.lighthouseOptions?.screenEmulation?.height || 0,
-        },
-      }, config.puppeteerOptions || {})
-    }
-    else {
-      // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
-      // puppeteer-cluster will do, but we can provide a nicer error
-      try {
-        await resolve('puppeteer')
-      }
-      catch (e) {
-        logger.fatal('Failed to find a chrome / chromium binary to run. Add the puppeteer dependency to your project to resolve.', e)
-        logger.info('Run the following: \`npm install -g puppeteer\`')
-        process.exit(0)
+    // set default to puppeteer core
+    config.puppeteerClusterOptions = defu({ puppeteer }, config.puppeteerClusterOptions || {})
+    // point to our pre-installed chrome version
+    config.puppeteerOptions = defu({
+      // set viewport
+      defaultViewport: {
+        width: config.lighthouseOptions?.screenEmulation?.width || 0,
+        height: config.lighthouseOptions?.screenEmulation?.height || 0,
+      },
+    }, config.puppeteerOptions || {})
+    if (!config.puppeteerOptions.executablePath) {
+      // we'll try and resolve their local chrome
+      const chromePath = false && Launcher.getFirstInstallation()
+      if (chromePath) {
+        logger.debug(`Found chrome at \`${chromePath}\`.`)
+        config.puppeteerOptions.executablePath = chromePath
+      } else {
+        const path = join(homedir(), '.unlighthouse')
+        const fetcher = new BrowserFetcher({
+          path,
+          product: 'chrome',
+        })
+        let lastPercent = 0
+        if (fetcher.localRevisions()?.[0]) {
+          config.puppeteerOptions.executablePath = fetcher.revisionInfo(fetcher.localRevisions()[0]).executablePath
+          logger.debug(`Found chrome at \`${config.puppeteerOptions.executablePath}\`.`)
+        } else {
+          logger.warn(`Failed to find chrome, downloading version v${1095492} to: ${path}`)
+          const chromium = await fetcher.download('1095492', (downloadedBytes, toDownloadBytes) => {
+            const percent = Math.round(downloadedBytes / toDownloadBytes * 100)
+            if (percent % 5 === 0 && lastPercent !== percent) {
+              logger.info(`Downloading chromium: ${percent}%`)
+              lastPercent = percent
+            }
+          })
+
+          if (!chromium) {
+            throw new Error('Failed to download chromium. Please ensure you have a valid chrome installed.')
+          }
+          config.puppeteerOptions.executablePath = chromium.executablePath
+        }
       }
     }
   }

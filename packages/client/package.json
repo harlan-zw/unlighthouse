@@ -24,11 +24,11 @@
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.7",
-    "defu": "^6.1.1",
+    "defu": "^6.1.2",
     "fuse.js": "^6.6.2",
     "lodash-es": "^4.17.21",
     "ufo": "^0.8.4",
-    "vue": "^3.2.45",
+    "vue": "^3.2.47",
     "vue-router": "^4.1.6"
   },
   "devDependencies": {
@@ -38,7 +38,7 @@
     "@types/three": "^0.138.0",
     "@unlighthouse/core": "workspace:../core",
     "@vitejs/plugin-vue": "^2.3.3",
-    "@vue/compiler-sfc": "^3.2.45",
+    "@vue/compiler-sfc": "^3.2.47",
     "@vueuse/core": "^8.5.0",
     "@vueuse/router": "^8.5.0",
     "date-fns": "^2.29.3",
