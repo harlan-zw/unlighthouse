@@ -97,7 +97,7 @@ async function run() {
           .sort((a, b) => a.path.localeCompare(b.path)),
       )
 
-      if (options.buildStatic) {
+      if (resolvedConfig.ci?.buildStatic) {
         logger.info('Generating static client.')
         const { runtimeSettings } = useUnlighthouse()
         await generateClient({ static: true })
