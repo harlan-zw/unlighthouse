@@ -58,6 +58,14 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     }
   }
 
+  if (config.auth) {
+    config.lighthouseOptions.extraHeaders = config.lighthouseOptions.extraHeaders || {}
+    if (!config.lighthouseOptions.extraHeaders['Authorization']) {
+      const credentials = `${config.auth.username}:${config.auth.password}`
+      config.lighthouseOptions.extraHeaders["Authorization"] = 'Basic ' + Buffer.from(credentials).toString("base64")
+    }
+  }
+
   if (config.client?.columns) {
     // filter out any columns for categories we're not showing
     config.client.columns = pick(config.client.columns, ['overview', ...config.lighthouseOptions.onlyCategories as UnlighthouseTabs[]])

@@ -12,7 +12,7 @@ export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
   if (resolvedConfig.site) {
     // test HTTP response from site
     logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
-    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(resolvedConfig.site)
+    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(resolvedConfig.site, resolvedConfig)
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
