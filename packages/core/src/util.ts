@@ -135,7 +135,7 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
     let responseUrl = response.request.res.responseUrl
     if (responseUrl && axiosOptions.auth) {
       // remove auth credentials from url (e.g. https://user:passwd@domain.de)
-      responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+@)/g, '')
+      responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
     }
     const redirected = responseUrl && responseUrl !== url;
     const redirectUrl = responseUrl;
