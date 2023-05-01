@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/core",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "description": "Scan your entire website with Google Lighthouse.",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",

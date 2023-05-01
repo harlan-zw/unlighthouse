@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/webpack",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "description": "Webpack plugin for Unlighthouse",
   "author": "Harlan Wilton <harlan@harlanzw.com>",
   "license": "MIT",

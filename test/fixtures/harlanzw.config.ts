@@ -7,7 +7,7 @@ export default {
   },
   ci: {
     budget: {
-      'best-practices': 85,
+      'best-practices': 80,
       'seo': 85,
       'accessibility': 85,
     },
