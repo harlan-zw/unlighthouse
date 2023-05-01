@@ -293,6 +293,8 @@ declare module 'lighthouse' {
       precomputedLanternData?: PrecomputedLanternData | null
       /** The budget.json object for LightWallet. */
       budgets?: Array<Budget> | null
+      /** Optional extra headers */
+      extraHeaders?: { [key: string]: string }
     }
 
     /**

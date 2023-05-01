@@ -63,6 +63,13 @@ Where to emit lighthouse reports and the runtime client.
 
 Display the loggers' debug messages.
 
+### auth
+
+- **Type:** `false|{ username: string, password: string }`
+- **Default:** `false`
+
+Optional basic auth credentials
+
 ### hooks
 
 - **Type:** `NestedHooks<UnlighthouseHooks>`

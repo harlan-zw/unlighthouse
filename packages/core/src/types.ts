@@ -249,6 +249,12 @@ export interface ResolvedUserConfig {
    */
   cache: boolean
   /**
+   * Optional basic auth credentials
+   *
+   * @default false
+   */
+  auth: false | { username: string, password: string }
+  /**
    * Load the configuration from a custom config file.
    * By default, it attempts to load configuration from `unlighthouse.config.ts`.
    *
