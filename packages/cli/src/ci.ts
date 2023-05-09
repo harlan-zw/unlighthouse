@@ -14,6 +14,7 @@ async function run() {
 
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
   cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
+  cli.option('--sitemap-path <sitemap-path>', 'Set a custom path for the sitemap.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 

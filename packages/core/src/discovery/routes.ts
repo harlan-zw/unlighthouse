@@ -36,7 +36,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
 
   // if sitemap scanning is enabled
   if (resolvedConfig.scanner.sitemap) {
-    const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site)
+    const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site, resolvedConfig.scanner.sitemapPath)
     if (sitemapUrls.length) {
       logger.info(`Discovered ${sitemapUrls.length} routes from sitemap.xml.`)
       sitemapUrls.forEach(url => urls.add(url))

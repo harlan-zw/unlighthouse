@@ -8,7 +8,7 @@ import { useLogger } from '../logger'
  *
  * @param site
  */
-export const extractSitemapRoutes = async (site: string) => {
+export const extractSitemapRoutes = async (site: string, sitemapPath?: string) => {
   // make sure we're working from the host name
   site = new $URL(site).origin
   const unlighthouse = useUnlighthouse()
@@ -18,7 +18,7 @@ export const extractSitemapRoutes = async (site: string) => {
     debug: unlighthouse.resolvedConfig.debug,
   })
 
-  const sitemapUrl = `${site}/sitemap.xml`
+  const sitemapUrl = `${site}/${sitemapPath || 'sitemap.xml'}`
   logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
   const { sites } = await sitemap.fetch(sitemapUrl)
   logger.debug(`Fetched sitemap with ${sites.length} URLs.`)

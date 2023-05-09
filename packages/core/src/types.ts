@@ -400,6 +400,12 @@ export interface ResolvedUserConfig {
      */
     sitemap: boolean
     /**
+     * Path where get the sitemap.
+     *
+     * @default undefined
+     */
+    sitemapPath?: string
+    /**
      * Alias to switch the device used for scanning.
      * Set to false if you want to manually configure it.
      *
