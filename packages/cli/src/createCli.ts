@@ -21,6 +21,7 @@ export default function createCli() {
 
   cli.option('--site <site>', 'Host URL to scan.')
   cli.option('--router-prefix <site>', 'The URL path prefix for the client and API to run from.')
+  cli.option('--sitemap-path <sitemap-path>', 'Sitemap path to use for scanning.')
   cli.option('--samples <samples>', 'Specify the amount of samples to run.')
   cli.option('--throttle', 'Enable the throttling')
   cli.option('--enable-javascript', 'When inspecting the HTML wait for the javascript to execute. Useful for SPAs.')
