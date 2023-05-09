@@ -1,6 +1,7 @@
 export default {
   site: 'https://unitedpets.com',
   outputPath: 'unitedpets-uci',
+  routerPrefix: '/skin-unlighthouse',
   ci: {
     // budget: {
     //   performance: 50,
