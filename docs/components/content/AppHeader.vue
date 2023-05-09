@@ -70,13 +70,13 @@ css({
 },
 
 header: {
-  backdropFilter: '{backdrop.filter}',
+  backdropFilter: 'blur(10px)',
   position: 'sticky',
   top: 0,
   zIndex: 10,
   width: '100%',
   borderBottom: '1px solid {color.gray.100}',
-  backgroundColor: '{backdrop.background}',
+  backgroundColor: '1px solid {color.gray.900}',
   height: '{docus.header.height}',
 
 '@dark': {
