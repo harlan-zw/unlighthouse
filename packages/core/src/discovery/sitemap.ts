@@ -18,7 +18,13 @@ export const extractSitemapRoutes = async (site: string, sitemapPath?: string) =
     debug: unlighthouse.resolvedConfig.debug,
   })
 
-  const sitemapUrl = `${site}/${sitemapPath || 'sitemap.xml'}`
+  let sitemapUrl = `${site}/sitemap.xml`
+  // if sitemapPath exists, check if start with "/" and remove it
+  if (sitemapPath) {
+    sitemapPath = sitemapPath.startsWith('/') ? sitemapPath.slice(1) : sitemapPath
+    sitemapUrl = `${site}/${sitemapPath}`
+  }
+
   logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
   const { sites } = await sitemap.fetch(sitemapUrl)
   logger.debug(`Fetched sitemap with ${sites.length} URLs.`)
