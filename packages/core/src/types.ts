@@ -398,7 +398,13 @@ export interface ResolvedUserConfig {
      *
      * @default true
      */
-    sitemap: boolean
+    sitemap: boolean | string[]
+    /**
+     * Whether the robots.txt will be attempted to be read from the site.
+     *
+     * @default true
+     */
+    robotsTxt: boolean
     /**
      * Alias to switch the device used for scanning.
      * Set to false if you want to manually configure it.

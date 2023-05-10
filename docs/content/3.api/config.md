@@ -280,12 +280,25 @@ redundant route reports.
 
 See [Change Dynamic Sampling Limit](/guide/recipes/large-sites#change-dynamic-sampling-limit) for more information.
 
-### scanner.sitemap
+### scanner.robotsTxt
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Whether the sitemap.xml will be attempted to be read from the site.
+Should the robots.txt file be used for configuration.
+
+Sitemap paths and disallows paths will be used to configure the scanner.
+
+### scanner.sitemap
+
+- **Type:** `boolean | string[]`
+- **Default:** `true`
+
+Either an array of sitemap paths, or a boolean to enable/disable sitemap scanning.
+
+By default, when `true` is provided or an empty array, it will try and load the sitemap from `/sitemap.xml`.
+
+Note: If you have `robotsTxt` enabled it will load sitemap config from here.
 
 ### scanner.device
 

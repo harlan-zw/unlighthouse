@@ -1,44 +1,28 @@
 import Sitemapper from 'sitemapper'
-import { $URL } from 'ufo'
+import { $URL, withBase } from 'ufo'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
-import { fetchUrlRaw } from '../util'
 
 /**
  * Fetches routes from a sitemap file.
- *
- * @param site
  */
-export const extractSitemapRoutes = async (site: string) => {
+export async function extractSitemapRoutes(site: string, sitemaps: true | (string[])) {
   // make sure we're working from the host name
   site = new $URL(site).origin
   const unlighthouse = useUnlighthouse()
   const logger = useLogger()
-  let sitemaps = [`${site}/sitemap.xml`]
-  // we scan the robots.txt content for the sitemaps
-  logger.debug(`Checking ${site}/robots.txt for Sitemap URLs`)
-  const robotsTxt = await fetchUrlRaw(
-    `${site}/robots.txt`,
-    unlighthouse.resolvedConfig,
-  )
-  if (robotsTxt.valid) {
-    const sitemapUrls = robotsTxt.response?.data.split('\n')
-      .filter(line => line.startsWith('Sitemap'))
-      // split only on the first instance of :
-      .map(line => line.split(/:(.+)/)[1].trim())
-    if (sitemapUrls.length > 0)
-      sitemaps = sitemapUrls
-  }
-  else {
-    logger.warn('You seem to be missing a robots.txt.')
-  }
+  if (sitemaps === true || sitemaps.length === 0)
+    sitemaps = [`${site}/sitemap.xml`]
   const sitemap = new Sitemapper({
     timeout: 15000, // 15 seconds
     debug: unlighthouse.resolvedConfig.debug,
   })
-  let paths = []
-  for (const sitemapUrl of sitemaps) {
+  let paths: string[] = []
+  for (let sitemapUrl of new Set(sitemaps)) {
     logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
+    // make sure it's absolute
+    if (!sitemapUrl.startsWith('http'))
+      sitemapUrl = withBase(sitemapUrl, site)
     const { sites } = await sitemap.fetch(sitemapUrl)
     if (sites.length)
       paths = [...paths, ...sites]

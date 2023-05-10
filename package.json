@@ -19,7 +19,7 @@
     "cli:hzw": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/harlanzw.com/ --debug",
     "cli:ody": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/odysseytraveller.com-app/ --debug",
     "cli:windi": "node packages/cli/dist/cli.mjs --site https://windicss.org/",
-    "cli:nuxt": "node packages/cli/dist/cli.mjs --site https://v3.nuxtjs.org/",
+    "cli:nuxt": "node packages/cli/dist/cli.mjs --site https://nuxt.com/",
     "cli:vue": "node packages/cli/dist/cli.mjs --config-file test/fixtures/staging-vue.config.ts --debug",
     "ci:vue": "node packages/cli/dist/ci.mjs --config-file test/fixtures/staging-vue.config.ts --build-static --debug",
     "ci:react": "node packages/cli/dist/ci.mjs --config-file test/fixtures/react-beta.config.ts --build-static --debug",
