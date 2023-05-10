@@ -199,6 +199,7 @@ export const defaultConfig: UserConfig = {
     crawler: true,
     dynamicSampling: 5,
     sitemap: true,
+    robotsTxt: true,
     device: 'mobile',
   },
   // @ts-expect-error provided by server package, may not be provided in CI mode

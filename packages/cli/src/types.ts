@@ -17,6 +17,8 @@ export interface CliOptions {
   disableI18nPages?: boolean
   enableJavascript?: boolean
   disableJavascript?: boolean
+  disableRobotsTxt?: boolean
+  disableSitemap?: boolean
 }
 
 export interface CiOptions extends CliOptions {

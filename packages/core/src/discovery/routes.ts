@@ -4,6 +4,7 @@ import { useUnlighthouse } from '../unlighthouse'
 import { isScanOrigin, normaliseRoute } from '../router'
 import { useLogger } from '../logger'
 import { extractSitemapRoutes } from './sitemap'
+import { fetchRobotsTxt, mergeRobotsTxtConfig, parseRobotsTxt } from './robotsTxt'
 
 /**
  * Discover the initial routes that we'll be working with.
@@ -34,9 +35,19 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
     }
   }
 
+  if (resolvedConfig.scanner.robotsTxt) {
+    const robotsTxt = await fetchRobotsTxt(resolvedConfig.site)
+    if (robotsTxt) {
+      const robotsTxtParsed = parseRobotsTxt(robotsTxt)
+      logger.info(`Found /robots.txt, using entries. Sitemaps: ${robotsTxtParsed.sitemaps.length}, Disallow: ${robotsTxtParsed.disallows.length}.`)
+      // merges disallow and sitemap into the `scanner.exclude` and `scanner.sitemaps` options respectively
+      mergeRobotsTxtConfig(resolvedConfig, robotsTxtParsed)
+    }
+  }
+
   // if sitemap scanning is enabled
-  if (resolvedConfig.scanner.sitemap) {
-    const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site)
+  if (resolvedConfig.scanner.sitemap !== false) {
+    const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site, resolvedConfig.scanner.sitemap)
     if (sitemapUrls.length) {
       logger.info(`Discovered ${sitemapUrls.length} routes from sitemap.xml.`)
       sitemapUrls.forEach(url => urls.add(url))
