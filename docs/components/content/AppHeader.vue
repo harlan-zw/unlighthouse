@@ -10,7 +10,7 @@ const githubColorScheme = computed(() => color.value === 'dark' ? 'no-preference
 
 <template>
   <header :class="{ 'has-dialog': hasDialog, 'has-doc-search': hasDocSearch }">
-    <Container>
+    <Container fluid>
       <section class="left">
         <AppHeaderDialog v-if="hasDialog" />
         <AppHeaderLogo />
@@ -47,79 +47,79 @@ const githubColorScheme = computed(() => color.value === 'dark' ? 'no-preference
 
 <style scoped lang="ts">
 css({
-':deep(.icon)': {
-  width: '{space.5}',
-  height: '{space.5}'
-},
+  ':deep(.icon)': {
+    width: '{space.5}',
+    height: '{space.5}'
+  },
 
-'.navbar-logo': {
-'.left &': {
-'.has-dialog &': {
-  display: 'none',
-'@lg': {
-  display: 'block'
-}
-},
-},
-'.center &': {
-  display: 'block',
-'@lg': {
-  display: 'none'
-}
-}
-},
+  '.navbar-logo': {
+    '.left &': {
+      '.has-dialog &': {
+        display: 'none',
+        '@lg': {
+          display: 'block'
+        }
+      },
+    },
+    '.center &': {
+      display: 'block',
+      '@lg': {
+        display: 'none'
+      }
+    }
+  },
 
-header: {
-  backdropFilter: 'blur(10px)',
-  position: 'sticky',
-  top: 0,
-  zIndex: 10,
-  width: '100%',
-  borderBottom: '1px solid {color.gray.100}',
-  backgroundColor: '1px solid {color.gray.900}',
-  height: '{docus.header.height}',
+  header: {
+    backdropFilter: 'blur(10px)',
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    width: '100%',
+    borderBottom: '1px solid {color.gray.100}',
+    backgroundColor: '{elements.backdrop.background}',
+    height: '{docus.header.height}',
 
-'@dark': {
-  borderBottom: '1px solid {color.gray.900}',
-},
+    '@dark': {
+      borderBottom: '1px solid {color.gray.900}',
+    },
 
-'.container': {
-  display: 'grid',
-  height: '100%',
-  gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-  gap: '2rem'
-},
+    '.container': {
+      display: 'grid',
+      height: '100%',
+      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+      gap: '2rem'
+    },
 
-section: {
-  display: 'flex',
-  alignItems: 'center',
-  flex: 'none',
-'&.left': {
-  gridColumn: 'span 3 / span 3'
-},
-'&.center': {
-  gridColumn: 'span 6 / span 6',
-  justifyContent: 'center',
-  flex: '1',
-'nav': {
-  display: 'none',
+    section: {
+      display: 'flex',
+      alignItems: 'center',
+      flex: 'none',
+      '&.left': {
+        gridColumn: 'span 3 / span 3'
+      },
+      '&.center': {
+        gridColumn: 'span 6 / span 6',
+        justifyContent: 'center',
+        flex: '1',
+       'nav': {
+          display: 'none',
 '@sm': {
-  display: 'flex'
-}
-}
-},
-'&.right': {
-  display: 'none',
-  gridColumn: 'span 3 / span 3',
-  justifyContent: 'flex-end',
-  alignItems: 'center',
-  flex: 'none',
-  gap: '{space.4}',
-'@sm': {
-  display: 'flex'
-}
-}
-}
-}
+       display: 'flex'
+     }
+                     }
+      },
+      '&.right': {
+        display: 'none',
+        gridColumn: 'span 3 / span 3',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        flex: 'none',
+        gap: '{space.4}',
+        '@sm': {
+          display: 'flex'
+        }
+      }
+    }
+  }
 })
 </style>
