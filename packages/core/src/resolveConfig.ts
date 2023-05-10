@@ -38,11 +38,12 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   if (config.lighthouseOptions) {
     if (config.lighthouseOptions.onlyCategories?.length) {
       // restrict categories values and copy order of columns from the default config
-      // @ts-ignore 'defaultConfig.lighthouseOptions' is always set in default config
+      // @ts-expect-error 'defaultConfig.lighthouseOptions' is always set in default config
       config.lighthouseOptions.onlyCategories = defaultConfig.lighthouseOptions.onlyCategories
         .filter(column => config.lighthouseOptions.onlyCategories.includes(column))
     }
-  } else {
+  }
+  else {
     config.lighthouseOptions = {}
   }
   // for local urls we disable throttling
@@ -60,9 +61,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
 
   if (config.auth) {
     config.lighthouseOptions.extraHeaders = config.lighthouseOptions.extraHeaders || {}
-    if (!config.lighthouseOptions.extraHeaders['Authorization']) {
+    if (!config.lighthouseOptions.extraHeaders.Authorization) {
       const credentials = `${config.auth.username}:${config.auth.password}`
-      config.lighthouseOptions.extraHeaders["Authorization"] = 'Basic ' + Buffer.from(credentials).toString("base64")
+      config.lighthouseOptions.extraHeaders.Authorization = `Basic ${Buffer.from(credentials).toString('base64')}`
     }
   }
 

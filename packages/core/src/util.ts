@@ -120,9 +120,8 @@ export const formatBytes = (bytes: number, decimals = 2) => {
 
 export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig): Promise<{ error?: any; redirected?: boolean; redirectUrl?: string; valid: boolean; response?: AxiosResponse }> {
   const axiosOptions: AxiosRequestConfig = {}
-  if (resolvedConfig.auth) {
+  if (resolvedConfig.auth)
     axiosOptions.auth = resolvedConfig.auth
-  }
 
   try {
     const response = await axios.get(url, {
@@ -137,8 +136,8 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
       // remove auth credentials from url (e.g. https://user:passwd@domain.de)
       responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
     }
-    const redirected = responseUrl && responseUrl !== url;
-    const redirectUrl = responseUrl;
+    const redirected = responseUrl && responseUrl !== url
+    const redirectUrl = responseUrl
     if (response.status < 200 || (response.status >= 300 && !redirected)) {
       return {
         valid: false,
