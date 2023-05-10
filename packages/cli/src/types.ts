@@ -2,7 +2,8 @@ export interface CliOptions {
   host?: string
   help?: boolean
   urls?: string
-  disallowUrls?: string
+  excludeUrls?: string
+  includeUrls?: string
   site?: string
   throttle?: boolean
   desktop?: boolean
