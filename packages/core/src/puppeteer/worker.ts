@@ -17,6 +17,8 @@ import {
   launchPuppeteerCluster,
 } from './cluster'
 
+let warnedMaxRoutesExceeded = false
+
 /**
  * The unlighthouse worker is a wrapper for the puppeteer-cluster. It handles the queuing of the tasks with more control
  * over the clusters monitoring and queue management while providing a tight integration with unlighthouse.
@@ -74,8 +76,14 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     const { id, path } = route
 
     // exceed the max routes
-    if (exceededMaxRoutes())
+    if (exceededMaxRoutes()) {
+      if (!warnedMaxRoutesExceeded) {
+        logger.warn(`You have reached the \`scanner.maxRoutes\` limit of ${resolvedConfig.scanner.maxRoutes}. No further routes will be queued, consider raising this limit.`)
+        warnedMaxRoutesExceeded = true
+        return
+      }
       return
+    }
     // no duplicate queueing, manually need to purge the reports to re-queue
     if (routeReports.has(id))
       return
