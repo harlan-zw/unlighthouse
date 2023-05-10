@@ -160,3 +160,7 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
     }
   }
 }
+
+export function asRegExp(rule: string | RegExp): RegExp {
+  return rule instanceof RegExp ? rule : new RegExp(rule)
+}

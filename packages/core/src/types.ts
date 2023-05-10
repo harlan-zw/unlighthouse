@@ -350,13 +350,13 @@ export interface ResolvedUserConfig {
      *
      * @see https://unlighthouse.dev/guide/large-sites.html#include-url-patterns
      */
-    include?: string[]
+    include?: (string | RegExp)[]
     /**
      * Paths to ignore from scanning.
      *
      * @see https://unlighthouse.dev/guide/large-sites.html#exclude-url-patterns
      */
-    exclude?: string[]
+    exclude?: (string | RegExp)[]
     /**
      * Does javascript need to be executed in order to fetch internal links and SEO data.
      *
