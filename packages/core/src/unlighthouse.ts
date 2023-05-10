@@ -289,7 +289,7 @@ export const createUnlighthouse = async (userConfig: UserConfig, provider?: Prov
       if (resolvedConfig.urls?.length)
         mode = 'Manual'
 
-      if (resolvedConfig.scanner.sitemap)
+      if (resolvedConfig.scanner.sitemap !== false)
         mode += 'Sitemap'
 
       if (resolvedConfig.scanner.crawler)

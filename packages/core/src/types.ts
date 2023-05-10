@@ -249,6 +249,12 @@ export interface ResolvedUserConfig {
    */
   cache: boolean
   /**
+   * Optional basic auth credentials
+   *
+   * @default false
+   */
+  auth: false | { username: string; password: string }
+  /**
    * Load the configuration from a custom config file.
    * By default, it attempts to load configuration from `unlighthouse.config.ts`.
    *
@@ -344,13 +350,13 @@ export interface ResolvedUserConfig {
      *
      * @see https://unlighthouse.dev/guide/large-sites.html#include-url-patterns
      */
-    include?: string[]
+    include?: (string | RegExp)[]
     /**
      * Paths to ignore from scanning.
      *
      * @see https://unlighthouse.dev/guide/large-sites.html#exclude-url-patterns
      */
-    exclude?: string[]
+    exclude?: (string | RegExp)[]
     /**
      * Does javascript need to be executed in order to fetch internal links and SEO data.
      *
@@ -392,7 +398,13 @@ export interface ResolvedUserConfig {
      *
      * @default true
      */
-    sitemap: boolean
+    sitemap: boolean | string[]
+    /**
+     * Whether the robots.txt will be attempted to be read from the site.
+     *
+     * @default true
+     */
+    robotsTxt: boolean
     /**
      * Alias to switch the device used for scanning.
      * Set to false if you want to manually configure it.

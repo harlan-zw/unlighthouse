@@ -35,8 +35,17 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     // normalise site
     config.site = normaliseHost(config.site)
   }
-  if (!config.lighthouseOptions)
+  if (config.lighthouseOptions) {
+    if (config.lighthouseOptions.onlyCategories?.length) {
+      // restrict categories values and copy order of columns from the default config
+      // @ts-expect-error 'defaultConfig.lighthouseOptions' is always set in default config
+      config.lighthouseOptions.onlyCategories = defaultConfig.lighthouseOptions.onlyCategories
+        .filter(column => config.lighthouseOptions.onlyCategories.includes(column))
+    }
+  }
+  else {
     config.lighthouseOptions = {}
+  }
   // for local urls we disable throttling
   if (!config.site || config.site.includes('localhost') || !config.scanner?.throttle) {
     config.lighthouseOptions.throttlingMethod = 'provided'
@@ -47,6 +56,14 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       requestLatencyMs: 0, // 0 means unset
       downloadThroughputKbps: 0,
       uploadThroughputKbps: 0,
+    }
+  }
+
+  if (config.auth) {
+    config.lighthouseOptions.extraHeaders = config.lighthouseOptions.extraHeaders || {}
+    if (!config.lighthouseOptions.extraHeaders.Authorization) {
+      const credentials = `${config.auth.username}:${config.auth.password}`
+      config.lighthouseOptions.extraHeaders.Authorization = `Basic ${Buffer.from(credentials).toString('base64')}`
     }
   }
 

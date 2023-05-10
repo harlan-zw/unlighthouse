@@ -5,9 +5,9 @@ import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { hasProtocol, joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
-import type { AxiosResponse } from 'axios'
+import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 import axios from 'axios'
-import type { NormalisedRoute, UnlighthouseRouteReport } from './types'
+import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
 
 export const ReportArtifacts = {
@@ -118,16 +118,26 @@ export const formatBytes = (bytes: number, decimals = 2) => {
   return `${parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }
 
-export async function fetchUrlRaw(url: string): Promise<{ error?: any; redirected?: boolean; redirectUrl?: string; valid: boolean; response?: AxiosResponse }> {
+export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig): Promise<{ error?: any; redirected?: boolean; redirectUrl?: string; valid: boolean; response?: AxiosResponse }> {
+  const axiosOptions: AxiosRequestConfig = {}
+  if (resolvedConfig.auth)
+    axiosOptions.auth = resolvedConfig.auth
+
   try {
     const response = await axios.get(url, {
       // allow all SSL's
       httpsAgent: new https.Agent({
         rejectUnauthorized: false,
       }),
+      ...axiosOptions,
     })
-    const redirected = response.request.res.responseUrl && response.request.res.responseUrl !== url
-    const redirectUrl = response.request.res.responseUrl
+    let responseUrl = response.request.res.responseUrl
+    if (responseUrl && axiosOptions.auth) {
+      // remove auth credentials from url (e.g. https://user:passwd@domain.de)
+      responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
+    }
+    const redirected = responseUrl && responseUrl !== url
+    const redirectUrl = responseUrl
     if (response.status < 200 || (response.status >= 300 && !redirected)) {
       return {
         valid: false,
@@ -149,4 +159,8 @@ export async function fetchUrlRaw(url: string): Promise<{ error?: any; redirecte
       valid: false,
     }
   }
+}
+
+export function asRegExp(rule: string | RegExp): RegExp {
+  return rule instanceof RegExp ? rule : new RegExp(rule)
 }

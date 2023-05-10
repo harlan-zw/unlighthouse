@@ -10,7 +10,7 @@ import type {
   UnlighthouseTask,
   UnlighthouseWorker, UnlighthouseWorkerStats,
 } from '../types'
-import { ReportArtifacts, createTaskReportFromRoute } from '../util'
+import { ReportArtifacts, asRegExp, createTaskReportFromRoute } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 import {
@@ -84,13 +84,13 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
     if (resolvedConfig.scanner.include) {
       // must match
-      if (resolvedConfig.scanner.include.filter(rule => (new RegExp(rule).test(path))).length === 0)
+      if (resolvedConfig.scanner.include.filter(rule => asRegExp(rule).test(path)).length === 0)
         return
     }
 
     if (resolvedConfig.scanner.exclude) {
       // must not match
-      if (resolvedConfig.scanner.exclude.filter(rule => (new RegExp(rule).test(path))).length > 0)
+      if (resolvedConfig.scanner.exclude.filter(rule => asRegExp(rule).test(path)).length > 0)
         return
     }
 

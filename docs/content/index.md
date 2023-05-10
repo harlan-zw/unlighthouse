@@ -67,7 +67,7 @@ What's included
   #title
   Zero-config Link Crawling
   #description
-  Fast, configurable URL discovery using sitemap.xml parsing, internal link crawling and project file scanning.
+  Fast, configurable URL discovery using robots.txt, sitemap.xml, internal link crawling and project file scanning.
   ::
 
 

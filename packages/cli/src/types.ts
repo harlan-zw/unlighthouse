@@ -2,6 +2,8 @@ export interface CliOptions {
   host?: string
   help?: boolean
   urls?: string
+  excludeUrls?: string
+  includeUrls?: string
   site?: string
   throttle?: boolean
   desktop?: boolean
@@ -17,6 +19,8 @@ export interface CliOptions {
   disableI18nPages?: boolean
   enableJavascript?: boolean
   disableJavascript?: boolean
+  disableRobotsTxt?: boolean
+  disableSitemap?: boolean
 }
 
 export interface CiOptions extends CliOptions {

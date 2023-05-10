@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/client",
-  "version": "0.4.9",
+  "version": "0.5.1",
   "description": "Built Vite client for Unlighthouse.",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",

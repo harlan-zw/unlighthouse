@@ -12,7 +12,7 @@ export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
   if (resolvedConfig.site) {
     // test HTTP response from site
     logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
-    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(resolvedConfig.site)
+    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(resolvedConfig.site, resolvedConfig)
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
@@ -82,8 +82,20 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   else if (options.mobile)
     picked.scanner.device = 'mobile'
 
+  if (options.disableRobotsTxt)
+    picked.scanner.robotsTxt = false
+
+  if (options.disableSitemap)
+    picked.scanner.sitemap = false
+
   if (options.urls)
     picked.urls = options.urls.split(',')
+
+  if (options.excludeUrls)
+    picked.scanner.exclude = options.excludeUrls.split(',')
+
+  if (options.includeUrls)
+    picked.scanner.include = options.includeUrls.split(',')
 
   const config = pick(options, [
     // root level options

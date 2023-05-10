@@ -1,26 +1,33 @@
 import Sitemapper from 'sitemapper'
-import { $URL } from 'ufo'
+import { $URL, withBase } from 'ufo'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 
 /**
  * Fetches routes from a sitemap file.
- *
- * @param site
  */
-export const extractSitemapRoutes = async (site: string) => {
+export async function extractSitemapRoutes(site: string, sitemaps: true | (string[])) {
   // make sure we're working from the host name
   site = new $URL(site).origin
   const unlighthouse = useUnlighthouse()
   const logger = useLogger()
+  if (sitemaps === true || sitemaps.length === 0)
+    sitemaps = [`${site}/sitemap.xml`]
   const sitemap = new Sitemapper({
     timeout: 15000, // 15 seconds
     debug: unlighthouse.resolvedConfig.debug,
   })
+  let paths: string[] = []
+  for (let sitemapUrl of new Set(sitemaps)) {
+    logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
+    // make sure it's absolute
+    if (!sitemapUrl.startsWith('http'))
+      sitemapUrl = withBase(sitemapUrl, site)
+    const { sites } = await sitemap.fetch(sitemapUrl)
+    if (sites.length)
+      paths = [...paths, ...sites]
 
-  const sitemapUrl = `${site}/sitemap.xml`
-  logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
-  const { sites } = await sitemap.fetch(sitemapUrl)
-  logger.debug(`Fetched sitemap with ${sites.length} URLs.`)
-  return sites
+    logger.debug(`Fetched sitemap with ${sites.length} URLs.`)
+  }
+  return paths
 }

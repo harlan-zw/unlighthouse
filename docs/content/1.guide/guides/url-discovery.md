@@ -5,14 +5,50 @@ Unlighthouse comes with multiple methods for URL discovery in the form of crawli
 
 1. Add the specified `site` from `--site` or config
 2. Manually providing URLs via the `--urls` flag or `urls` on the provider.
-3. `sitemap` - Reading sitemap.xml, if it exists 
-4. `crawler` - Inspecting internal links 
-5. Using provided static [route definitions](/api/glossary/#route-definition)
+3. `robotsTxt` - Reading robots.txt, if it exists. Provides sitemap URLs and disallowed paths.
+4. `sitemap` - Reading sitemap.xml, if it exists 
+5. `crawler` - Inspecting internal links 
+6. Using provided static [route definitions](/api/glossary/#route-definition)
+
+## Robots.txt
+
+When a robots.txt is found, it will attempt to read the sitemap and disallowed paths.
+
+### Disabling robots
+
+You may not want to use the robots.txt in all occasions. For example if you want to scan 
+URLs which are disallowed.
+
+  ```ts
+  export default {
+    scanner: {
+      // disable robots.txt scanning
+      robotsTxt: false
+    }
+  }
+  ```
 
 
-## Sitemap
+## Sitemap.xml
 
-When a sitemap is with a medium-sized threshold (50 URLS), it will disable the crawler.
+By default, the sitemap config will be read from your `/robots.txt`. Otherwise, it will fall back to using `/sitemap.xml`.
+
+Note: When a sitemap exists with over 50 paths, it will disable the crawler.
+
+### Manual sitemap paths
+
+You may provide an array of sitemap paths to scan.
+
+```ts
+export default {
+  scanner: {
+    sitemap: [
+      '/sitemap.xml',
+      '/sitemap2.xml'
+    ]
+  }
+}
+```
 
 ### Disabling scan
 

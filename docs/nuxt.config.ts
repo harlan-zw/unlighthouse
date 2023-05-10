@@ -24,7 +24,7 @@ export default defineNuxtConfig({
       siteDescription: 'Like Google Lighthouse, but it scans every single page.',
       language: 'en',
       trailingSlash: false,
-    }
+    },
   },
 
   app: {

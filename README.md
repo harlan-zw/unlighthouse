@@ -48,7 +48,7 @@ npm install -g puppeteer
 
 Install instructions for all integrations can be found on the [docs](https://unlighthouse.dev/) site.
 
-Need a hand? Join the [Discord](https://unlighthouse.dev/chat) for one-on-one help.
+Need a hand? Join the [Discord](https://discord.gg/275MBUBvgP) for one-on-one help.
 
 #### gitignore
 
