@@ -24,8 +24,8 @@ export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
       process.exit(1)
     }
     else if (response) {
-      // change the URL to the redirect one
-      if (redirected && redirectUrl) {
+      // change the URL to the redirect one, make sure it's not to a file (i.e /index.php)
+      if (redirected && redirectUrl && !redirectUrl.includes('.')) {
         logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
         resolvedConfig.site = normaliseHost(redirectUrl)
       }
