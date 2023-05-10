@@ -97,6 +97,9 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   if (options.includeUrls)
     picked.scanner.include = options.includeUrls.split(',')
 
+  if (options.disableDynamicSampling)
+    picked.scanner.dynamicSampling = false
+
   const config = pick(options, [
     // root level options
     'samples',

@@ -31,6 +31,7 @@ export default function createCli() {
   cli.option('--include-urls <urls>', 'Relative paths (string or regex) to include as a comma-separated list.')
   cli.option('--disable-robots-txt', 'Disables the robots.txt crawling.')
   cli.option('--disable-sitemap', 'Disables the sitemap.xml crawling.')
+  cli.option('--disable-dynamic-sampling', 'Disables the sampling of paths.')
   cli.option('-d, --debug', 'Debug. Enable debugging in the logger.')
 
   return cli

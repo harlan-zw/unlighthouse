@@ -21,6 +21,7 @@ export interface CliOptions {
   disableJavascript?: boolean
   disableRobotsTxt?: boolean
   disableSitemap?: boolean
+  disableDynamicSampling?: boolean
 }
 
 export interface CiOptions extends CliOptions {
