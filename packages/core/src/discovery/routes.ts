@@ -6,6 +6,8 @@ import { useLogger } from '../logger'
 import { extractSitemapRoutes } from './sitemap'
 import { fetchRobotsTxt, mergeRobotsTxtConfig, parseRobotsTxt } from './robotsTxt'
 
+let warnedAboutSampling = false
+
 /**
  * Discover the initial routes that we'll be working with.
  *
@@ -31,7 +33,8 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
     if (urlsToAdd.length) {
       resolvedConfig.scanner.sitemap = false
       resolvedConfig.scanner.crawler = false
-      logger.info(`${urlsToAdd.length} manual URLs have been provided for scanning. Disabling sitemap and crawler.`)
+      resolvedConfig.scanner.dynamicSampling = false
+      logger.info(`The \`url\` config has been provided with ${urlsToAdd.length} paths for scanning. Disabling sitemap, sampling and crawler.`)
     }
   }
 
@@ -115,6 +118,11 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
       // allow config to bypass this behavior
       if (!dynamicSampling)
         return group
+
+      if (!warnedAboutSampling && group.length > dynamicSampling) {
+        logger.warn('Dynamic sampling is in effect, some of your routes will not be scanned. To disable this behavior, set `scanner.dynamicSampling` to `false`.')
+        warnedAboutSampling = true
+      }
 
       // whatever the sampling rate is
       return sampleSize(group, dynamicSampling)
