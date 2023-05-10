@@ -91,6 +91,9 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   if (options.urls)
     picked.urls = options.urls.split(',')
 
+  if (options.disallowUrls)
+    picked.scanner.exclude = options.disallowUrls.split(',')
+
   const config = pick(options, [
     // root level options
     'samples',
