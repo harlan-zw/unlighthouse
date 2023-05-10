@@ -37,6 +37,8 @@ npx unlighthouse --site <your-site>
 pnpm dlx unlighthouse --site <your-site>
 ```
 
+_Requirements: Node 14.x or higher, Node 16.x recommended._
+
 By default, Unlighthouse will try and find your Google Chrome installation and use that with puppeteer.
 If you have issues with that you can install puppeteer globally.
 
