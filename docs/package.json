@@ -1,12 +1,12 @@
 {
   "private": true,
+  "packageManager": "pnpm@8.5.0",
   "scripts": {
     "dev": "nuxi dev",
     "build": "nuxi build",
     "generate": "nuxi build",
     "preview": "nuxi preview"
   },
-  "packageManager": "pnpm@8.5.0",
   "dependencies": {
     "@headlessui/vue": "^1.7.13",
     "@nuxtlabs/github-module": "^1.6.3",
