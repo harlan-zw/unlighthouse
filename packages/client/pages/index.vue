@@ -39,64 +39,62 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
 
 <template>
   <NavBar />
-  <div class="2xl:flex mt-2">
-    <div class="xl:ml-3 mx-3 mr-0 w-full 2xl:(mr-5 w-250px mb-0) mb-3">
-      <TabGroup vertical @change="changedTab">
-        <TabList class="p-1 dark:(bg-blue-900/20 border-none) border-2 border-blue-900/30 rounded-xl 2xl:(mt-8 block) flex">
-          <Tab
-            v-for="(category, key) in tabs"
-            :key="key"
-            v-slot="{ selected }"
-            as="template"
-          >
-            <btn-tab
-              :selected="selected"
-            >
-              <span class="inline-flex items-center">{{ category }}
-                <tooltip v-if="category === 'Performance'" class="text-left">
-                  <i-carbon-warning class="inline text-xs mx-1" />
-                  <template #tooltip>
-                    <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
-                    <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
-                  </template>
-                </tooltip>
-              </span>
-              <metric-guage v-if="category !== 'Overview' && !Number.isNaN(categoryScores[key - 1])" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
-            </btn-tab>
-          </Tab>
-        </TabList>
-      </TabGroup>
-      <div class="hidden 2xl:block">
-        <div class="px-2 text-center 2xl:text-left">
-          <div class="text-xs opacity-75 2xl:mt-4">
-            <a href="https://unlighthouse.dev" target="_blank" class="underline hover:no-underline">Documentation</a>
-            <btn-action v-if="!isStatic" class="underline hover:no-underline ml-3" @click="openDebugModal">
-              Debug
-            </btn-action>
+  <div class="2xl:flex">
+    <div class="relative">
+      <div class="xl:ml-3 mx-3 mr-0 w-full 2xl:(mr-5 w-250px mb-0) mb-3 sticky top-16 2xl:top-[5.5rem]">
+        <TabGroup vertical @change="changedTab">
+          <TabList
+            class="p-1 dark:(bg-blue-900/20 border-none) border-2 border-blue-900/30 rounded-xl 2xl:block flex">
+            <Tab v-for="(category, key) in tabs" :key="key" v-slot="{ selected }" as="template">
+              <btn-tab :selected="selected">
+                <span class="inline-flex items-center">{{ category }}
+                  <tooltip v-if="category === 'Performance'" class="text-left">
+                    <i-carbon-warning class="inline text-xs mx-1" />
+                    <template #tooltip>
+                      <div class="mb-2">Lighthouse is running with variability. Performance scores should not be
+                        considered accurate.</div>
+                      <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }}
+                          throttling</span> which will also effect scores.</div>
+                    </template>
+                  </tooltip>
+                </span>
+                <metric-guage v-if="category !== 'Overview' && !Number.isNaN(categoryScores[key - 1])"
+                  :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold"
+                  :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
+              </btn-tab>
+            </Tab>
+          </TabList>
+        </TabGroup>
+        <div class="hidden 2xl:block">
+          <div class="px-2 text-center 2xl:text-left">
+            <div class="text-xs opacity-75 2xl:mt-4">
+              <a href="https://unlighthouse.dev" target="_blank" class="underline hover:no-underline">Documentation</a>
+              <btn-action v-if="!isStatic" class="underline hover:no-underline ml-3" @click="openDebugModal">
+                Debug
+              </btn-action>
+            </div>
+            <div class="text-xs opacity-75 2xl:mt-4">
+              Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a
+                href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
+            </div>
+            <div class="text-xs opacity-50 2xl:mt-4 mt-1">
+              Portions of this report use Lighthouse. For more information visit <a
+                href="https://developers.google.com/web/tools/lighthouse" class="underline hover:no-underline">here</a>.
+            </div>
           </div>
-          <div class="text-xs opacity-75 2xl:mt-4">
-            Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
-          </div>
-          <div class="text-xs opacity-50 2xl:mt-4 mt-1">
-            Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline hover:no-underline">here</a>.
-          </div>
+          <lighthouse-three-d v-if="!isStatic" />
         </div>
-        <lighthouse-three-d v-if="!isStatic" />
       </div>
     </div>
-    <div class="xl:w-full w-screen overflow-x-auto px-3">
-      <div class="pr-10 py-1 w-full min-w-1500px">
+    <div class="xl:w-full w-screen px-3">
+      <div class="dark:bg-teal-900 pr-10 py-1 px-2 pt-2 sticky top-14 z-10 w-full min-w-1500px">
         <div class="grid grid-cols-12 gap-4 text-sm dark:(text-gray-300) text-gray-700">
-          <results-table-head
-            v-for="(column, key) in resultColumns"
-            :key="key"
-            :sorting="sorting"
-            :column="column"
-            @sort="incrementSort"
-          />
+          <results-table-head v-for="(column, key) in resultColumns" :key="key" :sorting="sorting" :column="column"
+            @sort="incrementSort" />
         </div>
       </div>
-      <div class="w-full min-w-1500px 2xl:(max-h-[calc(100vh-100px)]) lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)] overflow-auto pr-5 mr-4">
+      <div
+        class="w-full min-w-1500px pr-5 mr-4">
         <div v-if="Object.values(searchResults).length === 0" class="px-4 py-3">
           <template v-if="searchText">
             <p class="mb-2">
@@ -114,20 +112,14 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
         <div v-else-if="searchText" class="px-4 py-3">
           <p>Showing {{ Object.values(searchResults).flat().length }} routes for search "{{ searchText }}":</p>
         </div>
-        <results-row
-          v-for="(reports, routeName) in searchResults"
-          :key="routeName"
-          :reports="reports"
-          :route-name="routeName"
-        >
+        <results-row v-for="(reports, routeName) in searchResults" :key="routeName" :reports="reports"
+          :route-name="routeName">
           <template #actions="{ report }">
             <popover-actions position="left">
               <div class="w-300px flex flex-col space-y-2">
-                <btn-basic
-                  v-if="report.report"
+                <btn-basic v-if="report.report"
                   class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
-                  @click="openLighthouseReportIframeModal(report)"
-                >
+                  @click="openLighthouseReportIframeModal(report)">
                   <div style="flex-basis: 70px;" class="mt-1 text-blue-500">
                     <i-vscode-icons-file-type-lighthouse class="text-xl mr-2" />
                   </div>
@@ -140,11 +132,9 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     </span>
                   </div>
                 </btn-basic>
-                <btn-basic
-                  :disabled="isOffline ? 'disabled' : false"
+                <btn-basic :disabled="isOffline ? 'disabled' : false"
                   class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
-                  @click="rescanRoute(report.route)"
-                >
+                  @click="rescanRoute(report.route)">
                   <div style="flex-basis: 70px;" class="mt-1 text-blue-500">
                     <i-mdi-magnify-scan class="text-xl" />
                   </div>
@@ -171,11 +161,13 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
           <a href="https://unlighthouse.dev" target="_blank" class="underline">Unlighthouse</a>
         </div>
         <div class="text-xs opacity-75 2xl:mt-4">
-          Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
+          Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw"
+            target="_blank" class="underline">@harlan_zw</a>
         </div>
       </div>
       <div class="text-xs opacity-50 2xl:mt-4 mt-1">
-        Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline">here</a>.
+        Portions of this report use Lighthouse. For more information visit <a
+          href="https://developers.google.com/web/tools/lighthouse" class="underline">here</a>.
       </div>
     </div>
   </footer>
@@ -184,15 +176,8 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
       <DialogOverlay class="fixed inset-0 bg-black opacity-40" />
       <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="min-h-screen px-4 text-center">
-          <TransitionChild
-            as="template"
-            enter="duration-300 ease-out"
-            enter-from="opacity-0"
-            enter-to="opacity-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100"
-            leave-to="opacity-0"
-          >
+          <TransitionChild as="template" enter="duration-300 ease-out" enter-from="opacity-0" enter-to="opacity-100"
+            leave="duration-200 ease-in" leave-from="opacity-100" leave-to="opacity-0">
             <DialogOverlay class="fixed inset-0" />
           </TransitionChild>
 
@@ -200,18 +185,11 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             &#8203;
           </span>
 
-          <TransitionChild
-            as="template"
-            enter="duration-300 ease-out"
-            enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95"
-          >
+          <TransitionChild as="template" enter="duration-300 ease-out" enter-from="opacity-0 scale-95"
+            enter-to="opacity-100 scale-100" leave="duration-200 ease-in" leave-from="opacity-100 scale-100"
+            leave-to="opacity-0 scale-95">
             <div
-              class="inline-block w-auto max-w-7xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:(bg-teal-900) shadow-xl rounded-2xl"
-            >
+              class="inline-block w-auto max-w-7xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:(bg-teal-900) shadow-xl rounded-2xl">
               <div id="modal-portal" />
               <div v-if="isDebugModalOpen" class="p-5 bg-gray-100">
                 <div class="font-bold mb-3 text-xl">
