@@ -5,7 +5,6 @@ import type { LH } from 'lighthouse'
 import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { App } from 'h3'
-import type { AxiosRequestConfig } from 'axios'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
@@ -655,12 +654,6 @@ export interface UnlighthouseHooks {
    * @param page
    */
   'puppeteer:before-goto': (page: Page) => HookResult
-  /**
-   * Modify the options used when making a fetch with axios.
-   *
-   * @param options
-   */
-  'fetch:options': (options: { url: string; options: AxiosRequestConfig }) => HookResult
 }
 
 /**

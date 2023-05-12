@@ -138,12 +138,8 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
     rejectUnauthorized: false,
   })
   axiosOptions.withCredentials = true
-  // allow modification of axios options
-  const fetchOptions = { url, options: axiosOptions }
-  const unlighthouse = useUnlighthouse()
-  await unlighthouse.hooks.callHook('fetch:options', fetchOptions)
   try {
-    const response = await axios.get(fetchOptions.url, fetchOptions.options)
+    const response = await axios.get(url, axiosOptions)
     let responseUrl = response.request.res.responseUrl
     if (responseUrl && axiosOptions.auth) {
       // remove auth credentials from url (e.g. https://user:passwd@domain.de)
