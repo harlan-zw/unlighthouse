@@ -3,7 +3,7 @@ import fs from 'fs-extra'
 import type { CheerioAPI } from 'cheerio'
 import cheerio from 'cheerio'
 import type { Page } from 'puppeteer-core'
-import { withoutTrailingSlash } from 'ufo'
+import { $URL, withoutTrailingSlash } from 'ufo'
 import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
@@ -118,7 +118,10 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
       return routeReport
     }
     if (response.redirected) {
-      if (!withoutTrailingSlash(response.redirected).startsWith(runtimeSettings.siteUrl.href)) {
+      const siteHost = runtimeSettings.siteUrl.host
+      const redirectHost = new $URL(response.redirected).host
+      // allow subdomains
+      if (siteHost !== redirectHost && !redirectHost.endsWith(`.${siteHost}`)) {
         routeReport.tasks.inspectHtmlTask = 'ignore'
         logger.warn(`Redirected URL goes to a different domain, ignoring. \`${response.redirected}\.`)
         return routeReport
