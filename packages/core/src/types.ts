@@ -256,6 +256,18 @@ export interface ResolvedUserConfig {
    */
   auth: false | { username: string; password: string }
   /**
+   * Cookies to add to HTTP requests.
+   *
+   * @default false
+   */
+  cookies: false | { name: string; value: string; [v: string]: string }[]
+  /**
+   * Extra headers to provide for any HTTP requests.
+   *
+   * @default false
+   */
+  extraHeaders: false | Record<string, string>
+  /**
    * Load the configuration from a custom config file.
    * By default, it attempts to load configuration from `unlighthouse.config.ts`.
    *

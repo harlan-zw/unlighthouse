@@ -98,6 +98,27 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   if (options.disableDynamicSampling)
     picked.scanner.dynamicSampling = false
 
+  if (options.auth) {
+    const [username, password] = options.auth.split(':')
+    picked.auth = { username, password }
+  }
+
+  if (options.cookies) {
+    picked.cookies = options.cookies.split(';').map((cookie) => {
+      const [name, value] = cookie.split('=')
+      return { name, value }
+    })
+  }
+
+  if (options.extraHeaders) {
+    picked.extraHeaders = picked.extraHeaders || {}
+    options.extraHeaders.split(',').forEach((header) => {
+      const [name, value] = header.split('=')
+      // @ts-expect-error untyped
+      picked.extraHeaders[name] = value
+    })
+  }
+
   const config = pick(options, [
     // root level options
     'samples',

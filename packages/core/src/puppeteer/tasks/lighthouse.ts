@@ -95,7 +95,13 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   await page.setBypassCSP(true)
 
   if (resolvedConfig.auth)
-    page.authenticate(resolvedConfig.auth)
+    await page.authenticate(resolvedConfig.auth)
+
+  if (resolvedConfig.cookies)
+    await page.setCookie(...resolvedConfig.cookies)
+
+  if (resolvedConfig.extraHeaders)
+    await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
 
   // Wait for Lighthouse to open url, then allow hook to run
   browser.on('targetchanged', async (target) => {
