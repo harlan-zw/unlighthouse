@@ -11,7 +11,10 @@ export const isScanOrigin = (url: string): boolean => {
   const { runtimeSettings } = useUnlighthouse()
 
   const $url = new $URL(url)
-  return $url.hostname === runtimeSettings.siteUrl.hostname
+  if ($url.hostname === runtimeSettings.siteUrl.hostname)
+    return true
+  // allow subdomains
+  return $url.hostname.endsWith(`.${runtimeSettings.siteUrl.hostname}`)
 }
 
 /**
