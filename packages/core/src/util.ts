@@ -68,9 +68,9 @@ export const hashPathName = (path: string) => {
  * @param host
  */
 export const normaliseHost = (host: string) => {
-  if (!hasProtocol(host))
+  if (!host.startsWith('http'))
     host = `http${host.startsWith('localhost') ? '' : 's'}://${host}`
-  return withTrailingSlash(host)
+  return host.includes('.') ? host : withTrailingSlash(host)
 }
 
 /**
