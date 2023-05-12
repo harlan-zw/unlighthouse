@@ -23,9 +23,9 @@ const reportsScore = computed(() => {
             <span>{{ routeName }}</span>
             <span v-if="reports.length >= dynamicSampling">
               <tooltip>
-                <span class="whitespace-nowrap ml-2 opacity-90">{{ reports.length }} routes</span>
+                <span class="whitespace-nowrap ml-2 opacity-90">Sampled routes</span>
                 <template #tooltip>
-                  <p><code>scanner.dynamicSampling</code> is set to {{ dynamicSampling }}</p>
+                  <p>The <code>scanner.dynamicSampling</code> is enabled and set to {{ dynamicSampling }}. Consider disabling sampling or increase the sampling amount if</p>
                 </template>
               </tooltip>
             </span>
