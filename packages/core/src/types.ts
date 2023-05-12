@@ -5,6 +5,7 @@ import type { LH } from 'lighthouse'
 import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { App } from 'h3'
+import type { PuppeteerNodeLaunchOptions } from 'puppeteer'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
@@ -420,7 +421,7 @@ export interface ResolvedUserConfig {
   /**
    * Change the behaviour of puppeteer.
    */
-  puppeteerOptions: LaunchOptions
+  puppeteerOptions: PuppeteerNodeLaunchOptions
   /**
    * Change the behaviour of puppeteer-cluster.
    */
