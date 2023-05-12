@@ -16,12 +16,10 @@ export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
-        logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+        logger.warn(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
       else
-        logger.fatal(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
-
-      // bail on cli or ci
-      process.exit(1)
+        logger.warn(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
+      logger.error('Site check failed. will attempt to proceed but may fail.')
     }
     else if (response) {
       // change the URL to the redirect one, make sure it's not to a file (i.e /index.php)
@@ -30,7 +28,7 @@ export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
         resolvedConfig.site = normaliseHost(redirectUrl)
       }
       else {
-        logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
+        logger.success(`Successfully connected to \`${resolvedConfig.site}\`. (Status: \`${response.status}\`).`)
       }
     }
   }
