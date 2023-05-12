@@ -5,6 +5,7 @@ import type { LH } from 'lighthouse'
 import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { App } from 'h3'
+import type { AxiosRequestConfig } from 'axios'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
@@ -254,6 +255,18 @@ export interface ResolvedUserConfig {
    * @default false
    */
   auth: false | { username: string; password: string }
+  /**
+   * Cookies to add to HTTP requests.
+   *
+   * @default false
+   */
+  cookies: false | { name: string; value: string; [v: string]: string }[]
+  /**
+   * Extra headers to provide for any HTTP requests.
+   *
+   * @default false
+   */
+  extraHeaders: false | Record<string, string>
   /**
    * Load the configuration from a custom config file.
    * By default, it attempts to load configuration from `unlighthouse.config.ts`.
@@ -642,6 +655,12 @@ export interface UnlighthouseHooks {
    * @param page
    */
   'puppeteer:before-goto': (page: Page) => HookResult
+  /**
+   * Modify the options used when making a fetch with axios.
+   *
+   * @param options
+   */
+  'fetch:options': (options: { url: string; options: AxiosRequestConfig }) => HookResult
 }
 
 /**
