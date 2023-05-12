@@ -5,6 +5,7 @@ export interface CliOptions {
   excludeUrls?: string
   includeUrls?: string
   site?: string
+  routerPrefix?: string
   throttle?: boolean
   desktop?: boolean
   mobile?: boolean

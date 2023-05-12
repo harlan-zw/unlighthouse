@@ -109,6 +109,7 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     'debug',
     'cache',
     'outputPath',
+    'routerPrefix',
   ])
   return defu(
     config,
