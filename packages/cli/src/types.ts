@@ -2,6 +2,9 @@ export interface CliOptions {
   host?: string
   help?: boolean
   urls?: string
+  auth?: string
+  cookies?: string
+  extraHeaders?: string
   excludeUrls?: string
   includeUrls?: string
   site?: string

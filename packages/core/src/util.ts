@@ -123,14 +123,23 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
   if (resolvedConfig.auth)
     axiosOptions.auth = resolvedConfig.auth
 
+  axiosOptions.headers = axiosOptions.headers || {}
+
+  if (resolvedConfig.cookies) {
+    axiosOptions.headers.Cookie = resolvedConfig.cookies
+      .map(cookie => `${cookie.name}=${cookie.value}`)
+      .join('; ')
+  }
+
+  if (resolvedConfig.extraHeaders)
+    axiosOptions.headers = { ...resolvedConfig.extraHeaders, ...axiosOptions.headers }
+
+  axiosOptions.httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+  })
+  axiosOptions.withCredentials = true
   try {
-    const response = await axios.get(url, {
-      // allow all SSL's
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-      }),
-      ...axiosOptions,
-    })
+    const response = await axios.get(url, axiosOptions)
     let responseUrl = response.request.res.responseUrl
     if (responseUrl && axiosOptions.auth) {
       // remove auth credentials from url (e.g. https://user:passwd@domain.de)

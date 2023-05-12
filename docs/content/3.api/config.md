@@ -65,10 +65,25 @@ Display the loggers' debug messages.
 
 ### auth
 
-- **Type:** `false|{ username: string, password: string }`
+- **Type:** `false | { username: string, password: string }`
 - **Default:** `false`
 
-Optional basic auth credentials
+Optional basic auth credentials.
+
+### cookies
+
+- **Type:** ` false | CookieParam[]`
+- **Default:** `false`
+
+Provide cookies to be set for Axios and Puppeteer requests.
+
+
+### extraHeaders
+
+- **Type:** ` false | Record<string, string>`
+- **Default:** `false`
+
+Provide extra headers to be set for Axios and Puppeteer requests.
 
 ### hooks
 
