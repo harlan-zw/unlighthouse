@@ -2,7 +2,7 @@
 import type { UnlighthouseRouteReport } from '@unlighthouse/core'
 import { resultColumns } from '../../logic'
 
-const props = defineProps<{
+defineProps<{
   report: UnlighthouseRouteReport
 }>()
 </script>

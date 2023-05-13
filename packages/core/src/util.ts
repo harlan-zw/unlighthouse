@@ -1,6 +1,7 @@
-import { createHash } from 'crypto'
-import { join } from 'path'
-import https from 'https'
+import { createHash } from 'node:crypto'
+import { join } from 'node:path'
+import https from 'node:https'
+import { Buffer } from 'node:buffer'
 import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
@@ -38,7 +39,7 @@ export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s))
  * @param url
  * @return A sanitized URL, will retain the path hierarchy in the folder structure.
  */
-export const sanitiseUrlForFilePath = (url: string) => {
+export function sanitiseUrlForFilePath(url: string) {
   url = trimSlashes(url)
   // URLs such as /something.html and /something to be considered the same
   if (url.endsWith('.html'))
@@ -55,7 +56,7 @@ export const sanitiseUrlForFilePath = (url: string) => {
  *
  * @param path
  */
-export const hashPathName = (path: string) => {
+export function hashPathName(path: string) {
   return createHash('md5')
     .update(sanitiseUrlForFilePath(path))
     .digest('hex')
@@ -67,7 +68,7 @@ export const hashPathName = (path: string) => {
  *
  * @param host
  */
-export const normaliseHost = (host: string) => {
+export function normaliseHost(host: string) {
   if (!host.startsWith('http'))
     host = `http${host.startsWith('localhost') ? '' : 's'}://${host}`
   return host.includes('.') ? host : withTrailingSlash(host)
@@ -78,34 +79,33 @@ export const normaliseHost = (host: string) => {
  *
  * @param route
  */
-export const createTaskReportFromRoute
-  = (route: NormalisedRoute): UnlighthouseRouteReport => {
-    const { runtimeSettings, resolvedConfig } = useUnlighthouse()
+export function createTaskReportFromRoute(route: NormalisedRoute): UnlighthouseRouteReport {
+  const { runtimeSettings, resolvedConfig } = useUnlighthouse()
 
-    const reportId = hashPathName(route.path)
+  const reportId = hashPathName(route.path)
 
-    const reportPath = join(runtimeSettings.generatedClientPath, 'reports', sanitiseUrlForFilePath(route.path))
+  const reportPath = join(runtimeSettings.generatedClientPath, 'reports', sanitiseUrlForFilePath(route.path))
 
-    // add missing dirs
-    ensureDirSync(reportPath)
+  // add missing dirs
+  ensureDirSync(reportPath)
 
-    return {
-      tasks: {
-        runLighthouseTask: 'waiting',
-        inspectHtmlTask: 'waiting',
-      },
-      route,
-      reportId,
-      artifactPath: reportPath,
-      artifactUrl: joinURL(resolvedConfig.routerPrefix, 'reports', sanitiseUrlForFilePath(route.path)),
-    }
+  return {
+    tasks: {
+      runLighthouseTask: 'waiting',
+      inspectHtmlTask: 'waiting',
+    },
+    route,
+    reportId,
+    artifactPath: reportPath,
+    artifactUrl: joinURL(resolvedConfig.routerPrefix, 'reports', sanitiseUrlForFilePath(route.path)),
   }
+}
 
-export const base64ToBuffer = (dataURI: string) => {
+export function base64ToBuffer(dataURI: string) {
   return Buffer.from(dataURI.split(',')[1], 'base64')
 }
 
-export const formatBytes = (bytes: number, decimals = 2) => {
+export function formatBytes(bytes: number, decimals = 2) {
   if (bytes === 0)
     return '0 Bytes'
 

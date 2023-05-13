@@ -5,7 +5,7 @@ import { AppName } from './constants'
 
 const loggerCtx = createContext<ConsolaInstance>()
 
-export const createLogger = (debug = false) => {
+export function createLogger(debug = false) {
   const logger = createConsola().withTag(AppName)
 
   if (debug) {

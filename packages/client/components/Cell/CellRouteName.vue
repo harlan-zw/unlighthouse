@@ -10,7 +10,7 @@ const props = defineProps<{
 
 const showingModal = ref(false)
 
-const openModal = () => {
+function openModal() {
   isModalOpen.value = true
   iframeModalUrl.value = null
   nextTick(() => {
@@ -23,7 +23,7 @@ watch(isModalOpen, () => {
     showingModal.value = false
 })
 
-const openEditorRequest = () => {
+function openEditorRequest() {
   fetch(`${apiUrl}/__launch?file=${props.report.route.definition.component}`)
 }
 </script>

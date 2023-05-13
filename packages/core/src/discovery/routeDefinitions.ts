@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import type { RouteDefinition } from '../types'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
@@ -7,7 +7,7 @@ import { createRoutes } from '../util/createRoutes'
 /**
  * Using the configuration discovery details will try and resolve the route definitions using the file system.
  */
-export const discoverRouteDefinitions = async () => {
+export async function discoverRouteDefinitions() {
   const { resolvedConfig } = useUnlighthouse()
   if (!resolvedConfig.discovery)
     return []

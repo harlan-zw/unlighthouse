@@ -13,7 +13,7 @@ type NuxtRoute = RouteDefinition & {
 
 const DYNAMIC_ROUTE_REGEX = /^\/([:*])/
 
-const getRoutePathExtension = (key: string) => {
+function getRoutePathExtension(key: string) {
   if (key === '_')
     return '*'
 
@@ -65,7 +65,7 @@ const sortRoutes = function sortRoutes(routes: NuxtRoute[]) {
 
     if (res === 0) {
       // unless * found sort by level, then alphabetically
-      res = _a[i - 1] === '*' && _b[i]
+      res = (_a[i - 1] === '*' && _b[i])
         ? 1
         : (
             _a.length === _b.length ? a.path.localeCompare(b.path) : (_a.length - _b.length)

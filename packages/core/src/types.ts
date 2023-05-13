@@ -1,5 +1,5 @@
-import type http from 'http'
-import type https from 'https'
+import type http from 'node:http'
+import type https from 'node:https'
 import type { $URL } from 'ufo'
 import type { LH } from 'lighthouse'
 import type { LaunchOptions, Page } from 'puppeteer-core'

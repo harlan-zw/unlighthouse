@@ -5,7 +5,7 @@ import { useUnlighthouse } from '../unlighthouse'
 /**
  * Create an instance of puppeteer-cluster
  */
-export const launchPuppeteerCluster = async (): Promise<UnlighthousePuppeteerCluster> => {
+export async function launchPuppeteerCluster(): Promise<UnlighthousePuppeteerCluster> {
   const { resolvedConfig } = useUnlighthouse()
   const cluster = await Cluster.launch({
     puppeteerOptions: resolvedConfig.puppeteerOptions,

@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn } from '@unlighthouse/core'
 
-const props = defineProps<{
+defineProps<{
   sorting: Record<string, 'desc' | 'asc' | undefined>
   column: UnlighthouseColumn
 }>()
 
-const emits = defineEmits<{
+defineEmits<{
   (e: 'sort', key: string): void
 }>()
 </script>

@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
 import { map, pick, sumBy } from 'lodash-es'
@@ -8,7 +8,7 @@ import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { ReportArtifacts, base64ToBuffer } from '../../util'
 
-export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport => {
+export function normaliseLighthouseResult(result: LH.Result): LighthouseReport {
   const { resolvedConfig } = useUnlighthouse()
 
   const measuredCategories = Object.values(result.categories)

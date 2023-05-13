@@ -1,4 +1,5 @@
-import { join } from 'path'
+import { join } from 'node:path'
+import { Buffer } from 'node:buffer'
 import { createDefu, defu } from 'defu'
 import { pick } from 'lodash-es'
 import { pathExists } from 'fs-extra'

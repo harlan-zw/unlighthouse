@@ -1,5 +1,5 @@
-import fs from 'fs'
-import { join } from 'path'
+import fs from 'node:fs'
+import { join } from 'node:path'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
 import { get, sortBy, uniqBy } from 'lodash-es'
 import type {

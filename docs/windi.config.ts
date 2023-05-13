@@ -8,6 +8,7 @@ export default defineConfig({
   darkMode: 'class',
   attributify: true,
   plugins: [
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('windicss/plugin/forms'),
   ],
   shortcuts: {

@@ -1,5 +1,5 @@
-import fs from 'fs'
-import { join } from 'path'
+import fs from 'node:fs'
+import { join } from 'node:path'
 import type { LH } from 'lighthouse'
 import lighthouse from 'lighthouse'
 import minimist from 'minimist'
