@@ -142,6 +142,9 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
     routeReport.tasks.inspectHtmlTask = 'ignore'
     logger.debug(`Page has an alternative lang, ignoring \`${routeReport.route.path}\`: ${routeReport.seo.alternativeLangDefault}`)
+    // make sure we queue the default, this fixes issues with if the home page has a default lang that is alternative
+    const unlighthouse = useUnlighthouse()
+    unlighthouse.worker.queueRoute(normaliseRoute(routeReport.seo.alternativeLangDefault))
     return routeReport
   }
   const internalLinks: string[] = []
