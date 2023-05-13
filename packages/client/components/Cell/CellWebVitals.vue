@@ -1,13 +1,10 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { website } from '../../logic'
 
-const props = defineProps<{
+defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
 }>()
-
-const isLocalhost = website.includes('localhost')
 </script>
 
 <template>

@@ -2,7 +2,7 @@
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { categories, openLighthouseReportIframeModal } from '../../logic'
 
-const props = defineProps<{
+defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
 }>()

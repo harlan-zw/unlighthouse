@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'

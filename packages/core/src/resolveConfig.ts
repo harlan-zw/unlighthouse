@@ -1,6 +1,7 @@
 import { join } from 'node:path'
-import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
+import { existsSync } from 'node:fs'
+import { Buffer } from 'node:buffer'
 import { createDefu, defu } from 'defu'
 import { pick } from 'lodash-es'
 import { pathExists } from 'fs-extra'

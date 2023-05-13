@@ -1,6 +1,6 @@
-import { isAbsolute, join } from 'path'
-import { existsSync } from 'fs'
-import type { IncomingMessage } from 'http'
+import { isAbsolute, join } from 'node:path'
+import { existsSync } from 'node:fs'
+import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import fs from 'fs-extra'
 import { $URL, joinURL } from 'ufo'
@@ -50,7 +50,7 @@ export function defineConfig(config: UserConfig) {
  * @param userConfig
  * @param provider
  */
-export const createUnlighthouse = async (userConfig: UserConfig, provider?: Provider) => {
+export async function createUnlighthouse(userConfig: UserConfig, provider?: Provider) {
   const logger = createLogger(userConfig.debug)
   const { __dirname } = createCommonJS(import.meta.url)
   if (userConfig.root && !isAbsolute(userConfig.root))

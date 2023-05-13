@@ -1,12 +1,13 @@
-import type { IncomingMessage } from 'http'
+import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
+import { Buffer } from 'node:buffer'
 import { WebSocketServer } from 'ws'
 import { useUnlighthouse } from '../unlighthouse'
 
 /**
  * When certain hooks are triggered we need to broadcast data via the web socket.
  */
-export const createBroadcastingEvents = () => {
+export function createBroadcastingEvents() {
   const { hooks, ws } = useUnlighthouse()
 
   // ws may not be set, for example in a CI environment

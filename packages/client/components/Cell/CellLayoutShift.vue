@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { iframeModalUrl, isModalOpen, isOffline } from '../../logic'
+import { iframeModalUrl, isModalOpen } from '../../logic'
 import CellImageOutline from './CellImageOutline.vue'
 
-const props = defineProps<{
+defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
 }>()
@@ -11,7 +11,7 @@ const props = defineProps<{
 const showingModal = ref(false)
 const activeItem = ref(false)
 
-const openModal = (item) => {
+function openModal(item) {
   activeItem.value = item
   isModalOpen.value = true
   iframeModalUrl.value = null

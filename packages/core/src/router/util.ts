@@ -1,10 +1,10 @@
-import { basename } from 'path'
+import { basename } from 'node:path'
 import { $URL, hasProtocol, isRelative, withBase, withLeadingSlash } from 'ufo'
 import type { NormalisedRoute } from '../types'
 import { hashPathName, trimSlashes } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 
-export const isScanOrigin = (url: string): boolean => {
+export function isScanOrigin(url: string): boolean {
   if (isRelative(url) || (url.startsWith('/') && !url.startsWith('//')))
     return true
 
@@ -23,7 +23,7 @@ export const isScanOrigin = (url: string): boolean => {
  *
  * @param url
  */
-export const normaliseRoute = (url: string): NormalisedRoute => {
+export function normaliseRoute(url: string): NormalisedRoute {
   const { runtimeSettings, provider, resolvedConfig } = useUnlighthouse()
 
   // it's possible that we're serving a subdomain or something dodgy around www.

@@ -10,7 +10,7 @@ const props = defineProps<{
 
 const maxRenderSizeDC = props.size
 
-const computeZoomFactor = (elementRectSC, renderContainerSizeDC) => {
+function computeZoomFactor(elementRectSC, renderContainerSizeDC) {
   const targetClipToViewportRatio = 0.75
   const zoomRatioXY = {
     x: renderContainerSizeDC.width / elementRectSC.width,
@@ -20,7 +20,7 @@ const computeZoomFactor = (elementRectSC, renderContainerSizeDC) => {
   return Math.min(1, zoomFactor)
 }
 
-const getScreenshotPositions = (elementRectSC, elementPreviewSizeSC, screenshotSize) => {
+function getScreenshotPositions(elementRectSC, elementPreviewSizeSC, screenshotSize) {
   function getElementRectCenterPoint(rect) {
     return {
       x: rect.left + rect.width / 2,

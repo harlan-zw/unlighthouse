@@ -1,4 +1,4 @@
-import { URL } from 'url'
+import { URL } from 'node:url'
 import type { ResolvedUserConfig, UserConfig } from '@unlighthouse/core'
 import { pick } from 'lodash-es'
 import { defu } from 'defu'
@@ -6,7 +6,7 @@ import { fetchUrlRaw, normaliseHost, useLogger } from '@unlighthouse/core'
 import { handleError } from './errors'
 import type { CiOptions, CliOptions } from './types'
 
-export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
+export async function validateHost(resolvedConfig: ResolvedUserConfig) {
   const logger = useLogger()
   // site will not be set from integrations yet
   if (resolvedConfig.site) {
@@ -34,7 +34,7 @@ export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
   }
 }
 
-export const isValidUrl = (s: string) => {
+export function isValidUrl(s: string) {
   try {
     const url = new URL(s)
     return !!url
@@ -44,7 +44,7 @@ export const isValidUrl = (s: string) => {
   }
 }
 
-export const validateOptions = (resolvedOptions: UserConfig) => {
+export function validateOptions(resolvedOptions: UserConfig) {
   if (!resolvedOptions.site)
     return handleError('Please provide a site to scan with --site <url>.')
 

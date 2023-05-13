@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 
-const props = defineProps<{
+defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
   value: any

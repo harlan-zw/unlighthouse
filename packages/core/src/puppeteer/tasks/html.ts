@@ -1,9 +1,10 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import fs from 'fs-extra'
 import type { CheerioAPI } from 'cheerio'
 import cheerio from 'cheerio'
 import type { Page } from 'puppeteer-core'
 import { $URL, withoutTrailingSlash } from 'ufo'
+import chalk from 'chalk'
 import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
@@ -20,10 +21,8 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
       return { success: false, message: `Invalid response from URL ${route} code: ${response?.status || '404'}.` }
 
     // ignore non-html
-    if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html')) {
-      if (!valid || !response)
-        return { success: false, message: `Invalid response from URL ${route} content type: ${response.headers['content-type']}.` }
-    }
+    if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html'))
+      return { success: false, message: `Non-HTML Content-Type header: ${response.headers['content-type']}.` }
 
     return {
       success: true,
@@ -79,7 +78,7 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
   }
 }
 
-export const processSeoMeta = ($: CheerioAPI): HTMLExtractPayload => {
+export function processSeoMeta($: CheerioAPI): HTMLExtractPayload {
   return {
     alternativeLangDefault: $('link[hreflang="x-default"]').attr('href'),
     favicon: $('link[rel~="icon"]').attr('href') || '/favicon.ico',
@@ -99,22 +98,22 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   const logger = useLogger()
   let html: string
 
+  const start = new Date()
   // basic caching based on saving html payloads
   const htmlPayloadPath = join(routeReport.artifactPath, ReportArtifacts.html)
+  let cached = false
   if (resolvedConfig.cache && fs.existsSync(htmlPayloadPath)) {
     html = fs.readFileSync(htmlPayloadPath, { encoding: 'utf-8' })
     logger.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
+    cached = true
   }
   else {
-    const start = new Date()
     const response = await extractHtmlPayload(page, routeReport.route.url)
-    const end = new Date()
-    const seconds = Math.round(end.getTime() - start.getTime())
-    logger.debug(`HTML extract of \`${routeReport.route.url}\` took \`${seconds}\`ms`)
+    logger.debug(`HTML extract of \`${routeReport.route.url}\` response ${response.success ? 'succeeded' : 'failed'}.`)
 
     if (!response.success || !response.payload) {
       routeReport.tasks.inspectHtmlTask = 'ignore'
-      logger.warn(`Failed to extract HTML payload from route \`${routeReport.route.path}\`: ${response.message}`)
+      logger.info(`Skipping ${routeReport.route.path}. ${response.message}`)
       return routeReport
     }
     if (response.redirected) {
@@ -150,6 +149,7 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   const internalLinks: string[] = []
   const externalLinks: string[] = []
   $('a').each(function () {
+    // eslint-disable-next-line @typescript-eslint/no-invalid-this
     const href = $(this).attr('href')
     // href must be provided and not be javascript
     if (!href || href.includes('javascript:') || href.includes('mailto:') || href === '#')
@@ -175,7 +175,13 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   await hooks.callHook('discovered-internal-links', routeReport.route.path, internalLinks)
   routeReport.seo.internalLinks = internalLinks.length
   routeReport.seo.externalLinks = externalLinks.length
-  logger.success(`Completed \`inspectHtmlTask\` for \`${routeReport.route.path}\`. [Size: \`${formatBytes(html.length)}\`]`)
+  const end = new Date()
+  const ms = Math.round(end.getTime() - start.getTime())
+  // make ms human friendly
+  const seconds = (ms / 1000).toFixed(1)
+  if (!cached)
+    logger.success(`Completed \`inspectHtmlTask\` for \`${routeReport.route.path}\`. ${chalk.gray(`(${formatBytes(html.length)} took ${seconds}s)`)}`)
+
   // only need the html payload for caching purposes, unlike the lighthouse reports
   if (resolvedConfig.cache)
     fs.writeFileSync(htmlPayloadPath, html)

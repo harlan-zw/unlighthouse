@@ -2,7 +2,7 @@
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { extractBgColor, extractFgColor } from '../../logic'
 
-const props = defineProps<{
+defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
   value: any

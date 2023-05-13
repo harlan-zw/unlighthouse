@@ -3,14 +3,14 @@ import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/
 import { iframeModalUrl, isModalOpen, isOffline } from '../../logic'
 import CellImageOutline from './CellImageOutline.vue'
 
-const props = defineProps<{
+defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
 }>()
 
 const showingModal = ref(false)
 
-const openModal = () => {
+function openModal() {
   // don't open modal if we're offline
   if (isOffline.value)
     return

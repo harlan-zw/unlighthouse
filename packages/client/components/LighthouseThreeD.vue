@@ -62,7 +62,7 @@ const showLighthouse = computed(() => {
   return scanMeta?.value?.monitor?.status === 'working' || isHovered.value
 })
 
-const onReady = (object: Group) => {
+function onReady(object: Group) {
   lighthouse.value = object
 }
 </script>
@@ -75,7 +75,6 @@ const onReady = (object: Group) => {
         <PointLight :position="{ x: 160, y: -71, z: 0 }" />
         <AmbientLight />
         <FbxModel
-          ref="meshC"
           :src="`${basePath}assets/lighthouse.fbx`"
           @load="onReady"
         />

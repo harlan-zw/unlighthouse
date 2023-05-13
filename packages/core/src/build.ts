@@ -1,4 +1,4 @@
-import { dirname, join, resolve } from 'path'
+import { dirname, join, resolve } from 'node:path'
 import fs from 'fs-extra'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { useLogger, useUnlighthouse } from './unlighthouse'
@@ -13,7 +13,7 @@ import { createScanMeta } from './data'
  *
  * An additional transforming is needed to modify the vite base URL which is a bit more involved.
  */
-export const generateClient = async (options: GenerateClientOptions = {}, unlighthouse?: UnlighthouseContext) => {
+export async function generateClient(options: GenerateClientOptions = {}, unlighthouse?: UnlighthouseContext) {
   const logger = useLogger()
   if (!unlighthouse)
     unlighthouse = useUnlighthouse()

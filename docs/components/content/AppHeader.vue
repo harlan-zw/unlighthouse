@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import GithubButton from 'vue-github-button'
+
 const { navigation } = useContent()
 const { hasDocSearch } = useDocSearch()
 const hasDialog = computed(() => navigation.value?.length > 1)
