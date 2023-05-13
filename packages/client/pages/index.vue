@@ -108,7 +108,10 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
           </template>
           <div v-else class="flex items-center">
             <loading-spinner class="mr-2" />
-            Waiting for routes...
+            <div>
+              <p>Waiting for routes...</p>
+              <span class="text-xs opacity-50">If this hangs consider running Unlighthouse with --debug.</span>
+            </div>
           </div>
         </div>
         <div v-else-if="searchText" class="px-4 py-3">
