@@ -1,8 +1,12 @@
 import { join } from 'node:path'
+import { homedir } from 'node:os'
+import { existsSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
 import { createDefu, defu } from 'defu'
 import { pick } from 'lodash-es'
 import { pathExists } from 'fs-extra'
+import { computeExecutablePath, install } from '@puppeteer/browsers'
+import type { InstallOptions } from '@puppeteer/browsers'
 import { Launcher } from 'chrome-launcher'
 import puppeteer from 'puppeteer-core'
 import { resolve } from 'mlly'
@@ -60,6 +64,13 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     }
   }
 
+  config.chrome = defu(config.chrome || {}, {
+    useSystem: true,
+    useDownloadFallback: true,
+    downloadFallbackVersion: 1095492,
+    downloadFallbackCacheDir: join(homedir(), '.unlighthouse'),
+  })
+
   if (config.auth) {
     config.lighthouseOptions.extraHeaders = config.lighthouseOptions.extraHeaders || {}
     if (!config.lighthouseOptions.extraHeaders.Authorization) {
@@ -108,6 +119,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     config.routerPrefix = withSlashes(config.routerPrefix)
 
   config.puppeteerOptions = config.puppeteerOptions || {}
+  config.puppeteerClusterOptions = config.puppeteerClusterOptions || {}
   // @ts-expect-error untyped
   config.puppeteerOptions = defu({
     // set viewport
@@ -119,30 +131,58 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     ignoreHTTPSErrors: true,
   }, config.puppeteerOptions)
 
+  let foundChrome = !!config.puppeteerOptions?.executablePath
   // if user is using the default chrome binary options
-  if (!config.puppeteerOptions?.executablePath && !config.puppeteerClusterOptions?.puppeteer) {
+  if (config.chrome.useSystem && !foundChrome) {
     // we'll try and resolve their local chrome
     const chromePath = Launcher.getFirstInstallation()
     if (chromePath) {
-      logger.debug(`Found chrome at \`${chromePath}\`.`)
+      logger.info(`Using system chrome located at: \`${chromePath}\`.`)
       // set default to puppeteer core
-      config.puppeteerClusterOptions = defu({ puppeteer }, config.puppeteerClusterOptions || {})
+      config.puppeteerClusterOptions.puppeteer = puppeteer
       // point to our pre-installed chrome version
-      config.puppeteerOptions!.executablePath = Launcher.getFirstInstallation()
-    }
-    else {
-      // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
-      // puppeteer-cluster will do, but we can provide a nicer error
-      try {
-        await resolve('puppeteer')
-      }
-      catch (e) {
-        logger.fatal('Failed to find a chrome / chromium binary to run. Add the puppeteer dependency to your project to resolve.', e)
-        logger.info('Run the following: \`npm install -g puppeteer\`')
-        process.exit(0)
-      }
+      config.puppeteerOptions!.executablePath = chromePath
+      foundChrome = true
     }
   }
-
+  if (!foundChrome) {
+    // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
+    // puppeteer-cluster will do, but we can provide a nicer error
+    try {
+      await resolve('puppeteer')
+      foundChrome = true
+      logger.info('Using puppeteer dependency for chrome.')
+    }
+    catch (e) {
+      logger.debug('Puppeteer does not exist as a dependency.', e)
+    }
+  }
+  if (config.chrome.useDownloadFallback && !foundChrome) {
+    const browserOptions = {
+      cacheDir: join(homedir(), '.unlighthouse'),
+      buildId: '1095492',
+      browser: 'chromium',
+    } as InstallOptions
+    const chromePath = computeExecutablePath(browserOptions)
+    if (!existsSync(chromePath)) {
+      logger.warn('Failed to find chromium, attempting to download it instead.')
+      let lastPercent = 0
+      await install({
+        ...browserOptions,
+        downloadProgressCallback: (downloadedBytes, toDownloadBytes) => {
+          const percent = Math.round(downloadedBytes / toDownloadBytes * 100)
+          if (percent % 5 === 0 && lastPercent !== percent) {
+            logger.info(`Downloading chromium: ${percent}%`)
+            lastPercent = percent
+          }
+        },
+      })
+    }
+    logger.info(`Using temporary downloaded chromium v1095492 located at: ${chromePath}`)
+    config.puppeteerOptions!.executablePath = chromePath
+    foundChrome = true
+  }
+  if (!foundChrome)
+    throw new Error('Failed to find chrome. Please ensure you have a valid chrome installed.')
   return config as ResolvedUserConfig
 }

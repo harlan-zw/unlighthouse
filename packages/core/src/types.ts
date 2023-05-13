@@ -451,6 +451,33 @@ export interface ResolvedUserConfig {
     sameDomainDelay: number
     puppeteer: any
   }>
+
+  chrome: {
+    /**
+     * Should chrome be attempted to be used from the system.
+     *
+     * @default true
+     */
+    useSystem: boolean
+    /**
+     * If no chrome can be found in the system, should a download fallback be attempted.
+     *
+     * @default true
+     */
+    useDownloadFallback: boolean
+    /**
+     * When downloading the fallback which version of chrome should be used.
+     *
+     * @default 1095492
+     */
+    downloadFallbackVersion: string | number
+    /**
+     * The directory to install the downloaded fallback browser.
+     *
+     * @default $home/.unlighthouse
+     */
+    downloadFallbackCacheDir: string
+  }
 }
 
 export type DeepPartial<T> = T extends Function ? T : (T extends object ? { [P in keyof T]?: DeepPartial<T[P]>; } : T)
