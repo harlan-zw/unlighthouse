@@ -20,10 +20,8 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
       return { success: false, message: `Invalid response from URL ${route} code: ${response?.status || '404'}.` }
 
     // ignore non-html
-    if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html')) {
-      if (!valid || !response)
-        return { success: false, message: `Invalid response from URL ${route} content type: ${response.headers['content-type']}.` }
-    }
+    if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html'))
+      return { success: false, message: `Non-HTML Content-Type header: ${response.headers['content-type']}.` }
 
     return {
       success: true,
