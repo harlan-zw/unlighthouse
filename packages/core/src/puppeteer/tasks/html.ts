@@ -118,8 +118,9 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
       return routeReport
     }
     if (response.redirected) {
-      const siteHost = runtimeSettings.siteUrl.host
-      const redirectHost = new $URL(response.redirected).host
+      // strip any protocols from the url
+      const siteHost = runtimeSettings.siteUrl.host.split(':')[0]
+      const redirectHost = new $URL(response.redirected).host.split(':')[0]
       // allow subdomains
       if (siteHost !== redirectHost && !redirectHost.endsWith(`.${siteHost}`)) {
         routeReport.tasks.inspectHtmlTask = 'ignore'
