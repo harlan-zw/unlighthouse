@@ -8,13 +8,12 @@ import { pathExists } from 'fs-extra'
 import { computeExecutablePath, install } from '@puppeteer/browsers'
 import type { InstallOptions } from '@puppeteer/browsers'
 import { Launcher } from 'chrome-launcher'
+import puppeteer from 'puppeteer-core'
+import { resolve } from 'mlly'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { defaultConfig } from './constants'
 import { normaliseHost, withSlashes } from './util'
 import { useLogger } from './logger'
-import puppeteer from 'puppeteer-core'
-import { resolve } from 'mlly'
-
 
 /**
  * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.
