@@ -106,6 +106,18 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   if (config.routerPrefix)
     config.routerPrefix = withSlashes(config.routerPrefix)
 
+  config.puppeteerOptions = config.puppeteerOptions || {}
+  // @ts-expect-error untyped
+  config.puppeteerOptions = defu({
+    // set viewport
+    defaultViewport: {
+      width: config.lighthouseOptions?.screenEmulation?.width || 0,
+      height: config.lighthouseOptions?.screenEmulation?.height || 0,
+    },
+    headless: 'new',
+    ignoreHTTPSErrors: true,
+  }, config.puppeteerOptions)
+
   // if user is using the default chrome binary options
   if (!config.puppeteerOptions?.executablePath && !config.puppeteerClusterOptions?.puppeteer) {
     // we'll try and resolve their local chrome
@@ -115,15 +127,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       // set default to puppeteer core
       config.puppeteerClusterOptions = defu({ puppeteer }, config.puppeteerClusterOptions || {})
       // point to our pre-installed chrome version
-      config.puppeteerOptions = defu({
-        executablePath: Launcher.getFirstInstallation(),
-        // set viewport
-        defaultViewport: {
-          width: config.lighthouseOptions?.screenEmulation?.width || 0,
-          height: config.lighthouseOptions?.screenEmulation?.height || 0,
-        },
-        ignoreHTTPSErrors: true,
-      }, config.puppeteerOptions || {})
+      config.puppeteerOptions!.executablePath = Launcher.getFirstInstallation()
     }
     else {
       // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
