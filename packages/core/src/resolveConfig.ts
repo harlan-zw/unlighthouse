@@ -95,25 +95,28 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   }
 
   // alias to set the device
-  if (!config.lighthouseOptions.formFactor) {
-    if (config.scanner?.device === 'mobile') {
-      config.lighthouseOptions.formFactor = 'mobile'
-      config.lighthouseOptions.screenEmulation = defu({
-        mobile: true,
-        width: 360,
-        height: 640,
-        deviceScaleFactor: 2,
-      }, config.lighthouseOptions.screenEmulation || {})
-    }
-    else if (config.scanner?.device === 'desktop') {
-      config.lighthouseOptions.formFactor = 'desktop'
-      config.lighthouseOptions.screenEmulation = defu({
-        mobile: false,
-        width: 1024,
-        height: 750,
-      }, config.lighthouseOptions.screenEmulation || {})
+  config.lighthouseOptions.formFactor = config.lighthouseOptions.formFactor || config.scanner?.device || 'mobile'
+  if (config.lighthouseOptions.formFactor === 'desktop') {
+    config.lighthouseOptions.screenEmulation = {
+      mobile: false,
+      width: 1350,
+      height: 940,
+      deviceScaleFactor: 1,
+      disabled: false,
     }
   }
+  else {
+    config.lighthouseOptions.screenEmulation = {
+      mobile: true,
+      width: 412,
+      height: 823,
+      deviceScaleFactor: 1.75,
+      disabled: false,
+    }
+  }
+
+  if (userConfig.extraHeaders)
+    config.lighthouseOptions.extraHeaders = userConfig.extraHeaders
 
   if (config.routerPrefix)
     config.routerPrefix = withSlashes(config.routerPrefix)
@@ -121,15 +124,12 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   config.puppeteerOptions = config.puppeteerOptions || {}
   config.puppeteerClusterOptions = config.puppeteerClusterOptions || {}
   // @ts-expect-error untyped
-  config.puppeteerOptions = defu({
+  config.puppeteerOptions = defu(config.puppeteerOptions, {
     // set viewport
-    defaultViewport: {
-      width: config.lighthouseOptions?.screenEmulation?.width || 0,
-      height: config.lighthouseOptions?.screenEmulation?.height || 0,
-    },
-    headless: 'new',
+    headless: true,
     ignoreHTTPSErrors: true,
-  }, config.puppeteerOptions)
+  })
+  config.puppeteerOptions!.defaultViewport = config.lighthouseOptions.screenEmulation
 
   let foundChrome = !!config.puppeteerOptions?.executablePath
   // if user is using the default chrome binary options
