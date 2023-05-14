@@ -37,7 +37,7 @@ npx unlighthouse --site <your-site>
 pnpm dlx unlighthouse --site <your-site>
 ```
 
-_Requirements: Node 14.x or higher, Node 16.x recommended._
+_Requirements: Node >= 14.x, Node 16.x or higher recommended._
 
 ## Getting Started
 
