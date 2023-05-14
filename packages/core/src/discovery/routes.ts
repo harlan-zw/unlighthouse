@@ -85,9 +85,10 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
       // sanity check the internal links, may need javascript to run
       if (path === '/' && internalLinks.length <= 0 && resolvedConfig.scanner.skipJavascript) {
         resolvedConfig.scanner.skipJavascript = false
+        resolvedConfig.cache = false
         worker.routeReports.clear()
         worker.queueRoute(normaliseRoute(path))
-        logger.info('No internal links discovered on home page. Switching crawler to execute javascript.')
+        logger.warn('No internal links discovered on home page. Switching crawler to execute javascript and disabling cache.')
         return
       }
       worker.queueRoutes(internalLinks.map(url => normaliseRoute(url)).map((route) => {
