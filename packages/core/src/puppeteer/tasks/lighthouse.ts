@@ -3,6 +3,7 @@ import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
 import { map, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
+import chalk from 'chalk'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
@@ -85,7 +86,6 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
     const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as LH.Result
     routeReport.report = normaliseLighthouseResult(report)
-    logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\` using cache. [Score \`${routeReport.report.score}\`]`)
     return routeReport
   }
 
@@ -166,6 +166,6 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.audits['full-page-screenshot'].details.screenshot.data))
 
   routeReport.report = normaliseLighthouseResult(report)
-  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. [Score: \`${routeReport.report.score}\`${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete]`)
+  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. ${chalk.gray(`(Score: ${routeReport.report.score}${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples > 1}` : ''} ${worker.monitor().donePercStr}% complete)`)}`)
   return routeReport
 }
