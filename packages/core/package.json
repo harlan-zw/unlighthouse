@@ -69,6 +69,7 @@
     "minimist": "^1.2.8",
     "mlly": "^1.2.1",
     "object-hash": "^3.0.0",
+    "ofetch": "^1.0.1",
     "pathe": "^1.1.0",
     "puppeteer-cluster": "^0.23.0",
     "puppeteer-core": "^20.2.0",
