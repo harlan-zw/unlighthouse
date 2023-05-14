@@ -330,7 +330,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
         // title
         title.join('\n'),
       ))
-      if (existsSync(join(ctx.runtimeSettings.generatedClientPath, 'reports')) && ctx.resolvedConfig.cache)
+      if (existsSync(join(ctx.runtimeSettings.generatedClientPath, 'reports', 'lighthouse.json')) && ctx.resolvedConfig.cache)
         logger.info(`Restoring reports from cache. ${chalk.gray('You can disable this behavior by passing --no-cache.')}`)
     }
     return ctx
