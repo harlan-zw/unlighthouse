@@ -10,7 +10,7 @@ const props = defineProps<{
 const imageIssues = computed(() => {
   return sum([
     props.report.report?.audits['unsized-images']?.details.items.length || 0,
-    props.report.report?.audits['preload-lcp-image']?.details.items.length || 0,
+    props.report.report?.audits['prioritize-lcp-image']?.details.items.length || 0,
     props.report.report?.audits['offscreen-images']?.details.items.length || 0,
     props.report.report?.audits['modern-image-formats']?.details.items.length || 0,
     props.report.report?.audits['uses-optimized-images']?.details.items.length || 0,

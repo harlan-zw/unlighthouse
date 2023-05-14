@@ -12,6 +12,7 @@ export default defineBuildConfig({
     { input: 'src/process', outDir: 'dist/process', builder: 'mkdist', declaration: false },
   ],
   externals: [
+    'lighthouse',
     '@unrouted/core',
     'h3',
     'radix3',

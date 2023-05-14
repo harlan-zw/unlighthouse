@@ -1,14 +1,16 @@
 import { join } from 'node:path'
+import { writeFileSync } from 'node:fs'
 import fs from 'fs-extra'
-import type { LH } from 'lighthouse'
+import type { Result as LHResult } from 'lighthouse'
 import { map, pick, sumBy } from 'lodash-es'
-import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
+import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
+import { startFlow } from 'lighthouse'
 import type { LighthouseReport, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { ReportArtifacts, base64ToBuffer } from '../../util'
 
-export function normaliseLighthouseResult(result: LH.Result): LighthouseReport {
+export function normaliseLighthouseResult(result: LHResult): LighthouseReport {
   const { resolvedConfig } = useUnlighthouse()
 
   const measuredCategories = Object.values(result.categories)
@@ -21,7 +23,7 @@ export function normaliseLighthouseResult(result: LH.Result): LighthouseReport {
 
   const imageIssues = [
     result.audits['unsized-images']?.details?.items || [],
-    result.audits['preload-lcp-image']?.details?.items || [],
+    result.audits['prioritize-lcp-image']?.details?.items || [],
     result.audits['offscreen-images']?.details?.items || [],
     result.audits['modern-image-formats']?.details?.items || [],
     result.audits['uses-optimized-images']?.details?.items || [],
@@ -77,7 +79,7 @@ export function normaliseLighthouseResult(result: LH.Result): LighthouseReport {
 
 export const runLighthouseTask: PuppeteerTask = async (props) => {
   const logger = useLogger()
-  const { resolvedConfig, runtimeSettings, worker, hooks } = useUnlighthouse()
+  const { resolvedConfig, worker, hooks } = useUnlighthouse()
   const { page, data: routeReport } = props
 
   // if the report doesn't exist, we're going to run a new lighthouse process to generate it
@@ -90,7 +92,6 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   }
 
   const browser = page.browser()
-  const port = new URL(browser.wsEndpoint()).port
   // ignore csp errors
   await page.setBypassCSP(true)
 
@@ -103,6 +104,8 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   if (resolvedConfig.extraHeaders)
     await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
 
+  // await page.setViewport(resolvedConfig.puppeteerOptions.defaultViewport as any)
+
   // Wait for Lighthouse to open url, then allow hook to run
   browser.on('targetchanged', async (target) => {
     const page = await target.page()
@@ -112,31 +115,26 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
 
   // allow changing behaviour of the page
 
-  const args = [
-    `--cache=${JSON.stringify(resolvedConfig.cache)}`,
-    `--routeReport=${JSON.stringify(pick(routeReport, ['route.url', 'artifactPath']))}`,
-    `--lighthouseOptions=${JSON.stringify(resolvedConfig.lighthouseOptions)}`,
-    `--port=${port}`,
-  ]
-
   const samples = []
   for (let i = 0; i < resolvedConfig.scanner.samples; i++) {
     try {
-      // Spawn a worker process
-      const worker = (await import('execa'))
-        .execa(
-          // handles stubbing
-          runtimeSettings.lighthouseProcessPath.endsWith('.ts') ? 'jiti' : 'node',
-          [runtimeSettings.lighthouseProcessPath, ...args],
-          {
-            timeout: 6 * 60 * 1000,
-          },
-        )
-      worker.stdout!.pipe(process.stdout)
-      worker.stderr!.pipe(process.stderr)
-      const res = await worker
-      if (res)
-        samples.push(fs.readJsonSync(reportJsonPath))
+      const flow = await startFlow(page)
+      await flow.navigate(routeReport.route.url)
+      await flow.endNavigation();
+
+      const flowResult = await flow.createFlowResult()
+      //
+      // const runnerResult = await lighthouse(routeReport.route.url, {
+      //   disableFullPageScreenshot: true,
+      //   formFactor: 'mobile',
+      // }, {
+      //   disableFullPageScreenshot: true,
+      //   formFactor: 'mobile',
+      // }, page)
+      writeFileSync(join(routeReport.artifactPath, 'lighthouse.json'), JSON.stringify(flowResult.steps[0].lhr))
+      writeFileSync(join(routeReport.artifactPath, 'lighthouse.html'), await flow.generateReport())
+
+      samples.push(flowResult.steps[0].lhr)
     }
     catch (e) {
       logger.error('Failed to run lighthouse for route', e)
@@ -147,7 +145,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   let report = samples[0]
   if (samples.length > 1) {
     try {
-      report = computeMedianRun(samples)
+      report = computeMedianRun(samples) as any as LighthouseReport
     }
     catch (e) {
       logger.warn('Error when computing median score, possibly audit failed.', e)
@@ -162,8 +160,8 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   if (report.audits?.['final-screenshot']?.details?.data)
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), base64ToBuffer(report.audits['final-screenshot'].details.data))
 
-  if (report.audits?.['full-page-screenshot']?.details?.screenshot?.data)
-    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.audits['full-page-screenshot'].details.screenshot.data))
+  if (report.fullPageScreenshot)
+    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.fullPageScreenshot.screenshot.data))
 
   routeReport.report = normaliseLighthouseResult(report)
   logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. [Score: \`${routeReport.report.score}\`${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete]`)

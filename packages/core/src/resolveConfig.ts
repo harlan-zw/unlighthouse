@@ -94,26 +94,23 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     }
   }
 
-  // alias to set the device
-  if (!config.lighthouseOptions.formFactor) {
-    if (config.scanner?.device === 'mobile') {
-      config.lighthouseOptions.formFactor = 'mobile'
-      config.lighthouseOptions.screenEmulation = defu({
-        mobile: true,
-        width: 360,
-        height: 640,
+  const defaultViewport = config.scanner?.device === 'mobile'
+    ? {
+        width: 414,
+        height: 800,
         deviceScaleFactor: 2,
-      }, config.lighthouseOptions.screenEmulation || {})
-    }
-    else if (config.scanner?.device === 'desktop') {
-      config.lighthouseOptions.formFactor = 'desktop'
-      config.lighthouseOptions.screenEmulation = defu({
-        mobile: false,
+        isMobile: true,
+        mobile: true,
+      }
+    : {
         width: 1024,
-        height: 750,
-      }, config.lighthouseOptions.screenEmulation || {})
-    }
-  }
+        height: 768,
+      }
+
+  // alias to set the device
+  config.lighthouseOptions.formFactor = config.lighthouseOptions.formFactor || config.scanner?.device || 'mobile'
+
+  config.lighthouseOptions.screenEmulation = { disable: true }
 
   if (config.routerPrefix)
     config.routerPrefix = withSlashes(config.routerPrefix)

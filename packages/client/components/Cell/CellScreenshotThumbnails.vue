@@ -28,7 +28,7 @@ watch(isModalOpen, () => {
   <btn-action v-if="value" title="Open full image" class="w-full" @click="openModal">
     <div class="w-full flex justify-between">
       <template v-if="value?.details?.items">
-        <img v-for="(image, key) in value.details.items" :key="key" loading="lazy" :src="image.data" height="120" class="max-w-[10%] max-h-120px h-auto w-10%">
+        <img v-for="(image, key) in value.details.items" :key="key" loading="lazy" :src="image.data" height="120" class="max-w-[10%] max-h-120px h-auto w-10% object-fit">
       </template>
     </div>
     <teleport v-if="isModalOpen && showingModal" to="#modal-portal">

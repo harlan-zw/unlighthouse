@@ -92,13 +92,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   // path to the lighthouse worker file
   runtimeSettings.lighthouseProcessPath = await resolvePath(
     join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.mjs'),
-  ).catch(() => {})
-  // ts module in stub mode, not sure why extensions won't resolve
-  if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
-    runtimeSettings.lighthouseProcessPath = await resolvePath(
-      join(runtimeSettings.moduleWorkingDir, 'process', 'lighthouse.ts'),
-    )
-  }
+  )
 
   // create a cache key for the users provided key so we can cache burst on config update
   runtimeSettings.configCacheKey = objectHash({ ...userConfig, version }).substring(0, 4)
