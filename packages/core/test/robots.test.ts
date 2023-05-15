@@ -187,4 +187,98 @@ Sitemap: https://unitedpets.com/sitemap/index.xml
     expect(isScannable('/?size=big')).toBeFalsy()
     expect(isScannable('/my-product')).toBeTruthy()
   })
+
+  it('parses example #4', () => {
+    // shopify
+    const parsed = parseRobotsTxt(`
+    User-agent: *
+Disallow: /admin
+Disallow: /cart
+Disallow: /orders
+Disallow: /checkouts/
+Disallow: /checkout
+Disallow: /58606747799/checkouts
+Disallow: /58606747799/orders
+Disallow: /carts
+Disallow: /account
+Disallow: /collections/*sort_by*
+Disallow: /*/collections/*sort_by*
+Disallow: /collections/*+*
+Disallow: /collections/*%2B*
+Disallow: /collections/*%2b*
+Disallow: /*/collections/*+*
+Disallow: /*/collections/*%2B*
+Disallow: /*/collections/*%2b*
+Disallow: /blogs/*+*
+Disallow: /blogs/*%2B*
+Disallow: /blogs/*%2b*
+Disallow: /*/blogs/*+*
+Disallow: /*/blogs/*%2B*
+Disallow: /*/blogs/*%2b*
+Disallow: /*?*oseid=*
+Disallow: /*preview_theme_id*
+Disallow: /*preview_script_id*
+Disallow: /policies/
+Disallow: /*/*?*ls=*&ls=*
+Disallow: /*/*?*ls%3D*%3Fls%3D*
+Disallow: /*/*?*ls%3d*%3fls%3d*
+Disallow: /search
+Disallow: /apple-app-site-association
+Disallow: /.well-known/shopify/monorail
+Disallow: /cdn/wpm/*.js
+Sitemap: https://armeriameschieri.com/sitemap.xml
+`)
+    expect(parsed).toMatchInlineSnapshot(`
+      {
+        "disallows": [
+          "/admin",
+          "/cart",
+          "/orders",
+          "/checkouts/",
+          "/checkout",
+          "/58606747799/checkouts",
+          "/58606747799/orders",
+          "/carts",
+          "/account",
+          "/collections/*sort_by*",
+          "/*/collections/*sort_by*",
+          "/collections/*+*",
+          "/collections/*%2B*",
+          "/collections/*%2b*",
+          "/*/collections/*+*",
+          "/*/collections/*%2B*",
+          "/*/collections/*%2b*",
+          "/blogs/*+*",
+          "/blogs/*%2B*",
+          "/blogs/*%2b*",
+          "/*/blogs/*+*",
+          "/*/blogs/*%2B*",
+          "/*/blogs/*%2b*",
+          "/*?*oseid=*",
+          "/*preview_theme_id*",
+          "/*preview_script_id*",
+          "/policies/",
+          "/*/*?*ls=*&ls=*",
+          "/*/*?*ls%3D*%3Fls%3D*",
+          "/*/*?*ls%3d*%3fls%3d*",
+          "/search",
+          "/apple-app-site-association",
+          "/.well-known/shopify/monorail",
+          "/cdn/wpm/*.js",
+        ],
+        "sitemaps": [
+          "https://armeriameschieri.com/sitemap.xml",
+        ],
+      }
+    `)
+
+    const resolvedConfig = { scanner: { exclude: [], sitemap: [] } } as any as ResolvedUserConfig
+    mergeRobotsTxtConfig(resolvedConfig, parsed)
+
+    function isScannable(path: string) {
+      return resolvedConfig.scanner.exclude!.filter(rule => asRegExp(rule).test(path)).length === 0
+    }
+    expect(isScannable('/cart')).toBeFalsy()
+    expect(isScannable('/my-product')).toBeTruthy()
+  })
 })

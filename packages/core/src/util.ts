@@ -173,7 +173,7 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
 export function asRegExp(rule: string | RegExp): RegExp {
   if (rule instanceof RegExp)
     return rule
-  // need to escape the string for use in a RegExp
-  rule = rule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // need to escape the string for use in a RegExp but allow basic path characters like /
+  rule = rule.replace(/[-{}()+?.,\\^|#\s]/g, '\\$&')
   return new RegExp(rule)
 }
