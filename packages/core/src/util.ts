@@ -171,5 +171,9 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
 }
 
 export function asRegExp(rule: string | RegExp): RegExp {
-  return rule instanceof RegExp ? rule : new RegExp(rule)
+  if (rule instanceof RegExp)
+    return rule
+  // need to escape the string for use in a RegExp
+  rule = rule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(rule)
 }
