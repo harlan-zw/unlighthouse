@@ -97,15 +97,13 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   if (resolvedConfig.auth)
     await page.authenticate(resolvedConfig.auth)
 
-  if (resolvedConfig.cookies)
-    await page.setCookie(...resolvedConfig.cookies)
-
-  if (resolvedConfig.extraHeaders)
-    await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
-
   // Wait for Lighthouse to open url, then allow hook to run
   browser.on('targetchanged', async (target) => {
     const page = await target.page()
+    if (resolvedConfig.cookies)
+      await page.setCookie(...resolvedConfig.cookies)
+    if (resolvedConfig.extraHeaders)
+      await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
     if (page)
       await hooks.callHook('puppeteer:before-goto', page)
   })
