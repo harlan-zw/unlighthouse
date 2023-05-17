@@ -1,5 +1,6 @@
 import Sitemapper from 'sitemapper'
 import { $URL, withBase } from 'ufo'
+import { fetchUrlRaw } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 
@@ -23,11 +24,26 @@ export async function extractSitemapRoutes(site: string, sitemaps: true | (strin
     // make sure it's absolute
     if (!sitemapUrl.startsWith('http'))
       sitemapUrl = withBase(sitemapUrl, site)
-    const { sites } = await sitemap.fetch(sitemapUrl)
-    if (sites.length)
-      paths = [...paths, ...sites]
+    // sitemapper does not support txt sitemaps
+    if (sitemapUrl.endsWith('.txt')) {
+      const sitemapTxt = await fetchUrlRaw(
+        sitemapUrl,
+        unlighthouse.resolvedConfig,
+      )
+      if (sitemapTxt.valid) {
+        const sites = (sitemapTxt.response!.data as string).trim().split('\n').filter(Boolean)
+        if (sites.length)
+          paths = [...paths, ...sites]
 
-    logger.debug(`Fetched sitemap with ${sites.length} URLs.`)
+        logger.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
+      }
+    }
+    else {
+      const { sites } = await sitemap.fetch(sitemapUrl)
+      if (sites.length)
+        paths = [...paths, ...sites]
+      logger.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
+    }
   }
   return paths
 }
