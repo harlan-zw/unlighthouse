@@ -170,6 +170,6 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.audits['full-page-screenshot'].details.screenshot.data))
 
   routeReport.report = normaliseLighthouseResult(report)
-  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. ${chalk.gray(`(Score: ${routeReport.report.score}${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples > 1}` : ''} ${worker.monitor().donePercStr}% complete)`)}`)
+  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. ${chalk.gray(`(Score: ${routeReport.report.score}${resolvedConfig.scanner.samples > 0 ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete)`)}`)
   return routeReport
 }
