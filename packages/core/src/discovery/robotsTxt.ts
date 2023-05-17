@@ -35,15 +35,18 @@ export async function fetchRobotsTxt(site: string): Promise<false | string> {
  * Parses the robots.txt data.
  */
 export function parseRobotsTxt(robotsTxt: string): RobotsTxtParsed {
-  const lines = robotsTxt.split('\n')
+  const lines = robotsTxt
+    // URLs are case-insensitive, avoid issues if robots has SITEMAP:
+    .toLowerCase()
+    .split('\n')
   // make sure we're working from the host name
   const sitemaps = lines
-    .filter(line => line.startsWith('Sitemap'))
+    .filter(line => line.startsWith('sitemap'))
     // split only on the first instance of :
     .map(line => line.split(/:(.+)/)[1].trim())
   // get excludes
   const disallows = lines
-    .filter(line => line.startsWith('Disallow'))
+    .filter(line => line.startsWith('disallow'))
     // split only on the first instance of :
     .map((line) => {
       const sections = line.trim().split(/:(.+)/)
