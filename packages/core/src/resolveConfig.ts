@@ -64,6 +64,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     }
   }
 
+  config.scanner!.exclude = config.scanner?.exclude || []
+  config.scanner!.exclude.push('/cdn-cgi/*')
+
   config.chrome = defu(config.chrome || {}, {
     useSystem: true,
     useDownloadFallback: true,
