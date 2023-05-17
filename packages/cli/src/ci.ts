@@ -86,18 +86,43 @@ async function run() {
     }
     if (!hadError) {
       logger.success('CI assertions on score budget has passed.')
+      const routes = worker.reports()
+        .map((report) => {
+          const categories = Object.values(report.report?.categories ?? {})
+            .reduce((prev: {[key: string]: number}, category: any): any => ({
+              ...prev,
+              [category.key]: category.score,
+            }), {})
+          return {
+            path: report.route.path,
+            score: report.report?.score,
+            categories,
+          }
+        })
+        // make the list ordering consistent
+        .sort((a, b) => a.path.localeCompare(b.path))
 
-      await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'),
-        worker.reports()
-          .map((report) => {
-            return {
-              path: report.route.path,
-              score: report.report?.score,
-            }
-          })
-          // make the list ordering consistent
-          .sort((a, b) => a.path.localeCompare(b.path)),
-      )
+      const summedCategories = routes.reduce((prev, curr) => {
+        Object.keys(curr.categories).forEach((key) => {
+          if (!prev[key])
+            prev[key] = 0
+          prev[key] += curr.categories[key]
+        })
+        return prev
+      }, {} as {[key: string]: number})
+      const averageCategories = Object.keys(summedCategories).reduce((prev: {[key: string]: number}, key: string) => ({
+        ...prev, [key]: parseFloat((summedCategories[key] / routes.length).toFixed(2)),
+      }), {} as {[key: string]: number})
+
+      const summary = {
+        score: parseFloat((routes.reduce((prev, curr) => prev + curr.score, 0) / routes.length).toFixed(2)),
+        categories: averageCategories
+      }
+      const result = {
+        summary,
+        routes,
+      }
+      await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'), result)
 
       if (resolvedConfig.ci?.buildStatic) {
         logger.info('Generating static report.')
