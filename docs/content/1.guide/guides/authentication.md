@@ -83,7 +83,7 @@ You can provide multiple headers by separating them with a `,`.
 unlighthouse --site <your-site> --extra-headers x-custom-header:custom-value,x-other-header:other-value
 ```
 
-#### Programmatic Usage
+## Programmatic Usage
 
 You can also use control Puppeteer programmatically before the page is scanned using a config file.
 This is 
