@@ -118,6 +118,13 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     }
   }
 
+  if (!config.lighthouseOptions.emulatedUserAgent) {
+    if (config.lighthouseOptions.formFactor === 'mobile')
+      config.lighthouseOptions.emulatedUserAgent = 'Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Mobile Safari/537.36'
+    else
+      config.lighthouseOptions.emulatedUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
+  }
+
   if (userConfig.extraHeaders)
     config.lighthouseOptions.extraHeaders = userConfig.extraHeaders
 
@@ -126,7 +133,6 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
 
   config.puppeteerOptions = config.puppeteerOptions || {}
   config.puppeteerClusterOptions = config.puppeteerClusterOptions || {}
-  // @ts-expect-error untyped
   config.puppeteerOptions = defu(config.puppeteerOptions, {
     // set viewport
     headless: true,
