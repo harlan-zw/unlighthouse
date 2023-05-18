@@ -5,9 +5,68 @@ import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '
 import { relative } from 'pathe'
 import { isCI } from 'std-env'
 import { handleError } from './errors'
-import type { CiOptions } from './types'
+import type { CiOptions, CiRouteReport, GenerateReport } from './types'
 import { pickOptions, validateHost, validateOptions } from './util'
 import createCli from './createCli'
+
+const preV1Reporter = (unlighthouseRouteReports) =>
+  unlighthouseRouteReports
+    .map((report) => {
+      return {
+        path: report.route.path,
+        score: report.report?.score,
+      } as CiRouteReport
+    })
+    // make the list ordering consistent
+    .sort((a, b) => a.path.localeCompare(b.path))
+
+const v1Reporter = (unlighthouseRouteReports) => {
+  const routes = unlighthouseRouteReports
+    .map((report) => {
+      const categories = Object.values(report.report?.categories ?? {})
+        .reduce((prev: {[key: string]: number}, category: any): any => ({
+          ...prev,
+          [category.key]: category,
+        }), {})
+      return {
+        path: report.route.path,
+        score: report.report?.score,
+        categories,
+      }
+    })
+    // make the list ordering consistent
+    .sort((a, b) => a.path.localeCompare(b.path))
+
+  const categoriesWithAllScores = routes.reduce((prev, curr) => {
+    return Object.keys(curr.categories).reduce((target, categoryKey) => {
+      const scores = target[categoryKey] ? target[categoryKey].scores : [];
+      return {...target, [categoryKey]: {...curr.categories[categoryKey], scores: [...scores, curr.categories[categoryKey].score]}}
+    }, prev)
+  }, {} as {[key: string]: {key: string, id: string, title: string, scores: number[]}})
+
+  const averageCategories = Object.keys(categoriesWithAllScores).reduce((prev: {[key: string]: {key: string, id: string, title: string, averageScore: number}}, key: string) => {
+    const averageScore = parseFloat((categoriesWithAllScores[key].scores.reduce((prev, curr) => prev + curr, 0) / categoriesWithAllScores[key].scores.length).toFixed(2))
+    const {score, scores, ...strippedCategory} = categoriesWithAllScores[key]
+    return {...prev, [key]: {...strippedCategory, averageScore}}
+  }, {} as {[key: string]: {key: string, id: string, title: string, averageScore: number}})
+
+  const summary = {
+    score: parseFloat((routes.reduce((prev, curr) => prev + curr.score, 0) / routes.length).toFixed(2)),
+    categories: averageCategories
+  }
+  const result = {
+    summary,
+    routes,
+  }
+  return result
+}
+
+const ciReporter: GenerateReport = (config, unlighthouseRouteReports) => {
+  if (config.ci?.v1Report) {
+    return v1Reporter(unlighthouseRouteReports)
+  }
+  return preV1Reporter(unlighthouseRouteReports)
+}
 
 async function run() {
   const startTime = new Date()
@@ -16,6 +75,7 @@ async function run() {
 
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
   cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
+  cli.option('--v1-report', 'Generate a v1 report.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
@@ -86,43 +146,8 @@ async function run() {
     }
     if (!hadError) {
       logger.success('CI assertions on score budget has passed.')
-      const routes = worker.reports()
-        .map((report) => {
-          const categories = Object.values(report.report?.categories ?? {})
-            .reduce((prev: {[key: string]: number}, category: any): any => ({
-              ...prev,
-              [category.key]: category.score,
-            }), {})
-          return {
-            path: report.route.path,
-            score: report.report?.score,
-            categories,
-          }
-        })
-        // make the list ordering consistent
-        .sort((a, b) => a.path.localeCompare(b.path))
-
-      const summedCategories = routes.reduce((prev, curr) => {
-        Object.keys(curr.categories).forEach((key) => {
-          if (!prev[key])
-            prev[key] = 0
-          prev[key] += curr.categories[key]
-        })
-        return prev
-      }, {} as {[key: string]: number})
-      const averageCategories = Object.keys(summedCategories).reduce((prev: {[key: string]: number}, key: string) => ({
-        ...prev, [key]: parseFloat((summedCategories[key] / routes.length).toFixed(2)),
-      }), {} as {[key: string]: number})
-
-      const summary = {
-        score: parseFloat((routes.reduce((prev, curr) => prev + curr.score, 0) / routes.length).toFixed(2)),
-        categories: averageCategories
-      }
-      const result = {
-        summary,
-        routes,
-      }
-      await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'), result)
+      const ciReport = ciReporter(resolvedConfig, worker.reports())
+      await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'), ciReport)
 
       if (resolvedConfig.ci?.buildStatic) {
         logger.info('Generating static report.')

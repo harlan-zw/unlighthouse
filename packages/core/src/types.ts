@@ -323,6 +323,10 @@ export interface ResolvedUserConfig {
      * Injects the required data into the client files, so it can be hosted statically.
      */
     buildStatic: boolean
+    /**
+     * Enable the v1 report which has more analytic information in the ci-result.json file.
+     * */
+    v1Report: boolean
   }
   /**
    * See https://unlighthouse.dev/guide/client.html

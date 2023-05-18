@@ -1,3 +1,5 @@
+import { UnlighthouseRouteReport, ResolvedUserConfig } from "@unlighthouse/core"
+
 export interface CliOptions {
   host?: string
   help?: boolean
@@ -26,9 +28,43 @@ export interface CliOptions {
   disableRobotsTxt?: boolean
   disableSitemap?: boolean
   disableDynamicSampling?: boolean
+  v1Report?: boolean
 }
 
 export interface CiOptions extends CliOptions {
   budget: number
   buildStatic: boolean
 }
+
+export interface CiRouteReport {
+  path: string
+  score?: string
+}
+
+export interface V1RouteReport extends CiRouteReport {
+  categories: { [key: string]: {
+      key: string,
+      id: string,
+      title: string,
+      score: number,
+    }
+  }
+}
+
+export interface V1Report {
+  summary: {
+    score: number
+    categories: { [key: string]: {
+        key: string,
+        id: string,
+        title: string,
+        averageScore: number,
+      }
+    }
+  }
+  routes: V1RouteReport[]
+}
+
+export type CiReport = CiRouteReport[] | V1Report
+
+export type GenerateReport = (config: ResolvedUserConfig, unlighthouseRouteReports: UnlighthouseRouteReport[]) => CiReport
