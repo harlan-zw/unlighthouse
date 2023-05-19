@@ -180,7 +180,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   // extract the screenshot-thumbnails into seperate files
   const screenshotThumbnails = report.audits?.['screenshot-thumbnails']?.details
   await fs.mkdir(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir), { recursive: true })
-  if (screenshotThumbnails.items && screenshotThumbnails.type === 'filmstrip') {
+  if (screenshotThumbnails?.items && screenshotThumbnails.type === 'filmstrip') {
     for (const key in screenshotThumbnails.items) {
       const thumbnail = screenshotThumbnails.items[key]
       await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${key}.jpeg`), base64ToBuffer(thumbnail.data))
