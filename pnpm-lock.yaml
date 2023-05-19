@@ -14,8 +14,8 @@ importers:
         specifier: ^0.38.6
         version: 0.38.6(eslint@8.40.0)(typescript@5.0.4)
       '@types/node':
-        specifier: ^20.2.1
-        version: 20.2.1
+        specifier: ^20.1.7
+        version: 20.1.7
       '@vitest/ui':
         specifier: ^0.31.1
         version: 0.31.1(vitest@0.31.1)
@@ -29,8 +29,8 @@ importers:
         specifier: ^5.0.4
         version: 5.0.4
       vite:
-        specifier: ^4.3.8
-        version: 4.3.8(@types/node@20.2.1)
+        specifier: ^4.3.7
+        version: 4.3.7(@types/node@20.1.7)
       vitest:
         specifier: ^0.31.1
         version: 0.31.1(@vitest/ui@0.31.1)
@@ -74,7 +74,7 @@ importers:
     devDependencies:
       vite:
         specifier: ^4.3.7
-        version: 4.3.7(@types/node@20.2.1)
+        version: 4.3.7(@types/node@20.1.7)
 
   integrations/webpack:
     dependencies:
@@ -1791,7 +1791,7 @@ packages:
     dependencies:
       '@types/http-cache-semantics': 4.0.1
       '@types/keyv': 3.1.4
-      '@types/node': 20.1.7
+      '@types/node': 20.2.1
       '@types/responselike': 1.0.0
     dev: false
 
@@ -1887,13 +1887,13 @@ packages:
   /@types/jsonfile@6.1.1:
     resolution: {integrity: sha512-GSgiRCVeapDN+3pqA35IkQwasaCh/0YFH5dEF6S88iDvEn901DjOeH3/QPY+XYP1DFzDZPvIvfeEgk+7br5png==}
     dependencies:
-      '@types/node': 20.1.7
+      '@types/node': 20.2.1
     dev: true
 
   /@types/keyv@3.1.4:
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
     dependencies:
-      '@types/node': 20.1.7
+      '@types/node': 20.2.1
     dev: false
 
   /@types/lodash-es@4.17.7:
@@ -1929,7 +1929,6 @@ packages:
 
   /@types/node@20.2.1:
     resolution: {integrity: sha512-DqJociPbZP1lbZ5SQPk4oag6W7AyaGMO6gSfRwq3PWl4PXTwJpRQJhDq4W0kzrg3w6tJ1SwlvGZ5uKFHY13LIg==}
-    dev: true
 
   /@types/normalize-package-data@2.4.1:
     resolution: {integrity: sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==}
@@ -1953,7 +1952,7 @@ packages:
   /@types/responselike@1.0.0:
     resolution: {integrity: sha512-85Y2BjiufFzaMIlvJDvTTB8Fxl2xfLo4HgmHzVBz08w4wDePCTjYw66PdrolO0kzli3yam/YCgRufyo1DdQVTA==}
     dependencies:
-      '@types/node': 20.1.7
+      '@types/node': 20.2.1
     dev: false
 
   /@types/semver@7.5.0:
@@ -2006,7 +2005,7 @@ packages:
     resolution: {integrity: sha512-Cn6WYCm0tXv8p6k+A8PvbDG763EDpBoTzHdA+Q/MF6H3sapGjCm9NzoaJncJS9tUKSuCoDs9XHxYYsQDgxR6kw==}
     requiresBuild: true
     dependencies:
-      '@types/node': 20.1.7
+      '@types/node': 20.2.1
     dev: false
     optional: true
 
@@ -6091,7 +6090,7 @@ packages:
     dependencies:
       universalify: 2.0.0
     optionalDependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.11
 
   /keyv@4.4.1:
     resolution: {integrity: sha512-PzByhNxfBLnSBW2MZi1DF+W5+qB/7BMpOokewqIvqS8GFtP7xHm2oeGU72Y1fhtfOv/FiEnI4+nyViYDmUChnw==}
@@ -8370,7 +8369,7 @@ packages:
     resolution: {integrity: sha512-DI7/OuAUD+GMpR6dmu8lliO2Wg5zfeh+/xsdyJZCzd8o5JgFUjCeLsBDuZjIQJdwXS3J0L/uZYrELKYqx+PXog==}
     engines: {node: '>=8.0'}
     dependencies:
-      '@types/node': 20.1.7
+      '@types/node': 20.2.1
       image-ssim: 0.2.0
       jpeg-js: 0.4.4
     dev: false
@@ -9443,7 +9442,7 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /vite@4.3.7(@types/node@20.2.1):
+  /vite@4.3.7(@types/node@20.1.7):
     resolution: {integrity: sha512-MTIFpbIm9v7Hh5b0wSBgkcWzSBz7SAa6K/cBTwS4kUiQJfQLFlZZRJRQgqunCVzhTPCk674tW+0Qaqh3Q00dBg==}
     engines: {node: ^14.18.0 || >=16.0.0}
     hasBin: true
@@ -9468,7 +9467,7 @@ packages:
       terser:
         optional: true
     dependencies:
-      '@types/node': 20.2.1
+      '@types/node': 20.1.7
       esbuild: 0.17.19
       postcss: 8.4.23
       rollup: 3.22.0
