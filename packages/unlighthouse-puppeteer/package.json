@@ -1,6 +1,6 @@
 {
   "name": "unlighthouse-puppeteer",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
