@@ -34,9 +34,9 @@ export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result
     .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
     .map(a => a.details?.items)
     .flat()
-  if (result.audits['screenshot-thumbnails']) {
+  if (result.audits['screenshot-thumbnails']?.details?.items) {
     // need to convert the base64 screenshot-thumbnails into their file name
-    for (const k in result.audits['screenshot-thumbnails']?.details?.items)
+    for (const k in result.audits['screenshot-thumbnails'].details.items)
       result.audits['screenshot-thumbnails'].details.items[k].data = relative(runtimeSettings.generatedClientPath, join(route.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${k}.jpeg`))
   }
   // map the json report to what values we actually need
