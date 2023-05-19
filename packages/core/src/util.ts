@@ -16,6 +16,7 @@ export const ReportArtifacts = {
   reportHtml: 'lighthouse.html',
   screenshot: 'screenshot.jpeg',
   fullScreenScreenshot: 'full-screenshot.jpeg',
+  screenshotThumbnailsDir: '__screenshot-thumbnails__',
   reportJson: 'lighthouse.json',
 }
 

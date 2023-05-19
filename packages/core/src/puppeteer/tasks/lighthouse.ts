@@ -4,13 +4,14 @@ import type { LH } from 'lighthouse'
 import { map, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
 import chalk from 'chalk'
-import type { LighthouseReport, PuppeteerTask } from '../../types'
+import { relative } from 'pathe'
+import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { ReportArtifacts, base64ToBuffer } from '../../util'
 
-export function normaliseLighthouseResult(result: LH.Result): LighthouseReport {
-  const { resolvedConfig } = useUnlighthouse()
+export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: LH.Result): LighthouseReport {
+  const { resolvedConfig, runtimeSettings } = useUnlighthouse()
 
   const measuredCategories = Object.values(result.categories)
     .filter(c => typeof c.score !== 'undefined') as { score: number }[]
@@ -33,6 +34,11 @@ export function normaliseLighthouseResult(result: LH.Result): LighthouseReport {
     .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
     .map(a => a.details?.items)
     .flat()
+  if (result.audits['screenshot-thumbnails']) {
+    // need to convert the base64 screenshot-thumbnails into their file name
+    for (const k in result.audits['screenshot-thumbnails']?.details?.items)
+      result.audits['screenshot-thumbnails'].details.items[k].data = relative(runtimeSettings.generatedClientPath, join(route.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${k}.jpeg`))
+  }
   // map the json report to what values we actually need
   return {
     // @ts-expect-error type override
@@ -85,7 +91,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
   if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
     const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as LH.Result
-    routeReport.report = normaliseLighthouseResult(report)
+    routeReport.report = normaliseLighthouseResult(routeReport, report)
     return routeReport
   }
 
@@ -163,14 +169,25 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
     routeReport.tasks.runLighthouseTask = 'failed'
   }
-  // export the full screen image
+
+  // we need to export all base64 data to improve the stability of the client
   if (report.audits?.['final-screenshot']?.details?.data)
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), base64ToBuffer(report.audits['final-screenshot'].details.data))
 
   if (report.audits?.['full-page-screenshot']?.details?.screenshot?.data)
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.audits['full-page-screenshot'].details.screenshot.data))
 
-  routeReport.report = normaliseLighthouseResult(report)
+  // extract the screenshot-thumbnails into seperate files
+  const screenshotThumbnails = report.audits?.['screenshot-thumbnails']
+  await fs.mkdir(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir), { recursive: true })
+  if (screenshotThumbnails.details?.items && screenshotThumbnails.details?.type === 'filmstrip') {
+    for (const key in screenshotThumbnails.details.items) {
+      const thumbnail = screenshotThumbnails.details.items[key]
+      await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${key}.jpeg`), base64ToBuffer(thumbnail.data))
+    }
+  }
+
+  routeReport.report = normaliseLighthouseResult(routeReport, report)
   logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. ${chalk.gray(`(Score: ${routeReport.report.score}${resolvedConfig.scanner.samples > 0 ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete)`)}`)
   return routeReport
 }
