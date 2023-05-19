@@ -4,6 +4,10 @@ import { fetchUrlRaw } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 
+function validSitemapEntry(url: string) {
+  return url && (url.startsWith('http') || url.startsWith('/'))
+}
+
 /**
  * Fetches routes from a sitemap file.
  */
@@ -31,8 +35,9 @@ export async function extractSitemapRoutes(site: string, sitemaps: true | (strin
         unlighthouse.resolvedConfig,
       )
       if (sitemapTxt.valid) {
-        const sites = (sitemapTxt.response!.data as string).trim().split('\n').filter(Boolean)
-        if (sites.length)
+        const sites = (sitemapTxt.response!.data as string).trim().split('\n')
+          .filter(validSitemapEntry)
+        if (sites?.length)
           paths = [...paths, ...sites]
 
         logger.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
@@ -40,9 +45,9 @@ export async function extractSitemapRoutes(site: string, sitemaps: true | (strin
     }
     else {
       const { sites } = await sitemap.fetch(sitemapUrl)
-      if (sites.length)
+      if (sites?.length)
         paths = [...paths, ...sites]
-      logger.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
+      logger.debug(`Fetched ${sitemapUrl} with ${sites?.length || '0'} URLs.`)
     }
   }
   return paths
