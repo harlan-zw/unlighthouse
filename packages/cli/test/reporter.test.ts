@@ -58,8 +58,6 @@ describe("reporter", () => {
 
 
     const actual = ciReporter(config, lighthouseReport) as V1Report
-    console.log("Actual", JSON.stringify(actual, null, 2))
-    console.log("Actual summary", JSON.stringify(actual.summary, null, 2))
     expect(actual.summary.metrics).toBeDefined()
     expect(actual.summary.metrics["largest-contentful-paint"]).toBeDefined()
     expect(actual.summary.metrics["cumulative-layout-shift"]).toBeDefined()
