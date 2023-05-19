@@ -39,6 +39,7 @@ This will generate files in your `outputPath` (`.unlighthouse` by default). You 
 
 If you want to preview the static report you can run `npx sirv-cli .unlighthouse/client`
 
+Note: You will need to host your site using a web server.
 
 ## GitHub Actions & Netlify Example
 

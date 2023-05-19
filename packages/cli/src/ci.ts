@@ -2,6 +2,8 @@ import { join } from 'node:path'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
+import { relative } from 'pathe'
+import { isCI } from 'std-env'
 import { handleError } from './errors'
 import type { CiOptions } from './types'
 import { pickOptions, validateHost, validateOptions } from './util'
@@ -98,8 +100,8 @@ async function run() {
       )
 
       if (resolvedConfig.ci?.buildStatic) {
-        logger.info('Generating static client.')
-        const { runtimeSettings } = useUnlighthouse()
+        logger.info('Generating static report.')
+        const { runtimeSettings, resolvedConfig } = useUnlighthouse()
         await generateClient({ static: true })
         // delete the json lighthouse payloads, we don't need them for the static mode
         const globby = (await import('globby'))
@@ -108,7 +110,13 @@ async function run() {
         for (const k in jsonPayloads)
           await fs.rm(jsonPayloads[k])
 
-        logger.success(`Static client generated at \`${runtimeSettings.generatedClientPath}\`, ready for hosting.`)
+        const relativeDir = `./${relative(resolvedConfig.root, runtimeSettings.generatedClientPath)}`
+        logger.success(`Static report is ready for uploading: \`${relativeDir}\``)
+        if (!isCI) {
+          // tell the user they can preview it using sirv-cli and link them to the docs
+          logger.info(`You can preview the static report using \`npx sirv-cli ${relativeDir}\`.`)
+          logger.info('For deployment demos, see https://unlighthouse.com/docs/deployment')
+        }
       }
 
       process.exit(0)
