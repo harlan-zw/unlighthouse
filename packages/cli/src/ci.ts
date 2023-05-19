@@ -1,164 +1,129 @@
-import { join } from 'node:path'
-import type { UserConfig } from '@unlighthouse/core'
-import fs from 'fs-extra'
-import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
+import { join } from "node:path";
+import type { UserConfig } from "@unlighthouse/core";
+import fs from "fs-extra";
+import {
+  createUnlighthouse,
+  generateClient,
+  useLogger,
+  useUnlighthouse,
+} from "@unlighthouse/core";
 import { relative } from 'pathe'
 import { isCI } from 'std-env'
-import { handleError } from './errors'
-import type { CiOptions, CiRouteReport, GenerateReport } from './types'
-import { pickOptions, validateHost, validateOptions } from './util'
-import createCli from './createCli'
-
-const preV1Reporter = (unlighthouseRouteReports) =>
-  unlighthouseRouteReports
-    .map((report) => {
-      return {
-        path: report.route.path,
-        score: report.report?.score,
-      } as CiRouteReport
-    })
-    // make the list ordering consistent
-    .sort((a, b) => a.path.localeCompare(b.path))
-
-const v1Reporter = (unlighthouseRouteReports) => {
-  const routes = unlighthouseRouteReports
-    .map((report) => {
-      const categories = Object.values(report.report?.categories ?? {})
-        .reduce((prev: {[key: string]: number}, category: any): any => ({
-          ...prev,
-          [category.key]: category,
-        }), {})
-      return {
-        path: report.route.path,
-        score: report.report?.score,
-        categories,
-      }
-    })
-    // make the list ordering consistent
-    .sort((a, b) => a.path.localeCompare(b.path))
-
-  const categoriesWithAllScores = routes.reduce((prev, curr) => {
-    return Object.keys(curr.categories).reduce((target, categoryKey) => {
-      const scores = target[categoryKey] ? target[categoryKey].scores : [];
-      return {...target, [categoryKey]: {...curr.categories[categoryKey], scores: [...scores, curr.categories[categoryKey].score]}}
-    }, prev)
-  }, {} as {[key: string]: {key: string, id: string, title: string, scores: number[]}})
-
-  const averageCategories = Object.keys(categoriesWithAllScores).reduce((prev: {[key: string]: {key: string, id: string, title: string, averageScore: number}}, key: string) => {
-    const averageScore = parseFloat((categoriesWithAllScores[key].scores.reduce((prev, curr) => prev + curr, 0) / categoriesWithAllScores[key].scores.length).toFixed(2))
-    const {score, scores, ...strippedCategory} = categoriesWithAllScores[key]
-    return {...prev, [key]: {...strippedCategory, averageScore}}
-  }, {} as {[key: string]: {key: string, id: string, title: string, averageScore: number}})
-
-  const summary = {
-    score: parseFloat((routes.reduce((prev, curr) => prev + curr.score, 0) / routes.length).toFixed(2)),
-    categories: averageCategories
-  }
-  const result = {
-    summary,
-    routes,
-  }
-  return result
-}
-
-const ciReporter: GenerateReport = (config, unlighthouseRouteReports) => {
-  if (config.ci?.v1Report) {
-    return v1Reporter(unlighthouseRouteReports)
-  }
-  return preV1Reporter(unlighthouseRouteReports)
-}
+import { handleError } from "./errors";
+import type { CiOptions } from "./types";
+import { pickOptions, validateHost, validateOptions } from "./util";
+import createCli from "./createCli";
+import { ciReporter } from "./reporter";
 
 async function run() {
-  const startTime = new Date()
+  const startTime = new Date();
 
-  const cli = createCli()
+  const cli = createCli();
 
-  cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
-  cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
-  cli.option('--v1-report', 'Generate a v1 report.')
+  cli.option(
+    "--budget <budget>",
+    "Budget (1-100), the minimum score which can pass."
+  );
+  cli.option(
+    "--build-static <build-static>",
+    "Build a static website for the reports which can be uploaded."
+  );
+  cli.option("--v1-report", "Generate a v1 report.");
 
-  const { options } = cli.parse() as unknown as { options: CiOptions }
+  const { options } = cli.parse() as unknown as { options: CiOptions };
 
-  if (options.help || options.version)
-    return
+  if (options.help || options.version) return;
 
-  const resolvedOptions: UserConfig = pickOptions(options)
+  const resolvedOptions: UserConfig = pickOptions(options);
   resolvedOptions.ci = {
     budget: options.budget || undefined,
     buildStatic: options.buildStatic || false,
-  }
+  };
 
-  await createUnlighthouse({
-    ...resolvedOptions,
-    hooks: {
-      'resolved-config': async (config) => {
-        await validateHost(config)
+  await createUnlighthouse(
+    {
+      ...resolvedOptions,
+      hooks: {
+        "resolved-config": async (config) => {
+          await validateHost(config);
+        },
       },
+      cache: false,
     },
-    cache: false,
-  },
-  { name: 'ci' },
-  )
+    { name: "ci" }
+  );
 
-  const { resolvedConfig, setCiContext, hooks, worker, start } = useUnlighthouse()
+  const { resolvedConfig, setCiContext, hooks, worker, start } =
+    useUnlighthouse();
 
-  validateOptions(resolvedConfig)
+  validateOptions(resolvedConfig);
 
-  const logger = useLogger()
+  const logger = useLogger();
 
-  let hasBudget = true
+  let hasBudget = true;
   if (!resolvedConfig.ci?.budget) {
-    hasBudget = false
-    logger.warn('Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>.')
+    hasBudget = false;
+    logger.warn(
+      "Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>."
+    );
   }
 
-  await setCiContext()
-  await start()
+  await setCiContext();
+  await start();
 
-  hooks.hook('worker-finished', async () => {
-    const end = new Date()
-    const seconds = Math.round((end.getTime() - startTime.getTime()) / 1000)
+  hooks.hook("worker-finished", async () => {
+    const end = new Date();
+    const seconds = Math.round((end.getTime() - startTime.getTime()) / 1000);
 
-    logger.success(`Unlighthouse has finished scanning \`${resolvedConfig.site}\`: ${worker.reports().length} routes in \`${seconds}s\`.`)
+    logger.success(
+      `Unlighthouse has finished scanning \`${resolvedConfig.site}\`: ${worker.reports().length
+      } routes in \`${seconds}s\`.`
+    );
 
-    let hadError = false
+    let hadError = false;
     if (hasBudget) {
-      logger.info('Running score budgets.', resolvedConfig.ci.budget)
-      worker
-        .reports()
-        .forEach((report) => {
-          const categories = report.report?.categories
-          if (!categories)
-            return
+      logger.info("Running score budgets.", resolvedConfig.ci.budget);
+      worker.reports().forEach((report) => {
+        const categories = report.report?.categories;
+        if (!categories) return;
 
-          Object.values(categories).forEach((category) => {
-            let budget = resolvedConfig.ci.budget
-            if (!Number.isInteger(budget)) {
-              // @ts-expect-error need to fix
-              budget = resolvedConfig.ci.budget[category.key]
-            }
-            if (category.score && (category.score * 100) < budget) {
-              logger.error(`${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`)
-              hadError = true
-            }
-          })
-        })
+        Object.values(categories).forEach((category) => {
+          let budget = resolvedConfig.ci.budget;
+          if (!Number.isInteger(budget)) {
+            // @ts-expect-error need to fix
+            budget = resolvedConfig.ci.budget[category.key];
+          }
+          if (category.score && category.score * 100 < budget) {
+            logger.error(
+              `${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`
+            );
+            hadError = true;
+          }
+        });
+      });
     }
     if (!hadError) {
-      logger.success('CI assertions on score budget has passed.')
-      const ciReport = ciReporter(resolvedConfig, worker.reports())
-      await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'), ciReport)
+      logger.success("CI assertions on score budget has passed.");
+      const ciReport = ciReporter(resolvedConfig, worker.reports());
+      await fs.writeJson(
+        join(resolvedConfig.root, resolvedConfig.outputPath, "ci-result.json"),
+        ciReport
+      );
 
       if (resolvedConfig.ci?.buildStatic) {
         logger.info('Generating static report.')
         const { runtimeSettings, resolvedConfig } = useUnlighthouse()
         await generateClient({ static: true })
         // delete the json lighthouse payloads, we don't need them for the static mode
-        const globby = (await import('globby'))
-        const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'], { cwd: runtimeSettings.generatedClientPath, absolute: true })
-        logger.debug(`Deleting ${jsonPayloads.length} files not required for static build.`)
-        for (const k in jsonPayloads)
-          await fs.rm(jsonPayloads[k])
+        const globby = await import("globby");
+        const jsonPayloads = await globby.globby(
+          ["lighthouse.json", "**/lighthouse.json", "assets/lighthouse.fbx"],
+          { cwd: runtimeSettings.generatedClientPath, absolute: true }
+        );
+        logger.debug(
+          `Deleting ${jsonPayloads.length} files not required for static build.`
+        );
+        for (const k in jsonPayloads) await fs.rm(jsonPayloads[k]);
 
         const relativeDir = `./${relative(resolvedConfig.root, runtimeSettings.generatedClientPath)}`
         logger.success(`Static report is ready for uploading: \`${relativeDir}\``)
@@ -169,13 +134,12 @@ async function run() {
         }
       }
 
-      process.exit(0)
+      process.exit(0);
+    } else {
+      logger.error("Some routes failed the budget.");
+      process.exit(1);
     }
-    else {
-      logger.error('Some routes failed the budget.')
-      process.exit(1)
-    }
-  })
+  });
 }
 
-run().catch(handleError)
+run().catch(handleError);

@@ -41,27 +41,57 @@ export interface CiRouteReport {
   score?: string
 }
 
+export interface V1CategoryScore {
+  key: string,
+  id: string,
+  title: string,
+  score: number,
+}
+
+export type V1MetricScore = {
+  id: string,
+  title: string,
+  description: string,
+  numericValue: number,
+  numericUnit: string,
+  displayValue: string,
+}
+
 export interface V1RouteReport extends CiRouteReport {
-  categories: { [key: string]: {
-      key: string,
-      id: string,
-      title: string,
-      score: number,
-    }
+  categories: {
+    [key: string]: V1CategoryScore
+  },
+  metrics: {
+    [key: string]: V1MetricScore
   }
+}
+
+export interface V1CategoryAverageScore {
+  key: string,
+  id: string,
+  title: string,
+  averageScore: number,
+}
+
+export interface V1MetricAverageScore {
+  id: string,
+  title: string,
+  description: string,
+  averageNumericValue: number,
+  numericUnit: string,
+  displayValue: string,
 }
 
 export interface V1Report {
   summary: {
-    score: number
-    categories: { [key: string]: {
-        key: string,
-        id: string,
-        title: string,
-        averageScore: number,
-      }
+    score: number,
+    categories: {
+      [key: string]: V1CategoryAverageScore
+    },
+    metrics: {
+      [key: string]: V1MetricAverageScore
     }
-  }
+  },
   routes: V1RouteReport[]
 }
 

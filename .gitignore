@@ -89,3 +89,4 @@ dist
 reports
 
 .vscode/
+.tmp/
