@@ -136,6 +136,8 @@ export interface HTMLExtractPayload {
 
 export type WindiResponsiveClasses = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 
+export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded'
+
 /**
  * A column will generally be either a direct mapping to a lighthouse audit (such as console errors) or a computed mapping to
  * multiple lighthouse audits (such as image issues).
@@ -323,6 +325,12 @@ export interface ResolvedUserConfig {
      * Injects the required data into the client files, so it can be hosted statically.
      */
     buildStatic: boolean
+    /**
+     * The type of report that will be generated from the results.
+     *
+     * @default 'jsonSimple'
+     **/
+    reporter: ValidReportTypes | false
   }
   /**
    * See https://unlighthouse.dev/guide/client.html
