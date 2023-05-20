@@ -11,10 +11,7 @@ export default {
       seo: 85,
       accessibility: 85,
     },
-    v1Report: true,
+    reporter: 'jsonExpanded',
   },
-  // lighthouseOptions: {
-  //   onlyCategories: ['best-practices', 'seo', 'accessibility']
-  // },
   debug: true,
 };

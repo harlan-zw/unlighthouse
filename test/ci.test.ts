@@ -1,29 +1,29 @@
-import { resolve, join } from 'path'
+import { join, resolve } from 'node:path'
 import fs from 'fs-extra'
-import { expect, it, beforeAll, describe, afterAll } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { execa } from 'execa'
 
 export const cacheDir = resolve(__dirname, '.cache')
 export const ci = resolve(__dirname, '../packages/unlighthouse/bin/unlighthouse-ci.cjs')
 
-beforeAll(async() => {
+beforeAll(async () => {
   await fs.remove(cacheDir)
 })
 
-afterAll(async() => {
+afterAll(async () => {
   await fs.remove(cacheDir)
 })
 
 describe('ci', () => {
-  it('tests harlanzw.com', async() => {
+  it('tests harlanzw.com', async () => {
     const { output } = await runCli(resolve(__dirname, 'fixtures/harlanzw.config.ts'))
 
     expect(output[0].path).toBeDefined()
     expect(output[0].score).toBeDefined()
   })
 
-  it('tests harlanzw.com and generate v1-report', async() => {
-    const { output } = await runCli(resolve(__dirname, 'fixtures/harlanzw-v1report.config.ts'))
+  it('tests harlanzw.com and generate json expanded', async () => {
+    const { output } = await runCli(resolve(__dirname, 'fixtures/harlanzw-json-expanded.config.ts'))
 
     expect(output.summary).toBeDefined()
     expect(output.summary.score).toBeDefined()

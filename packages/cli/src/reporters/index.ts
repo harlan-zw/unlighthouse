@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { writeJson } from 'fs-extra'
+import fse from 'fs-extra'
 import type { ResolvedUserConfig, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { reportJsonSimple } from './jsonSimple'
 import { reportJsonExpanded } from './jsonExpanded'
@@ -17,7 +17,7 @@ export function generateReportPayload(reporter: string, reports: UnlighthouseRou
 export async function outputReport(reporter: string, config: Partial<ResolvedUserConfig>, payload: any) {
   if (reporter.startsWith('json')) {
     const path = join(config.root, config.outputPath, 'ci-result.json')
-    await writeJson(path, JSON.stringify(payload))
+    await fse.writeJson(path, JSON.stringify(payload))
     return path
   }
   throw new Error(`Unsupported reporter: ${reporter}.`)

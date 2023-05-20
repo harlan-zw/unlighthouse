@@ -1,5 +1,5 @@
 import type { UserConfig } from '@unlighthouse/core'
-import { rm } from 'fs-extra'
+import fs from 'fs-extra'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
 import { relative } from 'pathe'
 import { isCI } from 'std-env'
@@ -108,7 +108,7 @@ async function run() {
       logger.debug(
         `Deleting ${jsonPayloads.length} files not required for static build.`,
       )
-      for (const k in jsonPayloads) await rm(jsonPayloads[k])
+      for (const k in jsonPayloads) await fs.rm(jsonPayloads[k])
 
       const relativeDir = `./${relative(resolvedConfig.root, runtimeSettings.generatedClientPath)}`
       logger.success(`Static report is ready for uploading: \`${relativeDir}\``)
