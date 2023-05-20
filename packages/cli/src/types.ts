@@ -1,3 +1,5 @@
+import type { UnlighthouseRouteReport, ValidReportTypes } from '@unlighthouse/core'
+
 export interface CliOptions {
   host?: string
   help?: boolean
@@ -31,4 +33,7 @@ export interface CliOptions {
 export interface CiOptions extends CliOptions {
   budget: number
   buildStatic: boolean
+  reporter?: ValidReportTypes | false
 }
+
+export { UnlighthouseRouteReport }
