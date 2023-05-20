@@ -19,14 +19,8 @@ async function run() {
 
   const cli = createCli()
 
-  cli.option(
-    '--budget <budget>',
-    'Budget (1-100), the minimum score which can pass.',
-  )
-  cli.option(
-    '--build-static <build-static>',
-    'Build a static website for the reports which can be uploaded.',
-  )
+  cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
+  cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
   cli.option('--report', 'What type of report to generate from the results. Options are: jsonSimple, jsonExpanded or false.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
@@ -40,21 +34,19 @@ async function run() {
     buildStatic: options.buildStatic || false,
   }
 
-  await createUnlighthouse(
-    {
-      ...resolvedOptions,
-      hooks: {
-        'resolved-config': async (config) => {
-          await validateHost(config)
-        },
+  await createUnlighthouse({
+    ...resolvedOptions,
+    hooks: {
+      'resolved-config': async (config) => {
+        await validateHost(config)
       },
-      cache: false,
     },
-    { name: 'ci' },
+    cache: false,
+  },
+  { name: 'ci' },
   )
 
-  const { resolvedConfig, setCiContext, hooks, worker, start }
-    = useUnlighthouse()
+  const { resolvedConfig, setCiContext, hooks, worker, start } = useUnlighthouse()
 
   validateOptions(resolvedConfig)
 
@@ -63,9 +55,7 @@ async function run() {
   let hasBudget = true
   if (!resolvedConfig.ci?.budget) {
     hasBudget = false
-    logger.warn(
-      'Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>.',
-    )
+    logger.warn('Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>.')
   }
 
   await setCiContext()
@@ -75,10 +65,7 @@ async function run() {
     const end = new Date()
     const seconds = Math.round((end.getTime() - startTime.getTime()) / 1000)
 
-    logger.success(
-      `Unlighthouse has finished scanning \`${resolvedConfig.site}\`: ${worker.reports().length
-      } routes in \`${seconds}s\`.`,
-    )
+    logger.success(`Unlighthouse has finished scanning \`${resolvedConfig.site}\`: ${worker.reports().length} routes in \`${seconds}s\`.`)
 
     let hadError = false
     if (hasBudget) {
