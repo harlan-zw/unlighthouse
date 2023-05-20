@@ -1,6 +1,5 @@
-import { UnlighthouseRouteReport } from "@unlighthouse/core"
-
-export const lighthouseReport: UnlighthouseRouteReport[] = [
+// avoid TS parsing this, it's too big and slows down the types in the rest of the project
+export default [
   {
     tasks: {
       runLighthouseTask: "completed",
@@ -9,7 +8,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "6666cd",
       url: "https://harlanzw.com",
-      $url: new URL("https://harlanzw.com") as any,
+      $url: new URL("https://harlanzw.com"),
       path: "/",
       definition: {
         name: "_index",
@@ -2007,7 +2006,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "126ac9",
       url: "https://harlanzw.com/blog",
-      $url: new URL("https://harlanzw.com/blog") as any,
+      $url: new URL("https://harlanzw.com/blog"),
       path: "/blog",
       definition: {
         name: "blog",
@@ -3689,7 +3688,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "f6ab89",
       url: "https://harlanzw.com/blog/how-the-heck-does-vite-work",
-      $url: new URL("https://harlanzw.com/blog/how-the-heck-does-vite-work") as any,
+      $url: new URL("https://harlanzw.com/blog/how-the-heck-does-vite-work"),
       path: "/blog/how-the-heck-does-vite-work",
       definition: {
         name: "blog-slug",
@@ -12306,7 +12305,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "a10fb8",
       url: "https://harlanzw.com/blog/vue-automatic-component-imports",
-      $url: new URL("https://harlanzw.com/blog/vue-automatic-component-imports") as any,
+      $url: new URL("https://harlanzw.com/blog/vue-automatic-component-imports"),
       path: "/blog/vue-automatic-component-imports",
       definition: {
         name: "blog-slug",
@@ -22832,7 +22831,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "35a286",
       url: "https://harlanzw.com/projects",
-      $url: new URL("https://harlanzw.com/projects") as any,
+      $url: new URL("https://harlanzw.com/projects"),
       path: "/projects",
       definition: {
         name: "projects",
@@ -24533,7 +24532,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "4cf2d3",
       url: "https://harlanzw.com/sponsors",
-      $url: new URL("https://harlanzw.com/sponsors") as any,
+      $url: new URL("https://harlanzw.com/sponsors"),
       path: "/sponsors",
       definition: {
         name: "sponsors",
@@ -26266,7 +26265,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "fe5699",
       url: "https://harlanzw.com/talks",
-      $url: new URL("https://harlanzw.com/talks") as any,
+      $url: new URL("https://harlanzw.com/talks"),
       path: "/talks",
       definition: {
         name: "talks",
@@ -27964,7 +27963,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "e04982",
       url: "https://harlanzw.com/blog/2023-february",
-      $url: new URL("https://harlanzw.com/blog/2023-february") as any,
+      $url: new URL("https://harlanzw.com/blog/2023-february"),
       path: "/blog/2023-february",
       definition: {
         name: "blog-slug",
@@ -29900,7 +29899,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "2b285a",
       url: "https://harlanzw.com/blog/2023-march",
-      $url: new URL("https://harlanzw.com/blog/2023-march") as any,
+      $url: new URL("https://harlanzw.com/blog/2023-march"),
       path: "/blog/2023-march",
       definition: {
         name: "blog-slug",
@@ -32125,7 +32124,7 @@ export const lighthouseReport: UnlighthouseRouteReport[] = [
     route: {
       id: "4aa01b",
       url: "https://harlanzw.com/blog/modern-package-development",
-      $url: new URL("https://harlanzw.com/blog/modern-package-development") as any,
+      $url: new URL("https://harlanzw.com/blog/modern-package-development"),
       path: "/blog/modern-package-development",
       definition: {
         name: "blog-slug",

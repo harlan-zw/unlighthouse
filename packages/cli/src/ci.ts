@@ -1,19 +1,19 @@
-import { join } from "node:path"
-import type { UserConfig } from "@unlighthouse/core"
-import fs from "fs-extra"
+import { join } from 'node:path'
+import type { UserConfig } from '@unlighthouse/core'
+import fs from 'fs-extra'
 import {
   createUnlighthouse,
   generateClient,
   useLogger,
   useUnlighthouse,
-} from "@unlighthouse/core"
+} from '@unlighthouse/core'
 import { relative } from 'pathe'
 import { isCI } from 'std-env'
-import { handleError } from "./errors"
-import type { CiOptions } from "./types"
-import { pickOptions, validateHost, validateOptions } from "./util"
-import createCli from "./createCli"
-import { ciReporter } from "./reporter"
+import { handleError } from './errors'
+import type { CiOptions } from './types'
+import { pickOptions, validateHost, validateOptions } from './util'
+import createCli from './createCli'
+import { ciReporter } from './reporter'
 
 async function run() {
   const startTime = new Date()
@@ -21,18 +21,19 @@ async function run() {
   const cli = createCli()
 
   cli.option(
-    "--budget <budget>",
-    "Budget (1-100), the minimum score which can pass."
+    '--budget <budget>',
+    'Budget (1-100), the minimum score which can pass.',
   )
   cli.option(
-    "--build-static <build-static>",
-    "Build a static website for the reports which can be uploaded."
+    '--build-static <build-static>',
+    'Build a static website for the reports which can be uploaded.',
   )
-  cli.option("--v1-report", "Generate a v1 report.")
+  cli.option('--v1-report', 'Generate a v1 report.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
-  if (options.help || options.version) return
+  if (options.help || options.version)
+    return
 
   const resolvedOptions: UserConfig = pickOptions(options)
   resolvedOptions.ci = {
@@ -44,17 +45,17 @@ async function run() {
     {
       ...resolvedOptions,
       hooks: {
-        "resolved-config": async (config) => {
+        'resolved-config': async (config) => {
           await validateHost(config)
         },
       },
       cache: false,
     },
-    { name: "ci" }
+    { name: 'ci' },
   )
 
-  const { resolvedConfig, setCiContext, hooks, worker, start } =
-    useUnlighthouse()
+  const { resolvedConfig, setCiContext, hooks, worker, start }
+    = useUnlighthouse()
 
   validateOptions(resolvedConfig)
 
@@ -64,28 +65,29 @@ async function run() {
   if (!resolvedConfig.ci?.budget) {
     hasBudget = false
     logger.warn(
-      "Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>."
+      'Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>.',
     )
   }
 
   await setCiContext()
   await start()
 
-  hooks.hook("worker-finished", async () => {
+  hooks.hook('worker-finished', async () => {
     const end = new Date()
     const seconds = Math.round((end.getTime() - startTime.getTime()) / 1000)
 
     logger.success(
       `Unlighthouse has finished scanning \`${resolvedConfig.site}\`: ${worker.reports().length
-      } routes in \`${seconds}s\`.`
+      } routes in \`${seconds}s\`.`,
     )
 
     let hadError = false
     if (hasBudget) {
-      logger.info("Running score budgets.", resolvedConfig.ci.budget)
+      logger.info('Running score budgets.', resolvedConfig.ci.budget)
       worker.reports().forEach((report) => {
         const categories = report.report?.categories
-        if (!categories) return
+        if (!categories)
+          return
 
         Object.values(categories).forEach((category) => {
           let budget = resolvedConfig.ci.budget
@@ -95,7 +97,7 @@ async function run() {
           }
           if (category.score && category.score * 100 < budget) {
             logger.error(
-              `${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`
+              `${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`,
             )
             hadError = true
           }
@@ -103,11 +105,11 @@ async function run() {
       })
     }
     if (!hadError) {
-      logger.success("CI assertions on score budget has passed.")
+      logger.success('CI assertions on score budget has passed.')
       const ciReport = ciReporter(resolvedConfig, worker.reports())
       await fs.writeJson(
-        join(resolvedConfig.root, resolvedConfig.outputPath, "ci-result.json"),
-        ciReport
+        join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'),
+        ciReport,
       )
 
       if (resolvedConfig.ci?.buildStatic) {
@@ -115,13 +117,13 @@ async function run() {
         const { runtimeSettings, resolvedConfig } = useUnlighthouse()
         await generateClient({ static: true })
         // delete the json lighthouse payloads, we don't need them for the static mode
-        const globby = await import("globby")
+        const globby = await import('globby')
         const jsonPayloads = await globby.globby(
-          ["lighthouse.json", "**/lighthouse.json", "assets/lighthouse.fbx"],
-          { cwd: runtimeSettings.generatedClientPath, absolute: true }
+          ['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'],
+          { cwd: runtimeSettings.generatedClientPath, absolute: true },
         )
         logger.debug(
-          `Deleting ${jsonPayloads.length} files not required for static build.`
+          `Deleting ${jsonPayloads.length} files not required for static build.`,
         )
         for (const k in jsonPayloads) await fs.rm(jsonPayloads[k])
 
@@ -135,8 +137,9 @@ async function run() {
       }
 
       process.exit(0)
-    } else {
-      logger.error("Some routes failed the budget.")
+    }
+    else {
+      logger.error('Some routes failed the budget.')
       process.exit(1)
     }
   })

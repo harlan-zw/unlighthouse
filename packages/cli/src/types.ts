@@ -1,4 +1,4 @@
-import { UnlighthouseRouteReport, ResolvedUserConfig } from "@unlighthouse/core"
+import type { ResolvedUserConfig, UnlighthouseRouteReport } from '@unlighthouse/core'
 
 export interface CliOptions {
   host?: string
@@ -42,59 +42,61 @@ export interface CiRouteReport {
 }
 
 export interface V1CategoryScore {
-  key: string,
-  id: string,
-  title: string,
-  score: number,
+  key: string
+  id: string
+  title: string
+  score: number
 }
 
-export type V1MetricScore = {
-  id: string,
-  title: string,
-  description: string,
-  numericValue: number,
-  numericUnit: string,
-  displayValue: string,
+export interface V1MetricScore {
+  id: string
+  title: string
+  description: string
+  numericValue: number
+  numericUnit: string
+  displayValue: string
 }
 
 export interface V1RouteReport extends CiRouteReport {
   categories: {
     [key: string]: V1CategoryScore
-  },
+  }
   metrics: {
     [key: string]: V1MetricScore
   }
 }
 
 export interface V1CategoryAverageScore {
-  key: string,
-  id: string,
-  title: string,
-  averageScore: number,
+  key: string
+  id: string
+  title: string
+  averageScore: number
 }
 
 export interface V1MetricAverageScore {
-  id: string,
-  title: string,
-  description: string,
-  averageNumericValue: number,
-  numericUnit: string,
-  displayValue: string,
+  id: string
+  title: string
+  description: string
+  averageNumericValue: number
+  numericUnit: string
+  displayValue: string
 }
 
 export interface V1Report {
   summary: {
-    score: number,
+    score: number
     categories: {
       [key: string]: V1CategoryAverageScore
-    },
+    }
     metrics: {
       [key: string]: V1MetricAverageScore
     }
-  },
+  }
   routes: V1RouteReport[]
 }
 
 export type CiReport = CiRouteReport[] | V1Report
 
 export type GenerateReport = (config: ResolvedUserConfig, unlighthouseRouteReports: UnlighthouseRouteReport[]) => CiReport
+
+export { UnlighthouseRouteReport }

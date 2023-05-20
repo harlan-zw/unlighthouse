@@ -1,10 +1,7 @@
-import fs from "fs-extra"
-import { join } from "path"
+import type { CiRouteReport, GenerateReport, V1CategoryAverageScore, V1CategoryScore, V1MetricAverageScore, V1MetricScore, V1Report, V1RouteReport } from './types'
 
-import { CiRouteReport, GenerateReport, V1CategoryAverageScore, V1CategoryScore, V1MetricAverageScore, V1MetricScore, V1Report, V1RouteReport } from "./types"
-
-const preV1Reporter = (unlighthouseRouteReports): CiRouteReport[] =>
-  unlighthouseRouteReports
+function preV1Reporter(unlighthouseRouteReports): CiRouteReport[] {
+  return unlighthouseRouteReports
     .map((report) => {
       return {
         path: report.route.path,
@@ -13,8 +10,9 @@ const preV1Reporter = (unlighthouseRouteReports): CiRouteReport[] =>
     })
     // make the list ordering consistent
     .sort((a, b) => a.path.localeCompare(b.path))
+}
 
-const extractCategoriesFromRoutes = (routes: V1RouteReport[]) => {
+function extractCategoriesFromRoutes(routes: V1RouteReport[]) {
   const categoriesWithAllScores = routes.reduce((prev, curr) => {
     return Object.keys(curr.categories).reduce((target, categoryKey) => {
       const scores = target[categoryKey] ? target[categoryKey].scores : []
@@ -33,28 +31,28 @@ const extractCategoriesFromRoutes = (routes: V1RouteReport[]) => {
       prev: {
         [key: string]: V1CategoryAverageScore
       },
-      key: string
+      key: string,
     ) => {
       const averageScore = parseFloat(
         (
           categoriesWithAllScores[key].scores.reduce(
             (prev, curr) => prev + curr,
-            0
+            0,
           ) / categoriesWithAllScores[key].scores.length
-        ).toFixed(2)
+        ).toFixed(2),
       )
-      const { scores, ...strippedCategory } =
-        categoriesWithAllScores[key]
+      const { ...strippedCategory }
+        = categoriesWithAllScores[key]
       return { ...prev, [key]: { ...strippedCategory, averageScore } }
     },
     {} as {
       [key: string]: V1CategoryAverageScore
-    }
+    },
   )
   return averageCategories
 }
 
-const extractMetricsFromRoutes = (routes: V1RouteReport[]) => {
+function extractMetricsFromRoutes(routes: V1RouteReport[]) {
   const metricsWithAllNumericValues = routes.reduce((prev, curr) => {
     return Object.keys(curr.metrics).reduce((target, metricKey) => {
       const numericValues = target[metricKey]
@@ -68,7 +66,7 @@ const extractMetricsFromRoutes = (routes: V1RouteReport[]) => {
         },
       }
     }, prev)
-  }, {} as { [key: string]: Omit<V1MetricScore, "numericValue"> & { numericValues: number[] } })
+  }, {} as { [key: string]: Omit<V1MetricScore, 'numericValue'> & { numericValues: number[] } })
 
   const averageMetrics = Object.keys(metricsWithAllNumericValues).reduce(
     (prev: { [key: string]: V1MetricAverageScore }, key: string) => {
@@ -76,29 +74,29 @@ const extractMetricsFromRoutes = (routes: V1RouteReport[]) => {
         (
           metricsWithAllNumericValues[key].numericValues.reduce(
             (prev, curr) => prev + curr,
-            0
+            0,
           ) / metricsWithAllNumericValues[key].numericValues.length
-        ).toFixed(2)
+        ).toFixed(2),
       )
-      const { numericValues, ...strippedMetric } =
-        metricsWithAllNumericValues[key]
+      const { ...strippedMetric }
+        = metricsWithAllNumericValues[key]
       return { ...prev, [key]: { ...strippedMetric, averageNumericValue } }
     },
-    {} as { [key: string]: V1MetricAverageScore }
+    {} as { [key: string]: V1MetricAverageScore },
   )
   return averageMetrics
 }
 
 const relevantMetrics = [
-  "largest-contentful-paint",
-  "cumulative-layout-shift",
-  "first-contentful-paint",
-  "total-blocking-time",
-  "max-potential-fid",
-  "interactive",
+  'largest-contentful-paint',
+  'cumulative-layout-shift',
+  'first-contentful-paint',
+  'total-blocking-time',
+  'max-potential-fid',
+  'interactive',
 ]
 
-const v1Reporter = (unlighthouseRouteReports) => {
+function v1Reporter(unlighthouseRouteReports) {
   const routes = unlighthouseRouteReports
     .map((report) => {
       const categories = Object.values(report.report?.categories ?? {}).reduce(
@@ -111,7 +109,7 @@ const v1Reporter = (unlighthouseRouteReports) => {
             score: category.score,
           },
         }),
-        {}
+        {},
       )
       const metrics = Object.values(report.report?.audits ?? {})
         .filter((metric: any) => relevantMetrics.includes(metric.id))
@@ -143,7 +141,7 @@ const v1Reporter = (unlighthouseRouteReports) => {
     score: parseFloat(
       (
         routes.reduce((prev, curr) => prev + curr.score, 0) / routes.length
-      ).toFixed(2)
+      ).toFixed(2),
     ),
     categories: averageCategories,
     metrics: averageMetrics,
@@ -157,10 +155,10 @@ const v1Reporter = (unlighthouseRouteReports) => {
 
 export const ciReporter: GenerateReport = (
   config,
-  unlighthouseRouteReports
+  unlighthouseRouteReports,
 ) => {
-  if (config.ci?.v1Report) {
+  if (config.ci?.v1Report)
     return v1Reporter(unlighthouseRouteReports)
-  }
+
   return preV1Reporter(unlighthouseRouteReports)
 }

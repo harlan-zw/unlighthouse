@@ -1,13 +1,13 @@
-import { assertType, describe, expect, expectTypeOf, it } from "vitest"
-import { ciReporter } from "../src/reporter"
-import { ResolvedUserConfig } from "@unlighthouse/core"
-import { lighthouseReport } from "./__fixtures__/lighthouseReport"
-import { CiRouteReport, V1Report } from "../src/types"
+import { describe, expect, it } from 'vitest'
+import type { ResolvedUserConfig } from '@unlighthouse/core'
+import { ciReporter } from '../src/reporter'
+import type { CiRouteReport, UnlighthouseRouteReport, V1Report } from '../src/types'
+import _lighthouseReport from './__fixtures__/lighthouseReport.mjs'
 
-const sampleReport = {}
+const lighthouseReport = _lighthouseReport as any as UnlighthouseRouteReport[]
 
-describe("reporter", () => {
-  it("generates initial format when v1Report is not set", () => {
+describe('reporter', () => {
+  it('generates initial format when v1Report is not set', () => {
     const config = {} as ResolvedUserConfig
 
     const actual = ciReporter(config, lighthouseReport) as CiRouteReport[]
@@ -15,7 +15,7 @@ describe("reporter", () => {
     expect(actual[0].score).toBeDefined()
   })
 
-  it("has basic information for v1 report", () => {
+  it('has basic information for v1 report', () => {
     const config = {
       ci: {
         v1Report: true,
@@ -29,7 +29,7 @@ describe("reporter", () => {
     expect(actual.routes[0].score).toBeDefined()
   })
 
-  it("has category information for v1 report", () => {
+  it('has category information for v1 report', () => {
     const config = {
       ci: {
         v1Report: true,
@@ -41,36 +41,35 @@ describe("reporter", () => {
     expect(actual.summary.categories.performance).toBeDefined()
     expect(actual.summary.categories.accessibility).toBeDefined()
     expect(actual.summary.categories.seo).toBeDefined()
-    expect(actual.summary.categories["best-practices"]).toBeDefined()
+    expect(actual.summary.categories['best-practices']).toBeDefined()
     expect(actual.routes[0].categories).toBeDefined()
     expect(actual.routes[0].categories.performance).toBeDefined()
     expect(actual.routes[0].categories.accessibility).toBeDefined()
     expect(actual.routes[0].categories.seo).toBeDefined()
-    expect(actual.routes[0].categories["best-practices"]).toBeDefined()
+    expect(actual.routes[0].categories['best-practices']).toBeDefined()
   })
 
-  it("has metrics information for v1 report", () => {
+  it('has metrics information for v1 report', () => {
     const config = {
       ci: {
         v1Report: true,
       },
     } as ResolvedUserConfig
 
-
     const actual = ciReporter(config, lighthouseReport) as V1Report
     expect(actual.summary.metrics).toBeDefined()
-    expect(actual.summary.metrics["largest-contentful-paint"]).toBeDefined()
-    expect(actual.summary.metrics["cumulative-layout-shift"]).toBeDefined()
-    expect(actual.summary.metrics["first-contentful-paint"]).toBeDefined()
-    expect(actual.summary.metrics["total-blocking-time"]).toBeDefined()
-    expect(actual.summary.metrics["max-potential-fid"]).toBeDefined()
-    expect(actual.summary.metrics["interactive"]).toBeDefined()
+    expect(actual.summary.metrics['largest-contentful-paint']).toBeDefined()
+    expect(actual.summary.metrics['cumulative-layout-shift']).toBeDefined()
+    expect(actual.summary.metrics['first-contentful-paint']).toBeDefined()
+    expect(actual.summary.metrics['total-blocking-time']).toBeDefined()
+    expect(actual.summary.metrics['max-potential-fid']).toBeDefined()
+    expect(actual.summary.metrics.interactive).toBeDefined()
     expect(actual.routes[0].metrics).toBeDefined()
-    expect(actual.routes[0].metrics["largest-contentful-paint"]).toBeDefined()
-    expect(actual.routes[0].metrics["cumulative-layout-shift"]).toBeDefined()
-    expect(actual.routes[0].metrics["first-contentful-paint"]).toBeDefined()
-    expect(actual.routes[0].metrics["total-blocking-time"]).toBeDefined()
-    expect(actual.routes[0].metrics["max-potential-fid"]).toBeDefined()
-    expect(actual.routes[0].metrics["interactive"]).toBeDefined()
+    expect(actual.routes[0].metrics['largest-contentful-paint']).toBeDefined()
+    expect(actual.routes[0].metrics['cumulative-layout-shift']).toBeDefined()
+    expect(actual.routes[0].metrics['first-contentful-paint']).toBeDefined()
+    expect(actual.routes[0].metrics['total-blocking-time']).toBeDefined()
+    expect(actual.routes[0].metrics['max-potential-fid']).toBeDefined()
+    expect(actual.routes[0].metrics.interactive).toBeDefined()
   })
 })
