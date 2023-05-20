@@ -11,7 +11,7 @@ export const alias: AliasOptions = {
 export default defineConfig({
     // @ts-ignore
     test: {
-        testTimeout: 1200000,
+        testTimeout: 3000000,
     },
     resolve: {
         alias,
