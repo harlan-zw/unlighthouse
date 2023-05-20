@@ -16,7 +16,7 @@ async function run() {
 
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
   cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
-  cli.option('--report', 'What type of report to generate from the results. Options are: jsonSimple, jsonExpanded or false.')
+  cli.option('--reporter', 'The report to generate from results. Options: jsonSimple, jsonExpanded or false. Default is jsonSimple.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
@@ -27,6 +27,7 @@ async function run() {
   resolvedOptions.ci = {
     budget: options.budget || undefined,
     buildStatic: options.buildStatic || false,
+    reporter: options.reporter || 'jsonSimple',
   }
 
   await createUnlighthouse({
@@ -70,13 +71,12 @@ async function run() {
         if (!categories)
           return
 
-        Object.values(categories).forEach((category) => {
+        Object.values(categories).forEach((category: { score: number; key: string }) => {
           let budget = resolvedConfig.ci.budget
           if (!Number.isInteger(budget)) {
-            // @ts-expect-error need to fix
             budget = resolvedConfig.ci.budget[category.key]
           }
-          if (category.score && category.score * 100 < budget) {
+          if (category.score && category.score * 100 < (budget as number)) {
             logger.error(
               `${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`,
             )
@@ -88,7 +88,8 @@ async function run() {
         logger.success('Score assertions have passed.')
     }
     if (resolvedConfig.ci.reporter) {
-      const reporter = resolvedConfig.ci.reporter as any as string
+      const reporter = resolvedConfig.ci.reporter
+      // @ts-expect-error untyped
       const payload = generateReportPayload(reporter, worker.reports())
       const path = relative(resolvedConfig.root, await outputReport(reporter, resolvedConfig, payload))
       logger.success(`Generated ${resolvedConfig.ci.reporter} report: ./${path}`)

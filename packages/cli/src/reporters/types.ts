@@ -1,5 +1,3 @@
-export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded'
-
 export interface CategoryScore {
   key: string
   id: string
