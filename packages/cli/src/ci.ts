@@ -1,4 +1,3 @@
-import { join } from 'node:path'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import {
@@ -13,7 +12,7 @@ import { handleError } from './errors'
 import type { CiOptions } from './types'
 import { pickOptions, validateHost, validateOptions } from './util'
 import createCli from './createCli'
-import { ciReporter } from './reporter'
+import { generateReportPayload, outputReport } from './reporters'
 
 async function run() {
   const startTime = new Date()
@@ -28,7 +27,7 @@ async function run() {
     '--build-static <build-static>',
     'Build a static website for the reports which can be uploaded.',
   )
-  cli.option('--v1-report', 'Generate a v1 report.')
+  cli.option('--report', 'What type of report to generate from the results. Options are: jsonSimple, jsonExpanded or false.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
@@ -103,37 +102,37 @@ async function run() {
           }
         })
       })
+      if (!hadError)
+        logger.success('Score assertions have passed.')
     }
-    if (!hadError) {
-      logger.success('CI assertions on score budget has passed.')
-      const ciReport = ciReporter(resolvedConfig, worker.reports())
-      await fs.writeJson(
-        join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'),
-        ciReport,
+    if (resolvedConfig.ci.reporter) {
+      const reporter = resolvedConfig.ci.reporter as any as string
+      const payload = generateReportPayload(reporter, worker.reports())
+      const path = relative(resolvedConfig.root, await outputReport(reporter, resolvedConfig, payload))
+      logger.success(`Generated ${resolvedConfig.ci.reporter} report: ./${path}`)
+    }
+
+    if (resolvedConfig.ci?.buildStatic) {
+      logger.info('Generating static report.')
+      const { runtimeSettings, resolvedConfig } = useUnlighthouse()
+      await generateClient({ static: true })
+      // delete the json lighthouse payloads, we don't need them for the static mode
+      const globby = await import('globby')
+      const jsonPayloads = await globby.globby(
+        ['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'],
+        { cwd: runtimeSettings.generatedClientPath, absolute: true },
       )
+      logger.debug(
+        `Deleting ${jsonPayloads.length} files not required for static build.`,
+      )
+      for (const k in jsonPayloads) await fs.rm(jsonPayloads[k])
 
-      if (resolvedConfig.ci?.buildStatic) {
-        logger.info('Generating static report.')
-        const { runtimeSettings, resolvedConfig } = useUnlighthouse()
-        await generateClient({ static: true })
-        // delete the json lighthouse payloads, we don't need them for the static mode
-        const globby = await import('globby')
-        const jsonPayloads = await globby.globby(
-          ['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'],
-          { cwd: runtimeSettings.generatedClientPath, absolute: true },
-        )
-        logger.debug(
-          `Deleting ${jsonPayloads.length} files not required for static build.`,
-        )
-        for (const k in jsonPayloads) await fs.rm(jsonPayloads[k])
-
-        const relativeDir = `./${relative(resolvedConfig.root, runtimeSettings.generatedClientPath)}`
-        logger.success(`Static report is ready for uploading: \`${relativeDir}\``)
-        if (!isCI) {
-          // tell the user they can preview it using sirv-cli and link them to the docs
-          logger.info(`You can preview the static report using \`npx sirv-cli ${relativeDir}\`.`)
-          logger.info('For deployment demos, see https://unlighthouse.com/docs/deployment')
-        }
+      const relativeDir = `./${relative(resolvedConfig.root, runtimeSettings.generatedClientPath)}`
+      logger.success(`Static report is ready for uploading: \`${relativeDir}\``)
+      if (!isCI) {
+        // tell the user they can preview it using sirv-cli and link them to the docs
+        logger.info(`You can preview the static report using \`npx sirv-cli ${relativeDir}\`.`)
+        logger.info('For deployment demos, see https://unlighthouse.com/docs/deployment')
       }
 
       process.exit(0)

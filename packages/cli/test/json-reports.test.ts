@@ -1,42 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import type { ResolvedUserConfig } from '@unlighthouse/core'
-import { ciReporter } from '../src/reporter'
-import type { CiRouteReport, UnlighthouseRouteReport, V1Report } from '../src/types'
+import type { UnlighthouseRouteReport } from '../src/types'
+import { generateReportPayload } from '../src/reporters'
 import _lighthouseReport from './__fixtures__/lighthouseReport.mjs'
 
 const lighthouseReport = _lighthouseReport as any as UnlighthouseRouteReport[]
 
 describe('reporter', () => {
-  it('generates initial format when v1Report is not set', () => {
-    const config = {} as ResolvedUserConfig
-
-    const actual = ciReporter(config, lighthouseReport) as CiRouteReport[]
+  it('simple json', () => {
+    const actual = generateReportPayload('jsonSimple', lighthouseReport)
     expect(actual[0].path).toBeDefined()
     expect(actual[0].score).toBeDefined()
   })
 
-  it('has basic information for v1 report', () => {
-    const config = {
-      ci: {
-        v1Report: true,
-      },
-    } as ResolvedUserConfig
-
-    const actual = ciReporter(config, lighthouseReport) as V1Report
+  it('has basic information for json expanded report', () => {
+    const actual = generateReportPayload('jsonExpanded', lighthouseReport)
     expect(actual.summary).toBeDefined()
     expect(actual.summary.score).toBeDefined()
     expect(actual.routes[0].path).toBeDefined()
     expect(actual.routes[0].score).toBeDefined()
   })
 
-  it('has category information for v1 report', () => {
-    const config = {
-      ci: {
-        v1Report: true,
-      },
-    } as ResolvedUserConfig
+  it('has category information for json expanded report', () => {
+    const actual = generateReportPayload('jsonExpanded', lighthouseReport)
 
-    const actual = ciReporter(config, lighthouseReport) as V1Report
     expect(actual.summary.categories).toBeDefined()
     expect(actual.summary.categories.performance).toBeDefined()
     expect(actual.summary.categories.accessibility).toBeDefined()
@@ -49,14 +35,9 @@ describe('reporter', () => {
     expect(actual.routes[0].categories['best-practices']).toBeDefined()
   })
 
-  it('has metrics information for v1 report', () => {
-    const config = {
-      ci: {
-        v1Report: true,
-      },
-    } as ResolvedUserConfig
+  it('has metrics information for json expanded report', () => {
+    const actual = generateReportPayload('jsonExpanded', lighthouseReport)
 
-    const actual = ciReporter(config, lighthouseReport) as V1Report
     expect(actual.summary.metrics).toBeDefined()
     expect(actual.summary.metrics['largest-contentful-paint']).toBeDefined()
     expect(actual.summary.metrics['cumulative-layout-shift']).toBeDefined()

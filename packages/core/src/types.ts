@@ -324,9 +324,11 @@ export interface ResolvedUserConfig {
      */
     buildStatic: boolean
     /**
-     * Enable the v1 report which has more analytic information in the ci-result.json file.
-     * */
-    v1Report: boolean
+     * The type of report that will be generated from the results.
+     *
+     * @default 'jsonSimple'
+     **/
+    reporter: 'jsonSimple' | 'jsonExpanded' | false
   }
   /**
    * See https://unlighthouse.dev/guide/client.html
