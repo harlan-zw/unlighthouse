@@ -16,7 +16,7 @@ async function run() {
 
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
   cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
-  cli.option('--reporter', 'The report to generate from results. Options: jsonSimple, jsonExpanded or false. Default is jsonSimple.')
+  cli.option('--reporter <reporter>', 'The report to generate from results. Options: jsonSimple, jsonExpanded or false. Default is jsonSimple.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
@@ -73,9 +73,9 @@ async function run() {
 
         Object.values(categories).forEach((category: { score: number; key: string }) => {
           let budget = resolvedConfig.ci.budget
-          if (!Number.isInteger(budget)) {
+          if (!Number.isInteger(budget))
             budget = resolvedConfig.ci.budget[category.key]
-          }
+
           if (category.score && category.score * 100 < (budget as number)) {
             logger.error(
               `${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`,
@@ -92,7 +92,7 @@ async function run() {
       // @ts-expect-error untyped
       const payload = generateReportPayload(reporter, worker.reports())
       const path = relative(resolvedConfig.root, await outputReport(reporter, resolvedConfig, payload))
-      logger.success(`Generated ${resolvedConfig.ci.reporter} report: ./${path}`)
+      logger.success(`Generated \`${resolvedConfig.ci.reporter}\` report \`./${path}\``)
     }
 
     if (resolvedConfig.ci?.buildStatic) {
@@ -117,13 +117,8 @@ async function run() {
         logger.info(`You can preview the static report using \`npx sirv-cli ${relativeDir}\`.`)
         logger.info('For deployment demos, see https://unlighthouse.com/docs/deployment')
       }
-
-      process.exit(0)
     }
-    else {
-      logger.error('Some routes failed the budget.')
-      process.exit(1)
-    }
+    process.exit(0)
   })
 }
 

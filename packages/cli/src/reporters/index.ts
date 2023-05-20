@@ -17,7 +17,7 @@ export function generateReportPayload(reporter: string, reports: UnlighthouseRou
 export async function outputReport(reporter: string, config: Partial<ResolvedUserConfig>, payload: any) {
   if (reporter.startsWith('json')) {
     const path = join(config.root, config.outputPath, 'ci-result.json')
-    await fse.writeJson(path, JSON.stringify(payload))
+    await fse.writeJson(path, payload, { spaces: 2 })
     return path
   }
   throw new Error(`Unsupported reporter: ${reporter}.`)
