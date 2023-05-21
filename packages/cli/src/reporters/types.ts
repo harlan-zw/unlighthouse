@@ -41,7 +41,6 @@ export interface MetricAverageScore {
   description: string
   averageNumericValue: number
   numericUnit: string
-  displayValue: string
 }
 
 export interface ReportJsonExpanded {
