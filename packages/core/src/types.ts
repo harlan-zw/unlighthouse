@@ -1,10 +1,11 @@
-import type http from 'http'
-import type https from 'https'
+import type http from 'node:http'
+import type https from 'node:https'
 import type { $URL } from 'ufo'
 import type { LH } from 'lighthouse'
 import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { App } from 'h3'
+import type { PuppeteerNodeLaunchOptions } from 'puppeteer'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
@@ -135,6 +136,8 @@ export interface HTMLExtractPayload {
 
 export type WindiResponsiveClasses = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 
+export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded'
+
 /**
  * A column will generally be either a direct mapping to a lighthouse audit (such as console errors) or a computed mapping to
  * multiple lighthouse audits (such as image issues).
@@ -253,7 +256,19 @@ export interface ResolvedUserConfig {
    *
    * @default false
    */
-  auth: false | { username: string, password: string }
+  auth: false | { username: string; password: string }
+  /**
+   * Cookies to add to HTTP requests.
+   *
+   * @default false
+   */
+  cookies: false | { name: string; value: string; [v: string]: string }[]
+  /**
+   * Extra headers to provide for any HTTP requests.
+   *
+   * @default false
+   */
+  extraHeaders: false | Record<string, string>
   /**
    * Load the configuration from a custom config file.
    * By default, it attempts to load configuration from `unlighthouse.config.ts`.
@@ -310,6 +325,12 @@ export interface ResolvedUserConfig {
      * Injects the required data into the client files, so it can be hosted statically.
      */
     buildStatic: boolean
+    /**
+     * The type of report that will be generated from the results.
+     *
+     * @default 'jsonSimple'
+     **/
+    reporter: ValidReportTypes | false
   }
   /**
    * See https://unlighthouse.dev/guide/client.html
@@ -350,13 +371,13 @@ export interface ResolvedUserConfig {
      *
      * @see https://unlighthouse.dev/guide/large-sites.html#include-url-patterns
      */
-    include?: string[]
+    include?: (string | RegExp)[]
     /**
      * Paths to ignore from scanning.
      *
      * @see https://unlighthouse.dev/guide/large-sites.html#exclude-url-patterns
      */
-    exclude?: string[]
+    exclude?: (string | RegExp)[]
     /**
      * Does javascript need to be executed in order to fetch internal links and SEO data.
      *
@@ -398,7 +419,13 @@ export interface ResolvedUserConfig {
      *
      * @default true
      */
-    sitemap: boolean
+    sitemap: boolean | string[]
+    /**
+     * Whether the robots.txt will be attempted to be read from the site.
+     *
+     * @default true
+     */
+    robotsTxt: boolean
     /**
      * Path where get the sitemap.
      *
@@ -420,7 +447,7 @@ export interface ResolvedUserConfig {
   /**
    * Change the behaviour of puppeteer.
    */
-  puppeteerOptions: LaunchOptions
+  puppeteerOptions: PuppeteerNodeLaunchOptions
   /**
    * Change the behaviour of puppeteer-cluster.
    */
@@ -438,6 +465,33 @@ export interface ResolvedUserConfig {
     sameDomainDelay: number
     puppeteer: any
   }>
+
+  chrome: {
+    /**
+     * Should chrome be attempted to be used from the system.
+     *
+     * @default true
+     */
+    useSystem: boolean
+    /**
+     * If no chrome can be found in the system, should a download fallback be attempted.
+     *
+     * @default true
+     */
+    useDownloadFallback: boolean
+    /**
+     * When downloading the fallback which version of chrome should be used.
+     *
+     * @default 1095492
+     */
+    downloadFallbackVersion: string | number
+    /**
+     * The directory to install the downloaded fallback browser.
+     *
+     * @default $home/.unlighthouse
+     */
+    downloadFallbackCacheDir: string
+  }
 }
 
 export type DeepPartial<T> = T extends Function ? T : (T extends object ? { [P in keyof T]?: DeepPartial<T[P]>; } : T)

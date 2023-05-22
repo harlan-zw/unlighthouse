@@ -1,7 +1,7 @@
 <template>
-  <Disclosure v-slot="{ open }" ref="disclosure" default-open>
+  <Disclosure v-slot="{ open }" default-open>
     <DisclosureButton
-      class="flex transition justify-between w-full px-2 py-1 my-1 text-sm font-medium text-left border-2 border-blue-900/30 text-blue-900/70 hover:(text-blue-700 bg-blue-200) dark:(border-none bg-blue-900/30 text-blue-100) dark:hover:(bg-blue-900/50 text-blue-50) rounded-lg focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75"
+      class="flex items-center transition justify-between w-full px-2 py-1 my-1 text-sm font-medium text-left border-2 border-blue-900/30 text-blue-900/70 hover:(text-blue-700 bg-blue-200) dark:(border-none bg-blue-900/30 text-blue-100) dark:hover:(bg-blue-900/50 text-blue-50) rounded-lg focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75"
     >
       <slot name="label" />
       <i-carbon-chevron-up

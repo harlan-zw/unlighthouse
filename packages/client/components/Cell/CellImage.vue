@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { get } from 'lodash-es'
 import { $URL, withBase } from 'ufo'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { iframeModalUrl, isModalOpen, isOffline, website } from '../../logic'
@@ -22,7 +21,7 @@ const image = computed(() => {
 
 const showingModal = ref(false)
 
-const openModal = () => {
+function openModal() {
   // don't open modal if we're offline
   if (isOffline.value)
     return

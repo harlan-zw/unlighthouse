@@ -1,5 +1,5 @@
-import fs from 'fs'
-import { join } from 'path'
+import fs from 'node:fs'
+import { join } from 'node:path'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
 import { get, sortBy, uniqBy } from 'lodash-es'
 import type {
@@ -10,12 +10,14 @@ import type {
   UnlighthouseTask,
   UnlighthouseWorker, UnlighthouseWorkerStats,
 } from '../types'
-import { ReportArtifacts, createTaskReportFromRoute } from '../util'
+import { ReportArtifacts, asRegExp, createTaskReportFromRoute } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 import {
   launchPuppeteerCluster,
 } from './cluster'
+
+let warnedMaxRoutesExceeded = false
 
 /**
  * The unlighthouse worker is a wrapper for the puppeteer-cluster. It handles the queuing of the tasks with more control
@@ -74,8 +76,14 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     const { id, path } = route
 
     // exceed the max routes
-    if (exceededMaxRoutes())
+    if (exceededMaxRoutes()) {
+      if (!warnedMaxRoutesExceeded) {
+        logger.warn(`You have reached the \`scanner.maxRoutes\` limit of ${resolvedConfig.scanner.maxRoutes}. No further routes will be queued, consider raising this limit.`)
+        warnedMaxRoutesExceeded = true
+        return
+      }
       return
+    }
     // no duplicate queueing, manually need to purge the reports to re-queue
     if (routeReports.has(id))
       return
@@ -84,13 +92,13 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
     if (resolvedConfig.scanner.include) {
       // must match
-      if (resolvedConfig.scanner.include.filter(rule => (new RegExp(rule).test(path))).length === 0)
+      if (resolvedConfig.scanner.include.filter(rule => asRegExp(rule).test(path)).length === 0)
         return
     }
 
     if (resolvedConfig.scanner.exclude) {
       // must not match
-      if (resolvedConfig.scanner.exclude.filter(rule => (new RegExp(rule).test(path))).length > 0)
+      if (resolvedConfig.scanner.exclude.filter(rule => asRegExp(rule).test(path)).length > 0)
         return
     }
 

@@ -4,6 +4,9 @@ import { useUnlighthouse } from '../unlighthouse'
 import { isScanOrigin, normaliseRoute } from '../router'
 import { useLogger } from '../logger'
 import { extractSitemapRoutes } from './sitemap'
+import { fetchRobotsTxt, mergeRobotsTxtConfig, parseRobotsTxt } from './robotsTxt'
+
+let warnedAboutSampling = false
 
 /**
  * Discover the initial routes that we'll be working with.
@@ -30,13 +33,24 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
     if (urlsToAdd.length) {
       resolvedConfig.scanner.sitemap = false
       resolvedConfig.scanner.crawler = false
-      logger.info(`${urlsToAdd.length} manual URLs have been provided for scanning. Disabling sitemap and crawler.`)
+      resolvedConfig.scanner.dynamicSampling = false
+      logger.info(`The \`url\` config has been provided with ${urlsToAdd.length} paths for scanning. Disabling sitemap, sampling and crawler.`)
+    }
+  }
+
+  if (resolvedConfig.scanner.robotsTxt) {
+    const robotsTxt = await fetchRobotsTxt(resolvedConfig.site)
+    if (robotsTxt) {
+      const robotsTxtParsed = parseRobotsTxt(robotsTxt)
+      logger.info(`Found /robots.txt, using entries. Sitemaps: ${robotsTxtParsed.sitemaps.length}, Disallow: ${robotsTxtParsed.disallows.length}.`)
+      // merges disallow and sitemap into the `scanner.exclude` and `scanner.sitemaps` options respectively
+      mergeRobotsTxtConfig(resolvedConfig, robotsTxtParsed)
     }
   }
 
   // if sitemap scanning is enabled
-  if (resolvedConfig.scanner.sitemap) {
-    const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site, resolvedConfig.scanner.sitemapPath)
+  if (resolvedConfig.scanner.sitemap !== false) {
+    const sitemapUrls = await extractSitemapRoutes(resolvedConfig)
     if (sitemapUrls.length) {
       logger.info(`Discovered ${sitemapUrls.length} routes from sitemap.xml.`)
       sitemapUrls.forEach(url => urls.add(url))
@@ -71,9 +85,10 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
       // sanity check the internal links, may need javascript to run
       if (path === '/' && internalLinks.length <= 0 && resolvedConfig.scanner.skipJavascript) {
         resolvedConfig.scanner.skipJavascript = false
+        resolvedConfig.cache = false
         worker.routeReports.clear()
         worker.queueRoute(normaliseRoute(path))
-        logger.info('No internal links discovered on home page. Switching crawler to execute javascript.')
+        logger.warn('No internal links discovered on home page. Switching crawler to execute javascript and disabling cache.')
         return
       }
       worker.queueRoutes(internalLinks.map(url => normaliseRoute(url)).map((route) => {
@@ -104,6 +119,11 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
       // allow config to bypass this behavior
       if (!dynamicSampling)
         return group
+
+      if (!warnedAboutSampling && group.length > dynamicSampling) {
+        logger.warn('Dynamic sampling is in effect, some of your routes will not be scanned. To disable this behavior, set `scanner.dynamicSampling` to `false`.')
+        warnedAboutSampling = true
+      }
 
       // whatever the sampling rate is
       return sampleSize(group, dynamicSampling)

@@ -1,4 +1,4 @@
-export const extractBgColor = (str: string) => {
+export function extractBgColor(str: string) {
   const regex = /background color: (.*?),/gm
   const m = regex.exec(str)
 
@@ -8,7 +8,7 @@ export const extractBgColor = (str: string) => {
   }
 }
 
-export const extractFgColor = (str: string) => {
+export function extractFgColor(str: string) {
   const regex = /foreground color: (.*?),/gm
   const m = regex.exec(str)
 
@@ -18,7 +18,7 @@ export const extractFgColor = (str: string) => {
   }
 }
 
-export const formatBytes = (bytes: number, decimals = 2) => {
+export function formatBytes(bytes: number, decimals = 2) {
   if (bytes === 0)
     return '0B'
 

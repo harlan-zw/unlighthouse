@@ -8,7 +8,7 @@ const scanFeatures = [
   {
     icon: '🐞',
     title: 'Automated URL Discovery',
-    content: '<p>Fast, configurable URL discovery using sitemap.xml parsing, internal link crawling and project file scanning.</p>',
+    content: '<p>Fast, configurable URL discovery using robots.txt, sitemap.xml, internal link crawling and project file scanning.</p>',
   },
   {
     icon: '🍣',

@@ -1,15 +1,17 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import fs from 'fs-extra'
 import type { LH } from 'lighthouse'
 import { map, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
-import type { LighthouseReport, PuppeteerTask } from '../../types'
+import chalk from 'chalk'
+import { relative } from 'pathe'
+import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { ReportArtifacts, base64ToBuffer } from '../../util'
 
-export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport => {
-  const { resolvedConfig } = useUnlighthouse()
+export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: LH.Result): LighthouseReport {
+  const { resolvedConfig, runtimeSettings } = useUnlighthouse()
 
   const measuredCategories = Object.values(result.categories)
     .filter(c => typeof c.score !== 'undefined') as { score: number }[]
@@ -32,6 +34,11 @@ export const normaliseLighthouseResult = (result: LH.Result): LighthouseReport =
     .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
     .map(a => a.details?.items)
     .flat()
+  if (result.audits['screenshot-thumbnails']?.details?.items) {
+    // need to convert the base64 screenshot-thumbnails into their file name
+    for (const k in result.audits['screenshot-thumbnails'].details.items)
+      result.audits['screenshot-thumbnails'].details.items[k].data = relative(runtimeSettings.generatedClientPath, join(route.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${k}.jpeg`))
+  }
   // map the json report to what values we actually need
   return {
     // @ts-expect-error type override
@@ -84,8 +91,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
   if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
     const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as LH.Result
-    routeReport.report = normaliseLighthouseResult(report)
-    logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\` using cache. [Score \`${routeReport.report.score}\`]`)
+    routeReport.report = normaliseLighthouseResult(routeReport, report)
     return routeReport
   }
 
@@ -94,15 +100,25 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   // ignore csp errors
   await page.setBypassCSP(true)
 
-  if (resolvedConfig.auth) {
-    page.authenticate(resolvedConfig.auth)
-  }
+  if (resolvedConfig.auth)
+    await page.authenticate(resolvedConfig.auth)
+
+  if (resolvedConfig.cookies)
+    await page.setCookie(...resolvedConfig.cookies)
+  if (resolvedConfig.extraHeaders)
+    await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
 
   // Wait for Lighthouse to open url, then allow hook to run
   browser.on('targetchanged', async (target) => {
     const page = await target.page()
-    if (page)
+    if (page) {
+      // in case they get reset
+      if (resolvedConfig.cookies)
+        await page.setCookie(...resolvedConfig.cookies)
+      if (resolvedConfig.extraHeaders)
+        await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
       await hooks.callHook('puppeteer:before-goto', page)
+    }
   })
 
   // allow changing behaviour of the page
@@ -153,14 +169,25 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
     routeReport.tasks.runLighthouseTask = 'failed'
   }
-  // export the full screen image
+
+  // we need to export all base64 data to improve the stability of the client
   if (report.audits?.['final-screenshot']?.details?.data)
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), base64ToBuffer(report.audits['final-screenshot'].details.data))
 
   if (report.audits?.['full-page-screenshot']?.details?.screenshot?.data)
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.audits['full-page-screenshot'].details.screenshot.data))
 
-  routeReport.report = normaliseLighthouseResult(report)
-  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. [Score: \`${routeReport.report.score}\`${resolvedConfig.scanner.samples ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete]`)
+  // extract the screenshot-thumbnails into seperate files
+  const screenshotThumbnails = report.audits?.['screenshot-thumbnails']?.details
+  await fs.mkdir(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir), { recursive: true })
+  if (screenshotThumbnails?.items && screenshotThumbnails.type === 'filmstrip') {
+    for (const key in screenshotThumbnails.items) {
+      const thumbnail = screenshotThumbnails.items[key]
+      await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${key}.jpeg`), base64ToBuffer(thumbnail.data))
+    }
+  }
+
+  routeReport.report = normaliseLighthouseResult(routeReport, report)
+  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. ${chalk.gray(`(Score: ${routeReport.report.score}${resolvedConfig.scanner.samples > 0 ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete)`)}`)
   return routeReport
 }

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-const props = defineProps<{
+defineProps<{
   stats: {
     staticRoutes: number
     dynamicRoutes: number

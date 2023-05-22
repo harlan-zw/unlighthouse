@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import { createUnrouted, get, post, prefix, redirect, setStatusCode, useParams, useQuery } from '@unrouted/core'
 import fs from 'fs-extra'
 import launch from 'launch-editor'
@@ -15,7 +15,7 @@ import { createScanMeta } from '../data'
  *
  * Internally, this uses unrouted which provides an elegant and batteries-packed solution.
  */
-export const createApi = async (h3: App) => {
+export async function createApi(h3: App) {
   const logger = useLogger()
   const { ws, resolvedConfig, runtimeSettings, hooks } = useUnlighthouse()
   const useReport = () => {

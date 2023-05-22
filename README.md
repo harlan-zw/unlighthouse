@@ -37,27 +37,26 @@ npx unlighthouse --site <your-site>
 pnpm dlx unlighthouse --site <your-site>
 ```
 
-By default, Unlighthouse will try and find your Google Chrome installation and use that with puppeteer.
-If you have issues with that you can install puppeteer globally.
-
-```bash
-npm install -g puppeteer
-```
+_Requirements: Node >= 14.x, Node 16.x or higher recommended._
 
 ## Getting Started
 
 Install instructions for all integrations can be found on the [docs](https://unlighthouse.dev/) site.
 
-Need a hand? Join the [Discord](https://unlighthouse.dev/chat) for one-on-one help.
+Need a hand? Join the [Discord](https://discord.gg/275MBUBvgP) for one-on-one help.
 
 #### gitignore
 
-Unlighthouse will save your reports in `outputDir` (`.unlighthouse` by default),
+Unlighthouse will save your reports in `outputDir`,
 it's recommended you .gitignore these files.
+
+```.gitignore
+.unlighthouse
+```
 
 #### Debugging
 
-As Unlighthouse is in beta, it's recommended you run it in debug mode.
+If you run into any issues with Unlighthouse, the first step should be to re-run the scan with debugging enabled.
 
 ```bash
 # NPM

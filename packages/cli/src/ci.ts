@@ -1,11 +1,13 @@
-import { join } from 'path'
 import type { UserConfig } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
+import { relative } from 'pathe'
+import { isCI } from 'std-env'
 import { handleError } from './errors'
 import type { CiOptions } from './types'
 import { pickOptions, validateHost, validateOptions } from './util'
 import createCli from './createCli'
+import { generateReportPayload, outputReport } from './reporters'
 
 async function run() {
   const startTime = new Date()
@@ -14,7 +16,7 @@ async function run() {
 
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
   cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
-  cli.option('--sitemap-path <sitemap-path>', 'Set a custom path for the sitemap.')
+  cli.option('--reporter <reporter>', 'The report to generate from results. Options: jsonSimple, jsonExpanded or false. Default is jsonSimple.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
@@ -25,6 +27,7 @@ async function run() {
   resolvedOptions.ci = {
     budget: options.budget || undefined,
     buildStatic: options.buildStatic || false,
+    reporter: options.reporter || 'jsonSimple',
   }
 
   await createUnlighthouse({
@@ -63,61 +66,59 @@ async function run() {
     let hadError = false
     if (hasBudget) {
       logger.info('Running score budgets.', resolvedConfig.ci.budget)
-      worker
-        .reports()
-        .forEach((report) => {
-          const categories = report.report?.categories
-          if (!categories)
-            return
+      worker.reports().forEach((report) => {
+        const categories = report.report?.categories
+        if (!categories)
+          return
 
-          Object.values(categories).forEach((category) => {
-            let budget = resolvedConfig.ci.budget
-            if (!Number.isInteger(budget)) {
-              // @ts-expect-error need to fix
-              budget = resolvedConfig.ci.budget[category.key]
-            }
-            if (category.score && (category.score * 100) < budget) {
-              logger.error(`${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`)
-              hadError = true
-            }
-          })
+        Object.values(categories).forEach((category: { score: number; key: string }) => {
+          let budget = resolvedConfig.ci.budget
+          if (!Number.isInteger(budget))
+            budget = resolvedConfig.ci.budget[category.key]
+
+          if (category.score && category.score * 100 < (budget as number)) {
+            logger.error(
+              `${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`,
+            )
+            hadError = true
+          }
         })
+      })
+      if (!hadError)
+        logger.success('Score assertions have passed.')
     }
-    if (!hadError) {
-      logger.success('CI assertions on score budget has passed.')
+    if (resolvedConfig.ci.reporter) {
+      const reporter = resolvedConfig.ci.reporter
+      // @ts-expect-error untyped
+      const payload = generateReportPayload(reporter, worker.reports())
+      const path = relative(resolvedConfig.root, await outputReport(reporter, resolvedConfig, payload))
+      logger.success(`Generated \`${resolvedConfig.ci.reporter}\` report \`./${path}\``)
+    }
 
-      await fs.writeJson(join(resolvedConfig.root, resolvedConfig.outputPath, 'ci-result.json'),
-        worker.reports()
-          .map((report) => {
-            return {
-              path: report.route.path,
-              score: report.report?.score,
-            }
-          })
-          // make the list ordering consistent
-          .sort((a, b) => a.path.localeCompare(b.path)),
+    if (resolvedConfig.ci?.buildStatic) {
+      logger.info('Generating static report.')
+      const { runtimeSettings, resolvedConfig } = useUnlighthouse()
+      await generateClient({ static: true })
+      // delete the json lighthouse payloads, we don't need them for the static mode
+      const globby = await import('globby')
+      const jsonPayloads = await globby.globby(
+        ['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'],
+        { cwd: runtimeSettings.generatedClientPath, absolute: true },
       )
+      logger.debug(
+        `Deleting ${jsonPayloads.length} files not required for static build.`,
+      )
+      for (const k in jsonPayloads) await fs.rm(jsonPayloads[k])
 
-      if (resolvedConfig.ci?.buildStatic) {
-        logger.info('Generating static client.')
-        const { runtimeSettings } = useUnlighthouse()
-        await generateClient({ static: true })
-        // delete the json lighthouse payloads, we don't need them for the static mode
-        const globby = (await import('globby'))
-        const jsonPayloads = await globby.globby(['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'], { cwd: runtimeSettings.generatedClientPath, absolute: true })
-        logger.debug(`Deleting ${jsonPayloads.length} files not required for static build.`)
-        for (const k in jsonPayloads)
-          await fs.rm(jsonPayloads[k])
-
-        logger.success(`Static client generated at \`${runtimeSettings.generatedClientPath}\`, ready for hosting.`)
+      const relativeDir = `./${relative(resolvedConfig.root, runtimeSettings.generatedClientPath)}`
+      logger.success(`Static report is ready for uploading: \`${relativeDir}\``)
+      if (!isCI) {
+        // tell the user they can preview it using sirv-cli and link them to the docs
+        logger.info(`You can preview the static report using \`npx sirv-cli ${relativeDir}\`.`)
+        logger.info('For deployment demos, see https://unlighthouse.com/docs/deployment')
       }
-
-      process.exit(0)
     }
-    else {
-      logger.error('Some routes failed the budget.')
-      process.exit(1)
-    }
+    process.exit(0)
   })
 }
 

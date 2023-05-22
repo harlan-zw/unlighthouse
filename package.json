@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/monorepo",
   "private": true,
-  "packageManager": "pnpm@7.0.0",
+  "packageManager": "pnpm@8.5.0",
   "pnpm": {
     "packageExtensions": {
       "puppeteer-cluster": {
@@ -19,7 +19,7 @@
     "cli:hzw": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/harlanzw.com/ --debug",
     "cli:ody": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/odysseytraveller.com-app/ --debug",
     "cli:windi": "node packages/cli/dist/cli.mjs --site https://windicss.org/",
-    "cli:nuxt": "node packages/cli/dist/cli.mjs --site https://v3.nuxtjs.org/",
+    "cli:nuxt": "node packages/cli/dist/cli.mjs --site https://nuxt.com/",
     "cli:vue": "node packages/cli/dist/cli.mjs --config-file test/fixtures/staging-vue.config.ts --debug",
     "ci:vue": "node packages/cli/dist/ci.mjs --config-file test/fixtures/staging-vue.config.ts --build-static --debug",
     "ci:react": "node packages/cli/dist/ci.mjs --config-file test/fixtures/react-beta.config.ts --build-static --debug",
@@ -40,17 +40,17 @@
     "docs:serve": "npm -C docs run serve"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.34.1",
-    "@types/node": "^18.11.18",
-    "@vitest/ui": "^0.28.2",
-    "bumpp": "^8.2.1",
-    "eslint": "^8.32.0",
-    "typescript": "^4.9.4",
-    "vite": "^4.0.4",
-    "vitest": "^0.28.2"
+    "@antfu/eslint-config": "^0.38.6",
+    "@types/node": "^20.1.7",
+    "@vitest/ui": "^0.31.1",
+    "bumpp": "^9.1.0",
+    "eslint": "^8.40.0",
+    "typescript": "^5.0.4",
+    "vite": "^4.3.7",
+    "vitest": "^0.31.1"
   },
-  "version": "0.5.1",
+  "version": "0.8.1",
   "dependencies": {
-    "unbuild": "^1.1.1"
+    "unbuild": "^1.2.1"
   }
 }

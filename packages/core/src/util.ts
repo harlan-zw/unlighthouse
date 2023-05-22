@@ -1,10 +1,11 @@
-import { createHash } from 'crypto'
-import { join } from 'path'
-import https from 'https'
+import { createHash } from 'node:crypto'
+import { join } from 'node:path'
+import https from 'node:https'
+import { Buffer } from 'node:buffer'
 import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
-import { hasProtocol, joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import { joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 import axios from 'axios'
 import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
@@ -15,6 +16,7 @@ export const ReportArtifacts = {
   reportHtml: 'lighthouse.html',
   screenshot: 'screenshot.jpeg',
   fullScreenScreenshot: 'full-screenshot.jpeg',
+  screenshotThumbnailsDir: '__screenshot-thumbnails__',
   reportJson: 'lighthouse.json',
 }
 
@@ -38,7 +40,7 @@ export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s))
  * @param url
  * @return A sanitized URL, will retain the path hierarchy in the folder structure.
  */
-export const sanitiseUrlForFilePath = (url: string) => {
+export function sanitiseUrlForFilePath(url: string) {
   url = trimSlashes(url)
   // URLs such as /something.html and /something to be considered the same
   if (url.endsWith('.html'))
@@ -55,7 +57,7 @@ export const sanitiseUrlForFilePath = (url: string) => {
  *
  * @param path
  */
-export const hashPathName = (path: string) => {
+export function hashPathName(path: string) {
   return createHash('md5')
     .update(sanitiseUrlForFilePath(path))
     .digest('hex')
@@ -67,10 +69,10 @@ export const hashPathName = (path: string) => {
  *
  * @param host
  */
-export const normaliseHost = (host: string) => {
-  if (!hasProtocol(host))
+export function normaliseHost(host: string) {
+  if (!host.startsWith('http'))
     host = `http${host.startsWith('localhost') ? '' : 's'}://${host}`
-  return withTrailingSlash(host)
+  return host.includes('.') ? host : withTrailingSlash(host)
 }
 
 /**
@@ -78,34 +80,33 @@ export const normaliseHost = (host: string) => {
  *
  * @param route
  */
-export const createTaskReportFromRoute
-  = (route: NormalisedRoute): UnlighthouseRouteReport => {
-    const { runtimeSettings, resolvedConfig } = useUnlighthouse()
+export function createTaskReportFromRoute(route: NormalisedRoute): UnlighthouseRouteReport {
+  const { runtimeSettings, resolvedConfig } = useUnlighthouse()
 
-    const reportId = hashPathName(route.path)
+  const reportId = hashPathName(route.path)
 
-    const reportPath = join(runtimeSettings.generatedClientPath, 'reports', sanitiseUrlForFilePath(route.path))
+  const reportPath = join(runtimeSettings.generatedClientPath, 'reports', sanitiseUrlForFilePath(route.path))
 
-    // add missing dirs
-    ensureDirSync(reportPath)
+  // add missing dirs
+  ensureDirSync(reportPath)
 
-    return {
-      tasks: {
-        runLighthouseTask: 'waiting',
-        inspectHtmlTask: 'waiting',
-      },
-      route,
-      reportId,
-      artifactPath: reportPath,
-      artifactUrl: joinURL(resolvedConfig.routerPrefix, 'reports', sanitiseUrlForFilePath(route.path)),
-    }
+  return {
+    tasks: {
+      runLighthouseTask: 'waiting',
+      inspectHtmlTask: 'waiting',
+    },
+    route,
+    reportId,
+    artifactPath: reportPath,
+    artifactUrl: joinURL(resolvedConfig.routerPrefix, 'reports', sanitiseUrlForFilePath(route.path)),
   }
+}
 
-export const base64ToBuffer = (dataURI: string) => {
+export function base64ToBuffer(dataURI: string) {
   return Buffer.from(dataURI.split(',')[1], 'base64')
 }
 
-export const formatBytes = (bytes: number, decimals = 2) => {
+export function formatBytes(bytes: number, decimals = 2) {
   if (bytes === 0)
     return '0 Bytes'
 
@@ -120,25 +121,33 @@ export const formatBytes = (bytes: number, decimals = 2) => {
 
 export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig): Promise<{ error?: any; redirected?: boolean; redirectUrl?: string; valid: boolean; response?: AxiosResponse }> {
   const axiosOptions: AxiosRequestConfig = {}
-  if (resolvedConfig.auth) {
+  if (resolvedConfig.auth)
     axiosOptions.auth = resolvedConfig.auth
+
+  axiosOptions.headers = axiosOptions.headers || {}
+
+  if (resolvedConfig.cookies) {
+    axiosOptions.headers.Cookie = resolvedConfig.cookies
+      .map(cookie => `${cookie.name}=${cookie.value}`)
+      .join('; ')
   }
 
+  if (resolvedConfig.extraHeaders)
+    axiosOptions.headers = { ...resolvedConfig.extraHeaders, ...axiosOptions.headers }
+
+  axiosOptions.httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+  })
+  axiosOptions.withCredentials = true
   try {
-    const response = await axios.get(url, {
-      // allow all SSL's
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-      }),
-      ...axiosOptions,
-    })
+    const response = await axios.get(url, axiosOptions)
     let responseUrl = response.request.res.responseUrl
     if (responseUrl && axiosOptions.auth) {
       // remove auth credentials from url (e.g. https://user:passwd@domain.de)
       responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
     }
-    const redirected = responseUrl && responseUrl !== url;
-    const redirectUrl = responseUrl;
+    const redirected = responseUrl && responseUrl !== url
+    const redirectUrl = responseUrl
     if (response.status < 200 || (response.status >= 300 && !redirected)) {
       return {
         valid: false,
@@ -160,4 +169,12 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
       valid: false,
     }
   }
+}
+
+export function asRegExp(rule: string | RegExp): RegExp {
+  if (rule instanceof RegExp)
+    return rule
+  // need to escape the string for use in a RegExp but allow basic path characters like /
+  rule = rule.replace(/[-{}()+?.,\\^|#\s]/g, '\\$&')
+  return new RegExp(rule)
 }

@@ -1,8 +1,8 @@
-import os from 'os'
+import os from 'node:os'
 import { Cluster } from 'puppeteer-cluster'
 import type { UnlighthouseColumn, UnlighthouseTabs, UserConfig } from './types'
 
-export const AppName = 'unlighthouse'
+export const AppName = 'Unlighthouse'
 export const ClientPkg = '@unlighthouse/client'
 export const DefaultModuleRouterPrefix = '/__unlighthouse'
 export const TagLine = 'Scan your entire website with Google Lighthouse.'
@@ -199,6 +199,7 @@ export const defaultConfig: UserConfig = {
     crawler: true,
     dynamicSampling: 5,
     sitemap: true,
+    robotsTxt: true,
     device: 'mobile',
   },
   // @ts-expect-error provided by server package, may not be provided in CI mode

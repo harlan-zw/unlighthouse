@@ -2,7 +2,7 @@
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { iframeModalUrl, isModalOpen } from '../../logic'
 
-const props = defineProps<{
+defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
   value: any
@@ -10,7 +10,7 @@ const props = defineProps<{
 
 const showingModal = ref(false)
 
-const openModal = () => {
+function openModal() {
   isModalOpen.value = true
   iframeModalUrl.value = null
   nextTick(() => {
@@ -28,7 +28,7 @@ watch(isModalOpen, () => {
   <btn-action v-if="value" title="Open full image" class="w-full" @click="openModal">
     <div class="w-full flex justify-between">
       <template v-if="value?.details?.items">
-        <img v-for="(image, key) in value.details.items" :key="key" :src="image.data" height="120" class="max-w-[10%] max-h-120px h-auto w-10%">
+        <img v-for="(image, key) in value.details.items" :key="key" loading="lazy" :src="image.data" height="120" class="max-w-[10%] max-h-120px h-auto w-10%">
       </template>
     </div>
     <teleport v-if="isModalOpen && showingModal" to="#modal-portal">

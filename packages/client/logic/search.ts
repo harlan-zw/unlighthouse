@@ -15,7 +15,7 @@ export interface Sorting {
 export const searchText = useStorage('unlighthouse-search-text', '')
 export const sorting = useStorage<Sorting>('unlighthouse-sort', { key: groupRoutesKey, dir: 'asc' })
 
-export const incrementSort = (key: string) => {
+export function incrementSort(key: string) {
   const val = sorting.value as Sorting
 
   // increment the sort

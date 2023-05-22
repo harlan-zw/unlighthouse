@@ -1,8 +1,16 @@
+import type { UnlighthouseRouteReport, ValidReportTypes } from '@unlighthouse/core'
+
 export interface CliOptions {
   host?: string
   help?: boolean
   urls?: string
+  auth?: string
+  cookies?: string
+  extraHeaders?: string
+  excludeUrls?: string
+  includeUrls?: string
   site?: string
+  routerPrefix?: string
   throttle?: boolean
   desktop?: boolean
   mobile?: boolean
@@ -17,10 +25,16 @@ export interface CliOptions {
   disableI18nPages?: boolean
   enableJavascript?: boolean
   disableJavascript?: boolean
+  disableRobotsTxt?: boolean
+  disableSitemap?: boolean
+  disableDynamicSampling?: boolean
   sitemapPath?: string
 }
 
 export interface CiOptions extends CliOptions {
   budget: number
   buildStatic: boolean
+  reporter?: ValidReportTypes | false
 }
+
+export { UnlighthouseRouteReport }

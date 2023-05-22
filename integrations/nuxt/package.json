@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/nuxt",
   "type": "module",
-  "version": "0.5.1",
+  "version": "0.8.1",
   "description": "Nuxt module for Unlighthouse",
   "author": "Harlan Wilton <harlan@harlanzw.com>",
   "license": "MIT",
@@ -41,14 +41,14 @@
   },
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "^0.3.1",
-    "@nuxt/kit": "3.1.1",
+    "@nuxt/kit": "3.5.0",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
     "@unlighthouse/vite": "workspace:*",
     "@unlighthouse/webpack": "workspace:*"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "^0.2.1",
-    "nuxt": "^3.1.1"
+    "@nuxt/module-builder": "^0.3.1",
+    "nuxt": "^3.5.0"
   }
 }

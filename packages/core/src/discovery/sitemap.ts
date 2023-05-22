@@ -1,32 +1,54 @@
 import Sitemapper from 'sitemapper'
-import { $URL } from 'ufo'
+import { $URL, withBase } from 'ufo'
+import { fetchUrlRaw } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 
+function validSitemapEntry(url: string) {
+  return url && (url.startsWith('http') || url.startsWith('/'))
+}
+
 /**
  * Fetches routes from a sitemap file.
- *
- * @param site
  */
-export const extractSitemapRoutes = async (site: string, sitemapPath?: string) => {
+export async function extractSitemapRoutes(site: string, sitemaps: true | (string[])) {
   // make sure we're working from the host name
   site = new $URL(site).origin
   const unlighthouse = useUnlighthouse()
   const logger = useLogger()
+  if (sitemaps === true || sitemaps.length === 0)
+    sitemaps = [`${site}/sitemap.xml`]
   const sitemap = new Sitemapper({
     timeout: 15000, // 15 seconds
     debug: unlighthouse.resolvedConfig.debug,
   })
+  let paths: string[] = []
+  for (let sitemapUrl of new Set(sitemaps)) {
+    logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
+    // make sure it's absolute
+    if (!sitemapUrl.startsWith('http'))
+      sitemapUrl = withBase(sitemapUrl, site)
+    // sitemapper does not support txt sitemaps
+    if (sitemapUrl.endsWith('.txt')) {
+      const sitemapTxt = await fetchUrlRaw(
+        sitemapUrl,
+        unlighthouse.resolvedConfig,
+      )
+      if (sitemapTxt.valid) {
+        const sites = (sitemapTxt.response!.data as string).trim().split('\n')
+          .filter(validSitemapEntry)
+        if (sites?.length)
+          paths = [...paths, ...sites]
 
-  let sitemapUrl = `${site}/sitemap.xml`
-  // if sitemapPath exists, check if start with "/" and remove it
-  if (sitemapPath) {
-    sitemapPath = sitemapPath.startsWith('/') ? sitemapPath.slice(1) : sitemapPath
-    sitemapUrl = `${site}/${sitemapPath}`
+        logger.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
+      }
+    }
+    else {
+      const { sites } = await sitemap.fetch(sitemapUrl)
+      if (sites?.length)
+        paths = [...paths, ...sites]
+      logger.debug(`Fetched ${sitemapUrl} with ${sites?.length || '0'} URLs.`)
+    }
   }
-
-  logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
-  const { sites } = await sitemap.fetch(sitemapUrl)
-  logger.debug(`Fetched sitemap with ${sites.length} URLs.`)
-  return sites
+  return paths
 }

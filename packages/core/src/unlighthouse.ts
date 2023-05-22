@@ -1,6 +1,6 @@
-import { isAbsolute, join } from 'path'
-import { existsSync } from 'fs'
-import type { IncomingMessage } from 'http'
+import { isAbsolute, join } from 'node:path'
+import { existsSync } from 'node:fs'
+import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import fs from 'fs-extra'
 import { $URL, joinURL } from 'ufo'
@@ -10,6 +10,7 @@ import { loadConfig } from 'unconfig'
 import { defu } from 'defu'
 import objectHash from 'object-hash'
 import { createCommonJS, resolvePath } from 'mlly'
+import { $fetch } from 'ofetch'
 import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
@@ -50,7 +51,7 @@ export function defineConfig(config: UserConfig) {
  * @param userConfig
  * @param provider
  */
-export const createUnlighthouse = async (userConfig: UserConfig, provider?: Provider) => {
+export async function createUnlighthouse(userConfig: UserConfig, provider?: Provider) {
   const logger = createLogger(userConfig.debug)
   const { __dirname } = createCommonJS(import.meta.url)
   if (userConfig.root && !isAbsolute(userConfig.root))
@@ -289,30 +290,48 @@ export const createUnlighthouse = async (userConfig: UserConfig, provider?: Prov
       if (resolvedConfig.urls?.length)
         mode = 'Manual'
 
-      if (resolvedConfig.scanner.sitemap)
+      if (resolvedConfig.scanner.sitemap !== false)
         mode += 'Sitemap'
 
       if (resolvedConfig.scanner.crawler)
         mode += mode.length > 0 ? ' + Crawler' : 'Crawler'
 
+      let latestTag = `v${version}`
+      try {
+        latestTag = (await $fetch<any>('https://ungh.unjs.io/repos/harlan-zw/unlighthouse/releases/latest')).release.tag
+      }
+      catch (e) {}
+
       const title = [
         `⛵  ${chalk.bold.blueBright(AppName)} ${chalk.dim(`${provider?.name} @ v${version}`)}`,
+      ]
+      if (latestTag !== `v${version}`) {
+        title.push(...[
+          '',
+          `🎉 New version ${latestTag} available! Use the latest:`,
+          chalk.gray(` > ${chalk.underline(`npx unlighthouse@${latestTag} --site ${resolvedConfig.site}`)}`),
+        ])
+      }
+      title.push(...[
         '',
         `${label('Scanning')} ${resolvedConfig.site}`,
         `${label('Route Discovery')} ${mode} ${ctx.routes.length > 1 ? (chalk.dim(`${ctx.routes.length} initial URLs`)) : ''}`,
-      ]
+        '',
+        chalk.dim(' 💖 Like Unlighthouse? Support the development: https://github.com/sponsors/harlan-zw'),
+      ])
       if (ctx.routeDefinitions?.length)
         title.push(`${label('Route Definitions')} ${ctx.routeDefinitions.length}`)
 
       process.stdout.write(successBox(
         // messages
         [
-          `Root: ${chalk.dim(resolvedConfig.root)}`,
-          ctx.runtimeSettings.clientUrl ? `URL: ${ctx.runtimeSettings.clientUrl}` : '',
+          ctx.runtimeSettings.clientUrl ? chalk.whiteBright(`Report: ${ctx.runtimeSettings.clientUrl}`) : '',
         ].join('\n'),
         // title
         title.join('\n'),
       ))
+      if (existsSync(join(ctx.runtimeSettings.generatedClientPath, 'reports', 'lighthouse.json')) && ctx.resolvedConfig.cache)
+        logger.info(`Restoring reports from cache. ${chalk.gray('You can disable this behavior by passing --no-cache.')}`)
     }
     return ctx
   }

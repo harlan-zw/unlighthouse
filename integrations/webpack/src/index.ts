@@ -1,5 +1,5 @@
-import type http from 'http'
-import type https from 'https'
+import type http from 'node:http'
+import type https from 'node:https'
 import type { ResolvedUnpluginOptions, UnpluginOptions } from 'unplugin'
 import { createUnplugin } from 'unplugin'
 import { once } from 'lodash-es'

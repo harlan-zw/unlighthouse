@@ -14,23 +14,23 @@ export const isModalOpen = ref<boolean>(false)
 export const iframeModalUrl = ref<string | null>()
 export const isDebugModalOpen = ref<boolean>(false)
 
-export const closeIframeModal = () => {
+export function closeIframeModal() {
   isModalOpen.value = false
   iframeModalUrl.value = ''
   isDebugModalOpen.value = false
 }
-export const openDebugModal = () => {
+export function openDebugModal() {
   isModalOpen.value = true
   isDebugModalOpen.value = true
 }
-export const openLighthouseReportIframeModal = (report: UnlighthouseRouteReport, tab?: string) => {
+export function openLighthouseReportIframeModal(report: UnlighthouseRouteReport, tab?: string) {
   const path = `${report.artifactUrl}/lighthouse.html`
   iframeModalUrl.value = `${path}${tab ? `#${tab}` : ''}`
   isDebugModalOpen.value = false
   isModalOpen.value = true
 }
 
-export const changedTab = (index: number) => {
+export function changedTab(index: number) {
   activeTab.value = index
   sorting.value = {}
 }
@@ -119,7 +119,7 @@ export function refreshScanMeta() {
   return res
 }
 
-export const wsConnect = async () => {
+export async function wsConnect() {
   const ws = new WebSocket(wsUrl)
   ws.onmessage = (message) => {
     const { response } = JSON.parse(message.data)

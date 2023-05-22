@@ -1,4 +1,4 @@
-import { URL } from 'url'
+import { URL } from 'node:url'
 import type { ResolvedUserConfig, UserConfig } from '@unlighthouse/core'
 import { pick } from 'lodash-es'
 import { defu } from 'defu'
@@ -6,7 +6,7 @@ import { fetchUrlRaw, normaliseHost, useLogger } from '@unlighthouse/core'
 import { handleError } from './errors'
 import type { CiOptions, CliOptions } from './types'
 
-export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
+export async function validateHost(resolvedConfig: ResolvedUserConfig) {
   const logger = useLogger()
   // site will not be set from integrations yet
   if (resolvedConfig.site) {
@@ -16,27 +16,25 @@ export const validateHost = async (resolvedConfig: ResolvedUserConfig) => {
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
-        logger.fatal(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+        logger.warn(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
       else
-        logger.fatal(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
-
-      // bail on cli or ci
-      process.exit(1)
+        logger.warn(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
+      logger.error('Site check failed. will attempt to proceed but may fail.')
     }
     else if (response) {
-      // change the URL to the redirect one
-      if (redirected && redirectUrl) {
+      // change the URL to the redirect one, make sure it's not to a file (i.e /index.php)
+      if (redirected && redirectUrl && !redirectUrl.includes('.')) {
         logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
         resolvedConfig.site = normaliseHost(redirectUrl)
       }
       else {
-        logger.success(`Successfully connected to \`${resolvedConfig.site}\`, status code: \`${response.status}\`.`)
+        logger.success(`Successfully connected to \`${resolvedConfig.site}\`. (Status: \`${response.status}\`).`)
       }
     }
   }
 }
 
-export const isValidUrl = (s: string) => {
+export function isValidUrl(s: string) {
   try {
     const url = new URL(s)
     return !!url
@@ -46,7 +44,7 @@ export const isValidUrl = (s: string) => {
   }
 }
 
-export const validateOptions = (resolvedOptions: UserConfig) => {
+export function validateOptions(resolvedOptions: UserConfig) {
   if (!resolvedOptions.site)
     return handleError('Please provide a site to scan with --site <url>.')
 
@@ -85,8 +83,44 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   else if (options.mobile)
     picked.scanner.device = 'mobile'
 
+  if (options.disableRobotsTxt)
+    picked.scanner.robotsTxt = false
+
+  if (options.disableSitemap)
+    picked.scanner.sitemap = false
+
   if (options.urls)
     picked.urls = options.urls.split(',')
+
+  if (options.excludeUrls)
+    picked.scanner.exclude = options.excludeUrls.split(',')
+
+  if (options.includeUrls)
+    picked.scanner.include = options.includeUrls.split(',')
+
+  if (options.disableDynamicSampling)
+    picked.scanner.dynamicSampling = false
+
+  if (options.auth) {
+    const [username, password] = options.auth.split(':')
+    picked.auth = { username, password }
+  }
+
+  if (options.cookies) {
+    picked.cookies = options.cookies.split(';').map((cookie) => {
+      const [name, value] = cookie.split('=')
+      return { name, value }
+    })
+  }
+
+  if (options.extraHeaders) {
+    picked.extraHeaders = picked.extraHeaders || {}
+    options.extraHeaders.split(',').forEach((header) => {
+      const [name, value] = header.split('=')
+      // @ts-expect-error untyped
+      picked.extraHeaders[name] = value
+    })
+  }
 
   const config = pick(options, [
     // root level options
@@ -97,6 +131,7 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     'debug',
     'cache',
     'outputPath',
+    'routerPrefix',
   ])
   return defu(
     config,

@@ -22,23 +22,23 @@ defineProps({
 </script>
 
 <template>
-  <section class="py-5 sm:py-15 xl:py-32">
-    <div class="md:grid gap-8 lg:grid-cols-12 mx-auto w-full sm:px-6 lg:px-0 px-0 max-w-8xl">
+  <section class="py-5 sm:py-10 xl:py-20">
+    <div class="xl:grid gap-8 lg:grid-cols-12 mx-auto w-full sm:px-6 lg:px-0 px-0">
       <div class="col-span-6 mb-10 lg:mb-0 flex flex-col justify-center">
         <p v-if="$slots.top" class="mb-2 text-center lg:text-left">
-          <Markdown :use="$slots.top" unwrap="p" />
+          <ContentSlot :use="$slots.top" unwrap="p" />
         </p>
 
         <h1 class="text-gray-900 dark:text-gray-100 text-center text-4xl leading-25 font-extrabold tracking-tight sm:text-5xl lg:text-left lg:text-6xl" style="line-height: 1.3;">
-          <Markdown :use="$slots.title" unwrap="p" />
+          <ContentSlot :use="$slots.title" unwrap="p" />
         </h1>
 
         <p class="text-gray-700 dark:text-gray-300 mt-4 max-w-3xl text-center text-lg lg:text-left">
-          <Markdown :use="$slots.description" unwrap="p" />
+          <ContentSlot :use="$slots.description" unwrap="p" />
         </p>
 
         <div v-if="$slots.extra" class="mt-6">
-          <Markdown :use="$slots.extra" unwrap="p" />
+          <ContentSlot :use="$slots.extra" unwrap="p" />
         </div>
 
         <div class="mt-6 flex flex-col items-center justify-center gap-4 sm:mt-10 sm:flex-row sm:gap-6 lg:justify-start">
@@ -51,14 +51,14 @@ defineProps({
               {{ secondary[0] }}
             </a>
           </template>
-          <Markdown v-else :use="$slots.actions" unwrap="p" />
+          <ContentSlot v-else :use="$slots.actions" unwrap="p" />
         </div>
       </div>
 
-      <div class="block-hero__right md:col-span-6 max-w-full">
-        <div class="flex relative h-full items-center block-hero__inner md:p-10 bg-gradient-to-br to-green-200 from-blue-100 dark:from-green-500/10 dark:to-blue-500/20 rounded">
+      <div class="block-hero__right xl:col-span-6 max-w-full">
+        <div class="flex relative items-center block-hero__inner xl:p-10 bg-gradient-to-br to-green-200 from-blue-100 dark:from-green-500/10 dark:to-blue-500/20 rounded">
           <slot name="right">
-            <Markdown :use="$slots.right" unwrap="p" />
+            <ContentSlot :use="$slots.right" unwrap="p" />
           </slot>
         </div>
       </div>
