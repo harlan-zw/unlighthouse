@@ -1,8 +1,10 @@
-# Docker
+# Docker and GitHub CI
 
 Using Unlighthouse in a Docker container is a great way to run it in a predictable CI environment.
 
 Support is experimental and provided by the community. An official docker image may be created in the future.
+
+It requires special configuration to the puppeteer instance. The [running puppeteer in docker](https://pptr.dev/troubleshooting/#running-puppeteer-in-docker) article is a great read.
 
 ## Unlighthouse Config
 
