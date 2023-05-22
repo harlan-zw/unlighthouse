@@ -61,11 +61,15 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   if (options.throttle)
     picked.scanner.throttle = true
 
+  if (options.sitemaps) {
+    picked.scanner.sitemap = picked.scanner.sitemap || []
+    options.sitemaps.split(',').forEach((path) => {
+      Array.isArray(picked.scanner.sitemap) && picked.scanner.sitemap.push(path)
+    })
+  }
+
   if (options.enableJavascript)
     picked.scanner.skipJavascript = false
-
-  if (options.sitemapPath)
-    picked.scanner.sitemapPath = options.sitemapPath
 
   else if (options.disableJavascript)
     picked.scanner.skipJavascript = true

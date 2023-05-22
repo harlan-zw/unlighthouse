@@ -28,7 +28,7 @@ export interface CliOptions {
   disableRobotsTxt?: boolean
   disableSitemap?: boolean
   disableDynamicSampling?: boolean
-  sitemapPath?: string
+  sitemaps?: string
 }
 
 export interface CiOptions extends CliOptions {
