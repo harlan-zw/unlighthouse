@@ -55,7 +55,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
       logger.info(`Discovered ${sitemapUrls.length} routes from sitemap.xml.`)
       sitemapUrls.forEach(url => urls.add(url))
       // sitemap threshold for disabling crawler
-      if (sitemapUrls.length >= 50) {
+      if (!resolvedConfig.site.includes('localhost') && sitemapUrls.length >= 50) {
         resolvedConfig.scanner.crawler = false
         logger.info('Disabling crawler mode as sitemap has been provided.')
       }
