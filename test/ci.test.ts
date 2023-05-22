@@ -27,6 +27,7 @@ describe('ci', () => {
 
     expect(output.summary).toBeDefined()
     expect(output.summary.score).toBeDefined()
+    expect(output.metadata).toBeDefined()
     expect(output.routes[0].path).toBeDefined()
     expect(output.routes[0].score).toBeDefined()
     expect(output.routes[0].categories).toBeDefined()

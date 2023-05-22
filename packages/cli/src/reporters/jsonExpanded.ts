@@ -1,4 +1,4 @@
-import type { CategoryAverageScore, CategoryScore, ExpandedRouteReport, MetricAverageScore, MetricScore, ReportJsonExpanded } from './types'
+import type { CategoryAverageScore, CategoryMetadata, CategoryScore, ExpandedRouteReport, MetricAverageScore, MetricMetadata, MetricScore, ReportJsonExpanded } from './types'
 
 const relevantMetrics = [
   'largest-contentful-paint',
@@ -10,38 +10,62 @@ const relevantMetrics = [
 ]
 
 export function reportJsonExpanded(unlighthouseRouteReports): ReportJsonExpanded {
+  let metadata = {
+    metrics: {},
+    categories: {},
+  }
   const routes = unlighthouseRouteReports
     .map((report) => {
       const categories = Object.values(report.report?.categories ?? {}).reduce(
-        (prev: { [key: string]: CategoryScore }, category: any): any => ({
-          ...prev,
-          [category.key]: {
-            key: category.key,
-            id: category.id,
-            title: category.title,
-            score: category.score,
-          },
-        }),
-        {},
+        (prev: { [key: string]: CategoryScore }, category: any): any => {
+          metadata = {
+            ...metadata,
+            categories: {
+              ...metadata.categories,
+              [category.key]: {
+                id: category.id,
+                title: category.title,
+              },
+            },
+          }
+          return {
+            ...prev,
+            [category.key]: {
+              score: category.score,
+            },
+          }
+        },
+        { },
       )
+
       const metrics = Object.values(report.report?.audits ?? {})
         .filter((metric: any) => relevantMetrics.includes(metric.id))
-        .reduce((prev: { [key: string]: any }, metric: any): any => ({
-          ...prev,
-          [metric.id]: {
-            id: metric.id,
-            title: metric.title,
-            description: metric.description,
-            numericValue: metric.numericValue,
-            numericUnit: metric.numericUnit,
-            displayValue: metric.displayValue,
-          },
-        }), {})
+        .reduce((prev: { [key: string]: MetricScore}, metric: any): any => {
+          metadata = {
+            ...metadata,
+            metrics: {
+              ...metadata.metrics,
+              [metric.id]: {
+                id: metric.id,
+                title: metric.title,
+                description: metric.description,
+                numericUnit: metric.numericUnit,
+              },
+            },
+          }
+          return {
+            ...prev,
+            [metric.id]: {
+              numericValue: metric.numericValue,
+              displayValue: metric.displayValue,
+            },
+          }
+        }, {})
       return <ExpandedRouteReport>{
         path: report.route.path,
         score: report.report?.score,
-        categories,
-        metrics,
+        categories: categories,
+        metrics: metrics,
       }
     })
     // make the list ordering consistent
@@ -62,6 +86,7 @@ export function reportJsonExpanded(unlighthouseRouteReports): ReportJsonExpanded
   return {
     summary,
     routes,
+    metadata: metadata,
   }
 }
 
