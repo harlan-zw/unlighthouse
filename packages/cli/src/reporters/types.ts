@@ -6,11 +6,7 @@ export interface CategoryScore {
 }
 
 export interface MetricScore {
-  id: string
-  title: string
-  description: string
   numericValue: number
-  numericUnit: string
   displayValue: string
 }
 
@@ -29,18 +25,23 @@ export interface ExpandedRouteReport extends SimpleRouteReport {
 }
 
 export interface CategoryAverageScore {
-  key: string
-  id: string
-  title: string
   averageScore: number
 }
 
 export interface MetricAverageScore {
+  averageNumericValue: number
+}
+
+export interface MetricMetadata {
   id: string
   title: string
   description: string
-  averageNumericValue: number
   numericUnit: string
+}
+
+export interface CategoryMetadata {
+  id: string
+  title: string
 }
 
 export interface ReportJsonExpanded {
@@ -54,6 +55,14 @@ export interface ReportJsonExpanded {
     }
   }
   routes: ExpandedRouteReport[]
+  metadata: {
+    metrics: {
+      [key: string]: MetricMetadata
+    }
+    categories: {
+      [key: string]: CategoryMetadata
+    }
+  }
 }
 
 export type ReportJsonSimple = SimpleRouteReport[]

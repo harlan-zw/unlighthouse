@@ -20,6 +20,24 @@ describe('reporter', () => {
     expect(actual.routes[0].score).toBeDefined()
   })
 
+  it('has metadata information generated as part of the report', () => {
+    const actual = generateReportPayload('jsonExpanded', lighthouseReport)
+    expect(actual.metadata).toBeDefined()
+    expect(actual.metadata.metrics).toBeDefined()
+    expect(actual.metadata.metrics['largest-contentful-paint']).toBeDefined()
+    expect(actual.metadata.metrics['cumulative-layout-shift']).toBeDefined()
+    expect(actual.metadata.metrics['first-contentful-paint']).toBeDefined()
+    expect(actual.metadata.metrics['total-blocking-time']).toBeDefined()
+    expect(actual.metadata.metrics['max-potential-fid']).toBeDefined()
+    expect(actual.metadata.metrics.interactive).toBeDefined()
+
+    expect(actual.metadata.categories).toBeDefined()
+    expect(actual.metadata.categories.performance).toBeDefined()
+    expect(actual.metadata.categories.accessibility).toBeDefined()
+    expect(actual.metadata.categories.seo).toBeDefined()
+    expect(actual.metadata.categories['best-practices']).toBeDefined()
+  })
+
   it('has category information for json expanded report', () => {
     const actual = generateReportPayload('jsonExpanded', lighthouseReport)
 
