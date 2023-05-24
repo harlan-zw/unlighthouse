@@ -1,8 +1,15 @@
 import { dirname, join, resolve } from 'node:path'
 import fs from 'fs-extra'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
+import { pick } from 'lodash-es'
 import { useLogger, useUnlighthouse } from './unlighthouse'
-import type { GenerateClientOptions, ResolvedUserConfig, RuntimeSettings, ScanMeta, UnlighthouseContext, UnlighthouseRouteReport } from './types'
+import type {
+  ClientOptionsPayload,
+  GenerateClientOptions,
+  ScanMeta,
+  UnlighthouseContext,
+  UnlighthouseRouteReport,
+} from './types'
 import { createScanMeta } from './data'
 
 /**
@@ -32,13 +39,35 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
     .replace(/(href|src)="\/assets\/(.*?)"/gm, `$1="${prefix}assets/$2"`)
   await fs.writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
 
-  const staticData: { options: ResolvedUserConfig & RuntimeSettings; scanMeta: ScanMeta; reports: UnlighthouseRouteReport[] } = {
+  const staticData: { options: ClientOptionsPayload; scanMeta: ScanMeta; reports: UnlighthouseRouteReport[] } = {
     reports: [],
     scanMeta: createScanMeta(),
-    options: { ...runtimeSettings, ...resolvedConfig },
+    // need to be selective about what options we put here to avoid exposing anything sensitive
+    options: pick({
+      ...runtimeSettings,
+      ...resolvedConfig,
+    }, [
+      'client',
+      'site',
+      'websocketUrl',
+      'lighthouseOptions',
+      'scanner',
+      'routerPrefix',
+      'websocketUrl',
+      'apiUrl',
+    ]),
   }
-  if (options.static)
-    staticData.reports = worker.reports()
+  // avoid exposing sensitive cookie / header options
+  staticData.options.lighthouseOptions = { onlyCategories: resolvedConfig.lighthouseOptions.onlyCategories }
+  if (options.static) {
+    staticData.reports = worker.reports().map((r) => {
+      return {
+        ...r,
+        // avoid exposing user paths
+        artifactPath: '',
+      }
+    })
+  }
 
   await fs.writeFile(
     join(runtimeSettings.generatedClientPath, 'assets', 'payload.js'),

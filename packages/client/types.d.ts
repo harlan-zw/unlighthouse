@@ -1,4 +1,4 @@
-import type { ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/core'
+import type { ClientOptionsPayload, ScanMeta } from '@unlighthouse/core'
 import type { UnlighthouseRouteReport } from '@unlighthouse/core'
 
 declare global {
@@ -10,6 +10,6 @@ declare global {
     /**
      * Data provided for offline / demo mode.
      */
-    __unlighthouse_payload: { options: ResolvedUserConfig & RuntimeSettings; scanMeta: ScanMeta; reports: UnlighthouseRouteReport[] }
+    __unlighthouse_payload: { options: ClientOptionsPayload; scanMeta: ScanMeta; reports: UnlighthouseRouteReport[] }
   }
 }
