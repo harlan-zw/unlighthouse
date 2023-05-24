@@ -3,6 +3,7 @@ import { $URL, withBase } from 'ufo'
 import { fetchUrlRaw } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
+import { isScanOrigin } from '../router'
 
 function validSitemapEntry(url: string) {
   return url && (url.startsWith('http') || url.startsWith('/'))
@@ -50,5 +51,7 @@ export async function extractSitemapRoutes(site: string, sitemaps: true | (strin
       logger.debug(`Fetched ${sitemapUrl} with ${sites?.length || '0'} URLs.`)
     }
   }
-  return paths
+  const filtered = paths.filter(isScanOrigin)
+  // for the paths we need to validate that they will be scanned
+  return { paths: filtered, ignored: paths.length - filtered.length, sitemaps }
 }

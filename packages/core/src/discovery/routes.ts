@@ -50,9 +50,14 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
 
   // if sitemap scanning is enabled
   if (resolvedConfig.scanner.sitemap !== false) {
-    const sitemapUrls = await extractSitemapRoutes(resolvedConfig.site, resolvedConfig.scanner.sitemap)
-    if (sitemapUrls.length) {
-      logger.info(`Discovered ${sitemapUrls.length} routes from sitemap.xml.`)
+    const { paths: sitemapUrls, ignored, sitemaps } = await extractSitemapRoutes(resolvedConfig.site, resolvedConfig.scanner.sitemap)
+    if (ignored > 0 && !sitemapUrls.length) {
+      logger.warn(`Sitemap${sitemaps.length > 1 ? 's' : ''} exists but is being ignored due to a different origin being present`)
+    }
+    else if (sitemapUrls.length) {
+      logger.info(`Discovered ${sitemapUrls.length} routes from ${sitemaps.length} sitemap${sitemaps.length > 1 ? 's' : ''}.`)
+      if (ignored > 0)
+        logger.warn(`Ignoring ${ignored} paths from sitemap as their origin differs from the site url.`)
       sitemapUrls.forEach(url => urls.add(url))
       // sitemap threshold for disabling crawler
       if (!resolvedConfig.site.includes('localhost') && sitemapUrls.length >= 50) {
