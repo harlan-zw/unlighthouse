@@ -1,4 +1,4 @@
-import type { CategoryAverageScore, CategoryMetadata, CategoryScore, ExpandedRouteReport, MetricAverageScore, MetricMetadata, MetricScore, ReportJsonExpanded } from './types'
+import type { CategoryAverageScore, CategoryScore, ExpandedRouteReport, MetricAverageScore, MetricScore, ReportJsonExpanded } from './types'
 
 const relevantMetrics = [
   'largest-contentful-paint',
@@ -40,7 +40,7 @@ export function reportJsonExpanded(unlighthouseRouteReports): ReportJsonExpanded
 
       const metrics = Object.values(report.report?.audits ?? {})
         .filter((metric: any) => relevantMetrics.includes(metric.id))
-        .reduce((prev: { [key: string]: MetricScore}, metric: any): any => {
+        .reduce((prev: { [key: string]: MetricScore }, metric: any): any => {
           metadata = {
             ...metadata,
             metrics: {
@@ -64,8 +64,8 @@ export function reportJsonExpanded(unlighthouseRouteReports): ReportJsonExpanded
       return <ExpandedRouteReport>{
         path: report.route.path,
         score: report.report?.score,
-        categories: categories,
-        metrics: metrics,
+        categories,
+        metrics,
       }
     })
     // make the list ordering consistent
@@ -86,7 +86,7 @@ export function reportJsonExpanded(unlighthouseRouteReports): ReportJsonExpanded
   return {
     summary,
     routes,
-    metadata: metadata,
+    metadata,
   }
 }
 
