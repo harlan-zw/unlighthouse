@@ -8,7 +8,7 @@ This is useful for quickly scanning your site and finding issues.
 
 However, you want to set up some automation around these reports. Creating reports that can be accessed through a static host.
 
-Unlighthouse ships with a [CI](/integrations/ci) mode which provides additional non-interactive features, one of the mis generating static reports.
+Unlighthouse ships with a [CI](/integrations/ci) mode which provides additional non-interactive features, one of them is generating static reports. Rescan routes wont work on static reports, use  `npx unlighthouse`  for it.
 
 ### Using the CI mode
 
