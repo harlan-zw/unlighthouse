@@ -190,7 +190,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     logger.info(`Submitting \`${report.route.path}\` for a re-queue.`)
     // clean up artifacts
     Object.values(ReportArtifacts).forEach((artifact) => {
-      fs.rmSync(join(report.artifactPath, artifact), { force: true })
+      fs.rmSync(join(report.artifactPath, artifact), { force: true, recursive: true })
     })
     routeReports.delete(report.reportId)
     // arbitrary wait for HMR, lil dodgy
