@@ -11,14 +11,14 @@
     "@headlessui/vue": "^1.7.13",
     "@nuxtlabs/github-module": "^1.6.3",
     "nuxt-og-image": "^1.5.9",
-    "playwright": "^1.30.0",
+    "playwright": "^1.34.3",
     "postcss-custom-properties": "^13.1.5",
     "vue-github-button": "^3.0.3"
   },
   "devDependencies": {
-    "@nuxt-themes/docus": "1.11.1",
+    "@nuxt-themes/docus": "1.12.0",
     "@nuxtjs/fontaine": "^0.2.5",
-    "nuxt": "^3.4.3",
+    "nuxt": "^3.5.2",
     "nuxt-seo-kit": "^1.3.8",
     "nuxt-windicss": "latest"
   }

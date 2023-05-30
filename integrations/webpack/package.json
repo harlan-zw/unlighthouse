@@ -43,11 +43,11 @@
     "@unlighthouse/server": "workspace:*",
     "defu": "^6.1.2",
     "lodash-es": "^4.17.21",
-    "unplugin": "^1.0.1"
+    "unplugin": "^1.3.1"
   },
   "devDependencies": {
-    "@types/express": "^4.17.16",
-    "@types/webpack": "^5.28.0",
-    "webpack": "^5.75.0"
+    "@types/express": "^4.17.17",
+    "@types/webpack": "^5.28.1",
+    "webpack": "^5.84.1"
   }
 }

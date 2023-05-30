@@ -28,17 +28,17 @@
     "fuse.js": "^6.6.2",
     "lodash-es": "^4.17.21",
     "ufo": "^0.8.6",
-    "vue": "^3.3.2",
-    "vue-router": "^4.2.0"
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.2"
   },
   "devDependencies": {
-    "@iconify/json": "^2.2.64",
-    "@types/lodash": "^4.14.194",
+    "@iconify/json": "^2.2.71",
+    "@types/lodash": "^4.14.195",
     "@types/node": "^17.0.45",
     "@types/three": "^0.138.0",
     "@unlighthouse/core": "workspace:../core",
     "@vitejs/plugin-vue": "^2.3.4",
-    "@vue/compiler-sfc": "^3.3.2",
+    "@vue/compiler-sfc": "^3.3.4",
     "@vueuse/core": "^8.9.4",
     "@vueuse/router": "^8.9.4",
     "date-fns": "^2.30.0",
@@ -48,7 +48,7 @@
     "unplugin-auto-import": "^0.7.2",
     "unplugin-icons": "^0.14.15",
     "unplugin-vue-components": "^0.19.9",
-    "vite": "^2.9.15",
+    "vite": "^2.9.16",
     "vite-plugin-pages": "^0.23.0",
     "vite-plugin-windicss": "^1.9.0"
   }
