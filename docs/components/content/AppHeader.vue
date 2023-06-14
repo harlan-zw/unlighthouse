@@ -24,12 +24,14 @@ const githubColorScheme = computed(() => color.value === 'dark' ? 'no-preference
 
       <section class="right">
         <AppSearch v-if="hasDocSearch" />
-        <GithubButton class="hidden xl:inline h-[20px]" href="https://github.com/harlan-zw/unlighthouse" :data-color-scheme="githubColorScheme" data-icon="octicon-star" data-show-count="true" aria-label="Star on GitHub">
-          Star
-        </GithubButton>
-        <GithubButton class="hidden xl:inline h-[20px]" href="https://github.com/sponsors/harlan-zw" :data-color-scheme="githubColorScheme" data-icon="octicon-heart" aria-label="Sponsor @harlan-zw on GitHub">
-          Sponsor
-        </GithubButton>
+        <ClientOnly>
+          <GithubButton class="hidden xl:inline h-[20px]" href="https://github.com/harlan-zw/unlighthouse" :data-color-scheme="githubColorScheme" data-icon="octicon-star" data-show-count="true" aria-label="Star on GitHub">
+            Star
+          </GithubButton>
+          <GithubButton class="hidden xl:inline h-[20px]" href="https://github.com/sponsors/harlan-zw" :data-color-scheme="githubColorScheme" data-icon="octicon-heart" aria-label="Sponsor @harlan-zw on GitHub">
+            Sponsor
+          </GithubButton>
+        </ClientOnly>
         <ThemeSelect />
         <AppSocialIcons />
         <a class="hidden sm:flex items-center ml-5" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
