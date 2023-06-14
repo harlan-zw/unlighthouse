@@ -147,7 +147,7 @@ What's included
 
 ## Contributors
 
-This package is most possible by these amazing sponsors.
+This package is made possible by my amazing sponsors.
 
 <div class="text-center">
   <a href="https://raw.githubusercontent.com/harlan-zw/static/main/sponsors.svg">
