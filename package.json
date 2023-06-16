@@ -13,6 +13,7 @@
       }
     }
   },
+  "license": "MIT",
   "scripts": {
     "cli": "node packages/cli/dist/cli.mjs",
     "ci": "node packages/cli/dist/ci.mjs",
