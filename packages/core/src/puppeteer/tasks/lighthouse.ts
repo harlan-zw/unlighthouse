@@ -5,6 +5,7 @@ import { map, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/lighthouse-core/lib/median-run.js'
 import chalk from 'chalk'
 import { relative } from 'pathe'
+import { withQuery } from 'ufo'
 import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
@@ -121,11 +122,15 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     }
   })
 
-  // allow changing behaviour of the page
+  // allow changing behavior of the page
+  const clonedRouteReport = { ...routeReport }
+  // just modify the url for the unlighthouse request
+  if (resolvedConfig.defaultQueryParams)
+    clonedRouteReport.route.url = withQuery(clonedRouteReport.route.url, resolvedConfig.defaultQueryParams)
 
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,
-    `--routeReport=${JSON.stringify(pick(routeReport, ['route.url', 'artifactPath']))}`,
+    `--routeReport=${JSON.stringify(pick(clonedRouteReport, ['route.url', 'artifactPath']))}`,
     `--lighthouseOptions=${JSON.stringify(resolvedConfig.lighthouseOptions)}`,
     `--port=${port}`,
   ]

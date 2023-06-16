@@ -135,6 +135,9 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
   if (resolvedConfig.extraHeaders)
     axiosOptions.headers = { ...resolvedConfig.extraHeaders, ...axiosOptions.headers }
 
+  if (resolvedConfig.defaultQueryParams)
+    axiosOptions.params = { ...resolvedConfig.defaultQueryParams, ...axiosOptions.params }
+
   axiosOptions.httpsAgent = new https.Agent({
     rejectUnauthorized: false,
   })

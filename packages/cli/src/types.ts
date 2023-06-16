@@ -6,6 +6,7 @@ export interface CliOptions {
   urls?: string
   auth?: string
   cookies?: string
+  defaultQueryParams?: string
   extraHeaders?: string
   excludeUrls?: string
   includeUrls?: string

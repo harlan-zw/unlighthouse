@@ -83,6 +83,27 @@ You can provide multiple headers by separating them with a `,`.
 unlighthouse --site <your-site> --extra-headers x-custom-header:custom-value,x-other-header:other-value
 ```
 
+## Query Params
+
+If you can configure your authentication using query params,
+then you can provide them using the `defaultQueryParams` option in your configuration file:
+
+```ts
+// unlighthouse.config.ts
+export default {
+  defaultQueryParams: {
+    auth: '<token>'
+  }
+}
+```
+
+Alternatively, you can provide the `--default-query-params` flag to the CLI.
+
+```bash
+unlighthouse --site <your-site> --default-query-params auth=<token>,foo=bar
+```
+
+
 ## Programmatic Usage
 
 You can also use control Puppeteer programmatically before the page is scanned using a config file.

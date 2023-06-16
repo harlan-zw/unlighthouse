@@ -110,19 +110,28 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     picked.auth = { username, password }
   }
 
-  if (options.cookies) {
-    picked.cookies = options.cookies.split(';').map((cookie) => {
-      const [name, value] = cookie.split('=')
-      return { name, value }
-    })
+  function splitNameValue(str: string) {
+    const splitToken = str.includes('=') ? '=' : ':'
+    const [name, value] = str.split(splitToken)
+    return { name, value }
   }
+
+  if (options.cookies)
+    picked.cookies = options.cookies.split(';').map(splitNameValue)
 
   if (options.extraHeaders) {
     picked.extraHeaders = picked.extraHeaders || {}
     options.extraHeaders.split(',').forEach((header) => {
-      const [name, value] = header.split('=')
-      // @ts-expect-error untyped
+      const { name, value } = splitNameValue(header)
       picked.extraHeaders[name] = value
+    })
+  }
+
+  if (options.defaultQueryParams) {
+    picked.defaultQueryParams = picked.defaultQueryParams || {}
+    options.defaultQueryParams.split(',').forEach((param) => {
+      const { name, value } = splitNameValue(param)
+      picked.defaultQueryParams[name] = value
     })
   }
 

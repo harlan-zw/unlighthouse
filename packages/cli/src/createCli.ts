@@ -34,6 +34,13 @@ export default function createCli() {
   cli.option('--disable-robots-txt', 'Disables the robots.txt crawling.')
   cli.option('--disable-sitemap', 'Disables the sitemap.xml crawling.')
   cli.option('--disable-dynamic-sampling', 'Disables the sampling of paths.')
+
+  // add extra-headers, cookies, auth, default-query-params
+  cli.option('--extra-headers <extra-headers>', 'Extra headers to send with the request. Example: --extra-headers foo=bar,bar=foo')
+  cli.option('--cookies <cookies>', 'Cookies to send with the request. Example: --cookies foo=bar;bar=foo')
+  cli.option('--auth <auth>', 'Basic auth to send with the request. Example: --auth username:password')
+  cli.option('--default-query-params <default-query-params>', 'Default query params to send with the request. Example: --default-query-params foo=bar,bar=foo')
+
   cli.option('-d, --debug', 'Debug. Enable debugging in the logger.')
 
   return cli

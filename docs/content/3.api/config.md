@@ -85,6 +85,13 @@ Provide cookies to be set for Axios and Puppeteer requests.
 
 Provide extra headers to be set for Axios and Puppeteer requests.
 
+### defaultQueryParams
+
+- **Type:** ` false | QueryObject`
+- **Default:** `false`
+
+Query params to add to every request.
+
 ### hooks
 
 - **Type:** `NestedHooks<UnlighthouseHooks>`

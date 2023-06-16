@@ -1,6 +1,6 @@
 import type http from 'node:http'
 import type https from 'node:https'
-import type { $URL } from 'ufo'
+import type { $URL, QueryObject } from 'ufo'
 import type { LH } from 'lighthouse'
 import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
@@ -269,6 +269,12 @@ export interface ResolvedUserConfig {
    * @default false
    */
   extraHeaders: false | Record<string, string>
+  /**
+   * Query params to add to every request.
+   *
+   * @default false
+   */
+  defaultQueryParams: false | QueryObject
   /**
    * Load the configuration from a custom config file.
    * By default, it attempts to load configuration from `unlighthouse.config.ts`.
