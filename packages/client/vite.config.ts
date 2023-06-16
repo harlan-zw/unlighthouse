@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import Vue from '@vitejs/plugin-vue'
-import Pages from 'vite-plugin-pages'
 import Icons from 'unplugin-icons/vite'
 import Components from 'unplugin-vue-components/vite'
 import WindiCSS from 'vite-plugin-windicss'
@@ -13,9 +12,6 @@ export default defineConfig({
   mode: 'development',
   plugins: [
     Vue(),
-    Pages({
-      pagesDir: 'pages',
-    }),
     Components({
       dirs: ['components'],
       resolvers: [
@@ -61,7 +57,6 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       'vue',
-      'vue-router',
       '@vueuse/core',
     ],
     exclude: [
