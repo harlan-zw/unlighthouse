@@ -10,6 +10,91 @@ describe('reporter', () => {
     const actual = generateReportPayload('jsonSimple', lighthouseReport)
     expect(actual[0].path).toBeDefined()
     expect(actual[0].score).toBeDefined()
+
+    expect(actual).toMatchInlineSnapshot(`
+      [
+        {
+          "accessibility": 1,
+          "best-practices": 1,
+          "path": "/",
+          "performance": 1,
+          "score": 0.98,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 1,
+          "path": "/blog",
+          "performance": 1,
+          "score": 0.97,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 1,
+          "path": "/blog/2023-february",
+          "performance": 1,
+          "score": 0.97,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 1,
+          "path": "/blog/2023-march",
+          "performance": 1,
+          "score": 0.97,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 1,
+          "path": "/blog/how-the-heck-does-vite-work",
+          "performance": 1,
+          "score": 0.97,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 0.92,
+          "path": "/blog/modern-package-development",
+          "performance": 1,
+          "score": 0.95,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 1,
+          "path": "/blog/vue-automatic-component-imports",
+          "performance": 1,
+          "score": 0.97,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 1,
+          "path": "/projects",
+          "performance": 1,
+          "score": 0.97,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 1,
+          "path": "/sponsors",
+          "performance": 1,
+          "score": 0.97,
+          "seo": 0.92,
+        },
+        {
+          "accessibility": 0.97,
+          "best-practices": 1,
+          "path": "/talks",
+          "performance": 1,
+          "score": 0.97,
+          "seo": 0.92,
+        },
+      ]
+    `)
   })
 
   it('has basic information for json expanded report', () => {

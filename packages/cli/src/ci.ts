@@ -16,7 +16,7 @@ async function run() {
 
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
   cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
-  cli.option('--reporter <reporter>', 'The report to generate from results. Options: jsonSimple, jsonExpanded or false. Default is jsonSimple.')
+  cli.option('--reporter <reporter>', 'The report to generate from results. Options: csv, csvExpanded, json, jsonExpanded or false. Default: json.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
@@ -49,10 +49,8 @@ async function run() {
   const logger = useLogger()
 
   let hasBudget = true
-  if (!resolvedConfig.ci?.budget) {
+  if (!resolvedConfig.ci?.budget)
     hasBudget = false
-    logger.warn('Warn: No CI budget has been set. Consider setting a budget with the config (`ci.budget`) or --budget <number>.')
-  }
 
   await setCiContext()
   await start()
@@ -90,7 +88,7 @@ async function run() {
     if (resolvedConfig.ci.reporter) {
       const reporter = resolvedConfig.ci.reporter
       // @ts-expect-error untyped
-      const payload = generateReportPayload(reporter, worker.reports())
+      const payload = generateReportPayload(reporter, worker.reports(), resolvedConfig.client.columns)
       const path = relative(resolvedConfig.root, await outputReport(reporter, resolvedConfig, payload))
       logger.success(`Generated \`${resolvedConfig.ci.reporter}\` report \`./${path}\``)
     }

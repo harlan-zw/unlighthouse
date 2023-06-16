@@ -15,6 +15,7 @@
   },
   "scripts": {
     "cli": "node packages/cli/dist/cli.mjs",
+    "ci": "node packages/cli/dist/ci.mjs",
     "cli:docs": "node packages/cli/dist/cli.mjs --root docs --debug --no-cache",
     "cli:hzw": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/harlanzw.com/ --debug",
     "cli:ody": "node packages/cli/dist/cli.mjs --root /home/harlan/sites/odysseytraveller.com-app/ --debug",
