@@ -197,7 +197,7 @@ export const defaultConfig: UserConfig = {
     samples: 1,
     throttle: false,
     crawler: true,
-    dynamicSampling: 5,
+    dynamicSampling: 8,
     sitemap: true,
     robotsTxt: true,
     device: 'mobile',
