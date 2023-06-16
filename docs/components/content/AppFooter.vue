@@ -30,10 +30,9 @@ const nbSocialIcons = computed(() => (socialIcons.value ? socialIconsCount.value
           <p v-if="config?.footer?.credits?.text">{{ config.footer.credits.text }}</p>
         </a>
         <a href="https://www.netlify.com" class="ml-10">
-          <img class="dark:hidden block" src="https://www.netlify.com/v3/img/components/netlify-light.svg" alt="Deploys by Netlify" />
-          <img class="dark:block hidden" src="https://www.netlify.com/v3/img/components/netlify-dark.svg" alt="Deploys by Netlify" />
+          <img class="dark:hidden block" src="https://www.netlify.com/v3/img/components/netlify-light.svg" alt="Deploys by Netlify">
+          <img class="dark:block hidden" src="https://www.netlify.com/v3/img/components/netlify-dark.svg" alt="Deploys by Netlify">
         </a>
-
       </div>
 
       <!-- Center -->
