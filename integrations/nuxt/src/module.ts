@@ -4,6 +4,7 @@ import {
   addWebpackPlugin,
   defineNuxtModule,
   extendViteConfig,
+  useLogger,
 } from '@nuxt/kit'
 import type { UserConfig } from '@unlighthouse/core'
 import { createUnlighthouse, useUnlighthouse } from '@unlighthouse/core'
@@ -24,6 +25,9 @@ export default defineNuxtModule<ModuleOptions>({
     // only run in dev
     if (!nuxt.options.dev)
       return
+
+    const logger = useLogger('nuxt-unlighthouse')
+    logger.warn('@unlighthouse/nuxt is being deprecated, consider removing it. Read more: https://unlighthouse.dev/integration-deprecations')
 
     const config = data as UserConfig
 

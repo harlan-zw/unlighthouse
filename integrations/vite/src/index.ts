@@ -43,6 +43,8 @@ export default function VitePlugin(config: UserConfig = {}): Plugin {
       })
 
       const setHost = once((host) => {
+        console.warn('@unlighthouse/vite is being deprecated, consider removing it. Read more: https://unlighthouse.dev/integration-deprecations')
+
         // give vite a chance to display start messages
         setTimeout(async () => {
           const unlighthouse = useUnlighthouse()

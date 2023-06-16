@@ -53,6 +53,7 @@ const setupWebpack = once(async (config: any, compiler: WebpackCompiler) => {
 
   const setupServer = async () => {
     const ensureServer = async (): Promise<http.Server | https.Server | any> => {
+      console.warn('@unlighthouse/webpack is being deprecated, consider removing it. Read more: https://unlighthouse.dev/integration-deprecations')
       // server may already be set
       if (unlighthouse.runtimeSettings.server)
         return unlighthouse.runtimeSettings.server

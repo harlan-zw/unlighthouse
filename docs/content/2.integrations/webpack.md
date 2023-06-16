@@ -6,8 +6,14 @@ description: Using the Unlighthouse webpack plugin allows you to close the feedb
 
 # Webpack
 
+::alert{type="warning"}
+This integration is now deprecated and will be removed in the v1 major release.
+Read more about [integration deprecations](/integration-deprecations).
+::
+
 Using the Unlighthouse webpack plugin allows you to close the feedback loop in fixing your Google Lighthouse issues in
 your development site.
+
 
 ## Install
 
@@ -75,10 +81,8 @@ export default {
 
 ## Configuration
 
-You can either configure Unlighthouse via the plugin, or you can provide a `unlighthouse.config.ts` file
+You can either configure Unlighthouse via the plugin, or you can provide a [config file](/guide/config/file)
 in the root directory.
-
-See [Configuring Unlighthouse](/guide/guides/config) for more information.
 
 ### Example
 
