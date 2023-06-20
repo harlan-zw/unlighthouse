@@ -1,10 +1,7 @@
-name: Build Unlighthouse Demo
+name: Assertions and static report
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   demo:
@@ -14,31 +11,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2.2.1
-
-      - name: Use Node.js v16
-        uses: actions/setup-node@v2
-        with:
-          node-version: v16
-          registry-url: https://registry.npmjs.org/
-          cache: "pnpm"
-
       - name: Install Dependencies
-        run: pnpm install && pnpm add puppeteer
+        run: npm add @unlighthouse/cli puppeteer
 
-      - name: PNPM build
-        run: pnpm run build
+      - name: Unlighthouse assertions and client
+        run: unlighthouse-ci --site https://voiladevelopers.com/ --build-static
 
-      - name: Run Unlighthouse CI
-        run: pnpm ci:docs && mv .unlighthouse dist
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-
-      - name: Deploy to Netlify
+      - name: Deploy report to Netlify
         uses: nwtgck/actions-netlify@v1.2
         with:
-          publish-dir: './dist'
+          publish-dir: './.unlighthouse'
           production-branch: main
           production-deploy: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
