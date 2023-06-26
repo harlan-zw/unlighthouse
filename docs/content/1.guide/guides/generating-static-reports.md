@@ -82,7 +82,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Dependencies
-        run: npm add @unlighthouse/cli puppeteer
+        run: npm add -g @unlighthouse/cli puppeteer
 
       - name: Unlighthouse assertions and client
         run: unlighthouse-ci --site <your-site> --build-static
