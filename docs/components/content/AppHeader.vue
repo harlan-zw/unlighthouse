@@ -50,7 +50,6 @@ const isDark = computed({
           <Icon v-else name="heroicons:sun-20-solid" class="group-hover:op75 flex-shrink-0 h-5 w-5" aria-hidden="true" />
         </button>
 
-
         <AppSocialIcons />
         <a class="hidden sm:flex items-center ml-5" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
           <div class="flex items-center">
