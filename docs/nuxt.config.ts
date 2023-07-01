@@ -52,9 +52,11 @@ export default defineNuxtConfig({
   content: {
     highlight: {
       theme: {
-        dark: 'github-dark',
-        default: 'github-light',
+        light: 'material-lighter',
+        default: 'material-default',
+        dark: 'material-palenight'
       },
+      preload: ['json', 'js', 'ts', 'html', 'css', 'json', 'vue', 'diff', 'shell', 'markdown', 'yaml', 'bash', 'ini'],
     },
   },
 

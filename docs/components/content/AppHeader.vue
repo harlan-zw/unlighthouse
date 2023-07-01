@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import GithubButton from 'vue-github-button'
-
 const { navigation } = useContent()
 const { hasDocSearch } = useDocSearch()
 const hasDialog = computed(() => navigation.value?.length > 1)
 
-const color = useColorMode()
-const githubColorScheme = computed(() => color.value === 'dark' ? 'no-preference: dark; light: dark; dark: dark;' : 'no-preference: light; light: light; dark: light;')
+const colorMode = useColorMode()
+
+const isDark = computed({
+  get() {
+    return colorMode.value === 'dark'
+  },
+  set() {
+    colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+  },
+})
 </script>
 
 <template>
@@ -24,15 +30,27 @@ const githubColorScheme = computed(() => color.value === 'dark' ? 'no-preference
 
       <section class="right">
         <AppSearch v-if="hasDocSearch" />
-        <ClientOnly>
-          <GithubButton class="hidden xl:inline h-[20px]" href="https://github.com/harlan-zw/unlighthouse" :data-color-scheme="githubColorScheme" data-icon="octicon-star" data-show-count="true" aria-label="Star on GitHub">
-            Star
-          </GithubButton>
-          <GithubButton class="hidden xl:inline h-[20px]" href="https://github.com/sponsors/harlan-zw" :data-color-scheme="githubColorScheme" data-icon="octicon-heart" aria-label="Sponsor @harlan-zw on GitHub">
-            Sponsor
-          </GithubButton>
-        </ClientOnly>
-        <ThemeSelect />
+        <LegoGithubStar v-slot="{ stars }" repo="harlan-zw/unlighthouse" class="hidden md:flex mr-5 group border dark:bg-gray-900 dark:hover:bg-gray-700 hover:bg-gray-200 dark:bg-gray-900 bg-gray-100 transition rounded-lg text-sm justify-center">
+          <div class="flex items-center transition rounded-l px-2 py-1 space-x-1">
+            <Icon name="uil:star" class="group-hover:op75 " />
+            <div>Star</div>
+          </div>
+          <div class="px-2 py-1 dark:bg-black bg-white rounded-r-lg">
+            {{ stars }}
+          </div>
+        </LegoGithubStar>
+
+        <button
+          @click="isDark = !isDark"
+          class="focus:outline-none focus-visible:outline-0 disabled:cursor-not-allowed disabled:opacity-75 flex-shrink-0 font-medium rounded-md text-sm gap-x-1.5 p-1.5 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-400 inline-flex items-center"
+          aria-label="Color Mode"
+          type="button"
+        >
+          <Icon v-if="isDark" name="heroicons:moon-20-solid" class="group-hover:op75 flex-shrink-0 h-5 w-5" aria-hidden="true" />
+          <Icon v-else name="heroicons:sun-20-solid" class="group-hover:op75 flex-shrink-0 h-5 w-5" aria-hidden="true" />
+        </button>
+
+
         <AppSocialIcons />
         <a class="hidden sm:flex items-center ml-5" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
           <div class="flex items-center">
