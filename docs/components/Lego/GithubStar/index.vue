@@ -18,8 +18,16 @@ const link = computed(() => {
 // pull the stars from the server
 const { data } = await useFetch('/api/get-github-stars', {
   query: {
-    repo,
+    repo: repo.value,
   },
+  watch: [
+    repo,
+  ],
+  key: `github-stars-${repo.value}`,
+}).catch(() => {
+  return {
+    data: ref({ stars: 0 }),
+  }
 })
 
 const stars = computed(() => {
