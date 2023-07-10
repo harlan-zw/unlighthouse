@@ -15,8 +15,8 @@ importers:
         specifier: ^1.6.3
         version: 1.6.3(rollup@3.26.0)
       nuxt-og-image:
-        specifier: ^2.0.6
-        version: 2.0.6(rollup@3.26.0)
+        specifier: ^2.0.8
+        version: 2.0.8(rollup@3.26.0)
       postcss-custom-properties:
         specifier: ^13.2.1
         version: 13.2.1(postcss@8.4.24)
@@ -1979,7 +1979,7 @@ packages:
   /@types/sax@1.2.4:
     resolution: {integrity: sha512-pSAff4IAxJjfAXUG6tFkO7dsSbTmf8CtUpfhhZ5VhkRpC4628tJhh3+V6H1E+/Gs9piSzYKT5yzHO5M4GG9jkw==}
     dependencies:
-      '@types/node': 17.0.45
+      '@types/node': 20.3.3
     dev: true
 
   /@types/unist@2.0.6:
@@ -2649,13 +2649,8 @@ packages:
       file-uri-to-path: 1.0.0
     dev: true
 
-  /birpc@0.2.11:
-    resolution: {integrity: sha512-OcUm84SBHRsmvSQhOLZRt5Awmw8WVknVcMDMaPE8GPwYxzc4mGE0EIytkWXayPjheGvm7s/Ci1wQZGwk7YPU6A==}
-    dev: true
-
   /birpc@0.2.12:
     resolution: {integrity: sha512-6Wz9FXuJ/FE4gDH+IGQhrYdalAvAQU1Yrtcu1UlMk3+9mMXxIRXiL+MxUcGokso42s+Fy+YoUXGLOdOs0siV3A==}
-    dev: false
 
   /bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
@@ -2840,11 +2835,6 @@ packages:
     dependencies:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
-    dev: true
-
-  /chalk@5.2.0:
-    resolution: {integrity: sha512-ree3Gqw/nazQAPuJJEy+avdl7QfZMcUvmHIKgEZkGL+xOBzRvup5Hxo6LHuMceSxOabuJLJm5Yp/92R9eMmMvA==}
-    engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
     dev: true
 
   /chalk@5.3.0:
@@ -5976,24 +5966,24 @@ packages:
     dependencies:
       '@nuxt/kit': 3.4.2(rollup@3.26.0)
       '@types/fs-extra': 11.0.1
-      birpc: 0.2.11
-      chalk: 5.2.0
+      birpc: 0.2.12
+      chalk: 5.3.0
       chrome-launcher: 0.15.2
       defu: 6.1.2
       execa: 7.1.1
-      fast-glob: 3.2.12
+      fast-glob: 3.3.0
       flatted: 3.2.7
       fs-extra: 11.1.1
       launch-editor: 2.6.0
       ohash: 1.1.2
       pathe: 1.1.1
-      playwright-core: 1.33.0
+      playwright-core: 1.35.1
       radix3: 1.0.1
       satori: 0.4.3
       satori-html: 0.3.2
       sirv: 2.0.3
       std-env: 3.3.3
-      svg2png-wasm: 1.3.4
+      svg2png-wasm: 1.4.0
       tinyws: 0.1.0(ws@8.13.0)
       twemoji: 14.0.2
       ufo: 1.1.2
@@ -6006,8 +5996,8 @@ packages:
       - utf-8-validate
     dev: true
 
-  /nuxt-og-image@2.0.6(rollup@3.26.0):
-    resolution: {integrity: sha512-MjTz4FDmRqtx4G+emD3RZVpzcMrlIjjLA/WF7uE8XMgrSoSFHtMmTzkNOq9IXFPGYqdBVC5jliHNhjVfpBKYGg==}
+  /nuxt-og-image@2.0.8(rollup@3.26.0):
+    resolution: {integrity: sha512-xMfF6msPIKfphTeOKF/65pDoAtQR8g8I6mYTrRLTgwBwVmKWGB8iGkOuuNBsnywsKx5jpxNetUUxyZ8dZ3MraA==}
     dependencies:
       '@nuxt/kit': 3.6.2(rollup@3.26.0)
       '@resvg/resvg-js': 2.4.1
@@ -6577,17 +6567,10 @@ packages:
       mlly: 1.3.0
       pathe: 1.1.1
 
-  /playwright-core@1.33.0:
-    resolution: {integrity: sha512-aizyPE1Cj62vAECdph1iaMILpT0WUDCq3E6rW6I+dleSbBoGbktvJtzS6VHkZ4DKNEOG9qJpiom/ZxO+S15LAw==}
-    engines: {node: '>=14'}
-    hasBin: true
-    dev: true
-
   /playwright-core@1.35.1:
     resolution: {integrity: sha512-pNXb6CQ7OqmGDRspEjlxE49w+4YtR6a3X6mT1hZXeJHWmsEz7SunmvZeiG/+y1yyMZdHnnn73WKYdtV1er0Xyg==}
     engines: {node: '>=16'}
     hasBin: true
-    dev: false
 
   /postcss-calc@9.0.1(postcss@8.4.24):
     resolution: {integrity: sha512-TipgjGyzP5QzEhsOZUaIkeO5mKeMFpebWzRogWG/ysonUlnHcq5aJe0jOjpfzUU8PeSaBQnrE8ehR0QA5vs8PQ==}
@@ -7838,13 +7821,8 @@ packages:
     resolution: {integrity: sha512-ovssysQTa+luh7A5Weu3Rta6FJlFBBbInjOh722LIt6klpU2/HtdUbszju/G4devcvk8PGt7FCLv5wftu3THUA==}
     dev: true
 
-  /svg2png-wasm@1.3.4:
-    resolution: {integrity: sha512-gnegOEiLojoUA8l1ZpyuevruqLTIeiMry6gFcLvXf20cBnaSKLCNl1n+sNrDbBQswsnxIAbI2kU2/P4mwArCgA==}
-    dev: true
-
   /svg2png-wasm@1.4.0:
     resolution: {integrity: sha512-UH6XzvHZvHzLrgjcjxX4BCOMalzF1Z8G6EJRsBo/+DLO2jhzdUBwhA8Hl8sn21Cn6N/jBbbdeqUhCzR/FL6xYw==}
-    dev: false
 
   /svgo@3.0.2:
     resolution: {integrity: sha512-Z706C1U2pb1+JGP48fbazf3KxHrWOsLme6Rv7imFBn5EnuanDW1GPaA/P1/dvObE670JDePC3mnj0k0B7P0jjQ==}

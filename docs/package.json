@@ -10,7 +10,7 @@
   "dependencies": {
     "@headlessui/vue": "^1.7.14",
     "@nuxtlabs/github-module": "^1.6.3",
-    "nuxt-og-image": "^2.0.6",
+    "nuxt-og-image": "^2.0.8",
     "postcss-custom-properties": "^13.2.1"
   },
   "devDependencies": {
