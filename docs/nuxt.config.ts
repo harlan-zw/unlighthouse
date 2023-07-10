@@ -12,9 +12,15 @@ export default defineNuxtConfig({
 
   modules: [
     'nuxt-windicss',
+    'nuxt-og-image',
     '@nuxtjs/fontaine',
     resolve('./app/module'),
   ],
+
+  site: {
+    url: 'https://unlighthouse.dev',
+    name: 'Unlighthouse',
+  },
 
   runtimeConfig: {
     indexable: true,
