@@ -81,7 +81,7 @@ export default {
 
 ## Configuration
 
-You can either configure Unlighthouse via the plugin, or you can provide a [config file](/guide/config/file)
+You can either configure Unlighthouse via the plugin, or you can provide a [config file](/guide/guides/config)
 in the root directory.
 
 ### Example
