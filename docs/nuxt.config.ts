@@ -7,6 +7,7 @@ export default defineNuxtConfig({
   extends: [
     '@nuxt-themes/docus',
     'nuxt-seo-kit',
+    'nuxt-lego',
   ],
 
   modules: [
@@ -54,7 +55,7 @@ export default defineNuxtConfig({
       theme: {
         light: 'material-lighter',
         default: 'material-default',
-        dark: 'material-palenight'
+        dark: 'material-palenight',
       },
       preload: ['json', 'js', 'ts', 'html', 'css', 'json', 'vue', 'diff', 'shell', 'markdown', 'yaml', 'bash', 'ini'],
     },
