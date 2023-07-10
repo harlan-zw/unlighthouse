@@ -75,7 +75,7 @@ export function reportJsonExpanded(unlighthouseRouteReports): ReportJsonExpanded
   const averageMetrics = extractMetricsFromRoutes(routes)
 
   const summary = {
-    score: parseFloat(
+    score: Number.parseFloat(
       (
         routes.reduce((prev, curr) => prev + curr.score, 0) / routes.length
       ).toFixed(2),
@@ -113,7 +113,7 @@ function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
       },
       key: string,
     ) => {
-      const averageScore = parseFloat(
+      const averageScore = Number.parseFloat(
         (
           categoriesWithAllScores[key].scores.reduce(
             (prev, curr) => prev + curr,
@@ -150,7 +150,7 @@ function extractMetricsFromRoutes(routes: ExpandedRouteReport[]) {
   // average metrics
   return Object.keys(metricsWithAllNumericValues).reduce(
     (prev: { [key: string]: MetricAverageScore }, key: string) => {
-      const averageNumericValue = parseFloat(
+      const averageNumericValue = Number.parseFloat(
         (
           metricsWithAllNumericValues[key].numericValues.reduce(
             (prev, curr) => prev + curr,

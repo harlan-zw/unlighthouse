@@ -7,9 +7,9 @@ defineProps({
   as: {
     type: String as PropType<HTMLElementsTags>,
     required: false,
-    default: 'div'
+    default: 'div',
   },
-  ...variants
+  ...variants,
 })
 </script>
 

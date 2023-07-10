@@ -10,22 +10,22 @@
   },
   "dependencies": {
     "@unlighthouse/nuxt": "link:../../integrations/nuxt",
-    "@vue/composition-api": "^1.4.6",
-    "core-js": "^3.21.1",
+    "@vue/composition-api": "^1.7.1",
+    "core-js": "^3.31.1",
     "highwayhash": "^3.1.1",
-    "nuxt": "^2.15.7",
+    "nuxt": "^3.6.2",
     "nuxt-vite": "^0.3.5",
-    "postcss": "^8.4.6",
-    "slugify": "^1.6.5",
-    "vite-plugin-windicss": "^1.7.1",
-    "vue": "^3.2.31",
-    "vue-router": "^4.0.12",
-    "vue-template-compiler": "^2"
+    "postcss": "^8.4.25",
+    "slugify": "^1.6.6",
+    "vite-plugin-windicss": "^1.9.0",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.4",
+    "vue-template-compiler": "^2.7.14"
   },
   "devDependencies": {
-    "@nuxt/types": "^2.15.7",
-    "@nuxt/typescript-build": "^2.1.0",
-    "@nuxtjs/composition-api": "^0.31.0",
-    "nuxt-windicss": "^2.2.5"
+    "@nuxt/types": "^2.17.0",
+    "@nuxt/typescript-build": "^3.0.1",
+    "@nuxtjs/composition-api": "^0.33.1",
+    "nuxt-windicss": "^2.6.1"
   }
 }

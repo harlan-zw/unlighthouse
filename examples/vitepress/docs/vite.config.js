@@ -9,6 +9,6 @@ export default defineConfig({
       discovery: {
         pagesDir: '',
       },
-    })
+    }),
   ],
 })

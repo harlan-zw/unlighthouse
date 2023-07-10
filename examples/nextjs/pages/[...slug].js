@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 
-const CatchAll = () => {
+function CatchAll() {
   const router = useRouter()
   const { slug } = router.query
 

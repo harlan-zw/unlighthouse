@@ -1,4 +1,4 @@
-import path from 'path'
+import path from 'node:path'
 import { defineConfig } from 'vite'
 import Vue from '@vitejs/plugin-vue'
 import Pages from 'vite-plugin-pages'
@@ -15,7 +15,7 @@ import VueI18n from '@intlify/vite-plugin-vue-i18n'
 import Inspect from 'vite-plugin-inspect'
 import Prism from 'markdown-it-prism'
 import LinkAttributes from 'markdown-it-link-attributes'
-import {useUnlighthouse} from "unlighthouse";
+import { useUnlighthouse } from 'unlighthouse'
 
 const markdownWrapperClasses = 'prose prose-sm m-auto text-left'
 
@@ -37,7 +37,7 @@ export default defineConfig({
         const { hooks } = useUnlighthouse()
         console.log('vite-plugin-pages', routes)
         hooks.callHook('route-definitions-provided', routes)
-      }
+      },
     }),
 
     // https://github.com/JohnCampionJr/vite-plugin-vue-layouts
@@ -148,7 +148,7 @@ export default defineConfig({
       enabled: false,
     }),
 
-    Unlighthouse()
+    Unlighthouse(),
   ],
 
   server: {

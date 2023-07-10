@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 
-const Post = () => {
+function Post() {
   const router = useRouter()
   const { pid } = router.query
 

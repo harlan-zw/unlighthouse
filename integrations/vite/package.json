@@ -41,6 +41,6 @@
     "@unlighthouse/server": "workspace:*"
   },
   "devDependencies": {
-    "vite": "^4.3.9"
+    "vite": "^4.4.2"
   }
 }

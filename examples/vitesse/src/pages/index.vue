@@ -5,7 +5,7 @@ const user = useUserStore()
 const name = ref(user.savedName)
 
 const router = useRouter()
-const go = () => {
+function go() {
   if (name.value)
     router.push(`/hi/${encodeURIComponent(name.value)}`)
 }
@@ -18,7 +18,9 @@ const { t } = useI18n()
     <p class="text-4xl">
       <carbon-campsite class="inline-block" />
     </p>
-    <router-link to="/test">test link</router-link>
+    <router-link to="/test">
+      test link
+    </router-link>
     <p>
       <a rel="noreferrer" href="https://github.com/antfu/vitesse" target="_blank">
         Vitesse
