@@ -24,7 +24,7 @@ performance scores as the extra workload will affect performance metrics.
 ```ts
 export default {
   puppeteerClusterOptions: {
-      // only run 1 worker at a time 
+    // only run 1 worker at a time
     maxConcurrency: 1
   }
 }

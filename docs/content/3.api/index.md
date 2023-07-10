@@ -19,10 +19,10 @@ Functions exposed from the `@unlighthouse/core` package.
     // config
     { configFile: 'mysite.config.ts' },
     // provider
-    { 
-        name: 'custom',
-        // some custom implementation to find the route definitions
-        routeDefinitions: () => generateRouteDefinitions(),
+    {
+      name: 'custom',
+      // some custom implementation to find the route definitions
+      routeDefinitions: () => generateRouteDefinitions(),
     }
   )
   ```
@@ -53,6 +53,7 @@ Functions exposed from the `@unlighthouse/core` package.
 
   ```ts
   import { generateClient } from '@unlighthouse/core'
+  
   // ...
   logger.info('Generating static client.')
   await generateClient({ static: true })
@@ -68,6 +69,7 @@ Functions exposed from the `@unlighthouse/core` package.
 
   ```ts
   import { useUnlighthouse } from '@unlighthouse/core'
+  
   // access the lighthouse context, pick out the worker
   const { worker } = useUnlighthouse()
   // force whichever route matches home.md to be re-scanned
@@ -83,6 +85,7 @@ Functions exposed from the `@unlighthouse/core` package.
 
   ```ts
   import { useLogger } from '@unlighthouse/core'
+  
   // you need to instantiate the logger to get the instance
   const logger = useLogger()
   // force whichever route matches home.md to be re-scanned
@@ -105,6 +108,7 @@ running Unlighthouse with the `cli` provider will use this package.
 
   ```ts
   import { createServer } from '@unlighthouse/server'
+  
   // ...
   const { server, app } = await createServer()
   // server is an instance of listhen, app is an instance of h3
@@ -147,7 +151,7 @@ Unlighthouse provides hooks using [hookable](https://github.com/unjs/hookable) w
 Hooks can be accessed on the `hooks` property of the context and will always return a `Promise<void>|void`.
 
 ```ts
-export type HookResult = Promise<void>|void
+export type HookResult = Promise<void> | void
 ```
 
 ```ts
@@ -156,7 +160,7 @@ import { useUnlighthouse } from '@unlighthouse/core'
 const { hooks } = useUnlighthouse()
 
 hooks.hook('task-complete', (path, response) => {
-   console.log('task is finished at path', path)
+  console.log('task is finished at path', path)
 })
 ```
 

@@ -13,7 +13,7 @@ See the [glossary guide](/api/glossary/#columns) for the columns to understand t
 ```ts
 export default {
   hooks: {
-    'resolved-config'(config) {
+    'resolved-config': function (config) {
       // replace FCP column with server response time
       config.client.columns.performance[2] = {
         cols: 1,

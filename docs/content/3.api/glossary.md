@@ -48,7 +48,7 @@ export interface Provider {
    * The collection of route definitions belonging to the provider. These can be inferred but aren't 100% correct,
    * frameworks that can provide these should do so.
    */
-  routeDefinitions?: RouteDefinition[]|(() => RouteDefinition[]|Promise<RouteDefinition[]>)
+  routeDefinitions?: RouteDefinition[] | (() => RouteDefinition[] | Promise<RouteDefinition[]>)
 }
 ```
 
@@ -201,12 +201,12 @@ See [cluster.task(fn)](https://github.com/thomasdondorf/puppeteer-cluster) for m
 /**
  * Tasks that Unlighthouse will run, used to track their status.
  */
-export type UnlighthouseTask = 'inspectHtmlTask'|'runLighthouseTask'
+export type UnlighthouseTask = 'inspectHtmlTask' | 'runLighthouseTask'
 
 /**
  * Each task ran by unlighthouse (extractHtmlPayload, runLighthouseTask) has a specific status which we can expose.
  */
-export type UnlighthouseTaskStatus = 'waiting'|'in-progress'|'completed'|'failed'
+export type UnlighthouseTaskStatus = 'waiting' | 'in-progress' | 'completed' | 'failed'
 ```
 
 ## Client

@@ -16,7 +16,7 @@ You will need to remove the Chrome sandbox in a Docker environment, this will re
 // unlighthouse.config.ts
 export default {
   puppeteerOptions: {
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   },
 }
 ```
@@ -27,14 +27,14 @@ the reports are finished.
 ```ts
 // unlighthouse.config.ts
 export default {
-    server: {
-        open: false,
-    },
-    hooks: {
-        'worker-finished': async () => {
-            process.exit(0);
-        }
+  server: {
+    open: false,
+  },
+  hooks: {
+    'worker-finished': async () => {
+      process.exit(0)
     }
+  }
 }
 ```
 

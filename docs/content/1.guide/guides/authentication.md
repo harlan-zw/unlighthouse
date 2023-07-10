@@ -8,12 +8,12 @@ To use basic authentication, provide the `auth` option in your configuration fil
 
 ```ts
 // unlighthouse.config.ts
-export default{
+export default {
   auth: {
     username: 'username',
     password: 'password',
   },
-};
+}
 ```
 
 Alternatively, you can provide the `--auth` flag to the CLI.
@@ -28,7 +28,7 @@ If you can authenticate your session using cookies, use the `cookies` option in 
 
 ```ts
 // unlighthouse.config.ts
-export default{
+export default {
   cookies: [
     {
       name: 'my-jwt-token',
@@ -41,7 +41,7 @@ export default{
       sameSite: 'Lax',
     },
   ],
-};
+}
 ```
 
 Alternatively, you can provide the `--cookies` flag to the CLI.
@@ -64,11 +64,11 @@ To use custom headers, provide the `extraHeaders` option in your configuration f
 
 ```ts
 // unlighthouse.config.ts
-export default{
+export default {
   extraHeaders: {
     'x-custom-auth': '<token>>',
   },
-};
+}
 ```
 
 Alternatively, you can provide the `--extra-headers` flag to the CLI.
@@ -117,7 +117,7 @@ You can see an example here:
 export default {
   puppeteerOptions: {
     // slow down slightly so input is not missed
-    slowMo: 50,  
+    slowMo: 50,
   },
   lighthouseOptions: {
     // allow storage to persist between pages
@@ -125,16 +125,16 @@ export default {
   },
   hooks: {
     'puppeteer:before-goto': async (page) => {
-        // login to the page
+      // login to the page
       await page.goto('https://example.com/login')
-      const emailInput = await page.$('input[type="email"]');
-      await emailInput.type('admin@example.com');
-      const passwordInput = await page.$('input[type="password"]');
-      await passwordInput.type('password');
+      const emailInput = await page.$('input[type="email"]')
+      await emailInput.type('admin@example.com')
+      const passwordInput = await page.$('input[type="password"]')
+      await passwordInput.type('password')
       await Promise.all([
         page.$eval('.login-form', form => form.submit()),
         page.waitForNavigation(),
-      ]);
+      ])
     },
   },
 }

@@ -90,11 +90,11 @@ jobs:
       - name: Deploy report to Netlify
         uses: nwtgck/actions-netlify@v1.2
         with:
-          publish-dir: './.unlighthouse'
+          publish-dir: ./.unlighthouse
           production-branch: main
           production-deploy: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "New Release Deploy from GitHub Actions"
+          deploy-message: New Release Deploy from GitHub Actions
           enable-pull-request-comment: false
           enable-commit-comment: true
           overwrites-pull-request-comment: true

@@ -29,15 +29,15 @@ let token
 export default {
   hooks: {
     'puppeteer:before-goto': async (page) => {
-      if (!token) {
+      if (!token)
         token = await generateToken()
-      }
+
       // set authentication token when we load a new page
-      await page.evaluateOnNewDocument(token => {
-          localStorage.clear()
-          localStorage.setItem('token', token)
-        }, token
-        )
+      await page.evaluateOnNewDocument((token) => {
+        localStorage.clear()
+        localStorage.setItem('token', token)
+      }, token
+      )
     },
   },
 }
@@ -49,14 +49,14 @@ export default {
 export default {
   hooks: {
     'puppeteer:before-goto': async (page) => {
-      let deleteSelector= ".VPNav";
+      const deleteSelector = '.VPNav'
       page.waitForNavigation().then(async () => {
         await page.waitForTimeout(1000)
         await page.evaluate((sel) => {
-          const elements = document.querySelectorAll(sel);
-          for(let i=0; i< elements.length; i++){
-            elements[i].parentNode.removeChild(elements[i]);
-          }
+          const elements = document.querySelectorAll(sel)
+          for (let i = 0; i < elements.length; i++)
+            elements[i].parentNode.removeChild(elements[i])
+
         }, deleteSelector)
       })
     }
