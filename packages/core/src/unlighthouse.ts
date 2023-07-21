@@ -136,23 +136,25 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
   const worker = await createUnlighthouseWorker(tasks)
 
-  // do an authentication step
-  await worker.cluster.execute({}, async (taskCtx) => {
-    await hooks.callHook('authenticate', taskCtx.page)
-    // collect page authentication, either cookie or localStorage tokens
-    const localStorageData = await taskCtx.page.evaluate(() => {
-      const json = {}
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        json[key] = localStorage.getItem(key)
-      }
-      return json
+  if (resolvedConfig.hooks?.authenticate) {
+    // do an authentication step
+    await worker.cluster.execute({}, async (taskCtx) => {
+      await hooks.callHook('authenticate', taskCtx.page)
+      // collect page authentication, either cookie or localStorage tokens
+      const localStorageData = await taskCtx.page.evaluate(() => {
+        const json = {}
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          json[key] = localStorage.getItem(key)
+        }
+        return json
+      })
+      const cookies = await taskCtx.page.cookies()
+      // merge this into the config
+      ctx.resolvedConfig.cookies = [...(ctx.resolvedConfig.cookies || []), ...cookies as any as ResolvedUserConfig['cookies']]
+      ctx.resolvedConfig.localStorage = { ...ctx.resolvedConfig.localStorage, ...localStorageData }
     })
-    const cookies = await taskCtx.page.cookies()
-    // merge this into the config
-    ctx.resolvedConfig.cookies = [...(ctx.resolvedConfig.cookies || []), ...cookies as any as ResolvedUserConfig['cookies']]
-    ctx.resolvedConfig.localStorage = { ...ctx.resolvedConfig.localStorage, ...localStorageData }
-  })
+  }
 
   ctx.worker = worker
 
