@@ -32,9 +32,9 @@
     "vue": "^3.3.4"
   },
   "devDependencies": {
-    "@iconify/json": "^2.2.88",
+    "@iconify/json": "^2.2.93",
     "@types/lodash": "^4.14.195",
-    "@types/node": "^20.4.1",
+    "@types/node": "^20.4.2",
     "@types/three": "^0.153.0",
     "@unlighthouse/core": "workspace:../core",
     "@vitejs/plugin-vue": "^2.3.4",

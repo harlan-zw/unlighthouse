@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import type { LaunchOptions, Page } from 'puppeteer'
+import type { LaunchOptions, Page } from 'puppeteer-core'
 
 interface ClusterOptions {
   concurrency: number | unknown

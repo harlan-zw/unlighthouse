@@ -134,6 +134,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     runLighthouseTask,
   }
 
+  // @ts-expect-error untyped
   const worker = await createUnlighthouseWorker(tasks)
 
   if (resolvedConfig.hooks?.authenticate) {
@@ -142,15 +143,17 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       await hooks.callHook('authenticate', taskCtx.page)
       // collect page authentication, either cookie or localStorage tokens
       const localStorageData = await taskCtx.page.evaluate(() => {
-        const json = {}
+        const json: Record<string, any> = {}
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)
-          json[key] = localStorage.getItem(key)
+          if (key)
+            json[key] = localStorage.getItem(key)
         }
         return json
       })
       const cookies = await taskCtx.page.cookies()
       // merge this into the config
+      // @ts-expect-error untyped
       ctx.resolvedConfig.cookies = [...(ctx.resolvedConfig.cookies || []), ...cookies as any as ResolvedUserConfig['cookies']]
       ctx.resolvedConfig.localStorage = { ...ctx.resolvedConfig.localStorage, ...localStorageData }
     })

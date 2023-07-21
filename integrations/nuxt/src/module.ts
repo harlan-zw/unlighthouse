@@ -52,6 +52,7 @@ export default defineNuxtModule<ModuleOptions>({
       dev: true,
       server: true,
     }
+    // @ts-expect-error untyped
     addVitePlugin(VitePlugin(config), pluginOptions)
     addWebpackPlugin(WebpackPlugin(config), pluginOptions)
 

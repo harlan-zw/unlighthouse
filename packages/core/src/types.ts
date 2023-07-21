@@ -2,10 +2,9 @@ import type http from 'node:http'
 import type https from 'node:https'
 import type { $URL, QueryObject } from 'ufo'
 import type { LH } from 'lighthouse'
-import type { LaunchOptions, Page } from 'puppeteer-core'
+import type { LaunchOptions, Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { App } from 'h3'
-import type { PuppeteerNodeLaunchOptions } from 'puppeteer'
 import type { Cluster, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
@@ -811,7 +810,7 @@ export interface UnlighthouseContext {
   mockRouter?: MockRouter
   /**
    * Settings that are computed from runtime data.
-   */localStorage
+   */
   runtimeSettings: RuntimeSettings
   /**
    * Access the hook system, either calling a hook or listening to one.

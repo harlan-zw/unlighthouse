@@ -129,7 +129,7 @@ You can see an example here:
 // unlighthouse.config.ts
 export default {
   hooks: {
-    'authenticate': async (page) => {
+    async authenticate (page) {
       // login to the page
       await page.goto('https://example.com/login')
       const emailInput = await page.$('input[type="email"]')
