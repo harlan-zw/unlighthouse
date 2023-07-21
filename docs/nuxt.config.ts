@@ -6,11 +6,11 @@ const { resolve } = createResolver(import.meta.url)
 export default defineNuxtConfig({
   extends: [
     '@nuxt-themes/docus',
-    'nuxt-seo-kit',
     'nuxt-lego',
   ],
 
   modules: [
+    'nuxt-seo-kit-module',
     'nuxt-windicss',
     'nuxt-og-image',
     '@nuxtjs/fontaine',
@@ -20,6 +20,11 @@ export default defineNuxtConfig({
   site: {
     url: 'https://unlighthouse.dev',
     name: 'Unlighthouse',
+    titleSeparator: '·',
+    description: 'Like Google Lighthouse, but it scans every single page.',
+    defaultLocale: 'en',
+    trailingSlash: false,
+    indexable: true,
   },
 
   runtimeConfig: {

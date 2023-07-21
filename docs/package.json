@@ -7,18 +7,14 @@
     "generate": "nuxi build",
     "preview": "nuxi preview"
   },
-  "dependencies": {
-    "@headlessui/vue": "^1.7.14",
-    "@nuxtlabs/github-module": "^1.6.3",
-    "nuxt-og-image": "^2.0.10",
-    "postcss-custom-properties": "^13.2.1"
-  },
   "devDependencies": {
+    "@headlessui/vue": "^1.7.14",
+    "postcss-custom-properties": "^13.2.1",
     "@nuxt-themes/docus": "1.14.3",
     "@nuxtjs/fontaine": "^0.4.0",
-    "nuxt": "^3.6.2",
+    "nuxt": "^3.6.5",
     "nuxt-lego": "^0.0.14",
-    "nuxt-seo-kit": "^1.3.9",
+    "nuxt-seo-kit-module": "^2.0.0-beta.5",
     "nuxt-windicss": "^2.6.1"
   }
 }
