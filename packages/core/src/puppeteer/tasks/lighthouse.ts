@@ -10,6 +10,7 @@ import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '.
 import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { ReportArtifacts, base64ToBuffer } from '../../util'
+import { setupPage } from '../util'
 
 export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: LH.Result): LighthouseReport {
   const { resolvedConfig, runtimeSettings } = useUnlighthouse()
@@ -85,7 +86,7 @@ export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result
 
 export const runLighthouseTask: PuppeteerTask = async (props) => {
   const logger = useLogger()
-  const { resolvedConfig, runtimeSettings, worker, hooks } = useUnlighthouse()
+  const { resolvedConfig, runtimeSettings, worker } = useUnlighthouse()
   const { page, data: routeReport } = props
 
   // if the report doesn't exist, we're going to run a new lighthouse process to generate it
@@ -96,32 +97,9 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     return routeReport
   }
 
-  const browser = page.browser()
-  const port = new URL(browser.wsEndpoint()).port
-  // ignore csp errors
-  await page.setBypassCSP(true)
+  await setupPage(page)
 
-  if (resolvedConfig.auth)
-    await page.authenticate(resolvedConfig.auth)
-
-  if (resolvedConfig.cookies)
-    await page.setCookie(...resolvedConfig.cookies)
-  if (resolvedConfig.extraHeaders)
-    await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
-
-  // Wait for Lighthouse to open url, then allow hook to run
-  browser.on('targetchanged', async (target) => {
-    const page = await target.page()
-    if (page) {
-      // in case they get reset
-      if (resolvedConfig.cookies)
-        await page.setCookie(...resolvedConfig.cookies)
-      if (resolvedConfig.extraHeaders)
-        await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
-      await hooks.callHook('puppeteer:before-goto', page)
-    }
-  })
-
+  const port = new URL(page.browser().wsEndpoint()).port
   // allow changing behavior of the page
   const clonedRouteReport = { ...routeReport }
   // just modify the url for the unlighthouse request

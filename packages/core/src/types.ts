@@ -264,6 +264,12 @@ export interface ResolvedUserConfig {
    */
   cookies: false | { name: string; value: string; [v: string]: string }[]
   /**
+   * Local storage to add to the browser context.
+   *
+   * @default {}
+   */
+  localStorage: Record<string, any>
+  /**
    * Extra headers to provide for any HTTP requests.
    *
    * @default false
@@ -699,6 +705,11 @@ export interface UnlighthouseHooks {
    * @param page
    */
   'puppeteer:before-goto': (page: Page) => HookResult
+  /**
+   * Authenticate a page before it's visited.
+   * @param page
+   */
+  'authenticate': (page: Page) => HookResult
 }
 
 /**
@@ -800,7 +811,7 @@ export interface UnlighthouseContext {
   mockRouter?: MockRouter
   /**
    * Settings that are computed from runtime data.
-   */
+   */localStorage
   runtimeSettings: RuntimeSettings
   /**
    * Access the hook system, either calling a hook or listening to one.

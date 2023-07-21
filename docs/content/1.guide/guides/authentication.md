@@ -103,6 +103,19 @@ Alternatively, you can provide the `--default-query-params` flag to the CLI.
 unlighthouse --site <your-site> --default-query-params auth=<token>,foo=bar
 ```
 
+## Local Storage
+
+If you can configure your authentication using local storage,
+then you can provide them using the `localStorage` option in your configuration file:
+
+```ts
+// unlighthouse.config.ts
+export default {
+  localStorage: {
+    auth: '<token>'
+  }
+}
+```
 
 ## Programmatic Usage
 
@@ -115,16 +128,8 @@ You can see an example here:
 ```ts
 // unlighthouse.config.ts
 export default {
-  puppeteerOptions: {
-    // slow down slightly so input is not missed
-    slowMo: 50,
-  },
-  lighthouseOptions: {
-    // allow storage to persist between pages
-    disableStorageReset: true,
-  },
   hooks: {
-    'puppeteer:before-goto': async (page) => {
+    'authenticate': async (page) => {
       // login to the page
       await page.goto('https://example.com/login')
       const emailInput = await page.$('input[type="email"]')
@@ -136,6 +141,27 @@ export default {
         page.waitForNavigation(),
       ])
     },
+  },
+}
+```
+
+## Troubleshooting
+
+If you're having trouble authenticating,
+you can use the `debug: true` and `headless: false`,
+flags to see what's happening. 
+
+```bash
+// unlighthouse.config.ts
+export default {
+  debug: true,
+  // show the browser window
+  puppeteerOptions: {
+    headless: false,
+  },
+  // only run a single scan at a time
+  puppeteerClusterOptions: {
+    maxConcurrency: 1,
   },
 }
 ```

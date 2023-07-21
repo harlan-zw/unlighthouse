@@ -15,7 +15,7 @@ import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
 import type {
-  Provider, RuntimeSettings,
+  Provider, ResolvedUserConfig, RuntimeSettings,
   UnlighthouseContext,
   UnlighthouseHooks,
   UserConfig,
@@ -136,6 +136,24 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
   const worker = await createUnlighthouseWorker(tasks)
 
+  // do an authentication step
+  await worker.cluster.execute({}, async (taskCtx) => {
+    await hooks.callHook('authenticate', taskCtx.page)
+    // collect page authentication, either cookie or localStorage tokens
+    const localStorageData = await taskCtx.page.evaluate(() => {
+      const json = {}
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        json[key] = localStorage.getItem(key)
+      }
+      return json
+    })
+    const cookies = await taskCtx.page.cookies()
+    // merge this into the config
+    ctx.resolvedConfig.cookies = [...(ctx.resolvedConfig.cookies || []), ...cookies as any as ResolvedUserConfig['cookies']]
+    ctx.resolvedConfig.localStorage = { ...ctx.resolvedConfig.localStorage, ...localStorageData }
+  })
+
   ctx.worker = worker
 
   ctx.setCiContext = async () => {
@@ -248,11 +266,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   }
 
   ctx.start = async () => {
-    if (worker.hasStarted()) {
-      logger.debug('Attempted to start Unlighthouse, has already started.')
-      return ctx
-    }
-
     logger.debug(`Starting Unlighthouse [Server: ${provider?.name === 'ci' ? 'N/A' : ctx.runtimeSettings.clientUrl} Site: ${ctx.resolvedConfig.site} Debug: \`${ctx.resolvedConfig.debug}\`]`)
 
     if (typeof provider?.routeDefinitions === 'function')

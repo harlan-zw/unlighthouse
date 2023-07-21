@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import fs from 'fs-extra'
 import type { CheerioAPI } from 'cheerio'
 import cheerio from 'cheerio'
-import type { Page } from 'puppeteer-core'
+import type { Page } from 'puppeteer'
 import { $URL, withoutTrailingSlash } from 'ufo'
 import chalk from 'chalk'
 import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
@@ -10,9 +10,10 @@ import { useUnlighthouse } from '../../unlighthouse'
 import { useLogger } from '../../logger'
 import { ReportArtifacts, fetchUrlRaw, formatBytes, trimSlashes } from '../../util'
 import { normaliseRoute } from '../../router'
+import { setupPage } from '../util'
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false | string; message?: string; payload?: string }> = async (page, route) => {
-  const { worker, resolvedConfig, hooks } = useUnlighthouse()
+  const { worker, resolvedConfig } = useUnlighthouse()
 
   // if we don't need to execute any javascript we can do a less expensive fetch of the URL
   if (resolvedConfig.scanner.skipJavascript) {
@@ -41,9 +42,11 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
         request.continue()
     })
 
-    await hooks.callHook('puppeteer:before-goto', page)
+    await setupPage(page)
 
     const pageVisit = await page.goto(route, { waitUntil: resolvedConfig.scanner.skipJavascript ? 'domcontentloaded' : 'networkidle0' })
+    if (!pageVisit)
+      return { success: false, message: `Failed to go to route ${route}.` }
 
     // only 2xx we'll consider valid
     const { 'content-type': contentType, location } = pageVisit.headers()
