@@ -55,7 +55,7 @@ export default {
 
 ## Alias: Enable/Disable Throttling
 
-There are two types of throttling: CPU and network. Both are used in combination to emulate vistors to your site who
+There are two types of throttling: CPU and network. Both are used in combination to emulate visitors to your site who
 have poor internet connection and slow devices.
 
 Unlighthouse will by default, throttle request to production sites for a more accurate performance score.

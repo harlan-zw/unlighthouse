@@ -105,7 +105,7 @@ export default {
 }
 ```
 
-Specify explicit relative URLs as a comma-seperated list.
+Specify explicit relative URLs as a comma-separated list.
 
 ```bash
 unlighthouse --site https://example.com --urls /about,/other-page

@@ -48,7 +48,7 @@ export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
       cols: 2,
       label: 'Network Requests',
       sortKey: 'length:details.items',
-      tooltip: 'The requests made during the page render. The size unit is the transfer size of the resources, typically gziped.',
+      tooltip: 'The requests made during the page render. The size unit is the transfer size of the resources, typically gzipped.',
       key: 'report.audits.network-requests',
     },
   ],
