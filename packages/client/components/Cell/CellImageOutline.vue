@@ -42,7 +42,7 @@ function getScreenshotPositions(elementRectSC, elementPreviewSizeSC, screenshotS
     elementRectCenter.x - elementPreviewSizeSC.width / 2,
     0, screenshotSize.width - elementPreviewSizeSC.width,
   )
-  const screenshotTopVisisleEdge = clamp(
+  const screenshotTopVisibleEdge = clamp(
     elementRectCenter.y - elementPreviewSizeSC.height / 2,
     0, screenshotSize.height - elementPreviewSizeSC.height,
   )
