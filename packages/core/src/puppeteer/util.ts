@@ -25,6 +25,8 @@ export async function setupPage(page: Page) {
   if (resolvedConfig.extraHeaders)
     await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
 
+  await hooks.callHook('puppeteer:before-goto', page)
+
   // Wait for Lighthouse to open url, then allow hook to run
   browser.on('targetchanged', async (target) => {
     const page = await target.page()
@@ -35,7 +37,6 @@ export async function setupPage(page: Page) {
       // set local storage
       if (resolvedConfig.extraHeaders)
         await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
-      await hooks.callHook('puppeteer:before-goto', page)
     }
   })
 }
