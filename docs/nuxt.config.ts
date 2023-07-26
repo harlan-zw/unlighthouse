@@ -27,6 +27,12 @@ export default defineNuxtConfig({
     indexable: true,
   },
 
+  nitro: {
+    prerender: {
+      failOnError: false,
+    }
+  },
+
   runtimeConfig: {
     indexable: true,
     public: {
