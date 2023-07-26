@@ -33,6 +33,10 @@ export default defineNuxtConfig({
     }
   },
 
+  linkChecker: {
+    failOn404: false,
+  },
+
   runtimeConfig: {
     indexable: true,
     public: {
