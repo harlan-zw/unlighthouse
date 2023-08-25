@@ -77,7 +77,6 @@ Optional basic auth credentials.
 
 Provide cookies to be set for Axios and Puppeteer requests.
 
-
 ### extraHeaders
 
 - **Type:** ` false | Record<string, string>`
@@ -324,10 +323,10 @@ Note: If you have `robotsTxt` enabled it will load sitemap config from here.
 
 ### scanner.device
 
-- **Type:** `boolean`
+- **Type:** `boolean | string`
 - **Default:** `mobile`
 
-Alias to switch the device used for scanning. Set to false if you want to manually configure it.
+Alias to switch the viewport dimentions used for scanning. Set to `desktop` for a viewport of 1350×950. Set to `false` if you want to manually configure it through `lighthouseOptions.formFactor`.
 
 See [Switching between mobile and desktop](/guide/guides/device#alias-enable-disable-throttling) for more information.
 
