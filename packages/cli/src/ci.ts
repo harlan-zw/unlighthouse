@@ -116,7 +116,7 @@ async function run() {
         logger.info('For deployment demos, see https://unlighthouse.com/docs/deployment')
       }
     }
-    process.exit(0)
+    process.exit(hadError ? 1 : 0)
   })
 }
 
