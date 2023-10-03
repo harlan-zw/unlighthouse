@@ -65,7 +65,7 @@
     "h3": "^1.7.1",
     "hookable": "^5.5.3",
     "launch-editor": "^2.6.0",
-    "lighthouse": "^9.6.8",
+    "lighthouse": "^11.1.0",
     "minimist": "^1.2.8",
     "mlly": "^1.4.0",
     "object-hash": "^3.0.0",

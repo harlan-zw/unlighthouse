@@ -3,6 +3,6 @@ declare module 'launch-editor' {
   export default launch
 }
 
-declare module 'lighthouse/lighthouse-core/lib/median-run.js' {
+declare module 'lighthouse/core/lib/median-run.js' {
   export function computeMedianRun(reports: any[]): string
 }
