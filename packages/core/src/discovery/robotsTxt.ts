@@ -75,6 +75,20 @@ export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { disallows, si
       return path
     })
     config.scanner.exclude = [...new Set([...(config.scanner.exclude || []), ...disallows])]
+      .filter((s) => {
+        if (typeof s === 'string') {
+          // make sure it's valid regex
+          try {
+            // eslint-disable-next-line no-new
+            new RegExp(s)
+            return true
+          }
+          catch (e) {
+            return false
+          }
+        }
+        return true
+      })
   }
 
   if (config.scanner.sitemap !== false && sitemaps.length)
