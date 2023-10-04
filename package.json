@@ -1,8 +1,8 @@
 {
   "name": "@unlighthouse/monorepo",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "private": true,
-  "packageManager": "pnpm@8.6.7",
+  "packageManager": "pnpm@8.8.0",
   "license": "MIT",
   "scripts": {
     "cli": "node packages/cli/dist/cli.mjs",
@@ -31,18 +31,14 @@
     "docs:build": "npm -C docs run build",
     "docs:serve": "npm -C docs run serve"
   },
-  "dependencies": {
-    "unbuild": "^1.2.1"
-  },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.39.8",
-    "@types/node": "^20.4.2",
-    "@vitest/ui": "^0.33.0",
-    "bumpp": "^9.1.1",
-    "eslint": "^8.45.0",
-    "typescript": "^5.1.6",
-    "vite": "^4.4.5",
-    "vitest": "^0.33.0"
+    "unbuild": "^2.0.0",
+    "@antfu/eslint-config": "1.0.0-beta.18",
+    "bumpp": "^9.2.0",
+    "eslint": "^8.50.0",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.9",
+    "vitest": "^0.34.6"
   },
   "pnpm": {
     "packageExtensions": {

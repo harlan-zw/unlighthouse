@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/vite",
   "type": "module",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Vite plugin for Unlighthouse",
   "author": "Harlan Wilton <harlan@harlanzw.com>",
   "license": "MIT",
@@ -41,6 +41,6 @@
     "@unlighthouse/server": "workspace:*"
   },
   "devDependencies": {
-    "vite": "^4.4.6"
+    "vite": "^4.4.9"
   }
 }

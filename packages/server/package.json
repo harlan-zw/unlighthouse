@@ -1,6 +1,6 @@
 {
   "name": "@unlighthouse/server",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Server for Unlighthouse",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
@@ -37,6 +37,6 @@
   "dependencies": {
     "@unlighthouse/core": "workspace:../core",
     "h3": "^1.7.1",
-    "listhen": "1.1.2"
+    "listhen": "1.5.5"
   }
 }
