@@ -24,18 +24,17 @@ const guageModifiers = computed(() => {
 const guageArcStyle = computed(() => {
   // r = 56
   const r = 56
-  // stroke-width = 8
   const n = 2 * Math.PI * r
   const rotationOffset = 0.25 * 8 / n
 
-  let o = score.value * n - r / 2
+  let o = score.value * n
   if (score.value === 1)
     o = n
 
   return {
     opacity: score.value === 0 ? '0' : 1,
-    transform: `rotate(${360 * rotationOffset - 90}deg)`,
-    strokeDasharray: `${Math.max(o, 0)}, ${n}`,
+    transform: 'rotate(-90deg)',
+    strokeDasharray: `${o}, ${n}`,
   }
 })
 </script>
@@ -62,7 +61,7 @@ const guageArcStyle = computed(() => {
           ref="arc"
           class="guage-arc"
           r="56"
-          cx="60"
+          cx="20"
           cy="60"
           stroke-width="8"
           :style="guageArcStyle"
