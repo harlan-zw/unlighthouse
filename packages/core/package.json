@@ -23,16 +23,16 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     }
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "*.d.ts"
+    "*.d.ts",
+    "dist"
   ],
   "scripts": {
     "build": "unbuild",
@@ -52,7 +52,7 @@
     "@unrouted/plugins": "0.5.0",
     "@unrouted/preset-api": "0.5.0",
     "@unrouted/preset-node": "0.5.0",
-    "axios": "1.5.1",
+    "axios": "^1.6.2",
     "boxen": "^7.1.1",
     "chalk": "^4.1.2",
     "cheerio": "1.0.0-rc.12",
@@ -90,19 +90,5 @@
     "@types/object-hash": "^3.0.2",
     "@types/ws": "^8.5.5",
     "lodash-es": "^4.17.21"
-  },
-  "pnpm": {
-    "packageExtensions": {
-      "puppeteer-cluster": {
-        "peerDependencies": {
-          "puppeteer-core": "*"
-        },
-        "peerDependenciesMeta": {
-          "puppeteer": {
-            "optional": true
-          }
-        }
-      }
-    }
   }
 }

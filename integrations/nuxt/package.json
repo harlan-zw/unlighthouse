@@ -23,8 +23,8 @@
   ],
   "exports": {
     ".": {
-      "require": "./dist/module.cjs",
-      "import": "./dist/module.mjs"
+      "import": "./dist/module.mjs",
+      "require": "./dist/module.cjs"
     }
   },
   "main": "./dist/module.cjs",
@@ -41,14 +41,14 @@
   },
   "dependencies": {
     "@harlanzw/nuxt-kit-extras": "^0.3.1",
-    "@nuxt/kit": "^3.7.4",
+    "@nuxt/kit": "^3.8.1",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
     "@unlighthouse/vite": "workspace:*",
     "@unlighthouse/webpack": "workspace:*"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "^0.5.2",
-    "nuxt": "^3.7.4"
+    "@nuxt/module-builder": "^0.5.4",
+    "nuxt": "^3.8.1"
   }
 }

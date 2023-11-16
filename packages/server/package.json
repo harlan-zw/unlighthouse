@@ -19,16 +19,16 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     }
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "*.d.ts"
+    "*.d.ts",
+    "dist"
   ],
   "scripts": {
     "build": "unbuild",
@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@unlighthouse/core": "workspace:../core",
-    "h3": "^1.7.1",
-    "listhen": "1.5.5"
+    "h3": "^1.8.2",
+    "listhen": "^1.5.5"
   }
 }

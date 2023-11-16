@@ -22,8 +22,8 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     }
   },
   "main": "dist/index.cjs",
@@ -34,8 +34,8 @@
     "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
   },
   "files": [
-    "dist",
-    "*.d.ts"
+    "*.d.ts",
+    "dist"
   ],
   "engines": {
     "node": ">=14"
@@ -56,16 +56,5 @@
     "@unlighthouse/cli": "workspace:../cli",
     "@unlighthouse/client": "workspace:../client",
     "@unlighthouse/core": "workspace:../core"
-  },
-  "pnpm": {
-    "packageExtensions": {
-      "puppeteer-cluster": {
-        "peerDependenciesMeta": {
-          "puppeteer": {
-            "optional": true
-          }
-        }
-      }
-    }
   }
 }
