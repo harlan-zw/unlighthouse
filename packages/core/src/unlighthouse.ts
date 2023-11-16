@@ -15,7 +15,9 @@ import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
 import type {
-  Provider, ResolvedUserConfig, RuntimeSettings,
+  Provider,
+  ResolvedUserConfig,
+  RuntimeSettings,
   UnlighthouseContext,
   UnlighthouseHooks,
   UserConfig,
@@ -82,6 +84,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     configFile = configDefinition.sources[0]
     // @ts-expect-error fixes issue with default being returned for mjs loads
     const config = configDefinition.config?.default || configDefinition.config
+    // @ts-expect-error untyped
     userConfig = defu(config, userConfig)
   }
   const runtimeSettings: { moduleWorkingDir: string; lighthouseProcessPath: string } & Partial<RuntimeSettings> = {

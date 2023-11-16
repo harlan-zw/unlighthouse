@@ -21,7 +21,11 @@ import {
   rescanRoute,
   resultColumns,
   searchResults,
-  searchText, sorting, tabs, throttle, website,
+  searchText,
+  sorting,
+  tabs,
+  throttle,
+  website,
   wsConnect,
 } from './logic'
 

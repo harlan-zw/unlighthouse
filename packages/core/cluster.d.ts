@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+import { EventEmitter } from 'node:events'
 import type { LaunchOptions, Page } from 'puppeteer-core'
 
 interface ClusterOptions {

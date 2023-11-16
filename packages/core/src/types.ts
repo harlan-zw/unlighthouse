@@ -340,7 +340,7 @@ export interface ResolvedUserConfig {
      * The type of report that will be generated from the results.
      *
      * @default 'jsonSimple'
-     **/
+     */
     reporter: ValidReportTypes | false
   }
   /**

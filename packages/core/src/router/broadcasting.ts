@@ -45,9 +45,9 @@ export class WS {
   }
 
   /**
-     * Publish event and data to all connected clients
-     * @param {object} data
-     */
+   * Publish event and data to all connected clients
+   * @param {object} data
+   */
   broadcast(data: Record<string, any>) {
     const jsonData = JSON.stringify(data)
 

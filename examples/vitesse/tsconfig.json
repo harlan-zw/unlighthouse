@@ -1,18 +1,15 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "module": "ESNext",
+    "incremental": false,
     "target": "es2016",
     "lib": ["DOM", "ESNext"],
-    "strict": true,
-    "esModuleInterop": true,
-    "incremental": false,
-    "skipLibCheck": true,
+    "baseUrl": ".",
+    "module": "ESNext",
     "moduleResolution": "node",
+    "paths": {
+      "~/*": ["src/*"]
+    },
     "resolveJsonModule": true,
-    "noUnusedLocals": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
     "types": [
       "unlighthouse",
       "cypress",
@@ -20,9 +17,12 @@
       "vite-plugin-pages/client",
       "vite-plugin-vue-layouts/client"
     ],
-    "paths": {
-      "~/*": ["src/*"]
-    }
+    "strict": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   },
   "exclude": ["dist", "node_modules"]
 }

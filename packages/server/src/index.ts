@@ -24,10 +24,10 @@ export async function createServer(): Promise<{ app: App; server: Listener }> {
 declare module '@unlighthouse/core' {
   interface ResolvedUserConfig {
     /**
-         * Change the behaviour of the server. The server is not always created, only when the integration can't provide one.
-         *
-         * For example Nuxt does not use a server but the CLI does.
-         */
+     * Change the behaviour of the server. The server is not always created, only when the integration can't provide one.
+     *
+     * For example Nuxt does not use a server but the CLI does.
+     */
     server: Partial<ListenOptions>
   }
 }

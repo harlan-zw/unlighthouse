@@ -65,8 +65,7 @@ export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>
     }
     data = orderBy(data, doLengthSort
       ? i => get(i, sortKey)?.length || 0
-      : sortKey, sorting.value.dir,
-    )
+      : sortKey, sorting.value.dir)
   }
   else {
     // sort by the group routes key

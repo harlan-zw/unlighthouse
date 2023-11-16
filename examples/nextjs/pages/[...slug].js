@@ -4,7 +4,12 @@ function CatchAll() {
   const router = useRouter()
   const { slug } = router.query
 
-  return <p>Slug: {slug}</p>
+  return (
+    <p>
+      Slug:
+      {slug}
+    </p>
+  )
 }
 
 export default CatchAll

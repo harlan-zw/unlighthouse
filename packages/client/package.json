@@ -42,7 +42,7 @@
     "@vueuse/core": "^10.6.1",
     "@vueuse/router": "^10.6.1",
     "date-fns": "^2.30.0",
-    "three": "^0.158.0",
+    "three": "^0.138.3",
     "troisjs": "^0.3.4",
     "typescript": "^5.2.2",
     "unplugin-auto-import": "^0.7.2",

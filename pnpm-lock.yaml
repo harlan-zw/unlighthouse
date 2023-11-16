@@ -189,8 +189,8 @@ importers:
         specifier: ^2.30.0
         version: 2.30.0
       three:
-        specifier: ^0.158.0
-        version: 0.158.0
+        specifier: ^0.138.3
+        version: 0.138.3
       troisjs:
         specifier: ^0.3.4
         version: 0.3.4
@@ -9973,8 +9973,8 @@ packages:
     resolution: {integrity: sha512-X9Mha8cVeBwakunlZXkXL6xRzw8VCcDGWqT59EzeTYAJIi8ien3CuufnEGEx4ZUFahumNQdoOwf4H2T9Ca6lBg==}
     dev: false
 
-  /three@0.158.0:
-    resolution: {integrity: sha512-TALj4EOpdDPF1henk2Q+s17K61uEAAWQ7TJB68nr7FKxqwyDr3msOt5IWdbGm4TaWKjrtWS8DJJWe9JnvsWOhQ==}
+  /three@0.138.3:
+    resolution: {integrity: sha512-4t1cKC8gimNyJChJbaklg8W/qj3PpsLJUIFm5LIuAy/hVxxNm1ru2FGTSfbTSsuHmC/7ipsyuGKqrSAKLNtkzg==}
     dev: true
 
   /through@2.3.8:

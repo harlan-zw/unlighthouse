@@ -3,7 +3,7 @@ import { mergeRobotsTxtConfig, parseRobotsTxt } from '../src/discovery'
 import { asRegExp } from '../src/util'
 import type { ResolvedUserConfig } from '../src'
 
-describe('Robots', () => {
+describe('robots', () => {
   it ('parses example #1', () => {
     const parsed = parseRobotsTxt(`
 # START YOAST BLOCK

@@ -50,7 +50,7 @@ Need a hand? Join the [Discord](https://discord.gg/275MBUBvgP) for one-on-one he
 Unlighthouse will save your reports in `outputDir`,
 it's recommended you .gitignore these files.
 
-```.gitignore
+```
 .unlighthouse
 ```
 

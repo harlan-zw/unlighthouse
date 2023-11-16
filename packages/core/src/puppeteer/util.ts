@@ -18,7 +18,9 @@ export async function setupPage(page: Page) {
         localStorage.clear()
         for (const key in data)
           localStorage.setItem(key, data[key])
-      }, resolvedConfig.localStorage)
+      },
+      resolvedConfig.localStorage,
+    )
   }
   if (resolvedConfig.cookies)
     await page.setCookie(...resolvedConfig.cookies.map(cookie => ({ domain: resolvedConfig.site, ...cookie })))

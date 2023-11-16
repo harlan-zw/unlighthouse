@@ -132,7 +132,8 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
 
       // whatever the sampling rate is
       return sampleSize(group, dynamicSampling)
-    })
+    },
+  )
 
   return pathsSampleChunkedToGroup.flat()
 }

@@ -8,9 +8,9 @@ export default {
         {
           site: 'http://localhost:3000',
           debug: true,
-        }
-      )
+        },
+      ),
     )
     return config
-  }
+  },
 }

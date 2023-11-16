@@ -9,17 +9,17 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2.2.1
 
-      - name: Use Node.js v16
+      - name: Use Node.js v18
         uses: actions/setup-node@v2
         with:
-          node-version: v16
+          node-version: v18
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 

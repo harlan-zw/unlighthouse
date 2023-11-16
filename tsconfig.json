@@ -1,17 +1,10 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "module": "ESNext",
     "target": "ESNext",
     "lib": ["DOM", "ESNext"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
+    "baseUrl": ".",
+    "module": "ESNext",
     "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "noUnusedLocals": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
     "paths": {
       "unlighthouse": ["./packages/unlighthouse/src"],
       "@unlighthouse/client": ["./packages/client/src"],
@@ -21,7 +14,14 @@
       "@unlighthouse/nuxt": ["./integrations/nuxt/src"],
       "@unlighthouse/vite": ["./integrations/vite/src"],
       "@unlighthouse/webpack": ["./integrations/webpack/src"]
-    }
+    },
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   },
   "include": [
     "**/*.d.ts"

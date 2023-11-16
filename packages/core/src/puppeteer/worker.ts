@@ -8,7 +8,8 @@ import type {
   PuppeteerTaskReturn,
   UnlighthouseRouteReport,
   UnlighthouseTask,
-  UnlighthouseWorker, UnlighthouseWorkerStats,
+  UnlighthouseWorker,
+UnlighthouseWorkerStats,
 } from '../types'
 import { ReportArtifacts, asRegExp, createTaskReportFromRoute } from '../util'
 import { useUnlighthouse } from '../unlighthouse'

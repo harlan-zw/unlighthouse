@@ -40,11 +40,13 @@ function getScreenshotPositions(elementRectSC, elementPreviewSizeSC, screenshotS
   // Try to center clipped region.
   const screenshotLeftVisibleEdge = clamp(
     elementRectCenter.x - elementPreviewSizeSC.width / 2,
-    0, screenshotSize.width - elementPreviewSizeSC.width,
+    0,
+    screenshotSize.width - elementPreviewSizeSC.width,
   )
   const screenshotTopVisibleEdge = clamp(
     elementRectCenter.y - elementPreviewSizeSC.height / 2,
-    0, screenshotSize.height - elementPreviewSizeSC.height,
+    0,
+    screenshotSize.height - elementPreviewSizeSC.height,
   )
 
   return {

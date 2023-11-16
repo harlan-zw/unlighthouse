@@ -1,18 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2018",
-    "module": "esnext",
-    "moduleResolution": "node",
     "lib": [
       "esnext",
       "esnext.asynciterable",
       "dom"
     ],
-    "esModuleInterop": true,
-    "sourceMap": true,
-    "strict": true,
-    "resolveJsonModule": true,
     "baseUrl": "..",
+    "module": "esnext",
+    "moduleResolution": "node",
     "paths": {
       "~/*": [
         "./*"
@@ -21,19 +17,23 @@
         "./*"
       ]
     },
+    "resolveJsonModule": true,
     "types": [
       "unlighthouse",
       "unlighthouse/nuxt.d.ts",
       "unlighthouse/nuxt",
       "@nuxt/types"
-    ]
+    ],
+    "strict": true,
+    "sourceMap": true,
+    "esModuleInterop": true
   },
-  "include": [
-    "node_modules/unlighthouse/nuxt.d.ts"
-  ],
   "references": [
     {
       "path": "../../"
     }
+  ],
+  "include": [
+    "node_modules/unlighthouse/nuxt.d.ts"
   ]
 }

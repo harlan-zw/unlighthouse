@@ -17,6 +17,6 @@ export default {
     '/2023/designbrief/launch_recovery',
     '/2023/designbrief/planning_training',
     '/2023/designbrief/vehicles_safety',
-    '/2023/designbrief/pricing'
+    '/2023/designbrief/pricing',
   ],
 }

@@ -38,9 +38,7 @@ async function run() {
       },
     },
     cache: false,
-  },
-  { name: 'ci' },
-  )
+  }, { name: 'ci' })
 
   const { resolvedConfig, setCiContext, hooks, worker, start } = useUnlighthouse()
 

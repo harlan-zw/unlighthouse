@@ -13,8 +13,7 @@ export default {
     },
   },
   lighthouseOptions: {
-    onlyCategories: ['best-practices', 'seo', 'accessibility']
+    onlyCategories: ['best-practices', 'seo', 'accessibility'],
   },
   debug: true,
 }
-
