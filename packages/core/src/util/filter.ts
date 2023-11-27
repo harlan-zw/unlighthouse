@@ -12,7 +12,8 @@ export function createFilter(options: CreateFilterOptions = {}): (path: string) 
     return () => true
 
   return function (path: string): boolean {
-    for (const v of [{ rules: exclude, result: false }, { rules: include, result: true }]) {
+    // check include first
+    for (const v of [{ rules: include, result: true }, { rules: exclude, result: false }]) {
       const regexRules = v.rules.filter(r => r instanceof RegExp) as RegExp[]
       if (regexRules.some(r => r.test(path)))
         return v.result
