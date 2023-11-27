@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/vite",
   "type": "module",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Vite plugin for Unlighthouse",
   "author": "Harlan Wilton <harlan@harlanzw.com>",
   "license": "MIT",
