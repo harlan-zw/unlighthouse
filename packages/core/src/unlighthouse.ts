@@ -296,6 +296,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     }
 
     ctx.routes = await resolveReportableRoutes()
+    logger.debug('Resolved reportable routes', ctx.routes.length)
     await createBroadcastingEvents()
     worker.queueRoutes(ctx.routes)
 

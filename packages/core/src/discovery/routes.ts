@@ -3,8 +3,9 @@ import type { NormalisedRoute } from '../types'
 import { useUnlighthouse } from '../unlighthouse'
 import { isScanOrigin, normaliseRoute } from '../router'
 import { useLogger } from '../logger'
+import { parseRobotsTxt } from '../util/robotsTxtParser'
 import { extractSitemapRoutes } from './sitemap'
-import { fetchRobotsTxt, mergeRobotsTxtConfig, parseRobotsTxt } from './robotsTxt'
+import { fetchRobotsTxt, mergeRobotsTxtConfig } from './robotsTxt'
 
 let warnedAboutSampling = false
 
@@ -42,7 +43,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
     const robotsTxt = await fetchRobotsTxt(resolvedConfig.site)
     if (robotsTxt) {
       const robotsTxtParsed = parseRobotsTxt(robotsTxt)
-      logger.info(`Found /robots.txt, using entries. Sitemaps: ${robotsTxtParsed.sitemaps.length}, Disallow: ${robotsTxtParsed.disallows.length}.`)
+      logger.info(`Found /robots.txt, using entries. Sitemaps: ${robotsTxtParsed.sitemaps.length}, Groups: ${robotsTxtParsed.groups.length}.`)
       // merges disallow and sitemap into the `scanner.exclude` and `scanner.sitemaps` options respectively
       mergeRobotsTxtConfig(resolvedConfig, robotsTxtParsed)
     }

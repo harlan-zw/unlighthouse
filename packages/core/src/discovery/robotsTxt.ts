@@ -3,12 +3,27 @@ import type { ResolvedUserConfig } from '../types'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 import { fetchUrlRaw } from '../util'
+import type { RobotsGroupResolved } from '../util/robotsTxtParser'
 
 export interface RobotsTxtParsed {
   sitemaps: string[]
-  disallows: string[]
+  groups: RobotsGroupResolved[]
 }
 
+function isValidRegex(s: string | RegExp) {
+  if (typeof s === 'string') {
+    // make sure it's valid regex
+    try {
+      // eslint-disable-next-line no-new
+      new RegExp(s)
+      return true
+    }
+    catch (e) {
+      return false
+    }
+  }
+  return true
+}
 /**
  * Fetches the robots.txt file.
  * @param site
@@ -31,65 +46,36 @@ export async function fetchRobotsTxt(site: string): Promise<false | string> {
   return robotsTxt.response.data as string
 }
 
-/**
- * Parses the robots.txt data.
- */
-export function parseRobotsTxt(robotsTxt: string): RobotsTxtParsed {
-  const lines = robotsTxt
-    .split('\n')
-  // make sure we're working from the host name
-  const sitemaps = lines
-    .filter(line => line.toLowerCase().startsWith('sitemap'))
-    // split only on the first instance of :
-    .map(line => line.split(/:(.+)/)[1].trim())
-  // get excludes
-  const disallows = lines
-    .filter(line => line.toLowerCase().startsWith('disallow'))
-    // split only on the first instance of :
-    .map((line) => {
-      const sections = line.trim().split(/:(.+)/)
-      if (sections.length >= 2) {
-        const [, path] = sections
-        return path.trim()
+export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { groups, sitemaps }: RobotsTxtParsed): void {
+  const normalisedGroups = groups
+    .filter(group => group.userAgent.includes('*'))
+    .map((group) => {
+      for (const k of ['disallow', 'allow']) {
+        // @ts-expect-error untyped
+        group[k] = (group[k] as string[])
+          // skip any disallows that are root level
+          .filter(path => path !== '/')
+          .map((path) => {
+            // convert robots.txt paths to regex paths
+            if (path.includes('*'))
+              path = path.replace(/\*/g, '.*')
+            else
+              path = `${path}.*`
+            return path
+          })
       }
-      return false
+      return group
     })
-    .filter(Boolean) as string[]
-  return {
-    sitemaps,
-    disallows,
-  }
-}
 
-export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { disallows, sitemaps }: RobotsTxtParsed): void {
   // for diallow we add it to the exclude list
-  if (disallows.length) {
-    // skip any disallows that are root level
-    disallows = disallows.filter(path => path !== '/')
-    // convert robots.txt paths to regex paths
-    disallows = disallows.map((path) => {
-      if (path.includes('*'))
-        path = path.replace(/\*/g, '.*')
-      else
-        path = `${path}.*`
-      return path
-    })
-    config.scanner.exclude = [...new Set([...(config.scanner.exclude || []), ...disallows])]
-      .filter((s) => {
-        if (typeof s === 'string') {
-          // make sure it's valid regex
-          try {
-            // eslint-disable-next-line no-new
-            new RegExp(s)
-            return true
-          }
-          catch (e) {
-            return false
-          }
-        }
-        return true
-      })
-  }
+  config.scanner.exclude = [...new Set([
+    ...(config.scanner.exclude || []),
+    ...normalisedGroups.flatMap(group => group.disallow),
+  ])].filter(isValidRegex)
+  config.scanner.include = [...new Set([
+    ...(config.scanner.include || []),
+    ...normalisedGroups.flatMap(group => group.allow),
+  ])].filter(isValidRegex)
 
   if (config.scanner.sitemap !== false && sitemaps.length)
     config.scanner.sitemap = [...new Set([...(Array.isArray(config.scanner.sitemap) ? config.scanner.sitemap : []), ...sitemaps])]

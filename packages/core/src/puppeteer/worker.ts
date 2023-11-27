@@ -9,9 +9,9 @@ import type {
   UnlighthouseRouteReport,
   UnlighthouseTask,
   UnlighthouseWorker,
-UnlighthouseWorkerStats,
+  UnlighthouseWorkerStats,
 } from '../types'
-import { ReportArtifacts, asRegExp, createTaskReportFromRoute } from '../util'
+import { ReportArtifacts, createTaskReportFromRoute } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 import { createFilter } from '../util/filter'
