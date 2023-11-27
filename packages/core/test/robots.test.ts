@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { mergeRobotsTxtConfig, parseRobotsTxt } from '../src/discovery'
+import { mergeRobotsTxtConfig } from '../src/discovery'
 import { asRegExp } from '../src/util'
 import type { ResolvedUserConfig } from '../src'
+import { parseRobotsTxt } from '../src/util/robotsTxtParser'
 
 describe('robots', () => {
   it ('parses example #1', () => {
@@ -17,7 +18,18 @@ Sitemap: https://kootingalpecancompany.com/sitemap_index.xml
 `)
     expect(parsed).toMatchInlineSnapshot(`
       {
-        "disallows": [],
+        "groups": [
+          {
+            "allow": [],
+            "comment": [],
+            "disallow": [
+              "",
+            ],
+            "userAgent": [
+              "*",
+            ],
+          },
+        ],
         "sitemaps": [
           "https://kootingalpecancompany.com/sitemap_index.xml",
         ],
@@ -37,11 +49,23 @@ Allow: /wiki/
 `)
     expect(parsed).toMatchInlineSnapshot(`
       {
-        "disallows": [
-          "/account/",
-          "/dashboard/",
-          "/admin/",
-          "/mod/",
+        "groups": [
+          {
+            "allow": [
+              "/$",
+              "/wiki/",
+            ],
+            "comment": [],
+            "disallow": [
+              "/account/",
+              "/dashboard/",
+              "/admin/",
+              "/mod/",
+            ],
+            "userAgent": [
+              "*",
+            ],
+          },
         ],
         "sitemaps": [],
       }
@@ -58,6 +82,10 @@ Allow: /wiki/
             "/dashboard/.*",
             "/admin/.*",
             "/mod/.*",
+          ],
+          "include": [
+            "/$.*",
+            "/wiki/.*",
           ],
           "sitemap": [],
         },
@@ -111,30 +139,41 @@ Sitemap: https://unitedpets.com/sitemap/index.xml
 `)
     expect(parsed).toMatchInlineSnapshot(`
       {
-        "disallows": [
-          "/CVS",
-          "/*.svn$",
-          "/*.idea$",
-          "/*.sql$",
-          "/*.tgz$",
-          "*brand=*",
-          "*color=*",
-          "*color_filter=*",
-          "*material_filter=*",
-          "*fitting_filter=*",
-          "*asc=price*",
-          "*desc=price*",
-          "*asc=name*",
-          "*desc=name*",
-          "*food_type=*",
-          "*tags=*",
-          "*size=*",
-          "*search=*",
-          "*popup=*",
-          "*successRedirect=*",
-          "*/user/*",
-          "*/checkout/*",
-          "*/wishlist/*",
+        "groups": [
+          {
+            "allow": [],
+            "comment": [],
+            "disallow": [
+              "/CVS",
+              "/*.svn$",
+              "/*.idea$",
+              "/*.sql$",
+              "/*.tgz$",
+              "*brand=*",
+              "*color=*",
+              "*color_filter=*",
+              "*material_filter=*",
+              "*fitting_filter=*",
+              "*asc=price*",
+              "*desc=price*",
+              "*asc=name*",
+              "*desc=name*",
+              "*food_type=*",
+              "*tags=*",
+              "*size=*",
+              "*search=*",
+              "*popup=*",
+              "*successRedirect=*",
+              "*/user/*",
+              "*/checkout/*",
+              "*/wishlist/*",
+            ],
+            "userAgent": [
+              "bingbot",
+              "YandexBot",
+              "*",
+            ],
+          },
         ],
         "sitemaps": [
           "https://unitedpets.com/sitemap/index.xml",
@@ -172,6 +211,7 @@ Sitemap: https://unitedpets.com/sitemap/index.xml
             ".*/checkout/.*",
             ".*/wishlist/.*",
           ],
+          "include": [],
           "sitemap": [
             "https://unitedpets.com/sitemap/index.xml",
           ],
@@ -230,41 +270,50 @@ Sitemap: https://armeriameschieri.com/sitemap.xml
 `)
     expect(parsed).toMatchInlineSnapshot(`
       {
-        "disallows": [
-          "/admin",
-          "/cart",
-          "/orders",
-          "/checkouts/",
-          "/checkout",
-          "/58606747799/checkouts",
-          "/58606747799/orders",
-          "/carts",
-          "/account",
-          "/collections/*sort_by*",
-          "/*/collections/*sort_by*",
-          "/collections/*+*",
-          "/collections/*%2B*",
-          "/collections/*%2b*",
-          "/*/collections/*+*",
-          "/*/collections/*%2B*",
-          "/*/collections/*%2b*",
-          "/blogs/*+*",
-          "/blogs/*%2B*",
-          "/blogs/*%2b*",
-          "/*/blogs/*+*",
-          "/*/blogs/*%2B*",
-          "/*/blogs/*%2b*",
-          "/*?*oseid=*",
-          "/*preview_theme_id*",
-          "/*preview_script_id*",
-          "/policies/",
-          "/*/*?*ls=*&ls=*",
-          "/*/*?*ls%3D*%3Fls%3D*",
-          "/*/*?*ls%3d*%3fls%3d*",
-          "/search",
-          "/apple-app-site-association",
-          "/.well-known/shopify/monorail",
-          "/cdn/wpm/*.js",
+        "groups": [
+          {
+            "allow": [],
+            "comment": [],
+            "disallow": [
+              "/admin",
+              "/cart",
+              "/orders",
+              "/checkouts/",
+              "/checkout",
+              "/58606747799/checkouts",
+              "/58606747799/orders",
+              "/carts",
+              "/account",
+              "/collections/*sort_by*",
+              "/*/collections/*sort_by*",
+              "/collections/*+*",
+              "/collections/*%2B*",
+              "/collections/*%2b*",
+              "/*/collections/*+*",
+              "/*/collections/*%2B*",
+              "/*/collections/*%2b*",
+              "/blogs/*+*",
+              "/blogs/*%2B*",
+              "/blogs/*%2b*",
+              "/*/blogs/*+*",
+              "/*/blogs/*%2B*",
+              "/*/blogs/*%2b*",
+              "/*?*oseid=*",
+              "/*preview_theme_id*",
+              "/*preview_script_id*",
+              "/policies/",
+              "/*/*?*ls=*&ls=*",
+              "/*/*?*ls%3D*%3Fls%3D*",
+              "/*/*?*ls%3d*%3fls%3d*",
+              "/search",
+              "/apple-app-site-association",
+              "/.well-known/shopify/monorail",
+              "/cdn/wpm/*.js",
+            ],
+            "userAgent": [
+              "*",
+            ],
+          },
         ],
         "sitemaps": [
           "https://armeriameschieri.com/sitemap.xml",
