@@ -14,6 +14,7 @@ UnlighthouseWorkerStats,
 import { ReportArtifacts, asRegExp, createTaskReportFromRoute } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
+import { createFilter } from '../util/filter'
 import {
   launchPuppeteerCluster,
 } from './cluster'
@@ -91,16 +92,12 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     if (ignoredRoutes.has(id))
       return
 
-    if (resolvedConfig.scanner.include) {
-      // must match
-      if (resolvedConfig.scanner.include.filter(rule => asRegExp(rule).test(path)).length === 0)
+    if (resolvedConfig.scanner.include || resolvedConfig.scanner.exclude) {
+      const filter = createFilter(resolvedConfig.scanner)
+      if (filter(path)) {
+        logger.debug('Skipping route based on include / exclude rules', { path })
         return
-    }
-
-    if (resolvedConfig.scanner.exclude) {
-      // must not match
-      if (resolvedConfig.scanner.exclude.filter(rule => asRegExp(rule).test(path)).length > 0)
-        return
+      }
     }
 
     /*
@@ -109,7 +106,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
      * Note: this is somewhat similar to the logic in discovery/routes.ts, that's because we need to sample the routes
      * from the sitemap or as provided. This logic is for ensuring crawled URLs don't exceed the group limit.
      */
-    if (resolvedConfig.scanner.dynamicSampling > 0) {
+    if (resolvedConfig.scanner.dynamicSampling && resolvedConfig.scanner.dynamicSampling > 0) {
       const routeGroup = get(route, resolvedConfig.client.groupRoutesKey.replace('route.', ''))
       // group all urls by their route definition path name
       const routesInGroup = [...routeReports.values()].filter(
