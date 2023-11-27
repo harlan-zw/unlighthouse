@@ -54,7 +54,7 @@ export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { groups, sitem
         // @ts-expect-error untyped
         group[k] = (group[k] as string[])
           // skip any disallows that are root level
-          .filter(path => path !== '/')
+          .filter(path => path !== '/' && path)
           .map((path) => {
             // convert robots.txt paths to regex paths
             if (path.includes('*'))
