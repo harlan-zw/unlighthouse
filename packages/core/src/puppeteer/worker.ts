@@ -104,6 +104,13 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       }
     }
 
+    const lastPathSegment = path.split('/').pop() || path
+    const extension = (lastPathSegment.includes('.') ? lastPathSegment.split('.').pop() : 'html') || 'html'
+    if (!extension.includes('html')) {
+      logger.debug('Skipping non-HTML file from scanning', { path })
+      return
+    }
+
     /*
      * Allow sampling of named routes.
      *
