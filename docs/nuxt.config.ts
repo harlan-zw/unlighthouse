@@ -61,7 +61,7 @@ export default defineNuxtConfig({
       prerender: { chromium: false },
       runtime: { chromium: false }
     }
-  }
+  },
   app: {
     pageTransition: {
       name: 'page',
