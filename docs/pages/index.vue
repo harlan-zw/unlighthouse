@@ -18,31 +18,31 @@ onMounted(() => {
       showLighthouse3d.value = true
     }, 1000)
   }
-})
 
-const blink = useDebounceFn(() => {
-  // cursor.value = !cursor.value
-  write()
-}, 500)
+  const blink = useDebounceFn(() => {
+    // cursor.value = !cursor.value
+    write()
+  }, 500)
 
-const codeToWrite = 'npx unlighthouse --site #your-site'
-const write = useDebounceFn(() => {
-  // need to right trim the _ character from code.value
-  if (code.value.endsWith('█'))
-    code.value = code.value.slice(0, -1)
+  const codeToWrite = 'npx unlighthouse --site #your-site'
+  const write = useDebounceFn(() => {
+    // need to right trim the _ character from code.value
+    if (code.value.endsWith('█'))
+      code.value = code.value.slice(0, -1)
 
-  if (code.value.length < codeToWrite.length)
-    code.value += codeToWrite[code.value.length]
+    if (code.value.length < codeToWrite.length)
+      code.value += codeToWrite[code.value.length]
 
-  // start blink
-  blink()
-  // conditionally show the blink
-  if (cursor.value)
-    code.value += '█'
-}, 70)
+    // start blink
+    blink()
+    // conditionally show the blink
+    if (cursor.value)
+      code.value += '█'
+  }, 70)
 
-watch(() => code.value.length, write, {
-  immediate: true,
+  watch(() => code.value.length, write, {
+    immediate: true,
+  })
 })
 
 defineOgImageComponent('NuxtSeo', {
