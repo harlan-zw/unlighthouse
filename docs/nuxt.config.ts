@@ -56,6 +56,12 @@ export default defineNuxtConfig({
   css: [
     '~/css/scrollbars.css',
   ],
+  ogImage: {
+    compatibility: {
+      prerender: { chromium: false },
+      runtime: { chromium: false }
+    }
+  }
   app: {
     pageTransition: {
       name: 'page',
