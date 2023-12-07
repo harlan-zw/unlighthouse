@@ -30,7 +30,8 @@
     "nuxt-og-image": "^3.0.0-beta.47",
     "shiki-es": "^0.14.0",
     "troisjs": "^0.3.4",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "three": "^0.159.0"
   },
   "resolutions": {
     "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001",

@@ -72,6 +72,9 @@ importers:
       shiki-es:
         specifier: ^0.14.0
         version: 0.14.0
+      three:
+        specifier: ^0.159.0
+        version: 0.159.0
       troisjs:
         specifier: ^0.3.4
         version: 0.3.4
@@ -9666,6 +9669,10 @@ packages:
     resolution: {integrity: sha512-RVZSIV5IG10Hk3enotrhvz0T9em6cyHBLkH/YAZuKqd8hRkKhSfCGIcP2KUY0EPxndzANBmNllzWPwak+bheSw==}
     dependencies:
       any-promise: 1.3.0
+    dev: true
+
+  /three@0.159.0:
+    resolution: {integrity: sha512-eCmhlLGbBgucuo4VEA9IO3Qpc7dh8Bd4VKzr7WfW4+8hMcIfoAVi1ev0pJYN9PTTsCslbcKgBwr2wNZ1EvLInA==}
     dev: true
 
   /through@2.3.8:
