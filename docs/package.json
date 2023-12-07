@@ -27,14 +27,15 @@
     "nuxt-icon": "^0.6.7",
     "nuxt-lego": "^0.0.14",
     "nuxt-lodash": "^2.5.3",
-    "nuxt-og-image": "^3.0.0-beta.47",
+    "nuxt-og-image": "^3.0.0-beta.48",
     "shiki-es": "^0.14.0",
-    "typescript": "^5.3.3",
     "three": "0.138.3",
-    "troisjs": "^0.3.4"
+    "troisjs": "^0.3.4",
+    "typescript": "^5.3.3",
+    "playwright": "^1.40.1"
   },
   "resolutions": {
     "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001",
-    "nuxt-og-image": "^3.0.0-beta.47"
+    "nuxt-og-image": "^3.0.0-beta.48"
   }
 }
