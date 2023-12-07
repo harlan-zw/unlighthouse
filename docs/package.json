@@ -22,6 +22,7 @@
     "@nuxtjs/fontaine": "^0.4.1",
     "@nuxtseo/module": "2.0.0-beta.45",
     "@vueuse/nuxt": "^10.7.0",
+    "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001",
     "nuxt": "^3.8.2",
     "nuxt-icon": "^0.6.7",
     "nuxt-lego": "^0.0.14",
@@ -29,7 +30,7 @@
     "nuxt-og-image": "^3.0.0-beta.47",
     "shiki-es": "^0.14.0",
     "troisjs": "^0.3.4",
-    "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001"
+    "typescript": "^5.3.3"
   },
   "resolutions": {
     "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001",
