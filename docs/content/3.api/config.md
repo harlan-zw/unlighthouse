@@ -1,6 +1,7 @@
-# Config
-
-## Configuring Unlighthouse
+---
+title: Config
+description: All the configuration options for Unlighthouse.
+---
 
 There are multiple ways to configure Unlighthouse. See the configuration documentation for your implementation.
 

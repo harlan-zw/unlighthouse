@@ -1,4 +1,7 @@
-# Glossary
+---
+title: Glossary
+description: A glossary of terms used in the Unlighthouse documentation.
+---
 
 ## Core
 

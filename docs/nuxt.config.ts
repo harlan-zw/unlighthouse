@@ -1,61 +1,84 @@
-import { defineNuxtConfig } from 'nuxt/config'
-import { createResolver } from '@nuxt/kit'
-
-const { resolve } = createResolver(import.meta.url)
+import { version } from './package.json'
 
 export default defineNuxtConfig({
   extends: [
-    '@nuxt-themes/docus',
     'nuxt-lego',
+    '@nuxt/ui-pro',
   ],
-
   modules: [
-    'nuxt-seo-kit-module',
-    'nuxt-windicss',
+    '@nuxt/ui',
+    '@vueuse/nuxt',
+    '@nuxt/content',
+    'nuxt-lodash',
+    'nuxt-icon',
     'nuxt-og-image',
-    '@nuxtjs/fontaine',
-    resolve('./app/module'),
+    '@nuxtseo/module',
   ],
-
   site: {
     url: 'https://unlighthouse.dev',
     name: 'Unlighthouse',
-    titleSeparator: '·',
     description: 'Like Google Lighthouse, but it scans every single page.',
-    defaultLocale: 'en',
-    trailingSlash: false,
-    indexable: true,
+    titleSeparator: '·',
   },
-
-  nitro: {
-    prerender: {
-      failOnError: false,
-    }
-  },
-
-  linkChecker: {
-    failOn404: false,
-  },
-
   runtimeConfig: {
-    indexable: true,
     public: {
-      titleSeparator: '·',
-      siteUrl: 'https://unlighthouse.dev/',
-      siteName: 'Unlighthouse',
-      siteDescription: 'Like Google Lighthouse, but it scans every single page.',
-      language: 'en',
-      trailingSlash: false,
+      version,
     },
   },
-
+  content: {
+    highlight: {
+      theme: {
+        light: 'github-light',
+        default: 'github-light',
+        dark: 'material-theme-palenight',
+      },
+    },
+  },
+  devtools: {
+    enabled: true,
+  },
+  ui: {
+    global: true,
+    icons: ['heroicons', 'simple-icons', 'ph', 'noto', 'carbon', 'logos'],
+  },
+  seoUi: {
+    global: true,
+  },
+  sitemap: {
+    strictNuxtContentPaths: true,
+    xslColumns: [
+      { label: 'URL', width: '50%' },
+      { label: 'Last Modified', select: 'sitemap:lastmod', width: '25%' },
+      { label: 'Priority', select: 'sitemap:priority', width: '12.5%' },
+      { label: 'Change Frequency', select: 'sitemap:changefreq', width: '12.5%' },
+    ],
+  },
+  css: [
+    '~/css/scrollbars.css',
+  ],
   app: {
+    pageTransition: {
+      name: 'page',
+      mode: 'out-in',
+    },
+    seoMeta: {
+      themeColor: [
+        { content: '#18181b', media: '(prefers-color-scheme: dark)' },
+        { content: 'white', media: '(prefers-color-scheme: light)' },
+      ],
+    },
     head: {
       link: [
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com', crossorigin: true },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: true },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' },
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com', crossorigin: 'anonymous' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&display=swap' },
+        { rel: 'stylesheet', href: 'https://rsms.me/inter/inter.css' },
       ],
+
+      bodyAttrs: {
+        class: 'antialiased font-sans text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900',
+      },
+
       script: [
         {
           'src': 'https://cdn.usefathom.com/script.js',
@@ -66,20 +89,7 @@ export default defineNuxtConfig({
       ],
     },
   },
-
-  fontMetrics: {
-    fonts: ['Inter'],
+  generate: {
+    routes: ['/'],
   },
-
-  content: {
-    highlight: {
-      theme: {
-        light: 'material-lighter',
-        default: 'material-default',
-        dark: 'material-palenight',
-      },
-      preload: ['json', 'js', 'ts', 'html', 'css', 'json', 'vue', 'diff', 'shell', 'markdown', 'yaml', 'bash', 'ini'],
-    },
-  },
-
 })

@@ -1,8 +1,9 @@
-# Route Definitions
+---
+title: Route Definitions
+description: Route definitions are an optional feature of Unlighthouse.
+---
 
-Route definitions are an optional feature of Unlighthouse. 
-
-Providing them will give you more intelligent sampling and file hints.
+Providing route definitions will give you more intelligent sampling and file hints.
 
 When you start Unlighthouse, it will try and map your page files to [route definitions](/api/glossary/#route-definition). 
 

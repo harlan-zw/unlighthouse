@@ -1,4 +1,7 @@
-# Configuring Google Lighthouse
+---
+title: Configuring Google Lighthouse
+description: How to configure Google Lighthouse using Unlighthouse.
+---
 
 Unlighthouse uses the [lighthouse node module](https://github.com/GoogleChrome/lighthouse) to perform scans.
 

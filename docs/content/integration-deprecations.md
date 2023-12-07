@@ -5,8 +5,6 @@ description: Unlighthouse integrations are being deprecated in favour of the CLI
 navigation: false
 ---
 
-# Integration Deprecations
-
 These integrations are now deprecated:
 - `@unlighthouse/nuxt`
 - `@unlighthouse/vite`

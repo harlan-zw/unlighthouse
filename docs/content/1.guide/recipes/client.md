@@ -1,4 +1,7 @@
-# Modifying UI
+---
+title: Modifying UI
+description: How to modify the Unlighthouse UI.
+---
 
 ## Changing columns
 

@@ -1,6 +1,7 @@
-# Docker and GitHub CI
-
-Using Unlighthouse in a Docker container is a great way to run it in a predictable CI environment.
+---
+title: Docker and GitHub CI
+description: Using Unlighthouse in a Docker container is a great way to run it in a predictable CI environment.
+---
 
 Support is experimental and provided by the community. An official docker image may be created in the future.
 

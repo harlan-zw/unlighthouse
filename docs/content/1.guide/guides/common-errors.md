@@ -1,4 +1,7 @@
-# Solving Common Errors
+---
+title: Solving Common Errors
+description: Common errors that pop up when working with Unlighthouse.
+---
 
 These are common issues that pop up when working with Unlighthouse. This will be updated when new issues are found.
 

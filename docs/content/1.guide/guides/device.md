@@ -1,4 +1,7 @@
-# Selecting Device
+---
+title: Selecting Device
+description: How to change the device used for scanning.
+---
 
 Unlighthouse uses the [lighthouse node module](https://github.com/GoogleChrome/lighthouse) to perform scans.
 

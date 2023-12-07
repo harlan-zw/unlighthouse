@@ -1,4 +1,7 @@
-# API
+---
+title: API
+description: The API reference for Unlighthouse.
+---
 
 ## @unlighthouse/core
 

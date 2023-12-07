@@ -1,6 +1,7 @@
 {
   "private": true,
-  "packageManager": "pnpm@8.6.7",
+  "packageManager": "pnpm@8.11.0",
+  "name": "unlighthouse-docs",
   "scripts": {
     "dev": "nuxi dev",
     "build": "nuxi build",
@@ -8,13 +9,30 @@
     "preview": "nuxi preview"
   },
   "devDependencies": {
-    "@headlessui/vue": "^1.7.14",
-    "@nuxt-themes/docus": "1.14.3",
-    "@nuxtjs/fontaine": "^0.4.0",
-    "nuxt": "^3.6.5",
+    "@iconify-json/carbon": "^1.1.24",
+    "@iconify-json/heroicons": "^1.1.15",
+    "@iconify-json/logos": "^1.1.40",
+    "@iconify-json/noto": "^1.1.17",
+    "@iconify-json/ph": "^1.1.8",
+    "@iconify-json/simple-icons": "^1.1.82",
+    "@nuxt/content": "^2.9.0",
+    "@nuxt/devtools": "1.0.4",
+    "@nuxt/ui": "^2.11.0",
+    "@nuxt/ui-pro": "^0.5.0",
+    "@nuxtjs/fontaine": "^0.4.1",
+    "@nuxtseo/module": "2.0.0-beta.45",
+    "@vueuse/nuxt": "^10.7.0",
+    "nuxt": "^3.8.2",
+    "nuxt-icon": "^0.6.7",
     "nuxt-lego": "^0.0.14",
-    "nuxt-seo-kit-module": "^2.0.0-beta.5",
-    "nuxt-windicss": "^2.6.1",
-    "postcss-custom-properties": "^13.2.1"
+    "nuxt-lodash": "^2.5.3",
+    "nuxt-og-image": "^3.0.0-beta.47",
+    "shiki-es": "^0.14.0",
+    "troisjs": "^0.3.4",
+    "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001"
+  },
+  "resolutions": {
+    "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001",
+    "nuxt-og-image": "^3.0.0-beta.47"
   }
 }

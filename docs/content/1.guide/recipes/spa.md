@@ -1,4 +1,7 @@
-# Handling SPAs
+---
+title: Handling SPAs
+description: How to handle SPAs with Unlighthouse.
+---
 
 Unlighthouse assumes that the page being scanned is SSR,
 meaning that it can parse internal links without executing the javascript.

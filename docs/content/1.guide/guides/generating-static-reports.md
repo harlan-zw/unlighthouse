@@ -1,6 +1,7 @@
-# Generating Static Reports
-
-## Introduction
+---
+title: Generating Static Reports
+description: Generate static reports for your site.
+---
 
 When you run Unlighthouse using `npx unlighthouse`, you're using the CLI mode. This mode generates and runs the interactive client.
 

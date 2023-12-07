@@ -1,4 +1,7 @@
-# How it works
+---
+title: How it works
+description: How Unlighthouse works under the hood.
+---
 
 Unlighthouse has multiple steps, aimed at only running logic when it's needed.
 

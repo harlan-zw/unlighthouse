@@ -45,7 +45,6 @@
   },
   "dependencies": {
     "@puppeteer/browsers": "^1.4.6",
-    "@types/wrap-ansi": "^8.0.1",
     "@unlighthouse/client": "workspace:../client",
     "@unrouted/core": "0.5.0",
     "@unrouted/fetch": "0.5.0",

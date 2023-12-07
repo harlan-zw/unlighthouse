@@ -1,25 +1,16 @@
 export default defineAppConfig({
-  docus: {
-    title: 'Unlighthouse',
-    name: 'Unlighthouse',
-    description: 'Like Google Lighthouse, but it scans every single page.',
-    url: 'https://unlighthouse.dev/',
-    image: 'https://unlighthouse.dev/og.png',
-    layout: 'default',
-    socials: {
-      twitter: '@harlan_zw',
-      github: 'harlan-zw/unlighthouse',
-    },
-    // github: {
-    //   root: 'content',
-    //   edit: true,
-    // },
-    aside: {
-      level: 1,
-    },
-    header: {
-      title: 'Unlighthouse',
-      logo: true,
+  ui: {
+    primary: 'violet',
+    gray: 'slate',
+    button: {
+      color: {
+        white: {
+          link: 'text-white dark:text-white hover:text-gray-300 dark:hover:text-gray-300 underline-offset-4 hover:underline focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-gray-500 dark:focus-visible:ring-gray-400 transition-all duration-200',
+        },
+        transparent: {
+          outline: 'ring-1 ring-inset ring-gray-700 text-white dark:text-white hover:bg-gray-900 disabled:bg-gray-300 dark:hover:bg-gray-900 dark:disabled:bg-gray-300 focus-visible:ring-2 focus-visible:ring-gray-400 dark:focus-visible:ring-gray-400',
+        },
+      },
     },
   },
 })

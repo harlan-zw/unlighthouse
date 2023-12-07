@@ -1,10 +1,9 @@
-# Dynamic Sampling
+---
+title: Dynamic Sampling
+description: Dynamic sampling is a feature that allows you to automatically sample similar pages.
+---
 
-## Introduction
-
-Dynamic sampling is a feature that allows you to automatically sample similar pages.
-
-This is useful for sites that have a lot of pages that are similar, such as a blog articles.
+Dynamic Sampling is useful for sites that have a lot of pages that are similar, such as a blog articles.
 
 It is enabled by default for most scans.
 

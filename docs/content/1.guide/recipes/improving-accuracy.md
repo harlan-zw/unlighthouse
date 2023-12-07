@@ -1,4 +1,7 @@
-# Improving Accuracy
+---
+title: Improving Accuracy
+description: How to improve the accuracy of your scans.
+---
 
 ## Run Lighthouse Multiple Times Per URL
 

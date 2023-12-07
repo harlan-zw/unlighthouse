@@ -1,4 +1,7 @@
-# Configuring Puppeteer
+---
+title: Configuring Puppeteer
+description: How to configure Puppeteer using Unlighthouse.
+---
 
 Unlighthouse uses [puppeteer](https://github.com/puppeteer/puppeteer) to run the lighthouse module.
 
@@ -36,8 +39,7 @@ export default {
       await page.evaluateOnNewDocument((token) => {
         localStorage.clear()
         localStorage.setItem('token', token)
-      }, token
-      )
+      }, token)
     },
   },
 }
@@ -56,7 +58,6 @@ export default {
           const elements = document.querySelectorAll(sel)
           for (let i = 0; i < elements.length; i++)
             elements[i].parentNode.removeChild(elements[i])
-
         }, deleteSelector)
       })
     }

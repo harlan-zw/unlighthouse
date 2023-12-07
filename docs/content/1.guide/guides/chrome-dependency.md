@@ -1,4 +1,7 @@
-# Chrome Dependency
+---
+title: Chrome Dependency
+description: How to configure the Chrome dependency.
+---
 
 Unlighthouse aims to keep the installation size small, for this reason it depends natively on your locally installed
 Chrome.

@@ -1,4 +1,7 @@
-# Site Crawler
+---
+title: Site Crawler
+description: How Unlighthouse discovers URLs to scan.
+---
 
 
 Unlighthouse comes with multiple methods for URL discovery in the form of crawling.

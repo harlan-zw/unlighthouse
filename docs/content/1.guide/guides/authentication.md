@@ -1,4 +1,7 @@
-# Authentication
+---
+title: Authentication
+description: How to authenticate your site before scanning.
+---
 
 Unlighthouse is built to support scanning sites that require authentication. 
 
@@ -129,7 +132,7 @@ You can see an example here:
 // unlighthouse.config.ts
 export default {
   hooks: {
-    async authenticate (page) {
+    async authenticate(page) {
       // login to the page
       await page.goto('https://example.com/login')
       const emailInput = await page.$('input[type="email"]')

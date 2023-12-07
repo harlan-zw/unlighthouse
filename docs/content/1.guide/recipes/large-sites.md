@@ -1,4 +1,7 @@
-# Handling large sites
+---
+title: Handling large sites
+description: How to handle large sites with Unlighthouse.
+---
 
 Unlighthouse is configured by default to run on any sized site and only perform _useful_ scans.
 

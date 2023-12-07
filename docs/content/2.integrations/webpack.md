@@ -1,12 +1,10 @@
 ---
 title: Webpack
-icon: logos:webpack
+icon: i-logos-webpack
 description: Using the Unlighthouse webpack plugin allows you to close the feedback loop in fixing your Google Lighthouse issues in your development site.
 ---
 
-# Webpack
-
-::alert{type="warning"}
+::u-alert{type="warning"}
 This integration is now deprecated and will be removed in the v1 major release.
 Read more about [integration deprecations](/integration-deprecations).
 ::
@@ -38,7 +36,7 @@ pnpm add -D @unlighthouse/webpack
 Unlighthouse will save your reports in `outputDir` (`.unlighthouse` by default),
 it's recommended you .gitignore these files.
 
-```gitignore .gitignore
+```
 .unlighthouse
 ```
 
