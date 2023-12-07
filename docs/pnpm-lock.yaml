@@ -6,11 +6,15 @@ settings:
 
 overrides:
   nitropack: npm:nitropack-nightly@2.8.1-28352923.b53e001
-  nuxt-og-image: ^3.0.0-beta.54
+  nuxt-og-image: ^3.0.0-beta.55
 
 importers:
 
   .:
+    dependencies:
+      wtfnode:
+        specifier: ^0.9.1
+        version: 0.9.1
     devDependencies:
       '@iconify-json/carbon':
         specifier: ^1.1.24
@@ -67,8 +71,8 @@ importers:
         specifier: ^2.5.3
         version: 2.5.3
       nuxt-og-image:
-        specifier: ^3.0.0-beta.54
-        version: 3.0.0-beta.54(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0)
+        specifier: ^3.0.0-beta.55
+        version: 3.0.0-beta.55(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0)
       shiki-es:
         specifier: ^0.14.0
         version: 0.14.0
@@ -1778,7 +1782,7 @@ packages:
       chalk: 5.3.0
       defu: 6.1.3
       nuxt-link-checker: 2.1.10(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0)
-      nuxt-og-image: 3.0.0-beta.54(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0)
+      nuxt-og-image: 3.0.0-beta.55(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0)
       nuxt-schema-org: 3.2.1(@nuxt/devtools@1.0.4)(@unhead/shared@1.8.8)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(unhead@1.8.8)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0)
       nuxt-seo-experiments: 3.1.9(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0)
       nuxt-seo-ui: 0.4.4(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0)
@@ -7469,8 +7473,8 @@ packages:
       - supports-color
     dev: true
 
-  /nuxt-og-image@3.0.0-beta.54(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0):
-    resolution: {integrity: sha512-BoespMRi/l1hkGeL4JDLyuEWZJucNwbMzh+7mTBxsYekTqeynORvRbuk0Pmi/f8ehxtEaUGnlckSm8KSjImrGQ==}
+  /nuxt-og-image@3.0.0-beta.55(@nuxt/devtools@1.0.4)(@vue/compiler-core@3.3.10)(nuxt@3.8.2)(postcss@8.4.32)(vite@5.0.6)(vue@3.3.10)(webpack@5.89.0):
+    resolution: {integrity: sha512-UW/tILeubI2o62IuE0XXfR8N0w1wAGFv1C3dW/3c2oh2n7iyJqyIARdrfPj09LjX0z3RW5CkhVO8POJNJaOnTw==}
     dependencies:
       '@iconify-json/noto': 1.1.17
       '@nuxt/devtools-kit': 1.0.4(nuxt@3.8.2)(vite@5.0.6)
@@ -10726,6 +10730,11 @@ packages:
       utf-8-validate:
         optional: true
     dev: true
+
+  /wtfnode@0.9.1:
+    resolution: {integrity: sha512-Ip6C2KeQPl/F3aP1EfOnPoQk14Udd9lffpoqWDNH3Xt78svxPbv53ngtmtfI0q2Te3oTq79XKTnRNXVIn/GsPA==}
+    hasBin: true
+    dev: false
 
   /xmlhttprequest-ssl@2.0.0:
     resolution: {integrity: sha512-QKxVRxiRACQcVuQEYFsI1hhkrMlrXHPegbbd1yn9UHOmRxY+si12nQYzri3vbzt8VdTTRviqcKxcyllFas5z2A==}
