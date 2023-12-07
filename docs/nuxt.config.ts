@@ -1,3 +1,4 @@
+import wtfnode from 'wtfnode'
 import { version } from './package.json'
 
 export default defineNuxtConfig({
@@ -24,6 +25,9 @@ export default defineNuxtConfig({
     public: {
       version,
     },
+  },
+  linkChecker: {
+    enabled: false,
   },
   content: {
     highlight: {
@@ -56,6 +60,13 @@ export default defineNuxtConfig({
   css: [
     '~/css/scrollbars.css',
   ],
+  debug: true,
+  hooks: {
+    // add open-handles detection on nuxt close hook
+    close: async () => {
+      wtfnode.dump()
+    },
+  },
   app: {
     pageTransition: {
       name: 'page',
