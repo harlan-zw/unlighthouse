@@ -111,7 +111,7 @@ async function run() {
       if (!isCI) {
         // tell the user they can preview it using sirv-cli and link them to the docs
         logger.info(`You can preview the static report using \`npx sirv-cli ${relativeDir}\`.`)
-        logger.info('For deployment demos, see https://unlighthouse.com/docs/deployment')
+        logger.info('For deployment demos, see https://unlighthouse.dev/guide/guides/generating-static-reports#interactive-html-reports')
       }
     }
     process.exit(hadError ? 1 : 0)
