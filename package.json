@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.10.4",
   "private": true,
-  "packageManager": "pnpm@8.10.5",
+  "packageManager": "pnpm@8.14.1",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -21,7 +21,7 @@
     "build:integrations": "pnpm -r --filter=./integrations/** --filter=!./integrations/nuxt run build && pnpm -r --filter=./integrations/nuxt run build",
     "build:docs": "cd docs && pnpm i && nuxi build",
     "build:pkg": "pnpm -r --filter=./packages/** run build",
-    "stub": "pnpm -r --parallel run stub",
+    "stub": "JITI_ESM_RESOLVE=true && pnpm -r --parallel run stub",
     "dev": "pnpm run stub && pnpm run watch:client",
     "lint": "eslint . --fix",
     "lint:fix": "npm run lint -- --fix",
@@ -33,13 +33,13 @@
     "docs:serve": "npm -C docs run serve"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "1.1.3",
-    "bumpp": "^9.2.0",
-    "eslint": "^8.53.0",
-    "typescript": "^5.2.2",
+    "@antfu/eslint-config": "2.6.3",
+    "bumpp": "^9.3.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
     "unbuild": "^2.0.0",
-    "vite": "^4.5.0",
-    "vitest": "^0.34.6"
+    "vite": "^4.5.2",
+    "vitest": "^1.2.1"
   },
   "pnpm": {
     "packageExtensions": {

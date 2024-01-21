@@ -55,6 +55,6 @@
     "@unlighthouse/cli": "workspace:../cli",
     "@unlighthouse/client": "workspace:../client",
     "@unlighthouse/core": "workspace:../core",
-    "puppeteer": "^21.5.2"
+    "puppeteer": "^21.7.0"
   }
 }

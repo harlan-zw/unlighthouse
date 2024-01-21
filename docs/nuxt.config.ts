@@ -11,8 +11,7 @@ export default defineNuxtConfig({
     '@nuxt/content',
     'nuxt-lodash',
     'nuxt-icon',
-    'nuxt-og-image',
-    '@nuxtseo/module',
+    '@nuxtjs/seo',
   ],
   site: {
     url: 'https://unlighthouse.dev',
