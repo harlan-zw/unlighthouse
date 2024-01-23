@@ -183,12 +183,13 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     // remove duplicates, less sorting
     routes = uniqBy(routes, 'path')
 
-    const sortedRoutes = sortBy(routes,      // we're sort all routes by their route name if provided, otherwise use the path      (r) => {
-        if (resolvedConfig.discovery && r.definition)
-          return get(r, resolvedConfig.client.groupRoutesKey.replace('route.', ''))
+    // we're sort all routes by their route name if provided, otherwise use the path
+    const sortedRoutes = sortBy(routes, (r) => {
+      if (resolvedConfig.discovery && r.definition)
+        return get(r, resolvedConfig.client.groupRoutesKey.replace('route.', ''))
 
-        return r.path
-      },    )
+      return r.path
+    })
     sortedRoutes.forEach(route => queueRoute(route))
   }
 

@@ -84,6 +84,7 @@ Allow: /wiki/
             "/mod/.*",
           ],
           "include": [
+            "/*",
             "/$.*",
             "/wiki/.*",
           ],
