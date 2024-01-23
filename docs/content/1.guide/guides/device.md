@@ -5,7 +5,7 @@ description: How to change the device used for scanning.
 
 Unlighthouse uses the [lighthouse node module](https://github.com/GoogleChrome/lighthouse) to perform scans.
 
-By default, Unlighthouse will uses the default lighthouse configuration, which emulates a mobile device. Unlighthouse 
+By default, Unlighthouse will uses the default lighthouse configuration, which emulates a mobile device. Unlighthouse
 does _not throttle_ by default.
 
 The device dimensions details are:
@@ -27,7 +27,6 @@ export default {
   }
 }
 ```
-
 
 To change it to mobile (default):
 

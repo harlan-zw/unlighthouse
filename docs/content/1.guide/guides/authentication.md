@@ -3,7 +3,7 @@ title: Authentication
 description: How to authenticate your site before scanning.
 ---
 
-Unlighthouse is built to support scanning sites that require authentication. 
+Unlighthouse is built to support scanning sites that require authentication.
 
 ## Basic Authentication
 
@@ -123,7 +123,7 @@ export default {
 ## Programmatic Usage
 
 You can also use control Puppeteer programmatically before the page is scanned using a config file.
-This is 
+This is
 more experimental, and you may run into issues.
 
 You can see an example here:
@@ -152,7 +152,7 @@ export default {
 
 If you're having trouble authenticating,
 you can use the `debug: true` and `headless: false`,
-flags to see what's happening. 
+flags to see what's happening.
 
 ```bash
 // unlighthouse.config.ts

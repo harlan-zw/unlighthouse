@@ -255,13 +255,13 @@ export interface ResolvedUserConfig {
    *
    * @default false
    */
-  auth: false | { username: string; password: string }
+  auth: false | { username: string, password: string }
   /**
    * Cookies to add to HTTP requests.
    *
    * @default false
    */
-  cookies: false | { name: string; value: string; [v: string]: string }[]
+  cookies: false | { name: string, value: string, [v: string]: string }[]
   /**
    * Local storage to add to the browser context.
    *
@@ -500,7 +500,7 @@ export interface ResolvedUserConfig {
 }
 
 export type ClientOptionsPayload = Pick<ResolvedUserConfig, 'client' | 'site' | 'lighthouseOptions' | 'scanner' | 'routerPrefix'>
-& Pick<RuntimeSettings, 'websocketUrl' | 'apiUrl'>
+  & Pick<RuntimeSettings, 'websocketUrl' | 'apiUrl'>
 
 export type DeepPartial<T> = T extends Function ? T : (T extends object ? { [P in keyof T]?: DeepPartial<T[P]>; } : T)
 export type UserConfig = DeepPartial<ResolvedUserConfig>

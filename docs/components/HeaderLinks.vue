@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ modelValue: boolean; links: { to: string; label: string }[] }>()
+const props = defineProps<{ modelValue: boolean, links: { to: string, label: string }[] }>()
 const emit = defineEmits(['update:modelValue'])
 
 const isDialogOpen = useVModel(props, 'modelValue', emit)

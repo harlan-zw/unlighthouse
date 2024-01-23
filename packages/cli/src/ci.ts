@@ -67,7 +67,7 @@ async function run() {
         if (!categories)
           return
 
-        Object.values(categories).forEach((category: { score: number; key: string }) => {
+        Object.values(categories).forEach((category: { score: number, key: string }) => {
           let budget = resolvedConfig.ci.budget
           if (!Number.isInteger(budget))
             budget = resolvedConfig.ci.budget[category.key]

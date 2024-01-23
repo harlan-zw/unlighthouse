@@ -10,7 +10,7 @@ const props = defineProps<{
 
 const value = computed(() => get(props.report, props.column.key))
 
-type GroupedItems = [{ transferSize: number; resourceType: string }[]]
+type GroupedItems = [{ transferSize: number, resourceType: string }[]]
 
 const requests = computed<GroupedItems>(() => {
   return groupBy(value.value?.details?.items || [], i => i.resourceType) as unknown as GroupedItems
@@ -19,7 +19,7 @@ const requests = computed<GroupedItems>(() => {
 const totalTransfer = computed(() => formatBytes(sum(value.value?.details?.items.map(i => i.transferSize))))
 
 const requestsMapped = computed(() => {
-  const res: Record<string, { count: number; size: string }> = {}
+  const res: Record<string, { count: number, size: string }> = {}
 
   for (const resourceType in requests.value) {
     const items = requests.value[resourceType]

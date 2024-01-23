@@ -82,7 +82,7 @@ const sortRoutes = function sortRoutes(routes: NuxtRoute[]) {
   return routes
 }
 
-export function createRoutes(options: { files: string[]; srcDir: string; pagesDir?: string; routeNameSplitter?: string; supportedExtensions: string[]; trailingSlash: boolean }) {
+export function createRoutes(options: { files: string[], srcDir: string, pagesDir?: string, routeNameSplitter?: string, supportedExtensions: string[], trailingSlash: boolean }) {
   const {
     files,
     srcDir,

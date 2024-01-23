@@ -11,7 +11,7 @@ const breakpoints = useBreakpoints({ mobile: 640 })
 
 const isXs = breakpoints.smaller('mobile')
 
-const commandPaletteRef = ref<HTMLElement & { query: Ref<string>; results: { item: Command }[] }>()
+const commandPaletteRef = ref<HTMLElement & { query: Ref<string>, results: { item: Command }[] }>()
 
 const { data: files } = await useLazyAsyncData('search', () => queryContent().where({ _type: 'markdown' }).find(), { default: () => [] })
 

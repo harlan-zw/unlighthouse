@@ -9,7 +9,7 @@ import { useUnlighthouse } from '@unlighthouse/core'
  *
  * Some providers, such as Nuxt, do not need this, so this can be safely tree-shaken.
  */
-export async function createServer(): Promise<{ app: App; server: Listener }> {
+export async function createServer(): Promise<{ app: App, server: Listener }> {
   const { resolvedConfig } = useUnlighthouse()
 
   const app = createApp()

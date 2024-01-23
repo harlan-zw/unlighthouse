@@ -5,7 +5,7 @@ description: Generate static reports for your site.
 
 When you run Unlighthouse using `npx unlighthouse`, you're using the CLI mode. This mode generates and runs the interactive client.
 
-This is useful for quickly scanning your site and finding issues. 
+This is useful for quickly scanning your site and finding issues.
 
 However, you want to set up some automation around these reports. Creating reports that can be accessed through a static host.
 
@@ -61,7 +61,7 @@ wrangler init
 You can then run the following command to generate the static report and upload it to CloudFlare Pages.
 
 ```bash
-unlighthouse-ci --site www.example.com --build-static && wrangler pages publish .unlighthouse 
+unlighthouse-ci --site www.example.com --build-static && wrangler pages publish .unlighthouse
 ```
 
 #### GitHub Actions & Netlify Example
@@ -130,7 +130,6 @@ URL,Score,Performance,Accessibility,Best Practices,SEO,Largest Contentful Paint,
 "/sponsors",92,69,100,100,100,4438.15,0,362.62,408.63,1,1,1,1,1,1,1,1,1,1
 "/talks",98,90,100,100,100,864.86,0,390.93,427.94,1,1,1,1,1,1,1,1,1,1
 ```
-
 
 ## JSON Reports
 
@@ -228,4 +227,3 @@ This will generate a report like the following (`json` sample):
   }
 ]
 ```
-

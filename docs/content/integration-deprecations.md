@@ -24,7 +24,7 @@ This provided the site URL, automatic rescans on page updates and route discover
 
 ## Why Deprecate?
 
-Simply, the integrations are too difficult to maintain, error-prone and provide low-value. 
+Simply, the integrations are too difficult to maintain, error-prone and provide low-value.
 
 In nearly all raised issues related to integration, they weren't needed and the CLI could be used instead.
 
@@ -44,6 +44,5 @@ npx unlighthouse --site localhost:3000
 
 The HMR integration be solved by manually rescanning routes using the UI.
 
-The route discovery 
+The route discovery
 will still work when scanned in the root directory or an app with `pages`.
-

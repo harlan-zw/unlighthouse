@@ -53,7 +53,7 @@ hooks.hookOnce('visited-client', () => {
 Discovery of the [route definitions](/api/glossary/#route-definition) is attempted. A virtual router for the route
 definitions is created.
 
-Attempt to read the robots.txt to disocver the sitemap and excluded routes.  
+Attempt to read the robots.txt to disocver the sitemap and excluded routes.
 
 With the sitemap.xml, we collect the list of URLs to work with, if no sitemap is discovered, the home page will be
 scanned.
@@ -75,4 +75,3 @@ Broadcasting setup on worker events.
 
 The [unrouted](https://github.com/harlan-zw/unrouted) API instance routes requests to the worker to perform actions.
 Static files such as the full-page screenshot and lighthouse HTML report are served.
-

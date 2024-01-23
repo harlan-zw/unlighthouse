@@ -5,9 +5,9 @@ description: Route definitions are an optional feature of Unlighthouse.
 
 Providing route definitions will give you more intelligent sampling and file hints.
 
-When you start Unlighthouse, it will try and map your page files to [route definitions](/api/glossary/#route-definition). 
+When you start Unlighthouse, it will try and map your page files to [route definitions](/api/glossary/#route-definition).
 
-Using Unlighthouse with the provided integrations, the route definitions should be discovered on their own. 
+Using Unlighthouse with the provided integrations, the route definitions should be discovered on their own.
 If you have a custom setup or are using the CLI, you will need to manually set up the discovery.
 
 ## Pages directory
@@ -25,7 +25,6 @@ export default {
   }
 }
 ```
-
 
 ## Custom sampling
 

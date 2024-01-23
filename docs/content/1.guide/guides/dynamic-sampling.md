@@ -14,7 +14,7 @@ When dynamic sampling is enabled, it will group paths into chunks based on their
 For example, let's imagine we have a blog on our site and there are hundreds of blog posts. Scanning every blog post will
 take a long time and may even break Unlighthouse.
 
-The path structure is `/blog/{post}`. 
+The path structure is `/blog/{post}`.
 
 Unlighthouse will turn this path structure into groups based on the `/blog` prefix. By default, it will sample
 5 paths starting with this prefix.

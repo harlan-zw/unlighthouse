@@ -87,7 +87,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     // @ts-expect-error untyped
     userConfig = defu(config, userConfig)
   }
-  const runtimeSettings: { moduleWorkingDir: string; lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
+  const runtimeSettings: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
     configFile: configFile || undefined,
     moduleWorkingDir: __dirname,
     configCacheKey: '',

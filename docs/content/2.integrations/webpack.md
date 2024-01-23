@@ -12,7 +12,6 @@ Read more about [integration deprecations](/integration-deprecations).
 Using the Unlighthouse webpack plugin allows you to close the feedback loop in fixing your Google Lighthouse issues in
 your development site.
 
-
 ## Install
 
 ::code-group

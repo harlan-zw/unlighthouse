@@ -181,7 +181,7 @@ Unlighthouse provides intelligent sampling which relies on knowing which URLs ma
 To achieve this, it needs to create its own router with your files to test any URL that comes through.
 
 Different integrations will have different requirements from the router.
-For example, different frameworks will resolve files that contain substitutes 
+For example, different frameworks will resolve files that contain substitutes
 (for example `/posts/[post].vue` may work in one framework but not another).
 
 ```ts

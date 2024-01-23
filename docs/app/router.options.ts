@@ -1,6 +1,6 @@
 import type { RouterConfig } from '@nuxt/schema'
 
-function findHashPosition(hash): { el: any; behavior: ScrollBehavior; top: number } {
+function findHashPosition(hash): { el: any, behavior: ScrollBehavior, top: number } {
   const el = document.querySelector(hash)
   // vue-router does not incorporate scroll-margin-top on its own.
   if (el) {

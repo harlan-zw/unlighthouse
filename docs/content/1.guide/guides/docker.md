@@ -43,4 +43,3 @@ export default {
 
 Please see the following community repos:
 - [indykoning—Unlighthouse Docker](https://github.com/indykoning/unlighthouse-docker)
-

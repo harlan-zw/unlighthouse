@@ -12,7 +12,7 @@ import { ReportArtifacts, fetchUrlRaw, formatBytes, trimSlashes } from '../../ut
 import { normaliseRoute } from '../../router'
 import { setupPage } from '../util'
 
-export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean; redirected?: false | string; message?: string; payload?: string }> = async (page, route) => {
+export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean, redirected?: false | string, message?: string, payload?: string }> = async (page, route) => {
   const { worker, resolvedConfig } = useUnlighthouse()
 
   // if we don't need to execute any javascript we can do a less expensive fetch of the URL

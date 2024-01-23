@@ -5,7 +5,7 @@ const props = defineProps<{
   item: any
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
-  size: { width: number; height: number }
+  size: { width: number, height: number }
 }>()
 
 const maxRenderSizeDC = props.size

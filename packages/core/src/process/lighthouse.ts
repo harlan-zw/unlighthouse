@@ -11,7 +11,7 @@ import type { UnlighthouseRouteReport } from '../types'
 
 (async () => {
   const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded }
-      = minimist<{ options: string; cache: boolean; routeReport: string; port: number }>(process.argv.slice(2))
+      = minimist<{ options: string, cache: boolean, routeReport: string, port: number }>(process.argv.slice(2))
 
   const routeReportJson: UnlighthouseRouteReport = JSON.parse(routeReport)
   const lighthouseOptions: LH.Flags = {

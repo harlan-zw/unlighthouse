@@ -103,7 +103,7 @@ function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
         },
       }
     }, prev)
-  }, {} as { [key: string]: { key: string; id: string; title: string; scores: number[] } })
+  }, {} as { [key: string]: { key: string, id: string, title: string, scores: number[] } })
 
   // returns averageCategories
   return Object.keys(categoriesWithAllScores).reduce(

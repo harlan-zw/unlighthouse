@@ -39,7 +39,7 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
     .replace(/(href|src)="\/assets\/(.*?)"/gm, `$1="${prefix}assets/$2"`)
   await fs.writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
 
-  const staticData: { options: ClientOptionsPayload; scanMeta: ScanMeta; reports: UnlighthouseRouteReport[] } = {
+  const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: UnlighthouseRouteReport[] } = {
     reports: [],
     scanMeta: createScanMeta(),
     // need to be selective about what options we put here to avoid exposing anything sensitive

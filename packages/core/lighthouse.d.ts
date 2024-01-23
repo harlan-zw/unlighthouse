@@ -50,7 +50,7 @@ declare module 'lighthouse' {
       /** List of top-level warnings for this Lighthouse run. */
       runWarnings: string[]
       /** A top-level error message that, if present, indicates a serious enough problem that this Lighthouse result may need to be discarded. */
-      runtimeError?: { code: string; message: string }
+      runtimeError?: { code: string, message: string }
       /** The User-Agent string of the browser used run Lighthouse for these results. */
       userAgent: string
       /** Information about the environment in which Lighthouse was run. */
@@ -380,7 +380,7 @@ declare module 'lighthouse' {
 
     /** The type of the Profile & ProfileChunk event in Chromium traces. Note that this is subtly different from Crdp.Profiler.Profile. */
     export interface TraceCpuProfile {
-      nodes?: Array<{ id: number; callFrame: { functionName: string; url?: string }; parent?: number }>
+      nodes?: Array<{ id: number, callFrame: { functionName: string, url?: string }, parent?: number }>
       samples?: Array<number>
       timeDeltas?: Array<number>
     }
@@ -496,7 +496,7 @@ declare module 'lighthouse' {
     __lighthouseExecutionContextId?: number
 
     // Not defined in tsc yet: https://github.com/microsoft/TypeScript/issues/40807
-    requestIdleCallback(callback: (deadline: { didTimeout: boolean; timeRemaining: () => DOMHighResTimeStamp }) => void, options?: { timeout: number }): number
+    requestIdleCallback(callback: (deadline: { didTimeout: boolean, timeRemaining: () => DOMHighResTimeStamp }) => void, options?: { timeout: number }): number
   }
 
 }

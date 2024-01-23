@@ -6,7 +6,7 @@ function escapeValueForCsv(value: string | number | boolean): string {
   return `"${value.replace(/"/g, '""')}"`
 }
 
-export function csvSimpleFormat(reports: UnlighthouseRouteReport[]): { headers: string[]; body: any } {
+export function csvSimpleFormat(reports: UnlighthouseRouteReport[]): { headers: string[], body: any } {
   const headers = ['URL', 'Score']
   Object.values(reports[0].report.categories).forEach((category) => {
     headers.push(category.title)

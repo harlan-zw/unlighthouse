@@ -29,12 +29,12 @@ Functions exposed from the `@unlighthouse/core` package.
     }
   )
   ```
-  
+
 ### defineConfig
 
 - **Type:** `(userConfig: UserConfig) => Promise<UnlighthouseContext>`
 
-  A simple define wrapper to provide typings to config definitions. This is primarily used when creating a 
+  A simple define wrapper to provide typings to config definitions. This is primarily used when creating a
   config file `unlighthouse.config.ts`
 
   ```ts
@@ -45,7 +45,7 @@ Functions exposed from the `@unlighthouse/core` package.
     site: 'harlanzw.com'
   })
   ```
-  
+
 ### generateClient
 
 - **Type:** `(options: GenerateClientOptions) => Promise<void>`
@@ -56,23 +56,23 @@ Functions exposed from the `@unlighthouse/core` package.
 
   ```ts
   import { generateClient } from '@unlighthouse/core'
-  
+
   // ...
   logger.info('Generating static client.')
   await generateClient({ static: true })
   logger.success(`Static client generated at \`${unlighthouse.runtimeSettings.generatedClientPath}\`, ready for hosting.`)
-  ```  
-  
+  ```
+
 ### useUnlighthouse
 
 - **Type:** `() => UnlighthouseContext`
 
-  Unlighthouse makes use of a [composition API](https://github.com/unjs/unctx) to retain the core state. This allows you to access unlighthouse _anywhere_, 
+  Unlighthouse makes use of a [composition API](https://github.com/unjs/unctx) to retain the core state. This allows you to access unlighthouse _anywhere_,
   which is great to avoid transferring state between your logic.
 
   ```ts
   import { useUnlighthouse } from '@unlighthouse/core'
-  
+
   // access the lighthouse context, pick out the worker
   const { worker } = useUnlighthouse()
   // force whichever route matches home.md to be re-scanned
@@ -88,7 +88,7 @@ Functions exposed from the `@unlighthouse/core` package.
 
   ```ts
   import { useLogger } from '@unlighthouse/core'
-  
+
   // you need to instantiate the logger to get the instance
   const logger = useLogger()
   // force whichever route matches home.md to be re-scanned
@@ -107,18 +107,18 @@ running Unlighthouse with the `cli` provider will use this package.
 - **Type:** `() => Promise<void>`
 
   Creates a [h3](https://github.com/unjs/h3) app which uses [listhen](https://github.com/unjs/listhen) as a web server.
-  This is used to host the API and the client. 
+  This is used to host the API and the client.
 
   ```ts
   import { createServer } from '@unlighthouse/server'
-  
+
   // ...
   const { server, app } = await createServer()
   // server is an instance of listhen, app is an instance of h3
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
   await unlighthouse.start()
   ```
-  
+
 ## Unlighthouse Context
 
 Functions exposed from unlighthouse context provided by `useUnlighthouse()` or `createUnlighthouse()` .

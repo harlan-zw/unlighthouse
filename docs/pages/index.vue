@@ -87,7 +87,9 @@ defineOgImageComponent('NuxtSeo', {
         <div class="flex items-center space-x-10">
           <!--   we need to style this div like a nice terminal bash using tailwind   -->
           <div class="max-w-full overflow-x-auto flex flex-grow items-center  space-x-3 border-2 border-solid border-gray-600/50 dark:bg-[#121212] lg:p-5 p-2 text-gray-300 font-mono lg:text-lg rounded-t-lg shadow-xl relative">
-            <div class="hidden lg:block">&gt;</div><OCodeBlock class="text-xl flex-grow" :lines="false" :code="code" lang="bash" />
+            <div class="hidden lg:block">
+              &gt;
+            </div><OCodeBlock class="text-xl flex-grow" :lines="false" :code="code" lang="bash" />
           </div>
         </div>
       </div>

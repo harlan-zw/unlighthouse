@@ -3,14 +3,13 @@ title: Site Crawler
 description: How Unlighthouse discovers URLs to scan.
 ---
 
-
 Unlighthouse comes with multiple methods for URL discovery in the form of crawling.
 
 1. Add the specified `site` from `--site` or config
 2. Manually providing URLs via the `--urls` flag or `urls` on the provider.
 3. `robotsTxt` - Reading robots.txt, if it exists. Provides sitemap URLs and disallowed paths.
-4. `sitemap` - Reading sitemap.xml, if it exists 
-5. `crawler` - Inspecting internal links 
+4. `sitemap` - Reading sitemap.xml, if it exists
+5. `crawler` - Inspecting internal links
 6. Using provided static [route definitions](/api/glossary/#route-definition)
 
 ## Robots.txt
@@ -19,7 +18,7 @@ When a robots.txt is found, it will attempt to read the sitemap and disallowed p
 
 ### Disabling robots
 
-You may not want to use the robots.txt in all occasions. For example if you want to scan 
+You may not want to use the robots.txt in all occasions. For example if you want to scan
 URLs which are disallowed.
 
   ```ts
@@ -30,7 +29,6 @@ URLs which are disallowed.
     }
   }
   ```
-
 
 ## Sitemap.xml
 
@@ -68,7 +66,7 @@ export default {
 
 ## Crawler
 
-When enabled, the crawler will inspect the HTML payload of a page and extract internal links. 
+When enabled, the crawler will inspect the HTML payload of a page and extract internal links.
 These internal links will be queued up and scanned if they haven't already been scanned.
 
 ## Disable crawling
