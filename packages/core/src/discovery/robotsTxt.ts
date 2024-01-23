@@ -72,11 +72,14 @@ export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { groups, sitem
     ...(config.scanner.exclude || []),
     ...normalisedGroups.flatMap(group => group.disallow),
   ])].filter(isValidRegex)
-  config.scanner.include = [...new Set([
-    ...(config.scanner.include || []),
-    ...normalisedGroups.flatMap(group => group.allow),
-  ])].filter(isValidRegex)
-
+  config.scanner.include = config.scanner.include || []
+  const robotsAllows = normalisedGroups.flatMap(group => group.allow).filter(a => a.length)
+  if (!config.scanner.include.length && robotsAllows.length) {
+    config.scanner.include = [...new Set([
+      '/*',
+      ...normalisedGroups.flatMap(group => group.allow),
+    ])].filter(isValidRegex)
+  }
   if (config.scanner.sitemap !== false && sitemaps.length)
     config.scanner.sitemap = [...new Set([...(Array.isArray(config.scanner.sitemap) ? config.scanner.sitemap : []), ...sitemaps])]
 }
