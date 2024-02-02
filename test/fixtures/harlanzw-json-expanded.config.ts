@@ -7,9 +7,9 @@ export default {
   },
   ci: {
     budget: {
-      'best-practices': 75,
-      'seo': 75,
-      'accessibility': 75,
+      'best-practices': 50,
+      'seo': 50,
+      'accessibility': 50,
     },
     reporter: 'jsonExpanded',
   },

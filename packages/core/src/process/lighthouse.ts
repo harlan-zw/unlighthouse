@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import { join } from 'node:path'
 import type { LH } from 'lighthouse'
-import lighthouse from 'lighthouse'
+import lighthouse from 'lighthouse/core/index.cjs'
 import minimist from 'minimist'
 import type { UnlighthouseRouteReport } from '../types'
 
