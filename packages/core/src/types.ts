@@ -135,7 +135,12 @@ export interface HTMLExtractPayload {
 
 export type WindiResponsiveClasses = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 
-export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded'
+export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer'
+
+export interface ReporterConfig {
+  lhciHost?: string
+  lhciBuildToken?: string
+}
 
 /**
  * A column will generally be either a direct mapping to a lighthouse audit (such as console errors) or a computed mapping to
@@ -342,6 +347,10 @@ export interface ResolvedUserConfig {
      * @default 'jsonSimple'
      */
     reporter: ValidReportTypes | false
+    /**
+     * Additional configuration passed to the reporter.
+     */
+    reporterConfig?: ReporterConfig
   }
   /**
    * See https://unlighthouse.dev/guide/client.html

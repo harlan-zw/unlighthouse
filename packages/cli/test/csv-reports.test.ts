@@ -25,7 +25,7 @@ describe('csv reports', () => {
   })
 
   it('expanded', () => {
-    const actual = generateReportPayload('csvExpanded', lighthouseReport, DefaultColumns)
+    const actual = generateReportPayload('csvExpanded', lighthouseReport, { columns: DefaultColumns })
     expect(actual).toMatchInlineSnapshot(`
       "URL,Score,Performance,Accessibility,Best Practices,SEO,Largest Contentful Paint,Cumulative Layout Shift,FID,Blocking,Color Contrast,Headings,Image Alts,Link Names,Errors,Inspector Issues,Images Responsive,Image Aspect Ratio,Indexable
       "/",98,100,100,100,92,279.17,0,68.82,0,1,1,1,1,1,1,1,1,1
