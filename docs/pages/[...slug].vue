@@ -54,7 +54,7 @@ const repoLinks = computed(() => [
   {
     icon: 'i-ph-github-logo',
     label: 'Open an issue',
-    to: `https://github.com/unlighthouse/issues/new/choose`,
+    to: `https://github.com/harlan-zw/unlighthouse/issues/new/choose`,
     target: '_blank',
   },
   {
