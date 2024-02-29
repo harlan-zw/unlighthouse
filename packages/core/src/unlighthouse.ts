@@ -137,7 +137,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     runLighthouseTask,
   }
 
-  // @ts-expect-error untyped
   const worker = await createUnlighthouseWorker(tasks)
 
   if (resolvedConfig.hooks?.authenticate) {

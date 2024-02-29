@@ -4,8 +4,6 @@ import fs from 'fs-extra'
 import launch from 'launch-editor'
 import { presetNode, serve } from '@unrouted/preset-node'
 import { presetApi } from '@unrouted/preset-api'
-import type { App } from 'h3'
-import { defineEventHandler } from 'h3'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 import { createScanMeta } from '../data'
@@ -15,7 +13,7 @@ import { createScanMeta } from '../data'
  *
  * Internally, this uses unrouted which provides an elegant and batteries-packed solution.
  */
-export async function createApi(h3: App) {
+export async function createApi(h3: any): Promise<any> {
   const logger = useLogger()
   const { ws, resolvedConfig, runtimeSettings, hooks } = useUnlighthouse()
   const useReport = () => {
@@ -87,7 +85,7 @@ export async function createApi(h3: App) {
         launch(resolved)
       })
 
-      get('ws', defineEventHandler(event => ws.serve(event.req)))
+      get('ws', event => ws.serve(event.req))
 
       get('reports', () => {
         const { worker } = useUnlighthouse()
