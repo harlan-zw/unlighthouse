@@ -118,7 +118,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
   await hooks.callHook('resolved-config', resolvedConfig)
 
-  logger.debug(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
+  if (configFile) {
+    logger.info(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
+  }
 
   // web socket instance for broadcasting
   const ws = provider?.name === 'ci' ? null : new WS()
