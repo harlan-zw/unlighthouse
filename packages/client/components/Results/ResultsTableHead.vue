@@ -9,6 +9,14 @@ defineProps<{
 defineEmits<{
   (e: 'sort', key: string): void
 }>()
+
+function htmlTooltip(s: string) {
+  // we need to convert links into html for example
+  // [Learn more](https://web.dev/lighthouse-largest-contentful-paint/) -> <a href="https://web.dev/lighthouse-largest-contentful-paint/">Learn more</a>
+  return s
+    .replace(/\[(.*?)\]\((.*?)\)/g, '<a class="underline" target="_blank" href="$2">$1</a>')
+    .replace(/\n/g, '<br>')
+}
 </script>
 
 <template>
@@ -23,7 +31,7 @@ defineEmits<{
           <i-carbon-information v-else class="ml-1 text-xs opacity-75" />
         </span>
         <template #tooltip>
-          <div v-html="column.tooltip" />
+          <div v-html="htmlTooltip(column.tooltip)" />
         </template>
       </tooltip>
       <div v-else>
