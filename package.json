@@ -43,6 +43,9 @@
           }
         }
       }
+    },
+    "patchedDependencies": {
+      "puppeteer-cluster@0.23.0": "patches/puppeteer-cluster@0.23.0.patch"
     }
   }
 }

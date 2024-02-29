@@ -6,6 +6,11 @@ settings:
 
 packageExtensionsChecksum: 8429e11d65054768cfa7f0bee254a3fa
 
+patchedDependencies:
+  puppeteer-cluster@0.23.0:
+    hash: mhbfxlj2zdccdakst4vv75s2vu
+    path: patches/puppeteer-cluster@0.23.0.patch
+
 importers:
 
   .:
@@ -232,7 +237,7 @@ importers:
         version: 1.1.2
       puppeteer-cluster:
         specifier: ^0.23.0
-        version: 0.23.0(puppeteer-core@22.3.0)
+        version: 0.23.0(patch_hash=mhbfxlj2zdccdakst4vv75s2vu)(puppeteer-core@22.3.0)
       puppeteer-core:
         specifier: ^22.3.0
         version: 22.3.0
@@ -6212,7 +6217,7 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /puppeteer-cluster@0.23.0(puppeteer-core@22.3.0):
+  /puppeteer-cluster@0.23.0(patch_hash=mhbfxlj2zdccdakst4vv75s2vu)(puppeteer-core@22.3.0):
     resolution: {integrity: sha512-108terIWDzPrQopmoYSPd5yDoy3FGJ2dNnoGMkGYPs6xtkdhgaECwpfZkzaRToMQPZibUOz0/dSSGgPEdXEhkQ==}
     peerDependencies:
       puppeteer: '>=1.5.0'
@@ -6226,6 +6231,7 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: false
+    patched: true
 
   /puppeteer-core@21.11.0:
     resolution: {integrity: sha512-ArbnyA3U5SGHokEvkfWjW+O8hOxV1RSJxOgriX/3A4xZRqixt9ZFHD0yPgZQF05Qj0oAqi8H/7stDorjoHY90Q==}
