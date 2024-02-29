@@ -9,4 +9,9 @@ export default defineBuildConfig({
   entries: [
     { input: 'src/index' },
   ],
+  externals: [
+    'crossws',
+    '@unrouted/core',
+    'h3',
+  ],
 })

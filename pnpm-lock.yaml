@@ -153,8 +153,8 @@ importers:
   packages/core:
     dependencies:
       '@puppeteer/browsers':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^2.1.0
+        version: 2.1.0
       '@unlighthouse/client':
         specifier: workspace:../client
         version: link:../client
@@ -232,10 +232,10 @@ importers:
         version: 1.1.2
       puppeteer-cluster:
         specifier: ^0.23.0
-        version: 0.23.0(puppeteer-core@21.11.0)
+        version: 0.23.0(puppeteer-core@22.3.0)
       puppeteer-core:
-        specifier: ^21.11.0
-        version: 21.11.0
+        specifier: ^22.3.0
+        version: 22.3.0
       regexparam:
         specifier: ^2.0.1
         version: 2.0.2
@@ -4381,7 +4381,6 @@ packages:
   /has-flag@3.0.0:
     resolution: {integrity: sha512-sKJf1+ceQBr4SMkvQnBDNDtf4TXpVhVGateu0t918bl30FnbE2m4vNLX+VWe/dpjlb+HugGYzW7uQXH98HPEYw==}
     engines: {node: '>=4'}
-    requiresBuild: true
 
   /has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -4836,7 +4835,6 @@ packages:
 
   /js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
-    requiresBuild: true
 
   /js-tokens@8.0.3:
     resolution: {integrity: sha512-UfJMcSJc+SEXEl9lH/VLHSZbThQyLpw1vLO1Lb+j4RWDvG3N2f7yj3PVQA3cmkTBNldJ9eFnM+xEXxHIXrYiJw==}
@@ -6214,7 +6212,7 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /puppeteer-cluster@0.23.0(puppeteer-core@21.11.0):
+  /puppeteer-cluster@0.23.0(puppeteer-core@22.3.0):
     resolution: {integrity: sha512-108terIWDzPrQopmoYSPd5yDoy3FGJ2dNnoGMkGYPs6xtkdhgaECwpfZkzaRToMQPZibUOz0/dSSGgPEdXEhkQ==}
     peerDependencies:
       puppeteer: '>=1.5.0'
@@ -6224,7 +6222,7 @@ packages:
         optional: true
     dependencies:
       debug: 4.3.4
-      puppeteer-core: 21.11.0
+      puppeteer-core: 22.3.0
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -6268,6 +6266,7 @@ packages:
 
   /queue-tick@1.0.1:
     resolution: {integrity: sha512-kJt5qhMxoszgU/62PLP1CJytzd2NKetjSRnyuj31fDd3Rlcz3fzlFdFLD1SItunPwyqEOkca6GbV612BWfaBag==}
+    requiresBuild: true
     dev: false
 
   /quick-lru@5.1.1:
