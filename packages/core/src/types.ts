@@ -1,7 +1,7 @@
 import type http from 'node:http'
 import type https from 'node:https'
 import type { $URL, QueryObject } from 'ufo'
-import type { LH } from 'lighthouse'
+import type LH from 'lighthouse/types/lh'
 import type { LaunchOptions, Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { Cluster, TaskFunction } from '../cluster'
