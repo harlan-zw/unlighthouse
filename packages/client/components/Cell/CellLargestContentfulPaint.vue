@@ -31,7 +31,7 @@ watch(isModalOpen, () => {
 <template>
   <div v-if="report.report" class="text-sm w-full">
     <audit-result :value="report.report.audits['largest-contentful-paint']" class="ml-2" />
-    <div v-for="(item, key) in report.report.audits['largest-contentful-paint-element'].details.items" :key="key" class="flex items-center">
+    <div v-for="(item, key) in report.report.audits['largest-contentful-paint-element'].details.items[0].items" :key="key" class="flex items-center">
       <btn-action title="Open full image" @click="openModal">
         <CellImageOutline :item="item" :report="report" :column="column" :size="{ width: 150, height: 112 }" />
       </btn-action>
