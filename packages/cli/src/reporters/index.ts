@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import fse from 'fs-extra'
-import type { ResolvedUserConfig, UnlighthouseColumn, UnlighthouseRouteReport, UnlighthouseTabs } from '@unlighthouse/core'
+import type { ResolvedUserConfig, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { reportJsonSimple } from './jsonSimple'
 import { reportJsonExpanded } from './jsonExpanded'
 import type { ReportJsonExpanded, ReportJsonSimple, ReporterConfig } from './types'
@@ -27,9 +27,9 @@ export function generateReportPayload(reporter: string, reports: UnlighthouseRou
     if (reporter === 'csvExpanded')
       return reportCSVExpanded(sortedReporters, config)
   }
-  if (reporter === 'lighthouseServer') {
+  if (reporter === 'lighthouseServer')
     return reportLighthouseServer(sortedReporters, config)
-  }
+
   throw new Error(`Unsupported reporter: ${reporter}.`)
 }
 

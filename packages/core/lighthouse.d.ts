@@ -496,7 +496,7 @@ declare module 'lighthouse' {
     __lighthouseExecutionContextId?: number
 
     // Not defined in tsc yet: https://github.com/microsoft/TypeScript/issues/40807
-    requestIdleCallback(callback: (deadline: { didTimeout: boolean, timeRemaining: () => DOMHighResTimeStamp }) => void, options?: { timeout: number }): number
+    requestIdleCallback: (callback: (deadline: { didTimeout: boolean, timeRemaining: () => DOMHighResTimeStamp }) => void, options?: { timeout: number }) => number
   }
 
 }

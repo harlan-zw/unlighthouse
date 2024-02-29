@@ -138,7 +138,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     headless: true,
     ignoreHTTPSErrors: true,
   })
-  config.puppeteerOptions!.defaultViewport = config.lighthouseOptions.screenEmulation
+  config.puppeteerOptions.defaultViewport = config.lighthouseOptions.screenEmulation
 
   let foundChrome = !!config.puppeteerOptions?.executablePath
   // if user is using the default chrome binary options
@@ -150,7 +150,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       // set default to puppeteer core
       config.puppeteerClusterOptions.puppeteer = puppeteer
       // point to our pre-installed chrome version
-      config.puppeteerOptions!.executablePath = chromePath
+      config.puppeteerOptions.executablePath = chromePath
       foundChrome = true
     }
   }
@@ -188,7 +188,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       })
     }
     logger.info(`Using temporary downloaded chromium v1095492 located at: ${chromePath}`)
-    config.puppeteerOptions!.executablePath = chromePath
+    config.puppeteerOptions.executablePath = chromePath
     foundChrome = true
   }
   if (!foundChrome)

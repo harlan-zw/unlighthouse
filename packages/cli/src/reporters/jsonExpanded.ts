@@ -94,7 +94,7 @@ function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
   const categoriesWithAllScores = routes.reduce((prev, curr) => {
     return Object.keys(curr.categories).reduce((target, categoryKey) => {
       const scores = target[categoryKey] ? target[categoryKey].scores : []
-      const { score, ...strippedCategory } = curr.categories[categoryKey]
+      const { ...strippedCategory } = curr.categories[categoryKey]
       return {
         ...target,
         [categoryKey]: {
@@ -121,7 +121,7 @@ function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
           ) / categoriesWithAllScores[key].scores.length
         ).toFixed(2),
       )
-      const { scores, ...strippedCategory } = categoriesWithAllScores[key]
+      const { ...strippedCategory } = categoriesWithAllScores[key]
       return { ...prev, [key]: { ...strippedCategory, averageScore } }
     },
     {} as {
@@ -136,7 +136,7 @@ function extractMetricsFromRoutes(routes: ExpandedRouteReport[]) {
       const numericValues = target[metricKey]
         ? target[metricKey].numericValues
         : []
-      const { numericValue, displayValue, ...strippedMetric } = curr.metrics[metricKey]
+      const { ...strippedMetric } = curr.metrics[metricKey]
       return {
         ...target,
         [metricKey]: {
@@ -158,7 +158,7 @@ function extractMetricsFromRoutes(routes: ExpandedRouteReport[]) {
           ) / metricsWithAllNumericValues[key].numericValues.length
         ).toFixed(2),
       )
-      const { numericValues, ...strippedMetric }
+      const { ...strippedMetric }
         = metricsWithAllNumericValues[key]
       return { ...prev, [key]: { ...strippedMetric, averageNumericValue } }
     },

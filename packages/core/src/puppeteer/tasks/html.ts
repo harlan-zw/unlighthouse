@@ -152,7 +152,6 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   const internalLinks: string[] = []
   const externalLinks: string[] = []
   $('a').each(function () {
-    // eslint-disable-next-line @typescript-eslint/no-invalid-this
     const href = $(this).attr('href')
     // href must be provided and not be javascript
     if (!href || href.includes('javascript:') || href.includes('mailto:') || href === '#')

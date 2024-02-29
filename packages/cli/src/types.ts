@@ -1,4 +1,4 @@
-import type { ReporterConfig, UnlighthouseRouteReport, ValidReportTypes } from '@unlighthouse/core'
+import type { UnlighthouseRouteReport, ValidReportTypes } from '@unlighthouse/core'
 
 export interface CliOptions {
   host?: string
@@ -38,7 +38,6 @@ export interface CiOptions extends CliOptions {
   reporter?: ValidReportTypes | false
   lhciHost?: string
   lhciBuildToken?: string
-
 
 }
 

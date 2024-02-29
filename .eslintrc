@@ -1,9 +1,0 @@
-{
-  "env": {
-    "node": true
-  },
-  "extends": "@antfu",
-  "rules": {
-    "@typescript-eslint/no-var-requires": "off"
-  }
-}

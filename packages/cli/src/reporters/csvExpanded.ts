@@ -1,8 +1,7 @@
-
 import { get } from 'lodash-es'
 import type { UnlighthouseRouteReport } from '../types'
 import { csvSimpleFormat } from './csvSimple'
-import { ReporterConfig } from './types'
+import type { ReporterConfig } from './types'
 
 export function reportCSVExpanded(reports: UnlighthouseRouteReport[], { columns }: ReporterConfig): string {
   const { headers, body } = csvSimpleFormat(reports)

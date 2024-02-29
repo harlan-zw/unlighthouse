@@ -1,35 +1,35 @@
-import type { UnlighthouseRouteReport } from "../types";
-import ApiClient from "@lhci/utils/src/api-client.js";
+import ApiClient from '@lhci/utils/src/api-client.js'
 import {
-  getCommitMessage,
+  getAncestorHash,
   getAuthor,
   getAvatarUrl,
-  getExternalBuildUrl,
+  getCommitMessage,
   getCommitTime,
-  getCurrentHash,
   getCurrentBranch,
-  getAncestorHash,
-} from "@lhci/utils/src/build-context.js";
-import fs from "fs-extra";
-import { ReporterConfig } from "./types";
-import { handleError } from "../errors";
+  getCurrentHash,
+  getExternalBuildUrl,
+} from '@lhci/utils/src/build-context.js'
+import fs from 'fs-extra'
+import type { UnlighthouseRouteReport } from '../types'
+import { handleError } from '../errors'
+import type { ReporterConfig } from './types'
 
 export async function reportLighthouseServer(
   reports: UnlighthouseRouteReport[],
-  { lhciBuildToken, lhciHost }: ReporterConfig
+  { lhciBuildToken, lhciHost }: ReporterConfig,
 ): Promise<void> {
   try {
-    const api = new ApiClient({ fetch, rootURL: lhciHost });
-    api.setBuildToken(lhciBuildToken);
-    const project = await api.findProjectByToken(lhciBuildToken);
-    const baseBranch = project.baseBranch || "master";
-    const hash = getCurrentHash();
-    const branch = getCurrentBranch();
-    const ancestorHash = getAncestorHash("HEAD", baseBranch);
+    const api = new ApiClient({ fetch, rootURL: lhciHost })
+    api.setBuildToken(lhciBuildToken)
+    const project = await api.findProjectByToken(lhciBuildToken)
+    const baseBranch = project.baseBranch || 'master'
+    const hash = getCurrentHash()
+    const branch = getCurrentBranch()
+    const ancestorHash = getAncestorHash('HEAD', baseBranch)
     const build = await api.createBuild({
       projectId: project.id,
-      lifecycle: "unsealed",
-      hash: hash,
+      lifecycle: 'unsealed',
+      hash,
       branch,
       ancestorHash,
       commitMessage: getCommitMessage(hash),
@@ -41,12 +41,12 @@ export async function reportLighthouseServer(
       ancestorCommittedAt: ancestorHash
         ? getCommitTime(ancestorHash)
         : undefined,
-    });
+    })
 
     for (const report of reports) {
       const lighthouseResult = await fs.readJson(
-        `${report.artifactPath}/lighthouse.json`
-      );
+        `${report.artifactPath}/lighthouse.json`,
+      )
 
       await api.createRun({
         projectId: project.id,
@@ -54,10 +54,11 @@ export async function reportLighthouseServer(
         representative: false,
         url: `${report.route.url}${report.route.path}`,
         lhr: JSON.stringify(lighthouseResult),
-      });
+      })
     }
-    await api.sealBuild(build.projectId, build.id);
-  } catch (e) {
+    await api.sealBuild(build.projectId, build.id)
+  }
+  catch (e) {
     handleError(e)
   }
 }

@@ -38,7 +38,7 @@ function mapContentLinks(links: NavItem[]) {
         </UVerticalNavigation>
       </template>
       <div v-else class="space-y-3">
-        <div v-for="(group2, index) in group.children" :key="index">
+        <div v-for="(group2, idx2) in group.children" :key="idx2">
           <p class="text-sm font-semibold text-gray-900 dark:text-gray-200 truncate leading-6">
             {{ group2.title }}
           </p>

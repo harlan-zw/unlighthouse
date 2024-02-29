@@ -47,7 +47,6 @@ async function runCli(configFileFixture: string) {
   })
 
   const logs = stdout + stderr
-  console.log(logs)
   if (exitCode !== 0)
     throw new Error(logs)
 

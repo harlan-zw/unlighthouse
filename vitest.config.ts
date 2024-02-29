@@ -10,7 +10,6 @@ export const alias: AliasOptions = {
 }
 
 export default defineConfig({
-  // @ts-expect-error
   test: {
     testTimeout: 3000000,
   },

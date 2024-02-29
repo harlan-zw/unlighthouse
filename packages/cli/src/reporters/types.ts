@@ -1,4 +1,4 @@
-import { UnlighthouseTabs, UnlighthouseColumn } from "../../../core/src"
+import type { UnlighthouseColumn, UnlighthouseTabs } from '../../../core/src'
 
 export interface CategoryScore {
   key: string
