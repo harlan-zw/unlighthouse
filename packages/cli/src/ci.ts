@@ -8,6 +8,7 @@ import type { CiOptions } from './types'
 import { pickOptions, validateHost, validateOptions } from './util'
 import createCli from './createCli'
 import { generateReportPayload, outputReport } from './reporters'
+import { ReporterConfig } from './reporters/types'
 
 async function run() {
   const startTime = new Date()
@@ -17,6 +18,8 @@ async function run() {
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
   cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
   cli.option('--reporter <reporter>', 'The report to generate from results. Options: csv, csvExpanded, json, jsonExpanded or false. Default: json.')
+  cli.option('--lhci-host <lhci-host>',  'URL of your LHCI server.')
+  cli.option('--lhci-build-token <lhci-build-token>', 'LHCI build token, used to add data.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
@@ -28,6 +31,11 @@ async function run() {
     budget: options.budget || undefined,
     buildStatic: options.buildStatic || false,
     reporter: options.reporter || 'jsonSimple',
+    reporterConfig: {
+      lhciHost: options.lhciHost,
+      lhciBuildToken: options.lhciBuildToken
+    }
+
   }
 
   await createUnlighthouse({
@@ -85,10 +93,18 @@ async function run() {
     }
     if (resolvedConfig.ci.reporter) {
       const reporter = resolvedConfig.ci.reporter
+      const reporterConfig: ReporterConfig = {
+        columns: resolvedConfig.client.columns,
+        ...(resolvedConfig.ci?.reporterConfig || {})
+
+      }
       // @ts-expect-error untyped
-      const payload = generateReportPayload(reporter, worker.reports(), resolvedConfig.client.columns)
-      const path = relative(resolvedConfig.root, await outputReport(reporter, resolvedConfig, payload))
-      logger.success(`Generated \`${resolvedConfig.ci.reporter}\` report \`./${path}\``)
+      const payload = await Promise.resolve<Promise<any>>(generateReportPayload(reporter, worker.reports(), reporterConfig))
+      let path = ''
+      if(payload){
+       path = `\`./${relative(resolvedConfig.root, await outputReport(reporter, resolvedConfig, payload))}\``
+      }
+      logger.success(`Generated \`${resolvedConfig.ci.reporter}\` report`, path)
     }
 
     if (resolvedConfig.ci?.buildStatic) {

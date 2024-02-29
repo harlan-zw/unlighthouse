@@ -1,3 +1,5 @@
+import { UnlighthouseTabs, UnlighthouseColumn } from "../../../core/src"
+
 export interface CategoryScore {
   key: string
   id: string
@@ -66,3 +68,9 @@ export interface ReportJsonExpanded {
 }
 
 export type ReportJsonSimple = SimpleRouteReport[]
+
+export type ReporterConfig = Partial<{
+  columns: Record<UnlighthouseTabs, UnlighthouseColumn[]>
+  lhciHost: string
+  lhciBuildToken: string
+}>

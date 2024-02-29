@@ -1,9 +1,10 @@
-import type { UnlighthouseColumn, UnlighthouseTabs } from '@unlighthouse/core'
+
 import { get } from 'lodash-es'
 import type { UnlighthouseRouteReport } from '../types'
 import { csvSimpleFormat } from './csvSimple'
+import { ReporterConfig } from './types'
 
-export function reportCSVExpanded(reports: UnlighthouseRouteReport[], columns: Record<UnlighthouseTabs, UnlighthouseColumn[]>): string {
+export function reportCSVExpanded(reports: UnlighthouseRouteReport[], { columns }: ReporterConfig): string {
   const { headers, body } = csvSimpleFormat(reports)
   for (const k of Object.keys(columns)) {
     // already have overview

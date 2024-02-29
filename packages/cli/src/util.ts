@@ -50,6 +50,19 @@ export function validateOptions(resolvedOptions: UserConfig) {
 
   if (!isValidUrl(resolvedOptions.site))
     return handleError('Please provide a valid site URL.')
+
+    if(resolvedOptions?.ci?.reporter === 'lighthouseServer'){
+      if (!resolvedOptions?.ci?.reporterConfig?.lhciBuildToken) {
+        handleError(
+          "Please provide the lighthouse server build token with --lhci-build-token."
+        );
+      }
+      if (!resolvedOptions?.ci?.reporterConfig?.lhciHost) {
+        handleError(
+          "Please provide the lighthouse server build token with --lhci-host."
+        );
+      }
+    }
 }
 
 export function pickOptions(options: CiOptions | CliOptions): UserConfig {

@@ -39,6 +39,7 @@
     "stub": "unbuild --stub"
   },
   "dependencies": {
+    "@lhci/utils": "^0.13.0",
     "@unlighthouse/core": "workspace:../core",
     "@unlighthouse/server": "workspace:../server",
     "better-opn": "^3.0.2",
