@@ -138,7 +138,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     }
   }
 
-  let report = samples[0]
+  let report: LH.Result = samples[0]
   if (samples.length > 1) {
     try {
       report = computeMedianRun(samples)
@@ -151,6 +151,12 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   if (!report) {
     logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
     routeReport.tasks.runLighthouseTask = 'failed'
+  }
+
+  if (report.categories.performance && !report.categories.performance.score) {
+    logger.warn(`Lighthouse failed to performance checks for "${routeReport.route.path}", adding back to queue.`)
+    routeReport.tasks.runLighthouseTask = 'failed-retry'
+    return routeReport
   }
 
   // we need to export all base64 data to improve the stability of the client

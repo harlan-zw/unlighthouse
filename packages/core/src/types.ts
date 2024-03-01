@@ -81,7 +81,7 @@ export type UnlighthouseTask = 'inspectHtmlTask' | 'runLighthouseTask'
 /**
  * Each task ran by unlighthouse (extractHtmlPayload, runLighthouseTask) has a specific status which we can expose.
  */
-export type UnlighthouseTaskStatus = 'waiting' | 'in-progress' | 'completed' | 'failed' | 'ignore'
+export type UnlighthouseTaskStatus = 'waiting' | 'in-progress' | 'completed' | 'failed' | 'ignore' | 'failed-retry'
 
 /**
  * A fairly rigid representation of the puppeteer cluster task results (extractHtmlPayload, runLighthouseTask), combined
