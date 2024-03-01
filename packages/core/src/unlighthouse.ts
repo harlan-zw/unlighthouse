@@ -290,7 +290,8 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     }
 
     if (ctx.routeDefinitions?.length) {
-      if (typeof ctx.provider.mockRouter === 'function')
+      ctx.provider = ctx.provider || {}
+      if (typeof ctx.provider?.mockRouter === 'function')
         ctx.provider.mockRouter = ctx.provider.mockRouter(ctx.routeDefinitions)
       else if (!ctx.provider.mockRouter)
         ctx.provider.mockRouter = createMockRouter(ctx.routeDefinitions)
