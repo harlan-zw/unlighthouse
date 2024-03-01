@@ -9,11 +9,12 @@ import { computeExecutablePath, install } from '@puppeteer/browsers'
 import type { InstallOptions } from '@puppeteer/browsers'
 import { Launcher } from 'chrome-launcher'
 import puppeteer from 'puppeteer-core'
-import { resolve } from 'mlly'
+import { resolve as resolveModule } from 'mlly'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { defaultConfig } from './constants'
 import { normaliseHost, withSlashes } from './util'
 import { useLogger } from './logger'
+import { resolve } from 'node:path'
 
 /**
  * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.
@@ -158,7 +159,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
     // puppeteer-cluster will do, but we can provide a nicer error
     try {
-      await resolve('puppeteer')
+      await resolveModule('puppeteer')
       foundChrome = true
       logger.info('Using puppeteer dependency for chrome.')
     }
@@ -193,5 +194,8 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   }
   if (!foundChrome)
     throw new Error('Failed to find chrome. Please ensure you have a valid chrome installed.')
+
+  // resolve the output path
+  config.outputPath = resolve(config.root!, config.outputPath!)
   return config as ResolvedUserConfig
 }

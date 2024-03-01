@@ -297,7 +297,7 @@ export interface ResolvedUserConfig {
   /**
    * Where to emit lighthouse reports and the runtime client.
    *
-   * @default "./lighthouse/"
+   * @default "./unlighthouse"
    */
   outputPath: string
   /**

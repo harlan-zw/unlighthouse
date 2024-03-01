@@ -35,12 +35,12 @@ export function generateReportPayload(reporter: string, reports: UnlighthouseRou
 
 export async function outputReport(reporter: string, config: Partial<ResolvedUserConfig>, payload: any) {
   if (reporter.startsWith('json')) {
-    const path = join(config.root, config.outputPath, 'ci-result.json')
+    const path = join(config.outputPath, 'ci-result.json')
     await fse.writeJson(path, payload, { spaces: 2 })
     return path
   }
   if (reporter.startsWith('csv')) {
-    const path = join(config.root, config.outputPath, 'ci-result.csv')
+    const path = join(config.outputPath, 'ci-result.csv')
     await fse.writeFile(path, payload)
     return path
   }

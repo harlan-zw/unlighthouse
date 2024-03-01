@@ -139,7 +139,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     runLighthouseTask,
   }
 
-  // @ts-expect-error untyped
+  // @ts-ignore untyped
   const worker = await createUnlighthouseWorker(tasks)
 
   if (resolvedConfig.hooks?.authenticate) {
@@ -173,7 +173,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     // avoid nesting reports for ci mode
     let outputPath = join(
-      resolvedConfig.root,
       resolvedConfig.outputPath,
       // fix windows not supporting : in paths
       $site.hostname.replace(':', '꞉'),
@@ -181,7 +180,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     )
 
     try {
-      await fs.mkdir(join(resolvedConfig.root, resolvedConfig.outputPath), { recursive: true })
+      await fs.mkdir(resolvedConfig.outputPath, { recursive: true })
     }
     catch (e) {
       logger.error(`Failed to create output directory. Please check unlighthouse has permissions to: ${resolvedConfig.outputPath}`, e)
@@ -195,7 +194,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     }
 
     if (provider?.name === 'ci')
-      outputPath = join(resolvedConfig.root, resolvedConfig.outputPath)
+      outputPath = resolvedConfig.outputPath
 
     ctx.runtimeSettings = {
       ...ctx.runtimeSettings,
@@ -219,7 +218,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     logger.debug(`Setting Unlighthouse Site URL [Site: ${site}]`)
 
     const outputPath = join(
-      resolvedConfig.root,
       resolvedConfig.outputPath,
       // fix windows not supporting : in paths
       runtimeSettings.siteUrl?.hostname.replace(':', '꞉') || '',
