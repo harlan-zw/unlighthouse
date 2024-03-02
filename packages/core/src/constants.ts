@@ -195,7 +195,7 @@ export const defaultConfig: UserConfig = {
     maxRoutes: 200,
     skipJavascript: true,
     samples: 1,
-    throttle: false,
+    throttle: true,
     crawler: true,
     dynamicSampling: 8,
     sitemap: true,
@@ -223,7 +223,7 @@ export const defaultConfig: UserConfig = {
     retryLimit: 3,
     timeout: 5 * 60 * 1000, // wait for up to 5 minutes.
     // max concurrency is the amount of cpu cores we have
-    maxConcurrency: os.cpus().length,
+    maxConcurrency: Math.max(os.cpus().length - 1, 1),
     skipDuplicateUrls: false,
     retryDelay: 2000,
     // Important, when using Lighthouse we want browser isolation.

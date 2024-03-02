@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { existsSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
@@ -14,7 +14,6 @@ import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { defaultConfig } from './constants'
 import { normaliseHost, withSlashes } from './util'
 import { useLogger } from './logger'
-import { resolve } from 'node:path'
 
 /**
  * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.

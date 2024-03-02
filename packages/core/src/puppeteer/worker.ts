@@ -177,7 +177,6 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
             return
           }
 
-
           response.tasks[taskName] = 'completed'
           routeReports.set(id, response)
           hooks.callHook('task-complete', path, response, taskName)

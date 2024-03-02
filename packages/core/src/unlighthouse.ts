@@ -29,6 +29,7 @@ import { AppName, ClientPkg } from './constants'
 import { createLogger } from './logger'
 import { normaliseHost } from './util'
 import { successBox } from './util/cliFormatting'
+import chalk from 'chalk'
 
 const engineContext = createContext<UnlighthouseContext>()
 
@@ -118,9 +119,8 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
   await hooks.callHook('resolved-config', resolvedConfig)
 
-  if (configFile) {
+  if (configFile)
     logger.info(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
-  }
 
   // web socket instance for broadcasting
   const ws = provider?.name === 'ci' ? null : new WS()
@@ -302,11 +302,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     worker.queueRoutes(ctx.routes)
 
     if (provider?.name !== 'ci') {
-      let chalk = (await import('chalk'))
-      if (chalk.default) {
-        // @ts-expect-error hacky chalk fix for cjs / mjs issues
-        chalk = chalk.default
-      }
       // fancy CLI banner when we start
       const label = (name: string) => chalk.bold.magenta(`▸ ${name}:`)
       let mode = ''
