@@ -36,8 +36,8 @@ const requestsMapped = computed(() => {
 <template>
   <div v-if="value" class="text-sm">
     <div class="opacity-90 flex items-center mb-1">
-      <span>{{ value.details.items.length }} total</span>
-      <span class="opacity-70 ml-1">{{ totalTransfer }}</span>
+      <span>{{ totalTransfer }}</span>
+      <span class="opacity-70 ml-1">{{ value.details.items.length }} total</span>
     </div>
     <div class="grid gap-2 grid-cols-2">
       <div v-for="(group, resourceType) in requestsMapped" :key="resourceType" class="text-xs flex items-center">

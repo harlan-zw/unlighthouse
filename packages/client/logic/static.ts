@@ -12,6 +12,13 @@ import CellTapTargets from '../components/Cell/CellTapTargets.vue'
 import CellWebVitals from '../components/Cell/CellWebVitals.vue'
 import CellLargestContentfulPaint from '../components/Cell/CellLargestContentfulPaint.vue'
 import CellLayoutShift from '../components/Cell/CellLayoutShift.vue'
+import MdiViewDashboard from '~icons/mdi/view-dashboard'
+import MdiSpeedometer from '~icons/mdi/speedometer'
+import MdiAccessibility from '~icons/mdi/accessibility'
+import MdiThumbUp from '~icons/mdi/thumb-up'
+import MdiWeb from '~icons/mdi/web'
+import MdiCellphone from '~icons/mdi/cellphone'
+import MdiWorld from '~icons/mdi/world'
 
 const {
   options: {
@@ -50,7 +57,34 @@ export const tabs = [
 
     return startCase(c)
   }),
-]
+  categories.includes('performance') ? 'CrUX' : undefined,
+].filter(Boolean).map((tab) => {
+  // map icons to tabs
+  switch (tab) {
+    case 'Overview':
+      tab = { label: tab, icon: MdiViewDashboard }
+      break
+    case 'Performance':
+      tab = { label: tab, icon: MdiSpeedometer }
+      break
+    case 'Accessibility':
+      tab = { label: tab, icon: MdiAccessibility }
+      break
+    case 'Best Practices':
+      tab = { label: tab, icon: MdiThumbUp }
+      break
+    case 'SEO':
+      tab = { label: tab, icon: MdiWeb }
+      break
+    case 'PWA':
+      tab = { label: tab, icon: MdiCellphone }
+      break
+    case 'CrUX':
+      tab = { label: tab, icon: MdiWorld }
+      break
+  }
+  return tab
+})
 
 // map the column components
 export const columns = Object.values(configColumns)

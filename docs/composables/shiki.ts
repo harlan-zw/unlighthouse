@@ -1,4 +1,4 @@
-import type { Highlighter, BundledLanguage } from 'shiki'
+import type { BundledLanguage, Highlighter } from 'shiki'
 import { getHighlighter } from 'shiki'
 import { computed, ref, unref } from 'vue'
 import type { MaybeRef } from '@vueuse/core'

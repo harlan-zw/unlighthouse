@@ -11,6 +11,7 @@ import { defu } from 'defu'
 import objectHash from 'object-hash'
 import { createCommonJS, resolvePath } from 'mlly'
 import { $fetch } from 'ofetch'
+import chalk from 'chalk'
 import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
@@ -29,7 +30,6 @@ import { AppName, ClientPkg } from './constants'
 import { createLogger } from './logger'
 import { normaliseHost } from './util'
 import { successBox } from './util/cliFormatting'
-import chalk from 'chalk'
 
 const engineContext = createContext<UnlighthouseContext>()
 

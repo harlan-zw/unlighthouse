@@ -56,7 +56,7 @@ export const resultColumns = computed(() => {
         ? CellScoresOverview
         : CellScoreSingle,
     },
-    ...columns[activeTab.value],
+    ...(activeTab.value > columns.length - 1 ? [] : columns[activeTab.value]),
     {
       label: 'Actions',
       cols: 1,

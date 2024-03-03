@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { activeTab, openLighthouseReportIframeModal, website } from '../../logic'
+import { activeTab, openLighthouseReportIframeModal, throttle, website } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -36,11 +36,20 @@ const isLocalhost = website.includes('localhost')
       <metric-guage class="hidden lg:flex" :score="category.score" :label="category.title" />
       <metric-guage class="lg:hidden" :stripped="true" :score="category.score" :label="category.title" />
       <div class="text-xs opacity-60 mt-1" style="font-size: 10px;">
-        View Report
+        Lighthouse Report
       </div>
     </button>
-    <div v-if="!isLocalhost && category.title === 'Performance'" class="text-xs opacity-70 text-center">
-      <a :href="`https://pagespeed.web.dev/report?url=${encodeURIComponent(report.route.url)}`" target="_blank" class="underline hover:no-underline">PSI Test</a>
+    <div v-if="!isLocalhost && category.title === 'Performance'" class="text-xs text-center inline-flex whitespace-nowrap">
+      <tooltip class="text-left">
+        <i-carbon-warning class="inline text-xs mx-1 opacity-70" />
+        <template #tooltip>
+          <div class="mb-2">
+            Lighthouse is running with variability.<br>Performance scores should not be considered accurate.
+          </div>
+          <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
+        </template>
+      </tooltip>
+      <a :href="`https://pagespeed.web.dev/report?url=${encodeURIComponent(report.route.url)}`" target="_blank" class="underline hover:no-underline opacity-70">PSI Test</a>
     </div>
   </div>
 </template>
