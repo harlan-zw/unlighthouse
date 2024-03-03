@@ -90,3 +90,6 @@ reports
 
 .vscode/
 .tmp/
+
+.nitro
+.output
