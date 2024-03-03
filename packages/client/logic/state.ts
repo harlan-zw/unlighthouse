@@ -38,7 +38,7 @@ export function changedTab(index: number) {
 export const resultColumns = computed(() => {
   return [
     {
-      label: 'Route Name',
+      label: 'Page',
       slot: 'routeName',
       key: 'route.path',
       sortable: true,

@@ -19,6 +19,9 @@ import {
   lighthouseOptions,
   openDebugModal,
   openLighthouseReportIframeModal,
+  page,
+  paginatedResults,
+  perPage,
   refreshScanMeta,
   rescanRoute,
   resultColumns,
@@ -46,41 +49,51 @@ if (!isStatic) {
   })
 }
 
+function openPsi(report) {
+  window.open(`https://pagespeed.web.dev/report?url=${encodeURIComponent(report.route.url)}`, '_blank')
+}
+
 useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
 </script>
 
 <template>
   <main class="text-gray-700 dark:text-gray-200 overflow-y-hidden max-h-screen h-screen grid grid-rows-[min-content,1fr]">
     <NavBar />
-    <div class="2xl:flex mt-2">
+    <div class="2xl:flex mt-2 mb-2">
       <div class="flex justify-between max-h-[95%] flex-col xl:ml-3 mx-3 mr-0 w-full 2xl:(mr-5 w-250px mb-0)">
-        <TabGroup vertical @change="changedTab">
-          <TabList class="2xl:(block) flex">
-            <Tab
-              v-for="(category, key) in tabs"
-              :key="key"
-              v-slot="{ selected }"
-              as="template"
-            >
-              <btn-tab
-                :selected="selected"
+        <div>
+          <TabGroup vertical @change="changedTab">
+            <TabList class="2xl:(block) flex">
+              <Tab
+                v-for="(category, key) in tabs"
+                :key="key"
+                v-slot="{ selected }"
+                as="template"
               >
-                <span class="inline-flex items-center">
-                  <component :is="category.icon" class="inline text-sm opacity-40 h-4 w-4 mr-2" />
-                  <span>{{ category.label }}</span>
-                  <tooltip v-if="category.label === 'Performance'" class="text-left">
-                    <i-carbon-warning class="inline text-xs mx-1" />
-                    <template #tooltip>
-                      <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
-                      <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
-                    </template>
-                  </tooltip>
-                </span>
-                <metric-guage v-if="!['Overview', 'CrUX'].includes(category.label) && !Number.isNaN(categoryScores[key - 1])" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
-              </btn-tab>
-            </Tab>
-          </TabList>
-        </TabGroup>
+                <btn-tab
+                  :selected="selected"
+                >
+                  <span class="inline-flex items-center space-x-2">
+                    <component :is="category.icon" class="inline text-sm opacity-40 h-4 w-4 mr-2" />
+                    <span>{{ category.label }}</span>
+                    <tooltip v-if="category.label === 'Performance'" class="text-left">
+                      <i-carbon-warning class="inline text-xs mx-1" />
+                      <template #tooltip>
+                        <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
+                        <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
+                      </template>
+                    </tooltip>
+                  </span>
+                  <metric-guage v-if="!['Overview', 'CrUX'].includes(category.label) && !Number.isNaN(categoryScores[key - 1])" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
+                </btn-tab>
+              </Tab>
+            </TabList>
+          </TabGroup>
+          <div v-if="dynamicSampling" class="text-sm opacity-70 mt-3">
+            <p>Dynamically sampling is enabled, not all pages are being scanned.</p>
+            <p><a href="https://unlighthouse.dev/guide/guides/dynamic-sampling" target="_blank" class="underline">Learn more</a></p>
+          </div>
+        </div>
         <div class="hidden 2xl:block">
           <lighthouse-three-d v-if="!isStatic" class="mb-7" />
           <div class="px-2 text-center 2xl:text-left">
@@ -112,7 +125,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             </div>
           </div>
           <div v-else-if="crux?.exists === false" class="w-full">
-            <div class="text-gray-500 text-center w-full text-sm">
+            <div class="text-gray-500 text-center inline text-sm">
               No data from Chrome UX report
             </div>
           </div>
@@ -228,13 +241,12 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             <div v-else-if="searchText" class="px-4 py-3">
               <p>Showing {{ Object.values(searchResults).flat().length }} routes for search "{{ searchText }}":</p>
             </div>
-            <results-row
-              v-for="(reports, routeName) in searchResults"
+            <results-route
+              v-for="(report, routeName) in paginatedResults"
               :key="routeName"
-              :reports="reports"
-              :route-name="routeName"
+              :report="report"
             >
-              <template #actions="{ report }">
+              <template #actions>
                 <popover-actions position="left">
                   <div class="w-300px flex flex-col space-y-2">
                     <btn-basic
@@ -271,10 +283,33 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                         </span>
                       </div>
                     </btn-basic>
+                    <btn-basic
+                      v-if="report.report"
+                      class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
+                      @click="openPsi(report)"
+                    >
+                      <div style="flex-basis: 70px;" class="mt-1 text-blue-500">
+                        <i-mdi-speedometer class="text-xl" />
+                      </div>
+                      <div class="text-left">
+                        <p class="break-none text-base">
+                          Run PageSpeed Insights
+                        </p>
+                        <span class="opacity-70 text-xs">
+                          Get more accurate performance data by running a PageSpeed Insights test.
+                        </span>
+                      </div>
+                    </btn-basic>
                   </div>
                 </popover-actions>
               </template>
-            </results-row>
+            </results-route>
+            <div v-if="searchResults.length > perPage" class="flex items-center space-x-4 mt-5">
+              <Pagination v-model="page" :page-count="perPage" :total="searchResults.length" />
+              <div class="opacity-70">
+                {{ searchResults.length }} total
+              </div>
+            </div>
           </div>
         </template>
       </div>

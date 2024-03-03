@@ -38,7 +38,7 @@ watch(isModalOpen, () => {
       <p class="mb-5 text-gray-600 dark:text-gray-400">
         This is what the load of your site looked like, 300ms apart.
       </p>
-      <img v-for="(image, key) in value.details.items" :key="key" :src="image.data" width="120" class="w-120px h-auto inline">
+      <img v-for="(image, key) in value.details.items" :key="key" :src="image.data" width="250" class="w-250px h-auto inline">
     </teleport>
   </btn-action>
 </template>

@@ -1,8 +1,8 @@
 import { useStorage } from '@vueuse/core'
 import { computed } from 'vue'
 import Fuse from 'fuse.js'
-import { get, groupBy, isEmpty, orderBy } from 'lodash-es'
-import type { UnlighthouseRouteReport } from '@unlighthouse/core'
+import { get, isEmpty, orderBy } from 'lodash-es'
+import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from '@unlighthouse/core'
 import { unlighthouseReports } from './state'
 import { columns, groupRoutesKey } from './static'
 
@@ -34,7 +34,7 @@ export function incrementSort(key: string) {
   }
 }
 
-export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>(() => {
+export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
   let data = unlighthouseReports.value
   if (searchText.value) {
     const fuse = new Fuse(data, {
@@ -49,9 +49,40 @@ export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>
 
     data = fuse.search<UnlighthouseRouteReport>(searchText.value).map(i => i.item)
   }
+  // need to map the data to make the scores easier to sort
+  data = data.map((i) => {
+    // current categories are an array with a number index, we need to make a new object
+    if (i.report?.categories) {
+      i.report.categoryMap = {}
+      i.report.categories.forEach((c) => {
+        i.report!.categoryMap[c.id] = c
+      })
+    }
+    return i
+  })
+
+  function statusToSortRank(s: UnlighthouseTaskStatus) {
+    switch (s) {
+      case 'completed':
+        return 2
+      case 'in-progress':
+        return 1
+    }
+    return 0
+  }
+  // always order data by status, we want to show success -> in progress -> waiting
+  data = data.sort((a, b) => {
+    const aStatus = statusToSortRank(a.tasks.runLighthouseTask)
+    const bStatus = statusToSortRank(b.tasks.runLighthouseTask)
+    return bStatus - aStatus
+  })
 
   if (sorting.value.key) {
     let sortKey = sorting.value.key
+    if (sortKey.startsWith('report.categories.') && sortKey.endsWith('.score')) {
+      // need to convert the category key to the index
+      sortKey = sortKey.replace('.categories.', '.categoryMap.')
+    }
     let doLengthSort = false
     const columnDefinition = columns.flat().find(c => c.key === sortKey)
     if (columnDefinition?.sortKey) {
@@ -72,8 +103,14 @@ export const searchResults = computed<Record<string, UnlighthouseRouteReport[]>>
     data = orderBy(data, groupRoutesKey, 'asc')
   }
 
-  return groupBy(
-    data,
-    (!sorting.value.key || sorting.value.key === groupRoutesKey) ? groupRoutesKey : 'route.path',
-  )
+  return data
+})
+
+export const page = ref(1)
+export const perPage = 10
+
+export const paginatedResults = computed(() => {
+  const data = searchResults.value
+  const offset = (page.value - 1) * perPage
+  return data.slice(offset, offset + perPage)
 })

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatDistance } from 'date-fns'
-import { basePath, device, isDark, isOffline, isRescanSiteRequestRunning, isStatic, rescanSite, scanMeta, throttle, toggleDark, website } from '../logic'
+import { basePath, isDark, isOffline, isRescanSiteRequestRunning, isStatic, rescanSite, scanMeta, toggleDark, website } from '../logic'
 
 const timeRemaining = computed(() => {
   return formatDistance(0, scanMeta.value.monitor.timeRemaining, { includeSeconds: true })
@@ -42,19 +42,11 @@ const favIcon = computed(() => {
         </div>
         <div v-if="scanMeta" class="mr-5 hidden md:block">
           <div class="uppercase opacity-55">
-            Site Score
+            Total Score
           </div>
           <div class="flex items-center">
             <metric-guage v-if="scanMeta?.score" :score="scanMeta.score" :stripped="true" class="font-bold text-sm" />
             <loading-spinner v-else class="h-24px" />
-          </div>
-        </div>
-        <div v-if="scanMeta?.monitor" class="mr-5 hidden md:block">
-          <div class="uppercase opacity-55 ">
-            Routes
-          </div>
-          <div class=" flex items-center">
-            <span class="text-base mr-1">{{ scanMeta?.routes || '0' }}</span>
           </div>
         </div>
       </div>
@@ -82,28 +74,13 @@ const favIcon = computed(() => {
           </div>
         </popover-actions>
       </div>
-      <div v-if="scanMeta?.monitor" class="mr-5 hidden xl:block">
-        <div class="uppercase opacity-55 ">
-          Device
-        </div>
-        <div class="flex items-center text-xs">
-          <div class="flex items-center mr-2">
-            <i-ic-outline-devices class="mr-1 opacity-65" />
-            <span class="text-sm opacity-90">{{ device === 'mobile' ? (throttle ? 'Moto G4' : 'Emulated Mobile') : (throttle ? 'Throttled Desktop' : 'Desktop') }}</span>
-          </div>
-          <div v-if="throttle" class="flex items-center">
-            <i-ic-baseline-network-check class="mr-1 opacity-65" />
-            <span class="text-sm opacity-90">Slow 4g</span>
-          </div>
-        </div>
-      </div>
       <div v-if="!isOffline && scanMeta?.monitor" class="hidden xl:flex">
         <div class="mr-6">
           <div class="uppercase opacity-55 ">
             Worker Progress
           </div>
           <div class=" flex items-center">
-            <span class="text-sm mr-1">
+            <span class="text-sm mr-1 font-bold">
               {{ scanMeta.monitor.donePercStr }}% <span class="text-xs opacity-60">{{
                 scanMeta.monitor.doneTargets
               }}/{{ scanMeta.monitor.allTargets }}</span></span>
@@ -120,12 +97,6 @@ const favIcon = computed(() => {
             CPU
           </div>
           <span class="text-sm">{{ scanMeta.monitor.status === 'completed' ? '-' : scanMeta.monitor.cpuUsage }}</span>
-        </div>
-        <div class="hidden 2xl:block">
-          <div class="uppercase opacity-55">
-            Memory
-          </div>
-          <span class="text-sm">{{ scanMeta.monitor.status === 'completed' ? '-' : scanMeta.monitor.memoryUsage }}</span>
         </div>
       </div>
     </div>
