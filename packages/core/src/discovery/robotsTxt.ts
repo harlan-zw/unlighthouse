@@ -80,6 +80,9 @@ export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { groups, sitem
       ...normalisedGroups.flatMap(group => group.allow),
     ])].filter(isValidRegex)
   }
-  if (config.scanner.sitemap !== false && sitemaps.length)
-    config.scanner.sitemap = [...new Set([...(Array.isArray(config.scanner.sitemap) ? config.scanner.sitemap : []), ...sitemaps])]
+  if (config.scanner.sitemap !== false && sitemaps.length) {
+    // allow overriding the robots.txt sitemaps with your own
+    if (!Array.isArray(config.scanner.sitemap) || !config.scanner.sitemap.length)
+      config.scanner.sitemap = [...new Set([...(Array.isArray(config.scanner.sitemap) ? config.scanner.sitemap : []), ...sitemaps])]
+  }
 }
