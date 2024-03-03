@@ -125,6 +125,7 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
     axiosOptions.auth = resolvedConfig.auth
 
   axiosOptions.headers = axiosOptions.headers || {}
+  axiosOptions.headers['User-Agent'] = axiosOptions.headers['User-Agent'] || 'Unlighthouse'
 
   if (resolvedConfig.cookies) {
     axiosOptions.headers.Cookie = resolvedConfig.cookies
