@@ -64,7 +64,18 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     config.lighthouseOptions = {}
   }
   // for local urls we disable throttling
-  if (!config.site || config.site.includes('localhost') || !config.scanner?.throttle) {
+  if (typeof config.scanner?.throttle) {
+    config.lighthouseOptions.throttlingMethod = 'provided'
+    config.lighthouseOptions.throttling = {
+      rttMs: 300,
+      throughputKbps: 700,
+      requestLatencyMs: 300 * 3.75,
+      downloadThroughputKbps: 700 * 3.75,
+      uploadThroughputKbps: 700 * 3.75,
+      cpuSlowdownMultiplier: 4, // cpu is already getting blasted
+    }
+  }
+  else if (!config.site || config.site.includes('localhost') || config.scanner?.throttle === false) {
     config.lighthouseOptions.throttlingMethod = 'provided'
     config.lighthouseOptions.throttling = {
       rttMs: 0,
