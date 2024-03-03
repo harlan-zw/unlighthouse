@@ -34,7 +34,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
   const routeReports = new Map<string, UnlighthouseRouteReport>()
   const ignoredRoutes = new Set<string>()
-  const retriedRoutes = new Set<string>()
+  const retriedRoutes = new Map<string, number>()
 
   const monitor: () => UnlighthouseWorkerStats = () => {
     const now = Date.now()
@@ -168,10 +168,10 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
           if (response.tasks[taskName] === 'failed')
             return
           if (response.tasks[taskName] === 'failed-retry') {
+            const currentRetries = retriedRoutes.get(id) || 0
             // only requeue each report once
-            if (!retriedRoutes.has(id)) {
-              retriedRoutes.add(id)
-              routeReports.delete(id)
+            if (currentRetries < 3) {
+              retriedRoutes.set(id, currentRetries + 1)
               queueRoute(routeReport.route)
             }
             return
