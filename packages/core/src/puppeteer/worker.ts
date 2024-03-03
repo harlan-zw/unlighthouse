@@ -172,7 +172,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
             // only requeue each report once
             if (currentRetries < 3) {
               retriedRoutes.set(id, currentRetries + 1)
-              queueRoute(routeReport.route)
+              requeueReport(routeReport)
             }
             return
           }
