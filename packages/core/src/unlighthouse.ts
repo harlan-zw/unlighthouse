@@ -323,11 +323,11 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       const title = [
         `⛵  ${chalk.bold.blueBright(AppName)} ${chalk.dim(`${provider?.name} @ v${version}`)}`,
       ]
-      if (latestTag !== `v${version}`) {
+      if (Number(latestTag.replace('v', '').replace('.', '')) > Number(version.replace('.', ''))) {
         title.push(...[
           '',
           `🎉 New version ${latestTag} available! Use the latest:`,
-          chalk.gray(` > ${chalk.underline(`npx unlighthouse@${latestTag} --site ${resolvedConfig.site}`)}`),
+          chalk.gray(` > ${chalk.underline(`npx unlighthouse@^${latestTag} --site ${resolvedConfig.site}`)}`),
         ])
       }
       title.push(...[
