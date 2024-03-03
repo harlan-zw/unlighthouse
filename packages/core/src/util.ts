@@ -72,7 +72,10 @@ export function hashPathName(path: string) {
 export function normaliseHost(host: string) {
   if (!host.startsWith('http'))
     host = `http${host.startsWith('localhost') ? '' : 's'}://${host}`
-  return host.includes('.') ? host : withTrailingSlash(host)
+  host = host.includes('.') ? host : withTrailingSlash(host)
+  // strip pathname from host
+  const url = new URL(host)
+  return `${url.protocol}//${url.host}/`
 }
 
 /**

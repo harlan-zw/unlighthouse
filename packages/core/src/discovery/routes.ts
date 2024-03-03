@@ -21,7 +21,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
   const logger = useLogger()
   const { resolvedConfig, hooks, worker, routeDefinitions } = useUnlighthouse()
 
-  const urls = new Set<string>([resolvedConfig.site])
+  const urls = new Set<string>([])
   // the urls function may be null
   if (resolvedConfig.urls) {
     let urlsToAdd
@@ -33,10 +33,14 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
     urlsToAdd.forEach(url => urls.add(url))
     if (urlsToAdd.length) {
       resolvedConfig.scanner.sitemap = false
+      resolvedConfig.scanner.robotsTxt = false
       resolvedConfig.scanner.crawler = false
       resolvedConfig.scanner.dynamicSampling = false
-      logger.info(`The \`url\` config has been provided with ${urlsToAdd.length} paths for scanning. Disabling sitemap, sampling and crawler.`)
+      logger.info(`The \`url\` config has been provided with ${urlsToAdd.length} paths for scanning. Disabling sitemap, robots, sampling and crawler.`)
     }
+  }
+  else {
+    urls.add(resolvedConfig.site)
   }
 
   if (resolvedConfig.scanner.robotsTxt) {

@@ -7,28 +7,29 @@ import { handleError } from './errors'
 import type { CiOptions, CliOptions } from './types'
 
 export async function validateHost(resolvedConfig: ResolvedUserConfig) {
+  const site = resolvedConfig.site
   const logger = useLogger()
   // site will not be set from integrations yet
-  if (resolvedConfig.site) {
+  if (site) {
     // test HTTP response from site
-    logger.debug(`Testing Site \`${resolvedConfig.site}\` is valid.`)
-    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(resolvedConfig.site, resolvedConfig)
+    logger.debug(`Testing Site \`${site}\` is valid.`)
+    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(site, resolvedConfig)
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
-        logger.warn(`Request to site \`${resolvedConfig.site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid.`)
+        logger.warn(`Request to site \`${site}\` returned an invalid http status code \`${response.status}\`. lease check the URL is valid and not blocking crawlers.`)
       else
-        logger.warn(`Request to site \`${resolvedConfig.site}\` threw an unhandled exception. Please check the URL is valid.`, error)
+        logger.warn(`Request to site \`${site}\` threw an unhandled exception. Please check the URL is valid and not blocking crawlers.`, error)
       logger.error('Site check failed. will attempt to proceed but may fail.')
     }
     else if (response) {
       // change the URL to the redirect one, make sure it's not to a file (i.e /index.php)
       if (redirected && redirectUrl && !redirectUrl.includes('.')) {
-        logger.success(`Request to site \`${resolvedConfig.site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
+        logger.success(`Request to site \`${site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
         resolvedConfig.site = normaliseHost(redirectUrl)
       }
       else {
-        logger.success(`Successfully connected to \`${resolvedConfig.site}\`. (Status: \`${response.status}\`).`)
+        logger.success(`Successfully connected to \`${site}\`. (Status: \`${response.status}\`).`)
       }
     }
   }
@@ -45,10 +46,12 @@ export function isValidUrl(s: string) {
 }
 
 export function validateOptions(resolvedOptions: UserConfig) {
-  if (!resolvedOptions.site)
+  if (!resolvedOptions.site && resolvedOptions.urls?.length)
+    resolvedOptions.site = resolvedOptions.urls[0]
+  if (!resolvedOptions.configFile && !resolvedOptions.site)
     return handleError('Please provide a site to scan with --site <url>.')
 
-  if (!isValidUrl(resolvedOptions.site))
+  if (resolvedOptions.site && !isValidUrl(resolvedOptions.site))
     return handleError('Please provide a valid site URL.')
 
   if (resolvedOptions?.ci?.reporter === 'lighthouseServer') {

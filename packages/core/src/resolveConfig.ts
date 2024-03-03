@@ -35,6 +35,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   })
   const config = merger(userConfig, defaultConfig)
 
+  if (!config.site && config.urls?.[0])
+    config.site = config.urls[0]
+
   // it's possible we don't know the site at runtime
   if (config.site) {
     // normalise site
