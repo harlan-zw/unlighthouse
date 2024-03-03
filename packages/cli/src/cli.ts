@@ -30,10 +30,9 @@ async function run() {
 
   const { server, app } = await createServer()
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  await unlighthouse.start()
-
+  const { routes } = await unlighthouse.start()
   const logger = useLogger()
-  if (unlighthouse.worker.monitor().status === 'completed') {
+  if (!routes.length) {
     logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
     process.exit(1)
   }

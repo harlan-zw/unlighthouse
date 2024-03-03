@@ -23,7 +23,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
 
   const urls = new Set<string>([])
   // the urls function may be null
-  if (resolvedConfig.urls) {
+  if (resolvedConfig.urls?.length) {
     let urlsToAdd
     if (typeof resolvedConfig.urls === 'function')
       urlsToAdd = [...(await resolvedConfig.urls())]

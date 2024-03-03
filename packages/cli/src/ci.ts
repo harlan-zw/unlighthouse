@@ -59,8 +59,8 @@ async function run() {
     hasBudget = false
 
   await setCiContext()
-  await start()
-  if (worker.monitor().status === 'completed') {
+  const { routes } = await start()
+  if (!routes.length) {
     logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
     process.exit(1)
   }
