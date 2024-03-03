@@ -18,7 +18,7 @@ Unlighthouse scans your entire site using Google Lighthouse,<br> with a modern U
 <tbody>
 <td align="center">
 <img width="2000" height="0" /><br>
-Status: <b>Beta</b><br>
+Status: <b><a href="https://github.com/harlan-zw/unlighthouse/releases/tag/v0.11.0">v0.11 Released 🎉</a></b><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a><br> Follow me <a href="https://twitter.com/harlan_zw">@harlan_zw</a> 🐦 • Join <a href="https://discord.gg/275MBUBvgP">Discord</a> for help</sub><br>
 <img width="2000" height="0" />
 </td>
