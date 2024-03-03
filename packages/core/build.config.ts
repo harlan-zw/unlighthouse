@@ -6,6 +6,15 @@ export default defineBuildConfig({
   rollup: {
     emitCJS: true,
     inlineDependencies: true,
+    // puppeteer-cluster uses puppeteer, but we want to use puppeteer-core
+    alias: {
+      entries: {
+        puppeteer: 'puppeteer-core',
+      },
+    },
+    replace: {
+      puppeteer: 'puppeteer-core',
+    },
   },
   entries: [
     { input: 'src/index' },
@@ -17,7 +26,6 @@ export default defineBuildConfig({
     '@unrouted/core',
     'h3',
     'radix3',
-    'puppeteer',
     'node:net',
     'vite',
     'rollup',
