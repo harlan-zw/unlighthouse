@@ -96,7 +96,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     if (resolvedConfig.scanner.include || resolvedConfig.scanner.exclude) {
       const filter = createFilter(resolvedConfig.scanner)
       if (!filter(path)) {
-        logger.debug('Skipping route based on include / exclude rules', {
+        logger.info('Skipping route based on include / exclude rules', {
           path,
           include: resolvedConfig.scanner.include,
           exclude: resolvedConfig.scanner.exclude,

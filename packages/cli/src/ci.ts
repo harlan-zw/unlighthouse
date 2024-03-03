@@ -60,6 +60,10 @@ async function run() {
 
   await setCiContext()
   await start()
+  if (worker.monitor().status === 'completed') {
+    logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
+    process.exit(1)
+  }
 
   hooks.hook('worker-finished', async () => {
     const end = new Date()
