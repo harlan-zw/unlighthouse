@@ -42,10 +42,15 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   }
   if (config.lighthouseOptions) {
     if (config.lighthouseOptions.onlyCategories?.length) {
-      // restrict categories values and copy order of columns from the default config
-      // @ts-expect-error 'defaultConfig.lighthouseOptions' is always set in default config
-      config.lighthouseOptions.onlyCategories = defaultConfig.lighthouseOptions.onlyCategories
-        .filter(column => config.lighthouseOptions.onlyCategories.includes(column))
+      if (config.lighthouseOptions.onlyAudits?.length) {
+        logger.warn('You have specified both `onlyCategories` and `onlyAudits`. `onlyCategories` will be ignored.')
+        config.lighthouseOptions.onlyCategories = []
+      }
+      else {
+        // restrict categories values and copy order of columns from the default config
+        config.lighthouseOptions.onlyCategories = defaultConfig.lighthouseOptions.onlyCategories
+          .filter(column => config.lighthouseOptions.onlyCategories.includes(column))
+      }
     }
   }
   else {
