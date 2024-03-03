@@ -1,5 +1,5 @@
-import type { Highlighter, Lang } from 'shiki-es'
-import { getHighlighter } from 'shiki-es'
+import type { Highlighter, BundledLanguage } from 'shiki'
+import { getHighlighter } from 'shiki'
 import { computed, ref, unref } from 'vue'
 import type { MaybeRef } from '@vueuse/core'
 import { useColorMode } from '#imports'
@@ -30,7 +30,7 @@ export function loadShiki() {
   })
 }
 
-export function renderCodeHighlight(code: MaybeRef<string>, lang?: Lang) {
+export function renderCodeHighlight(code: MaybeRef<string>, lang: BundledLanguage) {
   const colorMode = useColorMode()
   return computed(() => {
     if (!shiki.value)

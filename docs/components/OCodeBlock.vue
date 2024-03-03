@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Lang } from 'shiki-es'
+import type { BundledLanguage } from 'shiki'
 import { computed } from 'vue'
 import { useClipboard } from '@vueuse/core'
 import { loadShiki, renderCodeHighlight } from '../composables/shiki'
@@ -7,7 +7,7 @@ import { loadShiki, renderCodeHighlight } from '../composables/shiki'
 const props = withDefaults(
   defineProps<{
     code: string
-    lang?: Lang
+    lang?: BundledLanguage
     lines?: boolean
     transformRendered?: (code: string) => string
   }>(),
