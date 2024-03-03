@@ -227,3 +227,15 @@ This will generate a report like the following (`json` sample):
   }
 ]
 ```
+
+## LHCI Reports
+
+You can upload your reports to a Lighthouse CI server using the `lighthouseServer` reporter.
+
+You will need to provide the `--lhci-host` and `--lhci-build-token` flags.
+
+```bash
+unlighthouse-ci --site <your-site> --reporter lighthouseServer --lhci-host <lhci host> --lhci-build-token <lhci buildToken>
+```
+
+This will upload your reports to the Lighthouse CI server.
