@@ -63,27 +63,29 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   else {
     config.lighthouseOptions = {}
   }
-  // for local urls we disable throttling
-  if (typeof config.scanner?.throttle) {
-    config.lighthouseOptions.throttlingMethod = 'provided'
-    config.lighthouseOptions.throttling = {
-      rttMs: 300,
-      throughputKbps: 700,
-      requestLatencyMs: 300 * 3.75,
-      downloadThroughputKbps: 700 * 3.75,
-      uploadThroughputKbps: 700 * 3.75,
-      cpuSlowdownMultiplier: 4, // cpu is already getting blasted
-    }
-  }
-  else if (!config.site || config.site.includes('localhost') || config.scanner?.throttle === false) {
-    config.lighthouseOptions.throttlingMethod = 'provided'
-    config.lighthouseOptions.throttling = {
-      rttMs: 0,
-      throughputKbps: 0,
-      cpuSlowdownMultiplier: 1,
-      requestLatencyMs: 0, // 0 means unset
-      downloadThroughputKbps: 0,
-      uploadThroughputKbps: 0,
+  if (typeof config.lighthouseOptions.throttlingMethod === 'undefined' && typeof config.lighthouseOptions.throttling === 'undefined') {
+    // for local urls we disable throttling
+    if (typeof config.scanner?.throttle) {
+      config.lighthouseOptions.throttlingMethod = 'simulate'
+      // we need a custom throttling profile to account for the  cpu / network already getting blasted
+      config.lighthouseOptions.throttling = {
+        rttMs: 150,
+        throughputKbps: 1.6 * 1024,
+        requestLatencyMs: 150 * 4,
+        downloadThroughputKbps: 1.6 * 1024,
+        uploadThroughputKbps: 750,
+        cpuSlowdownMultiplier: 1,
+      }
+    } else if (!config.site || config.site.includes('localhost') || config.scanner?.throttle === false) {
+      config.lighthouseOptions.throttlingMethod = 'provided'
+      config.lighthouseOptions.throttling = {
+        rttMs: 0,
+        throughputKbps: 0,
+        cpuSlowdownMultiplier: 1,
+        requestLatencyMs: 0, // 0 means unset
+        downloadThroughputKbps: 0,
+        uploadThroughputKbps: 0,
+      }
     }
   }
 
