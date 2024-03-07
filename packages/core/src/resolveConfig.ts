@@ -41,7 +41,17 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   // it's possible we don't know the site at runtime
   if (config.site) {
     // normalise site
-    config.site = normaliseHost(config.site)
+    const siteUrl = normaliseHost(config.site)
+    if (siteUrl.pathname !== '/' && siteUrl.pathname !== '') {
+      logger.warn('You are providing a site with a path, disabling sitemap, robots and dynamic sampling.')
+      config.scanner.sitemap = false
+      config.scanner.robotsTxt = false
+      config.scanner.dynamicSampling = false
+      config.site = siteUrl.toString()
+    }
+    else {
+      config.site = siteUrl.origin
+    }
   }
   if (config.lighthouseOptions) {
     if (config.lighthouseOptions.onlyCategories?.length) {
@@ -76,7 +86,8 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
         uploadThroughputKbps: 750,
         cpuSlowdownMultiplier: 1,
       }
-    } else if (!config.site || config.site.includes('localhost') || config.scanner?.throttle === false) {
+    }
+    else if (!config.site || config.site.includes('localhost') || config.scanner?.throttle === false) {
       config.lighthouseOptions.throttlingMethod = 'provided'
       config.lighthouseOptions.throttling = {
         rttMs: 0,

@@ -1,6 +1,6 @@
 import type http from 'node:http'
 import type https from 'node:https'
-import type { $URL, QueryObject } from 'ufo'
+import type { QueryObject } from 'ufo'
 import type LH from 'lighthouse/types/lh'
 import type { LaunchOptions, Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
@@ -38,7 +38,7 @@ export interface NormalisedRoute {
   id: string
   path: string
   url: string
-  $url: $URL
+  $url: URL
   definition: RouteDefinition
   /**
    * A runtime path that the route was discovered from, useful if the route is a 404 and we want to know what directed
@@ -517,7 +517,7 @@ export interface RuntimeSettings {
   /**
    * A URL instance of the site for easier use of the host.
    */
-  siteUrl: $URL
+  siteUrl: URL
   /**
    * The URL of the server running the API and client.
    */

@@ -74,8 +74,7 @@ export function normaliseHost(host: string) {
     host = `http${host.startsWith('localhost') ? '' : 's'}://${host}`
   host = host.includes('.') ? host : withTrailingSlash(host)
   // strip pathname from host
-  const url = new URL(host)
-  return `${url.protocol}//${url.host}/`
+  return new URL(host)
 }
 
 /**

@@ -26,7 +26,7 @@ export async function validateHost(resolvedConfig: ResolvedUserConfig) {
       // change the URL to the redirect one, make sure it's not to a file (i.e /index.php)
       if (redirected && redirectUrl && !redirectUrl.includes('.')) {
         logger.success(`Request to site \`${site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
-        resolvedConfig.site = normaliseHost(redirectUrl)
+        resolvedConfig.site = normaliseHost(redirectUrl).toString()
       }
       else {
         logger.success(`Successfully connected to \`${site}\`. (Status: \`${response.status}\`).`)

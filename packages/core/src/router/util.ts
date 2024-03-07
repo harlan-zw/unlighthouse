@@ -1,5 +1,5 @@
 import { basename } from 'node:path'
-import { $URL, hasProtocol, isRelative, withBase, withLeadingSlash } from 'ufo'
+import { hasProtocol, isRelative, withBase, withLeadingSlash } from 'ufo'
 import type { NormalisedRoute } from '../types'
 import { hashPathName, trimSlashes } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
@@ -10,7 +10,7 @@ export function isScanOrigin(url: string): boolean {
 
   const { runtimeSettings } = useUnlighthouse()
 
-  const $url = new $URL(url)
+  const $url = new URL(url)
   if ($url.hostname === runtimeSettings.siteUrl.hostname)
     return true
   // allow subdomains
@@ -32,7 +32,7 @@ export function normaliseRoute(url: string): NormalisedRoute {
     url = withBase(url, runtimeSettings.siteUrl.origin)
   }
 
-  const $url = new $URL(url)
+  const $url = new URL(url)
   // make sure we start with a leading slash
   const path = withLeadingSlash($url.pathname)
 

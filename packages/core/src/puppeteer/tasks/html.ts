@@ -3,7 +3,7 @@ import fs from 'fs-extra'
 import type { CheerioAPI } from 'cheerio'
 import cheerio from 'cheerio'
 import type { Page } from 'puppeteer-core'
-import { $URL, withoutTrailingSlash } from 'ufo'
+import { withoutTrailingSlash } from 'ufo'
 import chalk from 'chalk'
 import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
 import { useUnlighthouse } from '../../unlighthouse'
@@ -122,7 +122,7 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
     if (response.redirected) {
       // strip any protocols from the url
       const siteHost = runtimeSettings.siteUrl.host.split(':')[0]
-      const redirectHost = new $URL(response.redirected).host.split(':')[0]
+      const redirectHost = new URL(response.redirected).host.split(':')[0]
       // allow subdomains
       if (siteHost !== redirectHost && !redirectHost.endsWith(`.${siteHost}`)) {
         routeReport.tasks.inspectHtmlTask = 'ignore'

@@ -213,9 +213,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
   ctx.setSiteUrl = async (url: string) => {
     const site = normaliseHost(url)
-    ctx.runtimeSettings.siteUrl = new $URL(site)
+    ctx.runtimeSettings.siteUrl = site
 
-    logger.debug(`Setting Unlighthouse Site URL [Site: ${site}]`)
+    logger.debug(`Setting Unlighthouse Site URL [Site: ${site.toString()}]`)
 
     const outputPath = join(
       resolvedConfig.outputPath,
@@ -224,15 +224,16 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       runtimeSettings.configCacheKey || '',
     )
 
-    ctx.resolvedConfig.site = site
+    if (!ctx.resolvedConfig.site)
+      ctx.resolvedConfig.site = site.toString()
     ctx.runtimeSettings.outputPath = outputPath
     ctx.runtimeSettings.generatedClientPath = outputPath
 
-    await hooks.callHook('site-changed', site)
+    await hooks.callHook('site-changed', ctx.resolvedConfig.site)
   }
 
   ctx.setServerContext = async ({ url, server, app }) => {
-    const $server = new $URL(url)
+    const $server = new URL(url)
 
     logger.debug(`Setting Unlighthouse Server Context [Server: ${$server}]`)
 
@@ -298,7 +299,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     ctx.routes = await resolveReportableRoutes()
     logger.debug('Resolved reportable routes', ctx.routes.length)
-    await createBroadcastingEvents()
+    createBroadcastingEvents()
     worker.queueRoutes(ctx.routes)
 
     if (provider?.name !== 'ci') {
