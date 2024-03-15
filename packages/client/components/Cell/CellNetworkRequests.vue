@@ -48,7 +48,7 @@ const requestsMapped = computed(() => {
             <div v-for="(item, key) in group.items" :key="key" class="mb-1 flex text-xs ">
               <span class="break-all opacity-90 flex-grow"><a :href="item.url" class="hover:no-underline underline">{{ item.url.replace(website, '') }}</a></span>
               <span class="opacity-70 whitespace-nowrap ml-1 flex-shrink break-none">{{ formatBytes(item.transferSize) }}</span>
-              <span class="opacity-70 whitespace-nowrap ml-1 flex-shrink">{{ Math.round(item.endTime - item.startTime) }}ms</span>
+              <span class="opacity-70 whitespace-nowrap ml-1 flex-shrink">{{ Math.round(item.networkEndTime - item.networkRequestTime) }}ms</span>
             </div>
           </template>
         </tooltip>
