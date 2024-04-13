@@ -2,9 +2,9 @@ import type http from 'node:http'
 import type https from 'node:https'
 import type { QueryObject } from 'ufo'
 import type LH from 'lighthouse/types/lh'
-import type { LaunchOptions, Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
+import type { Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
-import type { Cluster, TaskFunction } from '../cluster'
+import type { Cluster, ClusterOptionsArgument, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
 /**
@@ -464,20 +464,7 @@ export interface ResolvedUserConfig {
   /**
    * Change the behaviour of puppeteer-cluster.
    */
-  puppeteerClusterOptions: Partial<{
-    concurrency: number | unknown
-    maxConcurrency: number
-    workerCreationDelay: number
-    puppeteerOptions: LaunchOptions
-    perBrowserOptions: LaunchOptions[] | undefined
-    monitor: boolean
-    timeout: number
-    retryLimit: number
-    retryDelay: number
-    skipDuplicateUrls: boolean
-    sameDomainDelay: number
-    puppeteer: any
-  }>
+  puppeteerClusterOptions: Partial<ClusterOptionsArgument>
 
   chrome: {
     /**

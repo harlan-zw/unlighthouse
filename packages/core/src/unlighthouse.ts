@@ -85,7 +85,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     configFile = configDefinition.sources[0]
     // @ts-expect-error fixes issue with default being returned for mjs loads
     const config = configDefinition.config?.default || configDefinition.config
-    // @ts-expect-error untyped
+    // @ts-ignore broken types
     userConfig = defu(config, userConfig)
   }
   const runtimeSettings: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
@@ -139,7 +139,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     runLighthouseTask,
   }
 
-  // @ts-expect-error untyped
   const worker = await createUnlighthouseWorker(tasks)
 
   if (resolvedConfig.hooks?.authenticate) {

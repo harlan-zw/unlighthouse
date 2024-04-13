@@ -1,12 +1,62 @@
 import { EventEmitter } from 'node:events'
-import type { LaunchOptions, Page } from 'puppeteer-core'
+import type { LaunchOptions, Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
+
+export interface ResourceData {
+  page: Page
+  [key: string]: any
+}
+
+export interface JobInstance {
+  resources: ResourceData
+  /**
+   * Called to close the related resources
+   */
+  close: () => Promise<void>
+}
+
+export interface WorkerInstance {
+  jobInstance: () => Promise<JobInstance>
+  /**
+   * Closes the worker (called when the cluster is about to shut down)
+   */
+  close: () => Promise<void>
+  /**
+   * Repair is called when there is a problem with the worker (like call or close throwing
+   * an error)
+   */
+  repair: () => Promise<void>
+}
+
+export type ConcurrencyImplementationClassType = new (options: LaunchOptions, puppeteer: any) => ConcurrencyImplementation
+
+export default abstract class ConcurrencyImplementation {
+  protected options: LaunchOptions
+  protected puppeteer: any
+  /**
+   * @param options  Options that should be provided to puppeteer.launch
+   * @param puppeteer  puppeteer object (like puppeteer or puppeteer-core)
+   */
+  constructor(options: LaunchOptions, puppeteer: any)
+  /**
+   * Initializes the manager
+   */
+  abstract init(): Promise<void>
+  /**
+   * Closes the manager (called when cluster is about to shut down)
+   */
+  abstract close(): Promise<void>
+  /**
+   * Creates a worker and returns it
+   */
+  abstract workerInstance(perBrowserOptions: LaunchOptions | undefined): Promise<WorkerInstance>
+}
 
 interface ClusterOptions {
-  concurrency: number | unknown
+  concurrency: number | ConcurrencyImplementationClassType
   maxConcurrency: number
   workerCreationDelay: number
-  puppeteerOptions: LaunchOptions
-  perBrowserOptions: LaunchOptions[] | undefined
+  puppeteerOptions: PuppeteerNodeLaunchOptions
+  perBrowserOptions: PuppeteerNodeLaunchOptions[] | undefined
   monitor: boolean
   timeout: number
   retryLimit: number
@@ -18,7 +68,7 @@ interface ClusterOptions {
 declare type Partial<T> = {
   [P in keyof T]?: T[P];
 }
-declare type ClusterOptionsArgument = Partial<ClusterOptions>
+export type ClusterOptionsArgument = Partial<ClusterOptions>
 interface TaskFunctionArguments<JobData> {
   page: Page
   data: JobData

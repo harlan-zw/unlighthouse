@@ -44,6 +44,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     const siteUrl = normaliseHost(config.site)
     if (siteUrl.pathname !== '/' && siteUrl.pathname !== '') {
       logger.warn('You are providing a site with a path, disabling sitemap, robots and dynamic sampling.')
+      config.scanner = config.scanner || {}
       config.scanner.sitemap = false
       config.scanner.robotsTxt = false
       config.scanner.dynamicSampling = false
@@ -62,8 +63,8 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       else {
         const hasPwa = config.lighthouseOptions.onlyCategories.includes('pwa')
         // restrict categories values and copy order of columns from the default config
-        config.lighthouseOptions.onlyCategories = defaultConfig.lighthouseOptions.onlyCategories
-          .filter(column => config.lighthouseOptions.onlyCategories.includes(column))
+        config.lighthouseOptions.onlyCategories = defaultConfig.lighthouseOptions!.onlyCategories!
+          .filter(column => config.lighthouseOptions!.onlyCategories!.includes(column))
         // allow PWA
         if (hasPwa)
           config.lighthouseOptions.onlyCategories.push('pwa')

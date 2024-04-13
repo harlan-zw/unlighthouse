@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import fs from 'fs-extra'
-import type { LH } from 'lighthouse'
+import type { Result } from 'lighthouse'
 import { map, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
 import chalk from 'chalk'
@@ -12,7 +12,7 @@ import { useLogger } from '../../logger'
 import { ReportArtifacts, base64ToBuffer } from '../../util'
 import { setupPage } from '../util'
 
-export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: LH.Result): LighthouseReport {
+export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: Result): LighthouseReport {
   const { resolvedConfig, runtimeSettings } = useUnlighthouse()
 
   const measuredCategories = Object.values(result.categories)
