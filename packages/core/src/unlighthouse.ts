@@ -12,15 +12,19 @@ import objectHash from 'object-hash'
 import { createCommonJS, resolvePath } from 'mlly'
 import { $fetch } from 'ofetch'
 import chalk from 'chalk'
+import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
 import { version } from '../package.json'
 import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
 import type {
   Provider,
+  PuppeteerTaskArgs,
+  PuppeteerTaskReturn,
   ResolvedUserConfig,
   RuntimeSettings,
   UnlighthouseContext,
   UnlighthouseHooks,
+  UnlighthouseTask,
   UserConfig,
 } from './types'
 import { generateClient } from './build'
@@ -134,7 +138,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   } as unknown as UnlighthouseContext
   engineContext.set(ctx, true)
 
-  const tasks = {
+  const tasks: Record<UnlighthouseTask, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>> = {
     inspectHtmlTask,
     runLighthouseTask,
   }
