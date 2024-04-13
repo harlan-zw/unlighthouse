@@ -13,22 +13,29 @@ export function generateReportPayload(reporter: 'jsonExpanded', reports: Unlight
 export function generateReportPayload(reporter: 'jsonSimple' | 'json', reports: UnlighthouseRouteReport[]): ReportJsonSimple
 export function generateReportPayload(reporter: 'csvSimple' | 'csv', reports: UnlighthouseRouteReport[]): string
 export function generateReportPayload(reporter: 'csvExpanded', reports: UnlighthouseRouteReport[], config?: ReporterConfig): string
-export function generateReportPayload(reporter: string, reports: UnlighthouseRouteReport[], config?: ReporterConfig): any {
-  const sortedReporters = reports.sort((a, b) => a.route.path.localeCompare(b.route.path))
+export function generateReportPayload(reporter: string, _reports: UnlighthouseRouteReport[], config?: ReporterConfig): any {
+  const reports = _reports
+    .sort((a, b) => a.route.path.localeCompare(b.route.path))
+    .filter((r) => {
+      if (!r.report?.categories)
+        return false
+      return r.report.audits
+    })
+
   if (reporter.startsWith('json')) {
     if (reporter === 'jsonSimple' || reporter === 'json')
-      return reportJsonSimple(sortedReporters)
+      return reportJsonSimple(reports)
     if (reporter === 'jsonExpanded')
-      return reportJsonExpanded(sortedReporters)
+      return reportJsonExpanded(reports)
   }
   if (reporter.startsWith('csv')) {
     if (reporter === 'csvSimple' || reporter === 'csv')
-      return reportCSVSimple(sortedReporters)
+      return reportCSVSimple(reports)
     if (reporter === 'csvExpanded')
-      return reportCSVExpanded(sortedReporters, config)
+      return reportCSVExpanded(reports, config)
   }
   if (reporter === 'lighthouseServer')
-    return reportLighthouseServer(sortedReporters, config)
+    return reportLighthouseServer(reports, config)
 
   throw new Error(`Unsupported reporter: ${reporter}.`)
 }

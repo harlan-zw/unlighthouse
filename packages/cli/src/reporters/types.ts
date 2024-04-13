@@ -14,7 +14,8 @@ export interface MetricScore {
 
 export interface SimpleRouteReport {
   path: string
-  score?: string
+  score?: number | string | null
+  [key: string]: string | number | null
 }
 
 export interface ExpandedRouteReport extends SimpleRouteReport {

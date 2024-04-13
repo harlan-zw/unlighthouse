@@ -1,5 +1,5 @@
 import type { UnlighthouseRouteReport } from '../types'
-import type { ReportJsonSimple } from './types'
+import type { ReportJsonSimple, SimpleRouteReport } from './types'
 
 export function reportJsonSimple(reports: UnlighthouseRouteReport[]): ReportJsonSimple {
   return reports
@@ -9,7 +9,7 @@ export function reportJsonSimple(reports: UnlighthouseRouteReport[]): ReportJson
         // @ts-expect-error untyped
         scores[category.key] = category.score
       })
-      return {
+      return <SimpleRouteReport> {
         path: report.route.path,
         score: report.report?.score,
         ...scores,

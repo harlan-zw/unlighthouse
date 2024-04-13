@@ -1,3 +1,4 @@
+import type { UnlighthouseRouteReport } from '@unlighthouse/core/src'
 import type { CategoryAverageScore, CategoryScore, ExpandedRouteReport, MetricAverageScore, MetricScore, ReportJsonExpanded } from './types'
 
 const relevantMetrics = [
@@ -9,12 +10,12 @@ const relevantMetrics = [
   'interactive',
 ]
 
-export function reportJsonExpanded(unlighthouseRouteReports): ReportJsonExpanded {
+export function reportJsonExpanded(reports: UnlighthouseRouteReport[]): ReportJsonExpanded {
   let metadata = {
     metrics: {},
     categories: {},
   }
-  const routes = unlighthouseRouteReports
+  const routes = reports
     .map((report) => {
       const categories = Object.values(report.report?.categories ?? {}).reduce(
         (prev: { [key: string]: CategoryScore }, category: any): any => {
