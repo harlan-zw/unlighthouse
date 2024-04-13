@@ -20,6 +20,7 @@ const color = computed(() => {
     case 'failed':
       return 'bg-red-500'
   }
+  return ''
 })
 
 const label = computed(() => {
@@ -36,6 +37,7 @@ const label = computed(() => {
     case 'failed':
       return 'Failed'
   }
+  return ''
 })
 </script>
 

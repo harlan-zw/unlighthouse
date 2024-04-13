@@ -20,7 +20,7 @@ useSeoMeta({
 const navigation = inject('navigation')
 const segment = computed(() => route.path.split('/')[1])
 const children = computed(() => {
-  if (!segment)
+  if (!segment.value)
     return navigation.value
 
   // first segment
@@ -32,6 +32,7 @@ const children = computed(() => {
     case 'api':
       return navigation.value[2].children
   }
+  return []
 })
 
 const headline = computed(() => findPageHeadline(page.value))

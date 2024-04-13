@@ -21,6 +21,8 @@ const issue = computed(() => {
 
   if (length >= 200)
     return 'too-long'
+
+  return ''
 })
 const label = computed(() => {
   switch (issue.value) {
@@ -31,6 +33,7 @@ const label = computed(() => {
     case 'too-long':
       return 'Lengthy'
   }
+  return ''
 })
 const score = computed(() => {
   switch (issue.value) {
