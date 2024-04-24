@@ -93,6 +93,10 @@ export interface UnlighthouseRouteReport {
    */
   tasks: Record<UnlighthouseTask, UnlighthouseTaskStatus>
   /**
+   * Track how long tasks are taking
+   */
+  tasksTime?: Record<Partial<UnlighthouseTask>, number>
+  /**
    * Path to where the artifacts from a URL scan are saved.
    */
   artifactPath: string
@@ -124,6 +128,7 @@ export interface HTMLExtractPayload {
   description?: string
   internalLinks?: number
   externalLinks?: number
+  htmlSize?: number
   favicon?: string
   og?: {
     description?: string

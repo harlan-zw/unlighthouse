@@ -189,6 +189,5 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   }
 
   routeReport.report = normaliseLighthouseResult(routeReport, report)
-  logger.success(`Completed \`runLighthouseTask\` for \`${routeReport.route.path}\`. ${chalk.gray(`(Score: ${routeReport.report.score}${resolvedConfig.scanner.samples > 0 ? ` Samples: ${resolvedConfig.scanner.samples}` : ''} ${worker.monitor().donePercStr}% complete)`)}`)
   return routeReport
 }

@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
 import { get, sortBy, uniqBy } from 'lodash-es'
+import chalk from 'chalk'
 import type {
   NormalisedRoute,
   PuppeteerTaskArgs,
@@ -11,7 +12,7 @@ import type {
   UnlighthouseWorker,
   UnlighthouseWorkerStats,
 } from '../types'
-import { ReportArtifacts, createTaskReportFromRoute } from '../util'
+import { ReportArtifacts, createTaskReportFromRoute, formatBytes } from '../util'
 import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 import { createFilter } from '../util/filter'
@@ -154,6 +155,8 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       cluster
         .execute(routeReport, (arg) => {
           routeReport.tasks[taskName] = 'in-progress'
+          routeReport.tasksTime = routeReport.tasksTime || {}
+          routeReport.tasksTime[taskName] = Date.now()
           hooks.callHook('task-started', path, routeReport)
           return task(arg)
         })
@@ -180,6 +183,24 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
           response.tasks[taskName] = 'completed'
           routeReports.set(id, response)
           hooks.callHook('task-complete', path, response, taskName)
+          const ms = Date.now() - routeReport.tasksTime?.[taskName]
+          // make ms human friendly
+          const seconds = (ms / 1000).toFixed(1)
+          const reportData = [
+            `Time Taken: ${seconds}s`,
+          ]
+          if (taskName === 'runLighthouseTask') {
+            if (response.report.score)
+              reportData.push(`Score: ${response.report.score}`)
+            if (resolvedConfig.scanner.samples)
+              reportData.push(`Samples: ${resolvedConfig.scanner.samples}`)
+          }
+          else if (taskName === 'inspectHtmlTask') {
+            if (response.seo.htmlSize)
+              reportData.push(formatBytes(response.seo.htmlSize))
+          }
+          reportData.push(`${monitor().donePercStr}% complete`)
+          logger.success(`Completed \`${taskName}\` for \`${routeReport.route.path}\`. ${chalk.gray(`(${reportData.join(' ')})`)}`)
           // run the next task
           runTaskIndex(idx + 1)
         })

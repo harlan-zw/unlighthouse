@@ -101,14 +101,11 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   const logger = useLogger()
   let html: string
 
-  const start = new Date()
   // basic caching based on saving html payloads
   const htmlPayloadPath = join(routeReport.artifactPath, ReportArtifacts.html)
-  let cached = false
   if (resolvedConfig.cache && fs.existsSync(htmlPayloadPath)) {
     html = fs.readFileSync(htmlPayloadPath, { encoding: 'utf-8' })
     logger.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
-    cached = true
   }
   else {
     const response = await extractHtmlPayload(page, routeReport.route.url)
@@ -177,12 +174,7 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   await hooks.callHook('discovered-internal-links', routeReport.route.path, internalLinks)
   routeReport.seo.internalLinks = internalLinks.length
   routeReport.seo.externalLinks = externalLinks.length
-  const end = new Date()
-  const ms = Math.round(end.getTime() - start.getTime())
-  // make ms human friendly
-  const seconds = (ms / 1000).toFixed(1)
-  if (!cached)
-    logger.success(`Completed \`inspectHtmlTask\` for \`${routeReport.route.path}\`. ${chalk.gray(`(${formatBytes(html.length)} took ${seconds}s)`)}`)
+  routeReport.seo.htmlSize = html.length
 
   // only need the html payload for caching purposes, unlike the lighthouse reports
   if (resolvedConfig.cache)
