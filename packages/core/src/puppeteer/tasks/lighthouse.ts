@@ -59,6 +59,7 @@ export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result
       }
     }),
     ...pick(result, [
+      'fetchTime',
       'audits.redirects',
       // core web vitals
       'audits.layout-shift-elements',

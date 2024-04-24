@@ -26,6 +26,15 @@ watch(isModalOpen, () => {
 function openEditorRequest() {
   fetch(`${apiUrl}/__launch?file=${props.report.route.definition.component}`)
 }
+
+const fetchTime = computed(() => {
+  // use Intl to format the date
+  const date = new Date(props.report.report.fetchTime)
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+})
 </script>
 
 <template>
@@ -52,6 +61,9 @@ function openEditorRequest() {
         <div class="font-bold inline text-xs uppercase px-1 rounded-xl bg-red-300 text-red-700">
           Redirected
         </div>
+      </div>
+      <div class="opacity-60 mt-2">
+        {{ fetchTime }}
       </div>
     </div>
   </div>
