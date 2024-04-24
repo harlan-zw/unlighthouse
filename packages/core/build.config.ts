@@ -21,7 +21,11 @@ export default defineBuildConfig({
     { input: 'src/process', outDir: 'dist/process', builder: 'mkdist', declaration: false },
   ],
   externals: [
+    'listhen',
+    'puppeteer',
+    'puppeteer-core',
     'devtools-protocol',
+    'puppeteer-cluster',
     'lighthouse',
     '@unrouted/core',
     'h3',

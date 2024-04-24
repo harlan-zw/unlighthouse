@@ -139,12 +139,7 @@ export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
     },
     { cols: 1, label: 'Internal link', sortable: true, key: 'seo.internalLinks' },
     { cols: 1, label: 'External link', sortable: true, key: 'seo.externalLinks' },
-    {
-      cols: 1,
-      label: 'Tap Targets',
-      tooltip: 'Tap targets are sized appropriately',
-      key: 'report.audits.tap-targets',
-    },
+    // TODO replace
     {
       cols: 2,
       label: 'Description',

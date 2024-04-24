@@ -7,6 +7,7 @@ import { useUnlighthouse } from '../unlighthouse'
  */
 export async function launchPuppeteerCluster(): Promise<UnlighthousePuppeteerCluster> {
   const { resolvedConfig } = useUnlighthouse()
+  // @ts-expect-error untyped
   const cluster = await Cluster.launch({
     puppeteerOptions: resolvedConfig.puppeteerOptions,
     ...resolvedConfig.puppeteerClusterOptions,

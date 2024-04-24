@@ -35,7 +35,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   })
   const config = merger(userConfig, defaultConfig)
 
-  if (!config.site && config.urls?.[0])
+  if (!config.site && Array.isArray(config.urls) && config.urls?.[0])
     config.site = config.urls[0]
 
   // it's possible we don't know the site at runtime
@@ -209,6 +209,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     if (!existsSync(chromePath)) {
       logger.warn('Failed to find chromium, attempting to download it instead.')
       let lastPercent = 0
+      // @ts-expect-error untyped
       await install({
         ...browserOptions,
         downloadProgressCallback: (downloadedBytes, toDownloadBytes) => {

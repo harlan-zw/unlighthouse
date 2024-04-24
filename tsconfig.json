@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": ["DOM", "ESNext"],
-    "baseUrl": ".",
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "useDefineForClassFields": true,
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "paths": {
       "unlighthouse": ["./packages/unlighthouse/src"],
       "@unlighthouse/client": ["./packages/client/src"],
@@ -16,12 +17,17 @@
       "@unlighthouse/webpack": ["./integrations/webpack/src"]
     },
     "resolveJsonModule": true,
+    "types": [],
+    "allowJs": true,
     "strict": true,
-    "strictNullChecks": true,
-    "noUnusedLocals": true,
-    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "noImplicitThis": true,
+    "noEmit": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true
   },
   "include": [
     "**/*.d.ts"

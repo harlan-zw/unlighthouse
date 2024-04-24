@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { join } from 'node:path'
-import type { LH } from 'lighthouse'
+import type { Flags } from 'lighthouse'
 import lighthouse from 'lighthouse/core/index.cjs'
 import minimist from 'minimist'
 import type { UnlighthouseRouteReport } from '../types'
@@ -14,7 +14,7 @@ import type { UnlighthouseRouteReport } from '../types'
       = minimist<{ options: string, cache: boolean, routeReport: string, port: number }>(process.argv.slice(2))
 
   const routeReportJson: UnlighthouseRouteReport = JSON.parse(routeReport)
-  const lighthouseOptions: LH.Flags = {
+  const lighthouseOptions: Flags = {
     ...JSON.parse(lighthouseOptionsEncoded),
     // always generate html / json reports
     output: ['html', 'json'],

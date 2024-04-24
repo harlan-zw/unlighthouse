@@ -7,7 +7,7 @@ import type { RouteDefinition } from '../types'
  */
 
 type NuxtRoute = RouteDefinition & {
-  children?: NuxtRoute[]
+  children?: any[]
   pathToRegexpOptions?: any
 }
 

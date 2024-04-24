@@ -24,21 +24,28 @@ export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result
     .map(c => c.key?.replace('report.', '')) as string[]
 
   const imageIssues = [
-    result.audits['unsized-images']?.details?.items || [],
-    result.audits['preload-lcp-image']?.details?.items || [],
-    result.audits['offscreen-images']?.details?.items || [],
-    result.audits['modern-image-formats']?.details?.items || [],
-    result.audits['uses-optimized-images']?.details?.items || [],
-    result.audits['efficient-animated-content']?.details?.items || [],
-    result.audits['uses-responsive-images']?.details?.items || [],
-  ].flat()
+    result.audits['unsized-images'],
+    result.audits['preload-lcp-image'],
+    result.audits['offscreen-images'],
+    result.audits['modern-image-formats'],
+    result.audits['uses-optimized-images'],
+    result.audits['efficient-animated-content'],
+    result.audits['uses-responsive-images'],
+  ]
+    .map(d => (d?.details as any)?.items || [])
+    .flat()
   const ariaIssues = Object.values(result.audits)
+    // @ts-expect-error untyped
     .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
+    // @ts-expect-error untyped
     .map(a => a.details?.items)
     .flat()
+  // @ts-expect-error untyped
   if (result.audits['screenshot-thumbnails']?.details?.items) {
     // need to convert the base64 screenshot-thumbnails into their file name
+    // @ts-expect-error untyped
     for (const k in result.audits['screenshot-thumbnails'].details.items)
+      // @ts-expect-error untyped
       result.audits['screenshot-thumbnails'].details.items[k].data = relative(runtimeSettings.generatedClientPath, join(route.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${k}.jpeg`))
   }
   // map the json report to what values we actually need
@@ -92,7 +99,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   // if the report doesn't exist, we're going to run a new lighthouse process to generate it
   const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
   if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
-    const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as LH.Result
+    const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as Result
     routeReport.report = normaliseLighthouseResult(routeReport, report)
     return routeReport
   }
@@ -138,7 +145,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     }
   }
 
-  let report: LH.Result = samples[0]
+  let report: Result = samples[0]
 
   if (!report) {
     logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
@@ -162,15 +169,18 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   }
 
   // we need to export all base64 data to improve the stability of the client
+  // @ts-expect-error untyped
   if (report.audits?.['final-screenshot']?.details?.data)
+    // @ts-expect-error untyped
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), base64ToBuffer(report.audits['final-screenshot'].details.data))
 
-  if (report.fullPageScreenshot.screenshot.data)
+  if (report.fullPageScreenshot?.screenshot.data)
     await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.fullPageScreenshot.screenshot.data))
 
   // extract the screenshot-thumbnails into separate files
   const screenshotThumbnails = report.audits?.['screenshot-thumbnails']?.details
   await fs.mkdir(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir), { recursive: true })
+  // @ts-expect-error untyped
   if (screenshotThumbnails?.items && screenshotThumbnails.type === 'filmstrip') {
     for (const key in screenshotThumbnails.items) {
       const thumbnail = screenshotThumbnails.items[key]

@@ -1,7 +1,7 @@
 import type http from 'node:http'
 import type https from 'node:https'
 import type { QueryObject } from 'ufo'
-import type LH from 'lighthouse/types/lh'
+import type { Flags, Result } from 'lighthouse'
 import type { Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { Cluster, ClusterOptionsArgument, TaskFunction } from '../cluster'
@@ -58,7 +58,7 @@ export interface ComputedLighthouseReportAudit {
  * An augmented Lighthouse Report type, we add custom types to the base report for specific functionality on the
  * @unlighthouse/client.
  */
-export type LighthouseReport = Partial<LH.Result> & {
+export type LighthouseReport = Partial<Result> & {
   /**
    * The total score for the result, this is the sum of each category's result
    */
@@ -456,7 +456,7 @@ export interface ResolvedUserConfig {
   /**
    * Changes the default behaviour of lighthouse.
    */
-  lighthouseOptions: LH.Flags
+  lighthouseOptions: Flags
   /**
    * Change the behaviour of puppeteer.
    */

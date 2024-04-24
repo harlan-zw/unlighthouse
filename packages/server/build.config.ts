@@ -10,6 +10,7 @@ export default defineBuildConfig({
     { input: 'src/index' },
   ],
   externals: [
+    'listhen',
     'crossws',
     '@unrouted/core',
     'h3',

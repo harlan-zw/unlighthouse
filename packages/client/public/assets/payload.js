@@ -136,23 +136,6 @@ window.__unlighthouse_payload = {
           label: 'Share Image',
           key: 'seo.og.image',
         }],
-        'pwa': [{
-          cols: 1,
-          label: 'Manifest',
-          key: 'report.audits.installable-manifest',
-        }, {
-          cols: 2,
-          label: 'Service Worker',
-          key: 'report.audits.service-worker',
-        }, {
-          cols: 2,
-          label: 'Splash Screen',
-          key: 'report.audits.splash-screen',
-        }, {
-          cols: 1,
-          label: 'Viewport',
-          key: 'report.audits.viewport',
-        }, { cols: 2, label: 'Content Width', key: 'report.audits.content-width' }],
       },
     },
     scanner: { samples: 2, throttle: false, crawler: true, dynamicSampling: 7 },
