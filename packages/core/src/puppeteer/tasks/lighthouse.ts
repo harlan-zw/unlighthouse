@@ -62,7 +62,7 @@ export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result
       'fetchTime',
       'audits.redirects',
       // core web vitals
-      'audits.layout-shift-elements',
+      'audits.layout-shifts',
       'audits.largest-contentful-paint-element',
       'audits.largest-contentful-paint',
       'audits.cumulative-layout-shift',
