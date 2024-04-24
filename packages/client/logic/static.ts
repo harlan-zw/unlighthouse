@@ -52,9 +52,6 @@ export const tabs = [
     if (c === 'seo')
       return 'SEO'
 
-    if (c === 'pwa')
-      return 'PWA'
-
     return startCase(c)
   }),
   categories.includes('performance') ? 'CrUX' : undefined,

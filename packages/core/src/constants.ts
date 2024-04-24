@@ -156,25 +156,6 @@ export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
       key: 'seo.og.image',
     },
   ],
-  'pwa': [
-    {
-      cols: 2,
-      label: 'Manifest',
-      key: 'report.audits.installable-manifest',
-    },
-    { cols: 1, label: 'Service Worker', key: 'report.audits.service-worker' },
-    { cols: 1, label: 'Splash Screen', key: 'report.audits.splash-screen' },
-    {
-      cols: 2,
-      label: 'Viewport',
-      key: 'report.audits.viewport',
-    },
-    {
-      cols: 2,
-      label: 'Content Width',
-      key: 'report.audits.content-width',
-    },
-  ],
 }
 
 export const defaultConfig: UserConfig = {

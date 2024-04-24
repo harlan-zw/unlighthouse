@@ -39,24 +39,12 @@ By default, Unlighthouse will scan the categories: `'performance', 'accessibilit
 It can be useful to remove certain categories from being scanned to improve scan times. The Unlighthouse UI will adapt
 to any categories you select.
 
-**Only Performance and PWA**
+**Only Performance**
 
 ```ts
 export default {
   lighthouseOptions: {
-    onlyCategories: ['performance', 'pwa'],
-  }
-}
-```
-
-**All Categories including PWA**
-
-If you'd like to scan your app with the PWA category use:
-
-```ts
-export default {
-  lighthouseOptions: {
-    onlyCategories: ['performance', 'best-practices', 'accessibility', 'seo', 'pwa'],
+    onlyCategories: ['performance'],
   }
 }
 ```

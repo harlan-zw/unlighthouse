@@ -193,7 +193,7 @@ export interface UnlighthouseColumn {
 /**
  * All available tab keys.
  */
-export type LighthouseCategories = 'performance' | 'best-practices' | 'accessibility' | 'seo' | 'pwa'
+export type LighthouseCategories = 'performance' | 'best-practices' | 'accessibility' | 'seo'
 export type UnlighthouseTabs = 'overview' | LighthouseCategories
 
 /**

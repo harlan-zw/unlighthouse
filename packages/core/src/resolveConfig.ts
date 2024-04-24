@@ -61,13 +61,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
         config.lighthouseOptions.onlyCategories = []
       }
       else {
-        const hasPwa = config.lighthouseOptions.onlyCategories.includes('pwa')
         // restrict categories values and copy order of columns from the default config
         config.lighthouseOptions.onlyCategories = defaultConfig.lighthouseOptions!.onlyCategories!
           .filter(column => config.lighthouseOptions!.onlyCategories!.includes(column))
-        // allow PWA
-        if (hasPwa)
-          config.lighthouseOptions.onlyCategories.push('pwa')
       }
     }
   }
