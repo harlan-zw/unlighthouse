@@ -90,12 +90,11 @@ defineOgImageScreenshot()
 
             <template #right>
               <UDocsToc :links="page.body?.toc?.links || []">
-                <template #top>
-                  <UPageLinks title="Repo Links" :links="repoLinks" />
-                  <UDivider dashed />
-                </template>
                 <template #bottom>
                   <div class="hidden !mt-6 lg:block space-y-6">
+                    <Ads />
+                    <UPageLinks title="Repo Links" :links="repoLinks" />
+                    <UDivider dashed />
                     <UDivider v-if="page.body?.toc?.links?.length" dashed />
                     <UPageLinks title="Community" :links="communityLinks" />
                     <UDivider dashed />
