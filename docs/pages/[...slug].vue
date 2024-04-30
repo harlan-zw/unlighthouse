@@ -66,6 +66,19 @@ const repoLinks = computed(() => [
   },
 ])
 
+const ecosystemLinks = [
+  {
+    label: 'Zhead',
+    to: 'https://zhead.dev',
+    target: '_blank',
+  },
+  {
+    label: 'Request Indexing',
+    to: 'https://requestindexing.com',
+    target: '_blank',
+  },
+]
+
 defineOgImageScreenshot()
 </script>
 
@@ -98,6 +111,7 @@ defineOgImageScreenshot()
                     <UDivider v-if="page.body?.toc?.links?.length" dashed />
                     <UPageLinks title="Community" :links="communityLinks" />
                     <UDivider dashed />
+                    <UPageLinks title="Ecosystem" :links="ecosystemLinks" />
                   </div>
                 </template>
               </UDocsToc>
