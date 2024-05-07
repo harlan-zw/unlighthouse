@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/monorepo",
   "type": "module",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "private": true,
   "packageManager": "pnpm@9.1.0",
   "license": "MIT",
