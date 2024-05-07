@@ -10,13 +10,13 @@ Unlighthouse is configured by default to run on any sized site and only perform 
 Unlighthouse is configured by default to work on large sites. If you're scanning a smaller site you may consider
 changing some of the following:
 
-- [ignoreI18nPages](/api/config/#scanner-ignorei18npages) enabled
-- [maxRoutes](/api/config/#scanner-maxroutes) set to 200
-- [skipJavascript](/api/config/#scanner-skipjavascript) enabled
-- [samples](/api/config/#scanner-samples) set to 1
-- [throttling](/api/config/#scanner-throttle) disabled
-- [crawler](/api/config/#scanner-crawler) enabled
-- [dynamicSampling](/api/config/#scanner-crawler) set to 5
+- [ignoreI18nPages](/api/config#scanner-ignorei18npages) enabled
+- [maxRoutes](/api/config#scanner-maxroutes) set to 200
+- [skipJavascript](/api/config#scanner-skipjavascript) enabled
+- [samples](/api/config#scanner-samples) set to 1
+- [throttling](/api/config#scanner-throttle) disabled
+- [crawler](/api/config#scanner-crawler) enabled
+- [dynamicSampling](/api/config#scanner-crawler) set to 5
 
 For example, when scanning a blog with thousands of posts, it may be redundant to scan every single blog post, as the
 DOM is very similar. Using the configuration we can select exactly how many posts should be scanned.
