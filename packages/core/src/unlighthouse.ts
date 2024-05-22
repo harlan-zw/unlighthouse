@@ -145,6 +145,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   if (resolvedConfig.hooks?.authenticate) {
     // do an authentication step
     await worker.cluster.execute({}, async (taskCtx) => {
+      logger.debug('Running authentication hook')
+      await taskCtx.page.setBypassCSP(true)
+
       await hooks.callHook('authenticate', taskCtx.page)
       // collect page authentication, either cookie or localStorage tokens
       const localStorageData = await taskCtx.page.evaluate(() => {
@@ -155,12 +158,28 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
             json[key] = localStorage.getItem(key)
         }
         return json
+      }).catch((e) => {
+        logger.warn('Failed to collect authentication localStorage.\n', e)
+        return {}
+      })
+      const sessionStorageData = await taskCtx.page.evaluate(() => {
+        const json: Record<string, any> = {}
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i)
+          if (key)
+            json[key] = sessionStorage.getItem(key)
+        }
+        return json
+      }).catch((e) => {
+        logger.warn('Failed to collect authentication sessionStorage.\n', e)
+        return {}
       })
       const cookies = await taskCtx.page.cookies()
       // merge this into the config
       // @ts-expect-error untyped
       ctx.resolvedConfig.cookies = [...(ctx.resolvedConfig.cookies || []), ...cookies as any as ResolvedUserConfig['cookies']]
       ctx.resolvedConfig.localStorage = { ...ctx.resolvedConfig.localStorage, ...localStorageData }
+      ctx.resolvedConfig.sessionStorage = { ...ctx.resolvedConfig.sessionStorage, ...sessionStorageData }
     })
   }
 

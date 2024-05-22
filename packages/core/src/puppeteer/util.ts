@@ -25,6 +25,17 @@ export async function setupPage(page: Page) {
       resolvedConfig.localStorage,
     )
   }
+  // set session storage
+  if (resolvedConfig.sessionStorage) {
+    await page.evaluateOnNewDocument(
+      (data) => {
+        sessionStorage.clear()
+        for (const key in data)
+          sessionStorage.setItem(key, data[key])
+      },
+      resolvedConfig.sessionStorage,
+    )
+  }
   if (resolvedConfig.cookies) {
     await page.setCookie(...resolvedConfig.cookies.map(cookie => ({ domain: resolvedConfig.site, ...cookie })))
       .catch(softErrorHandler('Failed to set cookies'))

@@ -278,6 +278,12 @@ export interface ResolvedUserConfig {
    */
   localStorage: Record<string, any>
   /**
+   * Session storage to add to the browser context.
+   *
+   * @default {}
+   */
+  sessionStorage: Record<string, any>
+  /**
    * Extra headers to provide for any HTTP requests.
    *
    * @default false
