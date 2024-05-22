@@ -176,6 +176,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       })
       const cookies = await taskCtx.page.cookies()
       logger.debug('Authentication completed', { cookies, localStorageData, sessionStorageData, indexedDb })
+      logger.debug('Authentication completed', { cookies, localStorageData, sessionStorageData })
       // merge this into the config
       // @ts-expect-error untyped
       ctx.resolvedConfig.cookies = [...(ctx.resolvedConfig.cookies || []), ...cookies as any as ResolvedUserConfig['cookies']]
