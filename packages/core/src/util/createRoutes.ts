@@ -11,14 +11,14 @@ type NuxtRoute = RouteDefinition & {
   pathToRegexpOptions?: any
 }
 
-const DYNAMIC_ROUTE_REGEX = /^\/([:*])/
+const DYNAMIC_ROUTE_REGEX = /^\/[:*]/
 
 function getRoutePathExtension(key: string) {
   if (key === '_')
     return '*'
 
   if (key.startsWith('_'))
-    return `:${key.substr(1)}`
+    return `:${key.substring(1)}`
 
   return key
 }

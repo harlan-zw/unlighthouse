@@ -35,8 +35,8 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   const inlineScript = `window.__unlighthouse_static = ${options.static}`
   let indexHTML = await fs.readFile(runtimeSettings.resolvedClientPath, 'utf-8')
   indexHTML = indexHTML
-    .replace(/<script data-unlighthouse-inline>.*?<\/script>/gms, `<script data-unlighthouse-inline>${inlineScript}</script>`)
-    .replace(/(href|src)="\/assets\/(.*?)"/gm, `$1="${prefix}assets/$2"`)
+    .replace(/<script data-unlighthouse-inline>.*?<\/script>/gs, `<script data-unlighthouse-inline>${inlineScript}</script>`)
+    .replace(/(href|src)="\/assets\/(.*?)"/g, `$1="${prefix}assets/$2"`)
   await fs.writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
 
   const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: UnlighthouseRouteReport[] } = {

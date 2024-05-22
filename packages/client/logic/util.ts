@@ -1,5 +1,5 @@
 export function extractBgColor(str: string) {
-  const regex = /background color: (.*?),/gm
+  const regex = /background color: (.*?),/
   const m = regex.exec(str)
 
   if (m !== null) {
@@ -9,7 +9,7 @@ export function extractBgColor(str: string) {
 }
 
 export function extractFgColor(str: string) {
-  const regex = /foreground color: (.*?),/gm
+  const regex = /foreground color: (.*?),/
   const m = regex.exec(str)
 
   if (m !== null) {

@@ -1,7 +1,3 @@
-<template>
-<div ref="carbonads" class="Carbon border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-white/5" />
-</template>
-
 <script setup lang="ts">
 const carbonads = ref(null)
 
@@ -15,6 +11,10 @@ onMounted(() => {
   }
 })
 </script>
+
+<template>
+  <div ref="carbonads" class="Carbon border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-white/5" />
+</template>
 
 <style lang="postcss">
 .dark .Carbon {

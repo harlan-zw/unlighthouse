@@ -3,7 +3,6 @@ import fs from 'fs-extra'
 import type { Result } from 'lighthouse'
 import { map, pick, sumBy } from 'lodash-es'
 import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
-import chalk from 'chalk'
 import { relative } from 'pathe'
 import { withQuery } from 'ufo'
 import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '../../types'
@@ -94,7 +93,7 @@ export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result
 
 export const runLighthouseTask: PuppeteerTask = async (props) => {
   const logger = useLogger()
-  const { resolvedConfig, runtimeSettings, worker } = useUnlighthouse()
+  const { resolvedConfig, runtimeSettings } = useUnlighthouse()
   const { page, data: routeReport } = props
 
   // if the report doesn't exist, we're going to run a new lighthouse process to generate it
