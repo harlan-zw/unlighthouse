@@ -10,6 +10,7 @@ import type { InstallOptions } from '@puppeteer/browsers'
 import { Launcher } from 'chrome-launcher'
 import puppeteer from 'puppeteer-core'
 import { resolve as resolveModule } from 'mlly'
+import { PUPPETEER_REVISIONS } from 'puppeteer-core/lib/cjs/puppeteer/revisions.js'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { defaultConfig } from './constants'
 import { normaliseHost, withSlashes } from './util'
@@ -103,7 +104,6 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   config.chrome = defu(config.chrome || {}, {
     useSystem: true,
     useDownloadFallback: true,
-    downloadFallbackVersion: 1095492,
     downloadFallbackCacheDir: join(homedir(), '.unlighthouse'),
   })
 
@@ -205,13 +205,14 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   }
   if (config.chrome.useDownloadFallback && !foundChrome) {
     const browserOptions = {
-      cacheDir: join(homedir(), '.unlighthouse'),
-      buildId: '1095492',
-      browser: 'chromium',
+      cacheDir: config.chrome.downloadFallbackCacheDir,
+      buildId: config.chrome.downloadFallbackVersion || PUPPETEER_REVISIONS.chrome,
+      browser: 'chrome',
     } as InstallOptions
+
     const chromePath = computeExecutablePath(browserOptions)
     if (!existsSync(chromePath)) {
-      logger.warn('Failed to find chromium, attempting to download it instead.')
+      logger.info(`Missing ${browserOptions.browser} binary, downloading v${browserOptions.buildId}...`)
       let lastPercent = 0
       // @ts-expect-error untyped
       await install({
@@ -219,13 +220,13 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
         downloadProgressCallback: (downloadedBytes, toDownloadBytes) => {
           const percent = Math.round(downloadedBytes / toDownloadBytes * 100)
           if (percent % 5 === 0 && lastPercent !== percent) {
-            logger.info(`Downloading chromium: ${percent}%`)
+            logger.info(`Downloading ${browserOptions.browser}: ${percent}%`)
             lastPercent = percent
           }
         },
       })
     }
-    logger.info(`Using temporary downloaded chromium v1095492 located at: ${chromePath}`)
+    logger.info(`Using downloaded ${browserOptions.browser} v${browserOptions.buildId} located at: ${chromePath}`)
     config.puppeteerOptions.executablePath = chromePath
     foundChrome = true
   }
