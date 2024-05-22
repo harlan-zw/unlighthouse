@@ -239,3 +239,11 @@ unlighthouse-ci --site <your-site> --reporter lighthouseServer --lhci-host <lhci
 ```
 
 This will upload your reports to the Lighthouse CI server.
+
+### Basic Auth
+
+You can provide basic auth credentials using the `--lhci-auth` flag.
+
+```bash
+unlighthouse-ci --site <your-site> --reporter lighthouseServer --lhci-host <lhci host> --lhci-build-token <lhci buildToken> --lhci-auth <username>:<password>
+```

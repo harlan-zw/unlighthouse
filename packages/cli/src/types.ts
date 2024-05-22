@@ -38,7 +38,7 @@ export interface CiOptions extends CliOptions {
   reporter?: ValidReportTypes | false
   lhciHost?: string
   lhciBuildToken?: string
-
+  lhciAuth?: string
 }
 
 export { UnlighthouseRouteReport }

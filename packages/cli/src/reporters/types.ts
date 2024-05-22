@@ -74,4 +74,5 @@ export type ReporterConfig = Partial<{
   columns: Record<UnlighthouseTabs, UnlighthouseColumn[]>
   lhciHost: string
   lhciBuildToken: string
+  lhciAuth: string
 }>

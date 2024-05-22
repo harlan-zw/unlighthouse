@@ -20,6 +20,7 @@ async function run() {
   cli.option('--reporter <reporter>', 'The report to generate from results. Options: csv, csvExpanded, json, jsonExpanded or false. Default: json.')
   cli.option('--lhci-host <lhci-host>', 'URL of your LHCI server.')
   cli.option('--lhci-build-token <lhci-build-token>', 'LHCI build token, used to add data.')
+  cli.option('--lhci-auth <lhci-auth>', 'Basic auth for your LHCI server.')
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
@@ -34,6 +35,7 @@ async function run() {
     reporterConfig: {
       lhciHost: options.lhciHost,
       lhciBuildToken: options.lhciBuildToken,
+      lhciAuth: options.lhciAuth,
     },
 
   }

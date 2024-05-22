@@ -144,6 +144,7 @@ export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer
 export interface ReporterConfig {
   lhciHost?: string
   lhciBuildToken?: string
+  lhciAuth?: string
 }
 
 /**

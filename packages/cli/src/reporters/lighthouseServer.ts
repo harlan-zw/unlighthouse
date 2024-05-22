@@ -16,10 +16,16 @@ import type { ReporterConfig } from './types'
 
 export async function reportLighthouseServer(
   reports: UnlighthouseRouteReport[],
-  { lhciBuildToken, lhciHost }: ReporterConfig,
+  { lhciBuildToken, lhciHost, lhciAuth }: ReporterConfig,
 ): Promise<void> {
   try {
-    const api = new ApiClient({ fetch, rootURL: lhciHost })
+    const api = new ApiClient({
+      fetch,
+      rootURL: lhciHost,
+      basicAuth: (typeof lhciAuth === 'string' && lhciAuth.includes(':'))
+        ? { username: lhciAuth.split(':')[0], password: lhciAuth.split(':')[1] }
+        : undefined,
+    })
     api.setBuildToken(lhciBuildToken)
     const project = await api.findProjectByToken(lhciBuildToken)
     const baseBranch = project.baseBranch || 'master'
