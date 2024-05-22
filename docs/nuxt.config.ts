@@ -43,9 +43,6 @@ export default defineNuxtConfig({
     global: true,
     icons: ['heroicons', 'simple-icons', 'ph', 'noto', 'carbon', 'logos'],
   },
-  seoUi: {
-    global: true,
-  },
   sitemap: {
     strictNuxtContentPaths: true,
     xslColumns: [

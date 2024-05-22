@@ -1,7 +1,7 @@
 {
   "name": "unlighthouse-docs",
   "private": true,
-  "packageManager": "pnpm@9.1.0",
+  "packageManager": "pnpm@9.1.2",
   "scripts": {
     "dev": "nuxi dev",
     "build": "nuxi build",
@@ -9,17 +9,16 @@
     "preview": "nuxi preview"
   },
   "devDependencies": {
-    "@iconify-json/carbon": "^1.1.32",
+    "@iconify-json/carbon": "^1.1.33",
     "@iconify-json/heroicons": "^1.1.21",
     "@iconify-json/logos": "^1.1.42",
     "@iconify-json/noto": "^1.1.18",
     "@iconify-json/ph": "^1.1.13",
-    "@iconify-json/simple-icons": "^1.1.101",
+    "@iconify-json/simple-icons": "^1.1.102",
     "@nuxt/content": "^2.12.1",
-    "@nuxt/devtools": "1.2.0",
-    "@nuxt/ui": "^2.15.2",
-    "@nuxt/ui-pro": "^1.1.0",
-    "@nuxtjs/fontaine": "^0.4.1",
+    "@nuxt/devtools": "1.3.1",
+    "@nuxt/ui": "^2.16.0",
+    "@nuxt/ui-pro": "^1.2.0",
     "@nuxtjs/seo": "^2.0.0-rc.10",
     "@vueuse/nuxt": "^10.9.0",
     "nuxt": "^3.11.2",
