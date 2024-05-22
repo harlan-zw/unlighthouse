@@ -164,7 +164,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   if (config.routerPrefix)
     config.routerPrefix = withSlashes(config.routerPrefix)
 
-  config.puppeteerOptions = config.puppeteerOptions || {}
+  config.puppeteerOptions = defu(config.puppeteerOptions, {
+    timeout: 0,
+  })
   config.puppeteerClusterOptions = defu(config.puppeteerClusterOptions, {
     timeout: 120_000,
   })
