@@ -258,9 +258,14 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       })
     }
 
-    if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
-      logger.debug(`\`cache\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
-      fs.rmSync(ctx.runtimeSettings.outputPath, { recursive: true })
+    if (!resolvedConfig.cache && existsSync(ctx.runtimeSettings.outputPath)) {
+      logger.debug(`\`cache\` is disabled, deleting cache folder: \`${ctx.runtimeSettings.outputPath}\``)
+      try {
+        fs.rmSync(ctx.runtimeSettings.outputPath, { recursive: true })
+      }
+      catch (e) {
+        logger.debug(`Failed to delete cache folder: \`${ctx.runtimeSettings.outputPath}\``, e)
+      }
     }
     fs.ensureDirSync(ctx.runtimeSettings.outputPath)
     await generateClient()
