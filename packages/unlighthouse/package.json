@@ -1,5 +1,6 @@
 {
   "name": "unlighthouse",
+  "type": "module",
   "version": "0.12.2",
   "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
   "license": "MIT",

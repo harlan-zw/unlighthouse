@@ -1,5 +1,6 @@
 {
   "name": "@unlighthouse/cli",
+  "type": "module",
   "version": "0.12.2",
   "description": "CLI for Unlighthouse",
   "license": "MIT",
