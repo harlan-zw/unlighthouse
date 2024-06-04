@@ -17,15 +17,22 @@ export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
   ],
   'performance': [
     {
+      cols: 1,
+      label: 'FCP',
+      tooltip: 'First Contentful Paint marks the time at which the first text or image is painted. [Learn more about the First Contentful Paint metric](https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/).',
+      key: 'report.audits.first-contentful-paint',
+      sortKey: 'numericValue',
+    },
+    {
       cols: 2,
-      label: 'Largest Contentful Paint',
+      label: 'LCP',
       tooltip: 'Largest Contentful Paint marks the time at which the largest text or image is painted. [Learn more](https://web.dev/lighthouse-largest-contentful-paint/)',
       key: 'report.audits.largest-contentful-paint',
       sortKey: 'numericValue',
     },
     {
       cols: 2,
-      label: 'Cumulative Layout Shift',
+      label: 'CLS',
       tooltip: 'Cumulative Layout Shift measures the movement of visible elements within the viewport.',
       sortKey: 'numericValue',
       key: 'report.audits.cumulative-layout-shift',
@@ -39,17 +46,17 @@ export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
     },
     {
       cols: 1,
-      label: 'Blocking',
+      label: 'TBT',
       tooltip: 'Sum of all time periods between FCP and Time to Interactive, when task length exceeded 50ms, expressed in milliseconds. [Learn more](https://web.dev/lighthouse-total-blocking-time/).',
       sortKey: 'numericValue',
       key: 'report.audits.total-blocking-time',
     },
     {
-      cols: 2,
-      label: 'Network Requests',
-      sortKey: 'length:details.items',
-      tooltip: 'The requests made during the page render. The size unit is the transfer size of the resources, typically gzipped.',
-      key: 'report.audits.network-requests',
+      cols: 1,
+      label: 'SI',
+      sortKey: 'numericValue',
+      tooltip: 'The speed index is a page load performance metric that shows you how quickly the contents of a page are visibly populated. [Learn more](https://web.dev/speed-index/).',
+      key: 'report.audits.speed-index',
     },
   ],
   // accessibility
