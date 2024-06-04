@@ -43,7 +43,7 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
 
     await setupPage(page)
 
-    const pageVisit = await page.goto(route, { waitUntil: resolvedConfig.scanner.skipJavascript ? 'domcontentloaded' : 'networkidle0' })
+    const pageVisit = await page.goto(route, { waitUntil: resolvedConfig.scanner.skipJavascript ? 'domcontentloaded' : 'networkidle2' })
     if (!pageVisit)
       return { success: false, message: `Failed to go to route ${route}.` }
 
