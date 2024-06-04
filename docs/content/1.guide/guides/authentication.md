@@ -148,19 +148,36 @@ export default {
 }
 ```
 
+## Persisting Authentication
+
+If you need to persist your authentication data and it's not working as expected, you can configure Unlighthouse as follows:
+
+```ts [unlighthouse.config.ts]
+export default {
+  // show the browser window
+  puppeteerOptions: {
+    userDataDir: './.puppeteer_data',
+  },
+  lighthouseOptions: {
+    disableStorageReset: true,
+    skipAboutBlank: true,
+  },
+}
+```
+
 ## Troubleshooting
 
 If you're having trouble authenticating,
 you can use the `debug: true` and `headless: false`,
 flags to see what's happening.
 
-```bash
-// unlighthouse.config.ts
+```ts [unlighthouse.config.ts]
 export default {
   debug: true,
   // show the browser window
   puppeteerOptions: {
     headless: false,
+    slowMo: 100,
   },
   // only run a single scan at a time
   puppeteerClusterOptions: {

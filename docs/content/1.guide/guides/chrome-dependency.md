@@ -10,7 +10,7 @@ As a fallback, it will download a Chromium binary for you.
 
 ## Disabling system Chrome
 
-You can disable the system chrome usage by modifying the `chrome.useSystem` flag. 
+You can disable the system chrome usage by modifying the `chrome.useSystem` flag.
 
 This will make Unlighthouse download and use the latest Chrome binary instead.
 
