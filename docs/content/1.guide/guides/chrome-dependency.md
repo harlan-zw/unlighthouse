@@ -8,9 +8,19 @@ Chrome.
 
 As a fallback, it will download a Chromium binary for you.
 
-## Disabling system chrome
+## Disabling system Chrome
 
-You can disable the system chrome usage by providing `chrome.useSystem: false`. This will force the fallback installer to run.
+You can disable the system chrome usage by modifying the `chrome.useSystem` flag. 
+
+This will make Unlighthouse download and use the latest Chrome binary instead.
+
+```ts
+export default {
+  chrome: {
+    useSystem: false
+  }
+}
+```
 
 ## Customizing the fallback installer
 
@@ -23,6 +33,16 @@ There are a number of options you can customize on this.
 - `chrome.useDownloadFallback` - Disables the fallback installer
 - `chrome.downloadFallbackVersion` - Which version of chromium to use (default `1095492`)
 - `chrome.downloadFallbackCacheDir` - Where the binary should be saved (default `$home/.unlighthouse`)
+
+```ts
+export default {
+  chrome: {
+    useDownloadFallback: true,
+    downloadFallbackVersion: '1095492',
+    downloadFallbackCacheDir: '/tmp/unlighthouse'
+  }
+}
+```
 
 ## Using your own chrome path
 
