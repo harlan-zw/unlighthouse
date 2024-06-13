@@ -127,7 +127,6 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
     axiosOptions.auth = resolvedConfig.auth
 
   axiosOptions.headers = axiosOptions.headers || {}
-  axiosOptions.headers['User-Agent'] = axiosOptions.headers['User-Agent'] || 'Unlighthouse'
 
   if (resolvedConfig.cookies) {
     axiosOptions.headers.Cookie = resolvedConfig.cookies
@@ -135,8 +134,14 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
       .join('; ')
   }
 
-  if (resolvedConfig.extraHeaders)
-    axiosOptions.headers = { ...resolvedConfig.extraHeaders, ...axiosOptions.headers }
+  if (resolvedConfig.extraHeaders) {
+    axiosOptions.headers = {
+      // fallback user agent, allow overriding
+      'User-Agent': 'Unlighthouse',
+      ...resolvedConfig.extraHeaders,
+      ...axiosOptions.headers,
+    }
+  }
 
   if (resolvedConfig.defaultQueryParams)
     axiosOptions.params = { ...resolvedConfig.defaultQueryParams, ...axiosOptions.params }
