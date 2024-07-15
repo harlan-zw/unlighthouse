@@ -15,10 +15,10 @@ jobs:
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v2.2.1
+        uses: pnpm/action-setup@v4.0.0
 
       - name: Use Node.js v18
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: v18
           registry-url: https://registry.npmjs.org/
