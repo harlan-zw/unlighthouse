@@ -189,7 +189,7 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
       '@unlighthouse/client':
-        specifier: workspace:../client
+        specifier: workspace:*
         version: link:../client
       '@unrouted/core':
         specifier: ^0.6.0
