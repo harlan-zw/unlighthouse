@@ -44,7 +44,7 @@
     "@iconify-json/vscode-icons": "latest",
     "@types/lodash": "^4.17.6",
     "@types/three": "^0.166.0",
-    "@unlighthouse/core": "workspace:../core",
+    "@unlighthouse/core": "workspace:*",
     "@vitejs/plugin-vue": "2.3.4",
     "@vue/compiler-sfc": "^3.4.31",
     "@vueuse/core": "^10.11.0",

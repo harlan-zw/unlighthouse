@@ -47,10 +47,10 @@ importers:
         specifier: ^0.14.0
         version: 0.14.0
       '@unlighthouse/core':
-        specifier: workspace:../core
+        specifier: workspace:*
         version: link:../core
       '@unlighthouse/server':
-        specifier: workspace:../server
+        specifier: workspace:*
         version: link:../server
       better-opn:
         specifier: ^3.0.2
@@ -138,7 +138,7 @@ importers:
         specifier: ^0.166.0
         version: 0.166.0
       '@unlighthouse/core':
-        specifier: workspace:../core
+        specifier: workspace:*
         version: link:../core
       '@vitejs/plugin-vue':
         specifier: 2.3.4
@@ -316,7 +316,7 @@ importers:
   packages/server:
     dependencies:
       '@unlighthouse/core':
-        specifier: workspace:../core
+        specifier: workspace:*
         version: link:../core
       h3:
         specifier: ^1.12.0
@@ -328,25 +328,25 @@ importers:
   packages/unlighthouse:
     dependencies:
       '@unlighthouse/cli':
-        specifier: workspace:../cli
+        specifier: workspace:*
         version: link:../cli
       '@unlighthouse/client':
-        specifier: workspace:../client
+        specifier: workspace:*
         version: link:../client
       '@unlighthouse/core':
-        specifier: workspace:../core
+        specifier: workspace:*
         version: link:../core
 
   packages/unlighthouse-ci:
     dependencies:
       '@unlighthouse/cli':
-        specifier: workspace:../cli
+        specifier: workspace:*
         version: link:../cli
       '@unlighthouse/client':
-        specifier: workspace:../client
+        specifier: workspace:*
         version: link:../client
       '@unlighthouse/core':
-        specifier: workspace:../core
+        specifier: workspace:*
         version: link:../core
 
 packages:
