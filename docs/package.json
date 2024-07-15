@@ -1,7 +1,6 @@
 {
   "name": "unlighthouse-docs",
   "private": true,
-  "packageManager": "pnpm@9.5.0",
   "scripts": {
     "dev": "nuxi dev",
     "build": "nuxi build",
