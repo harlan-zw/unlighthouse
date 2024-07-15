@@ -40,7 +40,7 @@
     "stub": "unbuild --stub"
   },
   "dependencies": {
-    "@lhci/utils": "^0.13.0",
+    "@lhci/utils": "^0.14.0",
     "@unlighthouse/core": "workspace:../core",
     "@unlighthouse/server": "workspace:../server",
     "better-opn": "^3.0.2",
@@ -48,7 +48,7 @@
     "consola": "^3.2.3",
     "defu": "^6.1.4",
     "fs-extra": "^11.2.0",
-    "globby": "^14.0.1",
+    "globby": "^14.0.2",
     "lodash-es": "^4.17.21",
     "pathe": "^1.1.2",
     "std-env": "^3.7.0"

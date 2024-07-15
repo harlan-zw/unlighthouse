@@ -5,6 +5,7 @@ export default defineNuxtConfig({
     'nuxt-lego',
     '@nuxt/ui-pro',
   ],
+
   modules: [
     '@nuxt/ui',
     '@vueuse/nuxt',
@@ -13,20 +14,24 @@ export default defineNuxtConfig({
     'nuxt-icon',
     '@nuxtjs/seo',
   ],
+
   site: {
     url: 'https://unlighthouse.dev',
     name: 'Unlighthouse',
     description: 'Like Google Lighthouse, but it scans every single page.',
     titleSeparator: '·',
   },
+
   runtimeConfig: {
     public: {
       version,
     },
   },
+
   linkChecker: {
     enabled: false,
   },
+
   content: {
     highlight: {
       theme: {
@@ -34,15 +39,30 @@ export default defineNuxtConfig({
         default: 'github-light',
         dark: 'material-theme-palenight',
       },
+      langs: [
+        'js',
+        'ts',
+        'vue',
+        'css',
+        'scss',
+        'sass',
+        'html',
+        'bash',
+        'md',
+        'mdc',
+        'json',
+      ],
     },
   },
+
   devtools: {
     enabled: true,
   },
+
   ui: {
-    global: true,
     icons: ['heroicons', 'simple-icons', 'ph', 'noto', 'carbon', 'logos'],
   },
+
   sitemap: {
     strictNuxtContentPaths: true,
     xslColumns: [
@@ -52,9 +72,11 @@ export default defineNuxtConfig({
       { label: 'Change Frequency', select: 'sitemap:changefreq', width: '12.5%' },
     ],
   },
+
   css: [
     '~/css/scrollbars.css',
   ],
+
   app: {
     pageTransition: {
       name: 'page',
@@ -88,6 +110,7 @@ export default defineNuxtConfig({
       ],
     },
   },
+
   nitro: {
     prerender: {
       crawlLinks: true,
@@ -95,4 +118,6 @@ export default defineNuxtConfig({
       routes: ['/'],
     },
   },
+
+  compatibilityDate: '2024-07-15',
 })
