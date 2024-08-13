@@ -9,7 +9,7 @@
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
     "ci": "JITI_ESM_RESOLVE=1 node packages/cli/dist/ci.mjs",
     "ci:docs": "node packages/cli/dist/ci.mjs --site unlighthouse.dev --build-static --debug",
-    "build": "pnpm run build:pkg",
+    "build": "npx unlighthouse",
     "build:docs": "cd docs && pnpm i && nuxi build",
     "build:pkg": "pnpm -r --filter=./packages/** run build",
     "stub": "JITI_ESM_RESOLVE=true && pnpm -r --parallel run stub",
