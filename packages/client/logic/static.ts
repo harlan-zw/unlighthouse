@@ -1,24 +1,24 @@
 // pull out client accessible options
+import MdiAccessibility from '~icons/mdi/accessibility'
+import MdiCellphone from '~icons/mdi/cellphone'
+import MdiSpeedometer from '~icons/mdi/speedometer'
+import MdiThumbUp from '~icons/mdi/thumb-up'
+import MdiViewDashboard from '~icons/mdi/view-dashboard'
+import MdiWeb from '~icons/mdi/web'
+import MdiWorld from '~icons/mdi/world'
 import { startCase } from 'lodash-es'
 import { $URL } from 'ufo'
-import CellNetworkRequests from '../components/Cell/CellNetworkRequests.vue'
-import CellImageIssues from '../components/Cell/CellImageIssues.vue'
 import CellColorContrast from '../components/Cell/CellColorContrast.vue'
-import CellMetaDescription from '../components/Cell/CellMetaDescription.vue'
-import CellIndexable from '../components/Cell/CellIndexable.vue'
-import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnails.vue'
 import CellImage from '../components/Cell/CellImage.vue'
-import CellTapTargets from '../components/Cell/CellTapTargets.vue'
-import CellWebVitals from '../components/Cell/CellWebVitals.vue'
+import CellImageIssues from '../components/Cell/CellImageIssues.vue'
+import CellIndexable from '../components/Cell/CellIndexable.vue'
 import CellLargestContentfulPaint from '../components/Cell/CellLargestContentfulPaint.vue'
 import CellLayoutShift from '../components/Cell/CellLayoutShift.vue'
-import MdiViewDashboard from '~icons/mdi/view-dashboard'
-import MdiSpeedometer from '~icons/mdi/speedometer'
-import MdiAccessibility from '~icons/mdi/accessibility'
-import MdiThumbUp from '~icons/mdi/thumb-up'
-import MdiWeb from '~icons/mdi/web'
-import MdiCellphone from '~icons/mdi/cellphone'
-import MdiWorld from '~icons/mdi/world'
+import CellMetaDescription from '../components/Cell/CellMetaDescription.vue'
+import CellNetworkRequests from '../components/Cell/CellNetworkRequests.vue'
+import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnails.vue'
+import CellTapTargets from '../components/Cell/CellTapTargets.vue'
+import CellWebVitals from '../components/Cell/CellWebVitals.vue'
 
 const {
   options: {
@@ -41,7 +41,7 @@ const {
 
 export const isStatic = window.__unlighthouse_static
 
-export { wsUrl, basePath, dynamicSampling, apiUrl, groupRoutesKey, lighthouseOptions, throttle, device }
+export { apiUrl, basePath, device, dynamicSampling, groupRoutesKey, lighthouseOptions, throttle, wsUrl }
 
 export const website = new $URL(site).origin
 

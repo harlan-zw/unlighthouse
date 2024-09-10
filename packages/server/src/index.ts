@@ -1,6 +1,6 @@
+import { useUnlighthouse } from '@unlighthouse/core'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
-import { useUnlighthouse } from '@unlighthouse/core'
 
 /**
  * Create a web server and web app to host the unlighthouse client and API on.

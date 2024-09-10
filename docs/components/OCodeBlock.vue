@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { BundledLanguage } from 'shiki'
-import { computed } from 'vue'
 import { useClipboard } from '@vueuse/core'
+import { computed } from 'vue'
+import type { BundledLanguage } from 'shiki'
 import { loadShiki, renderCodeHighlight } from '../composables/shiki'
 
 const props = withDefaults(

@@ -1,12 +1,12 @@
 import { join } from 'node:path'
 import { createUnrouted, get, post, prefix, redirect, setStatusCode, useParams, useQuery } from '@unrouted/core'
+import { presetApi } from '@unrouted/preset-api'
+import { presetNode, serve } from '@unrouted/preset-node'
 import fs from 'fs-extra'
 import launch from 'launch-editor'
-import { presetNode, serve } from '@unrouted/preset-node'
-import { presetApi } from '@unrouted/preset-api'
-import { useUnlighthouse } from '../unlighthouse'
-import { useLogger } from '../logger'
 import { createScanMeta } from '../data'
+import { useLogger } from '../logger'
+import { useUnlighthouse } from '../unlighthouse'
 
 /**
  * The API layer of unlighthouse.

@@ -1,20 +1,27 @@
-import { isAbsolute, join } from 'node:path'
 import { existsSync } from 'node:fs'
+import { isAbsolute, join } from 'node:path'
+import chalk from 'chalk'
+import { defu } from 'defu'
+import fs from 'fs-extra'
+import { createHooks } from 'hookable'
+import { createCommonJS, resolvePath } from 'mlly'
+import objectHash from 'object-hash'
+import { $fetch } from 'ofetch'
+import { $URL, joinURL } from 'ufo'
+import { loadConfig } from 'unconfig'
+import { createContext } from 'unctx'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
-import fs from 'fs-extra'
-import { $URL, joinURL } from 'ufo'
-import { createContext } from 'unctx'
-import { createHooks } from 'hookable'
-import { loadConfig } from 'unconfig'
-import { defu } from 'defu'
-import objectHash from 'object-hash'
-import { createCommonJS, resolvePath } from 'mlly'
-import { $fetch } from 'ofetch'
-import chalk from 'chalk'
 import { version } from '../package.json'
-import { WS, createApi, createBroadcastingEvents, createMockRouter } from './router'
+import { generateClient } from './build'
+import { AppName, ClientPkg } from './constants'
+import { discoverRouteDefinitions, resolveReportableRoutes } from './discovery'
+import { createLogger } from './logger'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
+import { resolveUserConfig } from './resolveConfig'
+import { createApi, createBroadcastingEvents, createMockRouter, WS } from './router'
+import { normaliseHost } from './util'
+import { successBox } from './util/cliFormatting'
 import type {
   Provider,
   ResolvedUserConfig,
@@ -23,13 +30,6 @@ import type {
   UnlighthouseHooks,
   UserConfig,
 } from './types'
-import { generateClient } from './build'
-import { discoverRouteDefinitions, resolveReportableRoutes } from './discovery'
-import { resolveUserConfig } from './resolveConfig'
-import { AppName, ClientPkg } from './constants'
-import { createLogger } from './logger'
-import { normaliseHost } from './util'
-import { successBox } from './util/cliFormatting'
 
 const engineContext = createContext<UnlighthouseContext>()
 

@@ -1,12 +1,12 @@
-import { defineConfig } from 'vite'
 import Vue from '@vitejs/plugin-vue'
-import Icons from 'unplugin-icons/vite'
-import Components from 'unplugin-vue-components/vite'
-import WindiCSS from 'vite-plugin-windicss'
-import IconsResolver from 'unplugin-icons/resolver'
-import AutoImport from 'unplugin-auto-import/vite'
-import { HeadlessUiResolver } from 'unplugin-vue-components/resolvers'
 import * as fs from 'fs-extra'
+import AutoImport from 'unplugin-auto-import/vite'
+import IconsResolver from 'unplugin-icons/resolver'
+import Icons from 'unplugin-icons/vite'
+import { HeadlessUiResolver } from 'unplugin-vue-components/resolvers'
+import Components from 'unplugin-vue-components/vite'
+import { defineConfig } from 'vite'
+import WindiCSS from 'vite-plugin-windicss'
 
 export default defineConfig({
   mode: 'development',

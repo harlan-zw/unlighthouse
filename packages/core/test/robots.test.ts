@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { mergeRobotsTxtConfig } from '../src/discovery'
 import { asRegExp } from '../src/util'
-import type { ResolvedUserConfig } from '../src'
 import { parseRobotsTxt } from '../src/util/robotsTxtParser'
+import type { ResolvedUserConfig } from '../src'
 
 describe('robots', () => {
   it ('parses example #1', () => {

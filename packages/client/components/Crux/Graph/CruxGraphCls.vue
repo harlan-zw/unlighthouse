@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { createChart } from 'lightweight-charts'
 import dayjs from 'dayjs'
+import { createChart } from 'lightweight-charts'
 import { isDark } from '../../../logic'
 import { useHumanFriendlyNumber } from '../../../logic/formatting'
 

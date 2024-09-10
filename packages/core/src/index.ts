@@ -1,6 +1,6 @@
-import { ReportArtifacts, fetchUrlRaw, normaliseHost } from './util'
+import { fetchUrlRaw, normaliseHost, ReportArtifacts } from './util'
 
+export * from './build'
 export * from './types'
 export * from './unlighthouse'
-export * from './build'
 export { fetchUrlRaw, normaliseHost, ReportArtifacts }

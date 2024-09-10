@@ -1,9 +1,9 @@
 import Sitemapper from 'sitemapper'
 import { $URL, withBase } from 'ufo'
-import { fetchUrlRaw } from '../util'
-import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
 import { isScanOrigin } from '../router'
+import { useUnlighthouse } from '../unlighthouse'
+import { fetchUrlRaw } from '../util'
 
 function validSitemapEntry(url: string) {
   return url && (url.startsWith('http') || url.startsWith('/'))
@@ -36,8 +36,7 @@ export async function extractSitemapRoutes(site: string, sitemaps: true | (strin
         unlighthouse.resolvedConfig,
       )
       if (sitemapTxt.valid) {
-        const sites = (sitemapTxt.response!.data as string).trim().split('\n')
-          .filter(validSitemapEntry)
+        const sites = (sitemapTxt.response!.data as string).trim().split('\n').filter(validSitemapEntry)
         if (sites?.length)
           paths = [...paths, ...sites]
 

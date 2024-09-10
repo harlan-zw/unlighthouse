@@ -1,5 +1,5 @@
-import { normalizeURL, withTrailingSlash, withoutTrailingSlash } from 'ufo'
 import { resolve } from 'pathe'
+import { normalizeURL, withoutTrailingSlash, withTrailingSlash } from 'ufo'
 import type { RouteDefinition } from '../types'
 
 /**

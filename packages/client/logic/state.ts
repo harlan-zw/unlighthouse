@@ -1,12 +1,12 @@
+import { sum } from 'lodash-es'
 import { computed, reactive } from 'vue'
 import type { NormalisedRoute, ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { sum } from 'lodash-es'
 import CellRouteName from '../components/Cell/CellRouteName.vue'
-import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
 import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
-import { categories, columns, isStatic, wsUrl } from './static'
-import { sorting } from './search'
+import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
 import { useFetch } from './fetch'
+import { sorting } from './search'
+import { categories, columns, isStatic, wsUrl } from './static'
 
 export const activeTab = ref(0)
 

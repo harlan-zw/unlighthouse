@@ -1,7 +1,7 @@
 import { useStorage } from '@vueuse/core'
-import { computed } from 'vue'
 import Fuse from 'fuse.js'
 import { get, isEmpty, orderBy } from 'lodash-es'
+import { computed } from 'vue'
 import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from '@unlighthouse/core'
 import { unlighthouseReports } from './state'
 import { columns, groupRoutesKey } from './static'

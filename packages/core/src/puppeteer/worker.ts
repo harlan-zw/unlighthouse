@@ -1,8 +1,15 @@
 import fs from 'node:fs'
 import { join } from 'node:path'
-import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
-import { get, sortBy, uniqBy } from 'lodash-es'
 import chalk from 'chalk'
+import { get, sortBy, uniqBy } from 'lodash-es'
+import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
+import { useLogger } from '../logger'
+import { useUnlighthouse } from '../unlighthouse'
+import { createTaskReportFromRoute, formatBytes, ReportArtifacts } from '../util'
+import { createFilter } from '../util/filter'
+import {
+  launchPuppeteerCluster,
+} from './cluster'
 import type {
   NormalisedRoute,
   PuppeteerTaskArgs,
@@ -12,13 +19,6 @@ import type {
   UnlighthouseWorker,
   UnlighthouseWorkerStats,
 } from '../types'
-import { ReportArtifacts, createTaskReportFromRoute, formatBytes } from '../util'
-import { useUnlighthouse } from '../unlighthouse'
-import { useLogger } from '../logger'
-import { createFilter } from '../util/filter'
-import {
-  launchPuppeteerCluster,
-} from './cluster'
 
 let warnedMaxRoutesExceeded = false
 

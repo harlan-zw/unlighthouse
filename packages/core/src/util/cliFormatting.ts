@@ -1,6 +1,6 @@
-import wrapAnsi from 'wrap-ansi'
-import chalk from 'chalk'
 import boxen from 'boxen'
+import chalk from 'chalk'
+import wrapAnsi from 'wrap-ansi'
 
 /**
  * Copied from https://github.com/nuxt/nuxt.js/blob/dev/packages/cli/src/utils/formatting.js

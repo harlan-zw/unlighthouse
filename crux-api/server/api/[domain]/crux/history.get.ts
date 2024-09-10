@@ -1,6 +1,6 @@
+import { defineCachedEventHandler } from '#imports'
 import { getRouterParam } from 'h3'
 import { fetchCrux } from '../../../app/services/crux'
-import { defineCachedEventHandler } from '#imports'
 
 export default defineCachedEventHandler(async (event) => {
   const domain = getRouterParam(event, 'domain', { decode: true })

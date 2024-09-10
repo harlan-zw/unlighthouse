@@ -8,24 +8,24 @@
     "preview": "nuxi preview"
   },
   "devDependencies": {
-    "@iconify-json/carbon": "^1.1.36",
-    "@iconify-json/heroicons": "^1.1.22",
-    "@iconify-json/logos": "^1.1.43",
-    "@iconify-json/noto": "^1.1.18",
-    "@iconify-json/ph": "^1.1.13",
-    "@iconify-json/simple-icons": "^1.1.109",
-    "@nuxt/content": "^2.13.1",
+    "@iconify-json/carbon": "^1.2.1",
+    "@iconify-json/heroicons": "^1.2.0",
+    "@iconify-json/logos": "^1.2.0",
+    "@iconify-json/noto": "^1.2.0",
+    "@iconify-json/ph": "^1.2.0",
+    "@iconify-json/simple-icons": "^1.2.2",
+    "@nuxt/content": "^2.13.2",
     "@nuxt/devtools": "1.3.9",
-    "@nuxt/ui": "^2.17.0",
-    "@nuxt/ui-pro": "^1.3.1",
+    "@nuxt/ui": "^2.18.4",
+    "@nuxt/ui-pro": "^1.4.1",
     "@nuxtjs/seo": "2.0.0-rc.12",
-    "@vueuse/nuxt": "^10.11.0",
-    "nuxt": "^3.12.3",
+    "@vueuse/nuxt": "^11.0.3",
+    "nuxt": "^3.13.1",
     "nuxt-icon": "^0.6.10",
     "nuxt-lego": "^0.0.14",
     "nuxt-lodash": "^2.5.3",
     "three": "0.138.3",
     "troisjs": "^0.3.4",
-    "typescript": "^5.5.3"
+    "typescript": "^5.6.2"
   }
 }

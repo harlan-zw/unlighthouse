@@ -1,4 +1,4 @@
-export * from './routes'
-export * from './routeDefinitions'
 export * from './robotsTxt'
+export * from './routeDefinitions'
+export * from './routes'
 export * from './sitemap'

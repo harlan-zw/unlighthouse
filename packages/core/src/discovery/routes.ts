@@ -1,11 +1,11 @@
 import { groupBy, map, sampleSize } from 'lodash-es'
-import type { NormalisedRoute } from '../types'
-import { useUnlighthouse } from '../unlighthouse'
-import { isScanOrigin, normaliseRoute } from '../router'
 import { useLogger } from '../logger'
+import { isScanOrigin, normaliseRoute } from '../router'
+import { useUnlighthouse } from '../unlighthouse'
 import { parseRobotsTxt } from '../util/robotsTxtParser'
-import { extractSitemapRoutes } from './sitemap'
 import { fetchRobotsTxt, mergeRobotsTxtConfig } from './robotsTxt'
+import { extractSitemapRoutes } from './sitemap'
+import type { NormalisedRoute } from '../types'
 
 let warnedAboutSampling = false
 

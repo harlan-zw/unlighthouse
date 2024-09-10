@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { RendererPublicInterface } from 'troisjs'
-import { AmbientLight, Camera, FbxModel, PointLight, Renderer, Scene } from 'troisjs'
-import type { Group } from 'three'
 import { useElementHover } from '@vueuse/core'
+import { AmbientLight, Camera, FbxModel, PointLight, Renderer, Scene } from 'troisjs'
 import { ref } from 'vue'
+import type { Group } from 'three'
+import type { RendererPublicInterface } from 'troisjs'
 import { basePath, scanMeta } from '../logic'
 
 const rendererC = ref()

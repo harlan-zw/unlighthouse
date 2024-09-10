@@ -1,8 +1,8 @@
 import { $URL } from 'ufo'
-import type { ResolvedUserConfig } from '../types'
-import { useUnlighthouse } from '../unlighthouse'
 import { useLogger } from '../logger'
+import { useUnlighthouse } from '../unlighthouse'
 import { fetchUrlRaw } from '../util'
+import type { ResolvedUserConfig } from '../types'
 import type { RobotsGroupResolved } from '../util/robotsTxtParser'
 
 export interface RobotsTxtParsed {

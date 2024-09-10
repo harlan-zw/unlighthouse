@@ -1,15 +1,15 @@
-import { createHash } from 'node:crypto'
-import { join } from 'node:path'
-import https from 'node:https'
 import { Buffer } from 'node:buffer'
+import { createHash } from 'node:crypto'
+import https from 'node:https'
+import { join } from 'node:path'
+import axios from 'axios'
 import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
-import { joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import { joinURL, withLeadingSlash, withoutLeadingSlash, withoutTrailingSlash, withTrailingSlash } from 'ufo'
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
-import axios from 'axios'
-import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
 import { useUnlighthouse } from './unlighthouse'
+import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
 
 export const ReportArtifacts = {
   html: 'payload.html',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { withoutTrailingSlash } from 'ufo'
 import { findPageHeadline, mapContentNavigation } from '#imports'
+import { withoutTrailingSlash } from 'ufo'
 
 const route = useRoute()
 

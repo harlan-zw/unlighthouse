@@ -1,9 +1,9 @@
+import type { Hookable, NestedHooks } from 'hookable'
+import type { Flags, Result } from 'lighthouse'
 import type http from 'node:http'
 import type https from 'node:https'
-import type { QueryObject } from 'ufo'
-import type { Flags, Result } from 'lighthouse'
 import type { Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
-import type { Hookable, NestedHooks } from 'hookable'
+import type { QueryObject } from 'ufo'
 import type { Cluster, ClusterOptionsArgument, TaskFunction } from '../cluster'
 import type { WS } from './router'
 

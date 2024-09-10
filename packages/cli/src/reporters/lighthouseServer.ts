@@ -10,8 +10,8 @@ import {
   getExternalBuildUrl,
 } from '@lhci/utils/src/build-context.js'
 import fs from 'fs-extra'
-import type { UnlighthouseRouteReport } from '../types'
 import { handleError } from '../errors'
+import type { UnlighthouseRouteReport } from '../types'
 import type { ReporterConfig } from './types'
 
 export async function reportLighthouseServer(

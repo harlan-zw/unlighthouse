@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { get } from 'lodash-es'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport

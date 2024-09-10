@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.13.2",
   "private": true,
-  "packageManager": "pnpm@9.5.0",
+  "packageManager": "pnpm@9.10.0",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -22,13 +22,13 @@
     "docs:serve": "npm -C docs run serve"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "2.19.0",
-    "bumpp": "^9.4.1",
-    "eslint": "^9.7.0",
-    "typescript": "5.3.3",
+    "@antfu/eslint-config": "3.5.0",
+    "bumpp": "^9.5.2",
+    "eslint": "^9.10.0",
+    "typescript": "5.6.2",
     "unbuild": "^2.0.0",
-    "vite": "^5.3.3",
-    "vitest": "^2.0.2"
+    "vite": "^5.4.3",
+    "vitest": "^2.0.5"
   },
   "pnpm": {
     "packageExtensions": {

@@ -1,12 +1,12 @@
 import { join } from 'node:path'
 import fse from 'fs-extra'
 import type { ResolvedUserConfig, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { reportJsonSimple } from './jsonSimple'
-import { reportJsonExpanded } from './jsonExpanded'
-import type { ReportJsonExpanded, ReportJsonSimple, ReporterConfig } from './types'
-import { reportCSVSimple } from './csvSimple'
 import { reportCSVExpanded } from './csvExpanded'
+import { reportCSVSimple } from './csvSimple'
+import { reportJsonExpanded } from './jsonExpanded'
+import { reportJsonSimple } from './jsonSimple'
 import { reportLighthouseServer } from './lighthouseServer'
+import type { ReporterConfig, ReportJsonExpanded, ReportJsonSimple } from './types'
 
 export function generateReportPayload(reporter: 'lighthouseServer', reports: UnlighthouseRouteReport[], config?: ReporterConfig): Promise<void>
 export function generateReportPayload(reporter: 'jsonExpanded', reports: UnlighthouseRouteReport[]): ReportJsonExpanded
