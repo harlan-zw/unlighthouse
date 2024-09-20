@@ -1,6 +1,6 @@
+import type { UnlighthouseColumn, UnlighthouseTabs, UserConfig } from './types'
 import os from 'node:os'
 import { Cluster } from 'puppeteer-cluster'
-import type { UnlighthouseColumn, UnlighthouseTabs, UserConfig } from './types'
 
 export const AppName = 'Unlighthouse'
 export const ClientPkg = '@unlighthouse/client'

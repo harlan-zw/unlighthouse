@@ -1,5 +1,5 @@
-import { useUnlighthouse } from '../unlighthouse'
 import type { ScanMeta } from '../types'
+import { useUnlighthouse } from '../unlighthouse'
 
 export function createScanMeta(): ScanMeta {
   const { worker } = useUnlighthouse()

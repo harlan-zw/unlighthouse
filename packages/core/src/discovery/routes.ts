@@ -1,3 +1,4 @@
+import type { NormalisedRoute } from '../types'
 import { groupBy, map, sampleSize } from 'lodash-es'
 import { useLogger } from '../logger'
 import { isScanOrigin, normaliseRoute } from '../router'
@@ -5,7 +6,6 @@ import { useUnlighthouse } from '../unlighthouse'
 import { parseRobotsTxt } from '../util/robotsTxtParser'
 import { fetchRobotsTxt, mergeRobotsTxtConfig } from './robotsTxt'
 import { extractSitemapRoutes } from './sitemap'
-import type { NormalisedRoute } from '../types'
 
 let warnedAboutSampling = false
 

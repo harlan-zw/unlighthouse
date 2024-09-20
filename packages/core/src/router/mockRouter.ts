@@ -1,6 +1,6 @@
+import type { MockRouter, RouteDefinition } from '../types'
 import { parse } from 'regexparam'
 import { useLogger } from '../logger'
-import type { MockRouter, RouteDefinition } from '../types'
 
 /**
  * The default mock router using regexparam as the matcher

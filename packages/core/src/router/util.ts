@@ -1,8 +1,8 @@
+import type { NormalisedRoute } from '../types'
 import { basename } from 'node:path'
 import { hasProtocol, isRelative, withBase, withLeadingSlash } from 'ufo'
 import { useUnlighthouse } from '../unlighthouse'
 import { hashPathName, trimSlashes } from '../util'
-import type { NormalisedRoute } from '../types'
 
 export function isScanOrigin(url: string): boolean {
   if (isRelative(url) || (url.startsWith('/') && !url.startsWith('//')))

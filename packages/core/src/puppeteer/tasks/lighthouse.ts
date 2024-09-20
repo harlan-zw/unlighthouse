@@ -1,15 +1,15 @@
+import type { Result } from 'lighthouse'
+import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '../../types'
 import { join } from 'node:path'
 import fs from 'fs-extra'
 import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
 import { map, pick, sumBy } from 'lodash-es'
 import { relative } from 'pathe'
 import { withQuery } from 'ufo'
-import type { Result } from 'lighthouse'
 import { useLogger } from '../../logger'
 import { useUnlighthouse } from '../../unlighthouse'
 import { base64ToBuffer, ReportArtifacts } from '../../util'
 import { setupPage } from '../util'
-import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '../../types'
 
 export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: Result): LighthouseReport {
   const { resolvedConfig, runtimeSettings } = useUnlighthouse()

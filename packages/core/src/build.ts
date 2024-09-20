@@ -1,9 +1,3 @@
-import { dirname, join, resolve } from 'node:path'
-import fs from 'fs-extra'
-import { pick } from 'lodash-es'
-import { withLeadingSlash, withTrailingSlash } from 'ufo'
-import { createScanMeta } from './data'
-import { useLogger, useUnlighthouse } from './unlighthouse'
 import type {
   ClientOptionsPayload,
   GenerateClientOptions,
@@ -11,6 +5,12 @@ import type {
   UnlighthouseContext,
   UnlighthouseRouteReport,
 } from './types'
+import { dirname, join, resolve } from 'node:path'
+import fs from 'fs-extra'
+import { pick } from 'lodash-es'
+import { withLeadingSlash, withTrailingSlash } from 'ufo'
+import { createScanMeta } from './data'
+import { useLogger, useUnlighthouse } from './unlighthouse'
 
 /**
  * Copies the file contents of the @unlighthouse/client package and does transformation based on the provided configuration.

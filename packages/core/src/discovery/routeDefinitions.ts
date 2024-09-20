@@ -1,8 +1,8 @@
+import type { RouteDefinition } from '../types'
 import { join } from 'node:path'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
 import { createRoutes } from '../util/createRoutes'
-import type { RouteDefinition } from '../types'
 
 /**
  * Using the configuration discovery details will try and resolve the route definitions using the file system.

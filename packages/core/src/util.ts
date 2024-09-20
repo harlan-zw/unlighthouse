@@ -1,3 +1,5 @@
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
 import dns from 'node:dns'
@@ -9,9 +11,7 @@ import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { joinURL, withLeadingSlash, withoutLeadingSlash, withoutTrailingSlash, withTrailingSlash } from 'ufo'
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { useLogger, useUnlighthouse } from './unlighthouse'
-import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
 
 export const ReportArtifacts = {
   html: 'payload.html',

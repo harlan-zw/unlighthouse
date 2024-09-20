@@ -1,7 +1,7 @@
-import { Buffer } from 'node:buffer'
-import { WebSocketServer } from 'ws'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
+import { Buffer } from 'node:buffer'
+import { WebSocketServer } from 'ws'
 import { useUnlighthouse } from '../unlighthouse'
 
 /**

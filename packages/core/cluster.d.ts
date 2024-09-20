@@ -1,5 +1,5 @@
-import { EventEmitter } from 'node:events'
 import type { LaunchOptions, Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
+import { EventEmitter } from 'node:events'
 
 export interface ResourceData {
   page: Page

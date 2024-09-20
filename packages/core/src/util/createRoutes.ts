@@ -1,6 +1,6 @@
+import type { RouteDefinition } from '../types'
 import { resolve } from 'pathe'
 import { normalizeURL, withoutTrailingSlash, withTrailingSlash } from 'ufo'
-import type { RouteDefinition } from '../types'
 
 /**
  * From https://github.com/nuxt/nuxt.js/blob/dev/packages/utils/src/route.js

@@ -1,6 +1,6 @@
+import type { ConsolaInstance } from 'consola'
 import { createConsola } from 'consola'
 import { createContext } from 'unctx'
-import type { ConsolaInstance } from 'consola'
 import { AppName } from './constants'
 
 const loggerCtx = createContext<ConsolaInstance>()

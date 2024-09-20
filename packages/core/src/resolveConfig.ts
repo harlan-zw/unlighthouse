@@ -1,3 +1,5 @@
+import type { InstallOptions } from '@puppeteer/browsers'
+import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { Buffer } from 'node:buffer'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -10,11 +12,9 @@ import { pick } from 'lodash-es'
 import { resolve as resolveModule } from 'mlly'
 import puppeteer from 'puppeteer-core'
 import { PUPPETEER_REVISIONS } from 'puppeteer-core/lib/cjs/puppeteer/revisions.js'
-import type { InstallOptions } from '@puppeteer/browsers'
 import { defaultConfig } from './constants'
 import { useLogger } from './logger'
 import { normaliseHost, withSlashes } from './util'
-import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 
 /**
  * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.

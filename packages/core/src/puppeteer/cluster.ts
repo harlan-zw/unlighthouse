@@ -1,6 +1,6 @@
+import type { UnlighthousePuppeteerCluster } from '../types'
 import { Cluster } from 'puppeteer-cluster'
 import { useUnlighthouse } from '../unlighthouse'
-import type { UnlighthousePuppeteerCluster } from '../types'
 
 /**
  * Create an instance of puppeteer-cluster
