@@ -190,7 +190,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
             `Time Taken: ${seconds}s`,
           ]
           if (taskName === 'runLighthouseTask') {
-            if (response.report.score)
+            if (response.report?.score)
               reportData.push(`Score: ${response.report.score}`)
             if (resolvedConfig.scanner.samples)
               reportData.push(`Samples: ${resolvedConfig.scanner.samples}`)
