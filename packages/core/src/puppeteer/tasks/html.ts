@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import cheerio from 'cheerio'
+import { load as cheerio } from 'cheerio'
 import fs from 'fs-extra'
 import { withoutTrailingSlash } from 'ufo'
 import type { CheerioAPI } from 'cheerio'
@@ -135,7 +135,7 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
     html = response.payload
   }
 
-  const $ = cheerio.load(html)
+  const $ = cheerio(html)
   routeReport.seo = processSeoMeta($)
   if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
     routeReport.tasks.inspectHtmlTask = 'ignore'
