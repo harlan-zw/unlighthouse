@@ -1,3 +1,4 @@
+import { setMaxListeners } from 'node:events'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import { relative } from 'pathe'
@@ -13,8 +14,9 @@ import type { CiOptions } from './types'
 async function run() {
   const startTime = new Date()
 
-  const cli = createCli()
+  setMaxListeners(0)
 
+  const cli = createCli()
   cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
   cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
   cli.option('--reporter <reporter>', 'The report to generate from results. Options: csv, csvExpanded, json, jsonExpanded or false. Default: json.')

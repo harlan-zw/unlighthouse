@@ -1,9 +1,12 @@
+import { setMaxListeners } from 'node:events'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import lighthouse from 'lighthouse/core/index.cjs'
 import minimist from 'minimist'
 import type { Flags } from 'lighthouse'
 import type { UnlighthouseRouteReport } from '../types'
+
+setMaxListeners(0);
 
 /*
  * This file is intended to be run in its own process and should not rely on any global state.

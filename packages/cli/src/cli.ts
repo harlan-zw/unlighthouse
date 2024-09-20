@@ -1,3 +1,4 @@
+import { setMaxListeners } from 'node:events'
 import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
 import open from 'better-opn'
@@ -13,6 +14,8 @@ async function run() {
   const start = new Date()
   if (options.help || options.version)
     return
+
+  setMaxListeners(0)
 
   const unlighthouse = await createUnlighthouse(
     {
