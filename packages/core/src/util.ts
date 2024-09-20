@@ -1,5 +1,7 @@
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
+import dns from 'node:dns'
+import http from 'node:http'
 import https from 'node:https'
 import { join } from 'node:path'
 import axios from 'axios'
@@ -7,8 +9,8 @@ import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { joinURL, withLeadingSlash, withoutLeadingSlash, withoutTrailingSlash, withTrailingSlash } from 'ufo'
-import type { AxiosRequestConfig, AxiosResponse } from 'axios'
-import { useUnlighthouse } from './unlighthouse'
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import { useLogger, useUnlighthouse } from './unlighthouse'
 import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
 
 export const ReportArtifacts = {
@@ -121,12 +123,30 @@ export function formatBytes(bytes: number, decimals = 2) {
   return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }
 
-export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig): Promise<{ error?: any, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: AxiosResponse }> {
+const _sharedContext = {}
+
+function sharedContext() {
+  return useUnlighthouse() || _sharedContext
+}
+
+export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig) {
+  // try and resolve dns lookup issues
+  dns.setServers([
+    '8.8.8.8', // Google
+    '1.1.1.1', // Cloudflare
+  ])
+  const resolver = new dns.Resolver()
+  resolver.setServers([
+    '8.8.8.8', // Google
+    '1.1.1.1', // Cloudflare
+  ])
   const axiosOptions: AxiosRequestConfig = {}
   if (resolvedConfig.auth)
     axiosOptions.auth = resolvedConfig.auth
 
   axiosOptions.headers = axiosOptions.headers || {}
+  // this should always be set
+  axiosOptions.headers['User-Agent'] = resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
 
   if (resolvedConfig.cookies) {
     axiosOptions.headers.Cookie = resolvedConfig.cookies
@@ -148,44 +168,85 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
 
   axiosOptions.httpsAgent = new https.Agent({
     rejectUnauthorized: false,
+    keepAlive: true,
+    timeout: 30_000,
   })
+  axiosOptions.httpAgent = new http.Agent({
+    keepAlive: true,
+    timeout: 30_000,
+  })
+  axiosOptions.proxy = false
+  axiosOptions.timeout = 30_000
   axiosOptions.withCredentials = true
-  try {
-    const response = await axios.get(url, axiosOptions)
-    let responseUrl = response.request.res.responseUrl
-    if (responseUrl && axiosOptions.auth) {
-      // remove auth credentials from url (e.g. https://user:passwd@domain.de)
-      responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
-    }
-    const redirected = responseUrl && responseUrl !== url
-    const redirectUrl = responseUrl
-    if (response.status < 200 || (response.status >= 300 && !redirected)) {
+  const unlighthouse = sharedContext()
+  unlighthouse._axios = axios.create(axiosOptions)
+  return unlighthouse._axios
+}
+
+export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig): Promise<{ error?: any, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: AxiosResponse }> {
+  const logger = useLogger()
+  const unlighthouse = sharedContext()
+  const instance: AxiosInstance = unlighthouse._axios || await createAxiosInstance(resolvedConfig)
+  const maxRetries = 3
+  let attempt = 0
+
+  while (attempt < maxRetries) {
+    try {
+      const response = await instance.get(url, { timeout: 30_000 })
+      let responseUrl = response.request.res.responseUrl
+      if (responseUrl && resolvedConfig.auth) {
+        // remove auth credentials from url (e.g. https://user:passwd@domain.de)
+        responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
+      }
+      const redirected = responseUrl && responseUrl !== url
+      const redirectUrl = responseUrl
+      if (response.status < 200 || (response.status >= 300 && !redirected)) {
+        return {
+          valid: false,
+          redirected,
+          response,
+          redirectUrl,
+        }
+      }
       return {
-        valid: false,
+        valid: true,
         redirected,
         response,
         redirectUrl,
       }
     }
-    return {
-      valid: true,
-      redirected,
-      response,
-      redirectUrl,
+    catch (e: any) {
+      if (e.errors) {
+        logger.error('Axios error:', e.errors)
+      }
+      logger.error('Axios error message:', e.message)
+      logger.error('Axios error code:', e.code)
+      if (e.response) {
+        logger.error('Axios error response data:', e.response.data)
+        logger.error('Axios error response status:', e.response.status)
+        logger.error('Axios error response headers:', e.response.headers)
+      }
+      if (e.code === 'ETIMEDOUT' || e.code === 'ENETUNREACH') {
+        attempt++
+        logger.info(`Retrying request... (${attempt}/${maxRetries})`)
+        continue
+      }
+      return {
+        error: e,
+        valid: false,
+      }
     }
   }
-  catch (e) {
-    return {
-      error: e,
-      valid: false,
-    }
+  return {
+    error: new Error('Max retries reached'),
+    valid: false,
   }
 }
 
 export function asRegExp(rule: string | RegExp): RegExp {
   if (rule instanceof RegExp)
     return rule
-  // need to escape the string for use in a RegExp but allow basic path characters like /
+    // need to escape the string for use in a RegExp but allow basic path characters like /
   rule = rule.replace(/[-{}()+?.,\\^|#\s]/g, '\\$&')
   return new RegExp(rule)
 }

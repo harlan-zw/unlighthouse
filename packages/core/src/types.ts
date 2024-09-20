@@ -1,3 +1,4 @@
+import type { AxiosInstance } from 'axios'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { Flags, Result } from 'lighthouse'
 import type http from 'node:http'
@@ -871,4 +872,8 @@ export interface UnlighthouseContext {
    * Start the client and the queue worker. A server context must be provided before this function is called.
    */
   start: () => Promise<UnlighthouseContext>
+  /**
+   * @internal
+   */
+  _axios?: AxiosInstance
 }
