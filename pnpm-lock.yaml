@@ -46,6 +46,9 @@ importers:
       '@lhci/utils':
         specifier: ^0.14.0
         version: 0.14.0
+      '@unlighthouse/client':
+        specifier: workspace:*
+        version: link:../client
       '@unlighthouse/core':
         specifier: workspace:*
         version: link:../core
