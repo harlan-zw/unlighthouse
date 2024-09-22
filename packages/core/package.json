@@ -46,7 +46,6 @@
   },
   "dependencies": {
     "@puppeteer/browsers": "^2.4.0",
-    "@unlighthouse/client": "workspace:*",
     "@unrouted/core": "^0.6.0",
     "@unrouted/fetch": "^0.6.0",
     "@unrouted/plugins": "^0.6.0",

@@ -40,6 +40,7 @@
     "stub": "unbuild --stub"
   },
   "dependencies": {
+    "@unlighthouse/client": "workspace:*",
     "@lhci/utils": "^0.14.0",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
