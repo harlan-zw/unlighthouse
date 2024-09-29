@@ -40,7 +40,8 @@ export const DefaultColumns: Record<UnlighthouseTabs, UnlighthouseColumn[]> = {
     {
       cols: 1,
       label: 'FID',
-      tooltip: 'The maximum potential First Input Delay that your users could experience is the duration of the longest task. [Learn more](https://web.dev/lighthouse-max-potential-fid/).',
+      warning: true,
+      tooltip: 'Warning: This is deprecated in favour if INP which is not yet supported by Unlighthouse. The maximum potential First Input Delay that your users could experience is the duration of the longest task. [Learn more](https://web.dev/lighthouse-max-potential-fid/).',
       sortKey: 'numericValue',
       key: 'report.audits.max-potential-fid',
     },
