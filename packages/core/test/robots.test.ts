@@ -106,32 +106,30 @@ Allow: /wiki/
       {
         "scanner": {
           "_robotsTxtRules": [
-            [
-              {
-                "allow": false,
-                "pattern": "/account/",
-              },
-              {
-                "allow": false,
-                "pattern": "/dashboard/",
-              },
-              {
-                "allow": false,
-                "pattern": "/admin/",
-              },
-              {
-                "allow": false,
-                "pattern": "/mod/",
-              },
-              {
-                "allow": true,
-                "pattern": "/$",
-              },
-              {
-                "allow": true,
-                "pattern": "/wiki/",
-              },
-            ],
+            {
+              "allow": false,
+              "pattern": "/account/",
+            },
+            {
+              "allow": false,
+              "pattern": "/dashboard/",
+            },
+            {
+              "allow": false,
+              "pattern": "/admin/",
+            },
+            {
+              "allow": false,
+              "pattern": "/mod/",
+            },
+            {
+              "allow": true,
+              "pattern": "/$",
+            },
+            {
+              "allow": true,
+              "pattern": "/wiki/",
+            },
           ],
           "exclude": [],
           "sitemap": [],
@@ -330,100 +328,98 @@ Sitemap: https://unitedpets.com/sitemap/index.xml
       {
         "scanner": {
           "_robotsTxtRules": [
-            [
-              {
-                "allow": false,
-                "pattern": "/CVS",
-              },
-              {
-                "allow": false,
-                "pattern": "/*.svn$",
-              },
-              {
-                "allow": false,
-                "pattern": "/*.idea$",
-              },
-              {
-                "allow": false,
-                "pattern": "/*.sql$",
-              },
-              {
-                "allow": false,
-                "pattern": "/*.tgz$",
-              },
-              {
-                "allow": false,
-                "pattern": "*brand=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*color=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*color_filter=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*material_filter=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*fitting_filter=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*asc=price*",
-              },
-              {
-                "allow": false,
-                "pattern": "*desc=price*",
-              },
-              {
-                "allow": false,
-                "pattern": "*asc=name*",
-              },
-              {
-                "allow": false,
-                "pattern": "*desc=name*",
-              },
-              {
-                "allow": false,
-                "pattern": "*food_type=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*tags=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*size=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*search=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*popup=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*successRedirect=*",
-              },
-              {
-                "allow": false,
-                "pattern": "*/user/*",
-              },
-              {
-                "allow": false,
-                "pattern": "*/checkout/*",
-              },
-              {
-                "allow": false,
-                "pattern": "*/wishlist/*",
-              },
-            ],
+            {
+              "allow": false,
+              "pattern": "/CVS",
+            },
+            {
+              "allow": false,
+              "pattern": "/*.svn$",
+            },
+            {
+              "allow": false,
+              "pattern": "/*.idea$",
+            },
+            {
+              "allow": false,
+              "pattern": "/*.sql$",
+            },
+            {
+              "allow": false,
+              "pattern": "/*.tgz$",
+            },
+            {
+              "allow": false,
+              "pattern": "*brand=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*color=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*color_filter=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*material_filter=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*fitting_filter=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*asc=price*",
+            },
+            {
+              "allow": false,
+              "pattern": "*desc=price*",
+            },
+            {
+              "allow": false,
+              "pattern": "*asc=name*",
+            },
+            {
+              "allow": false,
+              "pattern": "*desc=name*",
+            },
+            {
+              "allow": false,
+              "pattern": "*food_type=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*tags=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*size=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*search=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*popup=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*successRedirect=*",
+            },
+            {
+              "allow": false,
+              "pattern": "*/user/*",
+            },
+            {
+              "allow": false,
+              "pattern": "*/checkout/*",
+            },
+            {
+              "allow": false,
+              "pattern": "*/wishlist/*",
+            },
           ],
           "exclude": [],
           "sitemap": [
