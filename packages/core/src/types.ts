@@ -465,6 +465,11 @@ export interface ResolvedUserConfig {
      * @default 'mobile'
      */
     device: 'mobile' | 'desktop' | false
+    /**
+     * Resolved robots.txt groups.
+     * @internal
+     */
+    _robotsTxtRules?: any
   }
   /**
    * Changes the default behaviour of lighthouse.

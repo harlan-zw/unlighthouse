@@ -12,6 +12,7 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 import chalk from 'chalk'
 import { get, sortBy, uniqBy } from 'lodash-es'
+import { matchPathToRule } from '../discovery'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
 import { createTaskReportFromRoute, formatBytes, ReportArtifacts } from '../util'
@@ -93,6 +94,15 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       return
     if (ignoredRoutes.has(id))
       return
+
+    // do robots.txt test
+    if (resolvedConfig.scanner.robotsTxt) {
+      const rule = matchPathToRule(path, resolvedConfig.scanner._robotsTxtRules)
+      if (rule && !rule.allow) {
+        logger.info(`Skipping route based on robots.txt rule \`${rule.pattern}\``, { path })
+        return
+      }
+    }
 
     if (resolvedConfig.scanner.include || resolvedConfig.scanner.exclude) {
       const filter = createFilter(resolvedConfig.scanner)

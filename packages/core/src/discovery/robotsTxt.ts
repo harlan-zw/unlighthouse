@@ -10,20 +10,6 @@ export interface RobotsTxtParsed {
   groups: RobotsGroupResolved[]
 }
 
-function isValidRegex(s: string | RegExp) {
-  if (typeof s === 'string') {
-    // make sure it's valid regex
-    try {
-      // eslint-disable-next-line no-new
-      new RegExp(s)
-      return true
-    }
-    catch (e) {
-      return false
-    }
-  }
-  return true
-}
 /**
  * Fetches the robots.txt file.
  * @param site
@@ -46,40 +32,77 @@ export async function fetchRobotsTxt(site: string): Promise<false | string> {
   return robotsTxt.response.data as string
 }
 
-export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { groups, sitemaps }: RobotsTxtParsed): void {
-  const normalisedGroups = groups
-    .filter(group => group.userAgent.includes('*'))
-    .map((group) => {
-      for (const k of ['disallow', 'allow']) {
-        // @ts-expect-error untyped
-        group[k] = (group[k] as string[])
-          // skip any disallows that are root level
-          .filter(path => path !== '/' && path)
-          .map((path) => {
-            // convert robots.txt paths to regex paths
-            if (path.includes('*'))
-              path = path.replace(/\*/g, '.*')
-            else
-              path = `${path}.*`
-            return path
-          })
-      }
-      return group
-    })
+interface RobotsTxtRule { pattern: string, allow: boolean }
 
-  // for diallow we add it to the exclude list
-  config.scanner.exclude = [...new Set([
-    ...(config.scanner.exclude || []),
-    ...normalisedGroups.flatMap(group => group.disallow),
-  ])].filter(isValidRegex)
-  config.scanner.include = config.scanner.include || []
-  const robotsAllows = normalisedGroups.flatMap(group => group.allow).filter(a => a.length)
-  if (!config.scanner.include.length && robotsAllows.length) {
-    config.scanner.include = [...new Set([
-      '/*',
-      ...normalisedGroups.flatMap(group => group.allow),
-    ])].filter(isValidRegex)
+function matches(pattern: string, path: string): boolean {
+  const pathLength = path.length
+  const patternLength = pattern.length
+  const matchingLengths: number[] = Array.from({ length: pathLength + 1 }).fill(0)
+  let numMatchingLengths = 1
+
+  let p = 0
+  while (p < patternLength) {
+    if (pattern[p] === '$' && p + 1 === patternLength) {
+      return matchingLengths[numMatchingLengths - 1] === pathLength
+    }
+
+    if (pattern[p] === '*') {
+      numMatchingLengths = pathLength - matchingLengths[0] + 1
+      for (let i = 1; i < numMatchingLengths; i++) {
+        matchingLengths[i] = matchingLengths[i - 1] + 1
+      }
+    }
+    else {
+      let numMatches = 0
+      for (let i = 0; i < numMatchingLengths; i++) {
+        const matchLength = matchingLengths[i]
+        if (matchLength < pathLength && path[matchLength] === pattern[p]) {
+          matchingLengths[numMatches++] = matchLength + 1
+        }
+      }
+      if (numMatches === 0) {
+        return false
+      }
+      numMatchingLengths = numMatches
+    }
+    p++
   }
+
+  return true
+}
+export function matchPathToRule(path: string, _rules: RobotsTxtRule[]): RobotsTxtRule | null {
+  let matchedRule: RobotsTxtRule | null = null
+
+  const rules = _rules.filter(Boolean) // filter out empty line such as Disallow:
+  const rulesLength = rules.length
+  let i = 0
+  while (i < rulesLength) {
+    const rule = rules[i]
+    if (!matches(rule.pattern, path)) {
+      i++
+      continue
+    }
+
+    if (!matchedRule || rule.pattern.length > matchedRule.pattern.length) {
+      matchedRule = rule
+    }
+    else if (
+      rule.pattern.length === matchedRule.pattern.length
+      && rule.allow
+      && !matchedRule.allow
+    ) {
+      matchedRule = rule
+    }
+    i++
+  }
+
+  return matchedRule
+}
+
+export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { groups, sitemaps }: RobotsTxtParsed): void {
+  config.scanner._robotsTxtRules = groups.filter((group) => {
+    return group.userAgent.includes('*') || group.userAgent.includes(String(config.lighthouseOptions?.emulatedUserAgent))
+  }).map(group => group._rules)
   if (config.scanner.sitemap !== false && sitemaps.length) {
     // allow overriding the robots.txt sitemaps with your own
     if (!Array.isArray(config.scanner.sitemap) || !config.scanner.sitemap.length)
