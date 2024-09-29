@@ -67,6 +67,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   // support loading configuration files
   const configDefinition = await loadConfig<UserConfig>({
     cwd: userConfig.root,
+    importx: {
+      ignoreImportxWarning: true,
+    },
     sources: [
       {
         files: [
