@@ -1,3 +1,5 @@
+import type { UnlighthouseRouteReport } from '../types'
+import type { ReporterConfig } from './types'
 import ApiClient from '@lhci/utils/src/api-client.js'
 import {
   getAncestorHash,
@@ -11,8 +13,6 @@ import {
 } from '@lhci/utils/src/build-context.js'
 import fs from 'fs-extra'
 import { handleError } from '../errors'
-import type { UnlighthouseRouteReport } from '../types'
-import type { ReporterConfig } from './types'
 
 export async function reportLighthouseServer(
   reports: UnlighthouseRouteReport[],

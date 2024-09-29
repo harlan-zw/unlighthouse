@@ -1,9 +1,9 @@
+import type { UnlighthouseRouteReport } from '../src/types'
 import ApiClient from '@lhci/utils/src/api-client.js'
 import fs from 'fs-extra'
 import { describe, expect, it, vi } from 'vitest'
 import { generateReportPayload } from '../src/reporters'
 import _lighthouseReport from './__fixtures__/lighthouseReport.mjs'
-import type { UnlighthouseRouteReport } from '../src/types'
 
 const lighthouseReport = _lighthouseReport as any as UnlighthouseRouteReport[]
 

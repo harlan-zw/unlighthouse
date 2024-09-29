@@ -1,6 +1,6 @@
+import type { NormalisedRoute, ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { sum } from 'lodash-es'
 import { computed, reactive } from 'vue'
-import type { NormalisedRoute, ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/core'
 import CellRouteName from '../components/Cell/CellRouteName.vue'
 import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
 import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'

@@ -1,7 +1,7 @@
+import type { FetchError } from 'ofetch'
 import { useRuntimeConfig } from '#imports'
 import { $fetch } from 'ofetch'
 import { withHttps, withTrailingSlash } from 'ufo'
-import type { FetchError } from 'ofetch'
 
 const cwvKeys = [
   'largest_contentful_paint',

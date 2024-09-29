@@ -1,10 +1,10 @@
+import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
 import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
 import open from 'better-opn'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
-import type { CliOptions } from './types'
 
 const cli = createCli()
 

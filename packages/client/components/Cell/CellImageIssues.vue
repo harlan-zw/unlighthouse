@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { sum } from 'lodash-es'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import { sum } from 'lodash-es'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport

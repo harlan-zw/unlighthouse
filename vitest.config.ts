@@ -1,6 +1,6 @@
+import type { AliasOptions } from 'vite'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
-import type { AliasOptions } from 'vite'
 
 const r = (p: string) => resolve(__dirname, p)
 

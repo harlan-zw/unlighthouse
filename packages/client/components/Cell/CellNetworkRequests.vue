@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { get, groupBy, sum } from 'lodash-es'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import { get, groupBy, sum } from 'lodash-es'
 import { formatBytes, website } from '../../logic'
 
 const props = defineProps<{

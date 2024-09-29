@@ -1,15 +1,15 @@
+import type { UserConfig } from '@unlighthouse/core'
+import type { ReporterConfig } from './reporters/types'
+import type { CiOptions } from './types'
 import { setMaxListeners } from 'node:events'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
 import fs from 'fs-extra'
 import { relative } from 'pathe'
 import { isCI } from 'std-env'
-import type { UserConfig } from '@unlighthouse/core'
 import createCli from './createCli'
 import { handleError } from './errors'
 import { generateReportPayload, outputReport } from './reporters'
 import { pickOptions, validateHost, validateOptions } from './util'
-import type { ReporterConfig } from './reporters/types'
-import type { CiOptions } from './types'
 
 async function run() {
   const startTime = new Date()

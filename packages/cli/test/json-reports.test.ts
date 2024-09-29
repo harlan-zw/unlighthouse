@@ -1,7 +1,7 @@
+import type { UnlighthouseRouteReport } from '../src/types'
 import { describe, expect, it } from 'vitest'
 import { generateReportPayload } from '../src/reporters'
 import _lighthouseReport from './__fixtures__/lighthouseReport.mjs'
-import type { UnlighthouseRouteReport } from '../src/types'
 
 const lighthouseReport = _lighthouseReport as any as UnlighthouseRouteReport[]
 

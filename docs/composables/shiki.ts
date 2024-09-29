@@ -1,8 +1,8 @@
+import type { MaybeRef } from '@vueuse/core'
+import type { BundledLanguage, Highlighter } from 'shiki'
 import { useColorMode } from '#imports'
 import { getHighlighter } from 'shiki'
 import { computed, ref, unref } from 'vue'
-import type { MaybeRef } from '@vueuse/core'
-import type { BundledLanguage, Highlighter } from 'shiki'
 
 export const shiki = ref<Highlighter>()
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import type { Group } from 'three'
+import type { RendererPublicInterface } from 'troisjs'
 import { useElementHover } from '@vueuse/core'
 import { AmbientLight, Camera, FbxModel, PointLight, Renderer, Scene } from 'troisjs'
 import { ref } from 'vue'
-import type { Group } from 'three'
-import type { RendererPublicInterface } from 'troisjs'
 
 const rendererC = ref()
 const lighthouseRef = ref()

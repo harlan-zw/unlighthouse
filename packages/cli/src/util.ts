@@ -1,10 +1,10 @@
+import type { ResolvedUserConfig, UserConfig } from '@unlighthouse/core'
+import type { CiOptions, CliOptions } from './types'
 import { URL } from 'node:url'
 import { fetchUrlRaw, normaliseHost, useLogger } from '@unlighthouse/core'
 import { defu } from 'defu'
 import { pick } from 'lodash-es'
-import type { ResolvedUserConfig, UserConfig } from '@unlighthouse/core'
 import { handleError } from './errors'
-import type { CiOptions, CliOptions } from './types'
 
 export async function validateHost(resolvedConfig: ResolvedUserConfig) {
   const site = resolvedConfig.site

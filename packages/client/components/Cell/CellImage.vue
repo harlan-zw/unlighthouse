@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { $URL, withBase } from 'ufo'
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import { $URL, withBase } from 'ufo'
 import { iframeModalUrl, isModalOpen, isOffline, website } from '../../logic'
 
 const props = defineProps<{
