@@ -10,7 +10,7 @@ import type {
 } from './types'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
-import chalk from 'chalk'
+import { colorize } from 'consola/utils'
 import { defu } from 'defu'
 import fs from 'fs-extra'
 import { createHooks } from 'hookable'
@@ -329,7 +329,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     if (provider?.name !== 'ci') {
       // fancy CLI banner when we start
-      const label = (name: string) => chalk.bold.magenta(`▸ ${name}:`)
+      const label = (name: string) => colorize('bold', colorize('magenta', (`▸ ${name}:`)))
       let mode = ''
       if (resolvedConfig.urls?.length)
         mode = 'Manual'
@@ -347,21 +347,21 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       catch (e) {}
 
       const title = [
-        `⛵  ${chalk.bold.blueBright(AppName)} ${chalk.dim(`${provider?.name} @ v${version}`)}`,
+        `⛵  ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${provider?.name} @ v${version}`)}`,
       ]
       if (Number(latestTag.replace('v', '').replace('.', '')) > Number(version.replace('.', ''))) {
         title.push(...[
           '',
           `🎉 New version ${latestTag} available! Use the latest:`,
-          chalk.gray(` > ${chalk.underline(`npx unlighthouse@^${latestTag} --site ${resolvedConfig.site}`)}`),
+          colorize('gray', ` > ${colorize('underline', `npx unlighthouse@^${latestTag} --site ${resolvedConfig.site}`)}`),
         ])
       }
       title.push(...[
         '',
         `${label('Scanning')} ${resolvedConfig.site}`,
-        `${label('Route Discovery')} ${mode} ${ctx.routes.length > 1 ? (chalk.dim(`${ctx.routes.length} initial URLs`)) : ''}`,
+        `${label('Route Discovery')} ${mode} ${ctx.routes.length > 1 ? (colorize('dim', (`${ctx.routes.length} initial URLs`))) : ''}`,
         '',
-        chalk.dim(' 💖 Like Unlighthouse? Support the development: https://github.com/sponsors/harlan-zw'),
+        colorize('dim', (' 💖 Like Unlighthouse? Support the development: https://github.com/sponsors/harlan-zw')),
       ])
       if (ctx.routeDefinitions?.length)
         title.push(`${label('Route Definitions')} ${ctx.routeDefinitions.length}`)
@@ -369,13 +369,13 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       process.stdout.write(successBox(
         // messages
         [
-          ctx.runtimeSettings.clientUrl ? chalk.whiteBright(`Report: ${ctx.runtimeSettings.clientUrl}`) : '',
+          ctx.runtimeSettings.clientUrl ? colorize('whiteBright', `Report: ${ctx.runtimeSettings.clientUrl}`) : '',
         ].join('\n'),
         // title
         title.join('\n'),
       ))
       if (existsSync(join(ctx.runtimeSettings.generatedClientPath, 'reports', 'lighthouse.json')) && ctx.resolvedConfig.cache)
-        logger.info(`Restoring reports from cache. ${chalk.gray('You can disable this behavior by passing --no-cache.')}`)
+        logger.info(`Restoring reports from cache. ${colorize('gray', 'You can disable this behavior by passing --no-cache.')}`)
     }
     return ctx
   }

@@ -1,5 +1,5 @@
-import boxen from 'boxen'
-import chalk from 'chalk'
+import type { BoxOpts } from 'consola/utils'
+import { colorize, box as makeBox } from 'consola/utils'
 import wrapAnsi from 'wrap-ansi'
 
 /**
@@ -30,11 +30,11 @@ export function foldLines(string: string, spaces: number, firstLineSpaces: numbe
   return indentLines(wrapAnsi(string, charsPerLine), spaces, firstLineSpaces)
 }
 
-export function box(message: string, title: string, options: any) {
-  return `${boxen([
-    title || chalk.white('Nuxt Message'),
+export function box(message: string, title: string, options?: BoxOpts) {
+  return `${makeBox([
+    title,
     '',
-    chalk.white(foldLines(message, 0, 0, maxCharsPerLine())),
+    colorize('white', foldLines(message, 0, 0, maxCharsPerLine())),
   ].join('\n'), Object.assign({
     borderColor: 'white',
     borderStyle: 'round',
@@ -44,7 +44,9 @@ export function box(message: string, title: string, options: any) {
 }
 
 export function successBox(message: string, title: string) {
-  return box(message, title || chalk.green('✔ Nuxt Success'), {
-    borderColor: 'green',
+  return box(message, title, {
+    style: {
+      borderColor: 'green',
+    },
   })
 }

@@ -10,7 +10,7 @@ import type {
 } from '../types'
 import fs from 'node:fs'
 import { join } from 'node:path'
-import chalk from 'chalk'
+import { colorize } from 'consola/utils'
 import { get, sortBy, uniqBy } from 'lodash-es'
 import { matchPathToRule } from '../discovery'
 import { useLogger } from '../logger'
@@ -208,7 +208,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
               reportData.push(formatBytes(response.seo.htmlSize))
           }
           reportData.push(`${monitor().donePercStr}% complete`)
-          logger.success(`Completed \`${taskName}\` for \`${routeReport.route.path}\`. ${chalk.gray(`(${reportData.join(' ')})`)}`)
+          logger.success(`Completed \`${taskName}\` for \`${routeReport.route.path}\`. ${colorize('gray', `(${reportData.join(' ')})`)}`)
           // run the next task
           runTaskIndex(idx + 1)
         })
