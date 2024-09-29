@@ -96,7 +96,10 @@ export function matchPathToRule(path: string, _rules: RobotsTxtRule[]): RobotsTx
     i++
   }
 
-  return matchedRule
+  return matchedRule || {
+    pattern: '',
+    allow: true,
+  }
 }
 
 export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { groups, sitemaps }: RobotsTxtParsed): void {

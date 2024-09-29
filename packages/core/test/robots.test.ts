@@ -1,7 +1,6 @@
 import type { ResolvedUserConfig } from '../src'
 import { describe, expect, it } from 'vitest'
-import { mergeRobotsTxtConfig } from '../src/discovery'
-import { asRegExp } from '../src/util'
+import { matchPathToRule, mergeRobotsTxtConfig } from '../src/discovery'
 import { parseRobotsTxt } from '../src/util/robotsTxtParser'
 
 describe('robots', () => {
@@ -20,6 +19,8 @@ Sitemap: https://kootingalpecancompany.com/sitemap_index.xml
       {
         "groups": [
           {
+            "_indexable": true,
+            "_rules": [],
             "allow": [],
             "comment": [],
             "disallow": [
@@ -51,6 +52,33 @@ Allow: /wiki/
       {
         "groups": [
           {
+            "_indexable": true,
+            "_rules": [
+              {
+                "allow": false,
+                "pattern": "/account/",
+              },
+              {
+                "allow": false,
+                "pattern": "/dashboard/",
+              },
+              {
+                "allow": false,
+                "pattern": "/admin/",
+              },
+              {
+                "allow": false,
+                "pattern": "/mod/",
+              },
+              {
+                "allow": true,
+                "pattern": "/$",
+              },
+              {
+                "allow": true,
+                "pattern": "/wiki/",
+              },
+            ],
             "allow": [
               "/$",
               "/wiki/",
@@ -77,24 +105,43 @@ Allow: /wiki/
     expect(resolvedConfig).toMatchInlineSnapshot(`
       {
         "scanner": {
-          "exclude": [
-            "/account/.*",
-            "/dashboard/.*",
-            "/admin/.*",
-            "/mod/.*",
+          "_robotsTxtRules": [
+            [
+              {
+                "allow": false,
+                "pattern": "/account/",
+              },
+              {
+                "allow": false,
+                "pattern": "/dashboard/",
+              },
+              {
+                "allow": false,
+                "pattern": "/admin/",
+              },
+              {
+                "allow": false,
+                "pattern": "/mod/",
+              },
+              {
+                "allow": true,
+                "pattern": "/$",
+              },
+              {
+                "allow": true,
+                "pattern": "/wiki/",
+              },
+            ],
           ],
-          "include": [
-            "/*",
-            "/$.*",
-            "/wiki/.*",
-          ],
+          "exclude": [],
           "sitemap": [],
         },
       }
     `)
 
     // blocked
-    expect(asRegExp(resolvedConfig.scanner.exclude![0]).test('/account/test')).toBeTruthy()
+    const rules = parsed.groups.flatMap(g => g._rules)
+    expect(matchPathToRule('/account/test', rules).allow).toBeFalsy()
   })
 
   it ('parsed example #3', () => {
@@ -142,6 +189,101 @@ Sitemap: https://unitedpets.com/sitemap/index.xml
       {
         "groups": [
           {
+            "_indexable": true,
+            "_rules": [
+              {
+                "allow": false,
+                "pattern": "/CVS",
+              },
+              {
+                "allow": false,
+                "pattern": "/*.svn$",
+              },
+              {
+                "allow": false,
+                "pattern": "/*.idea$",
+              },
+              {
+                "allow": false,
+                "pattern": "/*.sql$",
+              },
+              {
+                "allow": false,
+                "pattern": "/*.tgz$",
+              },
+              {
+                "allow": false,
+                "pattern": "*brand=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*color=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*color_filter=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*material_filter=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*fitting_filter=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*asc=price*",
+              },
+              {
+                "allow": false,
+                "pattern": "*desc=price*",
+              },
+              {
+                "allow": false,
+                "pattern": "*asc=name*",
+              },
+              {
+                "allow": false,
+                "pattern": "*desc=name*",
+              },
+              {
+                "allow": false,
+                "pattern": "*food_type=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*tags=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*size=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*search=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*popup=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*successRedirect=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*/user/*",
+              },
+              {
+                "allow": false,
+                "pattern": "*/checkout/*",
+              },
+              {
+                "allow": false,
+                "pattern": "*/wishlist/*",
+              },
+            ],
             "allow": [],
             "comment": [],
             "disallow": [
@@ -187,32 +329,103 @@ Sitemap: https://unitedpets.com/sitemap/index.xml
     expect(resolvedConfig).toMatchInlineSnapshot(`
       {
         "scanner": {
-          "exclude": [
-            "/CVS.*",
-            "/.*.svn$",
-            "/.*.idea$",
-            "/.*.sql$",
-            "/.*.tgz$",
-            ".*brand=.*",
-            ".*color=.*",
-            ".*color_filter=.*",
-            ".*material_filter=.*",
-            ".*fitting_filter=.*",
-            ".*asc=price.*",
-            ".*desc=price.*",
-            ".*asc=name.*",
-            ".*desc=name.*",
-            ".*food_type=.*",
-            ".*tags=.*",
-            ".*size=.*",
-            ".*search=.*",
-            ".*popup=.*",
-            ".*successRedirect=.*",
-            ".*/user/.*",
-            ".*/checkout/.*",
-            ".*/wishlist/.*",
+          "_robotsTxtRules": [
+            [
+              {
+                "allow": false,
+                "pattern": "/CVS",
+              },
+              {
+                "allow": false,
+                "pattern": "/*.svn$",
+              },
+              {
+                "allow": false,
+                "pattern": "/*.idea$",
+              },
+              {
+                "allow": false,
+                "pattern": "/*.sql$",
+              },
+              {
+                "allow": false,
+                "pattern": "/*.tgz$",
+              },
+              {
+                "allow": false,
+                "pattern": "*brand=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*color=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*color_filter=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*material_filter=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*fitting_filter=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*asc=price*",
+              },
+              {
+                "allow": false,
+                "pattern": "*desc=price*",
+              },
+              {
+                "allow": false,
+                "pattern": "*asc=name*",
+              },
+              {
+                "allow": false,
+                "pattern": "*desc=name*",
+              },
+              {
+                "allow": false,
+                "pattern": "*food_type=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*tags=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*size=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*search=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*popup=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*successRedirect=*",
+              },
+              {
+                "allow": false,
+                "pattern": "*/user/*",
+              },
+              {
+                "allow": false,
+                "pattern": "*/checkout/*",
+              },
+              {
+                "allow": false,
+                "pattern": "*/wishlist/*",
+              },
+            ],
           ],
-          "include": [],
+          "exclude": [],
           "sitemap": [
             "https://unitedpets.com/sitemap/index.xml",
           ],
@@ -220,13 +433,11 @@ Sitemap: https://unitedpets.com/sitemap/index.xml
       }
     `)
 
-    function isScannable(path: string) {
-      return resolvedConfig.scanner.exclude!.filter(rule => asRegExp(rule).test(path)).length === 0
-    }
-    expect(isScannable('/CVS')).toBeFalsy()
-    expect(isScannable('/test/checkout/')).toBeFalsy()
-    expect(isScannable('/?size=big')).toBeFalsy()
-    expect(isScannable('/my-product')).toBeTruthy()
+    const rules = parsed.groups.flatMap(g => g._rules)
+    expect(matchPathToRule('/CVS', rules).allow).toBeFalsy()
+    expect(matchPathToRule('/test/checkout/', rules).allow).toBeFalsy()
+    expect(matchPathToRule('/?size=big', rules).allow).toBeFalsy()
+    expect(matchPathToRule('/my-product', rules).allow).toBeTruthy()
   })
 
   it('parses example #4', () => {
@@ -273,6 +484,145 @@ Sitemap: https://armeriameschieri.com/sitemap.xml
       {
         "groups": [
           {
+            "_indexable": true,
+            "_rules": [
+              {
+                "allow": false,
+                "pattern": "/admin",
+              },
+              {
+                "allow": false,
+                "pattern": "/cart",
+              },
+              {
+                "allow": false,
+                "pattern": "/orders",
+              },
+              {
+                "allow": false,
+                "pattern": "/checkouts/",
+              },
+              {
+                "allow": false,
+                "pattern": "/checkout",
+              },
+              {
+                "allow": false,
+                "pattern": "/58606747799/checkouts",
+              },
+              {
+                "allow": false,
+                "pattern": "/58606747799/orders",
+              },
+              {
+                "allow": false,
+                "pattern": "/carts",
+              },
+              {
+                "allow": false,
+                "pattern": "/account",
+              },
+              {
+                "allow": false,
+                "pattern": "/collections/*sort_by*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/collections/*sort_by*",
+              },
+              {
+                "allow": false,
+                "pattern": "/collections/*+*",
+              },
+              {
+                "allow": false,
+                "pattern": "/collections/*%2B*",
+              },
+              {
+                "allow": false,
+                "pattern": "/collections/*%2b*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/collections/*+*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/collections/*%2B*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/collections/*%2b*",
+              },
+              {
+                "allow": false,
+                "pattern": "/blogs/*+*",
+              },
+              {
+                "allow": false,
+                "pattern": "/blogs/*%2B*",
+              },
+              {
+                "allow": false,
+                "pattern": "/blogs/*%2b*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/blogs/*+*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/blogs/*%2B*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/blogs/*%2b*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*?*oseid=*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*preview_theme_id*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*preview_script_id*",
+              },
+              {
+                "allow": false,
+                "pattern": "/policies/",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/*?*ls=*&ls=*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/*?*ls%3D*%3Fls%3D*",
+              },
+              {
+                "allow": false,
+                "pattern": "/*/*?*ls%3d*%3fls%3d*",
+              },
+              {
+                "allow": false,
+                "pattern": "/search",
+              },
+              {
+                "allow": false,
+                "pattern": "/apple-app-site-association",
+              },
+              {
+                "allow": false,
+                "pattern": "/.well-known/shopify/monorail",
+              },
+              {
+                "allow": false,
+                "pattern": "/cdn/wpm/*.js",
+              },
+            ],
             "allow": [],
             "comment": [],
             "disallow": [
@@ -325,10 +675,8 @@ Sitemap: https://armeriameschieri.com/sitemap.xml
     const resolvedConfig = { scanner: { exclude: [], sitemap: [] } } as any as ResolvedUserConfig
     mergeRobotsTxtConfig(resolvedConfig, parsed)
 
-    function isScannable(path: string) {
-      return resolvedConfig.scanner.exclude!.filter(rule => asRegExp(rule).test(path)).length === 0
-    }
-    expect(isScannable('/cart')).toBeFalsy()
-    expect(isScannable('/my-product')).toBeTruthy()
+    const rules = parsed.groups.flatMap(g => g._rules)
+    expect(matchPathToRule('/cart', rules).allow).toBeFalsy()
+    expect(matchPathToRule('/my-product', rules).allow).toBeTruthy()
   })
 })
