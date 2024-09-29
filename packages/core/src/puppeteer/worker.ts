@@ -96,7 +96,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       return
 
     // do robots.txt test
-    if (resolvedConfig.scanner.robotsTxt) {
+    if (resolvedConfig.scanner.robotsTxt && resolvedConfig.scanner._robotsTxtRules?.length) {
       const rule = matchPathToRule(path, resolvedConfig.scanner._robotsTxtRules)
       if (rule && !rule.allow) {
         logger.info(`Skipping route based on robots.txt rule \`${rule.pattern}\``, { path })

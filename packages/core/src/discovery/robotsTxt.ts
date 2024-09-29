@@ -105,7 +105,7 @@ export function matchPathToRule(path: string, _rules: RobotsTxtRule[]): RobotsTx
 export function mergeRobotsTxtConfig(config: ResolvedUserConfig, { groups, sitemaps }: RobotsTxtParsed): void {
   config.scanner._robotsTxtRules = groups.filter((group) => {
     return group.userAgent.includes('*') || group.userAgent.includes(String(config.lighthouseOptions?.emulatedUserAgent))
-  }).map(group => group._rules)
+  }).flatMap(group => group._rules)
   if (config.scanner.sitemap !== false && sitemaps.length) {
     // allow overriding the robots.txt sitemaps with your own
     if (!Array.isArray(config.scanner.sitemap) || !config.scanner.sitemap.length)
