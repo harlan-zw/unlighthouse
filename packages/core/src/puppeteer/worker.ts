@@ -116,7 +116,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       }
     }
 
-    if (isImplicitOrExplicitHtml(path)) {
+    if (!isImplicitOrExplicitHtml(path)) {
       logger.debug('Skipping non-HTML file from scanning', { path })
       return
     }
