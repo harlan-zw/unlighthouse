@@ -96,7 +96,8 @@ export function processSeoMeta($: CheerioAPI): HTMLExtractPayload {
 }
 
 export const inspectHtmlTask: PuppeteerTask = async (props) => {
-  const { resolvedConfig, hooks, runtimeSettings } = useUnlighthouse()
+  const unlighthouse = useUnlighthouse()
+  const { resolvedConfig, hooks, runtimeSettings } = unlighthouse
   const { page, data: routeReport } = props
   const logger = useLogger()
   let html: string
@@ -140,9 +141,14 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   routeReport.seo = processSeoMeta($)
   if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
     routeReport.tasks.inspectHtmlTask = 'ignore'
-    logger.debug(`Page has an alternative lang, ignoring \`${routeReport.route.path}\`: ${routeReport.seo.alternativeLangDefault}`)
+    if (!unlighthouse._i18nWarn) {
+      unlighthouse._i18nWarn = true
+      logger.warn(`Page has an alternative lang, ignoring \`${routeReport.route.path}\`: ${routeReport.seo.alternativeLangDefault}. You can disable this behavior with the \`scanner.ignoreI18nPages = true\` option. Future warnings will be suppressed.`)
+    }
+    else {
+      logger.debug(`Page has an alternative lang, ignoring \`${routeReport.route.path}\`: ${routeReport.seo.alternativeLangDefault}`)
+    }
     // make sure we queue the default, this fixes issues with if the home page has a default lang that is alternative
-    const unlighthouse = useUnlighthouse()
     unlighthouse.worker.queueRoute(normaliseRoute(routeReport.seo.alternativeLangDefault))
     return routeReport
   }

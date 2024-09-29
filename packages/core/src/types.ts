@@ -881,4 +881,8 @@ export interface UnlighthouseContext {
    * @internal
    */
   _axios?: AxiosInstance
+  /**
+   * @internal
+   */
+  _i18nWarn?: boolean
 }
