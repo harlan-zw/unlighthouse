@@ -38,3 +38,25 @@ export function createFilter(options: CreateFilterOptions = {}): (path: string) 
     return include.length === 0
   }
 }
+
+// types of file extensions that would return a HTML mime type
+const HTML_EXPLICIT_EXTENSIONS = [
+  // html
+  '.html',
+  '.htm',
+  // php
+  '.php',
+  // asp
+  '.asp',
+  '.aspx',
+]
+const FILE_MATCH_REGEX = /\.([0-9a-z])+$/i
+
+export function isImplicitOrExplicitHtml(path: string): boolean {
+  const lastPathSegment = path.split('/').pop() || path
+  // if it ends with a slash, then we assume it's a index HTML
+  if (lastPathSegment.endsWith('/'))
+    return true // implicit
+  const extension = lastPathSegment?.match(FILE_MATCH_REGEX)?.[0]
+  return !extension || HTML_EXPLICIT_EXTENSIONS.includes(extension)
+}

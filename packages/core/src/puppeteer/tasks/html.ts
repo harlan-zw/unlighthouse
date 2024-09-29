@@ -8,7 +8,8 @@ import { withoutTrailingSlash } from 'ufo'
 import { useLogger } from '../../logger'
 import { normaliseRoute } from '../../router'
 import { useUnlighthouse } from '../../unlighthouse'
-import { fetchUrlRaw, ReportArtifacts, trimSlashes } from '../../util'
+import { fetchUrlRaw, ReportArtifacts } from '../../util'
+import { isImplicitOrExplicitHtml } from '../../util/filter'
 import { setupPage } from '../util'
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean, redirected?: false | string, message?: string, payload?: string }> = async (page, route) => {
@@ -150,21 +151,9 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   $('a').each(function () {
     const href = $(this).attr('href')
     // href must be provided and not be javascript
-    if (!href || href.includes('javascript:') || href.includes('mailto:') || href === '#')
+    if (!href || href.includes('javascript:') || href.includes('mailto:') || href === '#' || !isImplicitOrExplicitHtml(href))
       return
 
-    // if the URL doesn't end with a slash we may be dealing with a file
-    if (!href.endsWith('/')) {
-      // need to check for a dot, meaning a file
-      const parts = href.split('.')
-      // 1 part means there is no extension, or no dot in the url
-      if (parts.length > 1) {
-        // presumably the last part will be the extension
-        const extension = trimSlashes(parts[parts.length - 1]).replace('.', '')
-        if (extension !== 'html')
-          return
-      }
-    }
     if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(resolvedConfig.site))
       internalLinks.push(href)
     else

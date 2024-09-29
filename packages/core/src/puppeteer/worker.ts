@@ -16,7 +16,7 @@ import { matchPathToRule } from '../discovery'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
 import { createTaskReportFromRoute, formatBytes, ReportArtifacts } from '../util'
-import { createFilter } from '../util/filter'
+import { createFilter, isImplicitOrExplicitHtml } from '../util/filter'
 import {
   launchPuppeteerCluster,
 } from './cluster'
@@ -116,9 +116,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       }
     }
 
-    const lastPathSegment = path.split('/').pop() || path
-    const extension = (lastPathSegment.includes('.') ? lastPathSegment.split('.').pop() : 'html') || 'html'
-    if (!extension.includes('html')) {
+    if (isImplicitOrExplicitHtml(path)) {
       logger.debug('Skipping non-HTML file from scanning', { path })
       return
     }
