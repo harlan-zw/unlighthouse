@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { apiUrl, device, iframeModalUrl, isModalOpen, isOffline } from '../../logic'
+import { apiUrl, categories, device, iframeModalUrl, isModalOpen, isOffline } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -35,13 +35,26 @@ const fetchTime = computed(() => {
     timeStyle: 'short',
   }).format(date)
 })
+
+const thumbnail = computed(() => {
+  const mobileProps = device === 'mobile' ? { class: 'w-68px h-112px' } : { class: 'h-82px w-112px' }
+  if (categories.includes('performance')) {
+    return {
+      src: `${props.report.artifactUrl}/screenshot.jpeg`,
+      ...mobileProps,
+    }
+  }
+  return {
+    src: `${props.report.artifactUrl}/full-screenshot.jpeg`,
+    ...mobileProps,
+  }
+})
 </script>
 
 <template>
   <div class="text-xs flex items-center w-full">
     <btn-action v-if="report.tasks.runLighthouseTask === 'completed'" class="hidden md:block" :style="{ flex: `0 0 ${device === 'mobile' ? '67' : '112'}px` }" title="Open Full Page Screenshot" @click="openModal()">
-      <img v-if="device === 'mobile'" :src="`${report.artifactUrl}/screenshot.jpeg`" loading="lazy" height="112" width="68" class="w-68px h-112px">
-      <img v-else :src="`${report.artifactUrl}/screenshot.jpeg`" loading="lazy" height="82" width="112" class="h-82px w-112px">
+      <img v-bind="thumbnail" loading="lazy" height="82" width="112">
     </btn-action>
     <div class="md:ml-3 flex-grow w-full">
       <a v-if="report.seo?.title" :href="report.route.url" target="_blank" class="text-xs dark:(opacity-80) underline hover:no-underline">
