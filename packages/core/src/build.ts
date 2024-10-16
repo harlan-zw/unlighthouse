@@ -27,7 +27,11 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
 
   const { runtimeSettings, resolvedConfig, worker } = unlighthouse
 
-  const prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.routerPrefix))
+  let prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.routerPrefix))
+  // for non-specified paths we use relative
+  if (prefix === '/') {
+    prefix = ''
+  }
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
 
   await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)
@@ -84,8 +88,8 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
     // should be a single entry
     let indexJS = await fs.readFile(indexPath, 'utf-8')
     indexJS = indexJS
-      .replace('const base = "/";', `const base = "${prefix}";`)
-      .replace('createWebHistory("/")', `createWebHistory("${prefix}")`)
+      .replace('const base = "/";', `const base = window.location.pathname;`)
+      .replace('createWebHistory("/")', `createWebHistory(window.location.pathname)`)
     await fs.writeFile(indexPath.replace(clientPathFolder, runtimeSettings.generatedClientPath), indexJS, 'utf-8')
   }
   else {
