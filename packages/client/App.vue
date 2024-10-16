@@ -63,7 +63,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
       <div class="flex justify-between max-h-[95%] flex-col xl:ml-3 mx-3 mr-0 w-full 2xl:(mr-5 w-250px mb-0)">
         <div>
           <TabGroup vertical @change="changedTab">
-            <TabList class="2xl:(block) flex">
+            <TabList class="2xl:(block space-x-0) flex space-x-2 mb-3">
               <Tab
                 v-for="(category, key) in tabs"
                 :key="key"
@@ -73,8 +73,8 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                 <btn-tab
                   :selected="selected"
                 >
-                  <span class="inline-flex items-center space-x-2">
-                    <component :is="category.icon" class="inline text-sm opacity-40 h-4 w-4 mr-2" />
+                  <span class="inline-flex items-center space-x-1">
+                    <component :is="category.icon" class="inline text-sm opacity-40 h-4 w-4" />
                     <span>{{ category.label }}</span>
                     <tooltip v-if="category.label === 'Performance'" class="text-left">
                       <i-carbon-warning class="inline text-xs mx-1" />
@@ -112,7 +112,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
           </div>
         </div>
       </div>
-      <div class="xl:w-full w-screen overflow-x-auto px-3">
+      <div class="xl:w-full px-3 mr-5">
         <div v-if="tabs[activeTab].label === 'CrUX'">
           <div>
             <h2 class="font-bold text-2xl mb-7">
@@ -220,7 +220,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               />
             </div>
           </div>
-          <div class="w-full min-w-1500px 2xl:(max-h-[calc(100vh-100px)]) lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)] overflow-auto pr-5 mr-4">
+          <div class="w-full min-w-1500px 2xl:(max-h-[calc(100vh-100px)]) lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)]">
             <div v-if="Object.values(searchResults).length === 0" class="px-4 py-3">
               <template v-if="searchText">
                 <p class="mb-2">
