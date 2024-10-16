@@ -128,7 +128,7 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
         return routeReport
       }
       // ignore redirect from site to site/
-      if (withoutTrailingSlash(response.redirected) !== runtimeSettings.siteUrl.href)
+      if (withoutTrailingSlash(response.redirected) !== withoutTrailingSlash(runtimeSettings.siteUrl.href))
         logger.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
 
       // check if redirect url is already queued, if so we bail on this route
