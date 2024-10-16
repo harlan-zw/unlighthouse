@@ -7,7 +7,7 @@ import MdiViewDashboard from '~icons/mdi/view-dashboard'
 import MdiWeb from '~icons/mdi/web'
 import MdiWorld from '~icons/mdi/world'
 import { startCase } from 'lodash-es'
-import { parseURL } from 'ufo'
+import { $URL } from 'ufo'
 import CellColorContrast from '../components/Cell/CellColorContrast.vue'
 import CellImage from '../components/Cell/CellImage.vue'
 import CellImageIssues from '../components/Cell/CellImageIssues.vue'
@@ -43,7 +43,7 @@ export const isStatic = window.__unlighthouse_static
 
 export { apiUrl, basePath, device, dynamicSampling, groupRoutesKey, lighthouseOptions, throttle, wsUrl }
 
-export const website = parseURL(site).origin
+export const website = new $URL(site).origin
 
 export const categories = (lighthouseOptions?.onlyCategories || ['performance', 'accessibility', 'best-practices', 'seo'])
 export const tabs = [
