@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { apiUrl, categories, device, iframeModalUrl, isModalOpen, isOffline } from '../../logic'
+import { apiUrl, categories, device, iframeModalUrl, isModalOpen, isOffline, resolveArtifactPath } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -40,12 +40,12 @@ const thumbnail = computed(() => {
   const mobileProps = device === 'mobile' ? { class: 'w-68px h-112px' } : { class: 'h-82px w-112px' }
   if (categories.includes('performance')) {
     return {
-      src: `${props.report.artifactUrl}/screenshot.jpeg`,
+      src: resolveArtifactPath(props.report, '/screenshot.jpeg'),
       ...mobileProps,
     }
   }
   return {
-    src: `${props.report.artifactUrl}/full-screenshot.jpeg`,
+    src: resolveArtifactPath(props.report, '/full-screenshot.jpeg'),
     ...mobileProps,
   }
 })
@@ -81,6 +81,6 @@ const thumbnail = computed(() => {
     </div>
   </div>
   <teleport v-if="isModalOpen && showingModal" to="#modal-portal">
-    <img :src="`${report.artifactUrl}/full-screenshot.jpeg`" alt="full screenshot" class="mx-auto">
+    <img :src="resolveArtifactPath(props.report, '/full-screenshot.jpeg')" alt="full screenshot" class="mx-auto">
   </teleport>
 </template>

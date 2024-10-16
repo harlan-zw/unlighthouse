@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core/src'
+import { resolveArtifactPath } from '../../logic'
 
 const props = defineProps<{
   item: any
@@ -71,7 +72,7 @@ onMounted(() => {
       height: img.naturalHeight,
     }
   }
-  img.src = `${props.report.artifactUrl}/full-screenshot.jpeg`
+  img.src = resolveArtifactPath(props.report, '/full-screenshot.jpeg')
 })
 
 const styles = computed(() => {
@@ -104,7 +105,7 @@ const styles = computed(() => {
     backgroundPositionY: `${-(positions.screenshot.top * zoomFactor)}px`,
     backgroundPositionX: `${-(positions.screenshot.left * zoomFactor)}px`,
     backgroundSize: `${screenshot.value.width * zoomFactor}px ${screenshot.value.height * zoomFactor}px`,
-    backgroundImage: `url('${props.report.artifactUrl}/full-screenshot.jpeg')`,
+    backgroundImage: `url('${resolveArtifactPath(props.report, '/full-screenshot.jpeg')}')`,
   }
 
   const marker = {

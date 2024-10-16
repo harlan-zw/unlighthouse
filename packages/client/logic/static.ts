@@ -1,3 +1,4 @@
+import type { UnlighthouseRouteReport } from '@unlighthouse/core'
 // pull out client accessible options
 import MdiAccessibility from '~icons/mdi/accessibility'
 import MdiCellphone from '~icons/mdi/cellphone'
@@ -7,7 +8,7 @@ import MdiViewDashboard from '~icons/mdi/view-dashboard'
 import MdiWeb from '~icons/mdi/web'
 import MdiWorld from '~icons/mdi/world'
 import { startCase } from 'lodash-es'
-import { $URL } from 'ufo'
+import { $URL, joinURL } from 'ufo'
 import CellColorContrast from '../components/Cell/CellColorContrast.vue'
 import CellImage from '../components/Cell/CellImage.vue'
 import CellImageIssues from '../components/Cell/CellImageIssues.vue'
@@ -40,6 +41,11 @@ const {
 } = window.__unlighthouse_payload
 
 export const isStatic = window.__unlighthouse_static
+
+export function resolveArtifactPath(report: UnlighthouseRouteReport, file: string) {
+  const withoutBase = report.artifactUrl.replace(basePath, '')
+  return joinURL(window.location.pathname, withoutBase, file) // dynamic base
+}
 
 export { apiUrl, basePath, device, dynamicSampling, groupRoutesKey, lighthouseOptions, throttle, wsUrl }
 

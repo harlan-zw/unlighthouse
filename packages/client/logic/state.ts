@@ -6,7 +6,7 @@ import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
 import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
 import { useFetch } from './fetch'
 import { sorting } from './search'
-import { categories, columns, isStatic, wsUrl } from './static'
+import { categories, columns, isStatic, resolveArtifactPath, wsUrl } from './static'
 
 export const activeTab = ref(0)
 
@@ -24,7 +24,7 @@ export function openDebugModal() {
   isDebugModalOpen.value = true
 }
 export function openLighthouseReportIframeModal(report: UnlighthouseRouteReport, tab?: string) {
-  const path = `${report.artifactUrl}/lighthouse.html`
+  const path = resolveArtifactPath(report, '/lighthouse.html')
   iframeModalUrl.value = `${path}${tab ? `#${tab}` : ''}`
   isDebugModalOpen.value = false
   isModalOpen.value = true

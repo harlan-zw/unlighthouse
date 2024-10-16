@@ -220,7 +220,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               />
             </div>
           </div>
-          <div class="w-full min-w-1500px 2xl:(max-h-[calc(100vh-100px)]) lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)]">
+          <div class="w-full min-w-1500px pr-3 overflow-y-auto 2xl:(max-h-[calc(100vh-100px)]) lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)]">
             <div v-if="Object.values(searchResults).length === 0" class="px-4 py-3">
               <template v-if="searchText">
                 <p class="mb-2">
