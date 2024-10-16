@@ -50,13 +50,20 @@ export const resultColumns = computed(() => {
       key: activeTab.value === 0 ? 'report.score' : `report.categories.${categories[activeTab.value - 1]}.score`,
       sortable: true,
       cols: activeTab.value === 0
-        ? 3
+        ? (categories.includes('performance') ? 3 : 5)
         : 1,
       component: activeTab.value === 0
         ? CellScoresOverview
         : CellScoreSingle,
     },
-    ...(activeTab.value > columns.length - 1 ? [] : columns[activeTab.value]),
+    ...(activeTab.value > columns.length - 1 ? [] : columns[activeTab.value])
+      .filter((c) => {
+        // remove screenshot timeline if performance is not present
+        if (c.key === 'report.audits.screenshot-thumbnails' && !categories.includes('performance')) {
+          return false
+        }
+        return true
+      }),
     {
       label: 'Actions',
       cols: 1,
