@@ -59,6 +59,9 @@ export async function setupPage(page: Page) {
         await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
           .catch(softErrorHandler('Failed to set extra headers'))
       }
+      if (resolvedConfig.userAgent) {
+        await page.setUserAgent(resolvedConfig.userAgent)
+      }
       await hooks.callHook('puppeteer:before-goto', page)
     }
   })

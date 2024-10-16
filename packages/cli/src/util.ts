@@ -143,6 +143,16 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     })
   }
 
+  if (options.userAgent) {
+    picked.extraHeaders = picked.extraHeaders || {}
+    picked.extraHeaders['User-Agent'] = options.userAgent
+    // set lighthouse
+    picked.lighthouseOptions = picked.lighthouseOptions || {}
+    picked.lighthouseOptions.emulatedUserAgent = options.userAgent
+    // pupeteer will respect userAgent
+    picked.userAgent = options.userAgent
+  }
+
   if (options.defaultQueryParams) {
     picked.defaultQueryParams = picked.defaultQueryParams || {}
     options.defaultQueryParams.split(',').forEach((param) => {

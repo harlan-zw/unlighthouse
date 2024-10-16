@@ -20,6 +20,7 @@ export default function createCli() {
   cli.option('--mobile', 'Simulate device as mobile.')
 
   cli.option('--site <site>', 'Host URL to scan.')
+  cli.option('--user-agent <user-agent>', 'Specify a top-level user agent all requests will use.')
   cli.option('--router-prefix <site>', 'The URL path prefix for the client and API to run from.')
   cli.option('--sitemaps <sitemaps>', 'Comma separated list of sitemaps to use for scanning. Providing these will override any in robots.txt.')
   cli.option('--samples <samples>', 'Specify the amount of samples to run.')

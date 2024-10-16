@@ -292,6 +292,12 @@ export interface ResolvedUserConfig {
    */
   extraHeaders: false | Record<string, string>
   /**
+   * The user agent to use for all requests. Uses default puppeteer / lighthouse user agent if not provided.
+   *
+   * @default false
+   */
+  userAgent?: string
+  /**
    * Query params to add to every request.
    *
    * @default false

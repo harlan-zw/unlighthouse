@@ -146,7 +146,6 @@ export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig) {
 
   axiosOptions.headers = axiosOptions.headers || {}
   // this should always be set
-  axiosOptions.headers['User-Agent'] = resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
 
   if (resolvedConfig.cookies) {
     axiosOptions.headers.Cookie = resolvedConfig.cookies
@@ -154,13 +153,12 @@ export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig) {
       .join('; ')
   }
 
-  if (resolvedConfig.extraHeaders) {
-    axiosOptions.headers = {
-      // fallback user agent, allow overriding
-      'User-Agent': 'Unlighthouse',
-      ...resolvedConfig.extraHeaders,
-      ...axiosOptions.headers,
-    }
+  const userAgent = resolvedConfig.userAgent || resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
+  axiosOptions.headers = {
+    // fallback user agent, allow overriding
+    'User-Agent': userAgent,
+    ...(resolvedConfig.extraHeaders || {}),
+    ...axiosOptions.headers,
   }
 
   if (resolvedConfig.defaultQueryParams)

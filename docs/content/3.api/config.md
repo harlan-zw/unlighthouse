@@ -85,6 +85,13 @@ Provide cookies to be set for Axios and Puppeteer requests.
 
 Provide extra headers to be set for Axios and Puppeteer requests.
 
+### userAgent
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Provide a custom user agent for all network requests.
+
 ### defaultQueryParams
 
 - **Type:** ` false | QueryObject`
