@@ -154,7 +154,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   }
 
   if (report.categories.performance && !report.categories.performance.score) {
-    logger.warn(`Lighthouse failed to run performance audits for "${routeReport.route.path}", adding back to queue.`)
+    logger.warn(`Lighthouse failed to run performance audits for "${routeReport.route.path}", adding back to queue${report.runtimeError ? `: ${report.runtimeError.message}` : '.'}`)
     routeReport.tasks.runLighthouseTask = 'failed-retry'
     return routeReport
   }
