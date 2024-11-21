@@ -62,7 +62,7 @@
     "h3": "^1.12.0",
     "hookable": "^5.5.3",
     "launch-editor": "^2.9.1",
-    "lighthouse": "^12.2.1",
+    "lighthouse": "^12.2.2",
     "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
     "mlly": "^1.7.1",
