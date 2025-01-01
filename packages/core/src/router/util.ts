@@ -33,11 +33,12 @@ export function normaliseRoute(url: string): NormalisedRoute {
   }
 
   const $url = new URL(url)
+  const hash = $url.hash.startsWith('#/') ? $url.hash : ''
   // make sure we start with a leading slash
-  const path = `${withLeadingSlash($url.pathname)}${$url.search}`
+  const path = `${withLeadingSlash($url.pathname)}${hash}${$url.search}`
 
   let normalised: Partial<NormalisedRoute> = {
-    id: hashPathName(`${$url.pathname}${$url.search}`),
+    id: hashPathName(path),
     url,
     $url,
     path,
