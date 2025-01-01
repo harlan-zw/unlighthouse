@@ -100,10 +100,11 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
   if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
     try {
-      const report = fs.readJsonSync(reportJsonPath, {encoding: 'utf-8'}) as Result
+      const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as Result
       routeReport.report = normaliseLighthouseResult(routeReport, report)
       return routeReport
-    } catch(e) {
+    }
+    catch (e) {
       logger.warn(`Failed to read cached lighthouse report for path "${routeReport.route.path}".`, e)
     }
   }
