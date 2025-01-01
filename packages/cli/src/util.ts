@@ -40,7 +40,7 @@ export function isValidUrl(s: string) {
     const url = new URL(s)
     return !!url
   }
-  catch (err) {
+  catch {
     return false
   }
 }

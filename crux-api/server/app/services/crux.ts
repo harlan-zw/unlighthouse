@@ -3,11 +3,11 @@ import { useRuntimeConfig } from '#imports'
 import { $fetch } from 'ofetch'
 import { withHttps, withTrailingSlash } from 'ufo'
 
-const cwvKeys = [
+type cwvKeys = [
   'largest_contentful_paint',
   'cumulative_layout_shift',
   'interaction_to_next_paint',
-] as const
+]
 
 export async function fetchCrux(domain: string, formFactor: 'PHONE' | 'TABLET' | 'DESKTOP' = 'PHONE') {
   const origin = withTrailingSlash(withHttps(domain))
@@ -45,7 +45,7 @@ interface CrUXHistoryResult {
     origin: string
   }
   metrics: {
-    [key in typeof cwvKeys[number]]: {
+    [key in cwvKeys[number]]: {
       histogramTimeseries: Array<{
         start: number | string
         end?: number | string

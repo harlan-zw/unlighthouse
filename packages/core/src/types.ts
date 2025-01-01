@@ -521,8 +521,7 @@ export interface ResolvedUserConfig {
 export type ClientOptionsPayload = Pick<ResolvedUserConfig, 'client' | 'site' | 'lighthouseOptions' | 'scanner' | 'routerPrefix'>
   & Pick<RuntimeSettings, 'websocketUrl' | 'apiUrl'>
 
-export type DeepPartial<T> = T extends Function ? T : (T extends object ? { [P in keyof T]?: DeepPartial<T[P]>; } : T)
-export type UserConfig = DeepPartial<ResolvedUserConfig>
+export type UserConfig = Partial<ResolvedUserConfig>
 
 export interface RuntimeSettings {
   /**

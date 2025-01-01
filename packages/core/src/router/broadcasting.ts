@@ -55,7 +55,7 @@ export class WS {
       try {
         client.send(jsonData)
       }
-      catch (err) {
+      catch {
         // Ignore error (if client not ready to receive event)
       }
     }

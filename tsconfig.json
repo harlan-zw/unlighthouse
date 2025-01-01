@@ -3,8 +3,15 @@
     "target": "ESNext",
     "jsx": "preserve",
     "jsxImportSource": "vue",
+    "lib": [
+      "ESNext",
+      "dom",
+      "dom.iterable",
+      "webworker"
+    ],
+    "moduleDetection": "force",
     "useDefineForClassFields": true,
-    "module": "ESNext",
+    "module": "es2022",
     "moduleResolution": "Bundler",
     "paths": {
       "unlighthouse": ["./packages/unlighthouse/src"],
@@ -19,8 +26,11 @@
     "resolveJsonModule": true,
     "types": [],
     "allowJs": true,
+    "maxNodeModuleJsDepth": 200,
     "strict": true,
+    "noImplicitOverride": true,
     "noImplicitThis": true,
+    "noUncheckedIndexedAccess": false,
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,

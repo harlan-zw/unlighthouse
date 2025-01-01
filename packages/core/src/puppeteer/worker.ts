@@ -1,4 +1,3 @@
-import type { TaskFunction } from 'puppeteer-cluster/dist/Cluster'
 import type {
   NormalisedRoute,
   PuppeteerTaskArgs,
@@ -8,6 +7,7 @@ import type {
   UnlighthouseWorker,
   UnlighthouseWorkerStats,
 } from '../types'
+import type { TaskFunction } from '../types/puppeteer'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import { colorize } from 'consola/utils'

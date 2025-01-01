@@ -82,10 +82,10 @@ export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
 export const fetchedScanMeta = isStatic
   ? null
   : reactive(
-    useFetch('/scan-meta')
-      .get()
-      .json<ScanMeta>(),
-  )
+      useFetch('/scan-meta')
+        .get()
+        .json<ScanMeta>(),
+    )
 
 export const lastScanMeta = ref<ScanMeta | null>(null)
 

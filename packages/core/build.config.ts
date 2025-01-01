@@ -6,15 +6,6 @@ export default defineBuildConfig({
   rollup: {
     emitCJS: true,
     inlineDependencies: true,
-    // puppeteer-cluster uses puppeteer, but we want to use puppeteer-core
-    alias: {
-      entries: {
-        puppeteer: 'puppeteer-core',
-      },
-    },
-    replace: {
-      puppeteer: 'puppeteer-core',
-    },
   },
   entries: [
     { input: 'src/index' },
@@ -26,6 +17,7 @@ export default defineBuildConfig({
     'puppeteer-core',
     'devtools-protocol',
     'puppeteer-cluster',
+    'puppeteer-core',
     'lighthouse',
     '@unrouted/core',
     'h3',

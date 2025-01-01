@@ -1,4 +1,4 @@
-import type { Page } from 'puppeteer-core'
+import type { Page } from '../types/puppeteer'
 import { useLogger, useUnlighthouse } from '../unlighthouse'
 
 export async function setupPage(page: Page) {

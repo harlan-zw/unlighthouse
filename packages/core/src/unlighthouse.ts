@@ -88,7 +88,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     configFile = configDefinition.sources[0]
     // @ts-expect-error fixes issue with default being returned for mjs loads
     const config = configDefinition.config?.default || configDefinition.config
-    // @ts-ignore broken types
     userConfig = defu(config, userConfig)
   }
   const runtimeSettings: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
@@ -142,7 +141,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     runLighthouseTask,
   }
 
-  // @ts-ignore broken types
   const worker = await createUnlighthouseWorker(tasks)
 
   if (resolvedConfig.hooks?.authenticate) {
@@ -161,7 +159,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
             json[key] = localStorage.getItem(key)
         }
         return json
-      }).catch((e) => {
+      }).catch((e: any) => {
         logger.warn('Failed to collect authentication localStorage.\n', e)
         return {}
       })
@@ -173,7 +171,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
             json[key] = sessionStorage.getItem(key)
         }
         return json
-      }).catch((e) => {
+      }).catch((e: any) => {
         logger.warn('Failed to collect authentication sessionStorage.\n', e)
         return {}
       })
@@ -347,7 +345,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       try {
         latestTag = (await $fetch<any>('https://ungh.unjs.io/repos/harlan-zw/unlighthouse/releases/latest')).release.tag
       }
-      catch (e) {}
+      catch {}
 
       const title = [
         `⛵  ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${provider?.name} @ v${version}`)}`,

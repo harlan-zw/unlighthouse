@@ -9,7 +9,7 @@ import { dirname, join, resolve } from 'node:path'
 import fs from 'fs-extra'
 import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
-import { createScanMeta } from './data'
+import { createScanMeta } from './data/scanMeta'
 import { useLogger, useUnlighthouse } from './unlighthouse'
 
 /**
