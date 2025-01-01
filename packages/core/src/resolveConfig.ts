@@ -1,16 +1,16 @@
 import type { InstallOptions } from '@puppeteer/browsers'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { Buffer } from 'node:buffer'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
-import { computeExecutablePath, install } from '@puppeteer/browsers'
+import path, { join, resolve } from 'node:path'
+import { computeExecutablePath, detectBrowserPlatform, install } from '@puppeteer/browsers'
 import { Launcher } from 'chrome-launcher'
 import { createDefu, defu } from 'defu'
 import { pathExists } from 'fs-extra'
 import { pick } from 'lodash-es'
 import { resolve as resolveModule } from 'mlly'
-import puppeteer from 'puppeteer-core'
+import puppeteer, { launch } from 'puppeteer-core'
 import { PUPPETEER_REVISIONS } from 'puppeteer-core/lib/cjs/puppeteer/revisions.js'
 import { defaultConfig } from './constants'
 import { useLogger } from './logger'
@@ -185,12 +185,24 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     // we'll try and resolve their local chrome
     const chromePath = Launcher.getFirstInstallation()
     if (chromePath) {
-      logger.info(`Using system chrome located at: \`${chromePath}\`.`)
+      logger.info(`Using system Chrome located at: \`${chromePath}\`.`)
       // set default to puppeteer core
       config.puppeteerClusterOptions.puppeteer = puppeteer
       // point to our pre-installed chrome version
       config.puppeteerOptions.executablePath = chromePath
       foundChrome = true
+    }
+  }
+  if (foundChrome) {
+    logger.debug('Testing system Chrome installation.')
+    // mock the behavior of the custer so we can handle errors better
+    const instance = await launch(config.puppeteerOptions).catch((e) => {
+      logger.warn(`Failed to launch puppeteer instance using \`${config.puppeteerOptions?.executablePath}\`.`, e)
+      foundChrome = false
+    })
+    // let the cluster do the work
+    if (instance) {
+      await instance.close()
     }
   }
   if (!foundChrome) {
@@ -199,7 +211,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     try {
       await resolveModule('puppeteer')
       foundChrome = true
-      logger.info('Using puppeteer dependency for chrome.')
+      logger.info('Using puppeteer dependency for Chrome.')
     }
     catch (e) {
       logger.debug('Puppeteer does not exist as a dependency.', e)
@@ -207,6 +219,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   }
   if (config.chrome.useDownloadFallback && !foundChrome) {
     const browserOptions = {
+      installDeps: process.getuid?.() === 0,
       cacheDir: config.chrome.downloadFallbackCacheDir,
       buildId: config.chrome.downloadFallbackVersion || PUPPETEER_REVISIONS.chrome,
       browser: 'chrome',
@@ -234,6 +247,37 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   }
   if (!foundChrome)
     throw new Error('Failed to find chrome. Please ensure you have a valid chrome installed.')
+
+  // mock the behavior of the custer so we can handle errors better
+  const instance = await launch(config.puppeteerOptions).catch((e) => {
+    if (detectBrowserPlatform() === 'linux' && e.toString().includes('error while loading shared libraries')) {
+      const depsPath = path.join(
+        path.dirname(config.puppeteerOptions.executablePath),
+        'deb.deps',
+      )
+      if (existsSync(depsPath)) {
+        const data = readFileSync(depsPath, 'utf-8').trim().split('\n').map(d => `"${d}"`).join(',')
+        logger.warn('Failed to start puppeteer, you may be missing dependencies.')
+        logger.log('')
+        const command = [
+          'sudo',
+          'apt-get',
+          'satisfy',
+          '-y',
+          data,
+          '--no-install-recommends',
+        ].join(' ')
+        // eslint-disable-next-line no-console
+        console.log(`\x1B[96m%s\x1B[0m`, `Run the following command:\n${command}`)
+        logger.log('')
+      }
+    }
+    throw e
+  })
+  // let the cluster do the work
+  if (instance) {
+    await instance.close()
+  }
 
   // resolve the output path
   config.outputPath = resolve(config.root!, config.outputPath!)
