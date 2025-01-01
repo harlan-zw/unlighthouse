@@ -99,9 +99,13 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   // if the report doesn't exist, we're going to run a new lighthouse process to generate it
   const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
   if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
-    const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as Result
-    routeReport.report = normaliseLighthouseResult(routeReport, report)
-    return routeReport
+    try {
+      const report = fs.readJsonSync(reportJsonPath, {encoding: 'utf-8'}) as Result
+      routeReport.report = normaliseLighthouseResult(routeReport, report)
+      return routeReport
+    } catch(e) {
+      logger.warn(`Failed to read cached lighthouse report for path "${routeReport.route.path}".`, e)
+    }
   }
 
   await setupPage(page)
