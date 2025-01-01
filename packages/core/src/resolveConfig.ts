@@ -183,7 +183,13 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   // if user is using the default chrome binary options
   if (config.chrome.useSystem && !foundChrome) {
     // we'll try and resolve their local chrome
-    const chromePath = Launcher.getFirstInstallation()
+    let chromePath = false
+    try {
+      chromePath = Launcher.getFirstInstallation()
+    }
+    catch (e) {
+      logger.debug('Chrome launcher failed to get a path.', e)
+    }
     if (chromePath) {
       logger.info(`Using system Chrome located at: \`${chromePath}\`.`)
       // set default to puppeteer core
