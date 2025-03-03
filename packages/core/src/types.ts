@@ -354,7 +354,7 @@ export interface ResolvedUserConfig {
      * Provide a budget for each page as a numeric total score, or an object mapping the category to the score. Should be
      * a number between 1-100.
      */
-    budget: number | Record<Partial<LighthouseCategories>, number>
+    budget: number | Partial<Record<LighthouseCategories, number>>
     /**
      * Injects the required data into the client files, so it can be hosted statically.
      */
@@ -521,7 +521,11 @@ export interface ResolvedUserConfig {
 export type ClientOptionsPayload = Pick<ResolvedUserConfig, 'client' | 'site' | 'lighthouseOptions' | 'scanner' | 'routerPrefix'>
   & Pick<RuntimeSettings, 'websocketUrl' | 'apiUrl'>
 
-export type UserConfig = Partial<ResolvedUserConfig>
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K]
+}
+
+export type UserConfig = DeepPartial<ResolvedUserConfig>
 
 export interface RuntimeSettings {
   /**
