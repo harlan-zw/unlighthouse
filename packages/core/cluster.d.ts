@@ -1,4 +1,4 @@
-import type { LaunchOptions, Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
+import type { LaunchOptions, Page } from 'puppeteer-core'
 import { EventEmitter } from 'node:events'
 
 export interface ResourceData {
@@ -55,8 +55,8 @@ interface ClusterOptions {
   concurrency: number | ConcurrencyImplementationClassType
   maxConcurrency: number
   workerCreationDelay: number
-  puppeteerOptions: PuppeteerNodeLaunchOptions
-  perBrowserOptions: PuppeteerNodeLaunchOptions[] | undefined
+  puppeteerOptions: LaunchOptions
+  perBrowserOptions: LaunchOptions[] | undefined
   monitor: boolean
   timeout: number
   retryLimit: number

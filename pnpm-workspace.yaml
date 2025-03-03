@@ -1,4 +1,7 @@
 packages:
-  - 'packages/*'
+  - packages/*
   - crux-api
   - '!docs'
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - esbuild

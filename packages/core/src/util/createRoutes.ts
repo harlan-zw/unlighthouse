@@ -23,7 +23,7 @@ function getRoutePathExtension(key: string) {
   return key
 }
 
-const sortRoutes = function sortRoutes(routes: NuxtRoute[]) {
+function sortRoutes(routes: NuxtRoute[]) {
   routes.sort((a, b) => {
     if (!a.path.length)
       return -1

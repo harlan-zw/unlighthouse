@@ -3,7 +3,7 @@ import type { Hookable, NestedHooks } from 'hookable'
 import type { Flags, Result } from 'lighthouse'
 import type http from 'node:http'
 import type https from 'node:https'
-import type { Page, PuppeteerNodeLaunchOptions } from 'puppeteer-core'
+import type { LaunchOptions, Page } from 'puppeteer-core'
 import type { QueryObject } from 'ufo'
 import type { Cluster, ClusterOptionsArgument, TaskFunction } from '../cluster'
 import type { WS } from './router'
@@ -484,7 +484,7 @@ export interface ResolvedUserConfig {
   /**
    * Change the behaviour of puppeteer.
    */
-  puppeteerOptions: PuppeteerNodeLaunchOptions
+  puppeteerOptions: LaunchOptions
   /**
    * Change the behaviour of puppeteer-cluster.
    */

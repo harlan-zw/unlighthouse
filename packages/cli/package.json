@@ -46,12 +46,12 @@
     "@unlighthouse/server": "workspace:*",
     "better-opn": "^3.0.2",
     "cac": "^6.7.14",
-    "consola": "^3.3.3",
+    "consola": "^3.4.0",
     "defu": "^6.1.4",
-    "fs-extra": "^11.2.0",
-    "globby": "^14.0.2",
+    "fs-extra": "^11.3.0",
+    "globby": "^14.1.0",
     "lodash-es": "^4.17.21",
-    "pathe": "^1.1.2",
-    "std-env": "^3.8.0"
+    "pathe": "^2.0.3",
+    "std-env": "^3.8.1"
   }
 }
