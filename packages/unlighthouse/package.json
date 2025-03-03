@@ -22,20 +22,26 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
-    }
+      "types": "./types.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./config": {
+      "types": "./config.d.ts",
+      "import": "./config.js",
+      "require": "./config.cjs"
+    },
+    "./package.json": "./package.json"
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
-  "types": "index.d.ts",
+  "types": "./types.d.ts",
   "bin": {
-    "unlighthouse": "bin/unlighthouse.cjs",
-    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+    "unlighthouse": "bin/unlighthouse.mjs",
+    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
   },
   "files": [
-    "*.d.ts",
+    "types.d.ts",
+    "types.d.mts",
     "dist"
   ],
   "engines": {

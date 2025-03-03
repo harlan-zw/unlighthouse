@@ -10,6 +10,7 @@ import type {
 } from './types'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
+import { loadConfig } from 'c12'
 import { colorize } from 'consola/utils'
 import { defu } from 'defu'
 import fs from 'fs-extra'
@@ -18,7 +19,6 @@ import { createCommonJS, resolvePath } from 'mlly'
 import objectHash from 'object-hash'
 import { $fetch } from 'ofetch'
 import { $URL, joinURL } from 'ufo'
-import { loadConfig } from 'unconfig'
 import { createContext } from 'unctx'
 import { version } from '../package.json'
 import { generateClient } from './build'
@@ -41,7 +41,7 @@ export const useUnlighthouse = engineContext.tryUse as () => UnlighthouseContext
 
 /**
  * A simple define wrapper to provide typings to config definitions.
- * @param config
+ * @deprecated Use `defineUnlighthouseConfig` from `unlighthouse/config` instead.
  */
 export function defineConfig(config: UserConfig) {
   return config
@@ -63,33 +63,16 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     userConfig.root = process.cwd()
 
   logger.debug(`Starting Unlighthouse at root: \`${userConfig.root}\` cwd: ${process.cwd()}`)
-  let configFile: string | null = null
   // support loading configuration files
-  const configDefinition = await loadConfig<UserConfig>({
-    cwd: userConfig.root,
-    sources: [
-      {
-        files: [
-          'unlighthouse.config',
-          // may provide the config file as an argument
-          ...(userConfig.configFile ? [userConfig.configFile] : []),
-        ],
-        // default extensions
-        extensions: ['ts', 'js', 'mjs', 'cjs', 'json', ''],
-      },
-    ],
+  ;(globalThis as any).defineUnlighthouseConfig = (c: any) => c
+  const { configFile, config } = await loadConfig<UserConfig>({
+    name: 'unlighthouse',
+    configFile: userConfig.configFile || 'unlighthouse.config',
+    dotenv: true,
   })
-  logger.debug('Discovered config definition', configDefinition)
-
-  if (configDefinition.sources?.[0]) {
-    configFile = configDefinition.sources[0]
-    // @ts-expect-error fixes issue with default being returned for mjs loads
-    let config = configDefinition.config?.default || configDefinition.config
-    if (typeof config === 'function') {
-      config = await config()
-    }
-    userConfig = defu(config || {}, userConfig)
-  }
+  delete (globalThis as any).defineUnlighthouseConfig
+  logger.debug('Discovered config definition', config)
+  userConfig = defu(config, userConfig)
   const runtimeSettings: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
     configFile: configFile || undefined,
     moduleWorkingDir: __dirname,
