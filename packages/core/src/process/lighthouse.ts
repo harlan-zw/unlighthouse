@@ -16,7 +16,14 @@ setMaxListeners(0);
   const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded }
       = minimist<{ options: string, cache: boolean, routeReport: string, port: number }>(process.argv.slice(2))
 
-  const routeReportJson: UnlighthouseRouteReport = JSON.parse(routeReport)
+  let routeReportJson: UnlighthouseRouteReport
+  try {
+    routeReportJson = JSON.parse(routeReport)
+  }
+  catch (e: unknown) {
+    console.error('Failed to parse Unlighthouse config. Please create an issue with this output.', process.argv.slice(2), e)
+    return false
+  }
   const lighthouseOptions: Flags = {
     ...JSON.parse(lighthouseOptionsEncoded),
     // always generate html / json reports
