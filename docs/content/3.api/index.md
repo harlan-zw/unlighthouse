@@ -30,18 +30,19 @@ Functions exposed from the `@unlighthouse/core` package.
   )
   ```
 
-### defineConfig
+### defineUnlighthouseConfig
 
 - **Type:** `(userConfig: UserConfig) => Promise<UnlighthouseContext>`
 
   A simple define wrapper to provide typings to config definitions. This is primarily used when creating a
   config file `unlighthouse.config.ts`
+  
+  Powered by [c12](https://github.com/unjs/c12).
 
   ```ts
-  /// <reference types="unlighthouse" />
-  import { defineConfig } from 'unlighthouse'
+  import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
-  export default defineConfig({
+  export default defineUnlighthouseConfig({
     site: 'harlanzw.com'
   })
   ```
