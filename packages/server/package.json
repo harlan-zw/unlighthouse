@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/server",
   "type": "module",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "description": "Server for Unlighthouse",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
