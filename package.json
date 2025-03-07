@@ -22,6 +22,7 @@
     "docs:serve": "npm -C docs run serve"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "0.17.4",
     "@antfu/eslint-config": "^4.4.0",
     "bumpp": "^10.0.3",
     "eslint": "^9.21.0",

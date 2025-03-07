@@ -1,4 +1,4 @@
-import type { DefineUnlighthouseConfig } from 'unlighthouse/config'
+import type { DefineUnlighthouseConfig } from '@unlighthouse/config'
 
 export * from './dist/index'
 
