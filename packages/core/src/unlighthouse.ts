@@ -330,9 +330,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       }
       catch {}
 
-      const title = [
-        `⛵  ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${provider?.name} @ v${version}`)}`,
-      ]
+      const title = [`⛵\u200D ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${provider?.name} @ v${version}`)}`]
       if (Number(latestTag.replace('v', '').replace('.', '')) > Number(version.replace('.', ''))) {
         title.push(...[
           '',
