@@ -40,12 +40,12 @@
     "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
   },
   "files": [
-    "types.d.ts",
-    "types.d.mts",
-    "config.d.ts",
     "config.cjs",
+    "config.d.ts",
     "config.js",
-    "dist"
+    "dist",
+    "types.d.mts",
+    "types.d.ts"
   ],
   "engines": {
     "node": ">=18"

@@ -36,7 +36,7 @@ Functions exposed from the `@unlighthouse/core` package.
 
   A simple define wrapper to provide typings to config definitions. This is primarily used when creating a
   config file `unlighthouse.config.ts`
-  
+
   Powered by [c12](https://github.com/unjs/c12).
 
   ```ts

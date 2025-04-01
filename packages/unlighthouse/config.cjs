@@ -1,4 +1,4 @@
-function defineUnlighthouseConfig (config) {
+function defineUnlighthouseConfig(config) {
   return config
 }
 
