@@ -1,84 +1,206 @@
 <script setup lang="ts">
 import type { Group } from 'three'
-import type { RendererPublicInterface } from 'troisjs'
 import { useElementHover } from '@vueuse/core'
-import { AmbientLight, Camera, FbxModel, PointLight, Renderer, Scene } from 'troisjs'
+import * as THREE from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
 import { ref } from 'vue'
 import { basePath, scanMeta } from '../logic'
 
-const rendererC = ref()
-const lighthouseRef = ref()
+const canvasRef = ref<HTMLCanvasElement>()
+const lighthouseRef = ref<HTMLDivElement>()
 const lighthouse = shallowRef<Group>()
 const isHovered = useElementHover(lighthouseRef)
 
+let scene: THREE.Scene
+let camera: THREE.PerspectiveCamera
+let renderer: THREE.WebGLRenderer
+let controls: OrbitControls
+let animationId: number
+
+const z = ref(20)
+const rotation = ref(0.01)
+
 onMounted(() => {
-  const renderer = rendererC.value as RendererPublicInterface
-  if (!renderer)
+  if (!canvasRef.value)
     return
 
-  const z = ref(10)
-  const rotation = ref(0.01)
+  // Scene setup
+  scene = new THREE.Scene()
 
-  renderer.onBeforeRender(() => {
-    if (isHovered.value) {
-      if (z.value < 30)
-        z.value += 0.1
+  // Camera setup
+  camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000)
+  camera.position.set(0, 0, 15)
 
-      if (rotation.value < 0.1)
-        rotation.value += 0.001
-    }
-    else if (z.value !== 10) {
-      if (z.value > 10)
-        z.value -= 0.1
-      else
-        z.value += 0.1
+  // Renderer setup
+  renderer = new THREE.WebGLRenderer({
+    canvas: canvasRef.value,
+    antialias: true,
+    alpha: true,
+  })
+  renderer.setSize(200, 200)
+  renderer.setPixelRatio(window.devicePixelRatio)
 
-      if (rotation.value > 0.01)
-        rotation.value -= 0.001
-    }
-    if (lighthouse.value) {
-      // set initial position
-      lighthouse.value.position.set(184, -71, z.value)
-      // lighthouse
+  // Controls setup
+  controls = new OrbitControls(camera, renderer.domElement)
+  controls.enableDamping = true
+
+  // Lighting setup - very bright for FBX materials
+  const pointLight = new THREE.PointLight(0xFFFFFF, 5, 0)
+  pointLight.position.set(160, -71, 100)
+  scene.add(pointLight)
+
+  const ambientLight = new THREE.AmbientLight(0x808080, 2.5)
+  scene.add(ambientLight)
+
+  // Add directional light for better visibility
+  const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 3)
+  directionalLight.position.set(100, 100, 50)
+  scene.add(directionalLight)
+
+  // Load FBX model
+  const loader = new FBXLoader()
+  loader.load(
+    `${basePath}assets/lighthouse.fbx`,
+    (object: Group) => {
+      // Keep original model scale
+      // object.scale.setScalar(5)
+
+      // Fix materials for unknown types
+      object.traverse((child) => {
+        if (child.isMesh) {
+          const mesh = child as THREE.Mesh
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach((mat) => {
+              if (mat.type === 'MeshPhongMaterial') {
+                mat.shininess = 30
+                mat.transparent = true
+              }
+            })
+          }
+          else if (mesh.material && mesh.material.type === 'MeshPhongMaterial') {
+            const mat = mesh.material as THREE.MeshPhongMaterial
+            mat.shininess = 30
+            mat.transparent = true
+          }
+        }
+      })
+
+      lighthouse.value = object
+      scene.add(object)
+    },
+    () => {
+      // Fallback: create a simple placeholder mesh
+      createFallbackLighthouse()
+    },
+  )
+
+  // Animation loop
+  animate()
+})
+
+onUnmounted(() => {
+  if (animationId) {
+    cancelAnimationFrame(animationId)
+  }
+  if (renderer) {
+    renderer.dispose()
+  }
+})
+
+function animate() {
+  animationId = requestAnimationFrame(animate)
+
+  // Update animation values
+  if (isHovered.value) {
+    if (z.value > 0)
+      z.value -= 0.1
+    if (rotation.value < 0.1)
+      rotation.value += 0.001
+  }
+  else if (z.value !== 20) {
+    if (z.value < 20)
+      z.value += 0.1
+    else
+      z.value -= 0.1
+    if (rotation.value > 0.01)
+      rotation.value -= 0.001
+  }
+
+  // Update lighthouse model
+  if (lighthouse.value) {
+    // set initial position
+    lighthouse.value.position.set(184, -71, z.value)
+    // lighthouse
+    if (lighthouse.value.children[0]) {
       lighthouse.value.children[0].rotation.z += rotation.value
-      lighthouse.value.children[0].material[2].opacity = 0.2
-      // ground
+      const material = (lighthouse.value.children[0] as any).material
+      if (Array.isArray(material) && material[2]) {
+        material[2].opacity = 0.2
+      }
+    }
+    // ground
+    if (lighthouse.value.children[1])
       lighthouse.value.children[1].rotation.z += rotation.value
+    if (lighthouse.value.children[2])
       lighthouse.value.children[2].rotation.z += rotation.value
+    if (lighthouse.value.children[3])
       lighthouse.value.children[3].rotation.z += rotation.value
 
-      // ladder
+    // ladder
+    if (lighthouse.value.children[4])
       lighthouse.value.children[4].visible = false
+    if (lighthouse.value.children[5])
       lighthouse.value.children[5].visible = false
-      // rocks
+    // rocks
+    if (lighthouse.value.children[6])
       lighthouse.value.children[6].visible = false
+    if (lighthouse.value.children[7])
       lighthouse.value.children[7].visible = false
+    if (lighthouse.value.children[8])
       lighthouse.value.children[8].visible = false
-    }
-  })
-})
+  }
+
+  controls.update()
+  renderer.render(scene, camera)
+}
+
+function createFallbackLighthouse() {
+  // Create a simple lighthouse fallback using basic geometries
+  const group = new THREE.Group()
+
+  // Lighthouse tower (cylinder)
+  const towerGeometry = new THREE.CylinderGeometry(2, 3, 15, 8)
+  const towerMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
+  const tower = new THREE.Mesh(towerGeometry, towerMaterial)
+  tower.position.y = 7.5
+  group.add(tower)
+
+  // Lighthouse top (cone)
+  const topGeometry = new THREE.ConeGeometry(2.5, 4, 8)
+  const topMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 })
+  const top = new THREE.Mesh(topGeometry, topMaterial)
+  top.position.y = 17
+  group.add(top)
+
+  // Ground (cylinder)
+  const groundGeometry = new THREE.CylinderGeometry(8, 8, 1, 16)
+  const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x8B7355 })
+  const ground = new THREE.Mesh(groundGeometry, groundMaterial)
+  ground.position.y = -0.5
+  group.add(ground)
+
+  lighthouse.value = group as Group
+  scene.add(group)
+}
 
 const showLighthouse = computed(() => {
   return scanMeta?.value?.monitor?.status === 'working' || isHovered.value
 })
-
-function onReady(object: Group) {
-  lighthouse.value = object
-}
 </script>
 
 <template>
   <div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="transform hover:scale-110 bg-linear-to-b from-sky-50/50 to-sky-300/50 dark:bg-none rounded-full duration-2000 ease-in-out transform transition w-200px h-200px">
-    <Renderer ref="rendererC" antialias :orbit-ctrl="{ enableDamping: true }" resize="true" :alpha="true">
-      <Camera :position="{ x: 0, y: 0, z: 0 }" />
-      <Scene>
-        <PointLight :position="{ x: 160, y: -71, z: 0 }" />
-        <AmbientLight />
-        <FbxModel
-          :src="`${basePath}assets/lighthouse.fbx`"
-          @load="onReady"
-        />
-      </Scene>
-    </Renderer>
+    <canvas ref="canvasRef" width="200" height="200" />
   </div>
 </template>

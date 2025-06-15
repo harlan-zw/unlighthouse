@@ -52,7 +52,7 @@
     "@unrouted/preset-node": "^0.6.0",
     "axios": "^1.10.0",
     "c12": "^3.0.4",
-    "cheerio": "1.0.0",
+    "cheerio": "1.1.0",
     "chrome-launcher": "^1.2.0",
     "consola": "^3.4.2",
     "defu": "^6.1.4",
