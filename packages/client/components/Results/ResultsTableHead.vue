@@ -39,7 +39,7 @@ function htmlTooltip(s: string) {
       </div>
       <button
         v-if="(column.sortable || !!column.sortKey) && column.key"
-        class="ml-2 p-0.3 dark:(border-none bg-blue-900/20) border-2 border-blue-100 ring-blue-200 hover:ring-1 rounded-lg"
+        class="ml-2 p-0.3 dark:border-none dark:bg-blue-900/20 border-2 border-blue-100 ring-blue-200 hover:ring-1 rounded-lg"
         :class="sorting.key === column.key && sorting.dir ? ['dark:bg-blue-900/70', 'bg-blue-900', 'text-blue-200'] : []"
         @click="$emit('sort', column.key)"
       >

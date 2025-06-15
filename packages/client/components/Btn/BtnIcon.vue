@@ -14,7 +14,7 @@ export default {
     v-if="href"
     v-bind="$attrs"
     :href="href"
-    class="inline-block cursor-pointer select-none !outline-none
+    class="inline-block cursor-pointer select-none outline-none!
     opacity-75 transition duration-200 ease-in-out
     hover:opacity-100 hover:text-teal-600 h-[1.2em] hover:no-underline no-underline"
   >
@@ -23,7 +23,7 @@ export default {
   <button
     v-else
     v-bind="$attrs"
-    class="inline-block cursor-pointer select-none !outline-none
+    class="inline-block cursor-pointer select-none outline-none!
     opacity-75 transition duration-200 ease-in-out
     hover:opacity-100 hover:text-teal-600 h-[1.2em] hover:no-underline no-underline"
   >
