@@ -17,23 +17,20 @@ const favIcon = computed(() => {
 </script>
 
 <template>
-  <nav class="bg-white dark:(bg-transparent) font-light border-b border-main flex items-center gap-4 children:my-auto px-3 md:px-6 py-2 ">
-    <a class="text-md font-medium text-teal-700 dark:text-teal-200 font-mono items-center hidden md:flex" href="https://unlighthouse.dev" target="_blank">
-      <img :src="`${basePath}assets/logo-light.svg`" height="24" width="24" class="w-24px h-24px mr-2 hidden dark:block">
-      <img :src="`${basePath}assets/logo-dark.svg`" height="24" width="24" class="w-24px h-24px mr-2 block dark:hidden">
+  <nav class="bg-white dark:bg-transparent font-light border-b border-main flex items-center gap-4 children:my-auto px-3 md:px-6 py-2 ">
+    <a class="text-md font-medium text-teal-700 dark:text-teal-200 font-mono items-center hidden md:flex cursor-pointer" href="https://unlighthouse.dev" target="_blank">
+      <img :src="`${basePath}assets/logo-light.svg`" height="24" width="24" class="w-24px h-24px mr-2 hidden dark:block" alt="Unlighthouse logo">
+      <img :src="`${basePath}assets/logo-dark.svg`" height="24" width="24" class="w-24px h-24px mr-2 block dark:hidden" alt="Unlighthouse logo">
       Unlighthouse
     </a>
     <div class="flex w-full justify-between items-center text-xs md:ml-5 md:mr-10">
       <div class="flex items-center">
         <div v-if="website && !website.includes('localhost')" class="mr-5 hidden xl:block">
-          <div class="uppercase opacity-55 ">
-            Website
-          </div>
-          <div class="text-sm flex items-center">
-            <a :href="website" class="flex items-center pt-1" target="_blank">
-              <img :src="favIcon" width="16" height="16" class="mr-1">{{ website.replace('https://', '').replace('http://', '').replace('www.', '') }}
-            </a>
-          </div>
+          <stat-item
+            label="Website"
+            :value="website.replace('https://', '').replace('http://', '').replace('www.', '')"
+            size="sm"
+          />
         </div>
         <div v-if="isOffline" class="mr-5 hidden md:block">
           <warning-chip>
@@ -45,13 +42,13 @@ const favIcon = computed(() => {
             Total Score
           </div>
           <div class="flex items-center">
-            <metric-guage v-if="scanMeta?.score" :score="scanMeta.score" :stripped="true" class="font-bold text-sm" />
+            <metric-guage v-if="scanMeta?.score" :score="scanMeta.score" :stripped="true" class="font-medium text-sm" />
             <loading-spinner v-else class="h-24px" />
           </div>
         </div>
       </div>
-      <div v-if="scanMeta?.monitor?.allTargets > 0" class="flex flex-grow justify-around md:mr-5">
-        <search-box class="flex-grow mr-3 md:mr-5" />
+      <div v-if="scanMeta?.monitor?.allTargets > 0" class="flex grow justify-around md:mr-5">
+        <search-box class="grow mr-3 md:mr-5" />
         <popover-actions v-slot="{ close }" position="bottom">
           <div class="w-225px flex flex-col">
             <btn-basic
@@ -76,27 +73,25 @@ const favIcon = computed(() => {
       </div>
       <div v-if="!isOffline && scanMeta?.monitor" class="hidden xl:flex">
         <div class="mr-6">
-          <div class="uppercase opacity-55 ">
-            Worker Progress
-          </div>
-          <div class=" flex items-center">
-            <span class="text-sm mr-1 font-bold">
-              {{ scanMeta.monitor.donePercStr }}% <span class="text-xs opacity-60">{{
-                scanMeta.monitor.doneTargets
-              }}/{{ scanMeta.monitor.allTargets }}</span></span>
-          </div>
+          <stat-item
+            label="Worker Progress"
+            :value="`${scanMeta.monitor.donePercStr}% (${scanMeta.monitor.doneTargets}/${scanMeta.monitor.allTargets})`"
+            size="sm"
+          />
         </div>
-        <div class="mr-6 hidden 2xl:block">
-          <div class="uppercase opacity-55">
-            Time Remaining
-          </div>
-          <span class="text-sm">{{ scanMeta.monitor.status === 'completed' ? '-' : timeRemaining }}</span>
+        <div class="mr-6 hidden xl:block">
+          <stat-item
+            label="Time Remaining"
+            :value="scanMeta.monitor.status === 'completed' ? '-' : timeRemaining"
+            size="sm"
+          />
         </div>
-        <div class="mr-6 hidden 2xl:block">
-          <div class="uppercase opacity-55">
-            CPU
-          </div>
-          <span class="text-sm">{{ scanMeta.monitor.status === 'completed' ? '-' : scanMeta.monitor.cpuUsage }}</span>
+        <div class="mr-6 hidden xl:block">
+          <stat-item
+            label="CPU"
+            :value="scanMeta.monitor.status === 'completed' ? '-' : scanMeta.monitor.cpuUsage"
+            size="sm"
+          />
         </div>
       </div>
     </div>
@@ -108,7 +103,7 @@ const favIcon = computed(() => {
     >
       <i-carbon-logo-github />
     </btn-icon>
-    <btn-icon class="text-lg" title="Toggle Dark Mode" @click="toggleDark()">
+    <btn-icon class="text-lg cursor-pointer" title="Toggle Dark Mode" @click="toggleDark()">
       <i-carbon-moon v-if="isDark" />
       <i-carbon-sun v-else />
     </btn-icon>

@@ -1,19 +1,21 @@
 <script lang="ts" setup>
+import { GAUGE_CONSTANTS } from '../constants'
+
 const props = defineProps<{
   score?: number
   stripped?: boolean
   label?: string
 }>()
 
-const { score, label, stripped } = toRefs(props)
+// Direct prop access is more efficient than toRefs when not destructuring
 
 const arc = ref(null)
 
 const guageModifiers = computed(() => {
   let result = 'fail'
-  if (score.value >= 0.9)
+  if (props.score >= 0.9)
     result = 'pass'
-  else if (score.value >= 0.5)
+  else if (props.score >= 0.5)
     result = 'average'
 
   return [
@@ -21,31 +23,39 @@ const guageModifiers = computed(() => {
   ]
 })
 
-const guageArcStyle = computed(() => {
-  // r = 56
-  const r = 56
-  // stroke-width = 8
-  const n = 2 * Math.PI * r
-  const rotationOffset = 0.25 * 8 / n
+const gaugeColorClasses = computed(() => {
+  if (props.score >= 0.9) {
+    return 'text-success fill-current stroke-current'
+  }
+  else if (props.score >= 0.5) {
+    return 'text-warning fill-current stroke-current'
+  }
+  else {
+    return 'text-error fill-current stroke-current'
+  }
+})
 
-  let o = score.value * n - r / 2
-  if (score.value === 1)
-    o = n
+const guageArcStyle = computed(() => {
+  const { RADIUS, CIRCUMFERENCE, ROTATION_OFFSET } = GAUGE_CONSTANTS
+
+  let offset = props.score * CIRCUMFERENCE - RADIUS / 2
+  if (props.score === 1)
+    offset = CIRCUMFERENCE
 
   return {
-    opacity: score.value === 0 ? '0' : 1,
-    transform: `rotate(${360 * rotationOffset - 90}deg)`,
-    strokeDasharray: `${Math.max(o, 0)}, ${n}`,
+    opacity: props.score === 0 ? '0' : 1,
+    transform: `rotate(${360 * ROTATION_OFFSET - 90}deg)`,
+    strokeDasharray: `${Math.max(offset, 0)}, ${CIRCUMFERENCE}`,
   }
 })
 </script>
 
 <template>
-  <div v-if="stripped" :class="guageModifiers">
-    <audit-result :value="{ score, displayValue: Math.round(score * 100) }" />
+  <div v-if="props.stripped" :class="guageModifiers">
+    <audit-result :value="{ score: props.score, displayValue: Math.round(props.score * 100) }" />
   </div>
 
-  <div v-else class="guage__wrapper guage__wrapper--huge" :class="guageModifiers">
+  <div v-else class="guage__wrapper guage__wrapper--huge" :class="[guageModifiers, gaugeColorClasses]">
     <div
       class="guage__svg-wrapper relative"
     >
@@ -58,7 +68,7 @@ const guageArcStyle = computed(() => {
           stroke-width="8"
         />
         <circle
-          v-if="score !== null"
+          v-if="props.score !== null"
           ref="arc"
           class="guage-arc"
           r="56"
@@ -71,11 +81,11 @@ const guageArcStyle = computed(() => {
       <div
         class="font-5xl font-bold left-[50%] top-[50%] transform -translate-y-[50%] -translate-x-[50%] absolute text-mono font-mono"
       >
-        {{ score === null ? '?' : Math.round(score * 100) }}
+        {{ props.score === null ? '?' : Math.round(props.score * 100) }}
       </div>
     </div>
     <div class="text-xs mt-2">
-      {{ label }}
+      {{ props.label }}
     </div>
   </div>
 </template>
@@ -118,16 +128,7 @@ const guageArcStyle = computed(() => {
   --color-pass: var(--color-green);
   --color-not-applicable: var(--color-gray-600);
 }
-.guage__wrapper--pass {
-  @apply dark:(text-green-500) text-green-700 fill-current stroke-current;
-}
-.guage__wrapper--average {
-  @apply dark:(text-yellow-500) text-yellow-700 fill-current stroke-current;
-}
-
-.guage__wrapper--fail {
-  @apply dark:(text-red-500) text-red-700 fill-current stroke-current;
-}
+/* Color classes are now handled in template via gaugeColorClasses computed */
 
 .guage__wrapper--not-applicable {
   color: var(--color-not-applicable);

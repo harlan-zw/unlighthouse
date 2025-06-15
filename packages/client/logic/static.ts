@@ -43,6 +43,9 @@ const {
 export const isStatic = window.__unlighthouse_static
 
 export function resolveArtifactPath(report: UnlighthouseRouteReport, file: string) {
+  if (!report?.artifactUrl) {
+    return '' // Return empty string for missing artifact URLs
+  }
   const withoutBase = report.artifactUrl.replace(basePath, '')
   return joinURL(window.location.pathname, withoutBase, file) // dynamic base
 }

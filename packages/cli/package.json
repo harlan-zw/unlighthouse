@@ -29,18 +29,19 @@
   "main": "dist/cli.mjs",
   "module": "dist/cli.mjs",
   "bin": {
-    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
   },
   "files": [
     "*.d.ts",
+    "bin",
     "dist"
   ],
   "scripts": {
-    "build": "unbuild",
-    "stub": "unbuild --stub"
+    "build": "obuild",
+    "stub": "obuild --stub"
   },
   "dependencies": {
-    "@lhci/utils": "^0.14.0",
+    "@lhci/utils": "^0.15.0",
     "@unlighthouse/client": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",

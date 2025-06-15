@@ -205,7 +205,7 @@ export default defineComponent({
         default: {
           size: 'sm',
           activeButton: {
-            class: 'text-teal-900 dark:text-teal-100 !font-bold underline',
+            class: 'text-teal-900 dark:text-teal-100 font-bold! underline',
           },
           inactiveButton: {
             color: 'bg-white text-teal-100',
@@ -280,7 +280,7 @@ export default defineComponent({
       :key="`${page}-${index}`"
       :disabled="disabled"
       v-bind="page === currentPage ? { ...(ui.default.activeButton || {}), ...activeButton } : { ...(ui.default.inactiveButton || {}), ...inactiveButton }"
-      :class="[{ 'pointer-events-none': typeof page === 'string', 'z-[1]': page === currentPage }, ui.base, ui.rounded]"
+      :class="[{ 'pointer-events-none': typeof page === 'string', 'z-1': page === currentPage }, ui.base, ui.rounded]"
       @click="() => onClickPage(page)"
     >
       {{ page }}
