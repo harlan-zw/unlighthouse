@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Breakpoints - Ensure all responsive breakpoints are available */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* Custom colors from UnoCSS config */
+  --color-teal-50: #f7f9f9;
+  --color-teal-100: #eaf1f5;
+  --color-teal-200: #d0e0e9;
+  --color-teal-300: #a2c0cc;
+  --color-teal-400: #6c99a8;
+  --color-teal-500: #517784;
+  --color-teal-600: #415c66;
+  --color-teal-700: #33454d;
+  --color-teal-800: #232e36;
+  --color-teal-900: #151c23;
+
+  /* Custom fonts from UnoCSS config */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "DM Serif Display", ui-serif, Georgia, serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Force generation of responsive classes from UnoCSS safelist */
+@source inline("{sm:,md:,lg:,xl:}{flex,block,hidden,space-x-0,text-left,mt-4} {,md:,lg:,xl:}col-span-{1,2,3,4,5,6,7} grid-cols-{1,2,3,4,5,6,7} xl:{w-[250px],mr-5,mb-0,max-h-[calc(100vh-100px)],space-x-0}");
+
+/* Custom component tokens to reduce class verbosity */
+@layer components {
+  /* Legacy UnoCSS shortcuts */
+  .border-main {
+    @apply border-gray-400/30;
+  }
+
+  .bg-main {
+    @apply bg-gray-400;
+  }
+
+  /* Semantic state colors - High Impact */
+  .text-success {
+    @apply text-green-700 dark:text-green-500;
+  }
+  
+  .text-warning {
+    @apply text-yellow-700 dark:text-yellow-500;
+  }
+  
+  .text-error {
+    @apply text-red-700 dark:text-red-500;
+  }
+  
+  .text-info {
+    @apply text-blue-700 dark:text-blue-500;
+  }
+
+  .bg-success {
+    @apply bg-green-700 dark:bg-green-500;
+  }
+  
+  .bg-warning {
+    @apply bg-yellow-700 dark:bg-yellow-500;
+  }
+  
+  .bg-error {
+    @apply bg-red-700 dark:bg-red-500;
+  }
+
+  /* Dark mode text pairs - High Impact */
+  .text-muted {
+    @apply text-gray-700 dark:text-gray-200;
+  }
+  
+  .text-subtle {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+
+  /* Background surfaces */
+  .bg-surface {
+    @apply bg-blue-50 dark:bg-teal-700/30;
+  }
+  
+  .bg-panel {
+    @apply bg-blue-50 dark:bg-blue-900/20;
+  }
+
+  /* Interactive states - High Impact */
+  .btn-focus {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75;
+  }
+  
+  .btn-hover-primary {
+    @apply hover:bg-blue-500 transition;
+  }
+  
+  .btn-hover-light {
+    @apply hover:bg-blue-200 transition;
+  }
+
+  /* Chip/Badge patterns - Medium Impact */
+  .chip-base {
+    @apply font-bold inline text-xs uppercase px-1 rounded-xl;
+  }
+
+  /* Interactive element base - Medium Impact */
+  .interactive-base {
+    @apply inline-flex items-center px-2 py-1 text-sm font-medium rounded-md;
+  }
+  
+  .interactive-icon {
+    @apply cursor-pointer select-none outline-none opacity-75 transition duration-200 ease-in-out;
+  }
+
+  /* Common padding patterns */
+  .padding-sm {
+    @apply px-2 py-1;
+  }
+  
+  .padding-md {
+    @apply px-3 py-1;
+  }
+  
+  .padding-lg {
+    @apply px-6 py-3;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition duration-200 ease-in-out;
+  }
+
+  /* Unstyled button for accessibility */
+  .btn-unstyled {
+    @apply bg-transparent border-none p-0 m-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded;
+  }
+}

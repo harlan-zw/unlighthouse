@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "~/*": ["./src/*"]
+    },
+    "types": [
+      "vite/client",
+      "unplugin-vue-components/vite"
+    ]
+  },
+  "include": [
+    "*.ts",
+    "*.vue",
+    "**/*.ts",
+    "**/*.vue",
+    "**/*.d.ts",
+    "auto-imports.d.ts",
+    "components.d.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}
