@@ -68,7 +68,7 @@ function onReady(object: Group) {
 </script>
 
 <template>
-  <div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="transform hover:scale-110 bg-gradient-to-b from-sky-50/50 to-sky-300/50 dark:(bg-none) rounded-full duration-2000 ease-in-out transform transition w-200px h-200px">
+  <div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="transform hover:scale-110 bg-linear-to-b from-sky-50/50 to-sky-300/50 dark:bg-none rounded-full duration-2000 ease-in-out transform transition w-200px h-200px">
     <Renderer ref="rendererC" antialias :orbit-ctrl="{ enableDamping: true }" resize="true" :alpha="true">
       <Camera :position="{ x: 0, y: 0, z: 0 }" />
       <Scene>

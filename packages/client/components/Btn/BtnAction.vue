@@ -1,6 +1,6 @@
 <template>
   <button
-    class="dark:(hover:bg-blue-900/50) hover:bg-blue-200 transition p-1 rounded"
+    class="dark:hover:bg-gray-800/50 hover:bg-gray-200/50 transition p-1 rounded cursor-pointer"
   >
     <slot />
   </button>
