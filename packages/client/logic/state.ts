@@ -68,7 +68,7 @@ export const resultColumns = computed(() => {
       label: 'Actions',
       cols: 1,
       slot: 'actions',
-      classes: ['items-end justify-end'],
+      classes: ['justify-center'],
     },
   ]
 })
@@ -110,7 +110,7 @@ export const shouldShowWaitingState = computed<boolean>(() => {
     // For static builds, show waiting state only if there's no report data
     return !window.__unlighthouse_payload?.reports?.length
   }
-  
+
   // For dynamic mode, show waiting state if:
   // 1. We have no reports at all, OR
   // 2. We've lost connection to the server
@@ -153,7 +153,8 @@ export async function wsConnect() {
         if (response?.route?.path) {
           wsReports.set(response.route.path, response)
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.warn('Failed to parse WebSocket message:', error)
       }
     }
@@ -163,7 +164,7 @@ export async function wsConnect() {
     ws.onclose = () => {
       console.warn('WebSocket connection closed')
     }
-    
+
     try {
       const reports = await useFetch('/reports').get().json<UnlighthouseRouteReport[]>()
       if (reports.data.value && Array.isArray(reports.data.value)) {
@@ -173,11 +174,13 @@ export async function wsConnect() {
           }
         })
       }
-    } catch (fetchError) {
+    }
+    catch (fetchError) {
       console.warn('Failed to fetch initial reports:', fetchError)
       // Still continue - WebSocket might work even if initial fetch fails
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.warn('Failed to connect to Unlighthouse server:', error)
     throw error // Re-throw to let caller handle it
   }
@@ -186,20 +189,20 @@ export async function wsConnect() {
 export const categoryScores = computed(() => {
   const reports = unlighthouseReports.value || []
   const reportsFinished = reports.filter(r => !!r.report)
-  
+
   if (reportsFinished.length === 0) {
     return categories.map(() => 0)
   }
-  
+
   return categories.map((c, i) => {
     const reportsWithGoodScore = reportsFinished
     // make sure the score is valid, if it's ? we don't want to count it
       .filter(r => !!r.report?.categories?.[i]?.score)
-      
+
     if (reportsWithGoodScore.length === 0) {
       return 0
     }
-    
+
     return sum(
       reportsWithGoodScore
       // make sure the score is valid, if it's ? we don't want to count it

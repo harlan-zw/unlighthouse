@@ -14,14 +14,14 @@ defineProps<{
   <card>
     <div class="flex items-center">
       <div class="mr-15 space-y-3">
-        <stat-item 
-          label="Static Routes" 
+        <stat-item
+          label="Static Routes"
           :value="stats.staticRoutes"
           size="md"
         />
-        <stat-item 
+        <stat-item
           v-if="stats.dynamicRoutes"
-          label="Dynamic Routes" 
+          label="Dynamic Routes"
           :value="stats.dynamicRoutes"
           size="md"
         />

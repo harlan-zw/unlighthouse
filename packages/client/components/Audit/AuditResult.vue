@@ -21,17 +21,23 @@ const mark = computed(() => {
 
 const textColorClasses = computed(() => {
   const score = props.value.score
-  if (score === null) return 'text-gray-500'
-  if (score >= 0.9) return 'text-success'
-  if (score >= 0.5) return 'text-warning'
+  if (score === null)
+    return 'text-gray-500'
+  if (score >= 0.9)
+    return 'text-success'
+  if (score >= 0.5)
+    return 'text-warning'
   return 'text-error'
 })
 
 const iconClasses = computed(() => {
   const score = props.value.score
-  if (score === null) return 'bg-gray-500 rounded-full'
-  if (score >= 0.9) return 'bg-success rounded-full'
-  if (score >= 0.5) return 'bg-warning'
+  if (score === null)
+    return 'bg-gray-500 rounded-full'
+  if (score >= 0.9)
+    return 'bg-success rounded-full'
+  if (score >= 0.5)
+    return 'bg-warning'
   return 'border-red-700 dark:border-red-500 fail-icon'
 })
 </script>

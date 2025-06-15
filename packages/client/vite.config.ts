@@ -1,6 +1,6 @@
+import tailwindcss from '@tailwindcss/vite'
 import Vue from '@vitejs/plugin-vue'
 import * as fs from 'fs-extra'
-import tailwindcss from '@tailwindcss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
@@ -72,11 +72,11 @@ export default defineConfig(({ mode }) => ({
         chunkFileNames: '[name]-[hash].mjs',
         assetFileNames: 'assets/[name]-[hash].[ext]',
         manualChunks: {
-          vue: ['vue'],
+          'vue': ['vue'],
           'vue-router': ['vue-router'],
           'vue-use': ['@vueuse/core', '@vueuse/router'],
-          charts: ['lightweight-charts'],
-          utils: ['lodash-es', 'dayjs', 'fuse.js'],
+          'charts': ['lightweight-charts'],
+          'utils': ['lodash-es', 'dayjs', 'fuse.js'],
         },
       },
     },

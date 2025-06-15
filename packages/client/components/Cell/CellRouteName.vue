@@ -20,15 +20,15 @@ const fetchTime = computed(() => {
   if (!fetchTimeValue) {
     return 'No scan data'
   }
-  
+
   // use Intl to format the date
   const date = new Date(fetchTimeValue)
-  
+
   // Check if the date is valid
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return 'Invalid date'
   }
-  
+
   return new Intl.DateTimeFormat('en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -37,12 +37,12 @@ const fetchTime = computed(() => {
 
 const thumbnail = computed(() => {
   const mobileProps = device === 'mobile' ? { class: 'w-68px h-112px' } : { class: 'h-82px w-112px' }
-  
+
   // Check if report exists before trying to resolve artifact paths
   if (!props.report) {
     return { ...mobileProps, src: '' }
   }
-  
+
   if (categories.includes('performance')) {
     return {
       src: resolveArtifactPath(props.report, '/screenshot.jpeg'),
@@ -68,7 +68,7 @@ const thumbnail = computed(() => {
         <img :src="resolveArtifactPath(props.report, '/full-screenshot.jpeg')" alt="full screenshot" class="mx-auto">
       </template>
     </modal-trigger>
-    
+
     <div class="md:ml-3 grow w-full">
       <a v-if="report.seo?.title" :href="report.route.url" target="_blank" class="text-xs dark:opacity-80 underline hover:no-underline">
         {{ report.seo?.title }}

@@ -36,7 +36,7 @@ export function incrementSort(key: string) {
 
 export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
   let data = unlighthouseReports.value || []
-  
+
   // Gracefully handle empty or invalid data
   if (!Array.isArray(data)) {
     data = []
@@ -55,7 +55,7 @@ export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
 
     data = fuse.search<UnlighthouseRouteReport>(searchText.value).map(i => i.item)
   }
-  
+
   // need to map the data to make the scores easier to sort
   data = data.map((i) => {
     // current categories are an array with a number index, we need to make a new object

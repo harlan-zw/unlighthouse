@@ -9,7 +9,10 @@ defineProps<{
     <PopoverButton
       :class="open ? 'bg-teal-100 ring-2' : ''"
       :title="open ? 'Close Actions' : 'Open Actions'"
-      class="interactive-base text-white group bg-surface dark:hover:bg-teal-700/70 hover:text-white hover:bg-blue-100 btn-focus"
+      :aria-expanded="open"
+      aria-haspopup="menu"
+      aria-label="Open actions menu"
+      class="interactive-base justify-center text-white group bg-surface dark:hover:bg-teal-700/70 hover:text-white hover:bg-blue-100 btn-focus cursor-pointer"
     >
       <i-mdi-dots-horizontal
         :class="open ? 'rotate-270 scale-125' : ''"
@@ -27,13 +30,13 @@ defineProps<{
       leave-to-class="translate-y-1 opacity-0"
     >
       <PopoverPanel
-        :class="position !== 'bottom' ? ['-translate-x-[110%]', 'left-1/2'] : ['right-0', 'top-2/3']"
-        class="absolute z-10 px-4 mt-3 transform sm:px-0"
+        :class="position !== 'bottom' ? ['-translate-x-[95%]', 'left-1/2'] : ['right-0', 'top-2/3']"
+        class="absolute z-10 px-2 mt-3 transform"
       >
         <div
           class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black/5"
         >
-          <div class="relative p-2 bg-teal-50/90 dark:bg-teal-900/99 dark:text-gray-100 text-gray-800">
+          <div class="relative p-4 bg-teal-50/90 dark:bg-teal-900/99 dark:text-gray-100 text-gray-800">
             <slot :open="open" :close="close" />
           </div>
         </div>

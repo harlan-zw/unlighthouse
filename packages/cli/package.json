@@ -33,6 +33,7 @@
   },
   "files": [
     "*.d.ts",
+    "bin",
     "dist"
   ],
   "scripts": {

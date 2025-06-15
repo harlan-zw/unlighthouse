@@ -96,7 +96,7 @@ const themesData = {
 
 onMounted(() => {
   let _chart: any = null
-  
+
   _chart = createChart(chart.value!, {
     height: Number(props.height) || 100,
     autoSize: true,
@@ -180,7 +180,7 @@ onMounted(() => {
   }, {
     immediate: true,
   })
-  
+
   // Cleanup chart on unmount
   onUnmounted(() => {
     if (_chart) {

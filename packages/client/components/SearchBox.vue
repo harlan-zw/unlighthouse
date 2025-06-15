@@ -10,6 +10,8 @@ import { searchText } from '../logic'
       type="text"
       class="bg-transparent border-transparent pl-7 py-1 rounded line-height-0.5 text-base w-full focus-visible:ring-teal-800"
       placeholder="Search routes"
+      aria-label="Search lighthouse routes"
+      aria-describedby="search-results-status"
     >
   </div>
 </template>

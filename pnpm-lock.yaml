@@ -9,10 +9,6 @@ packageExtensionsChecksum: sha256-k/cBKT3Y3mczxaP28Qw33G8FDDIbrVuu480sUtPg6Gw=
 importers:
 
   .:
-    dependencies:
-      obuild:
-        specifier: ^0.2.1
-        version: 0.2.1(magicast@0.3.5)(typescript@5.8.3)
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^4.14.1
@@ -26,6 +22,9 @@ importers:
       eslint:
         specifier: ^9.29.0
         version: 9.29.0(jiti@2.4.2)
+      obuild:
+        specifier: ^0.2.1
+        version: 0.2.1(magicast@0.3.5)(typescript@5.8.3)
       typescript:
         specifier: 5.8.3
         version: 5.8.3

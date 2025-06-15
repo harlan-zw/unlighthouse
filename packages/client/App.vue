@@ -37,15 +37,16 @@ import {
 } from './logic'
 
 const crux = ref(null)
+const cruxError = ref(false)
 
 if (!isStatic) {
   let refreshInterval: NodeJS.Timeout | null = null
-  
+
   onMounted(() => {
     wsConnect().catch((error) => {
       console.warn('Failed to establish server connection:', error)
     })
-    
+
     refreshInterval = setInterval(() => {
       refreshScanMeta()
     }, 5000)
@@ -53,12 +54,14 @@ if (!isStatic) {
     $fetch(`https://crux.unlighthouse.dev/api/${encodeURIComponent(website)}/crux/history`)
       .then((res) => {
         crux.value = res
+        cruxError.value = false
       })
       .catch((error) => {
         console.warn('Failed to fetch CrUX data:', error)
+        cruxError.value = true
       })
   })
-  
+
   onUnmounted(() => {
     if (refreshInterval) {
       clearInterval(refreshInterval)
@@ -127,7 +130,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               </btn-action>
             </div>
             <div class="text-xs opacity-75 xl:mt-4">
-              Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
+              Made with <i-simple-line-icons-heart title="Love" class="inline" aria-label="love" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
             </div>
             <div class="text-xs opacity-50 xl:mt-4 mt-1">
               Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline hover:no-underline">here</a>.
@@ -142,9 +145,22 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               Origin CrUX History - Mobile
             </h2>
           </div>
-          <div v-if="!crux" class="w-full">
+          <div v-if="!crux && !cruxError" class="w-full">
             <div class="text-gray-500 text-center w-full text-sm">
               Loading CrUX data...
+            </div>
+          </div>
+          <div v-else-if="cruxError" class="w-full">
+            <div class="flex items-center justify-center space-x-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <i-carbon-warning class="text-red-600 dark:text-red-400 text-xl" />
+              <div class="text-center">
+                <p class="font-medium text-red-800 dark:text-red-200">
+                  Failed to Load CrUX Data
+                </p>
+                <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+                  Unlighthouse CrUX API is currently unavailable.
+                </p>
+              </div>
             </div>
           </div>
           <div v-else-if="crux?.exists === false" class="w-full">
@@ -257,9 +273,11 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                 <div class="flex items-center space-x-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                   <i-carbon-warning-alt class="text-yellow-600 dark:text-yellow-400 text-xl" />
                   <div>
-                    <p class="font-medium text-yellow-800 dark:text-yellow-200">Server Connection Lost</p>
+                    <p class="font-medium text-yellow-800 dark:text-yellow-200">
+                      Server Connection Lost
+                    </p>
                     <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                      The Unlighthouse client is running but cannot connect to the server. 
+                      The Unlighthouse client is running but cannot connect to the server.
                       Please ensure the Unlighthouse server is running and accessible.
                     </p>
                   </div>
@@ -269,37 +287,43 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                 <div class="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <i-carbon-information class="text-blue-600 dark:text-blue-400 text-xl" />
                   <div>
-                    <p class="font-medium text-blue-800 dark:text-blue-200">No Report Data</p>
+                    <p class="font-medium text-blue-800 dark:text-blue-200">
+                      No Report Data
+                    </p>
                     <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                      This is a static client build with no report data. 
+                      This is a static client build with no report data.
                       Generate reports using the Unlighthouse CLI to see lighthouse results here.
                     </p>
                   </div>
                 </div>
               </template>
               <div v-else class="flex items-center">
-                <loading-spinner class="mr-2" />
+                <loading-spinner class="mr-2" aria-label="Loading" />
                 <div>
-                  <p>Waiting for routes...</p>
+                  <p aria-live="polite">
+                    Waiting for routes...
+                  </p>
                   <span class="text-xs opacity-50">If this hangs consider running Unlighthouse with --debug.</span>
                 </div>
               </div>
             </div>
             <div v-else-if="searchText" class="px-4 py-3">
-              <p>Showing {{ Object.values(searchResults).flat().length }} routes for search "{{ searchText }}":</p>
+              <p id="search-results-status" aria-live="polite">
+                Showing {{ Object.values(searchResults).flat().length }} routes for search "{{ searchText }}":
+              </p>
             </div>
             <results-route
               v-for="(report, routeName) in paginatedResults"
               :key="routeName"
-              :report="report"
               v-memo="[report.route.url, report.report?.categories, report.tasks.runLighthouseTask]"
+              :report="report"
             >
               <template #actions>
                 <popover-actions position="left">
-                  <div class="w-300px flex flex-col space-y-2">
+                  <div class="w-[350px] flex flex-col space-y-3">
                     <btn-basic
                       v-if="report.report"
-                      class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
+                      class="flex items-start hover:bg-blue-500 transition children:hover:text-white p-3 rounded"
                       @click="openLighthouseReportIframeModal(report)"
                     >
                       <div style="flex-basis: 70px;" class="mt-1 text-blue-500">
@@ -316,7 +340,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     </btn-basic>
                     <btn-basic
                       :disabled="isOffline ? 'disabled' : false"
-                      class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
+                      class="flex items-start hover:bg-blue-500 transition children:hover:text-white p-3 rounded"
                       @click="rescanRoute(report.route)"
                     >
                       <div style="flex-basis: 70px;" class="mt-1 text-blue-500">
@@ -333,7 +357,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     </btn-basic>
                     <btn-basic
                       v-if="report.report"
-                      class="flex items-start hover:bg-blue-500 transition children:hover:text-white"
+                      class="flex items-start hover:bg-blue-500 transition children:hover:text-white p-3 rounded"
                       @click="openPsi(report)"
                     >
                       <div style="flex-basis: 70px;" class="mt-1 text-blue-500">
@@ -371,7 +395,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     No Report Data Available
                   </h3>
                   <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                    This is a static Unlighthouse client with no report data. 
+                    This is a static Unlighthouse client with no report data.
                     Generate reports using the Unlighthouse CLI to see results here.
                   </p>
                 </template>
@@ -381,7 +405,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     Waiting for Server Connection
                   </h3>
                   <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                    The Unlighthouse client is running but cannot connect to the server. 
+                    The Unlighthouse client is running but cannot connect to the server.
                     Please ensure the Unlighthouse server is running and accessible.
                   </p>
                   <div class="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mt-4">
@@ -402,7 +426,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             <a href="https://unlighthouse.dev" target="_blank" class="underline">Unlighthouse</a>
           </div>
           <div class="text-xs opacity-75 xl:mt-4">
-            Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
+            Made with <i-simple-line-icons-heart title="Love" class="inline" aria-label="love" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
           </div>
         </div>
         <div class="text-xs opacity-50 xl:mt-4 mt-1">

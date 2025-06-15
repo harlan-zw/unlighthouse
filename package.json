@@ -26,8 +26,8 @@
     "@arethetypeswrong/cli": "0.18.2",
     "bumpp": "^10.1.1",
     "eslint": "^9.29.0",
+    "obuild": "^0.2.1",
     "typescript": "5.8.3",
-    "obuild": "latest",
     "vite": "^6.3.5",
     "vitest": "^3.2.3"
   },
@@ -44,8 +44,5 @@
         }
       }
     }
-  },
-  "dependencies": {
-    "obuild": "^0.2.1"
   }
 }

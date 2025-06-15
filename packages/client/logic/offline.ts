@@ -5,7 +5,8 @@ export const isServerAvailable = ref(true)
 export const hasAttemptedConnection = ref(false)
 
 export const isOfflineMode = computed(() => {
-  if (isStatic) return false
+  if (isStatic)
+    return false
   return hasAttemptedConnection.value && !isServerAvailable.value
 })
 
@@ -18,10 +19,11 @@ export const hasNoData = computed(() => {
 })
 
 export function checkServerConnection() {
-  if (isStatic) return Promise.resolve(true)
-  
+  if (isStatic)
+    return Promise.resolve(true)
+
   // Try to fetch a simple endpoint to check if server is available
-  return fetch('/api/health', { 
+  return fetch('/api/health', {
     method: 'GET',
     cache: 'no-cache',
   })
@@ -42,14 +44,14 @@ export function useOfflineDetection() {
   onMounted(async () => {
     if (!isStatic) {
       await checkServerConnection()
-      
+
       // Set up periodic health checks
       setInterval(async () => {
         await checkServerConnection()
       }, 30000) // Check every 30 seconds
     }
   })
-  
+
   return {
     isOfflineMode,
     hasNoData,

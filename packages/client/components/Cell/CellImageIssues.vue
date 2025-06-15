@@ -9,22 +9,22 @@ const props = defineProps<{
 // Cache audit keys for performance
 const IMAGE_AUDIT_KEYS = [
   'unsized-images',
-  'preload-lcp-image', 
+  'preload-lcp-image',
   'offscreen-images',
   'modern-image-formats',
   'uses-optimized-images',
   'efficient-animated-content',
-  'uses-responsive-images'
+  'uses-responsive-images',
 ] as const
 
 const imageIssues = computed(() => {
   const audits = props.report.report?.audits
-  if (!audits) return 0
-  
+  if (!audits)
+    return 0
+
   // Use native reduce instead of lodash sum for better performance
-  return IMAGE_AUDIT_KEYS.reduce((total, key) => 
-    total + (audits[key]?.details.items.length || 0), 0
-  )
+  return IMAGE_AUDIT_KEYS.reduce((total, key) =>
+    total + (audits[key]?.details.items.length || 0), 0)
 })
 </script>
 

@@ -26,16 +26,18 @@ const guageModifiers = computed(() => {
 const gaugeColorClasses = computed(() => {
   if (props.score >= 0.9) {
     return 'text-success fill-current stroke-current'
-  } else if (props.score >= 0.5) {
+  }
+  else if (props.score >= 0.5) {
     return 'text-warning fill-current stroke-current'
-  } else {
+  }
+  else {
     return 'text-error fill-current stroke-current'
   }
 })
 
 const guageArcStyle = computed(() => {
   const { RADIUS, CIRCUMFERENCE, ROTATION_OFFSET } = GAUGE_CONSTANTS
-  
+
   let offset = props.score * CIRCUMFERENCE - RADIUS / 2
   if (props.score === 1)
     offset = CIRCUMFERENCE
