@@ -28,9 +28,10 @@ export async function fetchCrux(domain: string, formFactor: 'PHONE' | 'TABLET' |
     // 404 is okay, it just means there's no data for this domain
     if (e.status === 404)
       return { exists: false }
+    throw e
   })
 
-  if (results.exists === false)
+  if (!results || results.exists === false)
     return results
 
   const normalised = normaliseCruxHistory(results.record)

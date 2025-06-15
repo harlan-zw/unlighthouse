@@ -1,4 +1,4 @@
-import { defineCachedEventHandler } from '#imports'
+import { createError, defineCachedEventHandler } from '#imports'
 import { getRouterParam } from 'h3'
 import { fetchCrux } from '../../../app/services/crux'
 
@@ -12,7 +12,7 @@ export default defineCachedEventHandler(async (event) => {
   }
   return fetchCrux(domain)
 }, {
-  base: 'crux',
+  base: 'crux2',
   swr: true,
   shouldBypassCache: () => true, // !!import.meta.dev,
   getKey: event => getRouterParam(event, 'domain', { decode: true }),
