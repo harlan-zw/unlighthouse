@@ -95,7 +95,9 @@ const themesData = {
 }
 
 onMounted(() => {
-  const _chart = createChart(chart.value!, {
+  let _chart: any = null
+  
+  _chart = createChart(chart.value!, {
     height: Number(props.height) || 100,
     autoSize: true,
     rightPriceScale: {
@@ -177,6 +179,13 @@ onMounted(() => {
     syncToTheme(isDark.value ? 'Dark' : 'Light')
   }, {
     immediate: true,
+  })
+  
+  // Cleanup chart on unmount
+  onUnmounted(() => {
+    if (_chart) {
+      _chart.remove()
+    }
   })
 })
 </script>

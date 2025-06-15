@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useTitle } from '@vueuse/core'
 import { $fetch } from 'ofetch'
+import { EXCLUDED_CATEGORIES } from './constants'
 import {
   activeTab,
   apiUrl,
@@ -27,6 +28,7 @@ import {
   resultColumns,
   searchResults,
   searchText,
+  shouldShowWaitingState,
   sorting,
   tabs,
   throttle,
@@ -37,15 +39,31 @@ import {
 const crux = ref(null)
 
 if (!isStatic) {
+  let refreshInterval: NodeJS.Timeout | null = null
+  
   onMounted(() => {
-    wsConnect()
-    setInterval(() => {
+    wsConnect().catch((error) => {
+      console.warn('Failed to establish server connection:', error)
+    })
+    
+    refreshInterval = setInterval(() => {
       refreshScanMeta()
     }, 5000)
 
-    $fetch(`https://crux.unlighthouse.dev/api/${encodeURIComponent(website)}/crux/history`).then((res) => {
-      crux.value = res
-    })
+    $fetch(`https://crux.unlighthouse.dev/api/${encodeURIComponent(website)}/crux/history`)
+      .then((res) => {
+        crux.value = res
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch CrUX data:', error)
+      })
+  })
+  
+  onUnmounted(() => {
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+      refreshInterval = null
+    }
   })
 }
 
@@ -53,17 +71,22 @@ function openPsi(report) {
   window.open(`https://pagespeed.web.dev/report?url=${encodeURIComponent(report.route.url)}`, '_blank')
 }
 
+// Computed for complex template expressions
+const shouldShowCategoryScore = computed(() => (category, key) => {
+  return !EXCLUDED_CATEGORIES.includes(category.label) && !Number.isNaN(categoryScores.value[key - 1])
+})
+
 useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
 </script>
 
 <template>
-  <main class="text-gray-700 dark:text-gray-200 overflow-y-hidden max-h-screen h-screen grid grid-rows-[min-content,1fr]">
+  <main class="text-gray-700 dark:text-gray-200 overflow-y-hidden max-h-screen h-screen grid grid-rows-[min-content_1fr]">
     <NavBar />
-    <div class="2xl:flex mt-2 mb-2">
-      <div class="flex justify-between max-h-[95%] flex-col xl:ml-3 mx-3 mr-0 w-full 2xl:(mr-5 w-250px mb-0)">
+    <div class="xl:flex mt-2 mb-2">
+      <div class="flex justify-between max-h-[95%] flex-col xl:ml-3 mx-3 mr-0 w-full xl:mr-5 xl:w-[250px] xl:mb-0">
         <div>
           <TabGroup vertical @change="changedTab">
-            <TabList class="2xl:(block space-x-0) flex space-x-2 mb-3">
+            <TabList class="xl:block xl:space-x-0 flex space-x-2 mb-3">
               <Tab
                 v-for="(category, key) in tabs"
                 :key="key"
@@ -84,7 +107,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                       </template>
                     </tooltip>
                   </span>
-                  <metric-guage v-if="!['Overview', 'CrUX'].includes(category.label) && !Number.isNaN(categoryScores[key - 1])" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
+                  <metric-guage v-if="shouldShowCategoryScore(category, key)" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
                 </btn-tab>
               </Tab>
             </TabList>
@@ -94,19 +117,19 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             <p><a href="https://unlighthouse.dev/guide/guides/dynamic-sampling" target="_blank" class="underline">Learn more</a></p>
           </div>
         </div>
-        <div class="hidden 2xl:block">
+        <div class="hidden xl:block">
           <lighthouse-three-d v-if="!isStatic" class="mb-7" />
-          <div class="px-2 text-center 2xl:text-left">
-            <div class="text-xs opacity-75 2xl:mt-4">
+          <div class="px-2 text-center xl:text-left">
+            <div class="text-xs opacity-75 xl:mt-4">
               <a href="https://unlighthouse.dev" target="_blank" class="underline hover:no-underline">Documentation</a>
               <btn-action v-if="!isStatic" class="underline hover:no-underline ml-3" @click="openDebugModal">
                 Debug
               </btn-action>
             </div>
-            <div class="text-xs opacity-75 2xl:mt-4">
+            <div class="text-xs opacity-75 xl:mt-4">
               Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
             </div>
-            <div class="text-xs opacity-50 2xl:mt-4 mt-1">
+            <div class="text-xs opacity-50 xl:mt-4 mt-1">
               Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline hover:no-underline">here</a>.
             </div>
           </div>
@@ -208,9 +231,9 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             </div>
           </div>
         </div>
-        <template v-else>
+        <template v-else-if="!shouldShowWaitingState">
           <div class="pr-10 pb-1 w-full min-w-1500px">
-            <div class="grid grid-cols-12 gap-4 text-sm dark:(text-gray-300) text-gray-700">
+            <div class="grid grid-cols-12 gap-4 text-sm dark:text-gray-300 text-gray-700">
               <results-table-head
                 v-for="(column, key) in resultColumns"
                 :key="key"
@@ -220,15 +243,39 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               />
             </div>
           </div>
-          <div class="w-full min-w-1500px pr-3 overflow-y-auto 2xl:(max-h-[calc(100vh-100px)]) lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)]">
+          <div class="w-full min-w-1500px pr-3 overflow-y-auto xl:max-h-[calc(100vh-100px)] lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)]">
             <div v-if="Object.values(searchResults).length === 0" class="px-4 py-3">
               <template v-if="searchText">
                 <p class="mb-2">
                   No results for search "{{ searchText }}"...
                 </p>
-                <btn-action class="dark:(bg-teal-700) bg-blue-100 px-2 text-sm" @click="searchText = ''">
+                <btn-action class="dark:bg-teal-700 bg-blue-100 px-2 text-sm" @click="searchText = ''">
                   Reset Search
                 </btn-action>
+              </template>
+              <template v-else-if="isOffline && !isStatic">
+                <div class="flex items-center space-x-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <i-carbon-warning-alt class="text-yellow-600 dark:text-yellow-400 text-xl" />
+                  <div>
+                    <p class="font-medium text-yellow-800 dark:text-yellow-200">Server Connection Lost</p>
+                    <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                      The Unlighthouse client is running but cannot connect to the server. 
+                      Please ensure the Unlighthouse server is running and accessible.
+                    </p>
+                  </div>
+                </div>
+              </template>
+              <template v-else-if="isStatic && (!window.__unlighthouse_payload?.reports || window.__unlighthouse_payload.reports.length === 0)">
+                <div class="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <i-carbon-information class="text-blue-600 dark:text-blue-400 text-xl" />
+                  <div>
+                    <p class="font-medium text-blue-800 dark:text-blue-200">No Report Data</p>
+                    <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      This is a static client build with no report data. 
+                      Generate reports using the Unlighthouse CLI to see lighthouse results here.
+                    </p>
+                  </div>
+                </div>
               </template>
               <div v-else class="flex items-center">
                 <loading-spinner class="mr-2" />
@@ -245,6 +292,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               v-for="(report, routeName) in paginatedResults"
               :key="routeName"
               :report="report"
+              v-memo="[report.route.url, report.report?.categories, report.tasks.runLighthouseTask]"
             >
               <template #actions>
                 <popover-actions position="left">
@@ -312,19 +360,52 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             </div>
           </div>
         </template>
+        <template v-else>
+          <!-- Waiting state: show clean message instead of broken table -->
+          <div class="flex flex-col items-center justify-center py-20 px-4">
+            <div class="text-center max-w-md">
+              <div class="mb-6">
+                <template v-if="isStatic">
+                  <i-carbon-information class="text-blue-500 text-4xl mx-auto mb-4" />
+                  <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    No Report Data Available
+                  </h3>
+                  <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                    This is a static Unlighthouse client with no report data. 
+                    Generate reports using the Unlighthouse CLI to see results here.
+                  </p>
+                </template>
+                <template v-else>
+                  <i-carbon-warning-alt class="text-yellow-500 text-4xl mx-auto mb-4" />
+                  <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    Waiting for Server Connection
+                  </h3>
+                  <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                    The Unlighthouse client is running but cannot connect to the server. 
+                    Please ensure the Unlighthouse server is running and accessible.
+                  </p>
+                  <div class="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mt-4">
+                    <loading-spinner class="w-4 h-4" />
+                    <span>Attempting to connect...</span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
-    <footer class="block 2xl:hidden my-2">
-      <div class="px-2 text-center 2xl:text-left">
+    <footer class="block xl:hidden my-2">
+      <div class="px-2 text-center xl:text-left">
         <div class="flex items-center justify-around">
-          <div class="text-xs opacity-75 2xl:mt-4">
+          <div class="text-xs opacity-75 xl:mt-4">
             <a href="https://unlighthouse.dev" target="_blank" class="underline">Unlighthouse</a>
           </div>
-          <div class="text-xs opacity-75 2xl:mt-4">
+          <div class="text-xs opacity-75 xl:mt-4">
             Made with <i-simple-line-icons-heart title="Love" class="inline" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
           </div>
         </div>
-        <div class="text-xs opacity-50 2xl:mt-4 mt-1">
+        <div class="text-xs opacity-50 xl:mt-4 mt-1">
           Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline">here</a>.
         </div>
       </div>
@@ -360,7 +441,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               leave-to="opacity-0 scale-95"
             >
               <div
-                class="inline-block w-auto max-w-7xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:(bg-teal-900) shadow-xl rounded-2xl"
+                class="inline-block w-auto max-w-7xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-teal-900 shadow-xl rounded-2xl"
               >
                 <div id="modal-portal" />
                 <div v-if="isDebugModalOpen" class="p-5 bg-gray-100">

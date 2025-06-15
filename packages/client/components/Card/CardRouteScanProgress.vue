@@ -13,17 +13,18 @@ defineProps<{
 <template>
   <card>
     <div class="flex items-center">
-      <div class="mr-15">
-        <div class="mb-2">
-          <div class="text-xs uppercase opacity-40">
-            Static Routes
-          </div> {{ stats.staticRoutes }}
-        </div>
-        <div v-if="stats.dynamicRoutes" class="mb-2">
-          <div class="text-xs uppercase opacity-40">
-            Dynamic Routes
-          </div> {{ stats.dynamicRoutes }}
-        </div>
+      <div class="mr-15 space-y-3">
+        <stat-item 
+          label="Static Routes" 
+          :value="stats.staticRoutes"
+          size="md"
+        />
+        <stat-item 
+          v-if="stats.dynamicRoutes"
+          label="Dynamic Routes" 
+          :value="stats.dynamicRoutes"
+          size="md"
+        />
       </div>
       <div>
         <metric-guage :score="stats.score" label="Site Score" />

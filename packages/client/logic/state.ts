@@ -76,7 +76,10 @@ export const resultColumns = computed(() => {
 export const wsReports: Map<string, UnlighthouseRouteReport> = reactive(new Map<string, UnlighthouseRouteReport>())
 
 export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
-  return isStatic ? window.__unlighthouse_payload?.reports : Array.from(wsReports.values())
+  if (isStatic) {
+    return window.__unlighthouse_payload?.reports || []
+  }
+  return Array.from(wsReports.values())
 })
 
 export const fetchedScanMeta = isStatic
@@ -94,9 +97,24 @@ export const lastScanMeta = ref<ScanMeta | null>(null)
  */
 export const isOffline = computed<boolean>(() => {
   if (isStatic)
-    return true
+    return false // Static builds are not "offline", they just don't have dynamic data
 
   return !!(!fetchedScanMeta?.data && lastScanMeta.value)
+})
+
+/**
+ * Check if we should show the waiting/offline state
+ */
+export const shouldShowWaitingState = computed<boolean>(() => {
+  if (isStatic) {
+    // For static builds, show waiting state only if there's no report data
+    return !window.__unlighthouse_payload?.reports?.length
+  }
+  
+  // For dynamic mode, show waiting state if:
+  // 1. We have no reports at all, OR
+  // 2. We've lost connection to the server
+  return wsReports.size === 0 || isOffline.value
 })
 
 export const rescanRoute = (route: NormalisedRoute) => useFetch(`/reports/${route.id}/rescan`).post()
@@ -127,27 +145,65 @@ export function refreshScanMeta() {
 }
 
 export async function wsConnect() {
-  const ws = new WebSocket(wsUrl)
-  ws.onmessage = (message) => {
-    const { response } = JSON.parse(message.data)
-    wsReports.set(response.route.path, response)
+  try {
+    const ws = new WebSocket(wsUrl)
+    ws.onmessage = (message) => {
+      try {
+        const { response } = JSON.parse(message.data)
+        if (response?.route?.path) {
+          wsReports.set(response.route.path, response)
+        }
+      } catch (error) {
+        console.warn('Failed to parse WebSocket message:', error)
+      }
+    }
+    ws.onerror = (error) => {
+      console.warn('WebSocket connection error:', error)
+    }
+    ws.onclose = () => {
+      console.warn('WebSocket connection closed')
+    }
+    
+    try {
+      const reports = await useFetch('/reports').get().json<UnlighthouseRouteReport[]>()
+      if (reports.data.value && Array.isArray(reports.data.value)) {
+        reports.data.value.forEach((report) => {
+          if (report?.route?.path) {
+            wsReports.set(report.route.path, report)
+          }
+        })
+      }
+    } catch (fetchError) {
+      console.warn('Failed to fetch initial reports:', fetchError)
+      // Still continue - WebSocket might work even if initial fetch fails
+    }
+  } catch (error) {
+    console.warn('Failed to connect to Unlighthouse server:', error)
+    throw error // Re-throw to let caller handle it
   }
-  const reports = await useFetch('/reports').get().json<UnlighthouseRouteReport[]>()
-  reports.data.value?.forEach((report) => {
-    wsReports.set(report.route.path, report)
-  })
 }
 
 export const categoryScores = computed(() => {
-  const reportsFinished = unlighthouseReports.value.filter(r => !!r.report)
+  const reports = unlighthouseReports.value || []
+  const reportsFinished = reports.filter(r => !!r.report)
+  
+  if (reportsFinished.length === 0) {
+    return categories.map(() => 0)
+  }
+  
   return categories.map((c, i) => {
     const reportsWithGoodScore = reportsFinished
     // make sure the score is valid, if it's ? we don't want to count it
-      .filter(r => !!r.report?.categories?.[i].score)
+      .filter(r => !!r.report?.categories?.[i]?.score)
+      
+    if (reportsWithGoodScore.length === 0) {
+      return 0
+    }
+    
     return sum(
       reportsWithGoodScore
       // make sure the score is valid, if it's ? we don't want to count it
-        .map(r => r.report?.categories?.[i].score),
+        .map(r => r.report?.categories?.[i]?.score || 0),
     ) / reportsWithGoodScore.length
   })
 })

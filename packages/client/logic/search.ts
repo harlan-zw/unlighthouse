@@ -35,8 +35,14 @@ export function incrementSort(key: string) {
 }
 
 export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
-  let data = unlighthouseReports.value
-  if (searchText.value) {
+  let data = unlighthouseReports.value || []
+  
+  // Gracefully handle empty or invalid data
+  if (!Array.isArray(data)) {
+    data = []
+  }
+
+  if (searchText.value && data.length > 0) {
     const fuse = new Fuse(data, {
       threshold: 0.3,
       shouldSort: isEmpty(sorting.value),
@@ -49,13 +55,17 @@ export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
 
     data = fuse.search<UnlighthouseRouteReport>(searchText.value).map(i => i.item)
   }
+  
   // need to map the data to make the scores easier to sort
   data = data.map((i) => {
     // current categories are an array with a number index, we need to make a new object
-    if (i.report?.categories) {
+    // Add defensive checks to prevent errors when server data is missing
+    if (i.report?.categories && Array.isArray(i.report.categories)) {
       i.report.categoryMap = {}
       i.report.categories.forEach((c) => {
-        i.report!.categoryMap[c.id] = c
+        if (c && c.id) {
+          i.report!.categoryMap[c.id] = c
+        }
       })
     }
     return i
@@ -72,8 +82,8 @@ export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
   }
   // always order data by status, we want to show success -> in progress -> waiting
   data = data.sort((a, b) => {
-    const aStatus = statusToSortRank(a.tasks.runLighthouseTask)
-    const bStatus = statusToSortRank(b.tasks.runLighthouseTask)
+    const aStatus = statusToSortRank(a.tasks?.runLighthouseTask || 'waiting')
+    const bStatus = statusToSortRank(b.tasks?.runLighthouseTask || 'waiting')
     return bStatus - aStatus
   })
 

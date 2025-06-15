@@ -1,10 +1,10 @@
-import { defineBuildConfig } from 'unbuild'
+import { defineBuildConfig } from 'obuild/config'
 
 export default defineBuildConfig({
-  declaration: false,
-  clean: true,
   entries: [
-    { input: 'src/ci' },
-    { input: 'src/cli' },
+    {
+      type: 'bundle',
+      input: ['./src/ci.ts', './src/cli.ts'],
+    },
   ],
 })

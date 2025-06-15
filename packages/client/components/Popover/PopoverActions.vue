@@ -9,11 +9,11 @@ defineProps<{
     <PopoverButton
       :class="open ? 'bg-teal-100 ring-2' : ''"
       :title="open ? 'Close Actions' : 'Open Actions'"
-      class="inline-flex items-center px-2 py-1 text-sm font-medium text-white rounded-md group bg-blue-50 dark:(bg-teal-700/30 hover:bg-teal-700/70) hover:(text-opacity-100 bg-blue-100) transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75"
+      class="interactive-base text-white group bg-surface dark:hover:bg-teal-700/70 hover:text-white hover:bg-blue-100 btn-focus"
     >
       <i-mdi-dots-horizontal
         :class="open ? 'rotate-270 scale-125' : ''"
-        class="w-5 h-5 text-teal-800 dark:(text-teal-300) transform transition duration-500 ease-in-out group-hover:text-opacity-80"
+        class="w-5 h-5 text-teal-800 dark:text-teal-300 transform transition duration-500 ease-in-out group-hover:text-teal-800/80"
         aria-hidden="true"
       />
     </PopoverButton>
@@ -31,9 +31,9 @@ defineProps<{
         class="absolute z-10 px-4 mt-3 transform sm:px-0"
       >
         <div
-          class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5"
+          class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black/5"
         >
-          <div class="relative p-2 bg-teal-50/90 dark:(bg-teal-900/99 text-gray-100) text-gray-800">
+          <div class="relative p-2 bg-teal-50/90 dark:bg-teal-900/99 dark:text-gray-100 text-gray-800">
             <slot :open="open" :close="close" />
           </div>
         </div>
