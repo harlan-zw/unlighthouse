@@ -26,13 +26,12 @@
       "import": "./dist/index.mjs"
     },
     "./config": {
-      "types": "./config.d.ts",
-      "import": "./config.js",
-      "require": "./config.cjs"
+      "types": "./config.d.mts",
+      "import": "./config.mjs"
     },
     "./package.json": "./package.json"
   },
-  "main": "dist/index.cjs",
+  "main": "dist/index.mjs",
   "module": "dist/index.mjs",
   "types": "./types.d.ts",
   "bin": {
@@ -40,19 +39,18 @@
     "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
   },
   "files": [
-    "config.cjs",
     "config.d.ts",
-    "config.js",
+    "config.mjs",
     "dist",
     "types.d.mts",
     "types.d.ts"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
-    "build": "unbuild",
-    "stub": "unbuild --stub",
+    "build": "obuild",
+    "stub": "obuild --stub",
     "test:attw": "attw --pack"
   },
   "peerDependenciesMeta": {

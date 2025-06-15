@@ -23,27 +23,27 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.mjs"
     }
   },
-  "main": "dist/index.cjs",
+  "main": "dist/index.mjs",
   "module": "dist/index.mjs",
   "types": "index.d.ts",
   "bin": {
-    "unlighthouse": "bin/unlighthouse.cjs",
-    "unlighthouse-ci": "bin/unlighthouse-ci.cjs"
+    "unlighthouse": "bin/unlighthouse.mjs",
+    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
   },
   "files": [
     "*.d.ts",
+    "bin",
     "dist"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
-    "build": "unbuild",
-    "stub": "unbuild --stub"
+    "build": "obuild",
+    "stub": "obuild --stub"
   },
   "peerDependenciesMeta": {
     "puppeteer": {
