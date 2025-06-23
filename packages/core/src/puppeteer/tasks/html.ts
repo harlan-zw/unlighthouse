@@ -25,10 +25,31 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
     if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html'))
       return { success: false, message: `Non-HTML Content-Type header: ${response.headers['content-type']}.` }
 
+    // ensure we have valid HTML content
+    let htmlContent: string
+    if (typeof response.data === 'string') {
+      htmlContent = response.data
+    }
+    else if (Buffer.isBuffer(response.data)) {
+      htmlContent = response.data.toString('utf-8')
+    }
+    else if (response.data && typeof response.data === 'object') {
+      // if it's JSON or another object, convert to string
+      htmlContent = JSON.stringify(response.data)
+    }
+    else {
+      htmlContent = String(response.data || '')
+    }
+
+    // basic validation that we have some content
+    if (!htmlContent.trim()) {
+      return { success: false, message: `Empty response from URL ${route}.` }
+    }
+
     return {
       success: true,
       redirected: redirected ? redirectUrl : false,
-      payload: response.data,
+      payload: htmlContent,
     }
   }
   // get page html content
@@ -137,7 +158,7 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
       // check if redirect url is already queued, if so we bail on this route
     }
 
-    html = response.payload
+    html = typeof response.payload === 'string' ? response.payload : String(response.payload || '')
   }
 
   const $ = cheerio(html)
