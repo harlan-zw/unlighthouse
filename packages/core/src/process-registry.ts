@@ -273,6 +273,7 @@ export function setupProcessCleanup(): void {
     return
   }
 
+  setMaxListeners(0)
   const logger = useLogger()
 
   const cleanup = async (signal: string) => {

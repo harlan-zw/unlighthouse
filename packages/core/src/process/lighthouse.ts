@@ -7,8 +7,6 @@ import { join } from 'node:path'
 import lighthouse from 'lighthouse'
 import minimist from 'minimist'
 
-setMaxListeners(0)
-
 /*
  * This file is intended to be run in its own process and should not rely on any global state.
  */
