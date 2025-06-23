@@ -1,6 +1,7 @@
 import type { CheerioAPI } from 'cheerio'
 import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
 import type { Page } from '../../types/puppeteer'
+import { Buffer } from 'node:buffer'
 import { join } from 'node:path'
 import { load as cheerio } from 'cheerio'
 import fs from 'fs-extra'
