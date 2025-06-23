@@ -184,10 +184,16 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
             return
           if (response.tasks[taskName] === 'failed-retry') {
             const currentRetries = retriedRoutes.get(id) || 0
-            // only requeue each report once
+            logger.debug(`Route "${path}" (id: ${id}) failed, retry attempt ${currentRetries + 1}/3`)
+            // only requeue each report 3 times max
             if (currentRetries < 3) {
               retriedRoutes.set(id, currentRetries + 1)
               requeueReport(routeReport)
+            }
+            else {
+              logger.warn(`Route "${path}" has exceeded maximum retry attempts (3), skipping.`)
+              response.tasks[taskName] = 'failed'
+              routeReports.set(id, response)
             }
             return
           }
@@ -237,7 +243,8 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
   }
 
   const requeueReport = (report: UnlighthouseRouteReport) => {
-    logger.info(`Submitting \`${report.route.path}\` for a re-queue.`)
+    const currentRetries = retriedRoutes.get(report.route.id) || 0
+    logger.info(`Submitting \`${report.route.path}\` for a re-queue (attempt ${currentRetries}/3).`)
     // clean up artifacts
     Object.values(ReportArtifacts).forEach((artifact) => {
       fs.rmSync(join(report.artifactPath, artifact), { force: true, recursive: true })
