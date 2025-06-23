@@ -82,8 +82,11 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
 }
 
 export function processSeoMeta($: CheerioAPI): HTMLExtractPayload {
+  const hreflangElement = $('link[hreflang="x-default"]')
+  const hrefLangHref = hreflangElement.attr('href')
   return {
-    alternativeLangDefault: $('link[hreflang="x-default"]').attr('href'),
+    alternativeLangDefault: hrefLangHref,
+    alternativeLangDefaultHtml: hreflangElement.html() || `<link hreflang="x-default" href="${hrefLangHref}">`,
     favicon: $('link[rel~="icon"]').attr('href') || '/favicon.ico',
     title: $('meta[name=\'title\'], head > title').text(),
     description: $('meta[name=\'description\']').attr('content'),
@@ -140,17 +143,37 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
   const $ = cheerio(html)
   routeReport.seo = processSeoMeta($)
   if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
-    routeReport.tasks.inspectHtmlTask = 'ignore'
-    if (!unlighthouse._i18nWarn) {
-      unlighthouse._i18nWarn = true
-      logger.warn(`Page has an alternative lang, ignoring \`${routeReport.route.path}\`: ${routeReport.seo.alternativeLangDefault}. You can disable this behavior with the \`scanner.ignoreI18nPages = true\` option. Future warnings will be suppressed.`)
+    // If this is the root path with cross-domain hreflang, disable ignoreI18nPages to prevent all routes from being ignored
+    if (routeReport.route.path === '/') {
+      try {
+        const altUrl = new URL(routeReport.seo.alternativeLangDefault)
+        const siteUrl = new URL(resolvedConfig.site)
+        if (altUrl.origin !== siteUrl.origin) {
+          logger.warn(`Root path (/) has cross-domain hreflang alternative. Automatically disabling \`ignoreI18nPages\` to prevent all routes from being ignored. Alternative: ${routeReport.seo.alternativeLangDefault}`)
+          resolvedConfig.scanner.ignoreI18nPages = false
+        }
+      }
+      catch {}
     }
-    else {
-      logger.debug(`Page has an alternative lang, ignoring \`${routeReport.route.path}\`: ${routeReport.seo.alternativeLangDefault}`)
+
+    // Only ignore if ignoreI18nPages is still enabled (wasn't disabled above)
+    if (resolvedConfig.scanner.ignoreI18nPages) {
+      routeReport.tasks.inspectHtmlTask = 'ignore'
+      const newRoute = normaliseRoute(routeReport.seo.alternativeLangDefault)
+      const htmlTag = routeReport.seo.alternativeLangDefaultHtml || ''
+      const baseMessage = `Page has a default alternative language ${htmlTag}, ignoring \`${routeReport.route.path}\` and queueing \`${newRoute}\`.`
+
+      if (!unlighthouse._i18nWarn) {
+        unlighthouse._i18nWarn = true
+        logger.warn(`${baseMessage}\nTo scan this page, set \`scanner.ignoreI18nPages = false\` or update --site parameter to match the hreflang origin. Future warnings will be suppressed.`)
+      }
+      else {
+        logger.debug(baseMessage)
+      }
+      // make sure we queue the default, this fixes issues with if the home page has a default lang that is alternative
+      unlighthouse.worker.queueRoute(normaliseRoute(routeReport.seo.alternativeLangDefault))
+      return routeReport
     }
-    // make sure we queue the default, this fixes issues with if the home page has a default lang that is alternative
-    unlighthouse.worker.queueRoute(normaliseRoute(routeReport.seo.alternativeLangDefault))
-    return routeReport
   }
   const internalLinks: string[] = []
   const externalLinks: string[] = []

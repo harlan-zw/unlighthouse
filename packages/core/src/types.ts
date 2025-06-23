@@ -125,6 +125,7 @@ export interface UnlighthouseRouteReport {
 
 export interface HTMLExtractPayload {
   alternativeLangDefault?: string
+  alternativeLangDefaultHtml?: string
   title?: string
   description?: string
   internalLinks?: number
