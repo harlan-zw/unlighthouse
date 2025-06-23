@@ -70,7 +70,7 @@
     "ofetch": "^1.4.1",
     "pathe": "^2.0.3",
     "puppeteer-cluster": "^0.24.0",
-    "puppeteer-core": "^24.10.1",
+    "puppeteer-core": "^24.10.2",
     "radix3": "^1.1.2",
     "regexparam": "^3.0.0",
     "sanitize-filename": "^1.6.3",

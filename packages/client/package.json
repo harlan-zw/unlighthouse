@@ -32,7 +32,7 @@
     "lightweight-charts": "^5.0.7",
     "lodash-es": "^4.17.21",
     "ufo": "^1.6.1",
-    "vue": "^3.5.16"
+    "vue": "^3.5.17"
   },
   "devDependencies": {
     "@iconify-json/carbon": "latest",
@@ -44,13 +44,13 @@
     "@iconify-json/simple-line-icons": "latest",
     "@iconify-json/vscode-icons": "latest",
     "@tailwindcss/vite": "^4.1.10",
-    "@types/lodash": "^4.17.17",
+    "@types/lodash": "^4.17.18",
     "@types/three": "^0.177.0",
     "@unlighthouse/core": "workspace:*",
     "@vitejs/plugin-vue": "^5.2.4",
-    "@vue/compiler-sfc": "^3.5.16",
-    "@vueuse/core": "^13.3.0",
-    "@vueuse/router": "^13.3.0",
+    "@vue/compiler-sfc": "^3.5.17",
+    "@vueuse/core": "^13.4.0",
+    "@vueuse/router": "^13.4.0",
     "date-fns": "^4.1.0",
     "tailwindcss": "^4.1.10",
     "three": "^0.177.0",
