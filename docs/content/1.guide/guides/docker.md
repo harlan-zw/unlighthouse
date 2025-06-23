@@ -17,7 +17,14 @@ You will need to remove the Chrome sandbox in a Docker environment, this will re
 // unlighthouse.config.ts
 export default {
   puppeteerOptions: {
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    // executablePath: '/path/to/your/chrome',
+    headless: true,
+    args: [
+      '--no-sandbox', // Required for Docker environments
+      '--disable-setuid-sandbox', // Required for Docker environments
+      '--disable-gpu', // Disable GPU acceleration (useful in headless environments)
+      '--ignore-certificate-errors', // Fixes net::ERR_CERT_AUTHORITY_INVALID issues
+    ],
   },
 }
 ```
