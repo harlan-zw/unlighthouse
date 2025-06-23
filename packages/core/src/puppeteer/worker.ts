@@ -174,6 +174,10 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
             routeReports.delete(id)
             ignoredRoutes.add(id)
             logger.debug(`Ignoring route \`${routeReport.route.path}\`.`)
+            // Check if all routes are ignored/completed and trigger worker-finished
+            if (monitor().status === 'completed') {
+              hooks.callHook('worker-finished')
+            }
             return
           }
           if (response.tasks[taskName] === 'failed')
