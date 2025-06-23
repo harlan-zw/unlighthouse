@@ -1,7 +1,6 @@
 import type { Flags } from 'lighthouse'
 import type { UnlighthouseRouteReport } from '../types'
 import type { LighthouseProcessMessage } from '../util/lighthouse-messages'
-import { setMaxListeners } from 'node:events'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import lighthouse from 'lighthouse'

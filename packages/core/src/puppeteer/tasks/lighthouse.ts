@@ -11,7 +11,7 @@ import { useLogger } from '../../logger'
 import { registerLighthouseProcess, setupProcessCleanup } from '../../process-registry'
 import { useUnlighthouse } from '../../unlighthouse'
 import { base64ToBuffer, ReportArtifacts } from '../../util'
-import { parseStructuredOutput, isRetryableError } from '../../util/lighthouse-messages'
+import { isRetryableError, parseStructuredOutput } from '../../util/lighthouse-messages'
 import { setupPage } from '../util'
 
 export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: Result): LighthouseReport {

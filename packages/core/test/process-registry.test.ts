@@ -1,11 +1,10 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { createConsola } from 'consola'
+import type { LighthouseProcessRegistry } from '../src/process-registry'
 import { EventEmitter } from 'node:events'
-import type { ChildProcess } from 'node:child_process'
-import { 
+import { createConsola } from 'consola'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
   createLighthouseProcessRegistry,
-  type LighthouseProcessRegistry,
-  type LighthouseProcessInfo 
+
 } from '../src/process-registry'
 
 // Mock child process
@@ -74,7 +73,7 @@ describe('lighthouse process registry', () => {
         pid: 1234,
         route: '/test-route',
         sampleIndex: 0,
-        process: mockProcess1
+        process: mockProcess1,
       })
       expect(activeProcesses[0].startTime).toBeTypeOf('number')
     })
@@ -101,23 +100,23 @@ describe('lighthouse process registry', () => {
 
       // Simulate process exit
       mockProcess1.emit('exit', 0)
-      
+
       // Wait for async cleanup
       await new Promise(resolve => setTimeout(resolve, 20))
-      
+
       expect(registry.getActiveProcesses()).toHaveLength(0)
     })
 
     it('should handle process errors', async () => {
       registry.register(mockProcess1 as any, '/test-route', 0)
-      
+
       // Simulate process error
       const error = new Error('Process crashed')
       mockProcess1.emit('error', error)
-      
+
       // Wait for async cleanup
       await new Promise(resolve => setTimeout(resolve, 20))
-      
+
       expect(logger.error).toHaveBeenCalledWith('Lighthouse process 1234 error:', error)
       expect(registry.getActiveProcesses()).toHaveLength(0)
     })
@@ -143,10 +142,10 @@ describe('lighthouse process registry', () => {
     it('should get processes sorted by duration', async () => {
       // Wait a bit to create duration difference
       await new Promise(resolve => setTimeout(resolve, 10))
-      
+
       const processesNow = new MockChildProcess(9999)
       registry.register(processesNow as any, '/route-3', 0)
-      
+
       const processesByDuration = registry.getProcessesByDuration()
       expect(processesByDuration).toHaveLength(3)
       // Newest process should be last (shortest duration)
@@ -168,10 +167,10 @@ describe('lighthouse process registry', () => {
 
     it('should update stats on process completion', async () => {
       registry.register(mockProcess1 as any, '/route-1', 0)
-      
+
       // Wait a bit to ensure some duration
       await new Promise(resolve => setTimeout(resolve, 5))
-      
+
       // Wait for the exit event to be processed
       const exitPromise = new Promise<void>((resolve) => {
         mockProcess1.once('exit', () => {
@@ -179,7 +178,7 @@ describe('lighthouse process registry', () => {
           setTimeout(resolve, 10)
         })
       })
-      
+
       // Simulate successful completion
       mockProcess1.emit('exit', 0)
       await exitPromise
@@ -193,7 +192,7 @@ describe('lighthouse process registry', () => {
 
     it('should update stats on process failure', async () => {
       registry.register(mockProcess1 as any, '/route-1', 0)
-      
+
       // Simulate failure
       mockProcess1.emit('exit', 1)
       await new Promise(resolve => setTimeout(resolve, 20))
@@ -209,7 +208,7 @@ describe('lighthouse process registry', () => {
       // Create a process that started 10 minutes ago
       const oldStartTime = Date.now() - (10 * 60 * 1000)
       registry.register(mockProcess1 as any, '/stuck-route', 0)
-      
+
       // Manually adjust start time for testing
       const processes = registry.getActiveProcesses()
       if (processes[0]) {
@@ -223,7 +222,7 @@ describe('lighthouse process registry', () => {
 
     it('should not detect recent processes as stuck', () => {
       registry.register(mockProcess1 as any, '/recent-route', 0)
-      
+
       const stuckProcesses = registry.getStuckProcesses(5 * 60 * 1000)
       expect(stuckProcesses).toHaveLength(0)
     })
@@ -232,7 +231,7 @@ describe('lighthouse process registry', () => {
       // Create stuck process
       const oldStartTime = Date.now() - (10 * 60 * 1000)
       registry.register(mockProcess1 as any, '/stuck-route', 0)
-      
+
       const processes = registry.getActiveProcesses()
       if (processes[0]) {
         (processes[0] as any).startTime = oldStartTime
@@ -268,7 +267,7 @@ describe('lighthouse process registry', () => {
     it('should create independent registry instances', () => {
       const registry1 = createLighthouseProcessRegistry(logger)
       const registry2 = createLighthouseProcessRegistry(logger)
-      
+
       // They should be different instances since we're not using the global helper
       expect(registry1).not.toBe(registry2)
     })
@@ -290,14 +289,14 @@ Final output
     // through the lighthouse task, but here we verify the message format
     const messageRegex = /__LIGHTHOUSE_MESSAGE__(.+?)__END_MESSAGE__/
     const matches = mockOutput.match(messageRegex)
-    
+
     expect(matches).toBeTruthy()
     if (matches) {
       const message = JSON.parse(matches[1])
       expect(message).toMatchObject({
         type: 'info',
         route: '/test',
-        message: 'Starting audit'
+        message: 'Starting audit',
       })
     }
   })

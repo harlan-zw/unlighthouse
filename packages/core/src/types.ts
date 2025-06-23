@@ -11,8 +11,8 @@ import type { WS } from './router'
 // Re-export process registry types
 export type {
   LighthouseProcessInfo,
-  ProcessRegistryStats,
   LighthouseProcessRegistry,
+  ProcessRegistryStats,
 } from './process-registry'
 
 // Re-export lighthouse message types

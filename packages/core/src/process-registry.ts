@@ -1,5 +1,6 @@
 import type { ConsolaInstance } from 'consola'
 import type { ChildProcess } from 'node:child_process'
+import { setMaxListeners } from 'node:events'
 import { useLogger } from './logger'
 
 export interface LighthouseProcessInfo {

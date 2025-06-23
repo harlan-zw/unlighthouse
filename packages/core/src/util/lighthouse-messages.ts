@@ -40,8 +40,8 @@ export function parseStructuredOutput(output: string): {
 
 export function isRetryableError(errorMessage: string): boolean {
   const lowerMessage = errorMessage.toLowerCase()
-  return lowerMessage.includes('timeout') ||
-         lowerMessage.includes('network') ||
-         errorMessage.includes('ECONNREFUSED') ||
-         errorMessage.includes('ERR_NETWORK')
+  return lowerMessage.includes('timeout')
+    || lowerMessage.includes('network')
+    || errorMessage.includes('ECONNREFUSED')
+    || errorMessage.includes('ERR_NETWORK')
 }
