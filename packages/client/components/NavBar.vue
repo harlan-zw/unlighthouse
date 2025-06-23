@@ -6,7 +6,7 @@ const timeRemaining = computed(() => {
   return formatDistance(0, scanMeta.value.monitor.timeRemaining, { includeSeconds: true })
 })
 
-const favIcon = computed(() => {
+const _favIcon = computed(() => {
   if (!scanMeta.value?.favicon)
     return '/favicon.ico'
   else if (scanMeta.value?.favicon?.startsWith('http'))
