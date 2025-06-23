@@ -1,14 +1,17 @@
 import type { Result } from 'lighthouse'
 import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '../../types'
 import { join } from 'node:path'
+import { execa } from 'execa'
 import fs from 'fs-extra'
 import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
 import { map, pick, sumBy } from 'lodash-es'
 import { relative } from 'pathe'
 import { withQuery } from 'ufo'
 import { useLogger } from '../../logger'
+import { registerLighthouseProcess, setupProcessCleanup } from '../../process-registry'
 import { useUnlighthouse } from '../../unlighthouse'
 import { base64ToBuffer, ReportArtifacts } from '../../util'
+import { parseStructuredOutput, isRetryableError } from '../../util/lighthouse-messages'
 import { setupPage } from '../util'
 
 export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: Result): LighthouseReport {
@@ -96,6 +99,9 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   const { resolvedConfig, runtimeSettings } = useUnlighthouse()
   const { page, data: routeReport } = props
 
+  // Ensure process cleanup handlers are registered
+  setupProcessCleanup()
+
   // if the report doesn't exist, we're going to run a new lighthouse process to generate it
   const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
   if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
@@ -129,23 +135,109 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   for (let i = 0; i < resolvedConfig.scanner.samples; i++) {
     try {
       // Spawn a worker process
-      const worker = (await import('execa'))
-        .execa(
-          // handles stubbing
-          runtimeSettings.lighthouseProcessPath.endsWith('.ts') ? 'jiti' : 'node',
-          [runtimeSettings.lighthouseProcessPath, ...args],
-          {
-            timeout: 6 * 60 * 1000,
-          },
-        )
-      worker.stdout!.pipe(process.stdout)
-      worker.stderr!.pipe(process.stderr)
+      const worker = execa(
+        'node',
+        [runtimeSettings.lighthouseProcessPath, ...args],
+        {
+          timeout: 6 * 60 * 1000,
+        },
+      )
+
+      // Register the process for cleanup
+      registerLighthouseProcess(worker, routeReport.route.path, i)
+
+      // Capture output instead of piping directly to console
+      let stdout = ''
+      let stderr = ''
+
+      worker.stdout?.on('data', (data) => {
+        stdout += data.toString()
+      })
+
+      worker.stderr?.on('data', (data) => {
+        stderr += data.toString()
+      })
+
       const res = await worker
-      if (res)
-        samples.push(fs.readJsonSync(reportJsonPath))
+
+      // Parse structured output
+      const { messages, otherOutput } = parseStructuredOutput(stdout)
+
+      // Log structured messages
+      for (const message of messages) {
+        switch (message.type) {
+          case 'info':
+            logger.info(`[Lighthouse] ${message.message}`)
+            break
+          case 'success':
+            logger.info(`[Lighthouse] ${message.message}`)
+            if (message.data?.score !== undefined) {
+              logger.debug(`Performance score: ${Math.round(message.data.score * 100)}`)
+            }
+            break
+          case 'error':
+            logger.error(`[Lighthouse] ${message.message}`)
+            if (message.error) {
+              logger.error(`Error: ${message.error.name}: ${message.error.message}`)
+              if (message.error.stack) {
+                logger.debug(`Stack: ${message.error.stack}`)
+              }
+            }
+            break
+        }
+      }
+
+      // Log any non-structured output
+      if (otherOutput.length > 0) {
+        logger.debug('Lighthouse additional output:', otherOutput.join('\n'))
+      }
+
+      // Log stderr if present
+      if (stderr.trim()) {
+        logger.warn('Lighthouse stderr:', stderr.trim())
+      }
+
+      if (res.exitCode === 0) {
+        const successMessages = messages.filter(m => m.type === 'success')
+        if (successMessages.length > 0) {
+          try {
+            samples.push(fs.readJsonSync(reportJsonPath))
+          }
+          catch (readError) {
+            logger.error(`Failed to read lighthouse report for route ${routeReport.route.path}: ${readError.message}`)
+            logger.warn(`Lighthouse process succeeded but report file not found. This may indicate lighthouse failed to generate output.`)
+          }
+        }
+        else {
+          logger.warn(`Lighthouse process exited successfully but no success message received for ${routeReport.route.path}`)
+        }
+      }
+      else {
+        const errorMessages = messages.filter(m => m.type === 'error')
+        if (errorMessages.length > 0) {
+          const lastError = errorMessages[errorMessages.length - 1]
+          throw new Error(`Lighthouse failed: ${lastError.error?.message || lastError.message}`)
+        }
+        else {
+          throw new Error(`Lighthouse process failed with exit code ${res.exitCode}`)
+        }
+      }
     }
     catch (e) {
-      logger.error('Failed to run lighthouse for route', e)
+      logger.error(`Failed to run lighthouse for route ${routeReport.route.path}:`, e)
+
+      // Determine if this is a retryable error
+      const isRetryable = e.message ? isRetryableError(e.message) : false
+
+      if (isRetryable) {
+        logger.warn(`Retryable error detected for ${routeReport.route.path}, marking for retry`)
+        routeReport.tasks.runLighthouseTask = 'failed-retry'
+      }
+      else {
+        logger.error(`Non-retryable error for ${routeReport.route.path}, marking as failed`)
+        routeReport.tasks.runLighthouseTask = 'failed'
+      }
+
       return routeReport
     }
   }
@@ -153,7 +245,8 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   let report: Result = samples[0]
 
   if (!report) {
-    logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
+    logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}". No lighthouse reports were generated successfully.`)
+    logger.warn(`This could be due to lighthouse timing out, network issues, or the target page being unreachable. Check that the URL is accessible and try again.`)
     routeReport.tasks.runLighthouseTask = 'failed'
     return routeReport
   }

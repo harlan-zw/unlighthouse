@@ -8,6 +8,16 @@ import type { QueryObject } from 'ufo'
 import type { Cluster, ClusterOptionsArgument, TaskFunction } from '../cluster'
 import type { WS } from './router'
 
+// Re-export process registry types
+export type {
+  LighthouseProcessInfo,
+  ProcessRegistryStats,
+  LighthouseProcessRegistry,
+} from './process-registry'
+
+// Re-export lighthouse message types
+export type { LighthouseProcessMessage } from './util/lighthouse-messages'
+
 /**
  * A route definition is a mapping of a component, and it's URL path (or paths) that it represents.
  *

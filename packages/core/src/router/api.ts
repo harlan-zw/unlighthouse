@@ -6,6 +6,7 @@ import fs from 'fs-extra'
 import launch from 'launch-editor'
 import { createScanMeta } from '../data'
 import { useLogger } from '../logger'
+import { getLighthouseProcessStats } from '../process-registry'
 import { useUnlighthouse } from '../unlighthouse'
 
 /**
@@ -92,8 +93,8 @@ export async function createApi(h3: any): Promise<any> {
 
         return worker.reports().filter(r => r.tasks.inspectHtmlTask === 'completed')
       })
-
       get('scan-meta', () => createScanMeta())
+      get('process-stats', () => getLighthouseProcessStats())
     })
 
     serve('/', runtimeSettings.generatedClientPath)
