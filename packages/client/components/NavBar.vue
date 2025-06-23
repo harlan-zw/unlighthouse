@@ -19,8 +19,8 @@ const _favIcon = computed(() => {
 <template>
   <nav class="bg-white dark:bg-transparent font-light border-b border-main flex items-center gap-4 children:my-auto px-3 md:px-6 py-2 ">
     <a class="text-md font-medium text-teal-700 dark:text-teal-200 font-mono items-center hidden md:flex cursor-pointer" href="https://unlighthouse.dev" target="_blank">
-      <img :src="`${basePath}assets/logo-light.svg`" height="24" width="24" class="w-24px h-24px mr-2 hidden dark:block" alt="Unlighthouse logo">
-      <img :src="`${basePath}assets/logo-dark.svg`" height="24" width="24" class="w-24px h-24px mr-2 block dark:hidden" alt="Unlighthouse logo">
+      <img :src="basePath && basePath !== '/' ? `${basePath}assets/logo-light.svg` : 'assets/logo-light.svg'" height="24" width="24" class="w-24px h-24px mr-2 hidden dark:block" alt="Unlighthouse logo">
+      <img :src="basePath && basePath !== '/' ? `${basePath}assets/logo-dark.svg` : 'assets/logo-dark.svg'" height="24" width="24" class="w-24px h-24px mr-2 block dark:hidden" alt="Unlighthouse logo">
       Unlighthouse
     </a>
     <div class="flex w-full justify-between items-center text-xs md:ml-5 md:mr-10">

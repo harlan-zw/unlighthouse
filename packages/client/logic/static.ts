@@ -47,6 +47,16 @@ export function resolveArtifactPath(report: UnlighthouseRouteReport, file: strin
     return '' // Return empty string for missing artifact URLs
   }
   const withoutBase = report.artifactUrl.replace(basePath, '')
+
+  if (isStatic) {
+    // Clean up the pathname to remove trailing /index.html and similar artifacts
+    let cleanPathname = window.location.pathname
+    // Remove common static file names that shouldn't be part of the base path
+    cleanPathname = cleanPathname.replace(/\/index\.html$/, '')
+
+    return joinURL(cleanPathname, withoutBase, file)
+  }
+
   return joinURL(window.location.pathname, withoutBase, file) // dynamic base
 }
 
