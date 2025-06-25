@@ -36,7 +36,7 @@ npx unlighthouse --site <your-site>
 pnpm dlx unlighthouse --site <your-site>
 ```
 
-_Requirements: Node >= 18.x._
+_Requirements: Node >= 20.x._
 
 ## Getting Started
 

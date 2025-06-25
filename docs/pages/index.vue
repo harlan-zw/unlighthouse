@@ -82,7 +82,7 @@ defineOgImageComponent('NuxtSeo', {
       </h2>
       <div class="max-w-[40rem] mx-auto">
         <p class="mb-7 text-gray-700 dark:text-gray-300 mt-4 max-w-3xl text-center text-xl lg:text-left">
-          Run the command below in your terminal. It will scan your site and generate a report. <span class="text-sm opacity-70">Requires Node >= 18</span>
+          Run the command below in your terminal. It will scan your site and generate a report. <span class="text-sm opacity-70">Requires Node >= 20</span>
         </p>
         <div class="flex items-center space-x-10">
           <!--   we need to style this div like a nice terminal bash using tailwind   -->
