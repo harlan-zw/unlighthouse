@@ -191,6 +191,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@clack/prompts':
+        specifier: ^0.11.0
+        version: 0.11.0
       '@puppeteer/browsers':
         specifier: ^2.10.5
         version: 2.10.5
