@@ -44,7 +44,9 @@ async function run() {
     const end = new Date()
     const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
 
-    logger.success(`Unlighthouse has finished scanning \`${unlighthouse.resolvedConfig.site}\`: ${unlighthouse.worker.reports().length} routes in \`${seconds}s\`.`)
+    // Clear the progress display
+    unlighthouse.worker.clearProgressDisplay()
+    logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${unlighthouse.worker.reports().length} routes in ${seconds}s.`)
     await unlighthouse.worker.cluster.close().catch(() => {})
   })
 

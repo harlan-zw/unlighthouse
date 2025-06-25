@@ -8,15 +8,16 @@ import type {
   UnlighthouseWorkerStats,
 } from '../types'
 import type { TaskFunction } from '../types/puppeteer'
+import type { ProgressData } from '../util/progressBox'
 import fs from 'node:fs'
 import { join } from 'node:path'
-import { colorize } from 'consola/utils'
 import { get, sortBy, uniqBy } from 'lodash-es'
 import { matchPathToRule } from '../discovery'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
 import { createTaskReportFromRoute, formatBytes, ReportArtifacts } from '../util'
 import { createFilter, isImplicitOrExplicitHtml } from '../util/filter'
+import { createProgressBox } from '../util/progressBox'
 import {
   launchPuppeteerCluster,
 } from './cluster'
@@ -32,11 +33,19 @@ let warnedMaxRoutesExceeded = false
 export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>): Promise<UnlighthouseWorker> {
   const { hooks, resolvedConfig } = useUnlighthouse()
   const logger = useLogger()
+  const progressBox = createProgressBox()
   const cluster = await launchPuppeteerCluster()
 
   const routeReports = new Map<string, UnlighthouseRouteReport>()
   const ignoredRoutes = new Set<string>()
   const retriedRoutes = new Map<string, number>()
+
+  // Track actual task completion times for better time estimation
+  const taskCompletionTimes = new Map<string, Record<UnlighthouseTask, number>>()
+
+  // Track progress for live display
+  const startTime = Date.now()
+  let currentTaskInfo = ''
 
   const monitor: () => UnlighthouseWorkerStats = () => {
     const now = Date.now()
@@ -48,9 +57,61 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       ? '0.00'
       : (100 * cluster.errorCount / doneTargets).toFixed(2)
     const timeRunning = timeDiff
+
+    // Calculate weighted time remaining based on task types and their historical durations
     let timeRemainingMillis = -1
-    if (donePercentage !== 0)
-      timeRemainingMillis = Math.round(((timeDiff) / donePercentage) - timeDiff)
+    if (donePercentage !== 0) {
+      // Collect historical task times to calculate averages
+      const taskDurations: Record<UnlighthouseTask, number[]> = {
+        inspectHtmlTask: [],
+        runLighthouseTask: [],
+      }
+
+      // Gather actual completed task times
+      for (const [, completionTimes] of taskCompletionTimes) {
+        for (const taskName of Object.keys(tasks) as UnlighthouseTask[]) {
+          const duration = completionTimes[taskName]
+          if (duration) {
+            taskDurations[taskName].push(duration)
+          }
+        }
+      }
+
+      // Calculate average durations or use defaults
+      const avgInspectTime = taskDurations.inspectHtmlTask.length > 0
+        ? taskDurations.inspectHtmlTask.reduce((a, b) => a + b, 0) / taskDurations.inspectHtmlTask.length
+        : 2000 // 2 seconds default
+      const avgLighthouseTime = taskDurations.runLighthouseTask.length > 0
+        ? taskDurations.runLighthouseTask.reduce((a, b) => a + b, 0) / taskDurations.runLighthouseTask.length
+        : 15000 // 15 seconds default
+
+      // Count remaining tasks by type
+      let remainingInspectTasks = 0
+      let remainingLighthouseTasks = 0
+
+      for (const report of routeReports.values()) {
+        for (const taskName of Object.keys(tasks) as UnlighthouseTask[]) {
+          const taskStatus = report.tasks[taskName]
+          if (taskStatus === 'waiting' || taskStatus === 'in-progress') {
+            if (taskName === 'inspectHtmlTask') {
+              remainingInspectTasks++
+            }
+            else if (taskName === 'runLighthouseTask') {
+              remainingLighthouseTasks++
+            }
+          }
+        }
+      }
+
+      // Calculate weighted time remaining
+      const estimatedRemainingTime = (remainingInspectTasks * avgInspectTime) + (remainingLighthouseTasks * avgLighthouseTime)
+      timeRemainingMillis = Math.round(estimatedRemainingTime)
+
+      // Fallback to original calculation if we don't have enough data
+      if (remainingInspectTasks === 0 && remainingLighthouseTasks === 0) {
+        timeRemainingMillis = Math.round(((timeDiff) / donePercentage) - timeDiff)
+      }
+    }
 
     const timeRemaining = timeRemainingMillis
     const cpuUsage = `${cluster.systemMonitor.getCpuUsage().toFixed(1)}%`
@@ -71,6 +132,38 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       memoryUsage,
       workers: cluster.workers.length + cluster.workersStarting,
     }
+  }
+
+  const updateProgressDisplay = () => {
+    if (!process.stdin.isTTY)
+      return // Don't show progress in non-TTY environments
+
+    const stats = monitor()
+    const completedReports = routeReports.size > 0
+      ? [...routeReports.values()].filter(r =>
+          Object.values(r.tasks).every(status => status === 'completed' || status === 'ignore' || status === 'failed'),
+        )
+      : []
+
+    // Calculate average score from completed reports
+    const scoresFromReports = completedReports
+      .map(r => r.report?.score)
+      .filter((score): score is number => typeof score === 'number')
+
+    const averageScore = scoresFromReports.length > 0
+      ? scoresFromReports.reduce((sum, score) => sum + score, 0) / scoresFromReports.length
+      : undefined
+
+    const progressData: ProgressData = {
+      currentTask: currentTaskInfo,
+      completedTasks: stats.doneTargets,
+      totalTasks: stats.allTargets,
+      averageScore,
+      timeElapsed: Date.now() - startTime,
+      timeRemaining: stats.timeRemaining > 0 ? stats.timeRemaining : undefined,
+    }
+
+    progressBox.update(progressData)
   }
 
   const exceededMaxRoutes = () => {
@@ -146,6 +239,9 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     routeReports.set(id, routeReport)
     hooks.callHook('task-added', path, routeReport)
 
+    // Update progress display when first routes are added
+    updateProgressDisplay()
+
     const runTaskIndex = (idx = 0) => {
       // queue the html payload extraction before we perform the lighthouse scan
       const taskName = Object.keys(tasks)?.[idx] as UnlighthouseTask
@@ -160,11 +256,14 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
       const task = Object.values(tasks)[idx]
       routeReport.tasks[taskName] = 'waiting'
+
       cluster
         .execute(routeReport, (arg) => {
           routeReport.tasks[taskName] = 'in-progress'
           routeReport.tasksTime = routeReport.tasksTime || {}
           routeReport.tasksTime[taskName] = Date.now()
+          currentTaskInfo = `${taskName.replace('Task', '')} - ${path}`
+          updateProgressDisplay()
           hooks.callHook('task-started', path, routeReport)
           return task(arg)
         })
@@ -202,6 +301,13 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
           routeReports.set(id, response)
           hooks.callHook('task-complete', path, response, taskName)
           const ms = Date.now() - routeReport.tasksTime?.[taskName]
+
+          // Store actual completion time for better time estimation
+          if (!taskCompletionTimes.has(id)) {
+            taskCompletionTimes.set(id, {} as Record<UnlighthouseTask, number>)
+          }
+          taskCompletionTimes.get(id)![taskName] = ms
+
           // make ms human friendly
           const seconds = (ms / 1000).toFixed(1)
           const reportData = [
@@ -218,7 +324,10 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
               reportData.push(formatBytes(response.seo.htmlSize))
           }
           reportData.push(`${monitor().donePercStr}% complete`)
-          logger.success(`Completed \`${taskName}\` for \`${routeReport.route.path}\`. ${colorize('gray', `(${reportData.join(' ')})`)}`)
+
+          // Update progress display
+          updateProgressDisplay()
+
           // run the next task
           runTaskIndex(idx + 1)
         })
@@ -291,5 +400,6 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     monitor,
     hasStarted,
     reports,
+    clearProgressDisplay: () => progressBox.clear(),
   }
 }

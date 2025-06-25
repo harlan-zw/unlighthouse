@@ -795,6 +795,11 @@ export interface UnlighthouseWorker {
    * Checks if the amount of routes scanned surpasses the `scanner.maxRoutes` value.
    */
   exceededMaxRoutes: () => boolean
+
+  /**
+   * Clear the progress display box
+   */
+  clearProgressDisplay: () => void
 }
 
 export interface ScanMeta {

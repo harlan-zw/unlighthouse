@@ -36,10 +36,15 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
 
   await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)
   // update the html with our config and base url if needed
-  const inlineScript = `window.__unlighthouse_static = ${options.static}`
+  const inlineScript = `window.__unlighthouse_static = ${!!options.static}`
   let indexHTML = await fs.readFile(runtimeSettings.resolvedClientPath, 'utf-8')
+
+  // More robust replacement that handles multiline script content
   indexHTML = indexHTML
-    .replace(/<script data-unlighthouse-inline>.*?<\/script>/gs, `<script data-unlighthouse-inline>${inlineScript}</script>`)
+    .replace(/<script data-unlighthouse-inline>[\s\S]*?<\/script>/g, `<script data-unlighthouse-inline>
+  ${inlineScript}
+  // boilerplate options to run the client by itself
+  </script>`)
     .replace(/(href|src)="\/assets\/(.*?)"/g, `$1="${prefix}assets/$2"`)
   await fs.writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
 
@@ -82,17 +87,26 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   // update the baseurl within the modules
   const globby = (await import('globby'))
   const clientAssetsPath = join(dirname(runtimeSettings.resolvedClientPath), 'assets')
-  const indexFile = (await globby.globby(['index.*.js'], { cwd: clientAssetsPath }))?.[0]
+  logger.debug(`Looking for index.*.js files in: ${clientAssetsPath}`)
+
+  const indexFiles = await globby.globby(['index*.js', 'index-*.js'], { cwd: clientAssetsPath })
+  logger.debug(`Found index files:`, indexFiles)
+
+  const indexFile = indexFiles?.[0]
   if (indexFile) {
     const indexPath = join(clientAssetsPath, indexFile)
+    const outputPath = join(runtimeSettings.generatedClientPath, 'assets', indexFile)
+    logger.debug(`Processing index file: ${indexPath} -> ${outputPath}`)
+
     // should be a single entry
     let indexJS = await fs.readFile(indexPath, 'utf-8')
     indexJS = indexJS
       .replace('const base = "/";', `const base = window.location.pathname;`)
       .replace('createWebHistory("/")', `createWebHistory(window.location.pathname)`)
-    await fs.writeFile(indexPath.replace(clientPathFolder, runtimeSettings.generatedClientPath), indexJS, 'utf-8')
+    await fs.writeFile(outputPath, indexJS, 'utf-8')
   }
   else {
     logger.warn(`Failed to find index.[hash].js file from wd ${clientAssetsPath}.`)
+    logger.debug(`Searched patterns: ['index*.js', 'index-*.js']`)
   }
 }

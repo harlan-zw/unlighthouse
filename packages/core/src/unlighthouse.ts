@@ -309,8 +309,8 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     ctx.routes = await resolveReportableRoutes()
     logger.debug('Resolved reportable routes', ctx.routes.length)
     createBroadcastingEvents()
-    worker.queueRoutes(ctx.routes)
 
+    // Show the static info box first (before any progress starts)
     if (provider?.name !== 'ci') {
       // fancy CLI banner when we start
       const label = (name: string) => colorize('bold', colorize('magenta', (`▸ ${name}:`)))
@@ -344,8 +344,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
         '',
         `${label('Scanning')} ${resolvedConfig.site}`,
         `${label('Route Discovery')} ${mode} ${ctx.routes.length > 1 ? (colorize('dim', (`${ctx.routes.length} initial URLs`))) : ''}`,
-        '',
-        colorize('dim', (' 💖 Like Unlighthouse? Support the development: https://github.com/sponsors/harlan-zw')),
       ])
       if (ctx.routeDefinitions?.length)
         title.push(`${label('Route Definitions')} ${ctx.routeDefinitions.length}`)
@@ -361,6 +359,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       if (existsSync(join(ctx.runtimeSettings.generatedClientPath, 'reports', 'lighthouse.json')) && ctx.resolvedConfig.cache)
         logger.info(`Restoring reports from cache. ${colorize('gray', 'You can disable this behavior by passing --no-cache.')}`)
     }
+
+    // Now start queuing routes after the static info is shown
+    worker.queueRoutes(ctx.routes)
     return ctx
   }
 
