@@ -41,7 +41,7 @@ const isLocalhost = website.includes('localhost')
     </button>
     <div v-if="!isLocalhost && category.title === 'Performance'" class="text-xs text-center inline-flex whitespace-nowrap">
       <tooltip class="text-left">
-        <i-carbon-warning class="inline text-xs mx-1 opacity-70" />
+        <UIcon name="i-carbon-warning" class="inline text-xs mx-1 opacity-70" />
         <template #tooltip>
           <div class="mb-2">
             Lighthouse is running with variability.<br>Performance scores should not be considered accurate.

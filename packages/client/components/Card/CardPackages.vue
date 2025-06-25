@@ -17,8 +17,8 @@ defineProps<{
         <div class="text-xs uppercase opacity-40">
           {{ framework.version }}
         </div>
-        <i-logos-nuxt-icon v-if="framework.id === 'nuxt'" class="h-30px inline mr-1" />
-        <i-logos-vue v-else-if="framework.id === 'vue'" class="h-30px inline mr-1" />
+        <UIcon v-if="framework.id === 'nuxt'" name="i-logos-nuxt-icon" class="h-[30px] inline mr-1" />
+        <UIcon v-else-if="framework.id === 'vue'" name="i-logos-vue" class="h-[30px] inline mr-1" />
         <span class="text-sm">
           {{ framework.name }}
         </span>

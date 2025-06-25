@@ -27,8 +27,8 @@ function htmlTooltip(s: string) {
     <div class="flex items-center ">
       <tooltip v-if="column.tooltip">
         <span class="whitespace-nowrap flex items-center">{{ column.label }}
-          <i-carbon-warning-alt v-if="column?.warning" class="text-yellow-500 ml-1 text-xs opacity-75" />
-          <i-carbon-information v-else class="ml-1 text-xs opacity-75" />
+          <UIcon v-if="column?.warning" name="i-carbon-warning-alt" class="text-yellow-500 ml-1 text-xs opacity-75" />
+          <UIcon v-else name="i-carbon-information" class="ml-1 text-xs opacity-75" />
         </span>
         <template #tooltip>
           <div v-html="htmlTooltip(column.tooltip)" />
@@ -43,9 +43,9 @@ function htmlTooltip(s: string) {
         :class="sorting.key === column.key && sorting.dir ? ['dark:bg-blue-900/70', 'bg-blue-900', 'text-blue-200'] : []"
         @click="$emit('sort', column.key)"
       >
-        <i-carbon-chevron-sort v-if="sorting.key !== column.key || !sorting.dir" />
-        <i-carbon-chevron-sort-down v-else-if="sorting.key === column.key && sorting.dir === 'desc'" />
-        <i-carbon-chevron-sort-up v-else-if="sorting.key === column.key && sorting.dir === 'asc'" />
+        <UIcon v-if="sorting.key !== column.key || !sorting.dir" name="i-carbon-chevron-sort" />
+        <UIcon v-else-if="sorting.key === column.key && sorting.dir === 'desc'" name="i-carbon-chevron-sort-down" />
+        <UIcon v-else-if="sorting.key === column.key && sorting.dir === 'asc'" name="i-carbon-chevron-sort-up" />
       </button>
     </div>
     <slot :name="column.slot || column.label" />

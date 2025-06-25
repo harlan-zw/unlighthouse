@@ -1,14 +1,6 @@
 import type { UnlighthouseRouteReport } from '@unlighthouse/core'
 import { startCase } from 'lodash-es'
 import { $URL, joinURL } from 'ufo'
-// pull out client accessible options
-import MdiAccessibility from '~icons/mdi/accessibility'
-import MdiCellphone from '~icons/mdi/cellphone'
-import MdiSpeedometer from '~icons/mdi/speedometer'
-import MdiThumbUp from '~icons/mdi/thumb-up'
-import MdiViewDashboard from '~icons/mdi/view-dashboard'
-import MdiWeb from '~icons/mdi/web'
-import MdiWorld from '~icons/mdi/world'
 import CellColorContrast from '../components/Cell/CellColorContrast.vue'
 import CellImage from '../components/Cell/CellImage.vue'
 import CellImageIssues from '../components/Cell/CellImageIssues.vue'
@@ -20,6 +12,14 @@ import CellNetworkRequests from '../components/Cell/CellNetworkRequests.vue'
 import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnails.vue'
 import CellTapTargets from '../components/Cell/CellTapTargets.vue'
 import CellWebVitals from '../components/Cell/CellWebVitals.vue'
+// Icon names for UIcon components
+const MdiAccessibility = 'i-mdi-accessibility'
+const MdiCellphone = 'i-mdi-cellphone'
+const MdiSpeedometer = 'i-mdi-speedometer'
+const MdiThumbUp = 'i-mdi-thumb-up'
+const MdiViewDashboard = 'i-mdi-view-dashboard'
+const MdiWeb = 'i-mdi-web'
+const MdiWorld = 'i-mdi-world'
 
 const {
   options: {

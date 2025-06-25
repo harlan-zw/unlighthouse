@@ -11,4 +11,6 @@ declare global {
      */
     __unlighthouse_payload: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: UnlighthouseRouteReport[] }
   }
+
+  const __UNLIGHTHOUSE_VERSION__: string
 }

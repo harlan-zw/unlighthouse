@@ -1,53 +1,64 @@
-import tailwindcss from '@tailwindcss/vite'
+import ui from '@nuxt/ui/vite'
 import Vue from '@vitejs/plugin-vue'
 import * as fs from 'fs-extra'
-import AutoImport from 'unplugin-auto-import/vite'
 import IconsResolver from 'unplugin-icons/resolver'
-import Icons from 'unplugin-icons/vite'
 import { HeadlessUiResolver } from 'unplugin-vue-components/resolvers'
-import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
+import { version } from '../../package.json'
 
 export default defineConfig(({ mode }) => ({
+  define: {
+    __UNLIGHTHOUSE_VERSION__: JSON.stringify(version),
+  },
   plugins: [
-    Vue({
-      features: {
-        optionsApi: false, // Disable Options API for smaller bundle
-        prodDevtools: false,
+    Vue(),
+    ui({
+      ui: {
+        modal: {
+          variants: {
+            fullscreen: {
+              true: {
+                content: 'inset-0',
+              },
+              false: {
+                content: 'max-w-2xl',
+              },
+            },
+          },
+        },
+      },
+      autoImport: {
+        imports: [
+          'vue',
+          'vue-router',
+          '@vueuse/core',
+        ],
+        dts: true,
+        vueTemplate: true,
+      },
+      components: {
+        dirs: ['components'],
+        extensions: ['vue'],
+        deep: true,
+        resolvers: [
+          IconsResolver({
+            prefix: 'i',
+            enabledCollections: ['carbon', 'ic', 'mdi', 'la', 'logos', 'vscode-icons', 'simple-line-icons', 'icomoon-free'],
+          }),
+          HeadlessUiResolver(),
+        ],
+        dts: true,
+        directoryAsNamespace: false,
+        collapseSamePrefixes: false,
+        globalNamespaces: [],
+        include: [/\.vue$/, /\.vue\?vue/],
+        exclude: [/[\\/]node_modules[\\/]/, /[\\/]\.git[\\/]/, /[\\/]\.nuxt[\\/]/],
       },
     }),
-    Components({
-      dirs: ['components'],
-      extensions: ['vue'],
-      deep: true,
-      resolvers: [
-        IconsResolver({
-          prefix: 'i',
-          enabledCollections: ['carbon', 'ic', 'mdi', 'la', 'logos', 'vscode-icons', 'simple-line-icons', 'icomoon-free'],
-        }),
-        HeadlessUiResolver(),
-      ],
-      dts: true,
-      directoryAsNamespace: false,
-      collapseSamePrefixes: false,
-      globalNamespaces: [],
-      include: [/\.vue$/, /\.vue\?vue/],
-      exclude: [/[\\/]node_modules[\\/]/, /[\\/]\.git[\\/]/, /[\\/]\.nuxt[\\/]/],
-    }),
-    Icons({
-      compiler: 'vue3',
-      autoInstall: true,
-    }),
-    AutoImport({
-      imports: [
-        'vue',
-        'vue-router',
-        '@vueuse/core',
-      ],
-      dts: true,
-      vueTemplate: true,
-    }),
-    tailwindcss(),
+    // Icons({
+    //   compiler: 'vue3',
+    //   autoInstall: true,
+    // }),
     {
       name: 'unlighthouse-static-data-remover',
       async closeBundle() {
@@ -60,32 +71,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   ],
-
-  build: {
-    minify: mode === 'production',
-    emptyOutDir: true,
-    target: 'esnext',
-    rollupOptions: {
-      output: {
-        format: 'es',
-        entryFileNames: '[name]-[hash].mjs',
-        chunkFileNames: '[name]-[hash].mjs',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
-        manualChunks: {
-          'vue': ['vue'],
-          'vue-router': ['vue-router'],
-          'vue-use': ['@vueuse/core', '@vueuse/router'],
-          'charts': ['lightweight-charts'],
-          'utils': ['lodash-es', 'dayjs', 'fuse.js'],
-        },
-      },
-    },
-    chunkSizeWarningLimit: 1000,
-  },
-
-  resolve: {
-    conditions: ['module', 'browser', 'development', 'import'],
-  },
 
   optimizeDeps: {
     include: [
@@ -101,7 +86,23 @@ export default defineConfig(({ mode }) => ({
     ],
     exclude: [
       'vue-demi',
+      '@tailwindcss/oxide',
     ],
+  },
+
+  build: {
+    rollupOptions: {
+      external: [
+        '@tailwindcss/oxide',
+        '@tailwindcss/vite',
+        /\.node$/,
+        'exsolve',
+        'pkg-types',
+        'confbox',
+        'pathe',
+        /^@nuxt\/kit/,
+      ],
+    },
   },
 
   server: {

@@ -271,7 +271,7 @@ export default defineComponent({
         aria-label="Prev"
         @click="onClickPrev"
       >
-        <i-carbon-chevron-left />
+        <UIcon name="i-carbon-chevron-left" />
       </BtnBasic>
     </slot>
 
@@ -295,7 +295,7 @@ export default defineComponent({
         aria-label="Next"
         @click="onClickNext"
       >
-        <i-carbon-chevron-right />
+        <UIcon name="i-carbon-chevron-right" />
       </BtnBasic>
     </slot>
 
@@ -308,7 +308,7 @@ export default defineComponent({
         aria-label="Last"
         @click="onClickLast"
       >
-        <i-carbon-chevron-right />
+        <UIcon name="i-carbon-chevron-right" />
       </BtnBasic>
     </slot>
   </div>

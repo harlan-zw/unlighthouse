@@ -14,7 +14,7 @@ defineProps<{
     <div class="mb-2">
       <audit-result-items-length :value="value" />
     </div>
-    <div v-if="value.details?.items" class="max-h-80px overflow-y-auto w-full hidden md:block">
+    <div v-if="value.details?.items" class="max-h-[80px] overflow-y-auto w-full hidden md:block">
       <div
         v-for="({ node }, key) in value.details.items"
         :key="key"

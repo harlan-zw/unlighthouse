@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
 import { $URL, withBase } from 'ufo'
-import { iframeModalUrl, isModalOpen, isOffline, website } from '../../logic'
+import { contentModalOpen, isOffline, openContentModal, website } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -26,15 +26,14 @@ function openModal() {
   if (isOffline.value)
     return
 
-  isModalOpen.value = true
-  iframeModalUrl.value = null
+  openContentModal()
   nextTick(() => {
     showingModal.value = true
   })
 }
 // reset on modal closing
-watch(isModalOpen, () => {
-  if (!isModalOpen.value)
+watch(contentModalOpen, () => {
+  if (!contentModalOpen.value)
     showingModal.value = false
 })
 </script>
@@ -42,11 +41,11 @@ watch(isModalOpen, () => {
 <template>
   <div>
     <btn-action v-if="image" title="Open full image" @click="openModal">
-      <img loading="lazy" class="h-100px object-contain w-full object-top object-left" height="100" :src="image" alt="share image">
+      <img loading="lazy" class="h-[100px] object-contain w-full object-top object-left" height="100" :src="image" alt="share image">
     </btn-action>
     <audit-result v-else :value="{ displayValue: 'Missing', score: 0 }" />
-    <teleport v-if="image && isModalOpen && showingModal" to="#modal-portal">
-      <img :src="image" alt="share image" class="mx-auto">
+    <teleport v-if="image && contentModalOpen && showingModal" to="#modal-portal">
+      <img :src="image" alt="share image" class="w-[1200px] max-w-full h-auto mx-auto">
     </teleport>
   </div>
 </template>

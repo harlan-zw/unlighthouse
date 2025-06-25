@@ -10,24 +10,54 @@ import { categories, columns, isStatic, resolveArtifactPath, wsUrl } from './sta
 
 export const activeTab = ref(0)
 
-export const isModalOpen = ref<boolean>(false)
-export const iframeModalUrl = ref<string | null>()
 export const isDebugModalOpen = ref<boolean>(false)
+export const lighthouseReportModalOpen = ref<boolean>(false)
+export const contentModalOpen = ref<boolean>(false)
+export const iframeModalUrl = ref<string | null>()
+export const thumbnailsModalOpen = ref<boolean>(false)
+export const activeScreenshots = ref<any[]>([])
+
+// Legacy support - computed that returns true if any modal is open
+export const isModalOpen = computed(() =>
+  isDebugModalOpen.value || lighthouseReportModalOpen.value || contentModalOpen.value || thumbnailsModalOpen.value,
+)
 
 export function closeIframeModal() {
-  isModalOpen.value = false
+  lighthouseReportModalOpen.value = false
   iframeModalUrl.value = ''
-  isDebugModalOpen.value = false
 }
+
+export function closeAllModals() {
+  isDebugModalOpen.value = false
+  lighthouseReportModalOpen.value = false
+  contentModalOpen.value = false
+  thumbnailsModalOpen.value = false
+  iframeModalUrl.value = ''
+  activeScreenshots.value = []
+}
+
 export function openDebugModal() {
-  isModalOpen.value = true
   isDebugModalOpen.value = true
 }
+
 export function openLighthouseReportIframeModal(report: UnlighthouseRouteReport, tab?: string) {
   const path = resolveArtifactPath(report, '/lighthouse.html')
   iframeModalUrl.value = `${path}${tab ? `#${tab}` : ''}`
-  isDebugModalOpen.value = false
-  isModalOpen.value = true
+  lighthouseReportModalOpen.value = true
+}
+
+export function openContentModal() {
+  contentModalOpen.value = true
+}
+
+export function openThumbnailsModal(screenshots: any[]) {
+  activeScreenshots.value = screenshots
+  thumbnailsModalOpen.value = true
+}
+
+export function closeThumbnailsModal() {
+  thumbnailsModalOpen.value = false
+  activeScreenshots.value = []
 }
 
 export function changedTab(index: number) {

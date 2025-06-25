@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.16.3",
   "private": true,
-  "packageManager": "pnpm@10.12.2",
+  "packageManager": "pnpm@10.12.3",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -14,7 +14,7 @@
     "build:pkg": "pnpm -r --filter=./packages/** run build",
     "stub": "JITI_ESM_RESOLVE=true && pnpm -r --parallel run stub",
     "lint": "eslint . --fix",
-    "release": "bumpp package.json packages/*/package.json --commit --push --tag",
+    "release": "bumpp package.json packages/*/package.json --commit --push --tag --execute=\"pnpm run build\"",
     "test": "vitest",
     "test:update": "vitest -u",
     "docs": "npm -C docs run dev",
@@ -28,7 +28,7 @@
     "eslint": "^9.29.0",
     "obuild": "^0.2.1",
     "typescript": "5.8.3",
-    "vite": "^6.3.5",
+    "vite": "^7.0.0",
     "vitest": "^3.2.4"
   },
   "pnpm": {
@@ -46,8 +46,11 @@
     },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
-      "esbuild",
-      "unrs-resolver"
+      "@tailwindcss/oxide",
+      "esbuild"
+    ],
+    "ignoredBuiltDependencies": [
+      "vue-demi"
     ]
   }
 }

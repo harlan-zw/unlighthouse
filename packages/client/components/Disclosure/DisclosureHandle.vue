@@ -1,10 +1,14 @@
+<script setup>
+</script>
+
 <template>
   <Disclosure v-slot="{ open }" default-open>
     <DisclosureButton
       class="flex items-center transition justify-between w-full px-2 py-1 my-1 text-sm font-medium text-left border-2 border-blue-900/30 text-blue-900/70 hover:text-blue-700 hover:bg-blue-200 dark:border-none dark:bg-blue-900/30 dark:text-blue-100 dark:hover:bg-blue-900/50 dark:hover:text-blue-50 rounded-lg focus:outline-none focus-visible:ring focus-visible:ring-blue-500/75"
     >
       <slot name="label" />
-      <i-carbon-chevron-up
+      <UIcon
+        name="i-carbon-chevron-up"
         :class="open ? 'transform rotate-180' : ''"
         class="w-5 h-5 color-current transition"
       />

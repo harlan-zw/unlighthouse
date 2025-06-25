@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
 import { ref } from 'vue'
-import { basePath, scanMeta } from '../logic'
+import { basePath } from '../logic'
 
 const canvasRef = ref<HTMLCanvasElement>()
 const lighthouseRef = ref<HTMLDivElement>()
@@ -89,10 +89,6 @@ onMounted(() => {
       lighthouse.value = object
       scene.add(object)
     },
-    () => {
-      // Fallback: create a simple placeholder mesh
-      createFallbackLighthouse()
-    },
   )
 
   // Animation loop
@@ -165,42 +161,13 @@ function animate() {
   renderer.render(scene, camera)
 }
 
-function createFallbackLighthouse() {
-  // Create a simple lighthouse fallback using basic geometries
-  const group = new THREE.Group()
-
-  // Lighthouse tower (cylinder)
-  const towerGeometry = new THREE.CylinderGeometry(2, 3, 15, 8)
-  const towerMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
-  const tower = new THREE.Mesh(towerGeometry, towerMaterial)
-  tower.position.y = 7.5
-  group.add(tower)
-
-  // Lighthouse top (cone)
-  const topGeometry = new THREE.ConeGeometry(2.5, 4, 8)
-  const topMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 })
-  const top = new THREE.Mesh(topGeometry, topMaterial)
-  top.position.y = 17
-  group.add(top)
-
-  // Ground (cylinder)
-  const groundGeometry = new THREE.CylinderGeometry(8, 8, 1, 16)
-  const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x8B7355 })
-  const ground = new THREE.Mesh(groundGeometry, groundMaterial)
-  ground.position.y = -0.5
-  group.add(ground)
-
-  lighthouse.value = group as Group
-  scene.add(group)
-}
-
 const showLighthouse = computed(() => {
   return scanMeta?.value?.monitor?.status === 'working' || isHovered.value
 })
 </script>
 
 <template>
-  <div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="transform hover:scale-110 bg-linear-to-b from-sky-50/50 to-sky-300/50 dark:bg-none rounded-full duration-2000 ease-in-out transform transition w-200px h-200px">
+  <div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="hover:scale-110 bg-linear-to-b from-sky-50/50 to-sky-300/50 dark:bg-none rounded-full duration-2000 ease-in-out transform transition w-[200px] h-[200px]">
     <canvas ref="canvasRef" width="200" height="200" />
   </div>
 </template>

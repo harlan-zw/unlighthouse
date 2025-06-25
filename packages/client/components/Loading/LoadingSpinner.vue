@@ -1,3 +1,6 @@
+<script setup>
+</script>
+
 <template>
-  <i-icomoon-free-spinner8 class="animate-spin animated" />
+  <UIcon name="i-icomoon-free-spinner8" class="animate-spin animated" />
 </template>

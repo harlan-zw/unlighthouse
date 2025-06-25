@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { iframeModalUrl, isModalOpen } from '../../logic'
+import { contentModalOpen, openContentModal } from '../../logic'
 import CellImageOutline from './CellImageOutline.vue'
 
 defineProps<{
@@ -13,15 +13,14 @@ const activeItem = ref(false)
 
 function openModal(item) {
   activeItem.value = item
-  isModalOpen.value = true
-  iframeModalUrl.value = null
+  openContentModal()
   nextTick(() => {
     showingModal.value = true
   })
 }
 // reset on modal closing
-watch(isModalOpen, () => {
-  if (!isModalOpen.value) {
+watch(contentModalOpen, () => {
+  if (!contentModalOpen.value) {
     showingModal.value = false
     activeItem.value = false
   }
@@ -31,14 +30,14 @@ watch(isModalOpen, () => {
 <template>
   <div v-if="report.report" class="text-sm w-full">
     <audit-result :value="report.report.audits['cumulative-layout-shift']" class="ml-2" />
-    <div v-if="report.report.audits['layout-shifts']" class="max-h-120px overflow-y-auto">
+    <div v-if="report.report.audits['layout-shifts']" class="max-h-[120px] overflow-y-auto">
       <div v-for="(item, key) in report.report.audits['layout-shifts'].details.items" :key="key" class="mb-2 flex items-center">
         <template v-if="item?.score && item.score.toFixed(3) !== '0.000'">
           <btn-action title="Open full image" @click="openModal(item)">
             <CellImageOutline :item="item" :report="report" :column="column" :size="{ width: 150, height: 100 }" />
           </btn-action>
           <audit-result :value="{ displayValue: item.score.toFixed(3), score: 0 }" class="ml-2" />
-          <teleport v-if="activeItem === item && isModalOpen && showingModal" to="#modal-portal">
+          <teleport v-if="activeItem === item && contentModalOpen && showingModal" to="#modal-portal">
             <CellImageOutline :item="item" :report="report" :column="column" :size="{ width: 365, height: 700 }" />
           </teleport>
         </template>

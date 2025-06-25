@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@nuxt/ui";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -46,15 +47,15 @@
   .text-success {
     @apply text-green-700 dark:text-green-500;
   }
-  
+
   .text-warning {
     @apply text-yellow-700 dark:text-yellow-500;
   }
-  
+
   .text-error {
     @apply text-red-700 dark:text-red-500;
   }
-  
+
   .text-info {
     @apply text-blue-700 dark:text-blue-500;
   }
@@ -62,11 +63,11 @@
   .bg-success {
     @apply bg-green-700 dark:bg-green-500;
   }
-  
+
   .bg-warning {
     @apply bg-yellow-700 dark:bg-yellow-500;
   }
-  
+
   .bg-error {
     @apply bg-red-700 dark:bg-red-500;
   }
@@ -75,7 +76,7 @@
   .text-muted {
     @apply text-gray-700 dark:text-gray-200;
   }
-  
+
   .text-subtle {
     @apply text-gray-600 dark:text-gray-400;
   }
@@ -84,7 +85,7 @@
   .bg-surface {
     @apply bg-blue-50 dark:bg-teal-700/30;
   }
-  
+
   .bg-panel {
     @apply bg-blue-50 dark:bg-blue-900/20;
   }
@@ -93,11 +94,11 @@
   .btn-focus {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75;
   }
-  
+
   .btn-hover-primary {
     @apply hover:bg-blue-500 transition;
   }
-  
+
   .btn-hover-light {
     @apply hover:bg-blue-200 transition;
   }
@@ -111,7 +112,7 @@
   .interactive-base {
     @apply inline-flex items-center px-2 py-1 text-sm font-medium rounded-md;
   }
-  
+
   .interactive-icon {
     @apply cursor-pointer select-none outline-none opacity-75 transition duration-200 ease-in-out;
   }
@@ -120,11 +121,11 @@
   .padding-sm {
     @apply px-2 py-1;
   }
-  
+
   .padding-md {
     @apply px-3 py-1;
   }
-  
+
   .padding-lg {
     @apply px-6 py-3;
   }

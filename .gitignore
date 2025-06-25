@@ -93,3 +93,6 @@ reports
 
 .nitro
 .output
+
+auto-imports.d.ts
+components.d.ts

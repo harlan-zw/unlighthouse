@@ -1,9 +1,13 @@
 <script setup lang="ts">
 defineProps<{
   label: string
-  value: string | number
+  value?: string | number
   variant?: 'default' | 'success' | 'warning' | 'error'
   size?: 'sm' | 'md' | 'lg'
+}>()
+
+defineSlots<{
+  value?: string | number
 }>()
 </script>
 
@@ -25,7 +29,9 @@ defineProps<{
             : 'text-muted',
       ]"
     >
-      {{ value }}
+      <slot name="value">
+        {{ value }}
+      </slot>
     </div>
   </div>
 </template>
