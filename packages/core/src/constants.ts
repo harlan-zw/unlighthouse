@@ -206,8 +206,8 @@ export const defaultConfig: UserConfig = {
     workerCreationDelay: 500,
     retryLimit: 3,
     timeout: 5 * 60 * 1000, // wait for up to 5 minutes.
-    // max concurrency is the amount of cpu cores we have
-    maxConcurrency: Math.max(os.cpus().length - 1, 1),
+    // lighthouse runs in its own process so we can use half of the available cores
+    maxConcurrency: Math.max(Math.floor(os.cpus().length / 2), 1),
     skipDuplicateUrls: false,
     retryDelay: 2000,
     // Important, when using Lighthouse we want browser isolation.
