@@ -2,10 +2,10 @@
   "name": "unlighthouse-docs",
   "private": true,
   "scripts": {
-    "dev": "nuxi dev",
-    "build": "nuxi build",
-    "generate": "nuxi build",
-    "preview": "nuxi preview"
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt build",
+    "preview": "nuxt preview"
   },
   "devDependencies": {
     "@iconify-json/carbon": "^1.2.11",
