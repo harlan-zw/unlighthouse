@@ -25,26 +25,29 @@
       "types": "./types.d.mts",
       "import": "./dist/index.mjs"
     },
-    "./config": {
-      "types": "./config.d.mts",
-      "import": "./config.mjs"
-    },
+    "./config": "./config.mjs",
     "./package.json": "./package.json"
   },
-  "main": "dist/index.mjs",
-  "module": "dist/index.mjs",
+  "main": "./dist/index.mjs",
   "types": "./types.d.ts",
   "bin": {
     "unlighthouse": "bin/unlighthouse.mjs",
     "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
   },
   "files": [
-    "config.d.ts",
+    "config.d.mts",
     "config.mjs",
     "dist",
     "types.d.mts",
     "types.d.ts"
   ],
+  "typesVersions": {
+    "*": {
+      "config": [
+        "dist/config"
+      ]
+    }
+  },
   "engines": {
     "node": ">=20"
   },
