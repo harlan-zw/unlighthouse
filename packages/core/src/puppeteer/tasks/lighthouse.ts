@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import fs from 'fs-extra'
 import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
 import { map, pick, sumBy } from 'lodash-es'
-import { relative } from 'pathe'
+import { normalize, relative } from 'pathe'
 import { withQuery } from 'ufo'
 import { useLogger } from '../../logger'
 import { useUnlighthouse } from '../../unlighthouse'
@@ -118,9 +118,15 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   if (resolvedConfig.defaultQueryParams)
     clonedRouteReport.route.url = withQuery(clonedRouteReport.route.url, resolvedConfig.defaultQueryParams)
 
+  // Normalize the artifact path to use forward slashes for cross-platform compatibility
+  const routeReportForArgs = {
+    route: { url: clonedRouteReport.route.url },
+    artifactPath: normalize(clonedRouteReport.artifactPath),
+  }
+
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,
-    `--routeReport=${JSON.stringify(pick(clonedRouteReport, ['route.url', 'artifactPath']))}`,
+    `--routeReport=${JSON.stringify(routeReportForArgs)}`,
     `--lighthouseOptions=${JSON.stringify(resolvedConfig.lighthouseOptions)}`,
     `--port=${port}`,
   ]
@@ -144,7 +150,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
       if (res)
         samples.push(fs.readJsonSync(reportJsonPath))
     }
-    catch (e) {
+    catch (e: any) {
       logger.error('Failed to run lighthouse for route', e)
       return routeReport
     }
