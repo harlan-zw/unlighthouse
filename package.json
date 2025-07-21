@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.17.1",
   "private": true,
-  "packageManager": "pnpm@10.12.3",
+  "packageManager": "pnpm@10.13.1",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -19,16 +19,17 @@
     "test:update": "vitest -u",
     "docs": "npm -C docs run dev",
     "docs:build": "npm -C docs run build",
-    "docs:serve": "npm -C docs run serve"
+    "docs:serve": "npm -C docs run serve",
+    "test:attw": "pnpm -r run test:attw"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.16.1",
+    "@antfu/eslint-config": "^4.17.0",
     "@arethetypeswrong/cli": "0.18.2",
     "bumpp": "^10.2.0",
-    "eslint": "^9.29.0",
+    "eslint": "^9.31.0",
     "obuild": "^0.2.1",
     "typescript": "5.8.3",
-    "vite": "^7.0.0",
+    "vite": "^7.0.5",
     "vitest": "^3.2.4"
   },
   "pnpm": {

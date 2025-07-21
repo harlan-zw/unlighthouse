@@ -30,6 +30,13 @@
   },
   "main": "./dist/index.mjs",
   "types": "./types.d.ts",
+  "typesVersions": {
+    "*": {
+      "config": [
+        "dist/config"
+      ]
+    }
+  },
   "bin": {
     "unlighthouse": "bin/unlighthouse.mjs",
     "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
@@ -41,13 +48,6 @@
     "types.d.mts",
     "types.d.ts"
   ],
-  "typesVersions": {
-    "*": {
-      "config": [
-        "dist/config"
-      ]
-    }
-  },
   "engines": {
     "node": ">=20"
   },

@@ -41,7 +41,7 @@
     "stub": "obuild --stub"
   },
   "dependencies": {
-    "@lhci/utils": "^0.15.0",
+    "@lhci/utils": "^0.15.1",
     "@unlighthouse/client": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
