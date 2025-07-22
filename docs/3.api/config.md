@@ -19,33 +19,33 @@ Deprecated integration-specific options (Nuxt, Vite, webpack) are not documented
 
 ## Root Options
 
-### site
+### `site`{lang="ts"}
 
-- **Type:** `string`
+- **Type:** `string`{lang="ts"}
 
 The site that will be scanned.
 
-### root
+### `root`{lang="ts"}
 
-- **Type:** `string`
-- **Default:** `cwd()`
+- **Type:** `string`{lang="ts"}
+- **Default:** `cwd()`{lang="ts"}
 
 The path that we'll be performing the scan from, this should be the path to the app that represents the site.
 Using this path we can auto-discover the provider
 
-### cache
+### `cache`{lang="ts"}
 
-- **Type:** `boolean`
-- **Default:** `true`
+- **Type:** `boolean`{lang="ts"}
+- **Default:** `true`{lang="ts"}
 
 Should reports be saved to the local file system and re-used between runs for the scanned site.
 
 Note: This makes use of cache-bursting for when the configuration changes, since this may change the report output.
 
-### configFile
+### `configFile`{lang="ts"}
 
-- **Type:** `string|null`
-- **Default:** `null`
+- **Type:** `string|null`{lang="ts"}
+- **Default:** `null`{lang="ts"}
 
 Load the configuration from a custom config file. By default, it attempts to load configuration
 from `unlighthouse.config.ts`.
@@ -56,66 +56,66 @@ For example:
 - `staging-unlighthouse.config.ts`
 - `production-unlighthouse.config.ts`
 
-### outputPath
+### `outputPath`{lang="ts"}
 
-- **Type:** `string`
-- **Default:** `./lighthouse/`
+- **Type:** `string`{lang="ts"}
+- **Default:** `./lighthouse/`{lang="ts"}
 
 Where to emit lighthouse reports and the runtime client.
 
-### debug
+### `debug`{lang="ts"}
 
-- **Type:** `boolean`
-- **Default:** `false`
+- **Type:** `boolean`{lang="ts"}
+- **Default:** `false`{lang="ts"}
 
 Display the loggers' debug messages.
 
-### auth
+### `auth`{lang="ts"}
 
-- **Type:** `false | { username: string, password: string }`
-- **Default:** `false`
+- **Type:** `false | { username: string, password: string }`{lang="ts"}
+- **Default:** `false`{lang="ts"}
 
 Optional basic auth credentials.
 
-### cookies
+### `cookies`{lang="ts"}
 
-- **Type:** ` false | CookieParam[]`
-- **Default:** `false`
+- **Type:** `false | CookieParam[]`{lang="ts"}
+- **Default:** `false`{lang="ts"}
 
 Provide cookies to be set for Axios and Puppeteer requests.
 
-### extraHeaders
+### `extraHeaders`{lang="ts"}
 
-- **Type:** ` false | Record<string, string>`
-- **Default:** `false`
+- **Type:** `false | Record<string, string>`{lang="ts"}
+- **Default:** `false`{lang="ts"}
 
 Provide extra headers to be set for Axios and Puppeteer requests.
 
-### userAgent
+### `userAgent`{lang="ts"}
 
-- **Type:** `string`
-- **Default:** `undefined`
+- **Type:** `string`{lang="ts"}
+- **Default:** `undefined`{lang="ts"}
 
 Provide a custom user agent for all network requests.
 
-### defaultQueryParams
+### `defaultQueryParams`{lang="ts"}
 
-- **Type:** ` false | QueryObject`
-- **Default:** `false`
+- **Type:** `false | QueryObject`{lang="ts"}
+- **Default:** `false`{lang="ts"}
 
 Query params to add to every request.
 
-### hooks
+### `hooks`{lang="ts"}
 
-- **Type:** `NestedHooks<UnlighthouseHooks>`
-- **Default:** `{}`
+- **Type:** `NestedHooks<UnlighthouseHooks>`{lang="ts"}
+- **Default:** `{}`{lang="ts"}
 
 Hooks to run. See the [Hooks](/api/#hooks) section for more information.
 
-### routerPrefix
+### `routerPrefix`{lang="ts"}
 
-- **Type:** `string`
-- **Default:** `''`
+- **Type:** `string`{lang="ts"}
+- **Default:** `''`{lang="ts"}
 
 The URL path prefix for the client and API to run from.
 Useful when you want to serve the application from an existing integrations server.
@@ -130,17 +130,17 @@ export default defineUnlighthouseConfig({
 })
 ```
 
-### apiPrefix
+### `apiPrefix`{lang="ts"}
 
-- **Type:** `string`
-- **Default:** `/api/`
+- **Type:** `string`{lang="ts"}
+- **Default:** `/api/`{lang="ts"}
 
 The path that the API should be served from.
 
-### urls
+### `urls`{lang="ts"}
 
-- **Type:** `string[]|(() => string[])|(() => Promise<string[]>)`
-- **Default:** `[]`
+- **Type:** `string[]|(() => string[])|(() => Promise<string[]>)`{lang="ts"}
+- **Default:** `[]`{lang="ts"}
 
 Provide a list of URLs that should be used explicitly. Will disable sitemap and crawler.
 
@@ -150,10 +150,10 @@ See [Manually Providing URLs](/guide/guides/url-discovery#manually-providing-url
 
 Change the behaviour of unlighthouse in CI mode.
 
-### ci.budget
+### `ci.budget`{lang="ts"}
 
-- **Type:** `number|Record<Partial<LighthouseCategories>, number>`
-- **Default:** `null`
+- **Type:** `number|Record<Partial<LighthouseCategories>, number>`{lang="ts"}
+- **Default:** `null`{lang="ts"}
 
 Provide a budget for each page as a numeric total score, or an object mapping the category to the score.
 Should be a number between 1-100.
@@ -172,10 +172,10 @@ export default defineUnlighthouseConfig({
 })
 ```
 
-### ci.buildStatic
+### `ci.buildStatic`{lang="ts"}
 
-- **Type:** `boolean`
-- **Default:** `false`
+- **Type:** `boolean`{lang="ts"}
+- **Default:** `false`{lang="ts"}
 
 Injects the required data into the client files, so it can be hosted statically.
 
@@ -185,16 +185,16 @@ Combine this with uploading to a site, and you can see the results of your unlig
 
 See [Modifying client](/guide/recipes/client) for more information.
 
-### client.columns
+### `client.columns`{lang="ts"}
 
-- **Type:** `Record<UnlighthouseTabs, UnlighthouseColumn[]>`
+- **Type:** `Record<UnlighthouseTabs, UnlighthouseColumn[]>`{lang="ts"}
 
 Modify the default columns used on the client.
 
-### client.groupRoutesKey
+### `client.groupRoutesKey`{lang="ts"}
 
-- **Type:** `string`
-- **Default:** `route.definition.name`
+- **Type:** `string`{lang="ts"}
+- **Default:** `route.definition.name`{lang="ts"}
 
 Which key to use to group the routes.
 
@@ -202,28 +202,28 @@ Which key to use to group the routes.
 
 See [Route Definitions](/guide/guides/route-definitions) for more information.
 
-### discovery.pagesDir
+### `discovery.pagesDir`{lang="ts"}
 
-- **Type:** `string`
-- **Default:** `./pages`
+- **Type:** `string`{lang="ts"}
+- **Default:** `./pages`{lang="ts"}
 
 The location of the page files that will be matched to the routes.
 
 Note: This is for fallback behaviour when the integration doesn't provide a way to gather the route definitions.
 
-### discovery.supportedExtensions
+### `discovery.supportedExtensions`{lang="ts"}
 
-- **Type:** `string`
-- **Default:** `['vue', 'md']`
+- **Type:** `string`{lang="ts"}
+- **Default:** `['vue', 'md']`{lang="ts"}
 
 Which file extensions in the pages dir should be considered.
 
 ## Scanner Options
 
-### scanner.customSampling
+### `scanner.customSampling`{lang="ts"}
 
-- **Type:** `Record<string, RouteDefinition>`
-- **Default:** `{}`
+- **Type:** `Record<string, RouteDefinition>`{lang="ts"}
+- **Default:** `{}`{lang="ts"}
 
 Setup custom mappings for a regex string to a route definition.
 This is useful when you have a complex site which doesn't use URL path segments
@@ -231,46 +231,46 @@ to separate pages.
 
 See [custom sampling](/guide/guides/route-definitions#custom-sampling) for more information.
 
-### scanner.ignoreI18nPages
+### `scanner.ignoreI18nPages`{lang="ts"}
 
-- **Type:** `boolean`
-- **Default:** `true`
+- **Type:** `boolean`{lang="ts"}
+- **Default:** `true`{lang="ts"}
 
 When the page HTML is extracted and processed, we look for an `x-default` link to identify if the page is an i18n
 copy of another page.
 If it is, then we skip it because it would be a duplicate scan.
 
-### scanner.maxRoutes
+### `scanner.maxRoutes`{lang="ts"}
 
-- **Type:** `number|false`
-- **Default:** `200`
+- **Type:** `number|false`{lang="ts"}
+- **Default:** `200`{lang="ts"}
 
 The maximum number of routes that should be processed.
 This helps avoid issues when the site requires a specific
 configuration to be able to run properly
 
-### scanner.include
+### `scanner.include`{lang="ts"}
 
-- **Type:** `string[]|null`
-- **Default:** `null`
+- **Type:** `string[]|null`{lang="ts"}
+- **Default:** `null`{lang="ts"}
 
 Paths to explicitly include from the search, this will exclude any paths not listed here.
 
 See [Include URL Patterns](/guide/recipes/large-sites#include-url-patterns) for more information.
 
-### scanner.exclude
+### `scanner.exclude`{lang="ts"}
 
-- **Type:** `string[]|null`
-- **Default:** `null`
+- **Type:** `string[]|null`{lang="ts"}
+- **Default:** `null`{lang="ts"}
 
 Paths to ignore from scanning.
 
 See [Exclude URL Patterns](/guide/recipes/large-sites#include-url-patterns) for more information.
 
-### scanner.skipJavascript
+### `scanner.skipJavascript`{lang="ts"}
 
-- **Type:** `boolean`
-- **Default:** `true`
+- **Type:** `boolean`{lang="ts"}
+- **Default:** `true`{lang="ts"}
 
 Does javascript need to be executed in order to fetch internal links and SEO data.
 
@@ -278,20 +278,20 @@ Disabling this can speed up scans but may break the parsing.
 
 See [Handling SPAs](/guide/recipes/spa) for more information.
 
-### scanner.samples
+### `scanner.samples`{lang="ts"}
 
-- **Type:** `number`
-- **Default:** `1`
+- **Type:** `number`{lang="ts"}
+- **Default:** `1`{lang="ts"}
 
 How many samples of each route should be done. This is used to improve false-positive results.
 
 See [Run Lighthouse Multiple Times](https://github.com/GoogleChrome/lighthouse/blob/master/docs/variability.md#run-lighthouse-multiple-times)
 and [Improving Accuracy](/guide/recipes/improving-accuracy) for more information.
 
-### scanner.throttle
+### `scanner.throttle`{lang="ts"}
 
-- **Type:** `boolean`
-- **Default:** `true`
+- **Type:** `boolean`{lang="ts"}
+- **Default:** `true`{lang="ts"}
 
 Should lighthouse run with throttling enabled. This is an alias for manually configuring lighthouse.
 
@@ -299,39 +299,39 @@ Note: This will be disabled by default for local scans.
 
 See [Toggling Throttling](/guide/guides/device#alias-enable-disable-throttling) for more information.
 
-### scanner.crawler
+### `scanner.crawler`{lang="ts"}
 
-- **Type:** `boolean`
-- **Default:** `true`
+- **Type:** `boolean`{lang="ts"}
+- **Default:** `true`{lang="ts"}
 
 Should the crawler be used to detect URLs. This will parse the HTML of scanned pages for internal links and queue
 them for scanning.
 
 See [URL Discovery](/guide/guides/url-discovery) for more information.
 
-### scanner.dynamicSampling
+### `scanner.dynamicSampling`{lang="ts"}
 
-- **Type:** `number|false`
-- **Default:** `5`
+- **Type:** `number|false`{lang="ts"}
+- **Default:** `5`{lang="ts"}
 
 When a route definition is provided, you're able to configure the worker to sample the dynamic routes to avoid
 redundant route reports.
 
 See [Change Dynamic Sampling Limit](/guide/recipes/large-sites#change-dynamic-sampling-limit) for more information.
 
-### scanner.robotsTxt
+### `scanner.robotsTxt`{lang="ts"}
 
-- **Type:** `boolean`
-- **Default:** `true`
+- **Type:** `boolean`{lang="ts"}
+- **Default:** `true`{lang="ts"}
 
 Should the robots.txt file be used for configuration.
 
 Sitemap paths and disallows paths will be used to configure the scanner.
 
-### scanner.sitemap
+### `scanner.sitemap`{lang="ts"}
 
-- **Type:** `boolean | string[]`
-- **Default:** `true`
+- **Type:** `boolean | string[]`{lang="ts"}
+- **Default:** `true`{lang="ts"}
 
 Either an array of sitemap paths, or a boolean to enable/disable sitemap scanning.
 
@@ -339,10 +339,10 @@ By default, when `true` is provided or an empty array, it will try and load the 
 
 Note: If you have `robotsTxt` enabled it will load sitemap config from here.
 
-### scanner.device
+### `scanner.device`{lang="ts"}
 
-- **Type:** `boolean | string`
-- **Default:** `mobile`
+- **Type:** `boolean | string`{lang="ts"}
+- **Default:** `mobile`{lang="ts"}
 
 Alias to switch the viewport dimentions used for scanning. Set to `desktop` for a viewport of 1350×950. Set to `false` if you want to manually configure it through `lighthouseOptions.formFactor`.
 

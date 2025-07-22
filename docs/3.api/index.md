@@ -13,9 +13,9 @@ This reference covers the programmatic API for building custom integrations and 
 
 Functions from `@unlighthouse/core`:
 
-### createUnlighthouse
+### `createUnlighthouse()`{lang="ts"}
 
-- **Type:** `(userConfig: UserConfig, provider?: Provider) => Promise<UnlighthouseContext>`
+- **Type:** `(userConfig: UserConfig, provider?: Provider) => Promise<UnlighthouseContext>`{lang="ts"}
 
   This is the entry point to using Unlighthouse, it will initialise Unlighthouse with the provided configuration and an optional provider.
 
@@ -36,9 +36,9 @@ Functions from `@unlighthouse/core`:
   )
   ```
 
-### defineUnlighthouseConfig
+### `defineUnlighthouseConfig()`{lang="ts"}
 
-- **Type:** `(userConfig: UserConfig) => Promise<UnlighthouseContext>`
+- **Type:** `(userConfig: UserConfig) => Promise<UnlighthouseContext>`{lang="ts"}
 
   A simple define wrapper to provide typings to config definitions. This is primarily used when creating a
   config file `unlighthouse.config.ts`
@@ -53,9 +53,9 @@ Functions from `@unlighthouse/core`:
   })
   ```
 
-### generateClient
+### `generateClient()`{lang="ts"}
 
-- **Type:** `(options: GenerateClientOptions) => Promise<void>`
+- **Type:** `(options: GenerateClientOptions) => Promise<void>`{lang="ts"}
 
   This copies over the client from `@unlighthouse/client` to be used to render our scans details.
 
@@ -70,9 +70,9 @@ Functions from `@unlighthouse/core`:
   logger.success(`Static client generated at \`${unlighthouse.runtimeSettings.generatedClientPath}\`, ready for hosting.`)
   ```
 
-### useUnlighthouse
+### `useUnlighthouse()`{lang="ts"}
 
-- **Type:** `() => UnlighthouseContext`
+- **Type:** `() => UnlighthouseContext`{lang="ts"}
 
   Unlighthouse makes use of a [composition API](https://github.com/unjs/unctx) to retain the core state. This allows you to access unlighthouse _anywhere_,
   which is great to avoid transferring state between your logic.
@@ -86,9 +86,9 @@ Functions from `@unlighthouse/core`:
   worker.invalidateFile('/home.md')
   ```
 
-### useLogger
+### `useLogger()`{lang="ts"}
 
-- **Type:** `() => void`
+- **Type:** `() => void`{lang="ts"}
 
   Get the global logger instance. This is useful for tight unlighthouse integrations which want to make use of the
   `debug` config.
@@ -109,9 +109,9 @@ Functions exposed from the `@unlighthouse/server` package.
 This package is used for instances where unlighthouse is running without a provider which has an accessible web server. For instance
 running Unlighthouse with the `cli` provider will use this package.
 
-### createServer
+### `createServer()`{lang="ts"}
 
-- **Type:** `() => Promise<void>`
+- **Type:** `() => Promise<void>`{lang="ts"}
 
   Creates a [h3](https://github.com/unjs/h3) app which uses [listhen](https://github.com/unjs/listhen) as a web server.
   This is used to host the API and the client.
@@ -130,27 +130,27 @@ running Unlighthouse with the `cli` provider will use this package.
 
 Functions exposed from unlighthouse context provided by `useUnlighthouse()` or `createUnlighthouse()` .
 
-### start
+### `start()`{lang="ts"}
 
-- **Type:** `() => Promise<UnlighthouseContext>`
+- **Type:** `() => Promise<UnlighthouseContext>`{lang="ts"}
 
   Start the client and the queue worker. A server context must be provided before this function is called.
 
-### setCiContext
+### `setCiContext()`{lang="ts"}
 
-- **Type:** `() => Promise<UnlighthouseContext>`
+- **Type:** `() => Promise<UnlighthouseContext>`{lang="ts"}
 
   Running Unlighthouse via CI does not require a server or the client, so we have a special utility for it.
 
-### setServerContext
+### `setServerContext()`{lang="ts"}
 
-- **Type:** `(arg: ServerContextArg) => Promise<UnlighthouseContext>`
+- **Type:** `(arg: ServerContextArg) => Promise<UnlighthouseContext>`{lang="ts"}
 
   To use Unlighthouse with a client, it needs a server / app to register the API and client middleware.
 
-### setSiteUrl
+### `setSiteUrl()`{lang="ts"}
 
-- **Type:** `(url: string) => void`
+- **Type:** `(url: string) => void`{lang="ts"}
 
   Sets the site URL that will be scanned if it's not known at initialisation.
 
@@ -174,9 +174,9 @@ hooks.hook('task-complete', (path, response) => {
 })
 ```
 
-### site-changed
+### `site-changed`{lang="ts"}
 
-- **Type:** `(site: string) => HookResult`
+- **Type:** `(site: string) => HookResult`{lang="ts"}
 
   It's possible the site is not known at initialisation, this hook is called when it's set or changed.
 
@@ -186,9 +186,9 @@ hooks.hook('task-complete', (path, response) => {
   })
   ```
 
-### worker-finished
+### `worker-finished`{lang="ts"}
 
-- **Type:** `() => HookResult`
+- **Type:** `() => HookResult`{lang="ts"}
 
   Called when the worker has finished processing all queued routes. Will be called multiple times if routes are re-queued.
 
@@ -200,16 +200,16 @@ hooks.hook('task-complete', (path, response) => {
   })
   ```
 
-### route-definitions-provided
+### `route-definitions-provided`{lang="ts"}
 
-- **Type:** `(routeDefinitions: any[]) => HookResult`
+- **Type:** `(routeDefinitions: any[]) => HookResult`{lang="ts"}
 
   When route definitions are provided to Unlighthouse this function will be called useful for delaying internal logic
   until the definitions are found.
 
-### visited-client
+### `visited-client`{lang="ts"}
 
-- **Type:** `() => HookResult`
+- **Type:** `() => HookResult`{lang="ts"}
 
   Called when a user visits the path of the `@unlighthouse/client` for the first time. Useful for starting the worker on-demand.
 
@@ -220,32 +220,32 @@ hooks.hook('task-complete', (path, response) => {
   })
   ```
 
-### task-added
+### `task-added`{lang="ts"}
 
-- **Type:** `(path: string, response: UnlighthouseRouteReport) => HookResult`
+- **Type:** `(path: string, response: UnlighthouseRouteReport) => HookResult`{lang="ts"}
 
   Fired when a new task is added to the queue worker.
 
-### task-started
+### `task-started`{lang="ts"}
 
-- **Type:** `(path: string, response: UnlighthouseRouteReport) => HookResult`
+- **Type:** `(path: string, response: UnlighthouseRouteReport) => HookResult`{lang="ts"}
 
   Fired when a task has started to work.
 
-### task-complete
+### `task-complete`{lang="ts"}
 
-- **Type:** `(path: string, response: UnlighthouseRouteReport, taskName: string) => HookResult`
+- **Type:** `(path: string, response: UnlighthouseRouteReport, taskName: string) => HookResult`{lang="ts"}
 
 Fired when a task has completed it's work.
 
-### discovered-internal-links
+### `discovered-internal-links`{lang="ts"}
 
-- **Type:** `(path: string, internalLinks: string[]) => HookResult`
+- **Type:** `(path: string, internalLinks: string[]) => HookResult`{lang="ts"}
 
 Fired when a path discovered internal links, used for "crawl" mode.
 
-### puppeteer:before-goto
+### `puppeteer:before-goto`{lang="ts"}
 
-- **Type:** `(page: Page) => HookResult`
+- **Type:** `(page: Page) => HookResult`{lang="ts"}
 
 After a page has been visited with puppeteer. Useful for running
