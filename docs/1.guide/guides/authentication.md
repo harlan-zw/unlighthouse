@@ -1,9 +1,13 @@
 ---
-title: Authentication
-description: How to authenticate your site before scanning.
+title: "Authentication"
+description: "Configure authentication for scanning protected websites using basic auth, cookies, headers, or custom methods."
+navigation:
+  title: "Authentication"
 ---
 
-Unlighthouse is built to support scanning sites that require authentication.
+## Introduction
+
+Unlighthouse provides multiple authentication methods to scan protected websites. Whether you need basic authentication, session cookies, custom headers, or programmatic login flows, Unlighthouse adapts to your authentication requirements.
 
 ## Basic Authentication
 
@@ -11,12 +15,14 @@ To use basic authentication, provide the `auth` option in your configuration fil
 
 ```ts
 // unlighthouse.config.ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   auth: {
     username: 'username',
     password: 'password',
   },
-}
+})
 ```
 
 Alternatively, you can provide the `--auth` flag to the CLI.
@@ -31,20 +37,16 @@ If you can authenticate your session using cookies, use the `cookies` option in 
 
 ```ts
 // unlighthouse.config.ts
-export default {
+export default defineUnlighthouseConfig({
   cookies: [
     {
       name: 'my-jwt-token',
       value: '<token>',
-      // optional extras
       domain: 'your-site.com',
       path: '/',
-      httpOnly: false,
-      secure: false,
-      sameSite: 'Lax',
     },
   ],
-}
+})
 ```
 
 Alternatively, you can provide the `--cookies` flag to the CLI.
@@ -67,11 +69,11 @@ To use custom headers, provide the `extraHeaders` option in your configuration f
 
 ```ts
 // unlighthouse.config.ts
-export default {
+export default defineUnlighthouseConfig({
   extraHeaders: {
-    'x-custom-auth': '<token>>',
+    'x-custom-auth': '<token>',
   },
-}
+})
 ```
 
 Alternatively, you can provide the `--extra-headers` flag to the CLI.
@@ -93,11 +95,11 @@ then you can provide them using the `defaultQueryParams` option in your configur
 
 ```ts
 // unlighthouse.config.ts
-export default {
+export default defineUnlighthouseConfig({
   defaultQueryParams: {
     auth: '<token>'
-  }
-}
+  },
+})
 ```
 
 Alternatively, you can provide the `--default-query-params` flag to the CLI.
@@ -113,11 +115,11 @@ then you can provide them using the `localStorage` option in your configuration 
 
 ```ts
 // unlighthouse.config.ts
-export default {
+export default defineUnlighthouseConfig({
   localStorage: {
     auth: '<token>'
-  }
-}
+  },
+})
 ```
 
 ## Programmatic Usage
@@ -130,10 +132,9 @@ You can see an example here:
 
 ```ts
 // unlighthouse.config.ts
-export default {
+export default defineUnlighthouseConfig({
   hooks: {
     async authenticate(page) {
-      // login to the page
       await page.goto('https://example.com/login')
       const emailInput = await page.$('input[type="email"]')
       await emailInput.type('admin@example.com')
@@ -145,16 +146,15 @@ export default {
       ])
     },
   },
-}
+})
 ```
 
 ## Persisting Authentication
 
 If you need to persist your authentication data and it's not working as expected, you can configure Unlighthouse as follows:
 
-```ts [unlighthouse.config.ts]
-export default {
-  // show the browser window
+```ts
+export default defineUnlighthouseConfig({
   puppeteerOptions: {
     userDataDir: './.puppeteer_data',
   },
@@ -162,26 +162,9 @@ export default {
     disableStorageReset: true,
     skipAboutBlank: true,
   },
-}
+})
 ```
 
-## Troubleshooting
-
-If you're having trouble authenticating,
-you can use the `debug: true` and `headless: false`,
-flags to see what's happening.
-
-```ts [unlighthouse.config.ts]
-export default {
-  debug: true,
-  // show the browser window
-  puppeteerOptions: {
-    headless: false,
-    slowMo: 100,
-  },
-  // only run a single scan at a time
-  puppeteerClusterOptions: {
-    maxConcurrency: 1,
-  },
-}
-```
+::tip
+For debugging authentication issues, enable visual mode and debug logging as described in the [Debugging Guide](/guide/guides/debugging).
+::

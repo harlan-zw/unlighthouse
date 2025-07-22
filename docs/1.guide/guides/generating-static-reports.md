@@ -1,33 +1,41 @@
 ---
-title: Generating Static Reports
-description: Generate static reports for your site.
+title: "Static Reports"
+description: "Generate static HTML, CSV, and JSON reports using Unlighthouse CI for automated deployments and analysis."
+navigation:
+  title: "Static Reports"
 ---
 
-When you run Unlighthouse using `npx unlighthouse`, you're using the CLI mode. This mode generates and runs the interactive client.
+## Introduction
 
-This is useful for quickly scanning your site and finding issues.
+Unlighthouse CI can generate static reports in multiple formats for automated workflows, hosting, and analysis. Unlike the interactive CLI, static reports can be deployed to any web server or integrated into CI/CD pipelines.
 
-However, you want to set up some automation around these reports. Creating reports that can be accessed through a static host.
+::tip
+Static reports are perfect for stakeholder reviews, automated deployments, and long-term performance tracking.
+::
 
-Unlighthouse ships with a [CI](/integrations/ci) mode which provides additional non-interactive features, one of them is generating static reports.
+## Installation
 
-## Using the CI mode
+Install the CLI globally to use `unlighthouse-ci`:
 
-You'll need to manually install the CLI as a dependency to use `unlighthouse-ci` from the command line.
+::code-group
 
-```bash
+```bash [npm]
 npm install -g @unlighthouse/cli
-# yarn global add @unlighthouse/cli
-# pnpm install -g @unlighthouse/cli
 ```
 
-Please refer to the [CI](/integrations/ci) documentation for all features.
+```bash [yarn]
+yarn global add @unlighthouse/cli
+```
 
-## Static Reports
+```bash [pnpm]
+pnpm install -g @unlighthouse/cli
+```
 
-There are many types of reports you can generate.
+::
 
-## Interactive HTML Reports
+For complete CI features, see the [CI Integration Guide](/integrations/ci).
+
+## HTML Reports
 
 You can create static, self-hosted reports for your sites using the CI. This allows you to generate an always up-to-date version
 of how your site is performing overall.

@@ -1,77 +1,133 @@
 ---
-title: How it works
-description: How Unlighthouse works under the hood.
+title: "How It Works"
+description: "How Unlighthouse scans your site - the simple explanation."
+navigation:
+  title: "How It Works"
 ---
 
-Unlighthouse has multiple steps, aimed at only running logic when it's needed.
+## Introduction
 
-The core logic is as follows
+Unlighthouse scans your website in a few simple steps. It finds all your pages, runs Lighthouse on each one, then shows you the results.
 
-## 1. Instantiation
+Here's how it works under the hood.
 
-Configuration is loaded from `unlighthouse.config.ts` or a custom `configFile`.
+## How It Starts
 
-```ts
+### 1. Setup
+
+First, Unlighthouse loads your config file using the [c12](https://github.com/unjs/c12) package. This supports TypeScript config files and gives you a global `defineUnlighthouseConfig` function for type support:
+
+::code-group
+
+```ts [Configuration Loading]
 const unlighthouse = await createUnlighthouse(config)
 ```
 
-### Worker
+```ts [unlighthouse.config.ts]
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
-A new [puppeteer-cluster](https://github.com/thomasdondorf/puppeteer-cluster) is created.
-
-## 2. Server Context Provided
-
-Once the context is provided for which site is being scanned and server details.
-
-```ts
-// create a server to serve the client from
-const { server, app } = await createServer()
-await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
+export default defineUnlighthouseConfig({
+  site: 'https://example.com',
+  scanner: {
+    samples: 3,
+    throttle: true,
+  },
+})
 ```
 
-### API
+::
 
-An [unrouted](https://github.com/harlan-zw/unrouted) API instance is created.
+#### Browser Workers
 
-### Client
+Unlighthouse creates a pool of Chrome browsers using [puppeteer-cluster](https://github.com/thomasdondorf/puppeteer-cluster):
 
-[Vite](https://github.com/vitejs/vite) client is copied from the `node_modules` and is injected with static
-configuration for the scan
+- Opens multiple Chrome instances
+- Each one can scan a different page
+- Runs scans in parallel to go faster
 
-## 3. Start
+### 2. Report Site Setup
 
-For integrations, Unlighthouse will only start when accessed. Otherwise, Unlighthouse is started straight away.
+Unlighthouse starts a local web server so you can see the results:
 
 ```ts
+// Create server for the UI client
+const { server, app } = await createServer()
+await unlighthouse.setServerContext({
+  url: server.url,
+  server: server.server,
+  app
+})
+```
+
+#### API
+
+The [unrouted](https://github.com/harlan-zw/unrouted) API handles:
+
+- Sending scan updates to your browser
+- Serving Lighthouse reports
+- Managing the scanning process
+
+#### Web App
+
+A [Vite](https://github.com/vitejs/vite) web app that:
+
+- Shows scan progress in real-time
+- Displays all the Lighthouse scores
+- Lets you filter and explore results
+
+### 3. The Actual Scanning
+
+#### When It Starts
+
+Unlighthouse can start in two ways:
+
+::code-group
+
+```ts [Immediate Start]
+// CLI mode - starts immediately
+unlighthouse.start()
+```
+
+```ts [Lazy Start]
+// Integration mode - waits for first client access
 hooks.hookOnce('visited-client', () => {
   unlighthouse.start()
 })
 ```
 
-### Context
+::
 
-Discovery of the [route definitions](/api/glossary/#route-definition) is attempted. A virtual router for the route
-definitions is created.
+#### Finding Your Pages
 
-Attempt to read the robots.txt to disocver the sitemap and excluded routes.
+Unlighthouse finds pages to scan in a few ways:
 
-With the sitemap.xml, we collect the list of URLs to work with, if no sitemap is discovered, the home page will be
-scanned.
+1. **Route Files**: Reads your framework's route files (like Next.js pages)
+2. **Robots.txt**: Checks your robots.txt file for sitemap links
+3. **Sitemap.xml**: Gets all URLs from your sitemap
+4. **Crawling**: If no sitemap, it starts from your homepage and follows links
 
-### Worker
+::tip
+Having a sitemap.xml makes scanning much faster and finds more pages.
+::
 
-For each URL:
+#### What Happens to Each Page
 
-1. perform a GET and extract HTML payload for basic SEO data and discover new internal links
-2. In a new thread, perform the lighthouse scan, the HTML and JSON payload of the report will be saved to the filesystem
+For every URL it finds, Unlighthouse does two things:
 
-### Client
+##### Step 1: Quick HTML Check
+- Makes a simple HTTP request to get the HTML
+- Grabs basic info like title, meta tags
+- Looks for more links to scan
 
-Broadcasting setup on worker events.
+##### Step 2: Full Lighthouse Scan
+- Opens the page in Chrome
+- Runs all the Lighthouse tests
+- Saves the report as HTML and JSON files
 
-## 3. Using the client
+#### Live Updates
 
-### API
+While scanning, the report page updates in real-time:
 
-The [unrouted](https://github.com/harlan-zw/unrouted) API instance routes requests to the worker to perform actions.
-Static files such as the full-page screenshot and lighthouse HTML report are served.
+- Shows how many pages are done
+- Updates the progress bar
+- Shows results as soon as each page finishes

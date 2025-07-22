@@ -1,25 +1,25 @@
 ---
-title: Configuring Google Lighthouse
-description: How to configure Google Lighthouse using Unlighthouse.
+title: "Lighthouse Configuration"
+description: "Customize Google Lighthouse audit settings, categories, and performance thresholds within Unlighthouse scans."
+navigation:
+  title: "Lighthouse Config"
 ---
 
-Unlighthouse uses the [lighthouse node module](https://github.com/GoogleChrome/lighthouse) to perform scans.
+## Introduction
 
-### Lighthouse configuration
-
-Any configuration available to lighthouse can be passed through on the `lighthouseOptions` key to change the behaviour
-of the reports.
-
-See [lighthouse configuration](https://github.com/GoogleChrome/lighthouse/blob/master/docs/configuration.md) for
-details.
+Unlighthouse provides direct access to Google Lighthouse configuration through the `lighthouseOptions` key. You can customize audit categories, performance thresholds, and scanning behavior.
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   lighthouseOptions: {
     throttlingMethod: 'devtools',
-  }
-}
+  },
+})
 ```
+
+For complete options, see the [Lighthouse Configuration docs](https://github.com/GoogleChrome/lighthouse/blob/master/docs/configuration.md).
 
 ## Aliases
 
@@ -42,9 +42,9 @@ to any categories you select.
 **Only Performance**
 
 ```ts
-export default {
+export default defineUnlighthouseConfig({
   lighthouseOptions: {
     onlyCategories: ['performance'],
-  }
-}
+  },
+})
 ```

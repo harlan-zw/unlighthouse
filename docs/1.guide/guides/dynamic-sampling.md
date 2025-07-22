@@ -1,11 +1,15 @@
 ---
-title: Dynamic Sampling
-description: Dynamic sampling is a feature that allows you to automatically sample similar pages.
+title: "Dynamic Sampling"
+description: "Automatically sample similar pages to reduce scan time for sites with many similar URLs like blogs or e-commerce."
+navigation:
+  title: "Dynamic Sampling"
 ---
 
-Dynamic Sampling is useful for sites that have a lot of pages that are similar, such as a blog articles.
+## Introduction
 
-It is enabled by default for most scans.
+Dynamic sampling intelligently groups similar pages and scans only a representative sample. This feature prevents performance issues when scanning sites with hundreds of similar pages like blogs, product catalogs, or user profiles.
+
+Dynamic sampling is enabled by default with 5 samples per group.
 
 ## How it works
 
@@ -45,11 +49,23 @@ After sampling, we may end up with the random selection:
 It is configured using the `scanner.dynamicSampling` option.
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   scanner: {
-    dynamicSampling: false, // or any number, default is 5
-  }
-}
+    dynamicSampling: 10, // Number of samples per group (default: 5)
+  },
+})
+```
+
+### Disable Dynamic Sampling
+
+```ts
+export default defineUnlighthouseConfig({
+  scanner: {
+    dynamicSampling: false,
+  },
+})
 ```
 
 Alternatively, you can disable it using the CLI `--disable-dynamic-sampling`.

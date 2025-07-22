@@ -1,15 +1,21 @@
 ---
-title: Config
-description: All the configuration options for Unlighthouse.
+title: "Configuration Reference"
+description: "Complete reference for all Unlighthouse configuration options including types, defaults, and usage examples."
+navigation:
+  title: "Config Reference"
 ---
 
-There are multiple ways to configure Unlighthouse. See the configuration documentation for your implementation.
+## Introduction
 
-- [Config file - unlighthouse.config.ts](/guide/guides/config)
-- [CLI arguments](/integrations/cli#configuration)
-- [Nuxt module options](/integrations/nuxt#configuration)
-- [webpack plugin options](/integrations/webpack#configuration)
-- [Vite plugin options](/integrations/vite#configuration)
+This page provides a complete reference for all Unlighthouse configuration options. For implementation guides, see:
+
+- [Configuration Guide](/guide/guides/config)
+- [CLI Arguments](/integrations/cli#configuration)
+- [CI Integration](/integrations/ci)
+
+::note
+Deprecated integration-specific options (Nuxt, Vite, webpack) are not documented here. Use CLI or CI integrations instead.
+::
 
 ## Root Options
 
@@ -117,9 +123,11 @@ Useful when you want to serve the application from an existing integrations serv
 For example, you could run Unlighthouse from `/__unlighthouse` .
 
 ```ts
-export default {
-  routerPrefix: '/__unlighthouse'
-}
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
+  routerPrefix: '/__unlighthouse',
+})
 ```
 
 ### apiPrefix
@@ -153,13 +161,15 @@ Should be a number between 1-100.
 For example, if you wanted to make sure all of your pages met a specific accessibility score, you could do:
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   ci: {
     budget: {
-      accessibility: 90
-    }
+      accessibility: 90,
+    },
   },
-}
+})
 ```
 
 ### ci.buildStatic

@@ -1,13 +1,15 @@
 ---
-title: Glossary
-description: A glossary of terms used in the Unlighthouse documentation.
+title: "Glossary"
+description: "Key terms and concepts used throughout the Unlighthouse documentation and API."
+navigation:
+  title: "Glossary"
 ---
 
-## Core
+## Core Concepts
 
 ### Route Definition
 
-A route definition is the mapping of a page file (such as a vue component or markdown file), and it's URL path (or paths) that it represents.
+A route definition maps page files (Vue components, markdown files, etc.) to their corresponding URL paths, enabling intelligent [dynamic sampling](/guide/guides/dynamic-sampling) and better organization.
 
 The page component has multiple representations:
 1. _static route_ - name matches the path (/about.vue -> /about/),

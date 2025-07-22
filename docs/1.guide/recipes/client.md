@@ -1,23 +1,26 @@
 ---
-title: Modifying UI
-description: How to modify the Unlighthouse UI.
+title: "Customizing the UI"
+description: "Modify Unlighthouse client interface columns and display to show custom metrics and data."
+navigation:
+  title: "UI Customization"
 ---
 
-## Changing columns
+## Introduction
 
-Unlighthouse was built to be hacked. That includes the columns used to display your lighthouse data.
+Unlighthouse's client interface can be customized to display the metrics most relevant to your needs. Modify columns, add custom data, and tailor the UI to your workflow.
 
-You can customise the columns to show any aggregated data that is useful for you.
+## Customizing Columns
 
-See the [glossary guide](/api/glossary/#columns) for the columns to understand the API.
+Replace or add columns to display specific Lighthouse metrics:
 
-### Example: Replace FCP Column with Server Response
+### Example: Replace FCP with Server Response Time
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   hooks: {
     'resolved-config': function (config) {
-      // replace FCP column with server response time
       config.client.columns.performance[2] = {
         cols: 1,
         label: 'Response Time',
@@ -25,7 +28,11 @@ export default {
         sortKey: 'numericValue',
         key: 'report.audits.server-response-time',
       }
-    }
-  }
-}
+    },
+  },
+})
 ```
+
+::tip
+See the [Column API Reference](/api/glossary/#columns) for all available column options.
+::

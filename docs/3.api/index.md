@@ -1,11 +1,17 @@
 ---
-title: API
-description: The API reference for Unlighthouse.
+title: "API Reference"
+description: "Complete API reference for Unlighthouse core functions, context methods, and hooks system."
+navigation:
+  title: "API Reference"
 ---
 
-## @unlighthouse/core
+## Introduction
 
-Functions exposed from the `@unlighthouse/core` package.
+This reference covers the programmatic API for building custom integrations and extending Unlighthouse functionality.
+
+## Core Package
+
+Functions from `@unlighthouse/core`:
 
 ### createUnlighthouse
 

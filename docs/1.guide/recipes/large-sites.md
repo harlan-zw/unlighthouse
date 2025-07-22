@@ -1,14 +1,17 @@
 ---
-title: Handling large sites
-description: How to handle large sites with Unlighthouse.
+title: "Large Site Optimization"
+description: "Strategies and configuration for efficiently scanning large websites with thousands of pages."
+navigation:
+  title: "Large Sites"
 ---
 
-Unlighthouse is configured by default to run on any sized site and only perform _useful_ scans.
+## Introduction
 
-## Default configuration
+Unlighthouse includes smart defaults for scanning large websites efficiently. Understanding these defaults and optimization strategies helps you balance scan completeness with performance.
 
-Unlighthouse is configured by default to work on large sites. If you're scanning a smaller site you may consider
-changing some of the following:
+## Default Large Site Configuration
+
+These defaults optimize scanning for sites with thousands of pages:
 
 - [ignoreI18nPages](/api/config#scanner-ignorei18npages) enabled
 - [maxRoutes](/api/config#scanner-maxroutes) set to 200
@@ -47,13 +50,15 @@ Paths to ignore from scanning.
 For example, if your site has a documentation section, that doesn't need to be scanned.
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   scanner: {
     exclude: [
-      '/docs/*'
-    ]
-  }
-}
+      '/docs/*',
+    ],
+  },
+})
 ```
 
 ## Include URL Patterns
@@ -63,14 +68,16 @@ Explicitly include paths; this will exclude any paths not listed here.
 For example, if you run a blog and want to only scan your article and author pages.
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   scanner: {
     include: [
       '/articles/*',
-      '/authors/*'
-    ]
-  }
-}
+      '/authors/*',
+    ],
+  },
+})
 ```
 
 ## Change Dynamic Sampling Limit
@@ -80,12 +87,13 @@ By default, a URLs will be matched to a specific route definition 5 times.
 You can change the sample limit with:
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   scanner: {
-    // see 20 samples for each page file
-    dynamicSampling: 20
-  }
-}
+    dynamicSampling: 20, // 20 samples per page template
+  },
+})
 ```
 
 ## Disabling Sampling
@@ -96,10 +104,11 @@ will be sampled.
 For these instances you may want to disable the sample as follows:
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   scanner: {
-    // no dynamic sampling
-    dynamicSampling: false
-  }
-}
+    dynamicSampling: false, // Disable sampling completely
+  },
+})
 ```

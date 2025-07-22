@@ -1,16 +1,18 @@
 ---
-title: Webpack
+title: "Webpack Integration"
 icon: i-logos-webpack
-description: Using the Unlighthouse webpack plugin allows you to close the feedback loop in fixing your Google Lighthouse issues in your development site.
+description: "Add Lighthouse auditing to webpack-based projects with development server integration and HMR support."
+navigation:
+  title: "Webpack"
 ---
 
-::u-alert{type="warning"}
-This integration is now deprecated and will be removed in the v1 major release.
-Read more about [integration deprecations](/integration-deprecations).
+::warning
+**Deprecated**: This integration will be removed in v1.0. We recommend using the [CLI](/integrations/cli) or [CI](/integrations/ci) integrations instead. [Learn more →](/integration-deprecations)
 ::
 
-Using the Unlighthouse webpack plugin allows you to close the feedback loop in fixing your Google Lighthouse issues in
-your development site.
+## Introduction
+
+The webpack integration provides Lighthouse auditing capabilities for webpack-based applications during development.
 
 ## Install
 

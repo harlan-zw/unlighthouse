@@ -1,11 +1,17 @@
 ---
-title: Docker and GitHub CI
-description: Using Unlighthouse in a Docker container is a great way to run it in a predictable CI environment.
+title: "Docker Support"
+description: "Run Unlighthouse in Docker containers for consistent CI/CD environments with proper Chromium configuration."
+navigation:
+  title: "Docker"
 ---
 
-Support is experimental and provided by the community. An official docker image may be created in the future.
+## Introduction
 
-It requires special configuration to the puppeteer instance. The [running puppeteer in docker](https://pptr.dev/troubleshooting/#running-puppeteer-in-docker) article is a great read.
+Unlighthouse supports Docker environments for consistent CI/CD deployments. Docker requires special Puppeteer configuration due to sandboxing restrictions.
+
+::warning
+Docker support is community-maintained and experimental. Use the CI integration for best results.
+::
 
 ## Unlighthouse Config
 
@@ -14,36 +20,35 @@ It's recommended you only use the `@unlighthouse/ci` with Docker. Hosting the cl
 You will need to remove the Chrome sandbox in a Docker environment, this will require using an `unlighthouse.config.ts` file.
 
 ```ts
-// unlighthouse.config.ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   puppeteerOptions: {
-    // executablePath: '/path/to/your/chrome',
     headless: true,
     args: [
-      '--no-sandbox', // Required for Docker environments
-      '--disable-setuid-sandbox', // Required for Docker environments
-      '--disable-gpu', // Disable GPU acceleration (useful in headless environments)
-      '--ignore-certificate-errors', // Fixes net::ERR_CERT_AUTHORITY_INVALID issues
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-gpu',
+      '--ignore-certificate-errors',
     ],
   },
-}
+})
 ```
 
 If you're using the `unlighthouse` binary instead of the CI integration, then you will need to tell Unlighthouse not to use the server and close when
 the reports are finished.
 
 ```ts
-// unlighthouse.config.ts
-export default {
+export default defineUnlighthouseConfig({
   server: {
     open: false,
   },
   hooks: {
     'worker-finished': async () => {
       process.exit(0)
-    }
-  }
-}
+    },
+  },
+})
 ```
 
 ## Docker File

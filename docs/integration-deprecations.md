@@ -1,16 +1,21 @@
 ---
-title: Integration Deprecations
+title: "Integration Deprecations"
 icon: carbon:warning-alt
-description: Unlighthouse integrations are being deprecated in favour of the CLI.
+description: "Build tool integrations are deprecated in v1.0. Learn about migration paths and alternatives."
 navigation: false
 ---
 
-These integrations are now deprecated:
+## Introduction
+
+The following build tool integrations are deprecated and will be removed in v1.0:
+
 - `@unlighthouse/nuxt`
 - `@unlighthouse/vite`
 - `@unlighthouse/webpack`
 
-They will be removed in the next major release (v1).
+::warning
+Start migrating to [CLI](/integrations/cli) or [CI](/integrations/ci) integrations for continued support.
+::
 
 ## Background
 

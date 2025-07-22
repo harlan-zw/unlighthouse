@@ -1,78 +1,67 @@
 ---
-title: Selecting Device
-description: How to change the device used for scanning.
+title: "Device Configuration"
+description: "Configure device emulation settings for mobile and desktop scanning with custom dimensions and throttling options."
+navigation:
+  title: "Device Configuration"
 ---
 
-Unlighthouse uses the [lighthouse node module](https://github.com/GoogleChrome/lighthouse) to perform scans.
+## Introduction
 
-By default, Unlighthouse will uses the default lighthouse configuration, which emulates a mobile device. Unlighthouse
-does _not throttle_ by default.
+Unlighthouse uses device emulation to test how your website performs on different screen sizes and network conditions. By default, scans emulate a mobile device (375x667) without throttling.
 
-The device dimensions details are:
-- **width**: 375
-- **height**: 667
+Configuration aliases make it easy to switch between common device types and settings.
 
-Config alises are provided to modify the emulated device behaviour.
+## Device Types
 
-## Alias: Switching between mobile and desktop
-
-By default, Unlighthouse will run the audit using an emulated mobile desktop.
-
-To change it to desktop:
+### Desktop Scanning
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   scanner: {
     device: 'desktop',
-  }
-}
+  },
+})
 ```
 
-To change it to mobile (default):
+### Mobile Scanning (Default)
 
 ```ts
-export default {
+export default defineUnlighthouseConfig({
   scanner: {
     device: 'mobile',
-  }
-}
+  },
+})
 ```
 
-Note: This is an alias for setting the option yourself manually via `lighthouseOptions`.
+## Custom Dimensions
 
-## Change device dimensions
-
-Changing the device dimensions can be useful if you want to test content that is only shown as specific dimensions.
+Test specific viewport sizes for responsive breakpoints:
 
 ```ts
-export default {
+export default defineUnlighthouseConfig({
   lighthouseOptions: {
     screenEmulation: {
       width: 1800,
       height: 1000,
-    }
-  }
-}
+    },
+  },
+})
 ```
 
-## Alias: Enable/Disable Throttling
+## Network Throttling
 
-There are two types of throttling: CPU and network. Both are used in combination to emulate visitors to your site who
-have poor internet connection and slow devices.
-
-Unlighthouse will by default, throttle request to production sites for a more accurate performance score.
-
-In development, it makes less sense to throttle as the network and CPU conditions for local development servers will
-skew the results.
-
-If you would like to modify the throttling for each environment you can do:
+Throttling simulates slower network and CPU conditions for more realistic performance testing:
 
 ```ts
-export default {
+export default defineUnlighthouseConfig({
   scanner: {
-    throttle: true
-  }
-}
+    throttle: true,
+  },
+})
 ```
 
-Note: `throttle` is an alias for modifying `lighthouseOptions.throttlingMethod` and `lighthouseOptions.throttling`.
+::note
+Throttling is automatically enabled for production sites and disabled for localhost by default.
+::

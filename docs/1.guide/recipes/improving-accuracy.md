@@ -1,34 +1,42 @@
 ---
-title: Improving Accuracy
-description: How to improve the accuracy of your scans.
+title: "Improving Accuracy"
+description: "Optimize Lighthouse scan accuracy with multiple samples and reduced concurrency for more reliable results."
+navigation:
+  title: "Improving Accuracy"
 ---
 
-## Run Lighthouse Multiple Times Per URL
+## Introduction
 
-Lighthouse recommends using multiple scans to improve the overall accuracy of the results. By default Unlighthouse only
-performs one sample to improve speed.
+Lighthouse performance scores can vary between runs due to network conditions, CPU load, and other factors. These techniques help you achieve more consistent and accurate results.
 
-If you'd like to opt in to multiple samples you can do:
+## Multiple Samples Per URL
+
+Run Lighthouse multiple times and average the results for better accuracy:
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   scanner: {
-    // scan each URL 3 times and average the results
-    samples: 3
-  }
-}
+    samples: 3, // Run 3 scans per URL and average results
+  },
+})
 ```
 
-## Reduce Parallel scans
+## Reduce Parallel Scans
 
-By default, the worker will spin up workers for each core your CPU has. This may not be ideal if you want more accuracy
-performance scores as the extra workload will affect performance metrics.
+Limit concurrent workers to reduce CPU contention and improve score consistency:
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   puppeteerClusterOptions: {
-    // only run 1 worker at a time
-    maxConcurrency: 1
-  }
-}
+    maxConcurrency: 1, // Single worker for maximum accuracy
+  },
+})
 ```
+
+::tip
+Combine multiple samples with reduced concurrency for the most accurate results, though this will increase scan time.
+::

@@ -1,6 +1,8 @@
 ---
-title: Configuring Puppeteer
-description: How to configure Puppeteer using Unlighthouse.
+title: "Puppeteer Configuration"
+description: "Customize Puppeteer browser settings for Unlighthouse scanning including headless mode and navigation hooks."
+navigation:
+  title: "Puppeteer"
 ---
 
 Unlighthouse uses [puppeteer](https://github.com/puppeteer/puppeteer) to run the lighthouse module.
@@ -13,11 +15,13 @@ See [puppeteer-launch-options](https://pptr.dev/#?product=Puppeteer&version=v13.
 
 For example, you could run without a headless browser. Although not recommended.
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   puppeteerOptions: {
     headless: false,
-  }
-}
+  },
+})
 ```
 
 ## Hook into puppeteer navigation
@@ -26,10 +30,10 @@ There may be instances where you need to hook into how the puppeteer instance is
 
 A hook is provided to do this.
 
-```ts unlighthouse.config.ts
+```ts
 let token
 
-export default {
+export default defineUnlighthouseConfig({
   hooks: {
     'puppeteer:before-goto': async (page) => {
       if (!token)
@@ -42,13 +46,13 @@ export default {
       }, token)
     },
   },
-}
+})
 ```
 
 **Delete an element**
 
 ```ts
-export default {
+export default defineUnlighthouseConfig({
   hooks: {
     'puppeteer:before-goto': async (page) => {
       const deleteSelector = '.VPNav'
@@ -60,7 +64,7 @@ export default {
             elements[i].parentNode.removeChild(elements[i])
         }, deleteSelector)
       })
-    }
-  }
-}
+    },
+  },
+})
 ```

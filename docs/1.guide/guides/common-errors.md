@@ -1,11 +1,17 @@
 ---
-title: Solving Common Errors
-description: Common errors that pop up when working with Unlighthouse.
+title: "Common Errors"
+description: "Troubleshoot common issues encountered when running Unlighthouse scans, including browser connection and environment problems."
+navigation:
+  title: "Common Errors"
 ---
 
-These are common issues that pop up when working with Unlighthouse. This will be updated when new issues are found.
+## Introduction
 
-As a first step, you should always make sure you're using the latest Unlighthouse version.
+This guide covers the most common issues encountered when running Unlighthouse scans and their solutions. Always ensure you're using the latest version before troubleshooting.
+
+::tip
+For general debugging techniques, see the [Debugging Guide](/guide/guides/debugging).
+::
 
 ## `connect ECONNREFUSED 127.0.0.1:<port>`
 
@@ -29,10 +35,11 @@ This can be from a number of reasons:
 - You can try disabling the system Chrome, instead using the fallback.
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   chrome: {
-    // forces the fallback to be used
-    useSystem: false
-  }
-}
+    useSystem: false,
+  },
+})
 ```

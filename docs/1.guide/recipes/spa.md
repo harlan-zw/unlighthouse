@@ -1,23 +1,28 @@
 ---
-title: Handling SPAs
-description: How to handle SPAs with Unlighthouse.
+title: "Single-Page Applications"
+description: "Configure Unlighthouse to properly scan single-page applications (SPAs) with client-side routing."
+navigation:
+  title: "SPAs"
 ---
 
-Unlighthouse assumes that the page being scanned is SSR,
-meaning that it can parse internal links without executing the javascript.
+## Introduction
 
-By not executing javascript, Unlighthouse makes use of a basic fetch of the page HTML, decreasing scan time.
+By default, Unlighthouse assumes server-side rendered (SSR) pages where links are discoverable in the initial HTML. Single-page applications require JavaScript execution for proper link discovery and content rendering.
 
-If you're using an SPA and relying on the `scanner.crawler` mode for URL discovery, you may want to change this behaviour.
+## Enable JavaScript Execution
 
-## Wait for Javascript
-
-By toggling this option, the HTML payload will be extracted by puppeteer once javascript is executed.
+Allow Puppeteer to execute JavaScript before extracting page content:
 
 ```ts
-export default {
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
   scanner: {
-    skipJavascript: false
-  }
-}
+    skipJavascript: false, // Enable JS execution for SPAs
+  },
+})
 ```
+
+::note
+Enabling JavaScript execution increases scan time but is necessary for accurate SPA scanning.
+::
