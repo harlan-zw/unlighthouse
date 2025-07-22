@@ -96,3 +96,5 @@ reports
 
 auto-imports.d.ts
 components.d.ts
+
+.data
