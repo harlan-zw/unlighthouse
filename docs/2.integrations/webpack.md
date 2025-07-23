@@ -4,6 +4,7 @@ icon: i-logos-webpack
 description: "Add Lighthouse auditing to webpack-based projects with development server integration and HMR support."
 navigation:
   title: "Webpack"
+deprecated: true
 ---
 
 ::warning
