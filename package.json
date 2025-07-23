@@ -20,7 +20,9 @@
     "docs": "npm -C docs run dev",
     "docs:build": "npm -C docs run build",
     "docs:serve": "npm -C docs run serve",
-    "test:attw": "pnpm -r run test:attw"
+    "test:attw": "pnpm -r run test:attw",
+    "lint:docs": "pnpx markdownlint-cli ./docs && pnpx case-police 'docs/**/*.md' *.md",
+    "lint:docs:fix": "pnpx markdownlint-cli ./docs --fix && pnpx case-police 'docs/**/*.md' *.md --fix"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.17.0",

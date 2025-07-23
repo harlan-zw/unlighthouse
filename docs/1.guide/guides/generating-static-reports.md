@@ -40,7 +40,7 @@ For complete CI features, see the [CI Integration Guide](/integrations/ci).
 You can create static, self-hosted reports for your sites using the CI. This allows you to generate an always up-to-date version
 of how your site is performing overall.
 
-You can see an example of this here: https://inspect.unlighthouse.dev/.
+You can see an example of this here: <https://inspect.unlighthouse.dev/>.
 
 You can generate a report like this by providing the `--build-static` flag.
 

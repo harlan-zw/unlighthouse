@@ -21,6 +21,7 @@ For general debugging techniques, see the [Debugging Guide](/guide/guides/debugg
 
 This error is thrown when Chromium is unable to launch. This happens when puppeteer is unable to connect to the browser.
 This can be from a number of reasons:
+
 - The environment is not configured correctly, likely when using Windows and WSL.
 - You have a firewall or antivirus blocking Chrome or Chromium from launching or connecting to the required port.
 - You are using an unsupported version of Chrome or Chromium.

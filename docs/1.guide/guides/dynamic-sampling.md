@@ -26,6 +26,7 @@ Unlighthouse will turn this path structure into groups based on the `/blog` pref
 A sample being a random selection of paths within this group.
 
 For example if we have the posts:
+
 - `/blog/post-a`
 - `/blog/post-b`
 - `/blog/post-c`

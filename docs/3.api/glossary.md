@@ -12,6 +12,7 @@ navigation:
 A route definition maps page files (Vue components, markdown files, etc.) to their corresponding URL paths, enabling intelligent [dynamic sampling](/guide/guides/dynamic-sampling) and better organization.
 
 The page component has multiple representations:
+
 1. _static route_ - name matches the path (/about.vue -> /about/),
 2. _dynamic route_ - a query is used to generate a set of paths (/posts/:id.vue -> /posts/my-first-post/)
 3. _catch-all route_ where any missed paths will be caught (/404.vue -> /some-missing-page)
@@ -197,6 +198,7 @@ export interface MockRouter { match: (path: string) => RouteDefinition }
 The worker will queue a route to run with multiple tasks. A task is a queued job and has their own id and status.
 
 Unlighthouse has two core tasks:
+
 - `inspectHtmlTask` which dumps the HTML of the URL and extracts SEO data from it (title, description, image, internal links, etc)
 - `runLighthouseTask` runs the actual lighthouse process on the URL
 

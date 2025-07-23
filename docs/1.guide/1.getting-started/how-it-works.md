@@ -115,11 +115,13 @@ Having a sitemap.xml makes scanning much faster and finds more pages.
 For every URL it finds, Unlighthouse does two things:
 
 ##### Step 1: Quick HTML Check
+
 - Makes a simple HTTP request to get the HTML
 - Grabs basic info like title, meta tags
 - Looks for more links to scan
 
 ##### Step 2: Full Lighthouse Scan
+
 - Opens the page in Chrome
 - Runs all the Lighthouse tests
 - Saves the report as HTML and JSON files

@@ -14,6 +14,7 @@ You can configure puppeteer with the `puppeteerOptions` key, which will be passe
 See [puppeteer-launch-options](https://pptr.dev/#?product=Puppeteer&version=v13.0.1&show=api-puppeteerlaunchoptions) for more information.
 
 For example, you could run without a headless browser. Although not recommended.
+
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
