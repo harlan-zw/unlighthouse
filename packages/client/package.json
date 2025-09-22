@@ -13,6 +13,15 @@
   "bugs": {
     "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
+  "keywords": [
+    "lighthouse",
+    "audit",
+    "seo",
+    "performance",
+    "ui",
+    "client",
+    "unlighthouse"
+  ],
   "main": "dist/index.html",
   "files": [
     "*.d.ts",

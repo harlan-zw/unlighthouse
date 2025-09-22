@@ -8,14 +8,18 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/harlan-zw/unlighthouse.git",
-    "directory": "packages/core"
+    "directory": "packages/cli"
   },
   "bugs": {
     "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
   "keywords": [
-    "unlighthouse",
-    "cli"
+    "lighthouse",
+    "audit",
+    "seo",
+    "performance",
+    "cli",
+    "unlighthouse"
   ],
   "sideEffects": false,
   "exports": {

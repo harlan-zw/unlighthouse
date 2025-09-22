@@ -7,14 +7,19 @@
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/harlan-zw/unlighthouse.git"
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/server"
   },
   "bugs": {
     "url": "https://github.com/harlan-zw/unlighthouse/issues"
   },
   "keywords": [
-    "unlighthouse",
-    "server"
+    "lighthouse",
+    "audit",
+    "seo",
+    "performance",
+    "server",
+    "unlighthouse"
   ],
   "sideEffects": false,
   "exports": {
