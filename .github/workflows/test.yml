@@ -11,25 +11,16 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        node-version: [24.x]
-        # os: [ubuntu-latest, windows-latest, macos-latest]
-        os: [ubuntu-latest]
-      fail-fast: false
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4.0.0
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - name: Use Node.js v24
+        uses: actions/setup-node@v5
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: v24
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 
