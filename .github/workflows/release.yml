@@ -1,5 +1,9 @@
 name: Release
 
+permissions:
+  contents: write
+  id-token: write
+
 on:
   push:
     tags:
@@ -14,27 +18,23 @@ jobs:
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4.0.0
+        uses: pnpm/action-setup@v4
 
-      - name: Use Node.js v24
+      - name: Set node
         uses: actions/setup-node@v5
         with:
-          node-version: v24
-          registry-url: https://registry.npmjs.org/
+          node-version: latest
           cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
 
-      - run: npx conventional-github-releaser -p angular
-        continue-on-error: true
+      - name: Force Set pnpm Registry
+        run: pnpm config set registry https://registry.npmjs.org
+
+      - run: npx changelogithub
         env:
-          CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: Install Dependencies
-        run: pnpm install
+        run: pnpm i
 
-      - name: PNPM build
-        run: pnpm run build
-
-      - name: Publish to NPM
-        run: pnpm -r publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+      - run: pnpm publish -r --access public --no-git-checks
