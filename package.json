@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.17.2",
   "private": true,
-  "packageManager": "pnpm@10.13.1",
+  "packageManager": "pnpm@10.17.0",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -25,13 +25,13 @@
     "lint:docs:fix": "pnpx markdownlint-cli ./docs --fix && pnpx case-police 'docs/**/*.md' *.md --fix"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.17.0",
+    "@antfu/eslint-config": "^5.4.1",
     "@arethetypeswrong/cli": "0.18.2",
-    "bumpp": "^10.2.0",
-    "eslint": "^9.31.0",
+    "bumpp": "^10.2.3",
+    "eslint": "^9.36.0",
     "obuild": "^0.2.1",
     "typescript": "5.8.3",
-    "vite": "^7.0.5",
+    "vite": "^7.1.6",
     "vitest": "^3.2.4"
   },
   "pnpm": {
