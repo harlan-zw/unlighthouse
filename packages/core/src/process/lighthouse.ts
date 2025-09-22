@@ -14,7 +14,7 @@ setMaxListeners(0);
 
 (async () => {
   const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded }
-      = minimist<{ options: string, cache: boolean, routeReport: string, port: number }>(process.argv.slice(2))
+    = minimist<{ options: string, cache: boolean, routeReport: string, port: number }>(process.argv.slice(2))
 
   let routeReportJson: UnlighthouseRouteReport
   try {
