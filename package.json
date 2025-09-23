@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.17.2",
   "private": true,
-  "packageManager": "pnpm@10.17.0",
+  "packageManager": "pnpm@10.17.1",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -32,7 +32,7 @@
     "eslint": "^9.36.0",
     "obuild": "^0.2.1",
     "typescript": "5.8.3",
-    "vite": "^7.1.6",
+    "vite": "^7.1.7",
     "vitest": "^3.2.4"
   },
   "pnpm": {
