@@ -66,11 +66,11 @@ declare module 'vue' {
     TabList: typeof import('@headlessui/vue')['TabList']
     Tooltip: typeof import('./components/Tooltip.vue')['default']
     TransitionRoot: typeof import('@headlessui/vue')['TransitionRoot']
-    UApp: typeof import('./../../node_modules/.pnpm/@nuxt+ui@3.2.0_@babel+parser@7.27.5_axios@1.10.0_db0@0.3.2_embla-carousel@8.6.0_ioredis_b5f31fabf865befe6adb815718d458b9/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
-    UButton: typeof import('./../../node_modules/.pnpm/@nuxt+ui@3.2.0_@babel+parser@7.27.5_axios@1.10.0_db0@0.3.2_embla-carousel@8.6.0_ioredis_b5f31fabf865befe6adb815718d458b9/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
-    UDropdownMenu: typeof import('./../../node_modules/.pnpm/@nuxt+ui@3.2.0_@babel+parser@7.27.5_axios@1.10.0_db0@0.3.2_embla-carousel@8.6.0_ioredis_b5f31fabf865befe6adb815718d458b9/node_modules/@nuxt/ui/dist/runtime/components/DropdownMenu.vue')['default']
-    UIcon: typeof import('./../../node_modules/.pnpm/@nuxt+ui@3.2.0_@babel+parser@7.27.5_axios@1.10.0_db0@0.3.2_embla-carousel@8.6.0_ioredis_b5f31fabf865befe6adb815718d458b9/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
-    UModal: typeof import('./../../node_modules/.pnpm/@nuxt+ui@3.2.0_@babel+parser@7.27.5_axios@1.10.0_db0@0.3.2_embla-carousel@8.6.0_ioredis_b5f31fabf865befe6adb815718d458b9/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
+    UApp: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.0.0_@babel+parser@7.28.4_@netlify+blobs@9.1.2_axios@1.12.2_change-case@5.4.4_a40f09c846bb9128e48044e35992b0fd/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
+    UButton: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.0.0_@babel+parser@7.28.4_@netlify+blobs@9.1.2_axios@1.12.2_change-case@5.4.4_a40f09c846bb9128e48044e35992b0fd/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
+    UDropdownMenu: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.0.0_@babel+parser@7.28.4_@netlify+blobs@9.1.2_axios@1.12.2_change-case@5.4.4_a40f09c846bb9128e48044e35992b0fd/node_modules/@nuxt/ui/dist/runtime/components/DropdownMenu.vue')['default']
+    UIcon: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.0.0_@babel+parser@7.28.4_@netlify+blobs@9.1.2_axios@1.12.2_change-case@5.4.4_a40f09c846bb9128e48044e35992b0fd/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
+    UModal: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.0.0_@babel+parser@7.28.4_@netlify+blobs@9.1.2_axios@1.12.2_change-case@5.4.4_a40f09c846bb9128e48044e35992b0fd/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
     WarningChip: typeof import('./components/Chip/WarningChip.vue')['default']
   }
 }
