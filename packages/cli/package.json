@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/cli",
   "type": "module",
-  "version": "0.17.3",
+  "version": "0.17.4",
   "description": "CLI for Unlighthouse",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
