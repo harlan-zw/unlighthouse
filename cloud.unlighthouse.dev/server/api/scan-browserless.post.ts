@@ -2,10 +2,11 @@ import { createError, defineEventHandler, readBody } from 'h3'
 import type { LighthouseScanOptions } from '../app/services/lighthouse'
 import { runLighthouseScanViaBrowserless } from '../app/services/lighthouse-browserless'
 import { getResultCache } from '../app/services/result-cache'
+import { getBrowserlessQueue } from '../app/services/browserless-queue'
 
 /**
- * Alternative scan endpoint using Browserless.io managed browser service.
- * This is simpler and more scalable than self-hosting Chrome instances.
+ * Scan endpoint using Browserless.io managed browser service.
+ * Includes lightweight queuing for rate limiting and cost management.
  *
  * POST /api/scan-browserless
  * {
@@ -75,9 +76,30 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Use lightweight queue to rate-limit requests to Browserless
+  const queue = getBrowserlessQueue()
+
+  // Wait for queue capacity if needed
+  while (!queue.canProcess()) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+
+  const queueId = await queue.enqueue(scanOptions)
+  const item = queue.dequeue()
+
+  if (!item) {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Queue is full, please try again later',
+    })
+  }
+
   try {
-    // Run scan via Browserless (no queue needed - they handle it)
+    // Run scan via Browserless
     const result = await runLighthouseScanViaBrowserless(scanOptions)
+
+    // Mark as completed
+    queue.complete(queueId)
 
     // Cache the result if caching is enabled
     if (scanOptions.useCache) {
@@ -88,6 +110,9 @@ export default defineEventHandler(async (event) => {
     return result
   }
   catch (e: any) {
+    // Mark as failed
+    queue.fail(queueId, e.message || 'Unknown error')
+
     // If it's already a createError, re-throw it
     if (e.statusCode) {
       throw e

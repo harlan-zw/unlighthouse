@@ -25,12 +25,18 @@ Request → Cache → Queue → Chrome Pool → Lighthouse → Response
               (Manage lifecycle, cleanup, monitoring)
 ```
 
-### With Browserless
+### With Browserless (Implemented)
 ```
-Request → Cache → Browserless API → Response
-                    ↓
-              (All managed externally)
+Request → Cache → Lightweight Queue → Browserless API → Response
+                         ↓                    ↓
+                  (Rate limiting)    (Browser management)
 ```
+
+**Why still have a queue?**
+- Rate limit protection (prevent hitting Browserless API limits)
+- Cost management (control concurrent requests = predictable costs)
+- Monitoring (track YOUR queue depth and wait times)
+- Graceful degradation (retry on Browserless rate limits)
 
 ## Implementation
 
@@ -212,16 +218,74 @@ const result = await runLighthouseScanViaBrowserless(scanOptions)
 
 ## Simplified Architecture
 
-With Browserless, you can **remove**:
+With Browserless, you can **simplify**:
 - ❌ `chrome-pool.ts` - No Chrome management needed
-- ❌ `scan-queue.ts` - Browserless handles queuing
+- ✅ `browserless-queue.ts` - Lightweight queue (rate limiting only, not Chrome management)
 - ❌ `lifecycle.ts` plugin - No cleanup needed
 - ✅ Keep `result-cache.ts` - Still useful for your app
 
 **New flow:**
 ```typescript
-Request → Cache Check → Browserless API → Cache Result → Response
+Request → Cache Check → Lightweight Queue → Browserless API → Cache Result → Response
 ```
+
+### Why Keep a Queue?
+
+Even though Browserless handles browser queuing, you still want a **lightweight queue** on your side:
+
+#### 1. Rate Limit Protection
+```typescript
+// Without queue:
+100 concurrent requests → 100 API calls → Hit Browserless rate limits
+
+// With queue (max 10 concurrent):
+100 concurrent requests → 10 at a time → Stay within limits
+```
+
+#### 2. Cost Management
+```typescript
+// Browserless pricing is per-minute of browser time
+// Without queue: Uncontrolled concurrent requests = unpredictable costs
+// With queue: Controlled concurrency = predictable costs
+```
+
+#### 3. Monitoring & Observability
+Track metrics on YOUR side:
+- Queue depth: How many requests waiting?
+- Processing time: How long does Browserless take?
+- Success/failure rates: Any issues with Browserless?
+
+#### 4. Graceful Degradation
+```typescript
+// Browserless returns 429 (rate limit) or 503 (overloaded)
+// Without queue: Request fails immediately
+// With queue: Automatic retry with backoff
+```
+
+### Queue Configuration
+
+The Browserless queue is much simpler than the self-hosted queue:
+
+```typescript
+// Default: 10 concurrent requests to Browserless
+// (Higher than self-hosted because Browserless handles the browsers)
+
+// Adjust via API:
+POST /api/browserless/config
+{
+  "maxConcurrency": 20  // 1-50
+}
+
+// Get metrics:
+GET /api/metrics-browserless
+```
+
+**Recommended concurrency:**
+- Small plan: 5-10 concurrent
+- Medium plan: 10-20 concurrent
+- Large plan: 20-50 concurrent
+
+The queue just limits YOUR requests to Browserless. Browserless then handles the actual browser management internally.
 
 ## Pricing (2024)
 
