@@ -89,6 +89,15 @@ export default defineNuxtConfig({
     define: {
       __UNLIGHTHOUSE_VERSION__: JSON.stringify(version),
     },
+    build: {
+      sourcemap: false,
+      minify: false,
+      rollupOptions: {
+        output: {
+          manualChunks: undefined,
+        },
+      },
+    },
     optimizeDeps: {
       include: [
         'vue',
