@@ -4,6 +4,10 @@ export default defineNitroConfig({
   runtimeConfig: {
     lighthouse: {
       chromePath: '', // .env NITRO_LIGHTHOUSE_CHROME_PATH (optional)
+      minChromeInstances: 1, // .env NITRO_LIGHTHOUSE_MIN_CHROME_INSTANCES
+      maxChromeInstances: 5, // .env NITRO_LIGHTHOUSE_MAX_CHROME_INSTANCES
+      chromeIdleTimeout: 5 * 60 * 1000, // .env NITRO_LIGHTHOUSE_CHROME_IDLE_TIMEOUT (ms)
+      maxConcurrency: 3, // .env NITRO_LIGHTHOUSE_MAX_CONCURRENCY
     },
   },
   routeRules: {

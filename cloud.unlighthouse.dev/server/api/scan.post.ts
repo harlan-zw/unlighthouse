@@ -1,5 +1,8 @@
 import { createError, defineEventHandler, readBody } from 'h3'
+import type { LighthouseScanOptions } from '../app/services/lighthouse'
 import { runLighthouseScan } from '../app/services/lighthouse'
+import { getResultCache } from '../app/services/result-cache'
+import { getScanQueue } from '../app/services/scan-queue'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -40,15 +43,57 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  try {
-    const result = await runLighthouseScan({
-      url: body.url,
-      categories: body.categories,
-      formFactor: body.formFactor,
-      throttling: body.throttling,
-    })
+  const scanOptions: LighthouseScanOptions = {
+    url: body.url,
+    categories: body.categories,
+    formFactor: body.formFactor,
+    throttling: body.throttling,
+    useCache: body.useCache !== false, // Default to true
+  }
 
-    return result
+  // Check cache first if enabled
+  if (scanOptions.useCache) {
+    const cache = getResultCache()
+    const cached = cache.get(scanOptions)
+    if (cached) {
+      return {
+        ...cached,
+        cached: true,
+      }
+    }
+  }
+
+  // Add to queue and wait for result
+  const queue = getScanQueue()
+
+  try {
+    // Enqueue the scan
+    const scan = await queue.enqueue(scanOptions)
+
+    // Start processing it
+    queue.startProcessing(scan.id)
+
+    // Run the actual scan
+    let result
+    try {
+      result = await runLighthouseScan(scanOptions)
+
+      // Cache the result if caching is enabled
+      if (scanOptions.useCache) {
+        const cache = getResultCache()
+        cache.set(scanOptions, result)
+      }
+
+      // Mark as completed
+      queue.completeScan(scan.id, result)
+
+      return result
+    }
+    catch (e: any) {
+      // Mark as failed
+      queue.failScan(scan.id, e.message || 'Scan failed')
+      throw e
+    }
   }
   catch (e: any) {
     // If it's already a createError, re-throw it
