@@ -44,57 +44,15 @@ export default defineNuxtConfig({
       bodyAttrs: {
         class: 'dark:bg-[#020617]',
       },
-      script: [
-        {
-          children: 'window.__unlighthouse_static = true',
-          'data-unlighthouse-inline': '',
-        },
-      ],
-      style: [
-        {
-          children: `
-            button[disabled] {
-              opacity: 0.5;
-              cursor: not-allowed;
-            }
-            /* scroll bars courtesy of https://antfu.me/ */
-            :root {
-              --c-bg: #fff;
-              --c-scrollbar: #eee;
-              --c-scrollbar-hover: #bbb
-            }
-            html.dark {
-              --c-bg: #050505;
-              --c-scrollbar: #111;
-              --c-scrollbar-hover: #222
-            }
-            * {
-              scrollbar-color: var(--c-scrollbar) var(--c-bg)
-            }
-            ::-webkit-scrollbar {
-              width: 6px
-            }
-            ::-webkit-scrollbar:horizontal {
-              height: 6px
-            }
-            ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
-              background: var(--c-bg);
-              border-radius: 10px
-            }
-            ::-webkit-scrollbar-thumb {
-              background: var(--c-scrollbar);
-              border-radius: 10px
-            }
-            ::-webkit-scrollbar-thumb:hover {
-              background: var(--c-scrollbar-hover)
-            }
-          `,
-        },
-      ],
     },
   },
 
   modules: ['@nuxt/ui'],
+
+  // Disable fonts module to avoid network and build issues
+  fonts: {
+    enabled: false,
+  },
 
   ui: {
     modal: {
