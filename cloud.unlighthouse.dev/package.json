@@ -8,12 +8,24 @@
     "preview": "node .output/server/index.mjs"
   },
   "dependencies": {
+    "better-sqlite3": "^11.8.0",
     "chrome-launcher": "^1.2.0",
+    "drizzle-orm": "^0.38.3",
     "lighthouse": "^12.8.2",
     "object-hash": "^3.0.0",
     "ufo": "^1.6.1"
   },
   "devDependencies": {
+    "drizzle-kit": "^0.30.1",
     "nitropack": "latest"
+  },
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "prepare": "nitro prepare",
+    "preview": "node .output/server/index.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   }
 }
