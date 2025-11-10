@@ -9,6 +9,10 @@ export default defineNitroConfig({
       chromeIdleTimeout: 5 * 60 * 1000, // .env NITRO_LIGHTHOUSE_CHROME_IDLE_TIMEOUT (ms)
       maxConcurrency: 3, // .env NITRO_LIGHTHOUSE_MAX_CONCURRENCY
     },
+    browserless: {
+      url: '', // .env NITRO_BROWSERLESS_URL (default: https://chrome.browserless.io)
+      token: '', // .env NITRO_BROWSERLESS_TOKEN (required for /api/scan-browserless)
+    },
   },
   routeRules: {
     '/api/**': { cors: true },
