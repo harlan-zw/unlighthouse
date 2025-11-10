@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
-    "@nuxt/ui": "^4.1.0",
+    "@nuxt/ui": "^3.3.7",
     "@tailwindcss/vite": "^4.1.13",
     "@vueuse/core": "^13.9.0",
     "@vueuse/router": "^13.9.0",
@@ -46,11 +46,11 @@
     "fuse.js": "^7.1.0",
     "lightweight-charts": "^5.0.8",
     "lodash-es": "^4.17.21",
-    "nuxt": "~4.1.0",
+    "nuxt": "~3.20.1",
     "ofetch": "^1.4.1",
     "three": "^0.180.0",
     "ufo": "^1.6.1",
-    "vue": "^3.4.38"
+    "vue": "^3.5.13"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",

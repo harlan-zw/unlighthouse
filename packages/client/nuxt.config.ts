@@ -2,12 +2,10 @@ import { version } from '../../package.json'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  future: {
-    compatibilityVersion: 4,
-  },
-
   // SPA mode - no server-side rendering
   ssr: false,
+
+  pages: true,
 
   app: {
     baseURL: '/',
@@ -91,14 +89,21 @@ export default defineNuxtConfig({
     },
     build: {
       sourcemap: false,
-      minify: false,
+      minify: 'esbuild',
+      target: 'esnext',
       rollupOptions: {
         output: {
           manualChunks: undefined,
         },
       },
     },
+    esbuild: {
+      target: 'esnext',
+    },
     optimizeDeps: {
+      esbuildOptions: {
+        target: 'esnext',
+      },
       include: [
         'vue',
         '@vueuse/core',
