@@ -7,3 +7,9 @@ node_modules
 .env
 dist
 .DS_Store
+
+# Database
+data/
+*.db
+*.db-shm
+*.db-wal
