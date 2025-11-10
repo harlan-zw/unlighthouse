@@ -20,7 +20,14 @@ export default defineNuxtConfig({
 
   nitro: {
     routeRules: {
-      '/api/**': { cors: true },
+      '/api/**': {
+        cors: true,
+        headers: {
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'X-XSS-Protection': '1; mode=block',
+        },
+      },
     },
   },
 })

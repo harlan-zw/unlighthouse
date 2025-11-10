@@ -5,11 +5,13 @@ import { getResultCache } from '../app/services/result-cache'
 import { getBrowserlessQueue } from '../app/services/browserless-queue'
 import { authenticateUser } from '../utils/auth'
 import { getDatabase, schema } from '../database'
+import { rateLimit } from '../utils/rate-limit'
 
 /**
  * Scan endpoint using Browserless.io managed browser service.
  * Requires authentication via API key.
  * Saves scan results to database for history tracking.
+ * Rate limited per user to prevent abuse.
  *
  * POST /api/scan-browserless
  * Headers: Authorization: Bearer <api-key>
@@ -22,8 +24,15 @@ import { getDatabase, schema } from '../database'
  * }
  */
 export default defineEventHandler(async (event) => {
-  // Authenticate user
+  // Authenticate user first
   const user = await authenticateUser(event)
+
+  // Rate limit: 100 scans per hour per user
+  await rateLimit({
+    limit: 100,
+    windowMs: 60 * 60 * 1000,
+    keyGenerator: () => `scan:${user.id}`,
+  })(event)
   const body = await readBody(event)
 
   if (!body || !body.url) {
