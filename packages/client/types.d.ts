@@ -14,3 +14,5 @@ declare global {
 
   const __UNLIGHTHOUSE_VERSION__: string
 }
+
+export {}

@@ -1,44 +1,8 @@
 <script setup lang="ts">
+// Note: Vue composables (ref, computed, onMounted, etc.) and logic functions are auto-imported by Nuxt
+import { Tab, TabGroup, TabList } from '@headlessui/vue'
 import UDropdownMenu from '@nuxt/ui/components/DropdownMenu.vue'
-import { useTitle } from '@vueuse/core'
-import { $fetch } from 'ofetch'
 import { EXCLUDED_CATEGORIES } from './constants'
-import {
-  activeScreenshots,
-  activeTab,
-  apiUrl,
-  basePath,
-  categoryScores,
-  changedTab,
-  closeThumbnailsModal,
-  contentModalOpen,
-  device,
-  dynamicSampling,
-  iframeModalUrl,
-  incrementSort,
-  isDebugModalOpen,
-  isOffline,
-  isStatic,
-  lighthouseOptions,
-  lighthouseReportModalOpen,
-  openDebugModal,
-  openLighthouseReportIframeModal,
-  page,
-  paginatedResults,
-  perPage,
-  refreshScanMeta,
-  rescanRoute,
-  resultColumns,
-  searchResults,
-  searchText,
-  shouldShowWaitingState,
-  sorting,
-  tabs,
-  throttle,
-  thumbnailsModalOpen,
-  website,
-  wsConnect,
-} from './logic'
 
 const crux = ref(null)
 const cruxError = ref(false)
@@ -92,6 +56,10 @@ const filteredTabs = computed(() => {
     return tabs.filter(tab => tab.label !== 'CrUX')
   }
   return tabs
+})
+
+const hasNoStaticReports = computed(() => {
+  return isStatic && (!window.__unlighthouse_payload?.reports || window.__unlighthouse_payload.reports.length === 0)
 })
 
 const getDropdownActions = computed(() => (report) => {
@@ -333,7 +301,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     </div>
                   </div>
                 </template>
-                <template v-else-if="isStatic && (!(window as any).__unlighthouse_payload?.reports || (window as any).__unlighthouse_payload.reports.length === 0)">
+                <template v-else-if="hasNoStaticReports">
                   <div class="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <UIcon name="i-carbon-information" class="text-blue-600 dark:text-blue-400 text-xl" />
                     <div>

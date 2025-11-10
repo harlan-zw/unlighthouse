@@ -4,7 +4,7 @@ import { computed, reactive } from 'vue'
 import CellRouteName from '../components/Cell/CellRouteName.vue'
 import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
 import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
-import { useFetch } from './fetch'
+import { useApiFetch } from './fetch'
 import { sorting } from './search'
 import { categories, columns, isStatic, resolveArtifactPath, wsUrl } from './static'
 
@@ -115,7 +115,7 @@ export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
 export const fetchedScanMeta = isStatic
   ? null
   : reactive(
-      useFetch('/scan-meta')
+      useApiFetch('/scan-meta')
         .get()
         .json<ScanMeta>(),
     )
@@ -147,7 +147,7 @@ export const shouldShowWaitingState = computed<boolean>(() => {
   return wsReports.size === 0 || isOffline.value
 })
 
-export const rescanRoute = (route: NormalisedRoute) => useFetch(`/reports/${route.id}/rescan`).post()
+export const rescanRoute = (route: NormalisedRoute) => useApiFetch(`/reports/${route.id}/rescan`).post()
 
 export const scanMeta = computed<ScanMeta | null>(() => {
   if (isStatic)
@@ -196,7 +196,7 @@ export async function wsConnect() {
     }
 
     try {
-      const reports = await useFetch('/reports').get().json<UnlighthouseRouteReport[]>()
+      const reports = await useApiFetch('/reports').get().json<UnlighthouseRouteReport[]>()
       if (reports.data.value && Array.isArray(reports.data.value)) {
         reports.data.value.forEach((report) => {
           if (report?.route?.path) {
