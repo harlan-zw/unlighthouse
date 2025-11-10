@@ -2,6 +2,7 @@
 // Note: Vue composables (ref, computed, onMounted, etc.) and logic functions are auto-imported by Nuxt
 import { Tab, TabGroup, TabList } from '@headlessui/vue'
 import UDropdownMenu from '@nuxt/ui/components/DropdownMenu.vue'
+// UIcon is auto-imported by Nuxt UI - don't import explicitly
 import { EXCLUDED_CATEGORIES } from './constants'
 
 const crux = ref(null)

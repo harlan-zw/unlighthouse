@@ -69,10 +69,6 @@ export default defineNuxtConfig({
     },
   },
 
-  icon: {
-    collections: ['carbon', 'heroicons', 'ic', 'mdi', 'la', 'logos', 'vscode-icons', 'simple-line-icons', 'icomoon-free'],
-  },
-
   // Auto-import configuration
   imports: {
     dirs: ['logic', 'logic/actions'],
