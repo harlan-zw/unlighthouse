@@ -1,14 +1,17 @@
 # Cloud Unlighthouse API
 
-Nitro API for running individual Lighthouse scans on demand with built-in scaling capabilities.
+Nuxt-based API with web UI for running individual Lighthouse scans on demand with built-in scaling capabilities.
 
 ## Features
 
+- 🎨 **Web UI** - Minimal authentication interface for API key management
+- 🔐 **User Authentication** - API key-based authentication with SQLite storage
 - 🚀 **Chrome Instance Pooling** - Reuses browser instances for better performance
 - ⚡ **Request Queue** - Manages concurrent scans with configurable limits
 - 💾 **Result Caching** - Reduces redundant scans with LRU cache
 - 📊 **Monitoring Endpoints** - Real-time metrics and health checks
 - 🎯 **Accurate Metrics** - Controlled concurrency ensures reliable Lighthouse scores
+- 📦 **Scan History** - Track all scans per user in SQLite database
 
 ## Quick Start
 
@@ -19,12 +22,24 @@ pnpm install
 pnpm dev
 ```
 
+Opens at `http://localhost:3000` with the authentication UI.
+
 ### Build
 
 ```bash
 pnpm build
 pnpm preview
 ```
+
+## Web UI
+
+Visit `http://localhost:3000` to:
+1. Create a new user account
+2. Get your API key
+3. View API documentation with curl examples
+4. Copy your API key for use in requests
+
+The UI stores your API key in localStorage for convenience.
 
 ## API Endpoints
 
