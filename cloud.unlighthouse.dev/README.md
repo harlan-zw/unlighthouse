@@ -30,8 +30,11 @@ pnpm preview
 
 ### Run a Scan
 
+**Self-Hosted:** `POST /api/scan` (uses local Chrome pool)
+**Browserless:** `POST /api/scan-browserless` (uses Browserless.io)
+
 ```bash
-POST /api/scan
+POST /api/scan  # or /api/scan-browserless
 Content-Type: application/json
 
 {
@@ -126,14 +129,51 @@ NITRO_LIGHTHOUSE_CHROME_IDLE_TIMEOUT=300000
 NITRO_LIGHTHOUSE_MAX_CONCURRENCY=3
 ```
 
-## Scaling
+## Deployment Options
 
-See [SCALING.md](./SCALING.md) for detailed information on:
-- Architecture overview
-- Performance tuning
-- Horizontal and vertical scaling strategies
-- Monitoring and troubleshooting
-- Best practices
+### Option 1: Self-Hosted (Current Implementation)
+
+Run your own Chrome instances with built-in pooling and queuing.
+
+**Pros:**
+- Full control over infrastructure
+- Lower latency
+- No external dependencies
+
+**Cons:**
+- Infrastructure management overhead
+- Chrome instance lifecycle complexity
+- Memory and resource management
+
+See [SCALING.md](./SCALING.md) for detailed configuration and tuning.
+
+### Option 2: Browserless (Recommended for Minimal Infrastructure)
+
+Use Browserless.io managed browser service - zero Chrome management.
+
+**Pros:**
+- ✅ Zero infrastructure management
+- ✅ Automatic scaling
+- ✅ Pay-per-use pricing
+- ✅ Built-in reliability and monitoring
+
+**Cons:**
+- External service dependency
+- Per-request costs
+- Slightly higher latency
+
+See [BROWSERLESS.md](./BROWSERLESS.md) for integration guide.
+
+**Quick start with Browserless:**
+```bash
+# Set token
+export NITRO_BROWSERLESS_TOKEN=your-token
+
+# Use the /api/scan-browserless endpoint
+curl -X POST http://localhost:3000/api/scan-browserless \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
+```
 
 ## How It Works
 
