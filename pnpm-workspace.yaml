@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - crux-api
+  - cloud.unlighthouse.dev
   - '!docs'
 onlyBuiltDependencies:
   - '@parcel/watcher'

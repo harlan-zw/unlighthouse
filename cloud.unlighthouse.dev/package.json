@@ -1,0 +1,18 @@
+{
+  "name": "cloud.unlighthouse.dev",
+  "private": true,
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "prepare": "nitro prepare",
+    "preview": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "chrome-launcher": "^1.2.0",
+    "lighthouse": "^12.8.2",
+    "ufo": "^1.6.1"
+  },
+  "devDependencies": {
+    "nitropack": "latest"
+  }
+}
