@@ -10,6 +10,7 @@
   "dependencies": {
     "chrome-launcher": "^1.2.0",
     "lighthouse": "^12.8.2",
+    "object-hash": "^3.0.0",
     "ufo": "^1.6.1"
   },
   "devDependencies": {

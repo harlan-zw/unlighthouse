@@ -1,14 +1,16 @@
 import type { Flags, Result } from 'lighthouse'
+import type { ChromeInstance } from './chrome-pool'
 import { createError } from '#imports'
 import lighthouse from 'lighthouse'
-import chromeLauncher from 'chrome-launcher'
 import { withHttps } from 'ufo'
+import { getChromePool } from './chrome-pool'
 
 export interface LighthouseScanOptions {
   url: string
   categories?: string[]
   formFactor?: 'mobile' | 'desktop'
   throttling?: 'mobile3G' | 'mobile4G' | 'none'
+  useCache?: boolean
 }
 
 export interface LighthouseScanResult {
@@ -24,6 +26,7 @@ export interface LighthouseScanResult {
   audits: {
     [key: string]: any
   }
+  cached?: boolean
 }
 
 export async function runLighthouseScan(options: LighthouseScanOptions): Promise<LighthouseScanResult> {
@@ -48,17 +51,17 @@ export async function runLighthouseScan(options: LighthouseScanOptions): Promise
     ? options.categories
     : ['performance', 'accessibility', 'best-practices', 'seo']
 
-  // Launch Chrome
-  let chrome
+  // Get Chrome instance from pool
+  const chromePool = getChromePool()
+  let chromeInstance: ChromeInstance | null = null
+
   try {
-    chrome = await chromeLauncher.launch({
-      chromeFlags: ['--headless', '--no-sandbox', '--disable-gpu'],
-    })
+    chromeInstance = await chromePool.acquire()
   }
   catch (e) {
     throw createError({
-      statusCode: 500,
-      statusMessage: 'Failed to launch Chrome',
+      statusCode: 503,
+      statusMessage: 'Failed to acquire Chrome instance from pool',
     })
   }
 
@@ -66,7 +69,7 @@ export async function runLighthouseScan(options: LighthouseScanOptions): Promise
     logLevel: 'error',
     output: 'json',
     onlyCategories: categories,
-    port: chrome.port,
+    port: chromeInstance.chrome.port,
     formFactor,
     screenEmulation: {
       mobile: formFactor === 'mobile',
@@ -84,7 +87,16 @@ export async function runLighthouseScan(options: LighthouseScanOptions): Promise
           uploadThroughputKbps: 0,
           cpuSlowdownMultiplier: 1,
         }
-      : undefined,
+      : throttling === 'mobile3G'
+        ? {
+            rttMs: 300,
+            throughputKbps: 700,
+            requestLatencyMs: 300 * 3.75,
+            downloadThroughputKbps: 700,
+            uploadThroughputKbps: 700,
+            cpuSlowdownMultiplier: 4,
+          }
+        : undefined, // mobile4G is default
   }
 
   try {
@@ -149,9 +161,9 @@ export async function runLighthouseScan(options: LighthouseScanOptions): Promise
     })
   }
   finally {
-    // Always kill Chrome
-    if (chrome) {
-      await chrome.kill()
+    // Always release Chrome instance back to pool
+    if (chromeInstance) {
+      chromePool.release(chromeInstance)
     }
   }
 }
