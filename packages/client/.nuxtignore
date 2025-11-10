@@ -1,0 +1,10 @@
+# Ignore build artifacts
+dist
+.output
+
+# Ignore backup files
+*.backup
+
+# Ignore old Vite artifacts
+auto-imports.d.ts
+components.d.ts
