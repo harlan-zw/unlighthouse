@@ -119,10 +119,10 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     :selected="selected"
                   >
                     <span class="inline-flex items-center space-x-1">
-                      <Icon :name="category.icon" class="inline text-sm opacity-40 h-4 w-4" />
+                      
                       <span>{{ category.label }}</span>
                       <tooltip v-if="category.label === 'Performance'" class="text-left">
-                        <Icon name="i-carbon-warning" class="inline text-xs mx-1" />
+                        ⚠️
                         <template #tooltip>
                           <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
                           <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
@@ -149,7 +149,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                 </btn-action>
               </div>
               <div class="text-xs opacity-75 xl:mt-4">
-                Made with <Icon name="i-simple-line-icons-heart" title="Love" class="inline" aria-label="love" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
+                Made with ❤️ by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
               </div>
               <div class="text-xs opacity-50 xl:mt-4 mt-1">
                 Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline hover:no-underline">here</a>.
@@ -171,7 +171,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             </div>
             <div v-else-if="cruxError" class="w-full">
               <div class="flex items-center justify-center space-x-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                <Icon name="i-carbon-warning" class="text-red-600 dark:text-red-400 text-xl" />
+                
                 <div class="text-center">
                   <p class="font-medium text-red-800 dark:text-red-200">
                     Failed to Load CrUX Data
@@ -290,7 +290,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                 </template>
                 <template v-else-if="isOffline && !isStatic">
                   <div class="flex items-center space-x-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                    <Icon name="i-carbon-warning-alt" class="text-yellow-600 dark:text-yellow-400 text-xl" />
+                    
                     <div>
                       <p class="font-medium text-yellow-800 dark:text-yellow-200">
                         Server Connection Lost
@@ -304,7 +304,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                 </template>
                 <template v-else-if="hasNoStaticReports">
                   <div class="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <Icon name="i-carbon-information" class="text-blue-600 dark:text-blue-400 text-xl" />
+                    
                     <div>
                       <p class="font-medium text-blue-800 dark:text-blue-200">
                         No Report Data
@@ -334,7 +334,6 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               <results-route
                 v-for="(report, routeName) in paginatedResults"
                 :key="routeName"
-                v-memo="[report.route.url, report.report?.categories, report.tasks.runLighthouseTask]"
                 :report="report"
               >
                 <template #actions>
@@ -362,7 +361,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               <div class="text-center max-w-md">
                 <div class="mb-6">
                   <template v-if="isStatic">
-                    <Icon name="i-carbon-information" class="text-blue-500 text-4xl mx-auto mb-4" />
+                    
                     <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
                       No Report Data Available
                     </h3>
@@ -372,7 +371,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     </p>
                   </template>
                   <template v-else>
-                    <Icon name="i-carbon-warning-alt" class="text-yellow-500 text-4xl mx-auto mb-4" />
+                    
                     <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
                       Waiting for Server Connection
                     </h3>
@@ -398,7 +397,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               <a href="https://unlighthouse.dev" target="_blank" class="underline">Unlighthouse</a>
             </div>
             <div class="text-xs opacity-75 xl:mt-4">
-              Made with <Icon name="i-simple-line-icons-heart" title="Love" class="inline" aria-label="love" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
+              Made with ❤️ by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
             </div>
           </div>
           <div class="text-xs opacity-50 xl:mt-4 mt-1">
