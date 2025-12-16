@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.17.4",
   "private": true,
-  "packageManager": "pnpm@10.17.1",
+  "packageManager": "pnpm@10.26.0",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -26,35 +26,13 @@
     "lint:docs:fix": "pnpx markdownlint-cli ./docs --fix && pnpx case-police 'docs/**/*.md' *.md --fix"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^5.4.1",
-    "@arethetypeswrong/cli": "0.18.2",
-    "bumpp": "^10.2.3",
-    "eslint": "^9.36.0",
-    "obuild": "^0.2.1",
-    "typescript": "5.8.3",
-    "vite": "^7.1.7",
-    "vitest": "^3.2.4"
-  },
-  "pnpm": {
-    "packageExtensions": {
-      "puppeteer-cluster": {
-        "peerDependencies": {
-          "puppeteer-core": "*"
-        },
-        "peerDependenciesMeta": {
-          "puppeteer": {
-            "optional": true
-          }
-        }
-      }
-    },
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "@tailwindcss/oxide",
-      "esbuild"
-    ],
-    "ignoredBuiltDependencies": [
-      "vue-demi"
-    ]
+    "@antfu/eslint-config": "catalog:",
+    "@arethetypeswrong/cli": "catalog:",
+    "bumpp": "catalog:",
+    "eslint": "catalog:",
+    "obuild": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:dependencies",
+    "vitest": "catalog:"
   }
 }
