@@ -51,7 +51,8 @@
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "@tailwindcss/oxide",
-      "esbuild"
+      "esbuild",
+      "better-sqlite3"
     ],
     "ignoredBuiltDependencies": [
       "vue-demi"

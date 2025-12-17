@@ -30,6 +30,7 @@ import { resolveUserConfig } from './resolveConfig'
 import { createApi, createBroadcastingEvents, createMockRouter, WS } from './router'
 import { normaliseHost } from './util'
 import { successBox } from './util/cliFormatting'
+import { initHistoryTracking } from './data/history'
 
 const engineContext = createContext<UnlighthouseContext>()
 
@@ -309,6 +310,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     ctx.routes = await resolveReportableRoutes()
     logger.debug('Resolved reportable routes', ctx.routes.length)
     createBroadcastingEvents()
+    initHistoryTracking()
 
     // Show the static info box first (before any progress starts)
     if (provider?.name !== 'ci') {

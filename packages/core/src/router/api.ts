@@ -1,10 +1,11 @@
 import { join } from 'node:path'
-import { createUnrouted, get, post, prefix, redirect, setStatusCode, useParams, useQuery } from '@unrouted/core'
+import { createUnrouted, del, get, post, prefix, redirect, setStatusCode, useParams, useQuery } from '@unrouted/core'
 import { presetApi } from '@unrouted/preset-api'
 import { presetNode, serve } from '@unrouted/preset-node'
 import fs from 'fs-extra'
 import launch from 'launch-editor'
 import { createScanMeta } from '../data'
+import * as history from '../data/history'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
 
@@ -94,6 +95,42 @@ export async function createApi(h3: any): Promise<any> {
       })
 
       get('scan-meta', () => createScanMeta())
+
+      // History API endpoints
+      prefix('/history', () => {
+        // List all scans
+        get('/', () => {
+          const { limit, offset, site } = useQuery<{ limit?: string, offset?: string, site?: string }>()
+          const scans = history.listScans(resolvedConfig.outputPath, {
+            limit: limit ? Number.parseInt(limit) : 50,
+            offset: offset ? Number.parseInt(offset) : 0,
+            site,
+          })
+          return { scans }
+        })
+
+        // Get scan details with routes
+        get('/:id', () => {
+          const { id } = useParams<{ id: string }>()
+          const scan = history.getScanWithRoutes(resolvedConfig.outputPath, id)
+          if (!scan) {
+            setStatusCode(404)
+            return { error: 'Scan not found' }
+          }
+          return scan
+        })
+
+        // Delete a scan
+        del('/:id', () => {
+          const { id } = useParams<{ id: string }>()
+          const deleted = history.deleteScan(resolvedConfig.outputPath, id)
+          if (!deleted) {
+            setStatusCode(404)
+            return { error: 'Scan not found' }
+          }
+          return { success: true }
+        })
+      })
     })
 
     serve('/', runtimeSettings.generatedClientPath)

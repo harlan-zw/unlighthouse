@@ -82,9 +82,13 @@
     "unconfig": "^7.3.3",
     "unctx": "^2.4.1",
     "wrap-ansi": "^9.0.2",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "drizzle-orm": "^0.45.1",
+    "better-sqlite3": "^12.5.0"
   },
   "devDependencies": {
+    "drizzle-kit": "^0.31.8",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/fs-extra": "^11.0.4",
     "@types/lodash-es": "^4.17.12",
     "@types/object-hash": "^3.0.6",
