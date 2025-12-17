@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Tailwind Safelist: col-span-1 col-span-2 col-span-3 col-span-4 col-span-5 col-span-6 col-span-7 col-span-8 col-span-9 col-span-10 col-span-11 col-span-12 grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-12 bg-green-500 bg-yellow-500 bg-red-500 */
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Custom gauge animation */
+@keyframes load-gauge {
+  from {
+    stroke-dasharray: 0, 352;
+  }
+}
+
+/* Gauge styles */
+.guage__wrapper--huge {
+  --gauge-circle-size: 40px;
+}
+
+.guage__wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  text-decoration: none;
+  --transition-length: 1s;
+  contain: content;
+  will-change: opacity;
+}
+
+.guage__svg-wrapper {
+  position: relative;
+  height: var(--gauge-circle-size);
+}
+
+.guage {
+  stroke-linecap: round;
+  width: var(--gauge-circle-size);
+  height: var(--gauge-circle-size);
+}
+
+.guage-base {
+  opacity: 0.1;
+}
+
+.guage-arc {
+  fill: none;
+  transform-origin: 50% 50%;
+  animation: load-gauge var(--transition-length) ease forwards;
+  animation-delay: 250ms;
+}

@@ -4,6 +4,7 @@ import fs from 'fs-extra'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
 import launch from 'launch-editor'
 import { createScanMeta } from '../data'
+import * as history from '../data/history'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
 
