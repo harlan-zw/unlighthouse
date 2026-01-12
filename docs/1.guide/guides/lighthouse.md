@@ -3,11 +3,16 @@ title: "Lighthouse Configuration"
 description: "Customize Google Lighthouse audit settings, categories, and performance thresholds within Unlighthouse scans."
 navigation:
   title: "Lighthouse Config"
+relatedPages:
+  - path: /guide/guides/device
+    title: Device Configuration
+  - path: /api-doc/config
+    title: Config Reference
+  - path: /glossary
+    title: Core Web Vitals Glossary
 ---
 
-## Introduction
-
-Unlighthouse provides direct access to Google Lighthouse configuration through the `lighthouseOptions` key. You can customize audit categories, performance thresholds, and scanning behavior.
+Configure Lighthouse through the `lighthouseOptions` key to customize audit categories, thresholds, and behavior.
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
@@ -27,14 +32,16 @@ Unlighthouse aims to minimise and simplify configuration, where possible.
 
 For this reason, a number of configurations aliases are provided for your convenience.
 
-- [Switching device: mobile and desktop]()
-- [Toggle Throttling]()
+- [Switching device: mobile and desktop](/guide/guides/device)
+- [Toggle Throttling](/guide/guides/device#network-throttling)
 
 You can always configure lighthouse directly if you are comfortable with the configuration.
 
 ## Selecting Categories
 
 By default, Unlighthouse will scan the categories: `'performance', 'accessibility', 'best-practices', 'seo'`.
+
+The performance category measures [Core Web Vitals](/glossary) including [LCP](/glossary/lcp), [CLS](/glossary/cls), and [INP](/glossary/inp).
 
 It can be useful to remove certain categories from being scanned to improve scan times. The Unlighthouse UI will adapt
 to any categories you select.

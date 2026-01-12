@@ -1,23 +1,41 @@
 ---
-title: "Puppeteer Configuration"
-description: "Customize Puppeteer browser settings for Unlighthouse scanning including headless mode and navigation hooks."
+title: "Puppeteer Launch Options"
+description: "Configure Puppeteer launch options in Unlighthouse: headless mode, Chrome args, viewport settings, executable path, and navigation hooks."
+keywords:
+  - puppeteer launch options
+  - puppeteer.launch options
+  - puppeteer args
+  - puppeteer headless
+  - puppeteer chrome flags
 navigation:
   title: "Puppeteer"
+relatedPages:
+  - path: /guide/guides/chrome-dependency
+    title: Chrome Dependency
+  - path: /guide/guides/authentication
+    title: Authentication
 ---
 
-Unlighthouse uses [puppeteer](https://github.com/puppeteer/puppeteer) to run the lighthouse module.
+Unlighthouse uses [Puppeteer](https://pptr.dev/) to control Chrome for Lighthouse audits. Configure browser behavior via `puppeteerOptions`.
 
-### Puppeteer configuration
-
-You can configure puppeteer with the `puppeteerOptions` key, which will be passed to the puppeteer launch constructor.
-
-See [puppeteer-launch-options](https://pptr.dev/#?product=Puppeteer&version=v13.0.1&show=api-puppeteerlaunchoptions) for more information.
-
-For example, you could run without a headless browser. Although not recommended.
+## All Available Options
 
 ```ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
+export default defineUnlighthouseConfig({
+  puppeteerOptions: {
+    // See: https://pptr.dev/api/puppeteer.launchoptions
+  },
+})
+```
 
+Full reference: [Puppeteer LaunchOptions API](https://pptr.dev/api/puppeteer.launchoptions)
+
+## Common Configurations
+
+### Headless Mode
+
+```ts
+// Run with visible browser (debugging)
 export default defineUnlighthouseConfig({
   puppeteerOptions: {
     headless: false,
@@ -25,47 +43,114 @@ export default defineUnlighthouseConfig({
 })
 ```
 
-## Hook into puppeteer navigation
-
-There may be instances where you need to hook into how the puppeteer instance is handling your pages.
-
-A hook is provided to do this.
+### Custom Chrome Executable
 
 ```ts
-let token
-
 export default defineUnlighthouseConfig({
-  hooks: {
-    'puppeteer:before-goto': async (page) => {
-      if (!token)
-        token = await generateToken()
+  puppeteerOptions: {
+    executablePath: '/usr/bin/google-chrome',
+  },
+})
+```
 
-      // set authentication token when we load a new page
-      await page.evaluateOnNewDocument((token) => {
-        localStorage.clear()
-        localStorage.setItem('token', token)
-      }, token)
+### Chrome Arguments
+
+Common args for CI/Docker environments:
+
+```ts
+export default defineUnlighthouseConfig({
+  puppeteerOptions: {
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+    ],
+  },
+})
+```
+
+### Viewport Settings
+
+```ts
+export default defineUnlighthouseConfig({
+  puppeteerOptions: {
+    defaultViewport: {
+      width: 1920,
+      height: 1080,
     },
   },
 })
 ```
 
-**Delete an element**
+### Timeout Configuration
+
+```ts
+export default defineUnlighthouseConfig({
+  puppeteerOptions: {
+    timeout: 60000, // 60 seconds
+  },
+})
+```
+
+### User Data Directory
+
+Persist browser data between runs:
+
+```ts
+export default defineUnlighthouseConfig({
+  puppeteerOptions: {
+    userDataDir: './.puppeteer-data',
+  },
+})
+```
+
+## Navigation Hooks
+
+Hook into Puppeteer's page navigation for custom logic.
+
+### Before Page Load
 
 ```ts
 export default defineUnlighthouseConfig({
   hooks: {
     'puppeteer:before-goto': async (page) => {
-      const deleteSelector = '.VPNav'
+      // Set localStorage before navigation
+      await page.evaluateOnNewDocument((token) => {
+        localStorage.setItem('auth', token)
+      }, process.env.AUTH_TOKEN)
+    },
+  },
+})
+```
+
+### Modify Page Content
+
+```ts
+export default defineUnlighthouseConfig({
+  hooks: {
+    'puppeteer:before-goto': async (page) => {
       page.waitForNavigation().then(async () => {
-        await page.waitForTimeout(1000)
-        await page.evaluate((sel) => {
-          const elements = document.querySelectorAll(sel)
-          for (let i = 0; i < elements.length; i++)
-            elements[i].parentNode.removeChild(elements[i])
-        }, deleteSelector)
+        // Remove elements that cause CLS
+        await page.evaluate(() => {
+          document.querySelector('.cookie-banner')?.remove()
+        })
       })
     },
   },
 })
 ```
+
+## Troubleshooting
+
+### Chrome not found
+
+See [Chrome Dependency Guide](/guide/guides/chrome-dependency).
+
+### Connection refused in Docker
+
+Add `--no-sandbox` and `--disable-dev-shm-usage` args.
+
+### Memory issues
+
+Reduce concurrent workers or add `--disable-dev-shm-usage`.

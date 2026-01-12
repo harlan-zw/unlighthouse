@@ -3,11 +3,14 @@ title: "API Reference"
 description: "Complete API reference for Unlighthouse core functions, context methods, and hooks system."
 navigation:
   title: "API Reference"
+relatedPages:
+  - path: /api-doc/config
+    title: Config Reference
+  - path: /api-doc/glossary
+    title: Glossary
 ---
 
-## Introduction
-
-This reference covers the programmatic API for building custom integrations and extending Unlighthouse functionality.
+Programmatic API for building custom integrations and extending Unlighthouse functionality.
 
 ## Core Package
 

@@ -3,6 +3,11 @@ title: "Glossary"
 description: "Key terms and concepts used throughout the Unlighthouse documentation and API."
 navigation:
   title: "Glossary"
+relatedPages:
+  - path: /api-doc/index
+    title: API Reference
+  - path: /api-doc/config
+    title: Config Reference
 ---
 
 ## Core Concepts

@@ -1,25 +1,41 @@
 ---
-title: "Large Site Optimization"
-description: "Strategies and configuration for efficiently scanning large websites with thousands of pages."
+title: "Bulk Lighthouse Testing for Large Sites"
+description: "Scan large websites with thousands of pages efficiently. Configure sampling, URL filtering, and optimization strategies for bulk Lighthouse testing."
+keywords:
+  - bulk lighthouse test
+  - scan entire website lighthouse
+  - lighthouse all pages
+  - site wide lighthouse
+  - batch lighthouse
 navigation:
   title: "Large Sites"
+relatedPages:
+  - path: /guide/guides/dynamic-sampling
+    title: Dynamic Sampling
+  - path: /guide/guides/url-discovery
+    title: URL Discovery
 ---
 
-## Introduction
+Single-page tools like PageSpeed Insights don't scale. Unlighthouse scans your entire site:
 
-Unlighthouse includes smart defaults for scanning large websites efficiently. Understanding these defaults and optimization strategies helps you balance scan completeness with performance.
+- **Automatic discovery** - Finds all pages via sitemap and crawling
+- **Smart sampling** - Tests representative pages from each template
+- **Parallel scanning** - Multiple Chrome instances for speed
+- **Aggregated results** - Site-wide scores and insights
+
+Unlighthouse includes smart defaults for large sites. Understanding these helps balance completeness with performance.
 
 ## Default Large Site Configuration
 
 These defaults optimize scanning for sites with thousands of pages:
 
-- [ignoreI18nPages](/api/config#scanner-ignorei18npages) enabled
-- [maxRoutes](/api/config#scanner-maxroutes) set to 200
-- [skipJavascript](/api/config#scanner-skipjavascript) enabled
-- [samples](/api/config#scanner-samples) set to 1
-- [throttling](/api/config#scanner-throttle) disabled
-- [crawler](/api/config#scanner-crawler) enabled
-- [dynamicSampling](/api/config#scanner-crawler) set to 5
+- [ignoreI18nPages](/api-doc/config#scanner-ignorei18npages) enabled
+- [maxRoutes](/api-doc/config#scanner-maxroutes) set to 200
+- [skipJavascript](/api-doc/config#scanner-skipjavascript) enabled
+- [samples](/api-doc/config#scanner-samples) set to 1
+- [throttling](/api-doc/config#scanner-throttle) disabled
+- [crawler](/api-doc/config#scanner-crawler) enabled
+- [dynamicSampling](/api-doc/config#scanner-dynamicsampling) set to 5
 
 For example, when scanning a blog with thousands of posts, it may be redundant to scan every single blog post, as the
 DOM is very similar. Using the configuration we can select exactly how many posts should be scanned.

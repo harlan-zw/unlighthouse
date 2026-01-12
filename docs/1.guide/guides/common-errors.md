@@ -3,11 +3,14 @@ title: "Common Errors"
 description: "Troubleshoot common issues encountered when running Unlighthouse scans, including browser connection and environment problems."
 navigation:
   title: "Common Errors"
+relatedPages:
+  - path: /guide/guides/debugging
+    title: Debugging
+  - path: /guide/guides/chrome-dependency
+    title: Chrome Dependency
 ---
 
-## Introduction
-
-This guide covers the most common issues encountered when running Unlighthouse scans and their solutions. Always ensure you're using the latest version before troubleshooting.
+Common issues and solutions for Unlighthouse scans. Ensure you're using the latest version before troubleshooting.
 
 ::tip
 For general debugging techniques, see the [Debugging Guide](/guide/guides/debugging).

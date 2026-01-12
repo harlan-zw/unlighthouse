@@ -3,11 +3,14 @@ title: "Route Definitions"
 description: "Configure route discovery and custom sampling patterns for better page organization and intelligent scanning."
 navigation:
   title: "Route Definitions"
+relatedPages:
+  - path: /guide/guides/dynamic-sampling
+    title: Dynamic Sampling
+  - path: /guide/guides/url-discovery
+    title: URL Discovery
 ---
 
-## Introduction
-
-Route definitions improve scanning intelligence by mapping URLs to source files and enabling better [dynamic sampling](/guide/guides/dynamic-sampling). Unlighthouse automatically discovers routes in framework integrations, but CLI users may need manual configuration.
+Route definitions map URLs to source files for better [dynamic sampling](/guide/guides/dynamic-sampling). Framework integrations discover routes automatically; CLI users may need manual configuration.
 
 ## Pages directory
 
@@ -35,7 +38,7 @@ yourself.
 By using the `customSampling` option you map regex to a route definition.
 
 In the below example we will map any URL such as `/q-search-query`, `/q-where-is-the-thing` to a single route
-definition, , which allows the sampling to work.
+definition, which allows the sampling to work.
 
 ```ts
 export default defineUnlighthouseConfig({

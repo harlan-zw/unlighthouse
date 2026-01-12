@@ -3,13 +3,14 @@ title: "Dynamic Sampling"
 description: "Automatically sample similar pages to reduce scan time for sites with many similar URLs like blogs or e-commerce."
 navigation:
   title: "Dynamic Sampling"
+relatedPages:
+  - path: /guide/guides/route-definitions
+    title: Route Definitions
+  - path: /guide/recipes/large-sites
+    title: Large Sites
 ---
 
-## Introduction
-
-Dynamic sampling intelligently groups similar pages and scans only a representative sample. This feature prevents performance issues when scanning sites with hundreds of similar pages like blogs, product catalogs, or user profiles.
-
-Dynamic sampling is enabled by default with 5 samples per group.
+Dynamic sampling groups similar pages and scans only representative samples. Enabled by default with 5 samples per group.
 
 ## How it works
 

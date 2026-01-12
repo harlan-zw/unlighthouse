@@ -1,13 +1,21 @@
 ---
-title: "Docker Support"
-description: "Run Unlighthouse in Docker containers for consistent CI/CD environments with proper Chromium configuration."
+title: "Run Lighthouse in Docker"
+description: "Run Unlighthouse site-wide Lighthouse scans in Docker containers. Dockerfile examples and CI/CD configuration."
+keywords:
+  - lighthouse docker
+  - docker lighthouse
+  - lighthouse container
+  - puppeteer docker
 navigation:
   title: "Docker"
+relatedPages:
+  - path: /integrations/ci
+    title: CI Integration
+  - path: /guide/guides/puppeteer
+    title: Puppeteer Configuration
 ---
 
-## Introduction
-
-Unlighthouse supports Docker environments for consistent CI/CD deployments. Docker requires special Puppeteer configuration due to sandboxing restrictions.
+Docker environments require special Puppeteer configuration due to sandboxing restrictions.
 
 ::warning
 Docker support is community-maintained and experimental. Use the CI integration for best results.

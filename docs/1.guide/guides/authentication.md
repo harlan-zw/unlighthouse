@@ -1,13 +1,21 @@
 ---
-title: "Authentication"
-description: "Configure authentication for scanning protected websites using basic auth, cookies, headers, or custom methods."
+title: "Authentication for Lighthouse Scans"
+description: "Scan password-protected websites with Unlighthouse. Configure basic auth, cookies, headers, localStorage, and programmatic login flows."
+keywords:
+  - lighthouse authentication
+  - lighthouse password protected
+  - lighthouse login
+  - puppeteer authentication
 navigation:
   title: "Authentication"
+relatedPages:
+  - path: /guide/guides/debugging
+    title: Debugging
+  - path: /guide/guides/puppeteer
+    title: Puppeteer Configuration
 ---
 
-## Introduction
-
-Unlighthouse provides multiple authentication methods to scan protected websites. Whether you need basic authentication, session cookies, custom headers, or programmatic login flows, Unlighthouse adapts to your authentication requirements.
+Unlighthouse supports basic auth, session cookies, custom headers, and programmatic login flows for protected websites.
 
 ## Basic Authentication
 

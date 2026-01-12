@@ -1,13 +1,33 @@
 ---
-title: "Static Reports"
-description: "Generate static HTML, CSV, and JSON reports using Unlighthouse CI for automated deployments and analysis."
+title: "Generate Lighthouse Reports"
+description: "Generate static Lighthouse reports for your entire site. Export as HTML, CSV, or JSON. Deploy to Netlify, CloudFlare, or any static host."
+keywords:
+  - lighthouse report
+  - lighthouse html report
+  - lighthouse json report
+  - lighthouse csv export
+  - static lighthouse report
 navigation:
   title: "Static Reports"
+relatedPages:
+  - path: /integrations/ci
+    title: CI Integration
+  - path: /guide/guides/config
+    title: Configuration
 ---
 
-## Introduction
+Unlighthouse generates comprehensive Lighthouse reports for every page on your site.
 
-Unlighthouse CI can generate static reports in multiple formats for automated workflows, hosting, and analysis. Unlike the interactive CLI, static reports can be deployed to any web server or integrated into CI/CD pipelines.
+## Report Types
+
+| Format | Use Case | Command |
+|--------|----------|---------|
+| HTML | Shareable dashboards | `--build-static` |
+| JSON | CI/CD integration | `--reporter json` |
+| CSV | Spreadsheet analysis | `--reporter csv` |
+| LHCI | Server upload | `--reporter lighthouseServer` |
+
+Unlike single-page Lighthouse reports, Unlighthouse aggregates results across your entire site.
 
 ::tip
 Static reports are perfect for stakeholder reviews, automated deployments, and long-term performance tracking.
