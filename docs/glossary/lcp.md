@@ -69,6 +69,42 @@ For individual page testing:
 - [PageSpeed Insights](https://pagespeed.web.dev/)
 - Chrome User Experience Report (CrUX) for field data
 
+### Measure in Browser
+
+Run this in your browser console to track LCP in real-time. Based on [webperf-snippets](https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP).
+
+```ts
+type Rating = 'good' | 'needs-improvement' | 'poor'
+
+const rateValue = (ms: number): Rating =>
+  ms <= 2500 ? 'good' : ms <= 4000 ? 'needs-improvement' : 'poor'
+
+const observer = new PerformanceObserver((list) => {
+  const entries = list.getEntries() as PerformanceEntry[]
+  const lastEntry = entries.at(-1) as PerformanceEntry & {
+    startTime: number
+    element?: Element
+    url?: string
+    size?: number
+  }
+  if (!lastEntry) return
+
+  const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+  const activationStart = navEntry?.activationStart || 0
+  const lcpTime = Math.max(0, lastEntry.startTime - activationStart)
+  const rating = rateValue(lcpTime)
+
+  console.log(`LCP: ${(lcpTime / 1000).toFixed(2)}s (${rating})`)
+
+  if (lastEntry.element) {
+    console.log('LCP Element:', lastEntry.element)
+    lastEntry.element.style.outline = '3px dashed lime'
+  }
+})
+
+observer.observe({ type: 'largest-contentful-paint', buffered: true })
+```
+
 ## Improving LCP
 
 Key optimization strategies:

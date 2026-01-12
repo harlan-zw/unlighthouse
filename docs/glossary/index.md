@@ -37,6 +37,42 @@ Google's three key metrics that affect search rankings:
   ::
 ::
 
+## Lighthouse Performance Metrics
+
+Additional metrics reported by Lighthouse that contribute to your performance score:
+
+::card-group
+  ::card{title="FCP" to="/glossary/fcp"}
+  **First Contentful Paint** - When the first content renders. Is anything happening?
+  ::
+
+  ::card{title="TTFB" to="/glossary/ttfb"}
+  **Time to First Byte** - Server response time. How fast is your backend?
+  ::
+
+  ::card{title="TBT" to="/glossary/tbt"}
+  **Total Blocking Time** - Main thread blocking during load. 30% of Lighthouse score.
+  ::
+
+  ::card{title="Speed Index" to="/glossary/speed-index"}
+  **Speed Index** - Visual loading progress. How quickly does content fill the viewport?
+  ::
+::
+
+### Lighthouse Score Weights
+
+| Metric | Weight | Type |
+|--------|--------|------|
+| [TBT](/glossary/tbt) | 30% | Lab |
+| [LCP](/glossary/lcp) | 25% | Core Web Vital |
+| [CLS](/glossary/cls) | 25% | Core Web Vital |
+| [FCP](/glossary/fcp) | 10% | Lab |
+| [Speed Index](/glossary/speed-index) | 10% | Lab |
+
+### Deprecated Metrics
+
+- [TTI (Time to Interactive)](/glossary/tti) - Removed in Lighthouse 10. Use [TBT](/glossary/tbt) or [INP](/glossary/inp) instead.
+
 ## Measuring Your Site
 
 Use [Unlighthouse CLI](/guide/getting-started/unlighthouse-cli) to audit all these metrics across your entire website in a single scan:

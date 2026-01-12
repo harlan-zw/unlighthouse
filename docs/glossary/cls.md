@@ -72,6 +72,47 @@ For individual page testing:
 - [PageSpeed Insights](https://pagespeed.web.dev/)
 - Web Vitals Chrome extension
 
+### Measure in Browser
+
+Run this in your browser console to track CLS in real-time. Based on [webperf-snippets](https://webperf-snippets.nucliweb.net/CoreWebVitals/CLS).
+
+```ts
+type Rating = 'good' | 'needs-improvement' | 'poor'
+
+const rateValue = (score: number): Rating =>
+  score <= 0.1 ? 'good' : score <= 0.25 ? 'needs-improvement' : 'poor'
+
+let cls = 0
+
+const observer = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries() as (PerformanceEntry & { hadRecentInput: boolean, value: number })[]) {
+    // Only count shifts without recent user input
+    if (!entry.hadRecentInput) {
+      cls += entry.value
+    }
+  }
+})
+
+observer.observe({ type: 'layout-shift', buffered: true })
+
+// Check current CLS anytime
+const getCLS = () => {
+  const rating = rateValue(cls)
+  console.log(`CLS: ${cls.toFixed(4)} (${rating})`)
+  return cls
+}
+
+// Log final CLS when user leaves page
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    observer.takeRecords()
+    getCLS()
+  }
+})
+
+getCLS()
+```
+
 ## Preventing Layout Shifts
 
 Key strategies to maintain visual stability:

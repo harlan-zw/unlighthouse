@@ -80,6 +80,40 @@ Measurement tools:
 - [PageSpeed Insights](https://pagespeed.web.dev/) - Field data section
 - Performance panel in DevTools - Interaction traces
 
+### Measure in Browser
+
+Run this in your browser console to track INP as you interact with the page.
+
+```ts
+type Rating = 'good' | 'needs-improvement' | 'poor'
+
+const rateValue = (ms: number): Rating =>
+  ms <= 200 ? 'good' : ms <= 500 ? 'needs-improvement' : 'poor'
+
+let worstInp = 0
+
+const observer = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries() as (PerformanceEntry & {
+    duration: number
+    interactionId: number
+    name: string
+  })[]) {
+    // Only track actual interactions (has interactionId)
+    if (!entry.interactionId) continue
+
+    if (entry.duration > worstInp) {
+      worstInp = entry.duration
+      const rating = rateValue(worstInp)
+      console.log(`INP: ${worstInp}ms (${rating}) - ${entry.name}`)
+    }
+  }
+})
+
+observer.observe({ type: 'event', buffered: true, durationThreshold: 16 })
+
+console.log('INP tracking active. Interact with the page to measure.')
+```
+
 ::note
 Lab tools like Lighthouse can't fully measure INP because it requires real user interactions over time. Use field data for accurate INP scores.
 ::
