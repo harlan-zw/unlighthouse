@@ -3,15 +3,14 @@ title: "Configuration Reference"
 description: "Complete reference for all Unlighthouse configuration options including types, defaults, and usage examples."
 navigation:
   title: "Config Reference"
+relatedPages:
+  - path: /guide/guides/config
+    title: Configuration Guide
+  - path: /api-doc/glossary
+    title: Glossary
 ---
 
-## Introduction
-
-This page provides a complete reference for all Unlighthouse configuration options. For implementation guides, see:
-
-- [Configuration Guide](/guide/guides/config)
-- [CLI Arguments](/integrations/cli#configuration)
-- [CI Integration](/integrations/ci)
+Complete reference for all configuration options. For implementation guides, see [Configuration Guide](/guide/guides/config) or [CLI Arguments](/integrations/cli#configuration).
 
 ::note
 Deprecated integration-specific options (Nuxt, Vite, webpack) are not documented here. Use CLI or CI integrations instead.
@@ -110,7 +109,7 @@ Query params to add to every request.
 - **Type:** `NestedHooks<UnlighthouseHooks>`{lang="ts"}
 - **Default:** `{}`{lang="ts"}
 
-Hooks to run. See the [Hooks](/api/#hooks) section for more information.
+Hooks to run. See the [Hooks](/api-doc/#hooks) section for more information.
 
 ### `routerPrefix`{lang="ts"}
 
@@ -265,7 +264,7 @@ See [Include URL Patterns](/guide/recipes/large-sites#include-url-patterns) for 
 
 Paths to ignore from scanning.
 
-See [Exclude URL Patterns](/guide/recipes/large-sites#include-url-patterns) for more information.
+See [Exclude URL Patterns](/guide/recipes/large-sites#exclude-url-patterns) for more information.
 
 ### `scanner.skipJavascript`{lang="ts"}
 
@@ -297,7 +296,7 @@ Should lighthouse run with throttling enabled. This is an alias for manually con
 
 Note: This will be disabled by default for local scans.
 
-See [Toggling Throttling](/guide/guides/device#alias-enable-disable-throttling) for more information.
+See [Network Throttling](/guide/guides/device#network-throttling) for more information.
 
 ### `scanner.crawler`{lang="ts"}
 
@@ -346,7 +345,7 @@ Note: If you have `robotsTxt` enabled it will load sitemap config from here.
 
 Alias to switch the viewport dimentions used for scanning. Set to `desktop` for a viewport of 1350×950. Set to `false` if you want to manually configure it through `lighthouseOptions.formFactor`.
 
-See [Switching between mobile and desktop](/guide/guides/device#alias-enable-disable-throttling) for more information.
+See [Device Configuration](/guide/guides/device) for more information.
 
 ## Lighthouse Options
 

@@ -5,15 +5,18 @@ description: "Add Lighthouse auditing to webpack-based projects with development
 navigation:
   title: "Webpack"
 deprecated: true
+relatedPages:
+  - path: /integrations/cli
+    title: CLI Integration
+  - path: /integration-deprecations
+    title: Deprecation Notice
 ---
 
 ::warning
-**Deprecated**: This integration will be removed in v1.0. We recommend using the [CLI](/integrations/cli) or [CI](/integrations/ci) integrations instead. [Learn more →](/integration-deprecations)
+**Deprecated**: This integration will be removed in v1.0. Use [CLI](/integrations/cli) or [CI](/integrations/ci) instead. See [deprecation notice](/integration-deprecations).
 ::
 
-## Introduction
-
-The webpack integration provides Lighthouse auditing capabilities for webpack-based applications during development.
+Lighthouse auditing for webpack-based applications during development.
 
 ## Install
 

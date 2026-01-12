@@ -45,18 +45,18 @@
     "stub": "obuild --stub"
   },
   "dependencies": {
-    "@lhci/utils": "^0.15.1",
+    "@lhci/utils": "catalog:dependencies",
     "@unlighthouse/client": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
-    "better-opn": "^3.0.2",
-    "cac": "^6.7.14",
-    "consola": "^3.4.2",
-    "defu": "^6.1.4",
-    "fs-extra": "^11.3.2",
-    "globby": "^14.1.0",
-    "lodash-es": "^4.17.21",
-    "pathe": "^2.0.3",
-    "std-env": "^3.9.0"
+    "better-opn": "catalog:dependencies",
+    "cac": "catalog:dependencies",
+    "consola": "catalog:dependencies",
+    "defu": "catalog:dependencies",
+    "fs-extra": "catalog:dependencies",
+    "globby": "catalog:dependencies",
+    "lodash-es": "catalog:dependencies",
+    "pathe": "catalog:dependencies",
+    "std-env": "catalog:dependencies"
   }
 }

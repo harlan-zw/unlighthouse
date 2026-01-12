@@ -3,11 +3,16 @@ title: "Improving Accuracy"
 description: "Optimize Lighthouse scan accuracy with multiple samples and reduced concurrency for more reliable results."
 navigation:
   title: "Improving Accuracy"
+relatedPages:
+  - path: /guide/guides/config
+    title: Configuration
+  - path: /guide/guides/device
+    title: Device Configuration
+  - path: /glossary
+    title: Core Web Vitals Glossary
 ---
 
-## Introduction
-
-Lighthouse performance scores can vary between runs due to network conditions, CPU load, and other factors. These techniques help you achieve more consistent and accurate results.
+Lighthouse scores vary between runs due to network conditions and CPU load. These techniques improve consistency.
 
 ## Multiple Samples Per URL
 

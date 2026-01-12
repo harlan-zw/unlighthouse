@@ -3,13 +3,14 @@ title: "Device Configuration"
 description: "Configure device emulation settings for mobile and desktop scanning with custom dimensions and throttling options."
 navigation:
   title: "Device Configuration"
+relatedPages:
+  - path: /guide/guides/lighthouse
+    title: Lighthouse Configuration
+  - path: /api-doc/config
+    title: Config Reference
 ---
 
-## Introduction
-
-Unlighthouse uses device emulation to test how your website performs on different screen sizes and network conditions. By default, scans emulate a mobile device (375x667) without throttling.
-
-Configuration aliases make it easy to switch between common device types and settings.
+Device emulation tests performance across screen sizes and network conditions. Default: mobile (375x667) without throttling.
 
 ## Device Types
 

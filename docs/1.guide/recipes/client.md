@@ -3,11 +3,14 @@ title: "Customizing the UI"
 description: "Modify Unlighthouse client interface columns and display to show custom metrics and data."
 navigation:
   title: "UI Customization"
+relatedPages:
+  - path: /api-doc/glossary
+    title: Glossary
+  - path: /guide/guides/config
+    title: Configuration
 ---
 
-## Introduction
-
-Unlighthouse's client interface can be customized to display the metrics most relevant to your needs. Modify columns, add custom data, and tailor the UI to your workflow.
+Customize the client interface to display metrics relevant to your workflow.
 
 ## Customizing Columns
 
@@ -34,5 +37,5 @@ export default defineUnlighthouseConfig({
 ```
 
 ::tip
-See the [Column API Reference](/api/glossary/#columns) for all available column options.
+See the [Column API Reference](/api-doc/glossary#columns) for all available column options.
 ::

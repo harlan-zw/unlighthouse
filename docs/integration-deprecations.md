@@ -3,9 +3,12 @@ title: "Integration Deprecations"
 icon: carbon:warning-alt
 description: "Build tool integrations are deprecated in v1.0. Learn about migration paths and alternatives."
 navigation: false
+relatedPages:
+  - path: /integrations/cli
+    title: CLI Integration
+  - path: /integrations/ci
+    title: CI Integration
 ---
-
-## Introduction
 
 The following build tool integrations are deprecated and will be removed in v1.0:
 

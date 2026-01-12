@@ -1,18 +1,23 @@
 ---
 title: "URL Discovery"
-description: "Learn how Unlighthouse discovers pages using sitemaps, robots.txt, and internal link crawling."
+description: "How Unlighthouse discovers pages using sitemaps, robots.txt, and internal link crawling."
 navigation:
   title: "URL Discovery"
+relatedPages:
+  - path: /guide/guides/route-definitions
+    title: Route Definitions
+  - path: /guide/recipes/large-sites
+    title: Large Sites
 ---
 
-Unlighthouse comes with multiple methods for URL discovery in the form of crawling.
+Unlighthouse discovers URLs through multiple methods:
 
 1. Add the specified `site` from `--site` or config
 2. Manually providing URLs via the `--urls` flag or `urls` on the provider.
 3. `robotsTxt` - Reading robots.txt, if it exists. Provides sitemap URLs and disallowed paths.
 4. `sitemap` - Reading sitemap.xml, if it exists
 5. `crawler` - Inspecting internal links
-6. Using provided static [route definitions](/api/glossary/#route-definition)
+6. Using provided static [route definitions](/api-doc/glossary#route-definition)
 
 ## Robots.txt
 

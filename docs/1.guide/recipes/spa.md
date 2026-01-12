@@ -3,11 +3,14 @@ title: "Single-Page Applications"
 description: "Configure Unlighthouse to properly scan single-page applications (SPAs) with client-side routing."
 navigation:
   title: "SPAs"
+relatedPages:
+  - path: /guide/guides/url-discovery
+    title: URL Discovery
+  - path: /guide/guides/puppeteer
+    title: Puppeteer Configuration
 ---
 
-## Introduction
-
-By default, Unlighthouse assumes server-side rendered (SSR) pages where links are discoverable in the initial HTML. Single-page applications require JavaScript execution for proper link discovery and content rendering.
+By default, Unlighthouse assumes SSR pages with links in initial HTML. SPAs require JavaScript execution for link discovery.
 
 ## Enable JavaScript Execution
 

@@ -3,13 +3,16 @@ title: "How It Works"
 description: "How Unlighthouse scans your site - the simple explanation."
 navigation:
   title: "How It Works"
+relatedPages:
+  - path: /guide/guides/url-discovery
+    title: URL Discovery
+  - path: /guide/guides/config
+    title: Configuration
+  - path: /glossary
+    title: Core Web Vitals Glossary
 ---
 
-## Introduction
-
-Unlighthouse scans your website in a few simple steps. It finds all your pages, runs Lighthouse on each one, then shows you the results.
-
-Here's how it works under the hood.
+Unlighthouse finds all your pages, runs Lighthouse on each one, then shows you the results.
 
 ## How It Starts
 
@@ -123,7 +126,7 @@ For every URL it finds, Unlighthouse does two things:
 ##### Step 2: Full Lighthouse Scan
 
 - Opens the page in Chrome
-- Runs all the Lighthouse tests
+- Runs all the Lighthouse tests (including [Core Web Vitals](/glossary) like [LCP](/glossary/lcp), [CLS](/glossary/cls), [INP](/glossary/inp))
 - Saves the report as HTML and JSON files
 
 #### Live Updates
