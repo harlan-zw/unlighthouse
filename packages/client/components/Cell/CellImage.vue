@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { $URL, withBase } from 'ufo'
 import { contentModalOpen, isOffline, openContentModal, website } from '../../logic'
 

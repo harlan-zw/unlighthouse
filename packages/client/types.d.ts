@@ -1,4 +1,4 @@
-import type { ClientOptionsPayload, ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { ClientOptionsPayload, ScanMeta, UnlighthouseRouteReport } from 'unlighthouse'
 
 declare global {
   interface Window {

@@ -1,5 +1,5 @@
-import { runMigrations } from '../utils/migrations'
 import { validateEnv } from '../utils/env'
+import { runMigrations } from '../utils/migrations'
 
 /**
  * Nitro plugin that runs on server startup

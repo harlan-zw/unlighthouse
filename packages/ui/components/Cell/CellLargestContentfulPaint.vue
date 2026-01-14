@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { isOffline, contentModalOpen, openContentModal } from '~/composables/state'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
+import { contentModalOpen, isOffline, openContentModal } from '~/composables/state'
 import CellImageOutline from './CellImageOutline.vue'
 
 const props = defineProps<{
@@ -11,7 +11,8 @@ const props = defineProps<{
 const showingModal = ref(false)
 
 function openModal() {
-  if (isOffline.value) return
+  if (isOffline.value)
+    return
   openContentModal()
   nextTick(() => {
     showingModal.value = true
@@ -19,7 +20,8 @@ function openModal() {
 }
 
 watch(contentModalOpen, () => {
-  if (!contentModalOpen.value) showingModal.value = false
+  if (!contentModalOpen.value)
+    showingModal.value = false
 })
 
 const lcpItems = computed(() => {

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseTaskStatus } from '@unlighthouse/core'
+import type { UnlighthouseTaskStatus } from 'unlighthouse'
 import { isOffline } from '../../logic'
 
 const props = defineProps<{

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useScan, type CompletedRoute } from '~/composables/scan'
+import { useScan } from '~/composables/scan'
 import { website } from '~/composables/unlighthouse'
 
 const router = useRouter()
@@ -38,14 +38,18 @@ const strokeDashoffset = computed(() => {
 })
 
 function getScoreColor(score: number) {
-  if (score >= 90) return 'text-green-400'
-  if (score >= 50) return 'text-amber-400'
+  if (score >= 90)
+    return 'text-green-400'
+  if (score >= 50)
+    return 'text-amber-400'
   return 'text-red-400'
 }
 
 function getScoreBg(score: number) {
-  if (score >= 90) return 'bg-green-500/10'
-  if (score >= 50) return 'bg-amber-500/10'
+  if (score >= 90)
+    return 'bg-green-500/10'
+  if (score >= 50)
+    return 'bg-amber-500/10'
   return 'bg-red-500/10'
 }
 
@@ -161,20 +165,36 @@ watch(isScanComplete, (complete) => {
         <!-- Stats -->
         <div class="flex gap-8 mb-8">
           <div class="text-center">
-            <div class="text-2xl font-mono font-semibold">{{ scanState.progress.discovered }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-wider">Discovered</div>
+            <div class="text-2xl font-mono font-semibold">
+              {{ scanState.progress.discovered }}
+            </div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">
+              Discovered
+            </div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-mono font-semibold text-green-400">{{ scanState.progress.scanned }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-wider">Scanned</div>
+            <div class="text-2xl font-mono font-semibold text-green-400">
+              {{ scanState.progress.scanned }}
+            </div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">
+              Scanned
+            </div>
           </div>
           <div v-if="scanState.progress.failed > 0" class="text-center">
-            <div class="text-2xl font-mono font-semibold text-red-400">{{ scanState.progress.failed }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-wider">Failed</div>
+            <div class="text-2xl font-mono font-semibold text-red-400">
+              {{ scanState.progress.failed }}
+            </div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">
+              Failed
+            </div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-mono font-semibold">{{ formatTimeRemaining(scanState.estimatedTimeRemaining) }}</div>
-            <div class="text-xs text-gray-500 uppercase tracking-wider">Remaining</div>
+            <div class="text-2xl font-mono font-semibold">
+              {{ formatTimeRemaining(scanState.estimatedTimeRemaining) }}
+            </div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">
+              Remaining
+            </div>
           </div>
         </div>
 
@@ -202,7 +222,9 @@ watch(isScanComplete, (complete) => {
 
       <!-- Live Feed -->
       <div v-if="scanState.recentlyCompleted.length > 0" class="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-        <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Recently Completed</h2>
+        <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">
+          Recently Completed
+        </h2>
         <div class="space-y-2">
           <div
             v-for="(route, idx) in scanState.recentlyCompleted"
@@ -225,7 +247,9 @@ watch(isScanComplete, (complete) => {
       <!-- Empty state when no routes yet -->
       <div v-else-if="isScanning" class="flex flex-col items-center py-12">
         <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-8 h-8 text-amber-400 mb-4" />
-        <p class="text-gray-500">Waiting for routes to complete...</p>
+        <p class="text-gray-500">
+          Waiting for routes to complete...
+        </p>
       </div>
     </main>
 

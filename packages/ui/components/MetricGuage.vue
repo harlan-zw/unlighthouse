@@ -12,22 +12,28 @@ const arc = ref(null)
 const guageModifiers = computed(() => {
   const score = props.score ?? 0
   let result = 'fail'
-  if (score >= 0.9) result = 'pass'
-  else if (score >= 0.5) result = 'average'
+  if (score >= 0.9)
+    result = 'pass'
+  else if (score >= 0.5)
+    result = 'average'
   return [`guage__wrapper--${result}`]
 })
 
 const gaugeColorClasses = computed(() => {
   const score = props.score ?? 0
-  if (score >= 0.9) return 'text-success fill-current stroke-current'
-  if (score >= 0.5) return 'text-warning fill-current stroke-current'
+  if (score >= 0.9)
+    return 'text-success fill-current stroke-current'
+  if (score >= 0.5)
+    return 'text-warning fill-current stroke-current'
   return 'text-error fill-current stroke-current'
 })
 
 const dotColorClasses = computed(() => {
   const score = props.score ?? 0
-  if (score >= 0.9) return 'bg-green-500'
-  if (score >= 0.5) return 'bg-yellow-500'
+  if (score >= 0.9)
+    return 'bg-green-500'
+  if (score >= 0.5)
+    return 'bg-yellow-500'
   return 'bg-red-500'
 })
 
@@ -36,7 +42,8 @@ const guageArcStyle = computed(() => {
   const score = props.score ?? 0
 
   let offset = score * CIRCUMFERENCE - RADIUS / 2
-  if (score === 1) offset = CIRCUMFERENCE
+  if (score === 1)
+    offset = CIRCUMFERENCE
 
   return {
     opacity: score === 0 ? '0' : 1,
@@ -46,7 +53,8 @@ const guageArcStyle = computed(() => {
 })
 
 const displayScore = computed(() => {
-  if (props.score == null) return '?'
+  if (props.score == null)
+    return '?'
   return Math.round(props.score * 100)
 })
 </script>

@@ -47,9 +47,9 @@
   "dependencies": {
     "@lhci/utils": "catalog:dependencies",
     "@unlighthouse/client": "workspace:*",
-    "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
     "better-opn": "catalog:dependencies",
+    "unlighthouse": "workspace:*",
     "cac": "catalog:dependencies",
     "consola": "catalog:dependencies",
     "defu": "catalog:dependencies",

@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { $URL, withBase } from 'ufo'
+import { contentModalOpen, isOffline, openContentModal } from '~/composables/state'
 import { website } from '~/composables/unlighthouse'
-import { isOffline, contentModalOpen, openContentModal } from '~/composables/state'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -22,7 +22,8 @@ const image = computed(() => {
 const showingModal = ref(false)
 
 function openModal() {
-  if (isOffline.value) return
+  if (isOffline.value)
+    return
   openContentModal()
   nextTick(() => {
     showingModal.value = true
@@ -30,7 +31,8 @@ function openModal() {
 }
 
 watch(contentModalOpen, () => {
-  if (!contentModalOpen.value) showingModal.value = false
+  if (!contentModalOpen.value)
+    showingModal.value = false
 })
 </script>
 

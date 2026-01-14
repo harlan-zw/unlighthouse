@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { iframeModalUrl, isModalOpen, isOffline } from '../../logic'
 import CellImageOutline from './CellImageOutline.vue'
 

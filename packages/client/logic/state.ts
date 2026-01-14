@@ -1,4 +1,4 @@
-import type { NormalisedRoute, ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { NormalisedRoute, ScanMeta, UnlighthouseRouteReport } from 'unlighthouse'
 import { sum } from 'lodash-es'
 import { computed, reactive } from 'vue'
 import CellRouteName from '../components/Cell/CellRouteName.vue'

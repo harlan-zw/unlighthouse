@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseRouteReport } from 'unlighthouse'
 import { resultColumns } from '~/composables/columns'
 
 defineProps<{

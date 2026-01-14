@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { openLighthouseReportIframeModal } from '~/composables/state'
 
 defineProps<{
@@ -10,10 +10,10 @@ defineProps<{
 
 <script lang="ts">
 const categoryAbbrev: Record<string, string> = {
-  Performance: 'Perf',
-  Accessibility: 'A11y',
+  'Performance': 'Perf',
+  'Accessibility': 'A11y',
   'Best Practices': 'BP',
-  SEO: 'SEO',
+  'SEO': 'SEO',
 }
 </script>
 

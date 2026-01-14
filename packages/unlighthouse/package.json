@@ -1,73 +1,52 @@
 {
   "name": "unlighthouse",
-  "type": "module",
   "version": "0.17.4",
-  "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
-  "license": "MIT",
-  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
-    "directory": "packages/unlighthouse"
-  },
-  "bugs": {
-    "url": "https://github.com/harlan-zw/unlighthouse/issues"
-  },
-  "keywords": [
-    "lighthouse",
-    "audit",
-    "seo",
-    "performance",
-    "speed"
-  ],
-  "sideEffects": false,
+  "type": "module",
+  "description": "Primitive API for working with Lighthouse.",
   "exports": {
     ".": {
-      "types": "./types.d.mts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs"
     },
-    "./config": "./config.mjs",
-    "./package.json": "./package.json"
-  },
-  "main": "./dist/index.mjs",
-  "types": "./types.d.ts",
-  "typesVersions": {
-    "*": {
-      "config": [
-        "dist/config"
-      ]
+    "./providers/local": {
+      "types": "./dist/providers/local.d.ts",
+      "import": "./dist/providers/local.mjs"
+    },
+    "./providers/browserless": {
+      "types": "./dist/providers/browserless.d.ts",
+      "import": "./dist/providers/browserless.mjs"
+    },
+    "./providers/psi": {
+      "types": "./dist/providers/psi.d.ts",
+      "import": "./dist/providers/psi.mjs"
+    },
+    "./providers/mock": {
+      "types": "./dist/providers/mock.d.ts",
+      "import": "./dist/providers/mock.mjs"
     }
   },
-  "bin": {
-    "unlighthouse": "bin/unlighthouse.mjs",
-    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
-  },
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
-    "config.d.mts",
-    "config.mjs",
-    "dist",
-    "types.d.mts",
-    "types.d.ts"
+    "dist"
   ],
-  "engines": {
-    "node": ">=20"
-  },
   "scripts": {
     "build": "obuild",
     "stub": "obuild --stub",
-    "test:attw": "attw --pack"
-  },
-  "peerDependenciesMeta": {
-    "puppeteer": {
-      "optional": true
-    },
-    "vue": {
-      "optional": true
-    }
+    "dev": "obuild --stub --watch"
   },
   "dependencies": {
-    "@unlighthouse/cli": "workspace:*",
-    "@unlighthouse/client": "workspace:*",
-    "@unlighthouse/core": "workspace:*"
+    "@lhci/utils": "catalog:dependencies",
+    "chrome-launcher": "catalog:dependencies",
+    "consola": "catalog:dependencies",
+    "defu": "catalog:dependencies",
+    "hookable": "catalog:dependencies",
+    "lighthouse": "catalog:dependencies",
+    "ofetch": "catalog:dependencies",
+    "ufo": "catalog:dependencies"
+  },
+  "devDependencies": {
+    "obuild": "catalog:",
+    "typescript": "catalog:"
   }
 }

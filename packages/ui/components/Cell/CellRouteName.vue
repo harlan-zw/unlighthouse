@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { apiUrl, device, categories, resolveArtifactPath } from '~/composables/unlighthouse'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { isOffline, openContentModal } from '~/composables/state'
+import { apiUrl, categories, device, resolveArtifactPath } from '~/composables/unlighthouse'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -17,10 +17,12 @@ function openEditorRequest() {
 
 const fetchTime = computed(() => {
   const fetchTimeValue = props.report.report?.fetchTime
-  if (!fetchTimeValue) return ''
+  if (!fetchTimeValue)
+    return ''
 
   const date = new Date(fetchTimeValue)
-  if (Number.isNaN(date.getTime())) return 'Invalid date'
+  if (Number.isNaN(date.getTime()))
+    return 'Invalid date'
 
   return new Intl.DateTimeFormat('en-US', {
     dateStyle: 'medium',
@@ -32,7 +34,8 @@ const thumbnail = computed(() => {
   const isMobile = device.value === 'mobile'
   const mobileProps = isMobile ? { class: 'w-[68px] h-[112px]' } : { class: 'h-[82px] w-[112px]' }
 
-  if (!props.report) return { ...mobileProps, src: '' }
+  if (!props.report)
+    return { ...mobileProps, src: '' }
 
   if (categories.value.includes('performance')) {
     return {

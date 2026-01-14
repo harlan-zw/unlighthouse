@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { get, groupBy, sum } from 'lodash-es'
 import { formatBytes, website } from '../../logic'
 

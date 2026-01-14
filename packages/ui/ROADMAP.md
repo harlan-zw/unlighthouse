@@ -228,7 +228,7 @@ interface ScanMetadata {
   }
   startedAt: string
   completedAt?: string
-  reportPath: string  // Path to reports directory
+  reportPath: string // Path to reports directory
 }
 ```
 

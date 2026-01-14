@@ -40,8 +40,8 @@
     "stub": "obuild --stub"
   },
   "dependencies": {
-    "@unlighthouse/core": "workspace:*",
     "h3": "catalog:dependencies",
-    "listhen": "catalog:dependencies"
+    "listhen": "catalog:dependencies",
+    "unlighthouse": "workspace:*"
   }
 }

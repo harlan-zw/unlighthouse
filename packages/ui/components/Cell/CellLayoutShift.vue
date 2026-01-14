@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { contentModalOpen, openContentModal } from '~/composables/state'
 import CellImageOutline from './CellImageOutline.vue'
 

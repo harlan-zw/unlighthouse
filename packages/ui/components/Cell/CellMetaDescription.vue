@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { get } from 'lodash-es'
 
 const props = defineProps<{
@@ -13,12 +13,16 @@ const value = computed(() => {
 })
 
 const issue = computed(() => {
-  if (!value.value) return 'empty'
+  if (!value.value)
+    return 'empty'
 
   const length = value.value.length
-  if (length <= 0) return 'empty'
-  if (length < 50) return 'too-short'
-  if (length >= 200) return 'too-long'
+  if (length <= 0)
+    return 'empty'
+  if (length < 50)
+    return 'too-short'
+  if (length >= 200)
+    return 'too-long'
   return ''
 })
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { LighthouseAudit } from '@unlighthouse/core'
+import type { LighthouseAudit } from 'unlighthouse'
 
 defineProps<{
   audit: LighthouseAudit

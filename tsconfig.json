@@ -17,7 +17,7 @@
       "unlighthouse": ["./packages/unlighthouse/src"],
       "@unlighthouse/client": ["./packages/client/src"],
       "@unlighthouse/cli": ["./packages/cli/src"],
-      "@unlighthouse/core": ["./packages/core/src"],
+      "@unlighthouse/db": ["./packages/db/src"],
       "@unlighthouse/server": ["./packages/server/src"],
       "@unlighthouse/nuxt": ["./integrations/nuxt/src"],
       "@unlighthouse/vite": ["./integrations/vite/src"],

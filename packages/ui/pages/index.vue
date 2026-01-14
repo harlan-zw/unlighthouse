@@ -1,47 +1,49 @@
 <script setup lang="ts">
+import { rescanSite } from '~/composables/actions'
+import { page, paginatedResults, perPage, searchResults, searchText } from '~/composables/search'
 import {
-  lighthouseReportModalOpen,
   iframeModalUrl,
   isDebugModalOpen,
+  isOffline,
+  lighthouseReportModalOpen,
+  openDebugModal,
+  openLighthouseReportIframeModal,
+  refreshScanMeta,
   unlighthouseReports as reports,
   scanMeta,
   wsConnect,
-  refreshScanMeta,
-  isOffline,
-  openLighthouseReportIframeModal,
-  openDebugModal,
 } from '~/composables/state'
-import { searchText, searchResults, paginatedResults, page, perPage } from '~/composables/search'
-import { isStatic, website, device, resolveArtifactPath, apiUrl, basePath, throttle, dynamicSampling } from '~/composables/unlighthouse'
-import { rescanSite } from '~/composables/actions'
+import { apiUrl, basePath, device, dynamicSampling, isStatic, resolveArtifactPath, throttle, website } from '~/composables/unlighthouse'
 
 const activeCategory = ref<'overview' | 'performance' | 'accessibility' | 'best-practices' | 'seo'>('overview')
 
 const categoryAbbrev: Record<string, string> = {
-  Performance: 'Perf',
-  Accessibility: 'A11y',
+  'Performance': 'Perf',
+  'Accessibility': 'A11y',
   'Best Practices': 'BP',
-  SEO: 'SEO',
+  'SEO': 'SEO',
 }
 
 const categoryConfig = {
-  overview: { label: 'Overview', icon: 'i-heroicons-squares-2x2', color: 'text-white' },
-  performance: { label: 'Performance', icon: 'i-heroicons-bolt', color: 'text-green-400' },
-  accessibility: { label: 'Accessibility', icon: 'i-heroicons-eye', color: 'text-blue-400' },
+  'overview': { label: 'Overview', icon: 'i-heroicons-squares-2x2', color: 'text-white' },
+  'performance': { label: 'Performance', icon: 'i-heroicons-bolt', color: 'text-green-400' },
+  'accessibility': { label: 'Accessibility', icon: 'i-heroicons-eye', color: 'text-blue-400' },
   'best-practices': { label: 'Best Practices', icon: 'i-heroicons-shield-check', color: 'text-purple-400' },
-  seo: { label: 'SEO', icon: 'i-heroicons-magnifying-glass', color: 'text-amber-400' },
+  'seo': { label: 'SEO', icon: 'i-heroicons-magnifying-glass', color: 'text-amber-400' },
 }
 
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  if (isStatic.value) return
+  if (isStatic.value)
+    return
   wsConnect().catch(console.warn)
   refreshInterval = setInterval(refreshScanMeta, 5000)
 })
 
 onUnmounted(() => {
-  if (refreshInterval) clearInterval(refreshInterval)
+  if (refreshInterval)
+    clearInterval(refreshInterval)
 })
 
 const scanProgress = computed(() => {
@@ -54,7 +56,8 @@ const isScanning = computed(() => scanProgress.value < 100 && scanProgress.value
 
 const avgScore = computed(() => {
   const withReports = reports.value.filter((r: any) => r.report?.categories)
-  if (!withReports.length) return null
+  if (!withReports.length)
+    return null
   const sum = withReports.reduce((acc: number, r: any) => {
     const cats = Object.values(r.report.categories) as any[]
     const avg = cats.reduce((a: number, c: any) => a + (c.score || 0), 0) / cats.length
@@ -64,16 +67,22 @@ const avgScore = computed(() => {
 })
 
 function getScoreColor(score: number | null) {
-  if (score === null) return 'text-gray-500'
-  if (score >= 90) return 'text-green-400'
-  if (score >= 50) return 'text-amber-400'
+  if (score === null)
+    return 'text-gray-500'
+  if (score >= 90)
+    return 'text-green-400'
+  if (score >= 50)
+    return 'text-amber-400'
   return 'text-red-400'
 }
 
 function getScoreBg(score: number | null) {
-  if (score === null) return 'bg-gray-500/10'
-  if (score >= 90) return 'bg-green-500/10'
-  if (score >= 50) return 'bg-amber-500/10'
+  if (score === null)
+    return 'bg-gray-500/10'
+  if (score >= 90)
+    return 'bg-green-500/10'
+  if (score >= 50)
+    return 'bg-amber-500/10'
   return 'bg-red-500/10'
 }
 
@@ -81,7 +90,6 @@ function getCategoryScore(report: any, category: string) {
   const cat = report?.report?.categories?.[category]
   return cat?.score != null ? Math.round(cat.score * 100) : null
 }
-
 </script>
 
 <template>
@@ -172,7 +180,9 @@ function getCategoryScore(report: any, category: string) {
         </nav>
 
         <div class="mt-8 pt-8 border-t border-white/5">
-          <div class="text-xs text-gray-500 mb-3 uppercase tracking-wider">Stats</div>
+          <div class="text-xs text-gray-500 mb-3 uppercase tracking-wider">
+            Stats
+          </div>
           <div class="space-y-3">
             <div class="flex justify-between text-sm">
               <span class="text-gray-400">Routes</span>
@@ -215,7 +225,9 @@ function getCategoryScore(report: any, category: string) {
         <!-- Routes Grid -->
         <div v-if="paginatedResults.length === 0" class="flex flex-col items-center justify-center py-20">
           <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-gray-600 mb-4" />
-          <p class="text-gray-500">No routes found</p>
+          <p class="text-gray-500">
+            No routes found
+          </p>
         </div>
 
         <div v-else class="grid gap-3">
@@ -249,7 +261,9 @@ function getCategoryScore(report: any, category: string) {
                     class="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity"
                   />
                 </div>
-                <div class="text-xs text-gray-500 truncate">{{ report.route?.url }}</div>
+                <div class="text-xs text-gray-500 truncate">
+                  {{ report.route?.url }}
+                </div>
               </div>
 
               <!-- Scores -->
@@ -265,7 +279,9 @@ function getCategoryScore(report: any, category: string) {
                   >
                     {{ (cat as any).score != null ? Math.round((cat as any).score * 100) : '-' }}
                   </div>
-                  <div class="text-[10px] text-gray-500 mt-1">{{ categoryAbbrev[(cat as any).title] || (cat as any).title }}</div>
+                  <div class="text-[10px] text-gray-500 mt-1">
+                    {{ categoryAbbrev[(cat as any).title] || (cat as any).title }}
+                  </div>
                 </div>
               </div>
 
@@ -302,16 +318,36 @@ function getCategoryScore(report: any, category: string) {
       <template #body>
         <div class="space-y-4 p-4">
           <div class="grid grid-cols-2 gap-4 text-sm">
-            <div class="text-gray-400">API URL</div>
-            <div class="font-mono">{{ apiUrl }}</div>
-            <div class="text-gray-400">Base Path</div>
-            <div class="font-mono">{{ basePath }}</div>
-            <div class="text-gray-400">Device</div>
-            <div class="font-mono capitalize">{{ device }}</div>
-            <div class="text-gray-400">Throttle</div>
-            <div class="font-mono">{{ throttle }}</div>
-            <div class="text-gray-400">Dynamic Sampling</div>
-            <div class="font-mono">{{ dynamicSampling }}</div>
+            <div class="text-gray-400">
+              API URL
+            </div>
+            <div class="font-mono">
+              {{ apiUrl }}
+            </div>
+            <div class="text-gray-400">
+              Base Path
+            </div>
+            <div class="font-mono">
+              {{ basePath }}
+            </div>
+            <div class="text-gray-400">
+              Device
+            </div>
+            <div class="font-mono capitalize">
+              {{ device }}
+            </div>
+            <div class="text-gray-400">
+              Throttle
+            </div>
+            <div class="font-mono">
+              {{ throttle }}
+            </div>
+            <div class="text-gray-400">
+              Dynamic Sampling
+            </div>
+            <div class="font-mono">
+              {{ dynamicSampling }}
+            </div>
           </div>
         </div>
       </template>

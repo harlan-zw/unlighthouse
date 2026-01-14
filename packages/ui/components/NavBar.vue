@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { formatDistance } from 'date-fns'
-import { searchText } from '~/composables/search'
-import { scanMeta, isOffline } from '~/composables/state'
-import { isStatic, website, basePath } from '~/composables/unlighthouse'
 import { isRescanSiteRequestRunning, rescanSite } from '~/composables/actions'
+import { searchText } from '~/composables/search'
+import { isOffline, scanMeta } from '~/composables/state'
+import { basePath, isStatic, website } from '~/composables/unlighthouse'
 
 const timeRemaining = computed(() => {
   return formatDistance(0, scanMeta.value?.monitor?.timeRemaining || 0, { includeSeconds: true })
@@ -12,8 +12,10 @@ const timeRemaining = computed(() => {
 const version = typeof __UNLIGHTHOUSE_VERSION__ !== 'undefined' ? __UNLIGHTHOUSE_VERSION__ : '0.0.0'
 
 const favIcon = computed(() => {
-  if (!scanMeta.value?.favicon) return '/favicon.ico'
-  if (scanMeta.value?.favicon?.startsWith('http')) return scanMeta.value?.favicon
+  if (!scanMeta.value?.favicon)
+    return '/favicon.ico'
+  if (scanMeta.value?.favicon?.startsWith('http'))
+    return scanMeta.value?.favicon
   return website.value + (scanMeta.value?.favicon)
 })
 </script>

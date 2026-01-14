@@ -1,4 +1,4 @@
-import type { UnlighthouseColumn } from '@unlighthouse/core'
+import type { UnlighthouseColumn } from 'unlighthouse'
 import CellColorContrast from '~/components/Cell/CellColorContrast.vue'
 import CellImage from '~/components/Cell/CellImage.vue'
 import CellImageIssues from '~/components/Cell/CellImageIssues.vue'
@@ -8,14 +8,13 @@ import CellLayoutShift from '~/components/Cell/CellLayoutShift.vue'
 import CellMetaDescription from '~/components/Cell/CellMetaDescription.vue'
 import CellNetworkRequests from '~/components/Cell/CellNetworkRequests.vue'
 import CellRouteName from '~/components/Cell/CellRouteName.vue'
-import CellScoresOverview from '~/components/Cell/CellScoresOverview.vue'
 import CellScoreSingle from '~/components/Cell/CellScoreSingle.vue'
+import CellScoresOverview from '~/components/Cell/CellScoresOverview.vue'
 import CellScreenshotThumbnails from '~/components/Cell/CellScreenshotThumbnails.vue'
 import CellTapTargets from '~/components/Cell/CellTapTargets.vue'
 import CellWebVitals from '~/components/Cell/CellWebVitals.vue'
-import { categories, configColumns } from './unlighthouse'
 import { activeTab } from './state'
-import { columns } from './search'
+import { categories, configColumns } from './unlighthouse'
 
 const COLUMN_COMPONENTS: Record<string, any> = {
   'report.audits.largest-contentful-paint': CellLargestContentfulPaint,

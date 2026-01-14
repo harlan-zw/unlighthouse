@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn } from '@unlighthouse/core'
+import type { UnlighthouseColumn } from 'unlighthouse'
 
 defineProps<{
   sorting: Record<string, 'desc' | 'asc' | undefined>

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { extractFgColor, extractBgColor } from '~/utils'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
+import { extractBgColor, extractFgColor } from '~/utils'
 
 defineProps<{
   report: UnlighthouseRouteReport

@@ -53,16 +53,19 @@ export const isScanComplete = computed(() => scanState.status === 'complete')
 export const scanProgressPercent = computed(() => scanState.progress.percent)
 
 export function formatTimeRemaining(ms: number | null): string {
-  if (!ms || ms <= 0) return '--'
+  if (!ms || ms <= 0)
+    return '--'
   const seconds = Math.floor(ms / 1000)
-  if (seconds < 60) return `${seconds}s`
+  if (seconds < 60)
+    return `${seconds}s`
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes}m ${remainingSeconds}s`
 }
 
 export async function fetchScanStatus() {
-  if (isStatic.value) return
+  if (isStatic.value)
+    return
 
   const data = await $fetch<ScanState>(`${apiUrl.value}/scan/status`).catch(() => null)
   if (data) {
@@ -71,7 +74,8 @@ export async function fetchScanStatus() {
 }
 
 export async function cancelScan() {
-  if (isStatic.value) return
+  if (isStatic.value)
+    return
 
   const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/cancel`, {
     method: 'POST',
@@ -83,7 +87,8 @@ export async function cancelScan() {
 }
 
 export function connectScanWebSocket() {
-  if (isStatic.value || !wsUrl.value || scanWs) return
+  if (isStatic.value || !wsUrl.value || scanWs)
+    return
 
   scanWs = new WebSocket(wsUrl.value)
 
@@ -135,7 +140,8 @@ export function useScan() {
   let pollInterval: ReturnType<typeof setInterval> | null = null
 
   onMounted(() => {
-    if (isStatic.value) return
+    if (isStatic.value)
+      return
 
     // Initial fetch
     fetchScanStatus()
@@ -148,7 +154,8 @@ export function useScan() {
   })
 
   onUnmounted(() => {
-    if (pollInterval) clearInterval(pollInterval)
+    if (pollInterval)
+      clearInterval(pollInterval)
     disconnectScanWebSocket()
   })
 

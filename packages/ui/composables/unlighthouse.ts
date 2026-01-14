@@ -1,16 +1,16 @@
-import type { UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseRouteReport } from 'unlighthouse'
 import { startCase } from 'lodash-es'
 import { $URL, joinURL } from 'ufo'
 
 // Icon names for tabs
 const ICONS = {
-  overview: 'i-mdi-view-dashboard',
-  performance: 'i-mdi-speedometer',
-  accessibility: 'i-mdi-accessibility',
+  'overview': 'i-mdi-view-dashboard',
+  'performance': 'i-mdi-speedometer',
+  'accessibility': 'i-mdi-accessibility',
   'best-practices': 'i-mdi-thumb-up',
-  seo: 'i-mdi-web',
-  pwa: 'i-mdi-cellphone',
-  crux: 'i-mdi-world',
+  'seo': 'i-mdi-web',
+  'pwa': 'i-mdi-cellphone',
+  'crux': 'i-mdi-world',
 } as const
 
 const defaultOptions = {
@@ -28,7 +28,8 @@ const payloadOptions = ref(defaultOptions)
 const payloadReady = ref(false)
 
 export function initPayload() {
-  if (import.meta.server) return
+  if (import.meta.server)
+    return
 
   const payload = window.__unlighthouse_payload
   if (payload?.options) {
@@ -44,7 +45,8 @@ if (import.meta.client) {
 
 // Computed config values
 export const isStatic = computed(() => {
-  if (import.meta.server) return true
+  if (import.meta.server)
+    return true
   return window.__unlighthouse_static ?? true
 })
 
@@ -79,7 +81,8 @@ export const tabs = computed(() => {
 })
 
 export function resolveArtifactPath(report: UnlighthouseRouteReport, file: string): string {
-  if (!report?.artifactUrl) return ''
+  if (!report?.artifactUrl)
+    return ''
 
   const withoutBase = report.artifactUrl.replace(basePath.value, '')
 

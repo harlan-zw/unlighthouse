@@ -1,8 +1,8 @@
-import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from '@unlighthouse/core'
+import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from 'unlighthouse'
 import Fuse from 'fuse.js'
 import { get, isEmpty, orderBy } from 'lodash-es'
-import { configColumns, groupRoutesKey } from './unlighthouse'
 import { unlighthouseReports } from './state'
+import { configColumns, groupRoutesKey } from './unlighthouse'
 
 export interface Sorting {
   key?: string
@@ -21,8 +21,10 @@ export const columns = computed(() => Object.values(configColumns.value))
 export function incrementSort(key: string) {
   const val = sorting.value
   if (val.key === key) {
-    if (val.dir === undefined) sorting.value.dir = 'asc'
-    else if (val.dir === 'asc') sorting.value.dir = 'desc'
+    if (val.dir === undefined)
+      sorting.value.dir = 'asc'
+    else if (val.dir === 'asc')
+      sorting.value.dir = 'desc'
     else sorting.value = {}
   }
   else {
@@ -32,7 +34,8 @@ export function incrementSort(key: string) {
 
 export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
   let data = unlighthouseReports.value || []
-  if (!Array.isArray(data)) data = []
+  if (!Array.isArray(data))
+    data = []
 
   // Apply search filter
   if (searchText.value && data.length > 0) {
@@ -49,7 +52,8 @@ export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
     if (i.report?.categories && Array.isArray(i.report.categories)) {
       i.report.categoryMap = {}
       i.report.categories.forEach((c) => {
-        if (c?.id) i.report!.categoryMap[c.id] = c
+        if (c?.id)
+          i.report!.categoryMap[c.id] = c
       })
     }
     return i
@@ -57,8 +61,10 @@ export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
 
   // Sort by status first
   const statusRank = (s: UnlighthouseTaskStatus) => {
-    if (s === 'completed') return 2
-    if (s === 'in-progress') return 1
+    if (s === 'completed')
+      return 2
+    if (s === 'in-progress')
+      return 1
     return 0
   }
   data = data.sort((a, b) => {

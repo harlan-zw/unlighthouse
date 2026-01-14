@@ -1,18 +1,22 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   // Skip on server
-  if (import.meta.server) return
+  if (import.meta.server)
+    return
 
   // Skip if already navigating to the correct page or if static mode
-  if (window.__unlighthouse_static) return
+  if (window.__unlighthouse_static)
+    return
 
   // Only apply auto-routing on main pages
-  if (to.path !== '/' && to.path !== '/scan') return
+  if (to.path !== '/' && to.path !== '/scan')
+    return
 
   // Fetch current scan status
   const apiUrl = window.__unlighthouse_payload?.options?.apiUrl || '/api'
   const status = await $fetch<{ status: string }>(`${apiUrl}/scan/status`).catch(() => null)
 
-  if (!status) return
+  if (!status)
+    return
 
   const isScanning = ['starting', 'discovering', 'scanning'].includes(status.status)
 

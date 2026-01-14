@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 
 interface Rect {
   left: number
@@ -40,8 +40,10 @@ function getScreenshotPositions(elementRectSC: Rect, elementPreviewSizeSC: Size,
     }
   }
   function clamp(value: number, min: number, max: number) {
-    if (value < min) return min
-    if (value > max) return max
+    if (value < min)
+      return min
+    if (value > max)
+      return max
     return value
   }
 
@@ -84,7 +86,8 @@ onMounted(() => {
 })
 
 const styles = computed(() => {
-  if (!screenshot.value) return {}
+  if (!screenshot.value)
+    return {}
 
   const elementRectSC = props.item.node.boundingRect
   const zoomFactor = computeZoomFactor(elementRectSC, maxRenderSizeDC)

@@ -1,4 +1,4 @@
-import { useUnlighthouse } from '@unlighthouse/core'
+import { useUnlighthouse } from 'unlighthouse'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 

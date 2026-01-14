@@ -1,10 +1,10 @@
-import { createError, defineEventHandler, readBody } from 'h3'
 import type { LighthouseScanOptions } from '../app/services/lighthouse'
+import { createError, defineEventHandler, readBody } from 'h3'
+import { getBrowserlessQueue } from '../app/services/browserless-queue'
 import { runLighthouseScanViaBrowserless } from '../app/services/lighthouse-browserless'
 import { getResultCache } from '../app/services/result-cache'
-import { getBrowserlessQueue } from '../app/services/browserless-queue'
-import { authenticateUser } from '../utils/auth'
 import { getDatabase, schema } from '../database'
+import { authenticateUser } from '../utils/auth'
 import { rateLimit } from '../utils/rate-limit'
 
 /**

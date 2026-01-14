@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -18,7 +18,8 @@ const IMAGE_AUDIT_KEYS = [
 
 const imageIssues = computed(() => {
   const audits = props.report.report?.audits
-  if (!audits) return 0
+  if (!audits)
+    return 0
 
   return IMAGE_AUDIT_KEYS.reduce((total, key) => {
     const details = audits[key]?.details as any

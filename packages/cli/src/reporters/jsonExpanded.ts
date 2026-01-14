@@ -1,4 +1,4 @@
-import type { UnlighthouseRouteReport } from '@unlighthouse/core/src'
+import type { UnlighthouseRouteReport } from 'unlighthouse'
 import type { CategoryAverageScore, CategoryScore, ExpandedRouteReport, MetricAverageScore, MetricScore, ReportJsonExpanded } from './types'
 
 const relevantMetrics = [

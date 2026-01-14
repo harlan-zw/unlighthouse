@@ -1,4 +1,4 @@
-import type { UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseRouteReport } from 'unlighthouse'
 import { startCase } from 'lodash-es'
 import { $URL, joinURL } from 'ufo'
 import CellColorContrast from '../components/Cell/CellColorContrast.vue'

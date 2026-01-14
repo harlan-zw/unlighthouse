@@ -1,16 +1,16 @@
-import type { UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseRouteReport } from 'unlighthouse'
 import { startCase } from 'lodash-es'
 import { $URL, joinURL } from 'ufo'
 
 // Icon names for tabs
 const ICONS = {
-  overview: 'i-mdi-view-dashboard',
-  performance: 'i-mdi-speedometer',
-  accessibility: 'i-mdi-accessibility',
+  'overview': 'i-mdi-view-dashboard',
+  'performance': 'i-mdi-speedometer',
+  'accessibility': 'i-mdi-accessibility',
   'best-practices': 'i-mdi-thumb-up',
-  seo: 'i-mdi-web',
-  pwa: 'i-mdi-cellphone',
-  crux: 'i-mdi-world',
+  'seo': 'i-mdi-web',
+  'pwa': 'i-mdi-cellphone',
+  'crux': 'i-mdi-world',
 } as const
 
 function getPayload() {
@@ -57,7 +57,8 @@ function createConfig() {
 }
 
 function getConfig() {
-  if (!_config) _config = createConfig()
+  if (!_config)
+    _config = createConfig()
   return _config
 }
 
@@ -92,7 +93,8 @@ export const tabs = computed(() => {
 })
 
 export function resolveArtifactPath(report: UnlighthouseRouteReport, file: string): string {
-  if (!report?.artifactUrl) return ''
+  if (!report?.artifactUrl)
+    return ''
 
   const config = getConfig()
   const withoutBase = report.artifactUrl.replace(config.basePath, '')

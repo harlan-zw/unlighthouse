@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { website, throttle } from '~/composables/unlighthouse'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { activeTab, openLighthouseReportIframeModal } from '~/composables/state'
+import { throttle, website } from '~/composables/unlighthouse'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -18,7 +18,8 @@ const categoryKey = computed(() => {
 })
 
 const category = computed(() => {
-  if (!categoryKey.value) return null
+  if (!categoryKey.value)
+    return null
   return props.report.report?.categories?.[categoryKey.value]
 })
 

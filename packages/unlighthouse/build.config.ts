@@ -2,9 +2,17 @@ import { defineBuildConfig } from 'obuild/config'
 
 export default defineBuildConfig({
   entries: [
-    {
-      type: 'bundle',
-      input: ['./src/index.ts'],
-    },
+    'src/index',
+    'src/providers/local',
+    'src/providers/browserless',
+    'src/providers/psi',
+    'src/providers/mock',
+  ],
+  declaration: true,
+  rollup: {
+    emitCJS: false,
+  },
+  externals: [
+    'lighthouse',
   ],
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core/src'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { resolveArtifactPath } from '../../logic'
 
 const props = defineProps<{
