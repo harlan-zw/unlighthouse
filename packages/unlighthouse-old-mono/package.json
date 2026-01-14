@@ -1,0 +1,117 @@
+{
+  "name": "unlighthouse-old-mono",
+  "type": "module",
+  "version": "0.17.4",
+  "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
+  "license": "MIT",
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/unlighthouse"
+  },
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
+  "keywords": [
+    "lighthouse",
+    "audit",
+    "seo",
+    "performance",
+    "speed"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./types.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./config": "./config.mjs",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.mjs",
+  "types": "./types.d.ts",
+  "typesVersions": {
+    "*": {
+      "config": [
+        "dist/config"
+      ]
+    }
+  },
+  "bin": {
+    "unlighthouse": "bin/unlighthouse.mjs",
+    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
+  },
+  "files": [
+    "config.d.mts",
+    "config.mjs",
+    "dist",
+    "types.d.mts",
+    "types.d.ts"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "test:attw": "attw --pack"
+  },
+  "peerDependenciesMeta": {
+    "puppeteer": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@clack/prompts": "catalog:dependencies",
+    "@puppeteer/browsers": "catalog:dependencies",
+    "@unlighthouse/cli": "workspace:*",
+    "@unlighthouse/client": "workspace:*",
+    "@unlighthouse/db": "workspace:*",
+    "@unrouted/core": "catalog:dependencies",
+    "@unrouted/fetch": "catalog:dependencies",
+    "@unrouted/plugins": "catalog:dependencies",
+    "@unrouted/preset-api": "catalog:dependencies",
+    "@unrouted/preset-node": "catalog:dependencies",
+    "axios": "catalog:dependencies",
+    "c12": "catalog:dependencies",
+    "cheerio": "catalog:dependencies",
+    "chrome-launcher": "catalog:dependencies",
+    "consola": "catalog:dependencies",
+    "defu": "catalog:dependencies",
+    "execa": "catalog:dependencies",
+    "fs-extra": "catalog:dependencies",
+    "globby": "catalog:dependencies",
+    "h3": "catalog:dependencies",
+    "hookable": "catalog:dependencies",
+    "launch-editor": "catalog:dependencies",
+    "lighthouse": "catalog:dependencies",
+    "lodash-es": "catalog:dependencies",
+    "minimist": "catalog:dependencies",
+    "mlly": "catalog:dependencies",
+    "object-hash": "catalog:dependencies",
+    "ofetch": "catalog:dependencies",
+    "pathe": "catalog:dependencies",
+    "puppeteer-cluster": "catalog:dependencies",
+    "puppeteer-core": "catalog:dependencies",
+    "radix3": "catalog:dependencies",
+    "regexparam": "catalog:dependencies",
+    "sanitize-filename": "catalog:dependencies",
+    "sitemapper": "catalog:dependencies",
+    "slugify": "catalog:dependencies",
+    "ufo": "catalog:dependencies",
+    "unconfig": "catalog:dependencies",
+    "unctx": "catalog:dependencies",
+    "wrap-ansi": "catalog:dependencies",
+    "ws": "catalog:dependencies"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "catalog:",
+    "@types/lodash-es": "catalog:",
+    "@types/object-hash": "catalog:",
+    "@types/ws": "catalog:"
+  }
+}
