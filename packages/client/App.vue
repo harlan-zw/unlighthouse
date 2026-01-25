@@ -55,15 +55,8 @@ if (!isStatic) {
       refreshScanMeta()
     }, 5000)
 
-    $fetch(`https://crux.unlighthouse.dev/api/${encodeURIComponent(website)}/crux/history`)
-      .then((res) => {
-        crux.value = res
-        cruxError.value = false
-      })
-      .catch((error) => {
-        console.warn('Failed to fetch CrUX data:', error)
-        cruxError.value = true
-      })
+    // CrUX API disabled - can be re-enabled with own endpoint
+    cruxError.value = true
   })
 
   onUnmounted(() => {
@@ -128,7 +121,7 @@ const getDropdownActions = computed(() => (report) => {
   return [actions]
 })
 
-useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
+useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | ScaleLighthouse`)
 </script>
 
 <template>
@@ -156,7 +149,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                         <UIcon name="i-carbon-warning" class="inline text-xs mx-1" />
                         <template #tooltip>
                           <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
-                          <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
+                          <div>ScaleLighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
                         </template>
                       </tooltip>
                     </span>
@@ -166,21 +159,21 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
               </TabList>
             </TabGroup>
             <div v-if="dynamicSampling" class="text-sm opacity-70 mt-3">
-              <p>Dynamically sampling is enabled, not all pages are being scanned.</p>
-              <p><a href="https://unlighthouse.dev/guide/guides/dynamic-sampling" target="_blank" class="underline">Learn more</a></p>
+              <p>Dynamic sampling is enabled, not all pages are being scanned.</p>
+              <p class="text-xs">Disable with: <code>scanner.dynamicSampling: false</code></p>
             </div>
           </div>
           <div class="hidden xl:block">
             <lighthouse-three-d v-if="!isStatic" class="mb-7" />
             <div class="px-2 text-center xl:text-left">
               <div class="text-xs opacity-75 xl:mt-4">
-                <a href="https://unlighthouse.dev" target="_blank" class="underline hover:no-underline">Documentation</a>
+                <a href="https://scalecampaign.com" target="_blank" class="underline hover:no-underline">Scale Campaign</a>
                 <btn-action v-if="!isStatic" class="underline hover:no-underline ml-3" @click="openDebugModal">
                   Debug
                 </btn-action>
               </div>
               <div class="text-xs opacity-75 xl:mt-4">
-                Made with <UIcon name="i-simple-line-icons-heart" title="Love" class="inline" aria-label="love" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline hover:no-underline">@harlan_zw</a>
+                Powered by <a href="https://scalecampaign.com" target="_blank" class="underline hover:no-underline">Scale Campaign</a>
               </div>
               <div class="text-xs opacity-50 xl:mt-4 mt-1">
                 Portions of this report use Lighthouse. For more information visit <a href="https://developers.google.com/web/tools/lighthouse" class="underline hover:no-underline">here</a>.
@@ -208,7 +201,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     Failed to Load CrUX Data
                   </p>
                   <p class="text-sm text-red-700 dark:text-red-300 mt-1">
-                    Unlighthouse CrUX API is currently unavailable.
+                    ScaleLighthouse CrUX API is currently unavailable.
                   </p>
                 </div>
               </div>
@@ -298,6 +291,13 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             </div>
           </div>
           <template v-else-if="!shouldShowWaitingState">
+            <!-- Top Pagination -->
+            <div v-if="searchResults.length > perPage" class="flex items-center space-x-4 mb-4 px-2">
+              <Pagination v-model="page" :page-count="perPage" :total="searchResults.length" />
+              <div class="opacity-70">
+                {{ searchResults.length }} total
+              </div>
+            </div>
             <div class="pr-10 pb-1 w-full min-w-[1500px]">
               <div class="grid grid-cols-12 gap-4 text-sm dark:text-gray-300 text-gray-700">
                 <results-table-head
@@ -309,7 +309,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                 />
               </div>
             </div>
-            <div class="w-full min-w-[1500px] pr-3 overflow-y-auto xl:max-h-[calc(100vh-100px)] lg:max-h-[calc(100vh-205px)] sm:max-h-[calc(100vh-220px)] max-h-[calc(100vh-250px)]">
+            <div class="w-full min-w-[1500px] pr-3 overflow-y-auto xl:max-h-[calc(100vh-150px)] lg:max-h-[calc(100vh-255px)] sm:max-h-[calc(100vh-270px)] max-h-[calc(100vh-300px)]">
               <div v-if="Object.values(searchResults).length === 0" class="px-4 py-3">
                 <template v-if="searchText">
                   <p class="mb-2">
@@ -327,8 +327,8 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                         Server Connection Lost
                       </p>
                       <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                        The Unlighthouse client is running but cannot connect to the server.
-                        Please ensure the Unlighthouse server is running and accessible.
+                        The ScaleLighthouse client is running but cannot connect to the server.
+                        Please ensure the ScaleLighthouse server is running and accessible.
                       </p>
                     </div>
                   </div>
@@ -342,7 +342,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                       </p>
                       <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
                         This is a static client build with no report data.
-                        Generate reports using the Unlighthouse CLI to see lighthouse results here.
+                        Generate reports using the ScaleLighthouse CLI to see lighthouse results here.
                       </p>
                     </div>
                   </div>
@@ -353,7 +353,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                     <p aria-live="polite">
                       Waiting for routes...
                     </p>
-                    <span class="text-xs opacity-50">If this hangs consider running Unlighthouse with --debug.</span>
+                    <span class="text-xs opacity-50">If this hangs consider running ScaleLighthouse with --debug.</span>
                   </div>
                 </div>
               </div>
@@ -379,11 +379,12 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                   </UDropdownMenu>
                 </template>
               </results-route>
-              <div v-if="searchResults.length > perPage" class="flex items-center space-x-4 mt-5">
-                <Pagination v-model="page" :page-count="perPage" :total="searchResults.length" />
-                <div class="opacity-70">
-                  {{ searchResults.length }} total
-                </div>
+            </div>
+            <!-- Bottom Pagination -->
+            <div v-if="searchResults.length > perPage" class="flex items-center space-x-4 mt-4 mb-4 px-2">
+              <Pagination v-model="page" :page-count="perPage" :total="searchResults.length" />
+              <div class="opacity-70">
+                {{ searchResults.length }} total
               </div>
             </div>
           </template>
@@ -398,23 +399,21 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
                       No Report Data Available
                     </h3>
                     <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                      This is a static Unlighthouse client with no report data.
-                      Generate reports using the Unlighthouse CLI to see results here.
+                      This is a static ScaleLighthouse client with no report data.
+                      Generate reports using the ScaleLighthouse CLI to see results here.
                     </p>
                   </template>
                   <template v-else>
-                    <UIcon name="i-carbon-warning-alt" class="text-yellow-500 text-4xl mx-auto mb-4" />
+                    <UIcon name="i-carbon-play-filled" class="text-teal-500 text-4xl mx-auto mb-4" />
                     <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                      Waiting for Server Connection
+                      Ready to Scan
                     </h3>
                     <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                      The Unlighthouse client is running but cannot connect to the server.
-                      Please ensure the Unlighthouse server is running and accessible.
+                      ScaleLighthouse is ready. Enter a target URL and click <strong>Go</strong> to start scanning.
                     </p>
-                    <div class="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mt-4">
-                      <loading-spinner class="w-4 h-4" />
-                      <span>Attempting to connect...</span>
-                    </div>
+                    <p class="text-gray-500 dark:text-gray-500 text-xs mt-3">
+                      Supports both remote sites (https://example.com) and local servers (http://localhost:8000)
+                    </p>
                   </template>
                 </div>
               </div>
@@ -426,10 +425,10 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
         <div class="px-2 text-center xl:text-left">
           <div class="flex items-center justify-around">
             <div class="text-xs opacity-75 xl:mt-4">
-              <a href="https://unlighthouse.dev" target="_blank" class="underline">Unlighthouse</a>
+              <a href="https://scalecampaign.com" target="_blank" class="underline">Scale Campaign</a>
             </div>
             <div class="text-xs opacity-75 xl:mt-4">
-              Made with <UIcon name="i-simple-line-icons-heart" title="Love" class="inline" aria-label="love" /> by <a href="https://twitter.com/harlan_zw" target="_blank" class="underline">@harlan_zw</a>
+              Powered by <a href="https://scalecampaign.com" target="_blank" class="underline">Scale Campaign</a>
             </div>
           </div>
           <div class="text-xs opacity-50 xl:mt-4 mt-1">

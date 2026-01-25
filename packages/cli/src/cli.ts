@@ -8,7 +8,7 @@ import { pickOptions, validateHost, validateOptions } from './util'
 
 const cli = createCli()
 
-const { options } = cli.parse() as unknown as { options: CliOptions }
+const { options } = cli.parse() as unknown as { options: CliOptions & { wait?: boolean } }
 
 async function run() {
   const start = new Date()
@@ -16,6 +16,8 @@ async function run() {
     return
 
   setMaxListeners(0)
+
+  const waitMode = options.wait
 
   const unlighthouse = await createUnlighthouse(
     {
@@ -31,13 +33,21 @@ async function run() {
 
   validateOptions(unlighthouse.resolvedConfig)
 
+  const logger = useLogger()
+
   const { server, app } = await createServer()
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  const { routes } = await unlighthouse.start()
-  const logger = useLogger()
-  if (!routes.length) {
-    logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
-    process.exit(1)
+
+  // If --wait flag is used, don't auto-start - wait for user to trigger from UI
+  if (waitMode) {
+    logger.info('Waiting for user to start scan from the UI. Click "Go" to begin scanning.')
+  }
+  else {
+    const { routes } = await unlighthouse.start()
+    if (!routes.length) {
+      logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
+      process.exit(1)
+    }
   }
 
   unlighthouse.hooks.hook('worker-finished', async () => {

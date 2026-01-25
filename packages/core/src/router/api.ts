@@ -5,6 +5,7 @@ import { presetNode, serve } from '@unrouted/preset-node'
 import fs from 'fs-extra'
 import launch from 'launch-editor'
 import { createScanMeta } from '../data'
+import { resolveReportableRoutes } from '../discovery'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
 
@@ -48,6 +49,54 @@ export async function createApi(h3: any): Promise<any> {
     redirect('/__lighthouse/', resolvedConfig.routerPrefix)
 
     prefix('/api', () => {
+      // Start scan endpoint - used when CLI is started with --wait
+      post('/start-scan', async () => {
+        const { worker, start, resolvedConfig } = useUnlighthouse()
+
+        // Check if scan is already running
+        if (worker.routeReports.size > 0) {
+          return { success: false, message: 'Scan already in progress', site: resolvedConfig.site }
+        }
+
+        logger.info(`Starting scan for: ${resolvedConfig.site}`)
+
+        // Start the scan
+        const ctx = await start()
+
+        return { success: true, site: resolvedConfig.site, routeCount: ctx.routes?.length || 0 }
+      })
+
+      // Change target site endpoint
+      post('/change-site', async () => {
+        const { worker, setSiteUrl } = useUnlighthouse()
+        const { site: newSite } = useQuery<{ site: string }>()
+
+        if (!newSite) {
+          setStatusCode(400)
+          return { error: 'Missing site parameter' }
+        }
+
+        logger.info(`Changing target site to: ${newSite}`)
+
+        // Clear existing reports
+        const reports = [...worker.routeReports.values()]
+        worker.routeReports.clear()
+        reports.forEach((route) => {
+          const dir = route.artifactPath
+          if (fs.existsSync(dir))
+            fs.rmSync(dir, { recursive: true })
+        })
+
+        // Set new site URL
+        await setSiteUrl(newSite)
+
+        // Rediscover routes and start scanning
+        const routes = await resolveReportableRoutes()
+        worker.queueRoutes(routes)
+
+        return { success: true, site: newSite, routeCount: routes.length }
+      })
+
       prefix('/reports', () => {
         post('/rescan', () => {
           const { worker } = useUnlighthouse()
