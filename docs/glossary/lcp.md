@@ -64,6 +64,7 @@ LCP directly correlates with perceived load speed. Users don't care about techni
 Use [Unlighthouse](/guide/getting-started/unlighthouse-cli) to measure LCP across your entire site at once, rather than checking pages individually.
 
 For individual page testing:
+
 - Chrome DevTools Performance panel
 - Lighthouse in Chrome
 - [PageSpeed Insights](https://pagespeed.web.dev/)
@@ -76,8 +77,9 @@ Run this in your browser console to track LCP in real-time. Based on [webperf-sn
 ```ts
 type Rating = 'good' | 'needs-improvement' | 'poor'
 
-const rateValue = (ms: number): Rating =>
-  ms <= 2500 ? 'good' : ms <= 4000 ? 'needs-improvement' : 'poor'
+function rateValue(ms: number): Rating {
+  return ms <= 2500 ? 'good' : ms <= 4000 ? 'needs-improvement' : 'poor'
+}
 
 const observer = new PerformanceObserver((list) => {
   const entries = list.getEntries() as PerformanceEntry[]
@@ -87,7 +89,8 @@ const observer = new PerformanceObserver((list) => {
     url?: string
     size?: number
   }
-  if (!lastEntry) return
+  if (!lastEntry)
+    return
 
   const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
   const activationStart = navEntry?.activationStart || 0
@@ -118,4 +121,3 @@ Key optimization strategies:
 ::note
 LCP is measured in the field (real users) and lab (synthetic tests). Field data from CrUX is what Google uses for rankings.
 ::
-

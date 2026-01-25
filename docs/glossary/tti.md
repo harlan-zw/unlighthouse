@@ -27,6 +27,7 @@ Time to Interactive measured when a page became fully interactive. It was a Ligh
 ## What TTI Measured
 
 TTI marked the point when:
+
 - The page displayed useful content ([FCP](/glossary/fcp) fired)
 - Event handlers registered for visible elements
 - The page responded to interactions within 50ms
@@ -100,6 +101,7 @@ For most sites, the removal of TTI [improved Lighthouse scores](https://www.sear
 Use [Unlighthouse](/guide/getting-started/unlighthouse-cli) to measure TBT across your site for lab data.
 
 For real-user interactivity:
+
 - Chrome User Experience Report (CrUX) for INP field data
 - [PageSpeed Insights](https://pagespeed.web.dev/) shows both lab TBT and field INP
 - Web Vitals library for custom RUM

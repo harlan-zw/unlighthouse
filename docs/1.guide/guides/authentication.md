@@ -45,6 +45,7 @@ export default defineUnlighthouseConfig({
 ```
 
 Or via CLI:
+
 ```bash
 unlighthouse --site staging.example.com --auth admin:secretpass
 ```
@@ -59,7 +60,7 @@ export default defineUnlighthouseConfig({
     {
       name: 'session_id',
       value: 'abc123...',
-      domain: 'example.com',  // Must match your site
+      domain: 'example.com', // Must match your site
       path: '/',
     },
   ],
@@ -67,12 +68,14 @@ export default defineUnlighthouseConfig({
 ```
 
 **Getting the cookie value:**
+
 1. Log into your site in Chrome
 2. Open DevTools → Application → Cookies
 3. Copy the session cookie value
 4. Paste into config (or use environment variable)
 
 CLI shorthand:
+
 ```bash
 unlighthouse --site example.com --cookies "session_id=abc123"
 
@@ -87,12 +90,13 @@ For APIs or sites expecting `Authorization` headers:
 ```ts
 export default defineUnlighthouseConfig({
   extraHeaders: {
-    'Authorization': `Bearer ${process.env.API_TOKEN}`,
+    Authorization: `Bearer ${process.env.API_TOKEN}`,
   },
 })
 ```
 
 CLI:
+
 ```bash
 unlighthouse --site api.example.com --extra-headers "Authorization:Bearer abc123"
 ```
@@ -118,8 +122,8 @@ For React/Vue/Angular apps storing auth tokens in localStorage:
 ```ts
 export default defineUnlighthouseConfig({
   localStorage: {
-    'auth_token': process.env.AUTH_TOKEN,
-    'user_id': '12345',
+    auth_token: process.env.AUTH_TOKEN,
+    user_id: '12345',
   },
 })
 ```
@@ -160,10 +164,10 @@ If authentication isn't persisting between page scans:
 ```ts
 export default defineUnlighthouseConfig({
   puppeteerOptions: {
-    userDataDir: './.unlighthouse-session',  // Persist browser data
+    userDataDir: './.unlighthouse-session', // Persist browser data
   },
   lighthouseOptions: {
-    disableStorageReset: true,   // Don't clear storage between pages
+    disableStorageReset: true, // Don't clear storage between pages
     skipAboutBlank: true,
   },
 })
@@ -177,11 +181,11 @@ Can't tell if auth is working? Watch it happen:
 export default defineUnlighthouseConfig({
   debug: true,
   puppeteerOptions: {
-    headless: false,  // See the browser
-    slowMo: 100,      // Slow it down
+    headless: false, // See the browser
+    slowMo: 100, // Slow it down
   },
   puppeteerClusterOptions: {
-    maxConcurrency: 1,  // One at a time
+    maxConcurrency: 1, // One at a time
   },
 })
 ```

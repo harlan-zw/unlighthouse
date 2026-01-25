@@ -25,6 +25,7 @@ Interaction to Next Paint (INP) measures how quickly your page responds to user 
 INP tracks the latency of all clicks, taps, and keyboard interactions throughout a page's lifecycle, then reports a value representative of the overall experience (typically the worst interaction, with some outlier handling).
 
 The measurement includes:
+
 - **Input delay** - Time from interaction to event handler start
 - **Processing time** - Time to run event handlers
 - **Presentation delay** - Time to render the next frame
@@ -44,6 +45,7 @@ The measurement includes:
 FID only measured the *first* interaction's input delay—ignoring processing and presentation time entirely. A page could have great FID but terrible responsiveness afterward.
 
 INP is more comprehensive:
+
 - Measures *all* interactions, not just the first
 - Includes the full interaction lifecycle
 - Better represents actual user experience
@@ -53,6 +55,7 @@ INP is more comprehensive:
 Users expect instant feedback. When they click a button and nothing happens for 500ms, they assume it's broken and click again—or leave.
 
 Good INP means:
+
 - Responsive, fluid interactions
 - Users trust the interface works
 - Lower frustration and abandonment
@@ -75,6 +78,7 @@ Good INP means:
 [Unlighthouse](/guide/getting-started/unlighthouse-cli) reports responsiveness metrics across your site. For INP specifically, you need field data since it measures real user interactions.
 
 Measurement tools:
+
 - Chrome User Experience Report (CrUX) - Real user data
 - Web Vitals Chrome extension - Your own interactions
 - [PageSpeed Insights](https://pagespeed.web.dev/) - Field data section
@@ -87,8 +91,9 @@ Run this in your browser console to track INP as you interact with the page.
 ```ts
 type Rating = 'good' | 'needs-improvement' | 'poor'
 
-const rateValue = (ms: number): Rating =>
-  ms <= 200 ? 'good' : ms <= 500 ? 'needs-improvement' : 'poor'
+function rateValue(ms: number): Rating {
+  return ms <= 200 ? 'good' : ms <= 500 ? 'needs-improvement' : 'poor'
+}
 
 let worstInp = 0
 
@@ -99,7 +104,8 @@ const observer = new PerformanceObserver((list) => {
     name: string
   })[]) {
     // Only track actual interactions (has interactionId)
-    if (!entry.interactionId) continue
+    if (!entry.interactionId)
+      continue
 
     if (entry.duration > worstInp) {
       worstInp = entry.duration
@@ -139,4 +145,3 @@ async function processItems(items) {
   }
 }
 ```
-

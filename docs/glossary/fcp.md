@@ -56,6 +56,7 @@ A page can have fast FCP (spinner appears quickly) but slow LCP (actual content 
 FCP marks when users perceive the page is loading. Before FCP, users see a blank screen and may assume the page is broken or slow.
 
 A fast FCP:
+
 - Reassures users something is happening
 - Reduces perceived wait time
 - Lowers early abandonment
@@ -78,6 +79,7 @@ A fast FCP:
 Use [Unlighthouse](/guide/getting-started/unlighthouse-cli) to measure FCP across your entire site.
 
 For individual pages:
+
 - Chrome DevTools Performance panel
 - Lighthouse in Chrome
 - [PageSpeed Insights](https://pagespeed.web.dev/)
@@ -90,8 +92,9 @@ Run this in your browser console to see FCP timing.
 ```ts
 type Rating = 'good' | 'needs-improvement' | 'poor'
 
-const rateValue = (ms: number): Rating =>
-  ms <= 1800 ? 'good' : ms <= 3000 ? 'needs-improvement' : 'poor'
+function rateValue(ms: number): Rating {
+  return ms <= 1800 ? 'good' : ms <= 3000 ? 'needs-improvement' : 'poor'
+}
 
 const observer = new PerformanceObserver((list) => {
   for (const entry of list.getEntries()) {

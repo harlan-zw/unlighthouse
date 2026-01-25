@@ -48,6 +48,7 @@ A high TTFB delays everything downstream: [FCP](/glossary/fcp), [LCP](/glossary/
 TTFB is the starting point for all other metrics. Nothing can render until the browser receives that first byte. For SPAs that rely on JavaScript rendering, fast TTFB is especially critical since client-side rendering adds additional time on top.
 
 Impact of slow TTFB:
+
 - Delays all subsequent loading metrics
 - Extends time to first render
 - Hurts perceived performance
@@ -72,6 +73,7 @@ Impact of slow TTFB:
 Use [Unlighthouse](/guide/getting-started/unlighthouse-cli) to audit TTFB across your entire site.
 
 For individual pages:
+
 - Chrome DevTools Network panel (look for "Waiting for server response")
 - [PageSpeed Insights](https://pagespeed.web.dev/) - Shows TTFB in field data
 - WebPageTest for detailed waterfall analysis
@@ -83,8 +85,9 @@ Run this in your browser console to see TTFB with sub-part breakdown. Based on [
 ```ts
 type Rating = 'good' | 'needs-improvement' | 'poor'
 
-const rateValue = (ms: number): Rating =>
-  ms <= 800 ? 'good' : ms <= 1800 ? 'needs-improvement' : 'poor'
+function rateValue(ms: number): Rating {
+  return ms <= 800 ? 'good' : ms <= 1800 ? 'needs-improvement' : 'poor'
+}
 
 new PerformanceObserver((list) => {
   const nav = list.getEntriesByType('navigation')[0] as PerformanceNavigationTiming

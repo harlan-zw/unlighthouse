@@ -60,6 +60,7 @@ TBT is a lab proxy for interactivity during load. INP measures real user interac
 TBT has the highest weight in Lighthouse performance scoring at **30%**. It directly reflects whether users can interact with your page during load.
 
 High TBT means:
+
 - Clicks and taps are delayed or ignored
 - Scrolling may feel janky
 - Users think the page is frozen
@@ -82,6 +83,7 @@ High TBT means:
 Use [Unlighthouse](/guide/getting-started/unlighthouse-cli) to measure TBT across your entire site.
 
 For individual pages:
+
 - Lighthouse in Chrome DevTools
 - [PageSpeed Insights](https://pagespeed.web.dev/) - Lab data section
 - WebPageTest
@@ -109,7 +111,7 @@ const observer = new PerformanceObserver((list) => {
 observer.observe({ type: 'longtask', buffered: true })
 
 // Check total TBT anytime
-const getTBT = () => {
+function getTBT() {
   const rating = tbt <= 200 ? 'good' : tbt <= 600 ? 'needs-improvement' : 'poor'
   console.log(`TBT: ${tbt.toFixed(0)}ms from ${taskCount} long tasks (${rating})`)
   return tbt

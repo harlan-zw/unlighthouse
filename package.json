@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.17.4",
   "private": true,
-  "packageManager": "pnpm@10.26.0",
+  "packageManager": "pnpm@10.28.1",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",

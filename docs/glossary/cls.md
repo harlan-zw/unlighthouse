@@ -25,6 +25,7 @@ Cumulative Layout Shift (CLS) measures visual stability—how much page content 
 CLS quantifies unexpected layout shifts that occur without user interaction. A layout shift happens when a visible element changes position from one rendered frame to the next.
 
 The score is calculated by multiplying:
+
 - **Impact fraction** - How much of the viewport was affected
 - **Distance fraction** - How far the elements moved
 
@@ -45,6 +46,7 @@ Higher scores mean more disruptive shifts.
 Layout shifts frustrate users. You've experienced it: reading an article when an ad loads and pushes content down, causing you to lose your place—or worse, clicking the wrong button.
 
 Poor CLS leads to:
+
 - Accidental clicks
 - User frustration
 - Lost trust and higher bounce rates
@@ -67,6 +69,7 @@ Poor CLS leads to:
 Use [Unlighthouse](/guide/getting-started/unlighthouse-cli) to measure CLS across your entire site at once. This helps identify problematic pages quickly.
 
 For individual page testing:
+
 - Chrome DevTools Performance panel
 - Lighthouse in Chrome
 - [PageSpeed Insights](https://pagespeed.web.dev/)
@@ -79,8 +82,9 @@ Run this in your browser console to track CLS in real-time. Based on [webperf-sn
 ```ts
 type Rating = 'good' | 'needs-improvement' | 'poor'
 
-const rateValue = (score: number): Rating =>
-  score <= 0.1 ? 'good' : score <= 0.25 ? 'needs-improvement' : 'poor'
+function rateValue(score: number): Rating {
+  return score <= 0.1 ? 'good' : score <= 0.25 ? 'needs-improvement' : 'poor'
+}
 
 let cls = 0
 
@@ -96,7 +100,7 @@ const observer = new PerformanceObserver((list) => {
 observer.observe({ type: 'layout-shift', buffered: true })
 
 // Check current CLS anytime
-const getCLS = () => {
+function getCLS() {
   const rating = rateValue(cls)
   console.log(`CLS: ${cls.toFixed(4)} (${rating})`)
   return cls
@@ -125,6 +129,7 @@ Key strategies to maintain visual stability:
 
 ::tip
 Use `aspect-ratio` CSS property for responsive images:
+
 ```css
 img {
   aspect-ratio: 16 / 9;
@@ -132,5 +137,5 @@ img {
   height: auto;
 }
 ```
-::
 
+::

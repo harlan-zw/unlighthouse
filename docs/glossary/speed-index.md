@@ -64,6 +64,7 @@ The score represents the average time at which visible parts of the page are dis
 Speed Index reflects perceived load speed better than single-moment metrics. A page might have fast [FCP](/glossary/fcp) but still feel slow if subsequent content takes long to appear.
 
 Good Speed Index means:
+
 - Users see content appearing quickly
 - Reduced perceived wait time
 - Better visual loading experience
@@ -96,6 +97,7 @@ Speed Index complements FCP and LCP by measuring the experience between these po
 Use [Unlighthouse](/guide/getting-started/unlighthouse-cli) to measure Speed Index across your entire site.
 
 For individual pages:
+
 - Lighthouse in Chrome DevTools
 - [PageSpeed Insights](https://pagespeed.web.dev/)
 - WebPageTest (original source of the metric)
@@ -114,10 +116,10 @@ Key optimization strategies from [Chrome DevTools documentation](https://develop
 
 Additional strategies:
 
-4. **Optimize critical rendering path** - Inline critical CSS, defer non-critical
-5. **Optimize images** - Compress, use modern formats (WebP, AVIF), lazy-load below fold
-6. **Prioritize visible content** - Load above-the-fold content first
-7. **Use SSR or SSG** - Server-render initial content instead of client-side rendering
+1. **Optimize critical rendering path** - Inline critical CSS, defer non-critical
+2. **Optimize images** - Compress, use modern formats (WebP, AVIF), lazy-load below fold
+3. **Prioritize visible content** - Load above-the-fold content first
+4. **Use SSR or SSG** - Server-render initial content instead of client-side rendering
 
 ## Lighthouse Weight
 

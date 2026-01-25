@@ -24,6 +24,7 @@ Lighthouse scores can vary 5-10 points between runs due to network conditions, C
 ## Why Scores Vary
 
 Single Lighthouse runs can fluctuate by 5-10 points due to:
+
 - CPU load from other browser tabs or processes
 - Network latency variations
 - Memory pressure
