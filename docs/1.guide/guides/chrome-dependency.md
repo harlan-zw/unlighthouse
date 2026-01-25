@@ -1,6 +1,12 @@
 ---
 title: "Chrome Dependency"
 description: "Configure Chrome browser settings for Unlighthouse scanning, including system Chrome usage and custom installations."
+keywords:
+  - lighthouse chrome
+  - puppeteer chrome
+  - chromium lighthouse
+  - chrome executable path
+  - lighthouse browser
 navigation:
   title: "Chrome Dependency"
 relatedPages:
@@ -8,9 +14,11 @@ relatedPages:
     title: Puppeteer Configuration
   - path: /guide/guides/common-errors
     title: Common Errors
+  - path: /guide/guides/docker
+    title: Docker
 ---
 
-Unlighthouse detects and uses your system Chrome to keep package size minimal. When unavailable, it downloads a compatible Chromium binary.
+Unlighthouse uses your system Chrome installation to keep package size minimal. When Chrome isn't available, it automatically downloads a compatible Chromium binary.
 
 ## Disabling system Chrome
 

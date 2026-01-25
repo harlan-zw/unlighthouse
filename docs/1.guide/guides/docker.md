@@ -6,6 +6,7 @@ keywords:
   - docker lighthouse
   - lighthouse container
   - puppeteer docker
+  - lighthouse ci docker
 navigation:
   title: "Docker"
 relatedPages:
@@ -13,9 +14,11 @@ relatedPages:
     title: CI Integration
   - path: /guide/guides/puppeteer
     title: Puppeteer Configuration
+  - path: /guide/guides/chrome-dependency
+    title: Chrome Dependency
 ---
 
-Docker environments require special Puppeteer configuration due to sandboxing restrictions.
+Run Unlighthouse in Docker containers for consistent CI/CD environments. Docker requires special Puppeteer configuration due to sandboxing restrictions.
 
 ::warning
 Docker support is community-maintained and experimental. Use the CI integration for best results.

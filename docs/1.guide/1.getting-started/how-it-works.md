@@ -1,6 +1,13 @@
 ---
-title: "How It Works"
-description: "How Unlighthouse scans your site - the simple explanation."
+title: "How Unlighthouse Works"
+description: "Learn how Unlighthouse automatically discovers pages, runs Lighthouse audits in parallel, and generates site-wide performance reports."
+keywords:
+  - how unlighthouse works
+  - lighthouse site scanner
+  - automated lighthouse testing
+  - site-wide lighthouse audit
+  - bulk lighthouse scan
+  - parallel lighthouse testing
 navigation:
   title: "How It Works"
 relatedPages:
@@ -12,7 +19,7 @@ relatedPages:
     title: Core Web Vitals Glossary
 ---
 
-Unlighthouse finds all your pages, runs Lighthouse on each one, then shows you the results.
+Unlighthouse automates the entire site audit process: it finds all your pages, runs Lighthouse on each one in parallel, then shows you aggregated results in a real-time dashboard.
 
 ## How It Starts
 

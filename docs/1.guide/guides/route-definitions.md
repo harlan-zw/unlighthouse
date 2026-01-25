@@ -1,6 +1,12 @@
 ---
 title: "Route Definitions"
 description: "Configure route discovery and custom sampling patterns for better page organization and intelligent scanning."
+keywords:
+  - lighthouse routes
+  - page discovery
+  - custom sampling
+  - route mapping
+  - lighthouse url mapping
 navigation:
   title: "Route Definitions"
 relatedPages:
@@ -8,9 +14,11 @@ relatedPages:
     title: Dynamic Sampling
   - path: /guide/guides/url-discovery
     title: URL Discovery
+  - path: /guide/guides/config
+    title: Configuration
 ---
 
-Route definitions map URLs to source files for better [dynamic sampling](/guide/guides/dynamic-sampling). Framework integrations discover routes automatically; CLI users may need manual configuration.
+Map URLs to source files for intelligent [dynamic sampling](/guide/guides/dynamic-sampling). Framework integrations discover routes automatically; CLI users may need manual configuration for optimal sampling.
 
 ## Pages directory
 

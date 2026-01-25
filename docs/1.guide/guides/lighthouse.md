@@ -1,6 +1,12 @@
 ---
 title: "Lighthouse Configuration"
 description: "Customize Google Lighthouse audit settings, categories, and performance thresholds within Unlighthouse scans."
+keywords:
+  - lighthouse options
+  - lighthouse configuration
+  - lighthouse categories
+  - customize lighthouse
+  - lighthouse audit settings
 navigation:
   title: "Lighthouse Config"
 relatedPages:
@@ -12,7 +18,7 @@ relatedPages:
     title: Core Web Vitals Glossary
 ---
 
-Configure Lighthouse through the `lighthouseOptions` key to customize audit categories, thresholds, and behavior.
+Customize audit categories, performance thresholds, and behavior through the `lighthouseOptions` configuration key. Unlighthouse passes these options directly to Google Lighthouse.
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'

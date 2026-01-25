@@ -1,6 +1,13 @@
 ---
 title: "Device Configuration"
 description: "Configure device emulation settings for mobile and desktop scanning with custom dimensions and throttling options."
+keywords:
+  - lighthouse mobile
+  - lighthouse desktop
+  - lighthouse device emulation
+  - lighthouse viewport
+  - lighthouse throttling
+  - mobile performance testing
 navigation:
   title: "Device Configuration"
 relatedPages:
@@ -8,9 +15,11 @@ relatedPages:
     title: Lighthouse Configuration
   - path: /api-doc/config
     title: Config Reference
+  - path: /glossary
+    title: Core Web Vitals Glossary
 ---
 
-Device emulation tests performance across screen sizes and network conditions. Default: mobile (375x667) without throttling.
+Test performance across different screen sizes and network conditions. Configure mobile, desktop, or custom viewport settings with optional network throttling for realistic performance testing.
 
 ## Device Types
 

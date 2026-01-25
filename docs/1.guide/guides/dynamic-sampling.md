@@ -1,6 +1,12 @@
 ---
 title: "Dynamic Sampling"
 description: "Automatically sample similar pages to reduce scan time for sites with many similar URLs like blogs or e-commerce."
+keywords:
+  - lighthouse sampling
+  - scan subset of pages
+  - lighthouse large site
+  - reduce lighthouse scan time
+  - lighthouse scan optimization
 navigation:
   title: "Dynamic Sampling"
 relatedPages:
@@ -8,9 +14,11 @@ relatedPages:
     title: Route Definitions
   - path: /guide/recipes/large-sites
     title: Large Sites
+  - path: /guide/guides/url-discovery
+    title: URL Discovery
 ---
 
-Dynamic sampling groups similar pages and scans only representative samples. Enabled by default with 5 samples per group.
+Automatically group similar pages and scan only representative samples. This significantly reduces scan time for sites with many similar URLs like blogs, e-commerce product pages, or documentation sites.
 
 ## How it works
 

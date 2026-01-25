@@ -2,6 +2,10 @@
 title: "Webpack Integration"
 icon: i-logos-webpack
 description: "Add Lighthouse auditing to webpack-based projects with development server integration and HMR support."
+keywords:
+  - webpack lighthouse
+  - webpack performance
+  - webpack plugin lighthouse
 navigation:
   title: "Webpack"
 deprecated: true
@@ -10,6 +14,8 @@ relatedPages:
     title: CLI Integration
   - path: /integration-deprecations
     title: Deprecation Notice
+  - path: /guide/guides/config
+    title: Configuration
 ---
 
 ::warning

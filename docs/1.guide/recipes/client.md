@@ -1,6 +1,12 @@
 ---
 title: "Customizing the UI"
 description: "Modify Unlighthouse client interface columns and display to show custom metrics and data."
+keywords:
+  - lighthouse dashboard
+  - lighthouse ui
+  - custom lighthouse metrics
+  - lighthouse report customization
+  - lighthouse custom columns
 navigation:
   title: "UI Customization"
 relatedPages:
@@ -8,9 +14,11 @@ relatedPages:
     title: Glossary
   - path: /guide/guides/config
     title: Configuration
+  - path: /guide/guides/generating-static-reports
+    title: Static Reports
 ---
 
-Customize the client interface to display metrics relevant to your workflow.
+Customize the Unlighthouse dashboard to display metrics relevant to your workflow. Replace default columns, add custom audit displays, and configure how results appear.
 
 ## Customizing Columns
 

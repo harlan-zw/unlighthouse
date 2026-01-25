@@ -7,6 +7,8 @@ keywords:
   - lighthouse json report
   - lighthouse csv export
   - static lighthouse report
+  - lighthouse report generation
+  - bulk lighthouse report
 navigation:
   title: "Static Reports"
 relatedPages:
@@ -14,9 +16,11 @@ relatedPages:
     title: CI Integration
   - path: /guide/guides/config
     title: Configuration
+  - path: /guide/recipes/client
+    title: UI Customization
 ---
 
-Unlighthouse generates comprehensive Lighthouse reports for every page on your site.
+Create static, shareable Lighthouse reports for your entire site. Export as interactive HTML dashboards, CSV for spreadsheet analysis, or JSON for CI/CD integration.
 
 ## Report Types
 

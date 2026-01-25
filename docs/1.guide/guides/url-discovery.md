@@ -1,6 +1,12 @@
 ---
 title: "URL Discovery"
-description: "How Unlighthouse discovers pages using sitemaps, robots.txt, and internal link crawling."
+description: "How Unlighthouse discovers pages using sitemaps, robots.txt, and internal link crawling. Configure URL sources and filters."
+keywords:
+  - lighthouse sitemap
+  - crawl website lighthouse
+  - lighthouse all pages
+  - automatic url discovery
+  - lighthouse find all pages
 navigation:
   title: "URL Discovery"
 relatedPages:
@@ -8,7 +14,11 @@ relatedPages:
     title: Route Definitions
   - path: /guide/recipes/large-sites
     title: Large Sites
+  - path: /guide/guides/config
+    title: Configuration
 ---
+
+Unlighthouse automatically finds all pages on your site using multiple discovery methods. Configure which sources to use and filter results to scan exactly what you need.
 
 Unlighthouse discovers URLs through multiple methods:
 

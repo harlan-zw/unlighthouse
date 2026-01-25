@@ -7,6 +7,7 @@ keywords:
   - puppeteer args
   - puppeteer headless
   - puppeteer chrome flags
+  - lighthouse puppeteer
 navigation:
   title: "Puppeteer"
 relatedPages:
@@ -14,9 +15,11 @@ relatedPages:
     title: Chrome Dependency
   - path: /guide/guides/authentication
     title: Authentication
+  - path: /guide/guides/docker
+    title: Docker
 ---
 
-Unlighthouse uses [Puppeteer](https://pptr.dev/) to control Chrome for Lighthouse audits. Configure browser behavior via `puppeteerOptions`.
+Unlighthouse uses [Puppeteer](https://pptr.dev/) to control Chrome for Lighthouse audits. Configure browser behavior, navigation hooks, and Chrome flags via `puppeteerOptions`.
 
 ## All Available Options
 

@@ -7,6 +7,8 @@ keywords:
   - lighthouse all pages
   - site wide lighthouse
   - batch lighthouse
+  - lighthouse thousands of pages
+  - enterprise lighthouse
 navigation:
   title: "Large Sites"
 relatedPages:
@@ -14,9 +16,11 @@ relatedPages:
     title: Dynamic Sampling
   - path: /guide/guides/url-discovery
     title: URL Discovery
+  - path: /guide/guides/route-definitions
+    title: Route Definitions
 ---
 
-Single-page tools like PageSpeed Insights don't scale. Unlighthouse scans your entire site:
+Scan websites with thousands of pages efficiently. Unlike single-page tools like PageSpeed Insights, Unlighthouse handles large sites with smart sampling, parallel scanning, and configurable limits.
 
 - **Automatic discovery** - Finds all pages via sitemap and crawling
 - **Smart sampling** - Tests representative pages from each template
