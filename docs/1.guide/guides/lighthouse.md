@@ -30,7 +30,7 @@ export default defineUnlighthouseConfig({
 })
 ```
 
-For complete options, see the [Lighthouse Configuration docs](https://github.com/GoogleChrome/lighthouse/blob/master/docs/configuration.md).
+For complete options, see the [Lighthouse Configuration docs](https://raw.githubusercontent.com/GoogleChrome/lighthouse/refs/heads/main/docs/configuration.md).
 
 ## Aliases
 
