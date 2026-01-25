@@ -2,7 +2,7 @@ import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from '@unlightho
 import { useStorage } from '@vueuse/core'
 import Fuse from 'fuse.js'
 import { get, isEmpty, orderBy } from 'lodash-es'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { unlighthouseReports } from './state'
 import { columns, groupRoutesKey } from './static'
 

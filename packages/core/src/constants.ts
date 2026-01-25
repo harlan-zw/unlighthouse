@@ -2,7 +2,7 @@ import type { UnlighthouseColumn, UnlighthouseTabs, UserConfig } from './types'
 import os from 'node:os'
 import { Cluster } from 'puppeteer-cluster'
 
-export const AppName = 'Unlighthouse'
+export const AppName = 'ScaleLighthouse'
 export const ClientPkg = '@unlighthouse/client'
 export const DefaultModuleRouterPrefix = '/__unlighthouse'
 export const TagLine = 'Scan your entire website with Google Lighthouse.'

@@ -1,4 +1,5 @@
 export * from './actions/rescanSite'
+export * from './actions/changeSite'
 export * from './dark'
 export * from './fetch'
 export * from './search'
