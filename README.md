@@ -49,6 +49,20 @@ it's recommended you .gitignore these files.
 .unlighthouse
 ```
 
+#### CrUX API (Chrome User Experience Report)
+
+ScaleLighthouse includes a CrUX API integration that displays real-world performance data from the Chrome UX Report. To enable it:
+
+1. Go to the [Google Cloud Console — Credentials](https://console.cloud.google.com/apis/credentials)
+2. Create or select a project
+3. Enable the **Chrome UX Report API** for your project
+4. Create an API key
+5. Create a `.env` file in the `crux-api/` directory:
+
+```
+NITRO_GOOGLE_CRUX_API_TOKEN=your-api-key-here
+```
+
 #### Debugging
 
 If you run into any issues with Unlighthouse, the first step should be to re-run the scan with debugging enabled.
