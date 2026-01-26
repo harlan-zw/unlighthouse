@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
 import { ref } from 'vue'
-import { basePath } from '../logic'
+import { basePath, scanMeta } from '../logic'
 
 const canvasRef = ref<HTMLCanvasElement>()
 const lighthouseRef = ref<HTMLDivElement>()
@@ -20,10 +20,19 @@ let animationId: number
 
 const z = ref(20)
 const rotation = ref(0.01)
+const webglFailed = ref(false)
 
 onMounted(() => {
   if (!canvasRef.value)
     return
+
+  // Test for WebGL support before creating the renderer to avoid console errors
+  const testCanvas = document.createElement('canvas')
+  const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl')
+  if (!gl) {
+    webglFailed.value = true
+    return
+  }
 
   // Scene setup
   scene = new THREE.Scene()
@@ -63,9 +72,6 @@ onMounted(() => {
   loader.load(
     `${basePath}assets/lighthouse.fbx`,
     (object: Group) => {
-      // Keep original model scale
-      // object.scale.setScalar(5)
-
       // Fix materials for unknown types
       object.traverse((child) => {
         if (child.isMesh) {
@@ -167,7 +173,7 @@ const showLighthouse = computed(() => {
 </script>
 
 <template>
-  <div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="hover:scale-110 bg-linear-to-b from-sky-50/50 to-sky-300/50 dark:bg-none rounded-full duration-2000 ease-in-out transform transition w-[200px] h-[200px]">
+  <div v-if="!webglFailed" ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="hover:scale-110 bg-linear-to-b from-sky-50/50 to-sky-300/50 dark:bg-none rounded-full duration-2000 ease-in-out transform transition w-[200px] h-[200px]">
     <canvas ref="canvasRef" width="200" height="200" />
   </div>
 </template>

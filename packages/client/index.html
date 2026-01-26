@@ -17,8 +17,8 @@
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Serif+Display:ital@0;1&display=swap">
   <title>ScaleLighthouse</title>
-  <script data-scalelighthouse-inline>
-  window.__scalelighthouse_static = true
+  <script data-unlighthouse-inline>
+  window.__unlighthouse_static = true
   // boilerplate options to run the client by itself
   </script>
   <script data-unlighthouse-payload src="/assets/payload.js"></script>
@@ -72,7 +72,7 @@
   if (setting === 'dark' || (prefersDark && setting !== 'light'))
     document.documentElement.classList.toggle('dark', true)
 
-  // document.title = __scalelighthouse_data.options.host.replace(/https?:\/\/(www.)?/, '') + ' | ScaleLighthouse'
+  // document.title = __unlighthouse_data.options.host.replace(/https?:\/\/(www.)?/, '') + ' | ScaleLighthouse'
 })()
 </script>
 <script type="module" src="/main.ts"></script>

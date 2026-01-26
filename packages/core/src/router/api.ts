@@ -4,6 +4,7 @@ import { presetApi } from '@unrouted/preset-api'
 import { presetNode, serve } from '@unrouted/preset-node'
 import fs from 'fs-extra'
 import launch from 'launch-editor'
+import { generateClient } from '../build'
 import { createScanMeta } from '../data'
 import { resolveReportableRoutes } from '../discovery'
 import { useLogger } from '../logger'
@@ -53,8 +54,8 @@ export async function createApi(h3: any): Promise<any> {
       post('/start-scan', async () => {
         const { worker, start, resolvedConfig } = useUnlighthouse()
 
-        // Check if scan is already running
-        if (worker.routeReports.size > 0) {
+        // Check if scan is already running with active workers
+        if (worker.routeReports.size > 0 && worker.monitor().status === 'working') {
           return { success: false, message: 'Scan already in progress', site: resolvedConfig.site }
         }
 
@@ -68,7 +69,7 @@ export async function createApi(h3: any): Promise<any> {
 
       // Change target site endpoint
       post('/change-site', async () => {
-        const { worker, setSiteUrl } = useUnlighthouse()
+        const { worker, setSiteUrl, start } = useUnlighthouse()
         const { site: newSite } = useQuery<{ site: string }>()
 
         if (!newSite) {
@@ -87,14 +88,17 @@ export async function createApi(h3: any): Promise<any> {
             fs.rmSync(dir, { recursive: true })
         })
 
-        // Set new site URL
+        // Set new site URL (this updates resolvedConfig.site)
         await setSiteUrl(newSite)
 
-        // Rediscover routes and start scanning
-        const routes = await resolveReportableRoutes()
-        worker.queueRoutes(routes)
+        // Regenerate client so payload.js reflects the new site
+        await generateClient()
 
-        return { success: true, site: newSite, routeCount: routes.length }
+        // Start scanning the new site
+        logger.info(`Starting scan for: ${newSite}`)
+        const ctx = await start()
+
+        return { success: true, site: newSite, routeCount: ctx.routes?.length || 0 }
       })
 
       prefix('/reports', () => {

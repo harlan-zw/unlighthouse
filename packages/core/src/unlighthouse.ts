@@ -228,8 +228,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       runtimeSettings.configCacheKey || '',
     )
 
-    if (!ctx.resolvedConfig.site)
-      ctx.resolvedConfig.site = site.toString()
+    ctx.resolvedConfig.site = site.toString()
     ctx.runtimeSettings.outputPath = outputPath
     ctx.runtimeSettings.generatedClientPath = outputPath
 
