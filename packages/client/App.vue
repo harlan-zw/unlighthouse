@@ -202,6 +202,12 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | ScaleLighthouse`)
                   Debug
                 </btn-action>
               </div>
+              <div class="text-xs opacity-75 xl:mt-2">
+                <a href="http://localhost:9323" target="_blank" class="underline hover:no-underline inline-flex items-center gap-1">
+                  <UIcon name="i-carbon-chemistry" class="w-3 h-3" />
+                  Smoke Tests
+                </a>
+              </div>
               <div class="text-xs opacity-75 xl:mt-4">
                 Powered by <a href="https://scalecampaign.com" target="_blank" class="underline hover:no-underline">Scale Campaign</a>
               </div>
