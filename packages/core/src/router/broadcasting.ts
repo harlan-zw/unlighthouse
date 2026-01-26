@@ -23,7 +23,7 @@ export function createBroadcastingEvents() {
       ws.broadcast({ response })
   })
   hooks.hook('task-added', (path, response) => {
-    if (response.tasks.inspectHtmlTask === 'completed')
+    if (response.tasks.inspectHtmlTask === 'completed' || response.tasks.inspectHtmlTask === 'waiting')
       ws.broadcast({ response })
   })
 }

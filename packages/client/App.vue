@@ -28,6 +28,7 @@ import {
   perPage,
   refreshScanMeta,
   rescanRoute,
+  rescanningRoutes,
   resultColumns,
   searchResults,
   searchText,
@@ -105,7 +106,7 @@ const getDropdownActions = computed(() => (report) => {
     label: 'Rescan Route',
     description: 'Crawl the route again and generate a fresh report.',
     onSelect: () => rescanRoute(report.route),
-    disabled: unref(isOffline) || unref(isStatic),
+    disabled: unref(isOffline) || unref(isStatic) || rescanningRoutes.has(report.route.path),
   })
 
   if (report.report) {
@@ -365,7 +366,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | ScaleLighthouse`)
               <results-route
                 v-for="(report, routeName) in paginatedResults"
                 :key="routeName"
-                v-memo="[report.route.url, report.report?.categories, report.tasks.runLighthouseTask]"
+                v-memo="[report.route.url, report.report?.categories, report.tasks.runLighthouseTask, rescanningRoutes.has(report.route.path)]"
                 :report="report"
               >
                 <template #actions>
@@ -375,6 +376,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | ScaleLighthouse`)
                       size="sm"
                       color="neutral"
                       variant="ghost"
+                      :loading="rescanningRoutes.has(report.route.path)"
                     />
                   </UDropdownMenu>
                 </template>
