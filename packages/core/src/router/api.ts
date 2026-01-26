@@ -50,6 +50,22 @@ export async function createApi(h3: any): Promise<any> {
     redirect('/__lighthouse/', resolvedConfig.routerPrefix)
 
     prefix('/api', () => {
+      // Clear cache endpoint - deletes all cached reports and artifacts
+      post('/clear-cache', () => {
+        const { worker } = useUnlighthouse()
+
+        const reports = [...worker.routeReports.values()]
+        const count = reports.length
+        logger.info(`Clearing cache: removing ${count} cached reports.`)
+        worker.routeReports.clear()
+        reports.forEach((route) => {
+          const dir = route.artifactPath
+          if (fs.existsSync(dir))
+            fs.rmSync(dir, { recursive: true })
+        })
+        return { success: true, cleared: count }
+      })
+
       // Start scan endpoint - used when CLI is started with --wait
       post('/start-scan', async () => {
         const { worker, start, resolvedConfig } = useUnlighthouse()

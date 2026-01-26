@@ -18,6 +18,9 @@ export function closeChangeSiteModal() {
 
 // Start scan with the current site (used when CLI started with --wait)
 export async function startScan(done: () => void) {
+  // Clear cache first to ensure a fresh scan
+  await useFetch('/clear-cache').post().json().execute()
+
   const fetch = useFetch<UseFetchReturn<any>>('/start-scan').post().json()
   startScanRequest.value = fetch
   fetch.onFetchResponse(() => {
@@ -27,6 +30,9 @@ export async function startScan(done: () => void) {
 
 // Change site and start scanning
 export async function changeSite(site: string, done: () => void) {
+  // Clear cache first to ensure filesystem artifacts are gone
+  await useFetch('/clear-cache').post().json().execute()
+
   const encodedSite = encodeURIComponent(site)
   const fetch = useFetch<UseFetchReturn<any>>(`/change-site?site=${encodedSite}`).post().json()
   changeSiteRequest.value = fetch

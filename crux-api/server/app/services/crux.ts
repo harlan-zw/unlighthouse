@@ -2,6 +2,7 @@ import type { FetchError } from 'ofetch'
 import { useRuntimeConfig } from '#imports'
 import { $fetch } from 'ofetch'
 import { withHttps, withTrailingSlash } from 'ufo'
+import { incrementUsage } from './usage'
 
 type cwvKeys = [
   'largest_contentful_paint',
@@ -11,6 +12,7 @@ type cwvKeys = [
 
 export async function fetchCrux(domain: string, formFactor: 'PHONE' | 'TABLET' | 'DESKTOP' = 'PHONE') {
   const origin = withTrailingSlash(withHttps(domain))
+  incrementUsage()
   const results = await $fetch(`/records:queryHistoryRecord`, {
     baseURL: 'https://chromeuxreport.googleapis.com/v1',
     method: 'POST',
