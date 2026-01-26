@@ -45,6 +45,21 @@ const crux = ref(null)
 const cruxError = ref(false)
 const cruxUsage = ref(null)
 
+const smokeTestStatus = ref('Smoke Tests')
+
+async function launchSmokeTests() {
+  smokeTestStatus.value = 'Launching...'
+  try {
+    await $fetch('http://localhost:9322/launch')
+    smokeTestStatus.value = 'Smoke Tests (running)'
+    setTimeout(() => { smokeTestStatus.value = 'Smoke Tests' }, 5000)
+  }
+  catch {
+    smokeTestStatus.value = 'Smoke Tests (start launcher first)'
+    setTimeout(() => { smokeTestStatus.value = 'Smoke Tests' }, 4000)
+  }
+}
+
 function refreshCruxUsage() {
   $fetch('http://localhost:3001/api/usage')
     .then((res) => {
@@ -203,10 +218,10 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | ScaleLighthouse`)
                 </btn-action>
               </div>
               <div class="text-xs opacity-75 xl:mt-2">
-                <a href="http://localhost:9323" target="_blank" class="underline hover:no-underline inline-flex items-center gap-1">
+                <btn-action class="underline hover:no-underline inline-flex items-center gap-1" @click="launchSmokeTests">
                   <UIcon name="i-carbon-chemistry" class="w-3 h-3" />
-                  Smoke Tests
-                </a>
+                  {{ smokeTestStatus }}
+                </btn-action>
               </div>
               <div class="text-xs opacity-75 xl:mt-4">
                 Powered by <a href="https://scalecampaign.com" target="_blank" class="underline hover:no-underline">Scale Campaign</a>

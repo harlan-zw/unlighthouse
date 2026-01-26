@@ -9,7 +9,8 @@
     "test:local": "TEST_ENV=local playwright test",
     "test:local:ui": "TEST_ENV=local playwright test --ui",
     "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "launcher": "node launcher.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",
