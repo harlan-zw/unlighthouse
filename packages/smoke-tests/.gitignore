@@ -1,0 +1,19 @@
+# Test results
+results/
+!results/.gitkeep
+
+# Auth state (contains session cookies)
+auth-state/
+!auth-state/.gitkeep
+
+# User-specific target configs (gitignored — use example.* as templates)
+targets/*.config.ts
+!targets/example.config.ts
+targets/registry.ts
+
+# Credentials
+.env
+
+# Playwright
+test-results/
+playwright-report/

@@ -1,0 +1,19 @@
+{
+  "name": "@unlighthouse/smoke-tests",
+  "type": "module",
+  "version": "0.17.4",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:local": "TEST_ENV=local playwright test",
+    "test:local:ui": "TEST_ENV=local playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "dotenv": "^16.4.0",
+    "typescript": "catalog:"
+  }
+}
