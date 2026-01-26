@@ -57,7 +57,7 @@ async function run() {
     // Clear the progress display
     unlighthouse.worker.clearProgressDisplay()
     logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${unlighthouse.worker.reports().length} routes in ${seconds}s.`)
-    await unlighthouse.worker.cluster.close().catch(() => {})
+    // Keep the cluster alive so rescans can work from the UI
   })
 
   if (unlighthouse.resolvedConfig.server.open)

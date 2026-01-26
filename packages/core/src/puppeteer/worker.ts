@@ -359,10 +359,10 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       fs.rmSync(join(report.artifactPath, artifact), { force: true, recursive: true })
     })
     routeReports.delete(report.reportId)
-    // arbitrary wait for HMR, lil dodgy
+    // short wait before re-queuing
     setTimeout(() => {
       queueRoute(report.route)
-    }, 3500)
+    }, 500)
   }
 
   const hasStarted = () => cluster.workers.length || cluster.workersStarting

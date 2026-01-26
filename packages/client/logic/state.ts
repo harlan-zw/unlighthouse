@@ -105,6 +105,8 @@ export const resultColumns = computed(() => {
 
 export const wsReports: Map<string, UnlighthouseRouteReport> = reactive(new Map<string, UnlighthouseRouteReport>())
 
+export const rescanningRoutes: Set<string> = reactive(new Set<string>())
+
 export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
   if (isStatic) {
     return window.__unlighthouse_payload?.reports || []
@@ -147,7 +149,16 @@ export const shouldShowWaitingState = computed<boolean>(() => {
   return wsReports.size === 0 || isOffline.value
 })
 
-export const rescanRoute = (route: NormalisedRoute) => useFetch(`/reports/${route.id}/rescan`).post()
+export async function rescanRoute(route: NormalisedRoute) {
+  rescanningRoutes.add(route.path)
+  try {
+    await useFetch(`/reports/${route.id}/rescan`).post()
+    refreshScanMeta()
+  }
+  catch {
+    rescanningRoutes.delete(route.path)
+  }
+}
 
 export const scanMeta = computed<ScanMeta | null>(() => {
   if (isStatic)
@@ -182,6 +193,10 @@ export async function wsConnect() {
         const { response } = JSON.parse(message.data)
         if (response?.route?.path) {
           wsReports.set(response.route.path, response)
+          if (rescanningRoutes.has(response.route.path) && response.tasks?.runLighthouseTask === 'completed') {
+            rescanningRoutes.delete(response.route.path)
+            refreshScanMeta()
+          }
         }
       }
       catch (error) {

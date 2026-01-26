@@ -121,8 +121,13 @@ export async function createApi(h3: any): Promise<any> {
           const report = useReport()
           const { worker } = useUnlighthouse()
 
-          if (report)
+          if (report) {
             worker.requeueReport(report)
+            return { success: true, path: report.route.path }
+          }
+
+          setStatusCode(404)
+          return { success: false }
         })
       })
 
