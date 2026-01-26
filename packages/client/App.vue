@@ -43,9 +43,21 @@ import {
 
 const crux = ref(null)
 const cruxError = ref(false)
+const cruxUsage = ref(null)
+
+function refreshCruxUsage() {
+  $fetch('http://localhost:3001/api/usage')
+    .then((res) => {
+      cruxUsage.value = res
+    })
+    .catch((error) => {
+      console.warn('Failed to fetch CrUX usage:', error)
+    })
+}
 
 if (!isStatic) {
   let refreshInterval: NodeJS.Timeout | null = null
+  let usageInterval: NodeJS.Timeout | null = null
 
   onMounted(() => {
     wsConnect().catch((error) => {
@@ -56,14 +68,28 @@ if (!isStatic) {
       refreshScanMeta()
     }, 5000)
 
-    // CrUX API disabled - can be re-enabled with own endpoint
-    cruxError.value = true
+    $fetch(`http://localhost:3001/api/${encodeURIComponent(website)}/crux/history`)
+      .then((res) => {
+        crux.value = res
+        cruxError.value = false
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch CrUX data:', error)
+        cruxError.value = true
+      })
+
+    refreshCruxUsage()
+    usageInterval = setInterval(refreshCruxUsage, 10000)
   })
 
   onUnmounted(() => {
     if (refreshInterval) {
       clearInterval(refreshInterval)
       refreshInterval = null
+    }
+    if (usageInterval) {
+      clearInterval(usageInterval)
+      usageInterval = null
     }
   })
 }
@@ -162,6 +188,9 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | ScaleLighthouse`)
             <div v-if="dynamicSampling" class="text-sm opacity-70 mt-3">
               <p>Dynamic sampling is enabled, not all pages are being scanned.</p>
               <p class="text-xs">Disable with: <code>scanner.dynamicSampling: false</code></p>
+            </div>
+            <div v-if="cruxUsage" class="text-xs opacity-70 mt-3">
+              <p>CrUX API: {{ cruxUsage.daily }} / {{ cruxUsage.limit.toLocaleString() }} daily</p>
             </div>
           </div>
           <div class="hidden xl:block">
