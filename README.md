@@ -32,6 +32,12 @@ npx unlighthouse --site <your-site>
 pnpm dlx unlighthouse --site <your-site>
 ```
 
+> [!TIP]
+> Generate an Agent Skill for this package using [skilld](https://github.com/harlan-zw/skilld):
+> ```bash
+> npx skilld add unlighthouse
+> ```
+
 _Requirements: Node >= 20.x._
 
 ## Getting Started
