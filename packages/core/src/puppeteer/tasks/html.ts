@@ -138,11 +138,11 @@ export async function processHtml(html: string, site: string): Promise<{ seo: HT
         if (name === 'description' && content)
           seo.description = content
         if (property === 'og:image' || name === 'og:image')
-          seo.og.image = content
+          seo.og!.image = content
         if (property === 'og:description' || name === 'og:description')
-          seo.og.description = content
+          seo.og!.description = content
         if (property === 'og:title' || name === 'og:title')
-          seo.og.title = content
+          seo.og!.title = content
       }
       else if (node.name === 'title') {
         if (!seo.title && node.children?.[0]?.type === 2)
