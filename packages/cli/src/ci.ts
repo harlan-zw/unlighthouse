@@ -123,8 +123,8 @@ async function run() {
       const { runtimeSettings, resolvedConfig } = useUnlighthouse()
       await generateClient({ static: true })
       // delete the json lighthouse payloads, we don't need them for the static mode
-      const globby = await import('globby')
-      const jsonPayloads = await globby.globby(
+      const { glob } = await import('tinyglobby')
+      const jsonPayloads = await glob(
         ['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'],
         { cwd: runtimeSettings.generatedClientPath, absolute: true },
       )

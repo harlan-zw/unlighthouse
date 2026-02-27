@@ -1,11 +1,10 @@
-import type { CheerioAPI } from 'cheerio'
 import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
 import type { Page } from '../../types/puppeteer'
 import { Buffer } from 'node:buffer'
 import { join } from 'node:path'
-import { load as cheerio } from 'cheerio'
 import fs from 'fs-extra'
 import { withoutTrailingSlash } from 'ufo'
+import { parse, render, walk } from 'ultrahtml'
 import { useLogger } from '../../logger'
 import { normaliseRoute } from '../../router'
 import { useUnlighthouse } from '../../unlighthouse'
@@ -14,6 +13,7 @@ import { isImplicitOrExplicitHtml } from '../../util/filter'
 import { setupPage } from '../util'
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean, redirected?: false | string, message?: string, payload?: string }> = async (page, route) => {
+// ... (rest of extractHtmlPayload remains the same)
   const { worker, resolvedConfig } = useUnlighthouse()
 
   // if we don't need to execute any javascript we can do a less expensive fetch of the URL
@@ -103,21 +103,65 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
   }
 }
 
-export function processSeoMeta($: CheerioAPI): HTMLExtractPayload {
-  const hreflangElement = $('link[hreflang="x-default"]')
-  const hrefLangHref = hreflangElement.attr('href')
-  return {
-    alternativeLangDefault: hrefLangHref,
-    alternativeLangDefaultHtml: hreflangElement.html() || `<link hreflang="x-default" href="${hrefLangHref}">`,
-    favicon: $('link[rel~="icon"]').attr('href') || '/favicon.ico',
-    title: $('meta[name=\'title\'], head > title').text(),
-    description: $('meta[name=\'description\']').attr('content'),
-    og: {
-      image: $('meta[property=\'og:image\'], meta[name=\'og:image\']').attr('content'),
-      description: $('meta[property=\'og:description\'], meta[name=\'og:description\']').attr('content'),
-      title: $('meta[property=\'og:title\'], meta[name=\'og:title\']').attr('content'),
-    },
+export async function processHtml(html: string, site: string): Promise<{ seo: HTMLExtractPayload, internalLinks: string[], externalLinks: string[] }> {
+  const seo: HTMLExtractPayload = {
+    favicon: '/favicon.ico',
+    og: {},
+    internalLinks: 0,
+    externalLinks: 0,
+    htmlSize: html.length,
   }
+  const internalLinks: string[] = []
+  const externalLinks: string[] = []
+
+  const ast = parse(html)
+  await walk(ast, async (node) => {
+    if (node.type === 1) { // ELEMENT_NODE
+      if (node.name === 'link') {
+        const rel = node.attributes?.rel
+        const hreflang = node.attributes?.hreflang
+        const href = node.attributes?.href
+        if (hreflang === 'x-default' && href) {
+          seo.alternativeLangDefault = href
+          seo.alternativeLangDefaultHtml = await render(node)
+        }
+        if (rel && rel.includes('icon') && href) {
+          seo.favicon = href
+        }
+      }
+      else if (node.name === 'meta') {
+        const name = node.attributes?.name
+        const property = node.attributes?.property
+        const content = node.attributes?.content
+        if (name === 'title' && content)
+          seo.title = content
+        if (name === 'description' && content)
+          seo.description = content
+        if (property === 'og:image' || name === 'og:image')
+          seo.og.image = content
+        if (property === 'og:description' || name === 'og:description')
+          seo.og.description = content
+        if (property === 'og:title' || name === 'og:title')
+          seo.og.title = content
+      }
+      else if (node.name === 'title') {
+        if (!seo.title && node.children?.[0]?.type === 2)
+          seo.title = node.children[0].value
+      }
+      else if (node.name === 'a') {
+        const href = node.attributes?.href
+        if (href && !href.includes('javascript:') && !href.includes('mailto:') && !href.startsWith('#') && isImplicitOrExplicitHtml(href)) {
+          if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(site))
+            internalLinks.push(href)
+          else
+            externalLinks.push(href)
+        }
+      }
+    }
+  })
+  seo.internalLinks = internalLinks.length
+  seo.externalLinks = externalLinks.length
+  return { seo, internalLinks, externalLinks }
 }
 
 export const inspectHtmlTask: PuppeteerTask = async (props) => {
@@ -162,8 +206,9 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
     html = typeof response.payload === 'string' ? response.payload : String(response.payload || '')
   }
 
-  const $ = cheerio(html)
-  routeReport.seo = processSeoMeta($)
+  const { seo, internalLinks } = await processHtml(html, resolvedConfig.site)
+
+  routeReport.seo = seo
   if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
     // If this is the root path with cross-domain hreflang, disable ignoreI18nPages to prevent all routes from being ignored
     if (routeReport.route.path === '/') {
@@ -197,23 +242,8 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
       return routeReport
     }
   }
-  const internalLinks: string[] = []
-  const externalLinks: string[] = []
-  $('a').each(function () {
-    const href = $(this).attr('href')
-    // href must be provided and not be javascript
-    if (!href || href.includes('javascript:') || href.includes('mailto:') || href === '#' || !isImplicitOrExplicitHtml(href))
-      return
 
-    if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(resolvedConfig.site))
-      internalLinks.push(href)
-    else
-      externalLinks.push(href)
-  })
   await hooks.callHook('discovered-internal-links', routeReport.route.path, internalLinks)
-  routeReport.seo.internalLinks = internalLinks.length
-  routeReport.seo.externalLinks = externalLinks.length
-  routeReport.seo.htmlSize = html.length
 
   // only need the html payload for caching purposes, unlike the lighthouse reports
   if (resolvedConfig.cache)

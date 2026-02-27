@@ -58,16 +58,13 @@ catalogs:
     better-opn: ^3.0.2
     c12: ^3.3.3
     cac: ^6.7.14
-    cheerio: 1.1.0
     chrome-launcher: ^1.2.1
     consola: ^3.4.2
     date-fns: ^4.1.0
     dayjs: ^1.11.19
     defu: ^6.1.4
-    execa: ^9.6.1
     fs-extra: ^11.3.3
     fuse.js: ^7.1.0
-    globby: ^16.1.1
     h3: ^1.15.5
     hookable: ^6.0.1
     launch-editor: ^2.13.1
@@ -90,7 +87,10 @@ catalogs:
     std-env: ^3.10.0
     tailwindcss: ^4.2.1
     three: ^0.183.1
+    tinyexec: ^0.3.2
+    tinyglobby: ^0.2.12
     ufo: ^1.6.3
+    ultrahtml: ^1.6.0
     unconfig: ^7.5.0
     unctx: ^2.5.0
     unplugin-auto-import: ^21.0.0

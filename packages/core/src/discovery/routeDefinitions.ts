@@ -20,12 +20,12 @@ export async function discoverRouteDefinitions() {
   const dir = pagesDir === '' ? resolvedConfig.root.replace(`${resolvedConfig.root}/`, '') : pagesDir
 
   const resolveFiles = async (dir: string) => {
-    const { globby } = (await import('globby'))
+    const { glob } = await import('tinyglobby')
 
     // can't wrap single extension in {} within regex
     const extensions = supportedExtensions.length > 1 ? `{${supportedExtensions.join(',')}}` : supportedExtensions[0]
 
-    return await globby([
+    return await glob([
       join(dir, '**', `*.${extensions}`),
       '!**/README.md',
       '!**/node_modules',
@@ -33,8 +33,6 @@ export async function discoverRouteDefinitions() {
       cwd: resolvedConfig.root,
       // avoid some edge-cases
       deep: 5,
-      // avoid scanning node_modules and any other expensive dirs
-      gitignore: true,
     })
   }
 

@@ -1,7 +1,7 @@
 import { join, resolve } from 'node:path'
 import fs from 'fs-extra'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { execa } from 'execa'
+import { x } from 'tinyexec'
 
 export const cacheDir = resolve(__dirname, '.cache')
 export const ci = resolve(__dirname, '../packages/unlighthouse/bin/unlighthouse-ci.mjs')
@@ -42,8 +42,8 @@ async function runCli(configFileFixture: string) {
   const config = await fs.readFile(configFileFixture, 'utf8')
   await fs.writeFile(join(testDir, 'unlighthouse.config.ts'), config)
 
-  const { exitCode, stdout, stderr } = await execa('node', [ci, '--root', testDir, '--debug', '--site', 'harlanzw.com'], {
-    cwd: testDir,
+  const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir, '--debug', '--site', 'harlanzw.com'], {
+    nodeOptions: { cwd: testDir },
   })
 
   const logs = stdout + stderr

@@ -85,11 +85,11 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   )
 
   // update the baseurl within the modules
-  const globby = (await import('globby'))
+  const { glob } = await import('tinyglobby')
   const clientAssetsPath = join(dirname(runtimeSettings.resolvedClientPath), 'assets')
   logger.debug(`Looking for index.*.js files in: ${clientAssetsPath}`)
 
-  const indexFiles = await globby.globby(['index*.js', 'index-*.js'], { cwd: clientAssetsPath })
+  const indexFiles = await glob(['index*.js', 'index-*.js'], { cwd: clientAssetsPath })
   logger.debug(`Found index files:`, indexFiles)
 
   const indexFile = indexFiles?.[0]

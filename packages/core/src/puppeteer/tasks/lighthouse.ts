@@ -135,18 +135,16 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   for (let i = 0; i < resolvedConfig.scanner.samples; i++) {
     try {
       // Spawn a worker process
-      const worker = (await import('execa'))
-        .execa(
-          // handles stubbing
-          runtimeSettings.lighthouseProcessPath.endsWith('.ts') ? 'jiti' : 'node',
-          [runtimeSettings.lighthouseProcessPath, ...args],
-          {
-            timeout: 6 * 60 * 1000,
-          },
-        )
-      worker.stdout!.pipe(process.stdout)
-      worker.stderr!.pipe(process.stderr)
-      const res = await worker
+      const { x } = await import('tinyexec')
+      const res = await x(
+        // handles stubbing
+        runtimeSettings.lighthouseProcessPath.endsWith('.ts') ? 'jiti' : 'node',
+        [runtimeSettings.lighthouseProcessPath, ...args],
+        {
+          timeout: 6 * 60 * 1000,
+          nodeOptions: { stdio: ['pipe', 'inherit', 'inherit'] },
+        },
+      )
       if (res)
         samples.push(fs.readJsonSync(reportJsonPath))
     }

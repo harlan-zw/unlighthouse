@@ -33,6 +33,7 @@
     "eslint": "catalog:",
     "obuild": "catalog:",
     "puppeteer": "catalog:",
+    "tinyexec": "catalog:dependencies",
     "typescript": "catalog:",
     "vite": "catalog:dependencies",
     "vitest": "catalog:"

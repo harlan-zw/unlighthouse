@@ -54,9 +54,9 @@
     "consola": "catalog:dependencies",
     "defu": "catalog:dependencies",
     "fs-extra": "catalog:dependencies",
-    "globby": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
     "pathe": "catalog:dependencies",
-    "std-env": "catalog:dependencies"
+    "std-env": "catalog:dependencies",
+    "tinyglobby": "catalog:dependencies"
   }
 }
