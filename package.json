@@ -14,7 +14,7 @@
     "build:pkg": "pnpm -r --filter='./packages/**' run build",
     "stub": "JITI_ESM_RESOLVE=true && pnpm -r --parallel run stub",
     "lint": "eslint . --fix",
-    "bump": "bumpp package.json packages-aliased/*/package.json packages/*/package.json --commit --push --tag",
+    "bump": "bumpp package.json packages/*/package.json --commit --push --tag",
     "release": "pnpm build && pnpm bump",
     "test": "vitest",
     "test:update": "vitest -u",
