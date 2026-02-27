@@ -179,6 +179,15 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   })
   config.puppeteerOptions.defaultViewport = config.lighthouseOptions.screenEmulation
 
+  // Auto-add --no-sandbox when running as root (e.g. Docker, VPS)
+  if (process.getuid?.() === 0) {
+    config.puppeteerOptions.args = config.puppeteerOptions.args || []
+    if (!config.puppeteerOptions.args.includes('--no-sandbox'))
+      config.puppeteerOptions.args.push('--no-sandbox')
+    if (!config.puppeteerOptions.args.includes('--disable-setuid-sandbox'))
+      config.puppeteerOptions.args.push('--disable-setuid-sandbox')
+  }
+
   let foundChrome = !!config.puppeteerOptions?.executablePath
   // if user is using the default chrome binary options
   if (config.chrome.useSystem && !foundChrome) {
