@@ -10,7 +10,7 @@ export default defineCachedEventHandler(async (event) => {
       statusMessage: 'Missing domain parameter',
     })
   }
-  return fetchCrux(domain).catch((e) => {
+  return fetchCrux(event, domain).catch((e) => {
     throw createError({
       statusCode: 500,
       statusMessage: 'CrUX Lookup Failed',

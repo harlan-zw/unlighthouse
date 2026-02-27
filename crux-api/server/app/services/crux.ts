@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3'
 import type { FetchError } from 'ofetch'
 import { useRuntimeConfig } from '#imports'
 import { $fetch } from 'ofetch'
@@ -9,10 +10,10 @@ type cwvKeys = [
   'interaction_to_next_paint',
 ]
 
-export async function fetchCrux(domain: string, formFactor: 'PHONE' | 'TABLET' | 'DESKTOP' = 'PHONE') {
-  const apiKey = useRuntimeConfig().google.cruxApiToken
+export async function fetchCrux(event: H3Event, domain: string, formFactor: 'PHONE' | 'TABLET' | 'DESKTOP' = 'PHONE') {
+  const apiKey = useRuntimeConfig(event).google.cruxApiToken
   if (!apiKey)
-    throw new Error('Missing NUXT_GOOGLE_CRUX_API_TOKEN — configure a CrUX API key in runtime config.')
+    throw new Error('Missing NITRO_GOOGLE_CRUX_API_TOKEN — configure a CrUX API key in runtime config.')
 
   const origin = withTrailingSlash(withHttps(domain))
   const results = await $fetch(`/records:queryHistoryRecord`, {
