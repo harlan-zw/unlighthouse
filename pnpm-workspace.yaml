@@ -47,11 +47,6 @@ catalogs:
     '@nuxt/ui': ^4.5.0
     '@puppeteer/browsers': ^2.13.0
     '@tailwindcss/vite': ^4.2.1
-    '@unrouted/core': ^0.6.0
-    '@unrouted/fetch': ^0.6.0
-    '@unrouted/plugins': ^0.6.0
-    '@unrouted/preset-api': ^0.6.0
-    '@unrouted/preset-node': ^0.6.0
     '@vueuse/core': ^14.2.1
     '@vueuse/router': ^14.2.1
     axios: ^1.13.5

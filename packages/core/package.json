@@ -47,11 +47,6 @@
   "dependencies": {
     "@clack/prompts": "catalog:dependencies",
     "@puppeteer/browsers": "catalog:dependencies",
-    "@unrouted/core": "catalog:dependencies",
-    "@unrouted/fetch": "catalog:dependencies",
-    "@unrouted/plugins": "catalog:dependencies",
-    "@unrouted/preset-api": "catalog:dependencies",
-    "@unrouted/preset-node": "catalog:dependencies",
     "axios": "catalog:dependencies",
     "c12": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
