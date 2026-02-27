@@ -11,7 +11,7 @@
     "ci:docs": "node packages/cli/dist/ci.mjs --site unlighthouse.dev --build-static --debug",
     "build": "pnpm run build:pkg",
     "build:docs": "cd docs && pnpm i && nuxi build",
-    "build:pkg": "pnpm -r --filter=./packages/** run build",
+    "build:pkg": "pnpm -r --filter='./packages/**' run build",
     "stub": "JITI_ESM_RESOLVE=true && pnpm -r --parallel run stub",
     "lint": "eslint . --fix",
     "bump": "bumpp package.json packages-aliased/*/package.json packages/*/package.json --commit --push --tag",
