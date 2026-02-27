@@ -1,12 +1,15 @@
 ---
-title: "Lighthouse Configuration"
-description: "Customize Google Lighthouse audit settings, categories, and performance thresholds within Unlighthouse scans."
+title: "Lighthouse Config & Desktop/Mobile Presets"
+description: "Customize Lighthouse audit categories, throttling, and desktop/mobile presets in Unlighthouse. Pass any lighthouseOptions directly."
 keywords:
   - lighthouse options
   - lighthouse configuration
   - lighthouse categories
   - customize lighthouse
   - lighthouse audit settings
+  - lighthouse preset desktop
+  - lighthouse preset mobile
+  - unlighthouse preset
 navigation:
   title: "Lighthouse Config"
 relatedPages:

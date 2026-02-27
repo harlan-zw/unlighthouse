@@ -8,6 +8,9 @@ keywords:
   - puppeteer headless
   - puppeteer chrome flags
   - lighthouse puppeteer
+  - unlighthouse puppeteer
+  - puppeteer no-sandbox
+  - puppeteer docker
 navigation:
   title: "Puppeteer"
 relatedPages:
