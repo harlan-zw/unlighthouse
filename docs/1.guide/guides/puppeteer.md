@@ -1,6 +1,6 @@
 ---
-title: "Puppeteer Launch Options"
-description: "Configure Puppeteer launch options in Unlighthouse: headless mode, Chrome args, viewport settings, executable path, and navigation hooks."
+title: "Puppeteer Launch Options for Lighthouse Audits"
+description: "Configure Puppeteer launch options for headless Chrome: --no-sandbox, Docker args, viewport, executable path, and navigation hooks. Copy-paste configs for CI and Docker."
 keywords:
   - puppeteer launch options
   - puppeteer.launch options
@@ -11,6 +11,10 @@ keywords:
   - unlighthouse puppeteer
   - puppeteer no-sandbox
   - puppeteer docker
+  - puppeteer launch options list
+  - puppeteer headless chrome
+  - puppeteer evaluateonnewdocument localstorage
+  - puppeteer set localstorage before navigation
 navigation:
   title: "Puppeteer"
 relatedPages:
@@ -20,6 +24,8 @@ relatedPages:
     title: Authentication
   - path: /guide/guides/docker
     title: Docker
+  - path: /learn-lighthouse/lighthouse-ci
+    title: Lighthouse CI
 ---
 
 Unlighthouse uses [Puppeteer](https://pptr.dev/) to control Chrome for Lighthouse audits. Configure browser behavior, navigation hooks, and Chrome flags via `puppeteerOptions`.

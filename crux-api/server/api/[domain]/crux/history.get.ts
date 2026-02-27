@@ -12,8 +12,9 @@ export default defineCachedEventHandler(async (event) => {
   }
   return fetchCrux(domain).catch((e) => {
     throw createError({
-      statusCode: 502,
-      statusMessage: `CrUX lookup failed for "${domain}": ${e.message}`,
+      statusCode: 500,
+      statusMessage: 'CrUX Lookup Failed',
+      message: `CrUX lookup failed for "${domain}": ${e.message}`,
     })
   })
 }, {
