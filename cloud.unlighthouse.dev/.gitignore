@@ -1,0 +1,15 @@
+node_modules
+*.log*
+.nuxt
+.nitro
+.cache
+.output
+.env
+dist
+.DS_Store
+
+# Database
+data/
+*.db
+*.db-shm
+*.db-wal

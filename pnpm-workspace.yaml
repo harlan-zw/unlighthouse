@@ -9,6 +9,7 @@ trustPolicyExclude:
 packages:
   - packages/*
   - crux-api
+  - cloud.unlighthouse.dev
   - '!docs'
 
 catalog:
