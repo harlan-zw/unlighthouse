@@ -7,10 +7,10 @@ export default antfu({
     'ts/no-use-before-define': 'off',
     'ts/prefer-ts-expect-error': 'off',
   },
-  // exclude examples dir
   ignores: [
     'test/*',
     'examples/*',
     'examples/**/*.*',
+    '**/*.md',
   ],
 })

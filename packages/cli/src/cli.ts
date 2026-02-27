@@ -10,10 +10,39 @@ const cli = createCli()
 
 const { options } = cli.parse() as unknown as { options: CliOptions }
 
+async function runHistoryMode() {
+  setMaxListeners(0)
+
+  const unlighthouse = await createUnlighthouse(
+    {
+      ...pickOptions(options),
+      site: options.site || 'http://localhost', // Placeholder, not used in history mode
+    },
+    { name: 'cli' },
+  )
+
+  const logger = useLogger()
+  logger.info('Starting Unlighthouse in history-only mode...')
+
+  const { server, app } = await createServer()
+  await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
+
+  logger.success(`Unlighthouse UI available at: ${unlighthouse.runtimeSettings.clientUrl}`)
+
+  if (unlighthouse.resolvedConfig.server.open)
+    await open(unlighthouse.runtimeSettings.clientUrl)
+}
+
 async function run() {
   const start = new Date()
   if (options.help || options.version)
     return
+
+  // History-only mode: start server without scanning
+  if (options.history) {
+    await runHistoryMode()
+    return
+  }
 
   setMaxListeners(0)
 

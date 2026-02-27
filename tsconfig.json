@@ -15,7 +15,7 @@
     "moduleResolution": "Bundler",
     "paths": {
       "unlighthouse": ["./packages/unlighthouse/src"],
-      "@unlighthouse/client": ["./packages/client/src"],
+      "@unlighthouse/ui": ["./packages/client/src"],
       "@unlighthouse/cli": ["./packages/cli/src"],
       "@unlighthouse/core": ["./packages/core/src"],
       "@unlighthouse/server": ["./packages/server/src"],

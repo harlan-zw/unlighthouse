@@ -2,13 +2,22 @@
 title: "Integration Deprecations"
 icon: carbon:warning-alt
 description: "Build tool integrations are deprecated in v1.0. Learn about migration paths and alternatives."
+keywords:
+  - unlighthouse migration
+  - unlighthouse upgrade
+  - unlighthouse deprecated
+  - unlighthouse breaking changes
 navigation: false
 relatedPages:
   - path: /integrations/cli
     title: CLI Integration
   - path: /integrations/ci
     title: CI Integration
+  - path: /guide/guides/config
+    title: Configuration
 ---
+
+# Integration Deprecations
 
 The following build tool integrations are deprecated and will be removed in v1.0:
 

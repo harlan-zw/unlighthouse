@@ -7,6 +7,7 @@ keywords:
   - speed index explained
   - speed index lighthouse
   - visual loading speed
+  - speed index score
 navigation:
   title: "Speed Index"
 relatedPages:
@@ -17,6 +18,8 @@ relatedPages:
   - path: /guide/recipes/improving-accuracy
     title: Improving Accuracy
 ---
+
+# Speed Index
 
 Speed Index measures how quickly visible content populates the viewport during page load. It captures the overall visual loading experience rather than a single moment in time.
 

@@ -23,7 +23,9 @@ import { createContext } from 'unctx'
 import { version } from '../package.json'
 import { generateClient } from './build'
 import { AppName, ClientPkg } from './constants'
-import { discoverRouteDefinitions, resolveReportableRoutes } from './discovery'
+import { crawlSite } from './crawl'
+import { initHistoryTracking } from './data/history'
+import { discoverRouteDefinitions } from './discovery'
 import { createLogger } from './logger'
 import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
 import { resolveUserConfig } from './resolveConfig'
@@ -79,10 +81,16 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     configCacheKey: '',
     lighthouseProcessPath: '',
   }
-  // path to the lighthouse worker file
+  // path to the lighthouse worker file - try both dist locations (root and _chunks)
   runtimeSettings.lighthouseProcessPath = await resolvePath(
     join(runtimeSettings.moduleWorkingDir, 'lighthouse.mjs'),
   ).catch(() => '')
+  // try parent dir (when __dirname is _chunks)
+  if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
+    runtimeSettings.lighthouseProcessPath = await resolvePath(
+      join(runtimeSettings.moduleWorkingDir, '..', 'lighthouse.mjs'),
+    ).catch(() => '')
+  }
   // ts module in stub mode, not sure why extensions won't resolve
   if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
     runtimeSettings.lighthouseProcessPath = await resolvePath(
@@ -204,7 +212,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       ...ctx.runtimeSettings,
       outputPath,
       generatedClientPath: outputPath,
-      resolvedClientPath: await resolvePath(ClientPkg, { url: import.meta.url }),
+      resolvedClientPath: '', // Skip client resolution for dev mode
     }
 
     if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
@@ -241,6 +249,21 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     logger.debug(`Setting Unlighthouse Server Context [Server: ${$server}]`)
 
+    // Resolve client package path - resolvePath returns main field (dist/index.html)
+    let resolvedClientPath = ''
+    try {
+      // resolvePath returns the main entry (dist/index.html)
+      resolvedClientPath = await resolvePath(ClientPkg, { url: import.meta.url })
+      logger.debug(`Resolved client path: ${resolvedClientPath}`)
+      if (!existsSync(resolvedClientPath)) {
+        logger.warn(`Client path does not exist: ${resolvedClientPath}`)
+        resolvedClientPath = ''
+      }
+    }
+    catch (e) {
+      logger.debug('Failed to resolve client package path', e)
+    }
+
     const clientUrl = joinURL($server.toString(), resolvedConfig.routerPrefix)
     const apiPath = joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)
     ctx.runtimeSettings.serverUrl = url
@@ -248,7 +271,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       ...ctx.runtimeSettings,
       apiPath,
       server,
-      resolvedClientPath: await resolvePath(ClientPkg, { url: import.meta.url }),
+      resolvedClientPath,
       clientUrl,
       apiUrl: joinURL($server.toString(), apiPath),
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,
@@ -272,7 +295,11 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       }
     }
     fs.ensureDirSync(ctx.runtimeSettings.outputPath)
-    await generateClient()
+
+    // Generate client for CLI mode (copy and transform client files)
+    if (provider?.name === 'cli' && resolvedClientPath && existsSync(resolvedClientPath)) {
+      await generateClient({}, ctx)
+    }
 
     if (provider?.name !== 'cli') {
       // start if the user visits the client
@@ -306,8 +333,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       logger.debug(`Discovered ${ctx.routeDefinitions?.length} definitions and setup mock router.`)
     }
 
-    ctx.routes = await resolveReportableRoutes()
-    logger.debug('Resolved reportable routes', ctx.routes.length)
+    // Two-phase URL discovery: crawlSite handles sitemap, manual URLs, and Crawlee crawling
+    ctx.routes = await crawlSite()
+    logger.debug('Discovered and filtered routes', ctx.routes.length)
     createBroadcastingEvents()
 
     // Show the static info box first (before any progress starts)

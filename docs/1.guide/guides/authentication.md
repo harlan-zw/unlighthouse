@@ -6,6 +6,8 @@ keywords:
   - lighthouse password protected
   - lighthouse login
   - puppeteer authentication
+  - lighthouse behind login
+  - scan authenticated pages
 navigation:
   title: "Authentication"
 relatedPages:
@@ -13,143 +15,135 @@ relatedPages:
     title: Debugging
   - path: /guide/guides/puppeteer
     title: Puppeteer Configuration
+  - path: /guide/guides/config
+    title: Configuration
 ---
 
-Unlighthouse supports basic auth, session cookies, custom headers, and programmatic login flows for protected websites.
+Need to scan pages behind a login? Unlighthouse supports every common auth pattern. Find yours below.
 
-## Basic Authentication
+## Quick Reference
 
-To use basic authentication, provide the `auth` option in your configuration file:
+| Auth Type | Best For | Config Key |
+|-----------|----------|------------|
+| Basic Auth | Staging environments with HTTP basic auth | `auth` |
+| Cookies | Session tokens, JWTs in cookies | `cookies` |
+| Headers | Bearer tokens, API keys | `extraHeaders` |
+| localStorage | SPAs storing tokens in localStorage | `localStorage` |
+| Programmatic | Complex login flows, 2FA | `hooks.authenticate` |
+
+## Basic Auth
+
+For sites using HTTP Basic Authentication (the browser popup):
 
 ```ts
-// unlighthouse.config.ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
-
 export default defineUnlighthouseConfig({
   auth: {
-    username: 'username',
-    password: 'password',
+    username: process.env.AUTH_USER,
+    password: process.env.AUTH_PASS,
   },
 })
 ```
 
-Alternatively, you can provide the `--auth` flag to the CLI.
-
+Or via CLI:
 ```bash
-unlighthouse --site <your-site> --auth username:password
+unlighthouse --site staging.example.com --auth admin:secretpass
 ```
 
-## Cookie Authentication
+## Cookies
 
-If you can authenticate your session using cookies, use the `cookies` option in your configuration file:
+Most common for session-based auth. Grab your session cookie from browser DevTools (Application → Cookies):
 
 ```ts
-// unlighthouse.config.ts
 export default defineUnlighthouseConfig({
   cookies: [
     {
-      name: 'my-jwt-token',
-      value: '<token>',
-      domain: 'your-site.com',
+      name: 'session_id',
+      value: 'abc123...',
+      domain: 'example.com',  // Must match your site
       path: '/',
     },
   ],
 })
 ```
 
-Alternatively, you can provide the `--cookies` flag to the CLI.
+**Getting the cookie value:**
+1. Log into your site in Chrome
+2. Open DevTools → Application → Cookies
+3. Copy the session cookie value
+4. Paste into config (or use environment variable)
 
+CLI shorthand:
 ```bash
-unlighthouse --site <your-site> --cookies "my-jwt-token=<token>"
+unlighthouse --site example.com --cookies "session_id=abc123"
+
+# Multiple cookies
+unlighthouse --site example.com --cookies "session_id=abc123;csrf_token=xyz789"
 ```
 
-You can provide multiple cookies by separating them with a `;`.
+## Headers (Bearer Tokens, API Keys)
 
-```bash
-unlighthouse --site <your-site> --cookies my-jwt-token=<token>;my-other-cookie=value
-```
-
-## Custom Headers Authentication
-
-If providing cookies or basic auth is not enough, you can provide custom headers to be sent with each request.
-
-To use custom headers, provide the `extraHeaders` option in your configuration file:
+For APIs or sites expecting `Authorization` headers:
 
 ```ts
-// unlighthouse.config.ts
 export default defineUnlighthouseConfig({
   extraHeaders: {
-    'x-custom-auth': '<token>',
+    'Authorization': `Bearer ${process.env.API_TOKEN}`,
   },
 })
 ```
 
-Alternatively, you can provide the `--extra-headers` flag to the CLI.
-
+CLI:
 ```bash
-unlighthouse --site <your-site> --extra-headers x-custom-header:custom-value
-```
-
-You can provide multiple headers by separating them with a `,`.
-
-```bash
-unlighthouse --site <your-site> --extra-headers x-custom-header:custom-value,x-other-header:other-value
+unlighthouse --site api.example.com --extra-headers "Authorization:Bearer abc123"
 ```
 
 ## Query Params
 
-If you can configure your authentication using query params,
-then you can provide them using the `defaultQueryParams` option in your configuration file:
+Some staging environments use URL tokens:
 
 ```ts
-// unlighthouse.config.ts
 export default defineUnlighthouseConfig({
   defaultQueryParams: {
-    auth: '<token>'
+    access_token: process.env.STAGING_TOKEN,
   },
 })
 ```
 
-Alternatively, you can provide the `--default-query-params` flag to the CLI.
+Every scanned URL will include `?access_token=...`
 
-```bash
-unlighthouse --site <your-site> --default-query-params auth=<token>,foo=bar
-```
+## localStorage (SPAs)
 
-## Local Storage
-
-If you can configure your authentication using local storage,
-then you can provide them using the `localStorage` option in your configuration file:
+For React/Vue/Angular apps storing auth tokens in localStorage:
 
 ```ts
-// unlighthouse.config.ts
 export default defineUnlighthouseConfig({
   localStorage: {
-    auth: '<token>'
+    'auth_token': process.env.AUTH_TOKEN,
+    'user_id': '12345',
   },
 })
 ```
 
-## Programmatic Usage
+Unlighthouse sets these before each page loads.
 
-You can also use control Puppeteer programmatically before the page is scanned using a config file.
-This is
-more experimental, and you may run into issues.
+## Programmatic Login (Complex Flows)
 
-You can see an example here:
+For login forms, OAuth flows, or anything the simpler methods can't handle:
 
 ```ts
-// unlighthouse.config.ts
 export default defineUnlighthouseConfig({
   hooks: {
-    async authenticate(page) {
+    async authenticate({ page }) {
+      // Navigate to login
       await page.goto('https://example.com/login')
-      const emailInput = await page.$('input[type="email"]')
-      await emailInput.type('admin@example.com')
-      const passwordInput = await page.$('input[type="password"]')
-      await passwordInput.type('password')
+
+      // Fill form
+      await page.type('input[name="email"]', 'test@example.com')
+      await page.type('input[name="password"]', process.env.PASSWORD)
+
+      // Submit and wait for redirect
       await Promise.all([
-        page.$eval('.login-form', form => form.submit()),
+        page.click('button[type="submit"]'),
         page.waitForNavigation(),
       ])
     },
@@ -157,22 +151,41 @@ export default defineUnlighthouseConfig({
 })
 ```
 
-## Persisting Authentication
+This runs once before scanning starts. The session persists for all pages.
 
-If you need to persist your authentication data and it's not working as expected, you can configure Unlighthouse as follows:
+## Auth Not Sticking?
+
+If authentication isn't persisting between page scans:
 
 ```ts
 export default defineUnlighthouseConfig({
   puppeteerOptions: {
-    userDataDir: './.puppeteer_data',
+    userDataDir: './.unlighthouse-session',  // Persist browser data
   },
   lighthouseOptions: {
-    disableStorageReset: true,
+    disableStorageReset: true,   // Don't clear storage between pages
     skipAboutBlank: true,
   },
 })
 ```
 
-::tip
-For debugging authentication issues, enable visual mode and debug logging as described in the [Debugging Guide](/guide/guides/debugging).
-::
+## Debugging Auth Issues
+
+Can't tell if auth is working? Watch it happen:
+
+```ts
+export default defineUnlighthouseConfig({
+  debug: true,
+  puppeteerOptions: {
+    headless: false,  // See the browser
+    slowMo: 100,      // Slow it down
+  },
+  puppeteerClusterOptions: {
+    maxConcurrency: 1,  // One at a time
+  },
+})
+```
+
+Now you can watch the browser and see exactly where auth fails.
+
+See the [Debugging Guide](/guide/guides/debugging) for more techniques.

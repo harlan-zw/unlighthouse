@@ -1,6 +1,13 @@
 ---
 title: "Common Errors"
 description: "Troubleshoot common issues encountered when running Unlighthouse scans, including browser connection and environment problems."
+keywords:
+  - lighthouse error
+  - lighthouse not working
+  - puppeteer error
+  - chrome connection refused
+  - wsl lighthouse
+  - lighthouse troubleshooting
 navigation:
   title: "Common Errors"
 relatedPages:
@@ -8,9 +15,11 @@ relatedPages:
     title: Debugging
   - path: /guide/guides/chrome-dependency
     title: Chrome Dependency
+  - path: /guide/guides/puppeteer
+    title: Puppeteer Configuration
 ---
 
-Common issues and solutions for Unlighthouse scans. Ensure you're using the latest version before troubleshooting.
+Solutions for frequently encountered issues when running Unlighthouse scans. Ensure you're using the latest version before troubleshooting.
 
 ::tip
 For general debugging techniques, see the [Debugging Guide](/guide/guides/debugging).

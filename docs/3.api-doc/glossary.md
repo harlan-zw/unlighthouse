@@ -1,14 +1,26 @@
 ---
-title: "Glossary"
-description: "Key terms and concepts used throughout the Unlighthouse documentation and API."
+title: "API Glossary"
+description: "Key terms and concepts used throughout the Unlighthouse documentation and API, including route definitions, providers, and hooks."
+keywords:
+  - unlighthouse api
+  - unlighthouse glossary
+  - route definition
+  - unlighthouse provider
+  - unlighthouse types
 navigation:
-  title: "Glossary"
+  title: "API Glossary"
 relatedPages:
   - path: /api-doc/index
     title: API Reference
   - path: /api-doc/config
     title: Config Reference
+  - path: /guide/guides/route-definitions
+    title: Route Definitions Guide
 ---
+
+# API Glossary
+
+Key terms, types, and concepts used throughout the Unlighthouse API and documentation.
 
 ## Core Concepts
 
