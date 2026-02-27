@@ -1,7 +1,7 @@
 {
   "name": "unlighthouse",
   "type": "module",
-  "version": "0.17.4",
+  "version": "0.17.5",
   "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",

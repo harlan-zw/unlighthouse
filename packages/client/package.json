@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/client",
   "type": "module",
-  "version": "0.17.4",
+  "version": "0.17.5",
   "description": "UI Client for Unlighthouse.",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
