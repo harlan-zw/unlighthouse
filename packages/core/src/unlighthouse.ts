@@ -63,16 +63,20 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     userConfig.root = process.cwd()
 
   logger.debug(`Starting Unlighthouse at root: \`${userConfig.root}\` cwd: ${process.cwd()}`)
+  // resolve configFile to absolute before passing to c12
+  if (userConfig.configFile && !isAbsolute(userConfig.configFile))
+    userConfig.configFile = join(process.cwd(), userConfig.configFile)
   // support loading configuration files
   ;(globalThis as any).defineUnlighthouseConfig = (c: any) => c
   const { configFile, config } = await loadConfig<UserConfig>({
     name: 'unlighthouse',
+    cwd: userConfig.root,
     configFile: userConfig.configFile || 'unlighthouse.config',
     dotenv: true,
   })
   delete (globalThis as any).defineUnlighthouseConfig
   logger.debug('Discovered config definition', config)
-  userConfig = defu(config, userConfig)
+  userConfig = defu(userConfig, config)
   const runtimeSettings: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
     configFile: configFile || undefined,
     moduleWorkingDir: __dirname,
