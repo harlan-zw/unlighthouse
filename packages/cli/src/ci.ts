@@ -33,13 +33,12 @@ async function run() {
   resolvedOptions.ci = {
     budget: options.budget || undefined,
     buildStatic: options.buildStatic || false,
-    reporter: options.reporter || 'jsonSimple',
+    reporter: options.reporter || undefined,
     reporterConfig: {
       lhciHost: options.lhciHost,
       lhciBuildToken: options.lhciBuildToken,
       lhciAuth: options.lhciAuth,
     },
-
   }
 
   await createUnlighthouse({
@@ -55,6 +54,10 @@ async function run() {
   const { resolvedConfig, setCiContext, hooks, worker, start } = useUnlighthouse()
 
   validateOptions(resolvedConfig)
+
+  // default reporter if not set by CLI or config file
+  if (!resolvedConfig.ci.reporter)
+    resolvedConfig.ci.reporter = 'jsonSimple'
 
   const logger = useLogger()
 
