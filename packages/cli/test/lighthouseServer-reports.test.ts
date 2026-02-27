@@ -26,13 +26,16 @@ const createRun = vi.fn(() => new Promise(resolve => resolve({})))
 const sealBuild = vi.fn(() => new Promise(resolve => resolve({})))
 
 vi.mock('@lhci/utils/src/api-client.js', () => {
-  const ApiClient = vi.fn(() => ({
-    setBuildToken,
-    findProjectByToken,
-    createBuild,
-    createRun,
-    sealBuild,
-  }))
+  // eslint-disable-next-line prefer-arrow-callback
+  const ApiClient = vi.fn(function ApiClient() {
+    return {
+      setBuildToken,
+      findProjectByToken,
+      createBuild,
+      createRun,
+      sealBuild,
+    }
+  })
   return {
     default: ApiClient,
   }
