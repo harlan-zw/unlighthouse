@@ -10,6 +10,10 @@ type cwvKeys = [
 ]
 
 export async function fetchCrux(domain: string, formFactor: 'PHONE' | 'TABLET' | 'DESKTOP' = 'PHONE') {
+  const apiKey = useRuntimeConfig().google.cruxApiToken
+  if (!apiKey)
+    throw new Error('Missing NUXT_GOOGLE_CRUX_API_TOKEN — configure a CrUX API key in runtime config.')
+
   const origin = withTrailingSlash(withHttps(domain))
   const results = await $fetch(`/records:queryHistoryRecord`, {
     baseURL: 'https://chromeuxreport.googleapis.com/v1',
@@ -18,7 +22,7 @@ export async function fetchCrux(domain: string, formFactor: 'PHONE' | 'TABLET' |
       'Content-Type': 'application/json',
     },
     query: {
-      key: useRuntimeConfig().google.cruxApiToken,
+      key: apiKey,
     },
     body: {
       origin,
@@ -28,7 +32,11 @@ export async function fetchCrux(domain: string, formFactor: 'PHONE' | 'TABLET' |
     // 404 is okay, it just means there's no data for this domain
     if (e.status === 404)
       return { exists: false }
-    throw e
+    if (e.status === 403)
+      throw new Error(`CrUX API key is invalid or lacks permission for the CrUX History API.`)
+    if (e.status === 429)
+      throw new Error(`CrUX API rate limit exceeded — try again later.`)
+    throw new Error(`CrUX API error (${e.status}): ${e.data?.error?.message || e.message}`)
   })
 
   if (!results || results.exists === false)

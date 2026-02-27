@@ -6,11 +6,16 @@ export default defineCachedEventHandler(async (event) => {
   const domain = getRouterParam(event, 'domain', { decode: true })
   if (!domain) {
     throw createError({
-      statusCode: 404,
-      statusMessage: 'Site not found',
+      statusCode: 400,
+      statusMessage: 'Missing domain parameter',
     })
   }
-  return fetchCrux(domain)
+  return fetchCrux(domain).catch((e) => {
+    throw createError({
+      statusCode: 502,
+      statusMessage: `CrUX lookup failed for "${domain}": ${e.message}`,
+    })
+  })
 }, {
   base: 'crux2',
   swr: true,

@@ -21,6 +21,8 @@ relatedPages:
     title: Config Reference
   - path: /glossary
     title: Core Web Vitals Glossary
+  - path: /learn-lighthouse/lcp
+    title: LCP Optimization Guide
 ---
 
 Test performance across different screen sizes and network conditions. Configure mobile, desktop, or custom viewport settings with optional network throttling for realistic performance testing.
