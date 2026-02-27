@@ -37,7 +37,7 @@ interface RobotsTxtRule { pattern: string, allow: boolean }
 function matches(pattern: string, path: string): boolean {
   const pathLength = path.length
   const patternLength = pattern.length
-  const matchingLengths: number[] = Array.from({ length: pathLength + 1 }).fill(0)
+  const matchingLengths = Array.from({ length: pathLength + 1 }).fill(0) as number[]
   let numMatchingLengths = 1
 
   let p = 0

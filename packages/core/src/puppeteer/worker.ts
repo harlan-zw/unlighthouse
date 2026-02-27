@@ -260,7 +260,8 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       cluster
         .execute(routeReport, (arg) => {
           routeReport.tasks[taskName] = 'in-progress'
-          routeReport.tasksTime = routeReport.tasksTime || {}
+          if (!routeReport.tasksTime)
+            routeReport.tasksTime = {}
           routeReport.tasksTime[taskName] = Date.now()
           currentTaskInfo = `${taskName.replace('Task', '')} - ${path}`
           updateProgressDisplay()
@@ -300,7 +301,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
           response.tasks[taskName] = 'completed'
           routeReports.set(id, response)
           hooks.callHook('task-complete', path, response, taskName)
-          const ms = Date.now() - routeReport.tasksTime?.[taskName]
+          const ms = Date.now() - (routeReport.tasksTime?.[taskName] || Date.now())
 
           // Store actual completion time for better time estimation
           if (!taskCompletionTimes.has(id)) {
@@ -320,7 +321,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
               reportData.push(`Samples: ${resolvedConfig.scanner.samples}`)
           }
           else if (taskName === 'inspectHtmlTask') {
-            if (response.seo.htmlSize)
+            if (response.seo?.htmlSize)
               reportData.push(formatBytes(response.seo.htmlSize))
           }
           reportData.push(`${monitor().donePercStr}% complete`)

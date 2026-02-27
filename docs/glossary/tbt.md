@@ -26,7 +26,7 @@ TBT counts the "blocking" portion of all Long Tasks between [FCP](/glossary/fcp)
 
 For each Long Task, only the time beyond 50ms counts toward TBT:
 
-```
+```text
 Task duration: 70ms → Blocking time: 20ms (70 - 50)
 Task duration: 250ms → Blocking time: 200ms (250 - 50)
 Task duration: 30ms → Blocking time: 0ms (under threshold)

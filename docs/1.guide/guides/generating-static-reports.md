@@ -78,7 +78,7 @@ If you want to preview the static report you can run `npx sirv-cli .unlighthouse
 
 Note: You will need to host your site using a web server.
 
-#### CloudFlare Pages Example
+### CloudFlare Pages Example
 
 You should create a CloudFlare Pages site using [Direct Upload](https://developers.cloudflare.com/pages/platform/direct-upload/).
 
@@ -96,7 +96,7 @@ You can then run the following command to generate the static report and upload 
 unlighthouse-ci --site www.example.com --build-static && wrangler pages publish .unlighthouse
 ```
 
-#### GitHub Actions & Netlify Example
+### GitHub Actions & Netlify Example
 
 This example is for GitHub Actions and deploys a static client build to Netlify.
 

@@ -22,7 +22,7 @@ Unlighthouse scans your entire site using Google Lighthouse,<br> with a modern U
 </table>
 </p>
 
-### Quick Setup
+## Quick Setup
 
 Run the following command:
 
@@ -46,12 +46,12 @@ Install instructions for all integrations can be found on the [docs](https://unl
 
 Need a hand? Join the [Discord](https://discord.gg/275MBUBvgP) for one-on-one help.
 
-#### gitignore
+### gitignore
 
 Unlighthouse will save your reports in `outputDir`,
 it's recommended you .gitignore these files.
 
-```
+```shell
 .unlighthouse
 ```
 
@@ -74,7 +74,7 @@ Integration instructions, Guides, API and config spec can be found on [docs](htt
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/harlan-zw/static/main/sponsors.svg">
-    <img src='https://raw.githubusercontent.com/harlan-zw/static/main/sponsors.svg'/>
+    <img src='https://raw.githubusercontent.com/harlan-zw/static/main/sponsors.svg' alt='Sponsors'/>
   </a>
 </p>
 

@@ -177,7 +177,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     headless: true,
     ignoreHTTPSErrors: true,
   })
-  config.puppeteerOptions.defaultViewport = config.lighthouseOptions.screenEmulation
+  config.puppeteerOptions.defaultViewport = config.lighthouseOptions.screenEmulation as any
 
   // Auto-add --no-sandbox when running as root (e.g. Docker, VPS)
   if (process.getuid?.() === 0) {
@@ -192,9 +192,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   // if user is using the default chrome binary options
   if (config.chrome.useSystem && !foundChrome) {
     // we'll try and resolve their local chrome
-    let chromePath = false
+    let chromePath: string | false = false
     try {
-      chromePath = Launcher.getFirstInstallation()
+      chromePath = Launcher.getFirstInstallation() || false
     }
     catch (e) {
       logger.debug('Chrome launcher failed to get a path.', e)
@@ -267,7 +267,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   const instance = await launch(config.puppeteerOptions).catch((e) => {
     if (detectBrowserPlatform() === 'linux' && e.toString().includes('error while loading shared libraries')) {
       const depsPath = path.join(
-        path.dirname(config.puppeteerOptions.executablePath),
+        path.dirname(config.puppeteerOptions!.executablePath!),
         'deb.deps',
       )
       if (existsSync(depsPath)) {

@@ -33,6 +33,8 @@ export function parseRobotsTxt(s: string) {
     disallow: [],
     allow: [],
     userAgent: [],
+    _indexable: true,
+    _rules: [],
   }
   // read the contents
   for (const line of s.split('\n')) {
@@ -50,11 +52,13 @@ export function parseRobotsTxt(s: string) {
           groups.push({
             ...currentGroup,
           })
-          currentGroup = <RobotsGroupResolved> {
+          currentGroup = {
             comment: [],
             disallow: [],
             allow: [],
             userAgent: [],
+            _indexable: true,
+            _rules: [],
           }
           createNewGroup = false
         }
@@ -93,12 +97,12 @@ function asArray(v: any) {
 function normalizeGroup(group: RobotsGroupResolved): RobotsGroupResolved {
   const disallow = asArray(group.disallow) // we can have empty disallow
   const allow = asArray(group.allow).filter(rule => Boolean(rule))
-  return <RobotsGroupResolved> {
+  return {
     ...group,
     userAgent: group.userAgent ? asArray(group.userAgent) : ['*'],
     disallow,
     allow,
-    _indexable: !disallow.includes((rule: string) => rule === '/'),
+    _indexable: !disallow.includes('/'),
     _rules: [
       ...disallow.filter(Boolean).map(r => ({ pattern: r, allow: false })),
       ...allow.map(r => ({ pattern: r, allow: true })),

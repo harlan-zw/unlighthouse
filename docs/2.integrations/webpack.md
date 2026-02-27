@@ -47,7 +47,7 @@ pnpm add -D @unlighthouse/webpack
 Unlighthouse will save your reports in `outputDir` (`.unlighthouse` by default),
 it's recommended you .gitignore these files.
 
-```
+```shell
 .unlighthouse
 ```
 

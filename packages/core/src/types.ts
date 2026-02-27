@@ -96,7 +96,7 @@ export interface UnlighthouseRouteReport {
   /**
    * Track how long tasks are taking
    */
-  tasksTime?: Record<Partial<UnlighthouseTask>, number>
+  tasksTime?: Partial<Record<UnlighthouseTask, number>>
   /**
    * Path to where the artifacts from a URL scan are saved.
    */
