@@ -11,6 +11,8 @@ packages:
   - crux-api
   - '!docs'
 
+overrides:
+  rollup: 4.59.0
 catalog:
   '@antfu/eslint-config': ^7.6.1
   '@arethetypeswrong/cli': 0.18.2
