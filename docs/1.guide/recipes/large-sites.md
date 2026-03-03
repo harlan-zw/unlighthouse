@@ -18,9 +18,9 @@ relatedPages:
     title: URL Discovery
   - path: /guide/guides/route-definitions
     title: Route Definitions
-  - path: /learn-lighthouse/bulk-lighthouse-testing
-    title: Bulk Lighthouse Testing Guide
 ---
+
+# Bulk Lighthouse Testing for Large Sites
 
 Scan websites with thousands of pages efficiently. Unlike single-page tools like PageSpeed Insights, Unlighthouse handles large sites with smart sampling, parallel scanning, and configurable limits.
 

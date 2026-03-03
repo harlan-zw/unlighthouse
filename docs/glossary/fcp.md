@@ -6,6 +6,8 @@ keywords:
   - fcp meaning
   - first contentful paint explained
   - fcp lighthouse
+  - fcp score
+  - improve fcp
 navigation:
   title: "FCP"
 relatedPages:
@@ -17,7 +19,9 @@ relatedPages:
     title: Improving Accuracy
 ---
 
-First Contentful Paint (FCP) measures the time from navigation start to when any content first renders on screen. It's a Lighthouse performance metric that indicates when users first see something happening.
+# First Contentful Paint (FCP)
+
+First Contentful Paint measures the time from navigation start to when any content first renders on screen. It's a Lighthouse performance metric that indicates when users first see something happening.
 
 ## What FCP Measures
 

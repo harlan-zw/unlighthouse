@@ -283,18 +283,9 @@ function classifyErrorSource(source: string | undefined, message: string): strin
 
 function isThirdPartyUrl(url: string): boolean {
   const thirdPartyPatterns = [
-    /google/i,
-    /facebook/i,
-    /twitter/i,
-    /analytics/i,
-    /cdn\./i,
-    /cloudflare/i,
-    /jsdelivr/i,
-    /unpkg/i,
-    /hotjar/i,
-    /intercom/i,
-    /segment/i,
-    /mixpanel/i,
+    /google/i, /facebook/i, /twitter/i, /analytics/i,
+    /cdn\./i, /cloudflare/i, /jsdelivr/i, /unpkg/i,
+    /hotjar/i, /intercom/i, /segment/i, /mixpanel/i,
   ]
   return thirdPartyPatterns.some(p => p.test(url))
 }
@@ -302,9 +293,9 @@ function isThirdPartyUrl(url: string): boolean {
 function normalizeErrorMessage(msg: string): string {
   // Remove line numbers, file paths, dynamic values
   return msg
-    .replace(/:\d+:\d+/g, '') // Line:col
-    .replace(/at .+$/gm, '') // Stack frames
-    .replace(/\b[a-f0-9]{8,}\b/gi, '') // Hashes
+    .replace(/:\d+:\d+/g, '')           // Line:col
+    .replace(/at .+$/gm, '')            // Stack frames
+    .replace(/\b[a-f0-9]{8,}\b/gi, '')  // Hashes
     .trim()
 }
 ```
@@ -329,8 +320,7 @@ async function extractBestPracticesData(scanId: string, routes: RouteWithLhr[]) 
         description: `Link to ${item.href} missing rel="noopener"`,
         pages: [],
       }
-      if (!existing.pages.includes(path))
-        existing.pages.push(path)
+      if (!existing.pages.includes(path)) existing.pages.push(path)
       securityMap.set(key, existing)
     }
 
@@ -344,13 +334,12 @@ async function extractBestPracticesData(scanId: string, routes: RouteWithLhr[]) 
         status: 'current', // Updated by vulnerability check
         pages: [],
       }
-      if (!existing.pages.includes(path))
-        existing.pages.push(path)
+      if (!existing.pages.includes(path)) existing.pages.push(path)
       libraryMap.set(key, existing)
     }
 
     // Deprecated APIs
-    const deprecations = lhr.audits.deprecations?.details?.items || []
+    const deprecations = lhr.audits['deprecations']?.details?.items || []
     for (const item of deprecations) {
       const key = item.value || item.description
       const existing = deprecatedMap.get(key) || {
@@ -361,8 +350,7 @@ async function extractBestPracticesData(scanId: string, routes: RouteWithLhr[]) 
         sourceFile: item.source?.url,
         pages: [],
       }
-      if (!existing.pages.includes(path))
-        existing.pages.push(path)
+      if (!existing.pages.includes(path)) existing.pages.push(path)
       deprecatedMap.set(key, existing)
     }
 
@@ -382,8 +370,7 @@ async function extractBestPracticesData(scanId: string, routes: RouteWithLhr[]) 
         pages: [],
       }
       existing.instanceCount++
-      if (!existing.pages.includes(path))
-        existing.pages.push(path)
+      if (!existing.pages.includes(path)) existing.pages.push(path)
       errorMap.set(normalized, existing)
     }
   }

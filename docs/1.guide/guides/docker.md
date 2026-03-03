@@ -18,6 +18,8 @@ relatedPages:
     title: Chrome Dependency
 ---
 
+# Run Lighthouse in Docker
+
 Run Unlighthouse in Docker containers for consistent CI/CD environments. Docker requires special Puppeteer configuration due to sandboxing restrictions.
 
 ::warning

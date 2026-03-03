@@ -19,12 +19,13 @@ relatedPages:
     title: Core Web Vitals Glossary
 ---
 
+# Improving Lighthouse Accuracy
+
 Lighthouse scores can vary 5-10 points between runs due to network conditions, CPU load, and browser state. These techniques improve consistency for reliable [Core Web Vitals](/glossary) measurement.
 
 ## Why Scores Vary
 
 Single Lighthouse runs can fluctuate by 5-10 points due to:
-
 - CPU load from other browser tabs or processes
 - Network latency variations
 - Memory pressure

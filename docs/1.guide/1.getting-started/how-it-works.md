@@ -19,6 +19,8 @@ relatedPages:
     title: Core Web Vitals Glossary
 ---
 
+# How Unlighthouse Works
+
 Unlighthouse automates the entire site audit process: it finds all your pages, runs Lighthouse on each one in parallel, then shows you aggregated results in a real-time dashboard.
 
 ## How It Starts

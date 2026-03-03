@@ -18,6 +18,8 @@ relatedPages:
     title: Configuration
 ---
 
+# Webpack Integration
+
 ::warning
 **Deprecated**: This integration will be removed in v1.0. Use [CLI](/integrations/cli) or [CI](/integrations/ci) instead. See [deprecation notice](/integration-deprecations).
 ::

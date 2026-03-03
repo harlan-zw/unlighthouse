@@ -7,6 +7,7 @@ keywords:
   - time to interactive explained
   - tti deprecated
   - tti lighthouse
+  - tti removed
 navigation:
   title: "TTI (Deprecated)"
 relatedPages:
@@ -17,6 +18,8 @@ relatedPages:
   - path: /guide/recipes/improving-accuracy
     title: Improving Accuracy
 ---
+
+# Time to Interactive (TTI) - Deprecated
 
 ::warning
 Time to Interactive (TTI) was **removed from Lighthouse 10** in February 2023. Use [TBT](/glossary/tbt) for lab measurement and [INP](/glossary/inp) for field measurement of interactivity.

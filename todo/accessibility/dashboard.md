@@ -234,7 +234,7 @@ const SEVERITY_MAP: Record<string, string> = {
   'meta-refresh': 'minor',
 }
 
-const WCAG_MAP: Record<string, { criteria: string[], level: string }> = {
+const WCAG_MAP: Record<string, { criteria: string[]; level: string }> = {
   'image-alt': { criteria: ['1.1.1'], level: 'A' },
   'color-contrast': { criteria: ['1.4.3'], level: 'AA' },
   'label': { criteria: ['1.3.1', '4.1.2'], level: 'A' },
@@ -253,10 +253,8 @@ async function extractAccessibilityData(scanId: string, routes: RouteWithLhr[]) 
 
   for (const { path, lhr } of routes) {
     for (const [auditId, audit] of Object.entries(lhr.audits)) {
-      if (audit.score === 1 || audit.score === null)
-        continue
-      if (!SEVERITY_MAP[auditId])
-        continue
+      if (audit.score === 1 || audit.score === null) continue
+      if (!SEVERITY_MAP[auditId]) continue
 
       const items = audit.details?.items || []
       const severity = SEVERITY_MAP[auditId]
@@ -274,15 +272,13 @@ async function extractAccessibilityData(scanId: string, routes: RouteWithLhr[]) 
         pages: [],
       }
       existing.instanceCount += items.length
-      if (!existing.pages.includes(path))
-        existing.pages.push(path)
+      if (!existing.pages.includes(path)) existing.pages.push(path)
       issueMap.set(issueKey, existing)
 
       // Aggregate by element (for common problems)
       for (const item of items) {
         const selector = item.node?.selector
-        if (!selector)
-          continue
+        if (!selector) continue
 
         const elementKey = `${auditId}:${selector}`
         const existingEl = elementMap.get(elementKey) || {
@@ -297,8 +293,7 @@ async function extractAccessibilityData(scanId: string, routes: RouteWithLhr[]) 
           requiredRatio: item.expectedContrastRatio,
           pages: [],
         }
-        if (!existingEl.pages.includes(path))
-          existingEl.pages.push(path)
+        if (!existingEl.pages.includes(path)) existingEl.pages.push(path)
         elementMap.set(elementKey, existingEl)
 
         // Track missing alt images separately
@@ -310,8 +305,7 @@ async function extractAccessibilityData(scanId: string, routes: RouteWithLhr[]) 
               isDecorative: isLikelyDecorative(imgUrl),
               pages: [],
             }
-            if (!existingImg.pages.includes(path))
-              existingImg.pages.push(path)
+            if (!existingImg.pages.includes(path)) existingImg.pages.push(path)
             imageMap.set(imgUrl, existingImg)
           }
         }
@@ -353,16 +347,9 @@ async function extractAccessibilityData(scanId: string, routes: RouteWithLhr[]) 
 
 function isLikelyDecorative(url: string): boolean {
   const decorativePatterns = [
-    /icon/i,
-    /arrow/i,
-    /chevron/i,
-    /bullet/i,
-    /spacer/i,
-    /divider/i,
-    /line/i,
-    /dot/i,
-    /-bg\./i,
-    /background/i,
+    /icon/i, /arrow/i, /chevron/i, /bullet/i,
+    /spacer/i, /divider/i, /line/i, /dot/i,
+    /-bg\./i, /background/i,
   ]
   return decorativePatterns.some(p => p.test(url))
 }
@@ -382,10 +369,10 @@ interface AccessibilitySummary {
   pagesWithIssues: number
 
   bySeverity: {
-    critical: { count: number, pages: number }
-    serious: { count: number, pages: number }
-    moderate: { count: number, pages: number }
-    minor: { count: number, pages: number }
+    critical: { count: number; pages: number }
+    serious: { count: number; pages: number }
+    moderate: { count: number; pages: number }
+    minor: { count: number; pages: number }
   }
 
   topIssues: Array<{

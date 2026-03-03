@@ -109,16 +109,16 @@ export const scanRoutes = sqliteTable('scan_routes', {
   scoreBestPractices: real('score_best_practices'),
 
   // Core Web Vitals (stable)
-  lcp: integer('lcp'), // Largest Contentful Paint (ms)
-  cls: real('cls'), // Cumulative Layout Shift
-  inp: integer('inp'), // Interaction to Next Paint (ms)
-  fcp: integer('fcp'), // First Contentful Paint (ms)
-  ttfb: integer('ttfb'), // Time to First Byte (ms)
-  tbt: integer('tbt'), // Total Blocking Time (ms)
-  si: integer('si'), // Speed Index (ms)
+  lcp: integer('lcp'),           // Largest Contentful Paint (ms)
+  cls: real('cls'),              // Cumulative Layout Shift
+  inp: integer('inp'),           // Interaction to Next Paint (ms)
+  fcp: integer('fcp'),           // First Contentful Paint (ms)
+  ttfb: integer('ttfb'),         // Time to First Byte (ms)
+  tbt: integer('tbt'),           // Total Blocking Time (ms)
+  si: integer('si'),             // Speed Index (ms)
 
   // Raw LHR for deep dives
-  lhrGzip: blob('lhr_gzip'), // Compressed full report
+  lhrGzip: blob('lhr_gzip'),     // Compressed full report
 
   createdAt: integer('created_at', { mode: 'timestamp' }),
 })
@@ -207,13 +207,13 @@ interface BuildComparison {
 }
 
 const THRESHOLDS = {
-  scorePerformance: 0.05, // 5% change
+  scorePerformance: 0.05,      // 5% change
   scoreAccessibility: 0.05,
   scoreSeo: 0.05,
   scoreBestPractices: 0.05,
-  lcp: 500, // 500ms change
-  cls: 0.1, // 0.1 CLS change
-  inp: 200, // 200ms change
+  lcp: 500,                    // 500ms change
+  cls: 0.1,                    // 0.1 CLS change
+  inp: 200,                    // 200ms change
   fcp: 300,
   ttfb: 200,
   tbt: 300,
@@ -228,21 +228,18 @@ export function compareBuilds(
   const baseByUrl = new Map(baseRoutes.map(r => [r.url, r]))
   const currentByUrl = new Map(currentRoutes.map(r => [r.url, r]))
 
-  let improved = 0; let regressed = 0; let unchanged = 0
+  let improved = 0, regressed = 0, unchanged = 0
 
   for (const [url, current] of currentByUrl) {
     const base = baseByUrl.get(url)
-    if (!base)
-      continue
+    if (!base) continue
 
     const metrics = compareMetrics(base, current)
     const hasRegression = metrics.some(m => m.severity === 'regression')
     const hasImprovement = metrics.some(m => m.severity === 'improvement')
 
-    if (hasRegression)
-      regressed++
-    else if (hasImprovement)
-      improved++
+    if (hasRegression) regressed++
+    else if (hasImprovement) improved++
     else unchanged++
 
     if (hasRegression || hasImprovement) {
@@ -265,9 +262,11 @@ export function compareBuilds(
 }
 
 function compareMetrics(base: ScanRoute, current: ScanRoute) {
-  const metrics = ['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices', 'lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si'] as const
+  const metrics = ['scorePerformance', 'scoreAccessibility', 'scoreSeo',
+                   'scoreBestPractices', 'lcp', 'cls', 'inp', 'fcp',
+                   'ttfb', 'tbt', 'si'] as const
 
-  return metrics.map((name) => {
+  return metrics.map(name => {
     const baseVal = base[name]
     const currentVal = current[name]
     const delta = (currentVal ?? 0) - (baseVal ?? 0)
@@ -300,8 +299,8 @@ type AssertionType = 'minScore' | 'maxNumericValue' | 'maxRegression'
 
 interface Assertion {
   type: AssertionType
-  category?: string // performance, accessibility, seo, best-practices
-  metric?: string // lcp, cls, inp, etc.
+  category?: string        // performance, accessibility, seo, best-practices
+  metric?: string          // lcp, cls, inp, etc.
   value: number
   failOn?: 'any' | 'average'
 }
@@ -310,14 +309,14 @@ interface AssertionResult {
   assertion: Assertion
   passed: boolean
   actual: number
-  routes?: { url: string, value: number }[] // failing routes
+  routes?: { url: string; value: number }[]  // failing routes
 }
 
 export function evaluateAssertions(
   routes: ScanRoute[],
   assertions: Assertion[]
 ): AssertionResult[] {
-  return assertions.map((assertion) => {
+  return assertions.map(assertion => {
     switch (assertion.type) {
       case 'minScore':
         return evaluateMinScore(routes, assertion)

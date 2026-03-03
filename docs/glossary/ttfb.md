@@ -7,6 +7,8 @@ keywords:
   - time to first byte explained
   - ttfb optimization
   - server response time
+  - improve ttfb
+  - reduce ttfb
 navigation:
   title: "TTFB"
 relatedPages:
@@ -18,7 +20,9 @@ relatedPages:
     title: Improving Accuracy
 ---
 
-Time to First Byte (TTFB) measures how long it takes for the browser to receive the first byte of response from the server. It's a foundational metric that affects all other loading performance metrics.
+# Time to First Byte (TTFB)
+
+Time to First Byte measures how long it takes for the browser to receive the first byte of response from the server. It's a foundational metric that affects all other loading performance metrics.
 
 ## What TTFB Measures
 

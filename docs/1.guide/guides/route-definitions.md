@@ -18,6 +18,8 @@ relatedPages:
     title: Configuration
 ---
 
+# Route Definitions
+
 Map URLs to source files for intelligent [dynamic sampling](/guide/guides/dynamic-sampling). Framework integrations discover routes automatically; CLI users may need manual configuration for optimal sampling.
 
 ## Pages directory

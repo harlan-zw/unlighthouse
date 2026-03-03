@@ -18,6 +18,8 @@ relatedPages:
     title: Static Reports
 ---
 
+# Customizing the UI
+
 Customize the Unlighthouse dashboard to display metrics relevant to your workflow. Replace default columns, add custom audit displays, and configure how results appear.
 
 ## Customizing Columns

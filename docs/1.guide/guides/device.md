@@ -1,6 +1,6 @@
 ---
-title: "Desktop Mode & Device Configuration"
-description: "Run Unlighthouse in desktop mode with --desktop flag or device: 'desktop' config. Configure mobile/desktop emulation, viewports, and throttling."
+title: "Device Configuration"
+description: "Configure device emulation settings for mobile and desktop scanning with custom dimensions and throttling options."
 keywords:
   - lighthouse mobile
   - lighthouse desktop
@@ -8,10 +8,6 @@ keywords:
   - lighthouse viewport
   - lighthouse throttling
   - mobile performance testing
-  - unlighthouse desktop
-  - unlighthouse --desktop
-  - preset desktop
-  - desktop flag
 navigation:
   title: "Device Configuration"
 relatedPages:
@@ -21,9 +17,9 @@ relatedPages:
     title: Config Reference
   - path: /glossary
     title: Core Web Vitals Glossary
-  - path: /learn-lighthouse/lcp
-    title: LCP Optimization Guide
 ---
+
+# Device Configuration
 
 Test performance across different screen sizes and network conditions. Configure mobile, desktop, or custom viewport settings with optional network throttling for realistic performance testing.
 

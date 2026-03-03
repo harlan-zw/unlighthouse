@@ -1,16 +1,30 @@
-import { apiUrl, isStatic } from './unlighthouse'
+import { apiUrl } from './unlighthouse'
+import { unlighthouseReports, scanMeta } from './state'
 
-const isRescanRunning = ref(false)
+export async function rescanSite() {
+  if (!apiUrl.value) return
 
-export const isRescanSiteRequestRunning = computed(() => isRescanRunning.value)
+  // Clear current reports
+  unlighthouseReports.value = []
 
-export async function rescanSite(): Promise<void> {
-  if (isStatic.value || isRescanRunning.value)
-    return
+  // Trigger rescan
+  await $fetch(`${apiUrl.value}/rescan`, { method: 'POST' }).catch(console.warn)
+}
 
-  isRescanRunning.value = true
-  await $fetch(`${apiUrl.value}/reports/rescan`, { method: 'POST' })
-    .finally(() => {
-      isRescanRunning.value = false
-    })
+export async function rescanRoute(path: string) {
+  if (!apiUrl.value) return
+
+  await $fetch(`${apiUrl.value}/rescan`, {
+    method: 'POST',
+    body: { paths: [path] },
+  }).catch(console.warn)
+}
+
+export async function rescanRoutes(paths: string[]) {
+  if (!apiUrl.value || !paths.length) return
+
+  await $fetch(`${apiUrl.value}/rescan`, {
+    method: 'POST',
+    body: { paths },
+  }).catch(console.warn)
 }

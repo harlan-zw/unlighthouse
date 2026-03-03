@@ -72,7 +72,6 @@ export default defineUnlighthouseConfig({
 ## SPA Performance Considerations
 
 SPAs typically have worse [LCP](/glossary/lcp) scores because:
-
 - Content renders after JavaScript execution
 - Initial HTML is often empty or minimal
 - Hydration adds to [INP](/glossary/inp) delays

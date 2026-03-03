@@ -28,12 +28,12 @@ export const scanRoutes = sqliteTable('scan_routes', {
   // ... existing fields ...
 
   // Core Web Vitals (stable across LH versions)
-  lcp: integer('lcp'), // Largest Contentful Paint (ms)
-  cls: integer('cls'), // Cumulative Layout Shift (x1000 for int storage)
-  tbt: integer('tbt'), // Total Blocking Time (ms)
-  fcp: integer('fcp'), // First Contentful Paint (ms)
-  si: integer('si'), // Speed Index (ms)
-  ttfb: integer('ttfb'), // Time to First Byte (ms)
+  lcp: integer('lcp'),              // Largest Contentful Paint (ms)
+  cls: integer('cls'),              // Cumulative Layout Shift (x1000 for int storage)
+  tbt: integer('tbt'),              // Total Blocking Time (ms)
+  fcp: integer('fcp'),              // First Contentful Paint (ms)
+  si: integer('si'),                // Speed Index (ms)
+  ttfb: integer('ttfb'),            // Time to First Byte (ms)
 
   // Raw LHR for deep dives (gzipped JSON)
   lhrGzip: blob('lhr_gzip'),
@@ -51,7 +51,7 @@ export const performanceIssues = sqliteTable('performance_issues', {
 
   // Issue identification
   type: text('type').notNull(), // 'image' | 'script' | 'stylesheet' | 'font' | 'render-blocking'
-  url: text('url').notNull(), // Resource URL
+  url: text('url').notNull(),   // Resource URL
 
   // Impact
   wastedBytes: integer('wasted_bytes'),
@@ -59,23 +59,23 @@ export const performanceIssues = sqliteTable('performance_issues', {
 
   // Occurrence
   pageCount: integer('page_count').notNull().default(1),
-  pages: text('pages'), // JSON array of paths
+  pages: text('pages'),         // JSON array of paths
 
   // Details
   issueSubtype: text('issue_subtype'), // 'resize' | 'format' | 'lazy' | 'unused' etc
-  details: text('details'), // JSON for issue-specific data
+  details: text('details'),     // JSON for issue-specific data
 })
 
 export const thirdPartyScripts = sqliteTable('third_party_scripts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
-  entity: text('entity').notNull(), // "Google Analytics", "Facebook" etc
+  entity: text('entity').notNull(),       // "Google Analytics", "Facebook" etc
   url: text('url').notNull(),
-  avgTbt: integer('avg_tbt'), // Average TBT contribution (ms)
+  avgTbt: integer('avg_tbt'),             // Average TBT contribution (ms)
   totalTbt: integer('total_tbt'),
   pageCount: integer('page_count').notNull(),
-  pages: text('pages'), // JSON array
+  pages: text('pages'),                   // JSON array
 })
 
 export const lcpElements = sqliteTable('lcp_elements', {
@@ -83,7 +83,7 @@ export const lcpElements = sqliteTable('lcp_elements', {
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
   selector: text('selector').notNull(),
-  elementType: text('element_type'), // 'image' | 'text' | 'video'
+  elementType: text('element_type'),      // 'image' | 'text' | 'video'
   avgLcp: integer('avg_lcp'),
   pageCount: integer('page_count').notNull(),
   pages: text('pages'),
@@ -98,18 +98,18 @@ export const accessibilityIssues = sqliteTable('accessibility_issues', {
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
   // Issue type
-  auditId: text('audit_id').notNull(), // 'color-contrast', 'image-alt', etc
+  auditId: text('audit_id').notNull(),    // 'color-contrast', 'image-alt', etc
   title: text('title').notNull(),
-  severity: text('severity').notNull(), // 'critical' | 'serious' | 'moderate' | 'minor'
+  severity: text('severity').notNull(),    // 'critical' | 'serious' | 'moderate' | 'minor'
 
   // WCAG mapping
-  wcagCriteria: text('wcag_criteria'), // JSON array: ['1.4.3', '1.4.6']
-  wcagLevel: text('wcag_level'), // 'A' | 'AA' | 'AAA'
+  wcagCriteria: text('wcag_criteria'),    // JSON array: ['1.4.3', '1.4.6']
+  wcagLevel: text('wcag_level'),          // 'A' | 'AA' | 'AAA'
 
   // Aggregation
   instanceCount: integer('instance_count').notNull(),
   pageCount: integer('page_count').notNull(),
-  pages: text('pages'), // JSON array
+  pages: text('pages'),                   // JSON array
 })
 
 export const accessibilityElements = sqliteTable('accessibility_elements', {
@@ -118,7 +118,7 @@ export const accessibilityElements = sqliteTable('accessibility_elements', {
 
   // Element identification
   selector: text('selector').notNull(),
-  snippet: text('snippet'), // HTML snippet
+  snippet: text('snippet'),               // HTML snippet
 
   // Issue details
   auditId: text('audit_id').notNull(),
@@ -141,7 +141,7 @@ export const missingAltImages = sqliteTable('missing_alt_images', {
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
   url: text('url').notNull(),
-  thumbnail: text('thumbnail'), // Path to thumbnail if available
+  thumbnail: text('thumbnail'),           // Path to thumbnail if available
   isDecorative: integer('is_decorative', { mode: 'boolean' }).default(false),
   pageCount: integer('page_count').notNull(),
   pages: text('pages'),
@@ -155,11 +155,11 @@ export const securityIssues = sqliteTable('security_issues', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
-  type: text('type').notNull(), // 'mixed-content' | 'unsafe-link' | 'csp' | 'hsts'
-  severity: text('severity').notNull(), // 'critical' | 'high' | 'medium' | 'low'
+  type: text('type').notNull(),           // 'mixed-content' | 'unsafe-link' | 'csp' | 'hsts'
+  severity: text('severity').notNull(),   // 'critical' | 'high' | 'medium' | 'low'
 
   description: text('description'),
-  details: text('details'), // JSON for type-specific data
+  details: text('details'),               // JSON for type-specific data
 
   pageCount: integer('page_count').notNull(),
   pages: text('pages'),
@@ -171,9 +171,9 @@ export const detectedLibraries = sqliteTable('detected_libraries', {
 
   name: text('name').notNull(),
   version: text('version'),
-  sourceFile: text('source_file'), // Where the library was found
+  sourceFile: text('source_file'),        // Where the library was found
 
-  status: text('status').notNull(), // 'current' | 'outdated' | 'vulnerable' | 'deprecated'
+  status: text('status').notNull(),       // 'current' | 'outdated' | 'vulnerable' | 'deprecated'
 
   pageCount: integer('page_count').notNull(),
   pages: text('pages'),
@@ -185,9 +185,9 @@ export const vulnerableLibraries = sqliteTable('vulnerable_libraries', {
 
   name: text('name').notNull(),
   version: text('version').notNull(),
-  severity: text('severity').notNull(), // 'critical' | 'high' | 'medium' | 'low'
+  severity: text('severity').notNull(),   // 'critical' | 'high' | 'medium' | 'low'
 
-  cves: text('cves'), // JSON array of CVE IDs
+  cves: text('cves'),                     // JSON array of CVE IDs
   description: text('description'),
   recommendation: text('recommendation'),
   sourceFile: text('source_file'),
@@ -247,12 +247,12 @@ export const seoMeta = sqliteTable('seo_meta', {
 
   // Indexability
   isIndexable: integer('is_indexable', { mode: 'boolean' }).default(true),
-  robotsDirective: text('robots_directive'), // 'index,follow', 'noindex', etc
+  robotsDirective: text('robots_directive'),  // 'index,follow', 'noindex', etc
   blockedByRobotsTxt: integer('blocked_by_robots_txt', { mode: 'boolean' }).default(false),
 
   // Canonical
   canonical: text('canonical'),
-  canonicalType: text('canonical_type'), // 'self' | 'other' | 'missing'
+  canonicalType: text('canonical_type'),      // 'self' | 'other' | 'missing'
 
   // Open Graph
   ogTitle: text('og_title'),
@@ -273,33 +273,33 @@ export const seoMeta = sqliteTable('seo_meta', {
   structuredDataWarnings: text('structured_data_warnings'),
 
   // Hreflang
-  hreflangTags: text('hreflang_tags'), // JSON array: [{lang, href}]
+  hreflangTags: text('hreflang_tags'),        // JSON array: [{lang, href}]
 })
 
 export const seoDuplicates = sqliteTable('seo_duplicates', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
-  type: text('type').notNull(), // 'title' | 'meta_description'
-  value: text('value').notNull(), // The duplicated value
+  type: text('type').notNull(),               // 'title' | 'meta_description'
+  value: text('value').notNull(),             // The duplicated value
   pageCount: integer('page_count').notNull(),
-  pages: text('pages'), // JSON array
+  pages: text('pages'),                       // JSON array
 })
 
 export const canonicalChains = sqliteTable('canonical_chains', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
-  chainType: text('chain_type').notNull(), // 'chain' | 'loop'
-  pages: text('pages').notNull(), // JSON array of pages in chain
-  finalTarget: text('final_target'), // Where chain should point
+  chainType: text('chain_type').notNull(),    // 'chain' | 'loop'
+  pages: text('pages').notNull(),             // JSON array of pages in chain
+  finalTarget: text('final_target'),          // Where chain should point
 })
 
 export const linkTextIssues = sqliteTable('link_text_issues', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
-  text: text('text').notNull(), // "Click here", "Read more"
+  text: text('text').notNull(),               // "Click here", "Read more"
   instanceCount: integer('instance_count').notNull(),
   pageCount: integer('page_count').notNull(),
   pages: text('pages'),
@@ -311,7 +311,7 @@ export const tapTargetIssues = sqliteTable('tap_target_issues', {
 
   path: text('path').notNull(),
   elementCount: integer('element_count').notNull(),
-  elements: text('elements'), // JSON array of element details
+  elements: text('elements'),                 // JSON array of element details
 })
 ```
 
@@ -346,22 +346,22 @@ export const comparisonDiffs = sqliteTable('comparison_diffs', {
   metricDiffs: text('metric_diffs').notNull(),
 
   // Overall change
-  severity: text('severity').notNull(), // 'improvement' | 'regression' | 'neutral'
+  severity: text('severity').notNull(),       // 'improvement' | 'regression' | 'neutral'
 })
 
 export const assertions = sqliteTable('assertions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
 
-  type: text('type').notNull(), // 'minScore' | 'maxNumericValue' | 'maxRegression'
-  category: text('category'), // 'performance' | 'accessibility' etc
-  metric: text('metric'), // 'lcp' | 'cls' etc
+  type: text('type').notNull(),               // 'minScore' | 'maxNumericValue' | 'maxRegression'
+  category: text('category'),                 // 'performance' | 'accessibility' etc
+  metric: text('metric'),                     // 'lcp' | 'cls' etc
   value: real('value').notNull(),
 
   passed: integer('passed', { mode: 'boolean' }).notNull(),
   actual: real('actual').notNull(),
 
-  failingRoutes: text('failing_routes'), // JSON array of {url, value}
+  failingRoutes: text('failing_routes'),      // JSON array of {url, value}
 })
 ```
 
@@ -373,7 +373,7 @@ export const dashboardSummaries = sqliteTable('dashboard_summaries', {
   scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }).unique(),
 
   // Performance summary
-  performanceSummary: text('performance_summary'), // JSON: PerformanceDashboardData
+  performanceSummary: text('performance_summary'),   // JSON: PerformanceDashboardData
 
   // Accessibility summary
   accessibilitySummary: text('accessibility_summary'), // JSON: AccessibilityDashboardData
@@ -382,7 +382,7 @@ export const dashboardSummaries = sqliteTable('dashboard_summaries', {
   bestPracticesSummary: text('best_practices_summary'), // JSON: BestPracticesDashboardData
 
   // SEO summary
-  seoSummary: text('seo_summary'), // JSON: SeoDashboardData
+  seoSummary: text('seo_summary'),                   // JSON: SeoDashboardData
 
   // Computed at
   computedAt: integer('computed_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
@@ -462,12 +462,12 @@ unlighthouse.hooks.hook('scan:complete', async (scan) => {
 
 ```ts
 // packages/core/src/process/extract.ts
-import { gunzipSync, gzipSync } from 'node:zlib'
+import { gzipSync, gunzipSync } from 'node:zlib'
 
 interface ExtractedRoute {
   // CWV metrics
   lcp: number | null
-  cls: number | null // stored as x1000 int
+  cls: number | null  // stored as x1000 int
   tbt: number | null
   fcp: number | null
   si: number | null
@@ -490,11 +490,11 @@ interface ExtractedRoute {
 
 // Audit ID mapping for LH version changes
 const AUDIT_MAP: Record<string, Record<string, string>> = {
-  12: {}, // v12 mappings
-  13: {}, // v13 mappings if audit IDs change
+  '12': {}, // v12 mappings
+  '13': {}, // v13 mappings if audit IDs change
 }
 
-export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
+export const extractRouteData = (lhr: LighthouseResult): ExtractedRoute => {
   const version = lhr.lighthouseVersion.split('.')[0]
   const mapAudit = (id: string) => AUDIT_MAP[version]?.[id] ?? id
 
@@ -516,9 +516,8 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
   }
 }
 
-function getNumeric(lhr: LighthouseResult, auditId: string): number | null {
-  return lhr.audits[auditId]?.numericValue ?? null
-}
+const getNumeric = (lhr: LighthouseResult, auditId: string): number | null =>
+  lhr.audits[auditId]?.numericValue ?? null
 ```
 
 ### 2. Performance Processing
@@ -531,7 +530,7 @@ interface PerformanceProcessor {
   routes: Map<string, ExtractedRoute>
 }
 
-export async function processPerformance(p: PerformanceProcessor) {
+export const processPerformance = async (p: PerformanceProcessor) => {
   const { scanId, routes } = p
 
   // 1. Aggregate images across pages
@@ -605,8 +604,7 @@ export async function processPerformance(p: PerformanceProcessor) {
   for (const [path, route] of routes) {
     const items = route.audits['largest-contentful-paint-element']?.details?.items ?? []
     const lcpItem = items[0]
-    if (!lcpItem?.node?.selector)
-      continue
+    if (!lcpItem?.node?.selector) continue
 
     const selector = lcpItem.node.selector
     const existing = lcpMap.get(selector) ?? {
@@ -635,13 +633,11 @@ export async function processPerformance(p: PerformanceProcessor) {
   return computePerformanceSummary(routes)
 }
 
-function auditToIssueType(auditId: string): string {
-  return ({
-    'uses-optimized-images': 'format',
-    'uses-responsive-images': 'resize',
-    'offscreen-images': 'lazy',
-  })[auditId] ?? 'unknown'
-}
+const auditToIssueType = (auditId: string): string => ({
+  'uses-optimized-images': 'format',
+  'uses-responsive-images': 'resize',
+  'offscreen-images': 'lazy',
+})[auditId] ?? 'unknown'
 ```
 
 ### 3. Accessibility Processing
@@ -669,7 +665,7 @@ const WCAG_MAP: Record<string, string[]> = {
   // ... etc
 }
 
-export async function processAccessibility(p: ProcessorParams) {
+export const processAccessibility = async (p: ProcessorParams) => {
   const { scanId, routes } = p
 
   // 1. Aggregate issues by audit type
@@ -677,10 +673,8 @@ export async function processAccessibility(p: ProcessorParams) {
 
   for (const [path, route] of routes) {
     for (const [auditId, audit] of Object.entries(route.audits)) {
-      if (!SEVERITY_MAP[auditId])
-        continue
-      if (audit.score === 1)
-        continue // passing
+      if (!SEVERITY_MAP[auditId]) continue
+      if (audit.score === 1) continue // passing
 
       const items = audit.details?.items ?? []
       const existing = issueMap.get(auditId) ?? {
@@ -716,14 +710,12 @@ export async function processAccessibility(p: ProcessorParams) {
 
   for (const [path, route] of routes) {
     for (const [auditId, audit] of Object.entries(route.audits)) {
-      if (!SEVERITY_MAP[auditId] || audit.score === 1)
-        continue
+      if (!SEVERITY_MAP[auditId] || audit.score === 1) continue
 
       const items = audit.details?.items ?? []
       for (const item of items) {
         const selector = item.node?.selector
-        if (!selector)
-          continue
+        if (!selector) continue
 
         const key = `${auditId}:${selector}`
         const existing = elementMap.get(key) ?? {
@@ -764,13 +756,12 @@ export async function processAccessibility(p: ProcessorParams) {
   await db.insert(accessibilityElements).values(systemicElements)
 
   // 3. Missing alt images
-  const altImages = new Map<string, { url: string, pages: Set<string> }>()
+  const altImages = new Map<string, { url: string; pages: Set<string> }>()
   for (const [path, route] of routes) {
     const items = route.audits['image-alt']?.details?.items ?? []
     for (const item of items) {
       const url = item.node?.snippet?.match(/src="([^"]+)"/)?.[1]
-      if (!url)
-        continue
+      if (!url) continue
       const existing = altImages.get(url) ?? { url, pages: new Set() }
       existing.pages.add(path)
       altImages.set(url, existing)
@@ -790,11 +781,10 @@ export async function processAccessibility(p: ProcessorParams) {
   return computeAccessibilitySummary(issueMap, elementMap)
 }
 
-function isLikelyDecorative(url: string): boolean {
-  return /icon|arrow|chevron|bullet|decoration/i.test(url)
-}
+const isLikelyDecorative = (url: string): boolean =>
+  /icon|arrow|chevron|bullet|decoration/i.test(url)
 
-function getWcagLevel(criteria: string[]): string {
+const getWcagLevel = (criteria: string[]): string => {
   const levels = { A: 1, AA: 2, AAA: 3 }
   // Return highest level from criteria
   // Implementation based on WCAG criteria mapping
@@ -807,7 +797,7 @@ function getWcagLevel(criteria: string[]): string {
 ```ts
 // packages/core/src/process/seo.ts
 
-export async function processSeo(p: ProcessorParams) {
+export const processSeo = async (p: ProcessorParams) => {
   const { scanId, routes, htmlData } = p // htmlData from inspectHtmlTask
 
   // 1. Store per-page SEO meta
@@ -899,15 +889,14 @@ export async function processSeo(p: ProcessorParams) {
   )
 
   // 4. Generic link text
-  const linkTextMap = new Map<string, { text: string, count: number, pages: Set<string> }>()
+  const linkTextMap = new Map<string, { text: string; count: number; pages: Set<string> }>()
   const genericTexts = ['click here', 'read more', 'learn more', 'here', 'more']
 
   for (const [path, route] of routes) {
     const items = route.audits['link-text']?.details?.items ?? []
     for (const item of items) {
       const text = item.text?.toLowerCase()
-      if (!genericTexts.includes(text))
-        continue
+      if (!genericTexts.includes(text)) continue
       const existing = linkTextMap.get(text) ?? { text: item.text, count: 0, pages: new Set() }
       existing.count++
       existing.pages.add(path)
@@ -928,21 +917,18 @@ export async function processSeo(p: ProcessorParams) {
   return computeSeoSummary(seoMetaRecords, duplicates, chains)
 }
 
-function getCanonicalType(path: string, canonical: string | null): string {
-  if (!canonical)
-    return 'missing'
-  if (canonical === path || canonical.endsWith(path))
-    return 'self'
+const getCanonicalType = (path: string, canonical: string | null): string => {
+  if (!canonical) return 'missing'
+  if (canonical === path || canonical.endsWith(path)) return 'self'
   return 'other'
 }
 
-function findCanonicalChains(map: Map<string, string>) {
-  const chains: { pages: string[], target: string, isLoop: boolean }[] = []
+const findCanonicalChains = (map: Map<string, string>) => {
+  const chains: { pages: string[]; target: string; isLoop: boolean }[] = []
   const visited = new Set<string>()
 
   for (const [start] of map) {
-    if (visited.has(start))
-      continue
+    if (visited.has(start)) continue
 
     const chain = [start]
     let current = start
@@ -973,7 +959,7 @@ function findCanonicalChains(map: Map<string, string>) {
 ```ts
 // packages/core/src/process/best-practices.ts
 
-export async function processBestPractices(p: ProcessorParams) {
+export const processBestPractices = async (p: ProcessorParams) => {
   const { scanId, routes } = p
 
   // 1. Console errors - group by normalized message
@@ -1044,7 +1030,7 @@ export async function processBestPractices(p: ProcessorParams) {
   const apiMap = new Map<string, DeprecatedApiData>()
 
   for (const [path, route] of routes) {
-    const items = route.audits.deprecations?.details?.items ?? []
+    const items = route.audits['deprecations']?.details?.items ?? []
     for (const item of items) {
       const api = item.value ?? item.description
       const existing = apiMap.get(api) ?? {
@@ -1114,27 +1100,22 @@ export async function processBestPractices(p: ProcessorParams) {
   return computeBestPracticesSummary(errorMap, libMap, apiMap, securityByType)
 }
 
-function normalizeError(msg: string): string {
-  return msg
-    .replace(/:\d+:\d+/g, ':X:X') // line:col numbers
-    .replace(/0x[0-9a-f]+/gi, '0xXXX') // hex addresses
-    .replace(/\d{10,}/g, 'TIMESTAMP') // timestamps
+const normalizeError = (msg: string): string =>
+  msg
+    .replace(/:\d+:\d+/g, ':X:X')           // line:col numbers
+    .replace(/0x[0-9a-f]+/gi, '0xXXX')      // hex addresses
+    .replace(/\d{10,}/g, 'TIMESTAMP')        // timestamps
     .slice(0, 200)
-}
 
-function classifySource(source: string, msg: string): string {
-  if (msg.includes('CSP') || msg.includes('Content-Security-Policy'))
-    return 'csp'
-  if (msg.includes('net::') || msg.includes('Failed to load'))
-    return 'network'
-  if (source && isThirdPartyUrl(source))
-    return 'thirdParty'
+const classifySource = (source: string, msg: string): string => {
+  if (msg.includes('CSP') || msg.includes('Content-Security-Policy')) return 'csp'
+  if (msg.includes('net::') || msg.includes('Failed to load')) return 'network'
+  if (source && isThirdPartyUrl(source)) return 'thirdParty'
   return 'app'
 }
 
-function isThirdPartyUrl(url: string): boolean {
-  return !url?.includes(siteHost)
-} // compare against scan site host
+const isThirdPartyUrl = (url: string): boolean =>
+  !url?.includes(siteHost) // compare against scan site host
 ```
 
 ### 6. History Comparison Engine
@@ -1143,19 +1124,19 @@ function isThirdPartyUrl(url: string): boolean {
 // packages/core/src/process/comparison.ts
 
 const THRESHOLDS = {
-  lcp: 500, // 500ms change
-  cls: 100, // 0.1 CLS (stored as x1000)
-  tbt: 200, // 200ms
+  lcp: 500,           // 500ms change
+  cls: 100,           // 0.1 CLS (stored as x1000)
+  tbt: 200,           // 200ms
   fcp: 300,
   si: 500,
   ttfb: 200,
-  performance: 5, // 5 points (0-100 scale)
+  performance: 5,     // 5 points (0-100 scale)
   accessibility: 5,
   bestPractices: 5,
   seo: 5,
 }
 
-export async function compareScans(baseScanId: string, currentScanId: string) {
+export const compareScans = async (baseScanId: string, currentScanId: string) => {
   const baseRoutes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, baseScanId))
   const currentRoutes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, currentScanId))
 
@@ -1163,21 +1144,18 @@ export async function compareScans(baseScanId: string, currentScanId: string) {
   const currentByPath = new Map(currentRoutes.map(r => [r.path, r]))
 
   const diffs: ComparisonDiff[] = []
-  let improved = 0; let regressed = 0; let unchanged = 0
+  let improved = 0, regressed = 0, unchanged = 0
 
   for (const [path, current] of currentByPath) {
     const base = baseByPath.get(path)
-    if (!base)
-      continue
+    if (!base) continue
 
     const metricDiffs = compareRouteMetrics(base, current)
     const hasRegression = metricDiffs.some(m => m.severity === 'regression')
     const hasImprovement = metricDiffs.some(m => m.severity === 'improvement')
 
-    if (hasRegression)
-      regressed++
-    else if (hasImprovement)
-      improved++
+    if (hasRegression) regressed++
+    else if (hasImprovement) improved++
     else unchanged++
 
     if (hasRegression || hasImprovement) {
@@ -1215,10 +1193,11 @@ export async function compareScans(baseScanId: string, currentScanId: string) {
   return comparison
 }
 
-function compareRouteMetrics(base: ScanRoute, current: ScanRoute) {
-  const metrics = ['lcp', 'cls', 'tbt', 'fcp', 'si', 'ttfb', 'performanceScore', 'accessibilityScore', 'bestPracticesScore', 'seoScore'] as const
+const compareRouteMetrics = (base: ScanRoute, current: ScanRoute) => {
+  const metrics = ['lcp', 'cls', 'tbt', 'fcp', 'si', 'ttfb',
+                   'performanceScore', 'accessibilityScore', 'bestPracticesScore', 'seoScore'] as const
 
-  return metrics.map((name) => {
+  return metrics.map(name => {
     const baseVal = base[name] ?? 0
     const currentVal = current[name] ?? 0
     const delta = currentVal - baseVal
@@ -1246,14 +1225,13 @@ function compareRouteMetrics(base: ScanRoute, current: ScanRoute) {
 ```ts
 // packages/core/src/process/index.ts
 
-export async function processScanData(scanId: string) {
+export const processScanData = async (scanId: string) => {
   // 1. Load all route LHRs
   const routes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, scanId))
 
   const extractedRoutes = new Map<string, ExtractedRoute>()
   for (const route of routes) {
-    if (!route.lhrGzip)
-      continue
+    if (!route.lhrGzip) continue
     const lhr = JSON.parse(gunzipSync(route.lhrGzip).toString())
     extractedRoutes.set(route.path, extractRouteData(lhr))
   }

@@ -1,17 +1,13 @@
 ---
-title: "Speed Index: What It Is, Good Scores & How to Improve"
-description: "Speed Index measures how fast visible content fills the viewport. Good score: ≤3.4s mobile, ≤1.3s desktop. 10% of Lighthouse performance score. Learn thresholds and fixes."
+title: "What is Speed Index?"
+description: "Learn what Speed Index measures, its thresholds, and how to improve visual loading speed for better user experience."
 keywords:
   - what is speed index
   - speed index meaning
   - speed index explained
   - speed index lighthouse
   - visual loading speed
-  - speed index good score
-  - speed index threshold
-  - speed index test
-  - improve speed index
-  - lighthouse speed index
+  - speed index score
 navigation:
   title: "Speed Index"
 relatedPages:
@@ -21,9 +17,9 @@ relatedPages:
     title: Largest Contentful Paint (LCP)
   - path: /guide/recipes/improving-accuracy
     title: Improving Accuracy
-  - path: /tools/lighthouse-score-calculator
-    title: Lighthouse Score Calculator
 ---
+
+# Speed Index
 
 Speed Index measures how quickly visible content populates the viewport during page load. It captures the overall visual loading experience rather than a single moment in time.
 
@@ -71,7 +67,6 @@ The score represents the average time at which visible parts of the page are dis
 Speed Index reflects perceived load speed better than single-moment metrics. A page might have fast [FCP](/glossary/fcp) but still feel slow if subsequent content takes long to appear.
 
 Good Speed Index means:
-
 - Users see content appearing quickly
 - Reduced perceived wait time
 - Better visual loading experience
@@ -104,7 +99,6 @@ Speed Index complements FCP and LCP by measuring the experience between these po
 Use [Unlighthouse](/guide/getting-started/unlighthouse-cli) to measure Speed Index across your entire site.
 
 For individual pages:
-
 - Lighthouse in Chrome DevTools
 - [PageSpeed Insights](https://pagespeed.web.dev/)
 - WebPageTest (original source of the metric)
@@ -123,10 +117,10 @@ Key optimization strategies from [Chrome DevTools documentation](https://develop
 
 Additional strategies:
 
-1. **Optimize critical rendering path** - Inline critical CSS, defer non-critical
-2. **Optimize images** - Compress, use modern formats (WebP, AVIF), lazy-load below fold
-3. **Prioritize visible content** - Load above-the-fold content first
-4. **Use SSR or SSG** - Server-render initial content instead of client-side rendering
+4. **Optimize critical rendering path** - Inline critical CSS, defer non-critical
+5. **Optimize images** - Compress, use modern formats (WebP, AVIF), lazy-load below fold
+6. **Prioritize visible content** - Load above-the-fold content first
+7. **Use SSR or SSG** - Server-render initial content instead of client-side rendering
 
 ## Lighthouse Weight
 

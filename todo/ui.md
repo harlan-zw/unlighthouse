@@ -275,7 +275,7 @@ Create in `packages/ui/components/Dashboard/`:
 ### `useDashboard.ts`
 
 ```ts
-export function useDashboard(scanId: string) {
+export const useDashboard = (scanId: string) => {
   const summary = useFetch(`/api/dashboard/summary/${scanId}`)
 
   const performance = useLazyFetch(`/api/dashboard/performance/${scanId}`)
@@ -300,8 +300,7 @@ Add dashboard links to existing results page. In `packages/ui/pages/scan.vue` or
   { label: 'Accessibility', to: '/results/accessibility' },
   { label: 'Best Practices', to: '/results/best-practices' },
   { label: 'SEO', to: '/results/seo' },
-]"
-/>
+]" />
 ```
 
 ---

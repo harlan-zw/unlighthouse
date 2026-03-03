@@ -1,6 +1,13 @@
 ---
 title: "API Reference"
-description: "Complete API reference for Unlighthouse core functions, context methods, and hooks system."
+description: "Complete API reference for Unlighthouse core functions, context methods, and hooks system for building custom integrations."
+keywords:
+  - unlighthouse api
+  - unlighthouse programmatic
+  - createUnlighthouse
+  - useUnlighthouse
+  - unlighthouse hooks
+  - unlighthouse integration api
 navigation:
   title: "API Reference"
 relatedPages:
@@ -8,9 +15,13 @@ relatedPages:
     title: Config Reference
   - path: /api-doc/glossary
     title: Glossary
+  - path: /guide/guides/config
+    title: Configuration Guide
 ---
 
-Programmatic API for building custom integrations and extending Unlighthouse functionality.
+# API Reference
+
+Programmatic API for building custom integrations and extending Unlighthouse functionality. Use these functions to create custom providers, respond to scan events, and integrate with your build tools.
 
 ## Core Package
 

@@ -18,6 +18,8 @@ relatedPages:
     title: Configuration
 ---
 
+# URL Discovery
+
 Unlighthouse automatically finds all pages on your site using multiple discovery methods. Configure which sources to use and filter results to scan exactly what you need.
 
 Unlighthouse discovers URLs through multiple methods:

@@ -18,6 +18,8 @@ relatedPages:
     title: URL Discovery
 ---
 
+# Dynamic Sampling
+
 Automatically group similar pages and scan only representative samples. This significantly reduces scan time for sites with many similar URLs like blogs, e-commerce product pages, or documentation sites.
 
 ## How it works
