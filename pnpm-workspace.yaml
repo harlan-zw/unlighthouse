@@ -44,15 +44,15 @@ catalogs:
     '@iconify-json/simple-line-icons': latest
     '@iconify-json/vscode-icons': latest
     '@lhci/utils': ^0.15.1
-    '@nuxt/ui': ^4.5.0
+    '@nuxt/ui': ^4.5.1
     '@puppeteer/browsers': ^2.13.0
     '@tailwindcss/vite': ^4.2.1
     '@vueuse/core': ^14.2.1
     '@vueuse/router': ^14.2.1
-    axios: ^1.13.5
+    axios: ^1.13.6
     better-opn: ^3.0.2
     c12: ^3.3.3
-    cac: ^6.7.14
+    cac: ^7.0.0
     chrome-launcher: ^1.2.1
     consola: ^3.4.2
     date-fns: ^4.1.0
@@ -81,9 +81,9 @@ catalogs:
     slugify: ^1.6.6
     std-env: ^3.10.0
     tailwindcss: ^4.2.1
-    three: ^0.183.1
-    tinyexec: ^0.3.2
-    tinyglobby: ^0.2.12
+    three: ^0.183.2
+    tinyexec: ^1.0.2
+    tinyglobby: ^0.2.15
     ufo: ^1.6.3
     ultrahtml: ^1.6.0
     unconfig: ^7.5.0
