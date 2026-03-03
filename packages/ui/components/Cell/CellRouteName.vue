@@ -1,7 +1,5 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { apiUrl, device, categories, resolveArtifactPath } from '~/composables/unlighthouse'
-import { isOffline, openContentModal } from '~/composables/state'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -11,16 +9,24 @@ const props = defineProps<{
 
 function openEditorRequest() {
   if (props.report.route.definition?.component) {
-    fetch(`${apiUrl.value}/__launch?file=${props.report.route.definition.component}`)
+    fetch(`${apiUrl}/__launch?file=${props.report.route.definition.component}`)
   }
 }
 
 const fetchTime = computed(() => {
+  // Check if fetchTime exists and is valid
   const fetchTimeValue = props.report.report?.fetchTime
-  if (!fetchTimeValue) return ''
+  if (!fetchTimeValue) {
+    return ''
+  }
 
+  // use Intl to format the date
   const date = new Date(fetchTimeValue)
-  if (Number.isNaN(date.getTime())) return 'Invalid date'
+
+  // Check if the date is valid
+  if (Number.isNaN(date.getTime())) {
+    return 'Invalid date'
+  }
 
   return new Intl.DateTimeFormat('en-US', {
     dateStyle: 'medium',
@@ -29,12 +35,14 @@ const fetchTime = computed(() => {
 })
 
 const thumbnail = computed(() => {
-  const isMobile = device.value === 'mobile'
-  const mobileProps = isMobile ? { class: 'w-[68px] h-[112px]' } : { class: 'h-[82px] w-[112px]' }
+  const mobileProps = device === 'mobile' ? { class: 'w-[68px] h-[112px]' } : { class: 'h-[82px] w-[112px]' }
 
-  if (!props.report) return { ...mobileProps, src: '' }
+  // Check if report exists before trying to resolve artifact paths
+  if (!props.report) {
+    return { ...mobileProps, src: '' }
+  }
 
-  if (categories.value.includes('performance')) {
+  if (categories.includes('performance')) {
     return {
       src: resolveArtifactPath(props.report, '/screenshot.jpeg'),
       ...mobileProps,
@@ -49,15 +57,16 @@ const thumbnail = computed(() => {
 
 <template>
   <div class="text-xs flex items-center w-full">
-    <button
-      v-if="report.tasks.runLighthouseTask === 'completed'"
-      class="hidden md:block cursor-pointer"
-      :style="{ flex: `0 0 ${device === 'mobile' ? '67' : '112'}px` }"
-      title="Open Full Page Screenshot"
-      @click="openContentModal()"
-    >
-      <img v-bind="thumbnail" loading="lazy" height="82" width="112">
-    </button>
+    <modal-trigger v-if="report.tasks.runLighthouseTask === 'completed'">
+      <template #trigger>
+        <btn-action class="hidden md:block" :style="{ flex: `0 0 ${device === 'mobile' ? '67' : '112'}px` }" title="Open Full Page Screenshot">
+          <img v-bind="thumbnail" loading="lazy" height="82" width="112">
+        </btn-action>
+      </template>
+      <template #modal>
+        <img :src="resolveArtifactPath(props.report, '/full-screenshot.jpeg')" alt="full screenshot" class="mx-auto">
+      </template>
+    </modal-trigger>
 
     <div class="md:ml-3 grow w-full">
       <a v-if="report.seo?.title" :href="report.route.url" target="_blank" class="text-xs dark:opacity-80 underline hover:no-underline">
@@ -67,21 +76,16 @@ const thumbnail = computed(() => {
         {{ report.route.path }}
       </a>
       <div v-if="report.route.definition?.componentBaseName" class="flex items-center mt-2">
-        <button
-          :disabled="isOffline"
-          class="inline text-xs opacity-90 rounded-xl px-2 bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-teal-700/70 hover:text-white disabled:opacity-50"
-          title="Open File"
-          @click="openEditorRequest"
-        >
+        <btn-action :disabled="isOffline ? 'disabled' : false" class="inline text-xs opacity-90 rounded-xl px-2 bg-surface dark:hover:bg-teal-700/70 hover:text-white hover:bg-blue-100" title="Open File" @click="openEditorRequest">
           <UIcon v-if="report.route.definition.componentBaseName.endsWith('.vue')" name="i-logos-vue" class="h-[8px] inline-block" />
           <UIcon v-else-if="report.route.definition.componentBaseName.endsWith('.md')" name="i-la-markdown" class="h-[12px] mr-1 inline-block" />
           {{ report.route.definition.componentBaseName.split('.')[0] }}
-        </button>
+        </btn-action>
       </div>
       <div v-if="report.report?.audits?.redirects?.score === 0" class="mt-2">
-        <UBadge color="error" size="sm">
+        <status-chip variant="error">
           Redirected
-        </UBadge>
+        </status-chip>
       </div>
       <div class="opacity-60 mt-2">
         {{ fetchTime }}

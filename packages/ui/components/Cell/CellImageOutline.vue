@@ -1,28 +1,16 @@
 <script setup lang="ts">
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-
-interface Rect {
-  left: number
-  top: number
-  width: number
-  height: number
-}
-
-interface Size {
-  width: number
-  height: number
-}
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core/src'
 
 const props = defineProps<{
   item: any
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
-  size: Size
+  size: { width: number, height: number }
 }>()
 
 const maxRenderSizeDC = props.size
 
-function computeZoomFactor(elementRectSC: Rect, renderContainerSizeDC: Size) {
+function computeZoomFactor(elementRectSC, renderContainerSizeDC) {
   const targetClipToViewportRatio = 0.75
   const zoomRatioXY = {
     x: renderContainerSizeDC.width / elementRectSC.width,
@@ -32,21 +20,24 @@ function computeZoomFactor(elementRectSC: Rect, renderContainerSizeDC: Size) {
   return Math.min(1, zoomFactor)
 }
 
-function getScreenshotPositions(elementRectSC: Rect, elementPreviewSizeSC: Size, screenshotSize: Size) {
-  function getElementRectCenterPoint(rect: Rect) {
+function getScreenshotPositions(elementRectSC, elementPreviewSizeSC, screenshotSize) {
+  function getElementRectCenterPoint(rect) {
     return {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2,
     }
   }
-  function clamp(value: number, min: number, max: number) {
-    if (value < min) return min
-    if (value > max) return max
+  function clamp(value, min, max) {
+    if (value < min)
+      return min
+    if (value > max)
+      return max
     return value
   }
 
   const elementRectCenter = getElementRectCenterPoint(elementRectSC)
 
+  // Try to center clipped region.
   const screenshotLeftVisibleEdge = clamp(
     elementRectCenter.x - elementPreviewSizeSC.width / 2,
     0,
@@ -70,7 +61,7 @@ function getScreenshotPositions(elementRectSC: Rect, elementPreviewSizeSC: Size,
   }
 }
 
-const screenshot = ref<Size | null>(null)
+const screenshot = ref(null)
 
 onMounted(() => {
   const img = new Image()
@@ -84,9 +75,10 @@ onMounted(() => {
 })
 
 const styles = computed(() => {
-  if (!screenshot.value) return {}
-
+  if (!screenshot.value)
+    return {}
   const elementRectSC = props.item.node.boundingRect
+
   const zoomFactor = computeZoomFactor(elementRectSC, maxRenderSizeDC)
 
   const elementPreviewSizeSC = {
@@ -94,7 +86,7 @@ const styles = computed(() => {
     height: maxRenderSizeDC.height / zoomFactor,
   }
   elementPreviewSizeSC.width = Math.min(screenshot.value.width, elementPreviewSizeSC.width)
-
+  /* This preview size is either the size of the thumbnail or size of the Lightbox */
   const elementPreviewSizeDC = {
     width: elementPreviewSizeSC.width * zoomFactor,
     height: elementPreviewSizeSC.height * zoomFactor,
@@ -122,7 +114,10 @@ const styles = computed(() => {
     top: `${positions.clip.top * zoomFactor}px`,
   }
 
-  return { image, marker }
+  return {
+    image,
+    marker,
+  }
 })
 </script>
 

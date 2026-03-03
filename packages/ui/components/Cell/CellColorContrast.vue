@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { extractFgColor, extractBgColor } from '~/utils'
 
 defineProps<{
   report: UnlighthouseRouteReport
@@ -12,7 +11,7 @@ defineProps<{
 <template>
   <div v-if="value" class="w-full">
     <div class="mb-2">
-      <AuditResultItemsLength :value="value" />
+      <audit-result-items-length :value="value" />
     </div>
     <div v-if="value.details?.items" class="max-h-[80px] overflow-y-auto w-full hidden md:block">
       <div
