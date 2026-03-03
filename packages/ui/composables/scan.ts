@@ -18,6 +18,7 @@ export interface CompletedRoute {
 
 export interface ScanState {
   status: ScanStatus
+  paused: boolean
   site: string | null
   progress: ScanProgress
   currentUrl: string | null
@@ -31,6 +32,7 @@ export interface ScanState {
 // Reactive scan state
 export const scanState = reactive<ScanState>({
   status: 'idle',
+  paused: false,
   site: null,
   progress: { discovered: 0, scanned: 0, failed: 0, total: 0, percent: 0 },
   currentUrl: null,
@@ -53,16 +55,19 @@ export const isScanComplete = computed(() => scanState.status === 'complete')
 export const scanProgressPercent = computed(() => scanState.progress.percent)
 
 export function formatTimeRemaining(ms: number | null): string {
-  if (!ms || ms <= 0) return '--'
+  if (!ms || ms <= 0)
+    return '--'
   const seconds = Math.floor(ms / 1000)
-  if (seconds < 60) return `${seconds}s`
+  if (seconds < 60)
+    return `${seconds}s`
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes}m ${remainingSeconds}s`
 }
 
 export async function fetchScanStatus() {
-  if (isStatic.value) return
+  if (isStatic.value)
+    return
 
   const data = await $fetch<ScanState>(`${apiUrl.value}/scan/status`).catch(() => null)
   if (data) {
@@ -71,7 +76,8 @@ export async function fetchScanStatus() {
 }
 
 export async function cancelScan() {
-  if (isStatic.value) return
+  if (isStatic.value)
+    return
 
   const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/cancel`, {
     method: 'POST',
@@ -82,8 +88,53 @@ export async function cancelScan() {
   }
 }
 
+export async function pauseScan() {
+  if (isStatic.value)
+    return
+
+  const result = await $fetch<{ success: boolean, paused: boolean }>(`${apiUrl.value}/scan/pause`, {
+    method: 'POST',
+  }).catch(() => null)
+
+  if (result?.success) {
+    scanState.paused = true
+  }
+}
+
+export async function resumeScan() {
+  if (isStatic.value)
+    return
+
+  const result = await $fetch<{ success: boolean, paused: boolean }>(`${apiUrl.value}/scan/resume`, {
+    method: 'POST',
+  }).catch(() => null)
+
+  if (result?.success) {
+    scanState.paused = false
+  }
+}
+
+export async function retryScan() {
+  if (isStatic.value || !scanState.site)
+    return
+
+  // Reset state
+  scanState.status = 'starting'
+  scanState.error = null
+  scanState.progress = { discovered: 0, scanned: 0, failed: 0, total: 0, percent: 0 }
+  scanState.recentlyCompleted = []
+
+  await $fetch(`${apiUrl.value}/reports/rescan`, {
+    method: 'POST',
+  }).catch((err) => {
+    scanState.status = 'error'
+    scanState.error = err?.message || 'Failed to retry scan'
+  })
+}
+
 export function connectScanWebSocket() {
-  if (isStatic.value || !wsUrl.value || scanWs) return
+  if (isStatic.value || !wsUrl.value || scanWs)
+    return
 
   scanWs = new WebSocket(wsUrl.value)
 
@@ -135,7 +186,8 @@ export function useScan() {
   let pollInterval: ReturnType<typeof setInterval> | null = null
 
   onMounted(() => {
-    if (isStatic.value) return
+    if (isStatic.value)
+      return
 
     // Initial fetch
     fetchScanStatus()
@@ -148,7 +200,8 @@ export function useScan() {
   })
 
   onUnmounted(() => {
-    if (pollInterval) clearInterval(pollInterval)
+    if (pollInterval)
+      clearInterval(pollInterval)
     disconnectScanWebSocket()
   })
 
@@ -158,6 +211,9 @@ export function useScan() {
     isScanComplete,
     scanProgressPercent,
     cancelScan,
+    pauseScan,
+    resumeScan,
+    retryScan,
     formatTimeRemaining,
   }
 }

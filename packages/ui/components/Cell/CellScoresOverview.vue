@@ -12,7 +12,7 @@ defineProps<{
 const categoryAbbrev: Record<string, string> = {
   Performance: 'Perf',
   Accessibility: 'A11y',
-  'Best Practices': 'BP',
+  'Best Practices': 'Best',
   SEO: 'SEO',
 }
 </script>

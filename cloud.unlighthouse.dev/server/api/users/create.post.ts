@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const emailRegex = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
   if (!emailRegex.test(body.email)) {
     throw createError({
       statusCode: 400,

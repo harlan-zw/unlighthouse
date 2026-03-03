@@ -1,5 +1,5 @@
-import { createError, defineEventHandler, readBody } from 'h3'
 import type { LighthouseScanOptions } from '../app/services/lighthouse'
+import { createError, defineEventHandler, readBody } from 'h3'
 import { runLighthouseScan } from '../app/services/lighthouse'
 import { getResultCache } from '../app/services/result-cache'
 import { getScanQueue } from '../app/services/scan-queue'

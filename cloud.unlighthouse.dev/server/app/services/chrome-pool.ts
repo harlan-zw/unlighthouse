@@ -1,6 +1,6 @@
 import type { LaunchedChrome } from 'chrome-launcher'
-import chromeLauncher from 'chrome-launcher'
 import { useRuntimeConfig } from '#imports'
+import chromeLauncher from 'chrome-launcher'
 
 export interface ChromeInstance {
   chrome: LaunchedChrome

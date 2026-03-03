@@ -1,67 +1,268 @@
 <script setup lang="ts">
-import {
-  lighthouseReportModalOpen,
-  iframeModalUrl,
-  isDebugModalOpen,
-  unlighthouseReports as reports,
-  scanMeta,
-  wsConnect,
-  refreshScanMeta,
-  isOffline,
-  openLighthouseReportIframeModal,
-  openDebugModal,
-} from '~/composables/state'
-import { searchText, searchResults, paginatedResults, page, perPage } from '~/composables/search'
-import { isStatic, website, device, resolveArtifactPath, apiUrl, basePath, throttle, dynamicSampling } from '~/composables/unlighthouse'
-import { rescanSite } from '~/composables/actions'
+import { apiUrl } from '~/composables/unlighthouse'
 
-const activeCategory = ref<'overview' | 'performance' | 'accessibility' | 'best-practices' | 'seo'>('overview')
-
-const categoryAbbrev: Record<string, string> = {
-  Performance: 'Perf',
-  Accessibility: 'A11y',
-  'Best Practices': 'BP',
-  SEO: 'SEO',
+interface Scan {
+  id: string
+  site: string
+  device: 'mobile' | 'desktop'
+  throttle: boolean
+  routeCount: number
+  scannedCount: number
+  failedCount: number
+  avgScore: number | null
+  performanceScore: number | null
+  accessibilityScore: number | null
+  bestPracticesScore: number | null
+  seoScore: number | null
+  status: 'running' | 'complete' | 'cancelled' | 'failed'
+  startedAt: string
+  completedAt: string | null
 }
 
-const categoryConfig = {
-  overview: { label: 'Overview', icon: 'i-heroicons-squares-2x2', color: 'text-white' },
-  performance: { label: 'Performance', icon: 'i-heroicons-bolt', color: 'text-green-400' },
-  accessibility: { label: 'Accessibility', icon: 'i-heroicons-eye', color: 'text-blue-400' },
-  'best-practices': { label: 'Best Practices', icon: 'i-heroicons-shield-check', color: 'text-purple-400' },
-  seo: { label: 'SEO', icon: 'i-heroicons-magnifying-glass', color: 'text-amber-400' },
+const router = useRouter()
+const toast = useToast()
+
+const { data, refresh, status } = await useFetch<{ scans: Scan[] }>(`${apiUrl.value}/history`)
+
+// Search and filters
+const searchQuery = ref('')
+const sortBy = ref<'date' | 'score' | 'routes' | 'perf' | 'a11y' | 'best' | 'seo'>('date')
+const sortDir = ref<'asc' | 'desc'>('desc')
+const minScore = ref<number | null>(null)
+const dateRange = ref<number | null>(null)
+const showFilters = ref(false)
+const groupBy = ref<'none' | 'site'>('site')
+
+const sortOptions = [
+  { label: 'Date', value: 'date' },
+  { label: 'Avg', value: 'score' },
+  { label: 'Perf', value: 'perf' },
+  { label: 'A11y', value: 'a11y' },
+  { label: 'Best', value: 'best' },
+  { label: 'SEO', value: 'seo' },
+  { label: 'Routes', value: 'routes' },
+]
+
+const scoreFilterOptions = [
+  { label: 'All', value: null },
+  { label: '90+', value: 90 },
+  { label: '50+', value: 50 },
+  { label: 'Under 50', value: -50 },
+]
+
+const dateRangeOptions = [
+  { label: 'All time', value: null },
+  { label: 'Today', value: 1 },
+  { label: '7 days', value: 7 },
+  { label: '30 days', value: 30 },
+]
+
+const filteredScans = computed(() => {
+  let result = data.value?.scans || []
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    result = result.filter(s => s.site.toLowerCase().includes(q))
+  }
+
+  if (minScore.value !== null) {
+    const scoreThreshold = minScore.value
+    if (scoreThreshold < 0) {
+      result = result.filter(s => s.avgScore !== null && s.avgScore < Math.abs(scoreThreshold))
+    }
+    else {
+      result = result.filter(s => s.avgScore !== null && s.avgScore >= scoreThreshold)
+    }
+  }
+
+  if (dateRange.value !== null) {
+    const cutoff = Date.now() - dateRange.value * 24 * 60 * 60 * 1000
+    result = result.filter(s => new Date(s.startedAt).getTime() >= cutoff)
+  }
+
+  result = [...result].sort((a, b) => {
+    let cmp = 0
+    if (sortBy.value === 'date') {
+      cmp = new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
+    }
+    else if (sortBy.value === 'score') {
+      cmp = (a.avgScore ?? -1) - (b.avgScore ?? -1)
+    }
+    else if (sortBy.value === 'perf') {
+      cmp = (a.performanceScore ?? -1) - (b.performanceScore ?? -1)
+    }
+    else if (sortBy.value === 'a11y') {
+      cmp = (a.accessibilityScore ?? -1) - (b.accessibilityScore ?? -1)
+    }
+    else if (sortBy.value === 'best') {
+      cmp = (a.bestPracticesScore ?? -1) - (b.bestPracticesScore ?? -1)
+    }
+    else if (sortBy.value === 'seo') {
+      cmp = (a.seoScore ?? -1) - (b.seoScore ?? -1)
+    }
+    else if (sortBy.value === 'routes') {
+      cmp = a.routeCount - b.routeCount
+    }
+    return sortDir.value === 'desc' ? -cmp : cmp
+  })
+
+  return result
+})
+
+const isLoading = computed(() => status.value === 'pending')
+const hasActiveFilters = computed(() => searchQuery.value || minScore.value !== null || dateRange.value !== null || sortBy.value !== 'date')
+
+interface SiteGroup {
+  site: string
+  domain: string
+  scans: Scan[]
+  latestScore: number | null
+  trend: 'up' | 'down' | 'stable' | null
+  runningScan: Scan | null
 }
 
-let refreshInterval: ReturnType<typeof setInterval> | null = null
+const groupedScans = computed((): SiteGroup[] => {
+  const groups = new Map<string, Scan[]>()
+  for (const scan of filteredScans.value) {
+    const existing = groups.get(scan.site) || []
+    existing.push(scan)
+    groups.set(scan.site, existing)
+  }
 
-onMounted(() => {
-  if (isStatic.value) return
-  wsConnect().catch(console.warn)
-  refreshInterval = setInterval(refreshScanMeta, 5000)
+  return Array.from(groups.entries()).map(([site, scans]) => {
+    scans.sort((a, b) => {
+      if (a.status === 'running' && b.status !== 'running') return -1
+      if (b.status === 'running' && a.status !== 'running') return 1
+      return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+    })
+    const runningScan = scans.find(s => s.status === 'running') || null
+    const completedScans = scans.filter(s => s.status !== 'running')
+    const latest = completedScans[0]
+    const previous = completedScans[1]
+    let trend: 'up' | 'down' | 'stable' | null = null
+    if (latest?.avgScore != null && previous?.avgScore != null) {
+      const diff = latest.avgScore - previous.avgScore
+      trend = diff > 2 ? 'up' : diff < -2 ? 'down' : 'stable'
+    }
+    return {
+      site,
+      domain: extractDomain(site),
+      scans,
+      latestScore: latest?.avgScore ?? null,
+      trend,
+      runningScan,
+    }
+  }).sort((a, b) => {
+    if (a.runningScan && !b.runningScan) return -1
+    if (b.runningScan && !a.runningScan) return 1
+    const aDate = a.scans[0]?.startedAt ? new Date(a.scans[0].startedAt).getTime() : 0
+    const bDate = b.scans[0]?.startedAt ? new Date(b.scans[0].startedAt).getTime() : 0
+    return bDate - aDate
+  })
 })
 
-onUnmounted(() => {
-  if (refreshInterval) clearInterval(refreshInterval)
-})
+const expandedSites = ref<Set<string>>(new Set())
+function toggleSiteExpand(site: string) {
+  if (expandedSites.value.has(site)) {
+    expandedSites.value.delete(site)
+  }
+  else {
+    expandedSites.value.add(site)
+  }
+  expandedSites.value = new Set(expandedSites.value)
+}
 
-const scanProgress = computed(() => {
-  const total = scanMeta.value?.routes || 0
-  const done = reports.value.filter((r: any) => r.report).length
-  return total > 0 ? Math.round((done / total) * 100) : 0
-})
+// Selection state - no "select mode" needed, always available
+const selectedIds = ref<Set<string>>(new Set())
+const isBulkDeleting = ref(false)
+const showDeleteConfirm = ref(false)
 
-const isScanning = computed(() => scanProgress.value < 100 && scanProgress.value > 0)
+const hasSelection = computed(() => selectedIds.value.size > 0)
+const allSelected = computed(() =>
+  filteredScans.value.length > 0 && filteredScans.value.every(s => selectedIds.value.has(s.id)),
+)
 
-const avgScore = computed(() => {
-  const withReports = reports.value.filter((r: any) => r.report?.categories)
-  if (!withReports.length) return null
-  const sum = withReports.reduce((acc: number, r: any) => {
-    const cats = Object.values(r.report.categories) as any[]
-    const avg = cats.reduce((a: number, c: any) => a + (c.score || 0), 0) / cats.length
-    return acc + avg
-  }, 0)
-  return Math.round((sum / withReports.length) * 100)
-})
+function isSelected(id: string) {
+  return selectedIds.value.has(id)
+}
+
+function toggleSelect(id: string, event?: Event) {
+  event?.stopPropagation()
+  if (selectedIds.value.has(id)) {
+    selectedIds.value.delete(id)
+  }
+  else {
+    selectedIds.value.add(id)
+  }
+  selectedIds.value = new Set(selectedIds.value)
+}
+
+function toggleSelectAll() {
+  if (allSelected.value) {
+    selectedIds.value = new Set()
+  }
+  else {
+    selectedIds.value = new Set(filteredScans.value.map(s => s.id))
+  }
+}
+
+function clearSelection() {
+  selectedIds.value = new Set()
+}
+
+// Smart bulk actions
+function selectOlderScansPerSite() {
+  // Select all but the latest scan for each site
+  const newSelection = new Set<string>()
+  for (const group of groupedScans.value) {
+    const completedScans = group.scans.filter(s => s.status !== 'running')
+    // Skip the first (latest) completed scan, select the rest
+    completedScans.slice(1).forEach(s => newSelection.add(s.id))
+  }
+  selectedIds.value = newSelection
+}
+
+function selectFailedScans() {
+  selectedIds.value = new Set(
+    filteredScans.value
+      .filter(s => s.status === 'failed' || s.status === 'cancelled')
+      .map(s => s.id),
+  )
+}
+
+function selectScansOlderThan(days: number) {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+  selectedIds.value = new Set(
+    filteredScans.value
+      .filter(s => new Date(s.startedAt).getTime() < cutoff)
+      .map(s => s.id),
+  )
+}
+
+function selectSiteScans(site: string, excludeLatest = false) {
+  const group = groupedScans.value.find(g => g.site === site)
+  if (!group) return
+
+  const scans = excludeLatest
+    ? group.scans.filter(s => s.status !== 'running').slice(1)
+    : group.scans
+
+  scans.forEach(s => selectedIds.value.add(s.id))
+  selectedIds.value = new Set(selectedIds.value)
+}
+
+async function bulkDelete() {
+  isBulkDeleting.value = true
+  const ids = [...selectedIds.value]
+  await Promise.all(ids.map(id => $fetch(`${apiUrl.value}/history/${id}`, { method: 'DELETE' }).catch(() => {})))
+  toast.add({ title: `${ids.length} scan${ids.length > 1 ? 's' : ''} deleted`, color: 'success' })
+  showDeleteConfirm.value = false
+  isBulkDeleting.value = false
+  selectedIds.value = new Set()
+  refresh()
+}
+
+const deleteConfirm = ref<{ open: boolean, scan: Scan | null }>({ open: false, scan: null })
 
 function getScoreColor(score: number | null) {
   if (score === null) return 'text-gray-500'
@@ -77,11 +278,132 @@ function getScoreBg(score: number | null) {
   return 'bg-red-500/10'
 }
 
-function getCategoryScore(report: any, category: string) {
-  const cat = report?.report?.categories?.[category]
-  return cat?.score != null ? Math.round(cat.score * 100) : null
+function getStatusConfig(status: string): { label: string, icon: string, color: string } {
+  const configs: Record<string, { label: string, icon: string, color: string }> = {
+    running: { label: 'Running', icon: 'i-heroicons-arrow-path', color: 'text-amber-400' },
+    complete: { label: 'Complete', icon: 'i-heroicons-check-circle', color: 'text-green-400' },
+    cancelled: { label: 'Cancelled', icon: 'i-heroicons-x-circle', color: 'text-gray-400' },
+    failed: { label: 'Failed', icon: 'i-heroicons-exclamation-triangle', color: 'text-red-400' },
+  }
+  return configs[status] ?? configs.complete!
 }
 
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatRelativeTime(date: string) {
+  const now = Date.now()
+  const then = new Date(date).getTime()
+  const diff = now - then
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days < 7) return `${days}d ago`
+  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  return `${Math.floor(days / 30)}mo ago`
+}
+
+function viewScan(scan: Scan) {
+  if (scan.status === 'running') {
+    navigateTo(`/results/${scan.id}/scan`)
+  }
+  else {
+    navigateTo(`/results/${scan.id}`)
+  }
+}
+
+async function rescanSite(scan: Scan) {
+  const result = await $fetch<{ scanId: string }>(`${apiUrl.value}/history/${scan.id}/rescan`, { method: 'POST' }).catch(() => null)
+  toast.add({ title: 'Rescan started', description: `Scanning ${scan.site}`, color: 'success' })
+  if (result?.scanId) {
+    navigateTo(`/results/${result.scanId}/scan`)
+  }
+}
+
+function confirmDelete(scan: Scan) {
+  deleteConfirm.value = { open: true, scan }
+}
+
+async function deleteScan() {
+  if (!deleteConfirm.value.scan) return
+  await $fetch(`${apiUrl.value}/history/${deleteConfirm.value.scan.id}`, { method: 'DELETE' })
+  toast.add({ title: 'Scan deleted', color: 'success' })
+  deleteConfirm.value = { open: false, scan: null }
+  refresh()
+}
+
+const extractDomain = (url: string) => {
+  try { return new URL(url).hostname }
+  catch { return url }
+}
+
+// Auto-refresh when there are running scans
+const hasRunningScans = computed(() => data.value?.scans?.some(s => s.status === 'running'))
+let refreshInterval: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  refreshInterval = setInterval(() => {
+    if (hasRunningScans.value) refresh()
+  }, 3000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) clearInterval(refreshInterval)
+})
+
+const dropdownItems = (scan: Scan) => [
+  [{
+    label: scan.status === 'running' ? 'View Progress' : 'View Results',
+    icon: scan.status === 'running' ? 'i-heroicons-arrow-path' : 'i-heroicons-chart-bar',
+    click: () => viewScan(scan),
+  }],
+  [{
+    label: 'Rescan',
+    icon: 'i-heroicons-arrow-path',
+    click: () => rescanSite(scan),
+  }],
+  [{
+    label: 'Delete',
+    icon: 'i-heroicons-trash',
+    color: 'error' as const,
+    click: () => confirmDelete(scan),
+  }],
+]
+
+// Smart action menu items
+const smartSelectItems = [
+  [{
+    label: 'Keep only latest per site',
+    icon: 'i-heroicons-funnel',
+    click: () => selectOlderScansPerSite(),
+  }],
+  [{
+    label: 'Failed & cancelled scans',
+    icon: 'i-heroicons-exclamation-triangle',
+    click: () => selectFailedScans(),
+  }],
+  [{
+    label: 'Older than 7 days',
+    icon: 'i-heroicons-clock',
+    click: () => selectScansOlderThan(7),
+  },
+  {
+    label: 'Older than 30 days',
+    icon: 'i-heroicons-clock',
+    click: () => selectScansOlderThan(30),
+  }],
+]
 </script>
 
 <template>
@@ -90,231 +412,539 @@ function getCategoryScore(report: any, category: string) {
     <header class="border-b border-white/5 bg-[#0d0d0d]/80 backdrop-blur-sm sticky top-0 z-50">
       <div class="max-w-[1800px] mx-auto px-6 h-14 flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
+          <NuxtLink to="/" class="flex items-center gap-2">
             <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
               <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-white" />
             </div>
             <span class="font-semibold text-lg tracking-tight">Unlighthouse</span>
-          </div>
+          </NuxtLink>
           <div class="h-5 w-px bg-white/10" />
-          <a
-            v-if="website"
-            :href="website"
-            target="_blank"
-            class="text-sm text-gray-400 hover:text-white transition-colors font-mono"
-          >
-            {{ website }}
-          </a>
+          <span class="text-sm text-gray-400">Scan History</span>
         </div>
 
-        <div class="flex items-center gap-4">
-          <!-- Scan Status -->
-          <div v-if="isScanning" class="flex items-center gap-3 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-            <div class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span class="text-sm text-gray-300">Scanning...</span>
-            <span class="text-sm font-mono text-amber-400">{{ scanProgress }}%</span>
-          </div>
-          <div v-else-if="scanProgress === 100" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
-            <UIcon name="i-heroicons-check-circle" class="w-4 h-4 text-green-400" />
-            <span class="text-sm text-green-400">Complete</span>
-          </div>
-
-          <!-- Avg Score -->
-          <div
-            v-if="avgScore !== null"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-full border"
-            :class="[getScoreBg(avgScore), avgScore >= 90 ? 'border-green-500/20' : avgScore >= 50 ? 'border-amber-500/20' : 'border-red-500/20']"
+        <div class="flex items-center gap-3">
+          <UButton
+            to="/onboarding"
+            icon="i-heroicons-plus"
+            color="primary"
           >
-            <span class="text-sm text-gray-400">Avg</span>
-            <span class="font-mono font-semibold" :class="getScoreColor(avgScore)">{{ avgScore }}</span>
-          </div>
-
-          <div class="h-5 w-px bg-white/10" />
-
-          <div class="flex items-center gap-1">
-            <UButton
-              icon="i-heroicons-arrow-path"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              :disabled="isStatic || isOffline"
-              title="Rescan All"
-              @click="rescanSite"
-            />
-            <UButton
-              icon="i-heroicons-cog-6-tooth"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              @click="openDebugModal"
-            />
-          </div>
+            New Scan
+          </UButton>
         </div>
       </div>
     </header>
 
-    <div class="max-w-[1800px] mx-auto flex">
-      <!-- Sidebar -->
-      <aside class="w-56 shrink-0 border-r border-white/5 min-h-[calc(100vh-56px)] p-4">
-        <nav class="space-y-1">
-          <button
-            v-for="(config, key) in categoryConfig"
-            :key="key"
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all"
-            :class="activeCategory === key
-              ? 'bg-white/10 text-white'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'"
-            @click="activeCategory = key as any"
-          >
-            <UIcon :name="config.icon" class="w-4 h-4" :class="activeCategory === key ? config.color : ''" />
-            <span>{{ config.label }}</span>
-          </button>
-        </nav>
-
-        <div class="mt-8 pt-8 border-t border-white/5">
-          <div class="text-xs text-gray-500 mb-3 uppercase tracking-wider">Stats</div>
-          <div class="space-y-3">
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-400">Routes</span>
-              <span class="font-mono">{{ reports.length }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-400">Scanned</span>
-              <span class="font-mono">{{ reports.filter((r: any) => r.report).length }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-400">Device</span>
-              <span class="font-mono capitalize">{{ device }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="absolute bottom-4 left-4 right-4 w-48">
-          <div class="text-xs text-gray-600">
-            <a href="https://unlighthouse.dev" target="_blank" class="hover:text-gray-400 transition-colors">Docs</a>
-            <span class="mx-2">·</span>
-            <a href="https://github.com/harlan-zw/unlighthouse" target="_blank" class="hover:text-gray-400 transition-colors">GitHub</a>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="flex-1 p-6">
-        <!-- Search -->
-        <div class="mb-6">
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto py-8 px-6 pb-32">
+      <!-- Search & Filters -->
+      <div class="mb-6 space-y-4">
+        <div class="flex gap-3">
           <UInput
-            v-model="searchText"
+            v-model="searchQuery"
+            placeholder="Search by URL..."
             icon="i-heroicons-magnifying-glass"
-            placeholder="Search routes..."
-            size="lg"
-            :ui="{ base: 'bg-white/5 border-white/10 focus:border-amber-500/50 focus:ring-amber-500/20' }"
-            class="max-w-md"
+            class="flex-1"
+            :ui="{ base: 'bg-white/5 border-white/10' }"
           />
-        </div>
-
-        <!-- Routes Grid -->
-        <div v-if="paginatedResults.length === 0" class="flex flex-col items-center justify-center py-20">
-          <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-gray-600 mb-4" />
-          <p class="text-gray-500">No routes found</p>
-        </div>
-
-        <div v-else class="grid gap-3">
-          <div
-            v-for="report in paginatedResults"
-            :key="report.route?.path"
-            class="group bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all cursor-pointer"
-            @click="openLighthouseReportIframeModal(report)"
+          <!-- Smart Select Dropdown -->
+          <UDropdownMenu :items="smartSelectItems">
+            <UButton
+              icon="i-heroicons-squares-2x2"
+              variant="outline"
+              color="neutral"
+            >
+              Select
+            </UButton>
+          </UDropdownMenu>
+          <!-- Group Toggle -->
+          <div class="flex rounded-lg overflow-hidden border border-white/10">
+            <button
+              class="px-3 py-2 text-sm transition-colors"
+              :class="groupBy === 'site' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+              @click="groupBy = 'site'"
+            >
+              <UIcon name="i-heroicons-rectangle-group" class="w-4 h-4" />
+            </button>
+            <button
+              class="px-3 py-2 text-sm transition-colors border-l border-white/10"
+              :class="groupBy === 'none' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+              @click="groupBy = 'none'"
+            >
+              <UIcon name="i-heroicons-list-bullet" class="w-4 h-4" />
+            </button>
+          </div>
+          <UButton
+            :icon="showFilters ? 'i-heroicons-funnel-solid' : 'i-heroicons-funnel'"
+            :color="hasActiveFilters ? 'primary' : 'neutral'"
+            variant="outline"
+            @click="showFilters = !showFilters"
           >
+            Filters
+          </UButton>
+        </div>
+
+        <!-- Filter Panel -->
+        <div v-if="showFilters" class="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-lg">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-400">Sort:</span>
+            <div class="flex gap-1">
+              <button
+                v-for="opt in sortOptions"
+                :key="opt.value"
+                class="px-2 py-1 text-xs rounded transition-colors"
+                :class="sortBy === opt.value ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+                @click="sortBy = opt.value as any"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+            <button
+              class="p-1 rounded hover:bg-white/10"
+              @click="sortDir = sortDir === 'desc' ? 'asc' : 'desc'"
+            >
+              <UIcon
+                :name="sortDir === 'desc' ? 'i-heroicons-arrow-down' : 'i-heroicons-arrow-up'"
+                class="w-4 h-4 text-gray-400"
+              />
+            </button>
+          </div>
+
+          <div class="h-6 w-px bg-white/10" />
+
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-400">Score:</span>
+            <div class="flex gap-1">
+              <button
+                v-for="opt in scoreFilterOptions"
+                :key="opt.value ?? 'all'"
+                class="px-2 py-1 text-xs rounded transition-colors"
+                :class="minScore === opt.value ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+                @click="minScore = opt.value"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="h-6 w-px bg-white/10" />
+
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-400">Date:</span>
+            <div class="flex gap-1">
+              <button
+                v-for="opt in dateRangeOptions"
+                :key="opt.value ?? 'all'"
+                class="px-2 py-1 text-xs rounded transition-colors"
+                :class="dateRange === opt.value ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+                @click="dateRange = opt.value"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+
+          <button
+            v-if="hasActiveFilters"
+            class="ml-auto text-xs text-gray-400 hover:text-white"
+            @click="searchQuery = ''; sortBy = 'date'; minScore = null; dateRange = null"
+          >
+            Clear all
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="isLoading" class="space-y-4">
+        <LoadingSkeletonScanCard v-for="i in 4" :key="i" />
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="filteredScans.length === 0 && !searchQuery && minScore === null" class="flex flex-col items-center justify-center py-20">
+        <UIcon name="i-heroicons-clock" class="w-16 h-16 text-gray-600 mb-4" />
+        <h2 class="text-xl font-semibold mb-2">No scan history</h2>
+        <p class="text-gray-500 mb-6">Start your first scan to see results here</p>
+        <UButton to="/onboarding" icon="i-heroicons-plus" color="primary">
+          Start New Scan
+        </UButton>
+      </div>
+
+      <!-- No Results State -->
+      <div v-else-if="filteredScans.length === 0" class="flex flex-col items-center justify-center py-20">
+        <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-gray-600 mb-4" />
+        <h2 class="text-lg font-semibold mb-2">No matching scans</h2>
+        <p class="text-gray-500">Try adjusting your search or filters</p>
+      </div>
+
+      <!-- Grouped Scan List -->
+      <div v-else-if="groupBy === 'site'" class="space-y-6">
+        <div
+          v-for="group in groupedScans"
+          :key="group.site"
+          class="bg-white/[0.01] border border-white/5 rounded-xl overflow-hidden"
+        >
+          <!-- Site Header -->
+          <div
+            class="p-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors"
+            @click="viewScan(group.scans[0])"
+          >
+            <div class="flex items-center gap-3">
+              <img
+                :src="`https://www.google.com/s2/favicons?domain=${group.domain}&sz=32`"
+                :alt="group.site"
+                class="w-6 h-6 rounded"
+                loading="lazy"
+              >
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-lg text-white">{{ group.domain }}</span>
+                  <span class="text-xs text-gray-500">({{ group.scans.length }} scan{{ group.scans.length > 1 ? 's' : '' }})</span>
+                </div>
+              </div>
+            </div>
             <div class="flex items-center gap-4">
-              <!-- Screenshot -->
-              <div class="w-24 h-16 rounded-lg overflow-hidden bg-white/5 shrink-0">
+              <!-- Running Scan Progress -->
+              <div v-if="group.runningScan" class="flex items-center gap-3 min-w-[180px]">
+                <div class="flex-1">
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-amber-400 flex items-center gap-1">
+                      <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-3 h-3" />
+                      Scanning...
+                    </span>
+                    <span class="text-gray-500">{{ group.runningScan.scannedCount }}/{{ group.runningScan.routeCount }}</span>
+                  </div>
+                  <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300"
+                      :style="{ width: `${group.runningScan.routeCount > 0 ? (group.runningScan.scannedCount / group.runningScan.routeCount) * 100 : 0}%` }"
+                    />
+                  </div>
+                </div>
+              </div>
+              <!-- Latest Score with Trend -->
+              <div v-if="group.latestScore !== null" class="flex items-center gap-2">
+                <div
+                  class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold text-lg"
+                  :class="[getScoreBg(group.latestScore), getScoreColor(group.latestScore)]"
+                >
+                  {{ group.latestScore }}
+                </div>
+                <UIcon
+                  v-if="group.trend === 'up'"
+                  name="i-heroicons-arrow-trending-up"
+                  class="w-5 h-5 text-green-400"
+                />
+                <UIcon
+                  v-else-if="group.trend === 'down'"
+                  name="i-heroicons-arrow-trending-down"
+                  class="w-5 h-5 text-red-400"
+                />
+              </div>
+              <!-- Expand Toggle -->
+              <button
+                v-if="group.scans.length > 1"
+                class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                @click.stop="toggleSiteExpand(group.site)"
+              >
+                <UIcon
+                  :name="expandedSites.has(group.site) ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+                  class="w-5 h-5 text-gray-400"
+                />
+              </button>
+            </div>
+          </div>
+
+          <!-- Scan History List -->
+          <div class="border-t border-white/5 bg-black/20">
+            <div
+              v-for="(scan, idx) in group.scans"
+              :key="scan.id"
+              class="group/row relative flex items-center hover:bg-white/[0.02] transition-colors"
+              :class="[
+                idx > 0 ? 'border-t border-white/5' : '',
+                isSelected(scan.id) ? 'bg-amber-500/5 ring-1 ring-inset ring-amber-500/30' : ''
+              ]"
+            >
+              <!-- Checkbox Column - always visible on left edge -->
+              <div class="w-12 flex-shrink-0 flex items-center justify-center">
+                <button
+                  class="w-5 h-5 rounded border-2 transition-all flex items-center justify-center"
+                  :class="[
+                    isSelected(scan.id)
+                      ? 'bg-amber-500 border-amber-500 scale-100'
+                      : 'border-white/20 hover:border-amber-400/50 opacity-0 group-hover/row:opacity-100 scale-90 hover:scale-100',
+                    isSelected(scan.id) ? 'opacity-100' : ''
+                  ]"
+                  @click="toggleSelect(scan.id, $event)"
+                >
+                  <UIcon
+                    v-if="isSelected(scan.id)"
+                    name="i-heroicons-check"
+                    class="w-3 h-3 text-black"
+                  />
+                </button>
+              </div>
+
+              <!-- Content -->
+              <div
+                class="flex-1 px-2 py-3 pr-4 flex items-center justify-between cursor-pointer"
+                @click="viewScan(scan)"
+              >
+                <div class="flex items-center gap-4 text-sm">
+                  <UTooltip :text="formatDate(scan.startedAt)">
+                    <span class="text-gray-400 w-20">{{ formatRelativeTime(scan.startedAt) }}</span>
+                  </UTooltip>
+                  <span class="text-gray-500">{{ scan.device }}</span>
+                  <span class="text-gray-500">{{ scan.routeCount }} routes</span>
+                  <div
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                    :class="[getStatusConfig(scan.status).color, 'bg-white/5']"
+                  >
+                    <UIcon :name="getStatusConfig(scan.status).icon" class="w-3 h-3" />
+                    {{ getStatusConfig(scan.status).label }}
+                  </div>
+                </div>
+                <div v-if="scan.avgScore !== null" class="flex items-center gap-1.5">
+                  <div
+                    v-for="(score, key) in { Perf: scan.performanceScore, A11y: scan.accessibilityScore, Best: scan.bestPracticesScore, SEO: scan.seoScore }"
+                    :key="key"
+                    class="w-8 h-8 rounded flex items-center justify-center font-mono text-xs"
+                    :class="[getScoreBg(score), getScoreColor(score)]"
+                  >
+                    {{ score ?? '-' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flat Scan List -->
+      <div v-else class="space-y-4">
+        <div
+          v-for="scan in filteredScans"
+          :key="scan.id"
+          class="group/card relative bg-white/[0.02] hover:bg-white/[0.04] border rounded-xl transition-all"
+          :class="[
+            isSelected(scan.id)
+              ? 'border-amber-500/40 bg-amber-500/5 ring-1 ring-amber-500/20'
+              : 'border-white/5 hover:border-white/10'
+          ]"
+        >
+          <div class="flex items-start p-5 gap-4">
+            <!-- Checkbox -->
+            <button
+              class="mt-1 flex-shrink-0 w-5 h-5 rounded border-2 transition-all flex items-center justify-center"
+              :class="[
+                isSelected(scan.id)
+                  ? 'bg-amber-500 border-amber-500 scale-100'
+                  : 'border-white/20 hover:border-amber-400/50 opacity-0 group-hover/card:opacity-100 scale-90 hover:scale-100'
+              ]"
+              @click="toggleSelect(scan.id, $event)"
+            >
+              <UIcon
+                v-if="isSelected(scan.id)"
+                name="i-heroicons-check"
+                class="w-3 h-3 text-black"
+              />
+            </button>
+
+            <!-- Site Info -->
+            <div class="flex-1 min-w-0 cursor-pointer" @click="viewScan(scan)">
+              <div class="flex items-center gap-3 mb-2">
                 <img
-                  v-if="report.report"
-                  :src="resolveArtifactPath(report, 'screenshot.jpeg')"
-                  class="w-full h-full object-cover object-top"
+                  :src="`https://www.google.com/s2/favicons?domain=${extractDomain(scan.site)}&sz=32`"
+                  :alt="scan.site"
+                  class="w-5 h-5 rounded"
                   loading="lazy"
                 >
-                <div v-else class="w-full h-full flex items-center justify-center">
-                  <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-5 h-5 text-gray-600" />
-                </div>
-              </div>
-
-              <!-- Route Info -->
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="font-mono text-sm text-white truncate">{{ report.route?.path || '/' }}</span>
-                  <UIcon
-                    v-if="report.report"
-                    name="i-heroicons-arrow-top-right-on-square"
-                    class="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  />
-                </div>
-                <div class="text-xs text-gray-500 truncate">{{ report.route?.url }}</div>
-              </div>
-
-              <!-- Scores -->
-              <div v-if="report.report?.categories" class="flex items-center gap-3">
-                <div
-                  v-for="(cat, catKey) in report.report.categories"
-                  :key="catKey"
-                  class="text-center"
+                <a
+                  :href="scan.site"
+                  target="_blank"
+                  class="font-mono text-lg text-white hover:text-amber-400 transition-colors truncate"
+                  @click.stop
                 >
-                  <div
-                    class="w-10 h-10 rounded-lg flex items-center justify-center font-mono font-semibold text-sm"
-                    :class="[getScoreBg(Math.round((cat as any).score * 100)), getScoreColor(Math.round((cat as any).score * 100))]"
-                  >
-                    {{ (cat as any).score != null ? Math.round((cat as any).score * 100) : '-' }}
-                  </div>
-                  <div class="text-[10px] text-gray-500 mt-1">{{ categoryAbbrev[(cat as any).title] || (cat as any).title }}</div>
+                  {{ scan.site }}
+                </a>
+                <div
+                  class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs"
+                  :class="[getStatusConfig(scan.status).color, 'bg-white/5']"
+                >
+                  <UIcon :name="getStatusConfig(scan.status).icon" class="w-3 h-3" />
+                  {{ getStatusConfig(scan.status).label }}
                 </div>
               </div>
 
-              <div v-else class="flex items-center gap-2 text-gray-500">
-                <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-4 h-4" />
-                <span class="text-sm">Scanning</span>
+              <div class="flex items-center gap-4 text-sm text-gray-500">
+                <UTooltip :text="formatDate(scan.startedAt)">
+                  <span class="flex items-center gap-1.5 cursor-help">
+                    <UIcon name="i-heroicons-clock" class="w-4 h-4" />
+                    {{ formatRelativeTime(scan.startedAt) }}
+                  </span>
+                </UTooltip>
+                <span class="flex items-center gap-1.5">
+                  <UIcon name="i-heroicons-device-phone-mobile" class="w-4 h-4" />
+                  {{ scan.device }}
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
+                  {{ scan.routeCount }} routes
+                </span>
               </div>
             </div>
+
+            <!-- Progress (for running scans) -->
+            <div v-if="scan.status === 'running'" class="flex items-center gap-4 min-w-[200px]">
+              <div class="flex-1">
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <span class="text-amber-400 flex items-center gap-1">
+                    <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-3 h-3" />
+                    Scanning...
+                  </span>
+                  <span class="text-gray-500">{{ scan.scannedCount }}/{{ scan.routeCount }}</span>
+                </div>
+                <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300"
+                    :style="{ width: `${scan.routeCount > 0 ? (scan.scannedCount / scan.routeCount) * 100 : 0}%` }"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Scores (for completed scans) -->
+            <div v-else-if="scan.avgScore !== null" class="flex items-center gap-2">
+              <div
+                v-for="(score, key) in { Perf: scan.performanceScore, A11y: scan.accessibilityScore, Best: scan.bestPracticesScore, SEO: scan.seoScore }"
+                :key="key"
+                class="text-center"
+              >
+                <div
+                  class="w-10 h-10 rounded-lg flex items-center justify-center font-mono font-semibold text-sm"
+                  :class="[getScoreBg(score), getScoreColor(score)]"
+                >
+                  {{ score ?? '-' }}
+                </div>
+                <div class="text-[10px] text-gray-500 mt-1">{{ key }}</div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <UDropdownMenu :items="dropdownItems(scan)">
+              <UButton
+                icon="i-heroicons-ellipsis-vertical"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                @click.stop
+              />
+            </UDropdownMenu>
           </div>
         </div>
+      </div>
+    </main>
 
-        <!-- Pagination -->
-        <div v-if="searchResults.length > perPage" class="mt-6 flex items-center justify-between">
-          <div class="text-sm text-gray-500">
-            {{ searchResults.length }} routes
+    <!-- Floating Action Bar -->
+    <Transition
+      enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="translate-y-full opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-full opacity-0"
+    >
+      <div
+        v-if="hasSelection"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+      >
+        <div
+          class="flex items-center gap-4 px-5 py-3 rounded-2xl border border-white/10 bg-[#1a1a1a]/95 backdrop-blur-xl shadow-2xl shadow-black/50"
+        >
+          <!-- Selection Count -->
+          <div class="flex items-center gap-3">
+            <button
+              class="w-5 h-5 rounded border-2 transition-all flex items-center justify-center"
+              :class="allSelected ? 'bg-amber-500 border-amber-500' : 'border-white/30 hover:border-amber-400'"
+              @click="toggleSelectAll"
+            >
+              <UIcon v-if="allSelected" name="i-heroicons-check" class="w-3 h-3 text-black" />
+              <UIcon v-else-if="hasSelection" name="i-heroicons-minus" class="w-3 h-3 text-white/50" />
+            </button>
+            <span class="text-sm font-medium">
+              <span class="text-amber-400">{{ selectedIds.size }}</span>
+              <span class="text-gray-400"> selected</span>
+            </span>
           </div>
-          <UPagination
-            v-model:page="page"
-            :items-per-page="perPage"
-            :total="searchResults.length"
-          />
-        </div>
-      </main>
-    </div>
 
-    <!-- Modals -->
-    <UModal v-model:open="lighthouseReportModalOpen" title="Lighthouse Report" :ui="{ content: '!max-w-6xl !bg-[#0d0d0d]' }">
+          <div class="h-6 w-px bg-white/10" />
+
+          <!-- Quick Actions -->
+          <div class="flex items-center gap-2">
+            <UButton
+              icon="i-heroicons-trash"
+              color="error"
+              variant="soft"
+              @click="showDeleteConfirm = true"
+            >
+              Delete
+            </UButton>
+            <UButton
+              icon="i-heroicons-x-mark"
+              variant="ghost"
+              color="neutral"
+              @click="clearSelection"
+            >
+              Clear
+            </UButton>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Delete Confirmation Modal -->
+    <UModal v-model:open="deleteConfirm.open" title="Delete Scan?">
       <template #body>
-        <iframe v-if="iframeModalUrl" :src="iframeModalUrl" class="w-full h-[85vh] bg-white rounded-lg" />
+        <p class="text-gray-400 p-4">
+          Are you sure you want to delete this scan? This action cannot be undone.
+        </p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-3 p-4">
+          <UButton variant="ghost" color="neutral" @click="deleteConfirm.open = false">
+            Cancel
+          </UButton>
+          <UButton color="error" @click="deleteScan">
+            Delete
+          </UButton>
+        </div>
       </template>
     </UModal>
 
-    <UModal v-model:open="isDebugModalOpen" title="Debug">
+    <!-- Bulk Delete Confirmation Modal -->
+    <UModal v-model:open="showDeleteConfirm" title="Delete Multiple Scans?">
       <template #body>
-        <div class="space-y-4 p-4">
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div class="text-gray-400">API URL</div>
-            <div class="font-mono">{{ apiUrl }}</div>
-            <div class="text-gray-400">Base Path</div>
-            <div class="font-mono">{{ basePath }}</div>
-            <div class="text-gray-400">Device</div>
-            <div class="font-mono capitalize">{{ device }}</div>
-            <div class="text-gray-400">Throttle</div>
-            <div class="font-mono">{{ throttle }}</div>
-            <div class="text-gray-400">Dynamic Sampling</div>
-            <div class="font-mono">{{ dynamicSampling }}</div>
-          </div>
+        <p class="text-gray-400 p-4">
+          Are you sure you want to delete {{ selectedIds.size }} scan{{ selectedIds.size > 1 ? 's' : '' }}? This action cannot be undone.
+        </p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-3 p-4">
+          <UButton variant="ghost" color="neutral" @click="showDeleteConfirm = false" :disabled="isBulkDeleting">
+            Cancel
+          </UButton>
+          <UButton color="error" :loading="isBulkDeleting" @click="bulkDelete">
+            Delete {{ selectedIds.size }}
+          </UButton>
         </div>
       </template>
     </UModal>
   </div>
 </template>
+
+<style scoped>
+/* Checkbox reveal animation */
+.group\/row:hover .opacity-0,
+.group\/card:hover .opacity-0 {
+  opacity: 1;
+}
+</style>

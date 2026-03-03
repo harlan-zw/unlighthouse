@@ -4,7 +4,7 @@ import { z } from 'zod'
  * Validate environment variables on startup
  */
 export function validateEnv() {
-  console.log('[ENV] Validating environment variables...')
+  console.warn('[ENV] Validating environment variables...')
 
   const schema = z.object({
     // Browserless is required for /api/scan-browserless
@@ -33,7 +33,7 @@ export function validateEnv() {
       console.warn('[ENV] ⚠️  NUXT_BROWSERLESS_TOKEN not set - /api/scan-browserless will fail')
     }
 
-    console.log('[ENV] ✓ Environment variables validated')
+    console.warn('[ENV] ✓ Environment variables validated')
   }
   catch (error) {
     if (error instanceof z.ZodError) {

@@ -17,7 +17,7 @@ npx unlighthouse-ci --site https://example.com --budget 80
 This package includes:
 - `@unlighthouse/core` - Core scanning engine
 - `@unlighthouse/cli` - Command-line interface
-- `@unlighthouse/client` - Web interface for results
+- `@unlighthouse/ui` - Web interface for results
 - Two binaries: `unlighthouse` and `unlighthouse-ci`
 
 ## Installation

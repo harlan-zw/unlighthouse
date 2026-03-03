@@ -57,7 +57,7 @@ export interface ComputedLighthouseReportAudit {
 }
 /**
  * An augmented Lighthouse Report type, we add custom types to the base report for specific functionality on the
- * @unlighthouse/client.
+ * @unlighthouse/ui.
  */
 export type LighthouseReport = Partial<Result> & {
   /**
@@ -128,15 +128,29 @@ export interface HTMLExtractPayload {
   alternativeLangDefaultHtml?: string
   title?: string
   description?: string
+  metaDescription?: string // alias for description, used by SEO processor
   internalLinks?: number
   externalLinks?: number
   htmlSize?: number
   favicon?: string
+  canonical?: string
+  robots?: string
   og?: {
     description?: string
     title?: string
     image?: string
+    url?: string
+    type?: string
   }
+  twitter?: {
+    card?: string
+    title?: string
+    description?: string
+    image?: string
+    site?: string
+  }
+  hreflang?: Array<{ lang: string, href: string }>
+  jsonLd?: any[]
 }
 
 export type WindiResponsiveClasses = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
@@ -695,7 +709,7 @@ export interface UnlighthouseHooks {
    */
   'route-definitions-provided': (routeDefinitions: any[]) => HookResult
   /**
-   * Called when a user visits the path of the @unlighthouse/client for the first time. Useful for starting the worker on-demand.
+   * Called when a user visits the path of the @unlighthouse/ui for the first time. Useful for starting the worker on-demand.
    */
   'visited-client': () => HookResult
   /**
@@ -800,6 +814,18 @@ export interface UnlighthouseWorker {
    * Clear the progress display box
    */
   clearProgressDisplay: () => void
+  /**
+   * Pause the scan - new tasks won't start until resumed
+   */
+  pause: () => void
+  /**
+   * Resume a paused scan
+   */
+  resume: () => void
+  /**
+   * Check if scan is currently paused
+   */
+  isPaused: () => boolean
 }
 
 export interface ScanMeta {

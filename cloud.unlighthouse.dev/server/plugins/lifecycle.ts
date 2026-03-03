@@ -6,10 +6,10 @@ export default defineNitroPlugin((nitroApp) => {
     // Only initialize once
     if (!(nitroApp as any)._chromePoolInitialized) {
       try {
-        console.log('Initializing Chrome pool...')
+        console.warn('Initializing Chrome pool...')
         await initializeChromePool()
         ;(nitroApp as any)._chromePoolInitialized = true
-        console.log('Chrome pool initialized successfully')
+        console.warn('Chrome pool initialized successfully')
       }
       catch (e) {
         console.error('Failed to initialize Chrome pool:', e)
@@ -19,8 +19,8 @@ export default defineNitroPlugin((nitroApp) => {
 
   // Cleanup on shutdown
   nitroApp.hooks.hook('close', async () => {
-    console.log('Shutting down Chrome pool...')
+    console.warn('Shutting down Chrome pool...')
     await shutdownChromePool()
-    console.log('Chrome pool shut down successfully')
+    console.warn('Chrome pool shut down successfully')
   })
 })

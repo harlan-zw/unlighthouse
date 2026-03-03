@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/cli",
   "type": "module",
-  "version": "0.17.7",
+  "version": "0.17.4",
   "description": "CLI for Unlighthouse",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
@@ -46,17 +46,17 @@
   },
   "dependencies": {
     "@lhci/utils": "catalog:dependencies",
-    "@unlighthouse/client": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
+    "@unlighthouse/ui": "workspace:*",
     "better-opn": "catalog:dependencies",
     "cac": "catalog:dependencies",
     "consola": "catalog:dependencies",
     "defu": "catalog:dependencies",
     "fs-extra": "catalog:dependencies",
+    "globby": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
     "pathe": "catalog:dependencies",
-    "std-env": "catalog:dependencies",
-    "tinyglobby": "catalog:dependencies"
+    "std-env": "catalog:dependencies"
   }
 }

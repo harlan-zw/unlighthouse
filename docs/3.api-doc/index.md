@@ -60,7 +60,7 @@ Functions from `@unlighthouse/core`:
 
 - **Type:** `(options: GenerateClientOptions) => Promise<void>`{lang="ts"}
 
-  This copies over the client from `@unlighthouse/client` to be used to render our scans details.
+  This copies over the client from `@unlighthouse/ui` to be used to render our scans details.
 
   It's publicly exposed to provide a tight integrations for custom client builds, such as the CI build.
 
@@ -214,7 +214,7 @@ hooks.hook('task-complete', (path, response) => {
 
 - **Type:** `() => HookResult`{lang="ts"}
 
-  Called when a user visits the path of the `@unlighthouse/client` for the first time. Useful for starting the worker on-demand.
+  Called when a user visits the path of the `@unlighthouse/ui` for the first time. Useful for starting the worker on-demand.
 
   ```ts
   // only start when the user wants to see the client

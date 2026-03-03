@@ -33,10 +33,7 @@ export async function runLighthouseScan(options: LighthouseScanOptions): Promise
   const url = withHttps(options.url)
 
   // Validate URL
-  try {
-    new URL(url)
-  }
-  catch (e) {
+  if (!URL.canParse(url)) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid URL provided',
@@ -58,7 +55,7 @@ export async function runLighthouseScan(options: LighthouseScanOptions): Promise
   try {
     chromeInstance = await chromePool.acquire()
   }
-  catch (e) {
+  catch {
     throw createError({
       statusCode: 503,
       statusMessage: 'Failed to acquire Chrome instance from pool',

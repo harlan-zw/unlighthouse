@@ -3,27 +3,35 @@
   "type": "module",
   "version": "0.0.1",
   "private": true,
+  "exports": {
+    ".": "./dist/index.html",
+    "./dist/*": "./dist/*"
+  },
+  "main": "dist/index.html",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "nuxi dev",
-    "build": "nuxi build",
+    "build": "nuxi generate",
     "postinstall": "nuxi prepare"
   },
   "dependencies": {
-    "@nuxt/ui": "^4.2.1",
-    "@vueuse/core": "^14.1.0",
-    "date-fns": "^4.1.0",
-    "fuse.js": "^7.1.0",
-    "lodash-es": "^4.17.21",
-    "nuxt": "^4.2.2",
-    "tailwindcss": "^4.1.10",
-    "three": "^0.177.0",
-    "ufo": "^1.6.1",
-    "vue": "^3.5.13",
-    "vue-router": "^4.5.0"
+    "@nuxt/ui": "catalog:dependencies",
+    "@vueuse/core": "catalog:dependencies",
+    "date-fns": "catalog:dependencies",
+    "fuse.js": "catalog:dependencies",
+    "lodash-es": "catalog:dependencies",
+    "nuxt": "catalog:",
+    "tailwindcss": "catalog:dependencies",
+    "three": "catalog:dependencies",
+    "ufo": "catalog:dependencies",
+    "vue": "catalog:dependencies",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
-    "@types/lodash-es": "^4.17.12",
-    "@types/three": "^0.177.0",
+    "@types/lodash-es": "catalog:",
+    "@types/three": "catalog:",
     "@unlighthouse/core": "workspace:*"
   }
 }

@@ -319,8 +319,8 @@ Response:
   "status": "healthy",
   "timestamp": "2025-11-10T...",
   "checks": {
-    "chromePool": {"status": "pass"},
-    "queue": {"status": "pass"}
+    "chromePool": { "status": "pass" },
+    "queue": { "status": "pass" }
   }
 }
 ```

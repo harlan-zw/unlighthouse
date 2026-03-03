@@ -43,6 +43,7 @@ export default function createCli() {
   cli.option('--default-query-params <default-query-params>', 'Default query params to send with the request. Example: --default-query-params foo=bar,bar=foo')
 
   cli.option('-d, --debug', 'Debug. Enable debugging in the logger.')
+  cli.option('--history', 'Start the UI in history-only mode without running a scan.')
 
   return cli
 }

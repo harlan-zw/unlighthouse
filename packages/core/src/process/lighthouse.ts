@@ -10,6 +10,7 @@ setMaxListeners(0);
 
 /*
  * This file is intended to be run in its own process and should not rely on any global state.
+ * The main processing orchestrator is in ./index.ts
  */
 
 (async () => {

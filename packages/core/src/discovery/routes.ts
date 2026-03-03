@@ -10,19 +10,16 @@ import { extractSitemapRoutes } from './sitemap'
 let warnedAboutSampling = false
 
 /**
- * Discover the initial routes that we'll be working with.
- *
- * The order by preference for route discovery is as follows:
- * - manual: User provided an array of URLs they want to queue
- * - sitemap: We will scan their sitemap.xml to discover all of their indexable URLs
- * - crawl: We process the root route and queue any discovered internal links
+ * Discover initial URLs from sitemap, manual config, and route definitions.
+ * Returns raw URLs before filtering (for use with Crawlee two-phase architecture).
  */
-export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async () => {
+export async function discoverInitialUrls(): Promise<Set<string>> {
   const logger = useLogger()
-  const { resolvedConfig, hooks, worker, routeDefinitions } = useUnlighthouse()
+  const { resolvedConfig, routeDefinitions } = useUnlighthouse()
 
   const urls = new Set<string>([])
-  // the urls function may be null
+
+  // Manual URLs from config
   if (resolvedConfig.urls?.length) {
     let urlsToAdd
     if (typeof resolvedConfig.urls === 'function')
@@ -43,17 +40,17 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
     urls.add(resolvedConfig.site)
   }
 
+  // Process robots.txt
   if (resolvedConfig.scanner.robotsTxt) {
     const robotsTxt = await fetchRobotsTxt(resolvedConfig.site)
     if (robotsTxt) {
       const robotsTxtParsed = parseRobotsTxt(robotsTxt)
       logger.info(`Found /robots.txt, using entries. Sitemaps: ${robotsTxtParsed.sitemaps.length}, Groups: ${robotsTxtParsed.groups.length}.`)
-      // merges disallow and sitemap into the `scanner.exclude` and `scanner.sitemaps` options respectively
       mergeRobotsTxtConfig(resolvedConfig, robotsTxtParsed)
     }
   }
 
-  // if sitemap scanning is enabled
+  // Extract URLs from sitemap
   if (resolvedConfig.scanner.sitemap !== false) {
     const { paths: sitemapUrls, ignored, sitemaps } = await extractSitemapRoutes(resolvedConfig.site, resolvedConfig.scanner.sitemap)
     if (ignored > 0 && !sitemapUrls.length) {
@@ -70,7 +67,6 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
         logger.info('Disabling crawler mode as sitemap has been provided.')
       }
     }
-
     else if (resolvedConfig.scanner.crawler) {
       resolvedConfig.scanner.sitemap = false
       logger.info('Sitemap appears to be missing, falling back to crawler mode.')
@@ -81,7 +77,7 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
     }
   }
 
-  // add static routes from definitions if the sitemap failed
+  // Add static routes from definitions if no URLs found
   if (urls.size <= 1 && routeDefinitions?.length) {
     routeDefinitions
       .filter(r => !r.path.includes(':'))
@@ -89,44 +85,28 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
       .forEach(url => urls.add(url))
   }
 
-  // setup this hook to queue any discovered internal links
-  if (resolvedConfig.scanner.crawler) {
-    hooks.hook('discovered-internal-links', (path, internalLinks) => {
-      // sanity check the internal links, may need javascript to run
-      if (path === '/' && internalLinks.length <= 0 && resolvedConfig.scanner.skipJavascript) {
-        resolvedConfig.scanner.skipJavascript = false
-        resolvedConfig.cache = false
-        worker.routeReports.clear()
-        worker.queueRoute(normaliseRoute(path))
-        logger.warn('No internal links discovered on home page. Switching crawler to execute javascript and disabling cache.')
-        return
-      }
-      worker.queueRoutes(internalLinks.map(url => normaliseRoute(url)).map((route) => {
-        // keep track of where we discovered this route
-        route.discoveredFrom = path
-        return route
-      }))
-    })
-  }
+  return urls
+}
 
-  // ensure the urls are for the right domain
-  const validUrls = [...urls.values()].filter(url => isScanOrigin(url))
+/**
+ * Apply dynamic sampling to routes.
+ */
+export function applyDynamicSampling(routes: NormalisedRoute[]): NormalisedRoute[] {
+  const logger = useLogger()
+  const { resolvedConfig } = useUnlighthouse()
 
   if (!resolvedConfig.scanner.dynamicSampling)
-    return validUrls.map(url => normaliseRoute(url))
+    return routes
 
-  // group all urls by their route definition path name
   const pathsChunkedToGroup = groupBy(
-    validUrls.map(url => normaliseRoute(url)),
+    routes,
     resolvedConfig.client.groupRoutesKey.replace('route.', ''),
   )
 
-  const pathsSampleChunkedToGroup = map(
+  const sampledRoutes = map(
     pathsChunkedToGroup,
-    // we're matching dynamic rates here, only taking a sample to avoid duplicate tests
     (group) => {
       const { dynamicSampling } = resolvedConfig.scanner
-      // allow config to bypass this behavior
       if (!dynamicSampling)
         return group
 
@@ -135,10 +115,25 @@ export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async (
         warnedAboutSampling = true
       }
 
-      // whatever the sampling rate is
       return sampleSize(group, dynamicSampling)
     },
   )
 
-  return pathsSampleChunkedToGroup.flat()
+  return sampledRoutes.flat()
+}
+
+/**
+ * Discover the initial routes that we'll be working with.
+ * This is the legacy function that combines discovery and filtering.
+ *
+ * @deprecated Use discoverInitialUrls() + crawlSite filtering instead
+ */
+export const resolveReportableRoutes: () => Promise<NormalisedRoute[]> = async () => {
+  const urls = await discoverInitialUrls()
+
+  // Ensure URLs are for the right domain
+  const validUrls = [...urls.values()].filter(url => isScanOrigin(url))
+  const routes = validUrls.map(url => normaliseRoute(url))
+
+  return applyDynamicSampling(routes)
 }

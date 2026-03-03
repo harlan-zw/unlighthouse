@@ -1,9 +1,9 @@
 {
   "name": "@unlighthouse/monorepo",
   "type": "module",
-  "version": "0.17.7",
+  "version": "0.17.4",
   "private": true,
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "pnpm@10.28.0",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -11,10 +11,10 @@
     "ci:docs": "node packages/cli/dist/ci.mjs --site unlighthouse.dev --build-static --debug",
     "build": "pnpm run build:pkg",
     "build:docs": "cd docs && pnpm i && nuxi build",
-    "build:pkg": "pnpm -r --filter='./packages/**' run build",
+    "build:pkg": "pnpm -r --filter './packages/**' run build",
     "stub": "JITI_ESM_RESOLVE=true && pnpm -r --parallel run stub",
     "lint": "eslint . --fix",
-    "bump": "bumpp package.json packages/*/package.json --commit --push --tag",
+    "bump": "bumpp package.json packages-aliased/*/package.json packages/*/package.json --commit --push --tag",
     "release": "pnpm build && pnpm bump",
     "test": "vitest",
     "test:update": "vitest -u",
@@ -23,8 +23,7 @@
     "docs:serve": "npm -C docs run serve",
     "test:attw": "pnpm -r run test:attw",
     "lint:docs": "pnpx markdownlint-cli ./docs && pnpx case-police 'docs/**/*.md' *.md",
-    "lint:docs:fix": "pnpx markdownlint-cli ./docs --fix && pnpx case-police 'docs/**/*.md' *.md --fix",
-    "typecheck": "tsc --noEmit"
+    "lint:docs:fix": "pnpx markdownlint-cli ./docs --fix && pnpx case-police 'docs/**/*.md' *.md --fix"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
@@ -32,8 +31,6 @@
     "bumpp": "catalog:",
     "eslint": "catalog:",
     "obuild": "catalog:",
-    "puppeteer": "catalog:",
-    "tinyexec": "catalog:dependencies",
     "typescript": "catalog:",
     "vite": "catalog:dependencies",
     "vitest": "catalog:"

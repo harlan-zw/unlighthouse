@@ -31,6 +31,7 @@ export interface CliOptions {
   disableDynamicSampling?: boolean
   sitemaps?: string
   userAgent?: string
+  history?: boolean
 }
 
 export interface CiOptions extends CliOptions {

@@ -1,12 +1,12 @@
-import { runMigrations } from '../utils/migrations'
 import { validateEnv } from '../utils/env'
+import { runMigrations } from '../utils/migrations'
 
 /**
  * Nitro plugin that runs on server startup
  * Handles migrations, validation, and initialization
  */
 export default defineNitroPlugin(async (nitroApp) => {
-  console.log('[STARTUP] Initializing server...')
+  console.warn('[STARTUP] Initializing server...')
 
   try {
     // 1. Validate environment
@@ -15,7 +15,7 @@ export default defineNitroPlugin(async (nitroApp) => {
     // 2. Run database migrations
     await runMigrations()
 
-    console.log('[STARTUP] ✓ Server initialized successfully')
+    console.warn('[STARTUP] ✓ Server initialized successfully')
   }
   catch (error) {
     console.error('[STARTUP] ✗ Failed to initialize server:', error)
@@ -25,7 +25,7 @@ export default defineNitroPlugin(async (nitroApp) => {
 
   // Cleanup on shutdown
   nitroApp.hooks.hook('close', async () => {
-    console.log('[SHUTDOWN] Cleaning up...')
+    console.warn('[SHUTDOWN] Cleaning up...')
 
     // Close database connections
     const { closeDatabase } = await import('../database')
@@ -49,6 +49,6 @@ export default defineNitroPlugin(async (nitroApp) => {
       // Rate limiter might not be initialized
     }
 
-    console.log('[SHUTDOWN] ✓ Cleanup complete')
+    console.warn('[SHUTDOWN] ✓ Cleanup complete')
   })
 })

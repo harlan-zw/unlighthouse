@@ -1,7 +1,7 @@
-import { createError, defineEventHandler, getRouterParam } from 'h3'
 import { and, eq } from 'drizzle-orm'
-import { authenticateUser } from '../../utils/auth'
+import { createError, defineEventHandler, getRouterParam } from 'h3'
 import { getDatabase, schema } from '../../database'
+import { authenticateUser } from '../../utils/auth'
 
 /**
  * Get a specific scan result by ID

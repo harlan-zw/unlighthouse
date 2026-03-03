@@ -13,12 +13,12 @@ import { createScanMeta } from './data/scanMeta'
 import { useLogger, useUnlighthouse } from './unlighthouse'
 
 /**
- * Copies the file contents of the @unlighthouse/client package and does transformation based on the provided configuration.
+ * Copies the file contents of the @unlighthouse/ui package and does transformation based on the provided configuration.
  *
- * The main transformation is injecting the unlighthouse configuration into the head of the document, making it accessible
- * to the client.
- *
- * An additional transforming is needed to modify the vite base URL which is a bit more involved.
+ * For Nuxt-based client, the output structure is:
+ * - index.html (main entry)
+ * - _nuxt/ (JS/CSS chunks)
+ * - assets/ (static assets like images)
  */
 export async function generateClient(options: GenerateClientOptions = {}, unlighthouse?: UnlighthouseContext) {
   const logger = useLogger()
@@ -28,30 +28,39 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   const { runtimeSettings, resolvedConfig, worker } = unlighthouse
 
   let prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.routerPrefix))
-  // for non-specified paths we use relative
   if (prefix === '/') {
     prefix = ''
   }
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
 
+  logger.debug(`Copying client from ${clientPathFolder} to ${runtimeSettings.generatedClientPath}`)
   await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)
-  // update the html with our config and base url if needed
+
+  // Inject config into HTML
   const inlineScript = `window.__unlighthouse_static = ${!!options.static}`
   let indexHTML = await fs.readFile(runtimeSettings.resolvedClientPath, 'utf-8')
 
-  // More robust replacement that handles multiline script content
-  indexHTML = indexHTML
-    .replace(/<script data-unlighthouse-inline>[\s\S]*?<\/script>/g, `<script data-unlighthouse-inline>
-  ${inlineScript}
-  // boilerplate options to run the client by itself
-  </script>`)
-    .replace(/(href|src)="\/assets\/(.*?)"/g, `$1="${prefix}assets/$2"`)
+  // Inject payload script and inline config before closing head tag
+  const payloadScript = `<script src="${prefix}assets/payload.js"></script>`
+  const inlineScriptTag = `<script data-unlighthouse-inline>${inlineScript}</script>`
+  if (indexHTML.includes('</head>')) {
+    indexHTML = indexHTML.replace('</head>', `${payloadScript}${inlineScriptTag}</head>`)
+  }
+
+  // Update asset paths if using a prefix
+  if (prefix) {
+    indexHTML = indexHTML
+      .replace(/(href|src)="\/assets\/(.*?)"/g, `$1="${prefix}assets/$2"`)
+      .replace(/(href|src)="\/_nuxt\/(.*?)"/g, `$1="${prefix}_nuxt/$2"`)
+      .replace(/(href|src)="\/_fonts\/(.*?)"/g, `$1="${prefix}_fonts/$2"`)
+  }
+
   await fs.writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
 
+  // Create payload with config and reports
   const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: UnlighthouseRouteReport[] } = {
     reports: [],
     scanMeta: createScanMeta(),
-    // need to be selective about what options we put here to avoid exposing anything sensitive
     options: pick({
       ...runtimeSettings,
       ...resolvedConfig,
@@ -66,47 +75,22 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
       'apiUrl',
     ]),
   }
-  // avoid exposing sensitive cookie / header options
   staticData.options.lighthouseOptions = { onlyCategories: resolvedConfig.lighthouseOptions.onlyCategories }
   if (options.static) {
-    staticData.reports = worker.reports().map((r) => {
-      return {
-        ...r,
-        // avoid exposing user paths
-        artifactPath: '',
-      }
-    })
+    staticData.reports = worker.reports().map(r => ({
+      ...r,
+      artifactPath: '',
+    }))
   }
 
+  // Ensure assets directory exists and write payload
+  const assetsDir = join(runtimeSettings.generatedClientPath, 'assets')
+  await fs.ensureDir(assetsDir)
   await fs.writeFile(
-    join(runtimeSettings.generatedClientPath, 'assets', 'payload.js'),
+    join(assetsDir, 'payload.js'),
     `window.__unlighthouse_payload = ${JSON.stringify(staticData)}`,
     { encoding: 'utf-8' },
   )
 
-  // update the baseurl within the modules
-  const { glob } = await import('tinyglobby')
-  const clientAssetsPath = join(dirname(runtimeSettings.resolvedClientPath), 'assets')
-  logger.debug(`Looking for index.*.js files in: ${clientAssetsPath}`)
-
-  const indexFiles = await glob(['index*.js', 'index-*.js'], { cwd: clientAssetsPath })
-  logger.debug(`Found index files:`, indexFiles)
-
-  const indexFile = indexFiles?.[0]
-  if (indexFile) {
-    const indexPath = join(clientAssetsPath, indexFile)
-    const outputPath = join(runtimeSettings.generatedClientPath, 'assets', indexFile)
-    logger.debug(`Processing index file: ${indexPath} -> ${outputPath}`)
-
-    // should be a single entry
-    let indexJS = await fs.readFile(indexPath, 'utf-8')
-    indexJS = indexJS
-      .replace('const base = "/";', `const base = window.location.pathname;`)
-      .replace('createWebHistory("/")', `createWebHistory(window.location.pathname)`)
-    await fs.writeFile(outputPath, indexJS, 'utf-8')
-  }
-  else {
-    logger.warn(`Failed to find index.[hash].js file from wd ${clientAssetsPath}.`)
-    logger.debug(`Searched patterns: ['index*.js', 'index-*.js']`)
-  }
+  logger.debug('Client generated successfully')
 }

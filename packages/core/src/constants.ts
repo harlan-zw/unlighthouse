@@ -3,7 +3,7 @@ import os from 'node:os'
 import { Cluster } from 'puppeteer-cluster'
 
 export const AppName = 'Unlighthouse'
-export const ClientPkg = '@unlighthouse/client'
+export const ClientPkg = '@unlighthouse/ui'
 export const DefaultModuleRouterPrefix = '/__unlighthouse'
 export const TagLine = 'Scan your entire website with Google Lighthouse.'
 

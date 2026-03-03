@@ -3,8 +3,9 @@ import type { Page } from '../../types/puppeteer'
 import { Buffer } from 'node:buffer'
 import { join } from 'node:path'
 import fs from 'fs-extra'
+import { htmlToMarkdown } from 'mdream'
+import { extractionPlugin } from 'mdream/plugins'
 import { withoutTrailingSlash } from 'ufo'
-import { parse, render, walk } from 'ultrahtml'
 import { useLogger } from '../../logger'
 import { normaliseRoute } from '../../router'
 import { useUnlighthouse } from '../../unlighthouse'
@@ -13,7 +14,6 @@ import { isImplicitOrExplicitHtml } from '../../util/filter'
 import { setupPage } from '../util'
 
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean, redirected?: false | string, message?: string, payload?: string }> = async (page, route) => {
-// ... (rest of extractHtmlPayload remains the same)
   const { worker, resolvedConfig } = useUnlighthouse()
 
   // if we don't need to execute any javascript we can do a less expensive fetch of the URL
@@ -103,70 +103,284 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
   }
 }
 
-export async function processHtml(html: string, site: string): Promise<{ seo: HTMLExtractPayload, internalLinks: string[], externalLinks: string[] }> {
-  const seo: HTMLExtractPayload = {
-    favicon: '/favicon.ico',
-    og: {},
-    internalLinks: 0,
-    externalLinks: 0,
-    htmlSize: html.length,
-  }
-  const internalLinks: string[] = []
-  const externalLinks: string[] = []
+export function processSeoMeta(html: string, url: string): HTMLExtractPayload {
+  let title = ''
+  let description = ''
+  let favicon = '/favicon.ico'
+  let canonical = ''
+  let robots = ''
+  let alternativeLangDefault = ''
+  const hreflang: Array<{ lang: string, href: string }> = []
+  const jsonLd: any[] = []
+  const og: HTMLExtractPayload['og'] = {}
+  const twitter: HTMLExtractPayload['twitter'] = {}
 
-  const ast = parse(html)
-  await walk(ast, async (node) => {
-    if (node.type === 1) { // ELEMENT_NODE
-      if (node.name === 'link') {
-        const rel = node.attributes?.rel
-        const hreflang = node.attributes?.hreflang
-        const href = node.attributes?.href
-        if (hreflang === 'x-default' && href) {
-          seo.alternativeLangDefault = href
-          seo.alternativeLangDefaultHtml = await render(node)
+  const extractionPluginInstance = extractionPlugin({
+    'title': (element) => {
+      if (!title && element.textContent)
+        title = element.textContent.trim()
+    },
+    'meta[name="title"]': (element) => {
+      if (!title && element.attributes?.content)
+        title = element.attributes.content.trim()
+    },
+    'meta[name="description"]': (element) => {
+      if (!description && element.attributes?.content)
+        description = element.attributes.content.trim()
+    },
+    'link[rel~="icon"]': (element) => {
+      if (element.attributes?.href)
+        favicon = element.attributes.href
+    },
+    'link[rel="canonical"]': (element) => {
+      if (!canonical && element.attributes?.href)
+        canonical = element.attributes.href
+    },
+    'meta[name="robots"]': (element) => {
+      if (!robots && element.attributes?.content)
+        robots = element.attributes.content
+    },
+    // Hreflang
+    'link[hreflang]': (element) => {
+      const lang = element.attributes?.hreflang
+      const href = element.attributes?.href
+      if (lang && href) {
+        if (lang === 'x-default')
+          alternativeLangDefault = href
+        hreflang.push({ lang, href })
+      }
+    },
+    // Open Graph
+    'meta[property="og:title"]': (element) => {
+      if (!og.title && element.attributes?.content)
+        og.title = element.attributes.content.trim()
+    },
+    'meta[property="og:description"]': (element) => {
+      if (!og.description && element.attributes?.content)
+        og.description = element.attributes.content.trim()
+    },
+    'meta[property="og:image"]': (element) => {
+      if (!og.image && element.attributes?.content)
+        og.image = element.attributes.content.trim()
+    },
+    'meta[property="og:url"]': (element) => {
+      if (!og.url && element.attributes?.content)
+        og.url = element.attributes.content.trim()
+    },
+    'meta[property="og:type"]': (element) => {
+      if (!og.type && element.attributes?.content)
+        og.type = element.attributes.content.trim()
+    },
+    // Twitter Cards
+    'meta[name="twitter:card"]': (element) => {
+      if (!twitter.card && element.attributes?.content)
+        twitter.card = element.attributes.content.trim()
+    },
+    'meta[name="twitter:title"]': (element) => {
+      if (!twitter.title && element.attributes?.content)
+        twitter.title = element.attributes.content.trim()
+    },
+    'meta[name="twitter:description"]': (element) => {
+      if (!twitter.description && element.attributes?.content)
+        twitter.description = element.attributes.content.trim()
+    },
+    'meta[name="twitter:image"]': (element) => {
+      if (!twitter.image && element.attributes?.content)
+        twitter.image = element.attributes.content.trim()
+    },
+    'meta[name="twitter:site"]': (element) => {
+      if (!twitter.site && element.attributes?.content)
+        twitter.site = element.attributes.content.trim()
+    },
+    // JSON-LD structured data
+    'script[type="application/ld+json"]': (element) => {
+      if (element.textContent) {
+        try {
+          const data = JSON.parse(element.textContent)
+          jsonLd.push(data)
         }
-        if (rel && rel.includes('icon') && href) {
-          seo.favicon = href
+        catch {
+          // Invalid JSON-LD, skip
         }
       }
-      else if (node.name === 'meta') {
-        const name = node.attributes?.name
-        const property = node.attributes?.property
-        const content = node.attributes?.content
-        if (name === 'title' && content)
-          seo.title = content
-        if (name === 'description' && content)
-          seo.description = content
-        if (property === 'og:image' || name === 'og:image')
-          seo.og!.image = content
-        if (property === 'og:description' || name === 'og:description')
-          seo.og!.description = content
-        if (property === 'og:title' || name === 'og:title')
-          seo.og!.title = content
-      }
-      else if (node.name === 'title') {
-        if (!seo.title && node.children?.[0]?.type === 2)
-          seo.title = node.children[0].value
-      }
-      else if (node.name === 'a') {
-        const href = node.attributes?.href
-        if (href && !href.includes('javascript:') && !href.includes('mailto:') && !href.startsWith('#') && isImplicitOrExplicitHtml(href)) {
-          if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(site))
-            internalLinks.push(href)
-          else
-            externalLinks.push(href)
-        }
-      }
-    }
+    },
   })
-  seo.internalLinks = internalLinks.length
-  seo.externalLinks = externalLinks.length
-  return { seo, internalLinks, externalLinks }
+
+  htmlToMarkdown(html, {
+    plugins: [extractionPluginInstance],
+    origin: new URL(url).origin,
+  })
+
+  return {
+    title: title || undefined,
+    description: description || undefined,
+    metaDescription: description || undefined,
+    favicon,
+    canonical: canonical || undefined,
+    robots: robots || undefined,
+    alternativeLangDefault: alternativeLangDefault || undefined,
+    alternativeLangDefaultHtml: alternativeLangDefault
+      ? `<link hreflang="x-default" href="${alternativeLangDefault}">`
+      : undefined,
+    og: Object.keys(og).length > 0 ? og : undefined,
+    twitter: Object.keys(twitter).length > 0 ? twitter : undefined,
+    hreflang: hreflang.length > 0 ? hreflang : undefined,
+    jsonLd: jsonLd.length > 0 ? jsonLd : undefined,
+  }
+}
+
+/**
+ * Extract SEO metadata and count internal/external links in a single pass
+ */
+export function extractSeoAndLinks(html: string, url: string, siteUrl: string): {
+  seo: HTMLExtractPayload
+  internalLinks: number
+  externalLinks: number
+} {
+  let title = ''
+  let description = ''
+  let favicon = '/favicon.ico'
+  let canonical = ''
+  let robots = ''
+  let alternativeLangDefault = ''
+  const hreflang: Array<{ lang: string, href: string }> = []
+  const jsonLd: any[] = []
+  const og: HTMLExtractPayload['og'] = {}
+  const twitter: HTMLExtractPayload['twitter'] = {}
+  let internalLinks = 0
+  let externalLinks = 0
+
+  const origin = new URL(url).origin
+
+  const extractionPluginInstance = extractionPlugin({
+    'title': (element) => {
+      if (!title && element.textContent)
+        title = element.textContent.trim()
+    },
+    'meta[name="title"]': (element) => {
+      if (!title && element.attributes?.content)
+        title = element.attributes.content.trim()
+    },
+    'meta[name="description"]': (element) => {
+      if (!description && element.attributes?.content)
+        description = element.attributes.content.trim()
+    },
+    'link[rel~="icon"]': (element) => {
+      if (element.attributes?.href)
+        favicon = element.attributes.href
+    },
+    'link[rel="canonical"]': (element) => {
+      if (!canonical && element.attributes?.href)
+        canonical = element.attributes.href
+    },
+    'meta[name="robots"]': (element) => {
+      if (!robots && element.attributes?.content)
+        robots = element.attributes.content
+    },
+    'link[hreflang]': (element) => {
+      const lang = element.attributes?.hreflang
+      const href = element.attributes?.href
+      if (lang && href) {
+        if (lang === 'x-default')
+          alternativeLangDefault = href
+        hreflang.push({ lang, href })
+      }
+    },
+    'meta[property="og:title"]': (element) => {
+      if (!og.title && element.attributes?.content)
+        og.title = element.attributes.content.trim()
+    },
+    'meta[property="og:description"]': (element) => {
+      if (!og.description && element.attributes?.content)
+        og.description = element.attributes.content.trim()
+    },
+    'meta[property="og:image"]': (element) => {
+      if (!og.image && element.attributes?.content)
+        og.image = element.attributes.content.trim()
+    },
+    'meta[property="og:url"]': (element) => {
+      if (!og.url && element.attributes?.content)
+        og.url = element.attributes.content.trim()
+    },
+    'meta[property="og:type"]': (element) => {
+      if (!og.type && element.attributes?.content)
+        og.type = element.attributes.content.trim()
+    },
+    'meta[name="twitter:card"]': (element) => {
+      if (!twitter.card && element.attributes?.content)
+        twitter.card = element.attributes.content.trim()
+    },
+    'meta[name="twitter:title"]': (element) => {
+      if (!twitter.title && element.attributes?.content)
+        twitter.title = element.attributes.content.trim()
+    },
+    'meta[name="twitter:description"]': (element) => {
+      if (!twitter.description && element.attributes?.content)
+        twitter.description = element.attributes.content.trim()
+    },
+    'meta[name="twitter:image"]': (element) => {
+      if (!twitter.image && element.attributes?.content)
+        twitter.image = element.attributes.content.trim()
+    },
+    'meta[name="twitter:site"]': (element) => {
+      if (!twitter.site && element.attributes?.content)
+        twitter.site = element.attributes.content.trim()
+    },
+    'script[type="application/ld+json"]': (element) => {
+      if (element.textContent) {
+        try {
+          jsonLd.push(JSON.parse(element.textContent))
+        }
+        catch {
+          // Invalid JSON-LD
+        }
+      }
+    },
+    // Count links
+    'a[href]': (element) => {
+      const href = element.attributes?.href
+      if (!href || href.startsWith('javascript:') || href.startsWith('mailto:') || href === '#')
+        return
+      if (!isImplicitOrExplicitHtml(href))
+        return
+
+      if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(siteUrl))
+        internalLinks++
+      else
+        externalLinks++
+    },
+  })
+
+  htmlToMarkdown(html, {
+    plugins: [extractionPluginInstance],
+    origin,
+  })
+
+  return {
+    seo: {
+      title: title || undefined,
+      description: description || undefined,
+      metaDescription: description || undefined,
+      favicon,
+      canonical: canonical || undefined,
+      robots: robots || undefined,
+      alternativeLangDefault: alternativeLangDefault || undefined,
+      alternativeLangDefaultHtml: alternativeLangDefault
+        ? `<link hreflang="x-default" href="${alternativeLangDefault}">`
+        : undefined,
+      og: Object.keys(og).length > 0 ? og : undefined,
+      twitter: Object.keys(twitter).length > 0 ? twitter : undefined,
+      hreflang: hreflang.length > 0 ? hreflang : undefined,
+      jsonLd: jsonLd.length > 0 ? jsonLd : undefined,
+    },
+    internalLinks,
+    externalLinks,
+  }
 }
 
 export const inspectHtmlTask: PuppeteerTask = async (props) => {
   const unlighthouse = useUnlighthouse()
-  const { resolvedConfig, hooks, runtimeSettings } = unlighthouse
+  const { resolvedConfig, runtimeSettings } = unlighthouse
   const { page, data: routeReport } = props
   const logger = useLogger()
   let html: string
@@ -206,9 +420,13 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
     html = typeof response.payload === 'string' ? response.payload : String(response.payload || '')
   }
 
-  const { seo, internalLinks } = await processHtml(html, resolvedConfig.site)
-
+  // Extract SEO meta and count links using mdream
+  const { seo, internalLinks, externalLinks } = extractSeoAndLinks(html, routeReport.route.url, resolvedConfig.site)
   routeReport.seo = seo
+  routeReport.seo.internalLinks = internalLinks
+  routeReport.seo.externalLinks = externalLinks
+  routeReport.seo.htmlSize = html.length
+
   if (resolvedConfig.scanner.ignoreI18nPages && routeReport.seo.alternativeLangDefault && withoutTrailingSlash(routeReport.route.url) !== withoutTrailingSlash(routeReport.seo.alternativeLangDefault)) {
     // If this is the root path with cross-domain hreflang, disable ignoreI18nPages to prevent all routes from being ignored
     if (routeReport.route.path === '/') {
@@ -242,8 +460,6 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
       return routeReport
     }
   }
-
-  await hooks.callHook('discovered-internal-links', routeReport.route.path, internalLinks)
 
   // only need the html payload for caching purposes, unlike the lighthouse reports
   if (resolvedConfig.cache)

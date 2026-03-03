@@ -23,6 +23,7 @@ import {
 } from './cluster'
 
 let warnedMaxRoutesExceeded = false
+let isPaused = false
 
 /**
  * The unlighthouse worker is a wrapper for the puppeteer-cluster. It handles the queuing of the tasks with more control
@@ -254,14 +255,19 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
         return
       }
 
+      // If paused, wait and retry
+      if (isPaused) {
+        setTimeout(() => runTaskIndex(idx), 1000)
+        return
+      }
+
       const task = Object.values(tasks)[idx]
       routeReport.tasks[taskName] = 'waiting'
 
       cluster
         .execute(routeReport, (arg) => {
           routeReport.tasks[taskName] = 'in-progress'
-          if (!routeReport.tasksTime)
-            routeReport.tasksTime = {}
+          routeReport.tasksTime = routeReport.tasksTime || {}
           routeReport.tasksTime[taskName] = Date.now()
           currentTaskInfo = `${taskName.replace('Task', '')} - ${path}`
           updateProgressDisplay()
@@ -301,13 +307,16 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
           response.tasks[taskName] = 'completed'
           routeReports.set(id, response)
           hooks.callHook('task-complete', path, response, taskName)
-          const ms = Date.now() - (routeReport.tasksTime?.[taskName] || Date.now())
+          const startTime = routeReport.tasksTime?.[taskName] ?? Date.now()
+          const ms = Date.now() - startTime
 
           // Store actual completion time for better time estimation
           if (!taskCompletionTimes.has(id)) {
             taskCompletionTimes.set(id, {} as Record<UnlighthouseTask, number>)
           }
-          taskCompletionTimes.get(id)![taskName] = ms
+          const times = taskCompletionTimes.get(id)
+          if (times)
+            times[taskName] = ms
 
           // make ms human friendly
           const seconds = (ms / 1000).toFixed(1)
@@ -321,7 +330,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
               reportData.push(`Samples: ${resolvedConfig.scanner.samples}`)
           }
           else if (taskName === 'inspectHtmlTask') {
-            if (response.seo?.htmlSize)
+            if (response.seo.htmlSize)
               reportData.push(formatBytes(response.seo.htmlSize))
           }
           reportData.push(`${monitor().donePercStr}% complete`)
@@ -389,6 +398,18 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
   const findReport = (id: string) => reports().filter(report => report.reportId === id)?.[0]
 
+  const pause = () => {
+    isPaused = true
+    logger.info('Scan paused')
+  }
+
+  const resume = () => {
+    isPaused = false
+    logger.info('Scan resumed')
+  }
+
+  const getPaused = () => isPaused
+
   return {
     cluster,
     routeReports,
@@ -402,5 +423,8 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     hasStarted,
     reports,
     clearProgressDisplay: () => progressBox.clear(),
+    pause,
+    resume,
+    isPaused: getPaused,
   }
 }

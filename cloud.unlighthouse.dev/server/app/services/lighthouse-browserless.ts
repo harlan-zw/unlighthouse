@@ -27,10 +27,7 @@ export async function runLighthouseScanViaBrowserless(
   const url = withHttps(options.url)
 
   // Validate URL
-  try {
-    new URL(url)
-  }
-  catch (e) {
+  if (!URL.canParse(url)) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid URL provided',

@@ -4,13 +4,13 @@ import { $URL, joinURL } from 'ufo'
 
 // Icon names for tabs
 const ICONS = {
-  overview: 'i-mdi-view-dashboard',
-  performance: 'i-mdi-speedometer',
-  accessibility: 'i-mdi-accessibility',
+  'overview': 'i-mdi-view-dashboard',
+  'performance': 'i-mdi-speedometer',
+  'accessibility': 'i-mdi-accessibility',
   'best-practices': 'i-mdi-thumb-up',
-  seo: 'i-mdi-web',
-  pwa: 'i-mdi-cellphone',
-  crux: 'i-mdi-world',
+  'seo': 'i-mdi-web',
+  'pwa': 'i-mdi-cellphone',
+  'crux': 'i-mdi-world',
 } as const
 
 const defaultOptions = {
@@ -28,7 +28,8 @@ const payloadOptions = ref(defaultOptions)
 const payloadReady = ref(false)
 
 export function initPayload() {
-  if (import.meta.server) return
+  if (import.meta.server)
+    return
 
   const payload = window.__unlighthouse_payload
   if (payload?.options) {
@@ -44,7 +45,8 @@ if (import.meta.client) {
 
 // Computed config values
 export const isStatic = computed(() => {
-  if (import.meta.server) return true
+  if (import.meta.server)
+    return true
   return window.__unlighthouse_static ?? true
 })
 
@@ -79,17 +81,17 @@ export const tabs = computed(() => {
 })
 
 export function resolveArtifactPath(report: UnlighthouseRouteReport, file: string): string {
-  if (!report?.artifactUrl) return ''
-
-  const withoutBase = report.artifactUrl.replace(basePath.value, '')
+  if (!report?.artifactUrl)
+    return ''
 
   if (isStatic.value) {
+    // Static mode: resolve relative to current page
+    const withoutBase = report.artifactUrl.replace(basePath.value, '')
     let cleanPathname = window.location.pathname
     cleanPathname = cleanPathname.replace(/\/index\.html$/, '')
     return joinURL(cleanPathname, withoutBase, file)
   }
 
-  // In dev mode, use the API server URL for artifacts
-  const baseUrl = apiUrl.value.replace('/api', '')
-  return joinURL(baseUrl, withoutBase, file)
+  // Live server mode: use absolute path to artifacts
+  return joinURL('/', report.artifactUrl, file)
 }

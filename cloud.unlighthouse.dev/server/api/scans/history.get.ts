@@ -1,7 +1,7 @@
+import { desc } from 'drizzle-orm'
 import { defineEventHandler, getQuery } from 'h3'
-import { desc, eq } from 'drizzle-orm'
-import { authenticateUser } from '../../utils/auth'
 import { getDatabase, schema } from '../../database'
+import { authenticateUser } from '../../utils/auth'
 
 /**
  * Get scan history for authenticated user

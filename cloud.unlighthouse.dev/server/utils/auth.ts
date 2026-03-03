@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
-import { createError, getHeader } from 'h3'
 import { eq } from 'drizzle-orm'
+import { createError, getHeader } from 'h3'
 import { getDatabase, schema } from '../database'
 
 /**

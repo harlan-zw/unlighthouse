@@ -10,7 +10,7 @@ export async function runMigrations() {
   const dataDir = process.env.DATABASE_DIR || join(process.cwd(), 'data')
   const dbPath = process.env.DATABASE_URL || join(dataDir, 'lighthouse.db')
 
-  console.log('[DB] Running migrations...')
+  console.warn('[DB] Running migrations...')
 
   // Ensure database exists
   const sqlite = new Database(dbPath)
@@ -34,7 +34,7 @@ export async function runMigrations() {
   // Get migration files
   const migrationsDir = join(process.cwd(), 'server/database/migrations')
   if (!existsSync(migrationsDir)) {
-    console.log('[DB] No migrations directory found, skipping')
+    console.warn('[DB] No migrations directory found, skipping')
     sqlite.close()
     return
   }
@@ -51,7 +51,7 @@ export async function runMigrations() {
       continue
     }
 
-    console.log(`[DB] Running migration: ${file}`)
+    console.warn(`[DB] Running migration: ${file}`)
 
     const sql = await import('node:fs/promises').then(fs =>
       fs.readFile(join(migrationsDir, file), 'utf-8'),
@@ -61,7 +61,7 @@ export async function runMigrations() {
       sqlite.exec(sql)
       sqlite.prepare('INSERT INTO _migrations (name) VALUES (?)').run(file)
       migrated++
-      console.log(`[DB] ✓ ${file}`)
+      console.warn(`[DB] ✓ ${file}`)
     }
     catch (error) {
       console.error(`[DB] ✗ Failed to run migration ${file}:`, error)
@@ -72,9 +72,9 @@ export async function runMigrations() {
   sqlite.close()
 
   if (migrated > 0) {
-    console.log(`[DB] Ran ${migrated} migration(s)`)
+    console.warn(`[DB] Ran ${migrated} migration(s)`)
   }
   else {
-    console.log('[DB] All migrations up to date')
+    console.warn('[DB] All migrations up to date')
   }
 }

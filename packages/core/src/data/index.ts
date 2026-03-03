@@ -1,2 +1,2 @@
-export * from './scanMeta'
 export * as history from './history'
+export * from './scanMeta'
