@@ -69,11 +69,11 @@ declare module 'vue' {
     TabList: typeof import('@headlessui/vue')['TabList']
     Tooltip: typeof import('./components/Tooltip.vue')['default']
     TransitionRoot: typeof import('@headlessui/vue')['TransitionRoot']
-    UApp: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tipt_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
-    UButton: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tipt_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
-    UDropdownMenu: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tipt_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/components/DropdownMenu.vue')['default']
-    UIcon: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tipt_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
-    UModal: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tipt_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
+    UApp: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
+    UButton: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
+    UDropdownMenu: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/components/DropdownMenu.vue')['default']
+    UIcon: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
+    UModal: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
     WarningChip: typeof import('./components/Chip/WarningChip.vue')['default']
   }
 }
