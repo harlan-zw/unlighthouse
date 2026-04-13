@@ -68,6 +68,7 @@ jobs:
         with:
           node-version: lts/*
           cache: pnpm
+      - uses: browser-actions/setup-chrome@v1
       - run: pnpm i
       - run: pnpm build
       - run: pnpm test
