@@ -16,7 +16,7 @@
     "lint": "eslint . --fix",
     "bump": "bumpp package.json packages/*/package.json --commit --push --tag",
     "release": "pnpm build && pnpm bump",
-    "test": "vitest",
+    "test": "vitest --exclude test/ci.test.ts",
     "test:e2e": "vitest run test/ci.test.ts",
     "test:update": "vitest -u",
     "docs": "npm -C docs run dev",
