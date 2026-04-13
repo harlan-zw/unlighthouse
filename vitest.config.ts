@@ -12,6 +12,7 @@ export const alias: AliasOptions = {
 export default defineConfig({
   test: {
     testTimeout: 3000000,
+    exclude: ['**/node_modules/**', '**/dist/**', 'test/ci.test.ts'],
   },
   resolve: {
     alias,

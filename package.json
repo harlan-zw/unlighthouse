@@ -17,6 +17,7 @@
     "bump": "bumpp package.json packages/*/package.json --commit --push --tag",
     "release": "pnpm build && pnpm bump",
     "test": "vitest",
+    "test:e2e": "vitest run test/ci.test.ts",
     "test:update": "vitest -u",
     "docs": "npm -C docs run dev",
     "docs:build": "npm -C docs run build",
