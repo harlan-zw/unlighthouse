@@ -1,0 +1,32 @@
+name: Nightly
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - '!**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - run: pnpm i
+      - run: pnpm build
+
+      - name: Publish
+        run: pnpm dlx pkg-pr-new publish ./packages/cli ./packages/client ./packages/core ./packages/server ./packages/unlighthouse ./packages/unlighthouse-ci

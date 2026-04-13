@@ -1,43 +1,47 @@
 name: Release
 
-permissions:
-  contents: write
-  id-token: write
-
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
 
-      - name: Set node
-        uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
-          node-version: latest
+          node-version: lts/*
           cache: pnpm
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Force Set pnpm Registry
-        run: pnpm config set registry https://registry.npmjs.org
+          registry-url: https://registry.npmjs.org
 
       - run: npx changelogithub
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Dependencies
-        run: pnpm i
+      - run: pnpm i
 
-      - name: Build
-        run: pnpm build
+      - run: pnpm build
 
-      - run: pnpm publish -r --access public --no-git-checks
+      - name: Detect prerelease tag
+        id: prerelease
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG" =~ -(beta|rc|alpha) ]]; then
+            DIST_TAG=$(echo "$TAG" | sed 's/.*-\(beta\|rc\|alpha\).*/\1/')
+            echo "tag=--tag $DIST_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: pnpm publish -r --access public --no-git-checks --provenance ${{ steps.prerelease.outputs.tag }}
