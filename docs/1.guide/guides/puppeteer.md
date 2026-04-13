@@ -8,6 +8,9 @@ keywords:
   - puppeteer headless
   - puppeteer chrome flags
   - lighthouse puppeteer
+  - puppeteer evaluateonnewdocument localstorage
+  - puppeteer.evaluateonnewdocument
+  - puppeteer set localstorage
 navigation:
   title: "Puppeteer"
 relatedPages:

@@ -15,10 +15,9 @@
     "moduleResolution": "Bundler",
     "paths": {
       "unlighthouse": ["./packages/unlighthouse/src"],
-      "@unlighthouse/ui": ["./packages/client/src"],
+      "@unlighthouse/ui": ["./packages/ui"],
       "@unlighthouse/cli": ["./packages/cli/src"],
       "@unlighthouse/core": ["./packages/core/src"],
-      "@unlighthouse/server": ["./packages/server/src"],
       "@unlighthouse/nuxt": ["./integrations/nuxt/src"],
       "@unlighthouse/vite": ["./integrations/vite/src"],
       "@unlighthouse/webpack": ["./integrations/webpack/src"]

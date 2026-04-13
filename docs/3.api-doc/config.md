@@ -119,7 +119,7 @@ Query params to add to every request.
 - **Type:** `NestedHooks<UnlighthouseHooks>`{lang="ts"}
 - **Default:** `{}`{lang="ts"}
 
-Hooks to run. See the [Hooks](/api-doc/#hooks) section for more information.
+Hooks to run. See the [Hooks](/api-doc#hooks) section for more information.
 
 ### `routerPrefix`{lang="ts"}
 

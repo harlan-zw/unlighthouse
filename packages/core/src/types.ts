@@ -384,6 +384,20 @@ export interface ResolvedUserConfig {
      * Additional configuration passed to the reporter.
      */
     reporterConfig?: ReporterConfig
+    /**
+     * Assertions to evaluate after scan completion.
+     * CI will exit with code 1 if any assertion fails.
+     *
+     * @example
+     * ```ts
+     * assertions: [
+     *   { type: 'minScore', category: 'performance', value: 0.8 },
+     *   { type: 'minScore', category: 'accessibility', value: 0.9 },
+     *   { type: 'maxNumericValue', metric: 'lcp', value: 2500 },
+     * ]
+     * ```
+     */
+    assertions?: import('./process/types').Assertion[]
   }
   /**
    * See https://unlighthouse.dev/guide/client.html

@@ -131,8 +131,10 @@ const groupedScans = computed((): SiteGroup[] => {
 
   return Array.from(groups.entries()).map(([site, scans]) => {
     scans.sort((a, b) => {
-      if (a.status === 'running' && b.status !== 'running') return -1
-      if (b.status === 'running' && a.status !== 'running') return 1
+      if (a.status === 'running' && b.status !== 'running')
+        return -1
+      if (b.status === 'running' && a.status !== 'running')
+        return 1
       return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
     })
     const runningScan = scans.find(s => s.status === 'running') || null
@@ -153,8 +155,10 @@ const groupedScans = computed((): SiteGroup[] => {
       runningScan,
     }
   }).sort((a, b) => {
-    if (a.runningScan && !b.runningScan) return -1
-    if (b.runningScan && !a.runningScan) return 1
+    if (a.runningScan && !b.runningScan)
+      return -1
+    if (b.runningScan && !a.runningScan)
+      return 1
     const aDate = a.scans[0]?.startedAt ? new Date(a.scans[0].startedAt).getTime() : 0
     const bDate = b.scans[0]?.startedAt ? new Date(b.scans[0].startedAt).getTime() : 0
     return bDate - aDate
@@ -241,7 +245,8 @@ function selectScansOlderThan(days: number) {
 
 function selectSiteScans(site: string, excludeLatest = false) {
   const group = groupedScans.value.find(g => g.site === site)
-  if (!group) return
+  if (!group)
+    return
 
   const scans = excludeLatest
     ? group.scans.filter(s => s.status !== 'running').slice(1)
@@ -265,16 +270,22 @@ async function bulkDelete() {
 const deleteConfirm = ref<{ open: boolean, scan: Scan | null }>({ open: false, scan: null })
 
 function getScoreColor(score: number | null) {
-  if (score === null) return 'text-gray-500'
-  if (score >= 90) return 'text-green-400'
-  if (score >= 50) return 'text-amber-400'
+  if (score === null)
+    return 'text-gray-500'
+  if (score >= 90)
+    return 'text-green-400'
+  if (score >= 50)
+    return 'text-amber-400'
   return 'text-red-400'
 }
 
 function getScoreBg(score: number | null) {
-  if (score === null) return 'bg-gray-500/10'
-  if (score >= 90) return 'bg-green-500/10'
-  if (score >= 50) return 'bg-amber-500/10'
+  if (score === null)
+    return 'bg-gray-500/10'
+  if (score >= 90)
+    return 'bg-green-500/10'
+  if (score >= 50)
+    return 'bg-amber-500/10'
   return 'bg-red-500/10'
 }
 
@@ -306,11 +317,16 @@ function formatRelativeTime(date: string) {
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
 
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
-  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  if (mins < 1)
+    return 'just now'
+  if (mins < 60)
+    return `${mins}m ago`
+  if (hours < 24)
+    return `${hours}h ago`
+  if (days < 7)
+    return `${days}d ago`
+  if (days < 30)
+    return `${Math.floor(days / 7)}w ago`
   return `${Math.floor(days / 30)}mo ago`
 }
 
@@ -336,16 +352,25 @@ function confirmDelete(scan: Scan) {
 }
 
 async function deleteScan() {
-  if (!deleteConfirm.value.scan) return
+  if (!deleteConfirm.value.scan)
+    return
   await $fetch(`${apiUrl.value}/history/${deleteConfirm.value.scan.id}`, { method: 'DELETE' })
   toast.add({ title: 'Scan deleted', color: 'success' })
   deleteConfirm.value = { open: false, scan: null }
   refresh()
 }
 
-const extractDomain = (url: string) => {
+function extractDomain(url: string) {
   try { return new URL(url).hostname }
   catch { return url }
+}
+
+async function copyShareLink(scan: Scan) {
+  const url = new URL(window.location.href)
+  url.pathname = `/results/${scan.id}`
+  url.search = ''
+  await navigator.clipboard.writeText(url.toString())
+  toast.add({ title: 'Link copied to clipboard', color: 'success' })
 }
 
 // Auto-refresh when there are running scans
@@ -354,32 +379,40 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   refreshInterval = setInterval(() => {
-    if (hasRunningScans.value) refresh()
+    if (hasRunningScans.value)
+      refresh()
   }, 3000)
 })
 
 onUnmounted(() => {
-  if (refreshInterval) clearInterval(refreshInterval)
+  if (refreshInterval)
+    clearInterval(refreshInterval)
 })
 
-const dropdownItems = (scan: Scan) => [
-  [{
-    label: scan.status === 'running' ? 'View Progress' : 'View Results',
-    icon: scan.status === 'running' ? 'i-heroicons-arrow-path' : 'i-heroicons-chart-bar',
-    click: () => viewScan(scan),
-  }],
-  [{
-    label: 'Rescan',
-    icon: 'i-heroicons-arrow-path',
-    click: () => rescanSite(scan),
-  }],
-  [{
-    label: 'Delete',
-    icon: 'i-heroicons-trash',
-    color: 'error' as const,
-    click: () => confirmDelete(scan),
-  }],
-]
+function dropdownItems(scan: Scan) {
+  return [
+    [{
+      label: scan.status === 'running' ? 'View Progress' : 'View Results',
+      icon: scan.status === 'running' ? 'i-heroicons-arrow-path' : 'i-heroicons-chart-bar',
+      click: () => viewScan(scan),
+    }],
+    [{
+      label: 'Share Link',
+      icon: 'i-heroicons-link',
+      click: () => copyShareLink(scan),
+    }, {
+      label: 'Rescan',
+      icon: 'i-heroicons-arrow-path',
+      click: () => rescanSite(scan),
+    }],
+    [{
+      label: 'Delete',
+      icon: 'i-heroicons-trash',
+      color: 'error' as const,
+      click: () => confirmDelete(scan),
+    }],
+  ]
+}
 
 // Smart action menu items
 const smartSelectItems = [
@@ -397,8 +430,7 @@ const smartSelectItems = [
     label: 'Older than 7 days',
     icon: 'i-heroicons-clock',
     click: () => selectScansOlderThan(7),
-  },
-  {
+  }, {
     label: 'Older than 30 days',
     icon: 'i-heroicons-clock',
     click: () => selectScansOlderThan(30),
@@ -561,8 +593,12 @@ const smartSelectItems = [
       <!-- Empty State -->
       <div v-else-if="filteredScans.length === 0 && !searchQuery && minScore === null" class="flex flex-col items-center justify-center py-20">
         <UIcon name="i-heroicons-clock" class="w-16 h-16 text-gray-600 mb-4" />
-        <h2 class="text-xl font-semibold mb-2">No scan history</h2>
-        <p class="text-gray-500 mb-6">Start your first scan to see results here</p>
+        <h2 class="text-xl font-semibold mb-2">
+          No scan history
+        </h2>
+        <p class="text-gray-500 mb-6">
+          Start your first scan to see results here
+        </p>
         <UButton to="/onboarding" icon="i-heroicons-plus" color="primary">
           Start New Scan
         </UButton>
@@ -571,8 +607,12 @@ const smartSelectItems = [
       <!-- No Results State -->
       <div v-else-if="filteredScans.length === 0" class="flex flex-col items-center justify-center py-20">
         <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-gray-600 mb-4" />
-        <h2 class="text-lg font-semibold mb-2">No matching scans</h2>
-        <p class="text-gray-500">Try adjusting your search or filters</p>
+        <h2 class="text-lg font-semibold mb-2">
+          No matching scans
+        </h2>
+        <p class="text-gray-500">
+          Try adjusting your search or filters
+        </p>
       </div>
 
       <!-- Grouped Scan List -->
@@ -661,7 +701,7 @@ const smartSelectItems = [
               class="group/row relative flex items-center hover:bg-white/[0.02] transition-colors"
               :class="[
                 idx > 0 ? 'border-t border-white/5' : '',
-                isSelected(scan.id) ? 'bg-amber-500/5 ring-1 ring-inset ring-amber-500/30' : ''
+                isSelected(scan.id) ? 'bg-amber-500/5 ring-1 ring-inset ring-amber-500/30' : '',
               ]"
             >
               <!-- Checkbox Column - always visible on left edge -->
@@ -672,7 +712,7 @@ const smartSelectItems = [
                     isSelected(scan.id)
                       ? 'bg-amber-500 border-amber-500 scale-100'
                       : 'border-white/20 hover:border-amber-400/50 opacity-0 group-hover/row:opacity-100 scale-90 hover:scale-100',
-                    isSelected(scan.id) ? 'opacity-100' : ''
+                    isSelected(scan.id) ? 'opacity-100' : '',
                   ]"
                   @click="toggleSelect(scan.id, $event)"
                 >
@@ -696,8 +736,8 @@ const smartSelectItems = [
                   <span class="text-gray-500">{{ scan.device }}</span>
                   <span class="text-gray-500">{{ scan.routeCount }} routes</span>
                   <div
-                    class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                    :class="[getStatusConfig(scan.status).color, 'bg-white/5']"
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-white/5"
+                    :class="[getStatusConfig(scan.status).color]"
                   >
                     <UIcon :name="getStatusConfig(scan.status).icon" class="w-3 h-3" />
                     {{ getStatusConfig(scan.status).label }}
@@ -728,7 +768,7 @@ const smartSelectItems = [
           :class="[
             isSelected(scan.id)
               ? 'border-amber-500/40 bg-amber-500/5 ring-1 ring-amber-500/20'
-              : 'border-white/5 hover:border-white/10'
+              : 'border-white/5 hover:border-white/10',
           ]"
         >
           <div class="flex items-start p-5 gap-4">
@@ -738,7 +778,7 @@ const smartSelectItems = [
               :class="[
                 isSelected(scan.id)
                   ? 'bg-amber-500 border-amber-500 scale-100'
-                  : 'border-white/20 hover:border-amber-400/50 opacity-0 group-hover/card:opacity-100 scale-90 hover:scale-100'
+                  : 'border-white/20 hover:border-amber-400/50 opacity-0 group-hover/card:opacity-100 scale-90 hover:scale-100',
               ]"
               @click="toggleSelect(scan.id, $event)"
             >
@@ -767,8 +807,8 @@ const smartSelectItems = [
                   {{ scan.site }}
                 </a>
                 <div
-                  class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs"
-                  :class="[getStatusConfig(scan.status).color, 'bg-white/5']"
+                  class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-white/5"
+                  :class="[getStatusConfig(scan.status).color]"
                 >
                   <UIcon :name="getStatusConfig(scan.status).icon" class="w-3 h-3" />
                   {{ getStatusConfig(scan.status).label }}
@@ -825,7 +865,9 @@ const smartSelectItems = [
                 >
                   {{ score ?? '-' }}
                 </div>
-                <div class="text-[10px] text-gray-500 mt-1">{{ key }}</div>
+                <div class="text-[10px] text-gray-500 mt-1">
+                  {{ key }}
+                </div>
               </div>
             </div>
 
@@ -929,7 +971,7 @@ const smartSelectItems = [
       </template>
       <template #footer>
         <div class="flex justify-end gap-3 p-4">
-          <UButton variant="ghost" color="neutral" @click="showDeleteConfirm = false" :disabled="isBulkDeleting">
+          <UButton variant="ghost" color="neutral" :disabled="isBulkDeleting" @click="showDeleteConfirm = false">
             Cancel
           </UButton>
           <UButton color="error" :loading="isBulkDeleting" @click="bulkDelete">

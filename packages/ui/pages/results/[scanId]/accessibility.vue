@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { useDashboard, getScoreColor, getScoreBg } from '~/composables/dashboard'
 import { withBase } from 'ufo'
+import { getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
+import { apiUrl } from '~/composables/unlighthouse'
 
 definePageMeta({ layout: 'results' })
 
@@ -14,7 +15,8 @@ const { accessibility } = useDashboard(scanId)
 
 // Resolve image URLs against site
 function resolveImageUrl(url: string): string {
-  if (!url) return ''
+  if (!url)
+    return ''
   // Already absolute
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//'))
     return url
@@ -25,7 +27,8 @@ function resolveImageUrl(url: string): string {
 }
 
 onMounted(() => {
-  if (scanId.value) accessibility.execute()
+  if (scanId.value)
+    accessibility.execute()
 })
 
 const activeTab = ref(0)
@@ -41,7 +44,8 @@ const severityOrder = { critical: 0, serious: 1, moderate: 2, minor: 3 }
 const avgScore = computed(() => {
   const routes = accessibility.data.value?.routes ?? []
   const withScores = routes.filter(r => r.score !== null)
-  if (!withScores.length) return null
+  if (!withScores.length)
+    return null
   return Math.round(withScores.reduce((a, r) => a + (r.score ?? 0), 0) / withScores.length)
 })
 
@@ -61,7 +65,6 @@ const summaryStats = computed(() => {
     { label: 'Serious', value: serious, color: serious > 0 ? 'text-orange-400' : 'text-gray-400', icon: 'i-heroicons-exclamation-circle' },
   ]
 })
-
 
 const sortedIssues = computed(() =>
   [...(accessibility.data.value?.issues ?? [])]
@@ -174,7 +177,9 @@ const auditTitles: Record<string, string> = {
                   class="w-4 h-4 text-gray-500 shrink-0"
                 />
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm text-white">{{ issue.title }}</div>
+                  <div class="text-sm text-white">
+                    {{ issue.title }}
+                  </div>
                   <div class="flex items-center gap-2 mt-1">
                     <span class="text-xs text-gray-500">{{ issue.instanceCount }} instances on {{ issue.pageCount }} pages</span>
                     <span
@@ -190,7 +195,9 @@ const auditTitles: Record<string, string> = {
               <SeverityBadge :severity="issue.severity" class="shrink-0" />
             </button>
             <div v-if="expandedIssues[issue.auditId]" class="px-4 pb-4 pl-11">
-              <p v-if="issue.description" class="text-xs text-gray-400 mb-3">{{ issue.description }}</p>
+              <p v-if="issue.description" class="text-xs text-gray-400 mb-3">
+                {{ issue.description }}
+              </p>
               <PagesList :pages="issue.pages" />
             </div>
           </div>
@@ -233,7 +240,9 @@ const auditTitles: Record<string, string> = {
                     >
                       Aa
                     </div>
-                    <div class="text-sm font-mono text-white truncate">{{ el.selector }}</div>
+                    <div class="text-sm font-mono text-white truncate">
+                      {{ el.selector }}
+                    </div>
                   </div>
                   <div class="flex items-center gap-2 mt-1">
                     <span class="text-xs text-gray-500">{{ el.pageCount }} pages</span>
@@ -255,6 +264,19 @@ const auditTitles: Record<string, string> = {
               <SeverityBadge :severity="el.severity" class="shrink-0" />
             </button>
             <div v-if="expandedElements[`contrast-${el.selector}`]" class="px-4 pb-4 pl-11">
+              <!-- Element screenshot preview -->
+              <div v-if="el.boundingRect && el.screenshotPage" class="mb-3 rounded overflow-hidden border border-white/10 w-fit max-w-[300px] max-h-[150px]">
+                <img
+                  :src="`${apiUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(el.screenshotPage)}`"
+                  :style="{
+                    objectFit: 'none',
+                    objectPosition: `-${el.boundingRect.left}px -${el.boundingRect.top}px`,
+                    width: `${el.boundingRect.width}px`,
+                    height: `${el.boundingRect.height}px`,
+                  }"
+                  loading="lazy"
+                >
+              </div>
               <!-- Color details -->
               <div v-if="el.foregroundColor || el.backgroundColor" class="flex items-center gap-4 mb-3 text-xs">
                 <div v-if="el.foregroundColor" class="flex items-center gap-2">
@@ -309,7 +331,9 @@ const auditTitles: Record<string, string> = {
                   class="w-4 h-4 text-gray-500 shrink-0"
                 />
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm font-mono text-white truncate">{{ el.selector }}</div>
+                  <div class="text-sm font-mono text-white truncate">
+                    {{ el.selector }}
+                  </div>
                   <div class="flex items-center gap-2 mt-1">
                     <span class="text-xs text-gray-500">{{ el.pageCount }} pages</span>
                     <span class="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -321,7 +345,22 @@ const auditTitles: Record<string, string> = {
               <SeverityBadge :severity="el.severity" class="shrink-0" />
             </button>
             <div v-if="expandedElements[`other-${el.selector}`]" class="px-4 pb-4 pl-11">
-              <p v-if="el.issueDescription" class="text-xs text-gray-400 mb-3">{{ el.issueDescription }}</p>
+              <!-- Element screenshot preview -->
+              <div v-if="el.boundingRect && el.screenshotPage" class="mb-3 rounded overflow-hidden border border-white/10 w-fit max-w-[300px] max-h-[150px]">
+                <img
+                  :src="`${apiUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(el.screenshotPage)}`"
+                  :style="{
+                    objectFit: 'none',
+                    objectPosition: `-${el.boundingRect.left}px -${el.boundingRect.top}px`,
+                    width: `${el.boundingRect.width}px`,
+                    height: `${el.boundingRect.height}px`,
+                  }"
+                  loading="lazy"
+                >
+              </div>
+              <p v-if="el.issueDescription" class="text-xs text-gray-400 mb-3">
+                {{ el.issueDescription }}
+              </p>
               <div v-if="el.snippet" class="text-xs text-gray-400 font-mono bg-white/5 p-2 rounded mb-3 overflow-x-auto">
                 {{ el.snippet }}
               </div>
@@ -352,7 +391,9 @@ const auditTitles: Record<string, string> = {
                 >
               </div>
               <div class="min-w-0 flex-1">
-                <div class="text-sm font-mono text-white truncate">{{ img.url }}</div>
+                <div class="text-sm font-mono text-white truncate">
+                  {{ img.url }}
+                </div>
                 <div class="flex items-center gap-2 mt-1">
                   <span
                     class="text-xs px-2 py-0.5 rounded"
@@ -384,7 +425,9 @@ const auditTitles: Record<string, string> = {
             :to="`/results/${scanId}?path=${encodeURIComponent(r.path)}`"
             class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 hover:bg-white/[0.02] -mx-4 px-4 transition-colors"
           >
-            <div class="text-sm font-mono text-white truncate">{{ r.path }}</div>
+            <div class="text-sm font-mono text-white truncate">
+              {{ r.path }}
+            </div>
             <div
               class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"
               :class="[getScoreBg(r.score), getScoreColor(r.score)]"

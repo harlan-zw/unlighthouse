@@ -32,6 +32,7 @@ export interface CliOptions {
   sitemaps?: string
   userAgent?: string
   history?: boolean
+  assert?: boolean
 }
 
 export interface CiOptions extends CliOptions {

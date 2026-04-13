@@ -1,10 +1,23 @@
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
-import { createUnlighthouse, useLogger } from '@unlighthouse/core'
-import { createServer } from '@unlighthouse/server'
+import { createUnlighthouse, evaluateAndStoreAssertions, history, useLogger, useUnlighthouse } from '@unlighthouse/core'
 import open from 'better-opn'
+import { createApp, toNodeListener } from 'h3'
+import { listen } from 'listhen'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
+
+async function createServer() {
+  const { resolvedConfig } = useUnlighthouse()
+  const app = createApp()
+  return {
+    app,
+    server: await listen(toNodeListener(app), {
+      ...resolvedConfig.server,
+      open: false,
+    }),
+  }
+}
 
 const cli = createCli()
 
@@ -77,6 +90,36 @@ async function run() {
     unlighthouse.worker.clearProgressDisplay()
     logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${unlighthouse.worker.reports().length} routes in ${seconds}s.`)
     await unlighthouse.worker.cluster.close().catch(() => {})
+
+    // Evaluate CI assertions
+    const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
+    if (options.assert && assertionConfigs?.length) {
+      const scanId = history.getCurrentScanId()
+      if (scanId) {
+        const db = history.getHistoryDb(unlighthouse.resolvedConfig.outputPath)
+        const results = evaluateAndStoreAssertions(db, scanId, assertionConfigs)
+        const failures = results.filter(r => !r.passed)
+
+        if (failures.length > 0) {
+          logger.error(`${failures.length} assertion(s) failed:`)
+          for (const f of failures) {
+            const label = f.assertion.category || f.assertion.metric || f.assertion.type
+            logger.error(`  ${f.assertion.type} ${label}: expected ${f.assertion.value}, got ${f.actual}`)
+            if (f.failingRoutes?.length) {
+              for (const r of f.failingRoutes.slice(0, 5)) {
+                logger.error(`    - ${r.path} (${r.value})`)
+              }
+              if (f.failingRoutes.length > 5)
+                logger.error(`    ... and ${f.failingRoutes.length - 5} more`)
+            }
+          }
+          process.exit(1)
+        }
+        else {
+          logger.success(`All ${results.length} assertion(s) passed.`)
+        }
+      }
+    }
   })
 
   if (unlighthouse.resolvedConfig.server.open)

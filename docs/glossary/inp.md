@@ -22,7 +22,7 @@ relatedPages:
 
 # Interaction to Next Paint (INP)
 
-Interaction to Next Paint measures how quickly your page responds to user interactions. It [replaced First Input Delay (FID)](https://web.dev/blog/inp-cwv-march-12) as a [Core Web Vital](/glossary/) in March 2024 and is now a Google ranking factor.
+Interaction to Next Paint measures how quickly your page responds to user interactions. It [replaced First Input Delay (FID)](https://web.dev/blog/inp-cwv-march-12) as a [Core Web Vital](/glossary) in March 2024 and is now a Google ranking factor.
 
 ## What INP Measures
 

@@ -136,6 +136,8 @@ export function getHistoryDb(dataDir: string): BetterSQLite3Database {
       background_color TEXT,
       contrast_ratio REAL,
       required_ratio REAL,
+      bounding_rect TEXT,
+      screenshot_page TEXT,
       page_count INTEGER NOT NULL,
       pages TEXT
     );
@@ -334,6 +336,16 @@ export function getHistoryDb(dataDir: string): BetterSQLite3Database {
     CREATE INDEX IF NOT EXISTS idx_comparisons_scans ON comparisons(base_scan_id, current_scan_id);
     CREATE INDEX IF NOT EXISTS idx_diffs_comparison ON comparison_diffs(comparison_id);
   `)
+
+  // Migrations for existing databases
+  const migrations = [
+    `ALTER TABLE accessibility_elements ADD COLUMN bounding_rect TEXT`,
+    `ALTER TABLE accessibility_elements ADD COLUMN screenshot_page TEXT`,
+  ]
+  for (const migration of migrations) {
+    try { sqlite.exec(migration) }
+    catch {}
+  }
 
   return dbInstance
 }

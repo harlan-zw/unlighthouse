@@ -151,6 +151,10 @@ export const accessibilityElements = sqliteTable('accessibility_elements', {
   contrastRatio: real('contrast_ratio'),
   requiredRatio: real('required_ratio'),
 
+  // Element screenshot cropping
+  boundingRect: text('bounding_rect'), // JSON { left, top, width, height }
+  screenshotPage: text('screenshot_page'), // path of first page with screenshot data
+
   pageCount: integer('page_count').notNull(),
   pages: text('pages'),
 })

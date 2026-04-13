@@ -21,7 +21,7 @@ relatedPages:
 
 # Largest Contentful Paint (LCP)
 
-Largest Contentful Paint measures how long it takes for the largest visible content element to render on screen. It's one of Google's three [Core Web Vitals](/glossary/) and directly impacts your search rankings.
+Largest Contentful Paint measures how long it takes for the largest visible content element to render on screen. It's one of Google's three [Core Web Vitals](/glossary) and directly impacts your search rankings.
 
 ## What LCP Measures
 

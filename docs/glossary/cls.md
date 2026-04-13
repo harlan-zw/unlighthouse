@@ -22,7 +22,7 @@ relatedPages:
 
 # Cumulative Layout Shift (CLS)
 
-Cumulative Layout Shift measures visual stability—how much page content unexpectedly moves during loading. It's one of Google's three [Core Web Vitals](/glossary/) and affects both user experience and search rankings.
+Cumulative Layout Shift measures visual stability—how much page content unexpectedly moves during loading. It's one of Google's three [Core Web Vitals](/glossary) and affects both user experience and search rankings.
 
 ## What CLS Measures
 

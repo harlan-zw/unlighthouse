@@ -10,7 +10,7 @@ keywords:
 navigation:
   title: "API Glossary"
 relatedPages:
-  - path: /api-doc/index
+  - path: /api-doc
     title: API Reference
   - path: /api-doc/config
     title: Config Reference

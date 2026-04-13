@@ -30,6 +30,7 @@ import { extractRouteData } from './extract'
 import { processPerformance } from './performance'
 import { processSeo } from './seo'
 
+export { evaluateAndStoreAssertions, evaluateAssertions } from './assertions'
 export { compareScans, getComparisonSummary } from './comparison'
 export { decompressLhr, extractRouteData } from './extract'
 export * from './types'

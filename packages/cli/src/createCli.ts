@@ -44,6 +44,7 @@ export default function createCli() {
 
   cli.option('-d, --debug', 'Debug. Enable debugging in the logger.')
   cli.option('--history', 'Start the UI in history-only mode without running a scan.')
+  cli.option('--assert', 'Evaluate CI assertions after scan. Exit with code 1 on failure.')
 
   return cli
 }

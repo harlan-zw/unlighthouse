@@ -12,7 +12,9 @@ export interface PerformanceData {
   issues: Array<{
     id: string
     url: string
+    type: string
     issueType: string
+    issueSubtype: string | null
     wastedBytes: number
     wastedMs: number
     pages: string[]
@@ -64,11 +66,14 @@ export interface AccessibilityData {
     backgroundColor?: string
     contrastRatio?: number
     requiredRatio?: number
+    boundingRect?: { left: number, top: number, width: number, height: number } | null
+    screenshotPage?: string | null
     pageCount: number
     pages: string[]
   }>
   missingAltImages: Array<{
     url: string
+    thumbnail: string | null
     isDecorative: boolean
     pageCount: number
     pages: string[]
@@ -124,7 +129,14 @@ export interface SeoData {
     description: string | null
     descriptionLength: number | null
     canonical: string | null
+    ogTitle: string | null
+    ogDescription: string | null
+    ogImage: string | null
     hasOgTags: boolean
+    twitterCard: string | null
+    twitterTitle: string | null
+    twitterDescription: string | null
+    twitterImage: string | null
     hasTwitterTags: boolean
     structuredDataTypes: string[]
     hreflangTags: string[]

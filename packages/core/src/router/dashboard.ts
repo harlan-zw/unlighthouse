@@ -1,6 +1,7 @@
 import type { Router } from 'h3'
+import { gunzipSync } from 'node:zlib'
 import { desc, eq } from 'drizzle-orm'
-import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseStatus } from 'h3'
+import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
 import * as history from '../data/history'
 import {
   accessibilityElements,
@@ -110,7 +111,7 @@ export function createDashboardApi(outputPath: string): Router {
     }).from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all()
 
     return {
-      issues: issues.map(i => ({ ...i, pages: JSON.parse(i.pages || '[]') })),
+      issues: issues.map(i => ({ ...i, issueType: i.type, pages: JSON.parse(i.pages || '[]') })),
       thirdParty: thirdParty.map(t => ({ ...t, pages: JSON.parse(t.pages || '[]') })),
       lcpElements: lcpData.map(l => ({ ...l, pages: JSON.parse(l.pages || '[]') })),
       routes,
@@ -149,7 +150,11 @@ export function createDashboardApi(outputPath: string): Router {
         wcagCriteria: JSON.parse(i.wcagCriteria || '[]'),
         pages: JSON.parse(i.pages || '[]'),
       })),
-      elements: elements.map(e => ({ ...e, pages: JSON.parse(e.pages || '[]') })),
+      elements: elements.map(e => ({
+        ...e,
+        boundingRect: e.boundingRect ? JSON.parse(e.boundingRect) : null,
+        pages: JSON.parse(e.pages || '[]'),
+      })),
       missingAltImages: altImages.map(a => ({ ...a, pages: JSON.parse(a.pages || '[]') })),
       routes,
     }
@@ -260,6 +265,42 @@ export function createDashboardApi(outputPath: string): Router {
       tapTargetIssues: tapTargets.map(t => ({ ...t, elements: JSON.parse(t.elements || '[]') })),
       routes,
     }
+  }))
+
+  // ============================================================================
+  // Element Screenshot (cropped from fullPageScreenshot)
+  // ============================================================================
+
+  router.get('/screenshot/:scanId/:path', defineEventHandler((event) => {
+    const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
+    const decodedPath = decodeURIComponent(path)
+    const db = history.getHistoryDb(outputPath)
+    if (!db) {
+      setResponseStatus(event, 500)
+      return { error: 'Database not available' }
+    }
+
+    const routeRow = db.select({ lhrGzip: scanRoutes.lhrGzip, path: scanRoutes.path }).from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all().find(r => r.path === decodedPath || r.path === `/${decodedPath}`)
+
+    if (!routeRow?.lhrGzip) {
+      setResponseStatus(event, 404)
+      return { error: 'Route or LHR data not found' }
+    }
+
+    const lhr = JSON.parse(gunzipSync(routeRow.lhrGzip).toString())
+    const screenshotData = lhr.fullPageScreenshot?.screenshot?.data
+    if (!screenshotData) {
+      setResponseStatus(event, 404)
+      return { error: 'No screenshot data in LHR' }
+    }
+
+    // screenshotData is "data:image/jpeg;base64,..." or just base64
+    const base64 = screenshotData.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Buffer.from(base64, 'base64')
+
+    setResponseHeader(event, 'Content-Type', 'image/jpeg')
+    setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
+    return buffer
   }))
 
   // ============================================================================

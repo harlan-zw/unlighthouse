@@ -47,7 +47,6 @@
   "dependencies": {
     "@lhci/utils": "catalog:dependencies",
     "@unlighthouse/core": "workspace:*",
-    "@unlighthouse/server": "workspace:*",
     "@unlighthouse/ui": "workspace:*",
     "better-opn": "catalog:dependencies",
     "cac": "catalog:dependencies",
@@ -55,6 +54,8 @@
     "defu": "catalog:dependencies",
     "fs-extra": "catalog:dependencies",
     "globby": "catalog:dependencies",
+    "h3": "catalog:dependencies",
+    "listhen": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
     "pathe": "catalog:dependencies",
     "std-env": "catalog:dependencies"

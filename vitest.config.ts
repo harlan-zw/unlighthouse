@@ -6,7 +6,7 @@ const r = (p: string) => resolve(__dirname, p)
 
 export const alias: AliasOptions = {
   'unlighthouse': r('./packages/core/src/'),
-  '@unlighthouse/ui': r('./packages/client/src/'),
+  '@unlighthouse/ui': r('./packages/ui/'),
 }
 
 export default defineConfig({

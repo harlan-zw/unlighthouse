@@ -20,6 +20,8 @@ interface ElementIssue {
   background?: string
   ratio?: number
   required?: number
+  boundingRect?: { left: number, top: number, width: number, height: number }
+  screenshotPage?: string
 }
 
 const SEVERITY_MAP: Record<string, string> = {
@@ -136,7 +138,7 @@ export async function processAccessibility(p: ProcessorParams): Promise<Accessib
           continue
 
         const key = `${auditId}:${selector}`
-        const existing = elementMap.get(key) ?? {
+        const existing: ElementIssue = elementMap.get(key) ?? {
           selector,
           snippet: item.node?.snippet,
           auditId,
@@ -148,6 +150,11 @@ export async function processAccessibility(p: ProcessorParams): Promise<Accessib
           required: item.expectedContrastRatio,
         }
         existing.pages.add(path)
+        // Capture bounding rect from fullPageScreenshot nodes on first occurrence
+        if (!existing.boundingRect && item.node?.lhId && route.screenshotNodes?.[item.node.lhId]) {
+          existing.boundingRect = route.screenshotNodes[item.node.lhId]
+          existing.screenshotPage = path
+        }
         elementMap.set(key, existing)
       }
     }
@@ -166,6 +173,8 @@ export async function processAccessibility(p: ProcessorParams): Promise<Accessib
       backgroundColor: el.background,
       contrastRatio: el.ratio,
       requiredRatio: el.required,
+      boundingRect: el.boundingRect ? JSON.stringify(el.boundingRect) : null,
+      screenshotPage: el.screenshotPage ?? null,
       pageCount: el.pages.size,
       pages: JSON.stringify([...el.pages]),
     }))
@@ -179,8 +188,11 @@ export async function processAccessibility(p: ProcessorParams): Promise<Accessib
   for (const [path, route] of routes) {
     const items = route.audits['image-alt']?.details?.items ?? []
     for (const item of items) {
-      const url = item.node?.snippet?.match(/src="([^"]+)"/)?.[1]
-      if (!url)
+      const snippet = item.node?.snippet ?? ''
+      // Try double-quoted, single-quoted, then unquoted src
+      const url = snippet.match(/src=["']([^"']+)["']/)?.[1]
+        ?? snippet.match(/src=([^\s>]+)/)?.[1]
+      if (!url || url.startsWith('data:'))
         continue
       const existing = altImages.get(url) ?? { url, pages: new Set() }
       existing.pages.add(path)
@@ -191,6 +203,7 @@ export async function processAccessibility(p: ProcessorParams): Promise<Accessib
   const altImageValues = [...altImages.values()].map(img => ({
     scanId,
     url: img.url,
+    thumbnail: img.url,
     isDecorative: isLikelyDecorative(img.url),
     pageCount: img.pages.size,
     pages: JSON.stringify([...img.pages]),
