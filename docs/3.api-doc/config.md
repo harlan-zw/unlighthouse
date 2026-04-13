@@ -1,6 +1,12 @@
 ---
 title: "Configuration Reference"
 description: "Complete reference for all Unlighthouse configuration options including types, defaults, and usage examples."
+keywords:
+  - unlighthouse config
+  - unlighthouse options
+  - unlighthouse configuration
+  - lighthouse config options
+  - unlighthouse api
 navigation:
   title: "Config Reference"
 relatedPages:
@@ -8,9 +14,11 @@ relatedPages:
     title: Configuration Guide
   - path: /api-doc/glossary
     title: Glossary
+  - path: /integrations/cli
+    title: CLI Integration
 ---
 
-Complete reference for all configuration options. For implementation guides, see [Configuration Guide](/guide/guides/config) or [CLI Arguments](/integrations/cli#configuration).
+Complete reference for all Unlighthouse configuration options with types, defaults, and usage examples. For implementation guides, see [Configuration Guide](/guide/guides/config) or [CLI Arguments](/integrations/cli#configuration).
 
 ::note
 Deprecated integration-specific options (Nuxt, Vite, webpack) are not documented here. Use CLI or CI integrations instead.
@@ -109,7 +117,7 @@ Query params to add to every request.
 - **Type:** `NestedHooks<UnlighthouseHooks>`{lang="ts"}
 - **Default:** `{}`{lang="ts"}
 
-Hooks to run. See the [Hooks](/api-doc/#hooks) section for more information.
+Hooks to run. See the [Hooks](/api-doc#hooks) section for more information.
 
 ### `routerPrefix`{lang="ts"}
 

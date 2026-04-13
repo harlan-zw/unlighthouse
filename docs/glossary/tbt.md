@@ -7,6 +7,8 @@ keywords:
   - total blocking time explained
   - tbt lighthouse
   - main thread blocking
+  - tbt score
+  - reduce tbt
 navigation:
   title: "TBT"
 relatedPages:
@@ -18,7 +20,7 @@ relatedPages:
     title: Improving Accuracy
 ---
 
-Total Blocking Time (TBT) measures the total time the main thread was blocked during page load. It's a critical Lighthouse metric that indicates how responsive a page will feel during the loading phase.
+Total Blocking Time measures the total time the main thread was blocked during page load. It's the heaviest-weighted Lighthouse metric (30%) and indicates how responsive a page will feel during the loading phase.
 
 ## What TBT Measures
 

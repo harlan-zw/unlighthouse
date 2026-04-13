@@ -6,6 +6,8 @@ keywords:
   - lcp meaning
   - largest contentful paint explained
   - lcp core web vitals
+  - lcp score
+  - improve lcp
 navigation:
   title: "LCP"
 relatedPages:
@@ -17,7 +19,7 @@ relatedPages:
     title: Improving Accuracy
 ---
 
-Largest Contentful Paint (LCP) measures how long it takes for the largest visible content element to render on screen. It's one of Google's three [Core Web Vitals](/glossary/) and directly impacts your search rankings.
+Largest Contentful Paint measures how long it takes for the largest visible content element to render on screen. It's one of Google's three [Core Web Vitals](/glossary) and directly impacts your search rankings.
 
 ## What LCP Measures
 

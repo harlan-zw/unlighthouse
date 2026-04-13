@@ -1,13 +1,17 @@
 ---
-title: "Web Performance Glossary"
-description: "Definitions and explanations of Core Web Vitals, Lighthouse metrics, and web performance terminology."
+title: "Core Web Vitals Guide"
+description: "Complete guide to Core Web Vitals and Lighthouse metrics. Learn what LCP, CLS, and INP measure, their impact on SEO, and how to improve them."
 keywords:
-  - web performance glossary
-  - core web vitals explained
+  - core web vitals
+  - core web vitals seo
+  - what are core web vitals
   - lighthouse metrics
-  - web vitals definitions
+  - lighthouse core web vitals
+  - web vitals guide
+  - google core web vitals
+  - core web vitals ranking factor
 navigation:
-  title: "Glossary"
+  title: "Core Web Vitals"
 relatedPages:
   - path: /guide/getting-started/unlighthouse-cli
     title: Unlighthouse CLI
@@ -17,7 +21,7 @@ relatedPages:
     title: Lighthouse Options
 ---
 
-Quick reference for Core Web Vitals and web performance metrics. Each entry explains what the metric measures, why it matters, and how to improve it.
+Core Web Vitals are Google's key metrics for user experience and are a direct ranking factor in search results. Understanding and optimizing these metrics improves both SEO and user experience.
 
 ## Core Web Vitals
 
@@ -73,6 +77,16 @@ Additional metrics reported by Lighthouse that contribute to your performance sc
 
 - [TTI (Time to Interactive)](/glossary/tti) - Removed in Lighthouse 10. Use [TBT](/glossary/tbt) or [INP](/glossary/inp) instead.
 
+## Core Web Vitals and SEO
+
+Since 2021, Core Web Vitals have been a Google ranking factor. Sites with good Core Web Vitals may rank higher in search results and appear in Google's "Top Stories" carousel.
+
+Google measures Core Web Vitals from real user data (Chrome User Experience Report). Improving these metrics:
+- Boosts search rankings
+- Improves user engagement
+- Reduces bounce rates
+- Increases conversions
+
 ## Measuring Your Site
 
 Use [Unlighthouse CLI](/guide/getting-started/unlighthouse-cli) to audit all these metrics across your entire website in a single scan:
@@ -80,3 +94,5 @@ Use [Unlighthouse CLI](/guide/getting-started/unlighthouse-cli) to audit all the
 ```bash
 npx unlighthouse --site https://example.com
 ```
+
+Unlike single-page tools like PageSpeed Insights, Unlighthouse scans your entire site and identifies which pages need the most attention.

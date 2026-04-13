@@ -7,6 +7,7 @@ keywords:
   - time to interactive explained
   - tti deprecated
   - tti lighthouse
+  - tti removed
 navigation:
   title: "TTI (Deprecated)"
 relatedPages:

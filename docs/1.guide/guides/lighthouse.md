@@ -1,15 +1,12 @@
 ---
-title: "Lighthouse Config & Desktop/Mobile Presets"
-description: "Customize Lighthouse audit categories, throttling, and desktop/mobile presets in Unlighthouse. Pass any lighthouseOptions directly."
+title: "Lighthouse Configuration"
+description: "Customize Google Lighthouse audit settings, categories, and performance thresholds within Unlighthouse scans."
 keywords:
   - lighthouse options
   - lighthouse configuration
   - lighthouse categories
   - customize lighthouse
   - lighthouse audit settings
-  - lighthouse preset desktop
-  - lighthouse preset mobile
-  - unlighthouse preset
 navigation:
   title: "Lighthouse Config"
 relatedPages:
@@ -33,7 +30,7 @@ export default defineUnlighthouseConfig({
 })
 ```
 
-For complete options, see the [Lighthouse Configuration docs](https://raw.githubusercontent.com/GoogleChrome/lighthouse/refs/heads/main/docs/configuration.md).
+For complete options, see the [Lighthouse Configuration docs](https://github.com/GoogleChrome/lighthouse/blob/master/docs/configuration.md).
 
 ## Aliases
 
