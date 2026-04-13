@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.17.7",
   "private": true,
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "pnpm@10.33.0",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -37,10 +37,5 @@
     "typescript": "catalog:",
     "vite": "catalog:dependencies",
     "vitest": "catalog:"
-  },
-  "pnpm": {
-    "overrides": {
-      "rollup": "4.59.0"
-    }
   }
 }

@@ -91,7 +91,7 @@ export default defineConfig(({ mode }) => ({
   },
 
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       external: [
         '@tailwindcss/oxide',
         '@tailwindcss/vite',
