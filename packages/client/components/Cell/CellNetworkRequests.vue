@@ -1,12 +1,14 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { get, groupBy, sum } from 'lodash-es'
+import { get, groupBy } from 'lodash-es'
 import { formatBytes, website } from '../../logic'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
 }>()
+
+const sum = (arr: number[] = []) => arr.reduce((a, b) => a + (b || 0), 0)
 
 const value = computed(() => get(props.report, props.column.key))
 

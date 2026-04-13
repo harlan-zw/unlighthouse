@@ -5,8 +5,8 @@ import type {
   UnlighthouseContext,
   UnlighthouseRouteReport,
 } from './types'
+import { cp, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
-import fs from 'fs-extra'
 import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { createScanMeta } from './data/scanMeta'
@@ -34,10 +34,10 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   }
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
 
-  await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)
+  await cp(clientPathFolder, runtimeSettings.generatedClientPath, { recursive: true })
   // update the html with our config and base url if needed
   const inlineScript = `window.__unlighthouse_static = ${!!options.static}`
-  let indexHTML = await fs.readFile(runtimeSettings.resolvedClientPath, 'utf-8')
+  let indexHTML = await readFile(runtimeSettings.resolvedClientPath, 'utf-8')
 
   // More robust replacement that handles multiline script content
   indexHTML = indexHTML
@@ -46,7 +46,7 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   // boilerplate options to run the client by itself
   </script>`)
     .replace(/(href|src)="\/assets\/(.*?)"/g, `$1="${prefix}assets/$2"`)
-  await fs.writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
+  await writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
 
   const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: UnlighthouseRouteReport[] } = {
     reports: [],
@@ -78,7 +78,7 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
     })
   }
 
-  await fs.writeFile(
+  await writeFile(
     join(runtimeSettings.generatedClientPath, 'assets', 'payload.js'),
     `window.__unlighthouse_payload = ${JSON.stringify(staticData)}`,
     { encoding: 'utf-8' },
@@ -99,11 +99,11 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
     logger.debug(`Processing index file: ${indexPath} -> ${outputPath}`)
 
     // should be a single entry
-    let indexJS = await fs.readFile(indexPath, 'utf-8')
+    let indexJS = await readFile(indexPath, 'utf-8')
     indexJS = indexJS
       .replace('const base = "/";', `const base = window.location.pathname;`)
       .replace('createWebHistory("/")', `createWebHistory(window.location.pathname)`)
-    await fs.writeFile(outputPath, indexJS, 'utf-8')
+    await writeFile(outputPath, indexJS, 'utf-8')
   }
   else {
     logger.warn(`Failed to find index.[hash].js file from wd ${clientAssetsPath}.`)

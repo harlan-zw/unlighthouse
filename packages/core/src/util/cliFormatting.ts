@@ -1,10 +1,5 @@
 import type { BoxOpts } from 'consola/utils'
-import { colorize, box as makeBox } from 'consola/utils'
-import wrapAnsi from 'wrap-ansi'
-
-/**
- * Copied from https://github.com/nuxt/nuxt.js/blob/dev/packages/cli/src/utils/formatting.js
- */
+import { colorize, box as makeBox, stripAnsi } from 'consola/utils'
 
 export const maxCharsPerLine = () => (process.stdout.columns || 100) * 80 / 100
 
@@ -24,6 +19,37 @@ export function indentLines(string: string, spaces: number, firstLineSpaces: num
     s += `\n${lines.map(l => i + l).join('\n')}`
   }
   return s
+}
+
+function wrapLine(line: string, width: number): string {
+  const words = line.split(' ')
+  const out: string[] = []
+  let current = ''
+  let currentLen = 0
+  for (const word of words) {
+    const visibleLen = stripAnsi(word).length
+    if (!current) {
+      current = word
+      currentLen = visibleLen
+      continue
+    }
+    if (currentLen + 1 + visibleLen > width) {
+      out.push(current)
+      current = word
+      currentLen = visibleLen
+    }
+    else {
+      current += ` ${word}`
+      currentLen += 1 + visibleLen
+    }
+  }
+  if (current)
+    out.push(current)
+  return out.join('\n')
+}
+
+function wrapAnsi(string: string, width: number) {
+  return string.split('\n').map(l => wrapLine(l, width)).join('\n')
 }
 
 export function foldLines(string: string, spaces: number, firstLineSpaces: number, charsPerLine = maxCharsPerLine()) {

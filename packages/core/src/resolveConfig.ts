@@ -7,9 +7,7 @@ import path, { join, resolve } from 'node:path'
 import { computeExecutablePath, detectBrowserPlatform, install } from '@puppeteer/browsers'
 import { Launcher } from 'chrome-launcher'
 import { createDefu, defu } from 'defu'
-import { pathExists } from 'fs-extra'
 import { pick } from 'lodash-es'
-import { resolve as resolveModule } from 'mlly'
 import puppeteer, { launch } from 'puppeteer-core'
 import { PUPPETEER_REVISIONS } from 'puppeteer-core/lib/cjs/puppeteer/revisions.js'
 import { defaultConfig } from './constants'
@@ -122,7 +120,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
 
   // the default pages dir is `${root}/pages`, check if it exists, if not revert to root
   if (config.root && config.discovery && config.discovery.pagesDir === 'pages') {
-    const pagesDirExist = await pathExists(join(config.root, config.discovery.pagesDir))
+    const pagesDirExist = existsSync(join(config.root, config.discovery.pagesDir))
     if (!pagesDirExist) {
       logger.debug('Unable to locale page files, disabling route discovery.')
       // disable discovery to avoid globbing entire file systems
@@ -218,18 +216,6 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     // let the cluster do the work
     if (instance) {
       await instance.close()
-    }
-  }
-  if (!foundChrome) {
-    // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
-    // puppeteer-cluster will do, but we can provide a nicer error
-    try {
-      await resolveModule('puppeteer')
-      foundChrome = true
-      logger.info('Using puppeteer dependency for Chrome.')
-    }
-    catch (e) {
-      logger.debug('Puppeteer does not exist as a dependency.', e)
     }
   }
   if (config.chrome.useDownloadFallback && !foundChrome) {

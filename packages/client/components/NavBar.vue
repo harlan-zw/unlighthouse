@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { formatDistance } from 'date-fns'
 import { basePath, isDark, isOffline, isRescanSiteRequestRunning, isStatic, rescanSite, scanMeta, toggleDark, website } from '../logic'
+import { useHumanDuration } from '../logic/formatting'
 
 const timeRemaining = computed(() => {
-  return formatDistance(0, scanMeta.value.monitor.timeRemaining, { includeSeconds: true })
+  return useHumanDuration(scanMeta.value.monitor.timeRemaining)
 })
 
 const version = __UNLIGHTHOUSE_VERSION__

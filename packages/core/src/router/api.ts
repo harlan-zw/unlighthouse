@@ -1,6 +1,7 @@
 import type { App, Router } from 'h3'
+import { existsSync, rmSync } from 'node:fs'
+import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import fs from 'fs-extra'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
 import launch from 'launch-editor'
 import { createScanMeta } from '../data'
@@ -28,8 +29,8 @@ export async function createApi(app: App): Promise<Router> {
     worker.routeReports.clear()
     reports.forEach((route) => {
       const dir = route.artifactPath
-      if (fs.existsSync(dir))
-        fs.rmSync(dir, { recursive: true })
+      if (existsSync(dir))
+        rmSync(dir, { recursive: true })
     })
     worker.queueRoutes(reports.map(report => report.route))
     return true
@@ -96,16 +97,16 @@ export async function createApi(app: App): Promise<Router> {
 
     // Try to serve the exact file first
     const filePath = join(runtimeSettings.generatedClientPath, path)
-    const stats = await fs.stat(filePath).catch(() => null)
+    const stats = await stat(filePath).catch(() => null)
 
     if (stats?.isFile()) {
       if (mimeType)
         setResponseHeader(event, 'Content-Type', mimeType)
       return serveStatic(event, {
-        getContents: id => fs.readFile(join(runtimeSettings.generatedClientPath, id)),
+        getContents: id => readFile(join(runtimeSettings.generatedClientPath, id)),
         getMeta: async (id) => {
           const fp = join(runtimeSettings.generatedClientPath, id)
-          const s = await fs.stat(fp).catch(() => null)
+          const s = await stat(fp).catch(() => null)
           if (!s?.isFile())
             return
           return { size: s.size, mtime: s.mtimeMs }
@@ -116,10 +117,10 @@ export async function createApi(app: App): Promise<Router> {
     // SPA fallback: serve index.html or 200.html for non-file routes
     const fallbackPath = join(runtimeSettings.generatedClientPath, '200.html')
     const indexPath = join(runtimeSettings.generatedClientPath, 'index.html')
-    const htmlPath = await fs.stat(fallbackPath).then(() => fallbackPath).catch(() => indexPath)
+    const htmlPath = await stat(fallbackPath).then(() => fallbackPath).catch(() => indexPath)
 
     setResponseHeader(event, 'Content-Type', 'text/html')
-    return fs.readFile(htmlPath, 'utf-8')
+    return readFile(htmlPath, 'utf-8')
   }))
 
   // Mount router to app with prefix

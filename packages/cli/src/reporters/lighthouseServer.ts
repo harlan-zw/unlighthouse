@@ -1,5 +1,6 @@
 import type { UnlighthouseRouteReport } from '../types'
 import type { ReporterConfig } from './types'
+import { readFile } from 'node:fs/promises'
 import ApiClient from '@lhci/utils/src/api-client.js'
 import {
   getAncestorHash,
@@ -11,7 +12,6 @@ import {
   getCurrentHash,
   getExternalBuildUrl,
 } from '@lhci/utils/src/build-context.js'
-import fs from 'fs-extra'
 import { handleError } from '../errors'
 
 export async function reportLighthouseServer(
@@ -50,8 +50,8 @@ export async function reportLighthouseServer(
     })
 
     for (const report of reports) {
-      const lighthouseResult = await fs.readJson(
-        `${report.artifactPath}/lighthouse.json`,
+      const lighthouseResult = JSON.parse(
+        await readFile(`${report.artifactPath}/lighthouse.json`, 'utf-8'),
       )
 
       await api.createRun({

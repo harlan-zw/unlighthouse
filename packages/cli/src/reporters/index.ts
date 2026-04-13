@@ -1,7 +1,7 @@
 import type { ResolvedUserConfig, UnlighthouseRouteReport } from '@unlighthouse/core'
 import type { ReporterConfig, ReportJsonExpanded, ReportJsonSimple } from './types'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import fse from 'fs-extra'
 import { reportCSVExpanded } from './csvExpanded'
 import { reportCSVSimple } from './csvSimple'
 import { reportJsonExpanded } from './jsonExpanded'
@@ -43,12 +43,12 @@ export function generateReportPayload(reporter: string, _reports: UnlighthouseRo
 export async function outputReport(reporter: string, config: Partial<ResolvedUserConfig>, payload: any) {
   if (reporter.startsWith('json')) {
     const path = join(config.outputPath, 'ci-result.json')
-    await fse.writeJson(path, payload, { spaces: 2 })
+    await writeFile(path, JSON.stringify(payload, null, 2))
     return path
   }
   if (reporter.startsWith('csv')) {
     const path = join(config.outputPath, 'ci-result.csv')
-    await fse.writeFile(path, payload)
+    await writeFile(path, payload)
     return path
   }
   throw new Error(`Unsupported reporter: ${reporter}.`)

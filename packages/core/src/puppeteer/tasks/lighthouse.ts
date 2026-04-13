@@ -1,7 +1,8 @@
 import type { Result } from 'lighthouse'
 import type { LighthouseReport, PuppeteerTask, UnlighthouseRouteReport } from '../../types'
+import { existsSync, readFileSync } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import fs from 'fs-extra'
 import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
 import { map, pick, sumBy } from 'lodash-es'
 import { normalize, relative } from 'pathe'
@@ -98,9 +99,9 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
 
   // if the report doesn't exist, we're going to run a new lighthouse process to generate it
   const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
-  if (resolvedConfig.cache && fs.existsSync(reportJsonPath)) {
+  if (resolvedConfig.cache && existsSync(reportJsonPath)) {
     try {
-      const report = fs.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as Result
+      const report = JSON.parse(readFileSync(reportJsonPath, 'utf-8')) as Result
       routeReport.report = normaliseLighthouseResult(routeReport, report)
       return routeReport
     }
@@ -146,7 +147,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
         },
       )
       if (res)
-        samples.push(fs.readJsonSync(reportJsonPath))
+        samples.push(JSON.parse(readFileSync(reportJsonPath, 'utf-8')))
     }
     catch (e: any) {
       logger.error('Failed to run lighthouse for route', e)
@@ -181,19 +182,19 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   // @ts-expect-error untyped
   if (report.audits?.['final-screenshot']?.details?.data)
     // @ts-expect-error untyped
-    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), base64ToBuffer(report.audits['final-screenshot'].details.data))
+    await writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), base64ToBuffer(report.audits['final-screenshot'].details.data))
 
   if (report.fullPageScreenshot?.screenshot.data)
-    await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.fullPageScreenshot.screenshot.data))
+    await writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.fullPageScreenshot.screenshot.data))
 
   // extract the screenshot-thumbnails into separate files
   const screenshotThumbnails = report.audits?.['screenshot-thumbnails']?.details
-  await fs.mkdir(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir), { recursive: true })
+  await mkdir(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir), { recursive: true })
   // @ts-expect-error untyped
   if (screenshotThumbnails?.items && screenshotThumbnails.type === 'filmstrip') {
     for (const key in screenshotThumbnails.items) {
       const thumbnail = screenshotThumbnails.items[key]
-      await fs.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${key}.jpeg`), base64ToBuffer(thumbnail.data))
+      await writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${key}.jpeg`), base64ToBuffer(thumbnail.data))
     }
   }
 

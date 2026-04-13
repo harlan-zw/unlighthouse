@@ -1,8 +1,7 @@
+import { rm } from 'node:fs/promises'
 import ui from '@nuxt/ui/vite'
 import Vue from '@vitejs/plugin-vue'
-import * as fs from 'fs-extra'
 import IconsResolver from 'unplugin-icons/resolver'
-import { HeadlessUiResolver } from 'unplugin-vue-components/resolvers'
 import { defineConfig } from 'vite'
 import { version } from '../../package.json'
 
@@ -43,9 +42,8 @@ export default defineConfig(({ mode }) => ({
         resolvers: [
           IconsResolver({
             prefix: 'i',
-            enabledCollections: ['carbon', 'ic', 'mdi', 'la', 'logos', 'vscode-icons', 'simple-line-icons', 'icomoon-free'],
+            enabledCollections: ['carbon', 'mdi', 'la', 'logos', 'simple-line-icons', 'icomoon-free'],
           }),
-          HeadlessUiResolver(),
         ],
         dts: true,
         directoryAsNamespace: false,
@@ -67,7 +65,7 @@ export default defineConfig(({ mode }) => ({
 
         const payloadPath = await this.resolve('./dist/assets/payload.js')
         if (payloadPath)
-          await fs.remove(payloadPath.id)
+          await rm(payloadPath.id, { recursive: true, force: true })
       },
     },
   ],
@@ -80,9 +78,7 @@ export default defineConfig(({ mode }) => ({
       '@vueuse/router',
       'lightweight-charts',
       'lodash-es',
-      'dayjs',
       'fuse.js',
-      '@headlessui/vue',
     ],
     exclude: [
       'vue-demi',

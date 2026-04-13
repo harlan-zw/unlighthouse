@@ -1,8 +1,8 @@
 import type { HTMLExtractPayload, PuppeteerTask } from '../../types'
 import type { Page } from '../../types/puppeteer'
 import { Buffer } from 'node:buffer'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import fs from 'fs-extra'
 import { withoutTrailingSlash } from 'ufo'
 import { parse, render, walk } from 'ultrahtml'
 import { useLogger } from '../../logger'
@@ -173,8 +173,8 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
 
   // basic caching based on saving html payloads
   const htmlPayloadPath = join(routeReport.artifactPath, ReportArtifacts.html)
-  if (resolvedConfig.cache && fs.existsSync(htmlPayloadPath)) {
-    html = fs.readFileSync(htmlPayloadPath, { encoding: 'utf-8' })
+  if (resolvedConfig.cache && existsSync(htmlPayloadPath)) {
+    html = readFileSync(htmlPayloadPath, { encoding: 'utf-8' })
     logger.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
   }
   else {
@@ -247,6 +247,6 @@ export const inspectHtmlTask: PuppeteerTask = async (props) => {
 
   // only need the html payload for caching purposes, unlike the lighthouse reports
   if (resolvedConfig.cache)
-    fs.writeFileSync(htmlPayloadPath, html)
+    writeFileSync(htmlPayloadPath, html)
   return routeReport
 }

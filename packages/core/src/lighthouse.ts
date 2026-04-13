@@ -4,17 +4,29 @@ import { setMaxListeners } from 'node:events'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import lighthouse from 'lighthouse'
-import minimist from 'minimist'
 
-setMaxListeners(0);
+setMaxListeners(0)
+
+function parseArgs(argv: string[]): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const arg of argv) {
+    if (!arg.startsWith('--'))
+      continue
+    const eq = arg.indexOf('=')
+    if (eq === -1)
+      out[arg.slice(2)] = 'true'
+    else
+      out[arg.slice(2, eq)] = arg.slice(eq + 1)
+  }
+  return out
+}
 
 /*
  * This file is intended to be run in its own process and should not rely on any global state.
  */
 
 (async () => {
-  const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded }
-    = minimist<{ options: string, cache: boolean, routeReport: string, port: number }>(process.argv.slice(2))
+  const { routeReport, port, lighthouseOptions: lighthouseOptionsEncoded } = parseArgs(process.argv.slice(2))
 
   let routeReportJson: UnlighthouseRouteReport
   try {
@@ -29,7 +41,7 @@ setMaxListeners(0);
     // always generate html / json reports
     output: ['html', 'json'],
     // we tell lighthouse the port
-    port,
+    port: Number(port),
   }
   try {
     const runnerResult = await lighthouse(routeReportJson.route.url, lighthouseOptions)

@@ -1,13 +1,9 @@
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
 import dns from 'node:dns'
-import http from 'node:http'
-import https from 'node:https'
+import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import axios from 'axios'
-import { ensureDirSync } from 'fs-extra'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { joinURL, withLeadingSlash, withoutLeadingSlash, withoutTrailingSlash, withTrailingSlash } from 'ufo'
@@ -92,7 +88,7 @@ export function createTaskReportFromRoute(route: NormalisedRoute): UnlighthouseR
   const reportPath = join(runtimeSettings.generatedClientPath, 'reports', sanitiseUrlForFilePath(route.path))
 
   // add missing dirs
-  ensureDirSync(reportPath)
+  mkdirSync(reportPath, { recursive: true })
 
   return {
     tasks: {
@@ -123,82 +119,88 @@ export function formatBytes(bytes: number, decimals = 2) {
   return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }
 
-const _sharedContext = {}
-
-function sharedContext() {
-  return useUnlighthouse() || _sharedContext
-}
-
-export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig) {
-  // try and resolve dns lookup issues
+let dnsConfigured = false
+function configureDns() {
+  if (dnsConfigured)
+    return
+  dnsConfigured = true
   dns.setServers([
     '8.8.8.8', // Google
     '1.1.1.1', // Cloudflare
   ])
-  const resolver = new dns.Resolver()
-  resolver.setServers([
-    '8.8.8.8', // Google
-    '1.1.1.1', // Cloudflare
-  ])
-  const axiosOptions: AxiosRequestConfig = {}
-  if (resolvedConfig.auth)
-    axiosOptions.auth = resolvedConfig.auth
+}
 
-  axiosOptions.headers = axiosOptions.headers || {}
-  // this should always be set
+export interface RawFetchResponse {
+  status: number
+  data: any
+  headers: Record<string, string>
+}
+
+export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig): Promise<{ error?: any, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: RawFetchResponse }> {
+  configureDns()
+  const logger = useLogger()
+  const maxRetries = 3
+  let attempt = 0
+
+  const headers: Record<string, string> = {}
+  const userAgent = resolvedConfig.userAgent || resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
+  headers['User-Agent'] = String(userAgent)
+  Object.assign(headers, resolvedConfig.extraHeaders || {})
 
   if (resolvedConfig.cookies) {
-    axiosOptions.headers.Cookie = resolvedConfig.cookies
+    headers.Cookie = resolvedConfig.cookies
       .map(cookie => `${cookie.name}=${cookie.value}`)
       .join('; ')
   }
 
-  const userAgent = resolvedConfig.userAgent || resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
-  axiosOptions.headers = {
-    // fallback user agent, allow overriding
-    'User-Agent': userAgent,
-    ...(resolvedConfig.extraHeaders || {}),
-    ...axiosOptions.headers,
+  if (resolvedConfig.auth) {
+    const credentials = `${resolvedConfig.auth.username}:${resolvedConfig.auth.password}`
+    headers.Authorization = `Basic ${Buffer.from(credentials).toString('base64')}`
   }
 
-  if (resolvedConfig.defaultQueryParams)
-    axiosOptions.params = { ...resolvedConfig.defaultQueryParams, ...axiosOptions.params }
-
-  axiosOptions.httpsAgent = new https.Agent({
-    rejectUnauthorized: false,
-    keepAlive: true,
-    timeout: 30_000,
-  })
-  axiosOptions.httpAgent = new http.Agent({
-    keepAlive: true,
-    timeout: 30_000,
-  })
-  axiosOptions.proxy = false
-  axiosOptions.timeout = 30_000
-  axiosOptions.withCredentials = true
-  const unlighthouse = sharedContext()
-  unlighthouse._axios = axios.create(axiosOptions)
-  return unlighthouse._axios
-}
-
-export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig): Promise<{ error?: any, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: AxiosResponse }> {
-  const logger = useLogger()
-  const unlighthouse = sharedContext()
-  const instance: AxiosInstance = unlighthouse._axios || await createAxiosInstance(resolvedConfig)
-  const maxRetries = 3
-  let attempt = 0
+  let finalUrl = url
+  if (resolvedConfig.defaultQueryParams) {
+    const u = new URL(url)
+    for (const [k, v] of Object.entries(resolvedConfig.defaultQueryParams))
+      u.searchParams.set(k, String(v))
+    finalUrl = u.toString()
+  }
 
   while (attempt < maxRetries) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30_000)
     try {
-      const response = await instance.get(url, { timeout: 30_000 })
-      let responseUrl = response.request.res.responseUrl
+      const res = await fetch(finalUrl, {
+        headers,
+        redirect: 'follow',
+        signal: controller.signal,
+      })
+
+      let responseUrl = res.url
       if (responseUrl && resolvedConfig.auth) {
         // remove auth credentials from url (e.g. https://user:passwd@domain.de)
         responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
       }
-      const redirected = responseUrl && responseUrl !== url
+      const redirected = !!responseUrl && responseUrl !== finalUrl
       const redirectUrl = responseUrl
-      if (response.status < 200 || (response.status >= 300 && !redirected)) {
+
+      const headersObj: Record<string, string> = {}
+      res.headers.forEach((v, k) => {
+        headersObj[k] = v
+      })
+
+      const contentType = headersObj['content-type'] || ''
+      let data: any
+      if (contentType.includes('application/json')) {
+        data = await res.json().catch(() => null)
+      }
+      else {
+        data = await res.text()
+      }
+
+      const response: RawFetchResponse = { status: res.status, data, headers: headersObj }
+
+      if (res.status < 200 || (res.status >= 300 && !redirected)) {
         return {
           valid: false,
           redirected,
@@ -214,17 +216,11 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
       }
     }
     catch (e: any) {
-      if (e.errors) {
-        logger.error('Axios error:', e.errors)
-      }
-      logger.error('Axios error message:', e.message)
-      logger.error('Axios error code:', e.code)
-      if (e.response) {
-        logger.error('Axios error response data:', e.response.data)
-        logger.error('Axios error response status:', e.response.status)
-        logger.error('Axios error response headers:', e.response.headers)
-      }
-      if (e.code === 'ETIMEDOUT' || e.code === 'ENETUNREACH') {
+      const code = e?.cause?.code || e?.code
+      logger.error('Fetch error message:', e?.message)
+      if (code)
+        logger.error('Fetch error code:', code)
+      if (e?.name === 'AbortError' || code === 'ETIMEDOUT' || code === 'ENETUNREACH') {
         attempt++
         logger.info(`Retrying request... (${attempt}/${maxRetries})`)
         continue
@@ -233,6 +229,9 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
         error: e,
         valid: false,
       }
+    }
+    finally {
+      clearTimeout(timeoutId)
     }
   }
   return {

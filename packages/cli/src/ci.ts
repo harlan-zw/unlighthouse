@@ -2,8 +2,8 @@ import type { UserConfig } from '@unlighthouse/core'
 import type { ReporterConfig } from './reporters/types'
 import type { CiOptions } from './types'
 import { setMaxListeners } from 'node:events'
+import { rm } from 'node:fs/promises'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
-import fs from 'fs-extra'
 import { relative } from 'pathe'
 import { isCI } from 'std-env'
 import createCli from './createCli'
@@ -131,7 +131,7 @@ async function run() {
       logger.debug(
         `Deleting ${jsonPayloads.length} files not required for static build.`,
       )
-      for (const k in jsonPayloads) await fs.rm(jsonPayloads[k])
+      for (const k in jsonPayloads) await rm(jsonPayloads[k])
 
       const relativeDir = `./${relative(resolvedConfig.root, runtimeSettings.generatedClientPath)}`
       logger.success(`Static report is ready for uploading: \`${relativeDir}\``)

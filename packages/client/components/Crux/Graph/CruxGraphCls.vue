@@ -1,8 +1,7 @@
 <script lang="ts" setup>
-import dayjs from 'dayjs'
 import { createChart } from 'lightweight-charts'
 import { isDark } from '../../../logic'
-import { useHumanFriendlyNumber } from '../../../logic/formatting'
+import { useHumanDate, useHumanFriendlyNumber } from '../../../logic/formatting'
 
 const props = defineProps<{
   value?: { time: string, value: number }[]
@@ -158,7 +157,7 @@ onMounted(() => {
     else {
       // time will be in the same format that we supplied to setData.
       // thus it will be YYYY-MM-DD
-      const dateStr = dayjs(param.time).format('MMM D, YYYY')
+      const dateStr = useHumanDate(param.time as string)
       // toolTip.style.display = 'block'
       const _cls = param.seriesData.get(areaSeries)!
       const cls = _cls.value !== undefined ? _cls.value : _cls.time

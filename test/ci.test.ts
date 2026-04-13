@@ -1,5 +1,5 @@
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import fs from 'fs-extra'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { x } from 'tinyexec'
 
@@ -7,11 +7,11 @@ export const cacheDir = resolve(__dirname, '.cache')
 export const ci = resolve(__dirname, '../packages/unlighthouse/bin/unlighthouse-ci.mjs')
 
 beforeAll(async () => {
-  await fs.remove(cacheDir)
+  await rm(cacheDir, { recursive: true, force: true })
 })
 
 afterAll(async () => {
-  await fs.remove(cacheDir)
+  await rm(cacheDir, { recursive: true, force: true })
 })
 
 describe('ci', () => {
@@ -37,10 +37,10 @@ describe('ci', () => {
 async function runCli(configFileFixture: string) {
   const testDir = resolve(cacheDir, Date.now().toString())
 
-  await fs.ensureDir(testDir)
+  await mkdir(testDir, { recursive: true })
 
-  const config = await fs.readFile(configFileFixture, 'utf8')
-  await fs.writeFile(join(testDir, 'unlighthouse.config.ts'), config)
+  const config = await readFile(configFileFixture, 'utf8')
+  await writeFile(join(testDir, 'unlighthouse.config.ts'), config)
 
   const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir, '--debug', '--site', 'harlanzw.com'], {
     nodeOptions: { cwd: testDir },
@@ -50,7 +50,7 @@ async function runCli(configFileFixture: string) {
   if (exitCode !== 0)
     throw new Error(logs)
 
-  const output = await fs.readJson(resolve(testDir, '.unlighthouse', 'ci-result.json'))
+  const output = JSON.parse(await readFile(resolve(testDir, '.unlighthouse', 'ci-result.json'), 'utf-8'))
 
   return {
     output,

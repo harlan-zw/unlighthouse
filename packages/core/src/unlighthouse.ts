@@ -8,15 +8,15 @@ import type {
   UnlighthouseHooks,
   UserConfig,
 } from './types'
-import { existsSync } from 'node:fs'
-import { isAbsolute, join } from 'node:path'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { mkdir } from 'node:fs/promises'
+import { isAbsolute, join, dirname as pathDirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { loadConfig } from 'c12'
 import { colorize } from 'consola/utils'
 import { defu } from 'defu'
-import fs from 'fs-extra'
 import { createHooks } from 'hookable'
-import { createCommonJS, resolvePath } from 'mlly'
-import objectHash from 'object-hash'
 import { $fetch } from 'ofetch'
 import { $URL, joinURL } from 'ufo'
 import { createContext } from 'unctx'
@@ -56,7 +56,7 @@ export function defineConfig(config: UserConfig) {
  */
 export async function createUnlighthouse(userConfig: UserConfig, provider?: Provider) {
   const logger = createLogger(userConfig.debug)
-  const { __dirname } = createCommonJS(import.meta.url)
+  const __dirname = pathDirname(fileURLToPath(import.meta.url))
   if (userConfig.root && !isAbsolute(userConfig.root))
     userConfig.root = join(process.cwd(), userConfig.root)
   else if (!userConfig.root)
@@ -84,18 +84,20 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     lighthouseProcessPath: '',
   }
   // path to the lighthouse worker file
-  runtimeSettings.lighthouseProcessPath = await resolvePath(
-    join(runtimeSettings.moduleWorkingDir, 'lighthouse.mjs'),
-  ).catch(() => '')
-  // ts module in stub mode, not sure why extensions won't resolve
-  if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
-    runtimeSettings.lighthouseProcessPath = await resolvePath(
-      join(runtimeSettings.moduleWorkingDir, 'lighthouse.ts'),
-    )
+  const mjsPath = join(runtimeSettings.moduleWorkingDir, 'lighthouse.mjs')
+  if (existsSync(mjsPath)) {
+    runtimeSettings.lighthouseProcessPath = mjsPath
+  }
+  else {
+    // ts module in stub mode
+    runtimeSettings.lighthouseProcessPath = join(runtimeSettings.moduleWorkingDir, 'lighthouse.ts')
   }
 
   // create a cache key for the users provided key so we can cache burst on config update
-  runtimeSettings.configCacheKey = objectHash({ ...userConfig, version }).substring(0, 4)
+  runtimeSettings.configCacheKey = createHash('md5')
+    .update(JSON.stringify({ ...userConfig, version }))
+    .digest('hex')
+    .substring(0, 4)
 
   const resolvedConfig = await resolveUserConfig(userConfig)
   logger.debug('Post config resolution', resolvedConfig)
@@ -188,14 +190,14 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     )
 
     try {
-      await fs.mkdir(resolvedConfig.outputPath, { recursive: true })
+      await mkdir(resolvedConfig.outputPath, { recursive: true })
     }
     catch (e) {
       logger.error(`Failed to create output directory. Please check unlighthouse has permissions to: ${resolvedConfig.outputPath}`, e)
     }
 
     try {
-      await fs.mkdir(outputPath, { recursive: true })
+      await mkdir(outputPath, { recursive: true })
     }
     catch (e) {
       logger.error(`Failed to create output directory. Please check unlighthouse has permission to create files and folders in: ${resolvedConfig.outputPath}`, e)
@@ -208,14 +210,14 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       ...ctx.runtimeSettings,
       outputPath,
       generatedClientPath: outputPath,
-      resolvedClientPath: await resolvePath(ClientPkg, { url: import.meta.url }),
+      resolvedClientPath: fileURLToPath(import.meta.resolve(ClientPkg)),
     }
 
     if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
       logger.debug(`\`cache\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
-      fs.rmSync(outputPath, { recursive: true })
+      rmSync(outputPath, { recursive: true })
     }
-    fs.ensureDirSync(ctx.runtimeSettings.outputPath)
+    mkdirSync(ctx.runtimeSettings.outputPath, { recursive: true })
     return ctx
   }
 
@@ -252,7 +254,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       ...ctx.runtimeSettings,
       apiPath,
       server,
-      resolvedClientPath: await resolvePath(ClientPkg, { url: import.meta.url }),
+      resolvedClientPath: fileURLToPath(import.meta.resolve(ClientPkg)),
       clientUrl,
       apiUrl: joinURL($server.toString(), apiPath),
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,
@@ -269,13 +271,13 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     if (!resolvedConfig.cache && existsSync(ctx.runtimeSettings.outputPath)) {
       logger.debug(`\`cache\` is disabled, deleting cache folder: \`${ctx.runtimeSettings.outputPath}\``)
       try {
-        fs.rmSync(ctx.runtimeSettings.outputPath, { recursive: true })
+        rmSync(ctx.runtimeSettings.outputPath, { recursive: true })
       }
       catch (e) {
         logger.debug(`Failed to delete cache folder: \`${ctx.runtimeSettings.outputPath}\``, e)
       }
     }
-    fs.ensureDirSync(ctx.runtimeSettings.outputPath)
+    mkdirSync(ctx.runtimeSettings.outputPath, { recursive: true })
     await generateClient()
 
     if (provider?.name !== 'cli') {

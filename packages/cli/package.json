@@ -49,14 +49,13 @@
     "@unlighthouse/client": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/server": "workspace:*",
-    "better-opn": "catalog:dependencies",
     "cac": "catalog:dependencies",
     "consola": "catalog:dependencies",
     "defu": "catalog:dependencies",
-    "fs-extra": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
     "pathe": "catalog:dependencies",
     "std-env": "catalog:dependencies",
+    "tinyexec": "catalog:dependencies",
     "tinyglobby": "catalog:dependencies"
   }
 }

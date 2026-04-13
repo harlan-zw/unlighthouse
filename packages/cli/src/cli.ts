@@ -1,10 +1,20 @@
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
+import { platform } from 'node:os'
 import { createUnlighthouse, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
-import open from 'better-opn'
+import { x } from 'tinyexec'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
+
+function openUrl(url: string) {
+  const cmd = platform() === 'darwin'
+    ? 'open'
+    : platform() === 'win32'
+      ? 'start'
+      : 'xdg-open'
+  return x(cmd, [url], { throwOnError: false })
+}
 
 const cli = createCli()
 
@@ -51,7 +61,7 @@ async function run() {
   })
 
   if (unlighthouse.resolvedConfig.server.open)
-    await open(unlighthouse.runtimeSettings.clientUrl)
+    await openUrl(unlighthouse.runtimeSettings.clientUrl)
 }
 
 run()

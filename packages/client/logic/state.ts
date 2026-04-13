@@ -1,5 +1,4 @@
 import type { NormalisedRoute, ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/core'
-import { sum } from 'lodash-es'
 import { computed, reactive } from 'vue'
 import CellRouteName from '../components/Cell/CellRouteName.vue'
 import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
@@ -233,10 +232,9 @@ export const categoryScores = computed(() => {
       return 0
     }
 
-    return sum(
-      reportsWithGoodScore
+    return reportsWithGoodScore
       // make sure the score is valid, if it's ? we don't want to count it
-        .map(r => r.report?.categories?.[i]?.score || 0),
-    ) / reportsWithGoodScore.length
+      .map(r => r.report?.categories?.[i]?.score || 0)
+      .reduce((a, b) => a + b, 0) / reportsWithGoodScore.length
   })
 })

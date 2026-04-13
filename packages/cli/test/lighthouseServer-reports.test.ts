@@ -1,17 +1,15 @@
 import type { UnlighthouseRouteReport } from '../src/types'
+import * as fsp from 'node:fs/promises'
 import ApiClient from '@lhci/utils/src/api-client.js'
-import fs from 'fs-extra'
 import { describe, expect, it, vi } from 'vitest'
 import { generateReportPayload } from '../src/reporters'
 import _lighthouseReport from './__fixtures__/lighthouseReport.mjs'
 
 const lighthouseReport = _lighthouseReport as any as UnlighthouseRouteReport[]
 
-vi.mock('fs-extra', () => {
+vi.mock('node:fs/promises', () => {
   return {
-    default: {
-      readJson: vi.fn(() => new Promise(resolve => resolve({}))),
-    },
+    readFile: vi.fn(() => new Promise(resolve => resolve('{}'))),
   }
 })
 
@@ -81,7 +79,7 @@ describe('lighthouseServer reports', () => {
       ancestorCommittedAt: undefined,
     })
 
-    expect(fs.readJson).toBeCalledTimes(lighthouseReport.length)
+    expect(fsp.readFile).toBeCalledTimes(lighthouseReport.length)
 
     expect(createRun).toBeCalledTimes(lighthouseReport.length)
 

@@ -47,20 +47,15 @@
   "dependencies": {
     "@clack/prompts": "catalog:dependencies",
     "@puppeteer/browsers": "catalog:dependencies",
-    "axios": "catalog:dependencies",
     "c12": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
     "consola": "catalog:dependencies",
     "defu": "catalog:dependencies",
-    "fs-extra": "catalog:dependencies",
     "h3": "catalog:dependencies",
     "hookable": "catalog:dependencies",
     "launch-editor": "catalog:dependencies",
     "lighthouse": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
-    "minimist": "catalog:dependencies",
-    "mlly": "catalog:dependencies",
-    "object-hash": "catalog:dependencies",
     "ofetch": "catalog:dependencies",
     "pathe": "catalog:dependencies",
     "puppeteer-cluster": "catalog:dependencies",
@@ -74,15 +69,11 @@
     "tinyglobby": "catalog:dependencies",
     "ufo": "catalog:dependencies",
     "ultrahtml": "catalog:dependencies",
-    "unconfig": "catalog:dependencies",
     "unctx": "catalog:dependencies",
-    "wrap-ansi": "catalog:dependencies",
     "ws": "catalog:dependencies"
   },
   "devDependencies": {
-    "@types/fs-extra": "catalog:",
     "@types/lodash-es": "catalog:",
-    "@types/object-hash": "catalog:",
     "@types/ws": "catalog:"
   }
 }

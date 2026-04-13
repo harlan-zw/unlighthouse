@@ -1,7 +1,7 @@
 import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from '@unlighthouse/core'
 import { useStorage } from '@vueuse/core'
 import Fuse from 'fuse.js'
-import { get, isEmpty, orderBy } from 'lodash-es'
+import { get, orderBy } from 'lodash-es'
 import { computed } from 'vue'
 import { unlighthouseReports } from './state'
 import { columns, groupRoutesKey } from './static'
@@ -45,7 +45,7 @@ export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
   if (searchText.value && data.length > 0) {
     const fuse = new Fuse(data, {
       threshold: 0.3,
-      shouldSort: isEmpty(sorting.value),
+      shouldSort: !sorting.value || Object.keys(sorting.value).length === 0,
       keys: [
         'route.definition.name',
         'route.path',

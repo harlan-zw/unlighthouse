@@ -2,6 +2,7 @@
 import UDropdownMenu from '@nuxt/ui/components/DropdownMenu.vue'
 import { useTitle } from '@vueuse/core'
 import { $fetch } from 'ofetch'
+import { defineAsyncComponent } from 'vue'
 import { EXCLUDED_CATEGORIES } from './constants'
 import {
   activeScreenshots,
@@ -39,6 +40,8 @@ import {
   website,
   wsConnect,
 } from './logic'
+
+const LighthouseThreeD = defineAsyncComponent(() => import('./components/LighthouseThreeD.vue'))
 
 const crux = ref(null)
 const cruxError = ref(false)
@@ -171,7 +174,7 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
             </div>
           </div>
           <div class="hidden xl:block">
-            <lighthouse-three-d v-if="!isStatic" class="mb-7" />
+            <LighthouseThreeD v-if="!isStatic" class="mb-7" />
             <div class="px-2 text-center xl:text-left">
               <div class="text-xs opacity-75 xl:mt-4">
                 <a href="https://unlighthouse.dev" target="_blank" class="underline hover:no-underline">Documentation</a>

@@ -1,5 +1,4 @@
 import type { UnlighthouseRouteReport } from '@unlighthouse/core'
-import { startCase } from 'lodash-es'
 import { $URL, joinURL } from 'ufo'
 import CellColorContrast from '../components/Cell/CellColorContrast.vue'
 import CellImage from '../components/Cell/CellImage.vue'
@@ -12,6 +11,14 @@ import CellNetworkRequests from '../components/Cell/CellNetworkRequests.vue'
 import CellScreenshotThumbnails from '../components/Cell/CellScreenshotThumbnails.vue'
 import CellTapTargets from '../components/Cell/CellTapTargets.vue'
 import CellWebVitals from '../components/Cell/CellWebVitals.vue'
+
+function startCase(s: string) {
+  return s.replace(/[-_]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+}
 // Icon names for UIcon components
 const MdiAccessibility = 'i-mdi-accessibility'
 const MdiCellphone = 'i-mdi-cellphone'
