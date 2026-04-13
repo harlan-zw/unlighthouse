@@ -1,7 +1,7 @@
-export * from './dist/index.js'
+import type { UserConfig } from '@unlighthouse/core'
+
+export * from './dist/index.mjs'
 
 declare global {
-  import type { UserConfig } from '@unlighthouse/core'
-
   const defineUnlighthouseConfig: UserConfig | (() => UserConfig) | (() => Promise<UserConfig>)
 }
