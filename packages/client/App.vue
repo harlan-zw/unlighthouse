@@ -132,6 +132,27 @@ const getDropdownActions = computed(() => (report) => {
 })
 
 useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
+
+const tabListEl = ref<HTMLElement | null>(null)
+function onTabKeydown(e: KeyboardEvent, key: number) {
+  const count = filteredTabs.value.length
+  let next = key
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight')
+    next = (key + 1) % count
+  else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft')
+    next = (key - 1 + count) % count
+  else if (e.key === 'Home')
+    next = 0
+  else if (e.key === 'End')
+    next = count - 1
+  else
+    return
+  e.preventDefault()
+  changedTab(next)
+  nextTick(() => {
+    tabListEl.value?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus()
+  })
+}
 </script>
 
 <template>
@@ -141,33 +162,31 @@ useTitle(`${website.replace(/https?:\/\/(www.)?/, '')} | Unlighthouse`)
       <main class="xl:flex mt-2 mb-2">
         <div class="flex justify-between max-h-[95%] flex-col xl:ml-3 mx-3 mr-0 w-full xl:mr-5 xl:w-[250px] xl:mb-0">
           <div>
-            <TabGroup vertical @change="changedTab">
-              <TabList class="xl:block xl:space-x-0 flex space-x-2 mb-3">
-                <Tab
-                  v-for="(category, key) in filteredTabs"
-                  :key="key"
-                  v-slot="{ selected }"
-                  as="template"
-                >
-                  <btn-tab
-                    :selected="selected"
-                  >
-                    <span class="inline-flex items-center space-x-1">
-                      <UIcon :name="category.icon" class="inline text-sm opacity-40 h-4 w-4" />
-                      <span>{{ category.label }}</span>
-                      <tooltip v-if="category.label === 'Performance'" class="text-left">
-                        <UIcon name="i-carbon-warning" class="inline text-xs mx-1" />
-                        <template #tooltip>
-                          <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
-                          <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
-                        </template>
-                      </tooltip>
-                    </span>
-                    <metric-guage v-if="shouldShowCategoryScore(category, key)" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="selected ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
-                  </btn-tab>
-                </Tab>
-              </TabList>
-            </TabGroup>
+            <div ref="tabListEl" role="tablist" aria-orientation="vertical" class="xl:block xl:space-x-0 flex space-x-2 mb-3">
+              <btn-tab
+                v-for="(category, key) in filteredTabs"
+                :key="key"
+                role="tab"
+                :aria-selected="activeTab === key"
+                :tabindex="activeTab === key ? 0 : -1"
+                :selected="activeTab === key"
+                @click="changedTab(key)"
+                @keydown="onTabKeydown($event, key)"
+              >
+                <span class="inline-flex items-center space-x-1">
+                  <UIcon :name="category.icon" class="inline text-sm opacity-40 h-4 w-4" />
+                  <span>{{ category.label }}</span>
+                  <tooltip v-if="category.label === 'Performance'" class="text-left">
+                    <UIcon name="i-carbon-warning" class="inline text-xs mx-1" />
+                    <template #tooltip>
+                      <div class="mb-2">Lighthouse is running with variability. Performance scores should not be considered accurate.</div>
+                      <div>Unlighthouse is running <span class="underline">with{{ throttle ? '' : 'out' }} throttling</span> which will also effect scores.</div>
+                    </template>
+                  </tooltip>
+                </span>
+                <metric-guage v-if="shouldShowCategoryScore(category, key)" :score="categoryScores[key - 1]" :stripped="true" class="dark:font-bold" :class="activeTab === key ? ['dark:bg-teal-900 bg-blue-100 rounded px-2'] : []" />
+              </btn-tab>
+            </div>
             <div v-if="dynamicSampling" class="text-sm opacity-70 mt-3">
               <p>Dynamically sampling is enabled, not all pages are being scanned.</p>
               <p><a href="https://unlighthouse.dev/guide/guides/dynamic-sampling" target="_blank" class="underline">Learn more</a></p>
