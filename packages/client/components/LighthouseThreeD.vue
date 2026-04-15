@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
 import { ref } from 'vue'
-import { basePath } from '../logic'
+import { basePath, scanMeta } from '../logic'
 
 const canvasRef = ref<HTMLCanvasElement>()
 const lighthouseRef = ref<HTMLDivElement>()
