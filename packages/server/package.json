@@ -1,0 +1,47 @@
+{
+  "name": "@unlighthouse/server",
+  "type": "module",
+  "version": "0.17.4",
+  "description": "Server for Unlighthouse",
+  "license": "MIT",
+  "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/server"
+  },
+  "bugs": {
+    "url": "https://github.com/harlan-zw/unlighthouse/issues"
+  },
+  "keywords": [
+    "lighthouse",
+    "audit",
+    "seo",
+    "performance",
+    "server",
+    "unlighthouse"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "*.d.ts",
+    "dist"
+  ],
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub"
+  },
+  "dependencies": {
+    "@unlighthouse/core": "workspace:*",
+    "h3": "catalog:dependencies",
+    "listhen": "catalog:dependencies"
+  }
+}
