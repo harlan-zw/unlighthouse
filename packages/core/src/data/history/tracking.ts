@@ -6,6 +6,7 @@ import { gzipSync } from 'node:zlib'
 import { useLogger } from '../../logger'
 import { processScanData } from '../../process'
 import { useUnlighthouse } from '../../unlighthouse'
+import { createReportsArtifactBasePath } from '../../util'
 import * as history from './index'
 
 // Collect HTML data during scan for SEO processing
@@ -13,6 +14,7 @@ const htmlDataMap = new Map<string, HTMLExtractPayload>()
 
 let currentScanId: string | null = null
 const routeIdMap = new Map<string, number>() // Map route path to scan_route id
+let historyHooksRegistered = false
 
 /**
  * Extract CWV metrics from a Lighthouse report
@@ -42,12 +44,12 @@ export function getCurrentScanId(): string | null {
  * Initialize history tracking for a scan session
  * Call this when the scan starts
  */
-export function initHistoryTracking() {
-  const { hooks, resolvedConfig, runtimeSettings } = useUnlighthouse()
+function createHistorySession() {
+  const { resolvedConfig, runtimeSettings } = useUnlighthouse()
   const logger = useLogger()
 
-  // Create scan record
   currentScanId = randomUUID()
+  runtimeSettings.currentScanId = currentScanId
   routeIdMap.clear()
   htmlDataMap.clear()
 
@@ -58,9 +60,21 @@ export function initHistoryTracking() {
     site: resolvedConfig.site,
     device: resolvedConfig.scanner?.device || 'mobile',
     throttle: resolvedConfig.scanner?.throttle || false,
-    reportPath: runtimeSettings.outputPath,
+    reportPath: createReportsArtifactBasePath(runtimeSettings.generatedClientPath, currentScanId),
     status: 'running',
   })
+}
+
+export function initHistoryTracking() {
+  const { hooks, resolvedConfig } = useUnlighthouse()
+  const logger = useLogger()
+
+  createHistorySession()
+
+  if (historyHooksRegistered)
+    return
+
+  historyHooksRegistered = true
 
   // Track when routes are added
   hooks.hook('task-added', (path: string, report: UnlighthouseRouteReport) => {
@@ -166,19 +180,28 @@ export function initHistoryTracking() {
       logger.error(`Failed to process scan data: ${err}`)
     })
   })
+
+  hooks.hook('worker-cancelled', () => {
+    cancelHistoryTracking()
+  })
+
+  hooks.hook('worker-error', (error) => {
+    failHistoryTracking(error.message)
+  })
 }
 
 /**
  * Mark current scan as cancelled
  */
 export function cancelHistoryTracking() {
-  const { resolvedConfig } = useUnlighthouse()
+  const { resolvedConfig, runtimeSettings } = useUnlighthouse()
 
   if (currentScanId) {
     history.updateScan(resolvedConfig.outputPath, currentScanId, {
       status: 'cancelled',
       completedAt: new Date(),
     })
+    runtimeSettings.currentScanId = null
     currentScanId = null
   }
 }
@@ -187,7 +210,7 @@ export function cancelHistoryTracking() {
  * Mark current scan as failed
  */
 export function failHistoryTracking(error: string) {
-  const { resolvedConfig } = useUnlighthouse()
+  const { resolvedConfig, runtimeSettings } = useUnlighthouse()
 
   if (currentScanId) {
     history.updateScan(resolvedConfig.outputPath, currentScanId, {
@@ -195,6 +218,7 @@ export function failHistoryTracking(error: string) {
       error,
       completedAt: new Date(),
     })
+    runtimeSettings.currentScanId = null
     currentScanId = null
   }
 }

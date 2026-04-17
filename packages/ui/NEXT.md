@@ -1,40 +1,18 @@
-# Polish & Enhancements
+# Next
 
-Core roadmap complete. These are optional improvements.
+## Highest Priority
 
-## History Page
+- [x] Replace `/api/scan/cancel` cluster shutdown with a non-destructive cancel/reset flow
+- [x] Add scan failure broadcasting so the progress page can reliably enter an `error` state
+- [x] Test repeated start -> cancel -> rescan cycles and fix any stale worker state that remains
 
-- [x] Search by URL
-- [x] Filter by date range
-- [x] Filter by score range
-- [x] Sort options (date, score, routes)
-- [x] Bulk delete
+## UX Follow-ups
 
-## Scan Page
+- [x] Improve the copy and recovery options when a scan is already in progress
+- [x] Decide whether cancelled scans should keep partial results available
+- [x] Tighten empty-state and no-history transitions across onboarding, history, and scan redirects
 
-- [x] Estimated time remaining
-- [x] Pause/resume scan
-- [x] Show current URL being scanned
-- [x] Better error states with retry
+## Documentation
 
-## Results Page
-
-- [x] Category filtering in sidebar
-- [x] Export results (CSV, JSON)
-- [x] Compare with previous scan
-- [x] Shareable report links
-
-## Onboarding Page
-
-- [x] URL validation with preview
-- [x] Preset configurations (quick/thorough)
-- [x] Recent URLs dropdown
-
-## General
-
-- [x] Mobile responsive review
-- [x] Error boundary components
-- [x] Keyboard shortcuts
-- [x] Toast notifications for actions
-- [x] Loading skeletons
-- [x] Dark/light mode toggle
+- [x] Keep route docs aligned with the smart `/` entry model
+- [x] Update any remaining references that imply `/` is the results homepage

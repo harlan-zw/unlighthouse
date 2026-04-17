@@ -4,6 +4,8 @@ import { Buffer } from 'node:buffer'
 import { WebSocketServer } from 'ws'
 import { useUnlighthouse } from '../unlighthouse'
 
+let broadcastingHooksRegistered = false
+
 /**
  * When certain hooks are triggered we need to broadcast data via the web socket.
  */
@@ -13,6 +15,11 @@ export function createBroadcastingEvents() {
   // ws may not be set, for example in a CI environment
   if (!ws)
     return
+
+  if (broadcastingHooksRegistered)
+    return
+
+  broadcastingHooksRegistered = true
 
   // Broadcast progress updates
   const broadcastProgress = () => {
@@ -73,6 +80,24 @@ export function createBroadcastingEvents() {
         scannedRoutes: completedReports.length,
         avgScore: Math.round(avgScore),
         timeElapsed: stats.timeRunning,
+      },
+    })
+  })
+
+  hooks.hook('worker-cancelled', () => {
+    ws.broadcast({
+      event: 'scan:cancelled',
+      data: {
+        message: 'Scan cancelled',
+      },
+    })
+  })
+
+  hooks.hook('worker-error', (error) => {
+    ws.broadcast({
+      event: 'scan:error',
+      data: {
+        message: error.message,
       },
     })
   })

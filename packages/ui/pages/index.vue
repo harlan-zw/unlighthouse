@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { apiUrl } from '~/composables/unlighthouse'
 
+definePageMeta({
+  alias: ['/history'],
+})
+
 interface Scan {
   id: string
   site: string
@@ -19,7 +23,6 @@ interface Scan {
   completedAt: string | null
 }
 
-const router = useRouter()
 const toast = useToast()
 
 const { data, refresh, status } = await useFetch<{ scans: Scan[] }>(`${apiUrl.value}/history`)
@@ -268,6 +271,13 @@ async function bulkDelete() {
 }
 
 const deleteConfirm = ref<{ open: boolean, scan: Scan | null }>({ open: false, scan: null })
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
 
 function getScoreColor(score: number | null) {
   if (score === null)
@@ -300,13 +310,7 @@ function getStatusConfig(status: string): { label: string, icon: string, color: 
 }
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return dateTimeFormatter.format(new Date(date))
 }
 
 function formatRelativeTime(date: string) {
@@ -340,7 +344,20 @@ function viewScan(scan: Scan) {
 }
 
 async function rescanSite(scan: Scan) {
-  const result = await $fetch<{ scanId: string }>(`${apiUrl.value}/history/${scan.id}/rescan`, { method: 'POST' }).catch(() => null)
+  const result = await $fetch<{ scanId: string }>(`${apiUrl.value}/history/${scan.id}/rescan`, { method: 'POST' }).catch((error: any) => {
+    toast.add({
+      title: error?.status === 409 ? 'Scan already in progress' : 'Could not start rescan',
+      description: error?.data?.error || error?.message || 'Try again after the current scan finishes.',
+      color: error?.status === 409 ? 'warning' : 'error',
+    })
+    if (error?.data?.scanId)
+      navigateTo(`/results/${error.data.scanId}/scan`)
+    return null
+  })
+
+  if (!result?.scanId)
+    return
+
   toast.add({ title: 'Rescan started', description: `Scanning ${scan.site}`, color: 'success' })
   if (result?.scanId) {
     navigateTo(`/results/${result.scanId}/scan`)
@@ -473,7 +490,7 @@ const smartSelectItems = [
         <div class="flex gap-3">
           <UInput
             v-model="searchQuery"
-            placeholder="Search by URL..."
+            placeholder="Search by URL…"
             icon="i-heroicons-magnifying-glass"
             class="flex-1"
             :ui="{ base: 'bg-white/5 border-white/10' }"
@@ -493,6 +510,8 @@ const smartSelectItems = [
             <button
               class="px-3 py-2 text-sm transition-colors"
               :class="groupBy === 'site' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+              aria-label="Group scans by site"
+              title="Group by site"
               @click="groupBy = 'site'"
             >
               <UIcon name="i-heroicons-rectangle-group" class="w-4 h-4" />
@@ -500,6 +519,8 @@ const smartSelectItems = [
             <button
               class="px-3 py-2 text-sm transition-colors border-l border-white/10"
               :class="groupBy === 'none' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+              aria-label="Show scans as a flat list"
+              title="Show list view"
               @click="groupBy = 'none'"
             >
               <UIcon name="i-heroicons-list-bullet" class="w-4 h-4" />
@@ -633,6 +654,8 @@ const smartSelectItems = [
                 :alt="group.site"
                 class="w-6 h-6 rounded"
                 loading="lazy"
+                width="24"
+                height="24"
               >
               <div>
                 <div class="flex items-center gap-2">
@@ -683,6 +706,8 @@ const smartSelectItems = [
               <button
                 v-if="group.scans.length > 1"
                 class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                :aria-label="expandedSites.has(group.site) ? `Collapse ${group.domain} scans` : `Expand ${group.domain} scans`"
+                :title="expandedSites.has(group.site) ? 'Collapse scans' : 'Expand scans'"
                 @click.stop="toggleSiteExpand(group.site)"
               >
                 <UIcon
@@ -714,6 +739,7 @@ const smartSelectItems = [
                       : 'border-white/20 hover:border-amber-400/50 opacity-0 group-hover/row:opacity-100 scale-90 hover:scale-100',
                     isSelected(scan.id) ? 'opacity-100' : '',
                   ]"
+                  :aria-label="isSelected(scan.id) ? `Deselect ${scan.site}` : `Select ${scan.site}`"
                   @click="toggleSelect(scan.id, $event)"
                 >
                   <UIcon
@@ -797,6 +823,8 @@ const smartSelectItems = [
                   :alt="scan.site"
                   class="w-5 h-5 rounded"
                   loading="lazy"
+                  width="20"
+                  height="20"
                 >
                 <a
                   :href="scan.site"

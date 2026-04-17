@@ -4,7 +4,6 @@ import { Buffer } from 'node:buffer'
 import { join } from 'node:path'
 import fs from 'fs-extra'
 import { htmlToMarkdown } from 'mdream'
-import { extractionPlugin } from 'mdream/plugins'
 import { withoutTrailingSlash } from 'ufo'
 import { useLogger } from '../../logger'
 import { normaliseRoute } from '../../router'
@@ -115,7 +114,7 @@ export function processSeoMeta(html: string, url: string): HTMLExtractPayload {
   const og: HTMLExtractPayload['og'] = {}
   const twitter: HTMLExtractPayload['twitter'] = {}
 
-  const extractionPluginInstance = extractionPlugin({
+  const extraction = {
     'title': (element) => {
       if (!title && element.textContent)
         title = element.textContent.trim()
@@ -204,10 +203,10 @@ export function processSeoMeta(html: string, url: string): HTMLExtractPayload {
         }
       }
     },
-  })
+  }
 
   htmlToMarkdown(html, {
-    plugins: [extractionPluginInstance],
+    extraction,
     origin: new URL(url).origin,
   })
 
@@ -252,7 +251,7 @@ export function extractSeoAndLinks(html: string, url: string, siteUrl: string): 
 
   const origin = new URL(url).origin
 
-  const extractionPluginInstance = extractionPlugin({
+  const extraction = {
     'title': (element) => {
       if (!title && element.textContent)
         title = element.textContent.trim()
@@ -349,10 +348,10 @@ export function extractSeoAndLinks(html: string, url: string, siteUrl: string): 
       else
         externalLinks++
     },
-  })
+  }
 
   htmlToMarkdown(html, {
-    plugins: [extractionPluginInstance],
+    extraction,
     origin,
   })
 

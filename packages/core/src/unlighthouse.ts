@@ -84,6 +84,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     moduleWorkingDir: __dirname,
     configCacheKey: '',
     lighthouseProcessPath: '',
+    currentScanId: null,
   }
   // path to the lighthouse worker file - try both dist locations (root and _chunks)
   runtimeSettings.lighthouseProcessPath = await resolvePath(

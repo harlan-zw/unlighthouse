@@ -6,7 +6,8 @@ export const isStatic = computed(() =>
 )
 
 export const apiUrl = computed(() => {
-  if (payload?.options?.apiUrl) return payload.options.apiUrl
+  if (payload?.options?.apiUrl)
+    return payload.options.apiUrl
   // Default to same origin API
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/api`
@@ -15,7 +16,8 @@ export const apiUrl = computed(() => {
 })
 
 export const websocketUrl = computed(() => {
-  if (payload?.options?.websocketUrl) return payload.options.websocketUrl
+  if (payload?.options?.websocketUrl)
+    return payload.options.websocketUrl
   // Construct from current host
   if (typeof window !== 'undefined') {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -33,7 +35,8 @@ export const groupRoutesKey = computed(() => payload?.options?.client?.groupRout
 
 // Resolve artifact path for screenshots and reports
 export function resolveArtifactPath(report: any, filename: string): string {
-  if (!report) return ''
+  if (!report)
+    return ''
 
   // If artifactUrl is provided, use it as base
   if (report.artifactUrl) {

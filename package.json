@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.17.4",
   "private": true,
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.33.0",
   "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
@@ -34,17 +34,5 @@
     "typescript": "catalog:",
     "vite": "catalog:dependencies",
     "vitest": "catalog:"
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": "8.0.0-beta.2",
-      "reka-ui": "2.6.1",
-      "vue": "3.5.25",
-      "vue-router": "4.5.0",
-      "@vue/compiler-sfc": "3.5.25",
-      "@vue/server-renderer": "3.5.25",
-      "nuxt": "4.2.2",
-      "@nuxt/kit": "4.2.2"
-    }
   }
 }

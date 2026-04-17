@@ -1,15 +1,26 @@
 <script setup lang="ts">
+import { isActiveScanStatus } from '~/composables/scan'
 import { apiUrl } from '~/composables/unlighthouse'
 
-const router = useRouter()
 const toast = useToast()
 
-// Fetch recent scans for URL suggestions
-const { data: historyData } = await useFetch<{ scans: Array<{ site: string }> }>(`${apiUrl.value}/history`)
+// Fetch recent scans and active scan state for recovery options
+const [{ data: historyData }, { data: currentScanData }, { data: scanStatusData }] = await Promise.all([
+  useFetch<{ scans: Array<{ site: string }> }>(`${apiUrl.value}/history`),
+  useFetch<{ scanId: string | null }>(`${apiUrl.value}/current-scan-id`),
+  useFetch<{ status: string, paused: boolean, site: string | null }>(`${apiUrl.value}/scan/status`),
+])
 const recentUrls = computed(() => {
   const sites = historyData.value?.scans?.map(s => s.site) || []
   return [...new Set(sites)].slice(0, 5) // Unique, max 5
 })
+const hasHistory = computed(() => (historyData.value?.scans?.length || 0) > 0)
+const activeScanId = computed(() =>
+  isActiveScanStatus(scanStatusData.value?.status, scanStatusData.value?.paused)
+    ? currentScanData.value?.scanId || null
+    : null,
+)
+const activeScanSite = computed(() => scanStatusData.value?.site || '')
 
 const form = reactive({
   url: '',
@@ -23,6 +34,7 @@ const isSubmitting = ref(false)
 const urlError = ref('')
 const showRecentUrls = ref(false)
 const urlInputFocused = ref(false)
+const scanConflictMessage = ref('')
 
 const sampleSizeOptions = [
   { label: '10 routes', value: 10 },
@@ -117,6 +129,7 @@ async function startScan() {
   if (!validateUrl(form.url)) return
 
   isSubmitting.value = true
+  scanConflictMessage.value = ''
 
   const body: Record<string, any> = {
     url: normalizeUrl(form.url),
@@ -130,7 +143,20 @@ async function startScan() {
     method: 'POST',
     body,
   }).catch((err) => {
-    toast.add({ title: 'Failed to start scan', description: err.message, color: 'error' })
+    if (err?.data?.scanId) {
+      currentScanData.value = { scanId: err.data.scanId }
+      scanStatusData.value = {
+        status: 'scanning',
+        paused: false,
+        site: err.data.site || normalizeUrl(form.url),
+      }
+      scanConflictMessage.value = err?.data?.error || 'A scan is already running.'
+    }
+    toast.add({
+      title: err?.status === 409 ? 'Scan already in progress' : 'Failed to start scan',
+      description: err?.data?.error || err?.message || 'Please review the scan settings and try again.',
+      color: err?.status === 409 ? 'warning' : 'error',
+    })
     isSubmitting.value = false
     return null
   })
@@ -185,15 +211,38 @@ function onUrlBlur() {
           <span class="text-sm text-gray-400">New Scan</span>
         </div>
 
-        <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+        <NuxtLink :to="hasHistory ? '/history' : '/'" class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
           <UIcon name="i-heroicons-arrow-left" class="w-4 h-4" />
-          Back
+          {{ hasHistory ? 'Back' : 'Home' }}
         </NuxtLink>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="max-w-2xl mx-auto py-16 px-6">
+      <div
+        v-if="activeScanId"
+        class="mb-8 rounded-2xl border border-amber-500/20 bg-amber-500/8 p-5"
+      >
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-sm font-medium text-amber-300">
+              {{ scanConflictMessage || 'A scan is already in progress.' }}
+            </p>
+            <p class="mt-1 text-sm text-gray-400">
+              Resume the current run for <span class="font-mono text-gray-200">{{ activeScanSite || 'this site' }}</span> or cancel it from the progress page before starting another one.
+            </p>
+          </div>
+          <UButton
+            :to="`/results/${activeScanId}/scan`"
+            color="primary"
+            icon="i-heroicons-arrow-path"
+          >
+            Resume Active Scan
+          </UButton>
+        </div>
+      </div>
+
       <div class="text-center mb-12">
         <h1 class="text-3xl font-bold mb-3">Start a New Scan</h1>
         <p class="text-gray-400">Enter a URL to scan your site with Lighthouse</p>
@@ -202,17 +251,22 @@ function onUrlBlur() {
       <form class="space-y-8" @submit.prevent="startScan">
         <!-- URL Input -->
         <div class="relative">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Website URL</label>
+          <label for="scan-url" class="block text-sm font-medium text-gray-300 mb-2">Website URL</label>
           <UInput
+            id="scan-url"
             v-model="form.url"
-            placeholder="example.com"
+            name="url"
+            type="url"
+            autocomplete="url"
+            spellcheck="false"
+            placeholder="https://example.com…"
             size="xl"
             icon="i-heroicons-globe-alt"
             :ui="{ base: 'bg-white/5 border-white/10 focus:border-amber-500/50 focus:ring-amber-500/20' }"
             @focus="onUrlFocus"
             @blur="onUrlBlur"
           />
-          <p v-if="urlError" class="mt-2 text-sm text-red-400">{{ urlError }}</p>
+          <p v-if="urlError" aria-live="polite" class="mt-2 text-sm text-red-400">{{ urlError }}</p>
 
           <!-- Recent URLs Dropdown -->
           <div

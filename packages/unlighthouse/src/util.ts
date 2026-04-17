@@ -66,6 +66,26 @@ export function hashPathName(path: string) {
     .substring(0, 6)
 }
 
+export function createReportsArtifactBasePath(generatedClientPath: string, scanId?: string | null) {
+  return scanId
+    ? join(generatedClientPath, 'reports', scanId)
+    : join(generatedClientPath, 'reports')
+}
+
+export function createReportsArtifactBaseUrl(routerPrefix: string, scanId?: string | null) {
+  return scanId
+    ? joinURL(routerPrefix, 'reports', scanId)
+    : joinURL(routerPrefix, 'reports')
+}
+
+export function hasScanScopedArtifacts(reportPath: string | null | undefined, scanId: string) {
+  if (!reportPath)
+    return false
+
+  const normalised = reportPath.replaceAll('\\', '/')
+  return normalised.endsWith(`/reports/${scanId}`)
+}
+
 /**
  * Ensures a provided host is consistent, ensuring a protocol is provided.
  *
@@ -88,8 +108,8 @@ export function createTaskReportFromRoute(route: NormalisedRoute): UnlighthouseR
   const { runtimeSettings, resolvedConfig } = useUnlighthouse()
 
   const reportId = hashPathName(route.path)
-
-  const reportPath = join(runtimeSettings.generatedClientPath, 'reports', sanitiseUrlForFilePath(route.path))
+  const scanId = runtimeSettings.currentScanId
+  const reportPath = join(createReportsArtifactBasePath(runtimeSettings.generatedClientPath, scanId), sanitiseUrlForFilePath(route.path))
 
   // add missing dirs
   ensureDirSync(reportPath)
@@ -102,7 +122,7 @@ export function createTaskReportFromRoute(route: NormalisedRoute): UnlighthouseR
     route,
     reportId,
     artifactPath: reportPath,
-    artifactUrl: joinURL(resolvedConfig.routerPrefix, 'reports', sanitiseUrlForFilePath(route.path)),
+    artifactUrl: joinURL(createReportsArtifactBaseUrl(resolvedConfig.routerPrefix, scanId), sanitiseUrlForFilePath(route.path)),
   }
 }
 

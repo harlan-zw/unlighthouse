@@ -58,7 +58,7 @@ export function wsConnect(): Promise<void> {
       isOffline.value = true
       if (reconnectAttempts < maxReconnectAttempts) {
         reconnectAttempts++
-        setTimeout(() => wsConnect(), 1000 * reconnectAttempts)
+        setTimeout(wsConnect, 1000 * reconnectAttempts)
       }
     }
 
@@ -78,14 +78,17 @@ export function wsDisconnect() {
 
 // Fetch scan metadata
 export async function refreshScanMeta() {
-  if (!apiUrl.value) return
+  if (!apiUrl.value)
+    return
   const data = await $fetch<ScanMeta>(`${apiUrl.value}/scan-meta`).catch(() => null)
-  if (data) scanMeta.value = data
+  if (data)
+    scanMeta.value = data
 }
 
 // Open Lighthouse report modal
 export function openLighthouseReportIframeModal(report: UnlighthouseRouteReport | any) {
-  if (!report?.artifactUrl && !report?.route?.path) return
+  if (!report?.artifactUrl && !report?.route?.path)
+    return
 
   // Build URL for the report
   let reportUrl = report.artifactUrl

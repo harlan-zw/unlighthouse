@@ -595,6 +595,10 @@ export interface RuntimeSettings {
    */
   generatedClientPath: string
   /**
+   * The currently active scan id, used to isolate per-scan artifacts.
+   */
+  currentScanId: string | null
+  /**
    * The URL to the client, used for opening it automatically.
    */
   clientUrl: string
@@ -716,6 +720,16 @@ export interface UnlighthouseHooks {
    */
   'worker-finished': () => HookResult
   /**
+   * Called when the current scan is cancelled before completion.
+   */
+  'worker-cancelled': () => HookResult
+  /**
+   * Called when the current scan hits an unrecoverable error.
+   *
+   * @param error
+   */
+  'worker-error': (error: Error) => HookResult
+  /**
    * When route definitions are provided to Unlighthouse this function will be called, useful for delaying internal logic
    * until the definitions are found.
    *
@@ -829,6 +843,10 @@ export interface UnlighthouseWorker {
    */
   clearProgressDisplay: () => void
   /**
+   * Reset worker state for a brand new scan session.
+   */
+  reset: () => void
+  /**
    * Pause the scan - new tasks won't start until resumed
    */
   pause: () => void
@@ -840,6 +858,22 @@ export interface UnlighthouseWorker {
    * Check if scan is currently paused
    */
   isPaused: () => boolean
+  /**
+   * Cancel the active scan without tearing down the cluster.
+   */
+  cancel: () => void
+  /**
+   * Mark the active scan as failed and stop accepting more work for it.
+   */
+  fail: (error: Error | string) => void
+  /**
+   * Check if the active scan has been cancelled.
+   */
+  isCancelled: () => boolean
+  /**
+   * Get the last unrecoverable worker error, if any.
+   */
+  getError: () => string | null
 }
 
 export interface ScanMeta {

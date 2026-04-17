@@ -10,7 +10,7 @@ export function reportCSVExpanded(reports: UnlighthouseRouteReport[], { columns 
     if (k === 'overview')
       continue
     // check if k is within the reports
-    if (!reports[0].report.categories.find(category => category.key === k))
+    if (!reports[0].report.categories.some(category => category.key === k))
       continue
 
     // add to headers
@@ -31,7 +31,7 @@ export function reportCSVExpanded(reports: UnlighthouseRouteReport[], { columns 
       if (k === 'overview')
         continue
       // check if k is within the reports
-      if (!reports[0].report.categories.find(category => category.key === k))
+      if (!reports[0].report.categories.some(category => category.key === k))
         continue
 
       // headers are good, now add body

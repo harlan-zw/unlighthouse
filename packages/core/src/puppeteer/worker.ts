@@ -24,6 +24,8 @@ import {
 
 let warnedMaxRoutesExceeded = false
 let isPaused = false
+let isCancelled = false
+let workerError: string | null = null
 
 /**
  * The unlighthouse worker is a wrapper for the puppeteer-cluster. It handles the queuing of the tasks with more control
@@ -45,14 +47,50 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
   const taskCompletionTimes = new Map<string, Record<UnlighthouseTask, number>>()
 
   // Track progress for live display
-  const startTime = Date.now()
+  let progressStartTime = Date.now()
   let currentTaskInfo = ''
+  let activeRunId = 0
+
+  const getQueueSize = () => Math.max(0, cluster.jobQueue.size())
+
+  const resetClusterCounters = () => {
+    const mutableCluster = cluster as any
+    mutableCluster.allTargetCount = 0
+    mutableCluster.errorCount = 0
+    mutableCluster.startTime = Date.now()
+  }
+
+  const clearClusterQueue = () => {
+    const queue = (cluster as any).jobQueue
+
+    if (!queue)
+      return
+
+    if (typeof queue.clear === 'function') {
+      queue.clear()
+      return
+    }
+
+    if (typeof queue.size === 'function' && typeof queue.shift === 'function') {
+      while (queue.size() > 0)
+        queue.shift()
+      return
+    }
+
+    if (Array.isArray(queue)) {
+      queue.length = 0
+      return
+    }
+
+    if (Array.isArray(queue.list))
+      queue.list.length = 0
+  }
 
   const monitor: () => UnlighthouseWorkerStats = () => {
     const now = Date.now()
     const timeDiff = now - cluster.startTime
-    const doneTargets = cluster.allTargetCount - cluster.jobQueue.size() - cluster.workersBusy.length
-    const donePercentage = cluster.allTargetCount === 0 ? 1 : (doneTargets / cluster.allTargetCount)
+    const doneTargets = Math.max(0, cluster.allTargetCount - getQueueSize() - cluster.workersBusy.length)
+    const donePercentage = cluster.allTargetCount === 0 ? 1 : Math.min(1, doneTargets / cluster.allTargetCount)
     const donePercStr = (100 * donePercentage).toFixed(0)
     const errorPerc = doneTargets === 0
       ? '0.00'
@@ -160,7 +198,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       completedTasks: stats.doneTargets,
       totalTasks: stats.allTargets,
       averageScore,
-      timeElapsed: Date.now() - startTime,
+      timeElapsed: Date.now() - progressStartTime,
       timeRemaining: stats.timeRemaining > 0 ? stats.timeRemaining : undefined,
     }
 
@@ -172,7 +210,11 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
   }
 
   const queueRoute = (route: NormalisedRoute) => {
+    if (isCancelled || workerError)
+      return
+
     const { id, path } = route
+    const runId = activeRunId
 
     // exceed the max routes
     if (exceededMaxRoutes()) {
@@ -244,6 +286,9 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     updateProgressDisplay()
 
     const runTaskIndex = (idx = 0) => {
+      if (runId !== activeRunId)
+        return
+
       // queue the html payload extraction before we perform the lighthouse scan
       const taskName = Object.keys(tasks)?.[idx] as UnlighthouseTask
       // handle invalid index
@@ -257,7 +302,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
       // If paused, wait and retry
       if (isPaused) {
-        setTimeout(() => runTaskIndex(idx), 1000)
+        setTimeout(runTaskIndex, 1000, idx)
         return
       }
 
@@ -266,6 +311,9 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
       cluster
         .execute(routeReport, (arg) => {
+          if (runId !== activeRunId)
+            return routeReport
+
           routeReport.tasks[taskName] = 'in-progress'
           routeReport.tasksTime = routeReport.tasksTime || {}
           routeReport.tasksTime[taskName] = Date.now()
@@ -275,6 +323,9 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
           return task(arg)
         })
         .then((response) => {
+          if (runId !== activeRunId)
+            return
+
           // ignore this route
           if (response.tasks[taskName] === 'ignore') {
             routeReports.delete(id)
@@ -341,6 +392,17 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
           // run the next task
           runTaskIndex(idx + 1)
         })
+        .catch((error) => {
+          if (runId !== activeRunId)
+            return
+
+          const err = error instanceof Error ? error : new Error(String(error))
+          logger.error(`Task \`${taskName}\` crashed for "${path}": ${err.message}`)
+          routeReport.tasks[taskName] = 'failed'
+          routeReports.set(id, routeReport)
+          hooks.callHook('task-complete', path, routeReport, taskName)
+          fail(err)
+        })
     }
 
     // run the tasks sequentially
@@ -398,6 +460,26 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
 
   const findReport = (id: string) => reports().filter(report => report.reportId === id)?.[0]
 
+  const reset = () => {
+    activeRunId++
+    routeReports.clear()
+    ignoredRoutes.clear()
+    retriedRoutes.clear()
+    taskCompletionTimes.clear()
+    warnedMaxRoutesExceeded = false
+    isPaused = false
+    isCancelled = false
+    workerError = null
+    currentTaskInfo = ''
+    progressStartTime = Date.now()
+
+    clearClusterQueue()
+    resetClusterCounters()
+    ;(cluster as any).startTime = progressStartTime
+
+    progressBox.clear()
+  }
+
   const pause = () => {
     isPaused = true
     logger.info('Scan paused')
@@ -409,6 +491,41 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
   }
 
   const getPaused = () => isPaused
+  const getCancelled = () => isCancelled
+  const getError = () => workerError
+
+  const cancel = () => {
+    if (isCancelled)
+      return
+
+    activeRunId++
+    isPaused = false
+    isCancelled = true
+    workerError = null
+    currentTaskInfo = ''
+    clearClusterQueue()
+    resetClusterCounters()
+    progressBox.clear()
+    logger.info('Scan cancelled')
+    hooks.callHook('worker-cancelled')
+  }
+
+  const fail = (error: Error | string) => {
+    const err = typeof error === 'string' ? new Error(error) : error
+
+    if (workerError === err.message)
+      return
+
+    activeRunId++
+    isPaused = false
+    isCancelled = false
+    workerError = err.message
+    currentTaskInfo = ''
+    clearClusterQueue()
+    resetClusterCounters()
+    progressBox.clear()
+    hooks.callHook('worker-error', err)
+  }
 
   return {
     cluster,
@@ -423,8 +540,13 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     hasStarted,
     reports,
     clearProgressDisplay: () => progressBox.clear(),
+    reset,
     pause,
     resume,
     isPaused: getPaused,
+    cancel,
+    fail,
+    isCancelled: getCancelled,
+    getError,
   }
 }

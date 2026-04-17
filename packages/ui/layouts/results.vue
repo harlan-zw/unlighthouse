@@ -35,7 +35,7 @@ const extractDomain = (url: string) => {
 }
 
 function goBack() {
-  navigateTo('/')
+  navigateTo('/history')
 }
 
 const showExportMenu = ref(false)
@@ -95,6 +95,8 @@ provide('siteUrl', displayWebsite)
               :alt="displayWebsite"
               class="w-5 h-5 rounded"
               loading="lazy"
+              width="20"
+              height="20"
             >
             <a
               :href="displayWebsite"
@@ -123,6 +125,7 @@ provide('siteUrl', displayWebsite)
               variant="ghost"
               color="neutral"
               size="sm"
+              aria-label="Copy share link"
               title="Copy share link"
               @click="copyShareLink"
             />
@@ -134,6 +137,7 @@ provide('siteUrl', displayWebsite)
                 color="neutral"
                 size="sm"
                 :disabled="isStatic || isOffline"
+                aria-label="Rescan all routes"
                 title="Rescan All"
                 @click="rescanSite"
               />
@@ -142,10 +146,12 @@ provide('siteUrl', displayWebsite)
                 variant="ghost"
                 color="neutral"
                 size="sm"
+                aria-label="Open debug panel"
+                title="Debug"
                 @click="openDebugModal"
               />
-              <NuxtLink to="/" class="ml-2">
-                <UButton icon="i-heroicons-clock" variant="ghost" color="neutral" size="sm" title="History" />
+              <NuxtLink to="/history" class="ml-2">
+                <UButton icon="i-heroicons-clock" variant="ghost" color="neutral" size="sm" aria-label="Go to scan history" title="History" />
               </NuxtLink>
             </template>
           </div>
@@ -157,6 +163,7 @@ provide('siteUrl', displayWebsite)
       <!-- Mobile sidebar toggle -->
       <button
         class="lg:hidden fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-lg"
+        :aria-label="showMobileSidebar ? 'Close section navigation' : 'Open section navigation'"
         @click="showMobileSidebar = !showMobileSidebar"
       >
         <UIcon :name="showMobileSidebar ? 'i-heroicons-x-mark' : 'i-heroicons-bars-3'" class="w-6 h-6" />

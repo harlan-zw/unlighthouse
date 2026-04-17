@@ -6,10 +6,11 @@ import launch from 'launch-editor'
 import { joinURL } from 'ufo'
 import { createScanMeta } from '../data'
 import * as history from '../data/history'
-import { getCurrentScanId } from '../data/history/tracking'
+import { getCurrentScanId, initHistoryTracking } from '../data/history/tracking'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
-import { sanitiseUrlForFilePath } from '../util'
+import { createReportsArtifactBaseUrl, hasScanScopedArtifacts, sanitiseUrlForFilePath } from '../util'
+import { createBroadcastingEvents } from './broadcasting'
 import { createDashboardApi } from './dashboard'
 
 export async function createApi(app: App): Promise<Router> {
@@ -26,18 +27,28 @@ export async function createApi(app: App): Promise<Router> {
   // API routes
   const apiRouter = createRouter()
 
+  const hasActiveScan = () => {
+    const { worker } = useUnlighthouse()
+    const stats = worker.monitor()
+    return !worker.isCancelled() && !worker.getError() && stats.allTargets > 0 && (stats.status !== 'completed' || worker.isPaused())
+  }
+
+  const activeScanConflict = () => ({
+    error: 'A scan is already in progress. Resume it or cancel it before starting a new one.',
+    scanId: getCurrentScanId(),
+    site: resolvedConfig.site,
+  })
+
   apiRouter.post('/reports/rescan', defineEventHandler(() => {
     const { worker } = useUnlighthouse()
+    createBroadcastingEvents()
     const reports = [...worker.routeReports.values()]
     logger.info(`Doing site rescan, clearing ${reports.length} reports.`)
-    worker.routeReports.clear()
-    reports.forEach((route) => {
-      const dir = route.artifactPath
-      if (fs.existsSync(dir))
-        fs.rmSync(dir, { recursive: true })
-    })
+    worker.reset()
+    worker.resume()
+    initHistoryTracking()
     worker.queueRoutes(reports.map(report => report.route))
-    return true
+    return { success: true, scanId: getCurrentScanId() }
   }))
 
   apiRouter.post('/reports/:id/rescan', defineEventHandler((event) => {
@@ -96,9 +107,12 @@ export async function createApi(app: App): Promise<Router> {
       return { error: 'Scan not found' }
     }
     // Add artifactUrl to each route for screenshots/lighthouse reports
+    const artifactBaseUrl = hasScanScopedArtifacts(scan.reportPath, scan.id)
+      ? createReportsArtifactBaseUrl(resolvedConfig.routerPrefix, scan.id)
+      : createReportsArtifactBaseUrl(resolvedConfig.routerPrefix)
     const routesWithArtifacts = scan.routes.map(route => ({
       ...route,
-      artifactUrl: joinURL(resolvedConfig.routerPrefix, 'reports', sanitiseUrlForFilePath(route.path)),
+      artifactUrl: joinURL(artifactBaseUrl, sanitiseUrlForFilePath(route.path)),
     }))
     return { ...scan, routes: routesWithArtifacts }
   }))
@@ -121,8 +135,14 @@ export async function createApi(app: App): Promise<Router> {
     const completedReports = reports.filter(r => r.report?.score !== undefined)
 
     // Determine scan status
-    let status: 'idle' | 'starting' | 'discovering' | 'scanning' | 'complete' = 'scanning'
-    if (stats.status === 'completed') {
+    let status: 'idle' | 'starting' | 'discovering' | 'scanning' | 'complete' | 'cancelled' | 'error' = 'idle'
+    if (worker.getError()) {
+      status = 'error'
+    }
+    else if (worker.isCancelled()) {
+      status = 'cancelled'
+    }
+    else if (stats.status === 'completed') {
       status = 'complete'
     }
     else if (stats.allTargets === 0) {
@@ -148,6 +168,7 @@ export async function createApi(app: App): Promise<Router> {
     )
 
     return {
+      scanId: getCurrentScanId(),
       status,
       paused: worker.isPaused(),
       site: resolvedConfig.site,
@@ -163,15 +184,15 @@ export async function createApi(app: App): Promise<Router> {
       startedAt: runtimeSettings.serverUrl ? new Date(Date.now() - stats.timeRunning).toISOString() : null,
       estimatedTimeRemaining: stats.timeRemaining > 0 ? stats.timeRemaining : null,
       workers: stats.workers,
+      error: worker.getError(),
     }
   }))
 
   // Cancel scan endpoint
-  apiRouter.post('/scan/cancel', defineEventHandler(async () => {
+  apiRouter.post('/scan/cancel', defineEventHandler(() => {
     const { worker } = useUnlighthouse()
     logger.info('Scan cancel requested')
-    // Close the cluster to stop all workers
-    await worker.cluster.close()
+    worker.cancel()
     return { success: true, message: 'Scan cancelled' }
   }))
 
@@ -207,27 +228,31 @@ export async function createApi(app: App): Promise<Router> {
 
     const { worker, resolvedConfig: config } = useUnlighthouse()
 
+    if (hasActiveScan()) {
+      setResponseStatus(event, 409)
+      return activeScanConflict()
+    }
+
     logger.info(`Starting new scan for: ${url}`)
 
+    createBroadcastingEvents()
+
     // Clear existing reports
-    const reports = [...worker.routeReports.values()]
-    worker.routeReports.clear()
-    reports.forEach((route) => {
-      const dir = route.artifactPath
-      if (fs.existsSync(dir))
-        fs.rmSync(dir, { recursive: true })
-    })
+    worker.reset()
 
     // Update config with new settings
     config.site = url
-    if (device)
+    if (device) {
+      config.scanner.device = device
       config.lighthouseOptions.formFactor = device
+    }
     if (throttle !== undefined)
       config.scanner.throttle = throttle
-    if (categories?.length)
-      config.lighthouseOptions.onlyCategories = categories
-    if (sampleSize)
-      config.scanner.maxRoutes = sampleSize
+    config.lighthouseOptions.onlyCategories = categories?.length ? categories : undefined
+    config.scanner.maxRoutes = sampleSize && sampleSize > 0 ? sampleSize : false
+
+    worker.resume()
+    initHistoryTracking()
 
     // Queue the root URL to start discovery
     const { normaliseRoute } = await import('../discovery')
@@ -236,7 +261,8 @@ export async function createApi(app: App): Promise<Router> {
 
     return {
       success: true,
-      message: 'Scan started',
+      scanId: getCurrentScanId(),
+      status: 'starting',
       site: url,
     }
   }))
@@ -253,21 +279,28 @@ export async function createApi(app: App): Promise<Router> {
 
     const { worker, resolvedConfig: config } = useUnlighthouse()
 
+    if (hasActiveScan()) {
+      setResponseStatus(event, 409)
+      return activeScanConflict()
+    }
+
     logger.info(`Rescan requested for history entry: ${scan.site}`)
 
+    createBroadcastingEvents()
+
     // Clear existing reports
-    const reports = [...worker.routeReports.values()]
-    worker.routeReports.clear()
-    reports.forEach((route) => {
-      const dir = route.artifactPath
-      if (fs.existsSync(dir))
-        fs.rmSync(dir, { recursive: true })
-    })
+    worker.reset()
 
     // Restore config from history
     config.site = scan.site
-    if (scan.device)
+    if (scan.device) {
+      config.scanner.device = scan.device
       config.lighthouseOptions.formFactor = scan.device
+    }
+    config.scanner.throttle = scan.throttle
+
+    worker.resume()
+    initHistoryTracking()
 
     // Queue the root URL to start discovery
     const { normaliseRoute } = await import('../discovery')
@@ -276,7 +309,8 @@ export async function createApi(app: App): Promise<Router> {
 
     return {
       success: true,
-      message: 'Rescan started',
+      scanId: getCurrentScanId(),
+      status: 'starting',
       site: scan.site,
     }
   }))

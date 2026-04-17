@@ -44,17 +44,20 @@ export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
       shouldSort: isEmpty(sorting.value),
       keys: ['route.definition.name', 'route.path', 'seo.title'],
     })
-    data = fuse.search<UnlighthouseRouteReport>(searchText.value).map(i => i.item)
+    data = fuse.search(searchText.value).map(i => i.item)
   }
 
   // Map category data
   data = data.map((i) => {
     if (i.report?.categories && Array.isArray(i.report.categories)) {
-      const categoryMap: Record<string, any> = {};
-      (i.report.categories as any[]).forEach((c) => {
+      const categoryMap: Record<string, unknown> = {}
+      const categories = i.report.categories as Array<{ id?: string } & Record<string, unknown>>
+
+      categories.forEach((c) => {
         if (c?.id)
           categoryMap[c.id] = c
       })
+
       ;(i.report as any).categoryMap = categoryMap
     }
     return i
