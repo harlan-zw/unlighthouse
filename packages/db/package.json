@@ -1,0 +1,41 @@
+{
+  "name": "@unlighthouse/db",
+  "type": "module",
+  "version": "0.17.4",
+  "description": "Database schema and utilities for Unlighthouse.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/db"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "files": [
+    "*.d.ts",
+    "dist"
+  ],
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "test:attw": "attw --pack"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.5.0",
+    "consola": "catalog:dependencies",
+    "drizzle-orm": "^0.45.1",
+    "fs-extra": "catalog:dependencies"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/fs-extra": "catalog:",
+    "drizzle-kit": "^0.31.8"
+  }
+}
