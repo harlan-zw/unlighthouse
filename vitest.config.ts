@@ -5,7 +5,7 @@ import { defineConfig } from 'vite'
 const r = (p: string) => resolve(__dirname, p)
 
 export const alias: AliasOptions = {
-  'unlighthouse': r('./packages/core/src/'),
+  'unlighthouse': r('./packages/unlighthouse/src/'),
   '@unlighthouse/ui': r('./packages/ui/'),
 }
 
