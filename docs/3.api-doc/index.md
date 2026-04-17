@@ -25,7 +25,7 @@ Programmatic API for building custom integrations and extending Unlighthouse fun
 
 ## Core Package
 
-Functions from `@unlighthouse/core`:
+Functions from `unlighthouse`:
 
 ### `createUnlighthouse()`{lang="ts"}
 
@@ -36,7 +36,7 @@ Functions from `@unlighthouse/core`:
   When no provider is given, a default provider is created which will try and resolve route definitions and URLs.
 
   ```ts
-  import { createUnlighthouse } from '@unlighthouse/core'
+  import { createUnlighthouse } from 'unlighthouse'
 
   createUnlighthouse(
     // config
@@ -76,7 +76,7 @@ Functions from `@unlighthouse/core`:
   It's publicly exposed to provide a tight integrations for custom client builds, such as the CI build.
 
   ```ts
-  import { generateClient } from '@unlighthouse/core'
+  import { generateClient } from 'unlighthouse'
 
   // ...
   logger.info('Generating static client.')
@@ -92,7 +92,7 @@ Functions from `@unlighthouse/core`:
   which is great to avoid transferring state between your logic.
 
   ```ts
-  import { useUnlighthouse } from '@unlighthouse/core'
+  import { useUnlighthouse } from 'unlighthouse'
 
   // access the lighthouse context, pick out the worker
   const { worker } = useUnlighthouse()
@@ -108,7 +108,7 @@ Functions from `@unlighthouse/core`:
   `debug` config.
 
   ```ts
-  import { useLogger } from '@unlighthouse/core'
+  import { useLogger } from 'unlighthouse'
 
   // you need to instantiate the logger to get the instance
   const logger = useLogger()
@@ -179,7 +179,7 @@ export type HookResult = Promise<void> | void
 ```
 
 ```ts
-import { useUnlighthouse } from '@unlighthouse/core'
+import { useUnlighthouse } from 'unlighthouse'
 
 const { hooks } = useUnlighthouse()
 

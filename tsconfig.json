@@ -17,7 +17,6 @@
       "unlighthouse": ["./packages/unlighthouse/src"],
       "@unlighthouse/ui": ["./packages/ui"],
       "@unlighthouse/cli": ["./packages/cli/src"],
-      "@unlighthouse/core": ["./packages/core/src"],
       "@unlighthouse/nuxt": ["./integrations/nuxt/src"],
       "@unlighthouse/vite": ["./integrations/vite/src"],
       "@unlighthouse/webpack": ["./integrations/webpack/src"]

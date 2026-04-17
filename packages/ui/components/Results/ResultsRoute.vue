@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseRouteReport } from '@unlighthouse/core'
+import type { UnlighthouseRouteReport } from 'unlighthouse'
 
 defineProps<{
   report: UnlighthouseRouteReport

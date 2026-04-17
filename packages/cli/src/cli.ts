@@ -1,6 +1,6 @@
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
-import { createUnlighthouse, evaluateAndStoreAssertions, history, useLogger, useUnlighthouse } from '@unlighthouse/core'
+import { createUnlighthouse, evaluateAndStoreAssertions, history, useLogger, useUnlighthouse } from 'unlighthouse'
 import open from 'better-opn'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'

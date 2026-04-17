@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@lhci/utils": "catalog:dependencies",
-    "@unlighthouse/core": "workspace:*",
+    "unlighthouse": "workspace:*",
     "@unlighthouse/ui": "workspace:*",
     "better-opn": "catalog:dependencies",
     "cac": "catalog:dependencies",

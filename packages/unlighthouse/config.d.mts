@@ -1,4 +1,4 @@
-import type { UserConfig } from '@unlighthouse/core'
+import type { UserConfig } from 'unlighthouse'
 import type { ConfigLayerMeta, DefineConfig } from 'c12'
 
 export { UserConfig } from 'nuxt/schema'

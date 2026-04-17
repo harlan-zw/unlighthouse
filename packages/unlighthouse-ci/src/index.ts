@@ -1,1 +1,1 @@
-export * from '@unlighthouse/core'
+export * from 'unlighthouse'

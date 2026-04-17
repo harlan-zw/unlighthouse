@@ -1,4 +1,4 @@
-import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from '@unlighthouse/core'
+import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from 'unlighthouse'
 import Fuse from 'fuse.js'
 import { get, isEmpty, orderBy } from 'lodash-es'
 import { unlighthouseReports } from './state'
