@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import createCli from '../packages/cli/src/createCli'
-import { pickOptions } from '../packages/cli/src/util'
+import createCli from '../packages/unlighthouse/src/cli/createCli'
+import { pickOptions } from '../packages/unlighthouse/src/cli/util'
 
 const argsv = (args: string[]) => ['node', 'unlighthouse.js', '--site', 'unlighthouse.dev', ...args]
 

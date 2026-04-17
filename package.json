@@ -6,9 +6,9 @@
   "packageManager": "pnpm@10.33.0",
   "license": "MIT",
   "scripts": {
-    "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
-    "ci": "JITI_ESM_RESOLVE=1 node packages/cli/dist/ci.mjs",
-    "ci:docs": "node packages/cli/dist/ci.mjs --site unlighthouse.dev --build-static --debug",
+    "cli": "JITI_ESM_RESOLVE=1 node packages/unlighthouse/dist/cli.mjs",
+    "ci": "JITI_ESM_RESOLVE=1 node packages/unlighthouse/dist/ci.mjs",
+    "ci:docs": "node packages/unlighthouse/dist/ci.mjs --site unlighthouse.dev --build-static --debug",
     "build": "pnpm run build:pkg",
     "build:docs": "cd docs && pnpm i && nuxi build",
     "build:pkg": "pnpm -r --filter './packages/**' run build",

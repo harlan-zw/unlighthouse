@@ -46,15 +46,15 @@ Install the CLI globally to use `unlighthouse-ci`:
 ::code-group
 
 ```bash [npm]
-npm install -g @unlighthouse/cli
+npm install -g unlighthouse
 ```
 
 ```bash [yarn]
-yarn global add @unlighthouse/cli
+yarn global add unlighthouse
 ```
 
 ```bash [pnpm]
-pnpm install -g @unlighthouse/cli
+pnpm install -g unlighthouse
 ```
 
 ::
@@ -117,7 +117,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Dependencies
-        run: npm add -g @unlighthouse/cli puppeteer
+        run: npm add -g unlighthouse puppeteer
 
       - name: Unlighthouse assertions and client
         run: unlighthouse-ci --site <your-site> --build-static

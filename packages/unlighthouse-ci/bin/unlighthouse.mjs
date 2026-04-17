@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-import('@unlighthouse/cli')
+import('unlighthouse/cli')

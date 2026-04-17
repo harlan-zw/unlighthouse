@@ -26,6 +26,8 @@
       "types": "./types.d.mts",
       "import": "./dist/index.mjs"
     },
+    "./cli": "./dist/cli.mjs",
+    "./ci": "./dist/ci.mjs",
     "./config": "./config.mjs",
     "./package.json": "./package.json"
   },
@@ -68,7 +70,6 @@
   "dependencies": {
     "@clack/prompts": "catalog:dependencies",
     "@puppeteer/browsers": "catalog:dependencies",
-    "@unlighthouse/cli": "workspace:*",
     "@unlighthouse/ui": "workspace:*",
     "@unrouted/core": "catalog:",
     "@unrouted/fetch": "catalog:",
