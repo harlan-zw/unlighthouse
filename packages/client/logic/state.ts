@@ -5,7 +5,7 @@ import CellScoreSingle from '../components/Cell/CellScoreSingle.vue'
 import CellScoresOverview from '../components/Cell/CellScoresOverview.vue'
 import { useFetch } from './fetch'
 import { sorting } from './search'
-import { categories, columns, isStatic, resolveArtifactPath, wsUrl } from './static'
+import { apiUrl, categories, columns, isStatic, resolveArtifactPath, wsUrl } from './static'
 
 export const activeTab = ref(0)
 
@@ -104,6 +104,17 @@ export const resultColumns = computed(() => {
 
 export const wsReports: Map<string, UnlighthouseRouteReport> = reactive(new Map<string, UnlighthouseRouteReport>())
 
+// Seed wsReports from payload data so the dashboard has data immediately
+// even when opened after the scan finishes (WebSocket won't replay past events)
+const payloadReports = window.__unlighthouse_payload?.reports
+if (!isStatic && Array.isArray(payloadReports)) {
+  payloadReports.forEach((report) => {
+    if (report?.route?.path) {
+      wsReports.set(report.route.path, report)
+    }
+  })
+}
+
 export const unlighthouseReports = computed<UnlighthouseRouteReport[]>(() => {
   if (isStatic) {
     return window.__unlighthouse_payload?.reports || []
@@ -194,10 +205,13 @@ export async function wsConnect() {
       console.warn('WebSocket connection closed')
     }
 
+    // Use native fetch instead of VueUse's useFetch composable for reliability —
+    // the composable can have reactivity issues when called inside async functions
     try {
-      const reports = await useFetch('/reports').get().json<UnlighthouseRouteReport[]>()
-      if (reports.data.value && Array.isArray(reports.data.value)) {
-        reports.data.value.forEach((report) => {
+      const response = await fetch(`${apiUrl}/reports`)
+      const reports: UnlighthouseRouteReport[] = await response.json()
+      if (Array.isArray(reports)) {
+        reports.forEach((report) => {
           if (report?.route?.path) {
             wsReports.set(report.route.path, report)
           }

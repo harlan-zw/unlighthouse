@@ -1,7 +1,7 @@
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
 import { platform } from 'node:os'
-import { createUnlighthouse, useLogger } from '@unlighthouse/core'
+import { createUnlighthouse, generateClient, useLogger } from '@unlighthouse/core'
 import { createServer } from '@unlighthouse/server'
 import { x } from 'tinyexec'
 import createCli from './createCli'
@@ -57,6 +57,13 @@ async function run() {
     // Clear the progress display
     unlighthouse.worker.clearProgressDisplay()
     logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${unlighthouse.worker.reports().length} routes in ${seconds}s.`)
+
+    // Regenerate the client payload with completed reports so the dashboard
+    // shows data even when opened after the scan finishes.
+    // Pass unlighthouse context explicitly — unctx's global context is not
+    // available inside async hook callbacks.
+    await generateClient({}, unlighthouse)
+
     await unlighthouse.worker.cluster.close().catch(() => {})
   })
 

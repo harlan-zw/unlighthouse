@@ -68,12 +68,15 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   }
   // avoid exposing sensitive cookie / header options
   staticData.options.lighthouseOptions = { onlyCategories: resolvedConfig.lighthouseOptions.onlyCategories }
-  if (options.static) {
-    staticData.reports = worker.reports().map((r) => {
+  // Always include completed reports in payload so the dashboard has data
+  // even when opened after the scan finishes (WebSocket won't replay past events)
+  const completedReports = worker.reports().filter(r => r.tasks.inspectHtmlTask === 'completed')
+  if (completedReports.length > 0) {
+    staticData.reports = completedReports.map((r) => {
       return {
         ...r,
-        // avoid exposing user paths
-        artifactPath: '',
+        // In static mode, avoid exposing user paths
+        ...(options.static ? { artifactPath: '' } : {}),
       }
     })
   }
