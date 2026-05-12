@@ -1,24 +1,24 @@
+import type { UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '../types'
 import { ofetch } from 'ofetch'
-import type { UnlighthouseOptions, UnlighthouseReport, UnlighthouseProvider } from '../types'
-import { extractInsights } from '../core/extract'
 import { resolveLighthouseConfig } from '../core/config'
+import { extractInsights } from '../core/extract'
 
 export interface BrowserlessOptions {
   url?: string
   token?: string
 }
 
-export const createBrowserlessProvider = (providerOptions: BrowserlessOptions): UnlighthouseProvider => {
+export function createBrowserlessProvider(providerOptions: BrowserlessOptions): UnlighthouseProvider {
   return async (url: string, options: UnlighthouseOptions = {}): Promise<UnlighthouseReport> => {
     const browserlessUrl = providerOptions.url || 'https://chrome.browserless.io'
     const browserlessToken = providerOptions.token
-  
+
     if (!browserlessToken) {
       throw new Error('Browserless token not provided.')
     }
-  
+
     const config = options.lighthouseConfig || resolveLighthouseConfig(options)
-  
+
     try {
       const response = await ofetch(`${browserlessUrl}/performance`, {
         method: 'POST',
@@ -34,13 +34,13 @@ export const createBrowserlessProvider = (providerOptions: BrowserlessOptions): 
         },
         timeout: 120000,
       })
-  
+
       const lhr = response as any
-  
+
       if (!lhr || !lhr.categories) {
         throw new Error('Invalid response from Browserless')
       }
-  
+
       return {
         url: lhr.finalUrl || lhr.requestedUrl || url,
         fetchTime: lhr.fetchTime,

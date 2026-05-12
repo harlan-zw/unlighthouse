@@ -1,4 +1,5 @@
 import type { Router } from 'h3'
+import { Buffer } from 'node:buffer'
 import { gunzipSync } from 'node:zlib'
 import { desc, eq, or } from 'drizzle-orm'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'

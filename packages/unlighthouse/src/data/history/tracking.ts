@@ -1,3 +1,4 @@
+import type { Buffer } from 'node:buffer'
 import type { HTMLExtractPayload, UnlighthouseRouteReport } from '../../types'
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'

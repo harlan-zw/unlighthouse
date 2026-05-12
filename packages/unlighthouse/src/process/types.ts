@@ -1,4 +1,5 @@
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import type { Buffer } from 'node:buffer'
 
 // Lighthouse Result types (simplified)
 export interface LighthouseAudit {

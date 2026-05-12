@@ -362,7 +362,9 @@ export function getHistoryDb(dataDir: string): BetterSQLite3Database {
     `ALTER TABLE scan_routes ADD COLUMN inp INTEGER`,
   ]
   for (const migration of migrations) {
-    try { sqlite.exec(migration) }
+    try {
+      sqlite.exec(migration)
+    }
     catch {}
   }
 

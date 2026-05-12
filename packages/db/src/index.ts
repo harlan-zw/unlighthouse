@@ -1,9 +1,9 @@
 import { join } from 'node:path'
 import Database from 'better-sqlite3'
+import { createConsola } from 'consola'
 import { desc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
-import { createConsola } from 'consola'
 import * as schema from './schema'
 
 export * from './schema'

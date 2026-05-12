@@ -1,21 +1,21 @@
-import type { UnlighthouseOptions, UnlighthouseReport, UnlighthouseProvider } from '../types'
+import type { UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '../types'
 
-export const createMockProvider = (): UnlighthouseProvider => {
+export function createMockProvider(): UnlighthouseProvider {
   return async (url: string, _options: UnlighthouseOptions = {}): Promise<UnlighthouseReport> => {
     // Simulate delay
     await new Promise(resolve => setTimeout(resolve, 500))
-  
+
     const raw = {
       requestedUrl: url,
       finalUrl: url,
       fetchTime: new Date().toISOString(),
       categories: {
-        performance: {
+        'performance': {
           id: 'performance',
           title: 'Performance',
           score: 0.9,
         },
-        accessibility: {
+        'accessibility': {
           id: 'accessibility',
           title: 'Accessibility',
           score: 0.8,
@@ -25,7 +25,7 @@ export const createMockProvider = (): UnlighthouseProvider => {
           title: 'Best Practices',
           score: 0.95,
         },
-        seo: {
+        'seo': {
           id: 'seo',
           title: 'SEO',
           score: 1,
@@ -39,25 +39,25 @@ export const createMockProvider = (): UnlighthouseProvider => {
         'speed-index': { numericValue: 1500 },
       },
     }
-  
+
     return {
       url,
       fetchTime: raw.fetchTime,
       insights: {
-          score: 0.91,
-          categories: {
-              performance: { id: 'performance', title: 'Performance', score: 0.9 },
-              accessibility: { id: 'accessibility', title: 'Accessibility', score: 0.8 },
-              'best-practices': { id: 'best-practices', title: 'Best Practices', score: 0.95 },
-              seo: { id: 'seo', title: 'SEO', score: 1 },
-          },
-          coreWebVitals: {
-              lcp: 1200,
-              cls: 0.01,
-              fcp: 1000,
-              tbt: 100,
-              si: 1500,
-          },
+        score: 0.91,
+        categories: {
+          'performance': { id: 'performance', title: 'Performance', score: 0.9 },
+          'accessibility': { id: 'accessibility', title: 'Accessibility', score: 0.8 },
+          'best-practices': { id: 'best-practices', title: 'Best Practices', score: 0.95 },
+          'seo': { id: 'seo', title: 'SEO', score: 1 },
+        },
+        coreWebVitals: {
+          lcp: 1200,
+          cls: 0.01,
+          fcp: 1000,
+          tbt: 100,
+          si: 1500,
+        },
       },
       raw: raw as any,
     }

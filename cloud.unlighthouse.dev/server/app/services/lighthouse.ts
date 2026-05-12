@@ -1,8 +1,8 @@
 import type { Flags, Result } from 'lighthouse'
 import type { ChromeInstance } from './chrome-pool'
-import { createError } from '#imports'
 import lighthouse from 'lighthouse'
 import { withHttps } from 'ufo'
+import { createError } from '#imports'
 import { getChromePool } from './chrome-pool'
 
 export interface LighthouseScanOptions {

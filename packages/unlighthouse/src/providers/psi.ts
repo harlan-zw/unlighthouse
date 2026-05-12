@@ -1,12 +1,12 @@
+import type { UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '../types'
 import { ofetch } from 'ofetch'
-import type { UnlighthouseOptions, UnlighthouseReport, UnlighthouseProvider } from '../types'
 import { extractInsights } from '../core/extract'
 
 export interface PsiOptions {
   apiKey?: string
 }
 
-export const createPsiProvider = (providerOptions: PsiOptions = {}): UnlighthouseProvider => {
+export function createPsiProvider(providerOptions: PsiOptions = {}): UnlighthouseProvider {
   return async (url: string, options: UnlighthouseOptions = {}): Promise<UnlighthouseReport> => {
     const apiKey = providerOptions.apiKey
     const strategy = options.emulatedFormFactor === 'desktop' ? 'desktop' : 'mobile'

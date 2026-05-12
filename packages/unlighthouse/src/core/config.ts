@@ -1,5 +1,5 @@
-import { SCREEN_EMULATION, THROTTLING, USER_AGENTS } from './constants'
 import type { UnlighthouseOptions } from '../types'
+import { SCREEN_EMULATION, THROTTLING, USER_AGENTS } from './constants'
 
 export function getScreenEmulation(formFactor: 'mobile' | 'desktop') {
   return SCREEN_EMULATION[formFactor]
@@ -17,7 +17,7 @@ export function resolveLighthouseConfig(options: UnlighthouseOptions) {
   const formFactor = options.emulatedFormFactor || 'mobile'
   const screenEmulation = getScreenEmulation(formFactor)
   const userAgent = getUserAgent(formFactor)
-  
+
   // TODO: Merge with provided config
   return {
     extends: 'lighthouse:default',

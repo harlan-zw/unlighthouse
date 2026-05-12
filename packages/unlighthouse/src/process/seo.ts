@@ -226,7 +226,7 @@ export async function processSeo(p: ProcessorParams): Promise<SeoSummary> {
   return computeSeoSummary(seoMetaRecords, duplicates, chains)
 }
 
-function computeSeoSummary(records: SeoMetaRecord[], duplicates: any[], chains: ChainResult[]): SeoSummary {
+function computeSeoSummary(records: SeoMetaRecord[], duplicates: any[], _chains: ChainResult[]): SeoSummary {
   const pagesWithTitle = records.filter(r => r.title).length
   const pagesWithDescription = records.filter(r => r.metaDescription).length
   const pagesWithCanonical = records.filter(r => r.canonical).length

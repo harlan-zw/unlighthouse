@@ -9,11 +9,11 @@ export interface QueueItem<T> {
 }
 
 export interface QueueAdapter<T> {
-  enqueue(data: T): Promise<string>
-  dequeue(): Promise<QueueItem<T> | undefined>
-  complete(id: string): Promise<void>
-  fail(id: string, error: string): Promise<void>
-  getStats?(): Promise<{ queued: number, processing: number }>
+  enqueue: (data: T) => Promise<string>
+  dequeue: () => Promise<QueueItem<T> | undefined>
+  complete: (id: string) => Promise<void>
+  fail: (id: string, error: string) => Promise<void>
+  getStats?: () => Promise<{ queued: number, processing: number }>
 }
 
 export class MemoryQueue<T> implements QueueAdapter<T> {

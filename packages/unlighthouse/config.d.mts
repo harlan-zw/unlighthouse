@@ -1,5 +1,5 @@
-import type { UserConfig } from 'unlighthouse'
 import type { ConfigLayerMeta, DefineConfig } from 'c12'
+import type { UserConfig } from 'unlighthouse'
 
 export { UserConfig } from 'nuxt/schema'
 

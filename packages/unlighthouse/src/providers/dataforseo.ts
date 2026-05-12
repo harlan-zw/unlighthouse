@@ -1,5 +1,6 @@
+import type { UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '../types'
+import { Buffer } from 'node:buffer'
 import { ofetch } from 'ofetch'
-import type { UnlighthouseOptions, UnlighthouseReport, UnlighthouseProvider } from '../types'
 import { extractInsights } from '../core/extract'
 
 export interface DataForSeoOptions {
@@ -7,7 +8,7 @@ export interface DataForSeoOptions {
   password?: string
 }
 
-export const createDataForSeoProvider = (providerOptions: DataForSeoOptions): UnlighthouseProvider => {
+export function createDataForSeoProvider(providerOptions: DataForSeoOptions): UnlighthouseProvider {
   return async (url: string, options: UnlighthouseOptions = {}): Promise<UnlighthouseReport> => {
     const username = providerOptions.username
     const password = providerOptions.password
@@ -16,7 +17,7 @@ export const createDataForSeoProvider = (providerOptions: DataForSeoOptions): Un
     if (!username || !password) {
       throw new Error('DataForSEO username and password are required.')
     }
-  
+
     try {
       const response = await ofetch('https://api.dataforseo.com/v3/on_page/pagespeed/live', {
         method: 'POST',
@@ -28,28 +29,28 @@ export const createDataForSeoProvider = (providerOptions: DataForSeoOptions): Un
           {
             url,
             strategy,
-          }
-        ]
+          },
+        ],
       })
-  
+
       const task = response.tasks?.[0]
-  
+
       if (!task) {
-         throw new Error('Invalid response from DataForSEO')
+        throw new Error('Invalid response from DataForSEO')
       }
-  
+
       if (task.status_code !== 20000) {
-         throw new Error(`DataForSEO task failed: ${task.status_message}`)
+        throw new Error(`DataForSEO task failed: ${task.status_message}`)
       }
-  
+
       const result = task.result?.[0]
-      
+
       const lhr = result?.lighthouse_result
-  
+
       if (!lhr) {
         throw new Error('DataForSEO did not return a Lighthouse result')
       }
-  
+
       return {
         url: lhr.finalUrl || lhr.requestedUrl || url,
         fetchTime: lhr.fetchTime,

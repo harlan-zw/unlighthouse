@@ -1,3 +1,4 @@
+import type { UnlighthouseReport } from '../types'
 import ApiClient from '@lhci/utils/src/api-client.js'
 import {
   getAncestorHash,
@@ -9,7 +10,6 @@ import {
   getCurrentHash,
   getExternalBuildUrl,
 } from '@lhci/utils/src/build-context.js'
-import type { UnlighthouseReport } from '../types'
 
 export interface LciUploadOptions {
   host: string
@@ -50,7 +50,7 @@ export async function uploadToLci(reports: UnlighthouseReport[], options: LciUpl
 
   for (const report of reports) {
     if (!report.raw)
-        continue
+      continue
 
     await api.createRun({
       projectId: project.id,

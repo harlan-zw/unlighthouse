@@ -164,6 +164,8 @@ export function evaluateAssertions(
         return evaluateMaxNumeric(routes, assertion)
       case 'maxRegression':
         return evaluateMaxRegression(routes, baseRoutes, assertion)
+      default:
+        return { assertion, passed: true, actual: 0 }
     }
   })
 }

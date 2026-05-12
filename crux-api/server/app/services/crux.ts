@@ -1,8 +1,8 @@
 import type { H3Event } from 'h3'
 import type { FetchError } from 'ofetch'
-import { useRuntimeConfig } from '#imports'
 import { $fetch } from 'ofetch'
 import { withHttps, withTrailingSlash } from 'ufo'
+import { useRuntimeConfig } from '#imports'
 
 type cwvKeys = [
   'largest_contentful_paint',

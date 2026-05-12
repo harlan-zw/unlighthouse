@@ -2,6 +2,8 @@ catalogMode: prefer
 
 shellEmulator: true
 
+trustPolicy: no-downgrade
+
 packages:
   - packages/*
   - crux-api
@@ -46,7 +48,6 @@ catalogs:
     nitropack: latest
   dependencies:
     '@clack/prompts': ^1.4.0
-    '@lhci/utils': ^0.15.1
     '@nuxt/ui': ^4.7.1
     '@puppeteer/browsers': ^2.13.2
     '@unovis/ts': ^1.6.5
@@ -87,7 +88,6 @@ catalogs:
     sanitize-filename: ^1.6.4
     sitemapper: ^4.1.6
     slugify: ^1.6.9
-    std-env: ^4.1.0
     tailwindcss: ^4.3.0
     three: ^0.184.0
     tinyexec: ^1.1.2

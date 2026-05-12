@@ -1,7 +1,7 @@
 import type { LighthouseScanOptions, LighthouseScanResult } from './lighthouse'
-import { createError, useRuntimeConfig } from '#imports'
 import { $fetch } from 'ofetch'
 import { withHttps } from 'ufo'
+import { createError, useRuntimeConfig } from '#imports'
 
 /**
  * Run a Lighthouse scan using Browserless.io managed browser service.

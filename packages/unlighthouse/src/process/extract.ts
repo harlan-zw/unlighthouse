@@ -1,5 +1,6 @@
+import type { Buffer } from 'node:buffer'
 import type { ExtractedRoute, LighthouseResult } from './types'
-import { gzipSync } from 'node:zlib'
+import { gunzipSync, gzipSync } from 'node:zlib'
 
 // Audit ID mapping for LH version changes
 const AUDIT_MAP: Record<string, Record<string, string>> = {
@@ -51,6 +52,5 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
 }
 
 export function decompressLhr(gzipped: Buffer): LighthouseResult {
-  const { gunzipSync } = require('node:zlib')
   return JSON.parse(gunzipSync(gzipped).toString())
 }

@@ -26,6 +26,10 @@ export function useScanHistory() {
 }
 
 export function extractDomain(url: string) {
-  try { return new URL(url).hostname }
-  catch { return url }
+  try {
+    return new URL(url).hostname
+  }
+  catch {
+    return url
+  }
 }
