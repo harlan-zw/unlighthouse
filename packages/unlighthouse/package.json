@@ -52,7 +52,7 @@
     "types.d.ts"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "build": "obuild",
@@ -71,6 +71,8 @@
   "dependencies": {
     "@clack/prompts": "catalog:dependencies",
     "@puppeteer/browsers": "catalog:dependencies",
+    "@unlighthouse/contracts": "workspace:*",
+    "@unlighthouse/core": "workspace:*",
     "@unlighthouse/ui": "workspace:*",
     "@unrouted/core": "catalog:",
     "@unrouted/fetch": "catalog:",

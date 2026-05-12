@@ -16,6 +16,11 @@
     "paths": {
       "unlighthouse": ["./packages/unlighthouse/src"],
       "@unlighthouse/ui": ["./packages/ui"],
+      "@unlighthouse/contracts": ["./packages/contracts/src"],
+      "@unlighthouse/core": ["./packages/core/src"],
+      "@unlighthouse/core/*": ["./packages/core/src/*"],
+      "@unlighthouse/mcp": ["./packages/mcp/src"],
+      "@unlighthouse/cloudflare": ["./packages/cloudflare/src"],
       "@unlighthouse/nuxt": ["./integrations/nuxt/src"],
       "@unlighthouse/vite": ["./integrations/vite/src"],
       "@unlighthouse/webpack": ["./integrations/webpack/src"]

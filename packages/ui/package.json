@@ -35,6 +35,7 @@
   "devDependencies": {
     "@types/lodash-es": "catalog:",
     "@types/three": "catalog:",
+    "@unlighthouse/contracts": "workspace:*",
     "unlighthouse": "workspace:*"
   }
 }

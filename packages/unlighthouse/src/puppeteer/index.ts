@@ -1,3 +1,2 @@
-export * from './cluster'
-export * from './tasks'
-export * from './worker'
+// v0 re-export shim — canonical lives in @unlighthouse/core/crawlers.
+export * from '@unlighthouse/core/crawlers'

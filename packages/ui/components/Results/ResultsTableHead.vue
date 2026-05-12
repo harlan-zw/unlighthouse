@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn } from 'unlighthouse'
+import type { UnlighthouseColumn } from '@unlighthouse/contracts'
 import type { Sorting } from '~/composables/search'
 
 defineProps<{

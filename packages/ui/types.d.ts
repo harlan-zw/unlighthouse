@@ -1,4 +1,4 @@
-import type { ScanMeta, UnlighthouseRouteReport } from 'unlighthouse'
+import type { ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 
 interface UnlighthousePayload {
   options: {

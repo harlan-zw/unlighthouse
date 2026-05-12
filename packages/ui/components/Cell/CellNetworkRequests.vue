@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 import { get, groupBy, sum } from 'lodash-es'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 

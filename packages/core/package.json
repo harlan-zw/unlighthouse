@@ -1,0 +1,82 @@
+{
+  "name": "@unlighthouse/core",
+  "type": "module",
+  "version": "0.0.0-v1",
+  "private": true,
+  "description": "Pure core modules for Unlighthouse v1 (report, comparison, seeds, policies, crawlers, auditors, storage, api).",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./report": {
+      "types": "./src/report/index.ts",
+      "import": "./src/report/index.ts"
+    },
+    "./comparison": {
+      "types": "./src/comparison/index.ts",
+      "import": "./src/comparison/index.ts"
+    },
+    "./seeds": {
+      "types": "./src/seeds/index.ts",
+      "import": "./src/seeds/index.ts"
+    },
+    "./policies": {
+      "types": "./src/policies/index.ts",
+      "import": "./src/policies/index.ts"
+    },
+    "./crawlers": {
+      "types": "./src/crawlers/index.ts",
+      "import": "./src/crawlers/index.ts"
+    },
+    "./auditors": {
+      "types": "./src/auditors/index.ts",
+      "import": "./src/auditors/index.ts"
+    },
+    "./storage/drizzle": {
+      "types": "./src/storage/drizzle/index.ts",
+      "import": "./src/storage/drizzle/index.ts"
+    },
+    "./api": {
+      "types": "./src/api/index.ts",
+      "import": "./src/api/index.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@unlighthouse/contracts": "workspace:*",
+    "better-sqlite3": "catalog:dependencies",
+    "chrome-launcher": "catalog:dependencies",
+    "crawlee": "catalog:dependencies",
+    "drizzle-orm": "catalog:dependencies",
+    "fs-extra": "catalog:dependencies",
+    "h3": "catalog:dependencies",
+    "launch-editor": "catalog:dependencies",
+    "lighthouse": "catalog:dependencies",
+    "lodash-es": "catalog:dependencies",
+    "mdream": "catalog:dependencies",
+    "minimist": "catalog:dependencies",
+    "ofetch": "catalog:dependencies",
+    "pathe": "catalog:dependencies",
+    "puppeteer-cluster": "catalog:dependencies",
+    "puppeteer-core": "catalog:dependencies",
+    "sitemapper": "catalog:dependencies",
+    "ufo": "catalog:dependencies",
+    "ws": "catalog:dependencies"
+  }
+}

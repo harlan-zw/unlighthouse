@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport

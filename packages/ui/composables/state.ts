@@ -1,4 +1,4 @@
-import type { ScanMeta, UnlighthouseRouteReport } from 'unlighthouse'
+import type { ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 import { useUnlighthouseConfig } from './useUnlighthouseConfig'
 
 export const unlighthouseReports = ref<UnlighthouseRouteReport[]>([])
