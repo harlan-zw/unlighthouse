@@ -3,6 +3,16 @@
 ## Route
 `/results/accessibility`
 
+## Status (2026-04-19)
+- [x] Summary stats header (avg score, totals, critical/serious counts)
+- [x] Issues by Severity panel (stacked bar + per-severity breakdown)
+- [x] Issues by Type panel (horizontal bars, top 8)
+- [x] Accessibility Issues list grouped by audit with WCAG tags
+- [x] Color Contrast Issues card with foreground/background swatches + element screenshot
+- [x] Other Element Issues card with screenshot previews
+- [x] Missing Alt Images tab with thumbnails + decorative flag
+- [x] Routes tab with per-page critical/serious/moderate/minor counts
+
 ## Database Schema
 
 Uses these tables from `packages/core/src/data/history/schema.ts`:

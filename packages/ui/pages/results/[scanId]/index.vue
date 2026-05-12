@@ -12,7 +12,7 @@ import { searchText, page, perPage } from '~/composables/search'
 import { isStatic, resolveArtifactPath, apiUrl } from '~/composables/unlighthouse'
 import { getScoreColor, getScoreBg } from '~/composables/dashboard'
 
-definePageMeta({ layout: 'results' })
+definePageMeta({ layout: 'dashboard' })
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string | undefined)
@@ -199,7 +199,7 @@ onUnmounted(() => {
     <DashboardHeader
       title="Overview"
       icon="i-heroicons-view-columns"
-      color="text-amber-400"
+      color="text-primary"
       :score="overallAvgScore"
       :stats="summaryStats"
     />
@@ -211,12 +211,12 @@ onUnmounted(() => {
         icon="i-heroicons-magnifying-glass"
         placeholder="Search routes..."
         size="sm"
-        :ui="{ base: 'bg-white/5 border-white/10 focus:border-amber-500/50 focus:ring-amber-500/20' }"
+        :ui="{ base: 'bg-elevated/60 border-default focus:border-primary/50 focus:ring-primary/20' }"
         class="w-64"
       />
 
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-500">Sort:</span>
+        <span class="text-xs text-dimmed">Sort:</span>
         <USelectMenu
           v-model="sortBy"
           :items="sortOptions"
@@ -233,7 +233,7 @@ onUnmounted(() => {
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-500">Filter:</span>
+        <span class="text-xs text-dimmed">Filter:</span>
         <USelectMenu
           v-model="quickFilter"
           :items="filterOptions"
@@ -251,8 +251,8 @@ onUnmounted(() => {
 
     <!-- Empty state -->
     <div v-else-if="paginatedResults.length === 0" class="flex flex-col items-center justify-center py-20">
-      <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-gray-600 mb-4" />
-      <p class="text-gray-500">No routes found</p>
+      <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-dimmed mb-4" />
+      <p class="text-dimmed">No routes found</p>
     </div>
 
     <!-- Results -->
@@ -260,12 +260,12 @@ onUnmounted(() => {
       <div
         v-for="report in paginatedResults"
         :key="report.route?.path"
-        class="group bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all cursor-pointer"
+        class="group bg-elevated/40 hover:bg-elevated/80 border border-default hover:border-default rounded-xl p-4 transition-all cursor-pointer"
         @click="openLighthouseReportIframeModal(report)"
       >
         <div class="flex items-center gap-3 md:gap-4">
           <!-- Screenshot -->
-          <div class="w-16 h-12 md:w-24 md:h-16 rounded-lg overflow-hidden bg-white/5 shrink-0 hidden sm:block">
+          <div class="w-16 h-12 md:w-24 md:h-16 rounded-lg overflow-hidden bg-elevated/60 shrink-0 hidden sm:block">
             <img
               v-if="report.report && report.artifactUrl"
               :src="resolveArtifactPath(report, 'screenshot.jpeg')"
@@ -273,19 +273,19 @@ onUnmounted(() => {
               loading="lazy"
             >
             <div v-else-if="report.report" class="w-full h-full flex items-center justify-center">
-              <UIcon name="i-heroicons-photo" class="w-5 h-5 text-gray-600" />
+              <UIcon name="i-heroicons-photo" class="w-5 h-5 text-dimmed" />
             </div>
             <div v-else class="w-full h-full flex items-center justify-center">
-              <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-5 h-5 text-gray-600" />
+              <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-5 h-5 text-dimmed" />
             </div>
           </div>
 
           <!-- Route Info -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <span class="font-mono text-xs sm:text-sm text-white truncate">{{ report.route?.path || '/' }}</span>
+              <span class="font-mono text-xs sm:text-sm text-highlighted truncate">{{ report.route?.path || '/' }}</span>
             </div>
-            <div class="text-xs text-gray-500 truncate hidden sm:block">{{ report.route?.url }}</div>
+            <div class="text-xs text-dimmed truncate hidden sm:block">{{ report.route?.url }}</div>
           </div>
 
           <!-- Scores -->
@@ -301,11 +301,11 @@ onUnmounted(() => {
               >
                 {{ (cat as any).score != null ? Math.round((cat as any).score * 100) : '-' }}
               </div>
-              <div class="text-[10px] text-gray-500 mt-1 hidden sm:block">{{ categoryAbbrev[(cat as any).title] || (cat as any).title }}</div>
+              <div class="text-[10px] text-dimmed mt-1 hidden sm:block">{{ categoryAbbrev[(cat as any).title] || (cat as any).title }}</div>
             </div>
           </div>
 
-          <div v-else class="flex items-center gap-2 text-gray-500">
+          <div v-else class="flex items-center gap-2 text-dimmed">
             <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-4 h-4" />
             <span class="text-sm">Scanning</span>
           </div>
@@ -327,7 +327,7 @@ onUnmounted(() => {
 
     <!-- Pagination -->
     <div v-if="searchResults.length > perPage" class="mt-6 flex items-center justify-between">
-      <div class="text-sm text-gray-500">
+      <div class="text-sm text-dimmed">
         {{ searchResults.length }} routes
       </div>
       <UPagination
@@ -338,7 +338,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Lighthouse Report Modal -->
-    <UModal v-model:open="lighthouseReportModalOpen" title="Lighthouse Report" :ui="{ content: '!max-w-6xl !bg-[#0d0d0d]' }">
+    <UModal v-model:open="lighthouseReportModalOpen" title="Lighthouse Report" :ui="{ content: '!max-w-6xl !bg-default' }">
       <template #body>
         <iframe v-if="iframeModalUrl" :src="iframeModalUrl" class="w-full h-[85vh] bg-white rounded-lg" />
       </template>

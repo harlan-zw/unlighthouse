@@ -6,15 +6,14 @@ const props = defineProps<{
 const config = computed(() => {
   switch (props.severity) {
     case 'critical':
-      return { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' }
     case 'serious':
-      return { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' }
+      return { bg: 'bg-error/10', text: 'text-error', border: 'border-error/20' }
     case 'moderate':
-      return { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' }
+      return { bg: 'bg-warning/10', text: 'text-warning', border: 'border-warning/20' }
     case 'minor':
-      return { bg: 'bg-gray-500/10', text: 'text-gray-400', border: 'border-gray-500/20' }
+    case 'info':
     default:
-      return { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' }
+      return { bg: 'bg-info/10', text: 'text-info', border: 'border-info/20' }
   }
 })
 </script>

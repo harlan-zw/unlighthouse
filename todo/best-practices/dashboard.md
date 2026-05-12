@@ -3,6 +3,17 @@
 ## Route
 `/results/best-practices`
 
+## Status (2026-04-19)
+- [x] Security Overview panel (HTTPS / Mixed Content / Unsafe Links / CSP)
+- [x] CSP detection via `csp-xss` audit
+- [x] Detected Libraries table (current/outdated)
+- [x] Vulnerable Libraries table with CVE links
+- [x] Deprecated APIs table
+- [x] Console Errors grouped by normalized message + source type
+- [x] Routes tab with per-page security / errors / deprecated counts
+- [x] HSTS detection via `has-hsts` audit (low-severity security issue)
+- [x] Vulnerability DB integration — bundled rule list in `process/vulnerabilities.ts` covering jQuery / jQuery UI / lodash / moment / handlebars / angularjs / bootstrap / axios / dompurify / marked; matches detected libs by `versionLessThan` and populates `vulnerable_libraries` table
+
 ## Database Schema
 
 Uses these tables from `packages/core/src/data/history/schema.ts`:

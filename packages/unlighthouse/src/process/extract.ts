@@ -37,6 +37,7 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
     fcp: getNumeric(lhr, mapAudit('first-contentful-paint')),
     si: getNumeric(lhr, mapAudit('speed-index')),
     ttfb: getNumeric(lhr, mapAudit('server-response-time')),
+    inp: getNumeric(lhr, mapAudit('interaction-to-next-paint')),
     scores: {
       performance: lhr.categories.performance?.score ?? null,
       accessibility: lhr.categories.accessibility?.score ?? null,

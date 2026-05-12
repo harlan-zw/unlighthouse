@@ -18,13 +18,13 @@ const hasMore = computed(() => props.pages.length > displayLimit.value)
       v-for="page in visiblePages"
       :key="page"
       :to="`/results?path=${encodeURIComponent(page)}`"
-      class="block text-xs font-mono text-gray-400 hover:text-white transition-colors truncate"
+      class="block text-xs font-mono text-muted hover:text-default transition-colors truncate"
     >
       {{ page }}
     </NuxtLink>
     <button
       v-if="hasMore"
-      class="text-xs text-amber-400 hover:text-amber-300 transition-colors"
+      class="text-xs text-primary hover:text-primary/80 transition-colors"
       @click="expanded = !expanded"
     >
       {{ expanded ? 'Show less' : `+${pages.length - displayLimit} more` }}

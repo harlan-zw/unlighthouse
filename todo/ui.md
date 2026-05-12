@@ -1,5 +1,12 @@
 # Dashboard UI Implementation Plan
 
+## Status (2026-04-19)
+- [x] All four dashboard routes implemented (`/results/[scanId]/{performance,accessibility,best-practices,seo}.vue`)
+- [x] Shared components in `components/Dashboard/` (DashboardCard, DashboardHeader, IssueRow, PagesList, SeverityBadge, Summary)
+- [x] `useDashboard` composable fetching `/api/dashboard/*` endpoints
+- [x] Navigation integrated via `layouts/results.vue` sidebar (Overview / Performance / Accessibility / Best Practices / SEO)
+- [x] Loading states (USkeleton), empty states, mobile responsive sidebar
+
 ## Overview
 
 Create four dashboard pages for viewing detailed scan results by category. Each dashboard consumes data from the new `/api/dashboard/*` endpoints.

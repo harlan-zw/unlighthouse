@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { getScoreBg, getScoreColor } from '~/composables/dashboard'
 import { apiUrl } from '~/composables/unlighthouse'
 
 definePageMeta({
   alias: ['/history'],
+  layout: 'dashboard',
 })
 
 interface Scan {
@@ -279,32 +281,12 @@ const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   minute: '2-digit',
 })
 
-function getScoreColor(score: number | null) {
-  if (score === null)
-    return 'text-gray-500'
-  if (score >= 90)
-    return 'text-green-400'
-  if (score >= 50)
-    return 'text-amber-400'
-  return 'text-red-400'
-}
-
-function getScoreBg(score: number | null) {
-  if (score === null)
-    return 'bg-gray-500/10'
-  if (score >= 90)
-    return 'bg-green-500/10'
-  if (score >= 50)
-    return 'bg-amber-500/10'
-  return 'bg-red-500/10'
-}
-
 function getStatusConfig(status: string): { label: string, icon: string, color: string } {
   const configs: Record<string, { label: string, icon: string, color: string }> = {
-    running: { label: 'Running', icon: 'i-heroicons-arrow-path', color: 'text-amber-400' },
-    complete: { label: 'Complete', icon: 'i-heroicons-check-circle', color: 'text-green-400' },
-    cancelled: { label: 'Cancelled', icon: 'i-heroicons-x-circle', color: 'text-gray-400' },
-    failed: { label: 'Failed', icon: 'i-heroicons-exclamation-triangle', color: 'text-red-400' },
+    running: { label: 'Running', icon: 'i-heroicons-arrow-path', color: 'text-primary' },
+    complete: { label: 'Complete', icon: 'i-heroicons-check-circle', color: 'text-success' },
+    cancelled: { label: 'Cancelled', icon: 'i-heroicons-x-circle', color: 'text-muted' },
+    failed: { label: 'Failed', icon: 'i-heroicons-exclamation-triangle', color: 'text-error' },
   }
   return configs[status] ?? configs.complete!
 }
@@ -456,35 +438,22 @@ const smartSelectItems = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0d0d0d] text-gray-100">
-    <!-- Header -->
-    <header class="border-b border-white/5 bg-[#0d0d0d]/80 backdrop-blur-sm sticky top-0 z-50">
-      <div class="max-w-[1800px] mx-auto px-6 h-14 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <NuxtLink to="/" class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-white" />
-            </div>
-            <span class="font-semibold text-lg tracking-tight">Unlighthouse</span>
-          </NuxtLink>
-          <div class="h-5 w-px bg-white/10" />
-          <span class="text-sm text-gray-400">Scan History</span>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <UButton
-            to="/onboarding"
-            icon="i-heroicons-plus"
-            color="primary"
-          >
-            New Scan
-          </UButton>
-        </div>
+  <div>
+    <header class="mb-6 flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-semibold text-highlighted">
+          Scan History
+        </h1>
+        <p class="text-sm text-muted mt-1">
+          Browse and manage all Lighthouse scans.
+        </p>
       </div>
+      <UButton to="/onboarding" icon="i-heroicons-plus" color="primary">
+        New Scan
+      </UButton>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-5xl mx-auto py-8 px-6 pb-32">
+    <main class="pb-32">
       <!-- Search & Filters -->
       <div class="mb-6 space-y-4">
         <div class="flex gap-3">
@@ -493,7 +462,7 @@ const smartSelectItems = [
             placeholder="Search by URL…"
             icon="i-heroicons-magnifying-glass"
             class="flex-1"
-            :ui="{ base: 'bg-white/5 border-white/10' }"
+            :ui="{ base: 'bg-elevated/60 border-default' }"
           />
           <!-- Smart Select Dropdown -->
           <UDropdownMenu :items="smartSelectItems">
@@ -506,10 +475,10 @@ const smartSelectItems = [
             </UButton>
           </UDropdownMenu>
           <!-- Group Toggle -->
-          <div class="flex rounded-lg overflow-hidden border border-white/10">
+          <div class="flex rounded-lg overflow-hidden border border-default">
             <button
               class="px-3 py-2 text-sm transition-colors"
-              :class="groupBy === 'site' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+              :class="groupBy === 'site' ? 'bg-primary/20 text-primary' : 'bg-elevated/60 text-muted hover:bg-elevated'"
               aria-label="Group scans by site"
               title="Group by site"
               @click="groupBy = 'site'"
@@ -517,8 +486,8 @@ const smartSelectItems = [
               <UIcon name="i-heroicons-rectangle-group" class="w-4 h-4" />
             </button>
             <button
-              class="px-3 py-2 text-sm transition-colors border-l border-white/10"
-              :class="groupBy === 'none' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+              class="px-3 py-2 text-sm transition-colors border-l border-default"
+              :class="groupBy === 'none' ? 'bg-primary/20 text-primary' : 'bg-elevated/60 text-muted hover:bg-elevated'"
               aria-label="Show scans as a flat list"
               title="Show list view"
               @click="groupBy = 'none'"
@@ -537,41 +506,41 @@ const smartSelectItems = [
         </div>
 
         <!-- Filter Panel -->
-        <div v-if="showFilters" class="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-lg">
+        <div v-if="showFilters" class="flex flex-wrap gap-4 p-4 bg-elevated/40 border border-default rounded-lg">
           <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-400">Sort:</span>
+            <span class="text-sm text-muted">Sort:</span>
             <div class="flex gap-1">
               <button
                 v-for="opt in sortOptions"
                 :key="opt.value"
                 class="px-2 py-1 text-xs rounded transition-colors"
-                :class="sortBy === opt.value ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+                :class="sortBy === opt.value ? 'bg-primary/20 text-primary' : 'bg-elevated/60 text-muted hover:bg-elevated'"
                 @click="sortBy = opt.value as any"
               >
                 {{ opt.label }}
               </button>
             </div>
             <button
-              class="p-1 rounded hover:bg-white/10"
+              class="p-1 rounded hover:bg-elevated"
               @click="sortDir = sortDir === 'desc' ? 'asc' : 'desc'"
             >
               <UIcon
                 :name="sortDir === 'desc' ? 'i-heroicons-arrow-down' : 'i-heroicons-arrow-up'"
-                class="w-4 h-4 text-gray-400"
+                class="w-4 h-4 text-muted"
               />
             </button>
           </div>
 
-          <div class="h-6 w-px bg-white/10" />
+          <div class="h-6 w-px bg-elevated" />
 
           <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-400">Score:</span>
+            <span class="text-sm text-muted">Score:</span>
             <div class="flex gap-1">
               <button
                 v-for="opt in scoreFilterOptions"
                 :key="opt.value ?? 'all'"
                 class="px-2 py-1 text-xs rounded transition-colors"
-                :class="minScore === opt.value ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+                :class="minScore === opt.value ? 'bg-primary/20 text-primary' : 'bg-elevated/60 text-muted hover:bg-elevated'"
                 @click="minScore = opt.value"
               >
                 {{ opt.label }}
@@ -579,16 +548,16 @@ const smartSelectItems = [
             </div>
           </div>
 
-          <div class="h-6 w-px bg-white/10" />
+          <div class="h-6 w-px bg-elevated" />
 
           <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-400">Date:</span>
+            <span class="text-sm text-muted">Date:</span>
             <div class="flex gap-1">
               <button
                 v-for="opt in dateRangeOptions"
                 :key="opt.value ?? 'all'"
                 class="px-2 py-1 text-xs rounded transition-colors"
-                :class="dateRange === opt.value ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'"
+                :class="dateRange === opt.value ? 'bg-primary/20 text-primary' : 'bg-elevated/60 text-muted hover:bg-elevated'"
                 @click="dateRange = opt.value"
               >
                 {{ opt.label }}
@@ -598,7 +567,7 @@ const smartSelectItems = [
 
           <button
             v-if="hasActiveFilters"
-            class="ml-auto text-xs text-gray-400 hover:text-white"
+            class="ml-auto text-xs text-muted hover:text-default"
             @click="searchQuery = ''; sortBy = 'date'; minScore = null; dateRange = null"
           >
             Clear all
@@ -608,16 +577,16 @@ const smartSelectItems = [
 
       <!-- Loading State -->
       <div v-if="isLoading" class="space-y-4">
-        <LoadingSkeletonScanCard v-for="i in 4" :key="i" />
+        <SkeletonScanCard v-for="i in 4" :key="i" />
       </div>
 
       <!-- Empty State -->
       <div v-else-if="filteredScans.length === 0 && !searchQuery && minScore === null" class="flex flex-col items-center justify-center py-20">
-        <UIcon name="i-heroicons-clock" class="w-16 h-16 text-gray-600 mb-4" />
+        <UIcon name="i-heroicons-clock" class="w-16 h-16 text-dimmed mb-4" />
         <h2 class="text-xl font-semibold mb-2">
           No scan history
         </h2>
-        <p class="text-gray-500 mb-6">
+        <p class="text-dimmed mb-6">
           Start your first scan to see results here
         </p>
         <UButton to="/onboarding" icon="i-heroicons-plus" color="primary">
@@ -627,11 +596,11 @@ const smartSelectItems = [
 
       <!-- No Results State -->
       <div v-else-if="filteredScans.length === 0" class="flex flex-col items-center justify-center py-20">
-        <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-gray-600 mb-4" />
+        <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-dimmed mb-4" />
         <h2 class="text-lg font-semibold mb-2">
           No matching scans
         </h2>
-        <p class="text-gray-500">
+        <p class="text-dimmed">
           Try adjusting your search or filters
         </p>
       </div>
@@ -641,11 +610,11 @@ const smartSelectItems = [
         <div
           v-for="group in groupedScans"
           :key="group.site"
-          class="bg-white/[0.01] border border-white/5 rounded-xl overflow-hidden"
+          class="bg-elevated/20 border border-default rounded-xl overflow-hidden"
         >
           <!-- Site Header -->
           <div
-            class="p-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors"
+            class="p-4 flex items-center justify-between cursor-pointer hover:bg-elevated/40 transition-colors"
             @click="viewScan(group.scans[0])"
           >
             <div class="flex items-center gap-3">
@@ -659,8 +628,8 @@ const smartSelectItems = [
               >
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="font-mono text-lg text-white">{{ group.domain }}</span>
-                  <span class="text-xs text-gray-500">({{ group.scans.length }} scan{{ group.scans.length > 1 ? 's' : '' }})</span>
+                  <span class="font-mono text-lg text-highlighted">{{ group.domain }}</span>
+                  <span class="text-xs text-dimmed">({{ group.scans.length }} scan{{ group.scans.length > 1 ? 's' : '' }})</span>
                 </div>
               </div>
             </div>
@@ -669,15 +638,15 @@ const smartSelectItems = [
               <div v-if="group.runningScan" class="flex items-center gap-3 min-w-[180px]">
                 <div class="flex-1">
                   <div class="flex items-center justify-between text-xs mb-1">
-                    <span class="text-amber-400 flex items-center gap-1">
+                    <span class="text-primary flex items-center gap-1">
                       <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-3 h-3" />
                       Scanning...
                     </span>
-                    <span class="text-gray-500">{{ group.runningScan.scannedCount }}/{{ group.runningScan.routeCount }}</span>
+                    <span class="text-dimmed">{{ group.runningScan.scannedCount }}/{{ group.runningScan.routeCount }}</span>
                   </div>
-                  <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div class="h-1.5 bg-elevated rounded-full overflow-hidden">
                     <div
-                      class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300"
+                      class="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-300"
                       :style="{ width: `${group.runningScan.routeCount > 0 ? (group.runningScan.scannedCount / group.runningScan.routeCount) * 100 : 0}%` }"
                     />
                   </div>
@@ -694,39 +663,39 @@ const smartSelectItems = [
                 <UIcon
                   v-if="group.trend === 'up'"
                   name="i-heroicons-arrow-trending-up"
-                  class="w-5 h-5 text-green-400"
+                  class="w-5 h-5 text-success"
                 />
                 <UIcon
                   v-else-if="group.trend === 'down'"
                   name="i-heroicons-arrow-trending-down"
-                  class="w-5 h-5 text-red-400"
+                  class="w-5 h-5 text-error"
                 />
               </div>
               <!-- Expand Toggle -->
               <button
                 v-if="group.scans.length > 1"
-                class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                class="p-2 rounded-lg hover:bg-elevated transition-colors"
                 :aria-label="expandedSites.has(group.site) ? `Collapse ${group.domain} scans` : `Expand ${group.domain} scans`"
                 :title="expandedSites.has(group.site) ? 'Collapse scans' : 'Expand scans'"
                 @click.stop="toggleSiteExpand(group.site)"
               >
                 <UIcon
                   :name="expandedSites.has(group.site) ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-                  class="w-5 h-5 text-gray-400"
+                  class="w-5 h-5 text-muted"
                 />
               </button>
             </div>
           </div>
 
           <!-- Scan History List -->
-          <div class="border-t border-white/5 bg-black/20">
+          <div class="border-t border-default bg-default/40">
             <div
               v-for="(scan, idx) in group.scans"
               :key="scan.id"
-              class="group/row relative flex items-center hover:bg-white/[0.02] transition-colors"
+              class="group/row relative flex items-center hover:bg-elevated/40 transition-colors"
               :class="[
-                idx > 0 ? 'border-t border-white/5' : '',
-                isSelected(scan.id) ? 'bg-amber-500/5 ring-1 ring-inset ring-amber-500/30' : '',
+                idx > 0 ? 'border-t border-default' : '',
+                isSelected(scan.id) ? 'bg-primary/5 ring-1 ring-inset ring-primary/30' : '',
               ]"
             >
               <!-- Checkbox Column - always visible on left edge -->
@@ -735,8 +704,8 @@ const smartSelectItems = [
                   class="w-5 h-5 rounded border-2 transition-all flex items-center justify-center"
                   :class="[
                     isSelected(scan.id)
-                      ? 'bg-amber-500 border-amber-500 scale-100'
-                      : 'border-white/20 hover:border-amber-400/50 opacity-0 group-hover/row:opacity-100 scale-90 hover:scale-100',
+                      ? 'bg-primary border-primary scale-100'
+                      : 'border-default hover:border-primary/50 opacity-0 group-hover/row:opacity-100 scale-90 hover:scale-100',
                     isSelected(scan.id) ? 'opacity-100' : '',
                   ]"
                   :aria-label="isSelected(scan.id) ? `Deselect ${scan.site}` : `Select ${scan.site}`"
@@ -745,7 +714,7 @@ const smartSelectItems = [
                   <UIcon
                     v-if="isSelected(scan.id)"
                     name="i-heroicons-check"
-                    class="w-3 h-3 text-black"
+                    class="w-3 h-3 text-inverted"
                   />
                 </button>
               </div>
@@ -757,12 +726,12 @@ const smartSelectItems = [
               >
                 <div class="flex items-center gap-4 text-sm">
                   <UTooltip :text="formatDate(scan.startedAt)">
-                    <span class="text-gray-400 w-20">{{ formatRelativeTime(scan.startedAt) }}</span>
+                    <span class="text-muted w-20">{{ formatRelativeTime(scan.startedAt) }}</span>
                   </UTooltip>
-                  <span class="text-gray-500">{{ scan.device }}</span>
-                  <span class="text-gray-500">{{ scan.routeCount }} routes</span>
+                  <span class="text-dimmed">{{ scan.device }}</span>
+                  <span class="text-dimmed">{{ scan.routeCount }} routes</span>
                   <div
-                    class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-white/5"
+                    class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-elevated/60"
                     :class="[getStatusConfig(scan.status).color]"
                   >
                     <UIcon :name="getStatusConfig(scan.status).icon" class="w-3 h-3" />
@@ -790,11 +759,11 @@ const smartSelectItems = [
         <div
           v-for="scan in filteredScans"
           :key="scan.id"
-          class="group/card relative bg-white/[0.02] hover:bg-white/[0.04] border rounded-xl transition-all"
+          class="group/card relative bg-elevated/40 hover:bg-elevated/80 border rounded-xl transition-all"
           :class="[
             isSelected(scan.id)
-              ? 'border-amber-500/40 bg-amber-500/5 ring-1 ring-amber-500/20'
-              : 'border-white/5 hover:border-white/10',
+              ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
+              : 'border-default hover:border-default',
           ]"
         >
           <div class="flex items-start p-5 gap-4">
@@ -803,15 +772,15 @@ const smartSelectItems = [
               class="mt-1 flex-shrink-0 w-5 h-5 rounded border-2 transition-all flex items-center justify-center"
               :class="[
                 isSelected(scan.id)
-                  ? 'bg-amber-500 border-amber-500 scale-100'
-                  : 'border-white/20 hover:border-amber-400/50 opacity-0 group-hover/card:opacity-100 scale-90 hover:scale-100',
+                  ? 'bg-primary border-primary scale-100'
+                  : 'border-default hover:border-primary/50 opacity-0 group-hover/card:opacity-100 scale-90 hover:scale-100',
               ]"
               @click="toggleSelect(scan.id, $event)"
             >
               <UIcon
                 v-if="isSelected(scan.id)"
                 name="i-heroicons-check"
-                class="w-3 h-3 text-black"
+                class="w-3 h-3 text-inverted"
               />
             </button>
 
@@ -829,13 +798,13 @@ const smartSelectItems = [
                 <a
                   :href="scan.site"
                   target="_blank"
-                  class="font-mono text-lg text-white hover:text-amber-400 transition-colors truncate"
+                  class="font-mono text-lg text-highlighted hover:text-primary transition-colors truncate"
                   @click.stop
                 >
                   {{ scan.site }}
                 </a>
                 <div
-                  class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-white/5"
+                  class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-elevated/60"
                   :class="[getStatusConfig(scan.status).color]"
                 >
                   <UIcon :name="getStatusConfig(scan.status).icon" class="w-3 h-3" />
@@ -843,7 +812,7 @@ const smartSelectItems = [
                 </div>
               </div>
 
-              <div class="flex items-center gap-4 text-sm text-gray-500">
+              <div class="flex items-center gap-4 text-sm text-dimmed">
                 <UTooltip :text="formatDate(scan.startedAt)">
                   <span class="flex items-center gap-1.5 cursor-help">
                     <UIcon name="i-heroicons-clock" class="w-4 h-4" />
@@ -865,15 +834,15 @@ const smartSelectItems = [
             <div v-if="scan.status === 'running'" class="flex items-center gap-4 min-w-[200px]">
               <div class="flex-1">
                 <div class="flex items-center justify-between text-xs mb-1">
-                  <span class="text-amber-400 flex items-center gap-1">
+                  <span class="text-primary flex items-center gap-1">
                     <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-3 h-3" />
                     Scanning...
                   </span>
-                  <span class="text-gray-500">{{ scan.scannedCount }}/{{ scan.routeCount }}</span>
+                  <span class="text-dimmed">{{ scan.scannedCount }}/{{ scan.routeCount }}</span>
                 </div>
-                <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div class="h-1.5 bg-elevated rounded-full overflow-hidden">
                   <div
-                    class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300"
+                    class="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-300"
                     :style="{ width: `${scan.routeCount > 0 ? (scan.scannedCount / scan.routeCount) * 100 : 0}%` }"
                   />
                 </div>
@@ -893,7 +862,7 @@ const smartSelectItems = [
                 >
                   {{ score ?? '-' }}
                 </div>
-                <div class="text-[10px] text-gray-500 mt-1">
+                <div class="text-[10px] text-dimmed mt-1">
                   {{ key }}
                 </div>
               </div>
@@ -928,25 +897,25 @@ const smartSelectItems = [
         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
       >
         <div
-          class="flex items-center gap-4 px-5 py-3 rounded-2xl border border-white/10 bg-[#1a1a1a]/95 backdrop-blur-xl shadow-2xl shadow-black/50"
+          class="flex items-center gap-4 px-5 py-3 rounded-2xl border border-default bg-elevated/95 backdrop-blur-xl shadow-2xl shadow-black/50"
         >
           <!-- Selection Count -->
           <div class="flex items-center gap-3">
             <button
               class="w-5 h-5 rounded border-2 transition-all flex items-center justify-center"
-              :class="allSelected ? 'bg-amber-500 border-amber-500' : 'border-white/30 hover:border-amber-400'"
+              :class="allSelected ? 'bg-primary border-primary' : 'border-default/60 hover:border-primary'"
               @click="toggleSelectAll"
             >
-              <UIcon v-if="allSelected" name="i-heroicons-check" class="w-3 h-3 text-black" />
-              <UIcon v-else-if="hasSelection" name="i-heroicons-minus" class="w-3 h-3 text-white/50" />
+              <UIcon v-if="allSelected" name="i-heroicons-check" class="w-3 h-3 text-inverted" />
+              <UIcon v-else-if="hasSelection" name="i-heroicons-minus" class="w-3 h-3 text-muted/60" />
             </button>
             <span class="text-sm font-medium">
-              <span class="text-amber-400">{{ selectedIds.size }}</span>
-              <span class="text-gray-400"> selected</span>
+              <span class="text-primary">{{ selectedIds.size }}</span>
+              <span class="text-muted"> selected</span>
             </span>
           </div>
 
-          <div class="h-6 w-px bg-white/10" />
+          <div class="h-6 w-px bg-elevated" />
 
           <!-- Quick Actions -->
           <div class="flex items-center gap-2">
@@ -974,7 +943,7 @@ const smartSelectItems = [
     <!-- Delete Confirmation Modal -->
     <UModal v-model:open="deleteConfirm.open" title="Delete Scan?">
       <template #body>
-        <p class="text-gray-400 p-4">
+        <p class="text-muted p-4">
           Are you sure you want to delete this scan? This action cannot be undone.
         </p>
       </template>
@@ -993,7 +962,7 @@ const smartSelectItems = [
     <!-- Bulk Delete Confirmation Modal -->
     <UModal v-model:open="showDeleteConfirm" title="Delete Multiple Scans?">
       <template #body>
-        <p class="text-gray-400 p-4">
+        <p class="text-muted p-4">
           Are you sure you want to delete {{ selectedIds.size }} scan{{ selectedIds.size > 1 ? 's' : '' }}? This action cannot be undone.
         </p>
       </template>

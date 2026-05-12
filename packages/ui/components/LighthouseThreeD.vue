@@ -166,7 +166,7 @@ const showLighthouse = computed(() => {
 </script>
 
 <template>
-  <div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="hover:scale-110 bg-linear-to-b from-sky-50/50 to-sky-300/50 dark:bg-none rounded-full duration-2000 ease-in-out transform transition w-[200px] h-[200px]">
+  <div ref="lighthouseRef" :class="showLighthouse ? ['translate-y-3'] : ['opacity-0']" class="hover:scale-110 rounded-full duration-2000 ease-in-out transform transition w-[200px] h-[200px]">
     <canvas ref="canvasRef" width="200" height="200" />
   </div>
 </template>

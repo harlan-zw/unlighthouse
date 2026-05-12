@@ -19,11 +19,11 @@ function goHome() {
 
 <template>
   <div class="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
-    <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
-      <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-red-400" />
+    <div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-6">
+      <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-error" />
     </div>
-    <h1 class="text-2xl font-semibold text-white mb-2">{{ title || 'Something went wrong' }}</h1>
-    <p class="text-gray-400 max-w-md mb-6">{{ message || 'An unexpected error occurred. Please try again.' }}</p>
+    <h1 class="text-2xl font-semibold text-highlighted mb-2">{{ title || 'Something went wrong' }}</h1>
+    <p class="text-muted max-w-md mb-6">{{ message || 'An unexpected error occurred. Please try again.' }}</p>
     <div class="flex gap-3">
       <UButton
         v-if="showRetry !== false"

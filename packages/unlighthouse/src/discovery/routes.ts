@@ -27,7 +27,13 @@ export async function discoverInitialUrls(): Promise<Set<string>> {
     else
       urlsToAdd = [...resolvedConfig.urls]
 
-    urlsToAdd.forEach(url => urls.add(url))
+    urlsToAdd.forEach((url) => {
+      // Resolve relative paths against the configured site so downstream URL parsing works
+      if (url.startsWith('/') && !url.startsWith('//') && resolvedConfig.site)
+        urls.add(new URL(url, resolvedConfig.site).toString())
+      else
+        urls.add(url)
+    })
     if (urlsToAdd.length) {
       resolvedConfig.scanner.sitemap = false
       resolvedConfig.scanner.robotsTxt = false

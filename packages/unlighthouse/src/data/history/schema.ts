@@ -29,6 +29,11 @@ export const scans = sqliteTable('scans', {
   // Paths
   reportPath: text('report_path').notNull(), // Path to reports directory
 
+  // CI build metadata
+  ciBranch: text('ci_branch'),
+  ciCommit: text('ci_commit'),
+  ciCommitMessage: text('ci_commit_message'),
+
   // Timestamps
   startedAt: integer('started_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   completedAt: integer('completed_at', { mode: 'timestamp' }),
@@ -59,6 +64,7 @@ export const scanRoutes = sqliteTable('scan_routes', {
   fcp: integer('fcp'), // First Contentful Paint (ms)
   si: integer('si'), // Speed Index (ms)
   ttfb: integer('ttfb'), // Time to First Byte (ms)
+  inp: integer('inp'), // Interaction to Next Paint (ms)
 
   // Raw LHR for deep dives (gzipped JSON)
   lhrGzip: blob('lhr_gzip', { mode: 'buffer' }),
@@ -377,6 +383,20 @@ export const assertions = sqliteTable('assertions', {
 })
 
 // ============================================================================
+// CrUX (Chrome UX Report) History
+// ============================================================================
+
+export const scanCrux = sqliteTable('scan_crux', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  scanId: text('scan_id').notNull().references(() => scans.id, { onDelete: 'cascade' }),
+  hostname: text('hostname').notNull(),
+  formFactor: text('form_factor', { enum: ['PHONE', 'DESKTOP'] }).notNull(),
+  // JSON: { lcp: CruxHistoryEntry[], inp: CruxHistoryEntry[], cls: CruxHistoryEntry[] }
+  seriesJson: text('series_json').notNull(),
+  fetchedAt: integer('fetched_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+})
+
+// ============================================================================
 // Dashboard Summaries (Computed/Cached)
 // ============================================================================
 
@@ -400,6 +420,8 @@ export type Scan = typeof scans.$inferSelect
 export type NewScan = typeof scans.$inferInsert
 export type ScanRoute = typeof scanRoutes.$inferSelect
 export type NewScanRoute = typeof scanRoutes.$inferInsert
+export type ScanCrux = typeof scanCrux.$inferSelect
+export type NewScanCrux = typeof scanCrux.$inferInsert
 
 export type PerformanceIssue = typeof performanceIssues.$inferSelect
 export type AccessibilityIssue = typeof accessibilityIssues.$inferSelect

@@ -86,8 +86,8 @@ onUnmounted(() => {
     <template #body>
       <div class="w-full max-w-6xl mx-auto p-6">
         <!-- Main Screenshot Display -->
-        <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-6 relative">
-          <div class="bg-white dark:bg-gray-900 rounded shadow-inner flex items-center justify-center overflow-hidden min-h-[400px]">
+        <div class="bg-elevated/60 rounded-lg p-4 mb-6 relative">
+          <div class="bg-default rounded shadow-inner flex items-center justify-center overflow-hidden min-h-[400px] border border-default">
             <img
               v-if="currentScreenshot"
               :src="currentScreenshot.data"
@@ -97,7 +97,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Frame Counter -->
-          <div class="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
+          <div class="absolute top-2 right-2 glass-elevated text-highlighted px-3 py-1 rounded text-sm">
             <div>
               Frame {{ currentFrame + 1 }} / {{ totalFrames }}
             </div>
@@ -163,18 +163,18 @@ onUnmounted(() => {
         <!-- Timeline Scrubber -->
         <div class="w-full">
           <div class="flex items-center space-x-3 mb-3">
-            <span class="text-sm text-gray-500 dark:text-gray-400 min-w-[40px]">0ms</span>
+            <span class="text-sm text-muted min-w-[40px]">0ms</span>
             <div class="flex-1 relative">
               <input
                 v-model="currentFrame"
                 type="range"
                 :min="0"
                 :max="totalFrames - 1"
-                class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                class="w-full h-2 bg-elevated rounded-lg appearance-none cursor-pointer slider"
                 @input="stop"
               >
             </div>
-            <span class="text-sm text-gray-500 dark:text-gray-400 min-w-[50px]">{{ maxDuration }}ms</span>
+            <span class="text-sm text-muted min-w-[50px]">{{ maxDuration }}ms</span>
           </div>
 
           <!-- Timeline Thumbnails -->
@@ -185,8 +185,8 @@ onUnmounted(() => {
               class="flex-shrink-0 border-2 rounded transition-all duration-200"
               :class="[
                 currentFrame === index
-                  ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500',
+                  ? 'border-primary ring-2 ring-primary/30'
+                  : 'border-default hover:border-accented',
               ]"
               :title="`Frame ${index + 1} - ${index * 300}ms`"
               @click="currentFrame = index; stop()"

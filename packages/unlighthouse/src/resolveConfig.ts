@@ -36,6 +36,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   })
   const config = merger(userConfig, defaultConfig)
 
+  if (!config.googleApiKey)
+    config.googleApiKey = process.env.UNLIGHTHOUSE_GOOGLE_API_KEY || process.env.GOOGLE_API_KEY
+
   if (!config.site && Array.isArray(config.urls) && config.urls?.[0])
     config.site = config.urls[0]
 

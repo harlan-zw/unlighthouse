@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-import '../dist/ci.mjs'
+import '../dist/cli/ci.mjs'

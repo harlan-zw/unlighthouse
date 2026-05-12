@@ -26,15 +26,15 @@ const errorMessage = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0d0d0d] text-gray-100 flex flex-col items-center justify-center p-6">
+  <div class="min-h-screen bg-default text-default flex flex-col items-center justify-center p-6">
     <div class="max-w-md text-center">
-      <div class="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-8">
-        <UIcon name="i-heroicons-exclamation-triangle" class="w-10 h-10 text-red-400" />
+      <div class="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-8">
+        <UIcon name="i-heroicons-exclamation-triangle" class="w-10 h-10 text-error" />
       </div>
-      <h1 class="text-3xl font-semibold text-white mb-3">{{ errorTitle }}</h1>
-      <p class="text-gray-400 mb-8">{{ errorMessage }}</p>
+      <h1 class="text-3xl font-semibold text-highlighted mb-3">{{ errorTitle }}</h1>
+      <p class="text-muted mb-8">{{ errorMessage }}</p>
 
-      <div v-if="error.statusCode" class="text-6xl font-mono font-bold text-gray-800 mb-8">
+      <div v-if="error.statusCode" class="text-6xl font-mono font-bold text-dimmed mb-8">
         {{ error.statusCode }}
       </div>
 
@@ -48,8 +48,8 @@ const errorMessage = computed(() => {
       </UButton>
 
       <details v-if="error.stack" class="mt-8 text-left">
-        <summary class="text-sm text-gray-500 cursor-pointer hover:text-gray-400">Technical details</summary>
-        <pre class="mt-2 p-4 bg-black/30 rounded-lg text-xs text-gray-500 overflow-auto max-h-48">{{ error.stack }}</pre>
+        <summary class="text-sm text-dimmed cursor-pointer hover:text-muted">Technical details</summary>
+        <pre class="mt-2 p-4 bg-black/30 rounded-lg text-xs text-dimmed overflow-auto max-h-48">{{ error.stack }}</pre>
       </details>
     </div>
   </div>

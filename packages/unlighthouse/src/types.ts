@@ -263,6 +263,11 @@ export interface ResolvedUserConfig {
    */
   site: string
   /**
+   * Google API key used for optional integrations such as the CrUX History API.
+   * Falls back to UNLIGHTHOUSE_GOOGLE_API_KEY / GOOGLE_API_KEY env vars.
+   */
+  googleApiKey?: string
+  /**
    * The path that we'll be performing the scan from, this should be the path to the app that represents the site.
    * Using this path we can auto-discover the provider
    * @default cwd()
@@ -394,10 +399,36 @@ export interface ResolvedUserConfig {
      *   { type: 'minScore', category: 'performance', value: 0.8 },
      *   { type: 'minScore', category: 'accessibility', value: 0.9 },
      *   { type: 'maxNumericValue', metric: 'lcp', value: 2500 },
+     *   { type: 'maxRegression', metric: 'lcp', value: 500 },
      * ]
      * ```
      */
     assertions?: import('./process/types').Assertion[]
+    /**
+     * Build metadata recorded against the scan. Used to label CI runs and
+     * surface the branch / commit that produced a given result.
+     * Defaults fall back to common CI env vars when unset.
+     */
+    build?: {
+      /** Git branch name. Defaults to GITHUB_REF_NAME / CI_COMMIT_REF_NAME env. */
+      branch?: string
+      /** Git commit SHA. Defaults to GITHUB_SHA / CI_COMMIT_SHA env. */
+      commit?: string
+      /** Commit message. */
+      commitMessage?: string
+    }
+    /**
+     * Controls automatic scan-to-scan comparison.
+     */
+    comparison?: {
+      /** Disable auto-comparison against the previous scan for the same site. */
+      enabled?: boolean
+      /** Override per-metric regression thresholds (stored-unit absolute values). */
+      thresholds?: Partial<Record<
+        'lcp' | 'cls' | 'tbt' | 'fcp' | 'si' | 'ttfb' | 'inp' | 'performance' | 'accessibility' | 'bestPractices' | 'seo',
+        number
+      >>
+    }
   }
   /**
    * See https://unlighthouse.dev/guide/client.html

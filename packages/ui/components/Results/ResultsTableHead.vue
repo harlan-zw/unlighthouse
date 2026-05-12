@@ -26,7 +26,7 @@ function htmlTooltip(s: string) {
     <div class="flex items-center ">
       <Tooltip v-if="column.tooltip">
         <span class="whitespace-nowrap flex items-center">{{ column.label }}
-          <UIcon v-if="column?.warning" name="i-carbon-warning-alt" class="text-yellow-500 ml-1 text-xs opacity-75" />
+          <UIcon v-if="column?.warning" name="i-carbon-warning-alt" class="text-warning ml-1 text-xs opacity-75" />
           <UIcon v-else name="i-carbon-information" class="ml-1 text-xs opacity-75" />
         </span>
         <template #tooltip>
@@ -38,8 +38,8 @@ function htmlTooltip(s: string) {
       </div>
       <button
         v-if="(column.sortable || !!column.sortKey) && column.key"
-        class="ml-2 p-0.3 dark:border-none dark:bg-blue-900/20 border-2 border-blue-100 ring-blue-200 hover:ring-1 rounded-lg"
-        :class="sorting.key === column.key && sorting.dir ? ['dark:bg-blue-900/70', 'bg-blue-900', 'text-blue-200'] : []"
+        class="ml-2 p-0.3 bg-primary/10 border border-primary/20 hover:border-primary/40 rounded-lg transition-colors"
+        :class="sorting.key === column.key && sorting.dir ? ['bg-primary/25', 'text-primary', 'border-primary/40'] : []"
         @click="$emit('sort', column.key)"
       >
         <UIcon v-if="sorting.key !== column.key || !sorting.dir" name="i-carbon-chevron-sort" />

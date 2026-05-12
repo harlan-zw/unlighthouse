@@ -8,15 +8,18 @@ defineProps<{
 </script>
 
 <template>
-  <div class="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-    <div class="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+  <div class="bg-elevated/40 border border-default rounded-xl overflow-hidden">
+    <div class="px-4 py-3 border-b border-default flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <UIcon v-if="icon" :name="icon" class="w-4 h-4 text-gray-400" />
-        <h3 class="text-sm font-medium text-white">{{ title }}</h3>
+        <UIcon v-if="icon" :name="icon" class="w-4 h-4 text-muted" />
+        <h3 class="text-sm font-medium text-highlighted">{{ title }}</h3>
       </div>
-      <UBadge v-if="count !== undefined" color="neutral" variant="subtle" size="sm">
-        {{ count }}
-      </UBadge>
+      <div class="flex items-center gap-2">
+        <slot name="actions" />
+        <UBadge v-if="count !== undefined" color="neutral" variant="subtle" size="sm">
+          {{ count }}
+        </UBadge>
+      </div>
     </div>
     <div v-if="loading" class="p-4">
       <div class="space-y-3">

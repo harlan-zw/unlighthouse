@@ -1,5 +1,6 @@
 import type { BestPracticesSummary, ProcessorParams } from './types'
-import { consoleErrors, deprecatedApis, detectedLibraries, securityIssues } from '../data/history/schema'
+import { consoleErrors, deprecatedApis, detectedLibraries, securityIssues, vulnerableLibraries } from '../data/history/schema'
+import { findVulnerabilities } from './vulnerabilities'
 
 interface ConsoleErrorData {
   message: string
@@ -60,9 +61,18 @@ function getSecurityDescription(type: string): string {
   return ({
     'mixed-content': 'Page contains mixed content (HTTP resources on HTTPS page)',
     'unsafe-link': 'External links missing rel="noopener" or rel="noreferrer"',
-    'csp': 'Content Security Policy issues detected',
+    'csp': 'Content Security Policy missing or ineffective',
     'hsts': 'HTTP Strict Transport Security not configured',
   })[type] ?? type
+}
+
+function getSecuritySeverity(type: string): string {
+  return ({
+    'mixed-content': 'high',
+    'unsafe-link': 'medium',
+    'csp': 'medium',
+    'hsts': 'low',
+  })[type] ?? 'low'
 }
 
 function groupBy<T>(arr: T[], key: keyof T): Record<string, T[]> {
@@ -132,17 +142,47 @@ export async function processBestPractices(p: ProcessorParams): Promise<BestPrac
     }
   }
 
-  const libValues = [...libMap.values()].map(lib => ({
-    scanId,
-    name: lib.name,
-    version: lib.version,
-    status: 'current', // TODO: check against vulnerability DB
-    pageCount: lib.pages.size,
-    pages: JSON.stringify([...lib.pages]),
-  }))
+  // Match detected libraries against bundled vulnerability DB
+  const vulnMatches = findVulnerabilities([...libMap.values()].map(l => ({ name: l.name, version: l.version })))
+  const vulnByKey = new Map(vulnMatches.map(v => [`${v.name.toLowerCase()}@${v.version}`, v]))
+
+  const libValues = [...libMap.values()].map((lib) => {
+    const key = `${lib.name.toLowerCase()}@${lib.version}`
+    const hasVuln = vulnByKey.has(key)
+    return {
+      scanId,
+      name: lib.name,
+      version: lib.version,
+      status: hasVuln ? 'vulnerable' : 'current',
+      pageCount: lib.pages.size,
+      pages: JSON.stringify([...lib.pages]),
+    }
+  })
 
   if (libValues.length > 0) {
     db.insert(detectedLibraries).values(libValues).run()
+  }
+
+  // Insert vulnerable-library records (aggregating pages across all matching lib entries)
+  const vulnValues = vulnMatches.map((v) => {
+    const key = `${v.name.toLowerCase()}@${v.version}`
+    const pages = [...(libMap.get(`${v.name}@${v.version}`)?.pages ?? [])]
+    return {
+      scanId,
+      name: v.name,
+      version: v.version,
+      severity: v.severity,
+      cves: JSON.stringify(v.cves),
+      description: v.description,
+      recommendation: v.recommendation,
+      pageCount: pages.length,
+      pages: JSON.stringify(pages),
+      _key: key,
+    }
+  }).map(({ _key, ...rest }) => rest)
+
+  if (vulnValues.length > 0) {
+    db.insert(vulnerableLibraries).values(vulnValues).run()
   }
 
   // 3. Deprecated APIs
@@ -202,6 +242,30 @@ export async function processBestPractices(p: ProcessorParams): Promise<BestPrac
         details: { links: unsafeLinks },
       })
     }
+
+    // CSP (csp-xss audit): score 1 = effective, otherwise weak/missing
+    const csp = route.audits['csp-xss']
+    if (csp && csp.score !== 1 && csp.score !== null) {
+      securityIssuesList.push({
+        type: 'csp',
+        severity: 'medium',
+        path,
+        details: csp.details,
+      })
+    }
+
+    // HSTS (has-hsts audit): score 0 = missing/weak. Informative score 1 runs
+    // may still list suggestions (missing preload / includeSubDomains) — we flag
+    // only when the top-level score indicates failure.
+    const hsts = route.audits['has-hsts']
+    if (hsts && hsts.score === 0) {
+      securityIssuesList.push({
+        type: 'hsts',
+        severity: 'low',
+        path,
+        details: hsts.details,
+      })
+    }
   }
 
   // Group security issues by type
@@ -209,7 +273,7 @@ export async function processBestPractices(p: ProcessorParams): Promise<BestPrac
   const securityValues = Object.entries(securityByType).map(([type, issues]) => ({
     scanId,
     type,
-    severity: issues[0].severity,
+    severity: getSecuritySeverity(type),
     description: getSecurityDescription(type),
     details: JSON.stringify(issues.map(i => i.details)),
     pageCount: issues.length,
@@ -220,15 +284,15 @@ export async function processBestPractices(p: ProcessorParams): Promise<BestPrac
     db.insert(securityIssues).values(securityValues).run()
   }
 
-  return computeBestPracticesSummary(errorMap, libMap, apiMap, securityByType)
+  return computeBestPracticesSummary(errorMap, libMap, apiMap, securityByType, vulnMatches.length)
 }
 
-function computeBestPracticesSummary(errorMap: Map<string, ConsoleErrorData>, libMap: Map<string, LibraryData>, apiMap: Map<string, DeprecatedApiData>, securityByType: Record<string, SecurityIssue[]>): BestPracticesSummary {
+function computeBestPracticesSummary(errorMap: Map<string, ConsoleErrorData>, libMap: Map<string, LibraryData>, apiMap: Map<string, DeprecatedApiData>, securityByType: Record<string, SecurityIssue[]>, vulnCount: number): BestPracticesSummary {
   return {
     consoleErrorCount: errorMap.size,
     deprecatedApiCount: apiMap.size,
-    vulnerableLibCount: 0, // TODO: check vuln DB
+    vulnerableLibCount: vulnCount,
     securityIssueCount: Object.keys(securityByType).length,
-    outdatedLibCount: 0, // TODO: check version DB
+    outdatedLibCount: 0,
   }
 }

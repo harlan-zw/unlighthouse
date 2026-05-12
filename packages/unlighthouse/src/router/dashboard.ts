@@ -1,12 +1,14 @@
 import type { Router } from 'h3'
 import { gunzipSync } from 'node:zlib'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, or } from 'drizzle-orm'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
 import * as history from '../data/history'
 import {
   accessibilityElements,
   accessibilityIssues,
   canonicalChains,
+  comparisonDiffs,
+  comparisons,
   consoleErrors,
   deprecatedApis,
   detectedLibraries,
@@ -15,6 +17,7 @@ import {
   missingAltImages,
   performanceIssues,
   scanRoutes,
+  scans,
   securityIssues,
   seoDuplicates,
   seoMeta,
@@ -22,7 +25,7 @@ import {
   thirdPartyScripts,
   vulnerableLibraries,
 } from '../data/history/schema'
-import { getDashboardSummary, processScanData } from '../process'
+import { compareScans, getComparisonSummary, getDashboardSummary, processScanData } from '../process'
 
 /**
  * Ensure dashboard data is processed (lazy processing)
@@ -75,6 +78,36 @@ export function createDashboardApi(outputPath: string): Router {
       return { error: 'No LHR data found for scan' }
     }
     return { success: true, summary: result }
+  }))
+
+  // ============================================================================
+  // CrUX (field) data
+  // ============================================================================
+
+  router.get('/crux/:scanId', defineEventHandler(async (event) => {
+    const { scanId } = getRouterParams(event) as { scanId: string }
+    const db = history.getHistoryDb(outputPath)
+    if (!db) {
+      setResponseStatus(event, 500)
+      return { error: 'Database not available' }
+    }
+
+    const rows = history.getScanCrux(outputPath, scanId)
+    const empty = { lcp: [], inp: [], cls: [] }
+    const result: { phone: typeof empty, desktop: typeof empty, hostname: string | null } = {
+      phone: empty,
+      desktop: empty,
+      hostname: null,
+    }
+    for (const row of rows) {
+      result.hostname = row.hostname
+      const series = JSON.parse(row.seriesJson) as typeof empty
+      if (row.formFactor === 'PHONE')
+        result.phone = series
+      else if (row.formFactor === 'DESKTOP')
+        result.desktop = series
+    }
+    return result
   }))
 
   // ============================================================================
@@ -199,6 +232,7 @@ export function createDashboardApi(outputPath: string): Router {
       libraries: libraries.map(l => ({ ...l, pages: JSON.parse(l.pages || '[]') })),
       vulnerableLibraries: vulnerable.map(v => ({
         ...v,
+        highestSeverity: v.severity,
         cves: JSON.parse(v.cves || '[]'),
         pages: JSON.parse(v.pages || '[]'),
       })),
@@ -336,6 +370,84 @@ export function createDashboardApi(outputPath: string): Router {
           }
         : null,
     }
+  }))
+
+  // ============================================================================
+  // Comparison (LHCI-style diffs between scans)
+  // ============================================================================
+
+  // Get a comparison by id, including per-route metric diffs
+  router.get('/comparison/:id', defineEventHandler((event) => {
+    const { id } = getRouterParams(event) as { id: string }
+    const db = history.getHistoryDb(outputPath)
+    if (!db) {
+      setResponseStatus(event, 500)
+      return { error: 'Database not available' }
+    }
+
+    const summary = getComparisonSummary(db, Number(id))
+    if (!summary) {
+      setResponseStatus(event, 404)
+      return { error: 'Comparison not found' }
+    }
+    return summary
+  }))
+
+  // List all comparisons involving a given scan (as base or current)
+  router.get('/comparisons/:scanId', defineEventHandler((event) => {
+    const { scanId } = getRouterParams(event) as { scanId: string }
+    const db = history.getHistoryDb(outputPath)
+    if (!db) {
+      setResponseStatus(event, 500)
+      return { error: 'Database not available' }
+    }
+
+    const rows = db.select().from(comparisons).where(or(eq(comparisons.baseScanId, scanId), eq(comparisons.currentScanId, scanId))).orderBy(desc(comparisons.createdAt)).all()
+    return rows
+  }))
+
+  // Get the most recent comparison where scanId is the current side
+  router.get('/comparison/latest/:scanId', defineEventHandler((event) => {
+    const { scanId } = getRouterParams(event) as { scanId: string }
+    const db = history.getHistoryDb(outputPath)
+    if (!db) {
+      setResponseStatus(event, 500)
+      return { error: 'Database not available' }
+    }
+
+    const latest = db.select().from(comparisons).where(eq(comparisons.currentScanId, scanId)).orderBy(desc(comparisons.createdAt)).limit(1).get()
+
+    if (!latest) {
+      setResponseStatus(event, 404)
+      return { error: 'No comparison found for scan' }
+    }
+
+    const diffs = db.select().from(comparisonDiffs).where(eq(comparisonDiffs.comparisonId, latest.id)).all()
+
+    return {
+      ...latest,
+      diffs: diffs.map(d => ({ ...d, metricDiffs: JSON.parse(d.metricDiffs) })),
+    }
+  }))
+
+  // Create (or refresh) a comparison between two scans
+  router.post('/compare/:baseScanId/:currentScanId', defineEventHandler(async (event) => {
+    const { baseScanId, currentScanId } = getRouterParams(event) as { baseScanId: string, currentScanId: string }
+    const db = history.getHistoryDb(outputPath)
+    if (!db) {
+      setResponseStatus(event, 500)
+      return { error: 'Database not available' }
+    }
+
+    const base = db.select().from(scans).where(eq(scans.id, baseScanId)).get()
+    const current = db.select().from(scans).where(eq(scans.id, currentScanId)).get()
+    if (!base || !current) {
+      setResponseStatus(event, 404)
+      return { error: 'One or both scans not found' }
+    }
+
+    const comparison = await compareScans(db, baseScanId, currentScanId)
+    return comparison
   }))
 
   return router

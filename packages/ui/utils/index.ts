@@ -35,3 +35,36 @@ export function useHumanFriendlyNumber(number: number, decimals?: number): strin
   }
   return new Intl.NumberFormat('en', { notation: 'compact' }).format(num)
 }
+
+// Semantic colour tokens used by CrUX visualisations. Hex values track
+// @nuxt/ui's default green/amber/red palette so charts align with UI badges.
+export const semanticColors = {
+  success: { dot: 'bg-green-500', text: 'text-green-500', hex: '#22c55e' },
+  warning: { dot: 'bg-amber-500', text: 'text-amber-500', hex: '#f59e0b' },
+  error: { dot: 'bg-red-500', text: 'text-red-500', hex: '#ef4444' },
+  neutral: { dot: 'bg-gray-400', text: 'text-gray-400', hex: '#9ca3af' },
+} as const
+
+export const cwvMetricColors = {
+  lcp: { hex: '#6366f1' }, // indigo
+  inp: { hex: '#0ea5e9' }, // sky
+  cls: { hex: '#a855f7' }, // purple
+} as const
+
+export function thresholdToSemantic(value: number, good: number, poor: number): 'success' | 'warning' | 'error' {
+  if (value <= good)
+    return 'success'
+  if (value <= poor)
+    return 'warning'
+  return 'error'
+}
+
+export function thresholdHex(value: number, good: number, poor: number): string {
+  return semanticColors[thresholdToSemantic(value, good, poor)].hex
+}
+
+export function calcTrendPercent(current: number, base: number): number {
+  if (base === 0)
+    return 0
+  return ((current - base) / base) * 100
+}

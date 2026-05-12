@@ -1,11 +1,11 @@
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
-import type { NewScan, NewScanRoute, Scan, ScanRoute } from './schema'
+import type { NewScan, NewScanCrux, NewScanRoute, Scan, ScanCrux, ScanRoute } from './schema'
 import { join } from 'node:path'
 import Database from 'better-sqlite3'
-import { desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
-import { scanRoutes, scans } from './schema'
+import { scanCrux, scanRoutes, scans } from './schema'
 
 export * from './schema'
 export { cancelHistoryTracking, failHistoryTracking, getCurrentScanId, initHistoryTracking } from './tracking'
@@ -50,6 +50,9 @@ export function getHistoryDb(dataDir: string): BetterSQLite3Database {
       status TEXT NOT NULL DEFAULT 'running',
       error TEXT,
       report_path TEXT NOT NULL,
+      ci_branch TEXT,
+      ci_commit TEXT,
+      ci_commit_message TEXT,
       started_at INTEGER NOT NULL DEFAULT (unixepoch()),
       completed_at INTEGER
     );
@@ -70,6 +73,7 @@ export function getHistoryDb(dataDir: string): BetterSQLite3Database {
       fcp INTEGER,
       si INTEGER,
       ttfb INTEGER,
+      inp INTEGER,
       lhr_gzip BLOB,
       status TEXT NOT NULL DEFAULT 'pending',
       scanned_at INTEGER
@@ -313,6 +317,16 @@ export function getHistoryDb(dataDir: string): BetterSQLite3Database {
       failing_routes TEXT
     );
 
+    -- CrUX history snapshots
+    CREATE TABLE IF NOT EXISTS scan_crux (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scan_id TEXT NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+      hostname TEXT NOT NULL,
+      form_factor TEXT NOT NULL,
+      series_json TEXT NOT NULL,
+      fetched_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     -- Dashboard summaries
     CREATE TABLE IF NOT EXISTS dashboard_summaries (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -335,12 +349,17 @@ export function getHistoryDb(dataDir: string): BetterSQLite3Database {
     CREATE INDEX IF NOT EXISTS idx_seo_duplicates_scan ON seo_duplicates(scan_id, type);
     CREATE INDEX IF NOT EXISTS idx_comparisons_scans ON comparisons(base_scan_id, current_scan_id);
     CREATE INDEX IF NOT EXISTS idx_diffs_comparison ON comparison_diffs(comparison_id);
+    CREATE INDEX IF NOT EXISTS idx_scan_crux_scan ON scan_crux(scan_id, form_factor);
   `)
 
   // Migrations for existing databases
   const migrations = [
     `ALTER TABLE accessibility_elements ADD COLUMN bounding_rect TEXT`,
     `ALTER TABLE accessibility_elements ADD COLUMN screenshot_page TEXT`,
+    `ALTER TABLE scans ADD COLUMN ci_branch TEXT`,
+    `ALTER TABLE scans ADD COLUMN ci_commit TEXT`,
+    `ALTER TABLE scans ADD COLUMN ci_commit_message TEXT`,
+    `ALTER TABLE scan_routes ADD COLUMN inp INTEGER`,
   ]
   for (const migration of migrations) {
     try { sqlite.exec(migration) }
@@ -396,6 +415,29 @@ export function listScans(dataDir: string, options: { limit?: number, offset?: n
     query = query.where(eq(scans.site, site)) as any
 
   return query.limit(limit).offset(offset).all()
+}
+
+/**
+ * Find the most recent completed scan for a site/device, excluding a given scan.
+ * Optionally filter by CI branch for "compare against main" workflows.
+ */
+export function findPreviousScan(
+  dataDir: string,
+  options: { site: string, device?: string, excludeScanId?: string, branch?: string },
+): Scan | undefined {
+  const db = getHistoryDb(dataDir)
+  const conditions = [
+    eq(scans.site, options.site),
+    eq(scans.status, 'complete'),
+  ]
+  if (options.device)
+    conditions.push(eq(scans.device, options.device as any))
+  if (options.excludeScanId)
+    conditions.push(ne(scans.id, options.excludeScanId))
+  if (options.branch)
+    conditions.push(eq(scans.ciBranch, options.branch))
+
+  return db.select().from(scans).where(and(...conditions)).orderBy(desc(scans.startedAt)).limit(1).get()
 }
 
 export function deleteScan(dataDir: string, id: string): boolean {
@@ -464,4 +506,17 @@ export function updateScanScores(dataDir: string, scanId: string) {
       .where(eq(scans.id, scanId))
       .run()
   }
+}
+
+export function upsertScanCrux(dataDir: string, data: Omit<NewScanCrux, 'id' | 'fetchedAt'>): ScanCrux {
+  const db = getHistoryDb(dataDir)
+  db.delete(scanCrux)
+    .where(and(eq(scanCrux.scanId, data.scanId), eq(scanCrux.formFactor, data.formFactor)))
+    .run()
+  return db.insert(scanCrux).values({ ...data, fetchedAt: new Date() }).returning().get()
+}
+
+export function getScanCrux(dataDir: string, scanId: string): ScanCrux[] {
+  const db = getHistoryDb(dataDir)
+  return db.select().from(scanCrux).where(eq(scanCrux.scanId, scanId)).all()
 }

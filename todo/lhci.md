@@ -1,5 +1,16 @@
 # LHCI Integration Strategy
 
+## Status (2026-04-19)
+- [x] Extract-then-compare schema (`scan_routes.lhrGzip` + category scores + CWVs in `extract.ts`)
+- [x] Comparison engine (`process/comparison.ts`: `compareScans`, `compareRouteMetrics`, default thresholds)
+- [x] Assertions system (`process/assertions.ts` + `cli/ci.ts --assert` on by default)
+- [x] CI build metadata (`scans.ciBranch / ciCommit / ciCommitMessage` populated from env or config)
+- [x] `findPreviousScan(dataDir, { site, device, branch, excludeScanId })` helper
+- [x] `unlighthouse-ci --compare [latest|<scanId>|<branch>]` — runs diff post-scan, exits non-zero on regressions
+- [x] `unlighthouse-ci --compare-output <path>` — writes Markdown diff summary (regressions / improvements tables) for PR comments
+- [x] Representative-run selection (`computeMedianRun` in `puppeteer/tasks/lighthouse.ts` when `scanner.samples > 1`)
+- [x] Audit-ID version mapping hook in place (`AUDIT_MAP` in `extract.ts` with empty `12` / `13` entries); intentionally a placeholder, no known LH 12→13 renames to map yet
+
 ## Overview
 
 Unlighthouse may pivot toward CI-focused workflows. Rather than depending on or fully forking LHCI Server, we'll cherry-pick useful patterns and build a low-maintenance comparison system.

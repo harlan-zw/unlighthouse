@@ -4,6 +4,7 @@ import { lcpElements, performanceIssues, thirdPartyScripts } from '../data/histo
 interface ImageIssue {
   url: string
   wastedBytes: number
+  wastedMs: number
   pages: string[]
   issues: Set<string>
 }
@@ -32,6 +33,15 @@ function auditToIssueType(auditId: string): string {
   })[auditId] ?? 'unknown'
 }
 
+interface ResourceIssue {
+  url: string
+  type: 'script' | 'stylesheet' | 'render-blocking' | 'font'
+  subtype: string | null
+  wastedBytes: number
+  wastedMs: number
+  pages: string[]
+}
+
 export async function processPerformance(p: ProcessorParams): Promise<PerformanceSummary> {
   const { db, scanId, routes } = p
 
@@ -49,10 +59,12 @@ export async function processPerformance(p: ProcessorParams): Promise<Performanc
         const existing = imageMap.get(url) ?? {
           url,
           wastedBytes: 0,
+          wastedMs: 0,
           pages: [],
           issues: new Set<string>(),
         }
         existing.wastedBytes += item.wastedBytes ?? 0
+        existing.wastedMs += item.wastedMs ?? 0
         existing.pages.push(path)
         existing.issues.add(auditToIssueType(auditId))
         imageMap.set(url, existing)
@@ -66,6 +78,7 @@ export async function processPerformance(p: ProcessorParams): Promise<Performanc
     type: 'image',
     url: img.url,
     wastedBytes: img.wastedBytes,
+    wastedMs: img.wastedMs,
     pageCount: [...new Set(img.pages)].length,
     pages: JSON.stringify([...new Set(img.pages)]),
     issueSubtype: [...img.issues].join(','),
@@ -73,6 +86,54 @@ export async function processPerformance(p: ProcessorParams): Promise<Performanc
 
   if (imageIssues.length > 0) {
     db.insert(performanceIssues).values(imageIssues).run()
+  }
+
+  // 2b. Non-image resource issues (unused JS/CSS, render-blocking, font-display)
+  const resourceMap = new Map<string, ResourceIssue>()
+  const resourceAudits: Array<{ id: string, type: ResourceIssue['type'], subtype: string | null }> = [
+    { id: 'unused-javascript', type: 'script', subtype: 'unused' },
+    { id: 'unused-css-rules', type: 'stylesheet', subtype: 'unused' },
+    { id: 'render-blocking-resources', type: 'render-blocking', subtype: null },
+    { id: 'font-display', type: 'font', subtype: 'display' },
+  ]
+
+  for (const [path, route] of routes) {
+    for (const { id, type, subtype } of resourceAudits) {
+      const items = route.audits[id]?.details?.items ?? []
+      for (const item of items) {
+        const url = item.url
+        if (!url)
+          continue
+        const key = `${type}:${url}`
+        const existing: ResourceIssue = resourceMap.get(key) ?? {
+          url,
+          type,
+          subtype,
+          wastedBytes: 0,
+          wastedMs: 0,
+          pages: [] as string[],
+        }
+        existing.wastedBytes += item.wastedBytes ?? item.totalBytes ?? 0
+        existing.wastedMs += item.wastedMs ?? 0
+        existing.pages.push(path)
+        resourceMap.set(key, existing)
+      }
+    }
+  }
+
+  const resourceValues = [...resourceMap.values()].map(r => ({
+    scanId,
+    type: r.type,
+    url: r.url,
+    wastedBytes: r.wastedBytes,
+    wastedMs: r.wastedMs,
+    pageCount: [...new Set(r.pages)].length,
+    pages: JSON.stringify([...new Set(r.pages)]),
+    issueSubtype: r.subtype,
+  }))
+
+  if (resourceValues.length > 0) {
+    db.insert(performanceIssues).values(resourceValues).run()
   }
 
   // 3. Third-party scripts
@@ -141,17 +202,28 @@ export async function processPerformance(p: ProcessorParams): Promise<Performanc
   }
 
   // Compute summary
-  return computePerformanceSummary(routes, imageMap, thirdPartyMap)
+  return computePerformanceSummary(routes, imageMap, thirdPartyMap, resourceMap)
 }
 
-function computePerformanceSummary(routes: Map<string, any>, imageMap: Map<string, ImageIssue>, thirdPartyMap: Map<string, ThirdPartyData>): PerformanceSummary {
+function computePerformanceSummary(
+  routes: Map<string, any>,
+  imageMap: Map<string, ImageIssue>,
+  thirdPartyMap: Map<string, ThirdPartyData>,
+  resourceMap: Map<string, ResourceIssue>,
+): PerformanceSummary {
   const routeValues = [...routes.values()]
   const count = routeValues.length || 1
 
   const sum = (fn: (r: any) => number | null) =>
     routeValues.reduce((acc, r) => acc + (fn(r) ?? 0), 0)
 
-  const totalWastedBytes = [...imageMap.values()].reduce((acc, img) => acc + img.wastedBytes, 0)
+  const totalWastedBytes
+    = [...imageMap.values()].reduce((acc, img) => acc + img.wastedBytes, 0)
+      + [...resourceMap.values()].reduce((acc, r) => acc + r.wastedBytes, 0)
+
+  const totalWastedMs
+    = [...imageMap.values()].reduce((acc, img) => acc + img.wastedMs, 0)
+      + [...resourceMap.values()].reduce((acc, r) => acc + r.wastedMs, 0)
 
   return {
     avgLcp: Math.round(sum(r => r.lcp) / count),
@@ -163,6 +235,6 @@ function computePerformanceSummary(routes: Map<string, any>, imageMap: Map<strin
     imageIssueCount: imageMap.size,
     thirdPartyCount: thirdPartyMap.size,
     totalWastedBytes,
-    totalWastedMs: 0, // TODO: calculate from render-blocking resources
+    totalWastedMs,
   }
 }

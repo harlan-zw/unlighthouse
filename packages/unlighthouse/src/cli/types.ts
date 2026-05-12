@@ -42,6 +42,8 @@ export interface CiOptions extends CliOptions {
   lhciHost?: string
   lhciBuildToken?: string
   lhciAuth?: string
+  compare?: string | boolean
+  compareOutput?: string
 }
 
 export { UnlighthouseRouteReport }

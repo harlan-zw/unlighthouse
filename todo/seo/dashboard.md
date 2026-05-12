@@ -3,6 +3,17 @@
 ## Route
 `/results/seo`
 
+## Status (2026-04-19)
+- [x] Summary stats header (pages, title coverage, indexable, duplicates)
+- [x] SEO Health panel (Indexability / Title / Desc / Canonical / OG / Schema)
+- [x] Meta Tags Overview table (per-row status icons)
+- [x] Expandable meta row with length indicators + SERP/Twitter/Facebook/LinkedIn previews
+- [x] Duplicates tab
+- [x] Issues tab (canonical chains, generic link text, tap targets)
+- [x] Routes tab with per-page meta issue summary
+- [x] Structured Data coverage card (schema types + counts)
+- [x] Dedicated Worst Pages card with issue annotations (top 5, in Meta Overview tab)
+
 ## Database Schema
 
 Uses these tables from `packages/core/src/data/history/schema.ts`:

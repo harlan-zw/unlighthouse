@@ -62,7 +62,12 @@ function clearDashboardData(db: BetterSQLite3Database, scanId: string) {
  * Process all scan data after scan completion
  * Extracts metrics, aggregates issues, and computes dashboard summaries
  */
-export async function processScanData(db: BetterSQLite3Database, scanId: string, htmlData?: Map<string, HTMLExtractPayload>) {
+export async function processScanData(
+  db: BetterSQLite3Database,
+  scanId: string,
+  htmlData?: Map<string, HTMLExtractPayload>,
+  options: { compare?: boolean, thresholds?: Record<string, number> } = {},
+) {
   // Clear existing dashboard data (for re-processing)
   clearDashboardData(db, scanId)
 
@@ -112,21 +117,23 @@ export async function processScanData(db: BetterSQLite3Database, scanId: string,
   }).run()
 
   // 4. Auto-compare with previous scan (optional)
-  const currentScan = db.select().from(scans).where(eq(scans.id, scanId)).get()
-  if (currentScan) {
-    const previousScan = db.select()
-      .from(scans)
-      .where(and(
-        eq(scans.site, currentScan.site),
-        eq(scans.status, 'complete'),
-        ne(scans.id, scanId),
-      ))
-      .orderBy(desc(scans.completedAt))
-      .limit(1)
-      .get()
+  if (options.compare !== false) {
+    const currentScan = db.select().from(scans).where(eq(scans.id, scanId)).get()
+    if (currentScan) {
+      const previousScan = db.select()
+        .from(scans)
+        .where(and(
+          eq(scans.site, currentScan.site),
+          eq(scans.status, 'complete'),
+          ne(scans.id, scanId),
+        ))
+        .orderBy(desc(scans.completedAt))
+        .limit(1)
+        .get()
 
-    if (previousScan) {
-      await compareScans(db, previousScan.id, scanId)
+      if (previousScan) {
+        await compareScans(db, previousScan.id, scanId, options.thresholds)
+      }
     }
   }
 

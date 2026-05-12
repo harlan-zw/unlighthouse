@@ -8,6 +8,26 @@ export interface DashboardSummary {
   totalRoutes: number
 }
 
+export interface CruxHistoryEntry {
+  value: number
+  time: number
+  good?: number
+  ni?: number
+  poor?: number
+}
+
+export interface CruxSeries {
+  lcp: CruxHistoryEntry[]
+  inp: CruxHistoryEntry[]
+  cls: CruxHistoryEntry[]
+}
+
+export interface CruxData {
+  hostname: string | null
+  phone: CruxSeries
+  desktop: CruxSeries
+}
+
 export interface PerformanceData {
   issues: Array<{
     id: string
@@ -195,6 +215,11 @@ export function useDashboard(scanId: MaybeRef<string | undefined>) {
     immediate: false,
   })
 
+  const crux = useLazyFetch<CruxData>(() =>
+    id.value ? `${apiUrl.value}/dashboard/crux/${id.value}` : '', {
+    immediate: false,
+  })
+
   return {
     scanId: id,
     summary,
@@ -202,6 +227,7 @@ export function useDashboard(scanId: MaybeRef<string | undefined>) {
     accessibility,
     bestPractices,
     seo,
+    crux,
   }
 }
 
@@ -214,22 +240,22 @@ export async function getCurrentScanId(): Promise<string | null> {
 // Score color helpers
 export function getScoreColor(score: number | null): string {
   if (score === null)
-    return 'text-gray-500'
+    return 'text-dimmed'
   if (score >= 90)
-    return 'text-green-400'
+    return 'text-success'
   if (score >= 50)
-    return 'text-amber-400'
-  return 'text-red-400'
+    return 'text-warning'
+  return 'text-error'
 }
 
 export function getScoreBg(score: number | null): string {
   if (score === null)
-    return 'bg-gray-500/10'
+    return 'bg-elevated/60'
   if (score >= 90)
-    return 'bg-green-500/10'
+    return 'bg-success/10'
   if (score >= 50)
-    return 'bg-amber-500/10'
-  return 'bg-red-500/10'
+    return 'bg-warning/10'
+  return 'bg-error/10'
 }
 
 // Format milliseconds for display

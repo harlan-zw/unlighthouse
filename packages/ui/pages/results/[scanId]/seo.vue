@@ -2,7 +2,7 @@
 import { useDashboard, getScoreColor, getScoreBg } from '~/composables/dashboard'
 import { apiUrl } from '~/composables/unlighthouse'
 
-definePageMeta({ layout: 'results' })
+definePageMeta({ layout: 'dashboard' })
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string)
@@ -64,9 +64,9 @@ const summaryStats = computed(() => {
 
   return [
     { label: 'Pages', value: meta.length, icon: 'i-heroicons-document-text' },
-    { label: 'With Title', value: withTitle, color: withTitle === meta.length ? 'text-green-400' : 'text-amber-400', icon: 'i-heroicons-tag' },
-    { label: 'Indexable', value: indexable, color: indexable === meta.length ? 'text-green-400' : 'text-amber-400', icon: 'i-heroicons-globe-alt' },
-    { label: 'Duplicates', value: duplicates.length, color: duplicates.length > 0 ? 'text-amber-400' : 'text-gray-400', icon: 'i-heroicons-document-duplicate' },
+    { label: 'With Title', value: withTitle, color: withTitle === meta.length ? 'text-success' : 'text-warning', icon: 'i-heroicons-tag' },
+    { label: 'Indexable', value: indexable, color: indexable === meta.length ? 'text-success' : 'text-warning', icon: 'i-heroicons-globe-alt' },
+    { label: 'Duplicates', value: duplicates.length, color: duplicates.length > 0 ? 'text-primary' : 'text-muted', icon: 'i-heroicons-document-duplicate' },
   ]
 })
 
@@ -83,7 +83,7 @@ function getDescStatus(m: any): 'good' | 'warn' | 'bad' {
   return 'good'
 }
 
-const statusColors = { good: 'text-green-400', warn: 'text-amber-400', bad: 'text-red-400' }
+const statusColors = { good: 'text-success', warn: 'text-warning', bad: 'text-error' }
 const statusIcons = { good: 'i-heroicons-check-circle', warn: 'i-heroicons-exclamation-circle', bad: 'i-heroicons-x-circle' }
 
 const sortedMeta = computed(() =>
@@ -94,15 +94,129 @@ const sortedMeta = computed(() =>
   }),
 )
 
+const schemaCoverage = computed(() => {
+  const meta = seo.data.value?.meta ?? []
+  const total = meta.length
+  if (!total) return null
+
+  const typeCounts = new Map<string, number>()
+  let pagesWithSchema = 0
+  for (const m of meta) {
+    const types = m.structuredDataTypes ?? []
+    if (types.length) pagesWithSchema++
+    for (const t of types) typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1)
+  }
+
+  const types = [...typeCounts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+
+  return {
+    pagesWithSchema,
+    total,
+    coverage: Math.round((pagesWithSchema / total) * 100),
+    types,
+  }
+})
+
+const healthChecks = computed(() => {
+  const meta = seo.data.value?.meta ?? []
+  const duplicates = seo.data.value?.duplicates ?? []
+  const total = meta.length
+  if (!total) return []
+
+  const indexable = meta.filter(m => m.isIndexable).length
+  const titleOk = meta.filter(m => m.title && m.titleLength >= 30 && m.titleLength <= 60).length
+  const descOk = meta.filter(m => m.description && m.descriptionLength >= 120 && m.descriptionLength <= 160).length
+  const canonical = meta.filter(m => m.canonical).length
+  const og = meta.filter(m => m.hasOgTags).length
+  const schema = meta.filter(m => (m.structuredDataTypes?.length ?? 0) > 0).length
+
+  const titleDuplicates = duplicates.filter(d => d.type === 'title').length
+  const descDuplicates = duplicates.filter(d => d.type === 'description').length
+
+  const rate = (n: number) => Math.round((n / total) * 100)
+  const statusFor = (ratio: number): 'pass' | 'warn' | 'fail' => ratio >= 95 ? 'pass' : ratio >= 70 ? 'warn' : 'fail'
+
+  return [
+    {
+      key: 'index',
+      label: 'Indexability',
+      status: statusFor(rate(indexable)),
+      detail: `${indexable}/${total} pages indexable${indexable < total ? ` · ${total - indexable} blocked/noindex` : ''}`,
+    },
+    {
+      key: 'title',
+      label: 'Title Tags',
+      status: statusFor(rate(titleOk)),
+      detail: `${titleOk}/${total} valid${titleDuplicates ? ` · ${titleDuplicates} duplicate` : ''}`,
+    },
+    {
+      key: 'desc',
+      label: 'Meta Descriptions',
+      status: statusFor(rate(descOk)),
+      detail: `${descOk}/${total} valid length${descDuplicates ? ` · ${descDuplicates} duplicate` : ''}`,
+    },
+    {
+      key: 'canonical',
+      label: 'Canonicals',
+      status: statusFor(rate(canonical)),
+      detail: `${canonical}/${total} pages (${rate(canonical)}%)`,
+    },
+    {
+      key: 'og',
+      label: 'Open Graph',
+      status: statusFor(rate(og)),
+      detail: `${og}/${total} pages (${rate(og)}%)`,
+    },
+    {
+      key: 'schema',
+      label: 'Structured Data',
+      status: schema === 0 ? 'fail' : statusFor(rate(schema)),
+      detail: schema === 0 ? 'No schema detected' : `${schema}/${total} pages (${rate(schema)}%)`,
+    },
+  ]
+})
+
 const sortedDuplicates = computed(() =>
   [...(seo.data.value?.duplicates ?? [])].sort((a, b) => b.pageCount - a.pageCount),
 )
 
-const sortedRoutes = computed(() =>
-  [...(seo.data.value?.routes ?? [])]
+const metaByPath = computed(() => new Map((seo.data.value?.meta ?? []).map(m => [m.path, m])))
+
+function summariseMetaIssues(m: any): string[] {
+  const issues: string[] = []
+  if (!m) return issues
+  if (!m.isIndexable) issues.push('not indexable')
+  if (!m.title) issues.push('no title')
+  else if (m.titleLength < 30 || m.titleLength > 60) issues.push('title length')
+  if (!m.description) issues.push('no description')
+  else if (m.descriptionLength < 120 || m.descriptionLength > 160) issues.push('desc length')
+  if (!m.canonical) issues.push('no canonical')
+  if (!m.hasOgTags) issues.push('no OG')
+  if (!(m.structuredDataTypes?.length)) issues.push('no schema')
+  return issues
+}
+
+const worstSeoPages = computed(() => {
+  const meta = metaByPath.value
+  return [...(seo.data.value?.routes ?? [])]
     .filter(r => r.score !== null)
-    .sort((a, b) => (a.score ?? 0) - (b.score ?? 0)),
-)
+    .sort((a, b) => (a.score ?? 0) - (b.score ?? 0))
+    .slice(0, 5)
+    .map(r => ({
+      ...r,
+      issues: summariseMetaIssues(meta.get(r.path)),
+    }))
+})
+
+const sortedRoutes = computed(() => {
+  const meta = metaByPath.value
+  return [...(seo.data.value?.routes ?? [])]
+    .filter(r => r.score !== null)
+    .map(r => ({ ...r, issues: summariseMetaIssues(meta.get(r.path)) }))
+    .sort((a, b) => (a.score ?? 0) - (b.score ?? 0))
+})
 
 const canonicalChains = computed(() => seo.data.value?.canonicalChains ?? [])
 const linkTextIssues = computed(() =>
@@ -120,7 +234,7 @@ const expandedMeta = ref<string | null>(null)
 // Social preview tabs - always default to Google (0)
 const previewTabs = [
   { label: 'Google', icon: 'i-simple-icons-google', color: 'text-blue-500' },
-  { label: 'X / Twitter', icon: 'i-simple-icons-x', color: 'text-gray-100' },
+  { label: 'X / Twitter', icon: 'i-simple-icons-x', color: 'text-default' },
   { label: 'Facebook', icon: 'i-simple-icons-facebook', color: 'text-blue-600' },
   { label: 'LinkedIn', icon: 'i-simple-icons-linkedin', color: 'text-blue-500' },
   { label: 'Slack', icon: 'i-simple-icons-slack', color: 'text-purple-400' },
@@ -151,20 +265,20 @@ const siteHostname = computed(() => {
     <DashboardHeader
       title="SEO"
       icon="i-heroicons-magnifying-glass"
-      color="text-amber-400"
+      color="text-primary"
       :score="avgScore"
       :stats="summaryStats"
     />
 
     <!-- Tabs -->
-    <div class="flex flex-wrap gap-2 mb-6 border-b border-white/5 pb-4">
+    <div class="flex flex-wrap gap-2 mb-6 border-b border-default pb-4">
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
         class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all"
         :class="activeTab === idx
-          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-          : 'text-gray-400 hover:text-white hover:bg-white/5'"
+          ? 'bg-primary/10 text-primary border border-primary/20'
+          : 'text-muted hover:text-default hover:bg-elevated/60'"
         @click="activeTab = idx"
       >
         <UIcon :name="tab.icon" class="w-4 h-4" />
@@ -180,15 +294,111 @@ const siteHostname = computed(() => {
     </div>
 
     <!-- Meta Overview Tab -->
-    <div v-else-if="activeTab === 0">
+    <div v-else-if="activeTab === 0" class="space-y-6">
+      <DashboardCard v-if="healthChecks.length" title="SEO Health" icon="i-heroicons-heart">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div
+            v-for="item in healthChecks"
+            :key="item.key"
+            class="flex items-start gap-3 px-4 py-3 rounded-lg border"
+            :class="{
+              'bg-success/5 border-success/20': item.status === 'pass',
+              'bg-warning/5 border-warning/20': item.status === 'warn',
+              'bg-error/5 border-error/20': item.status === 'fail',
+            }"
+          >
+            <UIcon
+              :name="item.status === 'pass' ? 'i-heroicons-check-circle' : item.status === 'warn' ? 'i-heroicons-exclamation-triangle' : 'i-heroicons-x-circle'"
+              class="w-5 h-5 shrink-0 mt-0.5"
+              :class="{
+                'text-success': item.status === 'pass',
+                'text-warning': item.status === 'warn',
+                'text-error': item.status === 'fail',
+              }"
+            />
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium text-highlighted">{{ item.label }}</div>
+              <div class="text-xs text-muted mt-0.5">{{ item.detail }}</div>
+            </div>
+          </div>
+        </div>
+      </DashboardCard>
+
+      <DashboardCard
+        v-if="schemaCoverage"
+        title="Structured Data"
+        icon="i-heroicons-code-bracket"
+      >
+        <div class="space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-2 text-sm">
+              <span class="text-muted">Coverage</span>
+              <span class="font-mono text-highlighted">{{ schemaCoverage.pagesWithSchema }}/{{ schemaCoverage.total }} pages ({{ schemaCoverage.coverage }}%)</span>
+            </div>
+            <div class="h-2 rounded-full bg-elevated/60 overflow-hidden">
+              <div
+                class="h-full rounded-full"
+                :class="schemaCoverage.coverage >= 80 ? 'bg-success' : schemaCoverage.coverage >= 50 ? 'bg-warning' : 'bg-error'"
+                :style="{ width: `${schemaCoverage.coverage}%` }"
+              />
+            </div>
+          </div>
+          <div v-if="schemaCoverage.types.length">
+            <div class="text-xs text-dimmed mb-2 uppercase tracking-wider">Schema Types</div>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="t in schemaCoverage.types"
+                :key="t.name"
+                class="text-xs px-2 py-1 rounded bg-info/10 text-info border border-info/20"
+              >
+                {{ t.name }}
+                <span class="font-mono text-info/70 ml-1">({{ t.count }})</span>
+              </span>
+            </div>
+          </div>
+          <div v-else class="text-xs text-dimmed">
+            No structured data detected on any page
+          </div>
+        </div>
+      </DashboardCard>
+
+      <DashboardCard
+        v-if="worstSeoPages.length"
+        title="Worst Pages"
+        icon="i-heroicons-arrow-trending-down"
+      >
+        <div class="divide-y divide-white/5">
+          <NuxtLink
+            v-for="r in worstSeoPages"
+            :key="r.path"
+            :to="`/results/${scanId}?path=${encodeURIComponent(r.path)}`"
+            class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 hover:bg-elevated/40 -mx-4 px-4 transition-colors"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-mono text-highlighted truncate">{{ r.path }}</div>
+              <div v-if="r.issues.length" class="text-xs text-primary mt-1 truncate">
+                {{ r.issues.join(' · ') }}
+              </div>
+              <div v-else class="text-xs text-success mt-1">All meta tags valid</div>
+            </div>
+            <div
+              class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"
+              :class="[getScoreBg(r.score), getScoreColor(r.score)]"
+            >
+              {{ r.score }}
+            </div>
+          </NuxtLink>
+        </div>
+      </DashboardCard>
+
       <DashboardCard title="Meta Tags Overview" icon="i-heroicons-document-text" :count="sortedMeta.length">
-        <div v-if="!sortedMeta.length" class="text-center py-8 text-gray-500">
+        <div v-if="!sortedMeta.length" class="text-center py-8 text-dimmed">
           <p>No meta data available</p>
         </div>
         <div v-else class="overflow-x-auto -mx-4">
           <table class="w-full text-sm min-w-[800px]">
             <thead>
-              <tr class="text-left text-gray-500 border-b border-white/5">
+              <tr class="text-left text-dimmed border-b border-default">
                 <th class="pb-2 pl-4 font-medium">Path</th>
                 <th class="pb-2 font-medium text-center">Title</th>
                 <th class="pb-2 font-medium text-center">Desc</th>
@@ -201,8 +411,8 @@ const siteHostname = computed(() => {
             </thead>
             <tbody class="divide-y divide-white/5">
               <template v-for="m in sortedMeta" :key="m.path">
-                <tr class="hover:bg-white/[0.02] cursor-pointer" @click="expandedMeta = expandedMeta === m.path ? null : m.path">
-                  <td class="py-3 pl-4 font-mono text-white truncate max-w-[200px]">{{ m.path }}</td>
+                <tr class="hover:bg-elevated/40 cursor-pointer" @click="expandedMeta = expandedMeta === m.path ? null : m.path">
+                  <td class="py-3 pl-4 font-mono text-highlighted truncate max-w-[200px]">{{ m.path }}</td>
                   <td class="py-3 text-center">
                     <UIcon :name="statusIcons[getTitleStatus(m)]" class="w-5 h-5" :class="statusColors[getTitleStatus(m)]" />
                   </td>
@@ -210,60 +420,60 @@ const siteHostname = computed(() => {
                     <UIcon :name="statusIcons[getDescStatus(m)]" class="w-5 h-5" :class="statusColors[getDescStatus(m)]" />
                   </td>
                   <td class="py-3 text-center">
-                    <UIcon :name="m.canonical ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.canonical ? 'text-green-400' : 'text-gray-500'" />
+                    <UIcon :name="m.canonical ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.canonical ? 'text-success' : 'text-dimmed'" />
                   </td>
                   <td class="py-3 text-center">
-                    <UIcon :name="m.hasOgTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.hasOgTags ? 'text-green-400' : 'text-gray-500'" />
+                    <UIcon :name="m.hasOgTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.hasOgTags ? 'text-success' : 'text-dimmed'" />
                   </td>
                   <td class="py-3 text-center">
-                    <UIcon :name="m.hasTwitterTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.hasTwitterTags ? 'text-green-400' : 'text-gray-500'" />
+                    <UIcon :name="m.hasTwitterTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.hasTwitterTags ? 'text-success' : 'text-dimmed'" />
                   </td>
                   <td class="py-3 text-center">
-                    <UIcon :name="m.structuredDataTypes?.length ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.structuredDataTypes?.length ? 'text-green-400' : 'text-gray-500'" />
+                    <UIcon :name="m.structuredDataTypes?.length ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.structuredDataTypes?.length ? 'text-success' : 'text-dimmed'" />
                   </td>
                   <td class="py-3 pr-4 text-center">
-                    <UIcon :name="m.isIndexable ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.isIndexable ? 'text-green-400' : 'text-red-400'" />
+                    <UIcon :name="m.isIndexable ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-5 h-5" :class="m.isIndexable ? 'text-success' : 'text-error'" />
                   </td>
                 </tr>
                 <tr v-if="expandedMeta === m.path">
-                  <td colspan="8" class="bg-white/[0.02] px-4 py-4">
+                  <td colspan="8" class="bg-elevated/40 px-4 py-4">
                     <div class="flex flex-wrap gap-8">
                       <!-- Title & Description (max 280px) -->
                       <div class="w-[280px] space-y-3">
                         <div>
                           <div class="flex items-center gap-2 mb-1">
-                            <span class="text-gray-500 text-xs">Title</span>
-                            <span class="text-xs px-1.5 py-0.5 rounded" :class="m.titleLength < 30 ? 'bg-red-500/20 text-red-400' : m.titleLength > 60 ? 'bg-amber-500/20 text-amber-400' : 'bg-green-500/20 text-green-400'">{{ m.titleLength || 0 }}</span>
+                            <span class="text-dimmed text-xs">Title</span>
+                            <span class="text-xs px-1.5 py-0.5 rounded" :class="m.titleLength < 30 ? 'bg-error/20 text-error' : m.titleLength > 60 ? 'bg-warning/20 text-warning' : 'bg-success/20 text-success'">{{ m.titleLength || 0 }}</span>
                           </div>
-                          <div class="text-white text-sm">{{ m.title || '—' }}</div>
-                          <div class="h-1 rounded-full bg-gray-700 overflow-hidden mt-1.5">
-                            <div class="h-full rounded-full" :class="m.titleLength < 30 ? 'bg-red-500' : m.titleLength > 60 ? 'bg-amber-500' : 'bg-green-500'" :style="{ width: `${Math.min(100, (m.titleLength / 60) * 100)}%` }" />
+                          <div class="text-highlighted text-sm">{{ m.title || '—' }}</div>
+                          <div class="h-1 rounded-full bg-elevated overflow-hidden mt-1.5">
+                            <div class="h-full rounded-full" :class="m.titleLength < 30 ? 'bg-error' : m.titleLength > 60 ? 'bg-warning' : 'bg-success'" :style="{ width: `${Math.min(100, (m.titleLength / 60) * 100)}%` }" />
                           </div>
                         </div>
                         <div>
                           <div class="flex items-center gap-2 mb-1">
-                            <span class="text-gray-500 text-xs">Description</span>
-                            <span class="text-xs px-1.5 py-0.5 rounded" :class="m.descriptionLength < 120 ? 'bg-red-500/20 text-red-400' : m.descriptionLength > 160 ? 'bg-amber-500/20 text-amber-400' : 'bg-green-500/20 text-green-400'">{{ m.descriptionLength || 0 }}</span>
+                            <span class="text-dimmed text-xs">Description</span>
+                            <span class="text-xs px-1.5 py-0.5 rounded" :class="m.descriptionLength < 120 ? 'bg-error/20 text-error' : m.descriptionLength > 160 ? 'bg-warning/20 text-warning' : 'bg-success/20 text-success'">{{ m.descriptionLength || 0 }}</span>
                           </div>
-                          <div class="text-white text-sm">{{ m.description || '—' }}</div>
-                          <div class="h-1 rounded-full bg-gray-700 overflow-hidden mt-1.5">
-                            <div class="h-full rounded-full" :class="m.descriptionLength < 120 ? 'bg-red-500' : m.descriptionLength > 160 ? 'bg-amber-500' : 'bg-green-500'" :style="{ width: `${Math.min(100, (m.descriptionLength / 160) * 100)}%` }" />
+                          <div class="text-highlighted text-sm">{{ m.description || '—' }}</div>
+                          <div class="h-1 rounded-full bg-elevated overflow-hidden mt-1.5">
+                            <div class="h-full rounded-full" :class="m.descriptionLength < 120 ? 'bg-error' : m.descriptionLength > 160 ? 'bg-warning' : 'bg-success'" :style="{ width: `${Math.min(100, (m.descriptionLength / 160) * 100)}%` }" />
                           </div>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
-                          <div class="flex items-center gap-1 text-xs" :class="m.canonical ? 'text-green-400' : 'text-gray-500'">
+                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-default">
+                          <div class="flex items-center gap-1 text-xs" :class="m.canonical ? 'text-success' : 'text-dimmed'">
                             <UIcon :name="m.canonical ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-3.5 h-3.5" />
                             <span>Canonical</span>
                           </div>
-                          <div class="flex items-center gap-1 text-xs" :class="m.hasOgTags ? 'text-green-400' : 'text-red-400'">
+                          <div class="flex items-center gap-1 text-xs" :class="m.hasOgTags ? 'text-success' : 'text-error'">
                             <UIcon :name="m.hasOgTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-3.5 h-3.5" />
                             <span>OG</span>
                           </div>
-                          <div class="flex items-center gap-1 text-xs" :class="m.hasTwitterTags ? 'text-green-400' : 'text-red-400'">
+                          <div class="flex items-center gap-1 text-xs" :class="m.hasTwitterTags ? 'text-success' : 'text-error'">
                             <UIcon :name="m.hasTwitterTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'" class="w-3.5 h-3.5" />
                             <span>Twitter</span>
                           </div>
-                          <div v-if="m.structuredDataTypes?.length" class="flex items-center gap-1 text-xs text-blue-400">
+                          <div v-if="m.structuredDataTypes?.length" class="flex items-center gap-1 text-xs text-info">
                             <UIcon name="i-heroicons-code-bracket" class="w-3.5 h-3.5" />
                             <span>Schema</span>
                           </div>
@@ -277,7 +487,7 @@ const siteHostname = computed(() => {
                             v-for="(tab, idx) in previewTabs"
                             :key="tab.label"
                             class="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all"
-                            :class="getPreviewTab(m.path) === idx ? 'bg-amber-500/20 text-amber-400' : 'text-gray-500 hover:text-white hover:bg-white/5'"
+                            :class="getPreviewTab(m.path) === idx ? 'bg-primary/20 text-primary' : 'text-dimmed hover:text-default hover:bg-elevated/60'"
                             @click="setPreviewTab(m.path, idx)"
                           >
                             <UIcon :name="tab.icon" class="w-3 h-3" />
@@ -298,12 +508,12 @@ const siteHostname = computed(() => {
                             <img :src="m.twitterImage || m.ogImage" :alt="m.twitterTitle || m.ogTitle || m.title" class="w-full h-full object-cover">
                           </div>
                           <div v-else class="h-[140px] bg-gray-800 flex items-center justify-center">
-                            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-gray-600" />
+                            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-dimmed" />
                           </div>
                           <div class="p-2">
-                            <div class="text-[11px] text-gray-500">{{ siteHostname }}</div>
-                            <div class="text-white text-sm font-medium line-clamp-1">{{ m.twitterTitle || m.ogTitle || m.title || 'No title' }}</div>
-                            <p class="text-[11px] text-gray-500 line-clamp-2">{{ m.twitterDescription || m.ogDescription || m.description || 'No description' }}</p>
+                            <div class="text-[11px] text-dimmed">{{ siteHostname }}</div>
+                            <div class="text-highlighted text-sm font-medium line-clamp-1">{{ m.twitterTitle || m.ogTitle || m.title || 'No title' }}</div>
+                            <p class="text-[11px] text-dimmed line-clamp-2">{{ m.twitterDescription || m.ogDescription || m.description || 'No description' }}</p>
                           </div>
                         </div>
 
@@ -313,7 +523,7 @@ const siteHostname = computed(() => {
                             <img :src="m.ogImage" :alt="m.ogTitle || m.title" class="w-full h-full object-cover">
                           </div>
                           <div v-else class="h-[140px] bg-gray-100 flex items-center justify-center">
-                            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-gray-400" />
+                            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-muted" />
                           </div>
                           <div class="p-2 bg-[#f2f3f5]">
                             <div class="text-[10px] text-[#606770] uppercase tracking-wide">{{ siteHostname }}</div>
@@ -328,7 +538,7 @@ const siteHostname = computed(() => {
                             <img :src="m.ogImage" :alt="m.ogTitle || m.title" class="w-full h-full object-cover">
                           </div>
                           <div v-else class="h-[140px] bg-gray-100 flex items-center justify-center">
-                            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-gray-400" />
+                            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-muted" />
                           </div>
                           <div class="p-2">
                             <div class="text-sm text-[#000000e6] font-semibold line-clamp-2">{{ m.ogTitle || m.title || 'No title' }}</div>
@@ -338,8 +548,8 @@ const siteHostname = computed(() => {
 
                         <!-- Slack Preview -->
                         <div v-else-if="getPreviewTab(m.path) === 4" class="max-w-[400px]">
-                          <div class="border-l-4 border-amber-500 pl-2.5 py-1.5 bg-neutral-900 rounded-r">
-                            <p class="text-sm font-semibold text-white">{{ siteHostname }}</p>
+                          <div class="border-l-4 border-primary pl-2.5 py-1.5 bg-neutral-900 rounded-r">
+                            <p class="text-sm font-semibold text-highlighted">{{ siteHostname }}</p>
                             <p class="text-sm text-blue-400">{{ m.ogTitle || m.title || 'No title' }}</p>
                             <p class="text-[11px] text-neutral-400 line-clamp-2">{{ m.ogDescription || m.description || 'No description' }}</p>
                             <div v-if="m.ogImage" class="mt-1.5 rounded overflow-hidden w-[180px]">
@@ -373,34 +583,34 @@ const siteHostname = computed(() => {
     <!-- Duplicates Tab -->
     <div v-else-if="activeTab === 1">
       <DashboardCard title="Duplicate Meta Tags" icon="i-heroicons-document-duplicate" :count="sortedDuplicates.length">
-        <div v-if="!sortedDuplicates.length" class="text-center py-8 text-gray-500">
-          <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-green-400" />
+        <div v-if="!sortedDuplicates.length" class="text-center py-8 text-dimmed">
+          <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No duplicate meta tags found</p>
         </div>
         <div v-else class="divide-y divide-white/5 -mx-4">
-          <div v-for="(dup, idx) in sortedDuplicates" :key="idx" class="border-b border-white/5 last:border-0">
+          <div v-for="(dup, idx) in sortedDuplicates" :key="idx" class="border-b border-default last:border-0">
             <button
-              class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
+              class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-elevated/40 transition-colors"
               @click="toggleItem(`dup-${idx}`)"
             >
               <div class="flex items-center gap-3 min-w-0 flex-1">
                 <UIcon
                   :name="expandedItems[`dup-${idx}`] ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
-                  class="w-4 h-4 text-gray-500 shrink-0"
+                  class="w-4 h-4 text-dimmed shrink-0"
                 />
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
                     <span
                       class="text-xs px-2 py-0.5 rounded capitalize"
-                      :class="dup.type === 'title' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'"
+                      :class="dup.type === 'title' ? 'bg-primary/10 text-primary' : 'bg-info/10 text-info'"
                     >
                       {{ dup.type }}
                     </span>
                   </div>
-                  <div class="text-sm text-white mt-1 truncate">"{{ dup.value }}"</div>
+                  <div class="text-sm text-highlighted mt-1 truncate">"{{ dup.value }}"</div>
                 </div>
               </div>
-              <span class="text-sm text-gray-400 shrink-0">{{ dup.pageCount }} pages</span>
+              <span class="text-sm text-muted shrink-0">{{ dup.pageCount }} pages</span>
             </button>
             <div v-if="expandedItems[`dup-${idx}`]" class="px-4 pb-4 pl-11">
               <PagesList :pages="dup.pages" />
@@ -414,41 +624,41 @@ const siteHostname = computed(() => {
     <div v-else-if="activeTab === 2">
       <div class="space-y-6">
         <DashboardCard title="Canonical Chains" icon="i-heroicons-link" :count="canonicalChains.length">
-          <div v-if="!canonicalChains.length" class="text-center py-8 text-gray-500">
-            <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-green-400" />
+          <div v-if="!canonicalChains.length" class="text-center py-8 text-dimmed">
+            <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
             <p>No canonical chains found</p>
           </div>
           <div v-else class="divide-y divide-white/5">
             <div v-for="(chain, idx) in canonicalChains" :key="idx" class="py-3 first:pt-0 last:pb-0">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-mono text-gray-300">{{ chain.chain }}</span>
-                <span v-if="chain.isLoop" class="text-xs px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">Loop detected!</span>
+                <span class="text-sm font-mono text-toned">{{ chain.chain }}</span>
+                <span v-if="chain.isLoop" class="text-xs px-2 py-0.5 rounded bg-error/10 text-error border border-error/20">Loop detected!</span>
               </div>
             </div>
           </div>
         </DashboardCard>
 
         <DashboardCard title="Generic Link Text" icon="i-heroicons-cursor-arrow-rays" :count="linkTextIssues.length">
-          <div v-if="!linkTextIssues.length" class="text-center py-8 text-gray-500">
-            <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-green-400" />
+          <div v-if="!linkTextIssues.length" class="text-center py-8 text-dimmed">
+            <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
             <p>No generic link text found</p>
           </div>
           <div v-else class="divide-y divide-white/5 -mx-4">
-            <div v-for="(issue, idx) in linkTextIssues" :key="idx" class="border-b border-white/5 last:border-0">
+            <div v-for="(issue, idx) in linkTextIssues" :key="idx" class="border-b border-default last:border-0">
               <button
-                class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
+                class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-elevated/40 transition-colors"
                 @click="toggleItem(`link-${idx}`)"
               >
                 <div class="flex items-center gap-3 min-w-0 flex-1">
                   <UIcon
                     :name="expandedItems[`link-${idx}`] ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
-                    class="w-4 h-4 text-gray-500 shrink-0"
+                    class="w-4 h-4 text-dimmed shrink-0"
                   />
-                  <span class="text-sm text-amber-400">"{{ issue.text }}"</span>
+                  <span class="text-sm text-primary">"{{ issue.text }}"</span>
                 </div>
                 <div class="flex items-center gap-4 shrink-0 text-sm">
-                  <span class="font-mono text-gray-400">{{ issue.instanceCount }}x</span>
-                  <span class="text-gray-500">{{ issue.pageCount }} pages</span>
+                  <span class="font-mono text-muted">{{ issue.instanceCount }}x</span>
+                  <span class="text-dimmed">{{ issue.pageCount }} pages</span>
                 </div>
               </button>
               <div v-if="expandedItems[`link-${idx}`]" class="px-4 pb-4 pl-11">
@@ -459,8 +669,8 @@ const siteHostname = computed(() => {
         </DashboardCard>
 
         <DashboardCard title="Tap Target Issues" icon="i-heroicons-finger-print" :count="tapTargetIssues.length">
-          <div v-if="!tapTargetIssues.length" class="text-center py-8 text-gray-500">
-            <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-green-400" />
+          <div v-if="!tapTargetIssues.length" class="text-center py-8 text-dimmed">
+            <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
             <p>No tap target issues found</p>
           </div>
           <div v-else class="divide-y divide-white/5">
@@ -468,17 +678,17 @@ const siteHostname = computed(() => {
               <div class="flex items-center justify-between">
                 <NuxtLink
                   :to="`/results/${scanId}?path=${encodeURIComponent(issue.path)}`"
-                  class="text-sm font-mono text-white hover:text-amber-400 transition-colors"
+                  class="text-sm font-mono text-highlighted hover:text-primary transition-colors"
                 >
                   {{ issue.path }}
                 </NuxtLink>
-                <span class="text-sm text-gray-400">{{ issue.elementCount }} elements too small</span>
+                <span class="text-sm text-muted">{{ issue.elementCount }} elements too small</span>
               </div>
               <div v-if="issue.elements?.length" class="mt-2 flex flex-wrap gap-2">
-                <span v-for="(el, idx) in issue.elements.slice(0, 5)" :key="idx" class="text-xs font-mono px-2 py-1 rounded bg-white/5 text-gray-400">
+                <span v-for="(el, idx) in issue.elements.slice(0, 5)" :key="idx" class="text-xs font-mono px-2 py-1 rounded bg-elevated/60 text-muted">
                   {{ el.selector }} ({{ el.size }})
                 </span>
-                <span v-if="issue.elements.length > 5" class="text-xs text-gray-500">+{{ issue.elements.length - 5 }} more</span>
+                <span v-if="issue.elements.length > 5" class="text-xs text-dimmed">+{{ issue.elements.length - 5 }} more</span>
               </div>
             </div>
           </div>
@@ -489,7 +699,7 @@ const siteHostname = computed(() => {
     <!-- Routes Tab -->
     <div v-else-if="activeTab === 3">
       <DashboardCard title="Routes by SEO Score" icon="i-heroicons-queue-list" :count="sortedRoutes.length">
-        <div v-if="!sortedRoutes.length" class="text-center py-8 text-gray-500">
+        <div v-if="!sortedRoutes.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
           <p>No route data available</p>
         </div>
@@ -498,9 +708,15 @@ const siteHostname = computed(() => {
             v-for="r in sortedRoutes"
             :key="r.path"
             :to="`/results/${scanId}?path=${encodeURIComponent(r.path)}`"
-            class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 hover:bg-white/[0.02] -mx-4 px-4 transition-colors"
+            class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 hover:bg-elevated/40 -mx-4 px-4 transition-colors"
           >
-            <div class="text-sm font-mono text-white truncate">{{ r.path }}</div>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-mono text-highlighted truncate">{{ r.path }}</div>
+              <div v-if="r.issues.length" class="text-xs text-primary mt-1 truncate">
+                {{ r.issues.join(' · ') }}
+              </div>
+              <div v-else class="text-xs text-success mt-1">All meta tags valid</div>
+            </div>
             <div
               class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"
               :class="[getScoreBg(r.score), getScoreColor(r.score)]"

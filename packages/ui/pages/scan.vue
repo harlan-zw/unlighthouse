@@ -23,10 +23,10 @@ else {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0d0d0d] text-gray-100 flex items-center justify-center px-6">
+  <div class="min-h-screen bg-default text-default flex items-center justify-center px-6">
     <div class="text-center">
-      <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-8 h-8 text-amber-400 mx-auto mb-4" />
-      <p class="text-sm text-gray-400">Redirecting…</p>
+      <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-8 h-8 text-primary mx-auto mb-4" />
+      <p class="text-sm text-muted">Redirecting…</p>
     </div>
   </div>
 </template>

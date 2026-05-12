@@ -7,17 +7,17 @@ const props = defineProps<{
 
 const color = computed(() => {
   if (isOffline.value && props.status !== 'completed' && props.status !== 'failed')
-    return 'bg-gray-700'
+    return 'bg-elevated'
 
   switch (props.status) {
     case 'completed':
-      return 'bg-green-500'
+      return 'bg-success'
     case 'in-progress':
-      return 'bg-yellow-500'
+      return 'bg-warning'
     case 'waiting':
-      return 'bg-gray-500'
+      return 'bg-muted'
     case 'failed':
-      return 'bg-red-500'
+      return 'bg-error'
   }
   return ''
 })

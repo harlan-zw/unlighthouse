@@ -76,7 +76,7 @@ const thumbnail = computed(() => {
         {{ report.route.path }}
       </a>
       <div v-if="report.route.definition?.componentBaseName" class="flex items-center mt-2">
-        <btn-action :disabled="isOffline ? 'disabled' : false" class="inline text-xs opacity-90 rounded-xl px-2 bg-surface dark:hover:bg-teal-700/70 hover:text-white hover:bg-blue-100" title="Open File" @click="openEditorRequest">
+        <btn-action :disabled="isOffline ? 'disabled' : false" class="inline text-xs opacity-90 rounded-xl px-2 bg-elevated/60 border border-default hover:bg-elevated hover:text-default hover:border-accented transition-colors" title="Open File" @click="openEditorRequest">
           <UIcon v-if="report.route.definition.componentBaseName.endsWith('.vue')" name="i-logos-vue" class="h-[8px] inline-block" />
           <UIcon v-else-if="report.route.definition.componentBaseName.endsWith('.md')" name="i-la-markdown" class="h-[12px] mr-1 inline-block" />
           {{ report.route.definition.componentBaseName.split('.')[0] }}

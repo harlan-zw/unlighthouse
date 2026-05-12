@@ -3,6 +3,21 @@
 ## Route
 `/results/performance`
 
+## Status (2026-04-19)
+- [x] Summary stats header (avg score + CWV averages)
+- [x] Core Web Vitals cards (LCP, CLS, TBT) with spectrum bars
+- [x] Other Performance Metrics (FCP, SI, TTFB) with spectrum bars
+- [x] Top Opportunities summary (images, scripts, render-blocking, etc.)
+- [x] Images tab with wasted bytes + issue subtype
+- [x] Third-Party scripts table (entity, TBT)
+- [x] LCP Elements tab (selector, element type, avg LCP)
+- [x] Routes tab with LCP / CLS / TBT per page
+- [x] Render-blocking extractor
+- [x] Unused JS / CSS extractor
+- [x] Font-display extractor
+- [x] Summary `totalWastedMs` now computed from images + non-image resources
+- [x] CrUX field data (LCP / INP / CLS) fetched per-scan via Google CrUX History API, persisted in `scan_crux`, rendered as `CruxMetricCard` with phone/desktop toggle
+
 ## Database Schema
 
 Uses these tables from `packages/core/src/data/history/schema.ts`:

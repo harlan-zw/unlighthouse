@@ -28,7 +28,7 @@
     "test:attw": "attw --pack"
   },
   "dependencies": {
-    "better-sqlite3": "^12.5.0",
+    "better-sqlite3": "^12.10.0",
     "consola": "catalog:dependencies",
     "drizzle-orm": "^0.45.1",
     "fs-extra": "catalog:dependencies"
@@ -36,6 +36,6 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/fs-extra": "catalog:",
-    "drizzle-kit": "^0.31.8"
+    "drizzle-kit": "^0.31.10"
   }
 }

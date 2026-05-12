@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { useLogger } from '../../logger'
 import { processScanData } from '../../process'
+import { fetchCruxHistory, getSiteOrigin } from '../../providers/crux'
 import { useUnlighthouse } from '../../unlighthouse'
 import { createReportsArtifactBasePath } from '../../util'
 import * as history from './index'
@@ -30,6 +31,7 @@ function extractCwvMetrics(lhr: any) {
     fcp: getNumeric('first-contentful-paint'),
     si: getNumeric('speed-index'),
     ttfb: getNumeric('server-response-time'),
+    inp: getNumeric('interaction-to-next-paint'),
   }
 }
 
@@ -55,6 +57,8 @@ function createHistorySession() {
 
   logger.debug(`Creating history record for scan: ${currentScanId}`)
 
+  const build = resolvedConfig.ci?.build
+  const env = process.env
   history.createScan(resolvedConfig.outputPath, {
     id: currentScanId,
     site: resolvedConfig.site,
@@ -62,6 +66,9 @@ function createHistorySession() {
     throttle: resolvedConfig.scanner?.throttle || false,
     reportPath: createReportsArtifactBasePath(runtimeSettings.generatedClientPath, currentScanId),
     status: 'running',
+    ciBranch: build?.branch ?? env.GITHUB_REF_NAME ?? env.CI_COMMIT_REF_NAME ?? null,
+    ciCommit: build?.commit ?? env.GITHUB_SHA ?? env.CI_COMMIT_SHA ?? null,
+    ciCommitMessage: build?.commitMessage ?? env.CI_COMMIT_MESSAGE ?? null,
   })
 }
 
@@ -147,6 +154,7 @@ export function initHistoryTracking() {
           fcp: cwvMetrics.fcp ? Math.round(cwvMetrics.fcp) : null,
           si: cwvMetrics.si ? Math.round(cwvMetrics.si) : null,
           ttfb: cwvMetrics.ttfb ? Math.round(cwvMetrics.ttfb) : null,
+          inp: cwvMetrics.inp ? Math.round(cwvMetrics.inp) : null,
         }),
         // Gzipped LHR
         ...(lhrGzip && { lhrGzip }),
@@ -175,10 +183,37 @@ export function initHistoryTracking() {
 
     // Process scan data for dashboard views, passing collected HTML data
     const db = history.getHistoryDb(resolvedConfig.outputPath)
+    const compareCfg = resolvedConfig.ci?.comparison
     logger.debug(`Processing dashboard data for scan: ${currentScanId} with ${htmlDataMap.size} HTML entries`)
-    processScanData(db, currentScanId, htmlDataMap).catch((err) => {
+    processScanData(db, currentScanId, htmlDataMap, {
+      compare: compareCfg?.enabled !== false,
+      thresholds: compareCfg?.thresholds,
+    }).catch((err) => {
       logger.error(`Failed to process scan data: ${err}`)
     })
+
+    // Fetch CrUX history for phone + desktop and persist
+    if (resolvedConfig.googleApiKey && resolvedConfig.site) {
+      const origin = getSiteOrigin(resolvedConfig.site)
+      const hostname = new URL(origin).host
+      const scanId = currentScanId
+      for (const formFactor of ['PHONE', 'DESKTOP'] as const) {
+        fetchCruxHistory({ apiKey: resolvedConfig.googleApiKey, origin, formFactor })
+          .then((series) => {
+            if (!series.lcp.length && !series.inp.length && !series.cls.length)
+              return
+            history.upsertScanCrux(resolvedConfig.outputPath, {
+              scanId,
+              hostname,
+              formFactor,
+              seriesJson: JSON.stringify(series),
+            })
+          })
+          .catch((err) => {
+            logger.warn(`CrUX fetch failed (${formFactor}): ${err.message}`)
+          })
+      }
+    }
   })
 
   hooks.hook('worker-cancelled', () => {

@@ -196,22 +196,22 @@ function onUrlBlur() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0d0d0d] text-gray-100">
+  <div class="min-h-screen bg-default text-default">
     <!-- Header -->
-    <header class="border-b border-white/5 bg-[#0d0d0d]/80 backdrop-blur-sm sticky top-0 z-50">
+    <header class="border-b border-default bg-default/80 backdrop-blur-sm sticky top-0 z-50">
       <div class="max-w-[1800px] mx-auto px-6 h-14 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <NuxtLink to="/" class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-white" />
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-highlighted" />
             </div>
             <span class="font-semibold text-lg tracking-tight">Unlighthouse</span>
           </NuxtLink>
-          <div class="h-5 w-px bg-white/10" />
-          <span class="text-sm text-gray-400">New Scan</span>
+          <div class="h-5 w-px bg-elevated" />
+          <span class="text-sm text-muted">New Scan</span>
         </div>
 
-        <NuxtLink :to="hasHistory ? '/history' : '/'" class="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+        <NuxtLink :to="hasHistory ? '/history' : '/'" class="text-sm text-muted hover:text-default transition-colors flex items-center gap-2">
           <UIcon name="i-heroicons-arrow-left" class="w-4 h-4" />
           {{ hasHistory ? 'Back' : 'Home' }}
         </NuxtLink>
@@ -222,15 +222,15 @@ function onUrlBlur() {
     <main class="max-w-2xl mx-auto py-16 px-6">
       <div
         v-if="activeScanId"
-        class="mb-8 rounded-2xl border border-amber-500/20 bg-amber-500/8 p-5"
+        class="mb-8 rounded-2xl border border-primary/20 bg-primary/8 p-5"
       >
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p class="text-sm font-medium text-amber-300">
+            <p class="text-sm font-medium text-warning">
               {{ scanConflictMessage || 'A scan is already in progress.' }}
             </p>
-            <p class="mt-1 text-sm text-gray-400">
-              Resume the current run for <span class="font-mono text-gray-200">{{ activeScanSite || 'this site' }}</span> or cancel it from the progress page before starting another one.
+            <p class="mt-1 text-sm text-muted">
+              Resume the current run for <span class="font-mono text-toned">{{ activeScanSite || 'this site' }}</span> or cancel it from the progress page before starting another one.
             </p>
           </div>
           <UButton
@@ -245,13 +245,13 @@ function onUrlBlur() {
 
       <div class="text-center mb-12">
         <h1 class="text-3xl font-bold mb-3">Start a New Scan</h1>
-        <p class="text-gray-400">Enter a URL to scan your site with Lighthouse</p>
+        <p class="text-muted">Enter a URL to scan your site with Lighthouse</p>
       </div>
 
       <form class="space-y-8" @submit.prevent="startScan">
         <!-- URL Input -->
         <div class="relative">
-          <label for="scan-url" class="block text-sm font-medium text-gray-300 mb-2">Website URL</label>
+          <label for="scan-url" class="block text-sm font-medium text-toned mb-2">Website URL</label>
           <UInput
             id="scan-url"
             v-model="form.url"
@@ -262,28 +262,28 @@ function onUrlBlur() {
             placeholder="https://example.com…"
             size="xl"
             icon="i-heroicons-globe-alt"
-            :ui="{ base: 'bg-white/5 border-white/10 focus:border-amber-500/50 focus:ring-amber-500/20' }"
+            :ui="{ base: 'bg-elevated/60 border-default focus:border-primary/50 focus:ring-primary/20' }"
             @focus="onUrlFocus"
             @blur="onUrlBlur"
           />
-          <p v-if="urlError" aria-live="polite" class="mt-2 text-sm text-red-400">{{ urlError }}</p>
+          <p v-if="urlError" aria-live="polite" class="mt-2 text-sm text-error">{{ urlError }}</p>
 
           <!-- Recent URLs Dropdown -->
           <div
             v-if="showRecentUrls && recentUrls.length > 0"
-            class="absolute z-10 w-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl overflow-hidden"
+            class="absolute z-10 w-full mt-1 bg-elevated border border-default rounded-lg shadow-xl overflow-hidden"
           >
-            <div class="px-3 py-2 text-xs text-gray-500 uppercase tracking-wider border-b border-white/5">
+            <div class="px-3 py-2 text-xs text-dimmed uppercase tracking-wider border-b border-default">
               Recent scans
             </div>
             <button
               v-for="url in recentUrls"
               :key="url"
               type="button"
-              class="w-full px-3 py-2.5 text-left font-mono text-sm text-gray-300 hover:bg-white/5 hover:text-amber-400 transition-colors flex items-center gap-2"
+              class="w-full px-3 py-2.5 text-left font-mono text-sm text-toned hover:bg-elevated/60 hover:text-primary transition-colors flex items-center gap-2"
               @click="selectRecentUrl(url)"
             >
-              <UIcon name="i-heroicons-clock" class="w-4 h-4 text-gray-500" />
+              <UIcon name="i-heroicons-clock" class="w-4 h-4 text-dimmed" />
               {{ url }}
             </button>
           </div>
@@ -291,7 +291,7 @@ function onUrlBlur() {
 
         <!-- Presets -->
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-3">Scan Type</label>
+          <label class="block text-sm font-medium text-toned mb-3">Scan Type</label>
           <div class="grid grid-cols-3 gap-3">
             <button
               v-for="preset in presets"
@@ -299,8 +299,8 @@ function onUrlBlur() {
               type="button"
               class="flex flex-col items-center gap-2 p-4 rounded-lg border transition-all"
               :class="activePreset === preset.id
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'"
+                ? 'bg-primary/10 border-primary/30 text-primary'
+                : 'bg-elevated/60 border-default text-muted hover:border-default'"
               @click="applyPreset(preset)"
             >
               <UIcon :name="preset.icon" class="w-6 h-6" />
@@ -313,7 +313,7 @@ function onUrlBlur() {
         <!-- Advanced Options Toggle -->
         <button
           type="button"
-          class="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+          class="flex items-center gap-2 text-sm text-muted hover:text-default transition-colors"
           @click="showAdvanced = !showAdvanced"
         >
           <UIcon
@@ -324,17 +324,17 @@ function onUrlBlur() {
         </button>
 
         <!-- Advanced Options -->
-        <div v-if="showAdvanced" class="space-y-6 pl-6 border-l border-white/5">
+        <div v-if="showAdvanced" class="space-y-6 pl-6 border-l border-default">
           <!-- Device Toggle -->
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-3">Device</label>
+            <label class="block text-sm font-medium text-toned mb-3">Device</label>
             <div class="flex gap-3">
               <button
                 type="button"
                 class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all"
                 :class="form.device === 'mobile'
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'"
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-elevated/60 border-default text-muted hover:border-default'"
                 @click="form.device = 'mobile'"
               >
                 <UIcon name="i-heroicons-device-phone-mobile" class="w-5 h-5" />
@@ -344,8 +344,8 @@ function onUrlBlur() {
                 type="button"
                 class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all"
                 :class="form.device === 'desktop'
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'"
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-elevated/60 border-default text-muted hover:border-default'"
                 @click="form.device = 'desktop'"
               >
                 <UIcon name="i-heroicons-computer-desktop" class="w-5 h-5" />
@@ -355,17 +355,17 @@ function onUrlBlur() {
           </div>
 
           <!-- Throttling Toggle -->
-          <div class="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-lg">
+          <div class="flex items-center justify-between p-4 bg-elevated/40 border border-default rounded-lg">
             <div>
               <div class="font-medium">Network Throttling</div>
-              <div class="text-sm text-gray-500">Simulate slower network conditions</div>
+              <div class="text-sm text-dimmed">Simulate slower network conditions</div>
             </div>
             <USwitch v-model="form.throttle" />
           </div>
 
           <!-- Sample Size -->
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-3">Sample Size</label>
+            <label class="block text-sm font-medium text-toned mb-3">Sample Size</label>
             <div class="grid grid-cols-4 gap-2">
               <button
                 v-for="option in sampleSizeOptions"
@@ -373,8 +373,8 @@ function onUrlBlur() {
                 type="button"
                 class="px-3 py-2 rounded-lg border text-sm transition-all"
                 :class="form.sampleSize === option.value
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'"
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-elevated/60 border-default text-muted hover:border-default'"
                 @click="form.sampleSize = option.value"
               >
                 {{ option.label }}
@@ -384,7 +384,7 @@ function onUrlBlur() {
 
           <!-- Categories -->
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-3">Categories</label>
+            <label class="block text-sm font-medium text-toned mb-3">Categories</label>
             <div class="grid grid-cols-2 gap-2">
               <button
                 v-for="cat in categoryOptions"
@@ -392,8 +392,8 @@ function onUrlBlur() {
                 type="button"
                 class="flex items-center gap-2 px-4 py-3 rounded-lg border text-sm transition-all"
                 :class="form.categories.includes(cat.value)
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'"
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-elevated/60 border-default text-muted hover:border-default'"
                 @click="toggleCategory(cat.value)"
               >
                 <UIcon :name="cat.icon" class="w-4 h-4" />

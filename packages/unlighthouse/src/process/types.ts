@@ -34,6 +34,7 @@ export interface ExtractedRoute {
   fcp: number | null
   si: number | null
   ttfb: number | null
+  inp: number | null
   scores: {
     performance: number | null
     accessibility: number | null

@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@nuxt/ui": "catalog:dependencies",
+    "@unovis/ts": "catalog:dependencies",
+    "@unovis/vue": "catalog:dependencies",
     "@vueuse/core": "catalog:dependencies",
     "date-fns": "catalog:dependencies",
     "fuse.js": "catalog:dependencies",

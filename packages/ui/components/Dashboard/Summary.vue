@@ -8,7 +8,7 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div class="mb-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+  <div class="mb-6 p-4 rounded-xl bg-elevated/40 border border-default">
     <div class="flex items-center gap-6">
       <!-- Main Score -->
       <div class="flex items-center gap-4">
@@ -19,27 +19,27 @@ const props = defineProps<{
           {{ score ?? '-' }}
         </div>
         <div>
-          <div class="text-xs text-gray-500 uppercase tracking-wider">Avg Score</div>
-          <div class="text-sm text-gray-400 mt-0.5">
-            <span v-if="score !== null && score >= 90" class="text-green-400">Good</span>
-            <span v-else-if="score !== null && score >= 50" class="text-amber-400">Needs Work</span>
-            <span v-else-if="score !== null" class="text-red-400">Poor</span>
+          <div class="text-xs text-dimmed uppercase tracking-wider">Avg Score</div>
+          <div class="text-sm text-muted mt-0.5">
+            <span v-if="score !== null && score >= 90" class="text-success">Good</span>
+            <span v-else-if="score !== null && score >= 50" class="text-warning">Needs Work</span>
+            <span v-else-if="score !== null" class="text-error">Poor</span>
             <span v-else>No data</span>
           </div>
         </div>
       </div>
 
-      <div class="h-10 w-px bg-white/10" />
+      <div class="h-10 w-px bg-elevated" />
 
       <!-- Stats -->
       <div class="flex items-center gap-6 flex-1">
         <div v-for="stat in stats" :key="stat.label" class="flex items-center gap-2">
-          <UIcon v-if="stat.icon" :name="stat.icon" class="w-4 h-4 text-gray-500" />
+          <UIcon v-if="stat.icon" :name="stat.icon" class="w-4 h-4 text-dimmed" />
           <div>
-            <div class="text-lg font-mono font-semibold" :class="stat.color || 'text-white'">
+            <div class="text-lg font-mono font-semibold" :class="stat.color || 'text-highlighted'">
               {{ stat.value }}
             </div>
-            <div class="text-xs text-gray-500">{{ stat.label }}</div>
+            <div class="text-xs text-dimmed">{{ stat.label }}</div>
           </div>
         </div>
       </div>
