@@ -2,7 +2,7 @@ import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from 'unlighthou
 import Fuse from 'fuse.js'
 import { get, isEmpty, orderBy } from 'lodash-es'
 import { unlighthouseReports } from './state'
-import { configColumns, groupRoutesKey } from './unlighthouse'
+import { useUnlighthouseConfig } from './useUnlighthouseConfig'
 
 export interface Sorting {
   key?: string
@@ -16,7 +16,10 @@ export const page = ref(1)
 export const perPage = 10
 
 // Computed columns
-export const columns = computed(() => Object.values(configColumns.value))
+export const columns = computed(() => {
+  const { configColumns } = useUnlighthouseConfig()
+  return Object.values(configColumns.value)
+})
 
 export function incrementSort(key: string) {
   const val = sorting.value
@@ -77,6 +80,7 @@ export const searchResults = computed<UnlighthouseRouteReport[]>(() => {
 
   // Apply sorting
   const sortVal = sorting.value
+  const { groupRoutesKey } = useUnlighthouseConfig()
   const grKey = groupRoutesKey.value
 
   if (sortVal.key) {

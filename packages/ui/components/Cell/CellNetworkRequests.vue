@@ -1,27 +1,56 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
 import { get, groupBy, sum } from 'lodash-es'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
 }>()
 
-const value = computed(() => get(props.report, props.column.key))
+const { website } = useUnlighthouseConfig()
 
-type GroupedItems = [{ transferSize: number, resourceType: string }[]]
+interface NetworkRequestItem {
+  resourceType: string
+  transferSize: number
+  url: string
+  networkEndTime: number
+  networkRequestTime: number
+}
 
-const requests = computed<GroupedItems>(() => {
-  return groupBy(value.value?.details?.items || [], i => i.resourceType) as unknown as GroupedItems
+interface NetworkRequestsAudit {
+  details?: {
+    items?: NetworkRequestItem[]
+  }
+}
+
+interface RequestGroup {
+  count: number
+  items: NetworkRequestItem[]
+  size: string
+}
+
+const value = computed<NetworkRequestsAudit | undefined>(() => {
+  if (!props.column.key)
+    return undefined
+  return get(props.report, props.column.key) as NetworkRequestsAudit | undefined
 })
 
-const totalTransfer = computed(() => formatBytes(sum(value.value?.details?.items.map(i => i.transferSize))))
+const items = computed(() => value.value?.details?.items ?? [])
+
+const requests = computed<Record<string, NetworkRequestItem[]>>(() => {
+  return groupBy(items.value, i => i.resourceType)
+})
+
+const totalTransfer = computed(() => formatBytes(sum(items.value.map(i => i.transferSize))))
 
 const requestsMapped = computed(() => {
-  const res: Record<string, { count: number, size: string }> = {}
+  const res: Record<string, RequestGroup> = {}
 
   for (const resourceType in requests.value) {
     const items = requests.value[resourceType]
+    if (!items)
+      continue
     res[resourceType] = {
       count: items.length,
       items,
@@ -36,7 +65,7 @@ const requestsMapped = computed(() => {
   <div v-if="value" class="text-sm">
     <div class="opacity-90 flex items-center mb-1">
       <span>{{ totalTransfer }}</span>
-      <span class="opacity-70 ml-1">{{ value.details.items.length }} total</span>
+      <span class="opacity-70 ml-1">{{ items.length }} total</span>
     </div>
     <div class="grid gap-2 grid-cols-2">
       <div v-for="(group, resourceType) in requestsMapped" :key="resourceType" class="text-xs flex items-center">

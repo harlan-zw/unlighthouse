@@ -8,6 +8,14 @@ import { reportJsonExpanded } from './jsonExpanded'
 import { reportJsonSimple } from './jsonSimple'
 import { reportLighthouseServer } from './lighthouseServer'
 
+type ReportWithLighthouse = UnlighthouseRouteReport & {
+  report: NonNullable<UnlighthouseRouteReport['report']>
+}
+
+function hasLighthouseReport(report: UnlighthouseRouteReport): report is ReportWithLighthouse {
+  return !!report.report?.categories && !!report.report.audits
+}
+
 export function generateReportPayload(reporter: 'lighthouseServer', reports: UnlighthouseRouteReport[], config?: ReporterConfig): Promise<void>
 export function generateReportPayload(reporter: 'jsonExpanded', reports: UnlighthouseRouteReport[]): ReportJsonExpanded
 export function generateReportPayload(reporter: 'jsonSimple' | 'json', reports: UnlighthouseRouteReport[]): ReportJsonSimple
@@ -16,11 +24,7 @@ export function generateReportPayload(reporter: 'csvExpanded', reports: Unlighth
 export function generateReportPayload(reporter: string, _reports: UnlighthouseRouteReport[], config?: ReporterConfig): any {
   const reports = _reports
     .sort((a, b) => a.route.path.localeCompare(b.route.path))
-    .filter((r) => {
-      if (!r.report?.categories)
-        return false
-      return r.report.audits
-    })
+    .filter(hasLighthouseReport)
 
   if (reporter.startsWith('json')) {
     if (reporter === 'jsonSimple' || reporter === 'json')
@@ -32,15 +36,18 @@ export function generateReportPayload(reporter: string, _reports: UnlighthouseRo
     if (reporter === 'csvSimple' || reporter === 'csv')
       return reportCSVSimple(reports)
     if (reporter === 'csvExpanded')
-      return reportCSVExpanded(reports, config)
+      return reportCSVExpanded(reports, config ?? {})
   }
   if (reporter === 'lighthouseServer')
-    return reportLighthouseServer(reports, config)
+    return reportLighthouseServer(reports, config ?? {})
 
   throw new Error(`Unsupported reporter: ${reporter}.`)
 }
 
 export async function outputReport(reporter: string, config: Partial<ResolvedUserConfig>, payload: any) {
+  if (!config.outputPath)
+    throw new Error('Cannot output report without an outputPath.')
+
   if (reporter.startsWith('json')) {
     const path = join(config.outputPath, 'ci-result.json')
     await fse.writeJson(path, payload, { spaces: 2 })

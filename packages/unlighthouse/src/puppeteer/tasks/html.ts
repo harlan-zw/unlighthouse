@@ -12,6 +12,19 @@ import { fetchUrlRaw, ReportArtifacts } from '../../util'
 import { isImplicitOrExplicitHtml } from '../../util/filter'
 import { setupPage } from '../util'
 
+interface ExtractedElement {
+  textContent?: string
+  attributes?: Record<string, string | undefined>
+}
+
+function headerIncludes(value: unknown, needle: string) {
+  if (typeof value === 'string')
+    return value.includes(needle)
+  if (Array.isArray(value))
+    return value.some(item => typeof item === 'string' && item.includes(needle))
+  return false
+}
+
 export const extractHtmlPayload: (page: Page, route: string) => Promise<{ success: boolean, redirected?: false | string, message?: string, payload?: string }> = async (page, route) => {
   const { worker, resolvedConfig } = useUnlighthouse()
 
@@ -22,7 +35,8 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
       return { success: false, message: `Invalid response from URL ${route} code: ${response?.status || '404'}.` }
 
     // ignore non-html
-    if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html'))
+    const contentType = response.headers['content-type']
+    if (contentType && !headerIncludes(contentType, 'text/html'))
       return { success: false, message: `Non-HTML Content-Type header: ${response.headers['content-type']}.` }
 
     // ensure we have valid HTML content
@@ -114,7 +128,7 @@ export function processSeoMeta(html: string, url: string): HTMLExtractPayload {
   const og: HTMLExtractPayload['og'] = {}
   const twitter: HTMLExtractPayload['twitter'] = {}
 
-  const extraction = {
+  const extraction: Record<string, (element: ExtractedElement) => void> = {
     'title': (element) => {
       if (!title && element.textContent)
         title = element.textContent.trim()
@@ -251,7 +265,7 @@ export function extractSeoAndLinks(html: string, url: string, siteUrl: string): 
 
   const origin = new URL(url).origin
 
-  const extraction = {
+  const extraction: Record<string, (element: ExtractedElement) => void> = {
     'title': (element) => {
       if (!title && element.textContent)
         title = element.textContent.trim()

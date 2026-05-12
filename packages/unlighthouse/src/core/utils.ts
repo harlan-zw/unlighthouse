@@ -4,7 +4,7 @@ import { extractInsights } from './extract'
 
 export function normaliseLighthouseResult(result: Result): UnlighthouseReport {
   return {
-    url: result.requestedUrl || result.finalUrl,
+    url: result.requestedUrl || result.finalUrl || result.finalDisplayedUrl,
     fetchTime: result.fetchTime,
     insights: extractInsights(result),
     raw: result,

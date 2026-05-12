@@ -14,11 +14,13 @@ export interface MetricScore {
 
 export interface SimpleRouteReport {
   path: string
-  score?: number | string | null
-  [key: string]: string | number | null
+  score?: number | string | null | undefined
+  [key: string]: string | number | null | undefined
 }
 
-export interface ExpandedRouteReport extends SimpleRouteReport {
+export interface ExpandedRouteReport {
+  path: string
+  score: number
   categories: {
     [key: string]: CategoryScore
   }

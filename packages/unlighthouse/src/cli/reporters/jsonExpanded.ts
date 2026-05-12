@@ -78,7 +78,7 @@ export function reportJsonExpanded(reports: UnlighthouseRouteReport[]): ReportJs
   const summary = {
     score: Number.parseFloat(
       (
-        routes.reduce((prev, curr) => prev + curr.score, 0) / routes.length
+        routes.reduce((prev, curr) => prev + curr.score, 0) / (routes.length || 1)
       ).toFixed(2),
     ),
     categories: averageCategories,
@@ -116,13 +116,13 @@ function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
     ) => {
       const averageScore = Number.parseFloat(
         (
-          categoriesWithAllScores[key].scores.reduce(
+          (categoriesWithAllScores[key]?.scores ?? []).reduce(
             (prev, curr) => prev + curr,
             0,
-          ) / categoriesWithAllScores[key].scores.length
+          ) / (categoriesWithAllScores[key]?.scores.length || 1)
         ).toFixed(2),
       )
-      const { ...strippedCategory } = categoriesWithAllScores[key]
+      const { ...strippedCategory } = categoriesWithAllScores[key]!
       return { ...prev, [key]: { ...strippedCategory, averageScore } }
     },
     {} as {
@@ -153,14 +153,14 @@ function extractMetricsFromRoutes(routes: ExpandedRouteReport[]) {
     (prev: { [key: string]: MetricAverageScore }, key: string) => {
       const averageNumericValue = Number.parseFloat(
         (
-          metricsWithAllNumericValues[key].numericValues.reduce(
+          (metricsWithAllNumericValues[key]?.numericValues ?? []).reduce(
             (prev, curr) => prev + curr,
             0,
-          ) / metricsWithAllNumericValues[key].numericValues.length
+          ) / (metricsWithAllNumericValues[key]?.numericValues.length || 1)
         ).toFixed(2),
       )
       const { ...strippedMetric }
-        = metricsWithAllNumericValues[key]
+        = metricsWithAllNumericValues[key]!
       return { ...prev, [key]: { ...strippedMetric, averageNumericValue } }
     },
     {} as { [key: string]: MetricAverageScore },

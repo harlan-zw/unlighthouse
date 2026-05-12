@@ -75,7 +75,7 @@ async function run() {
 
   const { server, app } = await createServer()
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  const { routes } = await unlighthouse.start()
+  const { routes = [] } = await unlighthouse.start()
   const logger = useLogger()
   if (!routes.length) {
     logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')

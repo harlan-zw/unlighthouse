@@ -2,7 +2,7 @@
 import { useDashboard, getScoreColor, getScoreBg, formatMs } from '~/composables/dashboard'
 import { formatBytes } from '~/utils'
 
-definePageMeta({ layout: 'dashboard' })
+definePageMeta({ layout: 'site' })
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string)
@@ -45,7 +45,9 @@ const tabs = [
 ]
 
 // Web Vitals thresholds (Google's Core Web Vitals thresholds)
-const vitalsThresholds: Record<string, { good: number, poor: number, unit: string, label: string, abbr: string, decimals?: number }> = {
+type VitalKey = 'lcp' | 'cls' | 'tbt' | 'fcp' | 'si' | 'ttfb'
+
+const vitalsThresholds: Record<VitalKey, { good: number, poor: number, unit: string, label: string, abbr: string, decimals?: number }> = {
   lcp: { good: 2500, poor: 4000, unit: 'ms', label: 'Largest Contentful Paint', abbr: 'LCP' },
   cls: { good: 0.1, poor: 0.25, unit: '', label: 'Cumulative Layout Shift', abbr: 'CLS', decimals: 3 },
   tbt: { good: 200, poor: 600, unit: 'ms', label: 'Total Blocking Time', abbr: 'TBT' },
@@ -54,7 +56,9 @@ const vitalsThresholds: Record<string, { good: number, poor: number, unit: strin
   ttfb: { good: 800, poor: 1800, unit: 'ms', label: 'Time to First Byte', abbr: 'TTFB' },
 }
 
-const getVitalRating = (value: number, metric: keyof typeof vitalsThresholds) => {
+const vitalKeys = Object.keys(vitalsThresholds) as VitalKey[]
+
+const getVitalRating = (value: number, metric: VitalKey) => {
   const threshold = vitalsThresholds[metric]
   if (value <= threshold.good) return 'good'
   if (value <= threshold.poor) return 'needs-improvement'
@@ -92,7 +96,7 @@ const webVitals = computed(() => {
     return valid.reduce((a, r) => a + ((r as any)[key] ?? 0), 0) / valid.length
   }
 
-  return Object.keys(vitalsThresholds).map((key) => {
+  return vitalKeys.map((key) => {
     const avg = calcAvg(key)
     if (avg === null) return null
     const threshold = vitalsThresholds[key]

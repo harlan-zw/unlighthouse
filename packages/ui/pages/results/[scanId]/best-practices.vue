@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useDashboard, getScoreColor, getScoreBg } from '~/composables/dashboard'
 
-definePageMeta({ layout: 'dashboard' })
+definePageMeta({ layout: 'site' })
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string)

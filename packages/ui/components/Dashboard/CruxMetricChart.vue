@@ -120,11 +120,14 @@ const combinedData = computed(() => {
   })
 
   for (let i = 0; i < result.length; i++) {
-    if (!result[i].has && result[i].p75 != null) {
-      if (i > 0 && result[i - 1].has)
-        result[i - 1].p75Dashed = result[i - 1].p75!
-      if (i < result.length - 1 && result[i + 1]?.has)
-        result[i + 1].p75Dashed = result[i + 1].p75!
+    const row = result[i]
+    if (row && !row.has && row.p75 != null) {
+      const prev = result[i - 1]
+      const next = result[i + 1]
+      if (prev?.has)
+        prev.p75Dashed = prev.p75!
+      if (next?.has)
+        next.p75Dashed = next.p75!
     }
   }
 

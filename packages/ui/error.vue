@@ -10,7 +10,7 @@ const props = defineProps<{
 const router = useRouter()
 
 function handleError() {
-  clearError({ redirect: '/onboarding' })
+  clearError({ redirect: '/' })
 }
 
 const errorTitle = computed(() => {

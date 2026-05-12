@@ -1,16 +1,31 @@
 <script setup lang="ts">
-import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse/src'
+import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const props = defineProps<{
   item: any
   report: UnlighthouseRouteReport
   column: UnlighthouseColumn
-  size: { width: number, height: number }
+  size: Size
 }>()
+
+const { resolveArtifactPath } = useUnlighthouseConfig()
+
+interface Rect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+interface Size {
+  width: number
+  height: number
+}
 
 const maxRenderSizeDC = props.size
 
-function computeZoomFactor(elementRectSC, renderContainerSizeDC) {
+function computeZoomFactor(elementRectSC: Rect, renderContainerSizeDC: Size) {
   const targetClipToViewportRatio = 0.75
   const zoomRatioXY = {
     x: renderContainerSizeDC.width / elementRectSC.width,
@@ -20,14 +35,14 @@ function computeZoomFactor(elementRectSC, renderContainerSizeDC) {
   return Math.min(1, zoomFactor)
 }
 
-function getScreenshotPositions(elementRectSC, elementPreviewSizeSC, screenshotSize) {
-  function getElementRectCenterPoint(rect) {
+function getScreenshotPositions(elementRectSC: Rect, elementPreviewSizeSC: Size, screenshotSize: Size) {
+  function getElementRectCenterPoint(rect: Rect) {
     return {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2,
     }
   }
-  function clamp(value, min, max) {
+  function clamp(value: number, min: number, max: number) {
     if (value < min)
       return min
     if (value > max)
@@ -61,7 +76,7 @@ function getScreenshotPositions(elementRectSC, elementPreviewSizeSC, screenshotS
   }
 }
 
-const screenshot = ref(null)
+const screenshot = ref<Size | null>(null)
 
 onMounted(() => {
   const img = new Image()

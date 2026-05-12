@@ -97,7 +97,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Frame Counter -->
-          <div class="absolute top-2 right-2 glass-elevated text-highlighted px-3 py-1 rounded text-sm">
+          <div class="absolute top-2 right-2 bg-elevated ring-1 ring-default text-highlighted px-3 py-1 rounded text-sm shadow-sm">
             <div>
               Frame {{ currentFrame + 1 }} / {{ totalFrames }}
             </div>

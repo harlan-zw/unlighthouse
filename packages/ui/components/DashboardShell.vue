@@ -24,8 +24,8 @@ function closeNav() {
     >
       <div class="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         <NuxtLink :to="logoTo" class="flex items-center gap-2 px-2 font-semibold text-base text-highlighted">
-          <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0">
-            <UIcon name="i-heroicons-light-bulb" class="w-4 h-4 text-white" />
+          <div class="w-7 h-7 rounded-lg bg-elevated ring-1 ring-default flex items-center justify-center shrink-0">
+            <UIcon name="i-heroicons-light-bulb" class="w-4 h-4 text-highlighted" />
           </div>
           Unlighthouse
         </NuxtLink>
@@ -52,8 +52,8 @@ function closeNav() {
           <span class="ml-2">Menu</span>
         </UButton>
         <NuxtLink :to="logoTo" class="flex items-center gap-2 font-semibold text-sm text-highlighted">
-          <div class="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-            <UIcon name="i-heroicons-light-bulb" class="w-3.5 h-3.5 text-white" />
+          <div class="w-6 h-6 rounded-md bg-elevated ring-1 ring-default flex items-center justify-center">
+            <UIcon name="i-heroicons-light-bulb" class="w-3.5 h-3.5 text-highlighted" />
           </div>
           Unlighthouse
         </NuxtLink>

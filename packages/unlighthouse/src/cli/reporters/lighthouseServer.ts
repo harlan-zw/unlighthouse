@@ -18,6 +18,11 @@ export async function reportLighthouseServer(
   reports: UnlighthouseRouteReport[],
   { lhciBuildToken, lhciHost, lhciAuth }: ReporterConfig,
 ): Promise<void> {
+  if (!lhciBuildToken || !lhciHost) {
+    handleError('Lighthouse CI server reporting requires lhciHost and lhciBuildToken.')
+    return
+  }
+
   try {
     const api = new ApiClient({
       fetch,

@@ -13,7 +13,7 @@ const emit = defineEmits<{
 const router = useRouter()
 
 function goHome() {
-  router.push('/onboarding')
+  router.push('/')
 }
 </script>
 

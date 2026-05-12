@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import Fuse from 'fuse.js'
+import { getScoreBg, getScoreColor } from '~/composables/dashboard'
+import { page, perPage, searchText } from '~/composables/search'
 import {
-  lighthouseReportModalOpen,
   iframeModalUrl,
+  lighthouseReportModalOpen,
   unlighthouseReports as liveReports,
-  wsConnect,
-  refreshScanMeta,
   openLighthouseReportIframeModal,
+  refreshScanMeta,
+  useReportsStream,
 } from '~/composables/state'
-import { searchText, page, perPage } from '~/composables/search'
-import { isStatic, resolveArtifactPath, apiUrl } from '~/composables/unlighthouse'
-import { getScoreColor, getScoreBg } from '~/composables/dashboard'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
-definePageMeta({ layout: 'dashboard' })
+const { isStatic, resolveArtifactPath, apiUrl } = useUnlighthouseConfig()
+
+definePageMeta({ layout: 'site' })
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string | undefined)
@@ -33,10 +35,10 @@ const reports = computed(() => {
         ? {
             score: r.score,
             categories: {
-              performance: { score: (r.performanceScore || 0) / 100, title: 'Performance' },
-              accessibility: { score: (r.accessibilityScore || 0) / 100, title: 'Accessibility' },
+              'performance': { score: (r.performanceScore || 0) / 100, title: 'Performance' },
+              'accessibility': { score: (r.accessibilityScore || 0) / 100, title: 'Accessibility' },
               'best-practices': { score: (r.bestPracticesScore || 0) / 100, title: 'Best Practices' },
-              seo: { score: (r.seoScore || 0) / 100, title: 'SEO' },
+              'seo': { score: (r.seoScore || 0) / 100, title: 'SEO' },
             },
           }
         : null,
@@ -55,24 +57,27 @@ watch(scanId, async (id) => {
 }, { immediate: true })
 
 // Calculate overall score from category scores
-const getOverallScore = (r: any): number | null => {
-  if (!r.report?.categories) return null
+function getOverallScore(r: any): number | null {
+  if (!r.report?.categories)
+    return null
   const cats = Object.values(r.report.categories) as { score: number }[]
   const scores = cats.map(c => c.score * 100).filter(s => !Number.isNaN(s))
-  if (!scores.length) return null
+  if (!scores.length)
+    return null
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
 }
 
-const getCategoryScore = (r: any, cat: string): number | null => {
+function getCategoryScore(r: any, cat: string): number | null {
   const score = r.report?.categories?.[cat]?.score
   return score != null ? Math.round(score * 100) : null
 }
 
 // Summary stats
-const avgScoreByCategory = (cat: string) => {
+function avgScoreByCategory(cat: string) {
   const data = reports.value || []
   const scores = data.map((r: any) => r.report?.categories?.[cat]?.score).filter((s: any) => s != null)
-  if (!scores.length) return null
+  if (!scores.length)
+    return null
   return Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 100)
 }
 
@@ -82,7 +87,8 @@ const overallAvgScore = computed(() => {
   const bp = avgScoreByCategory('best-practices')
   const seo = avgScoreByCategory('seo')
   const scores = [perf, a11y, bp, seo].filter(s => s !== null) as number[]
-  if (!scores.length) return null
+  if (!scores.length)
+    return null
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
 })
 
@@ -101,7 +107,6 @@ const summaryStats = computed(() => {
     { label: 'SEO', value: seo ?? '-', color: getScoreColor(seo), icon: 'i-heroicons-magnifying-glass' },
   ]
 })
-
 
 // Fuzzy search + sort + filter
 const searchResults = computed((): any[] => {
@@ -159,10 +164,10 @@ const paginatedResults = computed((): any[] => {
 })
 
 const categoryAbbrev: Record<string, string> = {
-  Performance: 'Perf',
-  Accessibility: 'A11y',
+  'Performance': 'Perf',
+  'Accessibility': 'A11y',
   'Best Practices': 'Best',
-  SEO: 'SEO',
+  'SEO': 'SEO',
 }
 
 const sortOptions = [
@@ -183,14 +188,16 @@ const filterOptions = [
 
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
-onMounted(() => {
-  if (isStatic.value || scanId.value) return
-  wsConnect().catch(console.warn)
-  refreshInterval = setInterval(refreshScanMeta, 5000)
-})
+if (!isStatic.value && !scanId.value) {
+  useReportsStream()
+  onMounted(() => {
+    refreshInterval = setInterval(refreshScanMeta, 5000)
+  })
+}
 
 onUnmounted(() => {
-  if (refreshInterval) clearInterval(refreshInterval)
+  if (refreshInterval)
+    clearInterval(refreshInterval)
 })
 </script>
 
@@ -252,7 +259,9 @@ onUnmounted(() => {
     <!-- Empty state -->
     <div v-else-if="paginatedResults.length === 0" class="flex flex-col items-center justify-center py-20">
       <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-dimmed mb-4" />
-      <p class="text-dimmed">No routes found</p>
+      <p class="text-dimmed">
+        No routes found
+      </p>
     </div>
 
     <!-- Results -->
@@ -285,7 +294,9 @@ onUnmounted(() => {
             <div class="flex items-center gap-2 mb-1">
               <span class="font-mono text-xs sm:text-sm text-highlighted truncate">{{ report.route?.path || '/' }}</span>
             </div>
-            <div class="text-xs text-dimmed truncate hidden sm:block">{{ report.route?.url }}</div>
+            <div class="text-xs text-dimmed truncate hidden sm:block">
+              {{ report.route?.url }}
+            </div>
           </div>
 
           <!-- Scores -->
@@ -301,7 +312,9 @@ onUnmounted(() => {
               >
                 {{ (cat as any).score != null ? Math.round((cat as any).score * 100) : '-' }}
               </div>
-              <div class="text-[10px] text-dimmed mt-1 hidden sm:block">{{ categoryAbbrev[(cat as any).title] || (cat as any).title }}</div>
+              <div class="text-[10px] text-dimmed mt-1 hidden sm:block">
+                {{ categoryAbbrev[(cat as any).title] || (cat as any).title }}
+              </div>
             </div>
           </div>
 

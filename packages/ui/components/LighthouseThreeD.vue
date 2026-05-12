@@ -5,6 +5,9 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
 import { ref } from 'vue'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
+
+const { routerPrefix } = useUnlighthouseConfig()
 
 const canvasRef = ref<HTMLCanvasElement>()
 const lighthouseRef = ref<HTMLDivElement>()
@@ -59,8 +62,9 @@ onMounted(() => {
 
   // Load FBX model
   const loader = new FBXLoader()
+  const assetBasePath = routerPrefix.value ? `${routerPrefix.value.replace(/\/$/, '')}/` : '/'
   loader.load(
-    `${basePath}assets/lighthouse.fbx`,
+    `${assetBasePath}assets/lighthouse.fbx`,
     (object: Group) => {
       // Keep original model scale
       // object.scale.setScalar(5)

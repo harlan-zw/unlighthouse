@@ -57,6 +57,7 @@
   "scripts": {
     "build": "obuild",
     "stub": "obuild --stub",
+    "typecheck": "tsc --noEmit",
     "test:attw": "attw --pack"
   },
   "peerDependenciesMeta": {
@@ -121,6 +122,8 @@
     "@types/better-sqlite3": "catalog:",
     "@types/fs-extra": "catalog:",
     "@types/lodash-es": "catalog:",
+    "@types/minimist": "catalog:",
+    "@types/node": "catalog:",
     "@types/object-hash": "catalog:",
     "@types/ws": "catalog:",
     "drizzle-kit": "catalog:"

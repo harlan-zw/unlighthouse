@@ -33,6 +33,9 @@ setMaxListeners(0);
   }
   try {
     const runnerResult = await lighthouse(routeReportJson.route.url, lighthouseOptions)
+    if (!runnerResult)
+      throw new Error('Lighthouse did not return a result.')
+
     fs.writeFileSync(join(routeReportJson.artifactPath, 'lighthouse.json'), runnerResult.report[1])
     fs.writeFileSync(join(routeReportJson.artifactPath, 'lighthouse.html'), runnerResult.report[0])
     return true

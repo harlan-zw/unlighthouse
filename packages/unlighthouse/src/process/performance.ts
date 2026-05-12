@@ -60,7 +60,7 @@ export async function processPerformance(p: ProcessorParams): Promise<Performanc
           url,
           wastedBytes: 0,
           wastedMs: 0,
-          pages: [],
+          pages: [] as string[],
           issues: new Set<string>(),
         }
         existing.wastedBytes += item.wastedBytes ?? 0
@@ -146,7 +146,7 @@ export async function processPerformance(p: ProcessorParams): Promise<Performanc
         entity,
         url: item.url ?? '',
         tbtSum: 0,
-        pages: [],
+        pages: [] as string[],
       }
       existing.tbtSum += item.blockingTime ?? item.mainThreadTime ?? 0
       existing.pages.push(path)
@@ -181,7 +181,7 @@ export async function processPerformance(p: ProcessorParams): Promise<Performanc
       selector,
       elementType: lcpItem.node.nodeLabel?.startsWith('<img') ? 'image' : 'text',
       lcpSum: 0,
-      pages: [],
+      pages: [] as string[],
     }
     existing.lcpSum += route.lcp ?? 0
     existing.pages.push(path)

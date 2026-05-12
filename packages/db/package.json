@@ -25,6 +25,7 @@
   "scripts": {
     "build": "obuild",
     "stub": "obuild --stub",
+    "typecheck": "tsc --noEmit",
     "test:attw": "attw --pack"
   },
   "dependencies": {
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",
     "@types/fs-extra": "catalog:",
+    "@types/node": "catalog:",
     "drizzle-kit": "catalog:"
   }
 }

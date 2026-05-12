@@ -12,6 +12,12 @@ import { useUnlighthouse } from '../unlighthouse'
 import { createReportsArtifactBaseUrl, hasScanScopedArtifacts, sanitiseUrlForFilePath } from '../util'
 import { createBroadcastingEvents } from './broadcasting'
 import { createDashboardApi } from './dashboard'
+import { normaliseRoute } from './util'
+
+function timestamp(value?: string) {
+  const parsed = Date.parse(value || '')
+  return Number.isNaN(parsed) ? 0 : parsed
+}
 
 export async function createApi(app: App): Promise<Router> {
   const logger = useLogger()
@@ -154,7 +160,7 @@ export async function createApi(app: App): Promise<Router> {
 
     // Get last 10 completed routes for live feed
     const recentlyCompleted = completedReports
-      .sort((a, b) => (b.report?.fetchTime || 0) - (a.report?.fetchTime || 0))
+      .sort((a, b) => timestamp(b.report?.fetchTime) - timestamp(a.report?.fetchTime))
       .slice(0, 10)
       .map(r => ({
         path: r.route.path,
@@ -255,7 +261,6 @@ export async function createApi(app: App): Promise<Router> {
     initHistoryTracking()
 
     // Queue the root URL to start discovery
-    const { normaliseRoute } = await import('../discovery')
     const rootRoute = normaliseRoute(url)
     worker.queueRoutes([rootRoute])
 
@@ -303,7 +308,6 @@ export async function createApi(app: App): Promise<Router> {
     initHistoryTracking()
 
     // Queue the root URL to start discovery
-    const { normaliseRoute } = await import('../discovery')
     const rootRoute = normaliseRoute(scan.site)
     worker.queueRoutes([rootRoute])
 
@@ -376,7 +380,7 @@ export async function createApi(app: App): Promise<Router> {
   }))
 
   // Mount router to app with prefix
-  app.use(resolvedConfig.routerPrefix, router)
+  app.use(resolvedConfig.routerPrefix, router.handler)
 
   return router
 }

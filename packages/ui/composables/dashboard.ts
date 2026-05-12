@@ -1,4 +1,4 @@
-import { apiUrl } from './unlighthouse'
+import { useUnlighthouseConfig } from './useUnlighthouseConfig'
 
 export interface DashboardSummary {
   performance: { avgScore: number, issues: number }
@@ -188,6 +188,7 @@ export interface SeoData {
 }
 
 export function useDashboard(scanId: MaybeRef<string | undefined>) {
+  const { apiUrl } = useUnlighthouseConfig()
   const id = computed(() => unref(scanId))
 
   const summary = useLazyFetch<DashboardSummary>(() =>
@@ -233,6 +234,7 @@ export function useDashboard(scanId: MaybeRef<string | undefined>) {
 
 // Helper to get current scan ID
 export async function getCurrentScanId(): Promise<string | null> {
+  const { apiUrl } = useUnlighthouseConfig()
   const data = await $fetch<{ scanId: string | null }>(`${apiUrl.value}/current-scan-id`).catch(() => null)
   return data?.scanId ?? null
 }

@@ -34,7 +34,7 @@ export function createLocalProvider(): UnlighthouseProvider {
       }
 
       return {
-        url: result.lhr.requestedUrl,
+        url: result.lhr.requestedUrl || result.lhr.finalUrl || result.lhr.finalDisplayedUrl,
         fetchTime: result.lhr.fetchTime,
         insights: extractInsights(result.lhr),
         raw: result.lhr,

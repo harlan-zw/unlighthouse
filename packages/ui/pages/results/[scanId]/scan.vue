@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useScan } from '~/composables/scan'
-import { website } from '~/composables/unlighthouse'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
+
+definePageMeta({ layout: 'site' })
+
+const { website } = useUnlighthouseConfig()
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string)
@@ -80,69 +84,41 @@ function goToResults() {
 }
 
 function goBack() {
-  navigateTo('/history')
+  navigateTo('/')
 }
 
 watch(isScanComplete, (complete) => {
   if (complete)
-    setTimeout(() => navigateTo(`/results/${scanId.value}`), 2000)
+    setTimeout(navigateTo, 2000, `/results/${scanId.value}`)
 })
 
-const extractDomain = (url: string) => {
+function extractDomain(url: string) {
   try { return new URL(url).hostname }
   catch { return url }
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-default text-default">
-    <header class="border-b border-default bg-default/80 backdrop-blur-sm sticky top-0 z-50">
-      <div class="max-w-[1800px] mx-auto px-6 h-14 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <NuxtLink to="/" class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-highlighted" />
-            </div>
-            <span class="font-semibold text-lg tracking-tight">Unlighthouse</span>
-          </NuxtLink>
-          <div class="h-5 w-px bg-elevated" />
-          <div v-if="displayWebsite" class="flex items-center gap-2">
-            <img
-              :src="`https://www.google.com/s2/favicons?domain=${extractDomain(displayWebsite)}&sz=32`"
-              :alt="displayWebsite"
-              class="w-5 h-5 rounded"
-              loading="lazy"
-              width="20"
-              height="20"
-            >
-            <a
-              :href="displayWebsite"
-              target="_blank"
-              class="text-sm text-muted hover:text-default transition-colors font-mono"
-            >
-              {{ displayWebsite }}
-            </a>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-4">
-          <UButton variant="ghost" color="neutral" size="sm" @click="goBack">
-            <UIcon name="i-heroicons-arrow-left" class="w-4 h-4 mr-1" />
-            Back
-          </UButton>
-
-          <div
-            class="flex items-center gap-2 px-3 py-1.5 rounded-full border"
-            :class="isScanning ? 'bg-primary/10 border-primary/20' : isScanComplete ? 'bg-success/10 border-success/20' : 'bg-elevated/60 border-default'"
-          >
-            <UIcon :name="currentStatus.icon" class="w-4 h-4" :class="currentStatus.color" />
-            <span class="text-sm" :class="currentStatus.color">{{ currentStatus.label }}</span>
-          </div>
-        </div>
+  <div>
+    <header class="mb-8 flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-semibold text-highlighted">
+          Live scan
+        </h1>
+        <p v-if="displayWebsite" class="text-sm text-muted mt-1 font-mono">
+          {{ extractDomain(displayWebsite) }}
+        </p>
+      </div>
+      <div
+        class="flex items-center gap-2 px-3 py-1.5 rounded-full ring-1"
+        :class="isScanning ? 'bg-primary/10 ring-primary/20' : isScanComplete ? 'bg-success/10 ring-success/20' : 'bg-elevated/60 ring-default'"
+      >
+        <UIcon :name="currentStatus.icon" class="w-4 h-4" :class="currentStatus.color" />
+        <span class="text-sm" :class="currentStatus.color">{{ currentStatus.label }}</span>
       </div>
     </header>
 
-    <main class="max-w-4xl mx-auto py-16 px-6">
+    <main class="max-w-4xl mx-auto">
       <div class="flex flex-col items-center mb-12">
         <div class="relative mb-8">
           <svg :width="ringSize" :height="ringSize" class="-rotate-90">
@@ -193,8 +169,12 @@ const extractDomain = (url: string) => {
             <div class="flex items-start gap-3">
               <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-error mt-0.5 shrink-0" />
               <div>
-                <h3 class="font-medium text-error mb-1">Something went wrong</h3>
-                <p class="text-sm text-muted">{{ scanState.error || 'An unexpected error occurred during the scan.' }}</p>
+                <h3 class="font-medium text-error mb-1">
+                  Something went wrong
+                </h3>
+                <p class="text-sm text-muted">
+                  {{ scanState.error || 'An unexpected error occurred during the scan.' }}
+                </p>
               </div>
             </div>
           </div>
@@ -220,7 +200,7 @@ const extractDomain = (url: string) => {
               color="neutral"
               variant="outline"
               icon="i-heroicons-home"
-              @click="navigateTo('/onboarding')"
+              @click="navigateTo('/sites/add')"
             >
               Start New
             </UButton>
@@ -229,20 +209,36 @@ const extractDomain = (url: string) => {
 
         <div class="flex gap-8 mb-8">
           <div class="text-center">
-            <div class="text-2xl font-mono font-semibold">{{ scanState.progress.discovered }}</div>
-            <div class="text-xs text-dimmed uppercase tracking-wider">Discovered</div>
+            <div class="text-2xl font-mono font-semibold">
+              {{ scanState.progress.discovered }}
+            </div>
+            <div class="text-xs text-dimmed uppercase tracking-wider">
+              Discovered
+            </div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-mono font-semibold text-success">{{ scanState.progress.scanned }}</div>
-            <div class="text-xs text-dimmed uppercase tracking-wider">Scanned</div>
+            <div class="text-2xl font-mono font-semibold text-success">
+              {{ scanState.progress.scanned }}
+            </div>
+            <div class="text-xs text-dimmed uppercase tracking-wider">
+              Scanned
+            </div>
           </div>
           <div v-if="scanState.progress.failed > 0" class="text-center">
-            <div class="text-2xl font-mono font-semibold text-error">{{ scanState.progress.failed }}</div>
-            <div class="text-xs text-dimmed uppercase tracking-wider">Failed</div>
+            <div class="text-2xl font-mono font-semibold text-error">
+              {{ scanState.progress.failed }}
+            </div>
+            <div class="text-xs text-dimmed uppercase tracking-wider">
+              Failed
+            </div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-mono font-semibold">{{ formatTimeRemaining(scanState.estimatedTimeRemaining) }}</div>
-            <div class="text-xs text-dimmed uppercase tracking-wider">Remaining</div>
+            <div class="text-2xl font-mono font-semibold">
+              {{ formatTimeRemaining(scanState.estimatedTimeRemaining) }}
+            </div>
+            <div class="text-xs text-dimmed uppercase tracking-wider">
+              Remaining
+            </div>
           </div>
         </div>
 
@@ -293,7 +289,9 @@ const extractDomain = (url: string) => {
       </div>
 
       <div v-if="scanState.recentlyCompleted.length > 0" class="bg-elevated/40 border border-default rounded-xl p-6">
-        <h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-4">Recently Completed</h2>
+        <h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-4">
+          Recently Completed
+        </h2>
         <div class="space-y-2">
           <div
             v-for="(completedRoute, idx) in scanState.recentlyCompleted"
@@ -315,7 +313,9 @@ const extractDomain = (url: string) => {
 
       <div v-else-if="isScanning" class="flex flex-col items-center py-12">
         <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-8 h-8 text-primary mb-4" />
-        <p class="text-dimmed">Waiting for routes to complete...</p>
+        <p class="text-dimmed">
+          Waiting for routes to complete...
+        </p>
       </div>
     </main>
 

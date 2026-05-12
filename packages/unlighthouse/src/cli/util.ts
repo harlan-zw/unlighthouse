@@ -46,7 +46,7 @@ export function isValidUrl(s: string) {
 }
 
 export function validateOptions(resolvedOptions: UserConfig) {
-  if (!resolvedOptions.site && resolvedOptions.urls?.length)
+  if (!resolvedOptions.site && Array.isArray(resolvedOptions.urls) && resolvedOptions.urls.length)
     resolvedOptions.site = resolvedOptions.urls[0]
   if (!resolvedOptions.configFile && !resolvedOptions.site)
     return handleError('Please provide a site to scan with --site <url>.')
@@ -69,57 +69,61 @@ export function validateOptions(resolvedOptions: UserConfig) {
 }
 
 export function pickOptions(options: CiOptions | CliOptions): UserConfig {
-  const picked: Omit<UserConfig, 'site' | 'root'> = {}
-  picked.scanner = {}
+  const picked: Omit<UserConfig, 'site' | 'root'> = {
+    scanner: {},
+    urls: [],
+  }
+  const scanner: NonNullable<UserConfig['scanner']> = {}
+  picked.scanner = scanner
   picked.urls = []
   if (options.noCache)
     picked.cache = true
   if (options.throttle)
-    picked.scanner.throttle = true
+    scanner.throttle = true
 
   if (options.sitemaps) {
-    picked.scanner.sitemap = picked.scanner.sitemap || []
+    scanner.sitemap = scanner.sitemap || []
     options.sitemaps.split(',').forEach((path) => {
-      Array.isArray(picked.scanner.sitemap) && picked.scanner.sitemap.push(path)
+      Array.isArray(scanner.sitemap) && scanner.sitemap.push(path)
     })
   }
 
   if (options.enableJavascript)
-    picked.scanner.skipJavascript = false
+    scanner.skipJavascript = false
 
   else if (options.disableJavascript)
-    picked.scanner.skipJavascript = true
+    scanner.skipJavascript = true
 
   if (options.samples)
-    picked.scanner.samples = options.samples
+    scanner.samples = options.samples
 
   if (options.enableI18nPages)
-    picked.scanner.ignoreI18nPages = false
+    scanner.ignoreI18nPages = false
   else if (options.disableI18nPages)
-    picked.scanner.ignoreI18nPages = true
+    scanner.ignoreI18nPages = true
 
   if (options.desktop)
-    picked.scanner.device = 'desktop'
+    scanner.device = 'desktop'
   else if (options.mobile)
-    picked.scanner.device = 'mobile'
+    scanner.device = 'mobile'
 
   if (options.disableRobotsTxt)
-    picked.scanner.robotsTxt = false
+    scanner.robotsTxt = false
 
   if (options.disableSitemap)
-    picked.scanner.sitemap = false
+    scanner.sitemap = false
 
   if (options.urls)
     picked.urls = options.urls.split(',')
 
   if (options.excludeUrls)
-    picked.scanner.exclude = options.excludeUrls.split(',')
+    scanner.exclude = options.excludeUrls.split(',')
 
   if (options.includeUrls)
-    picked.scanner.include = options.includeUrls.split(',')
+    scanner.include = options.includeUrls.split(',')
 
   if (options.disableDynamicSampling)
-    picked.scanner.dynamicSampling = false
+    scanner.dynamicSampling = false
 
   if (options.auth) {
     const [username, password] = options.auth.split(':')
@@ -129,23 +133,25 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   function splitNameValue(str: string) {
     const splitToken = str.includes('=') ? '=' : ':'
     const [name, value] = str.split(splitToken)
-    return { name, value }
+    return { name: name || '', value: value || '' }
   }
 
   if (options.cookies)
     picked.cookies = options.cookies.split(';').map(splitNameValue)
 
   if (options.extraHeaders) {
-    picked.extraHeaders = picked.extraHeaders || {}
+    const extraHeaders: Record<string, string> = {}
     options.extraHeaders.split(',').forEach((header) => {
       const { name, value } = splitNameValue(header)
-      picked.extraHeaders[name] = value
+      extraHeaders[name] = value
     })
+    picked.extraHeaders = extraHeaders
   }
 
   if (options.userAgent) {
-    picked.extraHeaders = picked.extraHeaders || {}
-    picked.extraHeaders['User-Agent'] = options.userAgent
+    const extraHeaders = typeof picked.extraHeaders === 'object' && picked.extraHeaders ? picked.extraHeaders : {}
+    extraHeaders['User-Agent'] = options.userAgent
+    picked.extraHeaders = extraHeaders
     // set lighthouse
     picked.lighthouseOptions = picked.lighthouseOptions || {}
     picked.lighthouseOptions.emulatedUserAgent = options.userAgent
@@ -154,11 +160,12 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   }
 
   if (options.defaultQueryParams) {
-    picked.defaultQueryParams = picked.defaultQueryParams || {}
+    const defaultQueryParams: Record<string, string> = {}
     options.defaultQueryParams.split(',').forEach((param) => {
       const { name, value } = splitNameValue(param)
-      picked.defaultQueryParams[name] = value
+      defaultQueryParams[name] = value
     })
+    picked.defaultQueryParams = defaultQueryParams
   }
 
   const config = pick(options, [

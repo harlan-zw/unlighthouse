@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { useDashboard, getScoreColor, getScoreBg } from '~/composables/dashboard'
-import { apiUrl } from '~/composables/unlighthouse'
+import type { SeoData } from '~/composables/dashboard'
+import { getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
-definePageMeta({ layout: 'dashboard' })
+const { apiUrl } = useUnlighthouseConfig()
+
+definePageMeta({ layout: 'site' })
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string)
 
 const { seo } = useDashboard(scanId)
+
+type SeoMeta = SeoData['meta'][number]
 
 // Fetch scan info for site URL (used in SERP preview)
 const { data: scanInfo } = await useFetch<{ site: string }>(() =>
@@ -17,22 +22,26 @@ const { data: scanInfo } = await useFetch<{ site: string }>(() =>
 const siteUrl = computed(() => scanInfo.value?.site || '')
 
 onMounted(() => {
-  if (scanId.value) seo.execute()
+  if (scanId.value)
+    seo.execute()
 })
 
 // SERP preview helpers
-const getSerpUrl = (path: string) => {
-  if (!siteUrl.value) return path
+function getSerpUrl(path: string) {
+  if (!siteUrl.value)
+    return path
   const url = new URL(path.startsWith('/') ? path : `/${path}`, siteUrl.value)
   return url.href
 }
 
-const getSerpDisplayUrl = (path: string) => {
-  if (!siteUrl.value) return path
+function getSerpDisplayUrl(path: string) {
+  if (!siteUrl.value)
+    return path
   const url = new URL(path.startsWith('/') ? path : `/${path}`, siteUrl.value)
   // Google shows: domain.com > path > segment
   const parts = url.pathname.split('/').filter(Boolean)
-  if (parts.length === 0) return url.hostname
+  if (parts.length === 0)
+    return url.hostname
   return `${url.hostname} > ${parts.join(' > ')}`
 }
 
@@ -47,13 +56,15 @@ const tabs = [
 const avgScore = computed(() => {
   const routes = seo.data.value?.routes ?? []
   const withScores = routes.filter(r => r.score !== null)
-  if (!withScores.length) return null
+  if (!withScores.length)
+    return null
   return Math.round(withScores.reduce((a, r) => a + (r.score ?? 0), 0) / withScores.length)
 })
 
 const summaryStats = computed(() => {
   const data = seo.data.value
-  if (!data) return []
+  if (!data)
+    return []
 
   const meta = data.meta ?? []
   const duplicates = data.duplicates ?? []
@@ -70,16 +81,21 @@ const summaryStats = computed(() => {
   ]
 })
 
-
 function getTitleStatus(m: any): 'good' | 'warn' | 'bad' {
-  if (!m.title) return 'bad'
-  if (m.titleLength < 30 || m.titleLength > 60) return 'warn'
+  if (!m.title)
+    return 'bad'
+  const length = m.titleLength ?? 0
+  if (length < 30 || length > 60)
+    return 'warn'
   return 'good'
 }
 
 function getDescStatus(m: any): 'good' | 'warn' | 'bad' {
-  if (!m.description) return 'bad'
-  if (m.descriptionLength < 120 || m.descriptionLength > 160) return 'warn'
+  if (!m.description)
+    return 'bad'
+  const length = m.descriptionLength ?? 0
+  if (length < 120 || length > 160)
+    return 'warn'
   return 'good'
 }
 
@@ -97,13 +113,15 @@ const sortedMeta = computed(() =>
 const schemaCoverage = computed(() => {
   const meta = seo.data.value?.meta ?? []
   const total = meta.length
-  if (!total) return null
+  if (!total)
+    return null
 
   const typeCounts = new Map<string, number>()
   let pagesWithSchema = 0
   for (const m of meta) {
     const types = m.structuredDataTypes ?? []
-    if (types.length) pagesWithSchema++
+    if (types.length)
+      pagesWithSchema++
     for (const t of types) typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1)
   }
 
@@ -123,11 +141,12 @@ const healthChecks = computed(() => {
   const meta = seo.data.value?.meta ?? []
   const duplicates = seo.data.value?.duplicates ?? []
   const total = meta.length
-  if (!total) return []
+  if (!total)
+    return []
 
   const indexable = meta.filter(m => m.isIndexable).length
-  const titleOk = meta.filter(m => m.title && m.titleLength >= 30 && m.titleLength <= 60).length
-  const descOk = meta.filter(m => m.description && m.descriptionLength >= 120 && m.descriptionLength <= 160).length
+  const titleOk = meta.filter(m => m.title && m.titleLength != null && m.titleLength >= 30 && m.titleLength <= 60).length
+  const descOk = meta.filter(m => m.description && m.descriptionLength != null && m.descriptionLength >= 120 && m.descriptionLength <= 160).length
   const canonical = meta.filter(m => m.canonical).length
   const og = meta.filter(m => m.hasOgTags).length
   const schema = meta.filter(m => (m.structuredDataTypes?.length ?? 0) > 0).length
@@ -186,15 +205,24 @@ const metaByPath = computed(() => new Map((seo.data.value?.meta ?? []).map(m => 
 
 function summariseMetaIssues(m: any): string[] {
   const issues: string[] = []
-  if (!m) return issues
-  if (!m.isIndexable) issues.push('not indexable')
-  if (!m.title) issues.push('no title')
-  else if (m.titleLength < 30 || m.titleLength > 60) issues.push('title length')
-  if (!m.description) issues.push('no description')
-  else if (m.descriptionLength < 120 || m.descriptionLength > 160) issues.push('desc length')
-  if (!m.canonical) issues.push('no canonical')
-  if (!m.hasOgTags) issues.push('no OG')
-  if (!(m.structuredDataTypes?.length)) issues.push('no schema')
+  if (!m)
+    return issues
+  if (!m.isIndexable)
+    issues.push('not indexable')
+  if (!m.title)
+    issues.push('no title')
+  else if (m.titleLength == null || m.titleLength < 30 || m.titleLength > 60)
+    issues.push('title length')
+  if (!m.description)
+    issues.push('no description')
+  else if (m.descriptionLength == null || m.descriptionLength < 120 || m.descriptionLength > 160)
+    issues.push('desc length')
+  if (!m.canonical)
+    issues.push('no canonical')
+  if (!m.hasOgTags)
+    issues.push('no OG')
+  if (!(m.structuredDataTypes?.length))
+    issues.push('no schema')
   return issues
 }
 
@@ -246,7 +274,7 @@ function getPreviewTab(path: string): number {
   if (!(path in activePreviewTab.value)) {
     activePreviewTab.value[path] = 0
   }
-  return activePreviewTab.value[path]
+  return activePreviewTab.value[path] ?? 0
 }
 function setPreviewTab(path: string, idx: number) {
   activePreviewTab.value = { ...activePreviewTab.value, [path]: idx }
@@ -254,10 +282,55 @@ function setPreviewTab(path: string, idx: number) {
 
 // Get hostname from site URL for social previews
 const siteHostname = computed(() => {
-  if (!siteUrl.value) return ''
+  if (!siteUrl.value)
+    return ''
   try { return new URL(siteUrl.value).hostname }
   catch { return '' }
 })
+
+function titleLength(m: SeoMeta): number {
+  return m.titleLength ?? 0
+}
+
+function descriptionLength(m: SeoMeta): number {
+  return m.descriptionLength ?? 0
+}
+
+function titleLengthClass(m: SeoMeta): string {
+  const length = titleLength(m)
+  return length < 30 ? 'bg-error/20 text-error' : length > 60 ? 'bg-warning/20 text-warning' : 'bg-success/20 text-success'
+}
+
+function titleBarClass(m: SeoMeta): string {
+  const length = titleLength(m)
+  return length < 30 ? 'bg-error' : length > 60 ? 'bg-warning' : 'bg-success'
+}
+
+function descriptionLengthClass(m: SeoMeta): string {
+  const length = descriptionLength(m)
+  return length < 120 ? 'bg-error/20 text-error' : length > 160 ? 'bg-warning/20 text-warning' : 'bg-success/20 text-success'
+}
+
+function descriptionBarClass(m: SeoMeta): string {
+  const length = descriptionLength(m)
+  return length < 120 ? 'bg-error' : length > 160 ? 'bg-warning' : 'bg-success'
+}
+
+function titleBarWidth(m: SeoMeta): string {
+  return `${Math.min(100, (titleLength(m) / 60) * 100)}%`
+}
+
+function descriptionBarWidth(m: SeoMeta): string {
+  return `${Math.min(100, (descriptionLength(m) / 160) * 100)}%`
+}
+
+function firstString(...values: Array<string | null | undefined>): string | undefined {
+  return values.find((value): value is string => !!value)
+}
+
+function fallbackString(...values: Array<string | null | undefined>): string {
+  return firstString(...values) ?? ''
+}
 </script>
 
 <template>
@@ -317,8 +390,12 @@ const siteHostname = computed(() => {
               }"
             />
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-medium text-highlighted">{{ item.label }}</div>
-              <div class="text-xs text-muted mt-0.5">{{ item.detail }}</div>
+              <div class="text-sm font-medium text-highlighted">
+                {{ item.label }}
+              </div>
+              <div class="text-xs text-muted mt-0.5">
+                {{ item.detail }}
+              </div>
             </div>
           </div>
         </div>
@@ -344,7 +421,9 @@ const siteHostname = computed(() => {
             </div>
           </div>
           <div v-if="schemaCoverage.types.length">
-            <div class="text-xs text-dimmed mb-2 uppercase tracking-wider">Schema Types</div>
+            <div class="text-xs text-dimmed mb-2 uppercase tracking-wider">
+              Schema Types
+            </div>
             <div class="flex flex-wrap gap-2">
               <span
                 v-for="t in schemaCoverage.types"
@@ -375,11 +454,15 @@ const siteHostname = computed(() => {
             class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 hover:bg-elevated/40 -mx-4 px-4 transition-colors"
           >
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-mono text-highlighted truncate">{{ r.path }}</div>
+              <div class="text-sm font-mono text-highlighted truncate">
+                {{ r.path }}
+              </div>
               <div v-if="r.issues.length" class="text-xs text-primary mt-1 truncate">
                 {{ r.issues.join(' · ') }}
               </div>
-              <div v-else class="text-xs text-success mt-1">All meta tags valid</div>
+              <div v-else class="text-xs text-success mt-1">
+                All meta tags valid
+              </div>
             </div>
             <div
               class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"
@@ -399,20 +482,38 @@ const siteHostname = computed(() => {
           <table class="w-full text-sm min-w-[800px]">
             <thead>
               <tr class="text-left text-dimmed border-b border-default">
-                <th class="pb-2 pl-4 font-medium">Path</th>
-                <th class="pb-2 font-medium text-center">Title</th>
-                <th class="pb-2 font-medium text-center">Desc</th>
-                <th class="pb-2 font-medium text-center">Canon</th>
-                <th class="pb-2 font-medium text-center">OG</th>
-                <th class="pb-2 font-medium text-center">Twitter</th>
-                <th class="pb-2 font-medium text-center">Schema</th>
-                <th class="pb-2 pr-4 font-medium text-center">Index</th>
+                <th class="pb-2 pl-4 font-medium">
+                  Path
+                </th>
+                <th class="pb-2 font-medium text-center">
+                  Title
+                </th>
+                <th class="pb-2 font-medium text-center">
+                  Desc
+                </th>
+                <th class="pb-2 font-medium text-center">
+                  Canon
+                </th>
+                <th class="pb-2 font-medium text-center">
+                  OG
+                </th>
+                <th class="pb-2 font-medium text-center">
+                  Twitter
+                </th>
+                <th class="pb-2 font-medium text-center">
+                  Schema
+                </th>
+                <th class="pb-2 pr-4 font-medium text-center">
+                  Index
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
               <template v-for="m in sortedMeta" :key="m.path">
                 <tr class="hover:bg-elevated/40 cursor-pointer" @click="expandedMeta = expandedMeta === m.path ? null : m.path">
-                  <td class="py-3 pl-4 font-mono text-highlighted truncate max-w-[200px]">{{ m.path }}</td>
+                  <td class="py-3 pl-4 font-mono text-highlighted truncate max-w-[200px]">
+                    {{ m.path }}
+                  </td>
                   <td class="py-3 text-center">
                     <UIcon :name="statusIcons[getTitleStatus(m)]" class="w-5 h-5" :class="statusColors[getTitleStatus(m)]" />
                   </td>
@@ -443,21 +544,25 @@ const siteHostname = computed(() => {
                         <div>
                           <div class="flex items-center gap-2 mb-1">
                             <span class="text-dimmed text-xs">Title</span>
-                            <span class="text-xs px-1.5 py-0.5 rounded" :class="m.titleLength < 30 ? 'bg-error/20 text-error' : m.titleLength > 60 ? 'bg-warning/20 text-warning' : 'bg-success/20 text-success'">{{ m.titleLength || 0 }}</span>
+                            <span class="text-xs px-1.5 py-0.5 rounded" :class="titleLengthClass(m)">{{ titleLength(m) }}</span>
                           </div>
-                          <div class="text-highlighted text-sm">{{ m.title || '—' }}</div>
+                          <div class="text-highlighted text-sm">
+                            {{ m.title || '—' }}
+                          </div>
                           <div class="h-1 rounded-full bg-elevated overflow-hidden mt-1.5">
-                            <div class="h-full rounded-full" :class="m.titleLength < 30 ? 'bg-error' : m.titleLength > 60 ? 'bg-warning' : 'bg-success'" :style="{ width: `${Math.min(100, (m.titleLength / 60) * 100)}%` }" />
+                            <div class="h-full rounded-full" :class="titleBarClass(m)" :style="{ width: titleBarWidth(m) }" />
                           </div>
                         </div>
                         <div>
                           <div class="flex items-center gap-2 mb-1">
                             <span class="text-dimmed text-xs">Description</span>
-                            <span class="text-xs px-1.5 py-0.5 rounded" :class="m.descriptionLength < 120 ? 'bg-error/20 text-error' : m.descriptionLength > 160 ? 'bg-warning/20 text-warning' : 'bg-success/20 text-success'">{{ m.descriptionLength || 0 }}</span>
+                            <span class="text-xs px-1.5 py-0.5 rounded" :class="descriptionLengthClass(m)">{{ descriptionLength(m) }}</span>
                           </div>
-                          <div class="text-highlighted text-sm">{{ m.description || '—' }}</div>
+                          <div class="text-highlighted text-sm">
+                            {{ m.description || '—' }}
+                          </div>
                           <div class="h-1 rounded-full bg-elevated overflow-hidden mt-1.5">
-                            <div class="h-full rounded-full" :class="m.descriptionLength < 120 ? 'bg-error' : m.descriptionLength > 160 ? 'bg-warning' : 'bg-success'" :style="{ width: `${Math.min(100, (m.descriptionLength / 160) * 100)}%` }" />
+                            <div class="h-full rounded-full" :class="descriptionBarClass(m)" :style="{ width: descriptionBarWidth(m) }" />
                           </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-default">
@@ -497,63 +602,89 @@ const siteHostname = computed(() => {
 
                         <!-- Google Preview -->
                         <div v-if="getPreviewTab(m.path) === 0" class="p-3 rounded-lg bg-white max-w-[400px]">
-                          <div class="text-[11px] text-[#202124] mb-0.5">{{ getSerpDisplayUrl(m.path) }}</div>
+                          <div class="text-[11px] text-[#202124] mb-0.5">
+                            {{ getSerpDisplayUrl(m.path) }}
+                          </div>
                           <a :href="getSerpUrl(m.path)" target="_blank" class="text-sm text-[#1a0dab] hover:underline leading-tight block mb-0.5">{{ m.ogTitle || m.title || 'No title' }}</a>
-                          <p class="text-[11px] text-[#4d5156] line-clamp-2">{{ m.ogDescription || m.description || 'No meta description set.' }}</p>
+                          <p class="text-[11px] text-[#4d5156] line-clamp-2">
+                            {{ m.ogDescription || m.description || 'No meta description set.' }}
+                          </p>
                         </div>
 
                         <!-- X / Twitter Preview -->
                         <div v-else-if="getPreviewTab(m.path) === 1" class="rounded-xl overflow-hidden border border-gray-700 bg-black max-w-[400px]">
                           <div v-if="m.twitterImage || m.ogImage" class="aspect-[1.91/1] bg-gray-800">
-                            <img :src="m.twitterImage || m.ogImage" :alt="m.twitterTitle || m.ogTitle || m.title" class="w-full h-full object-cover">
+                            <img :src="firstString(m.twitterImage, m.ogImage)" :alt="fallbackString(m.twitterTitle, m.ogTitle, m.title)" class="w-full h-full object-cover">
                           </div>
                           <div v-else class="h-[140px] bg-gray-800 flex items-center justify-center">
                             <UIcon name="i-heroicons-photo" class="w-8 h-8 text-dimmed" />
                           </div>
                           <div class="p-2">
-                            <div class="text-[11px] text-dimmed">{{ siteHostname }}</div>
-                            <div class="text-highlighted text-sm font-medium line-clamp-1">{{ m.twitterTitle || m.ogTitle || m.title || 'No title' }}</div>
-                            <p class="text-[11px] text-dimmed line-clamp-2">{{ m.twitterDescription || m.ogDescription || m.description || 'No description' }}</p>
+                            <div class="text-[11px] text-dimmed">
+                              {{ siteHostname }}
+                            </div>
+                            <div class="text-highlighted text-sm font-medium line-clamp-1">
+                              {{ m.twitterTitle || m.ogTitle || m.title || 'No title' }}
+                            </div>
+                            <p class="text-[11px] text-dimmed line-clamp-2">
+                              {{ m.twitterDescription || m.ogDescription || m.description || 'No description' }}
+                            </p>
                           </div>
                         </div>
 
                         <!-- Facebook Preview -->
                         <div v-else-if="getPreviewTab(m.path) === 2" class="rounded overflow-hidden border border-gray-300 bg-white max-w-[400px]">
                           <div v-if="m.ogImage" class="aspect-[1.91/1] bg-gray-100">
-                            <img :src="m.ogImage" :alt="m.ogTitle || m.title" class="w-full h-full object-cover">
+                            <img :src="firstString(m.ogImage)" :alt="fallbackString(m.ogTitle, m.title)" class="w-full h-full object-cover">
                           </div>
                           <div v-else class="h-[140px] bg-gray-100 flex items-center justify-center">
                             <UIcon name="i-heroicons-photo" class="w-8 h-8 text-muted" />
                           </div>
                           <div class="p-2 bg-[#f2f3f5]">
-                            <div class="text-[10px] text-[#606770] uppercase tracking-wide">{{ siteHostname }}</div>
-                            <div class="text-[#1d2129] text-sm font-semibold line-clamp-1">{{ m.ogTitle || m.title || 'No title' }}</div>
-                            <p class="text-[11px] text-[#606770] line-clamp-1">{{ m.ogDescription || m.description || 'No description' }}</p>
+                            <div class="text-[10px] text-[#606770] uppercase tracking-wide">
+                              {{ siteHostname }}
+                            </div>
+                            <div class="text-[#1d2129] text-sm font-semibold line-clamp-1">
+                              {{ m.ogTitle || m.title || 'No title' }}
+                            </div>
+                            <p class="text-[11px] text-[#606770] line-clamp-1">
+                              {{ m.ogDescription || m.description || 'No description' }}
+                            </p>
                           </div>
                         </div>
 
                         <!-- LinkedIn Preview -->
                         <div v-else-if="getPreviewTab(m.path) === 3" class="rounded overflow-hidden border border-gray-300 bg-white max-w-[400px]">
                           <div v-if="m.ogImage" class="aspect-[1.91/1] bg-gray-100">
-                            <img :src="m.ogImage" :alt="m.ogTitle || m.title" class="w-full h-full object-cover">
+                            <img :src="firstString(m.ogImage)" :alt="fallbackString(m.ogTitle, m.title)" class="w-full h-full object-cover">
                           </div>
                           <div v-else class="h-[140px] bg-gray-100 flex items-center justify-center">
                             <UIcon name="i-heroicons-photo" class="w-8 h-8 text-muted" />
                           </div>
                           <div class="p-2">
-                            <div class="text-sm text-[#000000e6] font-semibold line-clamp-2">{{ m.ogTitle || m.title || 'No title' }}</div>
-                            <div class="text-[11px] text-[#00000099]">{{ siteHostname }}</div>
+                            <div class="text-sm text-[#000000e6] font-semibold line-clamp-2">
+                              {{ m.ogTitle || m.title || 'No title' }}
+                            </div>
+                            <div class="text-[11px] text-[#00000099]">
+                              {{ siteHostname }}
+                            </div>
                           </div>
                         </div>
 
                         <!-- Slack Preview -->
                         <div v-else-if="getPreviewTab(m.path) === 4" class="max-w-[400px]">
                           <div class="border-l-4 border-primary pl-2.5 py-1.5 bg-neutral-900 rounded-r">
-                            <p class="text-sm font-semibold text-highlighted">{{ siteHostname }}</p>
-                            <p class="text-sm text-blue-400">{{ m.ogTitle || m.title || 'No title' }}</p>
-                            <p class="text-[11px] text-neutral-400 line-clamp-2">{{ m.ogDescription || m.description || 'No description' }}</p>
+                            <p class="text-sm font-semibold text-highlighted">
+                              {{ siteHostname }}
+                            </p>
+                            <p class="text-sm text-blue-400">
+                              {{ m.ogTitle || m.title || 'No title' }}
+                            </p>
+                            <p class="text-[11px] text-neutral-400 line-clamp-2">
+                              {{ m.ogDescription || m.description || 'No description' }}
+                            </p>
                             <div v-if="m.ogImage" class="mt-1.5 rounded overflow-hidden w-[180px]">
-                              <img :src="m.ogImage" :alt="m.ogTitle || m.title" class="w-full h-auto">
+                              <img :src="firstString(m.ogImage)" :alt="fallbackString(m.ogTitle, m.title)" class="w-full h-auto">
                             </div>
                           </div>
                         </div>
@@ -561,11 +692,17 @@ const siteHostname = computed(() => {
                         <!-- Discord Preview -->
                         <div v-else-if="getPreviewTab(m.path) === 5" class="max-w-[400px]">
                           <div class="rounded border-l-4 border-indigo-500 bg-neutral-800 p-2.5">
-                            <p class="text-[11px] text-neutral-400">{{ siteHostname }}</p>
-                            <p class="text-sm font-semibold text-blue-400">{{ m.ogTitle || m.title || 'No title' }}</p>
-                            <p class="text-[11px] text-neutral-300 line-clamp-3 mt-0.5">{{ m.ogDescription || m.description || 'No description' }}</p>
+                            <p class="text-[11px] text-neutral-400">
+                              {{ siteHostname }}
+                            </p>
+                            <p class="text-sm font-semibold text-blue-400">
+                              {{ m.ogTitle || m.title || 'No title' }}
+                            </p>
+                            <p class="text-[11px] text-neutral-300 line-clamp-3 mt-0.5">
+                              {{ m.ogDescription || m.description || 'No description' }}
+                            </p>
                             <div v-if="m.ogImage" class="mt-1.5 rounded overflow-hidden">
-                              <img :src="m.ogImage" :alt="m.ogTitle || m.title" class="max-w-full max-h-40 rounded">
+                              <img :src="firstString(m.ogImage)" :alt="fallbackString(m.ogTitle, m.title)" class="max-w-full max-h-40 rounded">
                             </div>
                           </div>
                         </div>
@@ -607,7 +744,9 @@ const siteHostname = computed(() => {
                       {{ dup.type }}
                     </span>
                   </div>
-                  <div class="text-sm text-highlighted mt-1 truncate">"{{ dup.value }}"</div>
+                  <div class="text-sm text-highlighted mt-1 truncate">
+                    "{{ dup.value }}"
+                  </div>
                 </div>
               </div>
               <span class="text-sm text-muted shrink-0">{{ dup.pageCount }} pages</span>
@@ -711,11 +850,15 @@ const siteHostname = computed(() => {
             class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 hover:bg-elevated/40 -mx-4 px-4 transition-colors"
           >
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-mono text-highlighted truncate">{{ r.path }}</div>
+              <div class="text-sm font-mono text-highlighted truncate">
+                {{ r.path }}
+              </div>
               <div v-if="r.issues.length" class="text-xs text-primary mt-1 truncate">
                 {{ r.issues.join(' · ') }}
               </div>
-              <div v-else class="text-xs text-success mt-1">All meta tags valid</div>
+              <div v-else class="text-xs text-success mt-1">
+                All meta tags valid
+              </div>
             </div>
             <div
               class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"

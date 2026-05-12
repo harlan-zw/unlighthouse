@@ -103,7 +103,7 @@ function initializeSchema(sqlite: Database.Database) {
  */
 export function createScan(dataDir: string, data: schema.NewScan): schema.Scan {
   const db = getHistoryDb(dataDir)
-  const [scan] = db.insert(schema.scans).values(data).returning()
+  const [scan] = db.insert(schema.scans).values(data).returning().all()
   return scan
 }
 
@@ -112,7 +112,7 @@ export function createScan(dataDir: string, data: schema.NewScan): schema.Scan {
  */
 export function updateScan(dataDir: string, id: string, data: Partial<schema.NewScan>): schema.Scan | undefined {
   const db = getHistoryDb(dataDir)
-  const [scan] = db.update(schema.scans).set(data).where(eq(schema.scans.id, id)).returning()
+  const [scan] = db.update(schema.scans).set(data).where(eq(schema.scans.id, id)).returning().all()
   return scan
 }
 
@@ -121,7 +121,7 @@ export function updateScan(dataDir: string, id: string, data: Partial<schema.New
  */
 export function getScan(dataDir: string, id: string): schema.Scan | undefined {
   const db = getHistoryDb(dataDir)
-  return db.query.scans.findFirst({ where: eq(schema.scans.id, id) })
+  return db.query.scans.findFirst({ where: eq(schema.scans.id, id) }).sync()
 }
 
 /**
@@ -138,7 +138,7 @@ export function listScans(dataDir: string, options: { limit?: number, offset?: n
     limit,
     offset,
     orderBy: [desc(schema.scans.startedAt)],
-  })
+  }).sync()
 }
 
 /**
@@ -146,7 +146,7 @@ export function listScans(dataDir: string, options: { limit?: number, offset?: n
  */
 export function deleteScan(dataDir: string, id: string): boolean {
   const db = getHistoryDb(dataDir)
-  const result = db.delete(schema.scans).where(eq(schema.scans.id, id))
+  const result = db.delete(schema.scans).where(eq(schema.scans.id, id)).run()
   return result.changes > 0
 }
 
@@ -155,7 +155,7 @@ export function deleteScan(dataDir: string, id: string): boolean {
  */
 export function addScanRoute(dataDir: string, data: schema.NewScanRoute): schema.ScanRoute {
   const db = getHistoryDb(dataDir)
-  const [route] = db.insert(schema.scanRoutes).values(data).returning()
+  const [route] = db.insert(schema.scanRoutes).values(data).returning().all()
   return route
 }
 
@@ -164,7 +164,7 @@ export function addScanRoute(dataDir: string, data: schema.NewScanRoute): schema
  */
 export function updateScanRoute(dataDir: string, id: number, data: Partial<schema.NewScanRoute>): schema.ScanRoute | undefined {
   const db = getHistoryDb(dataDir)
-  const [route] = db.update(schema.scanRoutes).set(data).where(eq(schema.scanRoutes.id, id)).returning()
+  const [route] = db.update(schema.scanRoutes).set(data).where(eq(schema.scanRoutes.id, id)).returning().all()
   return route
 }
 
@@ -175,7 +175,7 @@ export function getScanRoutes(dataDir: string, scanId: string): schema.ScanRoute
   const db = getHistoryDb(dataDir)
   return db.query.scanRoutes.findMany({
     where: eq(schema.scanRoutes.scanId, scanId),
-  })
+  }).sync()
 }
 
 /**
@@ -184,12 +184,13 @@ export function getScanRoutes(dataDir: string, scanId: string): schema.ScanRoute
 export function getScanWithRoutes(dataDir: string, id: string) {
   const db = getHistoryDb(dataDir)
   const scan = db.query.scans.findFirst({ where: eq(schema.scans.id, id) })
+    .sync()
   if (!scan)
     return null
 
   const routes = db.query.scanRoutes.findMany({
     where: eq(schema.scanRoutes.scanId, id),
-  })
+  }).sync()
 
   return { ...scan, routes }
 }
@@ -201,7 +202,7 @@ export function updateScanScores(dataDir: string, scanId: string) {
   const db = getHistoryDb(dataDir)
   const routes = db.query.scanRoutes.findMany({
     where: eq(schema.scanRoutes.scanId, scanId),
-  })
+  }).sync()
 
   const completedRoutes = routes.filter(r => r.status === 'complete' && r.score !== null)
   if (completedRoutes.length === 0)

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { withBase } from 'ufo'
 import { getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
-import { apiUrl } from '~/composables/unlighthouse'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
-definePageMeta({ layout: 'dashboard' })
+const { apiUrl } = useUnlighthouseConfig()
+
+definePageMeta({ layout: 'site' })
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string)
@@ -86,7 +88,8 @@ const severityBreakdown = computed(() => {
   const totals: Record<keyof typeof severityMeta, number> = { critical: 0, serious: 0, moderate: 0, minor: 0 }
   for (const i of issues) {
     const key = i.severity as keyof typeof severityMeta
-    if (key in totals) totals[key] += i.instanceCount
+    if (key in totals)
+      totals[key] += i.instanceCount
   }
   const total = Object.values(totals).reduce((a, b) => a + b, 0)
   return (Object.keys(severityMeta) as Array<keyof typeof severityMeta>).map(key => ({
@@ -127,7 +130,8 @@ const issueCountsByPath = computed(() => {
     const sev = issue.severity as keyof typeof severityMeta
     for (const path of issue.pages ?? []) {
       const existing = map.get(path) ?? { critical: 0, serious: 0, moderate: 0, minor: 0, total: 0 }
-      if (sev in existing) (existing as any)[sev] += 1
+      if (sev in existing)
+        (existing as any)[sev] += 1
       existing.total += 1
       map.set(path, existing)
     }
@@ -240,7 +244,9 @@ const auditTitles: Record<string, string> = {
                   <span class="text-sm font-medium" :class="s.color">{{ s.label }}</span>
                   <span class="font-mono text-sm text-highlighted">{{ s.count }}</span>
                 </div>
-                <div class="text-xs text-dimmed mt-0.5">{{ s.hint }}</div>
+                <div class="text-xs text-dimmed mt-0.5">
+                  {{ s.hint }}
+                </div>
               </div>
             </div>
           </div>
@@ -545,7 +551,9 @@ const auditTitles: Record<string, string> = {
                 <span v-if="r.issues.minor" class="text-info">{{ r.issues.minor }} minor</span>
                 <span class="text-dimmed">{{ r.issues.total }} total</span>
               </div>
-              <div v-else class="text-xs text-dimmed mt-1">No issues</div>
+              <div v-else class="text-xs text-dimmed mt-1">
+                No issues
+              </div>
             </div>
             <div
               class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"

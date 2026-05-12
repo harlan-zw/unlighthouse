@@ -310,7 +310,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       routeReport.tasks[taskName] = 'waiting'
 
       cluster
-        .execute(routeReport, (arg) => {
+        .execute(routeReport, async (arg) => {
           if (runId !== activeRunId)
             return routeReport
 
@@ -381,7 +381,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
               reportData.push(`Samples: ${resolvedConfig.scanner.samples}`)
           }
           else if (taskName === 'inspectHtmlTask') {
-            if (response.seo.htmlSize)
+            if (response.seo?.htmlSize)
               reportData.push(formatBytes(response.seo.htmlSize))
           }
           reportData.push(`${monitor().donePercStr}% complete`)

@@ -1,16 +1,39 @@
+import type { UnlighthouseTabs } from '../..'
 import type { UnlighthouseRouteReport } from '../types'
 import type { ReporterConfig } from './types'
 import { get } from 'lodash-es'
 import { csvSimpleFormat } from './csvSimple'
 
-export function reportCSVExpanded(reports: UnlighthouseRouteReport[], { columns }: ReporterConfig): string {
+type ReportWithLighthouse = UnlighthouseRouteReport & {
+  report: NonNullable<UnlighthouseRouteReport['report']>
+}
+
+interface CsvAuditValue {
+  scoreDisplayMode?: string
+  score?: number | null
+  numericValue?: number
+}
+
+function isCsvAuditValue(value: unknown): value is CsvAuditValue {
+  return typeof value === 'object' && value !== null && 'scoreDisplayMode' in value
+}
+
+function columnKeys(columns: ReporterConfig['columns']): UnlighthouseTabs[] {
+  return columns ? Object.keys(columns) as UnlighthouseTabs[] : []
+}
+
+export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: ReporterConfig = {}): string {
   const { headers, body } = csvSimpleFormat(reports)
-  for (const k of Object.keys(columns)) {
+  const firstReport = reports[0]
+  if (!firstReport || !columns)
+    return [headers.join(','), ...body.map(row => row.join(','))].join('\n')
+
+  for (const k of columnKeys(columns)) {
     // already have overview
     if (k === 'overview')
       continue
     // check if k is within the reports
-    if (!reports[0].report.categories.some(category => category.key === k))
+    if (!firstReport.report.categories.some(category => category.key === k))
       continue
 
     // add to headers
@@ -18,34 +41,35 @@ export function reportCSVExpanded(reports: UnlighthouseRouteReport[], { columns 
       ...columns[k]
         .map(column => ({
           column,
-          val: get(reports[0], column.key),
+          val: column.key ? get(firstReport, column.key) : undefined,
         }))
-        .filter(({ val }) => val?.scoreDisplayMode && val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')
+        .filter(({ val }) => isCsvAuditValue(val) && val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')
         .map(({ column }) => column.label),
     )
   }
 
   reports.forEach(({ report }, i) => {
-    for (const k of Object.keys(columns)) {
+    for (const k of columnKeys(columns)) {
       // already have overview
       if (k === 'overview')
         continue
       // check if k is within the reports
-      if (!reports[0].report.categories.some(category => category.key === k))
+      if (!firstReport.report.categories.some(category => category.key === k))
         continue
 
       // headers are good, now add body
       body[i].push(
         ...columns[k]
-          .map(column => get(report, column.key.replace('report.', '')))
-          .filter(val => val?.scoreDisplayMode && val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')
+          .map(column => column.key ? get(report, column.key.replace('report.', '')) : undefined)
+          .filter(isCsvAuditValue)
+          .filter(val => val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')
           .map((val) => {
             if (val.scoreDisplayMode === 'binary')
-              return val.score
+              return val.score ?? ''
             if (val.scoreDisplayMode === 'numeric')
               // round to 2 decimal places
-              return Math.round(val.numericValue * 100) / 100
-            return val.score
+              return typeof val.numericValue === 'number' ? Math.round(val.numericValue * 100) / 100 : ''
+            return val.score ?? ''
           }),
       )
     }

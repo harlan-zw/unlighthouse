@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from 'unlighthouse'
+import { isOffline } from '~/composables/state'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const props = defineProps<{
   report: UnlighthouseRouteReport
@@ -7,9 +9,11 @@ const props = defineProps<{
   value: any
 }>()
 
+const { apiUrl, device, resolveArtifactPath } = useUnlighthouseConfig()
+
 function openEditorRequest() {
   if (props.report.route.definition?.component) {
-    fetch(`${apiUrl}/__launch?file=${props.report.route.definition.component}`)
+    fetch(`${apiUrl.value}/__launch?file=${props.report.route.definition.component}`)
   }
 }
 
@@ -34,15 +38,24 @@ const fetchTime = computed(() => {
   }).format(date)
 })
 
+function hasPerformanceCategory() {
+  const categories = props.report.report?.categories as unknown
+  if (!categories)
+    return false
+  if (Array.isArray(categories))
+    return categories.some((category: { id?: string }) => category.id === 'performance')
+  return typeof categories === 'object' && 'performance' in categories
+}
+
 const thumbnail = computed(() => {
-  const mobileProps = device === 'mobile' ? { class: 'w-[68px] h-[112px]' } : { class: 'h-[82px] w-[112px]' }
+  const mobileProps = device.value === 'mobile' ? { class: 'w-[68px] h-[112px]' } : { class: 'h-[82px] w-[112px]' }
 
   // Check if report exists before trying to resolve artifact paths
   if (!props.report) {
     return { ...mobileProps, src: '' }
   }
 
-  if (categories.includes('performance')) {
+  if (hasPerformanceCategory()) {
     return {
       src: resolveArtifactPath(props.report, '/screenshot.jpeg'),
       ...mobileProps,

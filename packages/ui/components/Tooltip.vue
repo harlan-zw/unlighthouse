@@ -15,7 +15,7 @@ const isShowing = ref(false)
       leave-from="opacity-100 scale-100 "
       leave-to="opacity-0 scale-95 "
     >
-      <div role="tooltip" class="glass-elevated max-w-[500px] z-500 flex -left-[80px] absolute w-auto min-w-[320px] max-h-[500px] overflow-y-auto z-10 top-[99%] inline-block font-medium text-highlighted py-2 px-3 text-sm rounded-lg">
+      <div role="tooltip" class="ui-popover-content max-w-[500px] z-500 flex -left-[80px] absolute w-auto min-w-[320px] max-h-[500px] overflow-y-auto z-10 top-[99%] inline-block font-medium text-highlighted py-2 px-3 text-sm rounded-lg ring-1 ring-default">
         <div>
           <slot name="tooltip" />
         </div>

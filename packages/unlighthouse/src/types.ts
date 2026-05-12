@@ -1,9 +1,11 @@
 import type { AxiosInstance } from 'axios'
+import type { Options as ChromeLaunchOptions } from 'chrome-launcher'
 import type { Hookable, NestedHooks } from 'hookable'
-import type { Flags, Result } from 'lighthouse'
+import type { Config, Flags, Result } from 'lighthouse'
+import type { ListenOptions } from 'listhen'
 import type http from 'node:http'
 import type https from 'node:https'
-import type { LaunchOptions, Page } from 'puppeteer-core'
+import type { Page, LaunchOptions as PuppeteerLaunchOptions } from 'puppeteer-core'
 import type { QueryObject } from 'ufo'
 import type { Cluster, ClusterOptionsArgument, TaskFunction } from '../cluster'
 import type { WS } from './router'
@@ -59,12 +61,22 @@ export interface ComputedLighthouseReportAudit {
  * An augmented Lighthouse Report type, we add custom types to the base report for specific functionality on the
  * @unlighthouse/ui.
  */
-export type LighthouseReport = Partial<Result> & {
+export interface LighthouseReportCategory {
+  key: string
+  id: string
+  title: string
+  score: number | null
+}
+
+export type LighthouseReportAudit = Result['audits'][string]
+
+export type LighthouseReport = Omit<Partial<Result>, 'categories' | 'audits'> & {
   /**
    * The total score for the result, this is the sum of each category's result
    */
   score: number
-  categories: { score: number | null }[]
+  categories: LighthouseReportCategory[]
+  audits: Record<string, LighthouseReportAudit>
   computed: {
     /**
      * An aggregation of multiple image audit results.
@@ -362,6 +374,12 @@ export interface ResolvedUserConfig {
    */
   apiPrefix: string
   /**
+   * Options passed to listhen when the built-in UI server is started.
+   */
+  server: Partial<ListenOptions> & {
+    open?: boolean
+  }
+  /**
    * Provide a list of URLs that should be used explicitly.
    * Will disable sitemap and crawler.
    *
@@ -544,7 +562,7 @@ export interface ResolvedUserConfig {
   /**
    * Change the behaviour of puppeteer.
    */
-  puppeteerOptions: LaunchOptions
+  puppeteerOptions: PuppeteerLaunchOptions
   /**
    * Change the behaviour of puppeteer-cluster.
    */
@@ -582,7 +600,13 @@ export type ClientOptionsPayload = Pick<ResolvedUserConfig, 'client' | 'site' | 
   & Pick<RuntimeSettings, 'websocketUrl' | 'apiUrl'>
 
 type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K]
+  [K in keyof T]?: T[K] extends (...args: any[]) => any
+    ? T[K]
+    : T[K] extends Array<infer U>
+      ? Array<DeepPartial<U>>
+      : T[K] extends object
+        ? DeepPartial<T[K]>
+        : T[K]
 }
 
 export type UserConfig = DeepPartial<ResolvedUserConfig>
@@ -1005,4 +1029,42 @@ export interface UnlighthouseContext {
    * @internal
    */
   _i18nWarn?: boolean
+}
+
+export interface UnlighthouseOptions {
+  provider?: UnlighthouseProvider
+  lighthouseConfig?: Config
+  lighthouseFlags?: Flags
+  port?: number
+  logLevel?: 'info' | 'error' | 'silent' | 'verbose'
+  emulatedFormFactor?: 'mobile' | 'desktop'
+  width?: number
+  height?: number
+  launchOptions?: ChromeLaunchOptions
+}
+
+export type UnlighthouseProvider = (url: string, options?: UnlighthouseOptions) => Promise<UnlighthouseReport>
+
+export interface UnlighthouseInsights {
+  score: number
+  categories: Record<string, {
+    id: string
+    title: string
+    score: number
+  }>
+  coreWebVitals: {
+    lcp: number
+    cls: number
+    fcp: number
+    tbt: number
+    si: number
+  }
+}
+
+export interface UnlighthouseReport {
+  url: string
+  fetchTime: string
+  insights: UnlighthouseInsights
+  artifacts?: any
+  raw?: Result
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { website } from '~/composables/unlighthouse'
-import { getScoreColor, getScoreBg } from '~/composables/dashboard'
+import { getScoreBg, getScoreColor } from '~/composables/dashboard'
+import { siteIdForScan, useSites } from '~/composables/sites'
+import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 defineProps<{
   title: string
@@ -11,16 +12,27 @@ defineProps<{
   stats?: { label: string, value: string | number, color?: string, icon?: string }[]
 }>()
 
+const { website: fallbackWebsite } = useUnlighthouseConfig()
+const injectedSiteUrl = inject<ComputedRef<string>>('siteUrl', computed(() => ''))
+const website = computed(() => injectedSiteUrl.value || fallbackWebsite.value)
+const { sites } = useSites()
+
 const router = useRouter()
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string | undefined)
+const isOverview = computed(() => !!scanId.value && route.path === `/results/${scanId.value}`)
 
-const extractDomain = (url: string) => {
+function extractDomain(url: string) {
   try { return new URL(url).hostname }
   catch { return url }
 }
 
 function goBack() {
+  if (isOverview.value && scanId.value) {
+    const sid = siteIdForScan(scanId.value, sites.value)
+    router.push(sid ? `/sites/${sid}` : '/')
+    return
+  }
   router.push(scanId.value ? `/results/${scanId.value}` : '/')
 }
 </script>
@@ -43,7 +55,9 @@ function goBack() {
           <!-- Title Row -->
           <div class="flex items-center gap-2">
             <UIcon :name="icon" class="w-5 h-5 shrink-0" :class="color || 'text-muted'" />
-            <h1 class="text-lg font-semibold truncate">{{ title }}</h1>
+            <h1 class="text-lg font-semibold truncate">
+              {{ title }}
+            </h1>
             <template v-if="website">
               <span class="text-dimmed">·</span>
               <div class="flex items-center gap-1.5 text-dimmed">

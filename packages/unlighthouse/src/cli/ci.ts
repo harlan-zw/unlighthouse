@@ -41,7 +41,7 @@ async function run() {
   validateOptions(unlighthouse.resolvedConfig)
 
   const logger = useLogger()
-  const { routes } = await unlighthouse.start()
+  const { routes = [] } = await unlighthouse.start()
   if (!routes.length) {
     logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
     process.exit(1)

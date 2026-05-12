@@ -1,4 +1,5 @@
-import { apiUrl, isStatic, websocketUrl } from './unlighthouse'
+import { unlighthouseReports } from './state'
+import { useUnlighthouseConfig } from './useUnlighthouseConfig'
 
 export type ScanStatus = 'idle' | 'starting' | 'discovering' | 'scanning' | 'complete' | 'cancelled' | 'error'
 
@@ -31,28 +32,20 @@ export interface ScanState {
   error: string | null
 }
 
-export const scanState = reactive<ScanState>({
-  status: 'idle',
-  paused: false,
-  site: null,
-  progress: { discovered: 0, scanned: 0, failed: 0, total: 0, percent: 0 },
-  currentUrl: null,
-  recentlyCompleted: [],
-  startedAt: null,
-  estimatedTimeRemaining: null,
-  workers: 0,
-  error: null,
-})
-
-let scanWs: WebSocket | null = null
-
-export const isScanning = computed(() =>
-  activeScanStatuses.includes(scanState.status),
-)
-
-export const isScanComplete = computed(() => scanState.status === 'complete')
-
-export const scanProgressPercent = computed(() => scanState.progress.percent)
+function freshState(): ScanState {
+  return {
+    status: 'idle',
+    paused: false,
+    site: null,
+    progress: { discovered: 0, scanned: 0, failed: 0, total: 0, percent: 0 },
+    currentUrl: null,
+    recentlyCompleted: [],
+    startedAt: null,
+    estimatedTimeRemaining: null,
+    workers: 0,
+    error: null,
+  }
+}
 
 export function isActiveScanStatus(status: string | null | undefined, paused = false) {
   return paused || activeScanStatuses.includes((status || 'idle') as ScanStatus)
@@ -71,150 +64,147 @@ export function formatTimeRemaining(ms: number | null): string {
   return `${minutes}m ${remainingSeconds}s`
 }
 
-export async function fetchScanStatus() {
-  if (isStatic.value)
+export async function rescanSite() {
+  const { apiUrl } = useUnlighthouseConfig()
+  if (!apiUrl.value)
     return
-
-  const data = await $fetch<ScanState>(`${apiUrl.value}/scan/status`).catch(() => null)
-  if (data)
-    Object.assign(scanState, data)
-}
-
-export async function cancelScan() {
-  if (isStatic.value)
-    return
-
-  const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/cancel`, {
-    method: 'POST',
-  }).catch(() => null)
-
-  if (result?.success)
-    scanState.status = 'cancelled'
-}
-
-export async function pauseScan() {
-  if (isStatic.value)
-    return
-
-  const result = await $fetch<{ success: boolean, paused: boolean }>(`${apiUrl.value}/scan/pause`, {
-    method: 'POST',
-  }).catch(() => null)
-
-  if (result?.success)
-    scanState.paused = true
-}
-
-export async function resumeScan() {
-  if (isStatic.value)
-    return
-
-  const result = await $fetch<{ success: boolean, paused: boolean }>(`${apiUrl.value}/scan/resume`, {
-    method: 'POST',
-  }).catch(() => null)
-
-  if (result?.success)
-    scanState.paused = false
-}
-
-export async function retryScan() {
-  if (isStatic.value || !scanState.site)
-    return
-
-  scanState.status = 'starting'
-  scanState.error = null
-  scanState.progress = { discovered: 0, scanned: 0, failed: 0, total: 0, percent: 0 }
-  scanState.recentlyCompleted = []
-
-  const result = await $fetch<{ scanId?: string }>(`${apiUrl.value}/reports/rescan`, {
-    method: 'POST',
-  }).catch((err) => {
-    scanState.status = 'error'
-    scanState.error = err?.message || 'Failed to retry scan'
+  unlighthouseReports.value = []
+  const result = await $fetch<{ scanId?: string }>(`${apiUrl.value}/reports/rescan`, { method: 'POST' }).catch((err) => {
+    if (err?.data?.scanId)
+      navigateTo(`/results/${err.data.scanId}/scan`)
+    console.warn(err)
     return null
   })
-
   if (result?.scanId)
-    await navigateTo(`/results/${result.scanId}/scan`, { replace: true })
+    await navigateTo(`/results/${result.scanId}/scan`)
 }
 
-export function connectScanWebSocket() {
-  if (isStatic.value || !websocketUrl.value || scanWs)
+export async function rescanRoutes(paths: string[]) {
+  const { apiUrl } = useUnlighthouseConfig()
+  if (!apiUrl.value || !paths.length)
     return
-
-  scanWs = new WebSocket(websocketUrl.value)
-
-  scanWs.onmessage = (message) => {
-    const parsed = JSON.parse(message.data)
-
-    if (parsed.event === 'scan:progress') {
-      scanState.progress = {
-        ...scanState.progress,
-        ...parsed.data,
-      }
-
-      if (scanState.progress.percent < 100)
-        scanState.status = 'scanning'
-    }
-    else if (parsed.event === 'scan:route-complete') {
-      scanState.recentlyCompleted = [
-        parsed.data,
-        ...scanState.recentlyCompleted.slice(0, 9),
-      ]
-    }
-    else if (parsed.event === 'scan:complete') {
-      scanState.status = 'complete'
-      scanState.progress.percent = 100
-      scanState.paused = false
-      scanState.error = null
-    }
-    else if (parsed.event === 'scan:cancelled') {
-      scanState.status = 'cancelled'
-      scanState.paused = false
-      scanState.error = null
-    }
-    else if (parsed.event === 'scan:error') {
-      scanState.status = 'error'
-      scanState.paused = false
-      scanState.error = parsed.data?.message || 'Unknown error'
-    }
-  }
-
-  scanWs.onerror = () => {
-    console.warn('Scan WebSocket error')
-  }
-
-  scanWs.onclose = () => {
-    scanWs = null
-  }
+  await $fetch(`${apiUrl.value}/rescan`, { method: 'POST', body: { paths } }).catch(console.warn)
 }
 
-export function disconnectScanWebSocket() {
-  if (scanWs) {
-    scanWs.close()
-    scanWs = null
-  }
+export async function rescanRoute(path: string) {
+  return rescanRoutes([path])
 }
 
 export function useScan() {
+  const { apiUrl, isStatic } = useUnlighthouseConfig()
+  const nuxtApp = useNuxtApp()
+  const transport = nuxtApp.$transport as { connect: () => Promise<void>, disconnect: () => void }
+
+  const state = reactive<ScanState>(freshState())
+
+  const isScanning = computed(() => activeScanStatuses.includes(state.status))
+  const isScanComplete = computed(() => state.status === 'complete')
+  const scanProgressPercent = computed(() => state.progress.percent)
+
+  async function fetchScanStatus() {
+    if (isStatic.value)
+      return
+    const data = await $fetch<ScanState>(`${apiUrl.value}/scan/status`).catch(() => null)
+    if (data)
+      Object.assign(state, data)
+  }
+
+  async function cancelScan() {
+    if (isStatic.value)
+      return
+    const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/cancel`, { method: 'POST' }).catch(() => null)
+    if (result?.success)
+      state.status = 'cancelled'
+  }
+
+  async function pauseScan() {
+    if (isStatic.value)
+      return
+    const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/pause`, { method: 'POST' }).catch(() => null)
+    if (result?.success)
+      state.paused = true
+  }
+
+  async function resumeScan() {
+    if (isStatic.value)
+      return
+    const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/resume`, { method: 'POST' }).catch(() => null)
+    if (result?.success)
+      state.paused = false
+  }
+
+  async function retryScan() {
+    if (isStatic.value || !state.site)
+      return
+
+    state.status = 'starting'
+    state.error = null
+    state.progress = { discovered: 0, scanned: 0, failed: 0, total: 0, percent: 0 }
+    state.recentlyCompleted = []
+
+    const result = await $fetch<{ scanId?: string }>(`${apiUrl.value}/reports/rescan`, { method: 'POST' }).catch((err) => {
+      state.status = 'error'
+      state.error = err?.message || 'Failed to retry scan'
+      return null
+    })
+
+    if (result?.scanId)
+      await navigateTo(`/results/${result.scanId}/scan`, { replace: true })
+  }
+
+  function onProgress(data: ScanProgress) {
+    state.progress = { ...state.progress, ...data }
+    if (state.progress.percent < 100)
+      state.status = 'scanning'
+  }
+
+  function onRouteComplete(data: CompletedRoute) {
+    state.recentlyCompleted = [data, ...state.recentlyCompleted.slice(0, 9)]
+  }
+
+  function onComplete() {
+    state.status = 'complete'
+    state.progress.percent = 100
+    state.paused = false
+    state.error = null
+  }
+
+  function onCancelled() {
+    state.status = 'cancelled'
+    state.paused = false
+    state.error = null
+  }
+
+  function onError(data: { message?: string }) {
+    state.status = 'error'
+    state.paused = false
+    state.error = data?.message || 'Unknown error'
+  }
+
   let pollInterval: ReturnType<typeof setInterval> | null = null
 
   onMounted(() => {
     if (isStatic.value)
       return
 
+    nuxtApp.hook('transport:scan:progress' as any, onProgress)
+    nuxtApp.hook('transport:scan:route-complete' as any, onRouteComplete)
+    nuxtApp.hook('transport:scan:complete' as any, onComplete)
+    nuxtApp.hook('transport:scan:cancelled' as any, onCancelled)
+    nuxtApp.hook('transport:scan:error' as any, onError)
+
     fetchScanStatus()
-    connectScanWebSocket()
+    transport.connect().catch(() => {})
     pollInterval = setInterval(fetchScanStatus, 2000)
   })
 
   onUnmounted(() => {
     if (pollInterval)
       clearInterval(pollInterval)
-    disconnectScanWebSocket()
   })
 
   return {
-    scanState,
+    scanState: state,
     isScanning,
     isScanComplete,
     scanProgressPercent,
@@ -222,6 +212,9 @@ export function useScan() {
     pauseScan,
     resumeScan,
     retryScan,
+    rescanSite,
+    rescanRoute,
+    rescanRoutes,
     formatTimeRemaining,
   }
 }

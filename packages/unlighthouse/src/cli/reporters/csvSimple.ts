@@ -6,17 +6,29 @@ function escapeValueForCsv(value: string | number | boolean): string {
   return `"${value.replace(/"/g, '""')}"`
 }
 
-export function csvSimpleFormat(reports: UnlighthouseRouteReport[]): { headers: string[], body: any } {
+type ReportWithLighthouse = UnlighthouseRouteReport & {
+  report: NonNullable<UnlighthouseRouteReport['report']>
+}
+
+function hasLighthouseReport(report: UnlighthouseRouteReport): report is ReportWithLighthouse {
+  return !!report.report
+}
+
+export function csvSimpleFormat(reports: ReportWithLighthouse[]): { headers: string[], body: Array<Array<string | number | boolean>> } {
   const headers = ['URL', 'Score']
-  Object.values(reports[0].report.categories).forEach((category) => {
+  const firstReport = reports[0]
+  if (!firstReport)
+    return { headers, body: [] }
+
+  firstReport.report.categories.forEach((category) => {
     headers.push(category.title)
   })
 
   const body = reports
     .map(({ report, route }) => {
-      const topLevelScoreKeys = []
-      Object.keys(report.categories).forEach((category) => {
-        topLevelScoreKeys.push(Math.round(report.categories[category].score * 100))
+      const topLevelScoreKeys: number[] = []
+      report.categories.forEach((category) => {
+        topLevelScoreKeys.push(Math.round((category.score ?? 0) * 100))
       })
       // map to the format
       return [
@@ -35,7 +47,7 @@ export function csvSimpleFormat(reports: UnlighthouseRouteReport[]): { headers: 
 }
 
 export function reportCSVSimple(reports: UnlighthouseRouteReport[]): string {
-  const { headers, body } = csvSimpleFormat(reports)
+  const { headers, body } = csvSimpleFormat(reports.filter(hasLighthouseReport))
   return [
     headers.join(','),
     ...body.map(row => row.join(',')),

@@ -5,9 +5,8 @@ export function reportJsonSimple(reports: UnlighthouseRouteReport[]): ReportJson
   return reports
     .map((report) => {
       const scores: Record<string, number> = {}
-      Object.values(report.report.categories).forEach((category) => {
-        // @ts-expect-error untyped
-        scores[category.key] = category.score
+      report.report?.categories.forEach((category) => {
+        scores[category.key] = category.score ?? 0
       })
       return <SimpleRouteReport> {
         path: report.route.path,

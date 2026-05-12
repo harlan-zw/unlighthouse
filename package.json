@@ -6,7 +6,7 @@
   "packageManager": "pnpm@11.1.1",
   "license": "MIT",
   "scripts": {
-    "cli": "JITI_ESM_RESOLVE=1 node packages/unlighthouse/dist/cli.mjs",
+    "cli": "JITI_ESM_RESOLVE=1 node packages/unlighthouse/dist/cli/cli.mjs",
     "ci": "JITI_ESM_RESOLVE=1 node packages/unlighthouse/dist/ci.mjs",
     "ci:docs": "node packages/unlighthouse/dist/ci.mjs --site unlighthouse.dev --build-static --debug",
     "build": "pnpm run build:pkg",
@@ -14,6 +14,7 @@
     "build:pkg": "pnpm -r --filter './packages/**' run build",
     "stub": "JITI_ESM_RESOLVE=true && pnpm -r --parallel run stub",
     "lint": "eslint . --fix",
+    "typecheck": "pnpm -r --filter './packages/**' --if-present run typecheck",
     "bump": "bumpp package.json packages-aliased/*/package.json packages/*/package.json --commit --push --tag",
     "release": "pnpm build && pnpm bump",
     "test": "vitest",

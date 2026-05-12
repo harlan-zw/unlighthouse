@@ -186,7 +186,6 @@ export const defaultConfig: UserConfig = {
     robotsTxt: true,
     device: 'mobile',
   },
-  // @ts-expect-error provided by server package, may not be provided in CI mode
   server: {
     port: 5678,
     showURL: false,
