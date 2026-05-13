@@ -98,6 +98,8 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
         lighthouseVersion: (lhr as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
         capturedAt: new Date().toISOString(),
       }
+      // Note: reconciled report is built in `core.ts` (it owns scanId for the
+      // blob key); auditor only ships the row metrics + raw LHR + gzipped LHR.
       return Object.assign(
         lhr as unknown as LighthouseReport,
         { extracted: metrics, lhrGzip: extracted.lhrGzip },

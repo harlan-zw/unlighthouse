@@ -114,10 +114,13 @@ const ExtractedMetricsSchema = z.object({
 })
 export type ExtractedMetrics = z.infer<typeof ExtractedMetricsSchema>
 
-// Persisted route row — `ExtractedMetrics` joined with scan + blob key.
+// Persisted route row — `ExtractedMetrics` joined with scan + blob keys.
 const ScanRouteSchema = ExtractedMetricsSchema.extend({
   scanId: ScanIdSchema,
   lhrBlobKey: z.string(),
+  // UI-reconciled report blob key. Nullable for rows persisted before the
+  // reconciliation pipeline landed.
+  reportBlobKey: z.string().nullish(),
 })
 export type ScanRoute = z.infer<typeof ScanRouteSchema>
 

@@ -168,11 +168,17 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     // Apply bundled migrations once on open. drizzle-orm/migrator wants a
     // _migrations metadata table; for the simple v1.0 schema we just exec
     // the bundled SQL (`CREATE TABLE IF NOT EXISTS` makes this idempotent).
-    try {
-      for (const stmt of INIT_SQL_STATEMENTS) sqliteDb.exec(stmt)
-    }
-    catch (err) {
-      logger.warn?.(`Migration apply skipped: ${(err as Error).message}`)
+    // Apply each statement independently. `CREATE TABLE IF NOT EXISTS` /
+    // `CREATE INDEX IF NOT EXISTS` are inherently idempotent; bare `ALTER
+    // TABLE ADD COLUMN` is not — sqlite errors with "duplicate column name"
+    // on second run. Skip-on-error covers the additive-migration case.
+    for (const stmt of INIT_SQL_STATEMENTS) {
+      try { sqliteDb.exec(stmt) }
+      catch (err) {
+        const msg = (err as Error).message
+        if (!/duplicate column name/i.test(msg))
+          logger.warn?.(`Migration stmt skipped: ${msg}`)
+      }
     }
     const drizzleDb = drizzle(sqliteDb)
     const drizzleAdapter = drizzleStorage({

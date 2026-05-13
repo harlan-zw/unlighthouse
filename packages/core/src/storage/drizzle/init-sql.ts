@@ -4,7 +4,7 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
   'CREATE INDEX IF NOT EXISTS `idx_scans_status` ON `scans` (`status`);',
   'CREATE INDEX IF NOT EXISTS `idx_scans_started_at` ON `scans` (`started_at`);',
   'CREATE INDEX IF NOT EXISTS `idx_scans_find_previous` ON `scans` (`site`, `device`, `ci_branch`, `started_at`);',
-  'CREATE TABLE IF NOT EXISTS `scan_routes` (\n  `scan_id` text NOT NULL,\n  `url` text NOT NULL,\n  `path` text NOT NULL,\n  `route_name` text,\n  `score_performance` real,\n  `score_accessibility` real,\n  `score_seo` real,\n  `score_best_practices` real,\n  `lcp` real,\n  `cls` real,\n  `inp` real,\n  `fcp` real,\n  `ttfb` real,\n  `tbt` real,\n  `si` real,\n  `lighthouse_version` text NOT NULL,\n  `captured_at` text NOT NULL,\n  `lhr_blob_key` text NOT NULL,\n  PRIMARY KEY (`scan_id`, `url`),\n  FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade\n);',
+  'CREATE TABLE IF NOT EXISTS `scan_routes` (\n  `scan_id` text NOT NULL,\n  `url` text NOT NULL,\n  `path` text NOT NULL,\n  `route_name` text,\n  `score_performance` real,\n  `score_accessibility` real,\n  `score_seo` real,\n  `score_best_practices` real,\n  `lcp` real,\n  `cls` real,\n  `inp` real,\n  `fcp` real,\n  `ttfb` real,\n  `tbt` real,\n  `si` real,\n  `lighthouse_version` text NOT NULL,\n  `captured_at` text NOT NULL,\n  `lhr_blob_key` text NOT NULL,\n  `report_blob_key` text,\n  PRIMARY KEY (`scan_id`, `url`),\n  FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade\n);',
   'CREATE INDEX IF NOT EXISTS `idx_scan_routes_scan_id` ON `scan_routes` (`scan_id`);',
   '-- ============================================================================\n-- Dashboard-private aggregation tables (populated by core/report/processScanData)\n-- ============================================================================\nCREATE TABLE IF NOT EXISTS `performance_issues` (\n  `id` integer PRIMARY KEY AUTOINCREMENT,\n  `scan_id` text REFERENCES `scans`(`scan_id`) ON DELETE cascade,\n  `type` text NOT NULL,\n  `url` text NOT NULL,\n  `wasted_bytes` integer,\n  `wasted_ms` integer,\n  `page_count` integer NOT NULL DEFAULT 1,\n  `pages` text,\n  `issue_subtype` text,\n  `details` text\n);',
   'CREATE TABLE IF NOT EXISTS `third_party_scripts` (\n  `id` integer PRIMARY KEY AUTOINCREMENT,\n  `scan_id` text REFERENCES `scans`(`scan_id`) ON DELETE cascade,\n  `entity` text NOT NULL,\n  `url` text NOT NULL,\n  `avg_tbt` integer,\n  `total_tbt` integer,\n  `page_count` integer NOT NULL,\n  `pages` text\n);',
@@ -36,6 +36,10 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
   'CREATE INDEX IF NOT EXISTS `idx_comparisons_scans` ON `comparisons` (`base_scan_id`, `current_scan_id`);',
   'CREATE INDEX IF NOT EXISTS `idx_diffs_comparison` ON `comparison_diffs` (`comparison_id`);',
   'CREATE INDEX IF NOT EXISTS `idx_scan_crux_scan` ON `scan_crux` (`scan_id`, `form_factor`);',
+  // Additive migrations: each ALTER errors with "duplicate column name" once
+  // the column lands; the host applies stmts with per-stmt try/catch so the
+  // duplicate-column error is swallowed safely.
+  'ALTER TABLE `scan_routes` ADD COLUMN `report_blob_key` text;',
 ]
 
 export const INIT_SQL = INIT_SQL_STATEMENTS.join('\n')

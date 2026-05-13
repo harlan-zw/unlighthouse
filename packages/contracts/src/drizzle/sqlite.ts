@@ -81,6 +81,12 @@ export const scanRoutes = sqliteTable(
     capturedAt: text('captured_at').notNull(),
     /** Raw Lighthouse result (LHCI-format, gzipped). Read via `storage.blobs.get`. */
     lhrBlobKey: text('lhr_blob_key').notNull(),
+    /**
+     * UI-reconciled per-route report (JSON). Decoupled from LHR shape so
+     * generateClient + dashboard handlers don't gunzip the LHR on every read.
+     * Nullable for rows written before the reconciliation pipeline landed.
+     */
+    reportBlobKey: text('report_blob_key'),
   },
   table => [
     primaryKey({ columns: [table.scanId, table.url] }),

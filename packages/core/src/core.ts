@@ -299,10 +299,36 @@ function createSession(deps: SessionDeps): CrawlSession {
 
         if (lhrGzip) {
           // Mirror `routes.ts:blobKeyFor` derivation so the blob lines up
-          // with the `lhrBlobKey` column the row got.
+          // with the `lhrBlobKey` + `reportBlobKey` columns the row got.
           const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
-          const key = `scans/${scanId}/lhr/${hash}.json.gz`
-          await storage.blobs.put(key, lhrGzip).catch(() => {})
+          const lhrKey = `scans/${scanId}/lhr/${hash}.json.gz`
+          const reportKey = `scans/${scanId}/reports/${hash}.json`
+          await storage.blobs.put(lhrKey, lhrGzip).catch(() => {})
+
+          // Reconciled per-route report — UI-shaped, decoupled from LHR shape.
+          // Uses the auditor's reconciled output if present (faster);
+          // otherwise gunzips + reconciles here as a fallback.
+          const reconciled = (report as unknown as { reconciled?: unknown }).reconciled
+          let payload: unknown = reconciled
+          if (!payload) {
+            try {
+              const { reconcileRoute } = await import('./report/extract')
+              const { gunzipSync } = await import('node:zlib')
+              const lhr = JSON.parse(gunzipSync(lhrGzip).toString())
+              payload = reconcileRoute({
+                url,
+                path: (metrics as { path?: string }).path ?? new URL(url).pathname,
+                routeName: (metrics as { routeName?: string | null }).routeName ?? null,
+                reportBlobKey: reportKey,
+                lhr,
+              })
+            }
+            catch { /* best-effort; UI falls back to LHR blob */ }
+          }
+          if (payload) {
+            const bytes = new TextEncoder().encode(JSON.stringify(payload))
+            await storage.blobs.put(reportKey, bytes).catch(() => {})
+          }
         }
 
         stats.scanned++

@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `scan_routes` (
   `lighthouse_version` text NOT NULL,
   `captured_at` text NOT NULL,
   `lhr_blob_key` text NOT NULL,
+  `report_blob_key` text,
   PRIMARY KEY (`scan_id`, `url`),
   FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade
 );

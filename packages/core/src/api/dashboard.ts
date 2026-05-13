@@ -42,6 +42,19 @@ export function createDashboardApi(storage: Storage): Router {
     return summary
   }))
 
+  // Per-scan manifest.json — LHCI-compatible. Returns the JSON written by the
+  // history subscriber on `scan:complete`.
+  router.get('/manifest/:scanId', defineEventHandler(async (event) => {
+    const { scanId } = getRouterParams(event) as { scanId: string }
+    const bytes = await storage.blobs.get(`scans/${scanId}/manifest.json`)
+    if (!bytes) {
+      setResponseStatus(event, 404)
+      return { error: 'Manifest not found' }
+    }
+    setResponseHeader(event, 'content-type', 'application/json')
+    return JSON.parse(Buffer.from(bytes).toString('utf-8'))
+  }))
+
   router.post('/process/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
     const result = await processScanData(storage, scanId)

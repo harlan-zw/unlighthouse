@@ -12,6 +12,30 @@ export interface HistorySubscriberDeps {
   logger?: Logger
 }
 
+async function writeScanManifest(storage: Storage, scanId: string): Promise<void> {
+  const scan = await storage.scans.get(scanId as never)
+  const list = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+  const manifest = {
+    scanId,
+    site: scan?.site ?? null,
+    device: scan?.device ?? null,
+    status: scan?.status ?? null,
+    startedAt: scan?.startedAt ?? null,
+    completedAt: scan?.completedAt ?? null,
+    summary: scan?.summary ?? null,
+    routes: list.items.map(r => ({
+      path: r.path,
+      url: r.url,
+      score: r.scorePerformance,
+      lhrBlobKey: r.lhrBlobKey,
+      reportBlobKey: (r as { reportBlobKey?: string | null }).reportBlobKey ?? null,
+    })),
+  }
+  const key = `scans/${scanId}/manifest.json`
+  const bytes = new TextEncoder().encode(JSON.stringify(manifest, null, 2))
+  await storage.blobs.put(key, bytes)
+}
+
 /**
  * Post-scan history orchestration subscriber.
  *
@@ -40,6 +64,13 @@ export function historySubscriber(deps: HistorySubscriberDeps): void {
       thresholds: compareCfg?.thresholds,
     }).catch((err: unknown) => {
       logger?.error?.(`Failed to process scan data: ${err}`)
+    })
+
+    // Per-scan manifest.json — LHCI-compatible directory descriptor. Lists
+    // every route + the scan summary so external tooling can ingest a folder
+    // of scans without touching the SQLite database.
+    await writeScanManifest(storage, scanId).catch((err: unknown) => {
+      logger?.warn?.(`Failed to write manifest: ${err}`)
     })
 
     if (resolvedConfig.googleApiKey && resolvedConfig.site) {

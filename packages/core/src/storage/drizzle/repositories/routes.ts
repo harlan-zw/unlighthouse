@@ -23,6 +23,10 @@ function blobKeyFor(scanId: string, url: string): string {
   return `scans/${scanId}/lhr/${urlHash(url)}.json.gz`
 }
 
+export function reportBlobKeyFor(scanId: string, url: string): string {
+  return `scans/${scanId}/reports/${urlHash(url)}.json`
+}
+
 function metricsToRow(scanId: string, m: ExtractedMetrics) {
   return {
     scanId,
@@ -43,6 +47,7 @@ function metricsToRow(scanId: string, m: ExtractedMetrics) {
     lighthouseVersion: m.lighthouseVersion,
     capturedAt: m.capturedAt,
     lhrBlobKey: blobKeyFor(scanId, m.url),
+    reportBlobKey: reportBlobKeyFor(scanId, m.url),
   }
 }
 

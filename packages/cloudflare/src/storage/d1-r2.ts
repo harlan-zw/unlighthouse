@@ -114,6 +114,7 @@ function rowToRoute(r: RouteRawRow): ScanRoute {
     lighthouseVersion: r.lighthouse_version,
     capturedAt: r.captured_at,
     lhrBlobKey: r.lhr_blob_key,
+    reportBlobKey: (r as { report_blob_key?: string | null }).report_blob_key ?? null,
   }
 }
 
