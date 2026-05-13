@@ -76,7 +76,8 @@ export function createWorkerHandler(definition: WorkerDefinition): (input: { tas
   }
 
   return async function dispatch({ taskName, payload }) {
-    const opts = workerData as InternalWorkerData
+    // Tinypool wraps workerData; use its accessor instead of node:worker_threads.workerData.
+    const opts = Tinypool.workerData as InternalWorkerData
     const task = definition.tasks[taskName]
     if (!task)
       throw new Error(`[@unlighthouse/audit-pool/worker] unknown task "${taskName}"`)
