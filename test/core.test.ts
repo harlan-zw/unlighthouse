@@ -335,6 +335,52 @@ describe('createUnlighthouseCore orchestration', () => {
     await session.done.catch(() => {})
   })
 
+  it('run({ overrides }): site/device/ciBuild are persisted onto the scans row', async () => {
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: { site: 'https://default.example', scanner: { device: 'mobile' } },
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(['https://override.example/a']),
+      storage,
+    })
+
+    const session = core.run({
+      overrides: {
+        site: 'https://override.example',
+        device: 'desktop',
+        ciBuild: { branch: 'feat/x', hash: 'deadbeef', message: 'wip' },
+      },
+    })
+    await session.done
+
+    const scan = await storage.scans.get(session.scanId)
+    expect(scan?.site).toBe('https://override.example')
+    expect(scan?.device).toBe('desktop')
+    expect(scan?.ciBranch).toBe('feat/x')
+    expect(scan?.ciCommit).toBe('deadbeef')
+    expect(scan?.ciCommitMessage).toBe('wip')
+  })
+
+  it('run() without overrides: falls back to host config (default device=mobile, no ci)', async () => {
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(['https://example.com/a']),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+    const scan = await storage.scans.get(session.scanId)
+    expect(scan?.site).toBe('https://example.com')
+    expect(scan?.device).toBe('mobile')
+    expect(scan?.ciBranch).toBeNull()
+    expect(scan?.ciCommit).toBeNull()
+    expect(scan?.ciCommitMessage).toBeNull()
+  })
+
   it('audit error: emits scan:route-failed, completes with stats.failed=1', async () => {
     const urls = ['https://example.com/a', 'https://example.com/b', 'https://example.com/c']
     const storage = memoryStorage()

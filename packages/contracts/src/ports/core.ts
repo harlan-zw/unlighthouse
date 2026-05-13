@@ -63,8 +63,32 @@ export interface CrawlSession {
   done: Promise<{ scanId: ScanId, summary: ScanSummary }>
 }
 
+/**
+ * Per-run config overrides. Merged on top of the host-supplied `config` for the
+ * lifetime of a single session — lets API callers (`scan.start`) thread the
+ * command input (site/device/categories/auditor/ciBuild) into the scan without
+ * mutating shared `Core` state. The overrides do not persist beyond the session.
+ */
+export interface UnlighthouseCoreRunOverrides {
+  site?: string
+  device?: 'mobile' | 'desktop'
+  /** Lighthouse categories — mapped onto `lighthouseOptions.onlyCategories`. */
+  categories?: Array<'performance' | 'accessibility' | 'seo' | 'best-practices'>
+  /** Sample count — mapped onto `scanner.samples`. */
+  sampleSize?: number
+  /** Auditor provider name — selects from `config.auditor` when it's a router. */
+  auditor?: string
+  /** CI metadata persisted on the scans row. */
+  ciBuild?: {
+    branch?: string
+    hash?: string
+    message?: string
+  }
+}
+
 export interface UnlighthouseCoreRunOptions {
   signal?: AbortSignal
+  overrides?: UnlighthouseCoreRunOverrides
 }
 
 export interface UnlighthouseCore {

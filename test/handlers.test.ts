@@ -295,6 +295,35 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
     expect(result.scanId).toBe('newscan')
   })
 
+  it('scan.start threads input (site/device/categories/sampleSize/auditor/ciBuild) into core.run(overrides)', async () => {
+    const handlers = createHandlers()
+    const ctx = makeCtx()
+    let receivedOpts: any = null
+    ;(ctx as any).core = {
+      session: () => null,
+      run: (opts?: any) => {
+        receivedOpts = opts
+        return stubSession({ scanId: 'newscan' as CrawlSession['scanId'] })
+      },
+    }
+    await handlers['scan.start'].run({
+      site: 'https://example.com',
+      device: 'desktop',
+      sampleSize: 3,
+      categories: ['performance', 'seo'],
+      auditor: 'psi',
+      ciBuild: { branch: 'main', hash: 'abc123', message: 'release' },
+    } as never, ctx)
+    expect(receivedOpts?.overrides).toEqual({
+      site: 'https://example.com',
+      device: 'desktop',
+      sampleSize: 3,
+      categories: ['performance', 'seo'],
+      auditor: 'psi',
+      ciBuild: { branch: 'main', hash: 'abc123', message: 'release' },
+    })
+  })
+
   it('scan.rescanAll throws ACTIVE_SCAN_CONFLICT when a session is in flight', async () => {
     const handlers = createHandlers()
     const ctx = makeCtx()

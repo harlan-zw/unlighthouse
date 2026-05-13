@@ -12,6 +12,7 @@ import type {
   UnlighthouseCore,
   UnlighthouseCoreOptions,
   UnlighthouseCoreRunOptions,
+  UnlighthouseCoreRunOverrides,
 } from '@unlighthouse/contracts'
 import type { Hookable } from 'hookable'
 import {
@@ -43,6 +44,37 @@ function nowIso(): string {
 function generateScanId(): ScanId {
   // Cast through unknown: ScanId is a branded string; runtime is plain UUID.
   return globalThis.crypto.randomUUID() as unknown as ScanId
+}
+
+/**
+ * Apply `UnlighthouseCoreRunOverrides` on top of the resolved config for a
+ * single session. Returns a new object; never mutates the input. Unknown
+ * override fields are no-ops. `categories` maps onto
+ * `lighthouseOptions.onlyCategories` (Lighthouse-native shape).
+ */
+function mergeOverrides(
+  base: UnlighthouseConfig,
+  overrides?: UnlighthouseCoreRunOverrides,
+): UnlighthouseConfig {
+  if (!overrides)
+    return base
+  const next: UnlighthouseConfig = { ...base }
+  if (overrides.site)
+    next.site = overrides.site
+  if (overrides.device || overrides.sampleSize != null) {
+    next.scanner = {
+      ...(base.scanner ?? {}),
+      ...(overrides.device ? { device: overrides.device } : {}),
+      ...(overrides.sampleSize != null ? { samples: overrides.sampleSize } : {}),
+    }
+  }
+  if (overrides.categories && overrides.categories.length) {
+    next.lighthouseOptions = {
+      ...(base.lighthouseOptions ?? {}),
+      onlyCategories: overrides.categories,
+    }
+  }
+  return next
 }
 
 function toStructuredError(err: unknown): { code: string, message: string, cause?: unknown } {
@@ -83,7 +115,7 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
     }
 
     const session = createSession({
-      config,
+      config: mergeOverrides(config, runOpts?.overrides),
       storage: opts.storage,
       auditor: opts.auditor,
       seeds: opts.seeds,
@@ -91,6 +123,7 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
       hooks,
       logger,
       userSignal: runOpts?.signal,
+      overrides: runOpts?.overrides,
     })
 
     currentSession = session
@@ -120,10 +153,11 @@ interface SessionDeps {
   hooks: Hookable<HookMap>
   logger: LoggerLike | undefined
   userSignal?: AbortSignal
+  overrides?: UnlighthouseCoreRunOverrides
 }
 
 function createSession(deps: SessionDeps): CrawlSession {
-  const { storage, auditor, seeds, crawler, hooks, logger, userSignal } = deps
+  const { storage, auditor, seeds, crawler, hooks, logger, userSignal, overrides } = deps
 
   const scanId = generateScanId()
   const startedAt = nowIso()
@@ -244,17 +278,20 @@ function createSession(deps: SessionDeps): CrawlSession {
   // ── Orchestration ──────────────────────────────────────────────────────
   async function orchestrate(): Promise<void> {
     const site = (deps.config.site ?? '') as string
+    const scannerDevice = deps.config.scanner?.device
+    const device: 'mobile' | 'desktop'
+      = scannerDevice === 'mobile' || scannerDevice === 'desktop' ? scannerDevice : 'mobile'
 
     await storage.scans.create({
       scanId,
       site: site as never,
-      device: 'mobile',
+      device,
       status: 'starting',
       startedAt,
       completedAt: null,
-      ciBranch: null,
-      ciCommit: null,
-      ciCommitMessage: null,
+      ciBranch: overrides?.ciBuild?.branch ?? null,
+      ciCommit: overrides?.ciBuild?.hash ?? null,
+      ciCommitMessage: overrides?.ciBuild?.message ?? null,
     })
 
     await emit('scan:created', { scanId, site: site as never, startedAt })
