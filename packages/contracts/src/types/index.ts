@@ -962,72 +962,12 @@ export interface ServerContextArg {
   app: any /* can't type h3 here */
 }
 
-/**
- * The context is returned by the createUnlighthouse() factory and threaded explicitly through the call graph.
- * It provides the central API to interact with the behaviour of Unlighthouse..
- */
-export interface UnlighthouseContext {
-  /**
-   * Settings that are computed from runtime data.
-   */
-  runtimeSettings: RuntimeSettings
-  /**
-   * Access the hook system, either calling a hook or listening to one.
-   */
-  hooks: Hookable<UnlighthouseHooks>
-  /**
-   * User config that has been normalised.
-   */
-  resolvedConfig: ResolvedUserConfig
-  /**
-   * Discovered routes.
-   */
-  routes?: NormalisedRoute[]
-  /**
-   * A reference to the API middleware.
-   */
-  api: any
-  /**
-   * A reference to the websocket interface, used to broadcast data.
-   */
-  ws: WS
-  /**
-   * Access the worker environment, queue tasks, inspect progress, etc.
-   */
-  worker: UnlighthouseWorker
-  /**
-   * Provider details
-   */
-  provider: Provider
-
-  /**
-   * To use Unlighthouse with a client, it needs a server / app to register the API and client middleware.
-   *
-   * @param arg
-   */
-  setServerContext: (arg: ServerContextArg) => Promise<UnlighthouseContext>
-  /**
-   * Sets the site URL that will be scanned if it's not known at initialisation.
-   * @param url
-   */
-  setSiteUrl: (url: string) => void
-  /**
-   * Running Unlighthouse via CI does not require a server or the client so we have a special utility for it.
-   */
-  setCiContext: () => Promise<UnlighthouseContext>
-  /**
-   * Start the client and the queue worker. A server context must be provided before this function is called.
-   */
-  start: () => Promise<UnlighthouseContext>
-  /**
-   * @internal
-   */
-  _axios?: unknown
-  /**
-   * @internal
-   */
-  _i18nWarn?: boolean
-}
+// `UnlighthouseContext` was the v0 god-object threaded through the call graph.
+// In v1 it's replaced by:
+//   - `createUnlighthouseCore` + its returned `UnlighthouseCore` (hooks + run/cancel)
+//   - `createUnlighthouseHost` (the unlighthouse package preset)
+//   - `HandlerCtx` for API handlers (core + storage + auditor + config)
+// Removed in Step H of the v1 architecture pass.
 
 export interface UnlighthouseOptions {
   provider?: UnlighthouseProvider

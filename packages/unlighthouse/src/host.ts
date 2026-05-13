@@ -11,7 +11,23 @@ import type { HandlerCtx } from '@unlighthouse/core/api/handlers/types'
 import type { Hookable } from 'hookable'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
-import type { UnlighthouseBehavior } from './unlighthouse'
+
+/**
+ * Behavior knobs supplied by the entry preset (cli, ci, integration).
+ * Replaces the implicit `provider.name === 'cli'|'ci'` branches.
+ */
+export interface UnlighthouseBehavior {
+  /** WebSocket broadcaster. Pass null to disable (e.g. CI). */
+  ws?: WS | null
+  /** When true, generateClient() is run after server context is set (CLI). */
+  generateClient?: boolean
+  /** When true, scanning waits for the user to visit the client before starting (integrations). */
+  autoStartOnVisit?: boolean
+  /** When true, the fancy CLI start banner is printed (CLI). */
+  showBanner?: boolean
+  /** Label shown in logs / banner (e.g. 'cli', 'ci', 'nuxt'). */
+  label?: string
+}
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { createUnlighthouseCore } from '@unlighthouse/core'
@@ -39,8 +55,6 @@ import { createSitesStore } from './data/sites'
 import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
 import { normaliseHost } from './util'
-
-export type { UnlighthouseBehavior }
 
 export interface UnlighthouseHost {
   core: UnlighthouseCore

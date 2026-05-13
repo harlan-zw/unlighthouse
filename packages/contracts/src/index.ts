@@ -63,7 +63,6 @@ export type {
   ScanMeta,
   ServerContextArg,
   UnlighthouseColumn,
-  UnlighthouseContext,
   UnlighthouseInsights,
   UnlighthouseOptions,
   UnlighthouseProvider,
