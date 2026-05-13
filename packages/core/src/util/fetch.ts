@@ -1,6 +1,6 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
-import type { ConsolaInstance } from 'consola'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { ConsolaInstance } from 'consola'
 import dns from 'node:dns'
 import http from 'node:http'
 import https from 'node:https'

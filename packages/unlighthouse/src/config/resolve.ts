@@ -201,9 +201,6 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseCon
     headless: true,
     ignoreHTTPSErrors: true,
   })
-  config.puppeteerClusterOptions = defu(config.puppeteerClusterOptions || {}, {
-    timeout: 120_000,
-  })
   ;(config.puppeteerOptions as any).defaultViewport = lh.screenEmulation
 
   // Rule: auto --no-sandbox when running as root.

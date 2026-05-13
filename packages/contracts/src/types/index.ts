@@ -1,12 +1,11 @@
 import type { Options as ChromeLaunchOptions } from 'chrome-launcher'
-import type { Hookable, NestedHooks } from 'hookable'
+import type { NestedHooks } from 'hookable'
 import type { Config, Flags, Result } from 'lighthouse'
 import type { ListenOptions } from 'listhen'
 import type http from 'node:http'
 import type https from 'node:https'
 import type { Page, LaunchOptions as PuppeteerLaunchOptions } from 'puppeteer-core'
 import type { QueryObject } from 'ufo'
-import type { Cluster, ClusterOptionsArgument, TaskFunction } from '../cluster'
 
 export * from './atoms'
 
@@ -585,11 +584,6 @@ export interface ResolvedUserConfig {
    * Change the behaviour of puppeteer.
    */
   puppeteerOptions: PuppeteerLaunchOptions
-  /**
-   * Change the behaviour of puppeteer-cluster.
-   */
-  puppeteerClusterOptions: Partial<ClusterOptionsArgument>
-
   chrome: {
     /**
      * Should chrome be attempted to be used from the system.
@@ -702,58 +696,6 @@ export interface RuntimeSettings {
   server: http.Server | https.Server
 }
 
-export interface UnlighthouseWorkerStats {
-  /**
-   * Status of the worker, completed when all tasks have been completed.
-   */
-  status: 'completed' | 'working'
-  /**
-   * Time in ms that the worker has been running
-   */
-  timeRunning: number
-  /**
-   * How many tasks have been completed.
-   */
-  doneTargets: number
-  /**
-   * Total number of tasks including completed, pending and working.
-   */
-  allTargets: number
-  /**
-   * The % of work completed.
-   */
-  donePercStr: string
-  /**
-   * The % of errors.
-   */
-  errorPerc: string
-  /**
-   * The remaining time until all tasks are completed.
-   */
-  timeRemaining: number
-  /**
-   * How many tasks per second are being processed.
-   */
-  pagesPerSecond: string
-  /**
-   * The devices CPU usage % out of 100
-   */
-  cpuUsage: string
-  /**
-   * The devices memory usage % out of 100
-   */
-  memoryUsage: string
-  /**
-   * How many workers are now working, usually the cpu count of the device.
-   */
-  workers: number
-}
-
-export type PuppeteerTaskArgs = UnlighthouseRouteReport
-export type PuppeteerTaskReturn = UnlighthouseRouteReport
-export type PuppeteerTask = TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>
-export type UnlighthousePuppeteerCluster = Cluster<PuppeteerTaskArgs, PuppeteerTaskReturn>
-
 export type HookResult = Promise<void> | void
 
 /**
@@ -777,115 +719,11 @@ export interface UnlighthouseHooks {
   'authenticate': (page: Page) => HookResult
 }
 
-/**
- * The worker is the manager of puppeteer-cluster, it provides an API for managing the queued routes, monitoring the queue and
- * fetching the results of the queued jobs.
- */
-export interface UnlighthouseWorker {
-  /**
-   * puppeteer-cluster instance
-   */
-  cluster: Cluster
-  /**
-   * A collection of stats gathered from the cluster for the current status of the worker.
-   */
-  monitor: () => UnlighthouseWorkerStats
-  /**
-   * Queue a single normalised route. Will not process routes that have already been queued.
-   * @param route
-   */
-  queueRoute: (route: NormalisedRoute) => void
-  /**
-   * Queue multiple normalised routes. This will sort the list for a better loading experience.
-   * @param routes
-   */
-  queueRoutes: (routes: NormalisedRoute[]) => void
-  /**
-   * Re-queues a report, avoiding the usual caching involved and makes sure we unlink any of the previous reports data or
-   * tasks.
-   *
-   * @param report
-   */
-  requeueReport: (report: UnlighthouseRouteReport) => void
-  /**
-   * Has the worker started processing the queue.
-   */
-  hasStarted: () => boolean
-  /**
-   * The gathered map of reports. The key is the path of the route.
-   */
-  routeReports: Map<string, UnlighthouseRouteReport>
-  /**
-   * A simple array representation of the reports for easy iteration.
-   */
-  reports: () => UnlighthouseRouteReport[]
-  /**
-   * Find a report with the specified id.
-   * @param id
-   */
-  findReport: (id: string) => UnlighthouseRouteReport | null
-
-  /**
-   * Iterates through route reports checking for a match on the route definition component, if there is a match
-   * then the route is re-queued.
-   *
-   * @param file
-   * @return True if an invalidation occurred on the routes.
-   */
-  invalidateFile: (file: string) => boolean
-
-  /**
-   * Checks if the amount of routes scanned surpasses the `scanner.maxRoutes` value.
-   */
-  exceededMaxRoutes: () => boolean
-
-  /**
-   * Clear the progress display box
-   */
-  clearProgressDisplay: () => void
-  /**
-   * Reset worker state for a brand new scan session.
-   */
-  reset: () => void
-  /**
-   * Pause the scan - new tasks won't start until resumed
-   */
-  pause: () => void
-  /**
-   * Resume a paused scan
-   */
-  resume: () => void
-  /**
-   * Check if scan is currently paused
-   */
-  isPaused: () => boolean
-  /**
-   * Cancel the active scan without tearing down the cluster.
-   */
-  cancel: () => void
-  /**
-   * Mark the active scan as failed and stop accepting more work for it.
-   */
-  fail: (error: Error | string) => void
-  /**
-   * Check if the active scan has been cancelled.
-   */
-  isCancelled: () => boolean
-  /**
-   * Get the last unrecoverable worker error, if any.
-   */
-  getError: () => string | null
-}
-
 export interface ScanMeta {
   /**
    * Total count of discovered routes
    */
   routes: number
-  /**
-   * How are worker is operating
-   */
-  monitor?: UnlighthouseWorkerStats
   /**
    * Aggregate score for the site
    */

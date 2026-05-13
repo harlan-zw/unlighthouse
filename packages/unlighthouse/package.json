@@ -109,7 +109,6 @@
     "object-hash": "catalog:dependencies",
     "ofetch": "catalog:dependencies",
     "pathe": "catalog:dependencies",
-    "puppeteer-cluster": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "radix3": "catalog:dependencies",
     "regexparam": "catalog:dependencies",

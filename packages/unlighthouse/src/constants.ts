@@ -1,6 +1,4 @@
 import type { UnlighthouseColumn, UnlighthouseTabs, UserConfig } from './types'
-import os from 'node:os'
-import { Cluster } from 'puppeteer-cluster'
 
 export const AppName = 'Unlighthouse'
 export const ClientPkg = '@unlighthouse/ui'
@@ -200,18 +198,6 @@ export const defaultConfig: UserConfig = {
   debug: false,
 
   puppeteerOptions: {},
-  puppeteerClusterOptions: {
-    monitor: true,
-    workerCreationDelay: 500,
-    retryLimit: 3,
-    timeout: 5 * 60 * 1000, // wait for up to 5 minutes.
-    // lighthouse runs in its own process so we can use half of the available cores
-    maxConcurrency: Math.max(Math.floor(os.cpus().length / 2), 1),
-    skipDuplicateUrls: false,
-    retryDelay: 2000,
-    // Important, when using Lighthouse we want browser isolation.
-    concurrency: Cluster.CONCURRENCY_BROWSER,
-  },
   lighthouseOptions: {
     onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
   },

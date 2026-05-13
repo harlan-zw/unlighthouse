@@ -123,6 +123,7 @@
   },
   "dependencies": {
     "@clack/prompts": "catalog:dependencies",
+    "@unlighthouse/audit-pool": "workspace:*",
     "@unlighthouse/contracts": "workspace:*",
     "axios": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
@@ -138,7 +139,6 @@
     "minimist": "catalog:dependencies",
     "ofetch": "catalog:dependencies",
     "pathe": "catalog:dependencies",
-    "puppeteer-cluster": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "radix3": "catalog:dependencies",
     "sanitize-filename": "catalog:dependencies",

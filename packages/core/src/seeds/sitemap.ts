@@ -1,4 +1,5 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { SeedSource } from '@unlighthouse/contracts/ports'
 import type { ConsolaInstance } from 'consola'
 import { createConsola } from 'consola'
 import Sitemapper from 'sitemapper'
@@ -60,4 +61,38 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
   const filtered = paths.filter(url => isScanOrigin({ siteUrl: deps.siteUrl }, url))
   // for the paths we need to validate that they will be scanned
   return { paths: filtered, ignored: paths.length - filtered.length, sitemaps }
+}
+
+export interface SitemapSeedsOptions {
+  resolvedConfig: ResolvedUserConfig
+  siteUrl: URL
+  /** Sitemap URLs to fetch. `true` (default) resolves to `${site}/sitemap.xml`. */
+  sitemaps?: true | string[]
+  logger?: Logger
+}
+
+/**
+ * SeedSource that fetches one or more sitemaps and yields each URL.
+ *
+ * Sitemap fetch failures are logged at debug level; the source yields nothing rather than
+ * throwing so the scan can fall back to other seed sources (manual, link-discovery).
+ */
+export function sitemapSeeds(opts: SitemapSeedsOptions): SeedSource {
+  return {
+    async* seeds() {
+      const logger = (opts.logger as ConsolaInstance | undefined) ?? createConsola().withTag('seeds/sitemap')
+      try {
+        const { paths } = await extractSitemapRoutes(
+          { resolvedConfig: opts.resolvedConfig, siteUrl: opts.siteUrl, logger: opts.logger },
+          opts.siteUrl.toString(),
+          opts.sitemaps ?? true,
+        )
+        for (const url of paths)
+          yield { url, source: 'sitemap' }
+      }
+      catch (err) {
+        logger.debug?.('sitemap fetch failed', err)
+      }
+    },
+  }
 }

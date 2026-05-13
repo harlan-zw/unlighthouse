@@ -1,0 +1,47 @@
+{
+  "name": "@unlighthouse/audit-pool",
+  "type": "module",
+  "version": "0.0.0-v1",
+  "private": true,
+  "description": "Tinypool-backed Puppeteer worker pool optimized for Lighthouse audits.",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.mjs"
+    },
+    "./worker": {
+      "types": "./src/worker.ts",
+      "import": "./dist/worker.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./src/index.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "puppeteer-core": "catalog:dependencies"
+  },
+  "dependencies": {
+    "consola": "catalog:dependencies",
+    "hookable": "catalog:dependencies",
+    "tinypool": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "obuild": "catalog:",
+    "puppeteer-core": "catalog:dependencies",
+    "typescript": "catalog:"
+  }
+}

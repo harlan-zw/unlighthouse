@@ -1,6 +1,5 @@
-import type { Logger, ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig, RuntimeSettings, UnlighthouseHooks } from '@unlighthouse/contracts'
 import type { WS } from '@unlighthouse/core/api'
-import type { LegacyWorkerHooks } from '@unlighthouse/core/crawlers'
 import type { App } from 'h3'
 import type { Hookable } from 'hookable'
 import { join } from 'node:path'
@@ -32,7 +31,7 @@ const mimeTypes: Record<string, string> = {
 export interface MountServerDeps {
   resolvedConfig: ResolvedUserConfig
   runtimeSettings: RuntimeSettings
-  hooks: Hookable<LegacyWorkerHooks>
+  hooks: Hookable<UnlighthouseHooks>
   ws: WS | null
   logger?: Logger
 }
@@ -86,7 +85,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
 
   // Static client with SPA fallback.
   root.get('/**', defineEventHandler(async (event) => {
-    await hooks.callHook('visited-client')
+    await (hooks as { callHook: (name: string) => Promise<void> | void }).callHook('visited-client')
     const path = event.path || '/'
     const ext = path.substring(path.lastIndexOf('.'))
     const mimeType = mimeTypes[ext]

@@ -12,6 +12,8 @@ export default defineBuildConfig({
         './src/policies/index.ts',
         './src/crawlers/index.ts',
         './src/auditors/index.ts',
+        // Tinypool worker entry; spawned by createLocalAuditor's audit-pool.
+        './src/auditors/local-worker.ts',
         './src/storage/index.ts',
         './src/storage/drizzle/index.ts',
         './src/storage/drizzle/init-sql.ts',

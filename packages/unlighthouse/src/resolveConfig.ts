@@ -11,7 +11,7 @@ import { createDefu, defu } from 'defu'
 import { pathExists } from 'fs-extra'
 import { pick } from 'lodash-es'
 import { resolve as resolveModule } from 'mlly'
-import puppeteer, { launch } from 'puppeteer-core'
+import { launch } from 'puppeteer-core'
 import { PUPPETEER_REVISIONS } from 'puppeteer-core/lib/cjs/puppeteer/revisions.js'
 import { defaultConfig } from './constants'
 import { normaliseHost, withSlashes } from './util'
@@ -171,9 +171,6 @@ export async function resolveUserConfig(userConfig: UserConfig, logger?: Logger)
     timeout: 0,
     protocolTimeout: 0,
   })
-  config.puppeteerClusterOptions = defu(config.puppeteerClusterOptions, {
-    timeout: 120_000,
-  })
   config.puppeteerOptions = defu(config.puppeteerOptions, {
     // set viewport
     headless: true,
@@ -203,9 +200,6 @@ export async function resolveUserConfig(userConfig: UserConfig, logger?: Logger)
     }
     if (chromePath) {
       logger?.info(`Using system Chrome located at: \`${chromePath}\`.`)
-      // set default to puppeteer core
-      config.puppeteerClusterOptions.puppeteer = puppeteer
-      // point to our pre-installed chrome version
       config.puppeteerOptions.executablePath = chromePath
       foundChrome = true
     }
@@ -223,8 +217,7 @@ export async function resolveUserConfig(userConfig: UserConfig, logger?: Logger)
     }
   }
   if (!foundChrome) {
-    // if we can't find their local chrome, we just need to make sure they have puppeteer, this is a similar check
-    // puppeteer-cluster will do, but we can provide a nicer error
+    // if we can't find their local chrome, we just need to make sure they have puppeteer.
     try {
       await resolveModule('puppeteer')
       foundChrome = true

@@ -167,7 +167,8 @@ function animate() {
 }
 
 const showLighthouse = computed(() => {
-  return scanMeta?.value?.monitor?.status === 'working' || isHovered.value
+  // TODO: rewire active-scan signal to v1 hook events (scan:progress / scan:complete).
+  return isHovered.value
 })
 </script>
 

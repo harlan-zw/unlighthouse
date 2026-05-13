@@ -59,7 +59,6 @@
     "chrome-launcher": "catalog:dependencies",
     "lighthouse": "catalog:dependencies",
     "listhen": "catalog:dependencies",
-    "puppeteer-cluster": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "ufo": "catalog:dependencies",
     "zod": "catalog:"

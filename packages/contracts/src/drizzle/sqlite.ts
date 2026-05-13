@@ -10,7 +10,7 @@
 // `drizzle-orm`).
 import type { Scan } from '../types/atoms'
 import { sql } from 'drizzle-orm'
-import { blob, index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 // ============================================================================
 // Core scan/route tables (mirror contract atoms)

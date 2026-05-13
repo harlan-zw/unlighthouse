@@ -147,9 +147,9 @@ function scenario(label: string, run: () => Promise<void>): void {
 }
 
 describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
-  scenario('local-cli: bundles unlighthouse with lighthouse + puppeteer-cluster + listhen', async () => {
+  scenario('local-cli: bundles unlighthouse with lighthouse + listhen', async () => {
     await assertGraph('local-cli', {
-      mustInclude: ['lighthouse', 'puppeteer-cluster', 'listhen'],
+      mustInclude: ['lighthouse', 'listhen'],
       mustExclude: [
         '@cloudflare/puppeteer',
         '@modelcontextprotocol/sdk',
@@ -162,7 +162,6 @@ describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
       mustExclude: [
         'lighthouse',
         'puppeteer-core',
-        'puppeteer-cluster',
         'crawlee',
         'chrome-launcher',
         'drizzle-orm',
@@ -177,7 +176,6 @@ describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
       mustInclude: ['@cloudflare/puppeteer'],
       mustExclude: [
         'crawlee',
-        'puppeteer-cluster',
         'chrome-launcher',
         'lighthouse',
         'better-sqlite3',
@@ -222,7 +220,6 @@ describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
       mustExclude: [
         'lighthouse',
         'puppeteer-core',
-        'puppeteer-cluster',
         'listhen',
         'h3',
       ],

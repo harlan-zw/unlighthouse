@@ -60,7 +60,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
   // Resolve current scan via runtimeSettings; absent → empty payload.
   const scanId = runtimeSettings.currentScanId
   let routes: Awaited<ReturnType<Storage['routes']['listForScan']>>['items'] = []
-  let scanMeta: ScanMeta = { favicon: undefined, monitor: null as never, routes: 0, score: 0 }
+  let scanMeta: ScanMeta = { favicon: undefined, routes: 0, score: 0 }
 
   if (scanId) {
     const list = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
@@ -69,7 +69,6 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
     const score = scoreValues.length ? scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length : 0
     scanMeta = {
       favicon: undefined,
-      monitor: null as never,
       routes: routes.length,
       score,
     }

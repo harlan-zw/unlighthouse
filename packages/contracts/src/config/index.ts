@@ -173,10 +173,9 @@ const UnlighthouseConfigSchema = z.object({
   client: ClientConfig.optional(),
   discovery: DiscoveryOptions.optional(),
   scanner: ScannerConfig.optional(),
-  // Lighthouse + puppeteer + cluster options pass-through; opaque to validation.
+  // Lighthouse + puppeteer options pass-through; opaque to validation.
   lighthouseOptions: z.record(z.string(), z.unknown()).optional(),
   puppeteerOptions: z.record(z.string(), z.unknown()).optional(),
-  puppeteerClusterOptions: z.record(z.string(), z.unknown()).optional(),
   chrome: ChromeConfig.optional(),
   auditor: AuditorConfig.optional(),
 })

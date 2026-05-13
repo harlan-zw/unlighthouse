@@ -136,4 +136,3 @@ export function applyDynamicSampling(deps: { resolvedConfig: ResolvedUserConfig,
 
   return sampledRoutes.flat()
 }
-

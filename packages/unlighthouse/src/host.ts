@@ -11,6 +11,33 @@ import type { HandlerCtx } from '@unlighthouse/core/api/handlers/types'
 import type { Hookable } from 'hookable'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
+import { existsSync } from 'node:fs'
+import { isAbsolute, join } from 'node:path'
+import { createUnlighthouseCore } from '@unlighthouse/core'
+import { WS as WSClass } from '@unlighthouse/core/api'
+import { crawleeCrawler } from '@unlighthouse/core/crawlers'
+import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
+import { createStorage } from '@unlighthouse/core/storage'
+import { drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
+import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
+import Database from 'better-sqlite3'
+import { loadConfig } from 'c12'
+import { createConsola } from 'consola'
+import { defu } from 'defu'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import fs from 'fs-extra'
+import { createCommonJS, resolvePath } from 'mlly'
+import objectHash from 'object-hash'
+import { joinURL } from 'ufo'
+import fsDriver from 'unstorage/drivers/fs'
+import { version } from '../package.json'
+import { resolveAuditor } from './auditor'
+import { ClientPkg } from './constants'
+import { historySubscriber } from './data/history/tracking'
+import { createSitesStore } from './data/sites'
+import { resolveUserConfig } from './resolveConfig'
+import { mountServer } from './server'
+import { normaliseHost } from './util'
 
 /**
  * Behavior knobs supplied by the entry preset (cli, ci, integration).
@@ -28,33 +55,6 @@ export interface UnlighthouseBehavior {
   /** Label shown in logs / banner (e.g. 'cli', 'ci', 'nuxt'). */
   label?: string
 }
-import { existsSync } from 'node:fs'
-import { isAbsolute, join } from 'node:path'
-import { createUnlighthouseCore } from '@unlighthouse/core'
-import { WS as WSClass } from '@unlighthouse/core/api'
-import { crawleeCrawler } from '@unlighthouse/core/crawlers'
-import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
-import { createStorage } from '@unlighthouse/core/storage'
-import { drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
-import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
-import Database from 'better-sqlite3'
-import { loadConfig } from 'c12'
-import { createConsola } from 'consola'
-import { defu } from 'defu'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import fs from 'fs-extra'
-import { createCommonJS, resolvePath } from 'mlly'
-import objectHash from 'object-hash'
-import { $URL, joinURL } from 'ufo'
-import fsDriver from 'unstorage/drivers/fs'
-import { version } from '../package.json'
-import { resolveAuditor } from './auditor'
-import { ClientPkg } from './constants'
-import { historySubscriber } from './data/history/tracking'
-import { createSitesStore } from './data/sites'
-import { resolveUserConfig } from './resolveConfig'
-import { mountServer } from './server'
-import { normaliseHost } from './util'
 
 export interface UnlighthouseHost {
   core: UnlighthouseCore
@@ -201,12 +201,31 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       ...(site ? [site] : []),
       ...(Array.isArray(rawUrls) ? rawUrls : []),
     ]
-    const seeds = fuseSeeds([
+    const sources = [
       manualSeeds({
         urls: urlList,
-        logger: (logger as any).withTag('seeds/manual'),
+        logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/manual'),
       }),
-    ])
+    ]
+    // Sitemap discovery is on by default; disable via `scanner.sitemap = false` or
+    // when `--urls` overrides the crawl with an explicit list.
+    const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false && !(Array.isArray(rawUrls) && rawUrls.length > 0)
+    if (sitemapEnabled && site) {
+      try {
+        sources.push(sitemapSeeds({
+          resolvedConfig: resolvedConfig as never,
+          siteUrl: new URL(site),
+          sitemaps: Array.isArray(resolvedConfig.scanner?.sitemap)
+            ? resolvedConfig.scanner.sitemap
+            : true,
+          logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/sitemap'),
+        }))
+      }
+      catch (err) {
+        (logger as Logger).warn?.('failed to wire sitemap seeds', err)
+      }
+    }
+    const seeds = fuseSeeds(sources)
 
     const crawler = crawleeCrawler({ logger: (logger as any).withTag('crawler/crawlee') as never })
 
