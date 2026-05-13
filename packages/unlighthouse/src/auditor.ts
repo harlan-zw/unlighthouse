@@ -39,14 +39,16 @@ function withTag(l: unknown, t: string): unknown {
 function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Auditor {
   const logger = withTag(opts.logger, `auditors/${p.name}`) as never
   switch (p.name) {
-    case 'local':
-      // Provider-level `lighthouseOptions` wins; fall back to top-level config field.
+    case 'local': {
+      // `lighthouseOptions` are Lighthouse `Flags` (e.g. onlyCategories, throttling).
+      // Pass as `lighthouseFlags`; `createLocalProvider` builds the config via
+      // `resolveLighthouseConfig` (extends `lighthouse:default`, supplies artifacts).
+      const flags = p.lighthouseOptions ?? opts.config.lighthouseOptions
       return createLocalAuditor({
-        defaults: (p.lighthouseOptions ?? opts.config.lighthouseOptions)
-          ? { lighthouseConfig: (p.lighthouseOptions ?? opts.config.lighthouseOptions) as never }
-          : undefined,
+        defaults: flags ? { lighthouseFlags: flags as never } : undefined,
         logger,
       })
+    }
     case 'psi':
       return createPsiAuditor({ apiKey: p.apiKey, logger })
     case 'crux':
