@@ -18,6 +18,13 @@ const {
   retryScan,
 } = useScan()
 
+// Bind the singleton scanId to the route so status polling targets this scan.
+const { scanId: trackedScanId } = useNuxtApp().$scan
+watchEffect(() => {
+  if (scanId.value && trackedScanId.value !== scanId.value)
+    trackedScanId.value = scanId.value
+})
+
 const displayWebsite = computed(() => scanState.site || website.value)
 const hasPartialResults = computed(() => scanState.progress.scanned > 0 || scanState.recentlyCompleted.length > 0)
 

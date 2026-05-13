@@ -40,7 +40,10 @@ export default defineNuxtPlugin({
     })
 
     setInterval(async () => {
-      const data = await client['scan.meta']({}).catch(() => null)
+      const current = await client['scan.current']({}).catch(() => null)
+      if (!current?.scanId)
+        return
+      const data = await client['scan.meta']({ scanId: current.scanId }).catch(() => null)
       if (data)
         scanMeta.value = data as unknown as ScanMeta
     }, META_POLL_MS)

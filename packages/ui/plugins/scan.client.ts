@@ -19,15 +19,40 @@ export default defineNuxtPlugin({
     if (!isStatic.value) {
       const client = nuxtApp.$api as UnlighthouseClient
 
+      function computePercent(p: ScanProgress) {
+        const denom = p.total || p.discovered
+        if (!denom)
+          return 0
+        return Math.min(100, Math.round((p.scanned / denom) * 100))
+      }
+
       async function fetchScanStatus() {
-        const data = await client['scan.status']({ scanId: (scanId.value ?? '') as ScanId }).catch(() => null)
-        if (data)
-          Object.assign(state, data)
+        if (!scanId.value) {
+          const current = await client['scan.current']({}).catch(() => null)
+          if (current?.scanId)
+            scanId.value = current.scanId
+        }
+        if (!scanId.value)
+          return
+        const data = await client['scan.status']({ scanId: scanId.value as ScanId }).catch(() => null)
+        if (!data)
+          return
+        state.status = data.status as ScanState['status']
+        state.startedAt = data.startedAt ?? state.startedAt
+        state.progress = {
+          discovered: data.discovered,
+          scanned: data.scanned,
+          failed: data.failed,
+          total: data.total,
+          percent: data.status === 'complete' ? 100 : computePercent(data as unknown as ScanProgress),
+        }
       }
 
       nuxtApp.hook('transport:scan:progress', (data: Partial<ScanProgress>) => {
-        state.progress = { ...state.progress, ...data }
-        if (state.progress.percent < 100)
+        const merged = { ...state.progress, ...data }
+        merged.percent = data.percent ?? computePercent(merged)
+        state.progress = merged
+        if (merged.percent < 100)
           state.status = 'scanning'
       })
       nuxtApp.hook('transport:scan:route-complete', (data: CompletedRoute) => {
