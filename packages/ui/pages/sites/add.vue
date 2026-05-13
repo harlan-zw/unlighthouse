@@ -57,83 +57,138 @@ async function submit() {
   toast.add({ title: 'Site added', description: site.name, color: 'success' })
   navigateTo(form.scanNow ? `/sites/${site.id}/scan/new` : `/sites/${site.id}`)
 }
+
+const devices = [
+  { id: 'mobile' as const, label: 'Mobile', hint: 'Slow 4G, Moto G Power', icon: 'i-heroicons-device-phone-mobile' },
+  { id: 'desktop' as const, label: 'Desktop', hint: 'Cable, 1350×940', icon: 'i-heroicons-computer-desktop' },
+]
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto">
+  <div class="max-w-3xl">
     <header class="mb-8">
-      <NuxtLink to="/" class="text-sm text-muted hover:text-default transition-colors inline-flex items-center gap-1 mb-3">
+      <NuxtLink to="/" class="text-sm text-muted hover:text-default transition-colors inline-flex items-center gap-1.5 mb-4">
         <UIcon name="i-heroicons-arrow-left" class="size-3.5" /> Back to sites
       </NuxtLink>
       <h1 class="text-2xl font-semibold text-highlighted">
         Add a site
       </h1>
-      <p class="text-sm text-muted mt-1">
+      <p class="text-sm text-muted mt-1.5 max-w-xl">
         Register a site to track Lighthouse audits and history over time.
       </p>
     </header>
 
-    <form class="space-y-6 rounded-xl ring-1 ring-default bg-elevated/40 p-6" @submit.prevent="submit">
-      <UFormField label="Website URL" :error="urlError">
-        <UInput
-          v-model="form.url"
-          name="url"
-          type="url"
-          autocomplete="url"
-          placeholder="https://example.com"
-          size="lg"
-        />
-      </UFormField>
+    <form @submit.prevent="submit">
+      <div class="rounded-xl ring-1 ring-default bg-elevated/40 divide-y divide-default">
+        <section class="p-6">
+          <div class="mb-5">
+            <h2 class="text-sm font-semibold text-highlighted">
+              Site details
+            </h2>
+            <p class="text-xs text-muted mt-1">
+              The URL crawled when you run a scan.
+            </p>
+          </div>
 
-      <UFormField label="Display name" hint="Optional. Defaults to the hostname.">
-        <UInput v-model="form.name" placeholder="Marketing" />
-      </UFormField>
+          <div class="space-y-5">
+            <UFormField label="Website URL" :error="urlError" required>
+              <UInput
+                v-model="form.url"
+                name="url"
+                type="url"
+                autocomplete="url"
+                placeholder="https://example.com"
+                size="lg"
+                icon="i-heroicons-globe-alt"
+                class="w-full"
+                :ui="{ root: 'w-full' }"
+              />
+            </UFormField>
 
-      <UFormField label="Group">
-        <USelect
-          v-model="form.group"
-          :items="[{ label: 'Ungrouped', value: null }, ...groups.map(g => ({ label: g.name, value: g.id }))]"
-        />
-      </UFormField>
+            <UFormField label="Display name" hint="Optional. Defaults to the hostname.">
+              <UInput
+                v-model="form.name"
+                placeholder="Marketing"
+                class="w-full"
+                :ui="{ root: 'w-full' }"
+              />
+            </UFormField>
 
-      <UFormField label="Default device">
-        <div class="flex gap-2">
-          <UButton
-            v-for="d in ['mobile', 'desktop'] as const"
-            :key="d"
-            :variant="form.device === d ? 'solid' : 'outline'"
-            :color="form.device === d ? 'primary' : 'neutral'"
-            type="button"
-            class="capitalize"
-            :icon="d === 'mobile' ? 'i-heroicons-device-phone-mobile' : 'i-heroicons-computer-desktop'"
-            @click="form.device = d"
-          >
-            {{ d }}
+            <UFormField label="Group" hint="Organise related sites under a shared label.">
+              <USelect
+                v-model="form.group"
+                :items="[{ label: 'Ungrouped', value: null }, ...groups.map(g => ({ label: g.name, value: g.id }))]"
+                class="w-full"
+                :ui="{ base: 'w-full' }"
+              />
+            </UFormField>
+          </div>
+        </section>
+
+        <section class="p-6">
+          <div class="mb-5">
+            <h2 class="text-sm font-semibold text-highlighted">
+              Default scan profile
+            </h2>
+            <p class="text-xs text-muted mt-1">
+              Used when you trigger a scan without overriding device or throttling.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <button
+              v-for="d in devices"
+              :key="d.id"
+              type="button"
+              class="text-left rounded-lg ring-1 p-4 transition-colors"
+              :class="form.device === d.id
+                ? 'ring-accented bg-elevated'
+                : 'ring-default hover:bg-elevated/60'"
+              @click="form.device = d.id"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                <UIcon :name="d.icon" class="size-4 text-muted" />
+                <span class="text-sm font-medium text-highlighted">{{ d.label }}</span>
+                <UIcon
+                  v-if="form.device === d.id"
+                  name="i-heroicons-check-circle-16-solid"
+                  class="size-4 ml-auto text-highlighted"
+                />
+              </div>
+              <div class="text-xs text-muted">
+                {{ d.hint }}
+              </div>
+            </button>
+          </div>
+        </section>
+
+        <section class="p-6">
+          <label class="flex items-start justify-between gap-6 cursor-pointer">
+            <div>
+              <div class="text-sm font-medium text-highlighted">
+                Scan immediately
+              </div>
+              <div class="text-xs text-muted mt-1 max-w-md">
+                Run a Lighthouse audit right after adding. You will be redirected to the live progress view.
+              </div>
+            </div>
+            <USwitch v-model="form.scanNow" />
+          </label>
+        </section>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 mt-6">
+        <div class="text-xs text-dimmed">
+          You can change these settings later from the site page.
+        </div>
+        <div class="flex items-center gap-2">
+          <UButton variant="ghost" color="neutral" to="/">
+            Cancel
+          </UButton>
+          <UButton type="submit" color="primary" :loading="submitting" icon="i-heroicons-plus">
+            Add site
           </UButton>
         </div>
-      </UFormField>
-
-      <UFormField>
-        <div class="flex items-center justify-between border-t border-default pt-4">
-          <div>
-            <div class="font-medium">
-              Scan immediately
-            </div>
-            <div class="text-sm text-dimmed">
-              Run a Lighthouse audit right after adding.
-            </div>
-          </div>
-          <USwitch v-model="form.scanNow" />
-        </div>
-      </UFormField>
-
-      <div class="flex items-center justify-end gap-3 pt-2">
-        <UButton variant="ghost" color="neutral" to="/">
-          Cancel
-        </UButton>
-        <UButton type="submit" color="primary" :loading="submitting" icon="i-heroicons-plus">
-          Add site
-        </UButton>
       </div>
     </form>
   </div>
