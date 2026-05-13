@@ -7,9 +7,19 @@ import type { SeedSource } from './seed-source'
 import type { ScanId, ScanStatus, ScanSummary, Storage } from './storage'
 
 export type { HookEvent, UnlighthouseConfig }
-// ConsolaInstance comes from `consola`; kept as unknown so the ports subpath
-// has zero runtime deps. Presets pass a real ConsolaInstance.
-export type Logger = unknown
+// Structural shape matching ConsolaInstance's used surface. Type-only so
+// the ports subpath has zero runtime deps. Presets pass a real ConsolaInstance.
+export interface Logger {
+  debug: (...args: any[]) => any
+  info: (...args: any[]) => any
+  warn: (...args: any[]) => any
+  error: (...args: any[]) => any
+  log: (...args: any[]) => any
+  success: (...args: any[]) => any
+  trace: (...args: any[]) => any
+  withTag: (tag: string) => Logger
+  level?: number
+}
 
 export interface UnlighthouseCoreOptions {
   /** Already-resolved by the host (c12/env merge + imperative rules); validated by Zod inside. */

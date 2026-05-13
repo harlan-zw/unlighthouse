@@ -4,7 +4,8 @@ import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
-import { createUnlighthouse, evaluateAndStoreAssertions, history, useLogger } from '..'
+import { createConsola } from 'consola'
+import { createUnlighthouse, evaluateAndStoreAssertions, history } from '..'
 import { getCurrentScanId } from '../data/history/tracking'
 import { generateReportPayload, outputReport } from '../reporters'
 import createCli from './createCli'
@@ -29,12 +30,16 @@ async function run() {
   const start = new Date()
   setMaxListeners(0)
 
+  const logger = createConsola().withTag('unlighthouse')
+  if (options.debug)
+    logger.level = 4
+
   const unlighthouse = await createUnlighthouse(
     {
       ...pickOptions(options),
       hooks: {
         'resolved-config': async (config) => {
-          await validateHost(config)
+          await validateHost(config, logger)
         },
       },
     },
@@ -44,7 +49,6 @@ async function run() {
 
   validateOptions(unlighthouse.resolvedConfig)
 
-  const logger = useLogger()
   const { routes = [] } = await unlighthouse.start()
   if (!routes.length) {
     logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
@@ -61,8 +65,6 @@ async function run() {
     })
   })
 
-  // Generate the configured report file. Defaults to `jsonSimple` when neither
-  // CLI nor config file specify one; `false` opts out.
   const cliReporter = options.reporter
   const configReporter = unlighthouse.resolvedConfig.ci?.reporter
   const reporter
@@ -83,7 +85,6 @@ async function run() {
     }
   }
 
-  // Assertions default to on in CI; --no-assert opts out.
   const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
   const assertEnabled = options.assert !== false
   if (assertEnabled && assertionConfigs?.length) {
@@ -111,7 +112,6 @@ async function run() {
     }
   }
 
-  // --compare: diff this scan against a previous scan and fail on regressions.
   if (options.compare !== undefined && options.compare !== false) {
     const scanId = getCurrentScanId()
     const outputPath = unlighthouse.resolvedConfig.outputPath
@@ -123,7 +123,6 @@ async function run() {
       const target = typeof options.compare === 'string' ? options.compare : 'latest'
       let baseScanId: string | undefined
 
-      // Direct scan id: any 8+ hex chars with dashes. Try it as an id first.
       const asScan = history.getScan(outputPath, target)
       if (asScan) {
         baseScanId = asScan.id

@@ -1,5 +1,7 @@
-import type { HTMLExtractPayload, PuppeteerTask, UnlighthouseContext } from '@unlighthouse/contracts'
+import type { HTMLExtractPayload, Logger, PuppeteerTask, ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
 import type { Page } from '@unlighthouse/contracts/types/puppeteer'
+import type { NormaliseRouteDeps } from '../../../api/util'
+import type { SetupPageDeps } from '../util'
 import { Buffer } from 'node:buffer'
 import nodeFs from 'node:fs'
 import { join } from 'node:path'
@@ -8,7 +10,6 @@ import { withoutTrailingSlash } from 'ufo'
 import { normaliseRoute } from '../../../api/util'
 import { fetchUrlRaw, ReportArtifacts } from '../../../util/fetch'
 import { isImplicitOrExplicitHtml } from '../../../util/filter'
-import { useLogger } from '../../../util/logger'
 import { setupPage } from '../util'
 
 interface ExtractedElement {
@@ -24,8 +25,16 @@ function headerIncludes(value: unknown, needle: string) {
   return false
 }
 
-export async function extractHtmlPayload(ctx: UnlighthouseContext, page: Page, route: string): Promise<{ success: boolean, redirected?: false | string, message?: string, payload?: string }> {
-  const { worker, resolvedConfig } = ctx
+export interface HtmlTaskDeps extends SetupPageDeps, NormaliseRouteDeps {
+  resolvedConfig: ResolvedUserConfig
+  runtimeSettings: RuntimeSettings
+  logger?: Logger
+  /** Callback to queue a newly discovered route. */
+  queueRoute: (route: ReturnType<typeof normaliseRoute>) => void
+}
+
+export async function extractHtmlPayload(deps: HtmlTaskDeps, page: Page, route: string): Promise<{ success: boolean, redirected?: false | string, message?: string, payload?: string }> {
+  const { resolvedConfig } = deps
 
   // if we don't need to execute any javascript we can do a less expensive fetch of the URL
   if (resolvedConfig.scanner.skipJavascript) {
@@ -76,7 +85,7 @@ export async function extractHtmlPayload(ctx: UnlighthouseContext, page: Page, r
         request.continue()
     })
 
-    await setupPage(ctx, page)
+    await setupPage(deps, page)
 
     const pageVisit = await page.goto(route, { waitUntil: resolvedConfig.scanner.skipJavascript ? 'domcontentloaded' : 'networkidle2' })
     if (!pageVisit)
@@ -88,7 +97,7 @@ export async function extractHtmlPayload(ctx: UnlighthouseContext, page: Page, r
     const statusCode = pageVisit.status()
     if ((statusCode === 301 || statusCode === 302) && location) {
       // redirect, failure but we'll queue the other url
-      worker.queueRoute(normaliseRoute(ctx, location))
+      deps.queueRoute(normaliseRoute(deps, location))
       return { success: false, message: `Redirect, queued the new URL: ${location}.` }
     }
     if (statusCode < 200 || statusCode >= 300)
@@ -390,27 +399,30 @@ export function extractSeoAndLinks(html: string, url: string, siteUrl: string): 
   }
 }
 
-export function createInspectHtmlTask(ctx: UnlighthouseContext): PuppeteerTask {
+export interface InspectHtmlTaskState {
+  /** Mutable flag: set to true on first i18n warning to suppress repeats. */
+  i18nWarnFired: boolean
+}
+
+export function createInspectHtmlTask(deps: HtmlTaskDeps, state: InspectHtmlTaskState): PuppeteerTask {
   return async (props) => {
-    const unlighthouse = ctx
-    const { resolvedConfig, runtimeSettings } = unlighthouse
+    const { resolvedConfig, runtimeSettings, logger } = deps
     const { page, data: routeReport } = props
-    const logger = useLogger()
     let html: string
 
     // basic caching based on saving html payloads
     const htmlPayloadPath = join(routeReport.artifactPath, ReportArtifacts.html)
     if (resolvedConfig.cache && nodeFs.existsSync(htmlPayloadPath)) {
       html = nodeFs.readFileSync(htmlPayloadPath, { encoding: 'utf-8' })
-      logger.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
+      logger?.debug(`Running \`inspectHtmlTask\` for \`${routeReport.route.path}\` using cache.`)
     }
     else {
-      const response = await extractHtmlPayload(ctx, page, routeReport.route.url)
-      logger.debug(`HTML extract of \`${routeReport.route.url}\` response ${response.success ? 'succeeded' : 'failed'}.`)
+      const response = await extractHtmlPayload(deps, page, routeReport.route.url)
+      logger?.debug(`HTML extract of \`${routeReport.route.url}\` response ${response.success ? 'succeeded' : 'failed'}.`)
 
       if (!response.success || !response.payload) {
         routeReport.tasks.inspectHtmlTask = 'ignore'
-        logger.info(`Skipping ${routeReport.route.path}. ${response.message}`)
+        logger?.info(`Skipping ${routeReport.route.path}. ${response.message}`)
         return routeReport
       }
       if (response.redirected) {
@@ -420,12 +432,12 @@ export function createInspectHtmlTask(ctx: UnlighthouseContext): PuppeteerTask {
         // allow subdomains
         if (siteHost !== redirectHost && !redirectHost.endsWith(`.${siteHost}`)) {
           routeReport.tasks.inspectHtmlTask = 'ignore'
-          logger.warn(`Redirected URL goes to a different domain, ignoring. \`${response.redirected}\.`)
+          logger?.warn(`Redirected URL goes to a different domain, ignoring. \`${response.redirected}\.`)
           return routeReport
         }
         // ignore redirect from site to site/
         if (withoutTrailingSlash(response.redirected) !== withoutTrailingSlash(runtimeSettings.siteUrl.href))
-          logger.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
+          logger?.info('Redirected url detected, this may cause issues in the final report.', response.redirected)
 
       // check if redirect url is already queued, if so we bail on this route
       }
@@ -447,7 +459,7 @@ export function createInspectHtmlTask(ctx: UnlighthouseContext): PuppeteerTask {
           const altUrl = new URL(routeReport.seo.alternativeLangDefault)
           const siteUrl = new URL(resolvedConfig.site)
           if (altUrl.origin !== siteUrl.origin) {
-            logger.warn(`Root path (/) has cross-domain hreflang alternative. Automatically disabling \`ignoreI18nPages\` to prevent all routes from being ignored. Alternative: ${routeReport.seo.alternativeLangDefault}`)
+            logger?.warn(`Root path (/) has cross-domain hreflang alternative. Automatically disabling \`ignoreI18nPages\` to prevent all routes from being ignored. Alternative: ${routeReport.seo.alternativeLangDefault}`)
             resolvedConfig.scanner.ignoreI18nPages = false
           }
         }
@@ -457,19 +469,19 @@ export function createInspectHtmlTask(ctx: UnlighthouseContext): PuppeteerTask {
       // Only ignore if ignoreI18nPages is still enabled (wasn't disabled above)
       if (resolvedConfig.scanner.ignoreI18nPages) {
         routeReport.tasks.inspectHtmlTask = 'ignore'
-        const newRoute = normaliseRoute(ctx, routeReport.seo.alternativeLangDefault)
+        const newRoute = normaliseRoute(deps, routeReport.seo.alternativeLangDefault)
         const htmlTag = routeReport.seo.alternativeLangDefaultHtml || ''
         const baseMessage = `Page has a default alternative language ${htmlTag}, ignoring \`${routeReport.route.path}\` and queueing \`${newRoute}\`.`
 
-        if (!unlighthouse._i18nWarn) {
-          unlighthouse._i18nWarn = true
-          logger.warn(`${baseMessage}\nTo scan this page, set \`scanner.ignoreI18nPages = false\` or update --site parameter to match the hreflang origin. Future warnings will be suppressed.`)
+        if (!state.i18nWarnFired) {
+          state.i18nWarnFired = true
+          logger?.warn(`${baseMessage}\nTo scan this page, set \`scanner.ignoreI18nPages = false\` or update --site parameter to match the hreflang origin. Future warnings will be suppressed.`)
         }
         else {
-          logger.debug(baseMessage)
+          logger?.debug(baseMessage)
         }
         // make sure we queue the default, this fixes issues with if the home page has a default lang that is alternative
-        unlighthouse.worker.queueRoute(normaliseRoute(ctx, routeReport.seo.alternativeLangDefault))
+        deps.queueRoute(normaliseRoute(deps, routeReport.seo.alternativeLangDefault))
         return routeReport
       }
     }

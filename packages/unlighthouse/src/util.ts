@@ -1,8 +1,5 @@
-import type { NormalisedRoute, UnlighthouseContext, UnlighthouseRouteReport } from './types'
-import { Buffer } from 'node:buffer'
 import { join } from 'node:path'
 import { hashPathName, sanitiseUrlForFilePath, trimSlashes } from '@unlighthouse/core/util/path'
-import { ensureDirSync } from 'fs-extra'
 import { joinURL, withLeadingSlash, withTrailingSlash } from 'ufo'
 
 export { hashPathName, sanitiseUrlForFilePath, trimSlashes }
@@ -37,43 +34,4 @@ export function normaliseHost(host: string) {
     host = `http${host.startsWith('localhost') ? '' : 's'}://${host}`
   host = host.includes('.') ? host : withTrailingSlash(host)
   return new URL(host)
-}
-
-/** A task report wraps the route, the report file paths and task status. */
-export function createTaskReportFromRoute(ctx: UnlighthouseContext, route: NormalisedRoute): UnlighthouseRouteReport {
-  const { runtimeSettings, resolvedConfig } = ctx
-
-  const reportId = hashPathName(route.path)
-  const scanId = runtimeSettings.currentScanId
-  const reportPath = join(createReportsArtifactBasePath(runtimeSettings.generatedClientPath, scanId), sanitiseUrlForFilePath(route.path))
-
-  ensureDirSync(reportPath)
-
-  return {
-    tasks: {
-      runLighthouseTask: 'waiting',
-      inspectHtmlTask: 'waiting',
-    },
-    route,
-    reportId,
-    artifactPath: reportPath,
-    artifactUrl: joinURL(createReportsArtifactBaseUrl(resolvedConfig.routerPrefix, scanId), sanitiseUrlForFilePath(route.path)),
-  }
-}
-
-export function base64ToBuffer(dataURI: string) {
-  return Buffer.from(dataURI.split(',')[1], 'base64')
-}
-
-export function formatBytes(bytes: number, decimals = 2) {
-  if (bytes === 0)
-    return '0 Bytes'
-
-  const k = 1024
-  const dm = decimals < 0 ? 0 : decimals
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-  return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }

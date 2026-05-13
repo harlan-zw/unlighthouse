@@ -1,10 +1,16 @@
-import type { NormalisedRoute, UnlighthouseContext } from '@unlighthouse/contracts'
+import type { Logger, NormalisedRoute, ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { ConsolaInstance } from 'consola'
+import { createConsola } from 'consola'
 import { get, groupBy } from 'lodash-es'
-import { isScanOrigin, normaliseRoute } from '../api/util'
 import { fetchRobotsTxt, mergeRobotsTxtConfig } from '../policies/robots'
 import { parseRobotsTxt } from '../policies/robots/parser'
-import { useLogger } from '../util/logger'
 import { extractSitemapRoutes } from './sitemap'
+
+export interface DiscoverInitialUrlsDeps {
+  resolvedConfig: ResolvedUserConfig
+  siteUrl: URL
+  logger?: Logger
+}
 
 let warnedAboutSampling = false
 
@@ -25,9 +31,9 @@ function sampleRoutes(routes: NormalisedRoute[], size: number): NormalisedRoute[
  * Discover initial URLs from sitemap, manual config, and route definitions.
  * Returns raw URLs before filtering (for use with Crawlee two-phase architecture).
  */
-export async function discoverInitialUrls(ctx: UnlighthouseContext): Promise<Set<string>> {
-  const logger = useLogger()
-  const { resolvedConfig } = ctx
+export async function discoverInitialUrls(deps: DiscoverInitialUrlsDeps): Promise<Set<string>> {
+  const logger = (deps.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
+  const { resolvedConfig } = deps
 
   const urls = new Set<string>([])
 
@@ -60,7 +66,7 @@ export async function discoverInitialUrls(ctx: UnlighthouseContext): Promise<Set
 
   // Process robots.txt
   if (resolvedConfig.scanner.robotsTxt) {
-    const robotsTxt = await fetchRobotsTxt(ctx, resolvedConfig.site)
+    const robotsTxt = await fetchRobotsTxt({ resolvedConfig, logger: deps.logger }, resolvedConfig.site)
     if (robotsTxt) {
       const robotsTxtParsed = parseRobotsTxt(robotsTxt)
       logger.info(`Found /robots.txt, using entries. Sitemaps: ${robotsTxtParsed.sitemaps.length}, Groups: ${robotsTxtParsed.groups.length}.`)
@@ -70,7 +76,7 @@ export async function discoverInitialUrls(ctx: UnlighthouseContext): Promise<Set
 
   // Extract URLs from sitemap
   if (resolvedConfig.scanner.sitemap !== false) {
-    const { paths: sitemapUrls, ignored, sitemaps } = await extractSitemapRoutes(ctx, resolvedConfig.site, resolvedConfig.scanner.sitemap)
+    const { paths: sitemapUrls, ignored, sitemaps } = await extractSitemapRoutes({ resolvedConfig, siteUrl: deps.siteUrl, logger: deps.logger }, resolvedConfig.site, resolvedConfig.scanner.sitemap)
     if (ignored > 0 && !sitemapUrls.length) {
       logger.warn(`Sitemap${sitemaps.length > 1 ? 's' : ''} exists but is being ignored due to a different origin being present`)
     }
@@ -101,9 +107,9 @@ export async function discoverInitialUrls(ctx: UnlighthouseContext): Promise<Set
 /**
  * Apply dynamic sampling to routes.
  */
-export function applyDynamicSampling(ctx: UnlighthouseContext, routes: NormalisedRoute[]): NormalisedRoute[] {
-  const logger = useLogger()
-  const { resolvedConfig } = ctx
+export function applyDynamicSampling(deps: { resolvedConfig: ResolvedUserConfig, logger?: Logger }, routes: NormalisedRoute[]): NormalisedRoute[] {
+  const logger = (deps.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
+  const { resolvedConfig } = deps
 
   if (!resolvedConfig.scanner.dynamicSampling)
     return routes
@@ -131,18 +137,3 @@ export function applyDynamicSampling(ctx: UnlighthouseContext, routes: Normalise
   return sampledRoutes.flat()
 }
 
-/**
- * Discover the initial routes that we'll be working with.
- * This is the legacy function that combines discovery and filtering.
- *
- * @deprecated Use discoverInitialUrls() + crawlSite filtering instead
- */
-export const resolveReportableRoutes: (ctx: UnlighthouseContext) => Promise<NormalisedRoute[]> = async (ctx) => {
-  const urls = await discoverInitialUrls(ctx)
-
-  // Ensure URLs are for the right domain
-  const validUrls = [...urls.values()].filter(url => isScanOrigin(ctx, url))
-  const routes = validUrls.map(url => normaliseRoute(ctx, url))
-
-  return applyDynamicSampling(ctx, routes)
-}

@@ -1,32 +1,35 @@
-import type { NormalisedRoute, UnlighthouseContext } from '@unlighthouse/contracts'
+import type { NormalisedRoute, ResolvedUserConfig } from '@unlighthouse/contracts'
 import { basename } from 'node:path'
 import { hasProtocol, isRelative, withBase, withLeadingSlash } from 'ufo'
 import { hashPathName, trimSlashes } from '../util/path'
 
-export function isScanOrigin(ctx: UnlighthouseContext, url: string): boolean {
+export interface NormaliseRouteDeps {
+  siteUrl: URL
+  resolvedConfig: ResolvedUserConfig
+}
+
+export function isScanOrigin(deps: { siteUrl: URL }, url: string): boolean {
   if (isRelative(url) || (url.startsWith('/') && !url.startsWith('//')))
     return true
 
-  const { runtimeSettings } = ctx
-
   const $url = new URL(url)
-  if ($url.hostname === runtimeSettings.siteUrl.hostname)
+  if ($url.hostname === deps.siteUrl.hostname)
     return true
   // allow subdomains
-  return $url.hostname.endsWith(`.${runtimeSettings.siteUrl.hostname}`)
+  return $url.hostname.endsWith(`.${deps.siteUrl.hostname}`)
 }
 
 /**
  * Due to working with routes from all different frameworks or no framework, we need to do some magic to
  * have all routes make sense to unlighthouse.
  */
-export function normaliseRoute(ctx: UnlighthouseContext, url: string): NormalisedRoute {
-  const { runtimeSettings, resolvedConfig } = ctx
+export function normaliseRoute(deps: NormaliseRouteDeps, url: string): NormalisedRoute {
+  const { siteUrl, resolvedConfig } = deps
 
   // it's possible that we're serving a subdomain or something dodgy around www.
   if (!hasProtocol(url)) {
     // need to provide the host URL if the link is relative
-    url = withBase(url, runtimeSettings.siteUrl.origin)
+    url = withBase(url, siteUrl.origin)
   }
 
   const $url = new URL(url)

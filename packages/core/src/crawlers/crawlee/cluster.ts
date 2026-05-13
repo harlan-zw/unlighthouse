@@ -1,11 +1,10 @@
-import type { UnlighthouseContext, UnlighthousePuppeteerCluster } from '@unlighthouse/contracts'
+import type { ResolvedUserConfig, UnlighthousePuppeteerCluster } from '@unlighthouse/contracts'
 import { Cluster } from 'puppeteer-cluster'
 
 /**
  * Create an instance of puppeteer-cluster
  */
-export async function launchPuppeteerCluster(ctx: UnlighthouseContext): Promise<UnlighthousePuppeteerCluster> {
-  const { resolvedConfig } = ctx
+export async function launchPuppeteerCluster(resolvedConfig: ResolvedUserConfig): Promise<UnlighthousePuppeteerCluster> {
   // @ts-expect-error untyped
   const cluster = await Cluster.launch({
     puppeteerOptions: resolvedConfig.puppeteerOptions,

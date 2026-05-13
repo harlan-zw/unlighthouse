@@ -132,6 +132,16 @@ const QuotaDepletedPayloadSchema = z.object({
 export type QuotaDepletedPayload = z.infer<typeof QuotaDepletedPayloadSchema>
 
 // ────────────────────────────────────────────────────────────────────────────
+// route:* — per-URL crawler/html events emitted by the legacy cluster engine.
+// ────────────────────────────────────────────────────────────────────────────
+
+const RouteQueuedPayloadSchema = z.object({ scanId: ScanId, url: Url })
+export type RouteQueuedPayload = z.infer<typeof RouteQueuedPayloadSchema>
+
+const RouteHtmlExtractedPayloadSchema = z.object({ scanId: ScanId, url: Url, payload: z.string() })
+export type RouteHtmlExtractedPayload = z.infer<typeof RouteHtmlExtractedPayloadSchema>
+
+// ────────────────────────────────────────────────────────────────────────────
 // audit:* — per-URL audit lifecycle. Used by quota / retry middleware.
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -181,6 +191,8 @@ export const HookSchemas = {
   'scan:cancelled': ScanCancelledPayloadSchema,
   'scan:complete': ScanCompletePayloadSchema,
   'scan:error': ScanErrorPayloadSchema,
+  'route:queued': RouteQueuedPayloadSchema,
+  'route:html-extracted': RouteHtmlExtractedPayloadSchema,
   'assert:passed': AssertPassedPayloadSchema,
   'assert:failed': AssertFailedPayloadSchema,
   'compare:complete': CompareCompletePayloadSchema,
@@ -200,6 +212,8 @@ export {
   LogPayloadSchema as LogPayload,
   QuotaDepletedPayloadSchema as QuotaDepletedPayload,
   QuotaExceededPayloadSchema as QuotaExceededPayload,
+  RouteHtmlExtractedPayloadSchema as RouteHtmlExtractedPayload,
+  RouteQueuedPayloadSchema as RouteQueuedPayload,
   ScanCancelledPayloadSchema as ScanCancelledPayload,
   ScanCompletePayloadSchema as ScanCompletePayload,
   ScanCreatedPayloadSchema as ScanCreatedPayload,

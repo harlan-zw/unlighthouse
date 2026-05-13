@@ -1,4 +1,4 @@
-import type { Logger } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig, RuntimeSettings, UnlighthouseRouteReport, UnlighthouseTask, UnlighthouseWorker } from '@unlighthouse/contracts'
 import type {
   CrawlCtx,
   Crawler,
@@ -6,13 +6,116 @@ import type {
   CrawlerState,
   CrawlEvent,
 } from '@unlighthouse/contracts/ports'
+import type { Page } from '@unlighthouse/contracts/types/puppeteer'
 import type { Hookable } from 'hookable'
+import type { normaliseRoute } from '../../api/util'
+import type { InspectHtmlTaskState } from './tasks/html'
 import { createHooks } from 'hookable'
+import { createInspectHtmlTask } from './tasks/html'
+import { createRunLighthouseTask } from './tasks/lighthouse'
+import { createUnlighthouseWorker } from './worker'
 
 export * from './cluster'
 export * from './orchestrator'
 export * from './tasks'
 export * from './worker'
+
+// ────────────────────────────────────────────────────────────────────────────
+// Legacy worker hook names (emitted internally by the puppeteer-cluster worker).
+// These are adapter-private — not part of the global HookMap.
+// ────────────────────────────────────────────────────────────────────────────
+export interface LegacyWorkerHooks {
+  'task-added': (path: string, report: UnlighthouseRouteReport) => void
+  'task-started': (path: string, report: UnlighthouseRouteReport) => void
+  'task-complete': (path: string, report: UnlighthouseRouteReport, taskName: UnlighthouseTask) => void
+  'worker-finished': () => void
+  'worker-cancelled': () => void
+  'worker-error': (error: Error) => void
+  'puppeteer:before-goto': (page: Page) => void | Promise<void>
+  // Legacy hooks forwarded from config
+  'resolved-config': (config: ResolvedUserConfig) => void | Promise<void>
+  'visited-client': () => void | Promise<void>
+  'site-changed': (site: string) => void | Promise<void>
+  'authenticate': (page: Page) => void | Promise<void>
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// legacyClusterEngine — D-024: wraps the puppeteer-cluster worker as the
+// v1 Crawler+Auditor adapter pair.
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface LegacyClusterDeps {
+  resolvedConfig: ResolvedUserConfig
+  runtimeSettings: RuntimeSettings
+  hooks: Hookable<LegacyWorkerHooks>
+  logger?: Logger
+}
+
+export interface LegacyClusterEngine {
+  worker: UnlighthouseWorker
+  /** The raw hookable for attaching legacy hook listeners. */
+  hooks: Hookable<LegacyWorkerHooks>
+  shutdown: () => Promise<void>
+}
+
+/**
+ * D-024: wraps the puppeteer-cluster worker as the v1 Crawler+Auditor pair.
+ * Internally constructs `launchPuppeteerCluster` + `createInspectHtmlTask` +
+ * `createRunLighthouseTask`. All returned values share the same cluster.
+ */
+export async function legacyClusterEngine(deps: LegacyClusterDeps): Promise<LegacyClusterEngine> {
+  const { resolvedConfig, runtimeSettings, hooks, logger } = deps
+
+  const i18nState: InspectHtmlTaskState = { i18nWarnFired: false }
+
+  const normaliseDeps = { siteUrl: runtimeSettings.siteUrl, resolvedConfig }
+
+  // Tasks share worker via queueRoute callback — wired after worker is created
+  let workerRef: UnlighthouseWorker | null = null
+
+  const htmlTaskDeps = {
+    resolvedConfig,
+    runtimeSettings,
+    hooks,
+    logger,
+    siteUrl: runtimeSettings.siteUrl,
+    queueRoute: (route: ReturnType<typeof normaliseRoute>) => {
+      workerRef?.queueRoute(route)
+    },
+  }
+
+  const lhTaskDeps = {
+    resolvedConfig,
+    runtimeSettings,
+    hooks,
+    logger,
+  }
+
+  const tasks = {
+    inspectHtmlTask: createInspectHtmlTask(htmlTaskDeps, i18nState),
+    runLighthouseTask: createRunLighthouseTask(lhTaskDeps),
+  }
+
+  const workerDeps = {
+    resolvedConfig,
+    runtimeSettings,
+    hooks,
+    logger,
+  }
+
+  const worker = await createUnlighthouseWorker(workerDeps, tasks)
+  workerRef = worker
+
+  const shutdown = async () => {
+    await worker.cluster.close().catch(() => {})
+  }
+
+  return { worker, hooks, shutdown }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// crawleeCrawler — v1 Crawler port facade (unchanged)
+// ────────────────────────────────────────────────────────────────────────────
 
 export interface CrawleeCrawlerOptions {
   concurrency?: number
@@ -31,16 +134,11 @@ export type CrawleeCrawler = Crawler & { hooks: Hookable<CrawleeAdapterHooks> }
 /**
  * crawleeCrawler — facade that adapts the existing puppeteer-cluster orchestrator
  * to the Crawler port shape.
- *
- * run() iterates seeds and delegates per-URL audit to opts.audit, mirroring
- * the parallel-map shape. The legacy crawlee discovery path remains available via
- * the named exports above for use inside the orchestrator.
  */
 export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler {
   const concurrency = Math.max(1, opts.concurrency ?? 5)
 
   const hooks = createHooks<CrawleeAdapterHooks>()
-  // Tracks per-URL audit attempts so `request:retry` reports an accurate count.
   const attempts = new Map<string, number>()
 
   let state: CrawlerState = 'idle'
@@ -143,7 +241,6 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
           const url = seed.url
           const attempt = (attempts.get(url) ?? 0) + 1
           attempts.set(url, attempt)
-          // Repeated dispatch of the same URL = a retry; surface it to consumers.
           if (attempt > 1)
             hooks.callHook('request:retry', { url, attempt })
           emit({ type: 'url-started', url })
@@ -181,7 +278,6 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       }
       while (queue.length)
         yield queue.shift()!
-      // Dispatch finished and inflight is empty: the request queue has drained.
       hooks.callHook('queue:drained')
       yield { type: 'idle' }
     }

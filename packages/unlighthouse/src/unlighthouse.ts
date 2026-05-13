@@ -1,25 +1,42 @@
+import type { Hookable } from 'hookable'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import type {
+  NormalisedRoute,
   Provider,
   ResolvedUserConfig,
   RuntimeSettings,
-  UnlighthouseContext,
+  ServerContextArg,
+  UnlighthouseWorker,
   UserConfig,
 } from './types'
 import type { UnlighthouseHooks } from './types/index'
+
+interface HostCtx {
+  runtimeSettings: RuntimeSettings
+  hooks: Hookable<UnlighthouseHooks>
+  resolvedConfig: ResolvedUserConfig
+  ws: WS | null
+  provider: Provider | undefined
+  worker: UnlighthouseWorker
+  routes: NormalisedRoute[]
+  setCiContext: () => Promise<HostCtx>
+  setSiteUrl: (url: string) => Promise<void>
+  setServerContext: (arg: ServerContextArg) => Promise<HostCtx>
+  start: () => Promise<HostCtx>
+}
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createBroadcastingEvents, WS } from '@unlighthouse/core/api'
-import { crawleeCrawler, crawlSite, createInspectHtmlTask, createRunLighthouseTask, createUnlighthouseWorker } from '@unlighthouse/core/crawlers'
+import { crawleeCrawler, crawlSite, legacyClusterEngine } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { createStorage } from '@unlighthouse/core/storage'
 import { drizzleStorage } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
-import { createLogger } from '@unlighthouse/core/util/logger'
 import Database from 'better-sqlite3'
 import { loadConfig } from 'c12'
+import { createConsola } from 'consola'
 import { colorize } from 'consola/utils'
 import { defu } from 'defu'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
@@ -40,8 +57,6 @@ import { mountServer } from './server'
 import { normaliseHost } from './util'
 import { successBox } from './util/cliFormatting'
 
-export { useLogger } from '@unlighthouse/core/util/logger'
-
 /**
  * A simple define wrapper to provide typings to config definitions.
  * @deprecated Use `defineUnlighthouseConfig` from `unlighthouse/config` instead.
@@ -50,13 +65,6 @@ export function defineConfig(config: UserConfig): UserConfig {
   return config
 }
 
-/**
- * Create an Unlighthouse instance. The returned context is threaded explicitly to all consumers. Scanning will
- * not start automatically, a server context needs to be provided using `setServerContext()`.
- *
- * @param userConfig
- * @param provider
- */
 /**
  * Behavior knobs supplied by the entry preset (cli, ci, integration).
  * Replaces the implicit `provider.name === 'cli'|'ci'` branches.
@@ -75,7 +83,10 @@ export interface UnlighthouseBehavior {
 }
 
 export async function createUnlighthouse(userConfig: UserConfig, provider?: Provider, behavior: UnlighthouseBehavior = {}) {
-  const logger = createLogger(userConfig.debug)
+  const logger = createConsola().withTag('unlighthouse')
+  if (userConfig.debug)
+    logger.level = 4
+
   const { __dirname } = createCommonJS(import.meta.url)
   if (userConfig.root && !isAbsolute(userConfig.root))
     userConfig.root = join(process.cwd(), userConfig.root)
@@ -86,8 +97,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   // resolve configFile to absolute before passing to c12
   if (userConfig.configFile && !isAbsolute(userConfig.configFile))
     userConfig.configFile = join(process.cwd(), userConfig.configFile)
-  // User configs must `import { defineUnlighthouseConfig } from 'unlighthouse/config'`.
-  // The bare global form is no longer supported in v1.
   const { configFile, config } = await loadConfig<UserConfig>({
     name: 'unlighthouse',
     cwd: userConfig.root,
@@ -103,32 +112,28 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     lighthouseProcessPath: '',
     currentScanId: null,
   }
-  // path to the lighthouse worker file - try both dist locations (root and _chunks)
+  // path to the lighthouse worker file
   runtimeSettings.lighthouseProcessPath = await resolvePath(
     join(runtimeSettings.moduleWorkingDir, 'lighthouse.mjs'),
   ).catch(() => '')
-  // try parent dir (when __dirname is _chunks)
   if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
     runtimeSettings.lighthouseProcessPath = await resolvePath(
       join(runtimeSettings.moduleWorkingDir, '..', 'lighthouse.mjs'),
     ).catch(() => '')
   }
-  // ts module in stub mode, not sure why extensions won't resolve
   if (!(await fs.pathExists(runtimeSettings.lighthouseProcessPath))) {
     runtimeSettings.lighthouseProcessPath = await resolvePath(
       join(runtimeSettings.moduleWorkingDir, 'lighthouse.ts'),
     )
   }
 
-  // create a cache key for the users provided key so we can cache burst on config update
   runtimeSettings.configCacheKey = objectHash({ ...userConfig, version }).substring(0, 4)
 
-  const resolvedConfig = await resolveUserConfig(userConfig)
+  const resolvedConfig = await resolveUserConfig(userConfig, logger)
   logger.debug('Post config resolution', resolvedConfig)
 
   const hooks = createHooks<UnlighthouseHooks>()
 
-  // add hooks from config
   if (resolvedConfig.hooks)
     hooks.addHooks(resolvedConfig.hooks)
 
@@ -137,7 +142,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   if (configFile)
     logger.info(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
 
-  // web socket instance for broadcasting; presets pass null for non-interactive (CI) flows.
   const ws = behavior.ws !== undefined ? behavior.ws : new WS()
 
   const ctx = {
@@ -146,68 +150,31 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     resolvedConfig,
     ws,
     provider,
-  } as unknown as UnlighthouseContext
+  } as unknown as HostCtx
 
-  const tasks = {
-    inspectHtmlTask: createInspectHtmlTask(ctx),
-    runLighthouseTask: createRunLighthouseTask(ctx),
-  }
+  // Build legacyClusterEngine — will be initialized lazily when runtimeSettings is complete
+  // (siteUrl must be set first, which happens in setSiteUrl / setCiContext)
+  let engineRef: Awaited<ReturnType<typeof legacyClusterEngine>> | null = null
 
-  const worker = await createUnlighthouseWorker(ctx, tasks)
-
-  if (resolvedConfig.hooks?.authenticate) {
-    // do an authentication step
-    await worker.cluster.execute({}, async (taskCtx) => {
-      logger.debug('Running authentication hook')
-      await taskCtx.page.setBypassCSP(true)
-
-      await hooks.callHook('authenticate', taskCtx.page)
-      // collect page authentication, either cookie or localStorage tokens
-      const localStorageData = await taskCtx.page.evaluate(() => {
-        const json: Record<string, any> = {}
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key)
-            json[key] = localStorage.getItem(key)
-        }
-        return json
-      }).catch((e: any) => {
-        logger.warn('Failed to collect authentication localStorage.\n', e)
-        return {}
-      })
-      const sessionStorageData = await taskCtx.page.evaluate(() => {
-        const json: Record<string, any> = {}
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i)
-          if (key)
-            json[key] = sessionStorage.getItem(key)
-        }
-        return json
-      }).catch((e: any) => {
-        logger.warn('Failed to collect authentication sessionStorage.\n', e)
-        return {}
-      })
-      const cookies = await taskCtx.page.cookies()
-      logger.debug('Authentication completed', { cookies, localStorageData, sessionStorageData })
-      // merge this into the config
-      // @ts-expect-error untyped
-      ctx.resolvedConfig.cookies = [...(ctx.resolvedConfig.cookies || []), ...cookies as any as ResolvedUserConfig['cookies']]
-      ctx.resolvedConfig.localStorage = { ...ctx.resolvedConfig.localStorage, ...localStorageData }
-      ctx.resolvedConfig.sessionStorage = { ...ctx.resolvedConfig.sessionStorage, ...sessionStorageData }
+  const getOrCreateEngine = async () => {
+    if (engineRef)
+      return engineRef
+    engineRef = await legacyClusterEngine({
+      resolvedConfig,
+      runtimeSettings: ctx.runtimeSettings as RuntimeSettings,
+      hooks: hooks as never,
+      logger,
     })
+    return engineRef
   }
-
-  ctx.worker = worker
 
   ctx.setCiContext = async () => {
     const $site = new $URL(resolvedConfig.site)
 
     logger.debug(`Setting Unlighthouse CI Context [Site: ${$site}]`)
 
-    // avoid nesting reports for ci mode
     let outputPath = join(
       resolvedConfig.outputPath,
-      // fix windows not supporting : in paths
       $site.hostname.replace(':', '꞉'),
       runtimeSettings.configCacheKey || '',
     )
@@ -226,7 +193,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       logger.error(`Failed to create output directory. Please check unlighthouse has permission to create files and folders in: ${resolvedConfig.outputPath}`, e)
     }
 
-    // When ws is disabled (CI), don't nest reports by hostname/cache key.
     if (ws === null)
       outputPath = resolvedConfig.outputPath
 
@@ -234,7 +200,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       ...ctx.runtimeSettings,
       outputPath,
       generatedClientPath: outputPath,
-      resolvedClientPath: '', // Skip client resolution for dev mode
+      resolvedClientPath: '',
     }
 
     if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
@@ -253,7 +219,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     const outputPath = join(
       resolvedConfig.outputPath,
-      // fix windows not supporting : in paths
       runtimeSettings.siteUrl?.hostname.replace(':', '꞉') || '',
       runtimeSettings.configCacheKey || '',
     )
@@ -271,10 +236,8 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     logger.debug(`Setting Unlighthouse Server Context [Server: ${$server}]`)
 
-    // Resolve client package path - resolvePath returns main field (dist/index.html)
     let resolvedClientPath = ''
     try {
-      // resolvePath returns the main entry (dist/index.html)
       resolvedClientPath = await resolvePath(ClientPkg, { url: import.meta.url })
       logger.debug(`Resolved client path: ${resolvedClientPath}`)
       if (!existsSync(resolvedClientPath)) {
@@ -299,8 +262,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,
     }
 
-    // v3: HTTP projection from command registry (replaces hand-wired routes in createApi).
-    // D-018: the host owns the concrete consola; pass it through so core can `logger.withTag(adapterName)` per adapter.
     const coreConfig = resolvedConfig as unknown as Parameters<typeof createUnlighthouseCore>[0]['config']
     const auditor = resolveAuditor({ config: coreConfig, logger })
     const crawler = crawleeCrawler({ logger: logger.withTag('crawler/crawlee') as never })
@@ -335,7 +296,15 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       version,
       auditors: undefined,
     }
-    await mountServer(ctx, app, { handlerCtx })
+
+    const mountDeps = {
+      resolvedConfig,
+      runtimeSettings: ctx.runtimeSettings as RuntimeSettings,
+      hooks: hooks as never,
+      ws,
+      logger,
+    }
+    await mountServer(mountDeps, app, { handlerCtx })
 
     if (ws) {
       server.on('upgrade', (request: IncomingMessage, socket) => {
@@ -354,13 +323,16 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     }
     fs.ensureDirSync(ctx.runtimeSettings.outputPath)
 
-    // Generate client (copy and transform client files) when the preset requests it.
     if (behavior.generateClient && resolvedClientPath && existsSync(resolvedClientPath)) {
-      await generateClient({}, ctx)
+      await generateClient({}, {
+        resolvedConfig,
+        runtimeSettings: ctx.runtimeSettings as RuntimeSettings,
+        worker: ctx.worker,
+        logger,
+      })
     }
 
     if (behavior.autoStartOnVisit) {
-      // start if the user visits the client
       hooks.hookOnce('visited-client', () => {
         ctx.start()
       })
@@ -371,16 +343,74 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   ctx.start = async () => {
     logger.debug(`Starting Unlighthouse [Server: ${ws === null ? 'N/A' : ctx.runtimeSettings.clientUrl} Site: ${ctx.resolvedConfig.site} Debug: \`${ctx.resolvedConfig.debug}\`]`)
 
-    // v1: discovery is sitemap + crawler only. Route-definition seed source dropped.
-    // Two-phase URL discovery: crawlSite handles sitemap, manual URLs, and Crawlee crawling
-    ctx.routes = await crawlSite(ctx)
-    logger.debug('Discovered and filtered routes', ctx.routes.length)
-    createBroadcastingEvents(ctx)
-    initHistoryTracking(ctx)
+    const engine = await getOrCreateEngine()
+    ctx.worker = engine.worker
 
-    // Show the static info box first (before any progress starts)
+    // Run auth flow if configured (Step C)
+    if (resolvedConfig.hooks?.authenticate) {
+      await engine.worker.cluster.execute({}, async (taskCtx) => {
+        logger.debug('Running authentication hook')
+        await taskCtx.page.setBypassCSP(true)
+
+        await hooks.callHook('authenticate', taskCtx.page)
+        const localStorageData = await taskCtx.page.evaluate(() => {
+          const json: Record<string, any> = {}
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (key)
+              json[key] = localStorage.getItem(key)
+          }
+          return json
+        }).catch((e: any) => {
+          logger.warn('Failed to collect authentication localStorage.\n', e)
+          return {}
+        })
+        const sessionStorageData = await taskCtx.page.evaluate(() => {
+          const json: Record<string, any> = {}
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i)
+            if (key)
+              json[key] = sessionStorage.getItem(key)
+          }
+          return json
+        }).catch((e: any) => {
+          logger.warn('Failed to collect authentication sessionStorage.\n', e)
+          return {}
+        })
+        const cookies = await taskCtx.page.cookies()
+        logger.debug('Authentication completed', { cookies, localStorageData, sessionStorageData })
+        // @ts-expect-error untyped
+        ctx.resolvedConfig.cookies = [...(ctx.resolvedConfig.cookies || []), ...cookies as any as ResolvedUserConfig['cookies']]
+        ctx.resolvedConfig.localStorage = { ...ctx.resolvedConfig.localStorage, ...localStorageData }
+        ctx.resolvedConfig.sessionStorage = { ...ctx.resolvedConfig.sessionStorage, ...sessionStorageData }
+      })
+    }
+
+    const siteUrl = ctx.runtimeSettings.siteUrl
+    const orchDeps = {
+      resolvedConfig,
+      siteUrl,
+      logger,
+    }
+    ctx.routes = await crawlSite(orchDeps)
+    logger.debug('Discovered and filtered routes', ctx.routes.length)
+
+    if (ws) {
+      createBroadcastingEvents({
+        ws,
+        hooks: hooks as never,
+        worker: engine.worker,
+      })
+    }
+
+    initHistoryTracking({
+      resolvedConfig,
+      runtimeSettings: ctx.runtimeSettings as RuntimeSettings,
+      hooks: hooks as never,
+      logger,
+    })
+
     if (behavior.showBanner) {
-      // fancy CLI banner when we start
       const label = (name: string) => colorize('bold', colorize('magenta', (`▸ ${name}:`)))
       let mode = ''
       if (resolvedConfig.urls?.length)
@@ -399,7 +429,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       catch {}
 
       const title = [
-        `⛵\u200D  ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${behavior.label ?? ''} @ v${version}`)}`,
+        `⛵‍  ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${behavior.label ?? ''} @ v${version}`)}`,
       ]
       if (Number(latestTag.replace('v', '').replace('.', '')) > Number(version.replace('.', ''))) {
         title.push(...[
@@ -415,19 +445,16 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       ])
 
       process.stdout.write(successBox(
-        // messages
         [
           ctx.runtimeSettings.clientUrl ? colorize('whiteBright', `Report: ${ctx.runtimeSettings.clientUrl}`) : '',
         ].join('\n'),
-        // title
         title.join('\n'),
       ))
       if (existsSync(join(ctx.runtimeSettings.generatedClientPath, 'reports', 'lighthouse.json')) && ctx.resolvedConfig.cache)
         logger.info(`Restoring reports from cache. ${colorize('gray', 'You can disable this behavior by passing --no-cache.')}`)
     }
 
-    // Now start queuing routes after the static info is shown
-    worker.queueRoutes(ctx.routes)
+    engine.worker.queueRoutes(ctx.routes)
     return ctx
   }
 

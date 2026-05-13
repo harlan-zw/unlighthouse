@@ -1,21 +1,25 @@
-import type { UnlighthouseContext } from '@unlighthouse/contracts'
+import type { UnlighthouseRouteReport, UnlighthouseTask } from '@unlighthouse/contracts'
+import type { Hookable } from 'hookable'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import type { WebSocket } from 'ws'
+import type { LegacyClusterEngine, LegacyWorkerHooks } from '../crawlers/crawlee'
 import { Buffer } from 'node:buffer'
 import { WebSocketServer } from 'ws'
+
+export interface BroadcastingDeps {
+  ws: WS
+  hooks: Hookable<LegacyWorkerHooks>
+  worker: LegacyClusterEngine['worker']
+}
 
 let broadcastingHooksRegistered = false
 
 /**
  * When certain hooks are triggered we need to broadcast data via the web socket.
  */
-export function createBroadcastingEvents(ctx: UnlighthouseContext) {
-  const { hooks, ws, worker } = ctx
-
-  // ws may not be set, for example in a CI environment
-  if (!ws)
-    return
+export function createBroadcastingEvents(deps: BroadcastingDeps) {
+  const { hooks, ws, worker } = deps
 
   if (broadcastingHooksRegistered)
     return
@@ -26,7 +30,7 @@ export function createBroadcastingEvents(ctx: UnlighthouseContext) {
   const broadcastProgress = () => {
     const stats = worker.monitor()
     const reports = worker.reports()
-    const completedReports = reports.filter(r => r.report?.score !== undefined)
+    const completedReports = reports.filter((r: UnlighthouseRouteReport) => r.report?.score !== undefined)
 
     ws.broadcast({
       event: 'scan:progress',
@@ -69,9 +73,9 @@ export function createBroadcastingEvents(ctx: UnlighthouseContext) {
   hooks.hook('worker-finished', () => {
     const stats = worker.monitor()
     const reports = worker.reports()
-    const completedReports = reports.filter(r => r.report?.score !== undefined)
+    const completedReports = reports.filter((r: UnlighthouseRouteReport) => r.report?.score !== undefined)
     const avgScore = completedReports.length > 0
-      ? completedReports.reduce((sum, r) => sum + (r.report?.score || 0), 0) / completedReports.length
+      ? completedReports.reduce((sum: number, r: UnlighthouseRouteReport) => sum + (r.report?.score || 0), 0) / completedReports.length
       : 0
 
     ws.broadcast({
@@ -122,7 +126,6 @@ export class WS {
 
   /**
    * Publish event and data to all connected clients
-   * @param {object} data
    */
   broadcast(data: Record<string, any>) {
     const jsonData = JSON.stringify(data)

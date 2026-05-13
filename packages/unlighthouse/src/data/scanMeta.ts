@@ -1,7 +1,11 @@
-import type { ScanMeta, UnlighthouseContext } from '../types'
+import type { ScanMeta, UnlighthouseWorker } from '../types'
 
-export function createScanMeta(ctx: UnlighthouseContext): ScanMeta {
-  const { worker } = ctx
+export interface ScanMetaDeps {
+  worker: UnlighthouseWorker
+}
+
+export function createScanMeta(deps: ScanMetaDeps): ScanMeta {
+  const { worker } = deps
 
   const data = worker.reports().filter(r => r.tasks.inspectHtmlTask === 'completed')
   const reportsWithScore = data.filter(r => r.report?.score) as { report: { score: number } }[]

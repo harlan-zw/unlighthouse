@@ -1,35 +1,35 @@
+import type { Logger } from '@unlighthouse/contracts'
 import type { ResolvedUserConfig, UserConfig } from '..'
 import type { CiOptions, CliOptions } from './types'
 import { URL } from 'node:url'
 import { defu } from 'defu'
 import { pick } from 'lodash-es'
-import { fetchUrlRaw, normaliseHost, useLogger } from '..'
+import { fetchUrlRaw, normaliseHost } from '..'
 import { handleError } from './errors'
 
-export async function validateHost(resolvedConfig: ResolvedUserConfig) {
+export async function validateHost(resolvedConfig: ResolvedUserConfig, logger?: Logger) {
   const site = resolvedConfig.site
-  const logger = useLogger()
   // site will not be set from integrations yet
   if (site) {
     // test HTTP response from site
-    logger.debug(`Testing Site \`${site}\` is valid.`)
+    logger?.debug(`Testing Site \`${site}\` is valid.`)
     const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(site, resolvedConfig)
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
-        logger.warn(`Request to site \`${site}\` returned an invalid http status code \`${response.status}\`. lease check the URL is valid and not blocking crawlers.`)
+        logger?.warn(`Request to site \`${site}\` returned an invalid http status code \`${response.status}\`. lease check the URL is valid and not blocking crawlers.`)
       else
-        logger.warn(`Request to site \`${site}\` threw an unhandled exception. Please check the URL is valid and not blocking crawlers.`, error)
-      logger.error('Site check failed. will attempt to proceed but may fail.')
+        logger?.warn(`Request to site \`${site}\` threw an unhandled exception. Please check the URL is valid and not blocking crawlers.`, error)
+      logger?.error('Site check failed. will attempt to proceed but may fail.')
     }
     else if (response) {
       // change the URL to the redirect one, make sure it's not to a file (i.e /index.php)
       if (redirected && redirectUrl && !redirectUrl.includes('.')) {
-        logger.success(`Request to site \`${site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
+        logger?.success(`Request to site \`${site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
         resolvedConfig.site = normaliseHost(redirectUrl).toString()
       }
       else {
-        logger.success(`Successfully connected to \`${site}\`. (Status: \`${response.status}\`).`)
+        logger?.success(`Successfully connected to \`${site}\`. (Status: \`${response.status}\`).`)
       }
     }
   }

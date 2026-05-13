@@ -1,4 +1,5 @@
 import type { ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { LegacyWorkerHooks } from '@unlighthouse/core/crawlers'
 import type { Config, Flags, Result } from 'lighthouse'
 import type { Page } from 'puppeteer-core'
 
@@ -68,7 +69,7 @@ export interface UnlighthouseReport {
   raw?: Result
 }
 
-export interface UnlighthouseHooks {
+export interface UnlighthouseHooks extends LegacyWorkerHooks {
   'authenticate': (page: Page) => void | Promise<void>
   'resolved-config': (resolvedConfig: ResolvedUserConfig) => void | Promise<void>
   'report:ready': (report: UnlighthouseReport) => void | Promise<void>

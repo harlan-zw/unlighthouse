@@ -1,14 +1,23 @@
+import type { Logger } from '@unlighthouse/contracts'
+import type { LegacyWorkerHooks } from '@unlighthouse/core/crawlers'
+import type { Hookable } from 'hookable'
 import type { Buffer } from 'node:buffer'
-import type { HTMLExtractPayload, UnlighthouseContext, UnlighthouseRouteReport } from '../../types'
+import type { HTMLExtractPayload, ResolvedUserConfig, RuntimeSettings, UnlighthouseRouteReport } from '../../types'
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { fetchCruxHistory, getSiteOrigin } from '@unlighthouse/core/auditors'
 import * as history from '@unlighthouse/core/data/history'
-import { useLogger } from '@unlighthouse/core/util/logger'
 import { processScanData } from '../../process'
 import { createReportsArtifactBasePath } from '../../util'
+
+export interface TrackingDeps {
+  resolvedConfig: ResolvedUserConfig
+  runtimeSettings: RuntimeSettings
+  hooks: Hookable<LegacyWorkerHooks>
+  logger?: Logger
+}
 
 // Collect HTML data during scan for SEO processing
 const htmlDataMap = new Map<string, HTMLExtractPayload>()
@@ -44,18 +53,16 @@ export function getCurrentScanId(): string | null {
 
 /**
  * Initialize history tracking for a scan session
- * Call this when the scan starts
  */
-function createHistorySession(ctx: UnlighthouseContext) {
-  const { resolvedConfig, runtimeSettings } = ctx
-  const logger = useLogger()
+function createHistorySession(deps: TrackingDeps) {
+  const { resolvedConfig, runtimeSettings, logger } = deps
 
   currentScanId = randomUUID()
   runtimeSettings.currentScanId = currentScanId
   routeIdMap.clear()
   htmlDataMap.clear()
 
-  logger.debug(`Creating history record for scan: ${currentScanId}`)
+  logger?.debug(`Creating history record for scan: ${currentScanId}`)
 
   const build = resolvedConfig.ci?.build
   const env = process.env
@@ -72,11 +79,10 @@ function createHistorySession(ctx: UnlighthouseContext) {
   })
 }
 
-export function initHistoryTracking(ctx: UnlighthouseContext) {
-  const { hooks, resolvedConfig } = ctx
-  const logger = useLogger()
+export function initHistoryTracking(deps: TrackingDeps) {
+  const { hooks, resolvedConfig, logger } = deps
 
-  createHistorySession(ctx)
+  createHistorySession(deps)
 
   if (historyHooksRegistered)
     return
@@ -171,7 +177,7 @@ export function initHistoryTracking(ctx: UnlighthouseContext) {
     if (!currentScanId)
       return
 
-    logger.debug(`Scan complete, updating history: ${currentScanId}`)
+    logger?.debug(`Scan complete, updating history: ${currentScanId}`)
 
     history.updateScan(resolvedConfig.outputPath, currentScanId, {
       status: 'complete',
@@ -184,12 +190,12 @@ export function initHistoryTracking(ctx: UnlighthouseContext) {
     // Process scan data for dashboard views, passing collected HTML data
     const db = history.getHistoryDb(resolvedConfig.outputPath)
     const compareCfg = resolvedConfig.ci?.comparison
-    logger.debug(`Processing dashboard data for scan: ${currentScanId} with ${htmlDataMap.size} HTML entries`)
+    logger?.debug(`Processing dashboard data for scan: ${currentScanId} with ${htmlDataMap.size} HTML entries`)
     processScanData(db, currentScanId, htmlDataMap, {
       compare: compareCfg?.enabled !== false,
       thresholds: compareCfg?.thresholds,
     }).catch((err) => {
-      logger.error(`Failed to process scan data: ${err}`)
+      logger?.error(`Failed to process scan data: ${err}`)
     })
 
     // Fetch CrUX history for phone + desktop and persist
@@ -210,26 +216,26 @@ export function initHistoryTracking(ctx: UnlighthouseContext) {
             })
           })
           .catch((err) => {
-            logger.warn(`CrUX fetch failed (${formFactor}): ${err.message}`)
+            logger?.warn(`CrUX fetch failed (${formFactor}): ${err.message}`)
           })
       }
     }
   })
 
   hooks.hook('worker-cancelled', () => {
-    cancelHistoryTracking(ctx)
+    cancelHistoryTracking(deps)
   })
 
   hooks.hook('worker-error', (error) => {
-    failHistoryTracking(ctx, error.message)
+    failHistoryTracking(deps, error.message)
   })
 }
 
 /**
  * Mark current scan as cancelled
  */
-export function cancelHistoryTracking(ctx: UnlighthouseContext) {
-  const { resolvedConfig, runtimeSettings } = ctx
+export function cancelHistoryTracking(deps: { resolvedConfig: ResolvedUserConfig, runtimeSettings: RuntimeSettings }) {
+  const { resolvedConfig, runtimeSettings } = deps
 
   if (currentScanId) {
     history.updateScan(resolvedConfig.outputPath, currentScanId, {
@@ -244,8 +250,8 @@ export function cancelHistoryTracking(ctx: UnlighthouseContext) {
 /**
  * Mark current scan as failed
  */
-export function failHistoryTracking(ctx: UnlighthouseContext, error: string) {
-  const { resolvedConfig, runtimeSettings } = ctx
+export function failHistoryTracking(deps: { resolvedConfig: ResolvedUserConfig, runtimeSettings: RuntimeSettings }, error: string) {
+  const { resolvedConfig, runtimeSettings } = deps
 
   if (currentScanId) {
     history.updateScan(resolvedConfig.outputPath, currentScanId, {
