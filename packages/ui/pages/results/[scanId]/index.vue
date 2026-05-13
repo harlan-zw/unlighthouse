@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import Fuse from 'fuse.js'
-import { getScoreBg, getScoreColor } from '~/composables/dashboard'
 import { useResultsSearch } from '~/composables/search'
-import { useLighthouseReportModal, useReports, useReportsStream } from '~/composables/state'
 import { useHistoricalScan } from '~/composables/useHistoricalScan'
+import { useLighthouseReportModal } from '~/composables/useLighthouseReportModal'
+import { useReports } from '~/composables/useReports'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
-const { isStatic, resolveArtifactPath, apiUrl } = useUnlighthouseConfig()
-const { reports: liveReports, refreshScanMeta } = useReports()
+const { isStatic, resolveArtifactPath } = useUnlighthouseConfig()
+const { reports: liveReports } = useReports()
 const { page, perPage, searchText } = useResultsSearch()
-const lhModal = useLighthouseReportModal()
-const lighthouseReportModalOpen = lhModal.isOpen
-const iframeModalUrl = lhModal.url
-const openLighthouseReportIframeModal = lhModal.open
+const {
+  isOpen: lighthouseReportModalOpen,
+  url: iframeModalUrl,
+  open: openLighthouseReportIframeModal,
+} = useLighthouseReportModal()
 
 definePageMeta({ layout: 'site' })
 
@@ -187,19 +188,6 @@ const filterOptions = [
   { label: 'Below 50', value: 'below50' },
 ]
 
-let refreshInterval: ReturnType<typeof setInterval> | null = null
-
-if (!isStatic.value && !scanId.value) {
-  useReportsStream()
-  onMounted(() => {
-    refreshInterval = setInterval(refreshScanMeta, 5000)
-  })
-}
-
-onUnmounted(() => {
-  if (refreshInterval)
-    clearInterval(refreshInterval)
-})
 </script>
 
 <template>
@@ -350,7 +338,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Lighthouse Report Modal -->
-    <UModal v-model:open="lighthouseReportModalOpen" title="Lighthouse Report" :ui="{ content: '!max-w-6xl !bg-default' }">
+    <UModal v-model:open="lighthouseReportModalOpen" title="Lighthouse report" :ui="{ content: '!max-w-6xl !bg-default' }">
       <template #body>
         <iframe v-if="iframeModalUrl" :src="iframeModalUrl" class="w-full h-[85vh] bg-white rounded-lg" />
       </template>

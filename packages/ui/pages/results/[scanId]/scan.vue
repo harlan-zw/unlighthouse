@@ -53,22 +53,6 @@ const strokeDashoffset = computed(() => {
   return circumference * (1 - progress)
 })
 
-function getScoreColor(score: number) {
-  if (score >= 90)
-    return 'text-success'
-  if (score >= 50)
-    return 'text-warning'
-  return 'text-error'
-}
-
-function getScoreBg(score: number) {
-  if (score >= 90)
-    return 'bg-success/10'
-  if (score >= 50)
-    return 'bg-warning/10'
-  return 'bg-error/10'
-}
-
 function handleCancel() {
   showCancelConfirm.value = true
 }
@@ -315,7 +299,7 @@ function extractDomain(url: string) {
       </div>
     </main>
 
-    <UModal v-model:open="showCancelConfirm" title="Cancel Scan?">
+    <UModal v-model:open="showCancelConfirm" title="Cancel scan?">
       <template #body>
         <p class="text-muted p-4">
           Cancel the active scan? Completed routes will stay available, but unfinished work will stop and a fresh scan will start from zero.

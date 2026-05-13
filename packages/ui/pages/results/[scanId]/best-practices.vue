@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
+import type { BestPracticesData } from '@unlighthouse/contracts'
 
 definePageMeta({ layout: 'site' })
 
 const route = useRoute()
+const { apiUrl } = useUnlighthouseConfig()
 const scanId = computed(() => route.params.scanId as string)
 
-const { bestPractices } = useDashboard(scanId)
+const bestPractices = useLazyFetch<BestPracticesData>(() =>
+  scanId.value ? `${apiUrl.value}/dashboard/best-practices/${scanId.value}` : '', { immediate: false })
 
 onMounted(() => {
   if (scanId.value)
@@ -167,7 +169,7 @@ function toggleItem(id: string) {
 <template>
   <div>
     <DashboardHeader
-      title="Best Practices"
+      title="Best practices"
       icon="i-heroicons-shield-check"
       color="text-secondary"
       :score="avgScore"
@@ -199,7 +201,7 @@ function toggleItem(id: string) {
 
     <!-- Security Tab -->
     <div v-else-if="activeTab === 0" class="space-y-6">
-      <DashboardCard title="Security Overview" icon="i-heroicons-lock-closed">
+      <DashboardCard title="Security overview" icon="i-heroicons-lock-closed">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div
             v-for="item in securityOverview"
@@ -232,7 +234,7 @@ function toggleItem(id: string) {
         </div>
       </DashboardCard>
 
-      <DashboardCard title="Security Issues" icon="i-heroicons-shield-exclamation" :count="sortedSecurity.length">
+      <DashboardCard title="Security issues" icon="i-heroicons-shield-exclamation" :count="sortedSecurity.length">
         <div v-if="!sortedSecurity.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No security issues found</p>
@@ -272,7 +274,7 @@ function toggleItem(id: string) {
 
     <!-- Console Errors Tab -->
     <div v-else-if="activeTab === 1">
-      <DashboardCard title="Console Errors" icon="i-heroicons-command-line" :count="sortedErrors.length">
+      <DashboardCard title="Console errors" icon="i-heroicons-command-line" :count="sortedErrors.length">
         <div v-if="!sortedErrors.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No console errors found</p>
@@ -315,7 +317,7 @@ function toggleItem(id: string) {
       <div class="space-y-6">
         <DashboardCard
           v-if="libraryGroups.vulnerable.length"
-          title="Vulnerable Libraries"
+          title="Vulnerable libraries"
           icon="i-heroicons-exclamation-triangle"
           :count="libraryGroups.vulnerable.length"
         >
@@ -377,7 +379,7 @@ function toggleItem(id: string) {
         </DashboardCard>
 
         <DashboardCard
-          title="Detected Libraries"
+          title="Detected libraries"
           icon="i-heroicons-cube"
           :count="(libraryGroups.outdated.length + libraryGroups.current.length)"
         >

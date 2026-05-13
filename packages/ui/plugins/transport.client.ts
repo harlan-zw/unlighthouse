@@ -1,6 +1,5 @@
-import type { ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/contracts'
+import type { CompletedRoute, ScanMeta, ScanProgress, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 import type { UnlighthouseRuntimeConfig } from './unlighthouse-config.client'
-import type { CompletedRoute, ScanProgress } from '~/composables/scan'
 
 export interface TransportConnection {
   connect: () => Promise<void>
@@ -23,6 +22,9 @@ export interface TransportHooks {
 
 declare module '#app' {
   interface RuntimeNuxtHooks extends TransportHooks {}
+  interface NuxtApp {
+    $transport: TransportConnection
+  }
 }
 
 const MAX_RECONNECT = 5

@@ -117,14 +117,21 @@ export const compareRun: Handler<typeof CompareRun> = {
   command: {} as typeof CompareRun,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
+    await emitCompareComplete(ctx, input.baseScanId, input.currentScanId, report.regressions.length, report.improvements.length)
     return report as unknown as CommandOutput<typeof CompareRun>
   },
+}
+
+async function emitCompareComplete(ctx: HandlerCtx, baseScanId: string, currentScanId: string, regressions: number, improvements: number) {
+  const hooks = ctx.core.hooks as { callHook: (event: string, payload: unknown) => Promise<void> } | undefined
+  await hooks?.callHook('compare:complete', { baseScanId, currentScanId, regressions, improvements })
 }
 
 export const compareMarkdown: Handler<typeof CompareMarkdown> = {
   command: {} as typeof CompareMarkdown,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
+    await emitCompareComplete(ctx, input.baseScanId, input.currentScanId, report.regressions.length, report.improvements.length)
     const title = input.title ?? 'Unlighthouse comparison'
     const lines: string[] = []
     const icon = report.regressions.length ? 'X' : report.improvements.length ? 'OK' : 'info'

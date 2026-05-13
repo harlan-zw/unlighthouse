@@ -1,7 +1,7 @@
 import type { UnlighthouseRouteReport, UnlighthouseTaskStatus } from '@unlighthouse/contracts'
 import Fuse from 'fuse.js'
 import { get, isEmpty, orderBy } from 'lodash-es'
-import { useReports } from './state'
+import { useReports } from './useReports'
 import { useUnlighthouseConfig } from './useUnlighthouseConfig'
 
 export interface Sorting {
@@ -63,10 +63,6 @@ export function useResultsSearch() {
     const sortVal = sorting.value
     if (sortVal.key) {
       let sortKey = sortVal.key
-      if (sortKey.startsWith('report.categories.') && sortKey.endsWith('.score')) {
-        sortKey = sortKey.replace('.categories.', '.categoryMap.')
-      }
-
       let doLengthSort = false
       const columnDef = columns.value.flat().find((c: any) => c?.key === sortKey)
       if ((columnDef as any)?.sortKey) {
@@ -79,7 +75,26 @@ export function useResultsSearch() {
         }
       }
 
-      data = orderBy(data, doLengthSort ? (i: any) => get(i, sortKey)?.length || 0 : sortKey, sortVal.dir)
+      // `report.categories` is an array of `{ id, score, ... }`. Resolve by
+      // id at read-time so reports don't need an ingest-time projection.
+      const CATEGORIES_PREFIX = 'report.categories.'
+      const resolve = sortKey.startsWith(CATEGORIES_PREFIX)
+        ? (() => {
+            const rest = sortKey.slice(CATEGORIES_PREFIX.length)
+            const dot = rest.indexOf('.')
+            const id = dot === -1 ? rest : rest.slice(0, dot)
+            const tail = dot === -1 ? '' : rest.slice(dot + 1)
+            return (r: any) => {
+              const cats = r?.report?.categories
+              if (!Array.isArray(cats))
+                return undefined
+              const cat = cats.find((c: any) => c?.id === id)
+              return tail ? get(cat, tail) : cat
+            }
+          })()
+        : (r: any) => get(r, sortKey)
+
+      data = orderBy(data, doLengthSort ? (i: any) => resolve(i)?.length || 0 : resolve, sortVal.dir)
     }
     else {
       data = orderBy(data, groupRoutesKey.value, 'asc')

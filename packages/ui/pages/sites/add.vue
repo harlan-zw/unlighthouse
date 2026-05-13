@@ -17,7 +17,7 @@ const form = reactive({
 const urlError = ref('')
 
 function normalizeUrl(url: string) {
-  return url.match(/^https?:\/\//) ? url : `https://${url}`
+  return /^https?:\/\//.test(url) ? url : `https://${url}`
 }
 
 function validate() {
@@ -108,7 +108,7 @@ async function submit() {
       </UFormField>
 
       <UFormField>
-        <div class="flex items-center justify-between rounded-lg ring-1 ring-default bg-elevated/40 p-4">
+        <div class="flex items-center justify-between border-t border-default pt-4">
           <div>
             <div class="font-medium">
               Scan immediately

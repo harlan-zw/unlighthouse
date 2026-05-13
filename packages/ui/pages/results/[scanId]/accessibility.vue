@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import type { AccessibilityData } from '@unlighthouse/contracts'
 import { withBase } from 'ufo'
-import { getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const { apiUrl } = useUnlighthouseConfig()
@@ -13,7 +13,8 @@ const scanId = computed(() => route.params.scanId as string)
 // Get site URL from parent layout
 const siteUrl = inject<ComputedRef<string>>('siteUrl', computed(() => ''))
 
-const { accessibility } = useDashboard(scanId)
+const accessibility = useLazyFetch<AccessibilityData>(() =>
+  scanId.value ? `${apiUrl.value}/dashboard/accessibility/${scanId.value}` : '', { immediate: false })
 
 // Resolve image URLs against site
 function resolveImageUrl(url: string): string {
@@ -220,7 +221,7 @@ const auditTitles: Record<string, string> = {
     <!-- Issues Tab -->
     <div v-else-if="activeTab === 0" class="space-y-6">
       <!-- Issues by Severity -->
-      <DashboardCard v-if="severityTotal > 0" title="Issues by Severity" icon="i-heroicons-chart-bar">
+      <DashboardCard v-if="severityTotal > 0" title="Issues by severity" icon="i-heroicons-chart-bar">
         <div class="space-y-4">
           <div class="h-3 rounded-full overflow-hidden flex bg-elevated/60">
             <div
@@ -254,7 +255,7 @@ const auditTitles: Record<string, string> = {
       </DashboardCard>
 
       <!-- Issues by Type -->
-      <DashboardCard v-if="issuesByType.length" title="Issues by Type" icon="i-heroicons-squares-2x2">
+      <DashboardCard v-if="issuesByType.length" title="Issues by type" icon="i-heroicons-squares-2x2">
         <div class="space-y-2">
           <div v-for="t in issuesByType" :key="t.auditId" class="flex items-center gap-3">
             <div class="flex-1 min-w-0">
@@ -275,7 +276,7 @@ const auditTitles: Record<string, string> = {
         </div>
       </DashboardCard>
 
-      <DashboardCard title="Accessibility Issues" icon="i-heroicons-exclamation-triangle" :count="sortedIssues.length">
+      <DashboardCard title="Accessibility issues" icon="i-heroicons-exclamation-triangle" :count="sortedIssues.length">
         <div v-if="!sortedIssues.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No accessibility issues found</p>
@@ -325,7 +326,7 @@ const auditTitles: Record<string, string> = {
       <!-- Color Contrast Issues -->
       <DashboardCard
         v-if="contrastElements.length"
-        title="Color Contrast Issues"
+        title="Color contrast issues"
         icon="i-heroicons-eye-dropper"
         :count="contrastElements.length"
         class="mb-6"
@@ -422,7 +423,7 @@ const auditTitles: Record<string, string> = {
 
       <!-- Other Element Issues -->
       <DashboardCard
-        title="Other Element Issues"
+        title="Other element issues"
         icon="i-heroicons-code-bracket"
         :count="otherElements.length"
       >
@@ -488,7 +489,7 @@ const auditTitles: Record<string, string> = {
 
     <!-- Missing Alt Tab -->
     <div v-else-if="activeTab === 2">
-      <DashboardCard title="Images Missing Alt Text" icon="i-heroicons-photo" :count="sortedAltImages.length">
+      <DashboardCard title="Images missing alt text" icon="i-heroicons-photo" :count="sortedAltImages.length">
         <div v-if="!sortedAltImages.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>All images have alt text</p>
@@ -528,7 +529,7 @@ const auditTitles: Record<string, string> = {
 
     <!-- Routes Tab -->
     <div v-else-if="activeTab === 3">
-      <DashboardCard title="Routes by Accessibility Score" icon="i-heroicons-queue-list" :count="sortedRoutes.length">
+      <DashboardCard title="Routes by accessibility score" icon="i-heroicons-queue-list" :count="sortedRoutes.length">
         <div v-if="!sortedRoutes.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
           <p>No route data available</p>

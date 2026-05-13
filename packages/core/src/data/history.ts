@@ -1,5 +1,12 @@
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
-import type { NewScan, NewScanCrux, NewScanRoute, Scan, ScanCrux, ScanRoute } from '../storage/drizzle/schema/history'
+import type {
+  LegacyScanRowInsert as NewScan,
+  NewScanCrux,
+  LegacyScanRouteRowInsert as NewScanRoute,
+  LegacyScanRow as Scan,
+  ScanCrux,
+  LegacyScanRouteRow as ScanRoute,
+} from '../storage/drizzle/schema/history'
 import { join } from 'node:path'
 import Database from 'better-sqlite3'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'

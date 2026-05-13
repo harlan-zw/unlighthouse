@@ -1,4 +1,17 @@
 import type { ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/contracts'
+import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
+import type { ScanSingleton } from './composables/scan'
+import type { TransportConnection } from './plugins/transport.client'
+import type { UnlighthouseRuntimeConfig } from './plugins/unlighthouse-config.client'
+
+declare module '#app' {
+  interface NuxtApp {
+    $uconfig: UnlighthouseRuntimeConfig
+    $api: UnlighthouseClient
+    $transport: TransportConnection
+    $scan: ScanSingleton
+  }
+}
 
 interface UnlighthousePayload {
   options: {

@@ -1,4 +1,5 @@
-import { asScanId, useApiClient } from './useApiClient'
+import type { ScanId } from '@unlighthouse/contracts/types/atoms'
+import { useApiClient } from './useApiClient'
 
 export function useHistoricalScan(scanId: MaybeRef<string | undefined>) {
   const apiClient = useApiClient()
@@ -6,7 +7,7 @@ export function useHistoricalScan(scanId: MaybeRef<string | undefined>) {
 
   return useAsyncData(
     () => `history:${id.value ?? ''}`,
-    () => id.value ? apiClient['history.get']({ scanId: asScanId(id.value) }).catch(() => null) : Promise.resolve(null),
+    () => id.value ? apiClient['history.get']({ scanId: id.value as ScanId }).catch(() => null) : Promise.resolve(null),
     { watch: [id], default: () => null },
   )
 }

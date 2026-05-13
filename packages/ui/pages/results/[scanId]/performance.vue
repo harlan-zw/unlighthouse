@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { formatMs, getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
-import { formatBytes } from '~/utils'
+import type { CruxData, PerformanceData } from '@unlighthouse/contracts'
 
 definePageMeta({ layout: 'site' })
 
 const route = useRoute()
+const { apiUrl } = useUnlighthouseConfig()
 const scanId = computed(() => route.params.scanId as string)
 
-const { performance, crux } = useDashboard(scanId)
+const performance = useLazyFetch<PerformanceData>(() =>
+  scanId.value ? `${apiUrl.value}/dashboard/performance/${scanId.value}` : '', { immediate: false })
+
+const crux = useLazyFetch<CruxData>(() =>
+  scanId.value ? `${apiUrl.value}/dashboard/crux/${scanId.value}` : '', { immediate: false })
 
 onMounted(() => {
   if (scanId.value) {
@@ -248,7 +252,7 @@ const sortedRoutes = computed(() =>
       </div>
       <div v-else class="space-y-6">
         <!-- Field data from CrUX -->
-        <DashboardCard v-if="hasAnyCrux && cruxSeries" title="Field Data (CrUX)" icon="i-heroicons-globe-alt">
+        <DashboardCard v-if="hasAnyCrux && cruxSeries" title="Field data (CrUX)" icon="i-heroicons-globe-alt">
           <template #actions>
             <UTabs
               v-model="cruxFormFactor"
@@ -267,7 +271,7 @@ const sortedRoutes = computed(() =>
         </DashboardCard>
 
         <!-- Top Opportunities -->
-        <DashboardCard v-if="topOpportunities.length" title="Top Opportunities" icon="i-heroicons-sparkles">
+        <DashboardCard v-if="topOpportunities.length" title="Top opportunities" icon="i-heroicons-sparkles">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div
               v-for="op in topOpportunities"
@@ -290,7 +294,7 @@ const sortedRoutes = computed(() =>
         </DashboardCard>
 
         <!-- Core Web Vitals (LCP, CLS, TBT) -->
-        <DashboardCard title="Core Web Vitals" icon="i-heroicons-chart-bar">
+        <DashboardCard title="Core web vitals" icon="i-heroicons-chart-bar">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div
               v-for="vital in webVitals.filter(v => ['lcp', 'cls', 'tbt'].includes(v.key))"
@@ -340,7 +344,7 @@ const sortedRoutes = computed(() =>
         </DashboardCard>
 
         <!-- Other Metrics (FCP, SI, TTFB) -->
-        <DashboardCard title="Other Performance Metrics" icon="i-heroicons-clock">
+        <DashboardCard title="Other performance metrics" icon="i-heroicons-clock">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div
               v-for="vital in webVitals.filter(v => ['fcp', 'si', 'ttfb'].includes(v.key))"
@@ -393,7 +397,7 @@ const sortedRoutes = computed(() =>
 
     <!-- Images Tab -->
     <div v-else-if="activeTab === 1">
-      <DashboardCard title="Image Optimization Issues" icon="i-heroicons-photo" :count="sortedIssues.length">
+      <DashboardCard title="Image optimization issues" icon="i-heroicons-photo" :count="sortedIssues.length">
         <div v-if="!sortedIssues.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No image optimization issues found</p>
@@ -427,7 +431,7 @@ const sortedRoutes = computed(() =>
 
     <!-- Third-Party Tab -->
     <div v-else-if="activeTab === 2">
-      <DashboardCard title="Third-Party Scripts" icon="i-heroicons-globe-alt" :count="sortedThirdParty.length">
+      <DashboardCard title="Third-party scripts" icon="i-heroicons-globe-alt" :count="sortedThirdParty.length">
         <div v-if="!sortedThirdParty.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No third-party scripts detected</p>
@@ -473,7 +477,7 @@ const sortedRoutes = computed(() =>
 
     <!-- LCP Elements Tab -->
     <div v-else-if="activeTab === 3">
-      <DashboardCard title="Largest Contentful Paint Elements" icon="i-heroicons-clock" :count="sortedLcp.length">
+      <DashboardCard title="Largest Contentful Paint elements" icon="i-heroicons-clock" :count="sortedLcp.length">
         <div v-if="!sortedLcp.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
           <p>No LCP element data available</p>
@@ -526,7 +530,7 @@ const sortedRoutes = computed(() =>
 
     <!-- Routes Tab -->
     <div v-else-if="activeTab === 4">
-      <DashboardCard title="Routes by Performance Score" icon="i-heroicons-queue-list" :count="sortedRoutes.length">
+      <DashboardCard title="Routes by performance score" icon="i-heroicons-queue-list" :count="sortedRoutes.length">
         <div v-if="!sortedRoutes.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
           <p>No route data available</p>

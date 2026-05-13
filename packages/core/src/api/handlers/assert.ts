@@ -83,6 +83,12 @@ export const assertEvaluate: Handler<typeof AssertEvaluate> = {
     const baseRoutes = input.baselineScanId ? await loadRoutes(ctx, input.baselineScanId) : []
     const baseByUrl = new Map(baseRoutes.map(r => [r.url, r]))
     const results = input.assertions.map(a => evalAssertion(a, routes, baseByUrl))
+    const hooks = ctx.core.hooks as { callHook: (event: string, payload: unknown) => Promise<void> } | undefined
+    if (hooks) {
+      for (const result of results) {
+        await hooks.callHook(result.passed ? 'assert:passed' : 'assert:failed', { scanId: input.scanId, result })
+      }
+    }
     const passed = results.every(r => r.passed)
     return { scanId: input.scanId, passed, results } as CommandOutput<typeof AssertEvaluate>
   },

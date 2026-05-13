@@ -1,9 +1,12 @@
 <script lang="ts" setup>
 import type { UnlighthouseTaskStatus } from '@unlighthouse/contracts'
+import { useIsOffline } from '~/composables/useTransport'
 
 const props = defineProps<{
   status: UnlighthouseTaskStatus
 }>()
+
+const isOffline = useIsOffline()
 
 const color = computed(() => {
   if (isOffline.value && props.status !== 'completed' && props.status !== 'failed')

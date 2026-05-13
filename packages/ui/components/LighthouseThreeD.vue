@@ -5,10 +5,11 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
 import { ref } from 'vue'
-import { scanMeta } from '~/composables/state'
+import { useScanMeta } from '~/composables/useScanMeta'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const { routerPrefix } = useUnlighthouseConfig()
+const { scanMeta } = useScanMeta()
 
 const canvasRef = ref<HTMLCanvasElement>()
 const lighthouseRef = ref<HTMLDivElement>()

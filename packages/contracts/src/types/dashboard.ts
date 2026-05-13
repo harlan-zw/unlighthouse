@@ -1,32 +1,5 @@
-import { useUnlighthouseConfig } from './useUnlighthouseConfig'
-
-export function getScoreColor(score: number | null): string {
-  if (score === null)
-    return 'text-dimmed'
-  if (score >= 90)
-    return 'text-success'
-  if (score >= 50)
-    return 'text-warning'
-  return 'text-error'
-}
-
-export function getScoreBg(score: number | null): string {
-  if (score === null)
-    return 'bg-elevated/60'
-  if (score >= 90)
-    return 'bg-success/10'
-  if (score >= 50)
-    return 'bg-warning/10'
-  return 'bg-error/10'
-}
-
-export function formatMs(value: number | null | undefined): string {
-  if (value == null)
-    return '-'
-  if (value >= 1000)
-    return `${(value / 1000).toFixed(1)}s`
-  return `${Math.round(value)}ms`
-}
+// Wire shapes returned by /api/dashboard/* endpoints. Shared so client and
+// server agree on the contract; drift becomes a typecheck failure.
 
 export interface DashboardSummary {
   performance: { avgScore: number, issues: number }
@@ -213,49 +186,4 @@ export interface SeoData {
     elements: Array<{ selector: string, size: string }>
   }>
   routes: Array<{ path: string, score: number | null }>
-}
-
-export function useDashboard(scanId: MaybeRef<string | undefined>) {
-  const { apiUrl } = useUnlighthouseConfig()
-  const id = computed(() => unref(scanId))
-
-  const summary = useLazyFetch<DashboardSummary>(() =>
-    id.value ? `${apiUrl.value}/dashboard/summary/${id.value}` : '', {
-    immediate: false,
-  })
-
-  const performance = useLazyFetch<PerformanceData>(() =>
-    id.value ? `${apiUrl.value}/dashboard/performance/${id.value}` : '', {
-    immediate: false,
-  })
-
-  const accessibility = useLazyFetch<AccessibilityData>(() =>
-    id.value ? `${apiUrl.value}/dashboard/accessibility/${id.value}` : '', {
-    immediate: false,
-  })
-
-  const bestPractices = useLazyFetch<BestPracticesData>(() =>
-    id.value ? `${apiUrl.value}/dashboard/best-practices/${id.value}` : '', {
-    immediate: false,
-  })
-
-  const seo = useLazyFetch<SeoData>(() =>
-    id.value ? `${apiUrl.value}/dashboard/seo/${id.value}` : '', {
-    immediate: false,
-  })
-
-  const crux = useLazyFetch<CruxData>(() =>
-    id.value ? `${apiUrl.value}/dashboard/crux/${id.value}` : '', {
-    immediate: false,
-  })
-
-  return {
-    scanId: id,
-    summary,
-    performance,
-    accessibility,
-    bestPractices,
-    seo,
-    crux,
-  }
 }

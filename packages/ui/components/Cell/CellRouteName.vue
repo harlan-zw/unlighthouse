@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { UnlighthouseColumn, UnlighthouseRouteReport } from '@unlighthouse/contracts'
-import { isOffline } from '~/composables/state'
+import { useIsOffline } from '~/composables/useTransport'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const props = defineProps<{
@@ -8,6 +8,8 @@ const props = defineProps<{
   column: UnlighthouseColumn
   value: any
 }>()
+
+const isOffline = useIsOffline()
 
 const { apiUrl, device, resolveArtifactPath } = useUnlighthouseConfig()
 

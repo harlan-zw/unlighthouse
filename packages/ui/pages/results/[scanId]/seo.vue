@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import type { SeoData } from '~/composables/dashboard'
-import { getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
+import type { SeoData } from '@unlighthouse/contracts'
 
 definePageMeta({ layout: 'site' })
 
 const route = useRoute()
+const { apiUrl } = useUnlighthouseConfig()
 const scanId = computed(() => route.params.scanId as string)
 
-const { seo } = useDashboard(scanId)
+const seo = useLazyFetch<SeoData>(() =>
+  scanId.value ? `${apiUrl.value}/dashboard/seo/${scanId.value}` : '', { immediate: false })
 
 type SeoMeta = SeoData['meta'][number]
 
@@ -396,7 +397,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
 
       <DashboardCard
         v-if="schemaCoverage"
-        title="Structured Data"
+        title="Structured data"
         icon="i-heroicons-code-bracket"
       >
         <div class="space-y-4">
@@ -436,7 +437,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
 
       <DashboardCard
         v-if="worstSeoPages.length"
-        title="Worst Pages"
+        title="Worst pages"
         icon="i-heroicons-arrow-trending-down"
       >
         <div class="divide-y divide-white/5">
@@ -467,7 +468,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
         </div>
       </DashboardCard>
 
-      <DashboardCard title="Meta Tags Overview" icon="i-heroicons-document-text" :count="sortedMeta.length">
+      <DashboardCard title="Meta tags overview" icon="i-heroicons-document-text" :count="sortedMeta.length">
         <div v-if="!sortedMeta.length" class="text-center py-8 text-dimmed">
           <p>No meta data available</p>
         </div>
@@ -712,7 +713,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
 
     <!-- Duplicates Tab -->
     <div v-else-if="activeTab === 1">
-      <DashboardCard title="Duplicate Meta Tags" icon="i-heroicons-document-duplicate" :count="sortedDuplicates.length">
+      <DashboardCard title="Duplicate meta tags" icon="i-heroicons-document-duplicate" :count="sortedDuplicates.length">
         <div v-if="!sortedDuplicates.length" class="text-center py-8 text-dimmed">
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No duplicate meta tags found</p>
@@ -755,7 +756,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
     <!-- Issues Tab -->
     <div v-else-if="activeTab === 2">
       <div class="space-y-6">
-        <DashboardCard title="Canonical Chains" icon="i-heroicons-link" :count="canonicalChains.length">
+        <DashboardCard title="Canonical chains" icon="i-heroicons-link" :count="canonicalChains.length">
           <div v-if="!canonicalChains.length" class="text-center py-8 text-dimmed">
             <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
             <p>No canonical chains found</p>
@@ -770,7 +771,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
           </div>
         </DashboardCard>
 
-        <DashboardCard title="Generic Link Text" icon="i-heroicons-cursor-arrow-rays" :count="linkTextIssues.length">
+        <DashboardCard title="Generic link text" icon="i-heroicons-cursor-arrow-rays" :count="linkTextIssues.length">
           <div v-if="!linkTextIssues.length" class="text-center py-8 text-dimmed">
             <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
             <p>No generic link text found</p>
@@ -800,7 +801,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
           </div>
         </DashboardCard>
 
-        <DashboardCard title="Tap Target Issues" icon="i-heroicons-finger-print" :count="tapTargetIssues.length">
+        <DashboardCard title="Tap target issues" icon="i-heroicons-finger-print" :count="tapTargetIssues.length">
           <div v-if="!tapTargetIssues.length" class="text-center py-8 text-dimmed">
             <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
             <p>No tap target issues found</p>

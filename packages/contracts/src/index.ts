@@ -33,6 +33,7 @@ export * from './ports/storage'
 // Atoms are the v1 vocabulary.
 export * from './types/atoms'
 
+export * from './types/dashboard'
 // Legacy interfaces from `types/index.ts` are re-exported selectively to avoid
 // name collisions with v1 atoms in `./config` (DiscoveryOptions) and
 // `./hooks` (UnlighthouseHooks).
@@ -78,3 +79,6 @@ export type {
   ValidReportTypes,
   WS,
 } from './types/index'
+
+// Wire payloads shared by transport hooks and dashboard endpoints.
+export * from './types/transport'
