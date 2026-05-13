@@ -1,13 +1,11 @@
-import type { ReporterConfig } from '../reporters/types'
 import type { CiOptions } from './types'
 import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
 import { createConsola } from 'consola'
-import { createUnlighthouse, evaluateAndStoreAssertions, history } from '..'
+import { createUnlighthouseHost, evaluateAndStoreAssertions, history } from '..'
 import { getCurrentScanId } from '../data/history/tracking'
-import { generateReportPayload, outputReport } from '../reporters'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
 
@@ -34,8 +32,8 @@ async function run() {
   if (options.debug)
     logger.level = 4
 
-  const unlighthouse = await createUnlighthouse(
-    {
+  const unlighthouse = await createUnlighthouseHost({
+    userConfig: {
       ...pickOptions(options),
       hooks: {
         'resolved-config': async (config) => {
@@ -43,47 +41,32 @@ async function run() {
         },
       },
     },
-    { name: 'ci' },
-    { ws: null, label: 'ci' },
-  )
+    behavior: { ws: null, label: 'ci' },
+  })
 
   validateOptions(unlighthouse.resolvedConfig)
 
-  const { routes = [] } = await unlighthouse.start()
-  if (!routes.length) {
-    logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
-    process.exit(1)
-  }
-
-  await new Promise<void>((resolve) => {
-    unlighthouse.hooks.hook('worker-finished', async () => {
-      unlighthouse.worker.clearProgressDisplay()
-      const seconds = Math.round((Date.now() - start.getTime()) / 1000)
-      logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${unlighthouse.worker.reports().length} routes in ${seconds}s.`)
-      await unlighthouse.worker.cluster.close().catch(() => {})
-      resolve()
+  const completed = new Promise<{ completed: number }>((resolve) => {
+    unlighthouse.hooks.hook('scan:complete', (payload) => {
+      resolve({ completed: payload.summary.completed })
     })
   })
 
+  await unlighthouse.start()
+  const { completed: completedCount } = await completed
+  const seconds = Math.round((Date.now() - start.getTime()) / 1000)
+  logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${completedCount} routes in ${seconds}s.`)
+
+  // TODO(Step G): rewire reporter generation to read from Storage instead of
+  // the legacy worker.reports(). The v1 host no longer exposes the worker.
   const cliReporter = options.reporter
   const configReporter = unlighthouse.resolvedConfig.ci?.reporter
   const reporter
     = cliReporter === false || configReporter === false
       ? false
       : cliReporter ?? configReporter ?? 'jsonSimple'
-  if (reporter) {
-    const reporterConfig: ReporterConfig = {
-      columns: unlighthouse.resolvedConfig.client?.columns,
-      ...(unlighthouse.resolvedConfig.ci?.reporterConfig ?? {}),
-    }
-    const payload = await Promise.resolve<unknown>(
-      generateReportPayload(reporter as never, unlighthouse.worker.reports(), reporterConfig),
-    )
-    if (payload != null) {
-      const path = await outputReport(reporter, unlighthouse.resolvedConfig, payload)
-      logger.success(`Generated \`${reporter}\` report: ${path}`)
-    }
-  }
+  if (reporter)
+    logger.warn(`Reporter "${reporter}" output skipped: pending Step G (Storage-backed reporter).`)
 
   const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
   const assertEnabled = options.assert !== false

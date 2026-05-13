@@ -4,8 +4,10 @@ import open from 'better-opn'
 import { createConsola } from 'consola'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
-import { createUnlighthouse, evaluateAndStoreAssertions, history } from '..'
+import { joinURL } from 'ufo'
+import { createUnlighthouseHost, evaluateAndStoreAssertions, history } from '..'
 import { getCurrentScanId } from '../data/history/tracking'
+import { createSitesStore, deriveSiteId } from '../data/sites'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
 
@@ -24,23 +26,22 @@ const cli = createCli()
 
 const { options } = cli.parse() as unknown as { options: CliOptions }
 
-async function runHistoryMode() {
+async function runDashboardMode() {
   setMaxListeners(0)
 
   const logger = createConsola().withTag('unlighthouse')
   if (options.debug)
     logger.level = 4
 
-  const unlighthouse = await createUnlighthouse(
-    {
+  const unlighthouse = await createUnlighthouseHost({
+    userConfig: {
       ...pickOptions(options),
       site: options.site || 'http://localhost',
     },
-    { name: 'cli' },
-    { generateClient: true, showBanner: true, label: 'cli' },
-  )
+    behavior: { generateClient: true, showBanner: true, label: 'cli' },
+  })
 
-  logger.info('Starting Unlighthouse in history-only mode...')
+  logger.info('Starting Unlighthouse dashboard...')
 
   const { server, app } = await createServer(unlighthouse.resolvedConfig)
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
@@ -56,8 +57,14 @@ async function run() {
   if (options.help || options.version)
     return
 
+  // No site provided → dashboard-only mode (manage sites, view history).
+  if (!options.site && !options.urls) {
+    await runDashboardMode()
+    return
+  }
+
   if (options.history) {
-    await runHistoryMode()
+    await runDashboardMode()
     return
   }
 
@@ -67,8 +74,8 @@ async function run() {
   if (options.debug)
     logger.level = 4
 
-  const unlighthouse = await createUnlighthouse(
-    {
+  const unlighthouse = await createUnlighthouseHost({
+    userConfig: {
       ...pickOptions(options),
       hooks: {
         'resolved-config': async (config) => {
@@ -76,27 +83,33 @@ async function run() {
         },
       },
     },
-    { name: 'cli' },
-    { generateClient: true, showBanner: true, label: 'cli' },
-  )
+    behavior: { generateClient: true, showBanner: true, label: 'cli' },
+  })
 
   validateOptions(unlighthouse.resolvedConfig)
 
   const { server, app } = await createServer(unlighthouse.resolvedConfig)
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  const { routes = [] } = await unlighthouse.start()
-  if (!routes.length) {
-    logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
-    process.exit(1)
+  const { scanId } = await unlighthouse.start()
+
+  // Register this scan's site in the persistent registry so it shows up on the dashboard.
+  const siteUrl = unlighthouse.resolvedConfig.site
+  let scanLandingUrl = unlighthouse.runtimeSettings.clientUrl
+  if (siteUrl) {
+    const sitesStore = createSitesStore({ outputPath: unlighthouse.resolvedConfig.outputPath })
+    const site = await sitesStore.create({
+      url: siteUrl,
+      device: unlighthouse.resolvedConfig.scanner?.device,
+    }).catch(() => null)
+    const siteId = site?.id ?? deriveSiteId(siteUrl)
+    scanLandingUrl = joinURL(unlighthouse.runtimeSettings.clientUrl, `/sites/${siteId}/scan/${scanId}`)
   }
 
-  unlighthouse.hooks.hook('worker-finished', async () => {
+  unlighthouse.hooks.hook('scan:complete', async (payload) => {
     const end = new Date()
     const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
 
-    unlighthouse.worker.clearProgressDisplay()
-    logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${unlighthouse.worker.reports().length} routes in ${seconds}s.`)
-    await unlighthouse.worker.cluster.close().catch(() => {})
+    logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${payload.summary.completed} routes in ${seconds}s.`)
 
     const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
     if (options.assert && assertionConfigs?.length) {
@@ -129,7 +142,7 @@ async function run() {
   })
 
   if (unlighthouse.resolvedConfig.server.open)
-    await open(unlighthouse.runtimeSettings.clientUrl)
+    await open(scanLandingUrl)
 }
 
 run()
