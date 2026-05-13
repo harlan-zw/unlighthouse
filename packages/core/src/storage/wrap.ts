@@ -103,5 +103,8 @@ export function wrapStorage(base: Storage, opts: WrapStorageOptions): Storage {
     delete: (key: string) => intercept('blobs.delete', { key }, a => base.blobs.delete(a.key)),
   }
 
-  return { scans, routes, blobs }
+  // Report + comparison repos are read-only & dashboard-private; pass through
+  // without intercepting. Tenant/auth hooks already gate via `scans.*` /
+  // `routes.*` (any scanId reaching `reports.*` was filtered upstream).
+  return { scans, routes, blobs, reports: base.reports, comparisons: base.comparisons }
 }

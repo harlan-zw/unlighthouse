@@ -1,26 +1,27 @@
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import type { ScanRouteRow as ScanRoute } from '@unlighthouse/contracts/drizzle'
 import type { ComparisonDiff, MetricDiff } from '../report/types'
-import type { LegacyScanRouteRow as ScanRoute } from '../storage/drizzle/schema/history'
+import { comparisonDiffs, comparisons, scanRoutes } from '@unlighthouse/contracts/drizzle'
 import { eq } from 'drizzle-orm'
-import { comparisonDiffs, comparisons, scanRoutes } from '../storage/drizzle/schema/history'
+
+type AnyDrizzle = any
 
 export const DEFAULT_THRESHOLDS: Record<string, number> = {
-  lcp: 500, // 500ms change
-  cls: 100, // 0.1 CLS (stored as x1000)
-  tbt: 200, // 200ms
+  lcp: 500, // 500ms
+  cls: 0.1, // CLS unit (v1 stores raw float)
+  tbt: 200,
   fcp: 300,
   si: 500,
   ttfb: 200,
-  inp: 200, // 200ms
-  performance: 5, // 5 points (0-100 scale)
-  accessibility: 5,
-  bestPractices: 5,
-  seo: 5,
+  inp: 200,
+  performance: 0.05, // 5 points on 0-1 scale (v1)
+  accessibility: 0.05,
+  bestpractices: 0.05,
+  seo: 0.05,
 }
 
 type ScanRouteRecord = Pick<ScanRoute, | 'path' | 'url'
   | 'lcp' | 'cls' | 'tbt' | 'fcp' | 'si' | 'ttfb' | 'inp'
-  | 'performanceScore' | 'accessibilityScore' | 'bestPracticesScore' | 'seoScore'>
+  | 'scorePerformance' | 'scoreAccessibility' | 'scoreBestPractices' | 'scoreSeo'>
 
 function compareRouteMetrics(base: ScanRouteRecord, current: ScanRouteRecord, thresholds: Record<string, number> = DEFAULT_THRESHOLDS): MetricDiff[] {
   const metrics = [
@@ -31,21 +32,21 @@ function compareRouteMetrics(base: ScanRouteRecord, current: ScanRouteRecord, th
     'si',
     'ttfb',
     'inp',
-    'performanceScore',
-    'accessibilityScore',
-    'bestPracticesScore',
-    'seoScore',
+    'scorePerformance',
+    'scoreAccessibility',
+    'scoreBestPractices',
+    'scoreSeo',
   ] as const
 
   return metrics.map((name) => {
     const baseVal = (base as any)[name] ?? 0
     const currentVal = (current as any)[name] ?? 0
     const delta = currentVal - baseVal
-    const thresholdKey = name.replace('Score', '').toLowerCase()
+    const thresholdKey = name.startsWith('score') ? name.slice(5).toLowerCase() : name
     const threshold = thresholds[thresholdKey] ?? DEFAULT_THRESHOLDS[thresholdKey] ?? 5
 
     // For scores, higher is better. For timings, lower is better.
-    const isScore = name.includes('Score')
+    const isScore = name.startsWith('score')
     const isRegression = isScore ? delta < -threshold : delta > threshold
     const isImprovement = isScore ? delta > threshold : delta < -threshold
 
@@ -60,13 +61,13 @@ function compareRouteMetrics(base: ScanRouteRecord, current: ScanRouteRecord, th
   }).filter(m => m.severity !== 'neutral')
 }
 
-export async function compareScans(db: BetterSQLite3Database, baseScanId: string, currentScanId: string, thresholds?: Record<string, number>) {
-  const baseRoutes = db.select().from(scanRoutes).where(eq(scanRoutes.scanId, baseScanId)).all()
-  const currentRoutes = db.select().from(scanRoutes).where(eq(scanRoutes.scanId, currentScanId)).all()
+export async function compareScans(db: AnyDrizzle, baseScanId: string, currentScanId: string, thresholds?: Record<string, number>) {
+  const baseRoutes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, baseScanId))
+  const currentRoutes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, currentScanId))
   const resolvedThresholds = { ...DEFAULT_THRESHOLDS, ...(thresholds ?? {}) }
 
-  const baseByPath = new Map(baseRoutes.map(r => [r.path, r as ScanRouteRecord]))
-  const currentByPath = new Map(currentRoutes.map(r => [r.path, r as ScanRouteRecord]))
+  const baseByPath = new Map((baseRoutes as ScanRouteRecord[]).map(r => [r.path, r]))
+  const currentByPath = new Map((currentRoutes as ScanRouteRecord[]).map(r => [r.path, r]))
 
   const diffs: ComparisonDiff[] = []
   let improved = 0
@@ -98,8 +99,7 @@ export async function compareScans(db: BetterSQLite3Database, baseScanId: string
     }
   }
 
-  // Insert comparison record
-  const comparison = db.insert(comparisons).values({
+  const [comparison] = await db.insert(comparisons).values({
     baseScanId,
     currentScanId,
     improved,
@@ -107,11 +107,10 @@ export async function compareScans(db: BetterSQLite3Database, baseScanId: string
     unchanged,
     newUrls: [...currentByPath.keys()].filter(p => !baseByPath.has(p)).length,
     removedUrls: [...baseByPath.keys()].filter(p => !currentByPath.has(p)).length,
-  }).returning().get()
+  }).returning()
 
-  // Insert diffs
   if (diffs.length > 0) {
-    db.insert(comparisonDiffs).values(
+    await db.insert(comparisonDiffs).values(
       diffs.map(diff => ({
         comparisonId: comparison.id,
         path: diff.path,
@@ -119,22 +118,22 @@ export async function compareScans(db: BetterSQLite3Database, baseScanId: string
         metricDiffs: JSON.stringify(diff.metricDiffs),
         severity: diff.severity,
       })),
-    ).run()
+    )
   }
 
   return comparison
 }
 
-export function getComparisonSummary(db: BetterSQLite3Database, comparisonId: number) {
-  const comparison = db.select().from(comparisons).where(eq(comparisons.id, comparisonId)).get()
+export async function getComparisonSummary(db: AnyDrizzle, comparisonId: number) {
+  const [comparison] = await db.select().from(comparisons).where(eq(comparisons.id, comparisonId)).limit(1)
   if (!comparison)
     return null
 
-  const diffs = db.select().from(comparisonDiffs).where(eq(comparisonDiffs.comparisonId, comparisonId)).all()
+  const diffs = await db.select().from(comparisonDiffs).where(eq(comparisonDiffs.comparisonId, comparisonId))
 
   return {
     ...comparison,
-    diffs: diffs.map(d => ({
+    diffs: diffs.map((d: any) => ({
       ...d,
       metricDiffs: JSON.parse(d.metricDiffs),
     })),

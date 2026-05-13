@@ -39,10 +39,6 @@
       "types": "./dist/util/path.d.mts",
       "import": "./dist/util/path.mjs"
     },
-    "./util/logger": {
-      "types": "./dist/util/logger.d.mts",
-      "import": "./dist/util/logger.mjs"
-    },
     "./util/fetch": {
       "types": "./dist/util/fetch.d.mts",
       "import": "./dist/util/fetch.mjs"
@@ -62,14 +58,6 @@
     "./storage/drizzle": {
       "types": "./dist/storage/drizzle/index.d.mts",
       "import": "./dist/storage/drizzle/index.mjs"
-    },
-    "./storage/drizzle/schema/history": {
-      "types": "./dist/storage/drizzle/schema/history.d.mts",
-      "import": "./dist/storage/drizzle/schema/history.mjs"
-    },
-    "./data/history": {
-      "types": "./dist/data/history.d.mts",
-      "import": "./dist/data/history.mjs"
     },
     "./storage/memory": {
       "types": "./dist/storage/memory/index.d.mts",

@@ -1,5 +1,6 @@
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import type { Buffer } from 'node:buffer'
+
+type AnyDrizzle = any
 
 // Lighthouse Result types (simplified)
 export interface LighthouseAudit {
@@ -52,7 +53,7 @@ export type { HTMLExtractPayload } from '@unlighthouse/contracts'
 
 // Processor params
 export interface ProcessorParams {
-  db: BetterSQLite3Database
+  db: AnyDrizzle
   scanId: string
   routes: Map<string, ExtractedRoute>
   htmlData?: Map<string, import('@unlighthouse/contracts').HTMLExtractPayload>

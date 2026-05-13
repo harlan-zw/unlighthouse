@@ -2,6 +2,7 @@ import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseRep
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
 import { launch } from 'chrome-launcher'
 import lighthouse, { generateReport as _generateReport } from 'lighthouse'
+import { extractRouteData } from '../report/extract'
 import { extractInsights } from './extract'
 import { resolveLighthouseConfig } from './lighthouse-config'
 
@@ -69,9 +70,38 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
   return {
     capabilities: LOCAL_CAPABILITIES,
     async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
-      // @TODO v1.6: thread AbortSignal into chrome-launcher / lighthouse; reshape into real LighthouseReport via report/extract.
       const report = await provider(url, opts.defaults)
-      return report.raw as unknown as LighthouseReport
+      const lhr = report.raw
+      // Attach v1 `extracted` (CWV + scores + audits + gzipped LHR) so core's
+      // `auditWrapper` can route metrics → `storage.routes.putBatch` and the
+      // gzipped LHR → `storage.blobs.put` without re-parsing.
+      const extracted = extractRouteData(lhr as never)
+      const path = (() => {
+        try { return new URL(url).pathname }
+        catch { return url }
+      })()
+      const metrics = {
+        url,
+        path,
+        routeName: null,
+        scorePerformance: extracted.scores.performance,
+        scoreAccessibility: extracted.scores.accessibility,
+        scoreSeo: extracted.scores.seo,
+        scoreBestPractices: extracted.scores.bestPractices,
+        lcp: extracted.lcp,
+        cls: extracted.cls,
+        inp: extracted.inp,
+        fcp: extracted.fcp,
+        ttfb: extracted.ttfb,
+        tbt: extracted.tbt,
+        si: extracted.si,
+        lighthouseVersion: (lhr as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
+        capturedAt: new Date().toISOString(),
+      }
+      return Object.assign(
+        lhr as unknown as LighthouseReport,
+        { extracted: metrics, lhrGzip: extracted.lhrGzip },
+      )
     },
   }
 }

@@ -1,10 +1,6 @@
-import type { HTMLExtractPayload } from '@unlighthouse/contracts'
-// v1 core/report — orchestrates per-category processors over a scan's LHRs.
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import type { HTMLExtractPayload, Storage } from '@unlighthouse/contracts'
 import type { ExtractedRoute } from './types'
 import { gunzipSync } from 'node:zlib'
-import { and, desc, eq, ne } from 'drizzle-orm'
-import { compareScans } from '../comparison/comparison'
 import {
   accessibilityElements,
   accessibilityIssues,
@@ -17,7 +13,6 @@ import {
   linkTextIssues,
   missingAltImages,
   performanceIssues,
-  scanRoutes,
   scans,
   securityIssues,
   seoDuplicates,
@@ -25,7 +20,9 @@ import {
   tapTargetIssues,
   thirdPartyScripts,
   vulnerableLibraries,
-} from '../storage/drizzle/schema/history'
+} from '@unlighthouse/contracts/drizzle'
+import { and, desc, eq, ne } from 'drizzle-orm'
+import { compareScans } from '../comparison/comparison'
 import { processAccessibility } from './accessibility'
 import { processBestPractices } from './best-practices'
 import { extractRouteData } from './extract'
@@ -35,41 +32,66 @@ import { processSeo } from './seo'
 export { decompressLhr, extractRouteData } from './extract'
 export * from './types'
 
-function clearDashboardData(db: BetterSQLite3Database, scanId: string) {
-  db.delete(dashboardSummaries).where(eq(dashboardSummaries.scanId, scanId)).run()
-  db.delete(performanceIssues).where(eq(performanceIssues.scanId, scanId)).run()
-  db.delete(thirdPartyScripts).where(eq(thirdPartyScripts.scanId, scanId)).run()
-  db.delete(lcpElements).where(eq(lcpElements.scanId, scanId)).run()
-  db.delete(accessibilityIssues).where(eq(accessibilityIssues.scanId, scanId)).run()
-  db.delete(accessibilityElements).where(eq(accessibilityElements.scanId, scanId)).run()
-  db.delete(missingAltImages).where(eq(missingAltImages.scanId, scanId)).run()
-  db.delete(securityIssues).where(eq(securityIssues.scanId, scanId)).run()
-  db.delete(detectedLibraries).where(eq(detectedLibraries.scanId, scanId)).run()
-  db.delete(vulnerableLibraries).where(eq(vulnerableLibraries.scanId, scanId)).run()
-  db.delete(deprecatedApis).where(eq(deprecatedApis.scanId, scanId)).run()
-  db.delete(consoleErrors).where(eq(consoleErrors.scanId, scanId)).run()
-  db.delete(seoMeta).where(eq(seoMeta.scanId, scanId)).run()
-  db.delete(seoDuplicates).where(eq(seoDuplicates.scanId, scanId)).run()
-  db.delete(canonicalChains).where(eq(canonicalChains.scanId, scanId)).run()
-  db.delete(linkTextIssues).where(eq(linkTextIssues.scanId, scanId)).run()
-  db.delete(tapTargetIssues).where(eq(tapTargetIssues.scanId, scanId)).run()
+type AnyDrizzle = any
+
+function clearDashboardData(db: AnyDrizzle, scanId: string) {
+  db.delete(dashboardSummaries).where(eq(dashboardSummaries.scanId, scanId)).run?.()
+  db.delete(performanceIssues).where(eq(performanceIssues.scanId, scanId)).run?.()
+  db.delete(thirdPartyScripts).where(eq(thirdPartyScripts.scanId, scanId)).run?.()
+  db.delete(lcpElements).where(eq(lcpElements.scanId, scanId)).run?.()
+  db.delete(accessibilityIssues).where(eq(accessibilityIssues.scanId, scanId)).run?.()
+  db.delete(accessibilityElements).where(eq(accessibilityElements.scanId, scanId)).run?.()
+  db.delete(missingAltImages).where(eq(missingAltImages.scanId, scanId)).run?.()
+  db.delete(securityIssues).where(eq(securityIssues.scanId, scanId)).run?.()
+  db.delete(detectedLibraries).where(eq(detectedLibraries.scanId, scanId)).run?.()
+  db.delete(vulnerableLibraries).where(eq(vulnerableLibraries.scanId, scanId)).run?.()
+  db.delete(deprecatedApis).where(eq(deprecatedApis.scanId, scanId)).run?.()
+  db.delete(consoleErrors).where(eq(consoleErrors.scanId, scanId)).run?.()
+  db.delete(seoMeta).where(eq(seoMeta.scanId, scanId)).run?.()
+  db.delete(seoDuplicates).where(eq(seoDuplicates.scanId, scanId)).run?.()
+  db.delete(canonicalChains).where(eq(canonicalChains.scanId, scanId)).run?.()
+  db.delete(linkTextIssues).where(eq(linkTextIssues.scanId, scanId)).run?.()
+  db.delete(tapTargetIssues).where(eq(tapTargetIssues.scanId, scanId)).run?.()
 }
 
+export interface ProcessScanDataOptions {
+  compare?: boolean
+  thresholds?: Record<string, number>
+  htmlData?: Map<string, HTMLExtractPayload>
+}
+
+/**
+ * Populate dashboard-private aggregation tables from a completed scan.
+ *
+ * Reads each route's LHR from the blob store (keyed by `scanRoutes.lhrBlobKey`),
+ * derives per-category aggregates, and writes 17 detail tables + 1 summary
+ * row. Idempotent: re-running clears prior aggregations for the scan first.
+ *
+ * `storage.db` must expose a sync drizzle handle (the better-sqlite3 escape
+ * hatch on `drizzleStorage`); D1 + memory storage have no processor and skip.
+ */
 export async function processScanData(
-  db: BetterSQLite3Database,
+  storage: Storage & { db?: AnyDrizzle },
   scanId: string,
-  htmlData?: Map<string, HTMLExtractPayload>,
-  options: { compare?: boolean, thresholds?: Record<string, number> } = {},
+  options: ProcessScanDataOptions = {},
 ) {
+  const db = (storage as { db?: AnyDrizzle }).db
+  if (!db) {
+    // Storage adapter has no SQL handle (memory, D1). Skip; dashboards
+    // degrade to "no detail data."
+    return null
+  }
+
   clearDashboardData(db, scanId)
 
-  const routes = db.select().from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all()
+  const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
 
   const extractedRoutes = new Map<string, ExtractedRoute>()
   for (const route of routes) {
-    if (!route.lhrGzip)
+    const gz = await storage.blobs.get(route.lhrBlobKey)
+    if (!gz)
       continue
-    const lhr = JSON.parse(gunzipSync(route.lhrGzip).toString())
+    const lhr = JSON.parse(gunzipSync(gz).toString())
     extractedRoutes.set(route.path, extractRouteData(lhr))
   }
 
@@ -78,14 +100,14 @@ export async function processScanData(
     return null
   }
 
-  const scan = db.select().from(scans).where(eq(scans.id, scanId)).get()
+  const scan = await storage.scans.get(scanId as never)
   const siteHost = scan?.site ? new URL(scan.site).hostname : undefined
 
   const params = {
     db,
     scanId,
     routes: extractedRoutes,
-    htmlData,
+    htmlData: options.htmlData,
     siteHost,
   }
 
@@ -96,31 +118,29 @@ export async function processScanData(
     processSeo(params),
   ])
 
-  db.insert(dashboardSummaries).values({
+  await db.insert(dashboardSummaries).values({
     scanId,
     performanceSummary: JSON.stringify(perfSummary),
     accessibilitySummary: JSON.stringify(a11ySummary),
     bestPracticesSummary: JSON.stringify(bpSummary),
     seoSummary: JSON.stringify(seoSummary),
-  }).run()
+  })
 
   if (options.compare !== false) {
-    const currentScan = db.select().from(scans).where(eq(scans.id, scanId)).get()
+    const [currentScan] = await db.select().from(scans).where(eq(scans.scanId, scanId)).limit(1)
     if (currentScan) {
-      const previousScan = db.select()
+      const [previousScan] = await db.select()
         .from(scans)
         .where(and(
           eq(scans.site, currentScan.site),
           eq(scans.status, 'complete'),
-          ne(scans.id, scanId),
+          ne(scans.scanId, scanId),
         ))
         .orderBy(desc(scans.completedAt))
         .limit(1)
-        .get()
 
-      if (previousScan) {
-        await compareScans(db, previousScan.id, scanId, options.thresholds)
-      }
+      if (previousScan)
+        await compareScans(db, previousScan.scanId, scanId, options.thresholds)
     }
   }
 
@@ -132,18 +152,20 @@ export async function processScanData(
   }
 }
 
-export function getDashboardSummary(db: BetterSQLite3Database, scanId: string) {
-  const summary = db.select().from(dashboardSummaries).where(eq(dashboardSummaries.scanId, scanId)).get()
-  if (!summary)
+export async function getDashboardSummary(storage: Storage, scanId: string) {
+  const row = await storage.reports.dashboardSummary.get(scanId as never) as
+    | { id: number, scanId: string, performanceSummary: string | null, accessibilitySummary: string | null, bestPracticesSummary: string | null, seoSummary: string | null, computedAt: Date | null }
+    | null
+  if (!row)
     return null
 
   return {
-    id: summary.id,
-    scanId: summary.scanId,
-    performance: summary.performanceSummary ? JSON.parse(summary.performanceSummary) : null,
-    accessibility: summary.accessibilitySummary ? JSON.parse(summary.accessibilitySummary) : null,
-    bestPractices: summary.bestPracticesSummary ? JSON.parse(summary.bestPracticesSummary) : null,
-    seo: summary.seoSummary ? JSON.parse(summary.seoSummary) : null,
-    computedAt: summary.computedAt,
+    id: row.id,
+    scanId: row.scanId,
+    performance: row.performanceSummary ? JSON.parse(row.performanceSummary) : null,
+    accessibility: row.accessibilitySummary ? JSON.parse(row.accessibilitySummary) : null,
+    bestPractices: row.bestPracticesSummary ? JSON.parse(row.bestPracticesSummary) : null,
+    seo: row.seoSummary ? JSON.parse(row.seoSummary) : null,
+    computedAt: row.computedAt,
   }
 }

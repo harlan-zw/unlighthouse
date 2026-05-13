@@ -81,8 +81,60 @@ export interface BlobStore {
   delete: (key: string) => Promise<void>
 }
 
+// ============================================================================
+// Report-side repositories (dashboard-private aggregations).
+//
+// Row shapes are `$inferSelect` types from `./drizzle/sqlite`. Listed as
+// `unknown` here to keep this port file free of drizzle imports — the SQL
+// adapter narrows to concrete row types via module augmentation in
+// `@unlighthouse/core/storage/drizzle` consumers. dashboards do their own
+// JSON-parsing of text columns (matches v0 behavior).
+// ============================================================================
+
+export interface ReportListRepository<Row> {
+  list: (scanId: ScanId) => Promise<Row[]>
+}
+
+export interface ReportRepositories {
+  accessibility: ReportListRepository<unknown>
+  accessibilityElements: ReportListRepository<unknown>
+  missingAltImages: ReportListRepository<unknown>
+  performance: ReportListRepository<unknown>
+  thirdPartyScripts: ReportListRepository<unknown>
+  lcpElements: ReportListRepository<unknown>
+  seoMeta: ReportListRepository<unknown>
+  seoDuplicates: ReportListRepository<unknown>
+  canonicalChains: ReportListRepository<unknown>
+  linkTextIssues: ReportListRepository<unknown>
+  tapTargetIssues: ReportListRepository<unknown>
+  bestPracticesSecurity: ReportListRepository<unknown>
+  bestPracticesLibraries: ReportListRepository<unknown>
+  bestPracticesVulnerable: ReportListRepository<unknown>
+  bestPracticesDeprecated: ReportListRepository<unknown>
+  bestPracticesConsoleErrors: ReportListRepository<unknown>
+  crux: ReportListRepository<unknown>
+  dashboardSummary: { get: (scanId: ScanId) => Promise<unknown | null> }
+}
+
+export interface ComparisonListQuery {
+  site?: string
+  baseScanId?: ScanId
+  currentScanId?: ScanId
+}
+
+export interface ComparisonRepository {
+  /** Lists comparison header rows. Diffs are fetched separately. */
+  list: (q: ComparisonListQuery) => Promise<unknown[]>
+  get: (id: number) => Promise<unknown | null>
+  /** Latest comparison whose `currentScanId === scanId`, with diffs joined. */
+  latestForCurrent: (scanId: ScanId) => Promise<unknown | null>
+  diffs: (comparisonId: number) => Promise<unknown[]>
+}
+
 export interface Storage {
   scans: ScanRepository
   routes: ScanRouteRepository
   blobs: BlobStore
+  reports: ReportRepositories
+  comparisons: ComparisonRepository
 }

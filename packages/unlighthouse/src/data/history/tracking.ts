@@ -1,265 +1,72 @@
-import type { Logger } from '@unlighthouse/contracts'
-import type { LegacyWorkerHooks } from '@unlighthouse/core/crawlers'
+import type { HookMap, Logger, ResolvedUserConfig, Storage } from '@unlighthouse/contracts'
 import type { Hookable } from 'hookable'
-import type { Buffer } from 'node:buffer'
-import type { HTMLExtractPayload, ResolvedUserConfig, RuntimeSettings, UnlighthouseRouteReport } from '../../types'
-import { randomUUID } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { gzipSync } from 'node:zlib'
+import { scanCrux } from '@unlighthouse/contracts/drizzle'
 import { fetchCruxHistory, getSiteOrigin } from '@unlighthouse/core/auditors'
-import * as history from '@unlighthouse/core/data/history'
-import { processScanData } from '../../process'
-import { createReportsArtifactBasePath } from '../../util'
+import { processScanData } from '@unlighthouse/core/report'
+import { and, eq } from 'drizzle-orm'
 
-export interface TrackingDeps {
+export interface HistorySubscriberDeps {
   resolvedConfig: ResolvedUserConfig
-  runtimeSettings: RuntimeSettings
-  hooks: Hookable<LegacyWorkerHooks>
+  storage: Storage
+  hooks: Hookable<HookMap>
   logger?: Logger
 }
 
-// Collect HTML data during scan for SEO processing
-const htmlDataMap = new Map<string, HTMLExtractPayload>()
-
-let currentScanId: string | null = null
-const routeIdMap = new Map<string, number>() // Map route path to scan_route id
-let historyHooksRegistered = false
-
 /**
- * Extract CWV metrics from a Lighthouse report
+ * Post-scan history orchestration subscriber.
+ *
+ * Core (`createUnlighthouseCore`) handles the per-route writes: `storage.scans.*`,
+ * `storage.routes.putBatch`, and LHR blob persistence. This subscriber adds the
+ * dashboard-private aggregations on terminal events:
+ *
+ *  - on `scan:complete`: run `processScanData` (populates 17 detail tables +
+ *    1 summary row from the LHR blobs), fetch CrUX phone/desktop snapshots.
+ *  - cancelled/error: no-op (storage already set the row to cancelled/error
+ *    in `createUnlighthouseCore`'s terminal handler).
+ *
+ * Idempotent under repeated registration: hosts construct one subscriber per
+ * host instance; the host's hookable bus is per-host so no module-level guard
+ * is needed.
  */
-function extractCwvMetrics(lhr: any) {
-  const getNumeric = (auditId: string): number | null =>
-    lhr.audits?.[auditId]?.numericValue ?? null
+export function historySubscriber(deps: HistorySubscriberDeps): void {
+  const { hooks, resolvedConfig, storage, logger } = deps
 
-  return {
-    lcp: getNumeric('largest-contentful-paint'),
-    cls: Math.round((getNumeric('cumulative-layout-shift') ?? 0) * 1000), // Store as x1000 int
-    tbt: getNumeric('total-blocking-time'),
-    fcp: getNumeric('first-contentful-paint'),
-    si: getNumeric('speed-index'),
-    ttfb: getNumeric('server-response-time'),
-    inp: getNumeric('interaction-to-next-paint'),
-  }
-}
+  hooks.hook('scan:complete', async ({ scanId }) => {
+    logger?.debug?.(`Processing dashboard data for scan: ${scanId}`)
 
-/**
- * Get current scan ID
- */
-export function getCurrentScanId(): string | null {
-  return currentScanId
-}
-
-/**
- * Initialize history tracking for a scan session
- */
-function createHistorySession(deps: TrackingDeps) {
-  const { resolvedConfig, runtimeSettings, logger } = deps
-
-  currentScanId = randomUUID()
-  runtimeSettings.currentScanId = currentScanId
-  routeIdMap.clear()
-  htmlDataMap.clear()
-
-  logger?.debug(`Creating history record for scan: ${currentScanId}`)
-
-  const build = resolvedConfig.ci?.build
-  const env = process.env
-  history.createScan(resolvedConfig.outputPath, {
-    id: currentScanId,
-    site: resolvedConfig.site,
-    device: resolvedConfig.scanner?.device || 'mobile',
-    throttle: resolvedConfig.scanner?.throttle || false,
-    reportPath: createReportsArtifactBasePath(runtimeSettings.generatedClientPath, currentScanId),
-    status: 'running',
-    ciBranch: build?.branch ?? env.GITHUB_REF_NAME ?? env.CI_COMMIT_REF_NAME ?? null,
-    ciCommit: build?.commit ?? env.GITHUB_SHA ?? env.CI_COMMIT_SHA ?? null,
-    ciCommitMessage: build?.commitMessage ?? env.CI_COMMIT_MESSAGE ?? null,
-  })
-}
-
-export function initHistoryTracking(deps: TrackingDeps) {
-  const { hooks, resolvedConfig, logger } = deps
-
-  createHistorySession(deps)
-
-  if (historyHooksRegistered)
-    return
-
-  historyHooksRegistered = true
-
-  // Track when routes are added
-  hooks.hook('task-added', (path: string, report: UnlighthouseRouteReport) => {
-    if (!currentScanId)
-      return
-
-    const route = history.addScanRoute(resolvedConfig.outputPath, {
-      scanId: currentScanId,
-      path: report.route.path,
-      url: report.route.url,
-      status: 'pending',
-    })
-
-    routeIdMap.set(report.route.path, route.id)
-
-    // Update route count
-    history.updateScan(resolvedConfig.outputPath, currentScanId, {
-      routeCount: routeIdMap.size,
-    })
-  })
-
-  // Track when tasks complete
-  hooks.hook('task-complete', (path: string, report: UnlighthouseRouteReport, taskName: string) => {
-    if (!currentScanId)
-      return
-
-    const routeDbId = routeIdMap.get(report.route.path)
-    if (!routeDbId)
-      return
-
-    // Collect SEO data when HTML inspection completes
-    if (taskName === 'inspectHtmlTask' && report.seo) {
-      htmlDataMap.set(report.route.path, report.seo)
-    }
-
-    // Update route with scores when lighthouse completes
-    if (taskName === 'runLighthouseTask' && report.report) {
-      // Categories is an array of { key, id, title, score } objects
-      const categoriesArr = report.report.categories || []
-      const getScore = (key: string) => {
-        const cat = categoriesArr.find((c: any) => c.key === key || c.id === key)
-        return cat?.score != null ? Math.round(cat.score * 100) : null
-      }
-
-      // Try to read the raw LHR file to extract CWV metrics
-      let cwvMetrics: ReturnType<typeof extractCwvMetrics> | null = null
-      let lhrGzip: Buffer | null = null
-
-      const lhrPath = join(report.artifactPath, 'lighthouse.json')
-      if (existsSync(lhrPath)) {
-        const lhrJson = readFileSync(lhrPath, 'utf-8')
-        const lhr = JSON.parse(lhrJson)
-        cwvMetrics = extractCwvMetrics(lhr)
-        // Gzip the LHR for storage
-        lhrGzip = gzipSync(lhrJson)
-      }
-
-      history.updateScanRoute(resolvedConfig.outputPath, routeDbId, {
-        status: 'complete',
-        score: report.report.score ? Math.round(report.report.score * 100) : null,
-        performanceScore: getScore('performance'),
-        accessibilityScore: getScore('accessibility'),
-        bestPracticesScore: getScore('best-practices'),
-        seoScore: getScore('seo'),
-        // CWV metrics
-        ...(cwvMetrics && {
-          lcp: cwvMetrics.lcp ? Math.round(cwvMetrics.lcp) : null,
-          cls: cwvMetrics.cls,
-          tbt: cwvMetrics.tbt ? Math.round(cwvMetrics.tbt) : null,
-          fcp: cwvMetrics.fcp ? Math.round(cwvMetrics.fcp) : null,
-          si: cwvMetrics.si ? Math.round(cwvMetrics.si) : null,
-          ttfb: cwvMetrics.ttfb ? Math.round(cwvMetrics.ttfb) : null,
-          inp: cwvMetrics.inp ? Math.round(cwvMetrics.inp) : null,
-        }),
-        // Gzipped LHR
-        ...(lhrGzip && { lhrGzip }),
-        scannedAt: new Date(),
-      })
-
-      // Update aggregate scores
-      history.updateScanScores(resolvedConfig.outputPath, currentScanId)
-    }
-  })
-
-  // Track when worker finishes
-  hooks.hook('worker-finished', async () => {
-    if (!currentScanId)
-      return
-
-    logger?.debug(`Scan complete, updating history: ${currentScanId}`)
-
-    history.updateScan(resolvedConfig.outputPath, currentScanId, {
-      status: 'complete',
-      completedAt: new Date(),
-    })
-
-    // Final score update
-    history.updateScanScores(resolvedConfig.outputPath, currentScanId)
-
-    // Process scan data for dashboard views, passing collected HTML data
-    const db = history.getHistoryDb(resolvedConfig.outputPath)
     const compareCfg = resolvedConfig.ci?.comparison
-    logger?.debug(`Processing dashboard data for scan: ${currentScanId} with ${htmlDataMap.size} HTML entries`)
-    processScanData(db, currentScanId, htmlDataMap, {
+    await processScanData(storage as Storage & { db?: any }, scanId, {
       compare: compareCfg?.enabled !== false,
       thresholds: compareCfg?.thresholds,
-    }).catch((err) => {
-      logger?.error(`Failed to process scan data: ${err}`)
+    }).catch((err: unknown) => {
+      logger?.error?.(`Failed to process scan data: ${err}`)
     })
 
-    // Fetch CrUX history for phone + desktop and persist
     if (resolvedConfig.googleApiKey && resolvedConfig.site) {
       const origin = getSiteOrigin(resolvedConfig.site)
       const hostname = new URL(origin).host
-      const scanId = currentScanId
+      const db = (storage as { db?: any }).db
       for (const formFactor of ['PHONE', 'DESKTOP'] as const) {
         fetchCruxHistory({ apiKey: resolvedConfig.googleApiKey, origin, formFactor })
-          .then((series) => {
+          .then(async (series) => {
             if (!series.lcp.length && !series.inp.length && !series.cls.length)
               return
-            history.upsertScanCrux(resolvedConfig.outputPath, {
+            if (!db)
+              return // memory / D1 — no CrUX persistence in v1.0.
+            await db.delete(scanCrux)
+              .where(and(eq(scanCrux.scanId, scanId), eq(scanCrux.formFactor, formFactor)))
+            await db.insert(scanCrux).values({
               scanId,
               hostname,
               formFactor,
               seriesJson: JSON.stringify(series),
+              fetchedAt: new Date(),
             })
           })
-          .catch((err) => {
-            logger?.warn(`CrUX fetch failed (${formFactor}): ${err.message}`)
+          .catch((err: { message: string }) => {
+            logger?.warn?.(`CrUX fetch failed (${formFactor}): ${err.message}`)
           })
       }
     }
   })
-
-  hooks.hook('worker-cancelled', () => {
-    cancelHistoryTracking(deps)
-  })
-
-  hooks.hook('worker-error', (error) => {
-    failHistoryTracking(deps, error.message)
-  })
-}
-
-/**
- * Mark current scan as cancelled
- */
-export function cancelHistoryTracking(deps: { resolvedConfig: ResolvedUserConfig, runtimeSettings: RuntimeSettings }) {
-  const { resolvedConfig, runtimeSettings } = deps
-
-  if (currentScanId) {
-    history.updateScan(resolvedConfig.outputPath, currentScanId, {
-      status: 'cancelled',
-      completedAt: new Date(),
-    })
-    runtimeSettings.currentScanId = null
-    currentScanId = null
-  }
-}
-
-/**
- * Mark current scan as failed
- */
-export function failHistoryTracking(deps: { resolvedConfig: ResolvedUserConfig, runtimeSettings: RuntimeSettings }, error: string) {
-  const { resolvedConfig, runtimeSettings } = deps
-
-  if (currentScanId) {
-    history.updateScan(resolvedConfig.outputPath, currentScanId, {
-      status: 'failed',
-      error,
-      completedAt: new Date(),
-    })
-    runtimeSettings.currentScanId = null
-    currentScanId = null
-  }
 }

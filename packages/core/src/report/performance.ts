@@ -1,5 +1,5 @@
 import type { PerformanceSummary, ProcessorParams } from './types'
-import { lcpElements, performanceIssues, thirdPartyScripts } from '../storage/drizzle/schema/history'
+import { lcpElements, performanceIssues, thirdPartyScripts } from '@unlighthouse/contracts/drizzle'
 
 interface ImageIssue {
   url: string

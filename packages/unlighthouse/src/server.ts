@@ -77,7 +77,9 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   }
 
   // Dashboard sub-router.
-  const dashboardRouter = createDashboardApi(resolvedConfig.outputPath)
+  // Host always passes a resolved HandlerCtx (not a factory); narrow here.
+  const storage = (opts.handlerCtx as { storage: Parameters<typeof createDashboardApi>[0] }).storage
+  const dashboardRouter = createDashboardApi(storage)
   apiRouter.use('/dashboard/**', useBase('/dashboard', dashboardRouter.handler))
 
   root.use('/api/**', useBase('/api', apiRouter.handler))

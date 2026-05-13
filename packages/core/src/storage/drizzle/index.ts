@@ -1,10 +1,19 @@
 import type { Logger, ScanRepository, ScanRouteRepository } from '@unlighthouse/contracts'
+import { createComparisonRepository } from './repositories/comparisons'
+import { createReportRepositories } from './repositories/reports'
 import { createScanRouteRepository } from './repositories/routes'
 import { createScanRepository } from './repositories/scans'
 
 export interface DrizzleStorage {
   scans: ScanRepository
   routes: ScanRouteRepository
+  reports: ReturnType<typeof createReportRepositories>
+  comparisons: ReturnType<typeof createComparisonRepository>
+  /**
+   * Raw drizzle handle. Escape hatch for `processScanData` writes; do NOT
+   * use from dashboard handlers — go through `reports.*` / `comparisons.*`.
+   */
+  db: any
 }
 
 export interface DrizzleStorageOptions {
@@ -33,8 +42,13 @@ export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
   return {
     scans: createScanRepository(driver),
     routes: createScanRouteRepository(driver),
+    reports: createReportRepositories(driver),
+    comparisons: createComparisonRepository(driver),
+    db: driver,
   }
 }
+
+export { INIT_SQL, INIT_SQL_STATEMENTS } from './init-sql'
 
 // Re-export schema/types from contracts for users that want raw access.
 export * from '@unlighthouse/contracts/drizzle'

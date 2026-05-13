@@ -19,7 +19,7 @@ import { WS as WSClass } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { createStorage } from '@unlighthouse/core/storage'
-import { drizzleStorage } from '@unlighthouse/core/storage/drizzle'
+import { drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
 import Database from 'better-sqlite3'
 import { loadConfig } from 'c12'
@@ -34,6 +34,7 @@ import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../package.json'
 import { resolveAuditor } from './auditor'
 import { ClientPkg } from './constants'
+import { historySubscriber } from './data/history/tracking'
 import { createSitesStore } from './data/sites'
 import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
@@ -68,7 +69,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   if (userConfig.debug)
     (logger as any).level = 4
 
-  const { __dirname } = createCommonJS(import.meta.url)
+  const { __dirname, require } = createCommonJS(import.meta.url)
 
   if (userConfig.root && !isAbsolute(userConfig.root))
     userConfig.root = join(process.cwd(), userConfig.root)
@@ -150,11 +151,22 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     }
 
     const sqliteDb = new Database(join(outputPath, 'db.sqlite'))
+    // Apply bundled migrations once on open. drizzle-orm/migrator wants a
+    // _migrations metadata table; for the simple v1.0 schema we just exec
+    // the bundled SQL (`CREATE TABLE IF NOT EXISTS` makes this idempotent).
+    try {
+      for (const stmt of INIT_SQL_STATEMENTS) sqliteDb.exec(stmt)
+    }
+    catch (err) {
+      logger.warn?.(`Migration apply skipped: ${(err as Error).message}`)
+    }
+    const drizzleDb = drizzle(sqliteDb)
+    const drizzleAdapter = drizzleStorage({
+      driver: drizzleDb,
+      logger: (logger as any).withTag('storage/drizzle'),
+    })
     const storage = createStorage({
-      rows: drizzleStorage({
-        driver: drizzle(sqliteDb),
-        logger: (logger as any).withTag('storage/drizzle'),
-      }),
+      rows: { ...drizzleAdapter, db: drizzleAdapter.db },
       blobs: unstorageBlobs({
         driver: fsDriver({ base: join(outputPath, 'blobs') }),
       }),
@@ -232,6 +244,13 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         })
       })
     }
+
+    historySubscriber({
+      resolvedConfig,
+      storage,
+      hooks: core.hooks as Hookable<HookMap>,
+      logger,
+    })
 
     const handlerCtx: HandlerCtx = {
       core,
@@ -317,8 +336,14 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   }
 
   const generateClientStub = async () => {
-    // TODO(Step G): wire to Storage read instead of worker.
-    logger.debug?.('generateClient (host): not yet wired to v1 storage')
+    const { storage } = ensurePorts()
+    const { generateClient } = await import('./build')
+    await generateClient({ static: false }, {
+      resolvedConfig,
+      runtimeSettings: rs as RuntimeSettings,
+      storage,
+      logger,
+    })
   }
 
   return {

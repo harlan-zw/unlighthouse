@@ -49,9 +49,10 @@ import { $URL, joinURL } from 'ufo'
 import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../package.json'
 import { resolveAuditor } from './auditor'
-import { generateClient } from './build'
+// import { generateClient } from './build' — legacy callsite; file dies in Step H
 import { AppName, ClientPkg } from './constants'
-import { initHistoryTracking } from './data/history/tracking'
+// initHistoryTracking moved to historySubscriber (called from host.ts); legacy file dies in Step H
+import { createSitesStore } from './data/sites'
 import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
 import { normaliseHost } from './util'
@@ -295,6 +296,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       config: coreConfig,
       version,
       auditors: undefined,
+      sites: createSitesStore({ outputPath: resolvedConfig.outputPath }),
     }
 
     const mountDeps = {
@@ -323,14 +325,8 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     }
     fs.ensureDirSync(ctx.runtimeSettings.outputPath)
 
-    if (behavior.generateClient && resolvedClientPath && existsSync(resolvedClientPath)) {
-      await generateClient({}, {
-        resolvedConfig,
-        runtimeSettings: ctx.runtimeSettings as RuntimeSettings,
-        worker: ctx.worker,
-        logger,
-      })
-    }
+    // Legacy generateClient call removed (file dies in Step H — use createUnlighthouseHost.generateClient).
+    void resolvedClientPath
 
     if (behavior.autoStartOnVisit) {
       hooks.hookOnce('visited-client', () => {
@@ -403,12 +399,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       })
     }
 
-    initHistoryTracking({
-      resolvedConfig,
-      runtimeSettings: ctx.runtimeSettings as RuntimeSettings,
-      hooks: hooks as never,
-      logger,
-    })
+    // History tracking now wired via historySubscriber in createUnlighthouseHost; legacy path removed.
 
     if (behavior.showBanner) {
       const label = (name: string) => colorize('bold', colorize('magenta', (`▸ ${name}:`)))

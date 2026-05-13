@@ -1,19 +1,20 @@
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import type { ScanRouteRow } from '@unlighthouse/contracts/drizzle'
 import type { Assertion, AssertionResult } from '../report/types'
+import { assertions as assertionsTable, scanRoutes, scans } from '@unlighthouse/contracts/drizzle'
 import { and, desc, eq, ne } from 'drizzle-orm'
-import { assertions as assertionsTable, scanRoutes, scans } from '../storage/drizzle/schema/history'
 
-/** Score column name mapping from assertion category to DB column */
-const SCORE_COLUMN_MAP: Record<string, keyof typeof scanRoutes.$inferSelect> = {
-  'performance': 'performanceScore',
-  'accessibility': 'accessibilityScore',
-  'seo': 'seoScore',
-  'best-practices': 'bestPracticesScore',
-  'bestPractices': 'bestPracticesScore',
+type AnyDrizzle = any
+
+/** Score column name mapping from assertion category to v1 DB column */
+const SCORE_COLUMN_MAP: Record<string, keyof ScanRouteRow> = {
+  'performance': 'scorePerformance',
+  'accessibility': 'scoreAccessibility',
+  'seo': 'scoreSeo',
+  'best-practices': 'scoreBestPractices',
+  'bestPractices': 'scoreBestPractices',
 }
 
-/** Metric column mapping */
-const METRIC_COLUMN_MAP: Record<string, keyof typeof scanRoutes.$inferSelect> = {
+const METRIC_COLUMN_MAP: Record<string, keyof ScanRouteRow> = {
   lcp: 'lcp',
   cls: 'cls',
   tbt: 'tbt',
@@ -23,13 +24,13 @@ const METRIC_COLUMN_MAP: Record<string, keyof typeof scanRoutes.$inferSelect> = 
   inp: 'inp',
 }
 
-function getRouteValues(routes: typeof scanRoutes.$inferSelect[], key: keyof typeof scanRoutes.$inferSelect) {
+function getRouteValues(routes: ScanRouteRow[], key: keyof ScanRouteRow) {
   return routes
-    .filter(r => r.status === 'complete' && r[key] != null)
+    .filter(r => r[key] != null)
     .map(r => ({ url: r.url, path: r.path, value: r[key] as number }))
 }
 
-function evaluateMinScore(routes: typeof scanRoutes.$inferSelect[], assertion: Assertion): AssertionResult {
+function evaluateMinScore(routes: ScanRouteRow[], assertion: Assertion): AssertionResult {
   const column = SCORE_COLUMN_MAP[assertion.category ?? '']
   if (!column)
     return { assertion, passed: true, actual: 0 }
@@ -38,26 +39,25 @@ function evaluateMinScore(routes: typeof scanRoutes.$inferSelect[], assertion: A
   if (values.length === 0)
     return { assertion, passed: true, actual: 0 }
 
-  // Scores stored as 0-100 in DB, assertion value is 0-1 scale
-  const threshold = assertion.value * 100
+  // v1 stores scores 0-1; assertion.value is also 0-1.
+  const threshold = assertion.value
 
   if (assertion.failOn === 'average') {
     const avg = values.reduce((sum, v) => sum + v.value, 0) / values.length
-    return { assertion, passed: avg >= threshold, actual: avg / 100 }
+    return { assertion, passed: avg >= threshold, actual: avg }
   }
 
-  // failOn: 'any' (default)
   const failing = values.filter(v => v.value < threshold)
   const minVal = Math.min(...values.map(v => v.value))
   return {
     assertion,
     passed: failing.length === 0,
-    actual: minVal / 100,
-    failingRoutes: failing.length > 0 ? failing.map(v => ({ ...v, value: v.value / 100 })) : undefined,
+    actual: minVal,
+    failingRoutes: failing.length > 0 ? failing : undefined,
   }
 }
 
-function evaluateMaxNumeric(routes: typeof scanRoutes.$inferSelect[], assertion: Assertion): AssertionResult {
+function evaluateMaxNumeric(routes: ScanRouteRow[], assertion: Assertion): AssertionResult {
   const column = METRIC_COLUMN_MAP[assertion.metric ?? '']
   if (!column)
     return { assertion, passed: true, actual: 0 }
@@ -66,59 +66,44 @@ function evaluateMaxNumeric(routes: typeof scanRoutes.$inferSelect[], assertion:
   if (values.length === 0)
     return { assertion, passed: true, actual: 0 }
 
-  // CLS stored as x1000, convert back for comparison
-  const isCls = assertion.metric === 'cls'
-  const threshold = isCls ? assertion.value * 1000 : assertion.value
+  const threshold = assertion.value
 
   if (assertion.failOn === 'average') {
     const avg = values.reduce((sum, v) => sum + v.value, 0) / values.length
-    return { assertion, passed: avg <= threshold, actual: isCls ? avg / 1000 : avg }
+    return { assertion, passed: avg <= threshold, actual: avg }
   }
 
-  // failOn: 'any' (default)
   const failing = values.filter(v => v.value > threshold)
   const maxVal = Math.max(...values.map(v => v.value))
   return {
     assertion,
     passed: failing.length === 0,
-    actual: isCls ? maxVal / 1000 : maxVal,
-    failingRoutes: failing.length > 0
-      ? failing.map(v => ({ ...v, value: isCls ? v.value / 1000 : v.value }))
-      : undefined,
+    actual: maxVal,
+    failingRoutes: failing.length > 0 ? failing : undefined,
   }
 }
 
-/**
- * Evaluate maxRegression: fail if delta between base and current exceeds
- * threshold on any route (failOn: 'any') or on average (failOn: 'average').
- *
- * For scores, a regression is a drop. For metrics, a regression is an increase.
- * CLS is stored x1000; callers supply threshold in real CLS units.
- */
 function evaluateMaxRegression(
-  currentRoutes: typeof scanRoutes.$inferSelect[],
-  baseRoutes: typeof scanRoutes.$inferSelect[],
+  currentRoutes: ScanRouteRow[],
+  baseRoutes: ScanRouteRow[],
   assertion: Assertion,
 ): AssertionResult {
   const isScore = !!assertion.category
-  const column: keyof typeof scanRoutes.$inferSelect | undefined = isScore
+  const column: keyof ScanRouteRow | undefined = isScore
     ? SCORE_COLUMN_MAP[assertion.category ?? '']
     : METRIC_COLUMN_MAP[assertion.metric ?? '']
 
   if (!column)
     return { assertion, passed: true, actual: 0 }
 
-  const isCls = assertion.metric === 'cls'
-  const threshold = isCls ? assertion.value * 1000 : assertion.value
+  const threshold = assertion.value
 
   const baseByPath = new Map(baseRoutes.map(r => [r.path, r]))
   const deltas: { url: string, path: string, delta: number }[] = []
 
   for (const current of currentRoutes) {
-    if (current.status !== 'complete')
-      continue
     const base = baseByPath.get(current.path)
-    if (!base || base.status !== 'complete')
+    if (!base)
       continue
 
     const currentVal = current[column] as number | null
@@ -126,7 +111,6 @@ function evaluateMaxRegression(
     if (currentVal == null || baseVal == null)
       continue
 
-    // Regression magnitude: for scores, drop; for metrics, increase.
     const regression = isScore ? baseVal - currentVal : currentVal - baseVal
     deltas.push({ url: current.url, path: current.path, delta: regression })
   }
@@ -136,7 +120,7 @@ function evaluateMaxRegression(
 
   if (assertion.failOn === 'average') {
     const avg = deltas.reduce((s, d) => s + d.delta, 0) / deltas.length
-    return { assertion, passed: avg <= threshold, actual: isCls ? avg / 1000 : avg }
+    return { assertion, passed: avg <= threshold, actual: avg }
   }
 
   const failing = deltas.filter(d => d.delta > threshold)
@@ -144,17 +128,17 @@ function evaluateMaxRegression(
   return {
     assertion,
     passed: failing.length === 0,
-    actual: isCls ? maxDelta / 1000 : maxDelta,
+    actual: maxDelta,
     failingRoutes: failing.length > 0
-      ? failing.map(f => ({ url: f.url, path: f.path, value: isCls ? f.delta / 1000 : f.delta }))
+      ? failing.map(f => ({ url: f.url, path: f.path, value: f.delta }))
       : undefined,
   }
 }
 
 export function evaluateAssertions(
-  routes: typeof scanRoutes.$inferSelect[],
+  routes: ScanRouteRow[],
   assertions: Assertion[],
-  baseRoutes: typeof scanRoutes.$inferSelect[] = [],
+  baseRoutes: ScanRouteRow[] = [],
 ): AssertionResult[] {
   return assertions.map((assertion) => {
     switch (assertion.type) {
@@ -171,40 +155,37 @@ export function evaluateAssertions(
 }
 
 /** Evaluate and persist assertion results to database */
-export function evaluateAndStoreAssertions(
-  db: BetterSQLite3Database,
+export async function evaluateAndStoreAssertions(
+  db: AnyDrizzle,
   scanId: string,
   assertionConfigs: Assertion[],
-): AssertionResult[] {
-  const routes = db.select().from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all()
+): Promise<AssertionResult[]> {
+  const routes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, scanId))
 
-  // Resolve base routes for maxRegression: most recent completed scan on same site, excluding this one.
-  let baseRoutes: typeof scanRoutes.$inferSelect[] = []
+  let baseRoutes: ScanRouteRow[] = []
   const needsBase = assertionConfigs.some(a => a.type === 'maxRegression')
   if (needsBase) {
-    const currentScan = db.select().from(scans).where(eq(scans.id, scanId)).get()
+    const [currentScan] = await db.select().from(scans).where(eq(scans.scanId, scanId)).limit(1)
     if (currentScan) {
-      const previousScan = db.select()
+      const [previousScan] = await db.select()
         .from(scans)
         .where(and(
           eq(scans.site, currentScan.site),
           eq(scans.status, 'complete'),
-          ne(scans.id, scanId),
+          ne(scans.scanId, scanId),
         ))
         .orderBy(desc(scans.completedAt))
         .limit(1)
-        .get()
 
       if (previousScan)
-        baseRoutes = db.select().from(scanRoutes).where(eq(scanRoutes.scanId, previousScan.id)).all()
+        baseRoutes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, previousScan.scanId))
     }
   }
 
   const results = evaluateAssertions(routes, assertionConfigs, baseRoutes)
 
-  // Store results
   if (results.length > 0) {
-    db.insert(assertionsTable).values(
+    await db.insert(assertionsTable).values(
       results.map(r => ({
         scanId,
         type: r.assertion.type,
@@ -215,7 +196,7 @@ export function evaluateAndStoreAssertions(
         actual: r.actual,
         failingRoutes: r.failingRoutes ? JSON.stringify(r.failingRoutes) : null,
       })),
-    ).run()
+    )
   }
 
   return results

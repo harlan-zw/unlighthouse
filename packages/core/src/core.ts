@@ -270,9 +270,12 @@ function createSession(deps: SessionDeps): CrawlSession {
       await emit('audit:before', { scanId, url: url as never, auditor: 'auditor' })
       try {
         const report = await auditor.audit(url, undefined, { signal })
-        // Translate LH report → ExtractedMetrics row (minimal v1 wiring; the
-        // report→cells pipeline lives in core/report and is wired by presets).
+        // Auditor returns LH report + attached `extracted` (CWV/scores/etc.)
+        // + `lhrGzip` (raw LHR in LHCI-format, gzipped). Route the extracted
+        // metrics to the row store; the LHR blob to the blob store under the
+        // contract-derived `lhrBlobKey`.
         const extracted = (report as unknown as { extracted?: unknown }).extracted
+        const lhrGzip = (report as unknown as { lhrGzip?: Uint8Array }).lhrGzip
         const metrics = (extracted ?? {
           url,
           path: new URL(url).pathname,
@@ -293,6 +296,15 @@ function createSession(deps: SessionDeps): CrawlSession {
         }) as never
 
         await storage.routes.putBatch(scanId, [metrics])
+
+        if (lhrGzip) {
+          // Mirror `routes.ts:blobKeyFor` derivation so the blob lines up
+          // with the `lhrBlobKey` column the row got.
+          const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
+          const key = `scans/${scanId}/lhr/${hash}.json.gz`
+          await storage.blobs.put(key, lhrGzip).catch(() => {})
+        }
+
         stats.scanned++
         await emit('scan:route-complete', { scanId, url: url as never, metrics })
         await emit('audit:after', {
@@ -306,6 +318,7 @@ function createSession(deps: SessionDeps): CrawlSession {
       catch (err) {
         stats.failed++
         const structured = toStructuredError(err)
+        logger?.error?.('[unlighthouse] route audit failed', { url, error: structured })
         await emit('scan:route-failed', { scanId, url: url as never, error: structured as never })
         await emit('audit:after', {
           scanId,

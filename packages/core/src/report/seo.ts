@@ -1,5 +1,5 @@
 import type { ProcessorParams, SeoSummary } from './types'
-import { canonicalChains, linkTextIssues, seoDuplicates, seoMeta, tapTargetIssues } from '../storage/drizzle/schema/history'
+import { canonicalChains, linkTextIssues, seoDuplicates, seoMeta, tapTargetIssues } from '@unlighthouse/contracts/drizzle'
 
 interface SeoMetaRecord {
   scanId: string

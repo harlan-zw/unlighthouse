@@ -1,12 +1,12 @@
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
+import { evaluateAndStoreAssertions } from '@unlighthouse/core/comparison'
 import open from 'better-opn'
 import { createConsola } from 'consola'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 import { joinURL } from 'ufo'
-import { createUnlighthouseHost, evaluateAndStoreAssertions, history } from '..'
-import { getCurrentScanId } from '../data/history/tracking'
+import { createUnlighthouseHost } from '..'
 import { createSitesStore, deriveSiteId } from '../data/sites'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
@@ -113,10 +113,9 @@ async function run() {
 
     const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
     if (options.assert && assertionConfigs?.length) {
-      const scanId = getCurrentScanId()
-      if (scanId) {
-        const db = history.getHistoryDb(unlighthouse.resolvedConfig.outputPath)
-        const results = evaluateAndStoreAssertions(db, scanId, assertionConfigs)
+      const db = (unlighthouse.handlerCtx.storage as { db?: any }).db
+      if (db) {
+        const results = await evaluateAndStoreAssertions(db, scanId, assertionConfigs)
         const failures = results.filter(r => !r.passed)
 
         if (failures.length > 0) {

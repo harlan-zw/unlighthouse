@@ -1,80 +1,50 @@
+import type { Storage } from '@unlighthouse/contracts'
 import type { Router } from 'h3'
 import { Buffer } from 'node:buffer'
 import { gunzipSync } from 'node:zlib'
-import { desc, eq, or } from 'drizzle-orm'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
 import { compareScans, getComparisonSummary } from '../comparison'
-import * as history from '../data/history'
 import { getDashboardSummary, processScanData } from '../report'
-import {
-  accessibilityElements,
-  accessibilityIssues,
-  canonicalChains,
-  comparisonDiffs,
-  comparisons,
-  consoleErrors,
-  deprecatedApis,
-  detectedLibraries,
-  lcpElements,
-  linkTextIssues,
-  missingAltImages,
-  performanceIssues,
-  scanRoutes,
-  scans,
-  securityIssues,
-  seoDuplicates,
-  seoMeta,
-  tapTargetIssues,
-  thirdPartyScripts,
-  vulnerableLibraries,
-} from '../storage/drizzle/schema/history'
 
 /**
- * Ensure dashboard data is processed (lazy processing)
+ * Ensure dashboard data is processed (lazy processing).
+ * For Storage adapters without a SQL handle, processScanData is a no-op
+ * and the summary stays null — handlers degrade to "no data."
  */
-async function ensureProcessed(db: ReturnType<typeof history.getHistoryDb>, scanId: string) {
-  const summary = getDashboardSummary(db, scanId)
-  if (!summary) {
-    await processScanData(db, scanId)
-  }
+async function ensureProcessed(storage: Storage, scanId: string) {
+  const summary = await getDashboardSummary(storage, scanId)
+  if (!summary)
+    await processScanData(storage, scanId)
 }
 
 /**
- * Create dashboard API routes for detailed category data
+ * Create dashboard API routes for detailed category data.
+ *
+ * Reads/writes through the v1 `Storage` port. The legacy `outputPath`-keyed
+ * `getHistoryDb(outputPath)` is gone; LHR blobs come from `storage.blobs`,
+ * detail tables from `storage.reports.*`.
  */
-export function createDashboardApi(outputPath: string): Router {
+export function createDashboardApi(storage: Storage): Router {
   const router = createRouter()
 
   // Get dashboard summary for a scan (auto-processes if not found)
   router.get('/summary/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
-    let summary = getDashboardSummary(db, scanId)
-    // Auto-process if summary doesn't exist
+    let summary = await getDashboardSummary(storage, scanId)
     if (!summary) {
-      const result = await processScanData(db, scanId)
+      const result = await processScanData(storage, scanId)
       if (!result) {
         setResponseStatus(event, 404)
         return { error: 'Summary not found and no LHR data to process' }
       }
-      summary = getDashboardSummary(db, scanId)
+      summary = await getDashboardSummary(storage, scanId)
     }
     return summary
   }))
 
-  // Process/reprocess dashboard data for a scan
   router.post('/process/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
-    const result = await processScanData(db, scanId)
+    const result = await processScanData(storage, scanId)
     if (!result) {
       setResponseStatus(event, 404)
       return { error: 'No LHR data found for scan' }
@@ -82,19 +52,17 @@ export function createDashboardApi(outputPath: string): Router {
     return { success: true, summary: result }
   }))
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
   // CrUX (field) data
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
 
   router.get('/crux/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
-
-    const rows = history.getScanCrux(outputPath, scanId)
+    const rows = await storage.reports.crux.list(scanId as never) as Array<{
+      hostname: string
+      formFactor: 'PHONE' | 'DESKTOP'
+      seriesJson: string
+    }>
     const empty = { lcp: [], inp: [], cls: [] }
     const result: { phone: typeof empty, desktop: typeof empty, hostname: string | null } = {
       phone: empty,
@@ -112,167 +80,144 @@ export function createDashboardApi(outputPath: string): Router {
     return result
   }))
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
   // Performance Dashboard
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
 
   router.get('/performance/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
     const { limit = '50' } = getQuery(event) as { limit?: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
+    await ensureProcessed(storage, scanId)
 
-    await ensureProcessed(db, scanId)
+    const issues = (await storage.reports.performance.list(scanId as never)).slice(0, Number(limit)) as Array<{ type: string, pages: string | null, [k: string]: unknown }>
+    const thirdParty = await storage.reports.thirdPartyScripts.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
+    const lcpData = await storage.reports.lcpElements.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
 
-    const issues = db.select().from(performanceIssues).where(eq(performanceIssues.scanId, scanId)).orderBy(desc(performanceIssues.wastedBytes)).limit(Number(limit)).all()
-
-    const thirdParty = db.select().from(thirdPartyScripts).where(eq(thirdPartyScripts.scanId, scanId)).orderBy(desc(thirdPartyScripts.avgTbt)).all()
-
-    const lcpData = db.select().from(lcpElements).where(eq(lcpElements.scanId, scanId)).orderBy(desc(lcpElements.pageCount)).all()
-
-    // Get routes with CWV metrics
-    const routes = db.select({
-      path: scanRoutes.path,
-      score: scanRoutes.performanceScore,
-      lcp: scanRoutes.lcp,
-      cls: scanRoutes.cls,
-      tbt: scanRoutes.tbt,
-      fcp: scanRoutes.fcp,
-      si: scanRoutes.si,
-      ttfb: scanRoutes.ttfb,
-    }).from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all()
+    const routes = (await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })).items.map(r => ({
+      path: r.path,
+      score: r.scorePerformance,
+      lcp: r.lcp,
+      cls: r.cls,
+      tbt: r.tbt,
+      fcp: r.fcp,
+      si: r.si,
+      ttfb: r.ttfb,
+    }))
 
     return {
-      issues: issues.map(i => ({ ...i, issueType: i.type, pages: JSON.parse(i.pages || '[]') })),
-      thirdParty: thirdParty.map(t => ({ ...t, pages: JSON.parse(t.pages || '[]') })),
-      lcpElements: lcpData.map(l => ({ ...l, pages: JSON.parse(l.pages || '[]') })),
+      issues: issues.map(i => ({ ...i, issueType: i.type, pages: JSON.parse((i.pages as string) || '[]') })),
+      thirdParty: thirdParty.map(t => ({ ...t, pages: JSON.parse((t.pages as string) || '[]') })),
+      lcpElements: lcpData.map(l => ({ ...l, pages: JSON.parse((l.pages as string) || '[]') })),
       routes,
     }
   }))
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
   // Accessibility Dashboard
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
 
   router.get('/accessibility/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
+    await ensureProcessed(storage, scanId)
 
-    await ensureProcessed(db, scanId)
+    const issues = await storage.reports.accessibility.list(scanId as never) as Array<{ wcagCriteria: string | null, pages: string | null, [k: string]: unknown }>
+    const elements = await storage.reports.accessibilityElements.list(scanId as never) as Array<{ boundingRect: string | null, pages: string | null, [k: string]: unknown }>
+    const altImages = await storage.reports.missingAltImages.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
 
-    const issues = db.select().from(accessibilityIssues).where(eq(accessibilityIssues.scanId, scanId)).orderBy(desc(accessibilityIssues.instanceCount)).all()
-
-    const elements = db.select().from(accessibilityElements).where(eq(accessibilityElements.scanId, scanId)).orderBy(desc(accessibilityElements.pageCount)).all()
-
-    const altImages = db.select().from(missingAltImages).where(eq(missingAltImages.scanId, scanId)).orderBy(desc(missingAltImages.pageCount)).all()
-
-    // Get routes with a11y scores
-    const routes = db.select({
-      path: scanRoutes.path,
-      score: scanRoutes.accessibilityScore,
-    }).from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all()
+    const routes = (await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })).items.map(r => ({
+      path: r.path,
+      score: r.scoreAccessibility,
+    }))
 
     return {
       issues: issues.map(i => ({
         ...i,
-        wcagCriteria: JSON.parse(i.wcagCriteria || '[]'),
-        pages: JSON.parse(i.pages || '[]'),
+        wcagCriteria: JSON.parse((i.wcagCriteria as string) || '[]'),
+        pages: JSON.parse((i.pages as string) || '[]'),
       })),
       elements: elements.map(e => ({
         ...e,
         boundingRect: e.boundingRect ? JSON.parse(e.boundingRect) : null,
-        pages: JSON.parse(e.pages || '[]'),
+        pages: JSON.parse((e.pages as string) || '[]'),
       })),
-      missingAltImages: altImages.map(a => ({ ...a, pages: JSON.parse(a.pages || '[]') })),
+      missingAltImages: altImages.map(a => ({ ...a, pages: JSON.parse((a.pages as string) || '[]') })),
       routes,
     }
   }))
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
   // Best Practices Dashboard
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
 
   router.get('/best-practices/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
+    await ensureProcessed(storage, scanId)
 
-    await ensureProcessed(db, scanId)
+    const security = await storage.reports.bestPracticesSecurity.list(scanId as never) as Array<{ details: string | null, pages: string | null, [k: string]: unknown }>
+    const libraries = await storage.reports.bestPracticesLibraries.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
+    const vulnerable = await storage.reports.bestPracticesVulnerable.list(scanId as never) as Array<{ severity: string, cves: string | null, pages: string | null, [k: string]: unknown }>
+    const deprecated = await storage.reports.bestPracticesDeprecated.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
+    const errors = await storage.reports.bestPracticesConsoleErrors.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
 
-    const security = db.select().from(securityIssues).where(eq(securityIssues.scanId, scanId)).all()
-
-    const libraries = db.select().from(detectedLibraries).where(eq(detectedLibraries.scanId, scanId)).orderBy(desc(detectedLibraries.pageCount)).all()
-
-    const vulnerable = db.select().from(vulnerableLibraries).where(eq(vulnerableLibraries.scanId, scanId)).all()
-
-    const deprecated = db.select().from(deprecatedApis).where(eq(deprecatedApis.scanId, scanId)).orderBy(desc(deprecatedApis.pageCount)).all()
-
-    const errors = db.select().from(consoleErrors).where(eq(consoleErrors.scanId, scanId)).orderBy(desc(consoleErrors.instanceCount)).all()
-
-    // Get routes with BP scores
-    const routes = db.select({
-      path: scanRoutes.path,
-      score: scanRoutes.bestPracticesScore,
-    }).from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all()
+    const routes = (await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })).items.map(r => ({
+      path: r.path,
+      score: r.scoreBestPractices,
+    }))
 
     return {
       securityIssues: security.map(s => ({
         ...s,
-        details: JSON.parse(s.details || '{}'),
-        pages: JSON.parse(s.pages || '[]'),
+        details: JSON.parse((s.details as string) || '{}'),
+        pages: JSON.parse((s.pages as string) || '[]'),
       })),
-      libraries: libraries.map(l => ({ ...l, pages: JSON.parse(l.pages || '[]') })),
+      libraries: libraries.map(l => ({ ...l, pages: JSON.parse((l.pages as string) || '[]') })),
       vulnerableLibraries: vulnerable.map(v => ({
         ...v,
         highestSeverity: v.severity,
-        cves: JSON.parse(v.cves || '[]'),
-        pages: JSON.parse(v.pages || '[]'),
+        cves: JSON.parse((v.cves as string) || '[]'),
+        pages: JSON.parse((v.pages as string) || '[]'),
       })),
-      deprecatedApis: deprecated.map(d => ({ ...d, pages: JSON.parse(d.pages || '[]') })),
-      consoleErrors: errors.map(e => ({ ...e, pages: JSON.parse(e.pages || '[]') })),
+      deprecatedApis: deprecated.map(d => ({ ...d, pages: JSON.parse((d.pages as string) || '[]') })),
+      consoleErrors: errors.map(e => ({ ...e, pages: JSON.parse((e.pages as string) || '[]') })),
       routes,
     }
   }))
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
   // SEO Dashboard
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
 
   router.get('/seo/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
+    await ensureProcessed(storage, scanId)
 
-    await ensureProcessed(db, scanId)
+    const meta = await storage.reports.seoMeta.list(scanId as never) as Array<{
+      path: string
+      title: string | null
+      titleLength: number | null
+      metaDescription: string | null
+      metaDescriptionLength: number | null
+      canonical: string | null
+      ogTitle: string | null
+      ogDescription: string | null
+      ogImage: string | null
+      twitterCard: string | null
+      twitterTitle: string | null
+      twitterDescription: string | null
+      twitterImage: string | null
+      structuredDataTypes: string | null
+      hreflangTags: string | null
+      isIndexable: boolean | null
+    }>
+    const duplicates = await storage.reports.seoDuplicates.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
+    const chains = await storage.reports.canonicalChains.list(scanId as never) as Array<{ pages: string, [k: string]: unknown }>
+    const linkText = await storage.reports.linkTextIssues.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
+    const tapTargets = await storage.reports.tapTargetIssues.list(scanId as never) as Array<{ elements: string | null, [k: string]: unknown }>
 
-    const meta = db.select().from(seoMeta).where(eq(seoMeta.scanId, scanId)).all()
-
-    const duplicates = db.select().from(seoDuplicates).where(eq(seoDuplicates.scanId, scanId)).orderBy(desc(seoDuplicates.pageCount)).all()
-
-    const chains = db.select().from(canonicalChains).where(eq(canonicalChains.scanId, scanId)).all()
-
-    const linkText = db.select().from(linkTextIssues).where(eq(linkTextIssues.scanId, scanId)).orderBy(desc(linkTextIssues.instanceCount)).all()
-
-    const tapTargets = db.select().from(tapTargetIssues).where(eq(tapTargetIssues.scanId, scanId)).all()
-
-    // Get routes with SEO scores
-    const routes = db.select({
-      path: scanRoutes.path,
-      score: scanRoutes.seoScore,
-    }).from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all()
+    const routes = (await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })).items.map(r => ({
+      path: r.path,
+      score: r.scoreSeo,
+    }))
 
     return {
       meta: meta.map(m => ({
@@ -295,72 +240,67 @@ export function createDashboardApi(outputPath: string): Router {
         hreflangTags: JSON.parse(m.hreflangTags || '[]'),
         isIndexable: m.isIndexable,
       })),
-      duplicates: duplicates.map(d => ({ ...d, pages: JSON.parse(d.pages || '[]') })),
+      duplicates: duplicates.map(d => ({ ...d, pages: JSON.parse((d.pages as string) || '[]') })),
       canonicalChains: chains.map(c => ({ ...c, pages: JSON.parse(c.pages || '[]') })),
-      linkTextIssues: linkText.map(l => ({ ...l, pages: JSON.parse(l.pages || '[]') })),
+      linkTextIssues: linkText.map(l => ({ ...l, pages: JSON.parse((l.pages as string) || '[]') })),
       tapTargetIssues: tapTargets.map(t => ({ ...t, elements: JSON.parse(t.elements || '[]') })),
       routes,
     }
   }))
 
-  // ============================================================================
-  // Element Screenshot (cropped from fullPageScreenshot)
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
+  // Element Screenshot (cropped from fullPageScreenshot in the LHR blob)
+  // ──────────────────────────────────────────────────────────────────────────
 
-  router.get('/screenshot/:scanId/:path', defineEventHandler((event) => {
+  router.get('/screenshot/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
     const decodedPath = decodeURIComponent(path)
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
+    const norm = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
 
-    const routeRow = db.select({ lhrGzip: scanRoutes.lhrGzip, path: scanRoutes.path }).from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all().find(r => r.path === decodedPath || r.path === `/${decodedPath}`)
-
-    if (!routeRow?.lhrGzip) {
+    const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+    const route = routes.find(r => r.path === decodedPath || r.path === norm)
+    if (!route?.lhrBlobKey) {
       setResponseStatus(event, 404)
       return { error: 'Route or LHR data not found' }
     }
 
-    const lhr = JSON.parse(gunzipSync(routeRow.lhrGzip).toString())
+    const gz = await storage.blobs.get(route.lhrBlobKey)
+    if (!gz) {
+      setResponseStatus(event, 404)
+      return { error: 'LHR blob missing' }
+    }
+    const lhr = JSON.parse(gunzipSync(gz).toString())
     const screenshotData = lhr.fullPageScreenshot?.screenshot?.data
     if (!screenshotData) {
       setResponseStatus(event, 404)
       return { error: 'No screenshot data in LHR' }
     }
 
-    // screenshotData is "data:image/jpeg;base64,..." or just base64
     const base64 = screenshotData.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64, 'base64')
-
     setResponseHeader(event, 'Content-Type', 'image/jpeg')
     setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
     return buffer
   }))
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
   // Individual route detail
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
 
-  router.get('/route/:scanId/:path', defineEventHandler((event) => {
+  router.get('/route/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
     const decodedPath = decodeURIComponent(path)
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
+    const norm = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
 
-    const route = db.select().from(scanRoutes).where(eq(scanRoutes.scanId, scanId)).all().find(r => r.path === decodedPath || r.path === `/${decodedPath}`)
-
+    const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+    const route = routes.find(r => r.path === decodedPath || r.path === norm)
     if (!route) {
       setResponseStatus(event, 404)
       return { error: 'Route not found' }
     }
 
-    // Get SEO meta for this route
-    const routeMeta = db.select().from(seoMeta).where(eq(seoMeta.scanId, scanId)).all().find(m => m.path === route.path)
+    const seoMetaRows = await storage.reports.seoMeta.list(scanId as never) as Array<{ path: string, structuredDataTypes: string | null, hreflangTags: string | null, [k: string]: unknown }>
+    const routeMeta = seoMetaRows.find(m => m.path === route.path)
 
     return {
       ...route,
@@ -374,20 +314,23 @@ export function createDashboardApi(outputPath: string): Router {
     }
   }))
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
   // Comparison (LHCI-style diffs between scans)
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────────────────────
 
-  // Get a comparison by id, including per-route metric diffs
-  router.get('/comparison/:id', defineEventHandler((event) => {
+  const requireSqlDb = () => {
+    const db = (storage as { db?: any }).db
+    return db ?? null
+  }
+
+  router.get('/comparison/:id', defineEventHandler(async (event) => {
     const { id } = getRouterParams(event) as { id: string }
-    const db = history.getHistoryDb(outputPath)
+    const db = requireSqlDb()
     if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
+      setResponseStatus(event, 501)
+      return { error: 'Comparisons not available on this storage adapter' }
     }
-
-    const summary = getComparisonSummary(db, Number(id))
+    const summary = await getComparisonSummary(db, Number(id))
     if (!summary) {
       setResponseStatus(event, 404)
       return { error: 'Comparison not found' }
@@ -395,61 +338,48 @@ export function createDashboardApi(outputPath: string): Router {
     return summary
   }))
 
-  // List all comparisons involving a given scan (as base or current)
-  router.get('/comparisons/:scanId', defineEventHandler((event) => {
+  router.get('/comparisons/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
+    // Drizzle impl exposes `listInvolvingScan`; cloudflare/memory return [].
+    const repo = storage.comparisons as typeof storage.comparisons & {
+      listInvolvingScan?: (scanId: string) => Promise<unknown[]>
     }
-
-    const rows = db.select().from(comparisons).where(or(eq(comparisons.baseScanId, scanId), eq(comparisons.currentScanId, scanId))).orderBy(desc(comparisons.createdAt)).all()
-    return rows
+    if (repo.listInvolvingScan)
+      return await repo.listInvolvingScan(scanId)
+    return await storage.comparisons.list({ currentScanId: scanId as never })
   }))
 
-  // Get the most recent comparison where scanId is the current side
-  router.get('/comparison/latest/:scanId', defineEventHandler((event) => {
+  router.get('/comparison/latest/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const db = history.getHistoryDb(outputPath)
-    if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
-    }
-
-    const latest = db.select().from(comparisons).where(eq(comparisons.currentScanId, scanId)).orderBy(desc(comparisons.createdAt)).limit(1).get()
-
+    const latest = await storage.comparisons.latestForCurrent(scanId as never) as
+      | { id: number, diffs: Array<{ metricDiffs: string, [k: string]: unknown }> }
+      | null
     if (!latest) {
       setResponseStatus(event, 404)
       return { error: 'No comparison found for scan' }
     }
-
-    const diffs = db.select().from(comparisonDiffs).where(eq(comparisonDiffs.comparisonId, latest.id)).all()
-
     return {
       ...latest,
-      diffs: diffs.map(d => ({ ...d, metricDiffs: JSON.parse(d.metricDiffs) })),
+      diffs: latest.diffs.map(d => ({ ...d, metricDiffs: JSON.parse(d.metricDiffs) })),
     }
   }))
 
-  // Create (or refresh) a comparison between two scans
   router.post('/compare/:baseScanId/:currentScanId', defineEventHandler(async (event) => {
     const { baseScanId, currentScanId } = getRouterParams(event) as { baseScanId: string, currentScanId: string }
-    const db = history.getHistoryDb(outputPath)
+    const db = requireSqlDb()
     if (!db) {
-      setResponseStatus(event, 500)
-      return { error: 'Database not available' }
+      setResponseStatus(event, 501)
+      return { error: 'Comparisons not available on this storage adapter' }
     }
 
-    const base = db.select().from(scans).where(eq(scans.id, baseScanId)).get()
-    const current = db.select().from(scans).where(eq(scans.id, currentScanId)).get()
+    const base = await storage.scans.get(baseScanId as never)
+    const current = await storage.scans.get(currentScanId as never)
     if (!base || !current) {
       setResponseStatus(event, 404)
       return { error: 'One or both scans not found' }
     }
 
-    const comparison = await compareScans(db, baseScanId, currentScanId)
-    return comparison
+    return await compareScans(db, baseScanId, currentScanId)
   }))
 
   return router

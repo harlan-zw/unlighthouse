@@ -161,5 +161,38 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     },
   }
 
-  return { scans: scanRepo, routes: routeRepo, blobs: blobStore }
+  // Report-side aggregations have no in-memory implementation — they're
+  // produced by `core/report/processScanData` against a SQL adapter. Stub
+  // empty so cloudflare/test environments using memory storage degrade to
+  // "no dashboard data" rather than crashing handlers.
+  const emptyList = { list: async () => [] }
+  const reportRepos = {
+    accessibility: emptyList,
+    accessibilityElements: emptyList,
+    missingAltImages: emptyList,
+    performance: emptyList,
+    thirdPartyScripts: emptyList,
+    lcpElements: emptyList,
+    seoMeta: emptyList,
+    seoDuplicates: emptyList,
+    canonicalChains: emptyList,
+    linkTextIssues: emptyList,
+    tapTargetIssues: emptyList,
+    bestPracticesSecurity: emptyList,
+    bestPracticesLibraries: emptyList,
+    bestPracticesVulnerable: emptyList,
+    bestPracticesDeprecated: emptyList,
+    bestPracticesConsoleErrors: emptyList,
+    crux: emptyList,
+    dashboardSummary: { get: async () => null },
+  } as Storage['reports']
+
+  const comparisonsRepo: Storage['comparisons'] = {
+    async list() { return [] },
+    async get() { return null },
+    async latestForCurrent() { return null },
+    async diffs() { return [] },
+  }
+
+  return { scans: scanRepo, routes: routeRepo, blobs: blobStore, reports: reportRepos, comparisons: comparisonsRepo }
 }

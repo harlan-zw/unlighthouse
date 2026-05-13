@@ -1,5 +1,5 @@
 import type { AccessibilitySummary, ProcessorParams } from './types'
-import { accessibilityElements, accessibilityIssues, missingAltImages } from '../storage/drizzle/schema/history'
+import { accessibilityElements, accessibilityIssues, missingAltImages } from '@unlighthouse/contracts/drizzle'
 
 interface A11yIssue {
   auditId: string

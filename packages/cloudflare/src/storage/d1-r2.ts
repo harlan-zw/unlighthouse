@@ -462,9 +462,41 @@ export async function migrate(db: D1Database): Promise<void> {
 }
 
 export function d1R2Storage(opts: D1R2StorageOptions): Storage {
+  // Report + comparison repos: D1 deployment doesn't run `processScanData`
+  // (that lives in core/report and currently requires a sync drizzle handle).
+  // Stub empty until a D1-native processor lands. Dashboards degrade to "no
+  // detail data" on cloudflare; the contract atoms (`scans` + `scanRoutes`
+  // + `summary` JSON) still serve.
+  const emptyList = { list: async () => [] }
   return {
     scans: d1ScanRepository(opts.db),
     routes: d1ScanRouteRepository(opts.db),
     blobs: r2BlobStore(opts.bucket),
+    reports: {
+      accessibility: emptyList,
+      accessibilityElements: emptyList,
+      missingAltImages: emptyList,
+      performance: emptyList,
+      thirdPartyScripts: emptyList,
+      lcpElements: emptyList,
+      seoMeta: emptyList,
+      seoDuplicates: emptyList,
+      canonicalChains: emptyList,
+      linkTextIssues: emptyList,
+      tapTargetIssues: emptyList,
+      bestPracticesSecurity: emptyList,
+      bestPracticesLibraries: emptyList,
+      bestPracticesVulnerable: emptyList,
+      bestPracticesDeprecated: emptyList,
+      bestPracticesConsoleErrors: emptyList,
+      crux: emptyList,
+      dashboardSummary: { get: async () => null },
+    },
+    comparisons: {
+      async list() { return [] },
+      async get() { return null },
+      async latestForCurrent() { return null },
+      async diffs() { return [] },
+    },
   }
 }
