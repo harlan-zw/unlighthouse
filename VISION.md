@@ -5,10 +5,10 @@
 ## Features
 
 - 🤖 **Built for AI agents**: layered summaries your agent can read, not 200KB JSON dumps.
+- 📊 **Built-in dashboard**: scan history, side-by-side compare, per-pack analysis.
 - 📱 **One scan, both devices**: mobile + desktop side-by-side, no double runs.
-- 🌍 **Runs anywhere modern JS runs**: Node, Workers, BYO browser. ~10× lower compute cost on CF.
+- 🌍 **Runs anywhere modern JS runs**: engine in Node or Workers, browser is BYO (local Chrome, browserless, or CF Browser Rendering at ~10× lower cost).
 - 🧩 **Audit packs**: targeted fixes for perf, a11y, SEO; GEO next; ship your own.
-- 🎛️ **Same tool everywhere**: terminal, agent, CI, browser. One typed API behind them all.
 - 🧱 **Drop into your product**: embed the scan engine in your SaaS, agency tool, or platform.
 
 ## Why v1?
@@ -22,6 +22,8 @@ The agent-tooling space is already full of Lighthouse MCPs that wrap one URL and
 Unlighthouse crawls your entire site, runs Lighthouse against every route, and gives you actionable, prioritized reports plus scan-over-scan diffs. v1 turns that capability into a primitive: a Lighthouse-based scan engine designed to be composed, not just consumed. The same engine that powers the local dashboard powers an agent tool, a CI gate, or a serverless deploy.
 
 The original Unlighthouse was a CLI that wrapped Lighthouse. v1 inverts that: **the engine is a primitive**, and the CLI is one host that consumes it. Other hosts ship in the same monorepo: an MCP server for agents, a Cloudflare Worker preset for serverless deploys, and a programmatic API for embedding into your own tools. They are all the same scan engine, projected through the same typed command registry.
+
+The dashboard is rebuilt from scratch on top of that registry. Browse the full history of scans you've run, compare any two runs side-by-side across mobile and desktop, drill into per-pack analysis (Core Web Vitals, images, JS bundle, a11y, SEO), and inspect raw audit storage when you need the receipts. What you see in the browser, your terminal, and your agent stays in sync — there is one source of truth.
 
 ## Who is it for?
 
