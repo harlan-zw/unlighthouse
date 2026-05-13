@@ -25,6 +25,7 @@ export type {
   UnlighthouseCore,
   UnlighthouseCoreOptions,
   UnlighthouseCoreRunOptions,
+  UnlighthouseCoreRunOverrides,
 } from './ports/core'
 export * from './ports/crawler'
 export * from './ports/seed-source'

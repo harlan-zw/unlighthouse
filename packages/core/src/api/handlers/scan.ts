@@ -30,8 +30,16 @@ export const scanStart: Handler<typeof ScanStart> = {
   async run(input, ctx) {
     if (ctx.core.session())
       throw new UnlighthouseError({ code: 'ACTIVE_SCAN_CONFLICT', message: 'A scan is already in flight' })
-    // TODO: thread `input` (site/device/categories/auditor/ciBuild) into ctx.config before run().
-    const session = ctx.core.run()
+    const session = ctx.core.run({
+      overrides: {
+        site: input.site,
+        device: input.device,
+        sampleSize: input.sampleSize,
+        categories: input.categories,
+        auditor: input.auditor,
+        ciBuild: input.ciBuild,
+      },
+    })
     return {
       scanId: session.scanId,
       site: input.site,
