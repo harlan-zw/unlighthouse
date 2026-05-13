@@ -1,7 +1,7 @@
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import type { Assertion, AssertionResult } from '../report/types'
 import { and, desc, eq, ne } from 'drizzle-orm'
-import { assertions as assertionsTable, scanRoutes, scans } from '../../../unlighthouse/src/data/history/schema'
+import { assertions as assertionsTable, scanRoutes, scans } from '../storage/drizzle/schema/history'
 
 /** Score column name mapping from assertion category to DB column */
 const SCORE_COLUMN_MAP: Record<string, keyof typeof scanRoutes.$inferSelect> = {

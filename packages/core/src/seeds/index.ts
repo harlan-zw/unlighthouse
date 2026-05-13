@@ -1,3 +1,6 @@
-export * from './route-definitions'
+export { matchPathToRule } from '../policies/robots'
+export * from './compose'
+export * from './fuse'
+export * from './manual'
 export * from './sitemap'
 export * from './util'

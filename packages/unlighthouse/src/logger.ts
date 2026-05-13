@@ -20,7 +20,8 @@ export function createLogger(debug = false) {
  * Gets the instantiated logger instance using the shared context, persists the application logging configuration.
  */
 export const useLogger: () => ConsolaInstance = () => {
-  let logger = loggerCtx.use()
+  // unctx.use() throws when no instance is set; tryUse returns undefined.
+  let logger = loggerCtx.tryUse()
   // just in-case the logger wasn't initialised, we want to always return an instance to avoid null checks in DX
   if (!logger)
     logger = createLogger()

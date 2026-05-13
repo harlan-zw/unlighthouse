@@ -12,9 +12,23 @@ export default defineBuildConfig({
         './src/policies/index.ts',
         './src/crawlers/index.ts',
         './src/auditors/index.ts',
+        './src/storage/index.ts',
         './src/storage/drizzle/index.ts',
+        './src/storage/drizzle/schema/sqlite.ts',
+        './src/storage/drizzle/schema/history.ts',
+        './src/data/history.ts',
+        './src/storage/memory/index.ts',
+        './src/storage/unstorage-blobs/index.ts',
         './src/api/index.ts',
+        './src/api/client.ts',
+        './src/api/http.ts',
+        './src/api/handlers/index.ts',
+        './src/api/dashboard.ts',
+        './src/util/path.ts',
+        './src/core.ts',
       ],
     },
+    // Migration SQL is shipped as static assets via package.json `files`.
+    // No subpath export — users read them via fs / drizzle migrator.
   ],
 })

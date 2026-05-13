@@ -1,5 +1,5 @@
 import type { BestPracticesSummary, ProcessorParams } from './types'
-import { consoleErrors, deprecatedApis, detectedLibraries, securityIssues, vulnerableLibraries } from '../../../unlighthouse/src/data/history/schema'
+import { consoleErrors, deprecatedApis, detectedLibraries, securityIssues, vulnerableLibraries } from '../storage/drizzle/schema/history'
 import { findVulnerabilities } from './vulnerabilities'
 
 interface ConsoleErrorData {

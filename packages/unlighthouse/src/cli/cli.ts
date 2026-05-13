@@ -1,14 +1,16 @@
+import type { UnlighthouseContext } from '@unlighthouse/contracts'
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
 import open from 'better-opn'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
-import { createUnlighthouse, evaluateAndStoreAssertions, history, useLogger, useUnlighthouse } from '..'
+import { createUnlighthouse, evaluateAndStoreAssertions, history, useLogger } from '..'
+import { getCurrentScanId } from '../data/history/tracking'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
 
-async function createServer() {
-  const { resolvedConfig } = useUnlighthouse()
+async function createServer(ctx: UnlighthouseContext) {
+  const { resolvedConfig } = ctx
   const app = createApp()
   return {
     app,
@@ -32,12 +34,13 @@ async function runHistoryMode() {
       site: options.site || 'http://localhost', // Placeholder, not used in history mode
     },
     { name: 'cli' },
+    { generateClient: true, showBanner: true, label: 'cli' },
   )
 
   const logger = useLogger()
   logger.info('Starting Unlighthouse in history-only mode...')
 
-  const { server, app } = await createServer()
+  const { server, app } = await createServer(unlighthouse)
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
 
   logger.success(`Unlighthouse UI available at: ${unlighthouse.runtimeSettings.clientUrl}`)
@@ -69,11 +72,12 @@ async function run() {
       },
     },
     { name: 'cli' },
+    { generateClient: true, showBanner: true, label: 'cli' },
   )
 
   validateOptions(unlighthouse.resolvedConfig)
 
-  const { server, app } = await createServer()
+  const { server, app } = await createServer(unlighthouse)
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
   const { routes = [] } = await unlighthouse.start()
   const logger = useLogger()
@@ -94,7 +98,7 @@ async function run() {
     // Evaluate CI assertions
     const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
     if (options.assert && assertionConfigs?.length) {
-      const scanId = history.getCurrentScanId()
+      const scanId = getCurrentScanId()
       if (scanId) {
         const db = history.getHistoryDb(unlighthouse.resolvedConfig.outputPath)
         const results = evaluateAndStoreAssertions(db, scanId, assertionConfigs)

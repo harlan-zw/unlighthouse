@@ -22,7 +22,8 @@
     "docs": "npm -C docs run dev",
     "docs:build": "npm -C docs run build",
     "docs:serve": "npm -C docs run serve",
-    "test:attw": "pnpm -r run test:attw",
+    "test:attw": "pnpm -r --filter './packages/**' --if-present run test:attw",
+    "test:publint": "pnpm -r --filter './packages/**' --if-present run test:publint",
     "lint:docs": "pnpx markdownlint-cli ./docs && pnpx case-police 'docs/**/*.md' *.md",
     "lint:docs:fix": "pnpx markdownlint-cli ./docs --fix && pnpx case-police 'docs/**/*.md' *.md --fix"
   },
@@ -32,6 +33,8 @@
     "bumpp": "catalog:",
     "eslint": "catalog:",
     "obuild": "catalog:",
+    "publint": "catalog:",
+    "rolldown": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:dependencies",
     "vitest": "catalog:"

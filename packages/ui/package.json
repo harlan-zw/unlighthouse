@@ -36,6 +36,7 @@
     "@types/lodash-es": "catalog:",
     "@types/three": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
+    "@unlighthouse/core": "workspace:*",
     "unlighthouse": "workspace:*"
   }
 }

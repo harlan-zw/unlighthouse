@@ -24,7 +24,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
-    "@unlighthouse/core": "workspace:*"
+    "@unlighthouse/core": "workspace:*",
+    "zod": "catalog:"
   }
 }

@@ -1,9 +1,28 @@
+import type { ScanMeta, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 import type { UnlighthouseRuntimeConfig } from './unlighthouse-config.client'
+import type { CompletedRoute, ScanProgress } from '~/composables/scan'
 
 export interface TransportConnection {
   connect: () => Promise<void>
   disconnect: () => void
   isOpen: () => boolean
+}
+
+export interface TransportHooks {
+  'transport:open': () => void
+  'transport:close': () => void
+  'transport:error': () => void
+  'transport:route-report': (report: UnlighthouseRouteReport) => void
+  'transport:scan-meta': (meta: ScanMeta) => void
+  'transport:scan:progress': (progress: Partial<ScanProgress>) => void
+  'transport:scan:route-complete': (route: CompletedRoute) => void
+  'transport:scan:complete': () => void
+  'transport:scan:cancelled': () => void
+  'transport:scan:error': (data: { message?: string }) => void
+}
+
+declare module '#app' {
+  interface RuntimeNuxtHooks extends TransportHooks {}
 }
 
 const MAX_RECONNECT = 5
@@ -36,7 +55,7 @@ export default defineNuxtPlugin({
 
         ws.onopen = () => {
           reconnectAttempts = 0
-          nuxtApp.callHook('transport:open' as any)
+          nuxtApp.callHook('transport:open')
           resolve()
         }
 
@@ -47,18 +66,20 @@ export default defineNuxtPlugin({
         }
 
         ws.onclose = () => {
-          nuxtApp.callHook('transport:close' as any)
+          nuxtApp.callHook('transport:close')
           ws = null
           if (manualDisconnect)
             return
           if (reconnectAttempts < MAX_RECONNECT) {
             reconnectAttempts++
-            setTimeout(() => { open().catch(() => {}) }, 1000 * reconnectAttempts)
+            setTimeout(() => {
+              open().catch(() => {})
+            }, 1000 * reconnectAttempts)
           }
         }
 
         ws.onerror = () => {
-          nuxtApp.callHook('transport:error' as any)
+          nuxtApp.callHook('transport:error')
           reject(new Error('WebSocket connection failed'))
         }
       })

@@ -55,7 +55,7 @@ export interface ProcessorParams {
   db: BetterSQLite3Database
   scanId: string
   routes: Map<string, ExtractedRoute>
-  htmlData?: Map<string, import('../types').HTMLExtractPayload>
+  htmlData?: Map<string, import('@unlighthouse/contracts').HTMLExtractPayload>
   siteHost?: string
 }
 
@@ -123,25 +123,4 @@ export interface ComparisonDiff {
   severity: 'regression' | 'improvement' | 'neutral'
 }
 
-// Assertion types
-export type AssertionType = 'minScore' | 'maxNumericValue' | 'maxRegression'
-
-export interface Assertion {
-  type: AssertionType
-  /** Category for minScore: performance, accessibility, seo, best-practices */
-  category?: string
-  /** Metric for maxNumericValue: lcp, cls, tbt, fcp, si, ttfb */
-  metric?: string
-  /** Threshold value */
-  value: number
-  /** Fail if any single route fails, or only if the average fails */
-  failOn?: 'any' | 'average'
-}
-
-export interface AssertionResult {
-  assertion: Assertion
-  passed: boolean
-  actual: number
-  /** Routes that failed this assertion (when failOn is 'any') */
-  failingRoutes?: { url: string, path: string, value: number }[]
-}
+export type { Assertion, AssertionResult, AssertionType } from '@unlighthouse/contracts'

@@ -24,7 +24,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@cloudflare/puppeteer": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
-    "@unlighthouse/core": "workspace:*"
+    "@unlighthouse/core": "workspace:*",
+    "h3": "catalog:dependencies"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:"
   }
 }

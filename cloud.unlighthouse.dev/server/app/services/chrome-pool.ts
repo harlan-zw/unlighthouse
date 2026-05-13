@@ -34,10 +34,10 @@ export class ChromePool {
       chromeFlags: options.chromeFlags ?? ['--headless', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
     }
 
-    // Start cleanup interval to remove idle instances
     this.cleanupInterval = setInterval(() => {
       this.cleanup()
-    }, 60_000) // Check every minute
+    }, 60_000)
+    this.cleanupInterval.unref()
   }
 
   /**

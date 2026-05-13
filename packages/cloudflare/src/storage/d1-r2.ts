@@ -1,0 +1,470 @@
+// Storage port composed from D1 (rows) + R2 (blobs).
+// D1 is SQLite, so the schema in packages/core/migrations/sqlite/0000_init.sql
+// applies verbatim — run `wrangler d1 migrations apply <db> --remote
+// --migrations-dir <path-to-core/migrations/sqlite>` from your Worker project.
+
+import type {
+  D1Database,
+  D1PreparedStatement,
+  KVNamespace,
+  R2Bucket,
+} from '@cloudflare/workers-types'
+import type {
+  BlobPutOptions,
+  BlobStore,
+  ExtractedMetrics,
+  FindPreviousQuery,
+  ListQuery,
+  Paginated,
+  RouteListQuery,
+  Scan,
+  ScanId,
+  ScanInsert,
+  ScanRepository,
+  ScanRoute,
+  ScanRouteRepository,
+  ScanStatus,
+  ScanSummary,
+  Storage,
+} from '@unlighthouse/contracts'
+
+// Re-export the contract type to keep the surface narrow.
+export type { BlobStore }
+
+export interface D1R2StorageOptions {
+  db: D1Database
+  bucket: R2Bucket
+  kv?: KVNamespace
+}
+
+const DEFAULT_PAGE_SIZE = 50
+const DEFAULT_ROUTE_PAGE_SIZE = 100
+
+const SCAN_COLS = 'scan_id, site, device, status, started_at, completed_at, ci_branch, ci_commit, ci_commit_message, summary'
+const ROUTE_COLS = 'scan_id, url, path, route_name, score_performance, score_accessibility, score_seo, score_best_practices, lcp, cls, inp, fcp, ttfb, tbt, si, lighthouse_version, captured_at, lhr_blob_key'
+
+// Raw row shapes returned by D1.
+interface ScanRawRow {
+  scan_id: string
+  site: string
+  device: string
+  status: string
+  started_at: string
+  completed_at: string | null
+  ci_branch: string | null
+  ci_commit: string | null
+  ci_commit_message: string | null
+  summary: string | null
+}
+
+interface RouteRawRow {
+  scan_id: string
+  url: string
+  path: string
+  route_name: string | null
+  score_performance: number | null
+  score_accessibility: number | null
+  score_seo: number | null
+  score_best_practices: number | null
+  lcp: number | null
+  cls: number | null
+  inp: number | null
+  fcp: number | null
+  ttfb: number | null
+  tbt: number | null
+  si: number | null
+  lighthouse_version: string
+  captured_at: string
+  lhr_blob_key: string
+}
+
+function rowToScan(r: ScanRawRow): Scan {
+  return {
+    scanId: r.scan_id as ScanId,
+    site: r.site,
+    device: r.device as Scan['device'],
+    status: r.status as ScanStatus,
+    startedAt: r.started_at,
+    completedAt: r.completed_at,
+    ciBranch: r.ci_branch,
+    ciCommit: r.ci_commit,
+    ciCommitMessage: r.ci_commit_message,
+    // summary is stored as JSON-encoded text (sqlite has no native JSON).
+    summary: r.summary ? (JSON.parse(r.summary) as ScanSummary) : null,
+  }
+}
+
+function rowToRoute(r: RouteRawRow): ScanRoute {
+  return {
+    scanId: r.scan_id as ScanId,
+    url: r.url,
+    path: r.path,
+    routeName: r.route_name,
+    scorePerformance: r.score_performance,
+    scoreAccessibility: r.score_accessibility,
+    scoreSeo: r.score_seo,
+    scoreBestPractices: r.score_best_practices,
+    lcp: r.lcp,
+    cls: r.cls,
+    inp: r.inp,
+    fcp: r.fcp,
+    ttfb: r.ttfb,
+    tbt: r.tbt,
+    si: r.si,
+    lighthouseVersion: r.lighthouse_version,
+    capturedAt: r.captured_at,
+    lhrBlobKey: r.lhr_blob_key,
+  }
+}
+
+// sha1 via Web Crypto (Workers runtime), trimmed to 16 hex chars to match
+// the node:crypto version in the drizzle route repo.
+async function urlHash(url: string): Promise<string> {
+  const buf = new TextEncoder().encode(url)
+  const digest = await crypto.subtle.digest('SHA-1', buf)
+  const bytes = new Uint8Array(digest)
+  let hex = ''
+  for (let i = 0; i < bytes.length; i++)
+    hex += bytes[i].toString(16).padStart(2, '0')
+  return hex.slice(0, 16)
+}
+
+async function blobKeyFor(scanId: string, url: string): Promise<string> {
+  return `scans/${scanId}/lhr/${await urlHash(url)}.json.gz`
+}
+
+// Translate a partial ScanInsert into (set-clause-fragment, bind-values).
+function buildUpdateClause(patch: Partial<ScanInsert>): { setSql: string, args: unknown[] } {
+  const cols: string[] = []
+  const args: unknown[] = []
+  const map: Record<string, string> = {
+    site: 'site',
+    device: 'device',
+    status: 'status',
+    startedAt: 'started_at',
+    completedAt: 'completed_at',
+    ciBranch: 'ci_branch',
+    ciCommit: 'ci_commit',
+    ciCommitMessage: 'ci_commit_message',
+    summary: 'summary',
+  }
+  for (const [k, v] of Object.entries(patch)) {
+    if (k === 'scanId')
+      continue
+    const col = map[k]
+    if (!col)
+      continue
+    cols.push(`${col} = ?`)
+    if (k === 'summary')
+      args.push(v == null ? null : JSON.stringify(v))
+    else
+      args.push(v === undefined ? null : v)
+  }
+  return { setSql: cols.join(', '), args }
+}
+
+function d1ScanRepository(db: D1Database): ScanRepository {
+  return {
+    async create(scan: ScanInsert): Promise<Scan> {
+      const row: ScanRawRow = {
+        scan_id: scan.scanId,
+        site: scan.site,
+        device: scan.device,
+        status: scan.status,
+        started_at: scan.startedAt,
+        completed_at: scan.completedAt ?? null,
+        ci_branch: scan.ciBranch ?? null,
+        ci_commit: scan.ciCommit ?? null,
+        ci_commit_message: scan.ciCommitMessage ?? null,
+        summary: scan.summary ? JSON.stringify(scan.summary) : null,
+      }
+      await db
+        .prepare(`INSERT INTO scans (${SCAN_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .bind(
+          row.scan_id,
+          row.site,
+          row.device,
+          row.status,
+          row.started_at,
+          row.completed_at,
+          row.ci_branch,
+          row.ci_commit,
+          row.ci_commit_message,
+          row.summary,
+        )
+        .run()
+      return rowToScan(row)
+    },
+
+    async get(scanId: ScanId): Promise<Scan | null> {
+      const row = await db
+        .prepare(`SELECT ${SCAN_COLS} FROM scans WHERE scan_id = ? LIMIT 1`)
+        .bind(scanId)
+        .first<ScanRawRow>()
+      return row ? rowToScan(row) : null
+    },
+
+    async update(scanId: ScanId, patch: Partial<ScanInsert>): Promise<Scan> {
+      const { setSql, args } = buildUpdateClause(patch)
+      if (setSql) {
+        await db
+          .prepare(`UPDATE scans SET ${setSql} WHERE scan_id = ?`)
+          .bind(...args, scanId)
+          .run()
+      }
+      const row = await db
+        .prepare(`SELECT ${SCAN_COLS} FROM scans WHERE scan_id = ? LIMIT 1`)
+        .bind(scanId)
+        .first<ScanRawRow>()
+      if (!row)
+        throw new Error(`Scan not found: ${scanId}`)
+      return rowToScan(row)
+    },
+
+    async findPrevious(q: FindPreviousQuery): Promise<Scan | null> {
+      const where: string[] = ['site = ?', 'device = ?', 'status = ?']
+      const args: unknown[] = [q.site, q.device, 'complete']
+      if (q.branch !== undefined) {
+        where.push('ci_branch = ?')
+        args.push(q.branch)
+      }
+      if (q.excludeScanId !== undefined) {
+        where.push('scan_id != ?')
+        args.push(q.excludeScanId)
+      }
+      const row = await db
+        .prepare(`SELECT ${SCAN_COLS} FROM scans WHERE ${where.join(' AND ')} ORDER BY started_at DESC, created_at_ms DESC LIMIT 1`)
+        .bind(...args)
+        .first<ScanRawRow>()
+      return row ? rowToScan(row) : null
+    },
+
+    async list(q: ListQuery): Promise<Paginated<Scan>> {
+      const page = Math.max(1, q.page ?? 1)
+      const pageSize = Math.max(1, q.pageSize ?? DEFAULT_PAGE_SIZE)
+      const offset = (page - 1) * pageSize
+
+      const where: string[] = []
+      const args: unknown[] = []
+      if (q.site) {
+        where.push('site = ?')
+        args.push(q.site)
+      }
+      if (q.device) {
+        where.push('device = ?')
+        args.push(q.device)
+      }
+      if (q.branch) {
+        where.push('ci_branch = ?')
+        args.push(q.branch)
+      }
+      if (q.status) {
+        where.push('status = ?')
+        args.push(q.status)
+      }
+      const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
+
+      const [itemsRes, countRes] = await db.batch<unknown>([
+        db
+          .prepare(`SELECT ${SCAN_COLS} FROM scans ${whereSql} ORDER BY started_at DESC, created_at_ms DESC LIMIT ? OFFSET ?`)
+          .bind(...args, pageSize, offset),
+        db
+          .prepare(`SELECT count(*) AS count FROM scans ${whereSql}`)
+          .bind(...args),
+      ])
+      const items = ((itemsRes as { results: ScanRawRow[] }).results ?? []).map(rowToScan)
+      const total = Number((countRes as { results: { count: number }[] }).results?.[0]?.count ?? 0)
+      return { items, total, page, pageSize }
+    },
+
+    async delete(scanId: ScanId): Promise<void> {
+      await db.prepare('DELETE FROM scans WHERE scan_id = ?').bind(scanId).run()
+    },
+  }
+}
+
+function metricsBindings(scanId: string, m: ExtractedMetrics, lhrBlobKey: string): unknown[] {
+  return [
+    scanId,
+    m.url,
+    m.path,
+    m.routeName,
+    m.scorePerformance,
+    m.scoreAccessibility,
+    m.scoreSeo,
+    m.scoreBestPractices,
+    m.lcp,
+    m.cls,
+    m.inp,
+    m.fcp,
+    m.ttfb,
+    m.tbt,
+    m.si,
+    m.lighthouseVersion,
+    m.capturedAt,
+    lhrBlobKey,
+  ]
+}
+
+const ROUTE_UPSERT_SQL = `INSERT INTO scan_routes (${ROUTE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(scan_id, url) DO UPDATE SET
+  path = excluded.path,
+  route_name = excluded.route_name,
+  score_performance = excluded.score_performance,
+  score_accessibility = excluded.score_accessibility,
+  score_seo = excluded.score_seo,
+  score_best_practices = excluded.score_best_practices,
+  lcp = excluded.lcp,
+  cls = excluded.cls,
+  inp = excluded.inp,
+  fcp = excluded.fcp,
+  ttfb = excluded.ttfb,
+  tbt = excluded.tbt,
+  si = excluded.si,
+  lighthouse_version = excluded.lighthouse_version,
+  captured_at = excluded.captured_at,
+  lhr_blob_key = excluded.lhr_blob_key`
+
+function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
+  return {
+    async putBatch(scanId: ScanId, rows: ExtractedMetrics[]): Promise<void> {
+      if (rows.length === 0)
+        return
+      const stmts: D1PreparedStatement[] = []
+      for (const m of rows) {
+        const key = await blobKeyFor(scanId, m.url)
+        stmts.push(db.prepare(ROUTE_UPSERT_SQL).bind(...metricsBindings(scanId, m, key)))
+      }
+      // D1.batch is atomic (auto-wrapped in a transaction).
+      await db.batch(stmts)
+    },
+
+    async upsert(scanId: ScanId, row: ExtractedMetrics): Promise<void> {
+      const key = await blobKeyFor(scanId, row.url)
+      await db
+        .prepare(ROUTE_UPSERT_SQL)
+        .bind(...metricsBindings(scanId, row, key))
+        .run()
+    },
+
+    async listForScan(scanId: ScanId, q?: RouteListQuery): Promise<Paginated<ScanRoute>> {
+      const page = Math.max(1, q?.page ?? 1)
+      const pageSize = Math.max(1, q?.pageSize ?? DEFAULT_ROUTE_PAGE_SIZE)
+      const offset = (page - 1) * pageSize
+
+      const [itemsRes, countRes] = await db.batch<unknown>([
+        db
+          .prepare(`SELECT ${ROUTE_COLS} FROM scan_routes WHERE scan_id = ? LIMIT ? OFFSET ?`)
+          .bind(scanId, pageSize, offset),
+        db
+          .prepare(`SELECT count(*) AS count FROM scan_routes WHERE scan_id = ?`)
+          .bind(scanId),
+      ])
+      const items = ((itemsRes as { results: RouteRawRow[] }).results ?? []).map(rowToRoute)
+      const total = Number((countRes as { results: { count: number }[] }).results?.[0]?.count ?? 0)
+      return { items, total, page, pageSize }
+    },
+
+    async get(scanId: ScanId, url: string): Promise<ScanRoute | null> {
+      const row = await db
+        .prepare(`SELECT ${ROUTE_COLS} FROM scan_routes WHERE scan_id = ? AND url = ? LIMIT 1`)
+        .bind(scanId, url)
+        .first<RouteRawRow>()
+      return row ? rowToRoute(row) : null
+    },
+
+    async delete(scanId: ScanId, url?: string): Promise<void> {
+      if (url) {
+        await db
+          .prepare('DELETE FROM scan_routes WHERE scan_id = ? AND url = ?')
+          .bind(scanId, url)
+          .run()
+      }
+      else {
+        await db.prepare('DELETE FROM scan_routes WHERE scan_id = ?').bind(scanId).run()
+      }
+    },
+  }
+}
+
+function r2BlobStore(bucket: R2Bucket): BlobStore {
+  return {
+    async put(key: string, data: Uint8Array, opts?: BlobPutOptions) {
+      await bucket.put(key, data as Uint8Array, {
+        httpMetadata: opts?.contentType ? { contentType: opts.contentType } : undefined,
+        // TODO(v5): R2 has no native ttl; track expiry via customMetadata + a sweeper Worker.
+      })
+    },
+    async get(key: string) {
+      const obj = await bucket.get(key)
+      if (!obj)
+        return null
+      const buf = await obj.arrayBuffer()
+      return new Uint8Array(buf)
+    },
+    async has(key: string) {
+      const head = await bucket.head(key)
+      return head != null
+    },
+    async delete(key: string) {
+      await bucket.delete(key)
+    },
+  }
+}
+
+// One-shot schema bootstrap for tests / local dev. Production users should
+// run `wrangler d1 migrations apply` against packages/core/migrations/sqlite.
+const INIT_SQL: string[] = [
+  `CREATE TABLE IF NOT EXISTS scans (
+    scan_id text PRIMARY KEY NOT NULL,
+    site text NOT NULL,
+    device text NOT NULL,
+    status text NOT NULL,
+    started_at text NOT NULL,
+    completed_at text,
+    ci_branch text,
+    ci_commit text,
+    ci_commit_message text,
+    summary text,
+    created_at_ms integer DEFAULT (unixepoch() * 1000) NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_scans_site ON scans (site)`,
+  `CREATE INDEX IF NOT EXISTS idx_scans_status ON scans (status)`,
+  `CREATE INDEX IF NOT EXISTS idx_scans_started_at ON scans (started_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_scans_find_previous ON scans (site, device, ci_branch, started_at)`,
+  `CREATE TABLE IF NOT EXISTS scan_routes (
+    scan_id text NOT NULL,
+    url text NOT NULL,
+    path text NOT NULL,
+    route_name text,
+    score_performance real,
+    score_accessibility real,
+    score_seo real,
+    score_best_practices real,
+    lcp real,
+    cls real,
+    inp real,
+    fcp real,
+    ttfb real,
+    tbt real,
+    si real,
+    lighthouse_version text NOT NULL,
+    captured_at text NOT NULL,
+    lhr_blob_key text NOT NULL,
+    PRIMARY KEY (scan_id, url),
+    FOREIGN KEY (scan_id) REFERENCES scans(scan_id) ON DELETE CASCADE
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_scan_routes_scan_id ON scan_routes (scan_id)`,
+]
+
+export async function migrate(db: D1Database): Promise<void> {
+  await db.batch(INIT_SQL.map(sql => db.prepare(sql)))
+}
+
+export function d1R2Storage(opts: D1R2StorageOptions): Storage {
+  return {
+    scans: d1ScanRepository(opts.db),
+    routes: d1ScanRouteRepository(opts.db),
+    blobs: r2BlobStore(opts.bucket),
+  }
+}

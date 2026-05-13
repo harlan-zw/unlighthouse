@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { getScoreColor, getScoreBg } from '~/composables/dashboard'
 
 const props = defineProps<{
   score: number | null

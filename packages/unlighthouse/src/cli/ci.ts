@@ -1,9 +1,12 @@
+import type { ReporterConfig } from '../reporters/types'
 import type { CiOptions } from './types'
 import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
 import { createUnlighthouse, evaluateAndStoreAssertions, history, useLogger } from '..'
-import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '../process/comparison'
+import { getCurrentScanId } from '../data/history/tracking'
+import { generateReportPayload, outputReport } from '../reporters'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
 
@@ -36,6 +39,7 @@ async function run() {
       },
     },
     { name: 'ci' },
+    { ws: null, label: 'ci' },
   )
 
   validateOptions(unlighthouse.resolvedConfig)
@@ -57,11 +61,33 @@ async function run() {
     })
   })
 
+  // Generate the configured report file. Defaults to `jsonSimple` when neither
+  // CLI nor config file specify one; `false` opts out.
+  const cliReporter = options.reporter
+  const configReporter = unlighthouse.resolvedConfig.ci?.reporter
+  const reporter
+    = cliReporter === false || configReporter === false
+      ? false
+      : cliReporter ?? configReporter ?? 'jsonSimple'
+  if (reporter) {
+    const reporterConfig: ReporterConfig = {
+      columns: unlighthouse.resolvedConfig.client?.columns,
+      ...(unlighthouse.resolvedConfig.ci?.reporterConfig ?? {}),
+    }
+    const payload = await Promise.resolve<unknown>(
+      generateReportPayload(reporter as never, unlighthouse.worker.reports(), reporterConfig),
+    )
+    if (payload != null) {
+      const path = await outputReport(reporter, unlighthouse.resolvedConfig, payload)
+      logger.success(`Generated \`${reporter}\` report: ${path}`)
+    }
+  }
+
   // Assertions default to on in CI; --no-assert opts out.
   const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
   const assertEnabled = options.assert !== false
   if (assertEnabled && assertionConfigs?.length) {
-    const scanId = history.getCurrentScanId()
+    const scanId = getCurrentScanId()
     if (scanId) {
       const db = history.getHistoryDb(unlighthouse.resolvedConfig.outputPath)
       const results = evaluateAndStoreAssertions(db, scanId, assertionConfigs)
@@ -87,7 +113,7 @@ async function run() {
 
   // --compare: diff this scan against a previous scan and fail on regressions.
   if (options.compare !== undefined && options.compare !== false) {
-    const scanId = history.getCurrentScanId()
+    const scanId = getCurrentScanId()
     const outputPath = unlighthouse.resolvedConfig.outputPath
     const db = history.getHistoryDb(outputPath)
     if (!scanId) {

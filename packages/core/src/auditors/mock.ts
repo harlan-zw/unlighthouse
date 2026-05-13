@@ -1,4 +1,17 @@
-import type { UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
+import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
+import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+
+export interface MockAuditorOptions {
+  /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
+  logger?: Logger
+}
+
+const MOCK_CAPABILITIES: AuditorCapabilities = {
+  reliablePerfScores: false,
+  reliableFieldData: false,
+  supportsThrottling: false,
+  categories: ['performance', 'accessibility', 'seo', 'best-practices'],
+}
 
 export function createMockProvider(): UnlighthouseProvider {
   return async (url: string, _options: UnlighthouseOptions = {}): Promise<UnlighthouseReport> => {
@@ -61,5 +74,16 @@ export function createMockProvider(): UnlighthouseProvider {
       },
       raw: raw as any,
     }
+  }
+}
+
+export function createMockAuditor(_opts: MockAuditorOptions = {}): Auditor {
+  const provider = createMockProvider()
+  return {
+    capabilities: MOCK_CAPABILITIES,
+    async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
+      const report = await provider(url)
+      return report.raw as unknown as LighthouseReport
+    },
   }
 }

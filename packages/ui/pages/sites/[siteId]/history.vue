@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { getScoreBg, getScoreColor } from '~/composables/dashboard'
 import { useSites } from '~/composables/sites'
 
 definePageMeta({ layout: 'site' })

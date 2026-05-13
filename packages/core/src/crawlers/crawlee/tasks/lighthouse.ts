@@ -1,0 +1,204 @@
+import type { LighthouseReport, PuppeteerTask, UnlighthouseContext, UnlighthouseRouteReport } from '@unlighthouse/contracts'
+import type { Result } from 'lighthouse'
+import nodeFs from 'node:fs'
+import { join } from 'node:path'
+import fse from 'fs-extra'
+import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
+import { map, pick } from 'lodash-es'
+import { normalize, relative } from 'pathe'
+import { withQuery } from 'ufo'
+import { useLogger } from '../../../util/logger'
+import { base64ToBuffer, ReportArtifacts } from '../../../util/fetch'
+import { setupPage } from '../util'
+
+export function normaliseLighthouseResult(ctx: UnlighthouseContext, route: UnlighthouseRouteReport, result: Result): LighthouseReport {
+  const { resolvedConfig, runtimeSettings } = ctx
+
+  const measuredCategories = Object.values(result.categories)
+    .filter(c => typeof c.score !== 'undefined') as { score: number }[]
+
+  const columnFields = Object.values(resolvedConfig.client.columns)
+    .flat()
+    .filter(c => !!c.key)
+    .map(c => c.key?.replace('report.', '')) as string[]
+
+  const imageIssues = [
+    result.audits['unsized-images'],
+    result.audits['preload-lcp-image'],
+    result.audits['offscreen-images'],
+    result.audits['modern-image-formats'],
+    result.audits['uses-optimized-images'],
+    result.audits['efficient-animated-content'],
+    result.audits['uses-responsive-images'],
+  ]
+    .map(d => (d?.details as any)?.items || [])
+    .flat()
+  const ariaIssues = Object.values(result.audits)
+    // @ts-expect-error untyped
+    .filter(a => a && a.id.startsWith('aria-') && a.details?.items?.length > 0)
+    // @ts-expect-error untyped
+    .map(a => a.details?.items)
+    .flat()
+  // @ts-expect-error untyped
+  if (result.audits['screenshot-thumbnails']?.details?.items) {
+    // need to convert the base64 screenshot-thumbnails into their file name
+    // @ts-expect-error untyped
+    for (const k in result.audits['screenshot-thumbnails'].details.items)
+      // @ts-expect-error untyped
+      result.audits['screenshot-thumbnails'].details.items[k].data = relative(runtimeSettings.generatedClientPath, join(route.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${k}.jpeg`))
+  }
+  // map the json report to what values we actually need
+  return {
+    // @ts-expect-error type override
+    categories: map(result.categories, (c, k) => {
+      return {
+        key: k,
+        id: k,
+        ...pick(c, ['title', 'score']),
+      }
+    }),
+    ...pick(result, [
+      'fetchTime',
+      'audits.redirects',
+      // core web vitals
+      'audits.layout-shifts',
+      'audits.largest-contentful-paint-element',
+      'audits.largest-contentful-paint',
+      'audits.cumulative-layout-shift',
+      'audits.first-contentful-paint',
+      'audits.total-blocking-time',
+      'audits.max-potential-fid',
+      'audits.interactive',
+      ...columnFields,
+    ]),
+    computed: {
+      imageIssues: {
+        details: {
+          items: imageIssues,
+        },
+        displayValue: imageIssues.length,
+        score: imageIssues.length > 0 ? 0 : 1,
+      },
+      ariaIssues: {
+        details: {
+          items: ariaIssues,
+        },
+        displayValue: ariaIssues.length,
+        score: ariaIssues.length > 0 ? 0 : 1,
+      },
+    },
+    score: Math.round(measuredCategories.reduce((total, category) => total + category.score, 0) / measuredCategories.length * 100) / 100,
+  }
+}
+
+export function createRunLighthouseTask(ctx: UnlighthouseContext): PuppeteerTask {
+  return async (props) => {
+    const logger = useLogger()
+    const { resolvedConfig, runtimeSettings } = ctx
+    const { page, data: routeReport } = props
+
+    // if the report doesn't exist, we're going to run a new lighthouse process to generate it
+    const reportJsonPath = join(routeReport.artifactPath, ReportArtifacts.reportJson)
+    if (resolvedConfig.cache && nodeFs.existsSync(reportJsonPath)) {
+      try {
+        const report = fse.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as Result
+        routeReport.report = normaliseLighthouseResult(ctx, routeReport, report)
+        return routeReport
+      }
+      catch (e) {
+        logger.warn(`Failed to read cached lighthouse report for path "${routeReport.route.path}".`, e)
+      }
+    }
+
+    await setupPage(ctx, page)
+
+    const port = new URL(page.browser().wsEndpoint()).port
+    // allow changing behavior of the page
+    const clonedRouteReport = { ...routeReport }
+    // just modify the url for the unlighthouse request
+    if (resolvedConfig.defaultQueryParams)
+      clonedRouteReport.route.url = withQuery(clonedRouteReport.route.url, resolvedConfig.defaultQueryParams)
+
+    // Normalize the artifact path to use forward slashes for cross-platform compatibility
+    const routeReportForArgs = {
+      route: { url: clonedRouteReport.route.url },
+      artifactPath: normalize(clonedRouteReport.artifactPath),
+    }
+
+    const args = [
+      `--cache=${JSON.stringify(resolvedConfig.cache)}`,
+      `--routeReport=${JSON.stringify(routeReportForArgs)}`,
+      `--lighthouseOptions=${JSON.stringify(resolvedConfig.lighthouseOptions)}`,
+      `--port=${port}`,
+    ]
+
+    const samples = []
+    for (let i = 0; i < resolvedConfig.scanner.samples; i++) {
+      try {
+      // Spawn a worker process
+        const { x } = await import('tinyexec')
+        const res = await x(
+        // handles stubbing
+          runtimeSettings.lighthouseProcessPath.endsWith('.ts') ? 'jiti' : 'node',
+          [runtimeSettings.lighthouseProcessPath, ...args],
+          {
+            timeout: 6 * 60 * 1000,
+            nodeOptions: { stdio: ['pipe', 'inherit', 'inherit'] },
+          },
+        )
+        if (res)
+          samples.push(fse.readJsonSync(reportJsonPath))
+      }
+      catch (e: any) {
+        logger.error('Failed to run lighthouse for route', e)
+        return routeReport
+      }
+    }
+
+    let report: Result = samples[0]
+
+    if (!report) {
+      logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
+      routeReport.tasks.runLighthouseTask = 'failed'
+      return routeReport
+    }
+
+    if (report.categories.performance && !report.categories.performance.score) {
+      logger.warn(`Lighthouse failed to run performance audits for "${routeReport.route.path}", adding back to queue${report.runtimeError ? `: ${report.runtimeError.message}` : '.'}`)
+      routeReport.tasks.runLighthouseTask = 'failed-retry'
+      return routeReport
+    }
+
+    if (samples.length > 1) {
+      try {
+        report = computeMedianRun(samples)
+      }
+      catch (e) {
+        logger.warn('Error when computing median score, possibly audit failed.', e)
+      }
+    }
+
+    // we need to export all base64 data to improve the stability of the client
+    // @ts-expect-error untyped
+    if (report.audits?.['final-screenshot']?.details?.data)
+    // @ts-expect-error untyped
+      await nodeFs.promises.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshot), base64ToBuffer(report.audits['final-screenshot'].details.data))
+
+    if (report.fullPageScreenshot?.screenshot.data)
+      await nodeFs.promises.writeFile(join(routeReport.artifactPath, ReportArtifacts.fullScreenScreenshot), base64ToBuffer(report.fullPageScreenshot.screenshot.data))
+
+    // extract the screenshot-thumbnails into separate files
+    const screenshotThumbnails = report.audits?.['screenshot-thumbnails']?.details
+    await nodeFs.promises.mkdir(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir), { recursive: true })
+    // @ts-expect-error untyped
+    if (screenshotThumbnails?.items && screenshotThumbnails.type === 'filmstrip') {
+      for (const key in screenshotThumbnails.items) {
+        const thumbnail = screenshotThumbnails.items[key]
+        await nodeFs.promises.writeFile(join(routeReport.artifactPath, ReportArtifacts.screenshotThumbnailsDir, `${key}.jpeg`), base64ToBuffer(thumbnail.data))
+      }
+    }
+
+    routeReport.report = normaliseLighthouseResult(ctx, routeReport, report)
+    return routeReport
+  }
+}

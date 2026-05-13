@@ -1,11 +1,21 @@
-import type { UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
+import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
+import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
 import { Buffer } from 'node:buffer'
 import { ofetch } from 'ofetch'
-import { extractInsights } from '../../../unlighthouse/src/core/extract'
+import { extractInsights } from './extract'
 
 export interface DataForSeoOptions {
   username?: string
   password?: string
+  /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
+  logger?: Logger
+}
+
+const DATAFORSEO_CAPABILITIES: AuditorCapabilities = {
+  reliablePerfScores: true,
+  reliableFieldData: false,
+  supportsThrottling: false,
+  categories: ['performance', 'accessibility', 'seo', 'best-practices'],
 }
 
 export function createDataForSeoProvider(providerOptions: DataForSeoOptions): UnlighthouseProvider {
@@ -62,5 +72,16 @@ export function createDataForSeoProvider(providerOptions: DataForSeoOptions): Un
     catch (e: any) {
       throw new Error(`DataForSEO scan failed: ${e.message || 'Unknown error'}`)
     }
+  }
+}
+
+export function createDataForSeoAuditor(opts: DataForSeoOptions): Auditor {
+  const provider = createDataForSeoProvider(opts)
+  return {
+    capabilities: DATAFORSEO_CAPABILITIES,
+    async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
+      const report = await provider(url)
+      return report.raw as unknown as LighthouseReport
+    },
   }
 }

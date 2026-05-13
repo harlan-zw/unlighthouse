@@ -1,3 +1,8 @@
+declare module 'third-party-web' {
+  const ThirdPartyWeb: any
+  export default ThirdPartyWeb
+}
+
 declare module 'better-opn' {
   export default function open(target: string): Promise<void>
 }

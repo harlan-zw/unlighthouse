@@ -26,8 +26,8 @@
       "types": "./types.d.mts",
       "import": "./dist/index.mjs"
     },
-    "./cli": "./dist/cli.mjs",
-    "./ci": "./dist/ci.mjs",
+    "./cli": "./dist/cli/cli.mjs",
+    "./ci": "./dist/cli/ci.mjs",
     "./config": "./config.mjs",
     "./package.json": "./package.json"
   },
@@ -42,7 +42,8 @@
   },
   "bin": {
     "unlighthouse": "bin/unlighthouse.mjs",
-    "unlighthouse-ci": "bin/unlighthouse-ci.mjs"
+    "unlighthouse-ci": "bin/unlighthouse-ci.mjs",
+    "unlighthouse-mcp": "bin/unlighthouse-mcp.mjs"
   },
   "files": [
     "config.d.mts",
@@ -58,7 +59,8 @@
     "build": "obuild",
     "stub": "obuild --stub",
     "typecheck": "tsc --noEmit",
-    "test:attw": "attw --pack"
+    "test:attw": "attw --pack",
+    "test:publint": "publint"
   },
   "peerDependenciesMeta": {
     "puppeteer": {
@@ -73,6 +75,7 @@
     "@puppeteer/browsers": "catalog:dependencies",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
+    "@unlighthouse/mcp": "workspace:*",
     "@unlighthouse/ui": "workspace:*",
     "@unrouted/core": "catalog:",
     "@unrouted/fetch": "catalog:",
@@ -86,6 +89,7 @@
     "cac": "catalog:dependencies",
     "cheerio": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
+    "citty": "catalog:dependencies",
     "consola": "catalog:dependencies",
     "crawlee": "catalog:dependencies",
     "defu": "catalog:dependencies",
@@ -117,8 +121,10 @@
     "ufo": "catalog:dependencies",
     "unconfig": "catalog:dependencies",
     "unctx": "catalog:dependencies",
+    "unstorage": "catalog:",
     "wrap-ansi": "catalog:dependencies",
-    "ws": "catalog:dependencies"
+    "ws": "catalog:dependencies",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",

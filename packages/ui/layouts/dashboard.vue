@@ -70,14 +70,7 @@ const ungrouped = computed(() => sitesByGroup.value.get(null) || [])
                   : 'text-muted hover:text-default hover:bg-elevated/70'"
                 @click="closeNav()"
               >
-                <img
-                  :src="`https://www.google.com/s2/favicons?domain=${siteHostname(site.url)}&sz=32`"
-                  :alt="site.name"
-                  class="w-3.5 h-3.5 rounded shrink-0"
-                  loading="lazy"
-                  width="14"
-                  height="14"
-                >
+                <SiteFavicon :url="site.url" :alt="site.name" class="w-3.5 h-3.5" />
                 <span class="truncate text-[13px]">{{ site.name }}</span>
               </NuxtLink>
             </nav>
@@ -109,14 +102,7 @@ const ungrouped = computed(() => sitesByGroup.value.get(null) || [])
                   : 'text-muted hover:text-default hover:bg-elevated/70'"
                 @click="closeNav()"
               >
-                <img
-                  :src="`https://www.google.com/s2/favicons?domain=${siteHostname(site.url)}&sz=32`"
-                  :alt="site.name"
-                  class="w-3.5 h-3.5 rounded shrink-0"
-                  loading="lazy"
-                  width="14"
-                  height="14"
-                >
+                <SiteFavicon :url="site.url" :alt="site.name" class="w-3.5 h-3.5" />
                 <span class="truncate text-[13px]">{{ site.name }}</span>
               </NuxtLink>
             </nav>

@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import Fuse from 'fuse.js'
 import { getScoreBg, getScoreColor } from '~/composables/dashboard'
-import { page, perPage, searchText } from '~/composables/search'
-import {
-  iframeModalUrl,
-  lighthouseReportModalOpen,
-  unlighthouseReports as liveReports,
-  openLighthouseReportIframeModal,
-  refreshScanMeta,
-  useReportsStream,
-} from '~/composables/state'
+import { useResultsSearch } from '~/composables/search'
+import { useLighthouseReportModal, useReports, useReportsStream } from '~/composables/state'
+import { asScanId, useApiClient } from '~/composables/useApiClient'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const { isStatic, resolveArtifactPath, apiUrl } = useUnlighthouseConfig()
+const apiClient = useApiClient()
+const { reports: liveReports, refreshScanMeta } = useReports()
+const { page, perPage, searchText } = useResultsSearch()
+const lhModal = useLighthouseReportModal()
+const lighthouseReportModalOpen = lhModal.isOpen
+const iframeModalUrl = lhModal.url
+const openLighthouseReportIframeModal = lhModal.open
 
 definePageMeta({ layout: 'site' })
 
@@ -52,8 +53,8 @@ watch(scanId, async (id) => {
     historicalScan.value = null
     return
   }
-  const data = await $fetch<any>(`${apiUrl.value}/history/${id}`).catch(() => null)
-  historicalScan.value = data
+  const data = await apiClient['history.get']({ scanId: asScanId(id) }).catch(() => null)
+  historicalScan.value = data as any
 }, { immediate: true })
 
 // Calculate overall score from category scores

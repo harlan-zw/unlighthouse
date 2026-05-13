@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
 import { ref } from 'vue'
+import { scanMeta } from '~/composables/state'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const { routerPrefix } = useUnlighthouseConfig()

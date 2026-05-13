@@ -1,6 +1,6 @@
 import type { Result } from 'lighthouse'
 import type { UnlighthouseReport } from '../types'
-import { extractInsights } from './extract'
+import { extractInsights } from '@unlighthouse/core/auditors/extract'
 
 export function normaliseLighthouseResult(result: Result): UnlighthouseReport {
   return {

@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer'
 import { gunzipSync } from 'node:zlib'
 import { desc, eq, or } from 'drizzle-orm'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
-import * as history from '../../../unlighthouse/src/data/history'
+import * as history from '../data/history'
 import {
   accessibilityElements,
   accessibilityIssues,
@@ -25,7 +25,7 @@ import {
   tapTargetIssues,
   thirdPartyScripts,
   vulnerableLibraries,
-} from '../../../unlighthouse/src/data/history/schema'
+} from '../storage/drizzle/schema/history'
 import { compareScans, getComparisonSummary } from '../comparison'
 import { getDashboardSummary, processScanData } from '../report'
 

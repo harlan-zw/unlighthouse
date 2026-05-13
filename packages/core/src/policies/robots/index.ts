@@ -1,9 +1,8 @@
-import type { ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { ResolvedUserConfig, UnlighthouseContext } from '@unlighthouse/contracts'
 import type { RobotsGroupResolved } from './parser'
 import { $URL } from 'ufo'
-import { useLogger } from '../../../../unlighthouse/src/logger'
-import { useUnlighthouse } from '../../../../unlighthouse/src/unlighthouse'
-import { fetchUrlRaw } from '../../../../unlighthouse/src/util'
+import { useLogger } from '../../util/logger'
+import { fetchUrlRaw } from '../../util/fetch'
 
 export interface RobotsTxtParsed {
   sitemaps: string[]
@@ -12,17 +11,15 @@ export interface RobotsTxtParsed {
 
 /**
  * Fetches the robots.txt file.
- * @param site
  */
-export async function fetchRobotsTxt(site: string): Promise<false | string> {
+export async function fetchRobotsTxt(ctx: UnlighthouseContext, site: string): Promise<false | string> {
   site = new $URL(site).origin
-  const unlighthouse = useUnlighthouse()
   const logger = useLogger()
   // we scan the robots.txt content for the sitemaps
   logger.debug(`Scanning ${site}/robots.txt`)
   const robotsTxt = await fetchUrlRaw(
     `${site}/robots.txt`,
-    unlighthouse.resolvedConfig,
+    ctx.resolvedConfig,
   )
   if (!robotsTxt.valid || !robotsTxt.response) {
     logger.warn('You seem to be missing a robots.txt.')

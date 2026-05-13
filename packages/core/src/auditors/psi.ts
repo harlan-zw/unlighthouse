@@ -1,9 +1,19 @@
-import type { UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
+import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
+import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
 import { ofetch } from 'ofetch'
-import { extractInsights } from '../../../unlighthouse/src/core/extract'
+import { extractInsights } from './extract'
 
 export interface PsiOptions {
   apiKey?: string
+  /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
+  logger?: Logger
+}
+
+const PSI_CAPABILITIES: AuditorCapabilities = {
+  reliablePerfScores: true,
+  reliableFieldData: false,
+  supportsThrottling: false,
+  categories: ['performance', 'accessibility', 'seo', 'best-practices'],
 }
 
 export function createPsiProvider(providerOptions: PsiOptions = {}): UnlighthouseProvider {
@@ -35,5 +45,16 @@ export function createPsiProvider(providerOptions: PsiOptions = {}): Unlighthous
     catch (e: any) {
       throw new Error(`PSI scan failed: ${e.message || 'Unknown error'}`)
     }
+  }
+}
+
+export function createPsiAuditor(opts: PsiOptions = {}): Auditor {
+  const provider = createPsiProvider(opts)
+  return {
+    capabilities: PSI_CAPABILITIES,
+    async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
+      const report = await provider(url)
+      return report.raw as unknown as LighthouseReport
+    },
   }
 }

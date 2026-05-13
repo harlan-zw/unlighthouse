@@ -43,7 +43,7 @@ async function runCli(configFileFixture: string) {
   await fs.writeFile(join(testDir, 'unlighthouse.config.ts'), config)
 
   const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir, '--debug', '--site', 'harlanzw.com'], {
-    nodeOptions: { cwd: testDir },
+    nodeOptions: { cwd: testDir, env: { ...process.env, JITI_ESM_RESOLVE: '1' } },
   })
 
   const logs = stdout + stderr

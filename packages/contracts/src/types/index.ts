@@ -1,4 +1,3 @@
-import type { AxiosInstance } from 'axios'
 import type { Options as ChromeLaunchOptions } from 'chrome-launcher'
 import type { Hookable, NestedHooks } from 'hookable'
 import type { Config, Flags, Result } from 'lighthouse'
@@ -7,9 +6,17 @@ import type http from 'node:http'
 import type https from 'node:https'
 import type { Page, LaunchOptions as PuppeteerLaunchOptions } from 'puppeteer-core'
 import type { QueryObject } from 'ufo'
-// v0: WS class lives in @unlighthouse/core/api after v0.6.
-import type { WS } from '../../../core/src/api/broadcasting'
 import type { Cluster, ClusterOptionsArgument, TaskFunction } from '../cluster'
+
+export * from './atoms'
+
+// Opaque type for the WebSocket broadcaster; the concrete class lives in @unlighthouse/core.
+// Contracts must not import from core, so we use a structural placeholder here.
+export interface WS {
+  serve: (req: any) => any
+  broadcast: (data: any) => void
+  clients: Set<any>
+}
 
 /**
  * A route definition is a mapping of a component, and it's URL path (or paths) that it represents.
@@ -169,6 +176,28 @@ export interface HTMLExtractPayload {
 export type WindiResponsiveClasses = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 
 export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer'
+
+export type AssertionType = 'minScore' | 'maxNumericValue' | 'maxRegression'
+
+export interface Assertion {
+  type: AssertionType
+  /** Category for minScore: performance, accessibility, seo, best-practices */
+  category?: string
+  /** Metric for maxNumericValue: lcp, cls, tbt, fcp, si, ttfb */
+  metric?: string
+  /** Threshold value */
+  value: number
+  /** Fail if any single route fails, or only if the average fails */
+  failOn?: 'any' | 'average'
+}
+
+export interface AssertionResult {
+  assertion: Assertion
+  passed: boolean
+  actual: number
+  /** Routes that failed this assertion (when failOn is 'any') */
+  failingRoutes?: { url: string, path: string, value: number }[]
+}
 
 export interface ReporterConfig {
   lhciHost?: string
@@ -422,7 +451,7 @@ export interface ResolvedUserConfig {
      * ]
      * ```
      */
-    assertions?: import('../../../core/src/report/types').Assertion[]
+    assertions?: Assertion[]
     /**
      * Build metadata recorded against the scan. Used to label CI runs and
      * surface the branch / commit that produced a given result.
@@ -743,15 +772,6 @@ export interface Provider {
    * Used to debug.
    */
   name?: string
-  /**
-   * To match a URL path to a route definition we need a router. Different definitions need different routes.
-   */
-  mockRouter?: MockRouter | ((routeDefinitions: RouteDefinition[]) => MockRouter)
-  /**
-   * The collection of route definitions belonging to the provider. These can be inferred but aren't 100% correct,
-   * frameworks that can provide these should do so.
-   */
-  routeDefinitions?: RouteDefinition[] | (() => RouteDefinition[] | Promise<RouteDefinition[]>)
 }
 
 export type HookResult = Promise<void> | void
@@ -785,13 +805,6 @@ export interface UnlighthouseHooks {
    * @param error
    */
   'worker-error': (error: Error) => HookResult
-  /**
-   * When route definitions are provided to Unlighthouse this function will be called, useful for delaying internal logic
-   * until the definitions are found.
-   *
-   * @param routeDefinitions
-   */
-  'route-definitions-provided': (routeDefinitions: any[]) => HookResult
   /**
    * Called when a user visits the path of the @unlighthouse/ui for the first time. Useful for starting the worker on-demand.
    */
@@ -958,14 +971,10 @@ export interface ServerContextArg {
 }
 
 /**
- * The context is provided by the createUnlighthouse() or useUnlighthouse() functions.
+ * The context is returned by the createUnlighthouse() factory and threaded explicitly through the call graph.
  * It provides the central API to interact with the behaviour of Unlighthouse..
  */
 export interface UnlighthouseContext {
-  /**
-   * The mock router being used to match paths to route definitions.
-   */
-  mockRouter?: MockRouter
   /**
    * Settings that are computed from runtime data.
    */
@@ -978,10 +987,6 @@ export interface UnlighthouseContext {
    * User config that has been normalised.
    */
   resolvedConfig: ResolvedUserConfig
-  /**
-   * The collection of route definitions associated to the site.
-   */
-  routeDefinitions?: RouteDefinition[]
   /**
    * Discovered routes.
    */
@@ -1025,7 +1030,7 @@ export interface UnlighthouseContext {
   /**
    * @internal
    */
-  _axios?: AxiosInstance
+  _axios?: unknown
   /**
    * @internal
    */

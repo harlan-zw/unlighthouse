@@ -12,7 +12,6 @@ class RateLimiter {
   private cleanupInterval?: NodeJS.Timeout
 
   constructor() {
-    // Clean up expired entries every minute
     this.cleanupInterval = setInterval(() => {
       const now = Date.now()
       for (const [key, entry] of this.store.entries()) {
@@ -21,6 +20,7 @@ class RateLimiter {
         }
       }
     }, 60_000)
+    this.cleanupInterval.unref()
   }
 
   /**

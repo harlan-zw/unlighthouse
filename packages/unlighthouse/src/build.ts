@@ -10,7 +10,7 @@ import fs from 'fs-extra'
 import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { createScanMeta } from './data/scanMeta'
-import { useLogger, useUnlighthouse } from './unlighthouse'
+import { useLogger } from './logger'
 
 /**
  * Copies the file contents of the @unlighthouse/ui package and does transformation based on the provided configuration.
@@ -20,11 +20,8 @@ import { useLogger, useUnlighthouse } from './unlighthouse'
  * - _nuxt/ (JS/CSS chunks)
  * - assets/ (static assets like images)
  */
-export async function generateClient(options: GenerateClientOptions = {}, unlighthouse?: UnlighthouseContext) {
+export async function generateClient(options: GenerateClientOptions = {}, unlighthouse: UnlighthouseContext) {
   const logger = useLogger()
-  if (!unlighthouse)
-    unlighthouse = useUnlighthouse()
-
   const { runtimeSettings, resolvedConfig, worker } = unlighthouse
 
   let prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.routerPrefix))
@@ -60,7 +57,7 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   // Create payload with config and reports
   const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: UnlighthouseRouteReport[] } = {
     reports: [],
-    scanMeta: createScanMeta(),
+    scanMeta: createScanMeta(unlighthouse),
     options: pick({
       ...runtimeSettings,
       ...resolvedConfig,

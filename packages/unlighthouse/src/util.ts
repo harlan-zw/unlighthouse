@@ -1,17 +1,17 @@
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from './types'
+import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseContext, UnlighthouseRouteReport } from './types'
 import { Buffer } from 'node:buffer'
-import { createHash } from 'node:crypto'
 import dns from 'node:dns'
 import http from 'node:http'
 import https from 'node:https'
 import { join } from 'node:path'
+import { hashPathName, sanitiseUrlForFilePath, trimSlashes } from '@unlighthouse/core/util/path'
 import axios from 'axios'
 import { ensureDirSync } from 'fs-extra'
-import sanitize from 'sanitize-filename'
-import slugify from 'slugify'
-import { joinURL, withLeadingSlash, withoutLeadingSlash, withoutTrailingSlash, withTrailingSlash } from 'ufo'
-import { useLogger, useUnlighthouse } from './unlighthouse'
+import { joinURL, withLeadingSlash, withTrailingSlash } from 'ufo'
+import { useLogger } from './logger'
+
+export { hashPathName, sanitiseUrlForFilePath, trimSlashes }
 
 export const ReportArtifacts = {
   html: 'payload.html',
@@ -22,49 +22,8 @@ export const ReportArtifacts = {
   reportJson: 'lighthouse.json',
 }
 
-/**
- * Removes leading and trailing slashes from a string.
- *
- * @param s
- */
-export const trimSlashes = (s: string) => withoutLeadingSlash(withoutTrailingSlash(s))
-
-/**
- * Ensures slashes on both sides of a string
- *
- * @param s
- */
+/** Ensures slashes on both sides of a string. */
 export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s)) || '/'
-
-/**
- * Sanitises the provided URL for use as a file system path.
- *
- * @param url
- * @return A sanitized URL, will retain the path hierarchy in the folder structure.
- */
-export function sanitiseUrlForFilePath(url: string) {
-  url = trimSlashes(url)
-  // URLs such as /something.html and /something to be considered the same
-  if (url.endsWith('.html'))
-    url = url.replace(/\.html$/, '')
-
-  return url
-    .split('/')
-    .map(part => sanitize(slugify(part)))
-    .join('/')
-}
-
-/**
- * Turns a web path to a 6-char hash which can be used for easy identification.
- *
- * @param path
- */
-export function hashPathName(path: string) {
-  return createHash('md5')
-    .update(sanitiseUrlForFilePath(path))
-    .digest('hex')
-    .substring(0, 6)
-}
 
 export function createReportsArtifactBasePath(generatedClientPath: string, scanId?: string | null) {
   return scanId
@@ -102,10 +61,11 @@ export function normaliseHost(host: string) {
 /**
  * A task report is a wrapper for the route, the report file paths and task status.
  *
- * @param route
+ * @param ctx Unlighthouse runtime context.
+ * @param route Normalised route to convert.
  */
-export function createTaskReportFromRoute(route: NormalisedRoute): UnlighthouseRouteReport {
-  const { runtimeSettings, resolvedConfig } = useUnlighthouse()
+export function createTaskReportFromRoute(ctx: UnlighthouseContext, route: NormalisedRoute): UnlighthouseRouteReport {
+  const { runtimeSettings, resolvedConfig } = ctx
 
   const reportId = hashPathName(route.path)
   const scanId = runtimeSettings.currentScanId
@@ -143,13 +103,10 @@ export function formatBytes(bytes: number, decimals = 2) {
   return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }
 
-const _sharedContext = {}
+// Fallback axios cache when no ctx is provided (e.g. early bootstrap).
+const _sharedContext: { _axios?: AxiosInstance } = {}
 
-function sharedContext() {
-  return useUnlighthouse() || _sharedContext
-}
-
-export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig) {
+export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, ctx?: UnlighthouseContext) {
   // try and resolve dns lookup issues
   dns.setServers([
     '8.8.8.8', // Google
@@ -196,15 +153,15 @@ export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig) {
   axiosOptions.proxy = false
   axiosOptions.timeout = 30_000
   axiosOptions.withCredentials = true
-  const unlighthouse = sharedContext()
-  unlighthouse._axios = axios.create(axiosOptions)
-  return unlighthouse._axios
+  const cache = (ctx ?? _sharedContext) as { _axios?: AxiosInstance }
+  cache._axios = axios.create(axiosOptions)
+  return cache._axios
 }
 
-export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig): Promise<{ error?: any, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: AxiosResponse }> {
+export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfig, ctx?: UnlighthouseContext): Promise<{ error?: any, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: AxiosResponse }> {
   const logger = useLogger()
-  const unlighthouse = sharedContext()
-  const instance: AxiosInstance = unlighthouse._axios || await createAxiosInstance(resolvedConfig)
+  const cache = (ctx ?? _sharedContext) as { _axios?: AxiosInstance }
+  const instance: AxiosInstance = cache._axios || await createAxiosInstance(resolvedConfig, ctx)
   const maxRetries = 3
   let attempt = 0
 

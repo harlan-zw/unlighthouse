@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import type { UnlighthouseRouteReport } from '@unlighthouse/contracts'
-import { columns } from '~/composables/search'
 
 defineProps<{
   report: UnlighthouseRouteReport
 }>()
 
+const { columns } = useResultsSearch()
 const resultColumns = computed(() => columns.value.flat())
 </script>
 

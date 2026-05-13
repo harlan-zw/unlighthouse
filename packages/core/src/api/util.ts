@@ -1,14 +1,13 @@
-import type { NormalisedRoute } from '@unlighthouse/contracts'
+import type { NormalisedRoute, UnlighthouseContext } from '@unlighthouse/contracts'
 import { basename } from 'node:path'
 import { hasProtocol, isRelative, withBase, withLeadingSlash } from 'ufo'
-import { useUnlighthouse } from '../../../unlighthouse/src/unlighthouse'
-import { hashPathName, trimSlashes } from '../../../unlighthouse/src/util'
+import { hashPathName, trimSlashes } from '../util/path'
 
-export function isScanOrigin(url: string): boolean {
+export function isScanOrigin(ctx: UnlighthouseContext, url: string): boolean {
   if (isRelative(url) || (url.startsWith('/') && !url.startsWith('//')))
     return true
 
-  const { runtimeSettings } = useUnlighthouse()
+  const { runtimeSettings } = ctx
 
   const $url = new URL(url)
   if ($url.hostname === runtimeSettings.siteUrl.hostname)
@@ -20,11 +19,9 @@ export function isScanOrigin(url: string): boolean {
 /**
  * Due to working with routes from all different frameworks or no framework, we need to do some magic to
  * have all routes make sense to unlighthouse.
- *
- * @param url
  */
-export function normaliseRoute(url: string): NormalisedRoute {
-  const { runtimeSettings, provider, resolvedConfig } = useUnlighthouse()
+export function normaliseRoute(ctx: UnlighthouseContext, url: string): NormalisedRoute {
+  const { runtimeSettings, resolvedConfig } = ctx
 
   // it's possible that we're serving a subdomain or something dodgy around www.
   if (!hasProtocol(url)) {
@@ -61,26 +58,7 @@ export function normaliseRoute(url: string): NormalisedRoute {
     break
   }
 
-  // if a router is provided
-  if (!normalised.definition && provider.mockRouter && typeof provider.mockRouter !== 'function') {
-    const definition = provider.mockRouter.match(path)
-    // if a route definition is found
-    if (definition) {
-      // nuxt 3
-      if (definition.file && !definition.component)
-        definition.component = definition.file
-
-      // add extra meta data from the definition
-      normalised = {
-        ...normalised,
-        definition: {
-          ...definition,
-          componentBaseName: basename(definition.component || ''),
-        },
-      }
-    }
-  }
-  // if there was no match we can try and
+  // v1: no route-definition matcher. Build a runtime route definition from the URL.
   if (!normalised.definition) {
     // we'll create them a runtime route definition based on the URL
     const parts = trimSlashes(path)

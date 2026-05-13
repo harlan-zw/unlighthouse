@@ -140,8 +140,12 @@ export function useSites() {
 }
 
 export function siteHostname(url: string) {
-  try { return new URL(url).hostname }
-  catch { return url }
+  try {
+    return new URL(url).hostname
+  }
+  catch {
+    return url
+  }
 }
 
 export function siteIdForScan(scanId: string, sites: Site[]): string | null {

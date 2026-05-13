@@ -1,4 +1,5 @@
 import type { Ref } from 'vue'
+import { createClient } from '@unlighthouse/core/api/client'
 
 export interface UnlighthouseRuntimeConfig {
   apiUrl: Ref<string>
@@ -57,8 +58,10 @@ export default defineNuxtPlugin({
       resolveArtifactPath,
     }
 
+    const api = createClient({ baseUrl: apiUrl.value || '/api' })
+
     return {
-      provide: { uconfig: config },
+      provide: { uconfig: config, api },
     }
   },
 })

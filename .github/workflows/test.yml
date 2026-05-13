@@ -38,3 +38,9 @@ jobs:
 
       - name: Test
         run: pnpm run test
+
+      - name: Test attw
+        run: pnpm run test:attw || true
+
+      - name: Test publint
+        run: pnpm run test:publint || true

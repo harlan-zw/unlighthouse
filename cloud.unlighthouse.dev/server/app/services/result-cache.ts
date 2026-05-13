@@ -32,10 +32,10 @@ export class ResultCache {
     this.maxSize = maxSize
     this.defaultTTL = defaultTTL
 
-    // Clean up expired entries periodically
+    // Clean up expired entries periodically. unref so the timer never blocks process exit / test teardown.
     setInterval(() => {
       this.cleanup()
-    }, 5 * 60 * 1000) // Every 5 minutes
+    }, 5 * 60 * 1000).unref()
   }
 
   /**

@@ -6,7 +6,6 @@ import { reportCSVExpanded } from './csvExpanded'
 import { reportCSVSimple } from './csvSimple'
 import { reportJsonExpanded } from './jsonExpanded'
 import { reportJsonSimple } from './jsonSimple'
-import { reportLighthouseServer } from './lighthouseServer'
 
 type ReportWithLighthouse = UnlighthouseRouteReport & {
   report: NonNullable<UnlighthouseRouteReport['report']>
@@ -38,8 +37,10 @@ export function generateReportPayload(reporter: string, _reports: UnlighthouseRo
     if (reporter === 'csvExpanded')
       return reportCSVExpanded(reports, config ?? {})
   }
-  if (reporter === 'lighthouseServer')
-    return reportLighthouseServer(reports, config ?? {})
+  if (reporter === 'lighthouseServer') {
+    // Lazy: @lhci/utils is an optional peer; only load when this reporter is chosen.
+    return import('./lighthouseServer').then(m => m.reportLighthouseServer(reports, config ?? {}))
+  }
 
   throw new Error(`Unsupported reporter: ${reporter}.`)
 }

@@ -1,3 +1,6 @@
+import type { Logger } from '@unlighthouse/contracts'
+import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+
 export type FormFactor = 'PHONE' | 'DESKTOP' | 'TABLET' | 'ALL_FORM_FACTORS'
 
 export type CwvMetric = 'lcp' | 'inp' | 'cls'
@@ -176,4 +179,46 @@ export async function fetchCruxHistory(opts: {
 export function getSiteOrigin(site: string): string {
   const parsed = new URL(site.startsWith('http') ? site : `https://${site}`)
   return `${parsed.protocol}//${parsed.host}`
+}
+
+export interface CruxAuditorOptions {
+  apiKey: string
+  formFactor?: FormFactor
+  /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
+  logger?: Logger
+}
+
+const CRUX_CAPABILITIES: AuditorCapabilities = {
+  reliablePerfScores: false,
+  reliableFieldData: true,
+  supportsThrottling: false,
+  categories: ['performance'],
+}
+
+export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
+  return {
+    capabilities: CRUX_CAPABILITIES,
+    async audit(url: string, _page?: Page, _auditOpts?: AuditOpts): Promise<LighthouseReport> {
+      // CrUX is field-data history, not a per-URL lab audit. We pack the series
+      // into the report's `audits` map so downstream extract code can lift it.
+      // @TODO v1.6: produce real LighthouseReport via report/extract pipeline (or split CrUX out into a non-Auditor port).
+      const series = await fetchCruxHistory({
+        apiKey: opts.apiKey,
+        origin: getSiteOrigin(url),
+        formFactor: opts.formFactor,
+      })
+      return {
+        requestedUrl: url,
+        finalUrl: url,
+        fetchTime: new Date().toISOString(),
+        score: 0,
+        categories: [],
+        audits: { 'crux-history': { numericValue: 0, details: series } as any },
+        computed: {
+          imageIssues: { displayValue: '', score: 1 } as any,
+          ariaIssues: { displayValue: '', score: 1 } as any,
+        },
+      } as unknown as LighthouseReport
+    },
+  }
 }

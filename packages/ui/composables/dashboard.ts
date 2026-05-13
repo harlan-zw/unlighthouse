@@ -1,5 +1,33 @@
 import { useUnlighthouseConfig } from './useUnlighthouseConfig'
 
+export function getScoreColor(score: number | null): string {
+  if (score === null)
+    return 'text-dimmed'
+  if (score >= 90)
+    return 'text-success'
+  if (score >= 50)
+    return 'text-warning'
+  return 'text-error'
+}
+
+export function getScoreBg(score: number | null): string {
+  if (score === null)
+    return 'bg-elevated/60'
+  if (score >= 90)
+    return 'bg-success/10'
+  if (score >= 50)
+    return 'bg-warning/10'
+  return 'bg-error/10'
+}
+
+export function formatMs(value: number | null | undefined): string {
+  if (value == null)
+    return '-'
+  if (value >= 1000)
+    return `${(value / 1000).toFixed(1)}s`
+  return `${Math.round(value)}ms`
+}
+
 export interface DashboardSummary {
   performance: { avgScore: number, issues: number }
   accessibility: { avgScore: number, issues: number }
@@ -230,39 +258,4 @@ export function useDashboard(scanId: MaybeRef<string | undefined>) {
     seo,
     crux,
   }
-}
-
-// Helper to get current scan ID
-export async function getCurrentScanId(): Promise<string | null> {
-  const { apiUrl } = useUnlighthouseConfig()
-  const data = await $fetch<{ scanId: string | null }>(`${apiUrl.value}/current-scan-id`).catch(() => null)
-  return data?.scanId ?? null
-}
-
-// Score color helpers
-export function getScoreColor(score: number | null): string {
-  if (score === null)
-    return 'text-dimmed'
-  if (score >= 90)
-    return 'text-success'
-  if (score >= 50)
-    return 'text-warning'
-  return 'text-error'
-}
-
-export function getScoreBg(score: number | null): string {
-  if (score === null)
-    return 'bg-elevated/60'
-  if (score >= 90)
-    return 'bg-success/10'
-  if (score >= 50)
-    return 'bg-warning/10'
-  return 'bg-error/10'
-}
-
-// Format milliseconds for display
-export function formatMs(ms: number): string {
-  if (ms < 1000)
-    return `${Math.round(ms)}ms`
-  return `${(ms / 1000).toFixed(1)}s`
 }

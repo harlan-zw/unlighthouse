@@ -24,7 +24,7 @@ import {
   tapTargetIssues,
   thirdPartyScripts,
   vulnerableLibraries,
-} from '../../../unlighthouse/src/data/history/schema'
+} from '../storage/drizzle/schema/history'
 import { compareScans } from '../comparison/comparison'
 import { processAccessibility } from './accessibility'
 import { processBestPractices } from './best-practices'

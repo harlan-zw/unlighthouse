@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { getScoreBg, getScoreColor } from '~/composables/dashboard'
 import { siteAvgScore, siteHostname, useSites } from '~/composables/sites'
 
 definePageMeta({ layout: 'site' })

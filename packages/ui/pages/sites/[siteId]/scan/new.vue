@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { useApiClient } from '~/composables/useApiClient'
 import { useSites } from '~/composables/sites'
-import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 definePageMeta({ layout: 'site' })
 
 const route = useRoute()
 const toast = useToast()
-const { apiUrl } = useUnlighthouseConfig()
+const client = useApiClient()
 const { getSite } = useSites()
 const site = getSite(route.params.siteId as string)
 
@@ -44,21 +44,22 @@ async function start() {
   if (!site.value)
     return
   submitting.value = true
-  const body: Record<string, any> = {
-    url: site.value.url,
+  const input: Parameters<typeof client['scan.start']>[0] = {
+    site: site.value.url,
     device: form.device,
-    throttle: form.throttle,
   }
   if (form.sampleSize > 0)
-    body.sampleSize = form.sampleSize
+    input.sampleSize = form.sampleSize
   if (form.categories.length < 4)
-    body.categories = form.categories
+    input.categories = form.categories as Parameters<typeof client['scan.start']>[0]['categories']
 
-  const result = await $fetch<{ scanId: string }>(`${apiUrl.value}/scan/start`, { method: 'POST', body }).catch((err) => {
+  const result = await client['scan.start'](input).catch((err: unknown) => {
+    const error = err as { name?: string, status?: number, message?: string }
+    const isConflict = error.name === 'ACTIVE_SCAN_CONFLICT' || error.status === 409
     toast.add({
-      title: err?.status === 409 ? 'Scan already running' : 'Could not start scan',
-      description: err?.data?.error || err?.message,
-      color: err?.status === 409 ? 'warning' : 'error',
+      title: isConflict ? 'Scan already running' : 'Could not start scan',
+      description: error.message,
+      color: isConflict ? 'warning' : 'error',
     })
     submitting.value = false
     return null

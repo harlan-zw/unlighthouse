@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { getScoreBg, getScoreColor } from '~/composables/dashboard'
-import { siteIdForScan, useSites } from '~/composables/sites'
+import { siteHostname, siteIdForScan, useSites } from '~/composables/sites'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 defineProps<{
@@ -21,11 +20,6 @@ const router = useRouter()
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string | undefined)
 const isOverview = computed(() => !!scanId.value && route.path === `/results/${scanId.value}`)
-
-function extractDomain(url: string) {
-  try { return new URL(url).hostname }
-  catch { return url }
-}
 
 function goBack() {
   if (isOverview.value && scanId.value) {
@@ -62,12 +56,12 @@ function goBack() {
               <span class="text-dimmed">·</span>
               <div class="flex items-center gap-1.5 text-dimmed">
                 <img
-                  :src="`https://www.google.com/s2/favicons?domain=${extractDomain(website)}&sz=32`"
+                  :src="`https://www.google.com/s2/favicons?domain=${siteHostname(website)}&sz=32`"
                   :alt="website"
                   class="w-4 h-4 rounded shrink-0"
                   loading="lazy"
                 >
-                <span class="text-sm font-mono truncate">{{ extractDomain(website) }}</span>
+                <span class="text-sm font-mono truncate">{{ siteHostname(website) }}</span>
               </div>
             </template>
           </div>

@@ -5,58 +5,76 @@ import type {
   ResolvedUserConfig,
   RuntimeSettings,
   UnlighthouseContext,
-  UnlighthouseHooks,
   UserConfig,
 } from './types'
+import type { UnlighthouseHooks } from './types/index'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
+import { createUnlighthouseCore } from '@unlighthouse/core'
+import { createBroadcastingEvents, WS } from '@unlighthouse/core/api'
+import { crawleeCrawler, crawlSite, createInspectHtmlTask, createRunLighthouseTask, createUnlighthouseWorker } from '@unlighthouse/core/crawlers'
+import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
+import { createStorage } from '@unlighthouse/core/storage'
+import { drizzleStorage } from '@unlighthouse/core/storage/drizzle'
+import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
+import Database from 'better-sqlite3'
 import { loadConfig } from 'c12'
 import { colorize } from 'consola/utils'
 import { defu } from 'defu'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
 import { createHooks } from 'hookable'
 import { createCommonJS, resolvePath } from 'mlly'
 import objectHash from 'object-hash'
 import { $fetch } from 'ofetch'
 import { $URL, joinURL } from 'ufo'
-import { createContext } from 'unctx'
+import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../package.json'
+import { resolveAuditor } from './auditor'
 import { generateClient } from './build'
 import { AppName, ClientPkg } from './constants'
-import { crawlSite } from './crawl'
-import { initHistoryTracking } from './data/history'
-import { discoverRouteDefinitions } from './discovery'
+import { initHistoryTracking } from './data/history/tracking'
 import { createLogger } from './logger'
-import { createUnlighthouseWorker, inspectHtmlTask, runLighthouseTask } from './puppeteer'
 import { resolveUserConfig } from './resolveConfig'
-import { createApi, createBroadcastingEvents, createMockRouter, WS } from './router'
+import { mountServer } from './server'
 import { normaliseHost } from './util'
 import { successBox } from './util/cliFormatting'
 
-const engineContext = createContext<UnlighthouseContext>()
-
 export { useLogger } from './logger'
-/**
- * Use the unlighthouse instance.
- */
-export const useUnlighthouse = engineContext.tryUse as () => UnlighthouseContext
 
 /**
  * A simple define wrapper to provide typings to config definitions.
  * @deprecated Use `defineUnlighthouseConfig` from `unlighthouse/config` instead.
  */
-export function defineConfig(config: UserConfig) {
+export function defineConfig(config: UserConfig): UserConfig {
   return config
 }
 
 /**
- * Create a unique single unlighthouse instance that can be referenced globally with `useUnlighthouse()`. Scanning will
+ * Create an Unlighthouse instance. The returned context is threaded explicitly to all consumers. Scanning will
  * not start automatically, a server context needs to be provided using `setServerContext()`.
  *
  * @param userConfig
  * @param provider
  */
-export async function createUnlighthouse(userConfig: UserConfig, provider?: Provider) {
+/**
+ * Behavior knobs supplied by the entry preset (cli, ci, integration).
+ * Replaces the implicit `provider.name === 'cli'|'ci'` branches.
+ */
+export interface UnlighthouseBehavior {
+  /** WebSocket broadcaster. Pass null to disable (e.g. CI). */
+  ws?: WS | null
+  /** When true, generateClient() is run after server context is set (CLI). */
+  generateClient?: boolean
+  /** When true, scanning waits for the user to visit the client before starting (integrations). */
+  autoStartOnVisit?: boolean
+  /** When true, the fancy CLI start banner is printed (CLI). */
+  showBanner?: boolean
+  /** Label shown in logs / banner (e.g. 'cli', 'ci', 'nuxt'). */
+  label?: string
+}
+
+export async function createUnlighthouse(userConfig: UserConfig, provider?: Provider, behavior: UnlighthouseBehavior = {}) {
   const logger = createLogger(userConfig.debug)
   const { __dirname } = createCommonJS(import.meta.url)
   if (userConfig.root && !isAbsolute(userConfig.root))
@@ -120,8 +138,8 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   if (configFile)
     logger.info(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
 
-  // web socket instance for broadcasting
-  const ws = provider?.name === 'ci' ? null : new WS()
+  // web socket instance for broadcasting; presets pass null for non-interactive (CI) flows.
+  const ws = behavior.ws !== undefined ? behavior.ws : new WS()
 
   const ctx = {
     runtimeSettings,
@@ -130,14 +148,13 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     ws,
     provider,
   } as unknown as UnlighthouseContext
-  engineContext.set(ctx, true)
 
   const tasks = {
-    inspectHtmlTask,
-    runLighthouseTask,
+    inspectHtmlTask: createInspectHtmlTask(ctx),
+    runLighthouseTask: createRunLighthouseTask(ctx),
   }
 
-  const worker = await createUnlighthouseWorker(tasks)
+  const worker = await createUnlighthouseWorker(ctx, tasks)
 
   if (resolvedConfig.hooks?.authenticate) {
     // do an authentication step
@@ -210,7 +227,8 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       logger.error(`Failed to create output directory. Please check unlighthouse has permission to create files and folders in: ${resolvedConfig.outputPath}`, e)
     }
 
-    if (provider?.name === 'ci')
+    // When ws is disabled (CI), don't nest reports by hostname/cache key.
+    if (ws === null)
       outputPath = resolvedConfig.outputPath
 
     ctx.runtimeSettings = {
@@ -282,7 +300,43 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,
     }
 
-    ctx.api = await createApi(app)
+    // v3: HTTP projection from command registry (replaces hand-wired routes in createApi).
+    // D-018: the host owns the concrete consola; pass it through so core can `logger.withTag(adapterName)` per adapter.
+    const coreConfig = resolvedConfig as unknown as Parameters<typeof createUnlighthouseCore>[0]['config']
+    const auditor = resolveAuditor({ config: coreConfig, logger })
+    const crawler = crawleeCrawler({ logger: logger.withTag('crawler/crawlee') as never })
+    fs.ensureDirSync(ctx.runtimeSettings.outputPath)
+    const sqliteDb = new Database(join(ctx.runtimeSettings.outputPath, 'db.sqlite'))
+    const rowStorage = drizzleStorage({
+      driver: drizzle(sqliteDb),
+      logger: logger.withTag('storage/drizzle') as never,
+    })
+    const storage = createStorage({
+      rows: rowStorage,
+      blobs: unstorageBlobs({
+        driver: fsDriver({ base: join(ctx.runtimeSettings.outputPath, 'blobs') }),
+      }),
+    })
+    const seeds = fuseSeeds([
+      manualSeeds({ urls: resolvedConfig.urls ?? [], logger: logger.withTag('seeds/manual') as never }),
+    ])
+    const core = createUnlighthouseCore({
+      config: coreConfig,
+      auditor,
+      seeds,
+      crawler,
+      storage,
+      logger,
+    })
+    const handlerCtx = {
+      core,
+      auditor,
+      storage,
+      config: coreConfig,
+      version,
+      auditors: undefined,
+    }
+    await mountServer(ctx, app, { handlerCtx })
 
     if (ws) {
       server.on('upgrade', (request: IncomingMessage, socket) => {
@@ -301,12 +355,12 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     }
     fs.ensureDirSync(ctx.runtimeSettings.outputPath)
 
-    // Generate client for CLI mode (copy and transform client files)
-    if (provider?.name === 'cli' && resolvedClientPath && existsSync(resolvedClientPath)) {
+    // Generate client (copy and transform client files) when the preset requests it.
+    if (behavior.generateClient && resolvedClientPath && existsSync(resolvedClientPath)) {
       await generateClient({}, ctx)
     }
 
-    if (provider?.name !== 'cli') {
+    if (behavior.autoStartOnVisit) {
       // start if the user visits the client
       hooks.hookOnce('visited-client', () => {
         ctx.start()
@@ -316,36 +370,17 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   }
 
   ctx.start = async () => {
-    logger.debug(`Starting Unlighthouse [Server: ${provider?.name === 'ci' ? 'N/A' : ctx.runtimeSettings.clientUrl} Site: ${ctx.resolvedConfig.site} Debug: \`${ctx.resolvedConfig.debug}\`]`)
+    logger.debug(`Starting Unlighthouse [Server: ${ws === null ? 'N/A' : ctx.runtimeSettings.clientUrl} Site: ${ctx.resolvedConfig.site} Debug: \`${ctx.resolvedConfig.debug}\`]`)
 
-    if (typeof provider?.routeDefinitions === 'function')
-      ctx.routeDefinitions = await provider.routeDefinitions()
-    else
-      ctx.routeDefinitions = provider?.routeDefinitions
-
-    // generate our own route definitions if the integration can't provide them
-    if (!ctx.routeDefinitions && resolvedConfig.discovery !== false) {
-      logger.debug('No route definitions provided, discovering them ourselves.')
-      ctx.routeDefinitions = await discoverRouteDefinitions()
-    }
-
-    if (ctx.routeDefinitions?.length) {
-      ctx.provider = ctx.provider || {}
-      if (typeof ctx.provider?.mockRouter === 'function')
-        ctx.provider.mockRouter = ctx.provider.mockRouter(ctx.routeDefinitions)
-      else if (!ctx.provider.mockRouter)
-        ctx.provider.mockRouter = createMockRouter(ctx.routeDefinitions)
-      logger.debug(`Discovered ${ctx.routeDefinitions?.length} definitions and setup mock router.`)
-    }
-
+    // v1: discovery is sitemap + crawler only. Route-definition seed source dropped.
     // Two-phase URL discovery: crawlSite handles sitemap, manual URLs, and Crawlee crawling
-    ctx.routes = await crawlSite()
+    ctx.routes = await crawlSite(ctx)
     logger.debug('Discovered and filtered routes', ctx.routes.length)
-    createBroadcastingEvents()
-    initHistoryTracking()
+    createBroadcastingEvents(ctx)
+    initHistoryTracking(ctx)
 
     // Show the static info box first (before any progress starts)
-    if (provider?.name !== 'ci') {
+    if (behavior.showBanner) {
       // fancy CLI banner when we start
       const label = (name: string) => colorize('bold', colorize('magenta', (`▸ ${name}:`)))
       let mode = ''
@@ -365,7 +400,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       catch {}
 
       const title = [
-        `⛵\u200D  ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${provider?.name} @ v${version}`)}`,
+        `⛵\u200D  ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${behavior.label ?? ''} @ v${version}`)}`,
       ]
       if (Number(latestTag.replace('v', '').replace('.', '')) > Number(version.replace('.', ''))) {
         title.push(...[
@@ -379,8 +414,6 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
         `${label('Scanning')} ${resolvedConfig.site}`,
         `${label('Route Discovery')} ${mode} ${ctx.routes.length > 1 ? (colorize('dim', (`${ctx.routes.length} initial URLs`))) : ''}`,
       ])
-      if (ctx.routeDefinitions?.length)
-        title.push(`${label('Route Definitions')} ${ctx.routeDefinitions.length}`)
 
       process.stdout.write(successBox(
         // messages

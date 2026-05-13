@@ -1,7 +1,7 @@
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import type { ComparisonDiff, MetricDiff } from '../report/types'
 import { eq } from 'drizzle-orm'
-import { comparisonDiffs, comparisons, scanRoutes } from '../../../unlighthouse/src/data/history/schema'
+import { comparisonDiffs, comparisons, scanRoutes } from '../storage/drizzle/schema/history'
 
 export const DEFAULT_THRESHOLDS: Record<string, number> = {
   lcp: 500, // 500ms change

@@ -1,16 +1,17 @@
+import type { UnlighthouseContext } from '@unlighthouse/contracts'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
+import type { WebSocket } from 'ws'
 import { Buffer } from 'node:buffer'
 import { WebSocketServer } from 'ws'
-import { useUnlighthouse } from '../../../unlighthouse/src/unlighthouse'
 
 let broadcastingHooksRegistered = false
 
 /**
  * When certain hooks are triggered we need to broadcast data via the web socket.
  */
-export function createBroadcastingEvents() {
-  const { hooks, ws, worker } = useUnlighthouse()
+export function createBroadcastingEvents(ctx: UnlighthouseContext) {
+  const { hooks, ws, worker } = ctx
 
   // ws may not be set, for example in a CI environment
   if (!ws)
@@ -114,7 +115,7 @@ export class WS {
   }
 
   handleUpgrade(request: IncomingMessage, socket: Socket) {
-    return this.wss.handleUpgrade(request, socket, Buffer.alloc(0), (client) => {
+    return this.wss.handleUpgrade(request, socket, Buffer.alloc(0), (client: WebSocket) => {
       this.wss.emit('connection', client, request)
     })
   }
@@ -126,7 +127,8 @@ export class WS {
   broadcast(data: Record<string, any>) {
     const jsonData = JSON.stringify(data)
 
-    for (const client of this.wss.clients) {
+    const clients = this.wss.clients ?? []
+    for (const client of clients) {
       try {
         client.send(jsonData)
       }

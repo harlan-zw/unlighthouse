@@ -13,6 +13,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@unlighthouse/contracts": "workspace:*",
+    "@unlighthouse/core": "workspace:*",
     "better-sqlite3": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
     "drizzle-orm": "catalog:dependencies",

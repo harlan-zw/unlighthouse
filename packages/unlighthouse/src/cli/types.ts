@@ -46,4 +46,4 @@ export interface CiOptions extends CliOptions {
   compareOutput?: string
 }
 
-export { UnlighthouseRouteReport }
+export type { UnlighthouseRouteReport }

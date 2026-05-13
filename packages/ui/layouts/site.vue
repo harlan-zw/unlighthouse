@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { NavLink } from '~/components/NavList.vue'
 import { siteHostname, siteIdForScan, useSites } from '~/composables/sites'
+import { asScanId, useApiClient } from '~/composables/useApiClient'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const route = useRoute()
 const router = useRouter()
 const { sites } = useSites()
 const { apiUrl, website } = useUnlighthouseConfig()
+const apiClient = useApiClient()
 
 const siteId = computed(() => {
   if (route.params.siteId)
@@ -59,7 +61,7 @@ watch(scanId, async (id) => {
     fetchedScanSite.value = ''
     return
   }
-  const data = await $fetch<{ site: string }>(`${apiUrl.value}/history/${id}`).catch(() => null)
+  const data = await apiClient['history.get']({ scanId: asScanId(id) }).catch(() => null)
   fetchedScanSite.value = data?.site ?? ''
 }, { immediate: true })
 
@@ -85,14 +87,7 @@ provide('siteUrl', siteUrl)
             class="flex items-center gap-2 w-full p-2 rounded-lg ring-1 ring-default bg-elevated/40 hover:bg-elevated transition-colors text-left"
             aria-label="Switch site"
           >
-            <img
-              :src="`https://www.google.com/s2/favicons?domain=${siteHostname(site.url)}&sz=32`"
-              class="size-5 rounded shrink-0"
-              :alt="site.name"
-              width="20"
-              height="20"
-              loading="lazy"
-            >
+            <SiteFavicon :url="site.url" :alt="site.name" class="size-5" />
             <div class="flex-1 min-w-0">
               <p class="text-[13px] font-medium truncate text-default leading-tight">
                 {{ site.name }}
@@ -114,14 +109,7 @@ provide('siteUrl', siteUrl)
                 :aria-selected="s.id === site.id"
                 @click="changeSite(s.id)"
               >
-                <img
-                  :src="`https://www.google.com/s2/favicons?domain=${siteHostname(s.url)}&sz=32`"
-                  class="size-4 rounded shrink-0"
-                  :alt="s.name"
-                  width="16"
-                  height="16"
-                  loading="lazy"
-                >
+                <SiteFavicon :url="s.url" :alt="s.name" class="size-4" />
                 <span class="text-[13px] truncate flex-1">{{ s.name }}</span>
                 <UIcon v-if="s.id === site.id" name="i-heroicons-check" class="size-3.5 text-success shrink-0" aria-hidden="true" />
               </button>

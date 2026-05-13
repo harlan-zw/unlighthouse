@@ -1,4 +1,5 @@
-import { unlighthouseReports } from './state'
+import { useReports } from './state'
+import { asScanId, useApiClient } from './useApiClient'
 import { useUnlighthouseConfig } from './useUnlighthouseConfig'
 
 export type ScanStatus = 'idle' | 'starting' | 'discovering' | 'scanning' | 'complete' | 'cancelled' | 'error'
@@ -65,13 +66,12 @@ export function formatTimeRemaining(ms: number | null): string {
 }
 
 export async function rescanSite() {
-  const { apiUrl } = useUnlighthouseConfig()
-  if (!apiUrl.value)
+  const client = useApiClient()
+  const scanId = await getCurrentScanIdLocal()
+  if (!scanId)
     return
-  unlighthouseReports.value = []
-  const result = await $fetch<{ scanId?: string }>(`${apiUrl.value}/reports/rescan`, { method: 'POST' }).catch((err) => {
-    if (err?.data?.scanId)
-      navigateTo(`/results/${err.data.scanId}/scan`)
+  useReports().clearReports()
+  const result = await client['scan.rescanAll']({ scanId: asScanId(scanId) }).catch((err: unknown) => {
     console.warn(err)
     return null
   })
@@ -80,10 +80,20 @@ export async function rescanSite() {
 }
 
 export async function rescanRoutes(paths: string[]) {
-  const { apiUrl } = useUnlighthouseConfig()
-  if (!apiUrl.value || !paths.length)
+  const client = useApiClient()
+  if (!paths.length)
     return
-  await $fetch(`${apiUrl.value}/rescan`, { method: 'POST', body: { paths } }).catch(console.warn)
+  const scanId = await getCurrentScanIdLocal()
+  if (!scanId)
+    return
+  // Batch rescan == full-site rescan; the underlying handler drops + re-queues.
+  await client['scan.rescanAll']({ scanId: asScanId(scanId) }).catch(console.warn)
+}
+
+async function getCurrentScanIdLocal(): Promise<string | null> {
+  const client = useApiClient()
+  const res = await client['scan.current']({}).catch(() => null)
+  return res?.scanId ?? null
 }
 
 export async function rescanRoute(path: string) {
@@ -91,9 +101,12 @@ export async function rescanRoute(path: string) {
 }
 
 export function useScan() {
-  const { apiUrl, isStatic } = useUnlighthouseConfig()
+  const { isStatic } = useUnlighthouseConfig()
   const nuxtApp = useNuxtApp()
   const transport = nuxtApp.$transport as { connect: () => Promise<void>, disconnect: () => void }
+  const client = useApiClient()
+  // TODO(v2): wire scanId from route or shared state; backend tolerates empty scanId for status
+  const scanId = useState<string>('scanId', () => '')
 
   const state = reactive<ScanState>(freshState())
 
@@ -104,7 +117,7 @@ export function useScan() {
   async function fetchScanStatus() {
     if (isStatic.value)
       return
-    const data = await $fetch<ScanState>(`${apiUrl.value}/scan/status`).catch(() => null)
+    const data = await client['scan.status']({ scanId: asScanId(scanId.value ?? '') }).catch(() => null)
     if (data)
       Object.assign(state, data)
   }
@@ -112,24 +125,24 @@ export function useScan() {
   async function cancelScan() {
     if (isStatic.value)
       return
-    const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/cancel`, { method: 'POST' }).catch(() => null)
-    if (result?.success)
+    const result = await client['scan.cancel']({ scanId: asScanId(scanId.value ?? '') }).catch(() => null)
+    if (result)
       state.status = 'cancelled'
   }
 
   async function pauseScan() {
     if (isStatic.value)
       return
-    const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/pause`, { method: 'POST' }).catch(() => null)
-    if (result?.success)
+    const result = await client['scan.pause']({ scanId: asScanId(scanId.value ?? '') }).catch(() => null)
+    if (result)
       state.paused = true
   }
 
   async function resumeScan() {
     if (isStatic.value)
       return
-    const result = await $fetch<{ success: boolean }>(`${apiUrl.value}/scan/resume`, { method: 'POST' }).catch(() => null)
-    if (result?.success)
+    const result = await client['scan.resume']({ scanId: asScanId(scanId.value ?? '') }).catch(() => null)
+    if (result)
       state.paused = false
   }
 
@@ -142,9 +155,15 @@ export function useScan() {
     state.progress = { discovered: 0, scanned: 0, failed: 0, total: 0, percent: 0 }
     state.recentlyCompleted = []
 
-    const result = await $fetch<{ scanId?: string }>(`${apiUrl.value}/reports/rescan`, { method: 'POST' }).catch((err) => {
+    const currentId = scanId.value || (await client['scan.current']({}).catch(() => null))?.scanId
+    if (!currentId) {
       state.status = 'error'
-      state.error = err?.message || 'Failed to retry scan'
+      state.error = 'No scan to retry'
+      return
+    }
+    const result = await client['scan.rescanAll']({ scanId: asScanId(currentId) }).catch((err: unknown) => {
+      state.status = 'error'
+      state.error = err instanceof Error ? err.message : 'Failed to retry scan'
       return null
     })
 
@@ -152,7 +171,7 @@ export function useScan() {
       await navigateTo(`/results/${result.scanId}/scan`, { replace: true })
   }
 
-  function onProgress(data: ScanProgress) {
+  function onProgress(data: Partial<ScanProgress>) {
     state.progress = { ...state.progress, ...data }
     if (state.progress.percent < 100)
       state.status = 'scanning'
@@ -187,11 +206,11 @@ export function useScan() {
     if (isStatic.value)
       return
 
-    nuxtApp.hook('transport:scan:progress' as any, onProgress)
-    nuxtApp.hook('transport:scan:route-complete' as any, onRouteComplete)
-    nuxtApp.hook('transport:scan:complete' as any, onComplete)
-    nuxtApp.hook('transport:scan:cancelled' as any, onCancelled)
-    nuxtApp.hook('transport:scan:error' as any, onError)
+    nuxtApp.hook('transport:scan:progress', onProgress)
+    nuxtApp.hook('transport:scan:route-complete', onRouteComplete)
+    nuxtApp.hook('transport:scan:complete', onComplete)
+    nuxtApp.hook('transport:scan:cancelled', onCancelled)
+    nuxtApp.hook('transport:scan:error', onError)
 
     fetchScanStatus()
     transport.connect().catch(() => {})

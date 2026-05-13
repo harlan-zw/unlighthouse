@@ -1,3 +1,6 @@
-// v0 — single legacy crawler. v1 adds crawlers/parallel-map + crawlers/crawlee proper.
-export * from './legacy-puppeteer-cluster'
-export { crawlSite } from './legacy-puppeteer-cluster/orchestrator'
+// v1 — Crawler port factories. Legacy puppeteer-cluster orchestrator lives inside
+// ./crawlee and is exposed via crawleeCrawler(). parallel-map handles finite seed
+// lists without discovery.
+export * from './crawlee'
+export { crawlSite } from './crawlee/orchestrator'
+export * from './parallel-map'

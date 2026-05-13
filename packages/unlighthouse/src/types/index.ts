@@ -1,4 +1,6 @@
+import type { ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { Config, Flags, Result } from 'lighthouse'
+import type { Page } from 'puppeteer-core'
 
 export interface UnlighthouseOptions {
   /**
@@ -67,5 +69,9 @@ export interface UnlighthouseReport {
 }
 
 export interface UnlighthouseHooks {
+  'authenticate': (page: Page) => void | Promise<void>
+  'resolved-config': (resolvedConfig: ResolvedUserConfig) => void | Promise<void>
   'report:ready': (report: UnlighthouseReport) => void | Promise<void>
+  'site-changed': (site: string) => void | Promise<void>
+  'visited-client': () => void | Promise<void>
 }

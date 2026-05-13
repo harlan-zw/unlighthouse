@@ -5,50 +5,96 @@
   "private": true,
   "description": "Pure core modules for Unlighthouse v1 (report, comparison, seeds, policies, crawlers, auditors, storage, api).",
   "license": "MIT",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     },
     "./report": {
-      "types": "./src/report/index.ts",
-      "import": "./src/report/index.ts"
+      "types": "./dist/report/index.d.mts",
+      "import": "./dist/report/index.mjs"
     },
     "./comparison": {
-      "types": "./src/comparison/index.ts",
-      "import": "./src/comparison/index.ts"
+      "types": "./dist/comparison/index.d.mts",
+      "import": "./dist/comparison/index.mjs"
     },
     "./seeds": {
-      "types": "./src/seeds/index.ts",
-      "import": "./src/seeds/index.ts"
+      "types": "./dist/seeds/index.d.mts",
+      "import": "./dist/seeds/index.mjs"
     },
     "./policies": {
-      "types": "./src/policies/index.ts",
-      "import": "./src/policies/index.ts"
+      "types": "./dist/policies/index.d.mts",
+      "import": "./dist/policies/index.mjs"
     },
     "./crawlers": {
-      "types": "./src/crawlers/index.ts",
-      "import": "./src/crawlers/index.ts"
+      "types": "./dist/crawlers/index.d.mts",
+      "import": "./dist/crawlers/index.mjs"
     },
     "./auditors": {
-      "types": "./src/auditors/index.ts",
-      "import": "./src/auditors/index.ts"
+      "types": "./dist/auditors/index.d.mts",
+      "import": "./dist/auditors/index.mjs"
+    },
+    "./util/path": {
+      "types": "./dist/util/path.d.mts",
+      "import": "./dist/util/path.mjs"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.mts",
+      "import": "./dist/storage/index.mjs"
     },
     "./storage/drizzle": {
-      "types": "./src/storage/drizzle/index.ts",
-      "import": "./src/storage/drizzle/index.ts"
+      "types": "./dist/storage/drizzle/index.d.mts",
+      "import": "./dist/storage/drizzle/index.mjs"
+    },
+    "./storage/drizzle/schema/sqlite": {
+      "types": "./dist/storage/drizzle/schema/sqlite.d.mts",
+      "import": "./dist/storage/drizzle/schema/sqlite.mjs"
+    },
+    "./storage/drizzle/schema/history": {
+      "types": "./dist/storage/drizzle/schema/history.d.mts",
+      "import": "./dist/storage/drizzle/schema/history.mjs"
+    },
+    "./data/history": {
+      "types": "./dist/data/history.d.mts",
+      "import": "./dist/data/history.mjs"
+    },
+    "./storage/memory": {
+      "types": "./dist/storage/memory/index.d.mts",
+      "import": "./dist/storage/memory/index.mjs"
+    },
+    "./storage/unstorage-blobs": {
+      "types": "./dist/storage/unstorage-blobs/index.d.mts",
+      "import": "./dist/storage/unstorage-blobs/index.mjs"
     },
     "./api": {
-      "types": "./src/api/index.ts",
-      "import": "./src/api/index.ts"
+      "types": "./dist/api/index.d.mts",
+      "import": "./dist/api/index.mjs"
+    },
+    "./api/client": {
+      "types": "./dist/api/client.d.mts",
+      "import": "./dist/api/client.mjs"
+    },
+    "./api/http": {
+      "types": "./dist/api/http.d.mts",
+      "import": "./dist/api/http.mjs"
+    },
+    "./api/handlers": {
+      "types": "./dist/api/handlers/index.d.mts",
+      "import": "./dist/api/handlers/index.mjs"
+    },
+    "./api/dashboard": {
+      "types": "./dist/api/dashboard.d.mts",
+      "import": "./dist/api/dashboard.mjs"
     },
     "./package.json": "./package.json"
   },
-  "main": "src/index.ts",
-  "module": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "files": [
-    "dist"
+    "dist",
+    "dist/migrations/sqlite/**"
   ],
   "engines": {
     "node": ">=22.0.0"
@@ -56,16 +102,34 @@
   "scripts": {
     "build": "obuild",
     "stub": "obuild --stub",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate"
+  },
+  "peerDependencies": {
+    "better-sqlite3": "catalog:dependencies",
+    "drizzle-orm": "catalog:dependencies",
+    "unstorage": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "unstorage": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@unlighthouse/contracts": "workspace:*",
-    "better-sqlite3": "catalog:dependencies",
+    "axios": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
+    "consola": "catalog:dependencies",
     "crawlee": "catalog:dependencies",
-    "drizzle-orm": "catalog:dependencies",
     "fs-extra": "catalog:dependencies",
     "h3": "catalog:dependencies",
+    "hookable": "catalog:dependencies",
     "launch-editor": "catalog:dependencies",
     "lighthouse": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
@@ -75,8 +139,19 @@
     "pathe": "catalog:dependencies",
     "puppeteer-cluster": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
+    "sanitize-filename": "catalog:dependencies",
     "sitemapper": "catalog:dependencies",
+    "slugify": "catalog:dependencies",
     "ufo": "catalog:dependencies",
+    "unctx": "catalog:dependencies",
     "ws": "catalog:dependencies"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "catalog:",
+    "@types/fs-extra": "catalog:",
+    "better-sqlite3": "catalog:dependencies",
+    "drizzle-kit": "catalog:",
+    "drizzle-orm": "catalog:dependencies",
+    "unstorage": "catalog:"
   }
 }
