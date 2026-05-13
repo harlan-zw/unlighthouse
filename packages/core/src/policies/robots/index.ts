@@ -1,8 +1,8 @@
 import type { ResolvedUserConfig, UnlighthouseContext } from '@unlighthouse/contracts'
 import type { RobotsGroupResolved } from './parser'
 import { $URL } from 'ufo'
-import { useLogger } from '../../util/logger'
 import { fetchUrlRaw } from '../../util/fetch'
+import { useLogger } from '../../util/logger'
 
 export interface RobotsTxtParsed {
   sitemaps: string[]

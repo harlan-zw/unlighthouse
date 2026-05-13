@@ -45,7 +45,7 @@ function fmt(iso: string) {
           <div
             v-for="(score, key) in { P: scan.scores.performance, A: scan.scores.accessibility, B: scan.scores.bestPractices, S: scan.scores.seo }"
             :key="key"
-            class="size-7 rounded flex items-center justify-center font-mono text-[11px]"
+            class="size-8 rounded flex items-center justify-center font-mono text-[11px]"
             :class="[getScoreBg(score), getScoreColor(score)]"
           >
             {{ score ?? '—' }}
@@ -55,12 +55,12 @@ function fmt(iso: string) {
     </div>
 
     <div v-else class="rounded-xl ring-1 ring-default bg-elevated/40 px-6 py-16 text-center">
-      <UIcon name="i-heroicons-clock" class="size-10 text-dimmed mx-auto mb-3" />
+      <UIcon name="i-heroicons-clock" class="size-8 text-dimmed mx-auto mb-3" />
       <p class="text-muted mb-4">
-        No scans yet.
+        Run a scan to surface render-blocking resources, image weight, and a11y gaps.
       </p>
       <UButton :to="`/sites/${site.id}/scan/new`" icon="i-heroicons-bolt" color="primary">
-        Run the first scan
+        Run scan
       </UButton>
     </div>
   </div>

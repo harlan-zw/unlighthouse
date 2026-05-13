@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDashboard, getScoreColor, getScoreBg } from '~/composables/dashboard'
+import { getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
 
 definePageMeta({ layout: 'site' })
 
@@ -9,7 +9,8 @@ const scanId = computed(() => route.params.scanId as string)
 const { bestPractices } = useDashboard(scanId)
 
 onMounted(() => {
-  if (scanId.value) bestPractices.execute()
+  if (scanId.value)
+    bestPractices.execute()
 })
 
 const activeTab = ref(0)
@@ -24,13 +25,15 @@ const tabs = [
 const avgScore = computed(() => {
   const routes = bestPractices.data.value?.routes ?? []
   const withScores = routes.filter(r => r.score !== null)
-  if (!withScores.length) return null
+  if (!withScores.length)
+    return null
   return Math.round(withScores.reduce((a, r) => a + (r.score ?? 0), 0) / withScores.length)
 })
 
 const summaryStats = computed(() => {
   const data = bestPractices.data.value
-  if (!data) return []
+  if (!data)
+    return []
 
   const routes = data.routes ?? []
   const securityCount = data.securityIssues?.length ?? 0
@@ -45,7 +48,6 @@ const summaryStats = computed(() => {
     { label: 'Vulnerable Libs', value: vulnerableCount, color: vulnerableCount > 0 ? 'text-error' : 'text-success', icon: 'i-heroicons-exclamation-triangle' },
   ]
 })
-
 
 const severityOrder = { high: 0, medium: 1, low: 2 }
 const sortedSecurity = computed(() =>
@@ -136,9 +138,15 @@ const routeIssueCounts = computed(() => {
     existing[key] += 1
     map.set(path, existing)
   }
-  for (const s of data?.securityIssues ?? []) for (const p of s.pages ?? []) bump(p, 'security')
-  for (const e of data?.consoleErrors ?? []) for (const p of e.pages ?? []) bump(p, 'errors')
-  for (const d of data?.deprecatedApis ?? []) for (const p of d.pages ?? []) bump(p, 'deprecated')
+  for (const s of data?.securityIssues ?? []) {
+    for (const p of s.pages ?? []) bump(p, 'security')
+  }
+  for (const e of data?.consoleErrors ?? []) {
+    for (const p of e.pages ?? []) bump(p, 'errors')
+  }
+  for (const d of data?.deprecatedApis ?? []) {
+    for (const p of d.pages ?? []) bump(p, 'deprecated')
+  }
   return map
 })
 
@@ -171,10 +179,10 @@ function toggleItem(id: string) {
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
         :class="activeTab === idx
-          ? 'bg-secondary/10 text-secondary border border-secondary/20'
-          : 'text-muted hover:text-default hover:bg-elevated/60'"
+          ? 'bg-elevated text-highlighted border border-default'
+          : 'text-muted hover:text-default hover:bg-elevated/60 border border-transparent'"
         @click="activeTab = idx"
       >
         <UIcon :name="tab.icon" class="w-4 h-4" />
@@ -213,8 +221,12 @@ function toggleItem(id: string) {
               }"
             />
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-medium text-highlighted">{{ item.label }}</div>
-              <div class="text-xs text-muted mt-0.5">{{ item.detail }}</div>
+              <div class="text-sm font-medium text-highlighted">
+                {{ item.label }}
+              </div>
+              <div class="text-xs text-muted mt-0.5">
+                {{ item.detail }}
+              </div>
             </div>
           </div>
         </div>
@@ -225,7 +237,7 @@ function toggleItem(id: string) {
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No security issues found</p>
         </div>
-        <div v-else class="divide-y divide-white/5 -mx-4">
+        <div v-else class="divide-y divide-default -mx-4">
           <div v-for="issue in sortedSecurity" :key="issue.type" class="border-b border-default last:border-0">
             <button
               class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-elevated/40 transition-colors"
@@ -237,8 +249,12 @@ function toggleItem(id: string) {
                   class="w-4 h-4 text-dimmed shrink-0"
                 />
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm text-highlighted">{{ issue.type }}</div>
-                  <div class="text-xs text-dimmed mt-1">{{ issue.description }}</div>
+                  <div class="text-sm text-highlighted">
+                    {{ issue.type }}
+                  </div>
+                  <div class="text-xs text-dimmed mt-1">
+                    {{ issue.description }}
+                  </div>
                 </div>
               </div>
               <div class="flex items-center gap-3 shrink-0">
@@ -261,7 +277,7 @@ function toggleItem(id: string) {
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No console errors found</p>
         </div>
-        <div v-else class="divide-y divide-white/5 -mx-4">
+        <div v-else class="divide-y divide-default -mx-4">
           <div v-for="(error, idx) in sortedErrors" :key="idx" class="border-b border-default last:border-0">
             <button
               class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-elevated/40 transition-colors"
@@ -273,8 +289,12 @@ function toggleItem(id: string) {
                   class="w-4 h-4 text-dimmed shrink-0"
                 />
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm text-error font-mono truncate">{{ error.message }}</div>
-                  <div class="text-xs text-dimmed mt-1">Source: {{ error.source }}</div>
+                  <div class="text-sm text-error font-mono truncate">
+                    {{ error.message }}
+                  </div>
+                  <div class="text-xs text-dimmed mt-1">
+                    Source: {{ error.source }}
+                  </div>
                 </div>
               </div>
               <div class="flex items-center gap-4 shrink-0 text-sm">
@@ -303,17 +323,31 @@ function toggleItem(id: string) {
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-dimmed border-b border-default">
-                  <th class="pb-2 font-medium">Library</th>
-                  <th class="pb-2 font-medium">Version</th>
-                  <th class="pb-2 font-medium">Severity</th>
-                  <th class="pb-2 font-medium">CVEs</th>
-                  <th class="pb-2 font-medium text-right">Pages</th>
+                  <th class="pb-2 font-medium">
+                    Library
+                  </th>
+                  <th class="pb-2 font-medium">
+                    Version
+                  </th>
+                  <th class="pb-2 font-medium">
+                    Severity
+                  </th>
+                  <th class="pb-2 font-medium">
+                    CVEs
+                  </th>
+                  <th class="pb-2 font-medium text-right">
+                    Pages
+                  </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-white/5">
+              <tbody class="divide-y divide-default">
                 <tr v-for="lib in libraryGroups.vulnerable" :key="lib.name">
-                  <td class="py-3 text-highlighted font-medium">{{ lib.name }}</td>
-                  <td class="py-3 font-mono text-muted">{{ lib.version }}</td>
+                  <td class="py-3 text-highlighted font-medium">
+                    {{ lib.name }}
+                  </td>
+                  <td class="py-3 font-mono text-muted">
+                    {{ lib.version }}
+                  </td>
                   <td class="py-3">
                     <SeverityBadge :severity="lib.vulnInfo?.highestSeverity || 'moderate'" />
                   </td>
@@ -333,7 +367,9 @@ function toggleItem(id: string) {
                       </span>
                     </div>
                   </td>
-                  <td class="py-3 text-right text-muted">{{ lib.pageCount }}</td>
+                  <td class="py-3 text-right text-muted">
+                    {{ lib.pageCount }}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -352,25 +388,39 @@ function toggleItem(id: string) {
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-dimmed border-b border-default">
-                  <th class="pb-2 font-medium">Library</th>
-                  <th class="pb-2 font-medium">Version</th>
-                  <th class="pb-2 font-medium">Status</th>
-                  <th class="pb-2 font-medium text-right">Pages</th>
+                  <th class="pb-2 font-medium">
+                    Library
+                  </th>
+                  <th class="pb-2 font-medium">
+                    Version
+                  </th>
+                  <th class="pb-2 font-medium">
+                    Status
+                  </th>
+                  <th class="pb-2 font-medium text-right">
+                    Pages
+                  </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-white/5">
+              <tbody class="divide-y divide-default">
                 <tr v-for="lib in [...libraryGroups.outdated, ...libraryGroups.current]" :key="lib.name">
-                  <td class="py-3 text-highlighted">{{ lib.name }}</td>
-                  <td class="py-3 font-mono text-muted">{{ lib.version }}</td>
+                  <td class="py-3 text-highlighted">
+                    {{ lib.name }}
+                  </td>
+                  <td class="py-3 font-mono text-muted">
+                    {{ lib.version }}
+                  </td>
                   <td class="py-3">
                     <span
                       class="text-xs px-2 py-0.5 rounded"
                       :class="lib.status === 'current' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'"
                     >
-                      {{ lib.status === 'current' ? '✓ Current' : '⚠ Outdated' }}
+                      {{ lib.status === 'current' ? 'Current' : 'Outdated' }}
                     </span>
                   </td>
-                  <td class="py-3 text-right text-muted">{{ lib.pageCount }}</td>
+                  <td class="py-3 text-right text-muted">
+                    {{ lib.pageCount }}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -390,16 +440,28 @@ function toggleItem(id: string) {
           <table class="w-full text-sm">
             <thead>
               <tr class="text-left text-dimmed border-b border-default">
-                <th class="pb-2 font-medium">API</th>
-                <th class="pb-2 font-medium">Source</th>
-                <th class="pb-2 font-medium text-right">Pages</th>
+                <th class="pb-2 font-medium">
+                  API
+                </th>
+                <th class="pb-2 font-medium">
+                  Source
+                </th>
+                <th class="pb-2 font-medium text-right">
+                  Pages
+                </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-white/5">
+            <tbody class="divide-y divide-default">
               <tr v-for="api in sortedDeprecated" :key="api.api">
-                <td class="py-3 font-mono text-primary">{{ api.api }}</td>
-                <td class="py-3 text-muted">{{ api.source }}</td>
-                <td class="py-3 text-right text-muted">{{ api.pageCount }}</td>
+                <td class="py-3 font-mono text-primary">
+                  {{ api.api }}
+                </td>
+                <td class="py-3 text-muted">
+                  {{ api.source }}
+                </td>
+                <td class="py-3 text-right text-muted">
+                  {{ api.pageCount }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -414,7 +476,7 @@ function toggleItem(id: string) {
           <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
           <p>No route data available</p>
         </div>
-        <div v-else class="divide-y divide-white/5">
+        <div v-else class="divide-y divide-default">
           <NuxtLink
             v-for="r in sortedRoutes"
             :key="r.path"
@@ -422,13 +484,17 @@ function toggleItem(id: string) {
             class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 hover:bg-elevated/40 -mx-4 px-4 transition-colors"
           >
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-mono text-highlighted truncate">{{ r.path }}</div>
+              <div class="text-sm font-mono text-highlighted truncate">
+                {{ r.path }}
+              </div>
               <div v-if="r.counts" class="flex items-center gap-3 mt-1 text-xs">
                 <span v-if="r.counts.security" class="text-error">{{ r.counts.security }} security</span>
                 <span v-if="r.counts.errors" class="text-warning">{{ r.counts.errors }} errors</span>
                 <span v-if="r.counts.deprecated" class="text-secondary">{{ r.counts.deprecated }} deprecated</span>
               </div>
-              <div v-else class="text-xs text-dimmed mt-1">No issues</div>
+              <div v-else class="text-xs text-dimmed mt-1">
+                No issues
+              </div>
             </div>
             <div
               class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"

@@ -9,15 +9,16 @@ import type {
   UnlighthouseWorkerStats,
 } from '@unlighthouse/contracts'
 import type { TaskFunction } from '@unlighthouse/contracts/types/puppeteer'
-import type { ProgressData } from '../../../../unlighthouse/src/util/progressBox'
+import type { ProgressData } from '../../util/progressBox'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import { get, sortBy, uniqBy } from 'lodash-es'
-import { useLogger } from '../../util/logger'
-import { createTaskReportFromRoute, formatBytes, ReportArtifacts } from '../../util/fetch'
-import { createFilter, isImplicitOrExplicitHtml } from '../../../../unlighthouse/src/util/filter'
-import { createProgressBox } from '../../../../unlighthouse/src/util/progressBox'
 import { matchPathToRule } from '../../seeds'
+import { ReportArtifacts } from '../../util/fetch'
+import { createFilter, isImplicitOrExplicitHtml } from '../../util/filter'
+import { useLogger } from '../../util/logger'
+import { createTaskReportFromRoute, formatBytes } from '../../util/misc'
+import { createProgressBox } from '../../util/progressBox'
 import {
   launchPuppeteerCluster,
 } from './cluster'

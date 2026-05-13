@@ -22,6 +22,10 @@
       "types": "./src/ports/index.ts",
       "import": "./dist/index.mjs"
     },
+    "./drizzle": {
+      "types": "./src/drizzle/index.ts",
+      "import": "./dist/drizzle/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.mjs",
@@ -39,7 +43,13 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
+    "drizzle-orm": "catalog:dependencies",
     "zod": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-orm": {
+      "optional": true
+    }
   },
   "dependencies": {
     "hookable": "catalog:dependencies"

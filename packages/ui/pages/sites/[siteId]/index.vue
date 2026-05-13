@@ -47,14 +47,7 @@ const sparkPath = computed(() => {
     <header class="mb-6 flex items-center justify-between gap-4">
       <div>
         <h1 class="text-xl font-semibold text-highlighted flex items-center gap-2">
-          <img
-            :src="`https://www.google.com/s2/favicons?domain=${siteHostname(site.url)}&sz=32`"
-            :alt="site.name"
-            class="size-5 rounded"
-            loading="lazy"
-            width="20"
-            height="20"
-          >
+          <SiteFavicon :url="site.url" :alt="site.name" class="size-5" />
           {{ site.name }}
         </h1>
         <a :href="site.url" target="_blank" class="text-sm text-muted font-mono hover:text-default transition-colors">
@@ -67,7 +60,7 @@ const sparkPath = computed(() => {
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-      <div class="lg:col-span-2 rounded-xl ring-1 ring-default bg-elevated/40 p-5">
+      <div class="lg:col-span-2 rounded-xl ring-1 ring-default bg-elevated/40 p-4">
         <div class="flex items-baseline justify-between mb-4">
           <div>
             <div class="text-xs text-dimmed uppercase tracking-widest">
@@ -91,12 +84,12 @@ const sparkPath = computed(() => {
         </svg>
       </div>
 
-      <div class="rounded-xl ring-1 ring-default bg-elevated/40 p-5">
+      <div class="rounded-xl ring-1 ring-default bg-elevated/40 p-4">
         <div class="text-xs text-dimmed uppercase tracking-widest mb-4">
           Latest categories
         </div>
         <div class="space-y-3">
-          <div v-for="(score, key) in { Performance: site.latestScores.performance, Accessibility: site.latestScores.accessibility, 'Best Practices': site.latestScores.bestPractices, SEO: site.latestScores.seo }" :key="key" class="flex items-center justify-between">
+          <div v-for="(score, key) in { 'Performance': site.latestScores.performance, 'Accessibility': site.latestScores.accessibility, 'Best Practices': site.latestScores.bestPractices, 'SEO': site.latestScores.seo }" :key="key" class="flex items-center justify-between">
             <span class="text-sm text-muted">{{ key }}</span>
             <div
               class="size-8 rounded flex items-center justify-center font-mono text-xs"
@@ -132,7 +125,7 @@ const sparkPath = computed(() => {
             <div
               v-for="(score, key) in { P: scan.scores.performance, A: scan.scores.accessibility, B: scan.scores.bestPractices, S: scan.scores.seo }"
               :key="key"
-              class="size-7 rounded flex items-center justify-center font-mono text-[11px]"
+              class="size-8 rounded flex items-center justify-center font-mono text-[11px]"
               :class="[getScoreBg(score), getScoreColor(score)]"
             >
               {{ score ?? '—' }}

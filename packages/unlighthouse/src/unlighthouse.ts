@@ -17,6 +17,7 @@ import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { createStorage } from '@unlighthouse/core/storage'
 import { drizzleStorage } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
+import { createLogger } from '@unlighthouse/core/util/logger'
 import Database from 'better-sqlite3'
 import { loadConfig } from 'c12'
 import { colorize } from 'consola/utils'
@@ -34,13 +35,12 @@ import { resolveAuditor } from './auditor'
 import { generateClient } from './build'
 import { AppName, ClientPkg } from './constants'
 import { initHistoryTracking } from './data/history/tracking'
-import { createLogger } from './logger'
 import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
 import { normaliseHost } from './util'
 import { successBox } from './util/cliFormatting'
 
-export { useLogger } from './logger'
+export { useLogger } from '@unlighthouse/core/util/logger'
 
 /**
  * A simple define wrapper to provide typings to config definitions.
@@ -86,15 +86,14 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   // resolve configFile to absolute before passing to c12
   if (userConfig.configFile && !isAbsolute(userConfig.configFile))
     userConfig.configFile = join(process.cwd(), userConfig.configFile)
-  // support loading configuration files
-  ;(globalThis as any).defineUnlighthouseConfig = (c: any) => c
+  // User configs must `import { defineUnlighthouseConfig } from 'unlighthouse/config'`.
+  // The bare global form is no longer supported in v1.
   const { configFile, config } = await loadConfig<UserConfig>({
     name: 'unlighthouse',
     cwd: userConfig.root,
     configFile: userConfig.configFile || 'unlighthouse.config',
     dotenv: true,
   })
-  delete (globalThis as any).defineUnlighthouseConfig
   logger.debug('Discovered config definition', config)
   userConfig = defu(userConfig, config)
   const runtimeSettings: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {

@@ -1,5 +1,6 @@
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import type { ComparisonDiff, MetricDiff } from '../report/types'
+import type { LegacyScanRouteRow as ScanRoute } from '../storage/drizzle/schema/history'
 import { eq } from 'drizzle-orm'
 import { comparisonDiffs, comparisons, scanRoutes } from '../storage/drizzle/schema/history'
 
@@ -17,21 +18,9 @@ export const DEFAULT_THRESHOLDS: Record<string, number> = {
   seo: 5,
 }
 
-interface ScanRouteRecord {
-  path: string
-  url: string
-  lcp: number | null
-  cls: number | null
-  tbt: number | null
-  fcp: number | null
-  si: number | null
-  ttfb: number | null
-  inp: number | null
-  performanceScore: number | null
-  accessibilityScore: number | null
-  bestPracticesScore: number | null
-  seoScore: number | null
-}
+type ScanRouteRecord = Pick<ScanRoute, | 'path' | 'url'
+  | 'lcp' | 'cls' | 'tbt' | 'fcp' | 'si' | 'ttfb' | 'inp'
+  | 'performanceScore' | 'accessibilityScore' | 'bestPracticesScore' | 'seoScore'>
 
 function compareRouteMetrics(base: ScanRouteRecord, current: ScanRouteRecord, thresholds: Record<string, number> = DEFAULT_THRESHOLDS): MetricDiff[] {
   const metrics = [

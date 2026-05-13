@@ -1,14 +1,27 @@
+// v1 minimal schema. Mirrors the `Scan` and `ScanRoute` atoms from
+// `@unlighthouse/contracts` at the storage layer. The drizzle table IS part of
+// the contract: any storage adapter targeting SQL (better-sqlite3, node:sqlite,
+// Cloudflare D1) imports these tables from here so all SQL backends share one
+// schema definition.
+//
+// Lives at the `./drizzle` subpath so the default `@unlighthouse/contracts`
+// import stays dependency-free (UI / MCP / Worker bundles never pull
+// `drizzle-orm`).
+//
+// Coexists with the legacy v0 dashboard tables in
+// `packages/core/src/storage/drizzle/schema/history.ts`. Those are
+// implementation-private aggregations with no contract atom.
+import type { Scan } from '../types/atoms'
 import { sql } from 'drizzle-orm'
 import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 /**
  * Scans table — stores scan session metadata.
  *
- * Mirrors `Scan` from `@unlighthouse/contracts`. `summary` is stored as
- * JSON (sqlite text). Timestamps are ISO strings (matches the contract
- * z.iso.datetime()). `device`/`status` are stored as plain text — the
- * contract enum is the truth, not a sqlite CHECK constraint (D1 and
- * pure sqlite disagree on enforcement semantics).
+ * `summary` stored as JSON. Timestamps are ISO strings (matches the contract
+ * `z.iso.datetime()`). `device`/`status` are stored as plain text — the
+ * contract enum is the truth, not a sqlite CHECK constraint (D1 and pure
+ * sqlite disagree on enforcement semantics).
  */
 export const scans = sqliteTable(
   'scans',
@@ -22,7 +35,7 @@ export const scans = sqliteTable(
     ciBranch: text('ci_branch'),
     ciCommit: text('ci_commit'),
     ciCommitMessage: text('ci_commit_message'),
-    summary: text('summary', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+    summary: text('summary', { mode: 'json' }).$type<NonNullable<Scan['summary']>>(),
     // Internal row-creation index (NOT a contract field). Used to order
     // `findPrevious` deterministically when two scans share startedAt.
     createdAtMs: integer('created_at_ms').notNull().default(sql`(unixepoch() * 1000)`),
@@ -39,8 +52,8 @@ export const scans = sqliteTable(
  * Scan routes table — one row per (scanId, url). Mirrors `ScanRoute`,
  * which extends `ExtractedMetrics` with `scanId` + `lhrBlobKey`.
  *
- * Metric columns are flattened (not stored as JSON) because the
- * comparison + assertion engines do column-wise SQL aggregation.
+ * Metric columns are flattened (not stored as JSON) because the comparison +
+ * assertion engines do column-wise SQL aggregation.
  */
 export const scanRoutes = sqliteTable(
   'scan_routes',

@@ -7,8 +7,9 @@ import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
 import { map, pick } from 'lodash-es'
 import { normalize, relative } from 'pathe'
 import { withQuery } from 'ufo'
+import { ReportArtifacts } from '../../../util/fetch'
 import { useLogger } from '../../../util/logger'
-import { base64ToBuffer, ReportArtifacts } from '../../../util/fetch'
+import { base64ToBuffer } from '../../../util/misc'
 import { setupPage } from '../util'
 
 export function normaliseLighthouseResult(ctx: UnlighthouseContext, route: UnlighthouseRouteReport, result: Result): LighthouseReport {

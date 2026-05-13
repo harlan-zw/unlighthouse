@@ -55,12 +55,7 @@ function goBack() {
             <template v-if="website">
               <span class="text-dimmed">·</span>
               <div class="flex items-center gap-1.5 text-dimmed">
-                <img
-                  :src="`https://www.google.com/s2/favicons?domain=${siteHostname(website)}&sz=32`"
-                  :alt="website"
-                  class="w-4 h-4 rounded shrink-0"
-                  loading="lazy"
-                >
+                <SiteFavicon :url="website" :alt="website" class="w-4 h-4" />
                 <span class="text-sm font-mono truncate">{{ siteHostname(website) }}</span>
               </div>
             </template>
@@ -68,10 +63,10 @@ function goBack() {
 
           <!-- Score Label -->
           <div v-if="score !== undefined" class="text-xs text-dimmed mt-0.5">
-            <span v-if="score !== null && score >= 90" class="text-success">Good</span>
-            <span v-else-if="score !== null && score >= 50" class="text-warning">Needs Work</span>
-            <span v-else-if="score !== null" class="text-error">Poor</span>
-            <span v-else>No data</span>
+            <span v-if="score !== null && score >= 90" class="text-success">passing</span>
+            <span v-else-if="score !== null && score >= 50" class="text-warning">needs work</span>
+            <span v-else-if="score !== null" class="text-error">poor</span>
+            <span v-else>no data</span>
             <span class="text-dimmed ml-1">{{ scoreLabel || 'avg score' }}</span>
           </div>
         </div>

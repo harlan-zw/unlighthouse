@@ -89,6 +89,7 @@ function makeCtx(): HandlerCtx {
     auditor: createMockAuditor(),
     storage: memoryStorage(),
     config: makeConfig(),
+    version: '0.0.0-test',
     auditors: {
       list: () => [{ name: 'mock', ok: true }],
       test: async (name: string) => ({ name, ok: true }),

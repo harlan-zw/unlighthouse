@@ -17,8 +17,8 @@ const groupedList = computed(() =>
   <div>
     <!-- Empty state: integrated onboarding -->
     <div v-if="!sites.length" class="max-w-2xl mx-auto py-20 text-center">
-      <div class="size-14 rounded-2xl ring-1 ring-default bg-elevated/60 mx-auto mb-6 flex items-center justify-center">
-        <UIcon name="i-heroicons-light-bulb" class="size-7 text-highlighted" />
+      <div class="size-12 rounded-xl ring-1 ring-default bg-elevated/60 mx-auto mb-6 flex items-center justify-center">
+        <UIcon name="i-heroicons-light-bulb" class="size-6 text-highlighted" />
       </div>
       <h1 class="text-2xl font-semibold mb-2">
         Track your first site

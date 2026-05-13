@@ -4,10 +4,10 @@ import { join } from 'node:path'
 import { createDashboardApi } from '@unlighthouse/core/api/dashboard'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
+import { useLogger } from '@unlighthouse/core/util/logger'
 import fs from 'fs-extra'
 import { createRouter, defineEventHandler, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
 import launch from 'launch-editor'
-import { useLogger } from './logger'
 
 // MIME types for static client serving.
 const mimeTypes: Record<string, string> = {

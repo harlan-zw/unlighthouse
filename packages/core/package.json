@@ -39,6 +39,22 @@
       "types": "./dist/util/path.d.mts",
       "import": "./dist/util/path.mjs"
     },
+    "./util/logger": {
+      "types": "./dist/util/logger.d.mts",
+      "import": "./dist/util/logger.mjs"
+    },
+    "./util/fetch": {
+      "types": "./dist/util/fetch.d.mts",
+      "import": "./dist/util/fetch.mjs"
+    },
+    "./util/filter": {
+      "types": "./dist/util/filter.d.mts",
+      "import": "./dist/util/filter.mjs"
+    },
+    "./util/progressBox": {
+      "types": "./dist/util/progressBox.d.mts",
+      "import": "./dist/util/progressBox.mjs"
+    },
     "./storage": {
       "types": "./dist/storage/index.d.mts",
       "import": "./dist/storage/index.mjs"
@@ -46,10 +62,6 @@
     "./storage/drizzle": {
       "types": "./dist/storage/drizzle/index.d.mts",
       "import": "./dist/storage/drizzle/index.mjs"
-    },
-    "./storage/drizzle/schema/sqlite": {
-      "types": "./dist/storage/drizzle/schema/sqlite.d.mts",
-      "import": "./dist/storage/drizzle/schema/sqlite.mjs"
     },
     "./storage/drizzle/schema/history": {
       "types": "./dist/storage/drizzle/schema/history.d.mts",
@@ -122,6 +134,7 @@
     }
   },
   "dependencies": {
+    "@clack/prompts": "catalog:dependencies",
     "@unlighthouse/contracts": "workspace:*",
     "axios": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
@@ -139,6 +152,7 @@
     "pathe": "catalog:dependencies",
     "puppeteer-cluster": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
+    "radix3": "catalog:dependencies",
     "sanitize-filename": "catalog:dependencies",
     "sitemapper": "catalog:dependencies",
     "slugify": "catalog:dependencies",

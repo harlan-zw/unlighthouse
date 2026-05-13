@@ -50,7 +50,6 @@ export type {
   LighthouseReport,
   LighthouseReportAudit,
   LighthouseReportCategory,
-  MockRouter,
   NormalisedRoute,
   Provider,
   PuppeteerTask,
@@ -77,6 +76,5 @@ export type {
   UnlighthouseWorkerStats,
   UserConfig,
   ValidReportTypes,
-  WindiResponsiveClasses,
   WS,
 } from './types/index'

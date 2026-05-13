@@ -4,6 +4,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import type { ExtractedRoute } from './types'
 import { gunzipSync } from 'node:zlib'
 import { and, desc, eq, ne } from 'drizzle-orm'
+import { compareScans } from '../comparison/comparison'
 import {
   accessibilityElements,
   accessibilityIssues,
@@ -25,7 +26,6 @@ import {
   thirdPartyScripts,
   vulnerableLibraries,
 } from '../storage/drizzle/schema/history'
-import { compareScans } from '../comparison/comparison'
 import { processAccessibility } from './accessibility'
 import { processBestPractices } from './best-practices'
 import { extractRouteData } from './extract'

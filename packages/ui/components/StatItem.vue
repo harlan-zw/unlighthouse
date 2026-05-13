@@ -14,7 +14,7 @@ defineSlots<{
 <template>
   <div class="flex flex-col">
     <div
-      class="text-xs font-medium text-subtle mb-1"
+      class="text-xs font-medium text-dimmed mb-1"
       :class="size === 'lg' ? 'text-sm' : 'text-xs'"
     >
       {{ label }}

@@ -5,10 +5,10 @@ import nodeFs from 'node:fs'
 import { join } from 'node:path'
 import { htmlToMarkdown } from 'mdream'
 import { withoutTrailingSlash } from 'ufo'
-import { useLogger } from '../../../util/logger'
-import { fetchUrlRaw, ReportArtifacts } from '../../../util/fetch'
-import { isImplicitOrExplicitHtml } from '../../../../../unlighthouse/src/util/filter'
 import { normaliseRoute } from '../../../api/util'
+import { fetchUrlRaw, ReportArtifacts } from '../../../util/fetch'
+import { isImplicitOrExplicitHtml } from '../../../util/filter'
+import { useLogger } from '../../../util/logger'
 import { setupPage } from '../util'
 
 interface ExtractedElement {

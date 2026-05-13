@@ -7,20 +7,17 @@ import type {
   ScanInsert,
   ScanRepository,
 } from '@unlighthouse/contracts'
-import type { ScanRow, ScanRowInsert } from '../schema/sqlite'
+import type { ScanRow, ScanRowInsert } from '@unlighthouse/contracts/drizzle'
+import { scans } from '@unlighthouse/contracts/drizzle'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
-import { scans } from '../schema/sqlite'
 
 type AnyDrizzle = any
 
 const DEFAULT_PAGE_SIZE = 50
 
 function rowToScan(row: ScanRow): Scan {
-  const { createdAtMs: _ignored, summary, ...rest } = row
-  return {
-    ...rest,
-    summary: (summary ?? null) as Scan['summary'],
-  } as Scan
+  const { createdAtMs: _ignored, ...rest } = row
+  return rest as Scan
 }
 
 function insertToRow(scan: ScanInsert): ScanRowInsert {
@@ -34,7 +31,7 @@ function insertToRow(scan: ScanInsert): ScanRowInsert {
     ciBranch: scan.ciBranch ?? null,
     ciCommit: scan.ciCommit ?? null,
     ciCommitMessage: scan.ciCommitMessage ?? null,
-    summary: (scan.summary ?? null) as Record<string, unknown> | null,
+    summary: scan.summary ?? null,
   }
 }
 

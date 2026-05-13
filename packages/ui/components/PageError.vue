@@ -19,11 +19,15 @@ function goHome() {
 
 <template>
   <div class="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
-    <div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-6">
-      <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-error" />
+    <div class="size-16 rounded-full bg-error/10 flex items-center justify-center mb-6">
+      <UIcon name="i-heroicons-exclamation-triangle" class="size-8 text-error" />
     </div>
-    <h1 class="text-2xl font-semibold text-highlighted mb-2">{{ title || 'Something went wrong' }}</h1>
-    <p class="text-muted max-w-md mb-6">{{ message || 'An unexpected error occurred. Please try again.' }}</p>
+    <h1 class="text-2xl font-semibold text-highlighted mb-2">
+      {{ title || 'Request failed' }}
+    </h1>
+    <p class="text-muted max-w-md mb-6 font-mono text-sm">
+      {{ message || 'No response from the server. Check the dev server is running and retry.' }}
+    </p>
     <div class="flex gap-3">
       <UButton
         v-if="showRetry !== false"
@@ -31,7 +35,7 @@ function goHome() {
         icon="i-heroicons-arrow-path"
         @click="$emit('retry')"
       >
-        Try Again
+        Retry
       </UButton>
       <UButton
         v-if="showHome"
@@ -40,7 +44,7 @@ function goHome() {
         icon="i-heroicons-home"
         @click="goHome"
       >
-        Go Home
+        Open dashboard
       </UButton>
     </div>
   </div>

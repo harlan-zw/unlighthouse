@@ -1,15 +1,9 @@
-import type { NormalisedRoute, UnlighthouseContext, UnlighthouseRouteReport } from './types'
+import type { NormalisedRoute, UnlighthouseContext, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 import { Buffer } from 'node:buffer'
 import { join } from 'node:path'
-import { hashPathName, sanitiseUrlForFilePath, trimSlashes } from '@unlighthouse/core/util/path'
 import { ensureDirSync } from 'fs-extra'
-import { joinURL, withLeadingSlash, withTrailingSlash } from 'ufo'
-
-export { hashPathName, sanitiseUrlForFilePath, trimSlashes }
-export { createAxiosInstance, fetchUrlRaw, ReportArtifacts } from '@unlighthouse/core/util/fetch'
-
-/** Ensures slashes on both sides of a string. */
-export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s)) || '/'
+import { joinURL } from 'ufo'
+import { hashPathName, sanitiseUrlForFilePath } from './path'
 
 export function createReportsArtifactBasePath(generatedClientPath: string, scanId?: string | null) {
   return scanId
@@ -23,23 +17,6 @@ export function createReportsArtifactBaseUrl(routerPrefix: string, scanId?: stri
     : joinURL(routerPrefix, 'reports')
 }
 
-export function hasScanScopedArtifacts(reportPath: string | null | undefined, scanId: string) {
-  if (!reportPath)
-    return false
-
-  const normalised = reportPath.replaceAll('\\', '/')
-  return normalised.endsWith(`/reports/${scanId}`)
-}
-
-/** Ensures a provided host is consistent, ensuring a protocol is provided. */
-export function normaliseHost(host: string) {
-  if (!host.startsWith('http'))
-    host = `http${host.startsWith('localhost') ? '' : 's'}://${host}`
-  host = host.includes('.') ? host : withTrailingSlash(host)
-  return new URL(host)
-}
-
-/** A task report wraps the route, the report file paths and task status. */
 export function createTaskReportFromRoute(ctx: UnlighthouseContext, route: NormalisedRoute): UnlighthouseRouteReport {
   const { runtimeSettings, resolvedConfig } = ctx
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-elevated/40 border border-default rounded-xl p-5 animate-pulse">
+  <div class="bg-elevated/40 border border-default rounded-xl p-4 animate-pulse">
     <div class="flex items-start justify-between gap-4">
       <!-- Site info skeleton -->
       <div class="flex-1 space-y-3">

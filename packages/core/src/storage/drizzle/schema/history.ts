@@ -1,3 +1,13 @@
+// v0 history schema. Owned by `data/history.ts` query helpers (`getHistoryDb`,
+// `createScan`, `addScanRoute`, …) and consumed by `report/`, `comparison/`,
+// `api/dashboard.ts`. Wider than `./sqlite.ts`: includes scanCrux,
+// performanceIssues, accessibilityIssues, seoMeta, comparisons, etc.
+//
+// Coexists with `./sqlite.ts` (the v1 minimal schema). Both declare `scans` and
+// `scanRoutes` table names. They MUST live in different physical SQLite
+// databases; opening both against the same DB will collide on CREATE TABLE and
+// on drizzle's per-table metadata. Unification is a future task, not a refactor
+// — the column shapes intentionally differ.
 import { sql } from 'drizzle-orm'
 import { blob, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
@@ -416,10 +426,15 @@ export const dashboardSummaries = sqliteTable('dashboard_summaries', {
 // Type exports
 // ============================================================================
 
-export type Scan = typeof scans.$inferSelect
-export type NewScan = typeof scans.$inferInsert
-export type ScanRoute = typeof scanRoutes.$inferSelect
-export type NewScanRoute = typeof scanRoutes.$inferInsert
+// Legacy v0 dashboard row shapes. Named with the `Legacy*` prefix so they
+// can't be mistaken for the contract atoms `Scan`/`ScanRoute` (which describe
+// the wire format and live in `@unlighthouse/contracts`). These rows have a
+// different score scale (0-100 ints) and a different status enum; the legacy
+// dashboard reports depend on them.
+export type LegacyScanRow = typeof scans.$inferSelect
+export type LegacyScanRowInsert = typeof scans.$inferInsert
+export type LegacyScanRouteRow = typeof scanRoutes.$inferSelect
+export type LegacyScanRouteRowInsert = typeof scanRoutes.$inferInsert
 export type ScanCrux = typeof scanCrux.$inferSelect
 export type NewScanCrux = typeof scanCrux.$inferInsert
 

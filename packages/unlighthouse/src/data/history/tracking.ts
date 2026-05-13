@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { fetchCruxHistory, getSiteOrigin } from '@unlighthouse/core/auditors'
 import * as history from '@unlighthouse/core/data/history'
-import { useLogger } from '../../logger'
+import { useLogger } from '@unlighthouse/core/util/logger'
 import { processScanData } from '../../process'
 import { createReportsArtifactBasePath } from '../../util'
 

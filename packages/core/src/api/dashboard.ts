@@ -3,7 +3,9 @@ import { Buffer } from 'node:buffer'
 import { gunzipSync } from 'node:zlib'
 import { desc, eq, or } from 'drizzle-orm'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
+import { compareScans, getComparisonSummary } from '../comparison'
 import * as history from '../data/history'
+import { getDashboardSummary, processScanData } from '../report'
 import {
   accessibilityElements,
   accessibilityIssues,
@@ -26,8 +28,6 @@ import {
   thirdPartyScripts,
   vulnerableLibraries,
 } from '../storage/drizzle/schema/history'
-import { compareScans, getComparisonSummary } from '../comparison'
-import { getDashboardSummary, processScanData } from '../report'
 
 /**
  * Ensure dashboard data is processed (lazy processing)

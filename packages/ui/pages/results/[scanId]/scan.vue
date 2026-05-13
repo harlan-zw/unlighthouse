@@ -18,7 +18,6 @@ const {
   pauseScan,
   resumeScan,
   retryScan,
-  formatTimeRemaining,
 } = useScan()
 
 const displayWebsite = computed(() => scanState.site || website.value)
@@ -153,8 +152,8 @@ function extractDomain(url: string) {
         <div class="text-center mb-6">
           <h1 class="text-2xl font-semibold mb-2">
             <span v-if="scanState.paused">Scan paused</span>
-            <span v-else-if="isScanning">Scanning your site…</span>
-            <span v-else-if="isScanComplete">Scan complete!</span>
+            <span v-else-if="isScanning">Auditing routes</span>
+            <span v-else-if="isScanComplete">Scan complete</span>
             <span v-else-if="scanState.status === 'cancelled'">Scan cancelled</span>
             <span v-else-if="scanState.status === 'error'">Scan failed</span>
             <span v-else>Waiting to start</span>
@@ -170,10 +169,10 @@ function extractDomain(url: string) {
               <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-error mt-0.5 shrink-0" />
               <div>
                 <h3 class="font-medium text-error mb-1">
-                  Something went wrong
+                  Scan failed
                 </h3>
-                <p class="text-sm text-muted">
-                  {{ scanState.error || 'An unexpected error occurred during the scan.' }}
+                <p class="text-sm text-muted font-mono">
+                  {{ scanState.error || 'Worker exited before completion. Check server logs and retry.' }}
                 </p>
               </div>
             </div>
@@ -184,7 +183,7 @@ function extractDomain(url: string) {
               icon="i-heroicons-arrow-path"
               @click="retryScan"
             >
-              Start Fresh Scan
+              Run scan
             </UButton>
             <UButton
               v-if="hasPartialResults"
@@ -193,7 +192,7 @@ function extractDomain(url: string) {
               icon="i-heroicons-chart-bar"
               @click="goToResults"
             >
-              View Partial Results
+              View partial results
             </UButton>
             <UButton
               v-else
@@ -202,7 +201,7 @@ function extractDomain(url: string) {
               icon="i-heroicons-home"
               @click="navigateTo('/sites/add')"
             >
-              Start New
+              Add site
             </UButton>
           </div>
         </div>
@@ -275,7 +274,7 @@ function extractDomain(url: string) {
             icon="i-heroicons-chart-bar"
             @click="goToResults"
           >
-            Preview Results
+            Preview results
           </UButton>
           <UButton
             v-if="isScanComplete || scanState.status === 'cancelled'"
@@ -283,14 +282,14 @@ function extractDomain(url: string) {
             icon="i-heroicons-chart-bar"
             @click="goToResults"
           >
-            {{ hasPartialResults ? 'View Partial Results' : 'View Results' }}
+            {{ hasPartialResults ? 'View partial results' : 'View report' }}
           </UButton>
         </div>
       </div>
 
       <div v-if="scanState.recentlyCompleted.length > 0" class="bg-elevated/40 border border-default rounded-xl p-6">
         <h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-4">
-          Recently Completed
+          Recently completed
         </h2>
         <div class="space-y-2">
           <div
@@ -311,11 +310,8 @@ function extractDomain(url: string) {
         </div>
       </div>
 
-      <div v-else-if="isScanning" class="flex flex-col items-center py-12">
-        <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-8 h-8 text-primary mb-4" />
-        <p class="text-dimmed">
-          Waiting for routes to complete...
-        </p>
+      <div v-else-if="isScanning" class="space-y-2 py-4">
+        <USkeleton v-for="n in 4" :key="n" class="h-10 w-full rounded-lg" :class="`opacity-${100 - n * 15}`" />
       </div>
     </main>
 
@@ -328,10 +324,10 @@ function extractDomain(url: string) {
       <template #footer>
         <div class="flex justify-end gap-3 p-4">
           <UButton variant="ghost" color="neutral" @click="showCancelConfirm = false">
-            Keep Scanning
+            Keep scanning
           </UButton>
           <UButton color="error" @click="confirmCancel">
-            Cancel Scan
+            Cancel scan
           </UButton>
         </div>
       </template>

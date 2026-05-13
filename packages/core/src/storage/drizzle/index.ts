@@ -36,5 +36,5 @@ export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
   }
 }
 
-// Re-export schema/types for users that want raw access.
-export * from './schema/sqlite'
+// Re-export schema/types from contracts for users that want raw access.
+export * from '@unlighthouse/contracts/drizzle'

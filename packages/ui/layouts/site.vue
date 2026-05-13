@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import type { NavLink } from '~/components/NavList.vue'
 import { siteHostname, siteIdForScan, useSites } from '~/composables/sites'
-import { asScanId, useApiClient } from '~/composables/useApiClient'
+import { useHistoricalScan } from '~/composables/useHistoricalScan'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const route = useRoute()
 const router = useRouter()
 const { sites } = useSites()
 const { apiUrl, website } = useUnlighthouseConfig()
-const apiClient = useApiClient()
 
 const siteId = computed(() => {
   if (route.params.siteId)
@@ -55,18 +54,12 @@ function changeSite(newId: string) {
 
 // Results pages inject siteUrl to resolve relative asset URLs (a11y screenshots etc.).
 // Falls back to the scan's stored site URL via /history/:scanId when no dummy site matches.
-const fetchedScanSite = ref<string>('')
-watch(scanId, async (id) => {
-  if (!id || site.value) {
-    fetchedScanSite.value = ''
-    return
-  }
-  const data = await apiClient['history.get']({ scanId: asScanId(id) }).catch(() => null)
-  fetchedScanSite.value = data?.site ?? ''
-}, { immediate: true })
+const historicalScanId = computed(() => site.value ? undefined : scanId.value)
+const { data: historicalScan } = useHistoricalScan(historicalScanId)
 
-const siteUrl = computed(() => site.value?.url || fetchedScanSite.value || website.value)
+const siteUrl = computed(() => site.value?.url || historicalScan.value?.site || website.value)
 provide('siteUrl', siteUrl)
+provide('historicalScan', historicalScan)
 </script>
 
 <template>

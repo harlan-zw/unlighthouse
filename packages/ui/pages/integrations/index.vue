@@ -91,7 +91,7 @@ const grouped = computed(() => {
         <div
           v-for="i in items"
           :key="i.id"
-          class="rounded-xl ring-1 ring-default bg-elevated/40 p-5"
+          class="rounded-xl ring-1 ring-default bg-elevated/40 p-4"
         >
           <div class="flex items-start gap-4">
             <div class="size-10 rounded-lg ring-1 ring-default bg-elevated flex items-center justify-center shrink-0">

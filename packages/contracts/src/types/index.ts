@@ -173,8 +173,6 @@ export interface HTMLExtractPayload {
   jsonLd?: any[]
 }
 
-export type WindiResponsiveClasses = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
-
 export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer'
 
 export type AssertionType = 'minScore' | 'maxNumericValue' | 'maxRegression'
@@ -259,12 +257,6 @@ export interface UnlighthouseColumn {
  */
 export type LighthouseCategories = 'performance' | 'best-practices' | 'accessibility' | 'seo'
 export type UnlighthouseTabs = 'overview' | LighthouseCategories
-
-/**
- * Unlighthouse's intelligent sampling relies on knowing which URLs map to which files in your project.
- * To achieve this it needs to create its own router with your files to test any URL that comes through.
- */
-export interface MockRouter { match: (path: string) => RouteDefinition | false }
 
 export interface DiscoveryOptions {
   /**

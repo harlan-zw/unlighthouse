@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import type { SeoData } from '~/composables/dashboard'
 import { getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
-import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
-
-const { apiUrl } = useUnlighthouseConfig()
 
 definePageMeta({ layout: 'site' })
 
@@ -14,12 +11,8 @@ const { seo } = useDashboard(scanId)
 
 type SeoMeta = SeoData['meta'][number]
 
-// Fetch scan info for site URL (used in SERP preview)
-const { data: scanInfo } = await useFetch<{ site: string }>(() =>
-  scanId.value ? `${apiUrl.value}/history/${scanId.value}` : '', {
-  immediate: true,
-})
-const siteUrl = computed(() => scanInfo.value?.site || '')
+// Site URL for SERP preview; provided by the site layout's useHistoricalScan.
+const siteUrl = inject<ComputedRef<string>>('siteUrl', computed(() => ''))
 
 onMounted(() => {
   if (scanId.value)
@@ -348,10 +341,10 @@ function fallbackString(...values: Array<string | null | undefined>): string {
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
         :class="activeTab === idx
-          ? 'bg-primary/10 text-primary border border-primary/20'
-          : 'text-muted hover:text-default hover:bg-elevated/60'"
+          ? 'bg-elevated text-highlighted border border-default'
+          : 'text-muted hover:text-default hover:bg-elevated/60 border border-transparent'"
         @click="activeTab = idx"
       >
         <UIcon :name="tab.icon" class="w-4 h-4" />

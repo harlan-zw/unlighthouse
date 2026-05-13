@@ -68,3 +68,13 @@ export function calcTrendPercent(current: number, base: number): number {
     return 0
   return ((current - base) / base) * 100
 }
+
+export function formatTimeRemaining(ms: number | null): string {
+  if (!ms || ms <= 0)
+    return '--'
+  const seconds = Math.floor(ms / 1000)
+  if (seconds < 60)
+    return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes}m ${seconds % 60}s`
+}

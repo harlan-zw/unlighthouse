@@ -1,19 +1,16 @@
 import { defineEventHandler } from 'h3'
-import { getBrowserlessQueue } from '../app/services/browserless-queue'
+import { getBrowserlessLimiter } from '../app/services/browserless-limiter'
 import { getResultCache } from '../app/services/result-cache'
 
 /**
  * Get metrics for the Browserless endpoint
- * Tracks queue stats and cache performance
+ * Tracks limiter stats and cache performance
  */
 export default defineEventHandler(async () => {
-  const queue = getBrowserlessQueue()
-  const cache = getResultCache()
-
   return {
     timestamp: new Date().toISOString(),
-    queue: queue.getStats(),
-    cache: cache.getStats(),
+    limiter: getBrowserlessLimiter().getStats(),
+    cache: getResultCache().getStats(),
     uptime: process.uptime(),
     memory: {
       used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),

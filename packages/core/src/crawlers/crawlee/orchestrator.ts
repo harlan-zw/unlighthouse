@@ -1,10 +1,10 @@
 import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseContext } from '@unlighthouse/contracts'
 import { HttpCrawler, log, PlaywrightCrawler, purgeDefaultStorages } from 'crawlee'
 import { get, groupBy } from 'lodash-es'
-import { useLogger } from '../../util/logger'
-import { createFilter, isImplicitOrExplicitHtml } from '../../../../unlighthouse/src/util/filter'
 import { isScanOrigin, normaliseRoute } from '../../api/util'
 import { discoverInitialUrls, matchPathToRule } from '../../seeds'
+import { createFilter, isImplicitOrExplicitHtml } from '../../util/filter'
+import { useLogger } from '../../util/logger'
 
 export interface CrawlProgress {
   status: 'discovering' | 'crawling' | 'filtering' | 'completed'

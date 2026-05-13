@@ -6,11 +6,11 @@ import type {
   UnlighthouseRouteReport,
 } from './types'
 import { dirname, join, resolve } from 'node:path'
+import { useLogger } from '@unlighthouse/core/util/logger'
 import fs from 'fs-extra'
 import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { createScanMeta } from './data/scanMeta'
-import { useLogger } from './logger'
 
 /**
  * Copies the file contents of the @unlighthouse/ui package and does transformation based on the provided configuration.

@@ -1,9 +1,9 @@
 import type { NormalisedRoute, UnlighthouseContext } from '@unlighthouse/contracts'
 import { get, groupBy } from 'lodash-es'
-import { useLogger } from '../util/logger'
 import { isScanOrigin, normaliseRoute } from '../api/util'
 import { fetchRobotsTxt, mergeRobotsTxtConfig } from '../policies/robots'
 import { parseRobotsTxt } from '../policies/robots/parser'
+import { useLogger } from '../util/logger'
 import { extractSitemapRoutes } from './sitemap'
 
 let warnedAboutSampling = false

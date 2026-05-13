@@ -3,11 +3,10 @@ import Fuse from 'fuse.js'
 import { getScoreBg, getScoreColor } from '~/composables/dashboard'
 import { useResultsSearch } from '~/composables/search'
 import { useLighthouseReportModal, useReports, useReportsStream } from '~/composables/state'
-import { asScanId, useApiClient } from '~/composables/useApiClient'
+import { useHistoricalScan } from '~/composables/useHistoricalScan'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const { isStatic, resolveArtifactPath, apiUrl } = useUnlighthouseConfig()
-const apiClient = useApiClient()
 const { reports: liveReports, refreshScanMeta } = useReports()
 const { page, perPage, searchText } = useResultsSearch()
 const lhModal = useLighthouseReportModal()
@@ -19,7 +18,7 @@ definePageMeta({ layout: 'site' })
 
 const route = useRoute()
 const scanId = computed(() => route.params.scanId as string | undefined)
-const historicalScan = ref<{ site: string, device: string, routes: any[] } | null>(null)
+const { data: historicalScan } = useHistoricalScan(scanId)
 const isHistorical = computed(() => !!scanId.value && !!historicalScan.value)
 
 // Sort & filter state
@@ -29,33 +28,34 @@ const quickFilter = ref<'all' | 'worst5' | 'best5' | 'below50'>('all')
 
 const reports = computed(() => {
   if (isHistorical.value && historicalScan.value?.routes) {
-    return historicalScan.value.routes.map(r => ({
-      route: { path: r.path, url: r.url, id: r.path },
-      artifactUrl: r.artifactUrl,
-      report: r.score != null
-        ? {
-            score: r.score,
-            categories: {
-              'performance': { score: (r.performanceScore || 0) / 100, title: 'Performance' },
-              'accessibility': { score: (r.accessibilityScore || 0) / 100, title: 'Accessibility' },
-              'best-practices': { score: (r.bestPracticesScore || 0) / 100, title: 'Best Practices' },
-              'seo': { score: (r.seoScore || 0) / 100, title: 'SEO' },
-            },
-          }
-        : null,
-    }))
+    return historicalScan.value.routes.map((r) => {
+      const cats = {
+        'performance': r.scorePerformance,
+        'accessibility': r.scoreAccessibility,
+        'best-practices': r.scoreBestPractices,
+        'seo': r.scoreSeo,
+      }
+      const present = Object.values(cats).filter((s): s is number => s != null)
+      const overall = present.length ? present.reduce((a, b) => a + b, 0) / present.length : null
+      return {
+        route: { path: r.path, url: r.url, id: r.path },
+        // artifactUrl omitted; openLighthouseReportIframeModal falls back to apiUrl/reports/:path
+        report: overall != null
+          ? {
+              score: overall,
+              categories: {
+                'performance': { score: r.scorePerformance ?? 0, title: 'Performance' },
+                'accessibility': { score: r.scoreAccessibility ?? 0, title: 'Accessibility' },
+                'best-practices': { score: r.scoreBestPractices ?? 0, title: 'Best Practices' },
+                'seo': { score: r.scoreSeo ?? 0, title: 'SEO' },
+              },
+            }
+          : null,
+      }
+    })
   }
   return liveReports.value
 })
-
-watch(scanId, async (id) => {
-  if (!id) {
-    historicalScan.value = null
-    return
-  }
-  const data = await apiClient['history.get']({ scanId: asScanId(id) }).catch(() => null)
-  historicalScan.value = data as any
-}, { immediate: true })
 
 // Calculate overall score from category scores
 function getOverallScore(r: any): number | null {
@@ -219,7 +219,7 @@ onUnmounted(() => {
         icon="i-heroicons-magnifying-glass"
         placeholder="Search routes..."
         size="sm"
-        :ui="{ base: 'bg-elevated/60 border-default focus:border-primary/50 focus:ring-primary/20' }"
+        :ui="{ base: 'bg-elevated/60 border-default focus-visible:border-accented focus-visible:ring-accented' }"
         class="w-64"
       />
 
@@ -259,9 +259,9 @@ onUnmounted(() => {
 
     <!-- Empty state -->
     <div v-else-if="paginatedResults.length === 0" class="flex flex-col items-center justify-center py-20">
-      <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 text-dimmed mb-4" />
+      <UIcon name="i-heroicons-magnifying-glass" class="size-8 text-dimmed mb-4" />
       <p class="text-dimmed">
-        No routes found
+        No routes match this filter
       </p>
     </div>
 
@@ -270,7 +270,7 @@ onUnmounted(() => {
       <div
         v-for="report in paginatedResults"
         :key="report.route?.path"
-        class="group bg-elevated/40 hover:bg-elevated/80 border border-default hover:border-default rounded-xl p-4 transition-all cursor-pointer"
+        class="group bg-elevated/40 hover:bg-elevated/80 border border-default hover:border-accented rounded-xl p-4 transition-colors cursor-pointer"
         @click="openLighthouseReportIframeModal(report)"
       >
         <div class="flex items-center gap-3 md:gap-4">
@@ -285,9 +285,7 @@ onUnmounted(() => {
             <div v-else-if="report.report" class="w-full h-full flex items-center justify-center">
               <UIcon name="i-heroicons-photo" class="w-5 h-5 text-dimmed" />
             </div>
-            <div v-else class="w-full h-full flex items-center justify-center">
-              <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-5 h-5 text-dimmed" />
-            </div>
+            <USkeleton v-else class="w-full h-full rounded-none" />
           </div>
 
           <!-- Route Info -->
@@ -320,7 +318,7 @@ onUnmounted(() => {
           </div>
 
           <div v-else class="flex items-center gap-2 text-dimmed">
-            <UIcon name="i-svg-spinners-90-ring-with-bg" class="w-4 h-4" />
+            <USkeleton class="size-2 rounded-full" />
             <span class="text-sm">Scanning</span>
           </div>
 
@@ -333,7 +331,7 @@ onUnmounted(() => {
             class="opacity-60 group-hover:opacity-100 transition-opacity shrink-0"
             @click.stop="openLighthouseReportIframeModal(report)"
           >
-            <span class="hidden md:inline">View Report</span>
+            <span class="hidden md:inline">View report</span>
           </UButton>
         </div>
       </div>

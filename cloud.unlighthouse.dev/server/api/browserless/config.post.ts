@@ -1,33 +1,26 @@
 import { createError, defineEventHandler, readBody } from 'h3'
-import { getBrowserlessQueue } from '../../app/services/browserless-queue'
+import { getBrowserlessLimiter } from '../../app/services/browserless-limiter'
 
 /**
- * Configure the Browserless queue concurrency
- * Higher values = more concurrent requests to Browserless API
+ * Configure the Browserless concurrency limiter.
+ * Higher values = more concurrent requests to Browserless API.
  */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
   if (!body.maxConcurrency || typeof body.maxConcurrency !== 'number') {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Must provide maxConcurrency as a number',
-    })
+    throw createError({ statusCode: 400, statusMessage: 'Must provide maxConcurrency as a number' })
   }
-
   if (body.maxConcurrency < 1 || body.maxConcurrency > 50) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'maxConcurrency must be between 1 and 50',
-    })
+    throw createError({ statusCode: 400, statusMessage: 'maxConcurrency must be between 1 and 50' })
   }
 
-  const queue = getBrowserlessQueue()
-  queue.setMaxConcurrent(body.maxConcurrency)
+  const limiter = getBrowserlessLimiter()
+  limiter.setMax(body.maxConcurrency)
 
   return {
     success: true,
-    message: `Updated Browserless queue maxConcurrency to ${body.maxConcurrency}`,
-    stats: queue.getStats(),
+    message: `Updated Browserless maxConcurrency to ${body.maxConcurrency}`,
+    stats: limiter.getStats(),
   }
 })

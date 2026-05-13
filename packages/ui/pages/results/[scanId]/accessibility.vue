@@ -199,10 +199,10 @@ const auditTitles: Record<string, string> = {
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
         :class="activeTab === idx
-          ? 'bg-info/10 text-info border border-info/20'
-          : 'text-muted hover:text-default hover:bg-elevated/60'"
+          ? 'bg-elevated text-highlighted border border-default'
+          : 'text-muted hover:text-default hover:bg-elevated/60 border border-transparent'"
         @click="activeTab = idx"
       >
         <UIcon :name="tab.icon" class="w-4 h-4" />
@@ -280,7 +280,7 @@ const auditTitles: Record<string, string> = {
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No accessibility issues found</p>
         </div>
-        <div v-else class="divide-y divide-white/5 -mx-4">
+        <div v-else class="divide-y divide-default -mx-4">
           <div v-for="issue in sortedIssues" :key="issue.auditId" class="border-b border-default last:border-0">
             <button
               class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-elevated/40 transition-colors"
@@ -330,7 +330,7 @@ const auditTitles: Record<string, string> = {
         :count="contrastElements.length"
         class="mb-6"
       >
-        <div class="divide-y divide-white/5 -mx-4">
+        <div class="divide-y divide-default -mx-4">
           <div v-for="el in contrastElements" :key="`contrast-${el.selector}`" class="border-b border-default last:border-0">
             <button
               class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-elevated/40 transition-colors"
@@ -350,7 +350,7 @@ const auditTitles: Record<string, string> = {
                       :style="{
                         color: el.foregroundColor,
                         backgroundColor: el.backgroundColor,
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        border: '1px solid var(--ui-border)',
                       }"
                     >
                       Aa
@@ -434,7 +434,7 @@ const auditTitles: Record<string, string> = {
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No other element issues (only contrast issues found)</p>
         </div>
-        <div v-else class="divide-y divide-white/5 -mx-4">
+        <div v-else class="divide-y divide-default -mx-4">
           <div v-for="el in otherElements" :key="`other-${el.selector}`" class="border-b border-default last:border-0">
             <button
               class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-elevated/40 transition-colors"
@@ -493,7 +493,7 @@ const auditTitles: Record<string, string> = {
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>All images have alt text</p>
         </div>
-        <div v-else class="divide-y divide-white/5">
+        <div v-else class="divide-y divide-default">
           <div v-for="img in sortedAltImages" :key="img.url" class="py-3 first:pt-0 last:pb-0">
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 rounded bg-elevated/60 overflow-hidden shrink-0">
@@ -533,7 +533,7 @@ const auditTitles: Record<string, string> = {
           <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
           <p>No route data available</p>
         </div>
-        <div v-else class="divide-y divide-white/5">
+        <div v-else class="divide-y divide-default">
           <NuxtLink
             v-for="r in sortedRoutes"
             :key="r.path"

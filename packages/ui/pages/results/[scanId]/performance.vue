@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDashboard, getScoreColor, getScoreBg, formatMs } from '~/composables/dashboard'
+import { formatMs, getScoreBg, getScoreColor, useDashboard } from '~/composables/dashboard'
 import { formatBytes } from '~/utils'
 
 definePageMeta({ layout: 'site' })
@@ -28,7 +28,8 @@ const hasDesktopCrux = computed(() => {
 })
 const hasAnyCrux = computed(() => hasPhoneCrux.value || hasDesktopCrux.value)
 watchEffect(() => {
-  if (!hasAnyCrux.value) return
+  if (!hasAnyCrux.value)
+    return
   if (cruxFormFactor.value === 'phone' && !hasPhoneCrux.value && hasDesktopCrux.value)
     cruxFormFactor.value = 'desktop'
   else if (cruxFormFactor.value === 'desktop' && !hasDesktopCrux.value && hasPhoneCrux.value)
@@ -58,27 +59,33 @@ const vitalsThresholds: Record<VitalKey, { good: number, poor: number, unit: str
 
 const vitalKeys = Object.keys(vitalsThresholds) as VitalKey[]
 
-const getVitalRating = (value: number, metric: VitalKey) => {
+function getVitalRating(value: number, metric: VitalKey) {
   const threshold = vitalsThresholds[metric]
-  if (value <= threshold.good) return 'good'
-  if (value <= threshold.poor) return 'needs-improvement'
+  if (value <= threshold.good)
+    return 'good'
+  if (value <= threshold.poor)
+    return 'needs-improvement'
   return 'poor'
 }
 
-const getVitalColor = (rating: string) => {
-  if (rating === 'good') return 'text-success'
-  if (rating === 'needs-improvement') return 'text-warning'
+function getVitalColor(rating: string) {
+  if (rating === 'good')
+    return 'text-success'
+  if (rating === 'needs-improvement')
+    return 'text-warning'
   return 'text-error'
 }
 
-const getVitalBg = (rating: string) => {
-  if (rating === 'good') return 'bg-success/10 border-success/20'
-  if (rating === 'needs-improvement') return 'bg-warning/10 border-warning/20'
+function getVitalBg(rating: string) {
+  if (rating === 'good')
+    return 'bg-success/10 border-success/20'
+  if (rating === 'needs-improvement')
+    return 'bg-warning/10 border-warning/20'
   return 'bg-error/10 border-error/20'
 }
 
 // Calculate position on spectrum (0-100%)
-const getSpectrumPosition = (value: number, good: number, poor: number) => {
+function getSpectrumPosition(value: number, good: number, poor: number) {
   // Use a max of 2x poor threshold for the scale
   const max = poor * 2
   const position = Math.min((value / max) * 100, 100)
@@ -88,17 +95,20 @@ const getSpectrumPosition = (value: number, good: number, poor: number) => {
 const webVitals = computed(() => {
   const routes = performance.data.value?.routes ?? []
   const withScores = routes.filter(r => r.score !== null)
-  if (!withScores.length) return []
+  if (!withScores.length)
+    return []
 
   const calcAvg = (key: string) => {
     const valid = withScores.filter(r => (r as any)[key] !== null && (r as any)[key] !== undefined)
-    if (!valid.length) return null
+    if (!valid.length)
+      return null
     return valid.reduce((a, r) => a + ((r as any)[key] ?? 0), 0) / valid.length
   }
 
   return vitalKeys.map((key) => {
     const avg = calcAvg(key)
-    if (avg === null) return null
+    if (avg === null)
+      return null
     const threshold = vitalsThresholds[key]
     const rating = getVitalRating(avg, key)
     return {
@@ -117,14 +127,16 @@ const webVitals = computed(() => {
 const avgScore = computed(() => {
   const routes = performance.data.value?.routes ?? []
   const withScores = routes.filter(r => r.score !== null)
-  if (!withScores.length) return null
+  if (!withScores.length)
+    return null
   return Math.round(withScores.reduce((a, r) => a + (r.score ?? 0), 0) / withScores.length)
 })
 
 const summaryStats = computed(() => {
   const routes = performance.data.value?.routes ?? []
   const withScores = routes.filter(r => r.score !== null)
-  if (!withScores.length) return []
+  if (!withScores.length)
+    return []
 
   const withLcp = withScores.filter(r => r.lcp)
   const withCls = withScores.filter(r => r.cls !== null)
@@ -146,7 +158,6 @@ const summaryStats = computed(() => {
   ]
 })
 
-
 const sortedIssues = computed(() =>
   [...(performance.data.value?.issues ?? [])].sort((a, b) => b.wastedBytes - a.wastedBytes),
 )
@@ -154,11 +165,11 @@ const sortedIssues = computed(() =>
 const topOpportunities = computed(() => {
   const issues = performance.data.value?.issues ?? []
   const groups = {
-    image: { icon: 'i-heroicons-photo', label: 'image optimization opportunities', color: 'text-primary', bg: 'bg-primary/5 border-primary/20' },
-    script: { icon: 'i-heroicons-code-bracket', label: 'unused JavaScript', color: 'text-secondary', bg: 'bg-secondary/5 border-secondary/20' },
-    stylesheet: { icon: 'i-heroicons-paint-brush', label: 'unused CSS', color: 'text-info', bg: 'bg-info/5 border-info/20' },
+    'image': { icon: 'i-heroicons-photo', label: 'image optimization opportunities', color: 'text-muted', bg: 'bg-elevated/40 border-default' },
+    'script': { icon: 'i-heroicons-code-bracket', label: 'unused JavaScript', color: 'text-muted', bg: 'bg-elevated/40 border-default' },
+    'stylesheet': { icon: 'i-heroicons-paint-brush', label: 'unused CSS', color: 'text-muted', bg: 'bg-elevated/40 border-default' },
     'render-blocking': { icon: 'i-heroicons-no-symbol', label: 'render-blocking resources', color: 'text-error', bg: 'bg-error/5 border-error/20' },
-    font: { icon: 'i-heroicons-language', label: 'font issues', color: 'text-warning', bg: 'bg-warning/5 border-warning/20' },
+    'font': { icon: 'i-heroicons-language', label: 'font issues', color: 'text-muted', bg: 'bg-elevated/40 border-default' },
   } as const
 
   const byType = new Map<string, { count: number, bytes: number, pages: Set<string> }>()
@@ -211,10 +222,10 @@ const sortedRoutes = computed(() =>
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
         :class="activeTab === idx
-          ? 'bg-success/10 text-success border border-success/20'
-          : 'text-muted hover:text-default hover:bg-elevated/60'"
+          ? 'bg-elevated text-highlighted border border-default'
+          : 'text-muted hover:text-default hover:bg-elevated/60 border border-transparent'"
         @click="activeTab = idx"
       >
         <UIcon :name="tab.icon" class="w-4 h-4" />
@@ -284,7 +295,7 @@ const sortedRoutes = computed(() =>
             <div
               v-for="vital in webVitals.filter(v => ['lcp', 'cls', 'tbt'].includes(v.key))"
               :key="vital.key"
-              class="rounded-xl border p-5"
+              class="rounded-xl border p-4"
               :class="getVitalBg(vital.rating)"
             >
               <div class="flex items-center justify-between mb-3">
@@ -293,7 +304,7 @@ const sortedRoutes = computed(() =>
                   class="text-xs px-2 py-0.5 rounded-full capitalize"
                   :class="[
                     getVitalColor(vital.rating),
-                    vital.rating === 'good' ? 'bg-success/20' : vital.rating === 'needs-improvement' ? 'bg-warning/20' : 'bg-error/20'
+                    vital.rating === 'good' ? 'bg-success/20' : vital.rating === 'needs-improvement' ? 'bg-warning/20' : 'bg-error/20',
                   ]"
                 >
                   {{ vital.rating.replace('-', ' ') }}
@@ -302,13 +313,18 @@ const sortedRoutes = computed(() =>
               <div class="text-2xl font-mono font-bold mb-1" :class="getVitalColor(vital.rating)">
                 {{ vital.value }}{{ vital.unit }}
               </div>
-              <div class="text-xs text-dimmed mb-4">{{ vital.label }}</div>
+              <div class="text-xs text-dimmed mb-4">
+                {{ vital.label }}
+              </div>
 
-              <!-- Spectrum bar -->
-              <div class="relative h-2 rounded-full overflow-hidden bg-gradient-to-r from-success via-warning to-error">
+              <!-- Threshold bar -->
+              <div class="relative h-2 rounded-full overflow-hidden flex">
+                <div class="bg-success/75 h-full" style="width: 25%" />
+                <div class="bg-warning/75 h-full" style="width: 25%" />
+                <div class="bg-error/75 h-full flex-1" />
                 <!-- Marker for current value -->
                 <div
-                  class="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 shadow-lg transition-all"
+                  class="absolute top-1/2 -translate-y-1/2 size-3 rounded-full bg-inverted border-2"
                   :class="vital.rating === 'good' ? 'border-success' : vital.rating === 'needs-improvement' ? 'border-warning' : 'border-error'"
                   :style="{ left: `calc(${getSpectrumPosition(Number(vital.value), vital.good, vital.poor)}% - 6px)` }"
                 />
@@ -329,7 +345,7 @@ const sortedRoutes = computed(() =>
             <div
               v-for="vital in webVitals.filter(v => ['fcp', 'si', 'ttfb'].includes(v.key))"
               :key="vital.key"
-              class="rounded-xl border p-5"
+              class="rounded-xl border p-4"
               :class="getVitalBg(vital.rating)"
             >
               <div class="flex items-center justify-between mb-3">
@@ -338,7 +354,7 @@ const sortedRoutes = computed(() =>
                   class="text-xs px-2 py-0.5 rounded-full capitalize"
                   :class="[
                     getVitalColor(vital.rating),
-                    vital.rating === 'good' ? 'bg-success/20' : vital.rating === 'needs-improvement' ? 'bg-warning/20' : 'bg-error/20'
+                    vital.rating === 'good' ? 'bg-success/20' : vital.rating === 'needs-improvement' ? 'bg-warning/20' : 'bg-error/20',
                   ]"
                 >
                   {{ vital.rating.replace('-', ' ') }}
@@ -347,13 +363,18 @@ const sortedRoutes = computed(() =>
               <div class="text-2xl font-mono font-bold mb-1" :class="getVitalColor(vital.rating)">
                 {{ vital.value }}{{ vital.unit }}
               </div>
-              <div class="text-xs text-dimmed mb-4">{{ vital.label }}</div>
+              <div class="text-xs text-dimmed mb-4">
+                {{ vital.label }}
+              </div>
 
-              <!-- Spectrum bar -->
-              <div class="relative h-2 rounded-full overflow-hidden bg-gradient-to-r from-success via-warning to-error">
+              <!-- Threshold bar -->
+              <div class="relative h-2 rounded-full overflow-hidden flex">
+                <div class="bg-success/75 h-full" style="width: 25%" />
+                <div class="bg-warning/75 h-full" style="width: 25%" />
+                <div class="bg-error/75 h-full flex-1" />
                 <!-- Marker for current value -->
                 <div
-                  class="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 shadow-lg transition-all"
+                  class="absolute top-1/2 -translate-y-1/2 size-3 rounded-full bg-inverted border-2"
                   :class="vital.rating === 'good' ? 'border-success' : vital.rating === 'needs-improvement' ? 'border-warning' : 'border-error'"
                   :style="{ left: `calc(${getSpectrumPosition(Number(vital.value), vital.good, vital.poor)}% - 6px)` }"
                 />
@@ -377,19 +398,25 @@ const sortedRoutes = computed(() =>
           <UIcon name="i-heroicons-check-circle" class="w-8 h-8 mx-auto mb-2 text-success" />
           <p>No image optimization issues found</p>
         </div>
-        <div v-else class="divide-y divide-white/5">
+        <div v-else class="divide-y divide-default">
           <div v-for="issue in sortedIssues" :key="issue.id" class="py-3 first:pt-0 last:pb-0">
             <div class="flex items-center justify-between gap-4">
               <div class="min-w-0 flex-1">
-                <div class="text-sm text-highlighted font-mono truncate">{{ issue.url }}</div>
+                <div class="text-sm text-highlighted font-mono truncate">
+                  {{ issue.url }}
+                </div>
                 <div class="flex items-center gap-2 mt-1">
                   <span class="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{{ issue.issueType }}</span>
                   <span class="text-xs text-dimmed">{{ issue.pages.length }} pages</span>
                 </div>
               </div>
               <div class="text-right shrink-0">
-                <div class="text-sm font-mono text-error">{{ formatBytes(issue.wastedBytes) }}</div>
-                <div v-if="issue.wastedMs" class="text-xs text-dimmed">{{ formatMs(issue.wastedMs) }}</div>
+                <div class="text-sm font-mono text-error">
+                  {{ formatBytes(issue.wastedBytes) }}
+                </div>
+                <div v-if="issue.wastedMs" class="text-xs text-dimmed">
+                  {{ formatMs(issue.wastedMs) }}
+                </div>
               </div>
             </div>
             <PagesList v-if="issue.pages.length" :pages="issue.pages" class="mt-2" />
@@ -409,18 +436,34 @@ const sortedRoutes = computed(() =>
           <table class="w-full text-sm">
             <thead>
               <tr class="text-left text-dimmed border-b border-default">
-                <th class="pb-2 font-medium">Entity</th>
-                <th class="pb-2 font-medium text-right">Avg TBT</th>
-                <th class="pb-2 font-medium text-right">Total TBT</th>
-                <th class="pb-2 font-medium text-right">Pages</th>
+                <th class="pb-2 font-medium">
+                  Entity
+                </th>
+                <th class="pb-2 font-medium text-right">
+                  Avg TBT
+                </th>
+                <th class="pb-2 font-medium text-right">
+                  Total TBT
+                </th>
+                <th class="pb-2 font-medium text-right">
+                  Pages
+                </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-white/5">
+            <tbody class="divide-y divide-default">
               <tr v-for="tp in sortedThirdParty" :key="tp.entity">
-                <td class="py-3 text-highlighted">{{ tp.entity }}</td>
-                <td class="py-3 text-right font-mono text-primary">{{ formatMs(tp.avgTbt) }}</td>
-                <td class="py-3 text-right font-mono text-error">{{ formatMs(tp.totalTbt) }}</td>
-                <td class="py-3 text-right text-muted">{{ tp.pageCount }}</td>
+                <td class="py-3 text-highlighted">
+                  {{ tp.entity }}
+                </td>
+                <td class="py-3 text-right font-mono text-primary">
+                  {{ formatMs(tp.avgTbt) }}
+                </td>
+                <td class="py-3 text-right font-mono text-error">
+                  {{ formatMs(tp.totalTbt) }}
+                </td>
+                <td class="py-3 text-right text-muted">
+                  {{ tp.pageCount }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -435,7 +478,7 @@ const sortedRoutes = computed(() =>
           <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
           <p>No LCP element data available</p>
         </div>
-        <div v-else class="divide-y divide-white/5">
+        <div v-else class="divide-y divide-default">
           <div v-for="lcp in sortedLcp" :key="lcp.selector" class="py-4 first:pt-0 last:pb-0">
             <div class="flex items-start gap-4">
               <!-- Element type icon -->
@@ -459,7 +502,9 @@ const sortedRoutes = computed(() =>
                   </span>
                   <span class="text-xs text-dimmed">{{ lcp.pageCount }} page{{ lcp.pageCount !== 1 ? 's' : '' }}</span>
                 </div>
-                <div class="text-sm font-mono text-highlighted truncate" :title="lcp.selector">{{ lcp.selector }}</div>
+                <div class="text-sm font-mono text-highlighted truncate" :title="lcp.selector">
+                  {{ lcp.selector }}
+                </div>
                 <div class="flex items-center gap-4 mt-2">
                   <div class="text-sm">
                     <span class="text-dimmed">Avg LCP:</span>
@@ -486,7 +531,7 @@ const sortedRoutes = computed(() =>
           <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
           <p>No route data available</p>
         </div>
-        <div v-else class="divide-y divide-white/5">
+        <div v-else class="divide-y divide-default">
           <NuxtLink
             v-for="r in sortedRoutes"
             :key="r.path"
@@ -494,7 +539,9 @@ const sortedRoutes = computed(() =>
             class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 hover:bg-elevated/40 -mx-4 px-4 transition-colors"
           >
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-mono text-highlighted truncate">{{ r.path }}</div>
+              <div class="text-sm font-mono text-highlighted truncate">
+                {{ r.path }}
+              </div>
               <div class="flex items-center gap-3 mt-1 text-xs text-dimmed">
                 <span v-if="r.lcp">LCP: {{ formatMs(r.lcp) }}</span>
                 <span v-if="r.cls !== null">CLS: {{ r.cls.toFixed(3) }}</span>

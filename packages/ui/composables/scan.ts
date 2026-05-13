@@ -1,4 +1,3 @@
-import { useReports } from './state'
 import { asScanId, useApiClient } from './useApiClient'
 import { useUnlighthouseConfig } from './useUnlighthouseConfig'
 
@@ -52,52 +51,10 @@ export function isActiveScanStatus(status: string | null | undefined, paused = f
   return paused || activeScanStatuses.includes((status || 'idle') as ScanStatus)
 }
 
-export function formatTimeRemaining(ms: number | null): string {
-  if (!ms || ms <= 0)
-    return '--'
-
-  const seconds = Math.floor(ms / 1000)
-  if (seconds < 60)
-    return `${seconds}s`
-
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}m ${remainingSeconds}s`
-}
-
-export async function rescanSite() {
-  const client = useApiClient()
-  const scanId = await getCurrentScanIdLocal()
-  if (!scanId)
-    return
-  useReports().clearReports()
-  const result = await client['scan.rescanAll']({ scanId: asScanId(scanId) }).catch((err: unknown) => {
-    console.warn(err)
-    return null
-  })
-  if (result?.scanId)
-    await navigateTo(`/results/${result.scanId}/scan`)
-}
-
-export async function rescanRoutes(paths: string[]) {
-  const client = useApiClient()
-  if (!paths.length)
-    return
-  const scanId = await getCurrentScanIdLocal()
-  if (!scanId)
-    return
-  // Batch rescan == full-site rescan; the underlying handler drops + re-queues.
-  await client['scan.rescanAll']({ scanId: asScanId(scanId) }).catch(console.warn)
-}
-
 async function getCurrentScanIdLocal(): Promise<string | null> {
   const client = useApiClient()
   const res = await client['scan.current']({}).catch(() => null)
   return res?.scanId ?? null
-}
-
-export async function rescanRoute(path: string) {
-  return rescanRoutes([path])
 }
 
 export function useScan() {
@@ -231,9 +188,5 @@ export function useScan() {
     pauseScan,
     resumeScan,
     retryScan,
-    rescanSite,
-    rescanRoute,
-    rescanRoutes,
-    formatTimeRemaining,
   }
 }

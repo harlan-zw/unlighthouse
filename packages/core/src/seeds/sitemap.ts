@@ -1,9 +1,9 @@
 import type { UnlighthouseContext } from '@unlighthouse/contracts'
 import Sitemapper from 'sitemapper'
 import { $URL, withBase } from 'ufo'
-import { useLogger } from '../util/logger'
-import { fetchUrlRaw } from '../util/fetch'
 import { isScanOrigin } from '../api/util'
+import { fetchUrlRaw } from '../util/fetch'
+import { useLogger } from '../util/logger'
 
 function validSitemapEntry(url: string) {
   return url && (url.startsWith('http') || url.startsWith('/'))

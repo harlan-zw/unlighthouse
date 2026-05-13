@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 const props = defineProps<{
   score: number | null
   stats: { label: string, value: string | number, color?: string, icon?: string }[]
@@ -18,12 +17,14 @@ const props = defineProps<{
           {{ score ?? '-' }}
         </div>
         <div>
-          <div class="text-xs text-dimmed uppercase tracking-wider">Avg Score</div>
+          <div class="text-xs text-dimmed uppercase tracking-wider">
+            Avg score
+          </div>
           <div class="text-sm text-muted mt-0.5">
-            <span v-if="score !== null && score >= 90" class="text-success">Good</span>
-            <span v-else-if="score !== null && score >= 50" class="text-warning">Needs Work</span>
-            <span v-else-if="score !== null" class="text-error">Poor</span>
-            <span v-else>No data</span>
+            <span v-if="score !== null && score >= 90" class="text-success">passing</span>
+            <span v-else-if="score !== null && score >= 50" class="text-warning">needs work</span>
+            <span v-else-if="score !== null" class="text-error">poor</span>
+            <span v-else>no data</span>
           </div>
         </div>
       </div>
@@ -38,7 +39,9 @@ const props = defineProps<{
             <div class="text-lg font-mono font-semibold" :class="stat.color || 'text-highlighted'">
               {{ stat.value }}
             </div>
-            <div class="text-xs text-dimmed">{{ stat.label }}</div>
+            <div class="text-xs text-dimmed">
+              {{ stat.label }}
+            </div>
           </div>
         </div>
       </div>

@@ -6,10 +6,10 @@ import type {
   ScanRoute,
   ScanRouteRepository,
 } from '@unlighthouse/contracts'
-import type { ScanRouteRow } from '../schema/sqlite'
+import type { ScanRouteRow } from '@unlighthouse/contracts/drizzle'
 import { createHash } from 'node:crypto'
+import { scanRoutes } from '@unlighthouse/contracts/drizzle'
 import { and, eq, sql } from 'drizzle-orm'
-import { scanRoutes } from '../schema/sqlite'
 
 type AnyDrizzle = any
 

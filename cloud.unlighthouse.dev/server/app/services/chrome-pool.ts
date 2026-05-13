@@ -25,6 +25,7 @@ export class ChromePool {
   private options: Required<ChromePoolOptions>
   private cleanupInterval?: NodeJS.Timeout
   private nextId = 0
+  private waiters: Array<(instance: ChromeInstance) => void> = []
 
   constructor(options: ChromePoolOptions = {}) {
     this.options = {
@@ -72,20 +73,8 @@ export class ChromePool {
       return instance
     }
 
-    // Wait for an instance to become available
-    return new Promise((resolve) => {
-      const checkInterval = setInterval(() => {
-        for (const instance of this.instances.values()) {
-          if (!instance.inUse) {
-            clearInterval(checkInterval)
-            instance.inUse = true
-            instance.lastUsed = Date.now()
-            resolve(instance)
-            return
-          }
-        }
-      }, 100)
-    })
+    // All slots in use and at max: queue for the next release.
+    return new Promise(resolve => this.waiters.push(resolve))
   }
 
   /**
@@ -93,10 +82,17 @@ export class ChromePool {
    */
   release(instance: ChromeInstance): void {
     const poolInstance = this.instances.get(instance.id)
-    if (poolInstance) {
-      poolInstance.inUse = false
-      poolInstance.lastUsed = Date.now()
+    if (!poolInstance)
+      return
+
+    poolInstance.lastUsed = Date.now()
+    const waiter = this.waiters.shift()
+    if (waiter) {
+      // Hand off directly; instance stays inUse.
+      waiter(poolInstance)
+      return
     }
+    poolInstance.inUse = false
   }
 
   /**

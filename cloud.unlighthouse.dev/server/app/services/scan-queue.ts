@@ -1,5 +1,4 @@
 import type { LighthouseScanOptions, LighthouseScanResult } from './lighthouse'
-import { createError } from '#imports'
 
 export interface QueuedScan {
   id: string
@@ -10,8 +9,6 @@ export interface QueuedScan {
   createdAt: number
   startedAt?: number
   completedAt?: number
-  resolve?: (result: LighthouseScanResult) => void
-  reject?: (error: Error) => void
 }
 
 export interface QueueStats {
@@ -60,44 +57,6 @@ export class ScanQueue {
     this.processNext()
 
     return scan
-  }
-
-  /**
-   * Add a scan and wait for it to complete
-   */
-  async enqueueAndWait(
-    options: LighthouseScanOptions,
-    timeout: number = 2 * 60 * 1000, // 2 minutes default
-  ): Promise<LighthouseScanResult> {
-    const scan = await this.enqueue(options)
-
-    return new Promise((resolve, reject) => {
-      scan.resolve = resolve
-      scan.reject = reject
-
-      // Set timeout
-      const timeoutId = setTimeout(() => {
-        this.failScan(scan.id, 'Scan timeout exceeded')
-        reject(createError({
-          statusCode: 408,
-          statusMessage: 'Scan timeout exceeded',
-        }))
-      }, timeout)
-
-      // Clear timeout when scan completes
-      const originalResolve = scan.resolve
-      const originalReject = scan.reject
-
-      scan.resolve = (result) => {
-        clearTimeout(timeoutId)
-        originalResolve?.(result)
-      }
-
-      scan.reject = (error) => {
-        clearTimeout(timeoutId)
-        originalReject?.(error)
-      }
-    })
   }
 
   /**
@@ -174,11 +133,6 @@ export class ScanQueue {
       this.completed.delete(oldestId)
     }
 
-    // Resolve promise if waiting
-    if (scan.resolve) {
-      scan.resolve(result)
-    }
-
     // Process next in queue
     this.processNext()
   }
@@ -204,14 +158,6 @@ export class ScanQueue {
 
     // Move to completed
     this.completed.set(id, scan)
-
-    // Reject promise if waiting
-    if (scan.reject) {
-      scan.reject(createError({
-        statusCode: 500,
-        statusMessage: error,
-      }))
-    }
 
     // Process next in queue
     this.processNext()

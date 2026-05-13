@@ -22,7 +22,7 @@ function closeNav() {
       class="hidden lg:flex flex-col shrink-0 fixed top-0 bottom-0 left-0 border-r border-default bg-default"
       :class="sidebarWidth === 56 ? 'w-56' : 'w-64'"
     >
-      <div class="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+      <div class="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         <NuxtLink :to="logoTo" class="flex items-center gap-2 px-2 font-semibold text-base text-highlighted">
           <div class="w-7 h-7 rounded-lg bg-elevated ring-1 ring-default flex items-center justify-center shrink-0">
             <UIcon name="i-heroicons-light-bulb" class="w-4 h-4 text-highlighted" />
@@ -68,7 +68,7 @@ function closeNav() {
 
     <UDrawer v-model:open="navOpen" direction="left">
       <template #content>
-        <div class="p-5 overflow-y-auto overflow-x-hidden min-w-0 w-72">
+        <div class="p-4 overflow-y-auto overflow-x-hidden min-w-0 w-72">
           <slot name="mobile" :close-nav="closeNav">
             <slot name="sidebar" :close-nav="closeNav" />
           </slot>

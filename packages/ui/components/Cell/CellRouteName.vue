@@ -82,7 +82,7 @@ const thumbnail = computed(() => {
     </modal-trigger>
 
     <div class="md:ml-3 grow w-full">
-      <a v-if="report.seo?.title" :href="report.route.url" target="_blank" class="text-xs dark:opacity-80 underline hover:no-underline">
+      <a v-if="report.seo?.title" :href="report.route.url" target="_blank" class="text-xs opacity-80 underline hover:no-underline">
         {{ report.seo?.title }}
       </a>
       <a v-else :href="report.route.url" target="_blank" class="text-xs opacity-80 underline break-all hover:no-underline">
