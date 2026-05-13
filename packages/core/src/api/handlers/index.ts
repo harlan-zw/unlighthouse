@@ -20,6 +20,7 @@ import {
   scanStart,
   scanStatus,
 } from './scan'
+import { sitesCreate, sitesDelete, sitesGet, sitesList } from './sites'
 
 export function createHandlers(): HandlerMap {
   return {
@@ -50,8 +51,13 @@ export function createHandlers(): HandlerMap {
     'health': health,
     'auditors.list': auditorsList,
     'auditors.test': auditorsTest,
+    'sites.list': sitesList,
+    'sites.get': sitesGet,
+    'sites.create': sitesCreate,
+    'sites.delete': sitesDelete,
   } as unknown as HandlerMap
 }
 
+export type { SitesStore, SitesStoreCreateInput } from './sites'
 export * from './types'
 export * from './wrap'

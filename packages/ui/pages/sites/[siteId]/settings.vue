@@ -4,7 +4,7 @@ import { useSites } from '~/composables/sites'
 definePageMeta({ layout: 'site' })
 
 const route = useRoute()
-const { getSite, groups, removeSite } = useSites()
+const { getSite, groups, removeSite, addSite } = useSites()
 const site = getSite(route.params.siteId as string)
 const toast = useToast()
 
@@ -24,22 +24,26 @@ watch(site, (s) => {
   }
 })
 
-function save() {
+async function save() {
   if (!site.value)
     return
-  site.value.name = form.name
-  site.value.url = form.url
-  site.value.group = form.group
-  site.value.device = form.device
+  await addSite({
+    name: form.name,
+    url: form.url,
+    group: form.group,
+    device: form.device,
+  }).catch((err: Error) => {
+    toast.add({ title: 'Could not save', description: err.message, color: 'error' })
+    return null
+  })
   toast.add({ title: 'Settings saved', color: 'success' })
 }
 
 const confirmDelete = ref(false)
-function doDelete() {
+async function doDelete() {
   if (!site.value)
     return
-  const id = site.value.id
-  removeSite(id)
+  await removeSite(site.value.id)
   navigateTo('/')
 }
 </script>
@@ -95,7 +99,7 @@ function doDelete() {
         Remove site
       </h2>
       <p class="text-sm text-muted mb-4">
-        This deletes the site and all of its dummy scan references. Cannot be undone.
+        This removes the site from the registry. Past scan history is kept.
       </p>
       <UButton color="error" variant="soft" @click="confirmDelete = true">
         Remove site

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NavLink } from '~/components/NavList.vue'
-import { siteHostname, siteIdForScan, useSites } from '~/composables/sites'
+import { siteHostname, useSites } from '~/composables/sites'
 import { useHistoricalScan } from '~/composables/useHistoricalScan'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
@@ -9,11 +9,13 @@ const router = useRouter()
 const { sites } = useSites()
 const { apiUrl, website } = useUnlighthouseConfig()
 
+const scanSiteUrl = ref<string | null>(null)
+
 const siteId = computed(() => {
   if (route.params.siteId)
     return route.params.siteId as string
-  if (route.params.scanId)
-    return siteIdForScan(route.params.scanId as string, sites.value) ?? ''
+  if (scanSiteUrl.value)
+    return sites.value.find(s => s.url === scanSiteUrl.value)?.id ?? ''
   return ''
 })
 const site = computed(() => sites.value.find(s => s.id === siteId.value) ?? null)
@@ -56,6 +58,10 @@ function changeSite(newId: string) {
 // Falls back to the scan's stored site URL via /history/:scanId when no dummy site matches.
 const historicalScanId = computed(() => site.value ? undefined : scanId.value)
 const { data: historicalScan } = useHistoricalScan(historicalScanId)
+
+watchEffect(() => {
+  scanSiteUrl.value = historicalScan.value?.site ?? null
+})
 
 const siteUrl = computed(() => site.value?.url || historicalScan.value?.site || website.value)
 provide('siteUrl', siteUrl)

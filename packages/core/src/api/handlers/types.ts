@@ -44,6 +44,8 @@ export interface HandlerCtx {
     id: string
     [key: string]: unknown
   }
+  /** Host-provided persistent sites registry. Optional; sites.* handlers throw NOT_SUPPORTED without it. */
+  sites?: import('./sites').SitesStore
 }
 
 /**

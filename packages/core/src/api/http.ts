@@ -44,6 +44,8 @@ const GET_EXACT = new Set<string>([
   'manifest',
   'health',
   'auditors.list',
+  'sites.list',
+  'sites.get',
 ])
 
 function defaultMethod(cmd: Command): HttpMethod {

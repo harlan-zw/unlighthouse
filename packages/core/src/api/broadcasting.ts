@@ -3,7 +3,7 @@ import type { Hookable } from 'hookable'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import type { WebSocket } from 'ws'
-import type { LegacyClusterEngine, LegacyWorkerHooks } from '../crawlers/crawlee'
+import type { LegacyClusterEngine, LegacyWorkerHooks } from '../crawlers/legacy-cluster'
 import { Buffer } from 'node:buffer'
 import { WebSocketServer } from 'ws'
 

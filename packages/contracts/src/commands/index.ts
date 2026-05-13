@@ -20,6 +20,7 @@ import {
   ScanStart,
   ScanStatusCmd,
 } from './scan'
+import { Site, SitesCreate, SitesDelete, SitesGet, SitesList } from './sites'
 
 export * from './compare'
 
@@ -51,6 +52,11 @@ export {
   ScanResume,
   ScanStart,
   ScanStatusCmd,
+  Site,
+  SitesCreate,
+  SitesDelete,
+  SitesGet,
+  SitesList,
 }
 
 export * from './define'
@@ -100,6 +106,11 @@ export const commands = {
   'health': Health,
   'auditors.list': AuditorsList,
   'auditors.test': AuditorsTest,
+
+  'sites.list': SitesList,
+  'sites.get': SitesGet,
+  'sites.create': SitesCreate,
+  'sites.delete': SitesDelete,
 } as const
 
 export type CommandRegistry = typeof commands

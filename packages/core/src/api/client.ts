@@ -41,6 +41,8 @@ const GET_COMMANDS = new Set<CommandName>([
   'manifest',
   'health',
   'auditors.list',
+  'sites.list',
+  'sites.get',
 ])
 
 /**

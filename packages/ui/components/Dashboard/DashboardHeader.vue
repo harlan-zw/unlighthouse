@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { siteHostname, siteIdForScan, useSites } from '~/composables/sites'
+import { siteHostname, useSites } from '~/composables/sites'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 defineProps<{
@@ -23,7 +23,7 @@ const isOverview = computed(() => !!scanId.value && route.path === `/results/${s
 
 function goBack() {
   if (isOverview.value && scanId.value) {
-    const sid = siteIdForScan(scanId.value, sites.value)
+    const sid = sites.value.find(s => s.url === injectedSiteUrl.value)?.id
     router.push(sid ? `/sites/${sid}` : '/')
     return
   }

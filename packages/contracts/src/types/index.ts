@@ -754,86 +754,26 @@ export type PuppeteerTaskReturn = UnlighthouseRouteReport
 export type PuppeteerTask = TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>
 export type UnlighthousePuppeteerCluster = Cluster<PuppeteerTaskArgs, PuppeteerTaskReturn>
 
-/**
- * A provider is an integration of unlighthouse to a specific context, such as a framework or an environment.
- *
- * Each provider has their own unique name and defines how they will provide URLs and route definitions to unlighthouse.
- */
-export interface Provider {
-  /**
-   * Used to debug.
-   */
-  name?: string
-}
-
 export type HookResult = Promise<void> | void
 
+/**
+ * Legacy user-config hooks. Surfaces the events the engine emits before/after
+ * resolving config and during a scan. The v1 `HookMap` (in `./hooks`) is the
+ * core hook bus; this interface is the user-facing config-side shape and stays
+ * for `UnlighthouseConfig.hooks` to keep the public surface stable.
+ */
 export interface UnlighthouseHooks {
-  /**
-   * It's possible the site is not known at initialisation, this hook is called when it's set or changed.
-   * @param site The site that was set.
-   */
   'site-changed': (site: string) => HookResult
-  /**
-   * Once the config is resolved.
-   *
-   * @param resolvedConfig
-   */
   'resolved-config': (resolvedConfig: ResolvedUserConfig) => HookResult
-  /**
-   * Called when the worker has finished processing all queued routes. Will be called multiple times if routes are
-   * re-queued.
-   *
-   * Mostly useful for the CI environment.
-   */
   'worker-finished': () => HookResult
-  /**
-   * Called when the current scan is cancelled before completion.
-   */
   'worker-cancelled': () => HookResult
-  /**
-   * Called when the current scan hits an unrecoverable error.
-   *
-   * @param error
-   */
   'worker-error': (error: Error) => HookResult
-  /**
-   * Called when a user visits the path of the @unlighthouse/ui for the first time. Useful for starting the worker on-demand.
-   */
   'visited-client': () => HookResult
-  /**
-   * Fired when a new task is added to the queue worker.
-   * @param path
-   * @param response
-   */
   'task-added': (path: string, response: UnlighthouseRouteReport) => HookResult
-  /**
-   * Fired when a task has started to work.
-   * @param path
-   * @param response
-   */
   'task-started': (path: string, response: UnlighthouseRouteReport) => HookResult
-  /**
-   * Fired when a task has completed it's work.
-   * @param path
-   * @param response
-   */
   'task-complete': (path: string, response: UnlighthouseRouteReport, taskName: string) => HookResult
-  /**
-   * Fired when a path discovered internal links, used for "crawl" mode.
-   * @param path
-   * @param internalLinks
-   */
   'discovered-internal-links': (path: string, internalLinks: string[]) => HookResult
-  /**
-   * After a page has been visited with puppeteer. Useful for running
-   * @param page
-   */
   'puppeteer:before-goto': (page: Page) => HookResult
-  /**
-   * Authenticate a page before it's visited.
-   * @param page
-   */
   'authenticate': (page: Page) => HookResult
 }
 
@@ -955,19 +895,6 @@ export interface ScanMeta {
    */
   favicon?: string
 }
-
-export interface ServerContextArg {
-  url: string
-  server: http.Server | https.Server
-  app: any /* can't type h3 here */
-}
-
-// `UnlighthouseContext` was the v0 god-object threaded through the call graph.
-// In v1 it's replaced by:
-//   - `createUnlighthouseCore` + its returned `UnlighthouseCore` (hooks + run/cancel)
-//   - `createUnlighthouseHost` (the unlighthouse package preset)
-//   - `HandlerCtx` for API handlers (core + storage + auditor + config)
-// Removed in Step H of the v1 architecture pass.
 
 export interface UnlighthouseOptions {
   provider?: UnlighthouseProvider

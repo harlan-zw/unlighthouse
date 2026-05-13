@@ -335,9 +335,8 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       })
     }
 
-    // TODO(Step G): generateClient + autoStartOnVisit need storage-backed reads.
     if (behavior.generateClient && resolvedClientPath && existsSync(resolvedClientPath))
-      logger.debug?.('generateClient skipped in v1 host (Step G will wire storage read)')
+      await generateClientStub()
   }
 
   // ── start ────────────────────────────────────────────────────────────────

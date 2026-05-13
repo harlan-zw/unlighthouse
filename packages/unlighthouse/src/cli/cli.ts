@@ -99,7 +99,7 @@ async function run() {
     const sitesStore = createSitesStore({ outputPath: unlighthouse.resolvedConfig.outputPath })
     const site = await sitesStore.create({
       url: siteUrl,
-      device: unlighthouse.resolvedConfig.scanner?.device,
+      device: unlighthouse.resolvedConfig.scanner?.device || undefined,
     }).catch(() => null)
     const siteId = site?.id ?? deriveSiteId(siteUrl)
     scanLandingUrl = joinURL(unlighthouse.runtimeSettings.clientUrl, `/sites/${siteId}/scan/${scanId}`)

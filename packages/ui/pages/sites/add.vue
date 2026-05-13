@@ -42,12 +42,18 @@ async function submit() {
   if (!validate())
     return
   submitting.value = true
-  const site = addSite({
-    name: form.name.trim() || new URL(normalizeUrl(form.url)).hostname,
+  const site = await addSite({
+    name: form.name.trim() || undefined,
     url: normalizeUrl(form.url),
     group: form.group,
     device: form.device,
+  }).catch((err: Error) => {
+    toast.add({ title: 'Could not add site', description: err.message, color: 'error' })
+    submitting.value = false
+    return null
   })
+  if (!site)
+    return
   toast.add({ title: 'Site added', description: site.name, color: 'success' })
   navigateTo(form.scanNow ? `/sites/${site.id}/scan/new` : `/sites/${site.id}`)
 }

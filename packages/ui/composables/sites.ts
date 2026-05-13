@@ -1,6 +1,8 @@
-// Dummy multi-site model. Real backend wiring lives behind the same shape so
-// pages and layouts can be built against it now and swapped to a real source
-// later without UI churn.
+// Multi-site registry backed by the persistent sites.* API on the host.
+// Mirror shape stays compatible with existing UI; per-site scans/scores are
+// surfaced via the history API in the relevant pages.
+
+import type { Site as ApiSite } from '@unlighthouse/contracts'
 
 export interface SiteScores {
   performance: number | null
@@ -18,17 +20,11 @@ export interface SiteScanRef {
   scores: SiteScores
 }
 
-export interface Site {
-  id: string
-  name: string
-  url: string
-  group: string | null
-  device: 'mobile' | 'desktop'
+export interface Site extends ApiSite {
+  // Surface fields filled by the dashboard pages from history data; defaults are empty.
   latestScores: SiteScores
-  // 30-day rolling average for the sparkline on tiles
   trend: number[]
   scans: SiteScanRef[]
-  createdAt: string
 }
 
 export interface SiteGroup {
@@ -36,67 +32,47 @@ export interface SiteGroup {
   name: string
 }
 
-const DUMMY_GROUPS: SiteGroup[] = [
-  { id: 'production', name: 'Production' },
-  { id: 'staging', name: 'Staging' },
-]
-
-function sparkline(seed: number, points = 30): number[] {
-  const out: number[] = []
-  let v = seed
-  for (let i = 0; i < points; i++) {
-    v += (Math.sin(i * 0.6 + seed) + (Math.random() - 0.5)) * 3
-    v = Math.max(20, Math.min(100, v))
-    out.push(Math.round(v))
-  }
-  return out
+const EMPTY_SCORES: SiteScores = {
+  performance: null,
+  accessibility: null,
+  bestPractices: null,
+  seo: null,
 }
 
-function makeScans(siteUrl: string, count: number): SiteScanRef[] {
-  const out: SiteScanRef[] = []
-  const now = Date.now()
-  for (let i = 0; i < count; i++) {
-    const startedAt = new Date(now - i * 86_400_000 - Math.random() * 3_600_000).toISOString()
-    out.push({
-      id: `${siteUrl}-${i}`,
-      startedAt,
-      status: i === 0 ? 'complete' : (Math.random() > 0.9 ? 'failed' : 'complete'),
-      device: Math.random() > 0.4 ? 'mobile' : 'desktop',
-      routes: 20 + Math.floor(Math.random() * 80),
-      scores: {
-        performance: 50 + Math.floor(Math.random() * 50),
-        accessibility: 70 + Math.floor(Math.random() * 30),
-        bestPractices: 80 + Math.floor(Math.random() * 20),
-        seo: 75 + Math.floor(Math.random() * 25),
-      },
-    })
+function decorate(api: ApiSite): Site {
+  return {
+    ...api,
+    latestScores: { ...EMPTY_SCORES },
+    trend: [],
+    scans: [],
   }
-  return out
-}
-
-function seed(): Site[] {
-  const defs: Array<Pick<Site, 'name' | 'url' | 'group' | 'device'>> = [
-    { name: 'Marketing', url: 'https://example.com', group: 'production', device: 'mobile' },
-    { name: 'Docs', url: 'https://docs.example.com', group: 'production', device: 'desktop' },
-    { name: 'Blog', url: 'https://blog.example.com', group: 'production', device: 'mobile' },
-    { name: 'Staging', url: 'https://staging.example.com', group: 'staging', device: 'mobile' },
-  ]
-  return defs.map((d, i) => {
-    const scans = makeScans(d.url, 12)
-    return {
-      id: encodeURIComponent(new URL(d.url).hostname),
-      ...d,
-      latestScores: scans[0]!.scores,
-      trend: sparkline(60 + i * 5),
-      scans,
-      createdAt: new Date(Date.now() - (60 + i * 10) * 86_400_000).toISOString(),
-    }
-  })
 }
 
 export function useSites() {
-  const sites = useState<Site[]>('sites', () => seed())
-  const groups = useState<SiteGroup[]>('site-groups', () => DUMMY_GROUPS)
+  const sites = useState<Site[]>('sites', () => [])
+  const loaded = useState<boolean>('sites:loaded', () => false)
+  const client = useNuxtApp().$api as import('@unlighthouse/core/api/client').UnlighthouseClient
+
+  async function refresh() {
+    const res = await client['sites.list']({})
+    sites.value = res.sites.map(decorate)
+    loaded.value = true
+  }
+
+  if (import.meta.client && !loaded.value)
+    refresh().catch(() => {})
+
+  const groups = computed<SiteGroup[]>(() => {
+    const seen = new Set<string>()
+    const out: SiteGroup[] = []
+    for (const s of sites.value) {
+      if (!s.group || seen.has(s.group))
+        continue
+      seen.add(s.group)
+      out.push({ id: s.group, name: s.group })
+    }
+    return out
+  })
 
   const sitesByGroup = computed(() => {
     const map = new Map<string | null, Site[]>()
@@ -109,26 +85,24 @@ export function useSites() {
     return map
   })
 
-  function addSite(input: { name: string, url: string, group: string | null, device: 'mobile' | 'desktop' }) {
-    const id = encodeURIComponent(new URL(input.url).hostname)
-    if (sites.value.some(s => s.id === id))
-      return sites.value.find(s => s.id === id)!
-    const site: Site = {
-      id,
-      name: input.name || new URL(input.url).hostname,
+  async function addSite(input: { name?: string, url: string, group: string | null, device: 'mobile' | 'desktop' }) {
+    const res = await client['sites.create']({
+      name: input.name,
       url: input.url,
       group: input.group,
       device: input.device,
-      latestScores: { performance: null, accessibility: null, bestPractices: null, seo: null },
-      trend: [],
-      scans: [],
-      createdAt: new Date().toISOString(),
-    }
-    sites.value = [...sites.value, site]
-    return site
+    })
+    const decorated = decorate(res.site)
+    const existing = sites.value.findIndex(s => s.id === decorated.id)
+    if (existing === -1)
+      sites.value = [...sites.value, decorated]
+    else
+      sites.value = sites.value.map((s, i) => (i === existing ? decorated : s))
+    return decorated
   }
 
-  function removeSite(id: string) {
+  async function removeSite(id: string) {
+    await client['sites.delete']({ id })
     sites.value = sites.value.filter(s => s.id !== id)
   }
 
@@ -136,7 +110,7 @@ export function useSites() {
     return computed(() => sites.value.find(s => s.id === id) || null)
   }
 
-  return { sites, groups, sitesByGroup, addSite, removeSite, getSite }
+  return { sites, groups, sitesByGroup, addSite, removeSite, getSite, refresh }
 }
 
 export function siteHostname(url: string) {
@@ -146,14 +120,6 @@ export function siteHostname(url: string) {
   catch {
     return url
   }
-}
-
-export function siteIdForScan(scanId: string, sites: Site[]): string | null {
-  for (const s of sites) {
-    if (s.scans.some(sc => sc.id === scanId))
-      return s.id
-  }
-  return null
 }
 
 export function siteAvgScore(scores: SiteScores): number | null {
