@@ -30,13 +30,19 @@
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
     "@arethetypeswrong/cli": "catalog:",
+    "better-sqlite3": "catalog:dependencies",
     "bumpp": "catalog:",
+    "drizzle-orm": "catalog:dependencies",
     "eslint": "catalog:",
+    "fs-extra": "catalog:dependencies",
+    "h3": "catalog:dependencies",
     "obuild": "catalog:",
     "publint": "catalog:",
     "rolldown": "catalog:",
+    "tinyexec": "catalog:dependencies",
     "typescript": "catalog:",
     "vite": "catalog:dependencies",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   }
 }
