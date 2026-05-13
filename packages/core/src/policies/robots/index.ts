@@ -1,25 +1,32 @@
-import type { ResolvedUserConfig, UnlighthouseContext } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { ConsolaInstance } from 'consola'
 import type { RobotsGroupResolved } from './parser'
+import { createConsola } from 'consola'
 import { $URL } from 'ufo'
 import { fetchUrlRaw } from '../../util/fetch'
-import { useLogger } from '../../util/logger'
 
 export interface RobotsTxtParsed {
   sitemaps: string[]
   groups: RobotsGroupResolved[]
 }
 
+export interface FetchRobotsDeps {
+  resolvedConfig: ResolvedUserConfig
+  logger?: Logger
+}
+
 /**
  * Fetches the robots.txt file.
  */
-export async function fetchRobotsTxt(ctx: UnlighthouseContext, site: string): Promise<false | string> {
+export async function fetchRobotsTxt(deps: FetchRobotsDeps, site: string): Promise<false | string> {
   site = new $URL(site).origin
-  const logger = useLogger()
+  const logger = (deps.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
   // we scan the robots.txt content for the sitemaps
   logger.debug(`Scanning ${site}/robots.txt`)
   const robotsTxt = await fetchUrlRaw(
     `${site}/robots.txt`,
-    ctx.resolvedConfig,
+    deps.resolvedConfig,
+    { logger: deps.logger },
   )
   if (!robotsTxt.valid || !robotsTxt.response) {
     logger.warn('You seem to be missing a robots.txt.')

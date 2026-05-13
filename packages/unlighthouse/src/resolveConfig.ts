@@ -1,11 +1,11 @@
 import type { InstallOptions } from '@puppeteer/browsers'
+import type { Logger } from '@unlighthouse/contracts'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path, { join, resolve } from 'node:path'
 import { computeExecutablePath, detectBrowserPlatform, install } from '@puppeteer/browsers'
-import { useLogger } from '@unlighthouse/core/util/logger'
 import { Launcher } from 'chrome-launcher'
 import { createDefu, defu } from 'defu'
 import { pathExists } from 'fs-extra'
@@ -24,8 +24,7 @@ import { normaliseHost, withSlashes } from './util'
  *
  * @param userConfig
  */
-export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUserConfig> = async (userConfig) => {
-  const logger = useLogger()
+export async function resolveUserConfig(userConfig: UserConfig, logger?: Logger): Promise<ResolvedUserConfig> {
   // create our own config resolution
   const merger = createDefu((obj, key, value) => {
     // avoid joining arrays, instead replace them
@@ -47,7 +46,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     // normalise site
     const siteUrl = normaliseHost(config.site)
     if (siteUrl.pathname !== '/' && siteUrl.pathname !== '') {
-      logger.warn('You are providing a site with a path, disabling sitemap, robots and dynamic sampling.')
+      logger?.warn('You are providing a site with a path, disabling sitemap, robots and dynamic sampling.')
       config.scanner = config.scanner || {}
       config.scanner.sitemap = false
       config.scanner.robotsTxt = false
@@ -61,7 +60,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   if (config.lighthouseOptions) {
     if (config.lighthouseOptions.onlyCategories?.length) {
       if (config.lighthouseOptions.onlyAudits?.length) {
-        logger.warn('You have specified both `onlyCategories` and `onlyAudits`. `onlyCategories` will be ignored.')
+        logger?.warn('You have specified both `onlyCategories` and `onlyAudits`. `onlyCategories` will be ignored.')
         config.lighthouseOptions.onlyCategories = []
       }
       else {
@@ -127,7 +126,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   if (config.root && config.discovery && config.discovery.pagesDir === 'pages') {
     const pagesDirExist = await pathExists(join(config.root, config.discovery.pagesDir))
     if (!pagesDirExist) {
-      logger.debug('Unable to locale page files, disabling route discovery.')
+      logger?.debug('Unable to locale page files, disabling route discovery.')
       // disable discovery to avoid globbing entire file systems
       config.discovery = false
     }
@@ -200,10 +199,10 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       chromePath = Launcher.getFirstInstallation() || false
     }
     catch (e) {
-      logger.debug('Chrome launcher failed to get a path.', e)
+      logger?.debug('Chrome launcher failed to get a path.', e)
     }
     if (chromePath) {
-      logger.info(`Using system Chrome located at: \`${chromePath}\`.`)
+      logger?.info(`Using system Chrome located at: \`${chromePath}\`.`)
       // set default to puppeteer core
       config.puppeteerClusterOptions.puppeteer = puppeteer
       // point to our pre-installed chrome version
@@ -212,10 +211,10 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     }
   }
   if (foundChrome) {
-    logger.debug('Testing system Chrome installation.')
+    logger?.debug('Testing system Chrome installation.')
     // mock the behavior of the custer so we can handle errors better
     const instance = await launch(config.puppeteerOptions).catch((e) => {
-      logger.warn(`Failed to launch puppeteer instance using \`${config.puppeteerOptions?.executablePath}\`.`, e)
+      logger?.warn(`Failed to launch puppeteer instance using \`${config.puppeteerOptions?.executablePath}\`.`, e)
       foundChrome = false
     })
     // let the cluster do the work
@@ -229,10 +228,10 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     try {
       await resolveModule('puppeteer')
       foundChrome = true
-      logger.info('Using puppeteer dependency for Chrome.')
+      logger?.info('Using puppeteer dependency for Chrome.')
     }
     catch (e) {
-      logger.debug('Puppeteer does not exist as a dependency.', e)
+      logger?.debug('Puppeteer does not exist as a dependency.', e)
     }
   }
   if (config.chrome.useDownloadFallback && !foundChrome) {
@@ -245,7 +244,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
 
     const chromePath = computeExecutablePath(browserOptions)
     if (!existsSync(chromePath)) {
-      logger.info(`Missing ${browserOptions.browser} binary, downloading v${browserOptions.buildId}...`)
+      logger?.info(`Missing ${browserOptions.browser} binary, downloading v${browserOptions.buildId}...`)
       let lastPercent = 0
       // @ts-expect-error untyped
       await install({
@@ -253,13 +252,13 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
         downloadProgressCallback: (downloadedBytes, toDownloadBytes) => {
           const percent = Math.round(downloadedBytes / toDownloadBytes * 100)
           if (percent % 5 === 0 && lastPercent !== percent) {
-            logger.info(`Downloading ${browserOptions.browser}: ${percent}%`)
+            logger?.info(`Downloading ${browserOptions.browser}: ${percent}%`)
             lastPercent = percent
           }
         },
       })
     }
-    logger.info(`Using downloaded ${browserOptions.browser} v${browserOptions.buildId} located at: ${chromePath}`)
+    logger?.info(`Using downloaded ${browserOptions.browser} v${browserOptions.buildId} located at: ${chromePath}`)
     config.puppeteerOptions.executablePath = chromePath
     foundChrome = true
   }
@@ -275,8 +274,8 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
       )
       if (existsSync(depsPath)) {
         const data = readFileSync(depsPath, 'utf-8').trim().split('\n').map(d => `"${d}"`).join(',')
-        logger.warn('Failed to start puppeteer, you may be missing dependencies.')
-        logger.log('')
+        logger?.warn('Failed to start puppeteer, you may be missing dependencies.')
+        logger?.log('')
         const command = [
           'sudo',
           'apt-get',
@@ -287,7 +286,7 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
         ].join(' ')
         // eslint-disable-next-line no-console
         console.log(`\x1B[96m%s\x1B[0m`, `Run the following command:\n${command}`)
-        logger.log('')
+        logger?.log('')
       }
     }
     throw e

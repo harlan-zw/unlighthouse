@@ -8,6 +8,7 @@ export const alias: AliasOptions = {
   'unlighthouse/cli': r('./packages/unlighthouse/src/cli/cli.ts'),
   'unlighthouse': r('./packages/unlighthouse/src/'),
   '@unlighthouse/ui': r('./packages/ui/'),
+  '@unlighthouse/contracts/drizzle': r('./packages/contracts/src/drizzle/index.ts'),
   '@unlighthouse/contracts': r('./packages/contracts/src/index.ts'),
   '@unlighthouse/core': r('./packages/core/src/'),
   '@unlighthouse/cloudflare': r('./packages/cloudflare/src/'),

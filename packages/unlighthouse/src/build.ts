@@ -1,28 +1,31 @@
+import type { Logger } from '@unlighthouse/contracts'
 import type {
   ClientOptionsPayload,
   GenerateClientOptions,
+  ResolvedUserConfig,
+  RuntimeSettings,
   ScanMeta,
-  UnlighthouseContext,
   UnlighthouseRouteReport,
+  UnlighthouseWorker,
 } from './types'
 import { dirname, join, resolve } from 'node:path'
-import { useLogger } from '@unlighthouse/core/util/logger'
 import fs from 'fs-extra'
 import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { createScanMeta } from './data/scanMeta'
 
+export interface GenerateClientDeps {
+  resolvedConfig: ResolvedUserConfig
+  runtimeSettings: RuntimeSettings
+  worker: UnlighthouseWorker
+  logger?: Logger
+}
+
 /**
  * Copies the file contents of the @unlighthouse/ui package and does transformation based on the provided configuration.
- *
- * For Nuxt-based client, the output structure is:
- * - index.html (main entry)
- * - _nuxt/ (JS/CSS chunks)
- * - assets/ (static assets like images)
  */
-export async function generateClient(options: GenerateClientOptions = {}, unlighthouse: UnlighthouseContext) {
-  const logger = useLogger()
-  const { runtimeSettings, resolvedConfig, worker } = unlighthouse
+export async function generateClient(options: GenerateClientOptions = {}, deps: GenerateClientDeps) {
+  const { runtimeSettings, resolvedConfig, worker, logger } = deps
 
   let prefix = withTrailingSlash(withLeadingSlash(resolvedConfig.routerPrefix))
   if (prefix === '/') {
@@ -30,7 +33,7 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   }
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
 
-  logger.debug(`Copying client from ${clientPathFolder} to ${runtimeSettings.generatedClientPath}`)
+  logger?.debug(`Copying client from ${clientPathFolder} to ${runtimeSettings.generatedClientPath}`)
   await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)
 
   // Inject config into HTML
@@ -57,7 +60,7 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   // Create payload with config and reports
   const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: UnlighthouseRouteReport[] } = {
     reports: [],
-    scanMeta: createScanMeta(unlighthouse),
+    scanMeta: createScanMeta({ worker }),
     options: pick({
       ...runtimeSettings,
       ...resolvedConfig,
@@ -89,5 +92,5 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
     { encoding: 'utf-8' },
   )
 
-  logger.debug('Client generated successfully')
+  logger?.debug('Client generated successfully')
 }

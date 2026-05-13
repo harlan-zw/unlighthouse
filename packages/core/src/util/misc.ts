@@ -1,9 +1,15 @@
-import type { NormalisedRoute, UnlighthouseContext, UnlighthouseRouteReport } from '@unlighthouse/contracts'
+import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 import { Buffer } from 'node:buffer'
 import { join } from 'node:path'
 import { ensureDirSync } from 'fs-extra'
 import { joinURL } from 'ufo'
 import { hashPathName, sanitiseUrlForFilePath } from './path'
+
+export interface CreateTaskReportDeps {
+  resolvedConfig: ResolvedUserConfig
+  generatedClientPath: string
+  currentScanId: string | null
+}
 
 export function createReportsArtifactBasePath(generatedClientPath: string, scanId?: string | null) {
   return scanId
@@ -17,12 +23,12 @@ export function createReportsArtifactBaseUrl(routerPrefix: string, scanId?: stri
     : joinURL(routerPrefix, 'reports')
 }
 
-export function createTaskReportFromRoute(ctx: UnlighthouseContext, route: NormalisedRoute): UnlighthouseRouteReport {
-  const { runtimeSettings, resolvedConfig } = ctx
+export function createTaskReportFromRoute(deps: CreateTaskReportDeps, route: NormalisedRoute): UnlighthouseRouteReport {
+  const { resolvedConfig, generatedClientPath, currentScanId } = deps
 
   const reportId = hashPathName(route.path)
-  const scanId = runtimeSettings.currentScanId
-  const reportPath = join(createReportsArtifactBasePath(runtimeSettings.generatedClientPath, scanId), sanitiseUrlForFilePath(route.path))
+  const scanId = currentScanId
+  const reportPath = join(createReportsArtifactBasePath(generatedClientPath, scanId), sanitiseUrlForFilePath(route.path))
 
   ensureDirSync(reportPath)
 

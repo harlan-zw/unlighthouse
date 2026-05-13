@@ -1,5 +1,6 @@
-import type { LighthouseReport, PuppeteerTask, UnlighthouseContext, UnlighthouseRouteReport } from '@unlighthouse/contracts'
+import type { LighthouseReport, Logger, PuppeteerTask, ResolvedUserConfig, RuntimeSettings, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 import type { Result } from 'lighthouse'
+import type { SetupPageDeps } from '../util'
 import nodeFs from 'node:fs'
 import { join } from 'node:path'
 import fse from 'fs-extra'
@@ -8,12 +9,17 @@ import { map, pick } from 'lodash-es'
 import { normalize, relative } from 'pathe'
 import { withQuery } from 'ufo'
 import { ReportArtifacts } from '../../../util/fetch'
-import { useLogger } from '../../../util/logger'
 import { base64ToBuffer } from '../../../util/misc'
 import { setupPage } from '../util'
 
-export function normaliseLighthouseResult(ctx: UnlighthouseContext, route: UnlighthouseRouteReport, result: Result): LighthouseReport {
-  const { resolvedConfig, runtimeSettings } = ctx
+export interface LighthouseTaskDeps extends SetupPageDeps {
+  resolvedConfig: ResolvedUserConfig
+  runtimeSettings: RuntimeSettings
+  logger?: Logger
+}
+
+export function normaliseLighthouseResult(deps: LighthouseTaskDeps, route: UnlighthouseRouteReport, result: Result): LighthouseReport {
+  const { resolvedConfig, runtimeSettings } = deps
 
   const measuredCategories = Object.values(result.categories)
     .filter(c => typeof c.score !== 'undefined') as { score: number }[]
@@ -92,10 +98,9 @@ export function normaliseLighthouseResult(ctx: UnlighthouseContext, route: Unlig
   }
 }
 
-export function createRunLighthouseTask(ctx: UnlighthouseContext): PuppeteerTask {
+export function createRunLighthouseTask(deps: LighthouseTaskDeps): PuppeteerTask {
   return async (props) => {
-    const logger = useLogger()
-    const { resolvedConfig, runtimeSettings } = ctx
+    const { resolvedConfig, runtimeSettings, logger } = deps
     const { page, data: routeReport } = props
 
     // if the report doesn't exist, we're going to run a new lighthouse process to generate it
@@ -103,15 +108,15 @@ export function createRunLighthouseTask(ctx: UnlighthouseContext): PuppeteerTask
     if (resolvedConfig.cache && nodeFs.existsSync(reportJsonPath)) {
       try {
         const report = fse.readJsonSync(reportJsonPath, { encoding: 'utf-8' }) as Result
-        routeReport.report = normaliseLighthouseResult(ctx, routeReport, report)
+        routeReport.report = normaliseLighthouseResult(deps, routeReport, report)
         return routeReport
       }
       catch (e) {
-        logger.warn(`Failed to read cached lighthouse report for path "${routeReport.route.path}".`, e)
+        logger?.warn(`Failed to read cached lighthouse report for path "${routeReport.route.path}".`, e)
       }
     }
 
-    await setupPage(ctx, page)
+    await setupPage(deps, page)
 
     const port = new URL(page.browser().wsEndpoint()).port
     // allow changing behavior of the page
@@ -151,7 +156,7 @@ export function createRunLighthouseTask(ctx: UnlighthouseContext): PuppeteerTask
           samples.push(fse.readJsonSync(reportJsonPath))
       }
       catch (e: any) {
-        logger.error('Failed to run lighthouse for route', e)
+        logger?.error('Failed to run lighthouse for route', e)
         return routeReport
       }
     }
@@ -159,13 +164,13 @@ export function createRunLighthouseTask(ctx: UnlighthouseContext): PuppeteerTask
     let report: Result = samples[0]
 
     if (!report) {
-      logger.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
+      logger?.error(`Task \`runLighthouseTask\` has failed to run for path "${routeReport.route.path}".`)
       routeReport.tasks.runLighthouseTask = 'failed'
       return routeReport
     }
 
     if (report.categories.performance && !report.categories.performance.score) {
-      logger.warn(`Lighthouse failed to run performance audits for "${routeReport.route.path}", adding back to queue${report.runtimeError ? `: ${report.runtimeError.message}` : '.'}`)
+      logger?.warn(`Lighthouse failed to run performance audits for "${routeReport.route.path}", adding back to queue${report.runtimeError ? `: ${report.runtimeError.message}` : '.'}`)
       routeReport.tasks.runLighthouseTask = 'failed-retry'
       return routeReport
     }
@@ -175,7 +180,7 @@ export function createRunLighthouseTask(ctx: UnlighthouseContext): PuppeteerTask
         report = computeMedianRun(samples)
       }
       catch (e) {
-        logger.warn('Error when computing median score, possibly audit failed.', e)
+        logger?.warn('Error when computing median score, possibly audit failed.', e)
       }
     }
 
@@ -199,7 +204,7 @@ export function createRunLighthouseTask(ctx: UnlighthouseContext): PuppeteerTask
       }
     }
 
-    routeReport.report = normaliseLighthouseResult(ctx, routeReport, report)
+    routeReport.report = normaliseLighthouseResult(deps, routeReport, report)
     return routeReport
   }
 }

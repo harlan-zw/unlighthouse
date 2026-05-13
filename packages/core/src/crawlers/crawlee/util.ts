@@ -1,12 +1,21 @@
-import type { UnlighthouseContext } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { Page } from '@unlighthouse/contracts/types/puppeteer'
-import { useLogger } from '../../util/logger'
 
-export async function setupPage(ctx: UnlighthouseContext, page: Page) {
-  const { resolvedConfig, hooks } = ctx
-  const logger = useLogger()
+/** Structural shape: any hook bus with `callHook('puppeteer:before-goto', page)`. */
+export interface PuppeteerBeforeGotoBus {
+  callHook: (name: 'puppeteer:before-goto', page: Page) => Promise<any> | any
+}
+
+export interface SetupPageDeps {
+  resolvedConfig: ResolvedUserConfig
+  hooks: PuppeteerBeforeGotoBus
+  logger?: Logger
+}
+
+export async function setupPage(deps: SetupPageDeps, page: Page) {
+  const { resolvedConfig, hooks, logger } = deps
   const softErrorHandler = (ctx: string) => (err: Error) => {
-    logger.error(ctx, err)
+    logger?.error(ctx, err)
   }
   const browser = page.browser()
   // ignore csp errors

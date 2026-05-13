@@ -1,16 +1,15 @@
-import type { UnlighthouseContext } from '@unlighthouse/contracts'
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
 import open from 'better-opn'
+import { createConsola } from 'consola'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
-import { createUnlighthouse, evaluateAndStoreAssertions, history, useLogger } from '..'
+import { createUnlighthouse, evaluateAndStoreAssertions, history } from '..'
 import { getCurrentScanId } from '../data/history/tracking'
 import createCli from './createCli'
 import { pickOptions, validateHost, validateOptions } from './util'
 
-async function createServer(ctx: UnlighthouseContext) {
-  const { resolvedConfig } = ctx
+async function createServer(resolvedConfig: { server: any }) {
   const app = createApp()
   return {
     app,
@@ -28,19 +27,22 @@ const { options } = cli.parse() as unknown as { options: CliOptions }
 async function runHistoryMode() {
   setMaxListeners(0)
 
+  const logger = createConsola().withTag('unlighthouse')
+  if (options.debug)
+    logger.level = 4
+
   const unlighthouse = await createUnlighthouse(
     {
       ...pickOptions(options),
-      site: options.site || 'http://localhost', // Placeholder, not used in history mode
+      site: options.site || 'http://localhost',
     },
     { name: 'cli' },
     { generateClient: true, showBanner: true, label: 'cli' },
   )
 
-  const logger = useLogger()
   logger.info('Starting Unlighthouse in history-only mode...')
 
-  const { server, app } = await createServer(unlighthouse)
+  const { server, app } = await createServer(unlighthouse.resolvedConfig)
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
 
   logger.success(`Unlighthouse UI available at: ${unlighthouse.runtimeSettings.clientUrl}`)
@@ -54,7 +56,6 @@ async function run() {
   if (options.help || options.version)
     return
 
-  // History-only mode: start server without scanning
   if (options.history) {
     await runHistoryMode()
     return
@@ -62,12 +63,16 @@ async function run() {
 
   setMaxListeners(0)
 
+  const logger = createConsola().withTag('unlighthouse')
+  if (options.debug)
+    logger.level = 4
+
   const unlighthouse = await createUnlighthouse(
     {
       ...pickOptions(options),
       hooks: {
         'resolved-config': async (config) => {
-          await validateHost(config)
+          await validateHost(config, logger)
         },
       },
     },
@@ -77,10 +82,9 @@ async function run() {
 
   validateOptions(unlighthouse.resolvedConfig)
 
-  const { server, app } = await createServer(unlighthouse)
+  const { server, app } = await createServer(unlighthouse.resolvedConfig)
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
   const { routes = [] } = await unlighthouse.start()
-  const logger = useLogger()
   if (!routes.length) {
     logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
     process.exit(1)
@@ -90,12 +94,10 @@ async function run() {
     const end = new Date()
     const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
 
-    // Clear the progress display
     unlighthouse.worker.clearProgressDisplay()
     logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${unlighthouse.worker.reports().length} routes in ${seconds}s.`)
     await unlighthouse.worker.cluster.close().catch(() => {})
 
-    // Evaluate CI assertions
     const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
     if (options.assert && assertionConfigs?.length) {
       const scanId = getCurrentScanId()

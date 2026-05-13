@@ -1,49 +1,57 @@
 import type {
+  Logger,
   NormalisedRoute,
   PuppeteerTaskArgs,
   PuppeteerTaskReturn,
-  UnlighthouseContext,
+  ResolvedUserConfig,
+  RuntimeSettings,
   UnlighthouseRouteReport,
   UnlighthouseTask,
   UnlighthouseWorker,
   UnlighthouseWorkerStats,
 } from '@unlighthouse/contracts'
 import type { TaskFunction } from '@unlighthouse/contracts/types/puppeteer'
+import type { Hookable } from 'hookable'
 import type { ProgressData } from '../../util/progressBox'
+import type { LegacyWorkerHooks } from './index'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import { get, sortBy, uniqBy } from 'lodash-es'
+import { normaliseRoute } from '../../api/util'
 import { matchPathToRule } from '../../seeds'
 import { ReportArtifacts } from '../../util/fetch'
 import { createFilter, isImplicitOrExplicitHtml } from '../../util/filter'
-import { useLogger } from '../../util/logger'
-import { createTaskReportFromRoute, formatBytes } from '../../util/misc'
+import { createTaskReportFromRoute } from '../../util/misc'
 import { createProgressBox } from '../../util/progressBox'
 import {
   launchPuppeteerCluster,
 } from './cluster'
 
-let warnedMaxRoutesExceeded = false
-let isPaused = false
-let isCancelled = false
-let workerError: string | null = null
+export interface CreateWorkerDeps {
+  resolvedConfig: ResolvedUserConfig
+  runtimeSettings: RuntimeSettings
+  hooks: Hookable<LegacyWorkerHooks>
+  logger?: Logger
+}
 
 /**
  * The unlighthouse worker is a wrapper for the puppeteer-cluster. It handles the queuing of the tasks with more control
  * over the clusters monitoring and queue management while providing a tight integration with unlighthouse.
- *
- * @param ctx Unlighthouse runtime context.
- * @param tasks Worker task handlers.
  */
-export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: Record<UnlighthouseTask, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>): Promise<UnlighthouseWorker> {
-  const { hooks, resolvedConfig } = ctx
-  const logger = useLogger()
+export async function createUnlighthouseWorker(deps: CreateWorkerDeps, tasks: Record<UnlighthouseTask, TaskFunction<PuppeteerTaskArgs, PuppeteerTaskReturn>>): Promise<UnlighthouseWorker> {
+  const { hooks, resolvedConfig, runtimeSettings, logger } = deps
   const progressBox = createProgressBox()
-  const cluster = await launchPuppeteerCluster(ctx)
+  const cluster = await launchPuppeteerCluster(resolvedConfig)
 
   const routeReports = new Map<string, UnlighthouseRouteReport>()
   const ignoredRoutes = new Set<string>()
   const retriedRoutes = new Map<string, number>()
+
+  // Singletons moved into closure scope (fix for multi-tenant safety)
+  let warnedMaxRoutesExceeded = false
+  let isPaused = false
+  let isCancelled = false
+  let workerError: string | null = null
 
   // Track actual task completion times for better time estimation
   const taskCompletionTimes = new Map<string, Record<UnlighthouseTask, number>>()
@@ -211,6 +219,8 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
     return resolvedConfig.scanner.maxRoutes !== false && routeReports.size >= resolvedConfig.scanner.maxRoutes
   }
 
+  const normaliseDeps = { siteUrl: runtimeSettings.siteUrl, resolvedConfig }
+
   const queueRoute = (route: NormalisedRoute) => {
     if (isCancelled || workerError)
       return
@@ -221,7 +231,7 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
     // exceed the max routes
     if (exceededMaxRoutes()) {
       if (!warnedMaxRoutesExceeded) {
-        logger.warn(`You have reached the \`scanner.maxRoutes\` limit of ${resolvedConfig.scanner.maxRoutes}. No further routes will be queued, consider raising this limit.`)
+        logger?.warn(`You have reached the \`scanner.maxRoutes\` limit of ${resolvedConfig.scanner.maxRoutes}. No further routes will be queued, consider raising this limit.`)
         warnedMaxRoutesExceeded = true
         return
       }
@@ -237,7 +247,7 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
     if (resolvedConfig.scanner.robotsTxt && resolvedConfig.scanner._robotsTxtRules?.length) {
       const rule = matchPathToRule(path, resolvedConfig.scanner._robotsTxtRules)
       if (rule && !rule.allow) {
-        logger.info(`Skipping route based on robots.txt rule \`${rule.pattern}\``, { path })
+        logger?.info(`Skipping route based on robots.txt rule \`${rule.pattern}\``, { path })
         return
       }
     }
@@ -245,7 +255,7 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
     if (resolvedConfig.scanner.include || resolvedConfig.scanner.exclude) {
       const filter = createFilter(resolvedConfig.scanner)
       if (!filter(path)) {
-        logger.info('Skipping route based on include / exclude rules', {
+        logger?.info('Skipping route based on include / exclude rules', {
           path,
           include: resolvedConfig.scanner.include,
           exclude: resolvedConfig.scanner.exclude,
@@ -255,15 +265,12 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
     }
 
     if (!isImplicitOrExplicitHtml(path)) {
-      logger.debug('Skipping non-HTML file from scanning', { path })
+      logger?.debug('Skipping non-HTML file from scanning', { path })
       return
     }
 
     /*
      * Allow sampling of named routes.
-     *
-     * Note: this is somewhat similar to the logic in discovery/routes.ts, that's because we need to sample the routes
-     * from the sitemap or as provided. This logic is for ensuring crawled URLs don't exceed the group limit.
      */
     if (resolvedConfig.scanner.dynamicSampling && resolvedConfig.scanner.dynamicSampling > 0) {
       const routeGroup = get(route, resolvedConfig.client.groupRoutesKey.replace('route.', ''))
@@ -272,14 +279,16 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
         r => get(r, resolvedConfig.client.groupRoutesKey) === routeGroup,
       ).length
       if (routesInGroup >= resolvedConfig.scanner.dynamicSampling) {
-        // too verbose
-        // logger.debug(`Route has been skipped \`${path}\`, too many routes in group \`${routeGroup}\` ${routesInGroup}/${resolvedConfig.scanner.dynamicSampling}.`)
         return
       }
     }
 
-    const routeReport = createTaskReportFromRoute(ctx, route)
-    logger.debug(`Route has been queued. Path: \`${path}\` Name: ${routeReport.route.definition?.name}.`)
+    const routeReport = createTaskReportFromRoute({
+      resolvedConfig,
+      generatedClientPath: runtimeSettings.generatedClientPath,
+      currentScanId: runtimeSettings.currentScanId,
+    }, route)
+    logger?.debug(`Route has been queued. Path: \`${path}\` Name: ${routeReport.route.definition?.name}.`)
 
     routeReports.set(id, routeReport)
     hooks.callHook('task-added', path, routeReport)
@@ -332,7 +341,7 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
           if (response.tasks[taskName] === 'ignore') {
             routeReports.delete(id)
             ignoredRoutes.add(id)
-            logger.debug(`Ignoring route \`${routeReport.route.path}\`.`)
+            logger?.debug(`Ignoring route \`${routeReport.route.path}\`.`)
             // Check if all routes are ignored/completed and trigger worker-finished
             if (monitor().status === 'completed') {
               hooks.callHook('worker-finished')
@@ -343,14 +352,14 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
             return
           if (response.tasks[taskName] === 'failed-retry') {
             const currentRetries = retriedRoutes.get(id) || 0
-            logger.debug(`Route "${path}" (id: ${id}) failed, retry attempt ${currentRetries + 1}/3`)
+            logger?.debug(`Route "${path}" (id: ${id}) failed, retry attempt ${currentRetries + 1}/3`)
             // only requeue each report 3 times max
             if (currentRetries < 3) {
               retriedRoutes.set(id, currentRetries + 1)
               requeueReport(routeReport)
             }
             else {
-              logger.warn(`Route "${path}" has exceeded maximum retry attempts (3), skipping.`)
+              logger?.warn(`Route "${path}" has exceeded maximum retry attempts (3), skipping.`)
               response.tasks[taskName] = 'failed'
               routeReports.set(id, response)
             }
@@ -371,23 +380,6 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
           if (times)
             times[taskName] = ms
 
-          // make ms human friendly
-          const seconds = (ms / 1000).toFixed(1)
-          const reportData = [
-            `Time Taken: ${seconds}s`,
-          ]
-          if (taskName === 'runLighthouseTask') {
-            if (response.report?.score)
-              reportData.push(`Score: ${response.report.score}`)
-            if (resolvedConfig.scanner.samples)
-              reportData.push(`Samples: ${resolvedConfig.scanner.samples}`)
-          }
-          else if (taskName === 'inspectHtmlTask') {
-            if (response.seo?.htmlSize)
-              reportData.push(formatBytes(response.seo.htmlSize))
-          }
-          reportData.push(`${monitor().donePercStr}% complete`)
-
           // Update progress display
           updateProgressDisplay()
 
@@ -399,7 +391,7 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
             return
 
           const err = error instanceof Error ? error : new Error(String(error))
-          logger.error(`Task \`${taskName}\` crashed for "${path}": ${err.message}`)
+          logger?.error(`Task \`${taskName}\` crashed for "${path}": ${err.message}`)
           routeReport.tasks[taskName] = 'failed'
           routeReports.set(id, routeReport)
           hooks.callHook('task-complete', path, routeReport, taskName)
@@ -427,7 +419,7 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
 
   const requeueReport = (report: UnlighthouseRouteReport) => {
     const currentRetries = retriedRoutes.get(report.route.id) || 0
-    logger.info(`Submitting \`${report.route.path}\` for a re-queue (attempt ${currentRetries}/3).`)
+    logger?.info(`Submitting \`${report.route.path}\` for a re-queue (attempt ${currentRetries}/3).`)
     // clean up artifacts
     Object.values(ReportArtifacts).forEach((artifact) => {
       fs.rmSync(join(report.artifactPath, artifact), { force: true, recursive: true })
@@ -451,7 +443,7 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
       .filter(r => r.route.definition.component === file || r.route.definition.component?.endsWith(file))
 
     if (matched.length) {
-      logger.info(`Invalidating file ${file}, matched ${matched.length} routes.`)
+      logger?.info(`Invalidating file ${file}, matched ${matched.length} routes.`)
 
       matched
         .forEach(r => requeueReport(r))
@@ -484,12 +476,12 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
 
   const pause = () => {
     isPaused = true
-    logger.info('Scan paused')
+    logger?.info('Scan paused')
   }
 
   const resume = () => {
     isPaused = false
-    logger.info('Scan resumed')
+    logger?.info('Scan resumed')
   }
 
   const getPaused = () => isPaused
@@ -508,7 +500,7 @@ export async function createUnlighthouseWorker(ctx: UnlighthouseContext, tasks: 
     clearClusterQueue()
     resetClusterCounters()
     progressBox.clear()
-    logger.info('Scan cancelled')
+    logger?.info('Scan cancelled')
     hooks.callHook('worker-cancelled')
   }
 

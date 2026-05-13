@@ -1,10 +1,12 @@
-import type { UnlighthouseContext } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
+import type { WS } from '@unlighthouse/core/api'
+import type { LegacyWorkerHooks } from '@unlighthouse/core/crawlers'
 import type { App } from 'h3'
+import type { Hookable } from 'hookable'
 import { join } from 'node:path'
 import { createDashboardApi } from '@unlighthouse/core/api/dashboard'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
-import { useLogger } from '@unlighthouse/core/util/logger'
 import fs from 'fs-extra'
 import { createRouter, defineEventHandler, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
 import launch from 'launch-editor'
@@ -27,6 +29,14 @@ const mimeTypes: Record<string, string> = {
   '.ico': 'image/x-icon',
 }
 
+export interface MountServerDeps {
+  resolvedConfig: ResolvedUserConfig
+  runtimeSettings: RuntimeSettings
+  hooks: Hookable<LegacyWorkerHooks>
+  ws: WS | null
+  logger?: Logger
+}
+
 interface MountServerOptions {
   /** Handler context for createHttpRouter (passes core/storage/config/auditors). */
   handlerCtx: Parameters<typeof createHttpRouter>[0]['ctx']
@@ -36,9 +46,8 @@ interface MountServerOptions {
  * Mount all HTTP surface area: command-driven /api router, dashboard router,
  * WebSocket upgrade endpoint, editor launch, typo redirect, and static SPA.
  */
-export async function mountServer(ctx: UnlighthouseContext, app: App, opts: MountServerOptions): Promise<void> {
-  const logger = useLogger()
-  const { ws, resolvedConfig, runtimeSettings, hooks } = ctx
+export async function mountServer(deps: MountServerDeps, app: App, opts: MountServerOptions): Promise<void> {
+  const { ws, resolvedConfig, runtimeSettings, hooks, logger } = deps
 
   const root = createRouter()
 
@@ -57,20 +66,21 @@ export async function mountServer(ctx: UnlighthouseContext, app: App, opts: Moun
     }
     const path = file.replace(resolvedConfig.root, '')
     const resolved = join(resolvedConfig.root, path)
-    logger.info(`Launching file in editor: \`${path}\``)
+    logger?.info(`Launching file in editor: \`${path}\``)
     launch(resolved)
     return true
   }))
 
-  // WebSocket upgrade.
-  apiRouter.get('/ws', defineEventHandler(event => ws.serve(event.node.req)))
+  // WebSocket upgrade (only when ws is enabled).
+  if (ws) {
+    apiRouter.get('/ws', defineEventHandler(event => ws.serve(event.node.req)))
+  }
 
   // Dashboard sub-router.
   const dashboardRouter = createDashboardApi(resolvedConfig.outputPath)
   apiRouter.use('/dashboard/**', useBase('/dashboard', dashboardRouter.handler))
 
   root.use('/api/**', useBase('/api', apiRouter.handler))
-  ctx.api = apiRouter
 
   // Static client with SPA fallback.
   root.get('/**', defineEventHandler(async (event) => {

@@ -1,14 +1,15 @@
-import type { ResolvedUserConfig, UnlighthouseContext } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { ConsolaInstance } from 'consola'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import dns from 'node:dns'
 import http from 'node:http'
 import https from 'node:https'
 import axios from 'axios'
-import { useLogger } from './logger'
+import { createConsola } from 'consola'
 
 const _sharedContext: { _axios?: AxiosInstance } = {}
 
-export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, ctx?: UnlighthouseContext) {
+export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, cache: { _axios?: AxiosInstance } = _sharedContext) {
   dns.setServers(['8.8.8.8', '1.1.1.1'])
   const resolver = new dns.Resolver()
   resolver.setServers(['8.8.8.8', '1.1.1.1'])
@@ -41,7 +42,6 @@ export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, ct
   axiosOptions.timeout = 30_000
   axiosOptions.withCredentials = true
 
-  const cache = (ctx ?? _sharedContext) as { _axios?: AxiosInstance }
   cache._axios = axios.create(axiosOptions)
   return cache._axios
 }
@@ -49,11 +49,11 @@ export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, ct
 export async function fetchUrlRaw(
   url: string,
   resolvedConfig: ResolvedUserConfig,
-  ctx?: UnlighthouseContext,
+  opts: { logger?: Logger, cache?: { _axios?: AxiosInstance } } = {},
 ): Promise<{ error?: any, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: AxiosResponse }> {
-  const logger = useLogger()
-  const cache = (ctx ?? _sharedContext) as { _axios?: AxiosInstance }
-  const instance: AxiosInstance = cache._axios || await createAxiosInstance(resolvedConfig, ctx)
+  const logger = (opts.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
+  const cache = opts.cache ?? _sharedContext
+  const instance: AxiosInstance = cache._axios || await createAxiosInstance(resolvedConfig, cache)
   const maxRetries = 3
   let attempt = 0
 
