@@ -33,9 +33,7 @@ function isActive(link: NavLink) {
         ? 'bg-elevated text-highlighted'
         : 'text-muted hover:text-default hover:bg-elevated/60'"
     >
-      <div v-if="link.icon" class="bg-elevated border border-default size-5 flex items-center justify-center rounded shrink-0">
-        <UIcon :name="link.icon" class="size-3" :class="link.iconClass || 'text-dimmed'" aria-hidden="true" />
-      </div>
+      <UiNavIcon v-if="link.icon" :icon="link.icon" />
       <span class="truncate">{{ link.label }}</span>
       <span
         v-if="link.badge"

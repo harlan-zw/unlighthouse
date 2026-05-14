@@ -37,7 +37,7 @@ const props = defineProps<{
       <!-- Stats -->
       <div class="flex items-center gap-6 flex-1">
         <div v-for="stat in stats" :key="stat.label" class="flex items-center gap-2">
-          <UIcon v-if="stat.icon" :name="stat.icon" class="w-4 h-4 text-dimmed" />
+          <UiNavIcon v-if="stat.icon" :icon="stat.icon" />
           <div>
             <div class="text-lg font-mono font-semibold" :class="stat.color || 'text-highlighted'">
               {{ stat.value }}

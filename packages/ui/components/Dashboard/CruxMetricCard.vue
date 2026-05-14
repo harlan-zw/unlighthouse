@@ -113,12 +113,7 @@ function trendArrow(v: number) {
 <template>
   <UCard variant="subtle">
     <div class="space-y-2">
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-default">{{ config.name }}</span>
-        <UTooltip :text="config.description">
-          <UIcon name="i-lucide-circle-help" class="size-3 text-dimmed hover:text-muted transition-colors cursor-help" />
-        </UTooltip>
-      </div>
+      <UiHelpLabel :text="config.name" :tooltip="config.description" class="text-sm font-medium text-default" />
 
       <div v-if="loading" class="space-y-2">
         <USkeleton class="h-8 w-24 rounded" />

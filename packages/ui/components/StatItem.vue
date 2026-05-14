@@ -4,6 +4,8 @@ defineProps<{
   value?: string | number
   variant?: 'default' | 'success' | 'warning' | 'error'
   size?: 'sm' | 'md' | 'lg'
+  /** Optional help tooltip — renders a (?) icon next to the label. */
+  tooltip?: string
 }>()
 
 defineSlots<{
@@ -14,10 +16,13 @@ defineSlots<{
 <template>
   <div class="flex flex-col">
     <div
-      class="text-xs font-medium text-dimmed mb-1"
+      class="font-medium text-dimmed mb-1"
       :class="size === 'lg' ? 'text-sm' : 'text-xs'"
     >
-      {{ label }}
+      <UiHelpLabel v-if="tooltip" :text="label" :tooltip="tooltip" />
+      <template v-else>
+        {{ label }}
+      </template>
     </div>
     <div
       class="font-medium"

@@ -48,7 +48,7 @@ function goBack() {
         <div class="min-w-0">
           <!-- Title Row -->
           <div class="flex items-center gap-2">
-            <UIcon :name="icon" class="w-5 h-5 shrink-0" :class="color || 'text-muted'" />
+            <UiNavIcon :icon="icon" />
             <h1 class="text-lg font-semibold truncate">
               {{ title }}
             </h1>

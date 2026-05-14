@@ -24,9 +24,7 @@ function closeNav() {
     >
       <div class="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         <NuxtLink :to="logoTo" class="flex items-center gap-2 px-2 font-semibold text-base text-highlighted">
-          <div class="w-7 h-7 rounded-sm bg-elevated ring-1 ring-default flex items-center justify-center shrink-0">
-            <UIcon name="i-heroicons-light-bulb" class="w-4 h-4 text-highlighted" />
-          </div>
+          <UiNavIcon icon="i-heroicons-light-bulb" />
           Unlighthouse
         </NuxtLink>
         <slot name="sidebar" :close-nav="closeNav" />
@@ -52,9 +50,7 @@ function closeNav() {
           <span class="ml-2">Menu</span>
         </UiMotionButton>
         <NuxtLink :to="logoTo" class="flex items-center gap-2 font-semibold text-sm text-highlighted">
-          <div class="w-6 h-6 rounded-md bg-elevated ring-1 ring-default flex items-center justify-center">
-            <UIcon name="i-heroicons-light-bulb" class="w-3.5 h-3.5 text-highlighted" />
-          </div>
+          <UiNavIcon icon="i-heroicons-light-bulb" />
           Unlighthouse
         </NuxtLink>
       </div>
