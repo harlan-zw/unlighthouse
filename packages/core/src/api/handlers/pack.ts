@@ -6,8 +6,9 @@
 // against the pack's own reportSchema before going over the wire — packs
 // can't lie about their report shape.
 
-import type { CommandOutput, PackList, PackRunCmd } from '@unlighthouse/contracts'
+import type { CommandOutput, Device, PackList, PackRunCmd } from '@unlighthouse/contracts'
 import { UnlighthouseError } from '@unlighthouse/contracts'
+import { gunzipSync } from 'node:zlib'
 import type { Handler } from './types'
 import { builtInPacks, getPack } from '../../packs/index'
 
@@ -38,9 +39,31 @@ export const packRun: Handler<typeof PackRunCmd> = {
     // cursors — bridge it then.
     const routes = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
 
+    // Lazy LHR fetcher. Each blob is ~50-200KB gzipped; packs that need raw
+    // audit details (images, cwv) call this per URL, packs that only need
+    // ExtractedMetrics rows (overview) ignore it. Cached per pack run since
+    // multiple reconcilers within one pack may want the same route.
+    const lhrCache = new Map<string, unknown>()
+    const getLhr = async (url: string, _device: Device): Promise<unknown> => {
+      // Device fan-out is D-029 — until ScanRoute carries a device column,
+      // the key is just URL. When devices land, key on `${url}|${device}`.
+      if (lhrCache.has(url))
+        return lhrCache.get(url)
+      const row = routes.items.find(r => r.url === url)
+      if (!row?.lhrBlobKey)
+        return null
+      const gz = await ctx.storage.blobs.get(row.lhrBlobKey)
+      if (!gz)
+        return null
+      const lhr = JSON.parse(gunzipSync(gz).toString())
+      lhrCache.set(url, lhr)
+      return lhr
+    }
+
     const report = await pack.reconciler({
       scanId: input.scanId,
       routes: routes.items,
+      getLhr,
       logger: undefined,
     })
 

@@ -2,8 +2,11 @@
 // and are merged in at host wiring time (see core.run / preset config).
 
 import type { Pack } from '@unlighthouse/contracts'
+import { imagesPack } from './images'
 import { overviewPack } from './overview'
 
+export { imagesPack } from './images'
+export type { ImageFinding, ImagesReport } from './images'
 export { overviewPack } from './overview'
 export type { OverviewReport } from './overview'
 
@@ -11,6 +14,7 @@ export type { OverviewReport } from './overview'
 // trivially serialises and so `pack.list` can iterate the entries.
 export const builtInPacks: Record<string, Pack<unknown>> = {
   [overviewPack.name]: overviewPack as Pack<unknown>,
+  [imagesPack.name]: imagesPack as Pack<unknown>,
 }
 
 export function getPack(name: string): Pack<unknown> | undefined {

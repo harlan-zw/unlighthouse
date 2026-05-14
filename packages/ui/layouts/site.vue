@@ -43,6 +43,7 @@ const resultsLinks = computed<NavLink[]>(() => {
   return [
     { label: 'Overview', to: base, icon: 'i-heroicons-squares-2x2', exact: true },
     { label: 'Summary', to: `${base}/summary`, icon: 'i-heroicons-sparkles' },
+    { label: 'Images', to: `${base}/packs/images`, icon: 'i-heroicons-photo' },
     { label: 'Performance', to: `${base}/performance`, icon: 'i-heroicons-bolt', iconClass: 'text-success' },
     { label: 'Accessibility', to: `${base}/accessibility`, icon: 'i-heroicons-eye', iconClass: 'text-info' },
     { label: 'Best Practices', to: `${base}/best-practices`, icon: 'i-heroicons-shield-check', iconClass: 'text-secondary' },
