@@ -39,7 +39,7 @@ function goBack() {
         <!-- Score Badge -->
         <div
           v-if="score !== undefined"
-          class="w-14 h-14 rounded-xl flex items-center justify-center font-mono text-xl font-bold shrink-0"
+          class="w-14 h-14 rounded-sm flex items-center justify-center font-mono text-xl font-bold shrink-0"
           :class="[getScoreBg(score), getScoreColor(score)]"
         >
           {{ score ?? '-' }}
@@ -84,7 +84,7 @@ function goBack() {
         </div>
 
         <button
-          class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted hover:text-default rounded-lg hover:bg-elevated/60 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted hover:text-default rounded-sm hover:bg-elevated/60 transition-colors"
           @click="goBack"
         >
           <UIcon name="i-heroicons-arrow-left" class="w-4 h-4" />

@@ -41,12 +41,12 @@ function pct(s: number | null | undefined) {
           {{ siteHostname(site.url) }}
         </a>
       </div>
-      <UButton color="primary" icon="i-heroicons-bolt" :to="`/sites/${site.id}/scan/new`">
+      <UiMotionButton intensity="cta" color="primary" icon="i-heroicons-bolt" :to="`/sites/${site.id}/scan/new`">
         Run scan
-      </UButton>
+      </UiMotionButton>
     </header>
 
-    <div class="rounded-xl ring-1 ring-default bg-elevated/40 overflow-hidden">
+    <div class="rounded-sm ring-1 ring-default bg-elevated/40 overflow-hidden">
       <div class="flex items-center justify-between p-4 border-b border-default">
         <h2 class="font-medium text-highlighted">
           Recent scans

@@ -29,15 +29,15 @@ function goHome() {
       {{ message || 'No response from the server. Check the dev server is running and retry.' }}
     </p>
     <div class="flex gap-3">
-      <UButton
+      <UiMotionButton
         v-if="showRetry !== false"
         color="primary"
         icon="i-heroicons-arrow-path"
         @click="$emit('retry')"
       >
         Retry
-      </UButton>
-      <UButton
+      </UiMotionButton>
+      <UiMotionButton
         v-if="showHome"
         color="neutral"
         variant="outline"
@@ -45,7 +45,7 @@ function goHome() {
         @click="goHome"
       >
         Open dashboard
-      </UButton>
+      </UiMotionButton>
     </div>
   </div>
 </template>

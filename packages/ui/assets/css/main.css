@@ -9,38 +9,80 @@
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
-:root, .dark {
-  /* Stone-resolved tier ladder. Page → muted → elevated → accented gives
-     nav / body / cards visible hierarchy without breaking "no pure black". */
-  --ui-bg: #0c0a09;            /* stone-950 */
-  --ui-bg-muted: #1c1917;      /* stone-900 */
-  --ui-bg-elevated: #292524;   /* stone-800 */
-  --ui-bg-accented: #44403c;   /* stone-700 */
-  --ui-bg-inverted: #fafaf9;   /* stone-50 — CTA solid resolves here */
+:root {
+  /* Mauve neutral — editorial monochrome on hue 286. Low chroma so neutrals
+     read truly neutral. Single scale; light/dark map it to opposite ends. */
+  --ui-color-neutral-50: oklch(98.5% 0 0);
+  --ui-color-neutral-100: oklch(96.7% 0.001 286.375);
+  --ui-color-neutral-200: oklch(92% 0.004 286.32);
+  --ui-color-neutral-300: oklch(87.1% 0.006 286.286);
+  --ui-color-neutral-400: oklch(70.5% 0.015 286.067);
+  --ui-color-neutral-500: oklch(55.2% 0.016 285.938);
+  --ui-color-neutral-600: oklch(44.2% 0.017 285.786);
+  --ui-color-neutral-700: oklch(37.4% 0.016 285.822);
+  --ui-color-neutral-800: oklch(27.4% 0.006 286.033);
+  --ui-color-neutral-900: oklch(21% 0.006 285.885);
+  --ui-color-neutral-950: oklch(14.1% 0.005 285.823);
 
-  --ui-text-dimmed: #78716c;       /* stone-500 */
-  --ui-text-muted: #a8a29e;        /* stone-400 */
-  --ui-text-toned: #d6d3d1;        /* stone-300 */
-  --ui-text: #e7e5e4;              /* stone-200 */
-  --ui-text-highlighted: #fafaf9;  /* stone-50 */
-  --ui-text-inverted: #1c1917;     /* stone-900 — text on inverted CTAs */
+  --ui-radius: 0.375rem; /* 6px — flat editorial; cards rounded-sm = 8px */
 
-  --ui-border: #292524;            /* stone-800 */
-  --ui-border-muted: #1c1917;      /* stone-900 */
-  --ui-border-accented: #44403c;   /* stone-700 */
-  --ui-border-inverted: #fafaf9;
-
-  --ui-radius: 0.625rem;
-
-  /* Motion easings — standard for page/content transitions, spring for reveals
-     with subtle overshoot, exit for leaves that accelerate away. */
+  /* Motion easings */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
-  /* Structural shadows. Kept outside @theme so Tailwind doesn't auto-generate
-     a shadow-* utility and inline the value at build time. Consumed via plain
-     CSS: `box-shadow: var(--shadow-card)` or arbitrary syntax `[box-shadow:var(--shadow-card)]`. */
+  /* Density — dashboard defaults */
+  --density-card-padding: 0.75rem;
+  --density-element-gap: 0.5rem;
+  --density-section-gap: 1.5rem;
+}
+
+/* Light mode — surface ladder runs bottom-up. */
+.light {
+  --ui-bg: #fff;
+  --ui-bg-muted: var(--ui-color-neutral-50);
+  --ui-bg-elevated: var(--ui-color-neutral-100);
+  --ui-bg-accented: var(--ui-color-neutral-200);
+  --ui-bg-inverted: var(--ui-color-neutral-900);
+
+  --ui-text-dimmed: var(--ui-color-neutral-400);
+  --ui-text-muted: var(--ui-color-neutral-500);
+  --ui-text-toned: var(--ui-color-neutral-600);
+  --ui-text: var(--ui-color-neutral-700);
+  --ui-text-highlighted: var(--ui-color-neutral-900);
+  --ui-text-inverted: #fff;
+
+  --ui-border: var(--ui-color-neutral-200);
+  --ui-border-muted: var(--ui-color-neutral-100);
+  --ui-border-accented: var(--ui-color-neutral-300);
+  --ui-border-inverted: var(--ui-color-neutral-900);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 2px 8px rgb(0 0 0 / 0.04);
+  --shadow-ring: inset 0 0 0 1px var(--ui-border);
+  --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--ui-border-accented) 60%, transparent);
+  --shadow-overlay: 0 8px 32px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+/* Dark mode — tier ladder 14 → 21 → 27 → 37 (bg → muted → elevated → accented). */
+.dark {
+  --ui-bg: var(--ui-color-neutral-950);
+  --ui-bg-muted: var(--ui-color-neutral-900);
+  --ui-bg-elevated: var(--ui-color-neutral-800);
+  --ui-bg-accented: var(--ui-color-neutral-700);
+  --ui-bg-inverted: #fff;
+
+  --ui-text-dimmed: var(--ui-color-neutral-500);
+  --ui-text-muted: var(--ui-color-neutral-400);
+  --ui-text-toned: var(--ui-color-neutral-300);
+  --ui-text: var(--ui-color-neutral-200);
+  --ui-text-highlighted: #fff;
+  --ui-text-inverted: var(--ui-color-neutral-900);
+
+  --ui-border: var(--ui-color-neutral-800);
+  --ui-border-muted: var(--ui-color-neutral-700);
+  --ui-border-accented: var(--ui-color-neutral-700);
+  --ui-border-inverted: #fff;
+
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.25);
   --shadow-ring: inset 0 0 0 1px var(--ui-border);
   --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--ui-border-accented) 60%, transparent);
@@ -94,10 +136,14 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(0.5rem);
 }
 
-/* Scrollbars — quiet, stone-tinted, thin. */
-:root {
-  --scrollbar-track: #1c1917;
-  --scrollbar-thumb: #44403c;
+/* Scrollbars — quiet, mauve-tinted, thin. */
+.light {
+  --scrollbar-track: var(--ui-color-neutral-100);
+  --scrollbar-thumb: var(--ui-color-neutral-300);
+}
+.dark {
+  --scrollbar-track: var(--ui-color-neutral-900);
+  --scrollbar-thumb: var(--ui-color-neutral-700);
 }
 * {
   scrollbar-width: thin;
@@ -160,6 +206,148 @@ h1, h2, h3, h4, h5, h6 {
   border-top-width: 1px;
 }
 
+/* Leading icon in dropdown/context/select menus — primary-tinted container
+   behind the iconify mask. Icon is mask-rendered so a ::before would get
+   clipped; double box-shadow paints rings OUTSIDE the icon's box. */
+.ui-dropdown-lead-icon {
+  border-radius: 4px;
+  margin-inline: 4px;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--ui-color-primary-700) 22%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--ui-color-primary-600) 30%, transparent);
+  transition: box-shadow 140ms ease-out;
+}
+[data-highlighted] .ui-dropdown-lead-icon,
+.ui-dropdown-item:hover .ui-dropdown-lead-icon {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--ui-color-primary-600) 35%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--ui-color-primary-500) 45%, transparent);
+}
+
+/* ─── Surfaces ─────────────────────────────────────────────────────────────
+   One source of truth for translucent card / pill / inset treatments. Tune
+   here, not per-page. surface-soft: feature cards. surface-stat: stat tiles.
+   surface-inset: nested content one tier deeper. surface-link: hoverable
+   marketing cards. */
+.surface-soft {
+  background-color: color-mix(in oklab, var(--ui-bg-elevated) 5%, transparent);
+  border: 1px solid var(--ui-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-card);
+  transition: border-color 200ms var(--ease-standard), box-shadow 200ms var(--ease-standard);
+}
+.surface-soft:hover {
+  border-color: var(--ui-border-accented);
+}
+
+.surface-stat {
+  @apply p-5;
+  background-color: color-mix(in oklab, var(--ui-bg-elevated) 5%, transparent);
+  border: 1px solid var(--ui-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-card);
+  transition: border-color 200ms var(--ease-standard), box-shadow 200ms var(--ease-standard);
+}
+.surface-stat:hover {
+  border-color: var(--ui-border-accented);
+}
+
+.surface-link {
+  @apply relative block h-full rounded-sm ring-1 ring-default bg-default transition-all hover:ring-accented hover:bg-muted/50;
+}
+
+.surface-inset {
+  background-color: color-mix(in oklab, var(--ui-bg) 50%, var(--ui-bg-muted));
+  border: 1px solid var(--ui-border-muted);
+}
+
+.marketing-pill {
+  @apply inline-flex items-center gap-2 rounded-full bg-default text-highlighted ring-1 ring-default shadow-sm transition-all;
+}
+
+.marketing-label {
+  @apply inline-flex items-center gap-2 rounded-full bg-default ring-1 ring-default text-xs font-semibold tracking-wide text-highlighted;
+}
+
+/* ─── Type utilities ───────────────────────────────────────────────────────
+   .numerals-display — stat counters, large figures, score readouts. Tabular
+   numerals + stylistic set 1 (ss01) for design-tuned digit shapes.
+   .eyebrow — short uppercase labels above headlines. Reserve for hero /
+   marketing surfaces; in dashboards lean on weight/tier hierarchy instead. */
+.numerals-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'ss01' 1;
+}
+
+.eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ui-text-muted);
+}
+
+/* Hero/landing radial gradient backdrop. Position via parent; component is
+   absolutely positioned. */
+.gradient {
+  position: fixed;
+  top: 25vh;
+  width: 100%;
+  height: 30vh;
+  filter: blur(180px);
+  z-index: -1;
+  background: radial-gradient(50% 50% at 50% 50%, var(--ui-color-primary-900) 0%, var(--ui-color-primary-800) 100%);
+  opacity: 0.12;
+}
+
+/* Unovis chart theming — prevent blinding white grid lines / tooltips
+   against the dark stone surface. */
+:is(.unovis-xy-container, .unovis-single-container) {
+  --vis-axis-grid-color: var(--ui-border);
+  --vis-axis-tick-color: var(--ui-border);
+  --vis-axis-tick-label-color: var(--ui-text-dimmed);
+  --vis-tooltip-background-color: var(--ui-bg-elevated);
+  --vis-tooltip-border-color: var(--ui-border);
+  --vis-tooltip-text-color: var(--ui-text);
+}
+
+/* Mega menu / nav reveal animations — staggered column + item fades for
+   header dropdown menus. Consumers set --stagger / --item-delay per element. */
+@keyframes mega-menu-enter {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mega-column-stagger {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes mega-item-fade {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.mega-menu { animation: mega-menu-enter 0.2s ease-out; }
+.mega-column {
+  animation: mega-column-stagger 0.25s ease-out backwards;
+  animation-delay: calc(var(--stagger) * 40ms);
+}
+.mega-item {
+  animation: mega-item-fade 0.2s ease-out backwards;
+  animation-delay: calc(var(--stagger, 0) * 40ms + var(--item-delay) * 30ms + 80ms);
+}
+
+/* Slide-right / pop reveals — for inline content / badge entrances. */
+@keyframes slide-right {
+  from { transform: scale(0.6) translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes pop {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.slide-right { animation: slide-right 400ms var(--ease-spring) forwards; }
+.pop { animation: pop 400ms var(--ease-spring) forwards; }
+
 @media (prefers-reduced-motion: reduce) {
   .ui-dropdown-item {
     transition: none !important;
@@ -167,7 +355,13 @@ h1, h2, h3, h4, h5, h6 {
   .page-enter-active,
   .page-leave-active,
   .slide-up-enter-active,
-  .slide-up-leave-active {
+  .slide-up-leave-active,
+  .mega-menu,
+  .mega-column,
+  .mega-item,
+  .slide-right,
+  .pop {
+    animation: none !important;
     transition: none !important;
   }
 }

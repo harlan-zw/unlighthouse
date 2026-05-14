@@ -8,7 +8,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="bg-elevated/40 border border-default rounded-xl overflow-hidden">
+  <div class="bg-elevated/40 border border-default rounded-sm overflow-hidden">
     <div class="px-4 py-3 border-b border-default flex items-center justify-between">
       <div class="flex items-center gap-2">
         <UIcon v-if="icon" :name="icon" class="w-4 h-4 text-muted" />

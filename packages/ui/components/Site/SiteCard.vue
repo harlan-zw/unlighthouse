@@ -8,7 +8,7 @@ const { site } = defineProps<{ site: Site }>()
 <template>
   <NuxtLink
     :to="`/sites/${site.id}`"
-    class="block group rounded-xl ring-1 ring-default bg-elevated/40 hover:bg-elevated/70 transition-colors p-4"
+    class="block group rounded-sm ring-1 ring-default bg-elevated/40 hover:bg-elevated/70 transition-colors p-4"
   >
     <div class="flex items-start gap-3 mb-4">
       <SiteFavicon :url="site.url" :sz="64" :alt="site.name" class="size-8" />

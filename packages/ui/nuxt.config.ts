@@ -1,10 +1,12 @@
 export default defineNuxtConfig({
   ssr: false,
+  extends: ['./layers/design-system'],
   modules: ['@nuxt/ui'],
   css: ['~/assets/css/main.css'],
   colorMode: {
-    preference: 'dark',
+    preference: 'system',
     fallback: 'dark',
+    classSuffix: '',
   },
   fonts: {
     families: [

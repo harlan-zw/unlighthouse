@@ -22,7 +22,7 @@ const value = computed(() => {
     <AuditResult v-else-if="(value as any)?.scoreDisplayMode === 'notApplicable'" :value="{ score: null, displayValue: 'n/a' }" />
     <component :is="column.component" v-else-if="column.component" :report="report" :column="column" :value="value" />
     <template v-else-if="!!value">
-      <Tooltip v-if="(value as any).details?.items?.length > 0">
+      <UiTooltip v-if="(value as any).details?.items?.length > 0" size="lg">
         <div v-if="typeof value === 'number'" class="text-base font-mono">
           {{ value }}
         </div>
@@ -32,7 +32,7 @@ const value = computed(() => {
         <AuditResult v-else-if="typeof (value as any).displayValue !== 'undefined'" :value="value as any" />
         <AuditResultItemsLength v-else-if="!!(value as any).details?.items" :value="value as any" />
         <AuditResult v-else-if="typeof (value as any).score !== 'undefined'" :value="{ score: (value as any).score }" />
-        <template #tooltip>
+        <template #text>
           <div v-for="(item, key) in (value as any).details.items" :key="key" class="mb-2 flex text-xs ">
             <div v-if="item.node?.nodeLabel" class="mb-2">
               <div class="break-all mb-1">
@@ -55,7 +55,7 @@ const value = computed(() => {
             </div>
           </div>
         </template>
-      </Tooltip>
+      </UiTooltip>
       <template v-else>
         <div v-if="typeof value === 'number'" class="text-base font-mono">
           {{ value }}

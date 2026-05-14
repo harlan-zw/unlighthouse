@@ -114,7 +114,7 @@ const statusMeta: Record<Status, { label: string, color: 'success' | 'neutral' |
       </p>
     </header>
 
-    <div class="flex items-center gap-1.5 mb-6 p-1 rounded-lg ring-1 ring-default bg-elevated/40 w-fit">
+    <div class="flex items-center gap-1.5 mb-6 p-1 rounded-sm ring-1 ring-default bg-elevated/40 w-fit">
       <button
         v-for="f in filters"
         :key="f.id"
@@ -139,12 +139,12 @@ const statusMeta: Record<Status, { label: string, color: 'success' | 'neutral' |
       <div
         v-for="i in filtered"
         :key="i.id"
-        class="rounded-xl ring-1 ring-default bg-elevated/40 hover:bg-elevated/70 transition-colors overflow-hidden flex flex-col"
+        class="rounded-sm ring-1 ring-default bg-elevated/40 hover:bg-elevated/70 transition-colors overflow-hidden flex flex-col"
         :class="{ 'opacity-75': i.status === 'coming-soon' }"
       >
         <div class="p-5 flex-1">
           <div class="flex items-start gap-3 mb-3">
-            <div class="size-10 rounded-lg ring-1 ring-default bg-default flex items-center justify-center shrink-0">
+            <div class="size-10 rounded-sm ring-1 ring-default bg-default flex items-center justify-center shrink-0">
               <UIcon :name="i.icon" class="size-5 text-muted" />
             </div>
             <div class="flex-1 min-w-0">
@@ -165,12 +165,12 @@ const statusMeta: Record<Status, { label: string, color: 'success' | 'neutral' |
 
         <div class="px-5 py-3 border-t border-default flex items-center justify-end gap-2 bg-default/30">
           <template v-if="i.status === 'coming-soon'">
-            <UButton size="xs" variant="soft" color="neutral" icon="i-heroicons-bell" @click="notifyMe(i)">
+            <UiMotionButton size="xs" variant="soft" color="neutral" icon="i-heroicons-bell" @click="notifyMe(i)">
               Notify me
-            </UButton>
+            </UiMotionButton>
           </template>
           <template v-else-if="i.status === 'connected'">
-            <UButton
+            <UiMotionButton
               size="xs"
               variant="ghost"
               color="neutral"
@@ -178,12 +178,12 @@ const statusMeta: Record<Status, { label: string, color: 'success' | 'neutral' |
               @click="toggle(i)"
             >
               {{ expanded === i.id ? 'Close' : 'Configure' }}
-            </UButton>
+            </UiMotionButton>
           </template>
           <template v-else>
-            <UButton size="xs" variant="solid" color="primary" icon="i-heroicons-plus" @click="toggle(i)">
+            <UiMotionButton size="xs" variant="solid" color="primary" icon="i-heroicons-plus" @click="toggle(i)">
               Connect
-            </UButton>
+            </UiMotionButton>
           </template>
         </div>
 
@@ -195,7 +195,7 @@ const statusMeta: Record<Status, { label: string, color: 'success' | 'neutral' |
             <label
               v-for="b in storageBackends"
               :key="b.value"
-              class="flex items-start gap-3 p-3 rounded-lg ring-1 cursor-pointer transition-colors"
+              class="flex items-start gap-3 p-3 rounded-sm ring-1 cursor-pointer transition-colors"
               :class="storage === b.value
                 ? 'ring-primary bg-primary/5'
                 : 'ring-default hover:bg-elevated/50'"
@@ -223,9 +223,9 @@ const statusMeta: Record<Status, { label: string, color: 'success' | 'neutral' |
             <UInput type="password" placeholder="AIza..." />
           </UFormField>
           <div class="flex justify-end">
-            <UButton size="xs" color="primary">
+            <UiMotionButton size="xs" color="primary">
               Save & connect
-            </UButton>
+            </UiMotionButton>
           </div>
         </div>
       </div>

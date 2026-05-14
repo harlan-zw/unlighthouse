@@ -25,6 +25,7 @@
     "date-fns": "catalog:dependencies",
     "fuse.js": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
+    "motion-v": "catalog:",
     "nuxt": "catalog:",
     "tailwindcss": "catalog:dependencies",
     "three": "catalog:dependencies",

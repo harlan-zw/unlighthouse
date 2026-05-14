@@ -1,7 +1,15 @@
+<script setup lang="ts">
+import { domAnimation, LazyMotion, MotionConfig } from 'motion-v'
+</script>
+
 <template>
-  <UApp>
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </UApp>
+  <LazyMotion :features="domAnimation">
+    <MotionConfig reduced-motion="user">
+      <UApp :tooltip="{ delayDuration: 0 }">
+        <NuxtLayout>
+          <NuxtPage />
+        </NuxtLayout>
+      </UApp>
+    </MotionConfig>
+  </LazyMotion>
 </template>

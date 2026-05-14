@@ -17,7 +17,7 @@ const groupedList = computed(() =>
   <div>
     <!-- Empty state: integrated onboarding -->
     <div v-if="!sites.length" class="max-w-2xl mx-auto py-20 text-center">
-      <div class="size-12 rounded-xl ring-1 ring-default bg-elevated/60 mx-auto mb-6 flex items-center justify-center">
+      <div class="size-12 rounded-sm ring-1 ring-default bg-elevated/60 mx-auto mb-6 flex items-center justify-center">
         <UIcon name="i-heroicons-light-bulb" class="size-6 text-highlighted" />
       </div>
       <h1 class="text-2xl font-semibold mb-2">
@@ -27,12 +27,12 @@ const groupedList = computed(() =>
         Add a site to start running Lighthouse audits. You can group sites, track history, and connect cloud services from here.
       </p>
       <div class="flex justify-center gap-3">
-        <UButton to="/sites/add" icon="i-heroicons-plus" size="lg" color="primary">
+        <UiMotionButton to="/sites/add" icon="i-heroicons-plus" size="lg" color="primary">
           Add a site
-        </UButton>
-        <UButton to="/integrations" variant="outline" color="neutral" icon="i-heroicons-puzzle-piece" size="lg">
+        </UiMotionButton>
+        <UiMotionButton to="/integrations" variant="outline" color="neutral" icon="i-heroicons-puzzle-piece" size="lg">
           Integrations
-        </UButton>
+        </UiMotionButton>
       </div>
     </div>
 
@@ -46,9 +46,9 @@ const groupedList = computed(() =>
             {{ sites.length }} site{{ sites.length === 1 ? '' : 's' }} tracked
           </p>
         </div>
-        <UButton to="/sites/add" icon="i-heroicons-plus" color="primary">
+        <UiMotionButton to="/sites/add" icon="i-heroicons-plus" color="primary">
           Add site
-        </UButton>
+        </UiMotionButton>
       </header>
 
       <section v-for="group in groupedList" :key="group.id" class="mb-8">

@@ -20,7 +20,7 @@ function retry() {
 </script>
 
 <template>
-  <div v-if="error" class="p-6 bg-error/10 border border-error/20 rounded-xl">
+  <div v-if="error" class="p-6 bg-error/10 border border-error/20 rounded-sm">
     <div class="flex items-start gap-4">
       <div class="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center shrink-0">
         <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-error" />
@@ -32,9 +32,9 @@ function retry() {
           <summary class="cursor-pointer hover:text-muted">Technical details</summary>
           <pre class="mt-2 p-2 bg-default/40 rounded overflow-auto">{{ errorInfo }}</pre>
         </details>
-        <UButton size="sm" color="neutral" variant="outline" icon="i-heroicons-arrow-path" @click="retry">
+        <UiMotionButton size="sm" color="neutral" variant="outline" icon="i-heroicons-arrow-path" @click="retry">
           Try Again
-        </UButton>
+        </UiMotionButton>
       </div>
     </div>
   </div>

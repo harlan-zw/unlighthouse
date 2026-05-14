@@ -220,7 +220,7 @@ const filterOptions = [
           size="xs"
           class="w-32"
         />
-        <UButton
+        <UiMotionButton
           variant="ghost"
           size="xs"
           :icon="sortDir === 'asc' ? 'i-heroicons-arrow-up' : 'i-heroicons-arrow-down'"
@@ -230,13 +230,7 @@ const filterOptions = [
 
       <div class="flex items-center gap-2">
         <span class="text-xs text-dimmed">Filter:</span>
-        <USelectMenu
-          v-model="quickFilter"
-          :items="filterOptions"
-          value-key="value"
-          size="xs"
-          class="w-28"
-        />
+        <UiPillSelect v-model="quickFilter" :options="filterOptions" />
       </div>
     </div>
 
@@ -258,12 +252,12 @@ const filterOptions = [
       <div
         v-for="report in paginatedResults"
         :key="report.route?.path"
-        class="group bg-elevated/40 hover:bg-elevated/80 border border-default hover:border-accented rounded-xl p-4 transition-colors cursor-pointer"
+        class="group bg-elevated/40 hover:bg-elevated/80 border border-default hover:border-accented rounded-sm p-4 transition-colors cursor-pointer"
         @click="openLighthouseReportIframeModal(report)"
       >
         <div class="flex items-center gap-3 md:gap-4">
           <!-- Screenshot -->
-          <div class="w-16 h-12 md:w-24 md:h-16 rounded-lg overflow-hidden bg-elevated/60 shrink-0 hidden sm:block">
+          <div class="w-16 h-12 md:w-24 md:h-16 rounded-sm overflow-hidden bg-elevated/60 shrink-0 hidden sm:block">
             <img
               v-if="report.report && report.artifactUrl"
               :src="resolveArtifactPath(report, 'screenshot.jpeg')"
@@ -294,7 +288,7 @@ const filterOptions = [
               class="text-center"
             >
               <div
-                class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-mono font-semibold text-xs sm:text-sm"
+                class="w-8 h-8 sm:w-10 sm:h-10 rounded-sm flex items-center justify-center font-mono font-semibold text-xs sm:text-sm"
                 :class="[getScoreBg(Math.round((cat as any).score * 100)), getScoreColor(Math.round((cat as any).score * 100))]"
               >
                 {{ (cat as any).score != null ? Math.round((cat as any).score * 100) : '-' }}
@@ -311,7 +305,7 @@ const filterOptions = [
           </div>
 
           <!-- View Report Button -->
-          <UButton
+          <UiMotionButton
             v-if="report.report"
             variant="ghost"
             size="xs"
@@ -320,7 +314,7 @@ const filterOptions = [
             @click.stop="openLighthouseReportIframeModal(report)"
           >
             <span class="hidden md:inline">View report</span>
-          </UButton>
+          </UiMotionButton>
         </div>
       </div>
     </div>
@@ -340,7 +334,7 @@ const filterOptions = [
     <!-- Lighthouse Report Modal -->
     <UModal v-model:open="lighthouseReportModalOpen" title="Lighthouse report" :ui="{ content: '!max-w-6xl !bg-default' }">
       <template #body>
-        <iframe v-if="iframeModalUrl" :src="iframeModalUrl" class="w-full h-[85vh] bg-white rounded-lg" />
+        <iframe v-if="iframeModalUrl" :src="iframeModalUrl" class="w-full h-[85vh] bg-white rounded-sm" />
       </template>
     </UModal>
   </div>

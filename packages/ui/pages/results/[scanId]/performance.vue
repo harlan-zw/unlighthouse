@@ -226,7 +226,7 @@ const sortedRoutes = computed(() =>
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
+        class="flex items-center gap-2 px-4 py-2 rounded-sm text-sm transition-colors"
         :class="activeTab === idx
           ? 'bg-elevated text-highlighted border border-default'
           : 'text-muted hover:text-default hover:bg-elevated/60 border border-transparent'"
@@ -276,7 +276,7 @@ const sortedRoutes = computed(() =>
             <div
               v-for="op in topOpportunities"
               :key="op.type"
-              class="flex items-center gap-3 px-4 py-3 rounded-lg border"
+              class="flex items-center gap-3 px-4 py-3 rounded-sm border"
               :class="op.bg"
             >
               <UIcon :name="op.icon" class="w-5 h-5 shrink-0" :class="op.color" />
@@ -299,7 +299,7 @@ const sortedRoutes = computed(() =>
             <div
               v-for="vital in webVitals.filter(v => ['lcp', 'cls', 'tbt'].includes(v.key))"
               :key="vital.key"
-              class="rounded-xl border p-4"
+              class="rounded-sm border p-4"
               :class="getVitalBg(vital.rating)"
             >
               <div class="flex items-center justify-between mb-3">
@@ -349,7 +349,7 @@ const sortedRoutes = computed(() =>
             <div
               v-for="vital in webVitals.filter(v => ['fcp', 'si', 'ttfb'].includes(v.key))"
               :key="vital.key"
-              class="rounded-xl border p-4"
+              class="rounded-sm border p-4"
               :class="getVitalBg(vital.rating)"
             >
               <div class="flex items-center justify-between mb-3">
@@ -487,7 +487,7 @@ const sortedRoutes = computed(() =>
             <div class="flex items-start gap-4">
               <!-- Element type icon -->
               <div
-                class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                class="w-10 h-10 rounded-sm flex items-center justify-center shrink-0"
                 :class="lcp.avgLcp > 2500 ? 'bg-error/10' : lcp.avgLcp > 1800 ? 'bg-warning/10' : 'bg-success/10'"
               >
                 <UIcon
@@ -553,7 +553,7 @@ const sortedRoutes = computed(() =>
               </div>
             </div>
             <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold"
+              class="w-12 h-12 rounded-sm flex items-center justify-center font-mono font-bold"
               :class="[getScoreBg(r.score), getScoreColor(r.score)]"
             >
               {{ r.score }}

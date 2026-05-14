@@ -80,10 +80,10 @@ async function start() {
       </p>
     </header>
 
-    <form class="space-y-6 rounded-xl ring-1 ring-default bg-elevated/40 p-6" @submit.prevent="start">
+    <form class="space-y-6 rounded-sm ring-1 ring-default bg-elevated/40 p-6" @submit.prevent="start">
       <UFormField label="Device">
         <div class="flex gap-2">
-          <UButton
+          <UiMotionButton
             v-for="d in ['mobile', 'desktop'] as const"
             :key="d"
             type="button"
@@ -94,12 +94,12 @@ async function start() {
             @click="form.device = d"
           >
             {{ d }}
-          </UButton>
+          </UiMotionButton>
         </div>
       </UFormField>
 
       <UFormField>
-        <div class="flex items-center justify-between rounded-lg ring-1 ring-default bg-elevated/40 p-4">
+        <div class="flex items-center justify-between rounded-sm ring-1 ring-default bg-elevated/40 p-4">
           <div>
             <div class="font-medium">
               Network throttling
@@ -114,7 +114,7 @@ async function start() {
 
       <UFormField label="Sample size">
         <div class="grid grid-cols-4 gap-2">
-          <UButton
+          <UiMotionButton
             v-for="o in sampleSizeOptions"
             :key="o.value"
             type="button"
@@ -124,13 +124,13 @@ async function start() {
             @click="form.sampleSize = o.value"
           >
             {{ o.label }}
-          </UButton>
+          </UiMotionButton>
         </div>
       </UFormField>
 
       <UFormField label="Categories">
         <div class="grid grid-cols-2 gap-2">
-          <UButton
+          <UiMotionButton
             v-for="c in categoryOptions"
             :key="c.value"
             type="button"
@@ -140,17 +140,17 @@ async function start() {
             @click="toggleCategory(c.value)"
           >
             {{ c.label }}
-          </UButton>
+          </UiMotionButton>
         </div>
       </UFormField>
 
       <div class="flex items-center justify-end gap-3 pt-2">
-        <UButton variant="ghost" color="neutral" :to="`/sites/${site.id}`">
+        <UiMotionButton variant="ghost" color="neutral" :to="`/sites/${site.id}`">
           Cancel
-        </UButton>
-        <UButton type="submit" color="primary" :loading="submitting" icon="i-heroicons-bolt">
+        </UiMotionButton>
+        <UiMotionButton type="submit" intensity="cta" color="primary" :loading="submitting" icon="i-heroicons-bolt">
           Start scan
-        </UButton>
+        </UiMotionButton>
       </div>
     </form>
   </div>

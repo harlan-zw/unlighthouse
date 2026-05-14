@@ -153,7 +153,7 @@ function extractDomain(url: string) {
         </div>
 
         <div v-if="scanState.status === 'error'" class="mb-8 max-w-md mx-auto">
-          <div class="bg-error/10 border border-error/20 rounded-xl p-4">
+          <div class="bg-error/10 border border-error/20 rounded-sm p-4">
             <div class="flex items-start gap-3">
               <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-error mt-0.5 shrink-0" />
               <div>
@@ -167,14 +167,16 @@ function extractDomain(url: string) {
             </div>
           </div>
           <div class="flex justify-center gap-3 mt-4">
-            <UButton
+            <UiMotionButton
+              intensity="cta"
               color="primary"
+              size="lg"
               icon="i-heroicons-arrow-path"
               @click="retryScan"
             >
               Run scan
-            </UButton>
-            <UButton
+            </UiMotionButton>
+            <UiMotionButton
               v-if="hasPartialResults"
               color="neutral"
               variant="outline"
@@ -182,8 +184,8 @@ function extractDomain(url: string) {
               @click="goToResults"
             >
               View partial results
-            </UButton>
-            <UButton
+            </UiMotionButton>
+            <UiMotionButton
               v-else
               color="neutral"
               variant="outline"
@@ -191,7 +193,7 @@ function extractDomain(url: string) {
               @click="navigateTo('/sites/add')"
             >
               Add site
-            </UButton>
+            </UiMotionButton>
           </div>
         </div>
 
@@ -231,7 +233,7 @@ function extractDomain(url: string) {
         </div>
 
         <div class="flex gap-3">
-          <UButton
+          <UiMotionButton
             v-if="isScanning && !scanState.paused"
             color="neutral"
             variant="outline"
@@ -239,16 +241,16 @@ function extractDomain(url: string) {
             @click="pauseScan"
           >
             Pause
-          </UButton>
-          <UButton
+          </UiMotionButton>
+          <UiMotionButton
             v-if="scanState.paused"
             color="primary"
             icon="i-heroicons-play"
             @click="resumeScan"
           >
             Resume
-          </UButton>
-          <UButton
+          </UiMotionButton>
+          <UiMotionButton
             v-if="isScanning || scanState.paused"
             color="neutral"
             variant="outline"
@@ -256,27 +258,27 @@ function extractDomain(url: string) {
             @click="handleCancel"
           >
             Cancel
-          </UButton>
-          <UButton
+          </UiMotionButton>
+          <UiMotionButton
             v-if="(isScanning || scanState.paused) && scanState.progress.scanned > 0"
             color="primary"
             icon="i-heroicons-chart-bar"
             @click="goToResults"
           >
             Preview results
-          </UButton>
-          <UButton
+          </UiMotionButton>
+          <UiMotionButton
             v-if="isScanComplete || scanState.status === 'cancelled'"
             color="primary"
             icon="i-heroicons-chart-bar"
             @click="goToResults"
           >
             {{ hasPartialResults ? 'View partial results' : 'View report' }}
-          </UButton>
+          </UiMotionButton>
         </div>
       </div>
 
-      <div v-if="scanState.recentlyCompleted.length > 0" class="bg-elevated/40 border border-default rounded-xl p-6">
+      <div v-if="scanState.recentlyCompleted.length > 0" class="bg-elevated/40 border border-default rounded-sm p-6">
         <h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-4">
           Recently completed
         </h2>
@@ -284,7 +286,7 @@ function extractDomain(url: string) {
           <div
             v-for="(completedRoute, idx) in scanState.recentlyCompleted"
             :key="completedRoute.path + idx"
-            class="flex items-center justify-between py-2 px-3 rounded-lg bg-elevated/40 hover:bg-elevated/80 transition-colors"
+            class="flex items-center justify-between py-2 px-3 rounded-sm bg-elevated/40 hover:bg-elevated/80 transition-colors"
           >
             <span class="font-mono text-sm text-toned truncate flex-1">{{ completedRoute.path }}</span>
             <div class="flex items-center gap-2 ml-4">
@@ -300,7 +302,7 @@ function extractDomain(url: string) {
       </div>
 
       <div v-else-if="isScanning" class="space-y-2 py-4">
-        <USkeleton v-for="n in 4" :key="n" class="h-10 w-full rounded-lg" :class="`opacity-${100 - n * 15}`" />
+        <USkeleton v-for="n in 4" :key="n" class="h-10 w-full rounded-sm" :class="`opacity-${100 - n * 15}`" />
       </div>
     </main>
 
@@ -312,12 +314,12 @@ function extractDomain(url: string) {
       </template>
       <template #footer>
         <div class="flex justify-end gap-3 p-4">
-          <UButton variant="ghost" color="neutral" @click="showCancelConfirm = false">
+          <UiMotionButton variant="ghost" color="neutral" @click="showCancelConfirm = false">
             Keep scanning
-          </UButton>
-          <UButton color="error" @click="confirmCancel">
+          </UiMotionButton>
+          <UiMotionButton color="error" @click="confirmCancel">
             Cancel scan
-          </UButton>
+          </UiMotionButton>
         </div>
       </template>
     </UModal>

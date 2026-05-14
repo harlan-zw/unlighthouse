@@ -40,7 +40,7 @@ export default defineAppConfig({
     // Card — flat surfaces, no backdrop blur, hairline ring instead of drop shadow.
     card: {
       slots: {
-        root: 'rounded-lg bg-elevated/40 ring-1 ring-default',
+        root: 'rounded-sm bg-elevated/40 ring-1 ring-default',
       },
       variants: {
         variant: {
@@ -54,7 +54,7 @@ export default defineAppConfig({
     modal: {
       slots: {
         overlay: 'bg-black/60',
-        content: 'bg-elevated ring-1 ring-default rounded-xl ui-popover-content',
+        content: 'bg-elevated ring-1 ring-default rounded-sm ui-popover-content',
       },
     },
 
@@ -73,11 +73,11 @@ export default defineAppConfig({
     },
 
     input: {
-      slots: { base: 'rounded-lg bg-elevated/60 ring-1 ring-default placeholder:text-dimmed focus-visible:ring-accented' },
+      slots: { base: 'rounded-sm bg-elevated/60 ring-1 ring-default placeholder:text-dimmed focus-visible:ring-accented' },
     },
 
     textarea: {
-      slots: { base: 'rounded-lg bg-elevated/60 ring-1 ring-default placeholder:text-dimmed focus-visible:ring-accented' },
+      slots: { base: 'rounded-sm bg-elevated/60 ring-1 ring-default placeholder:text-dimmed focus-visible:ring-accented' },
     },
 
     badge: {
@@ -93,21 +93,21 @@ export default defineAppConfig({
     // Tooltip — tooltip-grade chrome via .ui-popover-content (5-layer shadow + inset edges).
     tooltip: {
       slots: {
-        content: 'ui-popover-content bg-elevated text-highlighted ring-1 ring-default rounded-lg',
+        content: 'ui-popover-content bg-elevated text-highlighted ring-1 ring-default rounded-sm',
       },
     },
 
     // Popover — same chrome treatment as tooltip.
     popover: {
       slots: {
-        content: 'ui-popover-content bg-elevated ring-1 ring-default rounded-lg',
+        content: 'ui-popover-content bg-elevated ring-1 ring-default rounded-sm',
       },
     },
 
     // DropdownMenu — tooltip-grade chrome + outline-ring hover + left accent bar on active.
     dropdownMenu: {
       slots: {
-        content: 'ui-popover-content bg-elevated ring-1 ring-default rounded-lg',
+        content: 'ui-popover-content bg-elevated ring-1 ring-default rounded-sm',
         item: 'ui-dropdown-item rounded-md transition-colors',
         itemLeadingIcon: '!size-3.5 text-dimmed group-data-highlighted:!text-highlighted',
         itemLabel: 'tracking-[-0.005em]',
@@ -119,7 +119,7 @@ export default defineAppConfig({
 
     contextMenu: {
       slots: {
-        content: 'ui-popover-content bg-elevated ring-1 ring-default rounded-lg',
+        content: 'ui-popover-content bg-elevated ring-1 ring-default rounded-sm',
         item: 'ui-dropdown-item rounded-md transition-colors',
         itemLeadingIcon: '!size-3.5 text-dimmed',
       },
@@ -127,7 +127,7 @@ export default defineAppConfig({
 
     selectMenu: {
       slots: {
-        content: 'ui-popover-content bg-elevated ring-1 ring-default rounded-lg',
+        content: 'ui-popover-content bg-elevated ring-1 ring-default rounded-sm',
         item: 'ui-dropdown-item rounded-md text-toned data-[highlighted]:text-highlighted',
         itemLeadingIcon: '!size-3.5 text-dimmed',
       },
@@ -150,6 +150,68 @@ export default defineAppConfig({
         label: 'text-toned',
         description: 'text-dimmed',
         error: 'text-error',
+      },
+    },
+
+    // Link — modern inline convention. Underline rendered but transparent by
+    // default; on hover it animates to primary tint and text lifts to highlighted.
+    link: {
+      base: 'underline underline-offset-4 decoration-1 decoration-transparent hover:decoration-[var(--ui-color-primary-500)] focus-visible:outline-primary transition-[color,text-decoration-color] duration-200',
+      variants: {
+        active: {
+          true: 'text-primary decoration-[var(--ui-color-primary-500)]',
+          false: 'text-default',
+        },
+        disabled: {
+          true: 'cursor-not-allowed opacity-75',
+        },
+      },
+      compoundVariants: [
+        {
+          active: false,
+          disabled: false,
+          class: 'hover:text-highlighted',
+        },
+      ],
+    },
+
+    // Checkbox — primary fill when checked.
+    checkbox: {
+      slots: {
+        base: 'border-accented data-[state=checked]:bg-primary-500 data-[state=checked]:border-primary-500',
+      },
+    },
+
+    // Accordion — semantic tokens for hairline borders and hover surface.
+    accordion: {
+      slots: {
+        root: 'border-default',
+        item: 'border-default',
+        trigger: 'text-highlighted hover:bg-muted',
+        content: 'text-muted',
+      },
+    },
+
+    // Drawer — semantic tokens for surface + handle.
+    drawer: {
+      slots: {
+        content: 'bg-default ring-default',
+        handle: 'bg-accented',
+      },
+    },
+
+    // NavigationMenu — semantic tokens, primary tint for active.
+    navigationMenu: {
+      slots: {
+        item: '!py-0',
+        linkLabel: 'text-xs text-muted',
+        linkTrailingIcon: 'size-4 text-dimmed',
+      },
+      variants: {
+        active: {
+          false: { linkLeadingIcon: 'text-muted' },
+          true: { link: 'text-primary-500' },
+        },
       },
     },
   },

@@ -342,7 +342,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
+        class="flex items-center gap-2 px-4 py-2 rounded-sm text-sm transition-colors"
         :class="activeTab === idx
           ? 'bg-elevated text-highlighted border border-default'
           : 'text-muted hover:text-default hover:bg-elevated/60 border border-transparent'"
@@ -367,7 +367,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
           <div
             v-for="item in healthChecks"
             :key="item.key"
-            class="flex items-start gap-3 px-4 py-3 rounded-lg border"
+            class="flex items-start gap-3 px-4 py-3 rounded-sm border"
             :class="{
               'bg-success/5 border-success/20': item.status === 'pass',
               'bg-warning/5 border-warning/20': item.status === 'warn',
@@ -459,7 +459,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
               </div>
             </div>
             <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"
+              class="w-12 h-12 rounded-sm flex items-center justify-center font-mono font-bold shrink-0"
               :class="[getScoreBg(r.score), getScoreColor(r.score)]"
             >
               {{ r.score }}
@@ -595,7 +595,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
                         </div>
 
                         <!-- Google Preview -->
-                        <div v-if="getPreviewTab(m.path) === 0" class="p-3 rounded-lg bg-white max-w-[400px]">
+                        <div v-if="getPreviewTab(m.path) === 0" class="p-3 rounded-sm bg-white max-w-[400px]">
                           <div class="text-[11px] text-[#202124] mb-0.5">
                             {{ getSerpDisplayUrl(m.path) }}
                           </div>
@@ -606,7 +606,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
                         </div>
 
                         <!-- X / Twitter Preview -->
-                        <div v-else-if="getPreviewTab(m.path) === 1" class="rounded-xl overflow-hidden border border-gray-700 bg-black max-w-[400px]">
+                        <div v-else-if="getPreviewTab(m.path) === 1" class="rounded-sm overflow-hidden border border-gray-700 bg-black max-w-[400px]">
                           <div v-if="m.twitterImage || m.ogImage" class="aspect-[1.91/1] bg-gray-800">
                             <img :src="firstString(m.twitterImage, m.ogImage)" :alt="fallbackString(m.twitterTitle, m.ogTitle, m.title)" class="w-full h-full object-cover">
                           </div>
@@ -855,7 +855,7 @@ function fallbackString(...values: Array<string | null | undefined>): string {
               </div>
             </div>
             <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"
+              class="w-12 h-12 rounded-sm flex items-center justify-center font-mono font-bold shrink-0"
               :class="[getScoreBg(r.score), getScoreColor(r.score)]"
             >
               {{ r.score }}

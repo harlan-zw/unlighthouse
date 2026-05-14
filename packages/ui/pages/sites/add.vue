@@ -79,7 +79,7 @@ const devices = [
     </header>
 
     <form @submit.prevent="submit">
-      <div class="rounded-xl ring-1 ring-default bg-elevated/40 divide-y divide-default">
+      <div class="rounded-sm ring-1 ring-default bg-elevated/40 divide-y divide-default">
         <section class="p-6">
           <div class="mb-5">
             <h2 class="text-sm font-semibold text-highlighted">
@@ -140,7 +140,7 @@ const devices = [
               v-for="d in devices"
               :key="d.id"
               type="button"
-              class="text-left rounded-lg ring-1 p-4 transition-colors"
+              class="text-left rounded-sm ring-1 p-4 transition-colors"
               :class="form.device === d.id
                 ? 'ring-accented bg-elevated'
                 : 'ring-default hover:bg-elevated/60'"
@@ -182,12 +182,12 @@ const devices = [
           You can change these settings later from the site page.
         </div>
         <div class="flex items-center gap-2">
-          <UButton variant="ghost" color="neutral" to="/">
+          <UiMotionButton variant="ghost" color="neutral" to="/">
             Cancel
-          </UButton>
-          <UButton type="submit" color="primary" :loading="submitting" icon="i-heroicons-plus">
+          </UiMotionButton>
+          <UiMotionButton type="submit" intensity="cta" color="primary" :loading="submitting" icon="i-heroicons-plus">
             Add site
-          </UButton>
+          </UiMotionButton>
         </div>
       </div>
     </form>

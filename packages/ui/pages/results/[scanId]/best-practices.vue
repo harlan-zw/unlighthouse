@@ -181,7 +181,7 @@ function toggleItem(id: string) {
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
+        class="flex items-center gap-2 px-4 py-2 rounded-sm text-sm transition-colors"
         :class="activeTab === idx
           ? 'bg-elevated text-highlighted border border-default'
           : 'text-muted hover:text-default hover:bg-elevated/60 border border-transparent'"
@@ -206,7 +206,7 @@ function toggleItem(id: string) {
           <div
             v-for="item in securityOverview"
             :key="item.key"
-            class="flex items-start gap-3 px-4 py-3 rounded-lg border"
+            class="flex items-start gap-3 px-4 py-3 rounded-sm border"
             :class="{
               'bg-success/5 border-success/20': item.status === 'pass',
               'bg-warning/5 border-warning/20': item.status === 'warn',
@@ -499,7 +499,7 @@ function toggleItem(id: string) {
               </div>
             </div>
             <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"
+              class="w-12 h-12 rounded-sm flex items-center justify-center font-mono font-bold shrink-0"
               :class="[getScoreBg(r.score), getScoreColor(r.score)]"
             >
               {{ r.score }}

@@ -86,7 +86,7 @@ onUnmounted(() => {
     <template #body>
       <div class="w-full max-w-6xl mx-auto p-6">
         <!-- Main Screenshot Display -->
-        <div class="bg-elevated/60 rounded-lg p-4 mb-6 relative">
+        <div class="bg-elevated/60 rounded-sm p-4 mb-6 relative">
           <div class="bg-default rounded shadow-inner flex items-center justify-center overflow-hidden min-h-[400px] border border-default">
             <img
               v-if="currentScreenshot"
@@ -109,7 +109,7 @@ onUnmounted(() => {
 
         <!-- Controls -->
         <div class="flex items-center justify-center space-x-4 mb-6">
-          <UButton
+          <UiMotionButton
             v-if="!isPlaying"
             icon="i-heroicons-arrow-uturn-left"
             variant="outline"
@@ -118,7 +118,7 @@ onUnmounted(() => {
             title="Reset to start"
             @click="reset"
           />
-          <UButton
+          <UiMotionButton
             v-if="!isPlaying"
             icon="i-heroicons-backward"
             variant="outline"
@@ -128,7 +128,7 @@ onUnmounted(() => {
             title="Previous frame"
             @click="stepBackward"
           />
-          <UButton
+          <UiMotionButton
             v-if="!isPlaying"
             icon="i-heroicons-forward"
             variant="outline"
@@ -138,7 +138,7 @@ onUnmounted(() => {
             title="Next frame"
             @click="stepForward"
           />
-          <UButton
+          <UiMotionButton
             v-if="!isPlaying"
             icon="i-heroicons-play"
             color="success"
@@ -147,8 +147,8 @@ onUnmounted(() => {
             @click="play"
           >
             Play
-          </UButton>
-          <UButton
+          </UiMotionButton>
+          <UiMotionButton
             v-else
             icon="i-heroicons-pause"
             color="error"
@@ -157,7 +157,7 @@ onUnmounted(() => {
             @click="stop"
           >
             Stop
-          </UButton>
+          </UiMotionButton>
         </div>
 
         <!-- Timeline Scrubber -->
@@ -170,7 +170,7 @@ onUnmounted(() => {
                 type="range"
                 :min="0"
                 :max="totalFrames - 1"
-                class="w-full h-2 bg-elevated rounded-lg appearance-none cursor-pointer slider"
+                class="w-full h-2 bg-elevated rounded-sm appearance-none cursor-pointer slider"
                 @input="stop"
               >
             </div>

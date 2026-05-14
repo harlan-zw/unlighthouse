@@ -6,15 +6,18 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div class="mb-6 p-4 rounded-xl bg-elevated/40 border border-default">
+  <div class="mb-6 p-4 rounded-sm bg-elevated/40 border border-default">
     <div class="flex items-center gap-6">
       <!-- Main Score -->
       <div class="flex items-center gap-4">
-        <div
-          class="w-16 h-16 rounded-xl flex items-center justify-center font-mono text-2xl font-bold"
-          :class="[getScoreBg(score), getScoreColor(score)]"
-        >
-          {{ score ?? '-' }}
+        <div class="relative">
+          <UiProgressCircle :percent="score ?? 0" :size="64" :stroke-size="5" lighter />
+          <div
+            class="absolute inset-0 flex items-center justify-center font-mono text-xl font-bold numerals-display"
+            :class="getScoreColor(score)"
+          >
+            {{ score ?? '-' }}
+          </div>
         </div>
         <div>
           <div class="text-xs text-dimmed uppercase tracking-wider">

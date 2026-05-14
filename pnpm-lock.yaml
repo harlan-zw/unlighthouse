@@ -72,6 +72,9 @@ catalogs:
     jiti:
       specifier: ^2.6.1
       version: 2.6.1
+    motion-v:
+      specifier: ^2.2.1
+      version: 2.2.1
     obuild:
       specifier: ^0.4.35
       version: 0.4.35
@@ -526,6 +529,9 @@ importers:
       lodash-es:
         specifier: catalog:dependencies
         version: 4.18.1
+      motion-v:
+        specifier: 'catalog:'
+        version: 2.2.1(@vueuse/core@14.3.0(vue@3.5.25(typescript@6.0.3)))(vue@3.5.25(typescript@6.0.3))
       nuxt:
         specifier: 4.2.2
         version: 4.2.2(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@parcel/watcher@2.5.6)(@types/node@25.7.0)(@vue/compiler-sfc@3.5.25)(better-sqlite3@12.10.0)(cac@6.7.14)(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260511.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260511.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(eslint@10.3.0(jiti@2.6.1))(ioredis@5.8.2)(magicast@0.5.1)(optionator@0.9.4)(rolldown@1.0.0)(rollup@4.53.5)(terser@5.44.1)(tsx@4.21.0)(typescript@6.0.3)(vite@8.0.0-beta.2(@types/node@25.7.0)(esbuild@0.27.1)(jiti@2.6.1)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))(yaml@2.9.0)
@@ -17210,6 +17216,19 @@ snapshots:
   motion-v@2.2.1(@vueuse/core@14.2.1(vue@3.5.25(typescript@6.0.3)))(vue@3.5.25(typescript@6.0.3)):
     dependencies:
       '@vueuse/core': 14.2.1(vue@3.5.25(typescript@6.0.3))
+      framer-motion: 12.38.0
+      hey-listen: 1.0.8
+      motion-dom: 12.38.0
+      motion-utils: 12.36.0
+      vue: 3.5.25(typescript@6.0.3)
+    transitivePeerDependencies:
+      - '@emotion/is-prop-valid'
+      - react
+      - react-dom
+
+  motion-v@2.2.1(@vueuse/core@14.3.0(vue@3.5.25(typescript@6.0.3)))(vue@3.5.25(typescript@6.0.3)):
+    dependencies:
+      '@vueuse/core': 14.3.0(vue@3.5.25(typescript@6.0.3))
       framer-motion: 12.38.0
       hey-listen: 1.0.8
       motion-dom: 12.38.0

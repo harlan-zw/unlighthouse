@@ -83,7 +83,7 @@ provide('historicalScan', historicalScan)
       <div v-if="site" class="space-y-1">
         <UPopover v-model:open="switcherOpen" :ui="{ content: 'p-0' }">
           <button
-            class="flex items-center gap-2 w-full p-2 rounded-lg ring-1 ring-default bg-elevated/40 hover:bg-elevated transition-colors text-left"
+            class="flex items-center gap-2 w-full p-2 rounded-sm ring-1 ring-default bg-elevated/40 hover:bg-elevated transition-colors text-left"
             aria-label="Switch site"
           >
             <SiteFavicon :url="site.url" :alt="site.name" class="size-5" />
@@ -156,9 +156,9 @@ provide('historicalScan', historicalScan)
       <p class="text-muted mb-6">
         This site no longer exists or was removed.
       </p>
-      <UButton to="/" icon="i-heroicons-arrow-left" color="primary">
+      <UiMotionButton to="/" icon="i-heroicons-arrow-left" color="primary">
         Back to sites
-      </UButton>
+      </UiMotionButton>
     </div>
     <slot v-else />
   </DashboardShell>

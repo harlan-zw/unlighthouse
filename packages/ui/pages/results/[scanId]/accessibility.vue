@@ -200,7 +200,7 @@ const auditTitles: Record<string, string> = {
       <button
         v-for="(tab, idx) in tabs"
         :key="tab.label"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
+        class="flex items-center gap-2 px-4 py-2 rounded-sm text-sm transition-colors"
         :class="activeTab === idx
           ? 'bg-elevated text-highlighted border border-default'
           : 'text-muted hover:text-default hover:bg-elevated/60 border border-transparent'"
@@ -237,7 +237,7 @@ const auditTitles: Record<string, string> = {
             <div
               v-for="s in severityBreakdown"
               :key="s.key"
-              class="flex items-center gap-3 px-3 py-2 rounded-lg bg-elevated/40 border border-default"
+              class="flex items-center gap-3 px-3 py-2 rounded-sm bg-elevated/40 border border-default"
             >
               <div class="w-2.5 h-2.5 rounded-full shrink-0" :class="s.bg" />
               <div class="min-w-0 flex-1">
@@ -557,7 +557,7 @@ const auditTitles: Record<string, string> = {
               </div>
             </div>
             <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center font-mono font-bold shrink-0"
+              class="w-12 h-12 rounded-sm flex items-center justify-center font-mono font-bold shrink-0"
               :class="[getScoreBg(r.score), getScoreColor(r.score)]"
             >
               {{ r.score }}

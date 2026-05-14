@@ -24,21 +24,21 @@ function htmlTooltip(s: string) {
     class="flex flex-col"
   >
     <div class="flex items-center ">
-      <Tooltip v-if="column.tooltip">
+      <UiTooltip v-if="column.tooltip" size="lg">
         <span class="whitespace-nowrap flex items-center">{{ column.label }}
           <UIcon v-if="column?.warning" name="i-carbon-warning-alt" class="text-warning ml-1 text-xs opacity-75" />
           <UIcon v-else name="i-carbon-information" class="ml-1 text-xs opacity-75" />
         </span>
-        <template #tooltip>
+        <template #text>
           <div v-html="htmlTooltip(column.tooltip)" />
         </template>
-      </Tooltip>
+      </UiTooltip>
       <div v-else>
         <span class="whitespace-nowrap">{{ column.label }}</span>
       </div>
       <button
         v-if="(column.sortable || !!column.sortKey) && column.key"
-        class="ml-2 p-0.3 bg-primary/10 border border-primary/20 hover:border-primary/40 rounded-lg transition-colors"
+        class="ml-2 p-0.3 bg-primary/10 border border-primary/20 hover:border-primary/40 rounded-sm transition-colors"
         :class="sorting.key === column.key && sorting.dir ? ['bg-primary/25', 'text-primary', 'border-primary/40'] : []"
         @click="$emit('sort', column.key)"
       >

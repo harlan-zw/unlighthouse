@@ -44,7 +44,7 @@ function pct(s: number | null | undefined) {
       Loading…
     </div>
 
-    <div v-else-if="scans.length" class="rounded-xl ring-1 ring-default bg-elevated/40 overflow-hidden">
+    <div v-else-if="scans.length" class="rounded-sm ring-1 ring-default bg-elevated/40 overflow-hidden">
       <NuxtLink
         v-for="scan in scans"
         :key="scan.scanId"
@@ -80,14 +80,14 @@ function pct(s: number | null | undefined) {
       </NuxtLink>
     </div>
 
-    <div v-else class="rounded-xl ring-1 ring-default bg-elevated/40 px-6 py-16 text-center">
+    <div v-else class="rounded-sm ring-1 ring-default bg-elevated/40 px-6 py-16 text-center">
       <UIcon name="i-heroicons-clock" class="size-8 text-dimmed mx-auto mb-3" />
       <p class="text-muted mb-4">
         Run a scan to surface render-blocking resources, image weight, and a11y gaps.
       </p>
-      <UButton :to="`/sites/${site.id}/scan/new`" icon="i-heroicons-bolt" color="primary">
+      <UiMotionButton intensity="cta" :to="`/sites/${site.id}/scan/new`" icon="i-heroicons-bolt" color="primary">
         Run scan
-      </UButton>
+      </UiMotionButton>
     </div>
   </div>
 </template>

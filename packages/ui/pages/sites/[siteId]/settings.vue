@@ -59,7 +59,7 @@ async function doDelete() {
       </p>
     </header>
 
-    <form class="space-y-6 rounded-xl ring-1 ring-default bg-elevated/40 p-6" @submit.prevent="save">
+    <form class="space-y-6 rounded-sm ring-1 ring-default bg-elevated/40 p-6" @submit.prevent="save">
       <UFormField label="Name">
         <UInput v-model="form.name" />
       </UFormField>
@@ -74,7 +74,7 @@ async function doDelete() {
       </UFormField>
       <UFormField label="Default device">
         <div class="flex gap-2">
-          <UButton
+          <UiMotionButton
             v-for="d in ['mobile', 'desktop'] as const"
             :key="d"
             :variant="form.device === d ? 'solid' : 'outline'"
@@ -84,26 +84,26 @@ async function doDelete() {
             @click="form.device = d"
           >
             {{ d }}
-          </UButton>
+          </UiMotionButton>
         </div>
       </UFormField>
       <div class="flex justify-end pt-2">
-        <UButton type="submit" color="primary">
+        <UiMotionButton type="submit" color="primary">
           Save changes
-        </UButton>
+        </UiMotionButton>
       </div>
     </form>
 
-    <div class="mt-6 rounded-xl ring-1 ring-error/30 bg-error/5 p-6">
+    <div class="mt-6 rounded-sm ring-1 ring-error/30 bg-error/5 p-6">
       <h2 class="font-medium text-error mb-1">
         Remove site
       </h2>
       <p class="text-sm text-muted mb-4">
         This removes the site from the registry. Past scan history is kept.
       </p>
-      <UButton color="error" variant="soft" @click="confirmDelete = true">
+      <UiMotionButton color="error" variant="soft" @click="confirmDelete = true">
         Remove site
-      </UButton>
+      </UiMotionButton>
     </div>
 
     <UModal v-model:open="confirmDelete" title="Remove site?">
@@ -114,12 +114,12 @@ async function doDelete() {
       </template>
       <template #footer>
         <div class="flex justify-end gap-2 p-4">
-          <UButton variant="ghost" color="neutral" @click="confirmDelete = false">
+          <UiMotionButton variant="ghost" color="neutral" @click="confirmDelete = false">
             Cancel
-          </UButton>
-          <UButton color="error" @click="doDelete">
+          </UiMotionButton>
+          <UiMotionButton color="error" @click="doDelete">
             Remove
-          </UButton>
+          </UiMotionButton>
         </div>
       </template>
     </UModal>
