@@ -1,4 +1,4 @@
-import type { ResolvedUserConfig, UnlighthouseRouteReport } from '..'
+import type { ResolvedUserConfig, UnlighthouseRouteReport } from '../index.ts'
 import type { ReporterConfig, ReportJsonExpanded, ReportJsonSimple } from './types'
 import { join } from 'node:path'
 import fse from 'fs-extra'

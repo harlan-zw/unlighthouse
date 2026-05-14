@@ -23,10 +23,19 @@ export default defineNuxtPlugin({
   setup() {
     const payload = typeof window !== 'undefined' ? window.__unlighthouse_payload : null
     const isStaticFlag = typeof window !== 'undefined' && window.__unlighthouse_static === true
+    const runtime = useRuntimeConfig().public as { unlighthouseApiUrl?: string, unlighthouseWsUrl?: string }
 
+    // Resolution order:
+    //   1. window.__unlighthouse_payload — production: the CLI host injects these
+    //      into the served HTML.
+    //   2. runtimeConfig.public — dev: nuxt.config.ts points at the standalone
+    //      backend (http://localhost:5678) so we skip the devProxy entirely.
+    //   3. same-origin fallback — last-resort for embeds that haven't wired either.
     const apiUrl = computed(() => {
       if (payload?.options?.apiUrl)
         return payload.options.apiUrl
+      if (runtime.unlighthouseApiUrl)
+        return runtime.unlighthouseApiUrl
       if (typeof window !== 'undefined')
         return `${window.location.origin}/api`
       return '/api'
@@ -35,6 +44,8 @@ export default defineNuxtPlugin({
     const websocketUrl = computed(() => {
       if (payload?.options?.websocketUrl)
         return payload.options.websocketUrl
+      if (runtime.unlighthouseWsUrl)
+        return runtime.unlighthouseWsUrl
       if (typeof window !== 'undefined') {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         return `${protocol}//${window.location.host}/ws`

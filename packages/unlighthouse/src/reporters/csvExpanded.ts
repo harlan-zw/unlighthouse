@@ -1,4 +1,4 @@
-import type { UnlighthouseTabs } from '..'
+import type { UnlighthouseTabs } from '../index.ts'
 import type { UnlighthouseRouteReport } from '../types'
 import type { ReporterConfig } from './types'
 import { get } from 'lodash-es'

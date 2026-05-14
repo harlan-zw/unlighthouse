@@ -14,7 +14,7 @@ import type { Socket } from 'node:net'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { createUnlighthouseCore } from '@unlighthouse/core'
-import { WS as WSClass } from '@unlighthouse/core/api'
+import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
 import { createStorage } from '@unlighthouse/core/storage'
@@ -142,7 +142,11 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     rs.generatedClientPath = outputPath
   }
 
-  const ws = behavior.ws !== undefined ? behavior.ws : new WSClass()
+  // createWS() factory wraps `new WS()`. jiti's interopDefault Proxy strips
+  // [[Construct]] from re-exported classes in stub mode (unjs/jiti#437), so
+  // callers go through the factory; a plain function call doesn't trip the
+  // missing-construct slot.
+  const ws = behavior.ws !== undefined ? behavior.ws : createWS()
 
   // ── Ports (lazy: Storage + Core built after outputPath is known) ──────────
   // These are (re-)built inside setServerContext once the server URL is known.

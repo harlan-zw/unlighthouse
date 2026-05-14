@@ -101,7 +101,7 @@
   },
   "scripts": {
     "build": "obuild",
-    "stub": "obuild --stub",
+    "stub": "obuild --stub && node ./scripts/build-worker.mjs",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate"
   },
@@ -154,6 +154,7 @@
     "better-sqlite3": "catalog:dependencies",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:dependencies",
+    "rolldown": "catalog:",
     "unstorage": "catalog:"
   }
 }

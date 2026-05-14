@@ -33,3 +33,12 @@ export class WS {
     }
   }
 }
+
+// Factory wrapper. Stub-mode dev runs go through jiti's interopDefault proxy,
+// which calls `.bind()` on getters and strips the [[Construct]] slot from
+// re-exported classes (unjs/jiti#437). `new WS()` then throws "is not a
+// constructor". Function call traverses the same proxy without that slot
+// requirement, so callers use `createWS()` everywhere instead of `new WS()`.
+export function createWS(): WS {
+  return new WS()
+}

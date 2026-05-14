@@ -117,5 +117,18 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     return fs.readFile(htmlPath, 'utf-8')
   }))
 
+  // CORS for dev: the UI runs on :3000 while the API is on :5678. Open up
+  // everything because the host is bound to localhost by default; tighten if
+  // the listen address ever moves off the loopback.
+  app.use(defineEventHandler((event) => {
+    setResponseHeader(event, 'Access-Control-Allow-Origin', '*')
+    setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS')
+    setResponseHeader(event, 'Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    if (event.node.req.method === 'OPTIONS') {
+      setResponseStatus(event, 204)
+      return ''
+    }
+  }))
+
   app.use(resolvedConfig.routerPrefix, root.handler)
 }

@@ -1,4 +1,4 @@
-import type { UnlighthouseRouteReport, ValidReportTypes } from '..'
+import type { UnlighthouseRouteReport, ValidReportTypes } from '../index.ts'
 
 export interface CliOptions {
   host?: string

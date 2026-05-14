@@ -1,4 +1,4 @@
-import type { UnlighthouseColumn, UnlighthouseTabs } from '..'
+import type { UnlighthouseColumn, UnlighthouseTabs } from '../index.ts'
 
 export interface CategoryScore {
   key: string

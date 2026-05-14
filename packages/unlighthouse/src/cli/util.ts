@@ -1,10 +1,10 @@
 import type { Logger } from '@unlighthouse/contracts'
-import type { ResolvedUserConfig, UserConfig } from '..'
+import type { ResolvedUserConfig, UserConfig } from '../index.ts'
 import type { CiOptions, CliOptions } from './types'
 import { URL } from 'node:url'
 import { defu } from 'defu'
 import { pick } from 'lodash-es'
-import { fetchUrlRaw, normaliseHost } from '..'
+import { fetchUrlRaw, normaliseHost } from '../index.ts'
 import { handleError } from './errors'
 
 export async function validateHost(resolvedConfig: ResolvedUserConfig, logger?: Logger) {

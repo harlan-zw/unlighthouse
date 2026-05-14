@@ -12,8 +12,6 @@ export default defineBuildConfig({
         './src/policies/index.ts',
         './src/crawlers/index.ts',
         './src/auditors/index.ts',
-        // Tinypool worker entry; spawned by createLocalAuditor's audit-pool.
-        './src/auditors/local-worker.ts',
         './src/storage/index.ts',
         './src/storage/drizzle/index.ts',
         './src/storage/drizzle/init-sql.ts',
@@ -28,6 +26,7 @@ export default defineBuildConfig({
         './src/api/http.ts',
         './src/api/handlers/index.ts',
         './src/api/dashboard.ts',
+        './src/auditors/local-worker.ts',
         './src/util/path.ts',
         './src/core.ts',
       ],
@@ -36,3 +35,9 @@ export default defineBuildConfig({
     // No subpath export — users read them via fs / drizzle migrator.
   ],
 })
+// Note on the tinypool worker entry (`auditors/local-worker.ts`):
+// stub-mode produces a `.mjs` that re-exports the `.ts` source, which doesn't
+// survive the loader handoff when tinypool spawns a fresh worker process.
+// `scripts/build-worker.mjs` overwrites the stubbed worker file with a real
+// rolldown bundle after `pnpm stub` runs, so dev workers have a real ESM
+// artifact. The production `obuild` build emits the same path directly.
