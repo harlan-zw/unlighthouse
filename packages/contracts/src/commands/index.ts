@@ -6,6 +6,7 @@ import { CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
 import { EventsSubscribe, EventsTail } from './events'
 import { HistoryDelete, HistoryGet, HistoryList, HistoryRescan } from './history'
 import { AuditorsList, AuditorsTest, Health, Manifest } from './meta'
+import { PackList, PackRunCmd } from './pack'
 import { QueryRoutes } from './query'
 import { RouteGet, RouteRescan } from './route'
 import {
@@ -19,6 +20,7 @@ import {
   ScanResume,
   ScanStart,
   ScanStatusCmd,
+  ScanSummaryCmd,
 } from './scan'
 import { Site, SitesCreate, SitesDelete, SitesGet, SitesList } from './sites'
 
@@ -39,6 +41,8 @@ export {
   HistoryList,
   HistoryRescan,
   Manifest,
+  PackList,
+  PackRunCmd,
   QueryRoutes,
   RouteGet,
   RouteRescan,
@@ -52,6 +56,7 @@ export {
   ScanResume,
   ScanStart,
   ScanStatusCmd,
+  ScanSummaryCmd,
   Site,
   SitesCreate,
   SitesDelete,
@@ -79,6 +84,7 @@ export const commands = {
   'scan.resume': ScanResume,
   'scan.delete': ScanDelete,
   'scan.results': ScanResults,
+  'scan.summary': ScanSummaryCmd,
   'scan.meta': ScanMetaCmd,
   'scan.current': ScanCurrent,
   'scan.rescanAll': ScanRescanAll,
@@ -96,6 +102,9 @@ export const commands = {
   'compare.findPrevious': CompareFindPrevious,
 
   'assert.evaluate': AssertEvaluate,
+
+  'pack.run': PackRunCmd,
+  'pack.list': PackList,
 
   'query.routes': QueryRoutes,
 

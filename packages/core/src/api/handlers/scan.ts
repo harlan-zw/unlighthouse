@@ -14,9 +14,11 @@ import type {
   ScanRoute,
   ScanStart,
   ScanStatusCmd,
+  ScanSummaryCmd,
 } from '@unlighthouse/contracts'
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts'
+import { overviewPack } from '../../packs/overview'
 
 function notFound(scanId: string): never {
   throw new UnlighthouseError({
@@ -243,5 +245,33 @@ export const scanResults: Handler<typeof ScanResults> = {
       page: input.page,
       pageSize: input.pageSize,
     } as CommandOutput<typeof ScanResults>
+  },
+}
+
+// D-028 layered output, tier 1: powered by the built-in `overview` pack.
+// Kept thin — all aggregation lives in the pack so third-party tools can
+// reproduce or extend it.
+export const scanSummary: Handler<typeof ScanSummaryCmd> = {
+  command: {} as typeof ScanSummaryCmd,
+  async run(input, ctx) {
+    const scan = await ctx.storage.scans.get(input.scanId)
+    if (!scan)
+      notFound(input.scanId)
+    const all = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
+
+    const report = await overviewPack.reconciler({
+      scanId: input.scanId,
+      routes: all.items,
+      logger: undefined,
+    })
+
+    // The wire schema in commands/scan.ts intentionally mirrors OverviewReport
+    // plus the scan's site (which isn't on the pack output — packs don't
+    // reach into scan metadata). Add it here.
+    return {
+      ...report,
+      site: scan.site,
+      device: input.device ?? scan.device,
+    } as CommandOutput<typeof ScanSummaryCmd>
   },
 }

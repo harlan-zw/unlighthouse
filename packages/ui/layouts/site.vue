@@ -42,6 +42,7 @@ const resultsLinks = computed<NavLink[]>(() => {
   const base = `/results/${scanId.value}`
   return [
     { label: 'Overview', to: base, icon: 'i-heroicons-squares-2x2', exact: true },
+    { label: 'Summary', to: `${base}/summary`, icon: 'i-heroicons-sparkles' },
     { label: 'Performance', to: `${base}/performance`, icon: 'i-heroicons-bolt', iconClass: 'text-success' },
     { label: 'Accessibility', to: `${base}/accessibility`, icon: 'i-heroicons-eye', iconClass: 'text-info' },
     { label: 'Best Practices', to: `${base}/best-practices`, icon: 'i-heroicons-shield-check', iconClass: 'text-secondary' },
