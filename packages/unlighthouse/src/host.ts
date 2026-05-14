@@ -37,6 +37,7 @@ import { historySubscriber } from './data/history/tracking'
 import { createSitesStore } from './data/sites'
 import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
+import { createServerHooks } from './server-hooks'
 import { normaliseHost } from './util'
 
 /**
@@ -345,10 +346,18 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     const { handlerCtx } = ensurePorts()
 
+    // Indirection so callers (tests, integrations) can override `host.start`
+    // after construction and still have autoStartOnVisit honour the override.
+    const serverHooks = createServerHooks({
+      autoStartOnVisit: behavior.autoStartOnVisit,
+      start: () => result.start(),
+      logger,
+    })
+
     const mountDeps = {
       resolvedConfig,
       runtimeSettings: rs as RuntimeSettings,
-      hooks: { callHook: async () => {} } as any,
+      hooks: serverHooks,
       ws,
       logger,
     }
@@ -384,7 +393,10 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     })
   }
 
-  return {
+  // `result` is referenced lazily by `setServerContext` (via `() => result.start()`)
+  // so callers can override `host.start` after construction. Safe at runtime because
+  // setServerContext is invoked from the outside, after this function returns.
+  const result: UnlighthouseHost = {
     core: new Proxy({} as UnlighthouseCore, {
       get(_, prop) {
         const { core } = ensurePorts()
@@ -411,4 +423,5 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     }),
     start,
   }
+  return result
 }
