@@ -45,6 +45,7 @@ const resultsLinks = computed<NavLink[]>(() => {
     { label: 'Summary', to: `${base}/summary`, icon: 'i-heroicons-sparkles' },
     { label: 'Web Vitals', to: `${base}/packs/cwv`, icon: 'i-heroicons-chart-bar' },
     { label: 'Images', to: `${base}/packs/images`, icon: 'i-heroicons-photo' },
+    { label: 'JS Bundle', to: `${base}/packs/js-bundle`, icon: 'i-heroicons-code-bracket' },
     { label: 'A11y Wins', to: `${base}/packs/a11y-quick-wins`, icon: 'i-heroicons-eye' },
     { label: 'Performance', to: `${base}/performance`, icon: 'i-heroicons-bolt', iconClass: 'text-success' },
     { label: 'Accessibility', to: `${base}/accessibility`, icon: 'i-heroicons-eye', iconClass: 'text-info' },
