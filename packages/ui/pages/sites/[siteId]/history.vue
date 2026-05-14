@@ -63,7 +63,7 @@ function pct(s: number | null | undefined) {
           {{ scan.status }}
         </span>
         <div class="ml-auto flex items-center gap-1.5">
-          <div
+          <TableScoreTile
             v-for="(score, key) in {
               P: pct(scan.summary?.scoresByCategory?.performance),
               A: pct(scan.summary?.scoresByCategory?.accessibility),
@@ -71,11 +71,10 @@ function pct(s: number | null | undefined) {
               S: pct(scan.summary?.scoresByCategory?.seo),
             }"
             :key="key"
-            class="size-8 rounded flex items-center justify-center font-mono text-[11px]"
-            :class="[getScoreBg(score), getScoreColor(score)]"
-          >
-            {{ score ?? '—' }}
-          </div>
+            :score="score"
+            :label="key"
+            :bg-class="[getScoreBg(score), getScoreColor(score)]"
+          />
         </div>
       </NuxtLink>
     </div>

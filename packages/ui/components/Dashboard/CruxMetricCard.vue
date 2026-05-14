@@ -135,10 +135,10 @@ function trendArrow(v: number) {
         </span>
       </div>
       <div v-else class="flex items-baseline gap-2">
-        <span class="text-3xl font-bold tabular-nums tracking-tight text-dimmed">—</span>
+        <span class="text-3xl font-bold tabular-nums tracking-tight"><TableDash /></span>
       </div>
 
-      <UPopover v-if="!loading && distribution" mode="hover" :content="{ side: 'bottom' }" class="block w-full">
+      <UiPopover v-if="!loading && distribution" mode="hover" :content="{ side: 'bottom' }" class="block w-full">
         <div class="flex h-4 rounded-md overflow-hidden cursor-default w-full">
           <div
             class="bg-success/75 flex items-center justify-center transition-[width] duration-300"
@@ -198,7 +198,7 @@ function trendArrow(v: number) {
             </div>
           </div>
         </template>
-      </UPopover>
+      </UiPopover>
       <div v-else-if="!loading" class="h-4 rounded-md w-full border border-dashed border-default" aria-hidden="true" />
 
       <CruxMetricChart

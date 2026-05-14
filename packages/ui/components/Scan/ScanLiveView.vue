@@ -290,12 +290,10 @@ function extractDomain(url: string) {
           >
             <span class="font-mono text-sm text-toned truncate flex-1">{{ completedRoute.path }}</span>
             <div class="flex items-center gap-2 ml-4">
-              <div
-                class="w-8 h-8 rounded flex items-center justify-center font-mono text-sm font-semibold"
-                :class="[getScoreBg(completedRoute.score), getScoreColor(completedRoute.score)]"
-              >
-                {{ completedRoute.score }}
-              </div>
+              <TableScoreTile
+                :score="completedRoute.score"
+                :bg-class="[getScoreBg(completedRoute.score), getScoreColor(completedRoute.score)]"
+              />
             </div>
           </div>
         </div>
