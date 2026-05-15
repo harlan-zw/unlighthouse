@@ -36,6 +36,11 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
   'CREATE INDEX IF NOT EXISTS `idx_comparisons_scans` ON `comparisons` (`base_scan_id`, `current_scan_id`);',
   'CREATE INDEX IF NOT EXISTS `idx_diffs_comparison` ON `comparison_diffs` (`comparison_id`);',
   'CREATE INDEX IF NOT EXISTS `idx_scan_crux_scan` ON `scan_crux` (`scan_id`, `form_factor`);',
+  // Pack-run cache (D-028). One row per (scanId, packName, packVersion). Scans
+  // are immutable so the report is too; bumping pack version invalidates the
+  // cache implicitly.
+  'CREATE TABLE IF NOT EXISTS `pack_runs` (\n  `scan_id` text NOT NULL,\n  `pack_name` text NOT NULL,\n  `pack_version` text NOT NULL,\n  `started_at` text NOT NULL,\n  `completed_at` text NOT NULL,\n  `report` text,\n  `report_blob_key` text,\n  PRIMARY KEY (`scan_id`, `pack_name`, `pack_version`),\n  FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade\n);',
+  'CREATE INDEX IF NOT EXISTS `idx_pack_runs_scan_id` ON `pack_runs` (`scan_id`);',
   // Additive migrations: each ALTER errors with "duplicate column name" once
   // the column lands; the host applies stmts with per-stmt try/catch so the
   // duplicate-column error is swallowed safely.

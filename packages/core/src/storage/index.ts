@@ -1,4 +1,4 @@
-import type { BlobStore, ScanRepository, ScanRouteRepository, Storage } from '@unlighthouse/contracts'
+import type { BlobStore, PackRunRepository, ScanRepository, ScanRouteRepository, Storage } from '@unlighthouse/contracts'
 
 export interface CreateStorageOptions {
   rows: {
@@ -7,6 +7,7 @@ export interface CreateStorageOptions {
     /** Drizzle adapter exposes report repos + raw db handle; memory omits. */
     reports?: Storage['reports']
     comparisons?: Storage['comparisons']
+    packRuns: PackRunRepository
     db?: unknown
   }
   blobs: BlobStore
@@ -56,6 +57,7 @@ export function createStorage(opts: CreateStorageOptions): Storage {
     blobs: opts.blobs,
     reports: opts.rows.reports ?? emptyReports,
     comparisons: opts.rows.comparisons ?? emptyComparisons,
+    packRuns: opts.rows.packRuns,
     // Internal escape hatch for processScanData / assertions / compareScans.
     // Not part of the contract; read-via-`as { db?: any }` at call sites.
     ...(opts.rows.db !== undefined ? { db: opts.rows.db } : {}),

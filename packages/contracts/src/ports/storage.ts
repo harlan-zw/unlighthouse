@@ -1,3 +1,4 @@
+import type { PackRun } from '../packs'
 import type {
   Device,
   ExtractedMetrics,
@@ -12,6 +13,7 @@ import type {
 export type {
   Device,
   ExtractedMetrics,
+  PackRun,
   Paginated,
   Scan,
   ScanId,
@@ -131,10 +133,21 @@ export interface ComparisonRepository {
   diffs: (comparisonId: number) => Promise<unknown[]>
 }
 
+// Pack run cache (D-028). Scans are immutable, so (scanId, packName, packVersion)
+// uniquely identifies a reconciliation output — once written, it never changes.
+// Bumping the pack version invalidates the cache implicitly.
+export interface PackRunRepository {
+  get: (scanId: ScanId, packName: string, packVersion: string) => Promise<PackRun | null>
+  put: (run: PackRun) => Promise<void>
+  listForScan: (scanId: ScanId) => Promise<PackRun[]>
+  delete: (scanId: ScanId, packName?: string) => Promise<void>
+}
+
 export interface Storage {
   scans: ScanRepository
   routes: ScanRouteRepository
   blobs: BlobStore
   reports: ReportRepositories
   comparisons: ComparisonRepository
+  packRuns: PackRunRepository
 }

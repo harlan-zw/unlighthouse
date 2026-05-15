@@ -106,5 +106,7 @@ export function wrapStorage(base: Storage, opts: WrapStorageOptions): Storage {
   // Report + comparison repos are read-only & dashboard-private; pass through
   // without intercepting. Tenant/auth hooks already gate via `scans.*` /
   // `routes.*` (any scanId reaching `reports.*` was filtered upstream).
-  return { scans, routes, blobs, reports: base.reports, comparisons: base.comparisons }
+  // packRuns goes through too — the cache is keyed on `scanId` and any
+  // scan-level access control would already have been applied upstream.
+  return { scans, routes, blobs, reports: base.reports, comparisons: base.comparisons, packRuns: base.packRuns }
 }

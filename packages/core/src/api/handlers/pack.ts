@@ -5,12 +5,27 @@
 // storage, and hands them to the pack's reconciler. Output is validated
 // against the pack's own reportSchema before going over the wire — packs
 // can't lie about their report shape.
+//
+// Results are cached in `storage.packRuns` keyed on (scanId, packName,
+// packVersion). Scans are immutable so the report is too; bumping the pack
+// version is what invalidates a stale entry. Callers can force a re-run with
+// `refresh: true`.
 
-import type { CommandOutput, Device, PackList, PackRunCmd } from '@unlighthouse/contracts'
-import { UnlighthouseError } from '@unlighthouse/contracts'
-import { gunzipSync } from 'node:zlib'
+import type { CommandOutput, Device, PackList, PackRun, PackRunCmd } from '@unlighthouse/contracts'
 import type { Handler } from './types'
+import { gunzipSync } from 'node:zlib'
+import { UnlighthouseError } from '@unlighthouse/contracts'
 import { builtInPacks, getPack } from '../../packs/index'
+
+// Inline-vs-spill threshold for cached reports. SQLite handles big JSON
+// columns fine, but the wire format and the row-cache both benefit from
+// keeping the inline payload reasonable. Anything past this lands in blob
+// storage and the row keeps only the key.
+const INLINE_REPORT_LIMIT_BYTES = 64 * 1024
+
+function packRunBlobKey(scanId: string, packName: string, packVersion: string): string {
+  return `scans/${scanId}/packs/${packName}-${packVersion}.json`
+}
 
 export const packRun: Handler<typeof PackRunCmd> = {
   command: {} as typeof PackRunCmd,
@@ -29,6 +44,28 @@ export const packRun: Handler<typeof PackRunCmd> = {
         code: 'SCAN_NOT_FOUND',
         message: `No scan found for scanId=${input.scanId}`,
       })
+    }
+
+    // Cache lookup — keyed on (scanId, packName, packVersion). When the row
+    // points at a blob (large report), inflate it before returning.
+    if (!input.refresh) {
+      const cached = await ctx.storage.packRuns.get(input.scanId, pack.name, pack.version)
+      if (cached) {
+        const report = await loadCachedReport(cached, ctx)
+        if (report !== null) {
+          return {
+            scanId: cached.scanId,
+            packName: cached.packName,
+            packVersion: cached.packVersion,
+            startedAt: cached.startedAt,
+            completedAt: cached.completedAt,
+            report,
+            cache: 'hit',
+          } as CommandOutput<typeof PackRunCmd>
+        }
+        // Blob missing for a row that claims one — fall through and rebuild
+        // rather than serving a half-row. Stale storage shouldn't 500 us.
+      }
     }
 
     const startedAt = new Date().toISOString()
@@ -80,6 +117,40 @@ export const packRun: Handler<typeof PackRunCmd> = {
 
     const completedAt = new Date().toISOString()
 
+    // Persist. Small reports inline, large ones spill to the blob store —
+    // the row keeps only the blob key. Blob key is deterministic on
+    // (scanId, packName, packVersion), so spill→spill overwrites in place;
+    // only spill→inline can leave an orphan, handled below.
+    const serialised = JSON.stringify(parsed.data)
+    const spill = serialised.length > INLINE_REPORT_LIMIT_BYTES
+    let reportBlobKey: string | null = null
+    if (spill) {
+      reportBlobKey = packRunBlobKey(input.scanId, pack.name, pack.version)
+      await ctx.storage.blobs.put(reportBlobKey, new TextEncoder().encode(serialised), { contentType: 'application/json' })
+    }
+
+    // Look up the previous row (if any) so we can clean up its blob if the
+    // new run drops below the spill threshold. Cheap second read — the cache
+    // path already missed, so there's at most one row here.
+    const prior = await ctx.storage.packRuns.get(input.scanId, pack.name, pack.version)
+
+    await ctx.storage.packRuns.put({
+      scanId: input.scanId,
+      packName: pack.name,
+      packVersion: pack.version,
+      startedAt,
+      completedAt,
+      report: spill ? null : parsed.data,
+      reportBlobKey,
+    })
+
+    if (prior?.reportBlobKey && prior.reportBlobKey !== reportBlobKey) {
+      // Old spill blob is orphaned (new run is inline, or — defensively — went
+      // to a different key). Fire and don't surface failures: a stale blob is
+      // wasted bytes, not corruption.
+      ctx.storage.blobs.delete(prior.reportBlobKey).catch(() => {})
+    }
+
     return {
       scanId: input.scanId,
       packName: pack.name,
@@ -87,8 +158,25 @@ export const packRun: Handler<typeof PackRunCmd> = {
       startedAt,
       completedAt,
       report: parsed.data,
+      cache: 'miss',
     } as CommandOutput<typeof PackRunCmd>
   },
+}
+
+// Internal: rehydrate a cached row. Returns `null` when the row claims a
+// blob that no longer exists (caller treats this as a cache miss).
+async function loadCachedReport(
+  cached: PackRun,
+  ctx: Parameters<typeof packRun.run>[1],
+): Promise<unknown | null> {
+  if (cached.report != null)
+    return cached.report
+  if (!cached.reportBlobKey)
+    return null
+  const buf = await ctx.storage.blobs.get(cached.reportBlobKey)
+  if (!buf)
+    return null
+  return JSON.parse(new TextDecoder().decode(buf))
 }
 
 export const packList: Handler<typeof PackList> = {

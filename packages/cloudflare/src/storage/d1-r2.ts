@@ -15,6 +15,8 @@ import type {
   ExtractedMetrics,
   FindPreviousQuery,
   ListQuery,
+  PackRun,
+  PackRunRepository,
   Paginated,
   RouteListQuery,
   Scan,
@@ -388,6 +390,81 @@ function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
   }
 }
 
+interface PackRunRawRow {
+  scan_id: string
+  pack_name: string
+  pack_version: string
+  started_at: string
+  completed_at: string
+  report: string | null
+  report_blob_key: string | null
+}
+
+function rowToPackRun(r: PackRunRawRow): PackRun {
+  return {
+    scanId: r.scan_id as ScanId,
+    packName: r.pack_name,
+    packVersion: r.pack_version,
+    startedAt: r.started_at,
+    completedAt: r.completed_at,
+    // sqlite has no native JSON column; the row stores a JSON string. Parse
+    // here so the contract type stays `unknown` (i.e. the parsed value).
+    report: r.report == null ? null : JSON.parse(r.report),
+    reportBlobKey: r.report_blob_key,
+  }
+}
+
+function d1PackRunRepository(db: D1Database): PackRunRepository {
+  const COLS = 'scan_id, pack_name, pack_version, started_at, completed_at, report, report_blob_key'
+  return {
+    async get(scanId, packName, packVersion) {
+      const row = await db
+        .prepare(`SELECT ${COLS} FROM pack_runs WHERE scan_id = ? AND pack_name = ? AND pack_version = ? LIMIT 1`)
+        .bind(scanId, packName, packVersion)
+        .first<PackRunRawRow>()
+      return row ? rowToPackRun(row) : null
+    },
+
+    async put(run) {
+      const reportJson = run.report == null ? null : JSON.stringify(run.report)
+      await db
+        .prepare(`INSERT INTO pack_runs (${COLS}) VALUES (?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(scan_id, pack_name, pack_version) DO UPDATE SET
+  started_at = excluded.started_at,
+  completed_at = excluded.completed_at,
+  report = excluded.report,
+  report_blob_key = excluded.report_blob_key`)
+        .bind(
+          run.scanId,
+          run.packName,
+          run.packVersion,
+          run.startedAt,
+          run.completedAt,
+          reportJson,
+          run.reportBlobKey ?? null,
+        )
+        .run()
+    },
+
+    async listForScan(scanId) {
+      const res = await db
+        .prepare(`SELECT ${COLS} FROM pack_runs WHERE scan_id = ?`)
+        .bind(scanId)
+        .all<PackRunRawRow>()
+      return (res.results ?? []).map(rowToPackRun)
+    },
+
+    async delete(scanId, packName) {
+      if (packName) {
+        await db.prepare('DELETE FROM pack_runs WHERE scan_id = ? AND pack_name = ?').bind(scanId, packName).run()
+      }
+      else {
+        await db.prepare('DELETE FROM pack_runs WHERE scan_id = ?').bind(scanId).run()
+      }
+    },
+  }
+}
+
 function r2BlobStore(bucket: R2Bucket): BlobStore {
   return {
     async put(key: string, data: Uint8Array, opts?: BlobPutOptions) {
@@ -456,6 +533,18 @@ const INIT_SQL: string[] = [
     FOREIGN KEY (scan_id) REFERENCES scans(scan_id) ON DELETE CASCADE
   )`,
   `CREATE INDEX IF NOT EXISTS idx_scan_routes_scan_id ON scan_routes (scan_id)`,
+  `CREATE TABLE IF NOT EXISTS pack_runs (
+    scan_id text NOT NULL,
+    pack_name text NOT NULL,
+    pack_version text NOT NULL,
+    started_at text NOT NULL,
+    completed_at text NOT NULL,
+    report text,
+    report_blob_key text,
+    PRIMARY KEY (scan_id, pack_name, pack_version),
+    FOREIGN KEY (scan_id) REFERENCES scans(scan_id) ON DELETE CASCADE
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_pack_runs_scan_id ON pack_runs (scan_id)`,
 ]
 
 export async function migrate(db: D1Database): Promise<void> {
@@ -499,5 +588,6 @@ export function d1R2Storage(opts: D1R2StorageOptions): Storage {
       async latestForCurrent() { return null },
       async diffs() { return [] },
     },
+    packRuns: d1PackRunRepository(opts.db),
   }
 }

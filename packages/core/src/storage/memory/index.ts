@@ -5,6 +5,7 @@ import type {
   FindPreviousQuery,
   ListQuery,
   Logger,
+  PackRun,
   Paginated,
   RouteListQuery,
   Scan,
@@ -34,6 +35,11 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
   const scansMap = new Map<ScanId, Scan & { _createdAtMs: number }>()
   const routesMap = new Map<ScanId, Map<string, ScanRoute>>()
   const blobsMap = new Map<string, Uint8Array>()
+  // (scanId, packName, packVersion) → PackRun. Composite key as a string —
+  // memory storage doesn't need to be index-friendly.
+  const packRunsMap = new Map<string, PackRun>()
+  const packRunKey = (scanId: ScanId, name: string, version: string) =>
+    `${scanId}::${name}::${version}`
 
   const clone = <T>(v: T): T => (v == null ? v : JSON.parse(JSON.stringify(v)) as T)
 
@@ -194,5 +200,28 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     async diffs() { return [] },
   }
 
-  return { scans: scanRepo, routes: routeRepo, blobs: blobStore, reports: reportRepos, comparisons: comparisonsRepo }
+  const packRunsRepo: Storage['packRuns'] = {
+    async get(scanId, name, version) {
+      const r = packRunsMap.get(packRunKey(scanId, name, version))
+      return r ? clone(r) : null
+    },
+    async put(run) {
+      packRunsMap.set(packRunKey(run.scanId, run.packName, run.packVersion), clone(run))
+    },
+    async listForScan(scanId) {
+      const prefix = `${scanId}::`
+      return Array.from(packRunsMap.entries())
+        .filter(([k]) => k.startsWith(prefix))
+        .map(([, v]) => clone(v))
+    },
+    async delete(scanId, name) {
+      const prefix = name ? `${scanId}::${name}::` : `${scanId}::`
+      for (const k of [...packRunsMap.keys()]) {
+        if (k.startsWith(prefix))
+          packRunsMap.delete(k)
+      }
+    },
+  }
+
+  return { scans: scanRepo, routes: routeRepo, blobs: blobStore, reports: reportRepos, comparisons: comparisonsRepo, packRuns: packRunsRepo }
 }
