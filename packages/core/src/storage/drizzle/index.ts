@@ -1,5 +1,6 @@
-import type { Logger, ScanRepository, ScanRouteRepository } from '@unlighthouse/contracts'
+import type { Logger, PackRunRepository, ScanRepository, ScanRouteRepository } from '@unlighthouse/contracts'
 import { createComparisonRepository } from './repositories/comparisons'
+import { createPackRunRepository } from './repositories/pack-runs'
 import { createReportRepositories } from './repositories/reports'
 import { createScanRouteRepository } from './repositories/routes'
 import { createScanRepository } from './repositories/scans'
@@ -9,6 +10,7 @@ export interface DrizzleStorage {
   routes: ScanRouteRepository
   reports: ReturnType<typeof createReportRepositories>
   comparisons: ReturnType<typeof createComparisonRepository>
+  packRuns: PackRunRepository
   /**
    * Raw drizzle handle. Escape hatch for `processScanData` writes; do NOT
    * use from dashboard handlers — go through `reports.*` / `comparisons.*`.
@@ -44,6 +46,7 @@ export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
     routes: createScanRouteRepository(driver),
     reports: createReportRepositories(driver),
     comparisons: createComparisonRepository(driver),
+    packRuns: createPackRunRepository(driver),
     db: driver,
   }
 }

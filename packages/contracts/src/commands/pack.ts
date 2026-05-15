@@ -13,6 +13,9 @@ export const PackRunCmd = defineCommand({
   input: z.object({
     scanId: ScanId,
     pack: z.string().min(1),
+    // Skip the cache and re-reconcile. Default false so agent calls hit cache
+    // on the second visit; UI exposes this as a "Refresh" button.
+    refresh: z.boolean().optional(),
   }),
   // Report shape is per-pack; the wire format wraps it generically so the
   // command registry stays single-signature. Consumers narrow `report` by
@@ -24,6 +27,10 @@ export const PackRunCmd = defineCommand({
     startedAt: z.iso.datetime(),
     completedAt: z.iso.datetime(),
     report: z.unknown(),
+    // `cache: 'hit'` means the report came from packRuns storage; `'miss'`
+    // means it was just reconciled. Useful for "Last computed at …" UI hints
+    // and for asserting cache behaviour in tests.
+    cache: z.enum(['hit', 'miss']),
   }),
   exitCodes: { SCAN_NOT_FOUND: 64, PACK_NOT_FOUND: 66 },
 })

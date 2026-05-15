@@ -21,7 +21,12 @@ export function usePackRun(
     data: Ref<PackRunResult | null>
     pending: Ref<boolean>
     error: Ref<Error | null>
-    refresh: () => Promise<void>
+    /**
+     * Re-fetch. Pass `{ force: true }` to bypass the server-side pack cache
+     * — useful for a manual "rerun" button after a pack update. The default
+     * (no args) lets the server serve from `packRuns` if the entry exists.
+     */
+    refresh: (opts?: { force?: boolean }) => Promise<void>
   } {
   const api = useApiClient()
   const data = ref<PackRunResult | null>(null)
@@ -30,7 +35,7 @@ export function usePackRun(
   const id = computed(() => toValue(scanId))
   const packName = computed(() => toValue(pack))
 
-  async function refresh() {
+  async function refresh(opts: { force?: boolean } = {}) {
     const value = id.value
     const name = packName.value
     if (!value || !name) {
@@ -40,7 +45,11 @@ export function usePackRun(
     pending.value = true
     error.value = null
     try {
-      data.value = await api['pack.run']({ scanId: value as never, pack: name })
+      data.value = await api['pack.run']({
+        scanId: value as never,
+        pack: name,
+        ...(opts.force ? { refresh: true } : {}),
+      })
     }
     catch (err) {
       error.value = err as Error

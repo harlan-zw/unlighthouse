@@ -99,6 +99,38 @@ export type ScanRowInsert = typeof scans.$inferInsert
 export type ScanRouteRow = typeof scanRoutes.$inferSelect
 export type ScanRouteRowInsert = typeof scanRoutes.$inferInsert
 
+/**
+ * Pack runs (D-028). One row per (scanId, packName, packVersion) — packs
+ * reconcile a scan's routes into a typed report. Since scans are immutable,
+ * the report is too; the row is the cache. Bumping a pack's version on a
+ * subsequent code change is what invalidates a stale entry.
+ *
+ * Small reports live in `report` (JSON column). Anything that doesn't fit
+ * comfortably inline spills to a blob keyed by `reportBlobKey` — same pattern
+ * as `scan_routes.lhrBlobKey`.
+ */
+export const packRuns = sqliteTable(
+  'pack_runs',
+  {
+    scanId: text('scan_id')
+      .notNull()
+      .references(() => scans.scanId, { onDelete: 'cascade' }),
+    packName: text('pack_name').notNull(),
+    packVersion: text('pack_version').notNull(),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at').notNull(),
+    report: text('report', { mode: 'json' }).$type<unknown>(),
+    reportBlobKey: text('report_blob_key'),
+  },
+  table => [
+    primaryKey({ columns: [table.scanId, table.packName, table.packVersion] }),
+    index('idx_pack_runs_scan_id').on(table.scanId),
+  ],
+)
+
+export type PackRunRow = typeof packRuns.$inferSelect
+export type PackRunRowInsert = typeof packRuns.$inferInsert
+
 // ============================================================================
 // Dashboard-private aggregation tables
 //
