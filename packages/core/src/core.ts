@@ -85,6 +85,40 @@ function toStructuredError(err: unknown): { code: string, message: string, cause
   return { code: 'INTERNAL', message: String(err) }
 }
 
+/**
+ * Boot-time housekeeping: mark any scan still in a non-terminal state
+ * (`starting`, `discovering`, `scanning`, `paused`) as `error`. These are
+ * zombies from a prior process that crashed or was killed before it could
+ * write a terminal status — they have no live session to recover.
+ *
+ * v1.md D-019c ("no silent stalls") promises that every scan that stops
+ * emits a terminal status. Without this sweep, a SIGKILL on the prior
+ * CLI run leaves rows that look in-flight forever and break compare.run /
+ * scan.start (`ACTIVE_SCAN_CONFLICT` is per-process so it doesn't trip,
+ * but downstream consumers can't tell the difference from disk).
+ *
+ * Call this once during host boot, before `createUnlighthouseCore`. Safe
+ * to call concurrently with new scans — only touches rows in non-terminal
+ * states, never the row being written by the live session.
+ */
+export async function reapStaleScans(storage: Storage, logger?: Logger): Promise<number> {
+  const NON_TERMINAL: ScanStatus[] = ['starting', 'discovering', 'scanning', 'paused']
+  let reaped = 0
+  for (const status of NON_TERMINAL) {
+    const { items } = await storage.scans.list({ status, page: 1, pageSize: 1000 })
+    for (const scan of items) {
+      await storage.scans.update(scan.scanId, {
+        status: 'error',
+        completedAt: nowIso(),
+      }).catch(() => {})
+      reaped++
+    }
+  }
+  if (reaped > 0)
+    (logger as { warn?: (msg: string) => void } | undefined)?.warn?.(`[core] reaped ${reaped} stale scan${reaped === 1 ? '' : 's'} from prior process`)
+  return reaped
+}
+
 // Compute (scoreAverage, scoresByCategory) over a set of completed routes.
 // Routes with `null` for a given category are skipped — Lighthouse leaves a
 // category null when it failed to run (e.g. a 5xx response on that URL).

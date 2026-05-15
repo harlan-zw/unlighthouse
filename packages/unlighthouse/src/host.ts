@@ -13,7 +13,7 @@ import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
-import { createUnlighthouseCore } from '@unlighthouse/core'
+import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
@@ -195,6 +195,12 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         driver: fsDriver({ base: join(outputPath, 'blobs') }),
       }),
     })
+
+    // Sweep zombies left by a prior process before we wire core — see
+    // reapStaleScans for D-019c rationale. Fire-and-forget so boot doesn't
+    // block on storage IO; a stale row that survives one extra boot is
+    // tolerable, blocking the CLI on a slow disk is not.
+    reapStaleScans(storage, logger).catch(() => {})
 
     const coreConfig = resolvedConfig as unknown as Parameters<typeof createUnlighthouseCore>[0]['config']
     const auditor = resolveAuditor({ config: coreConfig, logger })

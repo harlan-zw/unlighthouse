@@ -14,7 +14,7 @@ import type {
 } from '@unlighthouse/contracts'
 import { describe, expect, it } from 'vitest'
 import { UnlighthouseError } from '@unlighthouse/contracts'
-import { createUnlighthouseCore } from '@unlighthouse/core'
+import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 
 // SCAN_CANCELLED rejections on `session.done` fire from the orchestrate IIFE
@@ -431,5 +431,66 @@ describe('createUnlighthouseCore orchestration', () => {
     expect(session.stats().failed).toBe(1)
     expect(session.stats().scanned).toBe(2)
     expect(events.some(e => e.event === 'scan:complete')).toBe(true)
+  })
+})
+
+describe('reapStaleScans', () => {
+  it('marks non-terminal zombie scans as error and leaves terminals alone', async () => {
+    const storage = memoryStorage()
+    // Plant one of each non-terminal status + a terminal control.
+    const planted: Array<['starting' | 'discovering' | 'scanning' | 'paused' | 'complete' | 'error' | 'cancelled', string]> = [
+      ['starting', 'zombie-start'],
+      ['discovering', 'zombie-discovering'],
+      ['scanning', 'zombie-scanning'],
+      ['paused', 'zombie-paused'],
+      ['complete', 'survivor-complete'],
+      ['error', 'survivor-error'],
+      ['cancelled', 'survivor-cancelled'],
+    ]
+    for (const [status, id] of planted) {
+      await storage.scans.create({
+        scanId: id as never,
+        site: 'https://example.com' as never,
+        device: 'mobile',
+        status,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: status === 'complete' || status === 'error' || status === 'cancelled'
+          ? '2025-01-01T00:05:00.000Z'
+          : null,
+        ciBranch: null,
+        ciCommit: null,
+        ciCommitMessage: null,
+        summary: null,
+      })
+    }
+    const reaped = await reapStaleScans(storage)
+    expect(reaped).toBe(4)
+    // Zombies flipped to error + got a completedAt.
+    for (const id of ['zombie-start', 'zombie-discovering', 'zombie-scanning', 'zombie-paused']) {
+      const row = await storage.scans.get(id as never)
+      expect(row?.status).toBe('error')
+      expect(row?.completedAt).not.toBeNull()
+    }
+    // Terminals untouched.
+    expect((await storage.scans.get('survivor-complete' as never))?.status).toBe('complete')
+    expect((await storage.scans.get('survivor-error' as never))?.status).toBe('error')
+    expect((await storage.scans.get('survivor-cancelled' as never))?.status).toBe('cancelled')
+  })
+
+  it('is a no-op when no zombies exist', async () => {
+    const storage = memoryStorage()
+    await storage.scans.create({
+      scanId: 'ok' as never,
+      site: 'https://example.com' as never,
+      device: 'mobile',
+      status: 'complete',
+      startedAt: '2025-01-01T00:00:00.000Z',
+      completedAt: '2025-01-01T00:05:00.000Z',
+      ciBranch: null,
+      ciCommit: null,
+      ciCommitMessage: null,
+      summary: null,
+    })
+    expect(await reapStaleScans(storage)).toBe(0)
   })
 })

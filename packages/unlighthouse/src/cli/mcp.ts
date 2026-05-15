@@ -8,7 +8,7 @@
 // because there's no scanId to feed it.
 
 import type { UnlighthouseConfig } from '@unlighthouse/contracts'
-import { createUnlighthouseCore } from '@unlighthouse/core'
+import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
@@ -252,6 +252,11 @@ export async function runMcp(): Promise<void> {
       driver: fsDriver({ base: join(outputPath, 'blobs') }),
     }),
   })
+
+  // Sweep zombies left by a prior process. MCP often opens an existing DB
+  // written by the CLI; "starting" rows from a Ctrl+C'd CLI run would
+  // otherwise stay forever in agent's history_list output.
+  reapStaleScans(storage, logger).catch(() => {})
 
   const auditor = resolveAuditor({ config, logger })
   const crawler = crawleeCrawler({ logger: logger.withTag('crawler/crawlee') as never })
