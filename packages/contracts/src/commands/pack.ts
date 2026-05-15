@@ -9,7 +9,7 @@ import { defineCommand } from './define'
 // ── pack.run ────────────────────────────────────────────────────────────────
 export const PackRunCmd = defineCommand({
   name: 'pack.run',
-  description: 'Execute a registered pack against a scan and return its typed report.',
+  description: 'Run a Lighthouse pack (cross-route analysis) against a finished scan. Returns a typed report — e.g. "images" lists routes with unoptimised LCP images, "cwv" returns p75 Core Web Vitals, "seo-basics" returns failing audits grouped by rule. Call pack.list first to discover available packs. Use scanId from history.list. Output is cached so re-running the same (scanId, pack) is free; pass refresh:true to bust.',
   input: z.object({
     scanId: ScanId,
     pack: z.string().min(1),
@@ -38,7 +38,7 @@ export const PackRunCmd = defineCommand({
 // ── pack.list ───────────────────────────────────────────────────────────────
 export const PackList = defineCommand({
   name: 'pack.list',
-  description: 'List the packs registered on this host (built-in + community).',
+  description: 'List packs available for pack.run. Built-ins include "overview" (top-level scores), "cwv" (Core Web Vitals), "images" (lazy-load + sizing + alt), "js-bundle" (unused JS/CSS, third parties), "a11y-quick-wins" (top accessibility wins), "seo-basics" (indexability + meta). Returns name, description, version, and auditor count for each.',
   input: z.object({}),
   output: z.object({
     packs: z.array(z.object({

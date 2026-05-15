@@ -1,8 +1,8 @@
 // stdio transport entrypoint used by `bin/unlighthouse-mcp`.
 
-import type { CreateMcpServerOptions } from './projection'
+import type { CreateMcpServerOptions } from './projection.ts'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { createMcpServer } from './projection'
+import { createMcpServer } from './projection.ts'
 
 export async function startStdioServer(opts: CreateMcpServerOptions): Promise<void> {
   const server = createMcpServer(opts)

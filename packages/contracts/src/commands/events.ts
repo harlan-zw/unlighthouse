@@ -20,6 +20,11 @@ export const EventsSubscribe = defineCommand({
     replay: z.coerce.number().int().nonnegative().max(10_000).optional(),
   }),
   output: HookEventUnion,
+  // Streaming tools over MCP stdio are projected through progress
+  // notifications and haven't been exercised end-to-end. Until that path is
+  // tested + documented, keep agents off it — scan.status polling is the
+  // safe substitute for "is this scan done yet".
+  mcp: { hidden: true },
 })
 
 // ── events.tail ─────────────────────────────────────────────────────────────
@@ -37,4 +42,5 @@ export const EventsTail = defineCommand({
   }),
   output: HookEventUnion,
   exitCodes: { SCAN_NOT_FOUND: 64 },
+  mcp: { hidden: true },
 })

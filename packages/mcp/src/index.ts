@@ -1,2 +1,2 @@
-export * from './projection'
-export * from './stdio'
+export * from './projection.ts'
+export * from './stdio.ts'
