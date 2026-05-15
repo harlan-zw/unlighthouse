@@ -21,12 +21,11 @@ import { createConsola } from 'consola'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
 import { isAbsolute, join, resolve } from 'node:path'
-import objectHash from 'object-hash'
 import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../../package.json'
 import { resolveAuditor } from '../auditor'
 import { resolveConfig } from '../config/resolve'
-import { normaliseHost } from '../util'
+import { computeConfigCacheKey, normaliseHost } from '../util'
 
 function resolveManualUrls(urls: UnlighthouseConfig['urls']): string[] | (() => string[] | Promise<string[]>) {
   if (typeof urls === 'function') {
@@ -45,8 +44,8 @@ function resolveManualUrls(urls: UnlighthouseConfig['urls']): string[] | (() => 
 // Throws via process.exit on malformed input — `unlighthouse-mcp --site` with
 // no value used to silently land on the bare outputPath and return an empty
 // history, which is much harder to diagnose than a "missing value" error.
-function parseFlags(argv: string[]): { site?: string, root?: string } {
-  const out: { site?: string, root?: string } = {}
+function parseFlags(argv: string[]): { site?: string, root?: string, debug?: boolean } {
+  const out: { site?: string, root?: string, debug?: boolean } = {}
   const needsValue = (name: string, next: string | undefined): string => {
     if (next == null || next.startsWith('--') || next.startsWith('-')) {
       process.stderr.write(`[unlighthouse-mcp] missing value for ${name}\n`)
@@ -78,8 +77,20 @@ function parseFlags(argv: string[]): { site?: string, root?: string } {
       }
       out.root = v
     }
+    else if (a === '--debug' || a === '-d') {
+      out.debug = true
+    }
   }
   return out
+}
+
+// Module-level flag so the discovery helpers (which are pure but emit
+// diagnostics) can stay quiet without threading a logger through every call.
+// Set once during boot from --debug; never reassigned at runtime.
+let debugMode = false
+function diag(msg: string): void {
+  if (debugMode)
+    process.stderr.write(msg)
 }
 
 // Resolve --root to an absolute path under CWD. Prevents `--root ../../../`
@@ -96,8 +107,54 @@ function sanitiseRoot(raw: string): string {
   return abs
 }
 
+// Count `scans` rows in a sqlite DB. Opens readonly, returns 0 on any error
+// (table missing, locked, malformed). Used for both site-level (--site given)
+// and root-level (no --site) discovery scoring.
+function countScans(dbPath: string): number {
+  let db: InstanceType<typeof Database> | null = null
+  try {
+    db = new Database(dbPath, { readonly: true })
+    return (db.prepare('SELECT count(*) AS c FROM scans').get() as { c: number }).c
+  }
+  catch {
+    return 0
+  }
+  finally {
+    db?.close()
+  }
+}
+
+// For a given site directory, rank its <cacheKey> subdirs by scan count
+// (mtime tiebreak), return the path of the winner. If no subdir has scans,
+// mint a fresh cacheKey dir so future writes land somewhere structured.
+function pickScanDir(parent: string, hostname: string, config: unknown, version: string): string {
+  const siteDir = join(parent, hostname)
+  if (!fs.existsSync(siteDir))
+    return join(siteDir, computeConfigCacheKey(config, version))
+  const candidates = fs.readdirSync(siteDir)
+    .map((name) => {
+      const dbPath = join(siteDir, name, 'db.sqlite')
+      if (!fs.existsSync(dbPath))
+        return null
+      return { name, mtime: fs.statSync(join(siteDir, name)).mtimeMs, count: countScans(dbPath) }
+    })
+    .filter((e): e is { name: string, mtime: number, count: number } => e !== null)
+    .sort((a, b) => (b.count - a.count) || (b.mtime - a.mtime))
+  const withScans = candidates.filter(c => c.count > 0)
+  if (withScans.length > 1) {
+    diag(
+      `[unlighthouse-mcp] ${withScans.length} scan dirs found for ${hostname}; picking ${withScans[0].name} `
+      + `(${withScans[0].count} scans). Others: ${withScans.slice(1).map(c => `${c.name}=${c.count}`).join(', ')}\n`,
+    )
+  }
+  if (candidates[0] && candidates[0].count > 0)
+    return join(siteDir, candidates[0].name)
+  return join(siteDir, computeConfigCacheKey(config, version))
+}
+
 export async function runMcp(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2))
+  debugMode = flags.debug === true
   const rootDir = flags.root ? sanitiseRoot(flags.root) : undefined
   const { config } = await resolveConfig({
     overrides: flags.site ? { site: flags.site } : undefined,
@@ -106,70 +163,71 @@ export async function runMcp(): Promise<void> {
 
   // D-018: host owns the concrete consola; tagged children pass into each
   // adapter. MCP routes consola → stderr only (stdout is the JSON-RPC channel).
-  const logger = createConsola({ defaults: { level: 1 } }).withTag('unlighthouse-mcp')
+  // --debug raises consola to verbose so the user sees migration / drizzle /
+  // storage chatter alongside the discover diagnostics.
+  const logger = createConsola({ defaults: { level: debugMode ? 4 : 1 } }).withTag('unlighthouse-mcp')
 
   // Resolve the on-disk scan directory. The CLI writes to
   // `.unlighthouse/<hostname>/<configCacheKey>/` where `configCacheKey` is a
   // 4-char hash of the *raw* userConfig at scan time. Computing the same hash
-  // from MCP's resolved config doesn't generally match (different layering:
-  // c12 + flags + defaults), so we discover instead — pick the subdir whose
-  // `scans` table has the most rows, breaking ties by mtime. If none exists,
-  // mint a fresh hash dir so future writes don't pollute the site root.
+  // from MCP's resolved config doesn't always match (c12 layering / defaults
+  // differ), so we discover instead — pick the subdir whose `scans` table has
+  // the most rows, breaking ties by mtime. If none exists, mint a fresh hash
+  // dir so future writes don't pollute the site root.
+  //
+  // When --site is absent, walk `.unlighthouse/<*>/` to find any hostname with
+  // scans on disk. The agent gets to enumerate sites without the user having
+  // to know the URL in advance.
   let outputPath = config.outputPath as string
   if (config.site) {
     const site = normaliseHost(config.site)
-    const siteDir = join(outputPath, site.hostname.replace(':', '꞉'))
-    if (fs.existsSync(siteDir)) {
-      const candidates = fs.readdirSync(siteDir)
-        .map((name) => {
-          const dbPath = join(siteDir, name, 'db.sqlite')
-          if (!fs.existsSync(dbPath))
-            return null
-          // Open readonly to probe the scans table. The `scans` SELECT can
-          // throw if the table doesn't exist (malformed/uninitialised DB);
-          // wrap close() in `finally` so the file descriptor is always
-          // released — better-sqlite3 doesn't auto-close on GC.
-          let count = 0
-          let db: InstanceType<typeof Database> | null = null
-          try {
-            db = new Database(dbPath, { readonly: true })
-            count = (db.prepare('SELECT count(*) AS c FROM scans').get() as { c: number }).c
+    outputPath = pickScanDir(outputPath, site.hostname.replace(':', '꞉'), config, version)
+  }
+  else {
+    const rootDir = outputPath
+    if (fs.existsSync(rootDir)) {
+      const hostDirs = fs.readdirSync(rootDir)
+        .filter(name => fs.statSync(join(rootDir, name)).isDirectory())
+        .map((hostname) => {
+          // Score each hostname by total scans across all <cacheKey> subdirs.
+          const hostDir = join(rootDir, hostname)
+          let total = 0
+          let mtime = 0
+          for (const sub of fs.readdirSync(hostDir)) {
+            const dbPath = join(hostDir, sub, 'db.sqlite')
+            if (!fs.existsSync(dbPath))
+              continue
+            const c = countScans(dbPath)
+            total += c
+            const m = fs.statSync(join(hostDir, sub)).mtimeMs
+            if (m > mtime)
+              mtime = m
           }
-          catch {}
-          finally {
-            db?.close()
-          }
-          return { name, mtime: fs.statSync(join(siteDir, name)).mtimeMs, count }
+          return { hostname, total, mtime }
         })
-        .filter((e): e is { name: string, mtime: number, count: number } => e !== null)
-        .sort((a, b) => (b.count - a.count) || (b.mtime - a.mtime))
-      // Surface ambiguity: if more than one candidate dir holds scans, the
-      // "most rows wins" heuristic might route to the wrong config variant
-      // (e.g. mobile vs desktop ran under different cacheKeys). Emit a
-      // stderr line so users can diagnose without reading source.
-      const withScans = candidates.filter(c => c.count > 0)
-      if (withScans.length > 1) {
-        process.stderr.write(
-          `[unlighthouse-mcp] ${withScans.length} scan dirs found for ${site.hostname}; picking ${withScans[0].name} `
-          + `(${withScans[0].count} scans). Others: ${withScans.slice(1).map(c => `${c.name}=${c.count}`).join(', ')}\n`,
-        )
+        .filter(h => h.total > 0)
+        .sort((a, b) => (b.total - a.total) || (b.mtime - a.mtime))
+      if (hostDirs.length > 0) {
+        const pick = hostDirs[0]
+        if (hostDirs.length > 1) {
+          diag(
+            `[unlighthouse-mcp] no --site provided; ${hostDirs.length} sites have scans on disk; picking ${pick.hostname} `
+            + `(${pick.total} scans). Others: ${hostDirs.slice(1).map(h => `${h.hostname}=${h.total}`).join(', ')}\n`,
+          )
+        }
+        else {
+          diag(`[unlighthouse-mcp] no --site provided; defaulting to ${pick.hostname} (${pick.total} scans)\n`)
+        }
+        outputPath = pickScanDir(rootDir, pick.hostname, config, version)
       }
-      if (candidates[0] && candidates[0].count > 0) {
-        outputPath = join(siteDir, candidates[0].name)
-      }
-      else {
-        const cacheKey = objectHash({ ...config, version }).substring(0, 4)
-        outputPath = join(siteDir, cacheKey)
-      }
-    }
-    else {
-      const cacheKey = objectHash({ ...config, version }).substring(0, 4)
-      outputPath = join(siteDir, cacheKey)
+      // No scans anywhere → leave outputPath at the bare root and history
+      // will be empty. Better than guessing a hostname.
     }
   }
   fs.ensureDirSync(outputPath)
   // Diagnostic to stderr (stdout is the JSON-RPC channel and must stay clean).
-  process.stderr.write(`[unlighthouse-mcp] outputPath=${outputPath}\n`)
+  // Gated by --debug so production agents don't see internal paths by default.
+  diag(`[unlighthouse-mcp] outputPath=${outputPath}\n`)
 
   const sqliteDb = new Database(join(outputPath, 'db.sqlite'))
   // Idempotent migration: `CREATE TABLE IF NOT EXISTS` is safe to re-run.
