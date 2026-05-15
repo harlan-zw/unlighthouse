@@ -171,6 +171,34 @@ describe('createUnlighthouseCore orchestration', () => {
     expect(session.state()).toBe('complete')
   })
 
+  it('aggregates scoreAverage + scoresByCategory on scan:complete', async () => {
+    // Regression for the v0→v1 port bug where summary.scoreAverage was
+    // hardcoded `null` even after routes finished scoring — broke
+    // compare.run baselines and the dashboard summary tile.
+    const urls = ['https://example.com/a', 'https://example.com/b']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+
+    const persisted = await storage.scans.get(session.scanId)
+    expect(persisted?.summary?.scoreAverage).not.toBeNull()
+    // passingAuditor() returns 0.9 for every category, so the average is 0.9.
+    expect(persisted?.summary?.scoreAverage).toBeCloseTo(0.9, 5)
+    expect(persisted?.summary?.scoresByCategory).toEqual({
+      'performance': 0.9,
+      'accessibility': 0.9,
+      'seo': 0.9,
+      'best-practices': 0.9,
+    })
+  })
+
   it('cancel: emits scan:cancelled and rejects done', async () => {
     const storage = memoryStorage()
     const core = createUnlighthouseCore({
