@@ -73,6 +73,9 @@ export const ScanCancel = defineCommand({
     cancelledAt: z.iso.datetime(),
   }),
   exitCodes: { SCAN_NOT_FOUND: 64 },
+  // Live-flow orchestration — only makes sense from the UI / CLI that owns the
+  // running scan. An MCP client cancelling somebody else's session is hostile.
+  mcp: { hidden: true },
 })
 
 // ── scan.pause ──────────────────────────────────────────────────────────────
@@ -85,6 +88,7 @@ export const ScanPause = defineCommand({
     status: ScanStatus,
   }),
   exitCodes: { NOT_SUPPORTED: 65, SCAN_NOT_FOUND: 64 },
+  mcp: { hidden: true },
 })
 
 // ── scan.resume ─────────────────────────────────────────────────────────────
@@ -97,6 +101,7 @@ export const ScanResume = defineCommand({
     status: ScanStatus,
   }),
   exitCodes: { NOT_SUPPORTED: 65, SCAN_NOT_FOUND: 64 },
+  mcp: { hidden: true },
 })
 
 // ── scan.delete ─────────────────────────────────────────────────────────────
@@ -109,6 +114,8 @@ export const ScanDelete = defineCommand({
     deleted: z.literal(true),
   }),
   exitCodes: { SCAN_NOT_FOUND: 64 },
+  // Destructive + irreversible. Keep behind UI/CLI confirmation flows.
+  mcp: { hidden: true },
 })
 
 // ── scan.meta ───────────────────────────────────────────────────────────────
@@ -133,6 +140,9 @@ export const ScanCurrent = defineCommand({
   description: 'Return the current in-flight scanId, or null.',
   input: z.object({}),
   output: z.object({ scanId: ScanId.nullable() }),
+  // "Current" is a UI/CLI session concept — there's no notion of a per-request
+  // "current scan" in MCP. Agents pass scanIds explicitly via history.list.
+  mcp: { hidden: true },
 })
 
 // ── scan.rescanAll ──────────────────────────────────────────────────────────
@@ -145,6 +155,9 @@ export const ScanRescanAll = defineCommand({
     queued: z.number().int().nonnegative(),
   }),
   exitCodes: { SCAN_NOT_FOUND: 64, ACTIVE_SCAN_CONFLICT: 9 },
+  // Drops all routes for an existing scan. Destructive enough to keep
+  // behind a deliberate UI / CLI flow.
+  mcp: { hidden: true },
 })
 
 // ── scan.summary ────────────────────────────────────────────────────────────
@@ -153,7 +166,7 @@ export const ScanRescanAll = defineCommand({
 // built-in `overview` pack on the host. Agent entry point.
 export const ScanSummaryCmd = defineCommand({
   name: 'scan.summary',
-  description: 'Terse, template-grouped overview of a scan. Sub-1KB JSON. The agent entry point.',
+  description: 'Agent entry point: a terse, template-grouped overview of a finished scan in sub-1KB JSON. Returns category averages (perf/a11y/seo/best-practices), passing/needs-work/poor distribution, the worst 5 routes by score, and template groups. Use this first to decide where to drill in — then call pack.run with a specific pack (e.g. "images", "cwv") for actionable findings, or query.routes / scan.results for raw per-route data.',
   input: z.object({
     scanId: ScanId,
     device: Device.optional(),

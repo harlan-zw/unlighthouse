@@ -28,4 +28,6 @@ export const RouteRescan = defineCommand({
     metrics: ExtractedMetrics,
   }),
   exitCodes: { ROUTE_NOT_FOUND: 66, SCAN_NOT_FOUND: 64 },
+  // Mutates an existing scan's data and needs a live auditor — UI flow only.
+  mcp: { hidden: true },
 })

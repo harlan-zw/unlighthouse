@@ -40,6 +40,9 @@ export const SitesCreate = defineCommand({
     device: Device.optional(),
   }),
   output: z.object({ site: Site }),
+  // Persistent registry mutation. Adding ghost sites across restarts is a
+  // hostile-agent vector; site setup belongs in the UI / CLI.
+  mcp: { hidden: true },
 })
 
 export const SitesDelete = defineCommand({
@@ -48,4 +51,7 @@ export const SitesDelete = defineCommand({
   input: z.object({ id: z.string() }),
   output: z.object({ id: z.string(), deleted: z.literal(true) }),
   exitCodes: { SITE_NOT_FOUND: 64 },
+  // Destructive — pairs with history.delete in the "agent has no business
+  // deleting user data" category.
+  mcp: { hidden: true },
 })

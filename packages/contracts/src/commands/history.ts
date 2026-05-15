@@ -42,6 +42,8 @@ export const HistoryDelete = defineCommand({
   output: z.object({
     deleted: z.array(ScanId),
   }),
+  // Bulk destructive op. Agent has no business deleting user history.
+  mcp: { hidden: true },
 })
 
 // ── history.rescan ──────────────────────────────────────────────────────────
@@ -60,4 +62,7 @@ export const HistoryRescan = defineCommand({
     sourceScanId: ScanId,
   }),
   exitCodes: { SCAN_NOT_FOUND: 64, ACTIVE_SCAN_CONFLICT: 9 },
+  // Agent can call scan.start with explicit config if a fresh scan is needed;
+  // "rescan from history" is a UI convenience that conflicts with active scans.
+  mcp: { hidden: true },
 })

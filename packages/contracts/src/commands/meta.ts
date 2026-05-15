@@ -107,4 +107,8 @@ export const AuditorsTest = defineCommand({
       .optional(),
   }),
   cli: { hidden: true },
+  // Fires a real Lighthouse run against an arbitrary URL — agent-controlled
+  // input could SSRF to internal hosts or burn a Chrome slot. Triggering a
+  // live audit is what scan.start is for; this is a dev-only diagnostic.
+  mcp: { hidden: true },
 })
