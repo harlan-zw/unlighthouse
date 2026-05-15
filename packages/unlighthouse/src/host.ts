@@ -27,7 +27,6 @@ import { defu } from 'defu'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
 import { createCommonJS, resolvePath } from 'mlly'
-import objectHash from 'object-hash'
 import { joinURL } from 'ufo'
 import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../package.json'
@@ -38,7 +37,7 @@ import { createSitesStore } from './data/sites'
 import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
 import { createServerHooks } from './server-hooks'
-import { normaliseHost } from './util'
+import { computeConfigCacheKey, normaliseHost } from './util'
 
 /**
  * Behavior knobs supplied by the entry preset (cli, ci, integration).
@@ -126,7 +125,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     )
   }
 
-  rs.configCacheKey = objectHash({ ...userConfig, version }).substring(0, 4)
+  rs.configCacheKey = computeConfigCacheKey(userConfig, version)
 
   const resolvedConfig = await resolveUserConfig(userConfig, logger)
 
