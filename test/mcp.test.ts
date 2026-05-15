@@ -126,6 +126,82 @@ describe('MCP tool surface', () => {
   })
 })
 
+describe('MCP scan.start end-to-end (v1.md line 1710 ship gate)', () => {
+  it('drives scan_start → scan_status → scan_summary → pack_run via MCP', async () => {
+    // The "ship gate" in v1.md: an agent connects, calls scan_start with a
+    // URL it picked itself, polls scan_status until done, and reads results
+    // back through scan_summary + pack_run — without the host pre-configuring
+    // a site. This test runs the whole loop over the in-memory transport.
+    //
+    // The fixture core is wired to a fresh memoryStorage instance (separate
+    // from the beforeAll's per-suite storage); it crawls one seed URL via
+    // the mock auditor and finishes synchronously.
+    const storage = memoryStorage()
+    const auditor = createMockAuditor()
+    const core = createUnlighthouseCore({
+      config: { site: 'http://agent-site' } as never,
+      auditor,
+      seeds: manualSeeds({ urls: ['http://agent-site/'] }),
+      crawler: parallelMapCrawler({ concurrency: 1 }),
+      storage,
+    })
+    const ctx: HandlerCtx = {
+      core,
+      auditor,
+      storage,
+      config: { site: 'http://agent-site' } as never,
+      version: 'test',
+    }
+    const handlers = createHandlers()
+    const server = createMcpServer({ handlers, ctx, identity: { name: 'gate', version: 'test' } })
+    const [c, s] = InMemoryTransport.createLinkedPair()
+    const gateClient = new Client({ name: 'gate-client', version: 'test' }, { capabilities: {} })
+    await Promise.all([server.connect(s), gateClient.connect(c)])
+
+    // 1. Agent triggers a scan with a URL it picked. No host preset required.
+    const startCall = await gateClient.callTool({
+      name: 'scan_start',
+      arguments: { site: 'http://agent-site' },
+    })
+    const started = JSON.parse((startCall.content as Array<{ text: string }>)[0].text)
+    expect(started.scanId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(started.site).toBe('http://agent-site')
+
+    // 2. Agent polls scan_status until terminal. parallel-map + 1 seed +
+    //    mock auditor drains in < 100ms, but we loop defensively.
+    const startedScanId: string = started.scanId
+    let statusJson: { status: string } | null = null
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const res = await gateClient.callTool({
+        name: 'scan_status',
+        arguments: { scanId: startedScanId },
+      })
+      statusJson = JSON.parse((res.content as Array<{ text: string }>)[0].text)
+      if (statusJson?.status === 'complete' || statusJson?.status === 'error' || statusJson?.status === 'cancelled')
+        break
+      await new Promise(r => setTimeout(r, 25))
+    }
+    expect(statusJson?.status).toBe('complete')
+
+    // 3. Agent reads the layered output: summary first, then drill via pack.
+    const summaryRes = await gateClient.callTool({
+      name: 'scan_summary',
+      arguments: { scanId: startedScanId },
+    })
+    const summary = JSON.parse((summaryRes.content as Array<{ text: string }>)[0].text)
+    expect(summary.scanId).toBe(startedScanId)
+    expect(summary.routesScanned).toBeGreaterThan(0)
+
+    const packRes = await gateClient.callTool({
+      name: 'pack_run',
+      arguments: { scanId: startedScanId, pack: 'overview' },
+    })
+    const pack = JSON.parse((packRes.content as Array<{ text: string }>)[0].text)
+    expect(pack.cache).toBe('miss')
+    expect(pack.report.routesScanned).toBeGreaterThan(0)
+  }, 15_000)
+})
+
 describe('MCP pack.run caching', () => {
   it('reports cache miss → hit → refresh-miss', async () => {
     // First call — fresh reconcile.
