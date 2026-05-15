@@ -199,6 +199,16 @@ describe('MCP scan.start end-to-end (v1.md line 1710 ship gate)', () => {
     const pack = JSON.parse((packRes.content as Array<{ text: string }>)[0].text)
     expect(pack.cache).toBe('miss')
     expect(pack.report.routesScanned).toBeGreaterThan(0)
+
+    // 4. ciBuild was auto-detected from git — the scan row should carry the
+    // current commit even though the agent passed no ciBuild block. (The
+    // checkout this test runs in is always a git repo with a HEAD commit.)
+    const historyRes = await gateClient.callTool({
+      name: 'history_get',
+      arguments: { scanId: startedScanId },
+    })
+    const history = JSON.parse((historyRes.content as Array<{ text: string }>)[0].text)
+    expect(history.ciCommit).toMatch(/^[0-9a-f]{40}$/)
   }, 15_000)
 })
 
