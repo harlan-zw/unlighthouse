@@ -147,6 +147,49 @@ export const ScanRescanAll = defineCommand({
   exitCodes: { SCAN_NOT_FOUND: 64, ACTIVE_SCAN_CONFLICT: 9 },
 })
 
+// ── scan.summary ────────────────────────────────────────────────────────────
+// Layered agent output, tier 1 (D-028). Sub-1KB JSON: counts, score
+// distribution, top-5 regressions, top template groups. Powered by the
+// built-in `overview` pack on the host. Agent entry point.
+export const ScanSummaryCmd = defineCommand({
+  name: 'scan.summary',
+  description: 'Terse, template-grouped overview of a scan. Sub-1KB JSON. The agent entry point.',
+  input: z.object({
+    scanId: ScanId,
+    device: Device.optional(),
+  }),
+  output: z.object({
+    scanId: ScanId,
+    site: Url,
+    device: Device,
+    routesScanned: z.number().int().nonnegative(),
+    // Site-wide scoring snapshot. `categories` keys are Lighthouse category ids.
+    avgScore: z.number().nullable(),
+    categoryAverages: z.partialRecord(Category, z.number().nullable()),
+    // Bucketed by Lighthouse thresholds: passing ≥ 90, needs-work ≥ 50, poor < 50.
+    distribution: z.object({
+      passing: z.number().int().nonnegative(),
+      needsWork: z.number().int().nonnegative(),
+      poor: z.number().int().nonnegative(),
+    }),
+    // Top-N routes by lowest avg score. URL kept short; the table is for
+    // orientation, not consumption — drill into query.routes for detail.
+    worstRoutes: z.array(z.object({
+      url: Url,
+      score: z.number().nullable(),
+      category: Category.nullable(),
+    })),
+    // Template grouping (from seeds/route-definitions matcher). Routes that
+    // matched no template land under `routeName: null` which collapses to "/".
+    templateGroups: z.array(z.object({
+      routeName: z.string().nullable(),
+      routes: z.number().int().nonnegative(),
+      avgScore: z.number().nullable(),
+    })),
+  }),
+  exitCodes: { SCAN_NOT_FOUND: 64 },
+})
+
 // ── scan.results ────────────────────────────────────────────────────────────
 // Load-bearing example (v1.md lines 840–853).
 export const ScanResults = defineCommand({

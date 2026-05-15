@@ -6,6 +6,7 @@ import { compareFindPrevious, compareMarkdown, compareRun } from './compare'
 import { eventsSubscribe, eventsTail } from './events'
 import { historyDelete, historyGet, historyList, historyRescan } from './history'
 import { auditorsList, auditorsTest, health, manifest } from './meta'
+import { packList, packRun } from './pack'
 import { queryRoutes } from './query'
 import { routeGet, routeRescan } from './route'
 import {
@@ -19,6 +20,7 @@ import {
   scanResume,
   scanStart,
   scanStatus,
+  scanSummary,
 } from './scan'
 import { sitesCreate, sitesDelete, sitesGet, sitesList } from './sites'
 
@@ -31,6 +33,7 @@ export function createHandlers(): HandlerMap {
     'scan.resume': scanResume,
     'scan.delete': scanDelete,
     'scan.results': scanResults,
+    'scan.summary': scanSummary,
     'scan.meta': scanMeta,
     'scan.current': scanCurrent,
     'scan.rescanAll': scanRescanAll,
@@ -44,6 +47,8 @@ export function createHandlers(): HandlerMap {
     'compare.markdown': compareMarkdown,
     'compare.findPrevious': compareFindPrevious,
     'assert.evaluate': assertEvaluate,
+    'pack.run': packRun,
+    'pack.list': packList,
     'query.routes': queryRoutes,
     'events.subscribe': eventsSubscribe,
     'events.tail': eventsTail,

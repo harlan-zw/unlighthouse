@@ -87,6 +87,10 @@
       "types": "./dist/api/dashboard.d.mts",
       "import": "./dist/api/dashboard.mjs"
     },
+    "./packs": {
+      "types": "./dist/packs/index.d.mts",
+      "import": "./dist/packs/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.mjs",

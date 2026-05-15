@@ -11,6 +11,7 @@ export * from './commands/index'
 export * from './config/index'
 export * from './errors/index'
 export * from './hooks/index'
+export * from './packs/index'
 
 // Ports: re-export everything EXCEPT placeholders that are now superseded by
 // real types in `./config` (`UnlighthouseConfig`) and `./hooks` (`HookEvent`).

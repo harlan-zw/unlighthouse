@@ -26,6 +26,7 @@ export default defineBuildConfig({
         './src/api/http.ts',
         './src/api/handlers/index.ts',
         './src/api/dashboard.ts',
+        './src/packs/index.ts',
         './src/auditors/local-worker.ts',
         './src/util/path.ts',
         './src/core.ts',
