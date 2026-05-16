@@ -182,10 +182,12 @@ describe('scan ingest persists reconciled contract blob', () => {
     scanId = session.scanId
   })
 
-  it('writes scans/{id}/reports/{urlHash}.contract.json alongside the LHR blob', async () => {
+  it('writes scans/{id}/reports/{urlHash}-{device}.contract.json alongside the LHR blob', async () => {
     const url = 'http://example.com/'
     const hash = createHash('sha1').update(url).digest('hex').slice(0, 16)
-    const contractKey = `scans/${scanId}/reports/${hash}.contract.json`
+    // D-029: blob filenames carry the device segment so mobile + desktop
+    // results for the same URL don't collide.
+    const contractKey = `scans/${scanId}/reports/${hash}-mobile.contract.json`
 
     const buf = await storage.blobs.get(contractKey)
     expect(buf).not.toBeNull()
@@ -200,12 +202,12 @@ describe('scan ingest persists reconciled contract blob', () => {
   })
 
   it('contract blob is independent of the v0 UI reconciled blob', async () => {
-    // The two reconciled blobs co-exist: scans/.../reports/{hash}.json (UI)
-    // and scans/.../reports/{hash}.contract.json (packs). Sanity-check both
-    // wrote out so a future cleanup doesn't accidentally remove the wrong one.
+    // The two reconciled blobs co-exist: scans/.../reports/{hash}-{device}.json (UI)
+    // and scans/.../reports/{hash}-{device}.contract.json (packs). Sanity-check
+    // both wrote out so a future cleanup doesn't accidentally remove the wrong one.
     const url = 'http://example.com/'
     const hash = createHash('sha1').update(url).digest('hex').slice(0, 16)
-    expect(await storage.blobs.has(`scans/${scanId}/reports/${hash}.json`)).toBe(true)
-    expect(await storage.blobs.has(`scans/${scanId}/reports/${hash}.contract.json`)).toBe(true)
+    expect(await storage.blobs.has(`scans/${scanId}/reports/${hash}-mobile.json`)).toBe(true)
+    expect(await storage.blobs.has(`scans/${scanId}/reports/${hash}-mobile.contract.json`)).toBe(true)
   })
 })

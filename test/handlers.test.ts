@@ -80,7 +80,7 @@ function makeConfig(): UnlighthouseConfig {
 
 async function seed(ctx: HandlerCtx): Promise<void> {
   await ctx.storage.scans.create(makeScan())
-  await ctx.storage.routes.putBatch(SCAN_ID as never, [makeRoute()])
+  await ctx.storage.routes.putBatch(SCAN_ID as never, 'mobile', [makeRoute()])
 }
 
 function makeCtx(): HandlerCtx {
