@@ -115,8 +115,15 @@ const ExtractedMetricsSchema = z.object({
 export type ExtractedMetrics = z.infer<typeof ExtractedMetricsSchema>
 
 // Persisted route row — `ExtractedMetrics` joined with scan + blob keys.
+//
+// D-029: `device` is part of the row identity. The persisted PK is
+// `(scanId, url, device)` so a scan can audit the same URL on mobile and
+// desktop and store both results. Old single-device scans land here with
+// `device: 'mobile'` (the historical default), which keeps the column
+// non-null without requiring a backfill of rows that never had a choice.
 const ScanRouteSchema = ExtractedMetricsSchema.extend({
   scanId: ScanIdSchema,
+  device: DeviceSchema,
   lhrBlobKey: z.string(),
   // UI-reconciled report blob key. Nullable for rows persisted before the
   // reconciliation pipeline landed.

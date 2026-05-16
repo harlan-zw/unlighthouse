@@ -50,8 +50,12 @@ export const scans = sqliteTable(
 )
 
 /**
- * Scan routes table — one row per (scanId, url). Mirrors `ScanRoute`,
- * which extends `ExtractedMetrics` with `scanId` + `lhrBlobKey`.
+ * Scan routes table — one row per (scanId, url, device). Mirrors `ScanRoute`,
+ * which extends `ExtractedMetrics` with `scanId`, `device`, and `lhrBlobKey`.
+ *
+ * D-029: `device` is part of the PK so a single scan can audit the same URL
+ * on mobile + desktop in one pass. Old single-device scans land here with
+ * `device: 'mobile'` (the historical default) — no row backfill required.
  *
  * Metric columns are flattened (not stored as JSON) because the comparison +
  * assertion engines do column-wise SQL aggregation. The raw LHR + UI-reconciled
@@ -64,6 +68,9 @@ export const scanRoutes = sqliteTable(
       .notNull()
       .references(() => scans.scanId, { onDelete: 'cascade' }),
     url: text('url').notNull(),
+    // D-029: identity column. 'mobile' is the historical default; a scan that
+    // doesn't opt into the matrix sees the same single row it always did.
+    device: text('device').notNull().default('mobile'),
     path: text('path').notNull(),
     routeName: text('route_name'),
     scorePerformance: real('score_performance'),
@@ -89,7 +96,7 @@ export const scanRoutes = sqliteTable(
     reportBlobKey: text('report_blob_key'),
   },
   table => [
-    primaryKey({ columns: [table.scanId, table.url] }),
+    primaryKey({ columns: [table.scanId, table.url, table.device] }),
     index('idx_scan_routes_scan_id').on(table.scanId),
   ],
 )

@@ -16,12 +16,16 @@ import {
 import { defineCommand } from './define'
 
 // ── scan.start ──────────────────────────────────────────────────────────────
+// D-029: `device` accepts a single device or an array. One scan exercises N
+// devices per URL; results land in ScanRoute keyed on (scanId, url, device).
+// Single-device input is normalised to a one-element array downstream — the
+// wire stays back-compatible.
 export const ScanStart = defineCommand({
   name: 'scan.start',
-  description: 'Start a new scan against a site.',
+  description: 'Start a new scan against a site. `device` accepts a single device or a list for a multi-device matrix scan.',
   input: z.object({
     site: Url,
-    device: Device.optional(),
+    device: z.union([Device, z.array(Device).min(1)]).optional(),
     sampleSize: z.number().int().min(1).max(10).optional(),
     categories: z.array(Category).optional(),
     auditor: z.string().optional(),

@@ -12,6 +12,7 @@ import type {
 import type {
   BlobPutOptions,
   BlobStore,
+  Device,
   ExtractedMetrics,
   FindPreviousQuery,
   ListQuery,
@@ -43,7 +44,7 @@ const DEFAULT_PAGE_SIZE = 50
 const DEFAULT_ROUTE_PAGE_SIZE = 100
 
 const SCAN_COLS = 'scan_id, site, device, status, started_at, completed_at, ci_branch, ci_commit, ci_commit_message, summary'
-const ROUTE_COLS = 'scan_id, url, path, route_name, score_performance, score_accessibility, score_seo, score_best_practices, lcp, cls, inp, fcp, ttfb, tbt, si, lighthouse_version, captured_at, lhr_blob_key'
+const ROUTE_COLS = 'scan_id, url, device, path, route_name, score_performance, score_accessibility, score_seo, score_best_practices, lcp, cls, inp, fcp, ttfb, tbt, si, lighthouse_version, captured_at, lhr_blob_key'
 
 // Raw row shapes returned by D1.
 interface ScanRawRow {
@@ -62,6 +63,7 @@ interface ScanRawRow {
 interface RouteRawRow {
   scan_id: string
   url: string
+  device: string
   path: string
   route_name: string | null
   score_performance: number | null
@@ -100,6 +102,7 @@ function rowToRoute(r: RouteRawRow): ScanRoute {
   return {
     scanId: r.scan_id as ScanId,
     url: r.url,
+    device: (r.device ?? 'mobile') as ScanRoute['device'],
     path: r.path,
     routeName: r.route_name,
     scorePerformance: r.score_performance,
@@ -132,8 +135,10 @@ async function urlHash(url: string): Promise<string> {
   return hex.slice(0, 16)
 }
 
-async function blobKeyFor(scanId: string, url: string): Promise<string> {
-  return `scans/${scanId}/lhr/${await urlHash(url)}.json.gz`
+async function blobKeyFor(scanId: string, url: string, device: Device): Promise<string> {
+  // D-029: per-device blob key. Device segment is appended to the filename
+  // so the same URL on mobile + desktop coexist under their own keys.
+  return `scans/${scanId}/lhr/${await urlHash(url)}-${device}.json.gz`
 }
 
 // Translate a partial ScanInsert into (set-clause-fragment, bind-values).
@@ -286,10 +291,11 @@ function d1ScanRepository(db: D1Database): ScanRepository {
   }
 }
 
-function metricsBindings(scanId: string, m: ExtractedMetrics, lhrBlobKey: string): unknown[] {
+function metricsBindings(scanId: string, device: Device, m: ExtractedMetrics, lhrBlobKey: string): unknown[] {
   return [
     scanId,
     m.url,
+    device,
     m.path,
     m.routeName,
     m.scorePerformance,
@@ -309,8 +315,8 @@ function metricsBindings(scanId: string, m: ExtractedMetrics, lhrBlobKey: string
   ]
 }
 
-const ROUTE_UPSERT_SQL = `INSERT INTO scan_routes (${ROUTE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(scan_id, url) DO UPDATE SET
+const ROUTE_UPSERT_SQL = `INSERT INTO scan_routes (${ROUTE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(scan_id, url, device) DO UPDATE SET
   path = excluded.path,
   route_name = excluded.route_name,
   score_performance = excluded.score_performance,
@@ -330,23 +336,23 @@ ON CONFLICT(scan_id, url) DO UPDATE SET
 
 function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
   return {
-    async putBatch(scanId: ScanId, rows: ExtractedMetrics[]): Promise<void> {
+    async putBatch(scanId: ScanId, device: Device, rows: ExtractedMetrics[]): Promise<void> {
       if (rows.length === 0)
         return
       const stmts: D1PreparedStatement[] = []
       for (const m of rows) {
-        const key = await blobKeyFor(scanId, m.url)
-        stmts.push(db.prepare(ROUTE_UPSERT_SQL).bind(...metricsBindings(scanId, m, key)))
+        const key = await blobKeyFor(scanId, m.url, device)
+        stmts.push(db.prepare(ROUTE_UPSERT_SQL).bind(...metricsBindings(scanId, device, m, key)))
       }
       // D1.batch is atomic (auto-wrapped in a transaction).
       await db.batch(stmts)
     },
 
-    async upsert(scanId: ScanId, row: ExtractedMetrics): Promise<void> {
-      const key = await blobKeyFor(scanId, row.url)
+    async upsert(scanId: ScanId, device: Device, row: ExtractedMetrics): Promise<void> {
+      const key = await blobKeyFor(scanId, row.url, device)
       await db
         .prepare(ROUTE_UPSERT_SQL)
-        .bind(...metricsBindings(scanId, row, key))
+        .bind(...metricsBindings(scanId, device, row, key))
         .run()
     },
 
@@ -354,30 +360,44 @@ function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
       const page = Math.max(1, q?.page ?? 1)
       const pageSize = Math.max(1, q?.pageSize ?? DEFAULT_ROUTE_PAGE_SIZE)
       const offset = (page - 1) * pageSize
+      const where: string[] = ['scan_id = ?']
+      const args: unknown[] = [scanId]
+      if (q?.device) {
+        where.push('device = ?')
+        args.push(q.device)
+      }
+      const whereSql = where.join(' AND ')
 
       const [itemsRes, countRes] = await db.batch<unknown>([
         db
-          .prepare(`SELECT ${ROUTE_COLS} FROM scan_routes WHERE scan_id = ? LIMIT ? OFFSET ?`)
-          .bind(scanId, pageSize, offset),
+          .prepare(`SELECT ${ROUTE_COLS} FROM scan_routes WHERE ${whereSql} LIMIT ? OFFSET ?`)
+          .bind(...args, pageSize, offset),
         db
-          .prepare(`SELECT count(*) AS count FROM scan_routes WHERE scan_id = ?`)
-          .bind(scanId),
+          .prepare(`SELECT count(*) AS count FROM scan_routes WHERE ${whereSql}`)
+          .bind(...args),
       ])
       const items = ((itemsRes as { results: RouteRawRow[] }).results ?? []).map(rowToRoute)
       const total = Number((countRes as { results: { count: number }[] }).results?.[0]?.count ?? 0)
       return { items, total, page, pageSize }
     },
 
-    async get(scanId: ScanId, url: string): Promise<ScanRoute | null> {
+    async get(scanId: ScanId, url: string, device: Device): Promise<ScanRoute | null> {
       const row = await db
-        .prepare(`SELECT ${ROUTE_COLS} FROM scan_routes WHERE scan_id = ? AND url = ? LIMIT 1`)
-        .bind(scanId, url)
+        .prepare(`SELECT ${ROUTE_COLS} FROM scan_routes WHERE scan_id = ? AND url = ? AND device = ? LIMIT 1`)
+        .bind(scanId, url, device)
         .first<RouteRawRow>()
       return row ? rowToRoute(row) : null
     },
 
-    async delete(scanId: ScanId, url?: string): Promise<void> {
-      if (url) {
+    async delete(scanId: ScanId, url?: string, device?: Device): Promise<void> {
+      if (url && device) {
+        await db
+          .prepare('DELETE FROM scan_routes WHERE scan_id = ? AND url = ? AND device = ?')
+          .bind(scanId, url, device)
+          .run()
+      }
+      else if (url) {
+        // Drop every device row for this URL.
         await db
           .prepare('DELETE FROM scan_routes WHERE scan_id = ? AND url = ?')
           .bind(scanId, url)
@@ -513,6 +533,7 @@ const INIT_SQL: string[] = [
   `CREATE TABLE IF NOT EXISTS scan_routes (
     scan_id text NOT NULL,
     url text NOT NULL,
+    device text NOT NULL DEFAULT 'mobile',
     path text NOT NULL,
     route_name text,
     score_performance real,
@@ -529,7 +550,7 @@ const INIT_SQL: string[] = [
     lighthouse_version text NOT NULL,
     captured_at text NOT NULL,
     lhr_blob_key text NOT NULL,
-    PRIMARY KEY (scan_id, url),
+    PRIMARY KEY (scan_id, url, device),
     FOREIGN KEY (scan_id) REFERENCES scans(scan_id) ON DELETE CASCADE
   )`,
   `CREATE INDEX IF NOT EXISTS idx_scan_routes_scan_id ON scan_routes (scan_id)`,

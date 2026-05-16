@@ -140,7 +140,7 @@ describe.each(backends)('storage port — %s', (_name, createStorage) => {
     const s = createStorage()
     const insert = makeScanInsert()
     await s.scans.create(insert)
-    await s.routes.putBatch(insert.scanId, [makeMetrics('https://example.com/a')])
+    await s.routes.putBatch(insert.scanId, 'mobile', [makeMetrics('https://example.com/a')])
     await s.scans.delete(insert.scanId)
     expect(await s.scans.get(insert.scanId)).toBeNull()
     const remaining = await s.routes.listForScan(insert.scanId)
@@ -153,7 +153,7 @@ describe.each(backends)('storage port — %s', (_name, createStorage) => {
     const insert = makeScanInsert()
     await s.scans.create(insert)
     const rows = Array.from({ length: 50 }, (_, i) => makeMetrics(`https://example.com/p/${i}`))
-    await s.routes.putBatch(insert.scanId, rows)
+    await s.routes.putBatch(insert.scanId, 'mobile', rows)
     const out = await s.routes.listForScan(insert.scanId, { pageSize: 100 })
     expect(out.items.length).toBe(50)
     expect(out.total).toBe(50)
@@ -164,9 +164,9 @@ describe.each(backends)('storage port — %s', (_name, createStorage) => {
     const insert = makeScanInsert()
     await s.scans.create(insert)
     const url = 'https://example.com/dup'
-    await s.routes.upsert(insert.scanId, { ...makeMetrics(url), scorePerformance: 0.1 })
-    await s.routes.upsert(insert.scanId, { ...makeMetrics(url), scorePerformance: 0.9 })
-    const got = await s.routes.get(insert.scanId, url)
+    await s.routes.upsert(insert.scanId, 'mobile', { ...makeMetrics(url), scorePerformance: 0.1 })
+    await s.routes.upsert(insert.scanId, 'mobile', { ...makeMetrics(url), scorePerformance: 0.9 })
+    const got = await s.routes.get(insert.scanId, url, 'mobile')
     expect(got?.scorePerformance).toBe(0.9)
     const list = await s.routes.listForScan(insert.scanId)
     expect(list.total).toBe(1)
@@ -177,23 +177,45 @@ describe.each(backends)('storage port — %s', (_name, createStorage) => {
     const insert = makeScanInsert()
     await s.scans.create(insert)
     const url = 'https://example.com/one'
-    await s.routes.upsert(insert.scanId, makeMetrics(url))
-    const row = await s.routes.get(insert.scanId, url)
+    await s.routes.upsert(insert.scanId, 'mobile', makeMetrics(url))
+    const row = await s.routes.get(insert.scanId, url, 'mobile')
     expect(row?.url).toBe(url)
     expect(row?.scanId).toBe(insert.scanId)
+    expect(row?.device).toBe('mobile')
   })
 
   it('routes.delete(scanId) clears all rows for that scan', async () => {
     const s = createStorage()
     const insert = makeScanInsert()
     await s.scans.create(insert)
-    await s.routes.putBatch(insert.scanId, [
+    await s.routes.putBatch(insert.scanId, 'mobile', [
       makeMetrics('https://example.com/a'),
       makeMetrics('https://example.com/b'),
     ])
     await s.routes.delete(insert.scanId)
     const list = await s.routes.listForScan(insert.scanId)
     expect(list.total).toBe(0)
+  })
+
+  it('D-029: same URL on mobile + desktop coexists as two rows', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    const url = 'https://example.com/matrix'
+    await s.routes.upsert(insert.scanId, 'mobile', { ...makeMetrics(url), scorePerformance: 0.5 })
+    await s.routes.upsert(insert.scanId, 'desktop', { ...makeMetrics(url), scorePerformance: 0.9 })
+
+    const mob = await s.routes.get(insert.scanId, url, 'mobile')
+    const des = await s.routes.get(insert.scanId, url, 'desktop')
+    expect(mob?.scorePerformance).toBe(0.5)
+    expect(des?.scorePerformance).toBe(0.9)
+
+    // listForScan with no filter returns both; filtered by device returns one.
+    const all = await s.routes.listForScan(insert.scanId)
+    expect(all.total).toBe(2)
+    const mobileOnly = await s.routes.listForScan(insert.scanId, { device: 'mobile' })
+    expect(mobileOnly.total).toBe(1)
+    expect(mobileOnly.items[0].device).toBe('mobile')
   })
 
   it('blobs.put/get/has/delete roundtrip Uint8Array', async () => {

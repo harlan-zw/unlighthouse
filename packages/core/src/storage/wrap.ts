@@ -86,13 +86,13 @@ export function wrapStorage(base: Storage, opts: WrapStorageOptions): Storage {
   }
 
   const routes: ScanRouteRepository = {
-    putBatch: (scanId: ScanId, rows: ExtractedMetrics[]) =>
-      intercept('routes.putBatch', { scanId, rows }, a => base.routes.putBatch(a.scanId, a.rows)),
-    upsert: (scanId, row) => intercept('routes.upsert', { scanId, row }, a => base.routes.upsert(a.scanId, a.row)),
+    putBatch: (scanId: ScanId, device, rows: ExtractedMetrics[]) =>
+      intercept('routes.putBatch', { scanId, device, rows }, a => base.routes.putBatch(a.scanId, a.device, a.rows)),
+    upsert: (scanId, device, row) => intercept('routes.upsert', { scanId, device, row }, a => base.routes.upsert(a.scanId, a.device, a.row)),
     listForScan: (scanId: ScanId, q?: RouteListQuery): Promise<Paginated<ScanRoute>> =>
       intercept('routes.listForScan', { scanId, q }, a => base.routes.listForScan(a.scanId, a.q)),
-    get: (scanId, url) => intercept('routes.get', { scanId, url }, a => base.routes.get(a.scanId, a.url)),
-    delete: (scanId, url) => intercept('routes.delete', { scanId, url }, a => base.routes.delete(a.scanId, a.url)),
+    get: (scanId, url, device) => intercept('routes.get', { scanId, url, device }, a => base.routes.get(a.scanId, a.url, a.device)),
+    delete: (scanId, url, device) => intercept('routes.delete', { scanId, url, device }, a => base.routes.delete(a.scanId, a.url, a.device)),
   }
 
   const blobs: BlobStore = {

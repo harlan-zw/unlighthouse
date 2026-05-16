@@ -1,4 +1,5 @@
 import type {
+  Device,
   ExtractedMetrics,
   Paginated,
   RouteListQuery,
@@ -19,18 +20,22 @@ function urlHash(url: string): string {
   return createHash('sha1').update(url).digest('hex').slice(0, 16)
 }
 
-function blobKeyFor(scanId: string, url: string): string {
-  return `scans/${scanId}/lhr/${urlHash(url)}.json.gz`
+// D-029: blob keys are per (scanId, url, device). The device segment is
+// appended to the filename so mobile + desktop rows for the same URL each
+// own their own blob under a deterministic key.
+function blobKeyFor(scanId: string, url: string, device: Device): string {
+  return `scans/${scanId}/lhr/${urlHash(url)}-${device}.json.gz`
 }
 
-export function reportBlobKeyFor(scanId: string, url: string): string {
-  return `scans/${scanId}/reports/${urlHash(url)}.json`
+export function reportBlobKeyFor(scanId: string, url: string, device: Device = 'mobile'): string {
+  return `scans/${scanId}/reports/${urlHash(url)}-${device}.json`
 }
 
-function metricsToRow(scanId: string, m: ExtractedMetrics) {
+function metricsToRow(scanId: string, device: Device, m: ExtractedMetrics) {
   return {
     scanId,
     url: m.url,
+    device,
     path: m.path,
     routeName: m.routeName,
     scorePerformance: m.scorePerformance,
@@ -46,8 +51,8 @@ function metricsToRow(scanId: string, m: ExtractedMetrics) {
     si: m.si,
     lighthouseVersion: m.lighthouseVersion,
     capturedAt: m.capturedAt,
-    lhrBlobKey: blobKeyFor(scanId, m.url),
-    reportBlobKey: reportBlobKeyFor(scanId, m.url),
+    lhrBlobKey: blobKeyFor(scanId, m.url, device),
+    reportBlobKey: reportBlobKeyFor(scanId, m.url, device),
   }
 }
 
@@ -57,35 +62,35 @@ function rowToRoute(row: ScanRouteRow): ScanRoute {
 
 export function createScanRouteRepository(db: AnyDrizzle): ScanRouteRepository {
   return {
-    async putBatch(scanId: ScanId, rows: ExtractedMetrics[]): Promise<void> {
+    async putBatch(scanId: ScanId, device: Device, rows: ExtractedMetrics[]): Promise<void> {
       if (rows.length === 0)
         return
-      const values = rows.map(m => metricsToRow(scanId, m))
+      const values = rows.map(m => metricsToRow(scanId, device, m))
       // Iterate per-row upsert. better-sqlite3's drizzle binding requires sync
       // transaction callbacks (no Promise return), so portability across the
       // async drivers (libsql/D1) precludes a transactional wrapper here. Each
       // upsert is atomic at the row level; partial failure within a batch is
       // acceptable for the single-writer scan workflow.
       for (const v of values) {
-        const { scanId: _s, url: _u, ...patch } = v
+        const { scanId: _s, url: _u, device: _d, ...patch } = v
         await db
           .insert(scanRoutes)
           .values(v)
           .onConflictDoUpdate({
-            target: [scanRoutes.scanId, scanRoutes.url],
+            target: [scanRoutes.scanId, scanRoutes.url, scanRoutes.device],
             set: patch,
           })
       }
     },
 
-    async upsert(scanId: ScanId, row: ExtractedMetrics): Promise<void> {
-      const v = metricsToRow(scanId, row)
-      const { scanId: _s, url: _u, ...patch } = v
+    async upsert(scanId: ScanId, device: Device, row: ExtractedMetrics): Promise<void> {
+      const v = metricsToRow(scanId, device, row)
+      const { scanId: _s, url: _u, device: _d, ...patch } = v
       await db
         .insert(scanRoutes)
         .values(v)
         .onConflictDoUpdate({
-          target: [scanRoutes.scanId, scanRoutes.url],
+          target: [scanRoutes.scanId, scanRoutes.url, scanRoutes.device],
           set: patch,
         })
     },
@@ -95,17 +100,21 @@ export function createScanRouteRepository(db: AnyDrizzle): ScanRouteRepository {
       const pageSize = Math.max(1, q?.pageSize ?? DEFAULT_PAGE_SIZE)
       const offset = (page - 1) * pageSize
 
+      const where = q?.device
+        ? and(eq(scanRoutes.scanId, scanId), eq(scanRoutes.device, q.device))
+        : eq(scanRoutes.scanId, scanId)
+
       const rows = await db
         .select()
         .from(scanRoutes)
-        .where(eq(scanRoutes.scanId, scanId))
+        .where(where)
         .limit(pageSize)
         .offset(offset)
 
       const [{ count }] = await db
         .select({ count: sql<number>`count(*)`.mapWith(Number) })
         .from(scanRoutes)
-        .where(eq(scanRoutes.scanId, scanId))
+        .where(where)
 
       return {
         items: rows.map(rowToRoute),
@@ -115,19 +124,34 @@ export function createScanRouteRepository(db: AnyDrizzle): ScanRouteRepository {
       }
     },
 
-    async get(scanId: ScanId, url: string): Promise<ScanRoute | null> {
+    async get(scanId: ScanId, url: string, device: Device): Promise<ScanRoute | null> {
       const [row] = await db
         .select()
         .from(scanRoutes)
-        .where(and(eq(scanRoutes.scanId, scanId), eq(scanRoutes.url, url)))
+        .where(and(
+          eq(scanRoutes.scanId, scanId),
+          eq(scanRoutes.url, url),
+          eq(scanRoutes.device, device),
+        ))
         .limit(1)
       return row ? rowToRoute(row) : null
     },
 
-    async delete(scanId: ScanId, url?: string): Promise<void> {
-      const where = url
-        ? and(eq(scanRoutes.scanId, scanId), eq(scanRoutes.url, url))
-        : eq(scanRoutes.scanId, scanId)
+    async delete(scanId: ScanId, url?: string, device?: Device): Promise<void> {
+      let where
+      if (url && device) {
+        where = and(
+          eq(scanRoutes.scanId, scanId),
+          eq(scanRoutes.url, url),
+          eq(scanRoutes.device, device),
+        )
+      }
+      else if (url) {
+        where = and(eq(scanRoutes.scanId, scanId), eq(scanRoutes.url, url))
+      }
+      else {
+        where = eq(scanRoutes.scanId, scanId)
+      }
       await db.delete(scanRoutes).where(where)
     },
   }
