@@ -29,6 +29,7 @@ export default defineBuildConfig({
         './src/packs/index.ts',
         './src/auditors/local-worker.ts',
         './src/util/path.ts',
+        './src/util/git-meta.ts',
         './src/core.ts',
       ],
     },
