@@ -42,6 +42,11 @@ export interface ListQuery {
 export interface RouteListQuery {
   page?: number
   pageSize?: number
+  // D-029: optional device filter. Omitted = aggregate across the matrix
+  // (every row, every device). `pack.run` / `scan.results` callers that want
+  // a specific device pass it here; the wire on those commands carries the
+  // same optional field.
+  device?: Device
   [k: string]: unknown
 }
 
@@ -62,13 +67,20 @@ export interface ScanRepository {
 }
 
 export interface ScanRouteRepository {
-  /** Hot path; must be transactional. */
-  putBatch: (scanId: ScanId, rows: ExtractedMetrics[]) => Promise<void>
+  /**
+   * Hot path; must be transactional.
+   * D-029: `device` is part of the row identity. Single-device callers pass
+   * the scan's only device; matrix callers fan out per-device. Default of
+   * 'mobile' keeps signatures non-breaking for legacy single-device flows.
+   */
+  putBatch: (scanId: ScanId, device: Device, rows: ExtractedMetrics[]) => Promise<void>
   /** route.rescan path. */
-  upsert: (scanId: ScanId, row: ExtractedMetrics) => Promise<void>
+  upsert: (scanId: ScanId, device: Device, row: ExtractedMetrics) => Promise<void>
   listForScan: (scanId: ScanId, q?: RouteListQuery) => Promise<Paginated<ScanRoute>>
-  get: (scanId: ScanId, url: string) => Promise<ScanRoute | null>
-  delete: (scanId: ScanId, url?: string) => Promise<void>
+  /** Returns one row. Device is required: rows are PK'd on (scanId, url, device). */
+  get: (scanId: ScanId, url: string, device: Device) => Promise<ScanRoute | null>
+  /** Selective delete. Omit `url` to drop every row for the scan. Omit `device` (but provide url) to drop every device row for that URL. */
+  delete: (scanId: ScanId, url?: string, device?: Device) => Promise<void>
 }
 
 export interface BlobPutOptions {
