@@ -10,10 +10,23 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
     // TODO: push filter/sort/projection down to storage when adapters support it.
     let pool: ScanRoute[] = []
     if (input.scanId) {
-      const res = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
+      // D-029: when scoping to one scan, also honour the device filter.
+      // Pre-fix this branch ignored input.device and returned every (url,
+      // device) row in a matrix scan, so the cross-scan path was device-
+      // aware but the per-scan path silently wasn't.
+      const res = await ctx.storage.routes.listForScan(input.scanId, {
+        page: 1,
+        pageSize: 10_000,
+        device: input.device,
+      })
       pool = res.items
     }
     else {
+      // Cross-scan path: scans.list already narrows on device via the scan
+      // metadata column (scan-level primary device). Routes inside those
+      // scans are then further narrowed below when input.device is set —
+      // matters for matrix scans where the scan's primary is 'mobile' but
+      // the caller asked for 'desktop' explicitly.
       const scans = await ctx.storage.scans.list({
         site: input.site,
         device: input.device,
@@ -21,7 +34,11 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
         pageSize: 500,
       })
       for (const scan of scans.items) {
-        const res = await ctx.storage.routes.listForScan(scan.scanId, { page: 1, pageSize: 10_000 })
+        const res = await ctx.storage.routes.listForScan(scan.scanId, {
+          page: 1,
+          pageSize: 10_000,
+          device: input.device,
+        })
         pool.push(...res.items)
       }
     }
@@ -36,7 +53,18 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
     if (input.projection?.length) {
       const keep = new Set<string>(input.projection)
       filtered = filtered.map((r) => {
-        const out: Record<string, unknown> = { url: r.url, path: r.path, scanId: r.scanId, lhrBlobKey: r.lhrBlobKey, capturedAt: r.capturedAt, lighthouseVersion: r.lighthouseVersion, routeName: r.routeName }
+        // D-029: device is part of row identity. Drop it from projection and
+        // matrix rows lose the only thing distinguishing them — keep it.
+        const out: Record<string, unknown> = {
+          url: r.url,
+          path: r.path,
+          scanId: r.scanId,
+          device: r.device,
+          lhrBlobKey: r.lhrBlobKey,
+          capturedAt: r.capturedAt,
+          lighthouseVersion: r.lighthouseVersion,
+          routeName: r.routeName,
+        }
         for (const m of ['lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si']) {
           out[m] = keep.has(m) ? (r as unknown as Record<string, number | null>)[m] : null
         }
