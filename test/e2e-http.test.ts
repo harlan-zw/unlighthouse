@@ -96,7 +96,7 @@ describe('e2e: HTTP projection over the wire', () => {
       defaults: Record<string, unknown>
     }
     expect(manifest.commands.length).toBe(Object.keys(commands).length)
-    expect(manifest.commands.length).toBe(31)
+    expect(manifest.commands.length).toBe(34)
     expect(Object.keys(manifest.defaults).length).toBeGreaterThan(0)
   })
 

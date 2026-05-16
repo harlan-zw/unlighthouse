@@ -231,7 +231,11 @@ describe('MCP pack.run caching', () => {
     expect(p2.cache).toBe('hit')
     expect(p2.startedAt).toBe(p1.startedAt)
 
-    // Force refresh — new reconcile, new startedAt.
+    // Force refresh — new reconcile, new startedAt. A 2ms wait pushes the
+    // second startedAt past the ms-rounded ISO timestamp from the first call;
+    // without it the overview pack reconciles fast enough that both runs can
+    // land in the same millisecond on a hot CI runner.
+    await new Promise(resolve => setTimeout(resolve, 2))
     const r3 = await client.callTool({
       name: 'pack_run',
       arguments: { scanId, pack: 'overview', refresh: true },
