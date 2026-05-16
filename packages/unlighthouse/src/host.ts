@@ -18,7 +18,7 @@ import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
 import { createStorage } from '@unlighthouse/core/storage'
-import { drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
+import { applyMigrations, drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
 import Database from 'better-sqlite3'
 import { loadConfig } from 'c12'
@@ -184,6 +184,14 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
           logger.warn?.(`Migration stmt skipped: ${msg}`)
       }
     }
+    // Runtime upgrades for databases that pre-date a schema bump.
+    // INIT_SQL above is `CREATE TABLE IF NOT EXISTS`-style — no-op against
+    // existing tables — so anything that adds a column or rewrites a PK
+    // needs an explicit path. applyMigrations runs each pending migration
+    // once and is a no-op on already-current databases.
+    applyMigrations(sqliteDb, {
+      onApply: id => logger.info?.(`[storage] applied migration: ${id}`),
+    })
     const drizzleDb = drizzle(sqliteDb)
     const drizzleAdapter = drizzleStorage({
       driver: drizzleDb,

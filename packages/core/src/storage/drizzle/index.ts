@@ -52,6 +52,7 @@ export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
 }
 
 export { INIT_SQL, INIT_SQL_STATEMENTS } from './init-sql'
+export { applyMigrations } from './migrations'
 
 // Re-export schema/types from contracts for users that want raw access.
 export * from '@unlighthouse/contracts/drizzle'

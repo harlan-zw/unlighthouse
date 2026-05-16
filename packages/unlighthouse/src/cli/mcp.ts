@@ -13,7 +13,7 @@ import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { createStorage } from '@unlighthouse/core/storage'
-import { drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
+import { applyMigrations, drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
 import { startStdioServer } from '@unlighthouse/mcp'
 import Database from 'better-sqlite3'
@@ -241,6 +241,11 @@ export async function runMcp(): Promise<void> {
         logger.warn?.(`Migration stmt skipped: ${msg}`)
     }
   }
+  // Runtime upgrades for databases that pre-date a schema bump (D-029
+  // device column, etc.). Same code path host.ts uses.
+  applyMigrations(sqliteDb, {
+    onApply: id => logger.info?.(`[storage] applied migration: ${id}`),
+  })
   const drizzleDb = drizzle(sqliteDb)
   const drizzleAdapter = drizzleStorage({
     driver: drizzleDb,
