@@ -5,20 +5,21 @@
   "private": true,
   "description": "Tinypool-backed Puppeteer worker pool optimized for Lighthouse audits.",
   "license": "MIT",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
     "./worker": {
-      "types": "./src/worker.ts",
+      "types": "./dist/worker.d.mts",
       "import": "./dist/worker.mjs"
     },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist"
   ],
@@ -29,7 +30,7 @@
     "build": "obuild",
     "stub": "obuild --stub",
     "typecheck": "tsc --noEmit",
-    "test:attw": "attw --pack --profile node16",
+    "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"
   },
   "peerDependencies": {

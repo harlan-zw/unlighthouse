@@ -112,7 +112,7 @@
     "stub": "obuild --stub && node ./scripts/build-worker.mjs",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "test:attw": "attw --pack --profile node16",
+    "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"
   },
   "peerDependencies": {
