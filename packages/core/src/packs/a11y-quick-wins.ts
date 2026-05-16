@@ -150,58 +150,137 @@ interface RawFinding {
 
 // ── Reconciler ──────────────────────────────────────────────────────────────
 
+// D-029 + reconciled-details: per-route view as it lands from either substrate
+// (reconciled blob first, LHR fallback). Element-level data was projected
+// into the reconciled blob in this PR — earlier scans without that
+// projection still work via getLhr.
+interface RouteView {
+  // (auditId → { weight, title, description, items })
+  audits: Map<string, {
+    weight: number
+    title: string
+    description: string | null
+    items: Array<{ selector: string | null, snippet: string | null, nodeLabel: string | null }>
+    failed: boolean
+  }>
+}
+
+async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteView | null> {
+  // Prefer reconciled. Returns null on miss so we drop through to the LHR
+  // path — keeps older scans working without re-ingesting them.
+  if (ctx.getReconciled) {
+    const reconciled = await ctx.getReconciled(url, 'mobile').catch(() => null) as
+      | { categories?: { accessibility?: { auditRefs?: Array<{ id: string, weight: number }> } }
+        , audits?: Record<string, {
+          score: number | null
+          title: string | null
+          description: string | null
+          items: Array<{ node?: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null }> | null
+        }> }
+      | null
+    if (reconciled?.audits && reconciled.categories?.accessibility?.auditRefs?.length) {
+      const audits = new Map<string, RouteView['audits'] extends Map<string, infer V> ? V : never>()
+      const weights = new Map<string, number>()
+      for (const ref of reconciled.categories.accessibility.auditRefs)
+        weights.set(ref.id, ref.weight)
+      for (const [id, weight] of weights) {
+        const a = reconciled.audits[id]
+        if (!a)
+          continue
+        const failed = a.score != null && a.score < 1
+        const items: RouteView['audits'] extends Map<string, infer V> ? V['items'] : never = []
+        if (failed && a.items) {
+          for (const it of a.items) {
+            const node = it.node
+            if (!node)
+              continue
+            items.push({
+              selector: node.selector,
+              snippet: node.snippet,
+              nodeLabel: node.nodeLabel,
+            })
+          }
+        }
+        audits.set(id, {
+          weight,
+          title: a.title ?? id,
+          description: a.description,
+          items,
+          failed,
+        })
+      }
+      return { audits }
+    }
+  }
+  // LHR fallback.
+  if (ctx.getLhr) {
+    const lhr = await ctx.getLhr(url, 'mobile').catch(() => null) as LhrLike | null
+    if (!lhr?.audits || !lhr.categories?.accessibility?.auditRefs)
+      return null
+    const audits = new Map<string, RouteView['audits'] extends Map<string, infer V> ? V : never>()
+    for (const ref of lhr.categories.accessibility.auditRefs) {
+      const a = lhr.audits[ref.id]
+      if (!a)
+        continue
+      const failed = a.score != null && a.score < 1
+      const items: RouteView['audits'] extends Map<string, infer V> ? V['items'] : never = []
+      if (failed) {
+        for (const it of a.details?.items ?? []) {
+          const node = it.node
+          if (!node)
+            continue
+          items.push({
+            selector: node.selector ?? null,
+            snippet: node.snippet ?? null,
+            nodeLabel: node.nodeLabel ?? null,
+          })
+        }
+      }
+      audits.set(ref.id, {
+        weight: ref.weight,
+        title: a.title ?? ref.id,
+        description: a.description ?? null,
+        items,
+        failed,
+      })
+    }
+    return { audits }
+  }
+  return null
+}
+
 async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
-  if (!ctx.getLhr) {
-    throw new Error('a11y-quick-wins pack requires a getLhr fetcher (PackReconcileCtx.getLhr is undefined).')
+  if (!ctx.getReconciled && !ctx.getLhr) {
+    throw new Error('a11y-quick-wins pack requires getReconciled or getLhr (both PackReconcileCtx fetchers were undefined).')
   }
 
   const findings = new Map<string, RawFinding>()
   let routesAnalysed = 0
-  // Captured once from the first LHR (a11y category metadata).
-  let auditWeights: Map<string, number> | null = null
 
   for (const row of ctx.routes) {
-    const lhr = await ctx.getLhr(row.url, 'mobile').catch(() => null) as LhrLike | null
-    if (!lhr?.audits)
+    const view = await loadRouteView(row.url, ctx)
+    if (!view)
       continue
     routesAnalysed++
 
-    // Build the audit-id → weight map on first LHR. The category shape is
-    // stable across routes within a scan.
-    if (!auditWeights) {
-      auditWeights = new Map()
-      for (const ref of lhr.categories?.accessibility?.auditRefs ?? [])
-        auditWeights.set(ref.id, ref.weight)
-    }
-
-    for (const [auditId, audit] of Object.entries(lhr.audits)) {
-      const weight = auditWeights.get(auditId)
-      if (weight == null)
-        continue // not in the a11y category
-      const score = audit.score
-      if (score == null || score === 1)
-        continue // passing or N/A
-      const items = audit.details?.items ?? []
-      if (!items.length)
+    for (const [auditId, audit] of view.audits) {
+      if (!audit.failed || audit.items.length === 0)
         continue
 
       let finding = findings.get(auditId)
       if (!finding) {
         finding = {
           auditId,
-          title: audit.title ?? auditId,
-          description: audit.description ?? null,
-          weight,
+          title: audit.title,
+          description: audit.description,
+          weight: audit.weight,
           elements: new Map(),
         }
         findings.set(auditId, finding)
       }
 
-      for (const it of items) {
-        const node = it.node
-        if (!node)
-          continue
-        const selector = node.selector ?? '(no selector)'
+      for (const it of audit.items) {
+        const selector = it.selector ?? '(no selector)'
         const existing = finding.elements.get(selector)
         if (existing) {
           existing.routes.add(row.url)
@@ -209,8 +288,8 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
         else {
           finding.elements.set(selector, {
             selector,
-            snippet: node.snippet ?? null,
-            nodeLabel: node.nodeLabel ?? null,
+            snippet: it.snippet,
+            nodeLabel: it.nodeLabel,
             firstSeenOn: row.url,
             routes: new Set([row.url]),
           })

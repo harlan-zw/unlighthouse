@@ -142,9 +142,36 @@ export type ScanRoute = z.infer<typeof ScanRouteSchema>
 //
 // `title` / `description` / `metricSavings` are pulled through so packs
 // don't fall back to raw LHR just to read a human label or a savings number.
-// `details.items` (element-level data) is intentionally NOT projected — the
-// blob would balloon, and the handful of packs that need it (a11y-quick-wins,
-// images) still fetch the raw LHR for those audits.
+//
+// `details.items` is projected per-audit ONLY for an allowlist of audit ids
+// that packs actively need (image-* audits for the `images` pack, a11y
+// element-level audits for `a11y-quick-wins`). Items are capped at 30 per
+// audit and only the small set of fields below is kept. Packs that want
+// the full LHR detail array still call getLhr — this projection keeps the
+// blob bounded while making the common case (drill into one image / one
+// element) hit a sub-MB cached blob instead of re-parsing 200KB of LHR.
+const AuditDetailNodeSchema = z.object({
+  selector: z.string().nullable(),
+  snippet: z.string().nullable(),
+  nodeLabel: z.string().nullable(),
+})
+
+const AuditDetailItemSchema = z.object({
+  // URL-shaped fields (image-* audits + render-blocking-insight).
+  url: z.string().nullable(),
+  // For audits that emit an item type (LHR distinguishes 'node' from
+  // checklist rows on lcp-discovery-insight, for example).
+  type: z.string().nullable(),
+  totalBytes: z.number().nullable(),
+  wastedBytes: z.number().nullable(),
+  // Element-level data for a11y / element audits.
+  node: AuditDetailNodeSchema.nullable(),
+  snippet: z.string().nullable(),
+  // First sub-item's reason field — image-delivery-insight stuffs the
+  // remediation hint there. We keep only the first to bound size.
+  reason: z.string().nullable(),
+})
+
 const AuditFindingSchema = z.object({
   // Lighthouse audit id, e.g. 'uses-optimized-images' or 'image-delivery-insight'.
   id: z.string(),
@@ -172,6 +199,11 @@ const AuditFindingSchema = z.object({
     CLS: z.number().optional(),
     TBT: z.number().optional(),
   }).nullable(),
+  // Capped + whitelisted per-item detail. Only populated for the small set
+  // of audits the built-in packs depend on (see PROJECTED_DETAIL_AUDITS in
+  // core/report/extract.ts). null for every other audit — packs fall through
+  // to getLhr for those.
+  items: z.array(AuditDetailItemSchema).nullable(),
 })
 export type AuditFinding = z.infer<typeof AuditFindingSchema>
 

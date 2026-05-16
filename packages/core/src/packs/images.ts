@@ -266,16 +266,73 @@ function extractMissingAlt(routeUrl: string, lhr: LhrLike, sink: Map<string, Raw
 
 // ── Reconciler ──────────────────────────────────────────────────────────────
 
+// Shim a reconciled report's audits map into the LhrLike shape the existing
+// extractors already iterate. The reconciled projection keeps the same field
+// names (url, totalBytes, wastedBytes, snippet, type, node) on each item,
+// plus pulls the first sub-item's reason — so the extractors that read
+// `it.url` / `it.wastedBytes` / `it.subItems[0].reason` keep working when
+// the source is reconciled instead of raw LHR.
+//
+// Returns null when neither substrate is available (caller skips the row).
+async function loadRouteAuditsAsLhrLike(url: string, ctx: PackReconcileCtx): Promise<LhrLike | null> {
+  if (ctx.getReconciled) {
+    const reconciled = await ctx.getReconciled(url, 'mobile').catch(() => null) as
+      | { audits?: Record<string, {
+        score: number | null
+        metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
+        items: Array<{
+          url: string | null
+          type: string | null
+          totalBytes: number | null
+          wastedBytes: number | null
+          node: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null
+          snippet: string | null
+          reason: string | null
+        }> | null
+      }> }
+      | null
+    if (reconciled?.audits) {
+      const audits: NonNullable<LhrLike['audits']> = {}
+      for (const [id, a] of Object.entries(reconciled.audits)) {
+        // Re-pack items into the LHR shape the extractors read: surface the
+        // projected `reason` back under subItems[0].reason where the image-
+        // delivery extractor expects it.
+        const items = (a.items ?? []).map((it) => {
+          const out: Record<string, unknown> = {}
+          if (it.url != null) out.url = it.url
+          if (it.type != null) out.type = it.type
+          if (it.totalBytes != null) out.totalBytes = it.totalBytes
+          if (it.wastedBytes != null) out.wastedBytes = it.wastedBytes
+          if (it.node) out.node = it.node
+          if (it.snippet != null) out.snippet = it.snippet
+          if (it.reason != null) out.subItems = { items: [{ reason: it.reason }] }
+          return out
+        })
+        audits[id] = {
+          score: a.score,
+          metricSavings: a.metricSavings ?? undefined,
+          details: items.length ? { items } : undefined,
+        }
+      }
+      return { audits }
+    }
+  }
+  if (ctx.getLhr) {
+    return (await ctx.getLhr(url, 'mobile').catch(() => null)) as LhrLike | null
+  }
+  return null
+}
+
 async function reconcile(ctx: PackReconcileCtx): Promise<ImagesReport> {
-  if (!ctx.getLhr) {
-    throw new Error('images pack requires a getLhr fetcher (PackReconcileCtx.getLhr is undefined).')
+  if (!ctx.getReconciled && !ctx.getLhr) {
+    throw new Error('images pack requires getReconciled or getLhr (both PackReconcileCtx fetchers were undefined).')
   }
 
   const sink = new Map<string, RawFinding>()
   let routesAnalysed = 0
 
   for (const row of ctx.routes) {
-    const lhr = await ctx.getLhr(row.url, 'mobile').catch(() => null) as LhrLike | null
+    const lhr = await loadRouteAuditsAsLhrLike(row.url, ctx)
     if (!lhr)
       continue
     routesAnalysed++
