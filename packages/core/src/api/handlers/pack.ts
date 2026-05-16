@@ -13,6 +13,7 @@
 
 import type { CommandOutput, Device, PackList, PackRun, PackRunCmd } from '@unlighthouse/contracts'
 import type { Handler } from './types'
+import { createHash } from 'node:crypto'
 import { gunzipSync } from 'node:zlib'
 import { UnlighthouseError } from '@unlighthouse/contracts'
 import { builtInPacks, getPack } from '../../packs/index'
@@ -97,10 +98,36 @@ export const packRun: Handler<typeof PackRunCmd> = {
       return lhr
     }
 
+    // D-030 reconciled report fetcher. Mirrors getLhr but pulls the
+    // contract-shape blob written at ingest. Packs that opt in survive
+    // Lighthouse version drift without re-parsing the raw LHR — the
+    // reconciler produced a stable AuditFinding shape they can read against.
+    // Returns `null` when the reconciled blob is missing (older scans, or
+    // ingest-time reconciliation failed) so packs can fall through to getLhr.
+    const reconciledCache = new Map<string, unknown>()
+    const getReconciled = async (url: string, _device: Device): Promise<unknown> => {
+      if (reconciledCache.has(url))
+        return reconciledCache.get(url)
+      const row = routes.items.find(r => r.url === url)
+      if (!row?.lhrBlobKey)
+        return null
+      // Derive the contract-blob key from the same scan / url hash that
+      // produced the LHR key. Mirrors the path written in core.ts ingest.
+      const hash = createHash('sha1').update(url).digest('hex').slice(0, 16)
+      const contractKey = `scans/${input.scanId}/reports/${hash}.contract.json`
+      const buf = await ctx.storage.blobs.get(contractKey)
+      if (!buf)
+        return null
+      const parsed = JSON.parse(new TextDecoder().decode(buf))
+      reconciledCache.set(url, parsed)
+      return parsed
+    }
+
     const report = await pack.reconciler({
       scanId: input.scanId,
       routes: routes.items,
       getLhr,
+      getReconciled,
       logger: undefined,
     })
 

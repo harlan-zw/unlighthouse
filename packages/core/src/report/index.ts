@@ -29,7 +29,7 @@ import { extractRouteData } from './extract'
 import { processPerformance } from './performance'
 import { processSeo } from './seo'
 
-export { decompressLhr, extractRouteData } from './extract'
+export { decompressLhr, extractRouteData, reconcileToContract } from './extract'
 export * from './types'
 
 type AnyDrizzle = any

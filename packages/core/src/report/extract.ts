@@ -127,3 +127,128 @@ export function reconcileRoute(args: {
     reportBlobKey,
   }
 }
+
+// D-030 reconciler — produces the `ReconciledReport` atom shape from a raw
+// LHR. Distinct from `reconcileRoute` above (which still serves the UI's
+// per-route view); this one is the substrate packs read from. Kept small and
+// flat so we don't grow it past the LH features Packs actually depend on —
+// `opportunities` / `diagnostics` / `fullPageScreenshot` deliberately omitted,
+// callers that need them fetch the raw LHR.
+//
+// `severity` is derived once at ingest so packs don't reinvent the rule:
+//   - manual / notApplicable / informative → 'pass' (these never fail a scan)
+//   - score >= 0.9 → 'pass'
+//   - score >= 0.5 → 'warn'
+//   - score <  0.5 → 'fail'
+//   - score null on a numeric/binary audit → 'fail' (treats "couldn't run" as
+//     pessimistic so packs surface it)
+export function reconcileToContract(args: {
+  scanId: string
+  url: string
+  device: 'mobile' | 'desktop'
+  lhr: LighthouseResult
+}): {
+    scanId: string
+    url: string
+    device: 'mobile' | 'desktop'
+    metrics: {
+      scorePerformance: number | null
+      scoreAccessibility: number | null
+      scoreSeo: number | null
+      scoreBestPractices: number | null
+      lcp: number | null
+      cls: number | null
+      inp: number | null
+      fcp: number | null
+      ttfb: number | null
+      tbt: number | null
+      si: number | null
+    }
+    categories: Record<string, { score: number | null, auditRefs: string[] }>
+    audits: Record<string, {
+      id: string
+      score: number | null
+      scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
+      displayValue: string | null
+      severity: 'pass' | 'warn' | 'fail'
+    }>
+    provenance: { lighthouseVersion: string, userAgent: string | null, capturedAt: string }
+  } {
+  const { scanId, url, device, lhr } = args
+  const ext = extractRouteData(lhr)
+
+  const categories: Record<string, { score: number | null, auditRefs: string[] }> = {}
+  for (const [key, c] of Object.entries(lhr.categories ?? {})) {
+    const cat = c as { score?: number | null, auditRefs?: Array<{ id: string }> }
+    categories[key] = {
+      score: cat?.score ?? null,
+      auditRefs: (cat?.auditRefs ?? []).map(r => r.id),
+    }
+  }
+
+  const audits: Record<string, {
+    id: string
+    score: number | null
+    scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
+    displayValue: string | null
+    severity: 'pass' | 'warn' | 'fail'
+  }> = {}
+  for (const [id, a] of Object.entries(lhr.audits ?? {})) {
+    const aa = a as {
+      score?: number | null
+      scoreDisplayMode?: string
+      displayValue?: string
+    }
+    const mode = (['numeric', 'binary', 'informative', 'manual', 'notApplicable'].includes(aa?.scoreDisplayMode ?? '')
+      ? aa.scoreDisplayMode
+      : 'informative') as 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
+    audits[id] = {
+      id,
+      score: aa?.score ?? null,
+      scoreDisplayMode: mode,
+      displayValue: aa?.displayValue ?? null,
+      severity: deriveSeverity(aa?.score ?? null, mode),
+    }
+  }
+
+  return {
+    scanId,
+    url,
+    device,
+    metrics: {
+      scorePerformance: ext.scores.performance,
+      scoreAccessibility: ext.scores.accessibility,
+      scoreSeo: ext.scores.seo,
+      scoreBestPractices: ext.scores.bestPractices,
+      lcp: ext.lcp,
+      cls: ext.cls,
+      inp: ext.inp,
+      fcp: ext.fcp,
+      ttfb: ext.ttfb,
+      tbt: ext.tbt,
+      si: ext.si,
+    },
+    categories,
+    audits,
+    provenance: {
+      lighthouseVersion: lhr.lighthouseVersion,
+      userAgent: (lhr as { userAgent?: string }).userAgent ?? null,
+      capturedAt: new Date().toISOString(),
+    },
+  }
+}
+
+function deriveSeverity(
+  score: number | null,
+  mode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable',
+): 'pass' | 'warn' | 'fail' {
+  if (mode === 'manual' || mode === 'notApplicable' || mode === 'informative')
+    return 'pass'
+  if (score == null)
+    return 'fail'
+  if (score >= 0.9)
+    return 'pass'
+  if (score >= 0.5)
+    return 'warn'
+  return 'fail'
+}
