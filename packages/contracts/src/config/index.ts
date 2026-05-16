@@ -4,12 +4,12 @@
 //    the post-merge config; defaults live in a literal `defaultConfig` const."
 
 import { z } from 'zod'
-import { Assertion, Category, Device, Url } from '../types/atoms'
+import { AssertionSchema, CategorySchema, DeviceSchema, UrlSchema } from '../types/atoms'
 
 // Lighthouse audit categories budget — number 1..100 OR per-category map.
 const Budget = z.union([
   z.number().int().min(1).max(100),
-  z.partialRecord(Category, z.number().int().min(1).max(100)),
+  z.partialRecord(CategorySchema, z.number().int().min(1).max(100)),
 ])
 
 const ReporterConfig = z.object({
@@ -66,7 +66,7 @@ const CiConfig = z.object({
     ])
     .optional(),
   reporterConfig: ReporterConfig.optional(),
-  assertions: z.array(Assertion).optional(),
+  assertions: z.array(AssertionSchema).optional(),
   build: CiBuild.optional(),
   comparison: ComparisonConfig.optional(),
 })
@@ -92,7 +92,7 @@ const ScannerConfig = z.object({
   dynamicSampling: z.union([z.number().int().positive(), z.literal(false)]).optional(),
   sitemap: z.union([z.boolean(), z.array(z.string())]).optional(),
   robotsTxt: z.boolean().optional(),
-  device: z.union([Device, z.literal(false)]).optional(),
+  device: z.union([DeviceSchema, z.literal(false)]).optional(),
 })
 
 const ClientConfig = z.object({
@@ -147,7 +147,7 @@ const AuditorConfig = z.union([
  * Throws `UnlighthouseError({ code: 'CONFIG_INVALID' })` on validation failure.
  */
 const UnlighthouseConfigSchema = z.object({
-  site: z.union([Url, z.string()]).optional(),
+  site: z.union([UrlSchema, z.string()]).optional(),
   googleApiKey: z.string().optional(),
   root: z.string().optional(),
   cache: z.boolean().optional(),
@@ -181,7 +181,7 @@ const UnlighthouseConfigSchema = z.object({
 })
 
 export type UnlighthouseConfig = z.infer<typeof UnlighthouseConfigSchema>
-export { UnlighthouseConfigSchema as UnlighthouseConfig }
+export { UnlighthouseConfigSchema }
 
 /**
  * Host-agnostic defaults — D-011: defu merges, schema validates.

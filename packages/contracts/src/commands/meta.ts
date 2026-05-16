@@ -4,7 +4,7 @@
 // `manifest` output (v1.md line 14).
 
 import { z } from 'zod'
-import { Category, Device, Url } from '../types/atoms'
+import { CategorySchema, DeviceSchema, UrlSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
 // ── manifest ────────────────────────────────────────────────────────────────
@@ -90,9 +90,9 @@ export const AuditorsTest = defineCommand({
   description: 'Test an auditor against a single URL and return the raw LH report.',
   input: z.object({
     auditor: z.string(),
-    url: Url,
-    device: Device.optional(),
-    categories: z.array(Category).optional(),
+    url: UrlSchema,
+    device: DeviceSchema.optional(),
+    categories: z.array(CategorySchema).optional(),
   }),
   output: z.object({
     ok: z.boolean(),

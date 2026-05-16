@@ -13,12 +13,12 @@
 
 import { z } from 'zod'
 import type { Logger } from '../ports/core'
-import { ScanId } from '../types/atoms'
-import type { Device, ScanRoute } from '../types/atoms'
+import { ScanIdSchema } from '../types/atoms'
+import type { Device, ScanId, ScanRoute } from '../types/atoms'
 
 // ── Wire-format ────────────────────────────────────────────────────────────
 
-const AuditorRequirementSchema = z.object({
+export const AuditorRequirementSchema = z.object({
   kind: z.enum(['lh-category', 'lh-audit', 'custom']),
   id: z.string(),
   required: z.boolean(),
@@ -27,8 +27,8 @@ export type AuditorRequirement = z.infer<typeof AuditorRequirementSchema>
 
 // Cached output of pack.run. Content-addressable by (scanId, name, version).
 // Large reports spill to a blob; small ones stay inline.
-const PackRunSchema = z.object({
-  scanId: ScanId,
+export const PackRunSchema = z.object({
+  scanId: ScanIdSchema,
   packName: z.string(),
   packVersion: z.string(),
   startedAt: z.iso.datetime(),
@@ -70,10 +70,4 @@ export interface Pack<TReport = unknown> {
     icon?: string
     component?: string
   }
-}
-
-// Re-export the Zod schemas under stable names (mirrors atoms.ts pattern).
-export {
-  AuditorRequirementSchema as AuditorRequirement,
-  PackRunSchema as PackRun,
 }

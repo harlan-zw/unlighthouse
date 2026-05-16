@@ -47,10 +47,12 @@ type _AssertScanShape = Expect<Equal<Normalize<ScanRowPublic>, Normalize<Scan>>>
 
 type _AssertScanRouteShape = Expect<Equal<Normalize<ScanRouteRow>, Normalize<ScanRoute>>>
 
-// Inputs to put-batch are ExtractedMetrics; the row adds scanId + blob keys.
+// Inputs to put-batch are ExtractedMetrics; the row adds scanId + device +
+// blob keys. D-029 added device to the row identity; it's not on
+// ExtractedMetrics (callers pass it as a separate arg to putBatch/upsert).
 type _AssertExtractedMetricsShape = Expect<
   Equal<
-    Normalize<Omit<ScanRouteRow, 'scanId' | 'lhrBlobKey' | 'reportBlobKey'>>,
+    Normalize<Omit<ScanRouteRow, 'scanId' | 'device' | 'lhrBlobKey' | 'reportBlobKey'>>,
     Normalize<ExtractedMetrics>
   >
 >

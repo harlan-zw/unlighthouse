@@ -1,4 +1,5 @@
-import type { Logger, ResolvedUserConfig, RuntimeSettings, UnlighthouseHooks } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
+import type { ServerHookMap } from './server-hooks'
 import type { WS } from '@unlighthouse/core/api'
 import type { App } from 'h3'
 import type { Hookable } from 'hookable'
@@ -31,7 +32,7 @@ const mimeTypes: Record<string, string> = {
 export interface MountServerDeps {
   resolvedConfig: ResolvedUserConfig
   runtimeSettings: RuntimeSettings
-  hooks: Hookable<UnlighthouseHooks>
+  hooks: Hookable<ServerHookMap>
   ws: WS | null
   logger?: Logger
 }

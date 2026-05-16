@@ -4,43 +4,43 @@
 
 import { z } from 'zod'
 import {
-  AssertionResult,
-  ExtractedMetrics,
-  ScanId,
-  ScanSummary,
-  StructuredError,
-  Url,
+  AssertionResultSchema,
+  ExtractedMetricsSchema,
+  ScanIdSchema,
+  ScanSummarySchema,
+  StructuredErrorSchema,
+  UrlSchema,
 } from '../types/atoms'
 
 // ────────────────────────────────────────────────────────────────────────────
 // scan:* — orchestration lifecycle. Emitted by core.run(), not by adapters.
 // ────────────────────────────────────────────────────────────────────────────
 
-const ScanCreatedPayloadSchema = z.object({
-  scanId: ScanId,
-  site: Url,
+export const ScanCreatedPayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  site: UrlSchema,
   startedAt: z.iso.datetime(),
 })
 export type ScanCreatedPayload = z.infer<typeof ScanCreatedPayloadSchema>
 
-const ScanStartedPayloadSchema = z.object({
-  scanId: ScanId,
+export const ScanStartedPayloadSchema = z.object({
+  scanId: ScanIdSchema,
 })
 export type ScanStartedPayload = z.infer<typeof ScanStartedPayloadSchema>
 
-const ScanDiscoveringPayloadSchema = z.object({
-  scanId: ScanId,
+export const ScanDiscoveringPayloadSchema = z.object({
+  scanId: ScanIdSchema,
 })
 export type ScanDiscoveringPayload = z.infer<typeof ScanDiscoveringPayloadSchema>
 
-const ScanScanningPayloadSchema = z.object({
-  scanId: ScanId,
+export const ScanScanningPayloadSchema = z.object({
+  scanId: ScanIdSchema,
   discovered: z.number().int().nonnegative(),
 })
 export type ScanScanningPayload = z.infer<typeof ScanScanningPayloadSchema>
 
-const ScanProgressPayloadSchema = z.object({
-  scanId: ScanId,
+export const ScanProgressPayloadSchema = z.object({
+  scanId: ScanIdSchema,
   discovered: z.number().int().nonnegative(),
   scanned: z.number().int().nonnegative(),
   failed: z.number().int().nonnegative(),
@@ -48,41 +48,41 @@ const ScanProgressPayloadSchema = z.object({
 })
 export type ScanProgressPayload = z.infer<typeof ScanProgressPayloadSchema>
 
-const ScanRouteCompletePayloadSchema = z.object({
-  scanId: ScanId,
-  url: Url,
-  metrics: ExtractedMetrics,
+export const ScanRouteCompletePayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  url: UrlSchema,
+  metrics: ExtractedMetricsSchema,
 })
 export type ScanRouteCompletePayload = z.infer<typeof ScanRouteCompletePayloadSchema>
 
-const ScanRouteFailedPayloadSchema = z.object({
-  scanId: ScanId,
-  url: Url,
-  error: StructuredError,
+export const ScanRouteFailedPayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  url: UrlSchema,
+  error: StructuredErrorSchema,
 })
 export type ScanRouteFailedPayload = z.infer<typeof ScanRouteFailedPayloadSchema>
 
-const ScanPausedPayloadSchema = z.object({ scanId: ScanId })
+export const ScanPausedPayloadSchema = z.object({ scanId: ScanIdSchema })
 export type ScanPausedPayload = z.infer<typeof ScanPausedPayloadSchema>
 
-const ScanResumedPayloadSchema = z.object({ scanId: ScanId })
+export const ScanResumedPayloadSchema = z.object({ scanId: ScanIdSchema })
 export type ScanResumedPayload = z.infer<typeof ScanResumedPayloadSchema>
 
-const ScanCancelledPayloadSchema = z.object({
-  scanId: ScanId,
+export const ScanCancelledPayloadSchema = z.object({
+  scanId: ScanIdSchema,
   reason: z.string().optional(),
 })
 export type ScanCancelledPayload = z.infer<typeof ScanCancelledPayloadSchema>
 
-const ScanCompletePayloadSchema = z.object({
-  scanId: ScanId,
-  summary: ScanSummary,
+export const ScanCompletePayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  summary: ScanSummarySchema,
 })
 export type ScanCompletePayload = z.infer<typeof ScanCompletePayloadSchema>
 
-const ScanErrorPayloadSchema = z.object({
-  scanId: ScanId,
-  error: StructuredError,
+export const ScanErrorPayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  error: StructuredErrorSchema,
 })
 export type ScanErrorPayload = z.infer<typeof ScanErrorPayloadSchema>
 
@@ -90,15 +90,15 @@ export type ScanErrorPayload = z.infer<typeof ScanErrorPayloadSchema>
 // assert:* — assertion evaluation.
 // ────────────────────────────────────────────────────────────────────────────
 
-const AssertPassedPayloadSchema = z.object({
-  scanId: ScanId,
-  result: AssertionResult,
+export const AssertPassedPayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  result: AssertionResultSchema,
 })
 export type AssertPassedPayload = z.infer<typeof AssertPassedPayloadSchema>
 
-const AssertFailedPayloadSchema = z.object({
-  scanId: ScanId,
-  result: AssertionResult,
+export const AssertFailedPayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  result: AssertionResultSchema,
 })
 export type AssertFailedPayload = z.infer<typeof AssertFailedPayloadSchema>
 
@@ -106,9 +106,9 @@ export type AssertFailedPayload = z.infer<typeof AssertFailedPayloadSchema>
 // compare:* — cross-scan diff lifecycle.
 // ────────────────────────────────────────────────────────────────────────────
 
-const CompareCompletePayloadSchema = z.object({
-  baseScanId: ScanId,
-  currentScanId: ScanId,
+export const CompareCompletePayloadSchema = z.object({
+  baseScanId: ScanIdSchema,
+  currentScanId: ScanIdSchema,
   regressions: z.number().int().nonnegative(),
   improvements: z.number().int().nonnegative(),
 })
@@ -118,13 +118,13 @@ export type CompareCompletePayload = z.infer<typeof CompareCompletePayloadSchema
 // quota:* — rate-limit / quota events.
 // ────────────────────────────────────────────────────────────────────────────
 
-const QuotaExceededPayloadSchema = z.object({
+export const QuotaExceededPayloadSchema = z.object({
   bucket: z.string(),
   resetAt: z.iso.datetime().optional(),
 })
 export type QuotaExceededPayload = z.infer<typeof QuotaExceededPayloadSchema>
 
-const QuotaDepletedPayloadSchema = z.object({
+export const QuotaDepletedPayloadSchema = z.object({
   bucket: z.string(),
   remaining: z.number().int().nonnegative(),
   limit: z.number().int().positive(),
@@ -135,27 +135,27 @@ export type QuotaDepletedPayload = z.infer<typeof QuotaDepletedPayloadSchema>
 // route:* — per-URL crawler/html events emitted by the legacy cluster engine.
 // ────────────────────────────────────────────────────────────────────────────
 
-const RouteQueuedPayloadSchema = z.object({ scanId: ScanId, url: Url })
+export const RouteQueuedPayloadSchema = z.object({ scanId: ScanIdSchema, url: UrlSchema })
 export type RouteQueuedPayload = z.infer<typeof RouteQueuedPayloadSchema>
 
-const RouteHtmlExtractedPayloadSchema = z.object({ scanId: ScanId, url: Url, payload: z.string() })
+export const RouteHtmlExtractedPayloadSchema = z.object({ scanId: ScanIdSchema, url: UrlSchema, payload: z.string() })
 export type RouteHtmlExtractedPayload = z.infer<typeof RouteHtmlExtractedPayloadSchema>
 
 // ────────────────────────────────────────────────────────────────────────────
 // audit:* — per-URL audit lifecycle. Used by quota / retry middleware.
 // ────────────────────────────────────────────────────────────────────────────
 
-const AuditBeforePayloadSchema = z.object({
-  scanId: ScanId,
-  url: Url,
+export const AuditBeforePayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  url: UrlSchema,
   auditor: z.string(),
   quotaBucket: z.string().optional(),
 })
 export type AuditBeforePayload = z.infer<typeof AuditBeforePayloadSchema>
 
-const AuditAfterPayloadSchema = z.object({
-  scanId: ScanId,
-  url: Url,
+export const AuditAfterPayloadSchema = z.object({
+  scanId: ScanIdSchema,
+  url: UrlSchema,
   auditor: z.string(),
   durationMs: z.number().nonnegative(),
   ok: z.boolean(),
@@ -166,7 +166,7 @@ export type AuditAfterPayload = z.infer<typeof AuditAfterPayloadSchema>
 // log — root-level log channel. Mirrors consola levels.
 // ────────────────────────────────────────────────────────────────────────────
 
-const LogPayloadSchema = z.object({
+export const LogPayloadSchema = z.object({
   level: z.enum(['silent', 'fatal', 'error', 'warn', 'log', 'info', 'success', 'debug', 'trace', 'verbose']),
   message: z.string(),
   meta: z.record(z.string(), z.unknown()).optional(),
@@ -202,31 +202,6 @@ export const HookSchemas = {
   'audit:after': AuditAfterPayloadSchema,
   'log': LogPayloadSchema,
 } as const
-
-export {
-  AssertFailedPayloadSchema as AssertFailedPayload,
-  AssertPassedPayloadSchema as AssertPassedPayload,
-  AuditAfterPayloadSchema as AuditAfterPayload,
-  AuditBeforePayloadSchema as AuditBeforePayload,
-  CompareCompletePayloadSchema as CompareCompletePayload,
-  LogPayloadSchema as LogPayload,
-  QuotaDepletedPayloadSchema as QuotaDepletedPayload,
-  QuotaExceededPayloadSchema as QuotaExceededPayload,
-  RouteHtmlExtractedPayloadSchema as RouteHtmlExtractedPayload,
-  RouteQueuedPayloadSchema as RouteQueuedPayload,
-  ScanCancelledPayloadSchema as ScanCancelledPayload,
-  ScanCompletePayloadSchema as ScanCompletePayload,
-  ScanCreatedPayloadSchema as ScanCreatedPayload,
-  ScanDiscoveringPayloadSchema as ScanDiscoveringPayload,
-  ScanErrorPayloadSchema as ScanErrorPayload,
-  ScanPausedPayloadSchema as ScanPausedPayload,
-  ScanProgressPayloadSchema as ScanProgressPayload,
-  ScanResumedPayloadSchema as ScanResumedPayload,
-  ScanRouteCompletePayloadSchema as ScanRouteCompletePayload,
-  ScanRouteFailedPayloadSchema as ScanRouteFailedPayload,
-  ScanScanningPayloadSchema as ScanScanningPayload,
-  ScanStartedPayloadSchema as ScanStartedPayload,
-}
 
 export type HookName = keyof typeof HookSchemas
 

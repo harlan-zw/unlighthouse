@@ -22,7 +22,8 @@ import {
   ScanStatusCmd,
   ScanSummaryCmd,
 } from './scan'
-import { Site, SitesCreate, SitesDelete, SitesGet, SitesList } from './sites'
+import type { Site } from './sites'
+import { SiteSchema, SitesCreate, SitesDelete, SitesGet, SitesList } from './sites'
 
 export * from './compare'
 
@@ -57,12 +58,14 @@ export {
   ScanStart,
   ScanStatusCmd,
   ScanSummaryCmd,
-  Site,
+  SiteSchema,
   SitesCreate,
   SitesDelete,
   SitesGet,
   SitesList,
 }
+
+export type { Site }
 
 export * from './define'
 

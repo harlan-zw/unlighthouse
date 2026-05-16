@@ -770,4 +770,8 @@ export interface UnlighthouseReport {
   insights: UnlighthouseInsights
   artifacts?: any
   raw?: Result
+  // Gzipped LHCI-format LHR. Set by providers that produce a raw Lighthouse
+  // run (local, mock, cdp-connect); core's ingest path persists it to the
+  // blob store under the route's `lhrBlobKey` when present.
+  lhrGzip?: Uint8Array
 }
