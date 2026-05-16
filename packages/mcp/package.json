@@ -20,8 +20,11 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "build": "obuild",
     "stub": "obuild --stub",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:attw": "attw --pack --profile node16",
+    "test:publint": "publint"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "catalog:",

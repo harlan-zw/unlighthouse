@@ -40,7 +40,9 @@
   "scripts": {
     "build": "obuild",
     "stub": "obuild --stub",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:attw": "attw --pack --profile node16",
+    "test:publint": "publint"
   },
   "peerDependencies": {
     "drizzle-orm": "catalog:dependencies",
