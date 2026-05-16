@@ -6,7 +6,7 @@
 // once via the full ingest path (mock auditor → scan complete → verify the
 // `.contract.json` blob is on disk).
 
-import { ReconciledReport } from '@unlighthouse/contracts'
+import { ReconciledReportSchema } from '@unlighthouse/contracts'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
@@ -60,7 +60,7 @@ describe('reconcileToContract', () => {
     })
     // Round-trip through the Zod schema — the strongest assertion that the
     // shape matches the contract.
-    expect(() => ReconciledReport.parse(out)).not.toThrow()
+    expect(() => ReconciledReportSchema.parse(out)).not.toThrow()
   })
 
   it('derives severity per audit (the bucketing pack reconcilers depend on)', () => {
@@ -195,7 +195,7 @@ describe('scan ingest persists reconciled contract blob', () => {
 
     const parsed = JSON.parse(new TextDecoder().decode(buf!))
     // Validate it against the contract.
-    expect(() => ReconciledReport.parse(parsed)).not.toThrow()
+    expect(() => ReconciledReportSchema.parse(parsed)).not.toThrow()
     expect(parsed.scanId).toBe(scanId)
     expect(parsed.url).toBe(url)
     expect(parsed.device).toBe('mobile')
