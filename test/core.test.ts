@@ -14,7 +14,7 @@ import type {
 } from '@unlighthouse/contracts'
 import { describe, expect, it } from 'vitest'
 import { UnlighthouseError } from '@unlighthouse/contracts'
-import { createUnlighthouseCore } from '@unlighthouse/core'
+import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 
 // SCAN_CANCELLED rejections on `session.done` fire from the orchestrate IIFE
@@ -169,6 +169,34 @@ describe('createUnlighthouseCore orchestration', () => {
 
     expect(session.stats()).toEqual({ discovered: 3, scanned: 3, failed: 0, total: 3 })
     expect(session.state()).toBe('complete')
+  })
+
+  it('aggregates scoreAverage + scoresByCategory on scan:complete', async () => {
+    // Regression for the v0→v1 port bug where summary.scoreAverage was
+    // hardcoded `null` even after routes finished scoring — broke
+    // compare.run baselines and the dashboard summary tile.
+    const urls = ['https://example.com/a', 'https://example.com/b']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+
+    const persisted = await storage.scans.get(session.scanId)
+    expect(persisted?.summary?.scoreAverage).not.toBeNull()
+    // passingAuditor() returns 0.9 for every category, so the average is 0.9.
+    expect(persisted?.summary?.scoreAverage).toBeCloseTo(0.9, 5)
+    expect(persisted?.summary?.scoresByCategory).toEqual({
+      'performance': 0.9,
+      'accessibility': 0.9,
+      'seo': 0.9,
+      'best-practices': 0.9,
+    })
   })
 
   it('cancel: emits scan:cancelled and rejects done', async () => {
@@ -403,5 +431,66 @@ describe('createUnlighthouseCore orchestration', () => {
     expect(session.stats().failed).toBe(1)
     expect(session.stats().scanned).toBe(2)
     expect(events.some(e => e.event === 'scan:complete')).toBe(true)
+  })
+})
+
+describe('reapStaleScans', () => {
+  it('marks non-terminal zombie scans as error and leaves terminals alone', async () => {
+    const storage = memoryStorage()
+    // Plant one of each non-terminal status + a terminal control.
+    const planted: Array<['starting' | 'discovering' | 'scanning' | 'paused' | 'complete' | 'error' | 'cancelled', string]> = [
+      ['starting', 'zombie-start'],
+      ['discovering', 'zombie-discovering'],
+      ['scanning', 'zombie-scanning'],
+      ['paused', 'zombie-paused'],
+      ['complete', 'survivor-complete'],
+      ['error', 'survivor-error'],
+      ['cancelled', 'survivor-cancelled'],
+    ]
+    for (const [status, id] of planted) {
+      await storage.scans.create({
+        scanId: id as never,
+        site: 'https://example.com' as never,
+        device: 'mobile',
+        status,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: status === 'complete' || status === 'error' || status === 'cancelled'
+          ? '2025-01-01T00:05:00.000Z'
+          : null,
+        ciBranch: null,
+        ciCommit: null,
+        ciCommitMessage: null,
+        summary: null,
+      })
+    }
+    const reaped = await reapStaleScans(storage)
+    expect(reaped).toBe(4)
+    // Zombies flipped to error + got a completedAt.
+    for (const id of ['zombie-start', 'zombie-discovering', 'zombie-scanning', 'zombie-paused']) {
+      const row = await storage.scans.get(id as never)
+      expect(row?.status).toBe('error')
+      expect(row?.completedAt).not.toBeNull()
+    }
+    // Terminals untouched.
+    expect((await storage.scans.get('survivor-complete' as never))?.status).toBe('complete')
+    expect((await storage.scans.get('survivor-error' as never))?.status).toBe('error')
+    expect((await storage.scans.get('survivor-cancelled' as never))?.status).toBe('cancelled')
+  })
+
+  it('is a no-op when no zombies exist', async () => {
+    const storage = memoryStorage()
+    await storage.scans.create({
+      scanId: 'ok' as never,
+      site: 'https://example.com' as never,
+      device: 'mobile',
+      status: 'complete',
+      startedAt: '2025-01-01T00:00:00.000Z',
+      completedAt: '2025-01-01T00:05:00.000Z',
+      ciBranch: null,
+      ciCommit: null,
+      ciCommitMessage: null,
+      summary: null,
+    })
+    expect(await reapStaleScans(storage)).toBe(0)
   })
 })

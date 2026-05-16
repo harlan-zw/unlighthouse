@@ -85,6 +85,72 @@ function toStructuredError(err: unknown): { code: string, message: string, cause
   return { code: 'INTERNAL', message: String(err) }
 }
 
+/**
+ * Boot-time housekeeping: mark any scan still in a non-terminal state
+ * (`starting`, `discovering`, `scanning`, `paused`) as `error`. These are
+ * zombies from a prior process that crashed or was killed before it could
+ * write a terminal status — they have no live session to recover.
+ *
+ * v1.md D-019c ("no silent stalls") promises that every scan that stops
+ * emits a terminal status. Without this sweep, a SIGKILL on the prior
+ * CLI run leaves rows that look in-flight forever and break compare.run /
+ * scan.start (`ACTIVE_SCAN_CONFLICT` is per-process so it doesn't trip,
+ * but downstream consumers can't tell the difference from disk).
+ *
+ * Call this once during host boot, before `createUnlighthouseCore`. Safe
+ * to call concurrently with new scans — only touches rows in non-terminal
+ * states, never the row being written by the live session.
+ */
+export async function reapStaleScans(storage: Storage, logger?: Logger): Promise<number> {
+  const NON_TERMINAL: ScanStatus[] = ['starting', 'discovering', 'scanning', 'paused']
+  let reaped = 0
+  for (const status of NON_TERMINAL) {
+    const { items } = await storage.scans.list({ status, page: 1, pageSize: 1000 })
+    for (const scan of items) {
+      await storage.scans.update(scan.scanId, {
+        status: 'error',
+        completedAt: nowIso(),
+      }).catch(() => {})
+      reaped++
+    }
+  }
+  if (reaped > 0)
+    (logger as { warn?: (msg: string) => void } | undefined)?.warn?.(`[core] reaped ${reaped} stale scan${reaped === 1 ? '' : 's'} from prior process`)
+  return reaped
+}
+
+// Compute (scoreAverage, scoresByCategory) over a set of completed routes.
+// Routes with `null` for a given category are skipped — Lighthouse leaves a
+// category null when it failed to run (e.g. a 5xx response on that URL).
+// Returns `scoreAverage: null` only when no route produced *any* score at all.
+function aggregateScores(routes: Array<{
+  scorePerformance: number | null
+  scoreAccessibility: number | null
+  scoreSeo: number | null
+  scoreBestPractices: number | null
+}>): Pick<ScanSummary, 'scoreAverage' | 'scoresByCategory'> {
+  const cols = {
+    'performance': 'scorePerformance',
+    'accessibility': 'scoreAccessibility',
+    'seo': 'scoreSeo',
+    'best-practices': 'scoreBestPractices',
+  } as const
+  const byCategory: ScanSummary['scoresByCategory'] = {}
+  const overall: number[] = []
+  for (const [category, key] of Object.entries(cols) as Array<[keyof typeof cols, (typeof cols)[keyof typeof cols]]>) {
+    const values = routes.map(r => r[key]).filter((v): v is number => v != null)
+    if (values.length === 0)
+      continue
+    const avg = values.reduce((a, b) => a + b, 0) / values.length
+    byCategory[category] = avg
+    overall.push(avg)
+  }
+  return {
+    scoreAverage: overall.length === 0 ? null : overall.reduce((a, b) => a + b, 0) / overall.length,
+    scoresByCategory: byCategory,
+  }
+}
+
 export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): UnlighthouseCore {
   // 1. Validate config via Zod; throw CONFIG_INVALID on failure.
   const parsed = UnlighthouseConfig.safeParse(opts.config)
@@ -444,12 +510,19 @@ function createSession(deps: SessionDeps): CrawlSession {
       throw new UnlighthouseError({ code: 'SCAN_CANCELLED', message: 'Scan cancelled.' })
     }
 
+    // Aggregate scores across completed routes. Contract says scoreAverage is
+    // `null` until at least one route has scored — for a non-empty scan it
+    // should always be populated. `compare.run` and the dashboard summary
+    // tile both read these; leaving them null was a v0→v1 regression where
+    // the aggregation logic got lost mid-port.
+    const scoredRoutes = stats.scanned > 0
+      ? (await storage.routes.listForScan(scanId, { page: 1, pageSize: 10_000 })).items
+      : []
     const summary: ScanSummary = {
       routes: stats.discovered,
       completed: stats.scanned,
       failed: stats.failed,
-      scoreAverage: null,
-      scoresByCategory: {},
+      ...aggregateScores(scoredRoutes),
       durationMs: Date.now() - startedAtMs,
     }
 

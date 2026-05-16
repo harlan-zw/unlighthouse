@@ -51,6 +51,10 @@
       "types": "./dist/util/progressBox.d.mts",
       "import": "./dist/util/progressBox.mjs"
     },
+    "./util/git-meta": {
+      "types": "./dist/util/git-meta.d.mts",
+      "import": "./dist/util/git-meta.mjs"
+    },
     "./storage": {
       "types": "./dist/storage/index.d.mts",
       "import": "./dist/storage/index.mjs"

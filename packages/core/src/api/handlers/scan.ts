@@ -19,6 +19,7 @@ import type {
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts'
 import { overviewPack } from '../../packs/overview'
+import { readGitMeta } from '../../util/git-meta'
 
 function notFound(scanId: string): never {
   throw new UnlighthouseError({
@@ -32,6 +33,12 @@ export const scanStart: Handler<typeof ScanStart> = {
   async run(input, ctx) {
     if (ctx.core.session())
       throw new UnlighthouseError({ code: 'ACTIVE_SCAN_CONFLICT', message: 'A scan is already in flight' })
+    // Auto-fill ciBuild from the local git checkout when the caller didn't
+    // pass one. Without this, every local CLI / MCP scan persists ciBranch
+    // = null, and compare.run can't tell a re-run on the same commit apart
+    // from a regression on a new commit. Real CI environments pass an
+    // explicit `ciBuild` block and bypass this entirely.
+    const ciBuild = input.ciBuild ?? deriveCiBuild()
     const session = ctx.core.run({
       overrides: {
         site: input.site,
@@ -39,7 +46,7 @@ export const scanStart: Handler<typeof ScanStart> = {
         sampleSize: input.sampleSize,
         categories: input.categories,
         auditor: input.auditor,
-        ciBuild: input.ciBuild,
+        ciBuild,
       },
     })
     return {
@@ -48,6 +55,17 @@ export const scanStart: Handler<typeof ScanStart> = {
       startedAt: new Date().toISOString(),
     } as CommandOutput<typeof ScanStart>
   },
+}
+
+function deriveCiBuild(): { branch?: string, hash?: string, message?: string } | undefined {
+  const meta = readGitMeta()
+  if (meta.branch == null && meta.commit == null && meta.message == null)
+    return undefined
+  return {
+    ...(meta.branch ? { branch: meta.branch } : {}),
+    ...(meta.commit ? { hash: meta.commit } : {}),
+    ...(meta.message ? { message: meta.message } : {}),
+  }
 }
 
 export const scanStatus: Handler<typeof ScanStatusCmd> = {
