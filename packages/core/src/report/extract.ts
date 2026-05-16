@@ -142,6 +142,17 @@ export function reconcileRoute(args: {
 //   - score <  0.5 → 'fail'
 //   - score null on a numeric/binary audit → 'fail' (treats "couldn't run" as
 //     pessimistic so packs surface it)
+interface ContractAuditFinding {
+  id: string
+  score: number | null
+  scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
+  displayValue: string | null
+  title: string | null
+  description: string | null
+  severity: 'pass' | 'warn' | 'fail'
+  metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
+}
+
 export function reconcileToContract(args: {
   scanId: string
   url: string
@@ -164,50 +175,63 @@ export function reconcileToContract(args: {
       tbt: number | null
       si: number | null
     }
-    categories: Record<string, { score: number | null, auditRefs: string[] }>
-    audits: Record<string, {
-      id: string
-      score: number | null
-      scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
-      displayValue: string | null
-      severity: 'pass' | 'warn' | 'fail'
-    }>
+    categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
+    audits: Record<string, ContractAuditFinding>
     provenance: { lighthouseVersion: string, userAgent: string | null, capturedAt: string }
   } {
   const { scanId, url, device, lhr } = args
   const ext = extractRouteData(lhr)
 
-  const categories: Record<string, { score: number | null, auditRefs: string[] }> = {}
+  const categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }> = {}
   for (const [key, c] of Object.entries(lhr.categories ?? {})) {
-    const cat = c as { score?: number | null, auditRefs?: Array<{ id: string }> }
+    const cat = c as { score?: number | null, auditRefs?: Array<{ id: string, weight?: number }> }
     categories[key] = {
       score: cat?.score ?? null,
-      auditRefs: (cat?.auditRefs ?? []).map(r => r.id),
+      auditRefs: (cat?.auditRefs ?? []).map(r => ({
+        id: r.id,
+        // LHR usually carries a weight on every auditRef. Defensive default of
+        // 0 — a non-existent weight shouldn't crash pack severity rules; they
+        // already cap at "minor" when weight rounds down to 0.
+        weight: typeof r.weight === 'number' ? r.weight : 0,
+      })),
     }
   }
 
-  const audits: Record<string, {
-    id: string
-    score: number | null
-    scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
-    displayValue: string | null
-    severity: 'pass' | 'warn' | 'fail'
-  }> = {}
+  const audits: Record<string, ContractAuditFinding> = {}
   for (const [id, a] of Object.entries(lhr.audits ?? {})) {
     const aa = a as {
       score?: number | null
       scoreDisplayMode?: string
       displayValue?: string
+      title?: string
+      description?: string
+      metricSavings?: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number }
     }
     const mode = (['numeric', 'binary', 'informative', 'manual', 'notApplicable'].includes(aa?.scoreDisplayMode ?? '')
       ? aa.scoreDisplayMode
       : 'informative') as 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
+    // Only project metricSavings when at least one field is present + numeric;
+    // an empty object would round-trip as truthy and confuse pack guards.
+    let metricSavings: ContractAuditFinding['metricSavings'] = null
+    if (aa?.metricSavings && typeof aa.metricSavings === 'object') {
+      const out: NonNullable<ContractAuditFinding['metricSavings']> = {}
+      for (const k of ['LCP', 'FCP', 'INP', 'CLS', 'TBT'] as const) {
+        const v = aa.metricSavings[k]
+        if (typeof v === 'number')
+          out[k] = v
+      }
+      if (Object.keys(out).length > 0)
+        metricSavings = out
+    }
     audits[id] = {
       id,
       score: aa?.score ?? null,
       scoreDisplayMode: mode,
       displayValue: aa?.displayValue ?? null,
+      title: typeof aa?.title === 'string' ? aa.title : null,
+      description: typeof aa?.description === 'string' ? aa.description : null,
       severity: deriveSeverity(aa?.score ?? null, mode),
+      metricSavings,
     }
   }
 
