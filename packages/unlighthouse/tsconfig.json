@@ -7,7 +7,11 @@
     "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    // Same as packages/mcp — the CLI imports source files via `.ts`
+    // extensions for type-safe alias-free workspace dev. obuild strips
+    // the extension at build time.
+    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts", "build.config.ts"],
   "exclude": ["dist"]

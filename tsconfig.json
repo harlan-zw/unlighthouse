@@ -17,6 +17,7 @@
       "unlighthouse": ["./packages/unlighthouse/src"],
       "@unlighthouse/ui": ["./packages/ui"],
       "@unlighthouse/contracts": ["./packages/contracts/src"],
+      "@unlighthouse/contracts/*": ["./packages/contracts/src/*"],
       "@unlighthouse/core": ["./packages/core/src"],
       "@unlighthouse/core/*": ["./packages/core/src/*"],
       "@unlighthouse/mcp": ["./packages/mcp/src"],
