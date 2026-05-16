@@ -211,9 +211,11 @@ export const ScanSummaryCmd = defineCommand({
 // Load-bearing example (v1.md lines 840–853).
 export const ScanResults = defineCommand({
   name: 'scan.results',
-  description: 'List route results for a scan with filter + pagination.',
+  description: 'List route results for a scan with filter + pagination. For matrix scans, pass `device` to narrow to mobile or desktop; omit to aggregate across the matrix.',
   input: z.object({
     scanId: ScanId,
+    // D-029: filter to one device. Omitted = every (url, device) row.
+    device: Device.optional(),
     filter: z
       .object({
         minScore: z.partialRecord(Category, z.number()).optional(),
