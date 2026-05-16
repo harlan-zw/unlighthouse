@@ -252,8 +252,15 @@ export const scanResults: Handler<typeof ScanResults> = {
     const scan = await ctx.storage.scans.get(input.scanId)
     if (!scan)
       notFound(input.scanId)
+    // D-029: pass device filter down to listForScan so the SQL `WHERE device
+    // = ?` narrows the row scan instead of pulling every row and filtering
+    // in JS. Omitted = return every row in the matrix.
     // TODO: push filter/sort down to storage when adapters support it.
-    const all = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
+    const all = await ctx.storage.routes.listForScan(input.scanId, {
+      page: 1,
+      pageSize: 10_000,
+      device: input.device,
+    })
     const filtered = applyRouteSort(applyRouteFilter(all.items, input.filter), input.sort)
     const start = (input.page - 1) * input.pageSize
     const items = filtered.slice(start, start + input.pageSize)

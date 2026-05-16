@@ -28,6 +28,15 @@ function packRunBlobKey(scanId: string, packName: string, packVersion: string): 
   return `scans/${scanId}/packs/${packName}-${packVersion}.json`
 }
 
+// D-029: pack runs are device-scoped. The packRuns table is still keyed on
+// (scanId, packName, packVersion) — extending the PK was out of scope for
+// this PR — so we encode device into packName when the caller asked for a
+// specific device. Single-device callers (no input.device) keep the bare
+// pack name and hit the existing cache row exactly as before.
+function packKeyFor(packName: string, device?: string): string {
+  return device ? `${packName}@${device}` : packName
+}
+
 export const packRun: Handler<typeof PackRunCmd> = {
   command: {} as typeof PackRunCmd,
   async run(input, ctx) {
@@ -47,16 +56,20 @@ export const packRun: Handler<typeof PackRunCmd> = {
       })
     }
 
-    // Cache lookup — keyed on (scanId, packName, packVersion). When the row
-    // points at a blob (large report), inflate it before returning.
+    const cachePackName = packKeyFor(pack.name, input.device)
+
+    // Cache lookup — keyed on (scanId, packName(+device), packVersion). When
+    // the row points at a blob (large report), inflate it before returning.
     if (!input.refresh) {
-      const cached = await ctx.storage.packRuns.get(input.scanId, pack.name, pack.version)
+      const cached = await ctx.storage.packRuns.get(input.scanId, cachePackName, pack.version)
       if (cached) {
         const report = await loadCachedReport(cached, ctx)
         if (report !== null) {
           return {
             scanId: cached.scanId,
-            packName: cached.packName,
+            // Strip the device suffix from the wire — clients see the bare
+            // pack name they asked for, the cache key is internal.
+            packName: pack.name,
             packVersion: cached.packVersion,
             startedAt: cached.startedAt,
             completedAt: cached.completedAt,
@@ -75,7 +88,13 @@ export const packRun: Handler<typeof PackRunCmd> = {
     // a 1k-route scan at ~200B/row is well under any reasonable cap. If a
     // future pack needs streaming, the storage port already supports it via
     // cursors — bridge it then.
-    const routes = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
+    // D-029: when the caller specified a device, narrow the row set so the
+    // pack only sees rows for that form-factor. Omitted = full matrix.
+    const routes = await ctx.storage.routes.listForScan(input.scanId, {
+      page: 1,
+      pageSize: 10_000,
+      device: input.device,
+    })
 
     // Lazy LHR fetcher. Each blob is ~50-200KB gzipped; packs that need raw
     // audit details (images, cwv) call this per URL, packs that only need
@@ -148,24 +167,24 @@ export const packRun: Handler<typeof PackRunCmd> = {
 
     // Persist. Small reports inline, large ones spill to the blob store —
     // the row keeps only the blob key. Blob key is deterministic on
-    // (scanId, packName, packVersion), so spill→spill overwrites in place;
+    // (scanId, cachePackName, packVersion), so spill→spill overwrites in place;
     // only spill→inline can leave an orphan, handled below.
     const serialised = JSON.stringify(parsed.data)
     const spill = serialised.length > INLINE_REPORT_LIMIT_BYTES
     let reportBlobKey: string | null = null
     if (spill) {
-      reportBlobKey = packRunBlobKey(input.scanId, pack.name, pack.version)
+      reportBlobKey = packRunBlobKey(input.scanId, cachePackName, pack.version)
       await ctx.storage.blobs.put(reportBlobKey, new TextEncoder().encode(serialised), { contentType: 'application/json' })
     }
 
     // Look up the previous row (if any) so we can clean up its blob if the
     // new run drops below the spill threshold. Cheap second read — the cache
     // path already missed, so there's at most one row here.
-    const prior = await ctx.storage.packRuns.get(input.scanId, pack.name, pack.version)
+    const prior = await ctx.storage.packRuns.get(input.scanId, cachePackName, pack.version)
 
     await ctx.storage.packRuns.put({
       scanId: input.scanId,
-      packName: pack.name,
+      packName: cachePackName,
       packVersion: pack.version,
       startedAt,
       completedAt,
@@ -181,6 +200,8 @@ export const packRun: Handler<typeof PackRunCmd> = {
     }
 
     return {
+      // Wire `packName` is the bare pack id the caller asked for; cache key
+      // mangling (cachePackName) stays internal.
       scanId: input.scanId,
       packName: pack.name,
       packVersion: pack.version,
