@@ -116,13 +116,56 @@ export function createMockAuditor(_opts: MockAuditorOptions = {}): Auditor {
   const provider = createMockProvider()
   return {
     capabilities: MOCK_CAPABILITIES,
-    async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
+    async audit(url: string, _page?: Page, opts?: AuditOpts): Promise<LighthouseReport> {
       const report = await provider(url)
       // core.ts's auditWrapper reads `lhrGzip` + `extracted` off the return
       // value, so re-attach them alongside the raw LHR. Without this the
       // ingest path never writes the LHR / reconciled blobs in test runs.
       const out = { ...(report.raw as object) } as Record<string, unknown>
-      out.lhrGzip = (report as { lhrGzip?: Uint8Array }).lhrGzip
+      // D-029: nudge the synthetic LHR per-device so tests can tell mobile
+      // and desktop rows apart. Desktop gets better perf numbers — mirrors
+      // the real-world pattern (less throttling = higher scores). lhrGzip
+      // is regenerated so the LHR blob reflects the modified shape.
+      const device = opts?.device ?? 'mobile'
+      const isDesktop = device === 'desktop'
+      if (isDesktop) {
+        const audits = (out.audits ?? {}) as Record<string, { score?: number, numericValue?: number }>
+        out.audits = {
+          ...audits,
+          'largest-contentful-paint': { ...(audits['largest-contentful-paint'] ?? {}), score: 1, numericValue: 600 },
+          'first-contentful-paint': { ...(audits['first-contentful-paint'] ?? {}), score: 1, numericValue: 500 },
+        }
+        const categories = (out.categories ?? {}) as Record<string, { score?: number }>
+        out.categories = {
+          ...categories,
+          performance: { ...(categories.performance ?? {}), score: 0.98 },
+        }
+        out.lhrGzip = gzipSync(JSON.stringify(out))
+      }
+      else {
+        out.lhrGzip = (report as { lhrGzip?: Uint8Array }).lhrGzip
+      }
+      // Attach an `extracted` payload so core.ts's ingest doesn't fall back to
+      // all-null metric columns. Desktop variant mirrors the LHR nudge above.
+      const lhr = out as { lighthouseVersion?: string }
+      out.extracted = {
+        url,
+        path: new URL(url).pathname,
+        routeName: null,
+        scorePerformance: isDesktop ? 0.98 : 0.9,
+        scoreAccessibility: 0.8,
+        scoreSeo: 1,
+        scoreBestPractices: 0.95,
+        lcp: isDesktop ? 600 : 1200,
+        cls: 0.01,
+        inp: null,
+        fcp: isDesktop ? 500 : 1000,
+        ttfb: null,
+        tbt: 100,
+        si: 1500,
+        lighthouseVersion: lhr.lighthouseVersion ?? '12.0.0',
+        capturedAt: new Date().toISOString(),
+      }
       return out as unknown as LighthouseReport
     },
   }

@@ -61,10 +61,15 @@ function mergeOverrides(
   const next: UnlighthouseConfig = { ...base }
   if (overrides.site)
     next.site = overrides.site
-  if (overrides.device || overrides.sampleSize != null) {
+  // D-029: device may be Device | Device[]. `scanner.device` carries the
+  // primary device (first element of the matrix) for back-compat with
+  // adapters/UI reading config.scanner.device directly. The full matrix is
+  // surfaced separately to orchestrate() via `resolveDeviceMatrix` below.
+  const primaryDevice = Array.isArray(overrides.device) ? overrides.device[0] : overrides.device
+  if (primaryDevice || overrides.sampleSize != null) {
     next.scanner = {
       ...(base.scanner ?? {}),
-      ...(overrides.device ? { device: overrides.device } : {}),
+      ...(primaryDevice ? { device: primaryDevice } : {}),
       ...(overrides.sampleSize != null ? { samples: overrides.sampleSize } : {}),
     }
   }
@@ -75,6 +80,33 @@ function mergeOverrides(
     }
   }
   return next
+}
+
+// D-029: normalises the override's device field into a deduped, ordered list.
+// Single-device input collapses to a one-element array; missing input falls
+// back to the resolved scanner device, then to 'mobile'. Order is preserved
+// because it determines `Scan.device` (the row's primary device).
+function resolveDeviceMatrix(
+  scannerDevice: 'mobile' | 'desktop' | undefined,
+  overrideDevice: UnlighthouseCoreRunOverrides['device'],
+): ['mobile' | 'desktop', ...Array<'mobile' | 'desktop'>] {
+  const raw: Array<'mobile' | 'desktop'> = Array.isArray(overrideDevice)
+    ? overrideDevice
+    : overrideDevice
+      ? [overrideDevice]
+      : scannerDevice
+        ? [scannerDevice]
+        : ['mobile']
+  // Dedup while preserving order.
+  const seen = new Set<'mobile' | 'desktop'>()
+  const out: Array<'mobile' | 'desktop'> = []
+  for (const d of raw) {
+    if (!seen.has(d)) {
+      seen.add(d)
+      out.push(d)
+    }
+  }
+  return out as ['mobile' | 'desktop', ...Array<'mobile' | 'desktop'>]
 }
 
 function toStructuredError(err: unknown): { code: string, message: string, cause?: unknown } {
@@ -345,13 +377,19 @@ function createSession(deps: SessionDeps): CrawlSession {
   async function orchestrate(): Promise<void> {
     const site = (deps.config.site ?? '') as string
     const scannerDevice = deps.config.scanner?.device
-    const device: 'mobile' | 'desktop'
-      = scannerDevice === 'mobile' || scannerDevice === 'desktop' ? scannerDevice : 'mobile'
+    const validScannerDevice
+      = scannerDevice === 'mobile' || scannerDevice === 'desktop' ? scannerDevice : undefined
+    // D-029: resolve the per-scan device matrix once at orchestrate time.
+    // `primaryDevice` keeps the scans row's `device` column meaningful for
+    // back-compat (UIs that only render a single column still see a sane
+    // value); the full list drives the per-URL fan-out below.
+    const devices = resolveDeviceMatrix(validScannerDevice, overrides?.device)
+    const primaryDevice = devices[0]
 
     await storage.scans.create({
       scanId,
       site: site as never,
-      device,
+      device: primaryDevice,
       status: 'starting',
       startedAt,
       completedAt: null,
@@ -368,11 +406,11 @@ function createSession(deps: SessionDeps): CrawlSession {
 
     let firstUrlSeen = false
 
-    async function auditWrapper(url: string): Promise<void> {
+    async function auditOnDevice(url: string, device: 'mobile' | 'desktop'): Promise<void> {
       const auditStart = Date.now()
       await emit('audit:before', { scanId, url: url as never, auditor: 'auditor' })
       try {
-        const report = await auditor.audit(url, undefined, { signal })
+        const report = await auditor.audit(url, undefined, { signal, device })
         // Auditor returns LH report + attached `extracted` (CWV/scores/etc.)
         // + `lhrGzip` (raw LHR in LHCI-format, gzipped). Route the extracted
         // metrics to the row store; the LHR blob to the blob store under the
@@ -483,6 +521,19 @@ function createSession(deps: SessionDeps): CrawlSession {
           durationMs: Date.now() - auditStart,
           ok: false,
         })
+      }
+    }
+
+    // D-029: per-URL fan-out across the device matrix. Devices run
+    // sequentially per URL so we don't double up on the auditor's
+    // concurrency limit (each adapter typically pins to one browser context);
+    // crawler-level concurrency still parallelises URLs. A single device
+    // matrix is the common case and degrades to one inner call.
+    async function auditWrapper(url: string): Promise<void> {
+      for (const dev of devices) {
+        if (signal.aborted)
+          return
+        await auditOnDevice(url, dev)
       }
     }
 
