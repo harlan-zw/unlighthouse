@@ -406,6 +406,11 @@ function createSession(deps: SessionDeps): CrawlSession {
           const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
           const lhrKey = `scans/${scanId}/lhr/${hash}.json.gz`
           const reportKey = `scans/${scanId}/reports/${hash}.json`
+          // D-030 contract-shape reconciled blob, written alongside the v0
+          // UI-shape one above. Packs read this; UI still reads the v0 one.
+          // Two blobs are cheaper than coupling pack stability to dashboard
+          // shape changes.
+          const contractKey = `scans/${scanId}/reports/${hash}.contract.json`
           await storage.blobs.put(lhrKey, lhrGzip).catch(() => {})
 
           // Reconciled per-route report — UI-shaped, decoupled from LHR shape.
@@ -413,17 +418,18 @@ function createSession(deps: SessionDeps): CrawlSession {
           // otherwise gunzips + reconciles here as a fallback.
           const reconciled = (report as unknown as { reconciled?: unknown }).reconciled
           let payload: unknown = reconciled
+          let lhrCache: unknown = null
           if (!payload) {
             try {
               const { reconcileRoute } = await import('./report/extract')
               const { gunzipSync } = await import('node:zlib')
-              const lhr = JSON.parse(gunzipSync(lhrGzip).toString())
+              lhrCache = JSON.parse(gunzipSync(lhrGzip).toString())
               payload = reconcileRoute({
                 url,
                 path: (metrics as { path?: string }).path ?? new URL(url).pathname,
                 routeName: (metrics as { routeName?: string | null }).routeName ?? null,
                 reportBlobKey: reportKey,
-                lhr,
+                lhr: lhrCache as never,
               })
             }
             catch { /* best-effort; UI falls back to LHR blob */ }
@@ -432,6 +438,25 @@ function createSession(deps: SessionDeps): CrawlSession {
             const bytes = new TextEncoder().encode(JSON.stringify(payload))
             await storage.blobs.put(reportKey, bytes).catch(() => {})
           }
+
+          // D-030 contract reconciled report. Same LHR gunzip if we already
+          // did one above; otherwise do it now. Packs that opt into
+          // `getReconciled` read this; everything else still reads the
+          // raw LHR via `lhrBlobKey`.
+          try {
+            const { reconcileToContract } = await import('./report/extract')
+            const { gunzipSync } = await import('node:zlib')
+            const lhr = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
+            const contract = reconcileToContract({
+              scanId,
+              url,
+              device,
+              lhr: lhr as never,
+            })
+            const bytes = new TextEncoder().encode(JSON.stringify(contract))
+            await storage.blobs.put(contractKey, bytes).catch(() => {})
+          }
+          catch { /* best-effort; packs fall back to getLhr */ }
         }
 
         stats.scanned++
