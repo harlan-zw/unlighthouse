@@ -6,7 +6,8 @@
 import { Buffer } from 'node:buffer'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
-import { UnlighthouseConfig, UnlighthouseError } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts'
+import { UnlighthouseConfigSchema, UnlighthouseError } from '@unlighthouse/contracts'
 import { loadConfig } from 'c12'
 import { defu } from 'defu'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
@@ -239,7 +240,7 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
 
   const merged = applyHostRules(config as UnlighthouseConfig, cwd)
 
-  const parsed = UnlighthouseConfig.safeParse(merged)
+  const parsed = UnlighthouseConfigSchema.safeParse(merged)
   if (!parsed.success) {
     throw new UnlighthouseError({
       code: 'CONFIG_INVALID',

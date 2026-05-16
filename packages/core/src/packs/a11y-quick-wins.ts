@@ -154,15 +154,22 @@ interface RawFinding {
 // (reconciled blob first, LHR fallback). Element-level data was projected
 // into the reconciled blob in this PR — earlier scans without that
 // projection still work via getLhr.
+interface RouteViewElement {
+  selector: string | null
+  snippet: string | null
+  nodeLabel: string | null
+}
+
+interface RouteViewAudit {
+  weight: number
+  title: string
+  description: string | null
+  items: RouteViewElement[]
+  failed: boolean
+}
+
 interface RouteView {
-  // (auditId → { weight, title, description, items })
-  audits: Map<string, {
-    weight: number
-    title: string
-    description: string | null
-    items: Array<{ selector: string | null, snippet: string | null, nodeLabel: string | null }>
-    failed: boolean
-  }>
+  audits: Map<string, RouteViewAudit>
 }
 
 async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteView | null> {
@@ -179,7 +186,7 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
         }> }
       | null
     if (reconciled?.audits && reconciled.categories?.accessibility?.auditRefs?.length) {
-      const audits = new Map<string, RouteView['audits'] extends Map<string, infer V> ? V : never>()
+      const audits = new Map<string, RouteViewAudit>()
       const weights = new Map<string, number>()
       for (const ref of reconciled.categories.accessibility.auditRefs)
         weights.set(ref.id, ref.weight)
@@ -188,7 +195,7 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
         if (!a)
           continue
         const failed = a.score != null && a.score < 1
-        const items: RouteView['audits'] extends Map<string, infer V> ? V['items'] : never = []
+        const items: RouteViewElement[] = []
         if (failed && a.items) {
           for (const it of a.items) {
             const node = it.node
@@ -223,7 +230,7 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
       if (!a)
         continue
       const failed = a.score != null && a.score < 1
-      const items: RouteView['audits'] extends Map<string, infer V> ? V['items'] : never = []
+      const items: RouteViewElement[] = []
       if (failed) {
         for (const it of a.details?.items ?? []) {
           const node = it.node

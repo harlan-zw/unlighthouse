@@ -9,6 +9,7 @@ import type {
   ScanStatus,
   ScanSummary,
   Storage,
+  UnlighthouseConfig,
   UnlighthouseCore,
   UnlighthouseCoreOptions,
   UnlighthouseCoreRunOptions,
@@ -16,7 +17,7 @@ import type {
 } from '@unlighthouse/contracts'
 import type { Hookable } from 'hookable'
 import {
-  UnlighthouseConfig,
+  UnlighthouseConfigSchema,
   UnlighthouseError,
 } from '@unlighthouse/contracts'
 import { createHooks } from 'hookable'
@@ -185,7 +186,7 @@ function aggregateScores(routes: Array<{
 
 export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): UnlighthouseCore {
   // 1. Validate config via Zod; throw CONFIG_INVALID on failure.
-  const parsed = UnlighthouseConfig.safeParse(opts.config)
+  const parsed = UnlighthouseConfigSchema.safeParse(opts.config)
   if (!parsed.success) {
     throw new UnlighthouseError({
       code: 'CONFIG_INVALID',
