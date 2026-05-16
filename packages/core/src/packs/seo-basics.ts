@@ -115,6 +115,9 @@ const FIX_HINTS: Record<string, string> = {
   'canonical': 'Add `<link rel="canonical" href="…">` pointing at the preferred URL for this page.',
   'image-alt': 'Add `alt` attributes — search engines use them as a fallback when image content can\'t be parsed.',
   'structured-data': 'Add JSON-LD `schema.org` markup (Article, BreadcrumbList, Organization). Test with Google\'s Rich Results tool.',
+  // Note: `font-size` was removed in Lighthouse 13 (2025-10). Hint kept for
+  // pre-13 LHRs that still surface it; LH 13+ scans iterate the SEO category
+  // and won't include this id, so the hint table just won't be consulted.
   'font-size': 'Use a base font-size of at least 12px; 16px is the modern default. Tiny text hurts mobile rankings.',
   'viewport': 'Add `<meta name="viewport" content="width=device-width, initial-scale=1">` — required for mobile-friendliness.',
   'plugins': 'Remove `<embed>` / `<object>` / `<applet>` references. Flash and Java applets aren\'t crawled.',
