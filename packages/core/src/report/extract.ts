@@ -159,6 +159,16 @@ export function reconcileRoute(args: {
 //   - score <  0.5 → 'fail'
 //   - score null on a numeric/binary audit → 'fail' (treats "couldn't run" as
 //     pessimistic so packs surface it)
+interface ContractAuditDetailItem {
+  url: string | null
+  type: string | null
+  totalBytes: number | null
+  wastedBytes: number | null
+  node: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null
+  snippet: string | null
+  reason: string | null
+}
+
 interface ContractAuditFinding {
   id: string
   score: number | null
@@ -168,6 +178,74 @@ interface ContractAuditFinding {
   description: string | null
   severity: 'pass' | 'warn' | 'fail'
   metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
+  items: ContractAuditDetailItem[] | null
+}
+
+// Audits whose `details.items` we project into the reconciled blob. Adding
+// an id here costs ~30 items × 6 fields per route → typically <2KB even on
+// the worst-offender pages. Off-list audits stay items: null and the packs
+// that need them fall through to getLhr.
+//
+// Membership chosen by what the built-in packs actually read (a11y-quick-
+// wins + images today). Third-party packs can still call getLhr.
+const PROJECTED_DETAIL_AUDITS = new Set<string>([
+  // images pack
+  'image-delivery-insight',
+  'lcp-discovery-insight',
+  'unsized-images',
+  'image-alt',
+  // a11y-quick-wins pack reads element-level data on every failing a11y
+  // audit; we project the common ids the pack covers via FIX_HINTS. Other
+  // a11y audits stay on the LHR path until a real workflow needs them in
+  // the blob.
+  'color-contrast',
+  'label',
+  'button-name',
+  'link-name',
+  'html-has-lang',
+  'meta-viewport',
+  'document-title',
+  'aria-valid-attr-value',
+  'aria-valid-attr',
+  'aria-allowed-attr',
+  'aria-hidden-body',
+  'aria-hidden-focus',
+  'aria-conditional-attr',
+  'aria-prohibited-attr',
+  'tabindex',
+  'duplicate-id-aria',
+  'duplicate-id-active',
+  'frame-title',
+  'valid-lang',
+  'video-caption',
+])
+
+const DETAIL_ITEM_CAP = 30
+
+function projectDetailItem(raw: unknown): ContractAuditDetailItem {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const rawNode = r.node as Record<string, unknown> | undefined
+  const node = rawNode
+    ? {
+        selector: typeof rawNode.selector === 'string' ? rawNode.selector : null,
+        snippet: typeof rawNode.snippet === 'string' ? rawNode.snippet : null,
+        nodeLabel: typeof rawNode.nodeLabel === 'string' ? rawNode.nodeLabel : null,
+      }
+    : null
+  // image-delivery-insight stuffs the remediation hint into subItems[0].reason.
+  // Pulling the first sub-item's reason is enough for the pack; we don't
+  // project the full subItems tree.
+  const subItems = (r.subItems as { items?: Array<{ reason?: unknown }> } | undefined)?.items
+  const reason = typeof subItems?.[0]?.reason === 'string' ? subItems[0].reason : null
+  return {
+    url: typeof r.url === 'string' ? r.url : null,
+    type: typeof r.type === 'string' ? r.type : null,
+    totalBytes: typeof r.totalBytes === 'number' ? r.totalBytes : null,
+    wastedBytes: typeof r.wastedBytes === 'number' ? r.wastedBytes : null,
+    node,
+    snippet: typeof r.snippet === 'string' ? r.snippet : null,
+    reason,
+  }
 }
 
 export function reconcileToContract(args: {
@@ -196,6 +274,8 @@ export function reconcileToContract(args: {
     audits: Record<string, ContractAuditFinding>
     provenance: { lighthouseVersion: string, userAgent: string | null, capturedAt: string }
   } {
+  // The function signature spelled out above mirrors the ReconciledReport
+  // contract atom 1:1 — adding fields here means adding them in atoms.ts too.
   const { scanId, url, device, lhr } = args
   const ext = extractRouteData(lhr)
 
@@ -223,6 +303,7 @@ export function reconcileToContract(args: {
       title?: string
       description?: string
       metricSavings?: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number }
+      details?: { items?: unknown[] }
     }
     const mode = (['numeric', 'binary', 'informative', 'manual', 'notApplicable'].includes(aa?.scoreDisplayMode ?? '')
       ? aa.scoreDisplayMode
@@ -240,6 +321,15 @@ export function reconcileToContract(args: {
       if (Object.keys(out).length > 0)
         metricSavings = out
     }
+    // Project details.items only for allowlisted audits and cap the count.
+    // Off-list audits + empty arrays stay items: null so the packs can guard
+    // on truthiness without worrying about empty-array footguns.
+    let items: ContractAuditDetailItem[] | null = null
+    if (PROJECTED_DETAIL_AUDITS.has(id)) {
+      const raw = aa?.details?.items
+      if (Array.isArray(raw) && raw.length > 0)
+        items = raw.slice(0, DETAIL_ITEM_CAP).map(projectDetailItem)
+    }
     audits[id] = {
       id,
       score: aa?.score ?? null,
@@ -249,6 +339,7 @@ export function reconcileToContract(args: {
       description: typeof aa?.description === 'string' ? aa.description : null,
       severity: deriveSeverity(aa?.score ?? null, mode),
       metricSavings,
+      items,
     }
   }
 
