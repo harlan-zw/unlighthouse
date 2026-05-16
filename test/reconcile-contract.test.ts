@@ -92,14 +92,72 @@ describe('reconcileToContract', () => {
       lhr: syntheticLhr(),
     })
     expect(out.categories.performance?.score).toBe(0.85)
+    // auditRefs carries id + weight so packs like seo-basics can derive
+    // severity from category weighting without re-fetching the raw LHR.
     expect(out.categories.performance?.auditRefs).toEqual([
-      'first-contentful-paint',
-      'largest-contentful-paint',
-      'speed-index',
+      { id: 'first-contentful-paint', weight: 10 },
+      { id: 'largest-contentful-paint', weight: 25 },
+      { id: 'speed-index', weight: 10 },
     ])
     // Null-score categories survive intact (best-practices has no audits run).
     expect(out.categories['best-practices']?.score).toBeNull()
     expect(out.categories['best-practices']?.auditRefs).toEqual([])
+  })
+
+  it('projects audit title + description so packs can render labels without the raw LHR', () => {
+    const out = reconcileToContract({
+      scanId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      url: 'http://example.com/',
+      device: 'mobile',
+      lhr: {
+        ...syntheticLhr(),
+        audits: {
+          ...(syntheticLhr() as { audits: Record<string, unknown> }).audits,
+          'with-labels': {
+            score: 0.5,
+            scoreDisplayMode: 'numeric',
+            displayValue: null,
+            title: 'Reduce JavaScript execution time',
+            description: 'Consider reducing the time spent parsing, compiling, and executing JS.',
+          },
+        },
+      } as never,
+    })
+    expect(out.audits['with-labels'].title).toBe('Reduce JavaScript execution time')
+    expect(out.audits['with-labels'].description).toMatch(/parsing/)
+    // Audits without a title fall back to null, not "" (consumers branch on null).
+    expect(out.audits['first-contentful-paint'].title).toBeNull()
+  })
+
+  it('projects metricSavings only when at least one savings field is numeric', () => {
+    const out = reconcileToContract({
+      scanId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      url: 'http://example.com/',
+      device: 'mobile',
+      lhr: {
+        ...syntheticLhr(),
+        audits: {
+          ...(syntheticLhr() as { audits: Record<string, unknown> }).audits,
+          'render-blocking-insight': {
+            score: 0.6,
+            scoreDisplayMode: 'numeric',
+            displayValue: '250 ms',
+            metricSavings: { FCP: 250, LCP: 180 },
+          },
+          'empty-savings': {
+            score: 0.9,
+            scoreDisplayMode: 'numeric',
+            displayValue: null,
+            metricSavings: {},
+          },
+        },
+      } as never,
+    })
+    expect(out.audits['render-blocking-insight'].metricSavings).toEqual({ FCP: 250, LCP: 180 })
+    // Empty objects collapse to null so pack guards (`if (m.metricSavings)`) work.
+    expect(out.audits['empty-savings'].metricSavings).toBeNull()
+    // Audits without the field stay null.
+    expect(out.audits['first-contentful-paint'].metricSavings).toBeNull()
   })
 })
 
