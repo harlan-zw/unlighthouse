@@ -287,22 +287,28 @@ const AssertionResultSchema = z.object({
 })
 export type AssertionResult = z.infer<typeof AssertionResultSchema>
 
+// Schemas are exported under their own names (`FooSchema`). Types live on
+// the inferred `Foo`. Past iterations re-exported `FooSchema as Foo` which
+// shadowed the type and broke tsc's declaration emitter — TS4025/TS4033
+// because the same identifier was bound to both a value and a type. Keeping
+// them separate matches the Zod community convention and makes published
+// .d.ts files honest.
 export {
-  AssertionSchema as Assertion,
-  AssertionResultSchema as AssertionResult,
-  AuditFindingSchema as AuditFinding,
-  CategorySchema as Category,
-  DeviceSchema as Device,
-  ExtractedMetricsSchema as ExtractedMetrics,
-  MetricNameSchema as MetricName,
-  PaginatedSchema as Paginated,
-  ReconciledReportSchema as ReconciledReport,
-  ScanSchema as Scan,
-  ScanIdSchema as ScanId,
-  ScanRouteSchema as ScanRoute,
-  ScanStatusSchema as ScanStatus,
-  ScanSummarySchema as ScanSummary,
-  SeedSchema as Seed,
-  StructuredErrorSchema as StructuredError,
-  UrlSchema as Url,
+  AssertionResultSchema,
+  AssertionSchema,
+  AuditFindingSchema,
+  CategorySchema,
+  DeviceSchema,
+  ExtractedMetricsSchema,
+  MetricNameSchema,
+  PaginatedSchema,
+  ReconciledReportSchema,
+  ScanIdSchema,
+  ScanRouteSchema,
+  ScanSchema,
+  ScanStatusSchema,
+  ScanSummarySchema,
+  SeedSchema,
+  StructuredErrorSchema,
+  UrlSchema,
 }

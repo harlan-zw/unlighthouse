@@ -4,13 +4,13 @@
 
 import { z } from 'zod'
 import {
-  Category,
-  Device,
-  MetricName,
-  Paginated,
-  ScanId,
-  ScanRoute,
-  Url,
+  CategorySchema,
+  DeviceSchema,
+  MetricNameSchema,
+  PaginatedSchema,
+  ScanIdSchema,
+  ScanRouteSchema,
+  UrlSchema,
 } from '../types/atoms'
 import { defineCommand } from './define'
 
@@ -20,17 +20,17 @@ export const QueryRoutes = defineCommand({
   description:
     'Cross-scan route query. Optional `scanId` scopes to a single scan; `projection` returns metric-only views.',
   input: z.object({
-    scanId: ScanId.optional(),
-    site: Url.optional(),
-    device: Device.optional(),
+    scanId: ScanIdSchema.optional(),
+    site: UrlSchema.optional(),
+    device: DeviceSchema.optional(),
     branch: z.string().optional(),
     urlPattern: z.string().optional(),
     /** Limit columns returned. Empty / undefined returns the full row. */
-    projection: z.array(MetricName).optional(),
+    projection: z.array(MetricNameSchema).optional(),
     filter: z
       .object({
-        minScore: z.partialRecord(Category, z.number()).optional(),
-        maxMetric: z.partialRecord(MetricName, z.number()).optional(),
+        minScore: z.partialRecord(CategorySchema, z.number()).optional(),
+        maxMetric: z.partialRecord(MetricNameSchema, z.number()).optional(),
       })
       .optional(),
     sort: z
@@ -43,5 +43,5 @@ export const QueryRoutes = defineCommand({
    * When `projection` is set, only the named metric columns are populated;
    *  callers should treat the un-projected fields as `null`.
    */
-  output: Paginated(ScanRoute),
+  output: PaginatedSchema(ScanRouteSchema),
 })

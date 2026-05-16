@@ -2,20 +2,20 @@
 // See v1.md §"lhci.md integration audit" (lines 695–705).
 
 import { z } from 'zod'
-import { Category, Device, MetricName, ScanId, Url } from '../types/atoms'
+import { CategorySchema, DeviceSchema, MetricNameSchema, ScanIdSchema, UrlSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
-const ThresholdKey = z.union([MetricName, Category])
+const ThresholdKey = z.union([MetricNameSchema, CategorySchema])
 
-const RouteDiff = z.object({
-  url: Url,
+const RouteDiffSchema = z.object({
+  url: UrlSchema,
   /**
    * D-029: device dimension on the diff. Matrix scans produce one diff per
    * (url, device) pair so mobile and desktop regressions don't collapse into
    * each other. Single-device scans always carry 'mobile' (or whatever the
    * scan's primary device was).
    */
-  device: Device,
+  device: DeviceSchema,
   metric: ThresholdKey,
   base: z.number().nullable(),
   current: z.number().nullable(),
@@ -23,25 +23,27 @@ const RouteDiff = z.object({
   /** `true` when |delta| exceeds the configured threshold. */
   regressed: z.boolean(),
 })
+export type RouteDiff = z.infer<typeof RouteDiffSchema>
 
-const CompareReport = z.object({
-  baseScanId: ScanId,
-  currentScanId: ScanId,
-  regressions: z.array(RouteDiff),
-  improvements: z.array(RouteDiff),
+const CompareReportSchema = z.object({
+  baseScanId: ScanIdSchema,
+  currentScanId: ScanIdSchema,
+  regressions: z.array(RouteDiffSchema),
+  improvements: z.array(RouteDiffSchema),
   thresholds: z.partialRecord(ThresholdKey, z.number()),
 })
+export type CompareReport = z.infer<typeof CompareReportSchema>
 
 // ── compare.run ─────────────────────────────────────────────────────────────
 export const CompareRun = defineCommand({
   name: 'compare.run',
   description: 'Diff two scans against thresholds and return a structured report.',
   input: z.object({
-    baseScanId: ScanId,
-    currentScanId: ScanId,
+    baseScanId: ScanIdSchema,
+    currentScanId: ScanIdSchema,
     thresholds: z.partialRecord(ThresholdKey, z.number()).optional(),
   }),
-  output: CompareReport,
+  output: CompareReportSchema,
   exitCodes: { SCAN_NOT_FOUND: 64 },
 })
 
@@ -50,8 +52,8 @@ export const CompareMarkdown = defineCommand({
   name: 'compare.markdown',
   description: 'Render a Markdown PR comment from a comparison.',
   input: z.object({
-    baseScanId: ScanId,
-    currentScanId: ScanId,
+    baseScanId: ScanIdSchema,
+    currentScanId: ScanIdSchema,
     thresholds: z.partialRecord(ThresholdKey, z.number()).optional(),
     /** Optional title override. */
     title: z.string().optional(),
@@ -68,14 +70,14 @@ export const CompareFindPrevious = defineCommand({
   name: 'compare.findPrevious',
   description: 'Find the most recent prior scan for a site / device / branch.',
   input: z.object({
-    site: Url,
-    device: Device,
+    site: UrlSchema,
+    device: DeviceSchema,
     branch: z.string().optional(),
-    excludeScanId: ScanId.optional(),
+    excludeScanId: ScanIdSchema.optional(),
   }),
   output: z.object({
-    scanId: ScanId.nullable(),
+    scanId: ScanIdSchema.nullable(),
   }),
 })
 
-export { CompareReport, RouteDiff }
+export { CompareReportSchema, RouteDiffSchema }

@@ -3,31 +3,31 @@
 // joined against them by URL.
 
 import { z } from 'zod'
-import { Device, Url } from '../types/atoms'
+import { DeviceSchema, UrlSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
-export const Site = z.object({
+export const SiteSchema = z.object({
   id: z.string(),
   name: z.string(),
-  url: Url,
+  url: UrlSchema,
   group: z.string().nullable(),
-  device: Device,
+  device: DeviceSchema,
   createdAt: z.iso.datetime(),
 })
-export type Site = z.infer<typeof Site>
+export type Site = z.infer<typeof SiteSchema>
 
 export const SitesList = defineCommand({
   name: 'sites.list',
   description: 'List the persisted sites managed by this host.',
   input: z.object({}),
-  output: z.object({ sites: z.array(Site) }),
+  output: z.object({ sites: z.array(SiteSchema) }),
 })
 
 export const SitesGet = defineCommand({
   name: 'sites.get',
   description: 'Get a single site by id.',
   input: z.object({ id: z.string() }),
-  output: z.object({ site: Site.nullable() }),
+  output: z.object({ site: SiteSchema.nullable() }),
 })
 
 export const SitesCreate = defineCommand({
@@ -35,11 +35,11 @@ export const SitesCreate = defineCommand({
   description: 'Create (or upsert by id) a site.',
   input: z.object({
     name: z.string().optional(),
-    url: Url,
+    url: UrlSchema,
     group: z.string().nullable().optional(),
-    device: Device.optional(),
+    device: DeviceSchema.optional(),
   }),
-  output: z.object({ site: Site }),
+  output: z.object({ site: SiteSchema }),
   // Persistent registry mutation. Adding ghost sites across restarts is a
   // hostile-agent vector; site setup belongs in the UI / CLI.
   mcp: { hidden: true },

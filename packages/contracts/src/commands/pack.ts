@@ -3,7 +3,7 @@
 // pack.run. Output is content-addressable by (scanId, packName, packVersion).
 
 import { z } from 'zod'
-import { Device, ScanId } from '../types/atoms'
+import { DeviceSchema, ScanIdSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
 // ── pack.run ────────────────────────────────────────────────────────────────
@@ -11,12 +11,12 @@ export const PackRunCmd = defineCommand({
   name: 'pack.run',
   description: 'Run a Lighthouse pack (cross-route analysis) against a finished scan. Returns a typed report — e.g. "images" lists routes with unoptimised LCP images, "cwv" returns p75 Core Web Vitals, "seo-basics" returns failing audits grouped by rule. Call pack.list first to discover available packs. Use scanId from history.list. For matrix scans, pass `device` to narrow the pack to one form-factor. Output is cached so re-running the same (scanId, pack, device) is free; pass refresh:true to bust.',
   input: z.object({
-    scanId: ScanId,
+    scanId: ScanIdSchema,
     pack: z.string().min(1),
     // D-029: pack runs against rows for one device. Omitted = aggregate across
     // the matrix (every row in scan_routes is handed to the pack). Devices
     // produce observably different numbers so most packs will want a filter.
-    device: Device.optional(),
+    device: DeviceSchema.optional(),
     // Skip the cache and re-reconcile. Default false so agent calls hit cache
     // on the second visit; UI exposes this as a "Refresh" button.
     refresh: z.boolean().optional(),
@@ -25,7 +25,7 @@ export const PackRunCmd = defineCommand({
   // command registry stays single-signature. Consumers narrow `report` by
   // pulling the pack's `reportSchema` from contracts/packs.
   output: z.object({
-    scanId: ScanId,
+    scanId: ScanIdSchema,
     packName: z.string(),
     packVersion: z.string(),
     startedAt: z.iso.datetime(),

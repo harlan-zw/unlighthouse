@@ -3,7 +3,7 @@
 
 import { z } from 'zod'
 import { HookEventUnion } from '../hooks'
-import { ScanId } from '../types/atoms'
+import { ScanIdSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
 // ── events.subscribe ────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ export const EventsSubscribe = defineCommand({
     'Subscribe to the typed HookMap event stream. Optionally scope to one scan or filter by event name.',
   streaming: true,
   input: z.object({
-    scanId: ScanId.optional(),
+    scanId: ScanIdSchema.optional(),
     events: z.array(z.string()).optional(),
     /** Replay the last N events from the buffer before live events arrive. */
     replay: z.coerce.number().int().nonnegative().max(10_000).optional(),
@@ -36,7 +36,7 @@ export const EventsTail = defineCommand({
     'Tail the persisted event log for a scan, optionally following live events while the scan is in flight.',
   streaming: true,
   input: z.object({
-    scanId: ScanId,
+    scanId: ScanIdSchema,
     follow: z.boolean().optional(),
     events: z.array(z.string()).optional(),
   }),
