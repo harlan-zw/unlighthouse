@@ -2,7 +2,24 @@ import type { Buffer } from 'node:buffer'
 import type { ExtractedRoute, LighthouseResult } from './types'
 import { gunzipSync, gzipSync } from 'node:zlib'
 
-// Audit ID mapping for LH version changes
+// Per-LH-major-version audit id remap. Lookup is `AUDIT_MAP[version][canonical]`
+// — when the canonical metric audit id has moved or been replaced in a given
+// LH version, list the replacement here. Returns the canonical id unchanged
+// when the version isn't pinned or the canonical id is still current.
+//
+// LH 13 audit removals (release notes 2025-10-10) — none of these touch the
+// canonical perf metrics we map below (LCP / CLS / TBT / FCP / SI / TTFB /
+// INP all kept their ids), but other consumers should be aware:
+//   - removed: font-size, offscreen-images, preload-fonts, uses-rel-preload,
+//     first-meaningful-paint, no-document-write, third-party-facades,
+//     uses-passive-event-listeners
+//   - deferred to insight equivalents: server-response-time still emits but
+//     defers numericValue to Document Latency insight. lcp-breakdown emits
+//     but defers to trace engine.
+//
+// Keeping the map empty for v12/v13 is the right behaviour — the canonical
+// ids resolve directly. This scaffolding is here so a future v14 rename
+// (the next likely break) only needs a row added, not a code change.
 const AUDIT_MAP: Record<string, Record<string, string>> = {
   12: {},
   13: {},
