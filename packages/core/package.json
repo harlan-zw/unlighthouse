@@ -111,7 +111,9 @@
     "build": "obuild",
     "stub": "obuild --stub && node ./scripts/build-worker.mjs",
     "typecheck": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test:attw": "attw --pack --profile node16",
+    "test:publint": "publint"
   },
   "peerDependencies": {
     "better-sqlite3": "catalog:dependencies",
