@@ -212,6 +212,107 @@ describe('MCP scan.start end-to-end (v1.md line 1710 ship gate)', () => {
   }, 15_000)
 })
 
+describe('MCP D-029 matrix scan end-to-end', () => {
+  // Mirrors the ship-gate above but with a multi-device scan and exercises
+  // every command that grew a device input across PRs #320-#325. If any of
+  // the device-threading work regresses, an agent calling MCP against a
+  // matrix scan would see collapsed rows / wrong-device cache hits — this
+  // pins the wire.
+  it('agent starts a matrix scan and reads per-device results back through MCP', async () => {
+    const storage = memoryStorage()
+    const auditor = createMockAuditor()
+    const core = createUnlighthouseCore({
+      config: { site: 'http://matrix-site' } as never,
+      auditor,
+      seeds: manualSeeds({ urls: ['http://matrix-site/'] }),
+      crawler: parallelMapCrawler({ concurrency: 1 }),
+      storage,
+    })
+    const ctx: HandlerCtx = {
+      core,
+      auditor,
+      storage,
+      config: { site: 'http://matrix-site' } as never,
+      version: 'test',
+    }
+    const handlers = createHandlers()
+    const server = createMcpServer({ handlers, ctx, identity: { name: 'matrix', version: 'test' } })
+    const [c, s] = InMemoryTransport.createLinkedPair()
+    const mClient = new Client({ name: 'matrix-client', version: 'test' }, { capabilities: {} })
+    await Promise.all([server.connect(s), mClient.connect(c)])
+
+    // 1. Start a matrix scan via the wire (array on the device input).
+    const startCall = await mClient.callTool({
+      name: 'scan_start',
+      arguments: { site: 'http://matrix-site', device: ['mobile', 'desktop'] },
+    })
+    const started = JSON.parse((startCall.content as Array<{ text: string }>)[0].text)
+    const mScanId: string = started.scanId
+
+    // 2. Drain to terminal.
+    let statusJson: { status: string } | null = null
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const res = await mClient.callTool({
+        name: 'scan_status',
+        arguments: { scanId: mScanId },
+      })
+      statusJson = JSON.parse((res.content as Array<{ text: string }>)[0].text)
+      if (statusJson?.status === 'complete' || statusJson?.status === 'error')
+        break
+      await new Promise(r => setTimeout(r, 25))
+    }
+    expect(statusJson?.status).toBe('complete')
+
+    // 3. scan_results without a device filter returns every (url, device) row.
+    const allRes = await mClient.callTool({
+      name: 'scan_results',
+      arguments: { scanId: mScanId },
+    })
+    const all = JSON.parse((allRes.content as Array<{ text: string }>)[0].text)
+    expect(all.total).toBe(2)
+    expect(all.items.map((r: { device: string }) => r.device).sort()).toEqual(['desktop', 'mobile'])
+
+    // 4. scan_results with device='desktop' narrows to the desktop row.
+    const desktopRes = await mClient.callTool({
+      name: 'scan_results',
+      arguments: { scanId: mScanId, device: 'desktop' },
+    })
+    const desktop = JSON.parse((desktopRes.content as Array<{ text: string }>)[0].text)
+    expect(desktop.total).toBe(1)
+    expect(desktop.items[0].device).toBe('desktop')
+    expect(desktop.items[0].scorePerformance).toBe(0.98) // mock desktop bump
+
+    // 5. pack_run scoped to mobile + desktop cache separately. Sequential
+    // requests should both report cache='miss' (different cache keys), and
+    // a third repeat-of-mobile should hit cache.
+    const packMobile = JSON.parse((
+      await mClient.callTool({ name: 'pack_run', arguments: { scanId: mScanId, pack: 'overview', device: 'mobile' } })
+    ).content[0].text)
+    const packDesktop = JSON.parse((
+      await mClient.callTool({ name: 'pack_run', arguments: { scanId: mScanId, pack: 'overview', device: 'desktop' } })
+    ).content[0].text)
+    const packMobileAgain = JSON.parse((
+      await mClient.callTool({ name: 'pack_run', arguments: { scanId: mScanId, pack: 'overview', device: 'mobile' } })
+    ).content[0].text)
+    expect(packMobile.cache).toBe('miss')
+    expect(packDesktop.cache).toBe('miss')
+    expect(packMobileAgain.cache).toBe('hit')
+    // Wire packName stays the bare pack id — cache-key mangling is internal.
+    expect(packMobile.packName).toBe('overview')
+
+    // 6. route_get on a specific device returns the matching row + LHR.
+    const routeRes = await mClient.callTool({
+      name: 'route_get',
+      arguments: { scanId: mScanId, url: 'http://matrix-site/', device: 'desktop' },
+    })
+    const route = JSON.parse((routeRes.content as Array<{ text: string }>)[0].text)
+    expect(route.route.device).toBe('desktop')
+    expect(route.route.scorePerformance).toBe(0.98)
+    // The LHR blob path also threads device through (PR #323 gunzip fix).
+    expect(route.lhr).toBeTypeOf('object')
+  }, 15_000)
+})
+
 describe('MCP pack.run caching', () => {
   it('reports cache miss → hit → refresh-miss', async () => {
     // First call — fresh reconcile.
