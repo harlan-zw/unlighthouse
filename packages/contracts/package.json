@@ -5,32 +5,33 @@
   "private": true,
   "description": "Shared types and contracts for Unlighthouse v1.",
   "license": "MIT",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
     "./types/puppeteer": {
-      "types": "./src/types/puppeteer.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
     "./types/atoms": {
-      "types": "./src/types/atoms.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
     "./ports": {
-      "types": "./src/ports/index.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
     "./drizzle": {
-      "types": "./src/drizzle/index.ts",
+      "types": "./dist/drizzle/index.d.mts",
       "import": "./dist/drizzle/index.mjs"
     },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist"
   ],
@@ -41,7 +42,7 @@
     "build": "obuild",
     "stub": "obuild --stub",
     "typecheck": "tsc --noEmit",
-    "test:attw": "attw --pack --profile node16",
+    "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"
   },
   "peerDependencies": {

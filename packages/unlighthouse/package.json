@@ -32,7 +32,7 @@
     "./package.json": "./package.json"
   },
   "main": "./dist/index.mjs",
-  "types": "./types.d.ts",
+  "types": "./types.d.mts",
   "typesVersions": {
     "*": {
       "config": [
@@ -59,7 +59,7 @@
     "build": "obuild",
     "stub": "obuild --stub",
     "typecheck": "tsc --noEmit",
-    "test:attw": "attw --pack",
+    "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"
   },
   "peerDependenciesMeta": {
