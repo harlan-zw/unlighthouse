@@ -32,7 +32,14 @@ async function loadRoutes(ctx: HandlerCtx, scanId: ScanId): Promise<ScanRoute[]>
   return res.items
 }
 
-function evalAssertion(assertion: Assertion, routes: ScanRoute[], baseByUrl: Map<string, ScanRoute>): AssertionResult {
+// D-029: (url, device) join key. Matrix scans have multiple rows per URL;
+// keying on url alone would collapse them and silently let a desktop
+// regression mask a mobile improvement (or vice versa).
+function rowKey(r: ScanRoute): string {
+  return `${r.url}|${r.device}`
+}
+
+function evalAssertion(assertion: Assertion, routes: ScanRoute[], baseByKey: Map<string, ScanRoute>): AssertionResult {
   if (assertion.type === 'minScore') {
     const col = CATEGORY_COL[assertion.category]
     const vals = routes.map(r => num(r, col)).filter((v): v is number => v != null)
@@ -55,7 +62,7 @@ function evalAssertion(assertion: Assertion, routes: ScanRoute[], baseByUrl: Map
   let worstDelta = 0
   let worstUrl: string | undefined
   for (const current of routes) {
-    const base = baseByUrl.get(current.url)
+    const base = baseByKey.get(rowKey(current))
     if (!base)
       continue
     const cv = num(current, col)
@@ -81,8 +88,8 @@ export const assertEvaluate: Handler<typeof AssertEvaluate> = {
   async run(input, ctx) {
     const routes = await loadRoutes(ctx, input.scanId)
     const baseRoutes = input.baselineScanId ? await loadRoutes(ctx, input.baselineScanId) : []
-    const baseByUrl = new Map(baseRoutes.map(r => [r.url, r]))
-    const results = input.assertions.map(a => evalAssertion(a, routes, baseByUrl))
+    const baseByKey = new Map(baseRoutes.map(r => [rowKey(r), r]))
+    const results = input.assertions.map(a => evalAssertion(a, routes, baseByKey))
     const hooks = ctx.core.hooks as { callHook: (event: string, payload: unknown) => Promise<void> } | undefined
     if (hooks) {
       for (const result of results) {

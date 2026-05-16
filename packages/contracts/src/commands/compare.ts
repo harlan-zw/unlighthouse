@@ -9,6 +9,13 @@ const ThresholdKey = z.union([MetricName, Category])
 
 const RouteDiff = z.object({
   url: Url,
+  /**
+   * D-029: device dimension on the diff. Matrix scans produce one diff per
+   * (url, device) pair so mobile and desktop regressions don't collapse into
+   * each other. Single-device scans always carry 'mobile' (or whatever the
+   * scan's primary device was).
+   */
+  device: Device,
   metric: ThresholdKey,
   base: z.number().nullable(),
   current: z.number().nullable(),

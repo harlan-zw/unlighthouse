@@ -42,11 +42,21 @@ function valueOf(route: ScanRoute, metric: MetricName | Category): number | null
 
 interface Diff {
   url: string
+  // D-029: matrix scans key diffs on (url, device) so mobile and desktop
+  // regressions don't collapse. Mirrors the RouteDiff contract atom.
+  device: ScanRoute['device']
   metric: MetricName | Category
   base: number | null
   current: number | null
   delta: number
   regressed: boolean
+}
+
+// D-029: row key for cross-scan join. baseByUrl was URL-only before; matrix
+// scans have multiple rows per URL so the URL alone overwrites every prior
+// device's row when building the map. (url, device) restores 1:1 lookup.
+function rowKey(r: ScanRoute): string {
+  return `${r.url}|${r.device}`
 }
 
 async function loadRoutes(ctx: HandlerCtx, scanId: string): Promise<ScanRoute[]> {
@@ -63,7 +73,7 @@ async function runCompare(ctx: HandlerCtx, baseScanId: string, currentScanId: st
     loadRoutes(ctx, baseScanId),
     loadRoutes(ctx, currentScanId),
   ])
-  const baseByUrl = new Map(baseRoutes.map(r => [r.url, r]))
+  const baseByKey = new Map(baseRoutes.map(r => [rowKey(r), r]))
 
   const metrics: (MetricName | Category)[] = [
     'lcp',
@@ -84,7 +94,10 @@ async function runCompare(ctx: HandlerCtx, baseScanId: string, currentScanId: st
   const improvements: Diff[] = []
 
   for (const current of currentRoutes) {
-    const base = baseByUrl.get(current.url)
+    // Match base to current on (url, device). A matrix scan compared against
+    // a single-device base will still find pairs for the overlapping device
+    // and skip the rest — no false regressions from missing base rows.
+    const base = baseByKey.get(rowKey(current))
     if (!base)
       continue
     for (const metric of metrics) {
@@ -98,7 +111,15 @@ async function runCompare(ctx: HandlerCtx, baseScanId: string, currentScanId: st
       const regressed = score ? -delta > threshold : delta > threshold
       const improved = score ? delta > threshold : -delta > threshold
       if (regressed || improved) {
-        const diff: Diff = { url: current.url, metric, base: baseVal, current: currentVal, delta, regressed }
+        const diff: Diff = {
+          url: current.url,
+          device: current.device,
+          metric,
+          base: baseVal,
+          current: currentVal,
+          delta,
+          regressed,
+        }
         ;(regressed ? regressions : improvements).push(diff)
       }
     }
@@ -147,10 +168,10 @@ export const compareMarkdown: Handler<typeof CompareMarkdown> = {
       lines.push('')
       lines.push(`### ${heading}`)
       lines.push('')
-      lines.push('| Route | Metric | Base | Current | Δ |')
-      lines.push('|-------|--------|------|---------|---|')
+      lines.push('| Route | Device | Metric | Base | Current | Δ |')
+      lines.push('|-------|--------|--------|------|---------|---|')
       for (const r of rows)
-        lines.push(`| \`${r.url}\` | ${r.metric} | ${r.base ?? '—'} | ${r.current ?? '—'} | ${r.delta.toFixed(3)} |`)
+        lines.push(`| \`${r.url}\` | ${r.device} | ${r.metric} | ${r.base ?? '—'} | ${r.current ?? '—'} | ${r.delta.toFixed(3)} |`)
     }
     renderTable(report.regressions, 'Regressions')
     renderTable(report.improvements, 'Improvements')
