@@ -11,7 +11,7 @@
 // the headline number for an agent or a human auditing whether their site
 // will actually rank.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts'
+import type { Pack, PackReconcileCtx, ReconciledReport } from '@unlighthouse/contracts'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────
@@ -138,37 +138,77 @@ interface RawFinding {
   }>
 }
 
+// Per-route view of just the SEO bits seo-basics needs. Sourced from the
+// reconciled blob first (LH-version stable), with raw LHR as fallback for
+// older scans + as the only source of `details.items` (the reconciled blob
+// deliberately doesn't carry element-level data — too big).
+interface RouteView {
+  audits: Record<string, { score: number | null, title: string | null, description: string | null }>
+  auditWeights: Map<string, number>
+  // Only populated when the raw LHR is available, used for sampleElements.
+  rawLhr: LhrLike | null
+}
+
+async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteView | null> {
+  const reconciled = ctx.getReconciled
+    ? await ctx.getReconciled(url, 'mobile').catch(() => null) as ReconciledReport | null
+    : null
+  const lhr = ctx.getLhr
+    ? await ctx.getLhr(url, 'mobile').catch(() => null) as LhrLike | null
+    : null
+
+  if (!reconciled && !lhr)
+    return null
+
+  const audits: RouteView['audits'] = {}
+  const auditWeights = new Map<string, number>()
+
+  if (reconciled) {
+    for (const ref of reconciled.categories.seo?.auditRefs ?? [])
+      auditWeights.set(ref.id, ref.weight)
+    for (const [id, a] of Object.entries(reconciled.audits)) {
+      audits[id] = { score: a.score, title: a.title, description: a.description }
+    }
+  }
+  else if (lhr) {
+    for (const ref of lhr.categories?.seo?.auditRefs ?? [])
+      auditWeights.set(ref.id, ref.weight)
+    for (const [id, a] of Object.entries(lhr.audits ?? {})) {
+      audits[id] = {
+        score: a.score ?? null,
+        title: a.title ?? null,
+        description: a.description ?? null,
+      }
+    }
+  }
+
+  return { audits, auditWeights, rawLhr: lhr }
+}
+
 // ── Reconciler ──────────────────────────────────────────────────────────────
 
 async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
-  if (!ctx.getLhr) {
-    throw new Error('seo-basics pack requires a getLhr fetcher (PackReconcileCtx.getLhr is undefined).')
+  if (!ctx.getReconciled && !ctx.getLhr) {
+    throw new Error('seo-basics pack requires getReconciled or getLhr (both PackReconcileCtx fetchers were undefined).')
   }
 
   const findings = new Map<string, RawFinding>()
   const routeChecks: SeoRouteCheck[] = []
   let routesAnalysed = 0
   let indexableRoutes = 0
-  let auditWeights: Map<string, number> | null = null
 
   for (const row of ctx.routes) {
-    const lhr = await ctx.getLhr(row.url, 'mobile').catch(() => null) as LhrLike | null
-    if (!lhr?.audits)
+    const view = await loadRouteView(row.url, ctx)
+    if (!view || view.auditWeights.size === 0)
       continue
     routesAnalysed++
-
-    if (!auditWeights) {
-      auditWeights = new Map()
-      for (const ref of lhr.categories?.seo?.auditRefs ?? [])
-        auditWeights.set(ref.id, ref.weight)
-    }
 
     let passes = 0
     let fails = 0
     let indexable = true
 
-    for (const [auditId, weight] of auditWeights) {
-      const audit = lhr.audits[auditId]
+    for (const [auditId, weight] of view.auditWeights) {
+      const audit = view.audits[auditId]
       if (!audit)
         continue
       const score = audit.score
@@ -189,7 +229,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
         finding = {
           auditId,
           title: audit.title ?? auditId,
-          description: audit.description ?? null,
+          description: audit.description,
           weight,
           routes: new Set(),
           sampleElements: [],
@@ -198,13 +238,15 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
       }
       finding.routes.add(row.url)
 
-      // Capture up to 3 unique element samples across the whole scan for
-      // audits that report element-level items (link-text, hreflang, …).
-      for (const it of audit.details?.items ?? []) {
+      // Element samples can only come from the raw LHR (reconciled blob
+      // intentionally drops details.items to stay lean). When the LHR is
+      // unavailable, sampleElements just stays empty for that finding —
+      // the cross-route counts still rank correctly.
+      const rawAudit = view.rawLhr?.audits?.[auditId]
+      for (const it of rawAudit?.details?.items ?? []) {
         const node = it.node
         if (!node || finding.sampleElements.length >= 3)
           break
-        // De-dupe by selector — same broken anchor on N routes counts once.
         const sel = node.selector ?? null
         if (finding.sampleElements.some(e => e.selector === sel))
           continue

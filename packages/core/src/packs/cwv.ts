@@ -17,7 +17,7 @@
 //   - Cross-route fix grouping: "render-blocking-insight saves 200ms FCP
 //     on 18 routes" is one finding, not 18.
 
-import type { Pack, PackReconcileCtx, ScanRoute } from '@unlighthouse/contracts'
+import type { Pack, PackReconcileCtx, ReconciledReport, ScanRoute } from '@unlighthouse/contracts'
 import { z } from 'zod'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────
@@ -187,6 +187,44 @@ const SAVINGS_TO_METRIC: Record<string, MetricKey> = {
   INP: 'inp',
 }
 
+// Returns the per-audit metricSavings map for a route, preferring the
+// reconciled blob (LH-version stable) over the raw LHR. Filters to insight
+// audit ids up front so the caller doesn't have to. Returns null when neither
+// substrate is available for the route.
+type SavingsMap = NonNullable<ReconciledReport['audits'][string]['metricSavings']>
+async function readInsightAudits(
+  url: string,
+  ctx: PackReconcileCtx,
+): Promise<Map<string, SavingsMap> | null> {
+  if (ctx.getReconciled) {
+    const reconciled = await ctx.getReconciled(url, 'mobile').catch(() => null) as ReconciledReport | null
+    if (reconciled?.audits) {
+      const out = new Map<string, SavingsMap>()
+      for (const [id, finding] of Object.entries(reconciled.audits)) {
+        if (!id.endsWith('-insight') || !finding.metricSavings)
+          continue
+        out.set(id, finding.metricSavings)
+      }
+      // The reconciled blob is the canonical substrate; if it exists for the
+      // route, do NOT also walk the raw LHR (avoids double-counting).
+      return out
+    }
+  }
+  if (ctx.getLhr) {
+    const lhr = await ctx.getLhr(url, 'mobile').catch(() => null) as LhrLike | null
+    if (!lhr?.audits)
+      return null
+    const out = new Map<string, SavingsMap>()
+    for (const [id, audit] of Object.entries(lhr.audits)) {
+      if (!id.endsWith('-insight') || !audit.metricSavings)
+        continue
+      out.set(id, audit.metricSavings as SavingsMap)
+    }
+    return out
+  }
+  return null
+}
+
 // ── Reconciler ──────────────────────────────────────────────────────────────
 
 async function reconcile(ctx: PackReconcileCtx): Promise<CwvReport> {
@@ -200,22 +238,17 @@ async function reconcile(ctx: PackReconcileCtx): Promise<CwvReport> {
     return m?.verdict === 'good'
   })
 
-  // Collect insight savings across routes. Only walk if a getLhr exists —
-  // a host running cwv without raw LHR access still gets the lab snapshot,
-  // just no fix list.
+  // Collect insight savings across routes. Prefer the reconciled report blob
+  // (LH-version-stable, no raw-LHR parse) and fall back to getLhr only when
+  // the reconciled blob is missing — typically old scans ingested before D-030.
   const topFixes: CwvFix[] = []
-  if (ctx.getLhr) {
+  if (ctx.getReconciled || ctx.getLhr) {
     const accum = new Map<string, InsightAccum>()
     for (const row of routes) {
-      const lhr = await ctx.getLhr(row.url, 'mobile').catch(() => null) as LhrLike | null
-      if (!lhr?.audits)
+      const audits = await readInsightAudits(row.url, ctx)
+      if (!audits)
         continue
-      for (const [id, audit] of Object.entries(lhr.audits)) {
-        if (!id.endsWith('-insight'))
-          continue
-        const savings = audit.metricSavings
-        if (!savings)
-          continue
+      for (const [id, savings] of audits) {
         for (const [savingsKey, metric] of Object.entries(SAVINGS_TO_METRIC)) {
           const impact = savings[savingsKey as keyof typeof savings]
           if (typeof impact !== 'number' || impact <= 0)
