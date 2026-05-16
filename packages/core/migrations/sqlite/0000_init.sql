@@ -27,6 +27,9 @@ CREATE INDEX IF NOT EXISTS `idx_scans_find_previous` ON `scans` (`site`, `device
 CREATE TABLE IF NOT EXISTS `scan_routes` (
   `scan_id` text NOT NULL,
   `url` text NOT NULL,
+  -- D-029: per-route device identity. 'mobile' default keeps single-device
+  -- scans behaving exactly as before.
+  `device` text NOT NULL DEFAULT 'mobile',
   `path` text NOT NULL,
   `route_name` text,
   `score_performance` real,
@@ -44,7 +47,7 @@ CREATE TABLE IF NOT EXISTS `scan_routes` (
   `captured_at` text NOT NULL,
   `lhr_blob_key` text NOT NULL,
   `report_blob_key` text,
-  PRIMARY KEY (`scan_id`, `url`),
+  PRIMARY KEY (`scan_id`, `url`, `device`),
   FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
