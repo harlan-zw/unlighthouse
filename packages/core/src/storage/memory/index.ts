@@ -1,6 +1,7 @@
 import type {
   BlobPutOptions,
   BlobStore,
+  Device,
   ExtractedMetrics,
   FindPreviousQuery,
   ListQuery,
@@ -33,6 +34,8 @@ export interface MemoryStorageOptions {
 
 export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
   const scansMap = new Map<ScanId, Scan & { _createdAtMs: number }>()
+  // D-029: keyed on `${url}|${device}` so the same URL on mobile + desktop
+  // each carry their own row, mirroring the SQL PK.
   const routesMap = new Map<ScanId, Map<string, ScanRoute>>()
   const blobsMap = new Map<string, Uint8Array>()
   // (scanId, packName, packVersion) → PackRun. Composite key as a string —
@@ -47,13 +50,16 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     return createHash('sha1').update(url).digest('hex').slice(0, 16)
   }
 
-  function toRoute(scanId: string, m: ExtractedMetrics): ScanRoute {
+  function toRoute(scanId: string, device: Device, m: ExtractedMetrics): ScanRoute {
     return {
       ...clone(m),
       scanId: scanId as ScanId,
-      lhrBlobKey: `scans/${scanId}/lhr/${urlHash(m.url)}.json.gz`,
+      device,
+      lhrBlobKey: `scans/${scanId}/lhr/${urlHash(m.url)}-${device}.json.gz`,
     } as ScanRoute
   }
+
+  const routeKey = (url: string, device: Device) => `${url}|${device}`
 
   const scanRepo: ScanRepository = {
     async create(scan: ScanInsert): Promise<Scan> {
@@ -119,35 +125,48 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
   }
 
   const routeRepo: ScanRouteRepository = {
-    async putBatch(scanId, rows: ExtractedMetrics[]) {
+    async putBatch(scanId, device, rows: ExtractedMetrics[]) {
       const map = routesMap.get(scanId) ?? new Map<string, ScanRoute>()
       for (const m of rows)
-        map.set(m.url, toRoute(scanId, m))
+        map.set(routeKey(m.url, device), toRoute(scanId, device, m))
       routesMap.set(scanId, map)
     },
-    async upsert(scanId, row) {
+    async upsert(scanId, device, row) {
       const map = routesMap.get(scanId) ?? new Map<string, ScanRoute>()
-      map.set(row.url, toRoute(scanId, row))
+      map.set(routeKey(row.url, device), toRoute(scanId, device, row))
       routesMap.set(scanId, map)
     },
     async listForScan(scanId, q?: RouteListQuery): Promise<Paginated<ScanRoute>> {
       const page = Math.max(1, q?.page ?? 1)
       const pageSize = Math.max(1, q?.pageSize ?? 100)
-      const all = Array.from(routesMap.get(scanId)?.values() ?? [])
+      let all = Array.from(routesMap.get(scanId)?.values() ?? [])
+      if (q?.device)
+        all = all.filter(r => r.device === q.device)
       const total = all.length
       const items = all.slice((page - 1) * pageSize, page * pageSize).map(clone)
       return { items, total, page, pageSize }
     },
-    async get(scanId, url) {
-      const r = routesMap.get(scanId)?.get(url)
+    async get(scanId, url, device) {
+      const r = routesMap.get(scanId)?.get(routeKey(url, device))
       return r ? clone(r) : null
     },
-    async delete(scanId, url) {
+    async delete(scanId, url, device) {
       if (url == null) {
         routesMap.delete(scanId)
         return
       }
-      routesMap.get(scanId)?.delete(url)
+      const map = routesMap.get(scanId)
+      if (!map)
+        return
+      if (device) {
+        map.delete(routeKey(url, device))
+        return
+      }
+      // Drop every device row for this URL.
+      for (const key of map.keys()) {
+        if (key === url || key.startsWith(`${url}|`))
+          map.delete(key)
+      }
     },
   }
 

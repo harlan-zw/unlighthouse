@@ -82,19 +82,20 @@ export const packRun: Handler<typeof PackRunCmd> = {
     // ExtractedMetrics rows (overview) ignore it. Cached per pack run since
     // multiple reconcilers within one pack may want the same route.
     const lhrCache = new Map<string, unknown>()
-    const getLhr = async (url: string, _device: Device): Promise<unknown> => {
-      // Device fan-out is D-029 — until ScanRoute carries a device column,
-      // the key is just URL. When devices land, key on `${url}|${device}`.
-      if (lhrCache.has(url))
-        return lhrCache.get(url)
-      const row = routes.items.find(r => r.url === url)
+    const getLhr = async (url: string, device: Device): Promise<unknown> => {
+      // D-029: per-(url, device) cache key. The ScanRoute rows carry a device
+      // column now, so the lookup is exact.
+      const cacheKey = `${url}|${device}`
+      if (lhrCache.has(cacheKey))
+        return lhrCache.get(cacheKey)
+      const row = routes.items.find(r => r.url === url && r.device === device)
       if (!row?.lhrBlobKey)
         return null
       const gz = await ctx.storage.blobs.get(row.lhrBlobKey)
       if (!gz)
         return null
       const lhr = JSON.parse(gunzipSync(gz).toString())
-      lhrCache.set(url, lhr)
+      lhrCache.set(cacheKey, lhr)
       return lhr
     }
 
@@ -105,21 +106,22 @@ export const packRun: Handler<typeof PackRunCmd> = {
     // Returns `null` when the reconciled blob is missing (older scans, or
     // ingest-time reconciliation failed) so packs can fall through to getLhr.
     const reconciledCache = new Map<string, unknown>()
-    const getReconciled = async (url: string, _device: Device): Promise<unknown> => {
-      if (reconciledCache.has(url))
-        return reconciledCache.get(url)
-      const row = routes.items.find(r => r.url === url)
+    const getReconciled = async (url: string, device: Device): Promise<unknown> => {
+      const cacheKey = `${url}|${device}`
+      if (reconciledCache.has(cacheKey))
+        return reconciledCache.get(cacheKey)
+      const row = routes.items.find(r => r.url === url && r.device === device)
       if (!row?.lhrBlobKey)
         return null
-      // Derive the contract-blob key from the same scan / url hash that
-      // produced the LHR key. Mirrors the path written in core.ts ingest.
+      // Derive the contract-blob key from the same scan / url / device the
+      // ingest path wrote. D-029: device segment is in the filename.
       const hash = createHash('sha1').update(url).digest('hex').slice(0, 16)
-      const contractKey = `scans/${input.scanId}/reports/${hash}.contract.json`
+      const contractKey = `scans/${input.scanId}/reports/${hash}-${device}.contract.json`
       const buf = await ctx.storage.blobs.get(contractKey)
       if (!buf)
         return null
       const parsed = JSON.parse(new TextDecoder().decode(buf))
-      reconciledCache.set(url, parsed)
+      reconciledCache.set(cacheKey, parsed)
       return parsed
     }
 

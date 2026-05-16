@@ -10,7 +10,10 @@ export const routeGet: Handler<typeof RouteGet> = {
     const scan = await ctx.storage.scans.get(input.scanId)
     if (!scan)
       throw new UnlighthouseError({ code: 'SCAN_NOT_FOUND', message: `scanId=${input.scanId}` })
-    const route = await ctx.storage.routes.get(input.scanId, input.url)
+    // D-029: routes are PK'd on (scanId, url, device). Single-device scans
+    // pull the lone row by using the scan's own device. Multi-device support
+    // on this command is the next PR's job (input grows a `device` field).
+    const route = await ctx.storage.routes.get(input.scanId, input.url, scan.device)
     if (!route)
       throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${input.scanId}/${input.url}` })
     let lhr: unknown = null
@@ -50,7 +53,9 @@ export const routeRescan: Handler<typeof RouteRescan> = {
       lighthouseVersion: (report as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
       capturedAt: new Date().toISOString(),
     } as ExtractedMetrics
-    await ctx.storage.routes.upsert(input.scanId, metrics)
+    // D-029: re-audit lands under the scan's primary device for now. Future
+    // route.rescan input will accept an explicit device.
+    await ctx.storage.routes.upsert(input.scanId, scan.device, metrics)
     return { scanId: input.scanId, url: input.url, metrics } as CommandOutput<typeof RouteRescan>
   },
 }

@@ -398,19 +398,21 @@ function createSession(deps: SessionDeps): CrawlSession {
           capturedAt: nowIso(),
         }) as never
 
-        await storage.routes.putBatch(scanId, [metrics])
+        await storage.routes.putBatch(scanId, device, [metrics])
 
         if (lhrGzip) {
           // Mirror `routes.ts:blobKeyFor` derivation so the blob lines up
           // with the `lhrBlobKey` + `reportBlobKey` columns the row got.
+          // D-029: device segment is part of the filename so mobile + desktop
+          // results for the same URL don't collide on the blob store.
           const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
-          const lhrKey = `scans/${scanId}/lhr/${hash}.json.gz`
-          const reportKey = `scans/${scanId}/reports/${hash}.json`
+          const lhrKey = `scans/${scanId}/lhr/${hash}-${device}.json.gz`
+          const reportKey = `scans/${scanId}/reports/${hash}-${device}.json`
           // D-030 contract-shape reconciled blob, written alongside the v0
           // UI-shape one above. Packs read this; UI still reads the v0 one.
           // Two blobs are cheaper than coupling pack stability to dashboard
           // shape changes.
-          const contractKey = `scans/${scanId}/reports/${hash}.contract.json`
+          const contractKey = `scans/${scanId}/reports/${hash}-${device}.contract.json`
           await storage.blobs.put(lhrKey, lhrGzip).catch(() => {})
 
           // Reconciled per-route report — UI-shaped, decoupled from LHR shape.
