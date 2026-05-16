@@ -132,6 +132,12 @@ export type ScanRoute = z.infer<typeof ScanRouteSchema>
 // AuditFinding mirrors Lighthouse's per-audit shape but trims it to the
 // fields that drive pack decisions. `severity` is derived at ingest time
 // from (score, scoreDisplayMode) so packs don't have to reinvent the rule.
+//
+// `title` / `description` / `metricSavings` are pulled through so packs
+// don't fall back to raw LHR just to read a human label or a savings number.
+// `details.items` (element-level data) is intentionally NOT projected — the
+// blob would balloon, and the handful of packs that need it (a11y-quick-wins,
+// images) still fetch the raw LHR for those audits.
 const AuditFindingSchema = z.object({
   // Lighthouse audit id, e.g. 'uses-optimized-images' or 'image-delivery-insight'.
   id: z.string(),
@@ -139,10 +145,26 @@ const AuditFindingSchema = z.object({
   score: z.number().nullable(),
   scoreDisplayMode: z.enum(['numeric', 'binary', 'informative', 'manual', 'notApplicable']),
   displayValue: z.string().nullable(),
+  // Human-facing label from the LHR ("Document has a `<title>` element").
+  title: z.string().nullable(),
+  // Long-form remediation copy from the LHR. Nullable because some
+  // informative audits ship without one.
+  description: z.string().nullable(),
   // Pre-bucketed severity. `pass` = score ≥ 0.9, `warn` = ≥ 0.5, `fail` = < 0.5.
   // Manual / notApplicable / informative are always `pass` (they don't fail
   // a scan; packs filter them out by audit id).
   severity: z.enum(['pass', 'warn', 'fail']),
+  // Lighthouse 12+ per-audit savings estimates. Populated on insight audits
+  // (`*-insight` ids) and a few classic ones; absent fields = "no estimate
+  // from Lighthouse," not "zero savings." Units: ms for LCP/FCP/INP/TBT,
+  // dimensionless for CLS.
+  metricSavings: z.object({
+    LCP: z.number().optional(),
+    FCP: z.number().optional(),
+    INP: z.number().optional(),
+    CLS: z.number().optional(),
+    TBT: z.number().optional(),
+  }).nullable(),
 })
 export type AuditFinding = z.infer<typeof AuditFindingSchema>
 
@@ -164,11 +186,17 @@ const ReconciledReportSchema = z.object({
     tbt: z.number().nullable(),
     si: z.number().nullable(),
   }),
-  // Per-category roll-ups: score + the audit ids that contributed (so packs
-  // can iterate a category without walking the full audits map).
+  // Per-category roll-ups: score + the audit refs that contributed (so packs
+  // can iterate a category without walking the full audits map). `weight`
+  // mirrors Lighthouse's category weighting — load-bearing for severity rules
+  // like seo-basics' `severityFromWeight` (is-crawlable carries weight 3-4,
+  // most others weight 1).
   categories: z.partialRecord(CategorySchema, z.object({
     score: z.number().nullable(),
-    auditRefs: z.array(z.string()),
+    auditRefs: z.array(z.object({
+      id: z.string(),
+      weight: z.number().nonnegative(),
+    })),
   })),
   // Per-audit findings keyed by Lighthouse audit id.
   audits: z.record(z.string(), AuditFindingSchema),
