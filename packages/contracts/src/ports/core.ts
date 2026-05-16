@@ -71,7 +71,12 @@ export interface CrawlSession {
  */
 export interface UnlighthouseCoreRunOverrides {
   site?: string
-  device?: 'mobile' | 'desktop'
+  /**
+   * D-029: device form-factor for the scan. A single value runs once per URL;
+   * an array runs the matrix — one audit per URL per device, all under one
+   * scan id. Defaults to the host config's device when omitted.
+   */
+  device?: 'mobile' | 'desktop' | Array<'mobile' | 'desktop'>
   /** Lighthouse categories — mapped onto `lighthouseOptions.onlyCategories`. */
   categories?: Array<'performance' | 'accessibility' | 'seo' | 'best-practices'>
   /** Sample count — mapped onto `scanner.samples`. */
