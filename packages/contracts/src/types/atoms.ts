@@ -124,6 +124,62 @@ const ScanRouteSchema = ExtractedMetricsSchema.extend({
 })
 export type ScanRoute = z.infer<typeof ScanRouteSchema>
 
+// D-030 — Reconciled report. Lean per-route projection of the raw LHR, written
+// at scan ingest. Substrate that packs read from instead of re-parsing LHR
+// JSON on every call; survives Lighthouse version drift because we only
+// project the fields packs actually need.
+//
+// AuditFinding mirrors Lighthouse's per-audit shape but trims it to the
+// fields that drive pack decisions. `severity` is derived at ingest time
+// from (score, scoreDisplayMode) so packs don't have to reinvent the rule.
+const AuditFindingSchema = z.object({
+  // Lighthouse audit id, e.g. 'uses-optimized-images' or 'image-delivery-insight'.
+  id: z.string(),
+  // 0..1 score. `null` for manual / notApplicable audits.
+  score: z.number().nullable(),
+  scoreDisplayMode: z.enum(['numeric', 'binary', 'informative', 'manual', 'notApplicable']),
+  displayValue: z.string().nullable(),
+  // Pre-bucketed severity. `pass` = score ≥ 0.9, `warn` = ≥ 0.5, `fail` = < 0.5.
+  // Manual / notApplicable / informative are always `pass` (they don't fail
+  // a scan; packs filter them out by audit id).
+  severity: z.enum(['pass', 'warn', 'fail']),
+})
+export type AuditFinding = z.infer<typeof AuditFindingSchema>
+
+const ReconciledReportSchema = z.object({
+  scanId: ScanIdSchema,
+  url: UrlSchema,
+  device: DeviceSchema,
+  // Metric atoms minus the identity fields already on the parent row.
+  metrics: z.object({
+    scorePerformance: z.number().min(0).max(1).nullable(),
+    scoreAccessibility: z.number().min(0).max(1).nullable(),
+    scoreSeo: z.number().min(0).max(1).nullable(),
+    scoreBestPractices: z.number().min(0).max(1).nullable(),
+    lcp: z.number().nullable(),
+    cls: z.number().nullable(),
+    inp: z.number().nullable(),
+    fcp: z.number().nullable(),
+    ttfb: z.number().nullable(),
+    tbt: z.number().nullable(),
+    si: z.number().nullable(),
+  }),
+  // Per-category roll-ups: score + the audit ids that contributed (so packs
+  // can iterate a category without walking the full audits map).
+  categories: z.partialRecord(CategorySchema, z.object({
+    score: z.number().nullable(),
+    auditRefs: z.array(z.string()),
+  })),
+  // Per-audit findings keyed by Lighthouse audit id.
+  audits: z.record(z.string(), AuditFindingSchema),
+  provenance: z.object({
+    lighthouseVersion: z.string(),
+    userAgent: z.string().nullable(),
+    capturedAt: z.iso.datetime(),
+  }),
+})
+export type ReconciledReport = z.infer<typeof ReconciledReportSchema>
+
 // A seed URL produced by a SeedSource adapter.
 const SeedSchema = z.object({
   url: UrlSchema,
@@ -167,11 +223,13 @@ export type AssertionResult = z.infer<typeof AssertionResultSchema>
 export {
   AssertionSchema as Assertion,
   AssertionResultSchema as AssertionResult,
+  AuditFindingSchema as AuditFinding,
   CategorySchema as Category,
   DeviceSchema as Device,
   ExtractedMetricsSchema as ExtractedMetrics,
   MetricNameSchema as MetricName,
   PaginatedSchema as Paginated,
+  ReconciledReportSchema as ReconciledReport,
   ScanSchema as Scan,
   ScanIdSchema as ScanId,
   ScanRouteSchema as ScanRoute,
