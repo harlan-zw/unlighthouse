@@ -19,14 +19,17 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "unlighthouse"
-database_id = ""                              # ← paste from `wrangler d1 create`
+database_id = "3554d93a-6bd5-4578-af41-2593e2aea3b2"
 
 [[r2_buckets]]
 binding = "BLOBS"
 bucket_name = "unlighthouse"
 
-[browser]
-binding = "BROWSER"
+# Browser Rendering — requires Workers Paid plan ($5/mo). Uncomment when
+# the plan is enabled. Until then UNLIGHTHOUSE_USE_MOCK_AUDITOR=1 below
+# falls back to the mock auditor so the rest of the wiring still verifies.
+# [browser]
+# binding = "BROWSER"
 
 [[durable_objects.bindings]]
 name = "SCAN_EVENTS_DO"
@@ -38,7 +41,12 @@ class_name = "RateLimiterDO"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["ScanEventsDO", "RateLimiterDO"]
+# `new_sqlite_classes` (instead of `new_classes`) makes the DOs SQLite-backed.
+# This is the only DO storage backend available on the Workers Free plan and
+# also the recommended default on paid — Cloudflare has been migrating new DOs
+# to sqlite since 2025-04. Existing paid deploys on the legacy KV backend can
+# stay on `new_classes` without changing storage.
+new_sqlite_classes = ["ScanEventsDO", "RateLimiterDO"]
 
 # ── Vars ────────────────────────────────────────────────────────────────────
 
@@ -55,9 +63,10 @@ UNLIGHTHOUSE_VERSION = "1.0.0-rc.1"
 RATE_LIMITER_CAPACITY = "10"
 RATE_LIMITER_REFILL_PER_SEC = "1"
 
-# Optional escape hatch — set "1" to fall back to the mock auditor.
-# Only useful for smoke-testing the wiring without hitting Browser Rendering.
-# UNLIGHTHOUSE_USE_MOCK_AUDITOR = "1"
+# Mock auditor mode — no Browser Rendering required. Use this until the
+# Workers Paid plan is enabled; everything else (D1, R2, DOs, HTTP, WS)
+# is verified end-to-end.
+UNLIGHTHOUSE_USE_MOCK_AUDITOR = "1"
 
 # ── Cron triggers ──────────────────────────────────────────────────────────
 

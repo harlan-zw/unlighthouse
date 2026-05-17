@@ -22,5 +22,15 @@ export default defineBuildConfig({
       input: ['./src/index.ts'],
       rolldown: { external: externals },
     },
+    // Browser Rendering auditor lives on its own subpath so a Worker
+    // bundle that imports the main `@unlighthouse/cloudflare` entry
+    // doesn't pull the lighthouse package in transitively. Operators
+    // who want the real auditor import this subpath explicitly and pass
+    // the factory to createCloudflareApp via opts.auditorFactory.
+    {
+      type: 'bundle',
+      input: ['./src/auditors/browser-rendering.ts'],
+      rolldown: { external: [...externals, '@unlighthouse/core/auditors/cdp-connect'] },
+    },
   ],
 })

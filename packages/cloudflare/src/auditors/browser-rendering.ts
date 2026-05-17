@@ -19,7 +19,9 @@ import type {
   Page,
 } from '@unlighthouse/contracts/ports'
 import puppeteer from '@cloudflare/puppeteer'
-import { createCdpConnectAuditor } from '@unlighthouse/core/auditors'
+// Subpath import — see app.ts for why: the `auditors` barrel pulls in
+// `local` and its lighthouse dependency, which a Worker bundle can't run.
+import { createCdpConnectAuditor } from '@unlighthouse/core/auditors/cdp-connect'
 
 export interface CloudflareBrowserAuditorOptions {
   /** env.BROWSER — the Browser Rendering binding. */

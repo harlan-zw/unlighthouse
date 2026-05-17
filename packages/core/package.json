@@ -35,6 +35,26 @@
       "types": "./dist/auditors/index.d.mts",
       "import": "./dist/auditors/index.mjs"
     },
+    "./auditors/mock": {
+      "types": "./dist/auditors/mock.d.mts",
+      "import": "./dist/auditors/mock.mjs"
+    },
+    "./auditors/cdp-connect": {
+      "types": "./dist/auditors/cdp-connect.d.mts",
+      "import": "./dist/auditors/cdp-connect.mjs"
+    },
+    "./auditors/crux": {
+      "types": "./dist/auditors/crux.d.mts",
+      "import": "./dist/auditors/crux.mjs"
+    },
+    "./auditors/psi": {
+      "types": "./dist/auditors/psi.d.mts",
+      "import": "./dist/auditors/psi.mjs"
+    },
+    "./auditors/route": {
+      "types": "./dist/auditors/route/index.d.mts",
+      "import": "./dist/auditors/route/index.mjs"
+    },
     "./util/path": {
       "types": "./dist/util/path.d.mts",
       "import": "./dist/util/path.mjs"

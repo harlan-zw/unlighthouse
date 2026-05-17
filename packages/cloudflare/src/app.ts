@@ -14,13 +14,21 @@ import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
-import { createMockAuditor } from '@unlighthouse/core/auditors'
+// Subpath imports keep the Worker bundle off `@unlighthouse/core/auditors`
+// (the barrel — which re-exports `auditors/local` and its lighthouse
+// dependency, which breaks the Worker runtime with a Node-only
+// `fileURLToPath` call). Pull the one adapter we use directly.
+import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { createApp, toWebHandler } from 'h3'
-import { createCloudflareBrowserAuditor } from './auditors/browser-rendering'
+// Note: createCloudflareBrowserAuditor (and its transitive cdp-connect →
+// lighthouse dependency) loads lazily inside buildHandlerCtx so a
+// mock-mode deploy doesn't drag the lighthouse package into the Worker
+// bundle. lighthouse uses node:url and other Node-only APIs at top-level
+// and breaks the Workers runtime even when never invoked.
 import { cloudflareCrawler } from './crawlers/cloudflare-crawl'
-import { d1R2Storage } from './storage/d1-r2'
+import { d1R2Storage, migrate as migrateD1 } from './storage/d1-r2'
 
 export interface CloudflareEnv {
   DB: D1Database
@@ -46,6 +54,19 @@ export interface CloudflareApp {
   fetch: (req: Request, env: CloudflareEnv, ctx: ExecutionContext) => Promise<Response>
 }
 
+/**
+ * Optional auditor factory. Lets the caller wire `createCloudflareBrowserAuditor`
+ * (or anything else) without the preset statically importing it — which would
+ * drag the lighthouse package into the Worker bundle whether the operator
+ * uses it or not. Default behaviour without this opt: mock auditor when
+ * UNLIGHTHOUSE_USE_MOCK_AUDITOR=1 or env.BROWSER is absent, otherwise we
+ * still mock (we don't know how to spin Browser Rendering ourselves without
+ * the extra dependency).
+ */
+export interface CreateCloudflareAppOptions {
+  auditorFactory?: (env: CloudflareEnv) => import('@unlighthouse/contracts/ports').Auditor
+}
+
 // Minimal Workers-safe logger; consola is too heavy here.
 function createWorkersLogger(tag = 'unlighthouse'): Logger {
   const fn = (level: string) => (...args: unknown[]) => {
@@ -69,30 +90,27 @@ function parseConfig(env: CloudflareEnv): UnlighthouseConfig {
   return JSON.parse(env.UNLIGHTHOUSE_CONFIG) as UnlighthouseConfig
 }
 
-function buildHandlerCtx(env: CloudflareEnv): HandlerCtx {
+function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): HandlerCtx {
   const logger = createWorkersLogger()
   const config = parseConfig(env)
-  // D-022 + Phase 5: real auditor backed by env.BROWSER. The wrapper
-  // lazily launches the browser on first audit, exposes wsEndpoint() to
-  // cdp-connect, and reuses it across calls. UNLIGHTHOUSE_USE_MOCK_AUDITOR
-  // stays as an escape hatch for tests / failure modes where the binding
-  // isn't available — same shape as before, just opt-in instead of the
-  // default.
-  // Mock-mode if the operator opted in OR if env.BROWSER is missing
-  // (Workers Free plan — no Browser Rendering binding available).
-  // Falling back instead of throwing lets D1 + R2 + DOs + HTTP + WS
-  // still verify end-to-end on a free deploy.
-  const useMock = (env as { UNLIGHTHOUSE_USE_MOCK_AUDITOR?: string }).UNLIGHTHOUSE_USE_MOCK_AUDITOR === '1'
-    || env.BROWSER == null
-  const auditor = useMock
-    ? createMockAuditor({ logger: (logger as { withTag: (t: string) => Logger }).withTag('auditors/mock') })
-    : createCloudflareBrowserAuditor({
-        browser: env.BROWSER!,
-        logger: (logger as { withTag: (t: string) => Logger }).withTag('auditors/browser-rendering'),
-      })
-  // Same fallback for the crawler: parallel-map runs without a browser
-  // (purely seed-driven, no in-page discovery), which is the right shape
-  // for mock-mode.
+  // Auditor selection:
+  //   1. opts.auditorFactory — the operator wired one (e.g. via
+  //      createCloudflareBrowserAuditor in their worker entry). We use it.
+  //   2. No factory + mock-mode opt OR no Browser binding → createMockAuditor.
+  //      Keeps the rest of the stack (D1, R2, DOs, HTTP, WS) verifiable on
+  //      a Workers Free deploy without dragging lighthouse into the bundle.
+  //   3. No factory + Browser binding present → still mock. The preset can't
+  //      construct the real auditor without statically importing the
+  //      browser-rendering module, which would drag lighthouse in for
+  //      every deploy. Callers who want real Browser Rendering auditing
+  //      pass opts.auditorFactory.
+  const useMockExplicit = (env as { UNLIGHTHOUSE_USE_MOCK_AUDITOR?: string }).UNLIGHTHOUSE_USE_MOCK_AUDITOR === '1'
+  const auditor = opts?.auditorFactory && !useMockExplicit
+    ? opts.auditorFactory(env)
+    : createMockAuditor({ logger: (logger as { withTag: (t: string) => Logger }).withTag('auditors/mock') })
+  // Crawler: cloudflareCrawler when env.BROWSER is available, otherwise
+  // parallel-map (purely seed-driven, no in-page discovery — right shape
+  // for the mock auditor case).
   const crawler = env.BROWSER
     ? cloudflareCrawler({ browser: env.BROWSER })
     : parallelMapCrawler({ concurrency: 4 })
@@ -145,16 +163,30 @@ function buildHandlerCtx(env: CloudflareEnv): HandlerCtx {
   } as HandlerCtx
 }
 
-export function createCloudflareApp(env: CloudflareEnv): CloudflareApp {
-  const ctx = buildHandlerCtx(env)
+export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): CloudflareApp {
+  const ctx = buildHandlerCtx(env, opts)
   const router = createHttpRouter({ handlers: createHandlers(), ctx })
 
   const app = createApp()
   app.use(router)
   const webHandler = toWebHandler(app)
 
+  // Apply D1 schema migrations on the first request after a cold start.
+  // The flag is module-scoped (this function builds it on every Worker
+  // instance boot); D1 migrate() is idempotent (CREATE TABLE IF NOT
+  // EXISTS) so repeated runs are no-ops, but we still skip after the
+  // first to avoid the round-trip cost on every request.
+  let migrated = false
+  const ensureMigrated = async (runtimeEnv: CloudflareEnv): Promise<void> => {
+    if (migrated)
+      return
+    await migrateD1(runtimeEnv.DB)
+    migrated = true
+  }
+
   return {
-    async fetch(req: Request, runtimeEnv: CloudflareEnv): Promise<Response> {
+    async fetch(req: Request, runtimeEnv: CloudflareEnv, execCtx: ExecutionContext): Promise<Response> {
+      await ensureMigrated(runtimeEnv)
       const url = new URL(req.url)
 
       // WebSocket subscribe → ScanEventsDO. Avoids the standard HTTP pipeline
@@ -171,7 +203,9 @@ export function createCloudflareApp(env: CloudflareEnv): CloudflareApp {
 
       // Transport-level rate-limit gate for scan.start. Kept out of the HTTP
       // projection so the limiter never leaks into handler/router concerns.
-      if (req.method === 'POST' && url.pathname === '/api/scan/start') {
+      // Path is `/scan/start` (router prefix '/'); the leading `/api` got
+      // dropped when the toWebHandler stopped prefixing routes.
+      if (req.method === 'POST' && url.pathname === '/scan/start') {
         const key = req.headers.get('x-api-key')
           ?? req.headers.get('cf-connecting-ip')
           ?? 'global'
@@ -195,7 +229,20 @@ export function createCloudflareApp(env: CloudflareEnv): CloudflareApp {
         }
       }
 
-      return webHandler(req)
+      const res = await webHandler(req)
+
+      // If scan.start kicked off a session, register session.done with the
+      // Worker's ExecutionContext so the runtime keeps the orchestration
+      // alive after the response returns. Without this, Workers GCs the
+      // request scope as soon as the response is sent and the scan never
+      // actually writes its row + LHR blobs.
+      if (req.method === 'POST' && url.pathname === '/scan/start' && res.ok) {
+        const session = ctx.core.session?.()
+        if (session?.done)
+          execCtx.waitUntil(session.done.catch(() => undefined))
+      }
+
+      return res
     },
   }
 }
