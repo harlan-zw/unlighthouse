@@ -15,6 +15,7 @@ import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
 import { createMockAuditor } from '@unlighthouse/core/auditors'
+import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { createApp, toWebHandler } from 'h3'
 import { createCloudflareBrowserAuditor } from './auditors/browser-rendering'
@@ -25,14 +26,20 @@ export interface CloudflareEnv {
   DB: D1Database
   BLOBS: R2Bucket
   KV?: KVNamespace
-  /** Browser Rendering binding. */
-  BROWSER: BrowserWorker
+  /**
+   * Browser Rendering binding. Optional — requires Workers Paid plan.
+   * When absent, callers should set UNLIGHTHOUSE_USE_MOCK_AUDITOR=1 so
+   * the mock auditor takes its place (everything else stays wired).
+   */
+  BROWSER?: BrowserWorker
   SCAN_EVENTS_DO: DurableObjectNamespace
   RATE_LIMITER_DO: DurableObjectNamespace
   /** Inline config JSON; the preset Zod-validates this. */
   UNLIGHTHOUSE_CONFIG?: string
   /** Package version surfaced by `manifest` + `health`. Set during deploy. */
   UNLIGHTHOUSE_VERSION?: string
+  /** Set to "1" to fall back to the mock auditor (no Browser Rendering needed). */
+  UNLIGHTHOUSE_USE_MOCK_AUDITOR?: string
 }
 
 export interface CloudflareApp {
@@ -71,14 +78,24 @@ function buildHandlerCtx(env: CloudflareEnv): HandlerCtx {
   // stays as an escape hatch for tests / failure modes where the binding
   // isn't available — same shape as before, just opt-in instead of the
   // default.
+  // Mock-mode if the operator opted in OR if env.BROWSER is missing
+  // (Workers Free plan — no Browser Rendering binding available).
+  // Falling back instead of throwing lets D1 + R2 + DOs + HTTP + WS
+  // still verify end-to-end on a free deploy.
   const useMock = (env as { UNLIGHTHOUSE_USE_MOCK_AUDITOR?: string }).UNLIGHTHOUSE_USE_MOCK_AUDITOR === '1'
+    || env.BROWSER == null
   const auditor = useMock
     ? createMockAuditor({ logger: (logger as { withTag: (t: string) => Logger }).withTag('auditors/mock') })
     : createCloudflareBrowserAuditor({
-        browser: env.BROWSER,
+        browser: env.BROWSER!,
         logger: (logger as { withTag: (t: string) => Logger }).withTag('auditors/browser-rendering'),
       })
-  const crawler = cloudflareCrawler({ browser: env.BROWSER })
+  // Same fallback for the crawler: parallel-map runs without a browser
+  // (purely seed-driven, no in-page discovery), which is the right shape
+  // for mock-mode.
+  const crawler = env.BROWSER
+    ? cloudflareCrawler({ browser: env.BROWSER })
+    : parallelMapCrawler({ concurrency: 4 })
   const storage = d1R2Storage({ db: env.DB, bucket: env.BLOBS })
   const seeds = manualSeeds({
     urls: (config as { site?: string }).site ? [(config as { site: string }).site] : [],
