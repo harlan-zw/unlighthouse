@@ -252,21 +252,49 @@ export const scanResults: Handler<typeof ScanResults> = {
     const scan = await ctx.storage.scans.get(input.scanId)
     if (!scan)
       notFound(input.scanId)
-    // D-029: pass device filter down to listForScan so the SQL `WHERE device
-    // = ?` narrows the row scan instead of pulling every row and filtering
-    // in JS. Omitted = return every row in the matrix.
-    // TODO: push filter/sort down to storage when adapters support it.
-    const all = await ctx.storage.routes.listForScan(input.scanId, {
-      page: 1,
-      pageSize: 10_000,
+    // Filter / sort / device / pagination all pushed to storage. The drizzle
+    // adapter turns these into real SQL (WHERE + ORDER BY + LIMIT + OFFSET),
+    // so a 10k-route scan filtered down to 50 returns 50 rows from the db
+    // — not 10k rows over the wire followed by a JS filter.
+    //
+    // The wire field `filter.urlPattern` is documented as a regex source;
+    // storage push-down only handles literal substring (LIKE %pattern%).
+    // We still apply the RegExp on the returned page for non-literal
+    // patterns — see filterRouteRegex below. Same with sorts the adapter
+    // doesn't recognise.
+    const filterForStorage = input.filter
+      ? {
+          minScore: input.filter.minScore,
+          maxMetric: input.filter.maxMetric,
+          // Only pass urlPattern through to storage when it looks like a
+          // plain substring (no regex meta-chars). Otherwise let the
+          // adapter return the unfiltered row set and we regex it below.
+          urlPattern: input.filter.urlPattern && /^[\w./\-:?#]+$/.test(input.filter.urlPattern)
+            ? input.filter.urlPattern
+            : undefined,
+        }
+      : undefined
+
+    const page = await ctx.storage.routes.listForScan(input.scanId, {
+      page: input.page,
+      pageSize: input.pageSize,
       device: input.device,
+      filter: filterForStorage,
+      sort: input.sort,
     })
-    const filtered = applyRouteSort(applyRouteFilter(all.items, input.filter), input.sort)
-    const start = (input.page - 1) * input.pageSize
-    const items = filtered.slice(start, start + input.pageSize)
+
+    // Apply the regex filter (if any) on the returned page. This still
+    // pages correctly because the storage LIMIT/OFFSET respects the
+    // substring filter that came with it.
+    let items = page.items
+    if (input.filter?.urlPattern && filterForStorage?.urlPattern == null) {
+      const re = new RegExp(input.filter.urlPattern)
+      items = items.filter(r => re.test(r.url))
+    }
+
     return {
       items,
-      total: filtered.length,
+      total: page.total,
       page: input.page,
       pageSize: input.pageSize,
     } as CommandOutput<typeof ScanResults>
