@@ -10,7 +10,7 @@ import type {
 import type { ScanRouteRow } from '@unlighthouse/contracts/drizzle'
 import { createHash } from 'node:crypto'
 import { scanRoutes } from '@unlighthouse/contracts/drizzle'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, isNotNull, like, lte, sql } from 'drizzle-orm'
 
 type AnyDrizzle = any
 
@@ -100,14 +100,73 @@ export function createScanRouteRepository(db: AnyDrizzle): ScanRouteRepository {
       const pageSize = Math.max(1, q?.pageSize ?? DEFAULT_PAGE_SIZE)
       const offset = (page - 1) * pageSize
 
-      const where = q?.device
-        ? and(eq(scanRoutes.scanId, scanId), eq(scanRoutes.device, q.device))
-        : eq(scanRoutes.scanId, scanId)
+      // Build the WHERE clause from every filter the query carries. Each
+      // condition is pushed down to SQL — the API handler used to do this
+      // in JS on the full row set which fell over on 10k+ route scans.
+      // Column-typed conditions like `gte(scanRoutes.scorePerformance, …)`
+      // are nullable-safe: drizzle emits `column >= ?` which SQL evaluates
+      // to NULL (not true, not false) for null columns, so missing values
+      // never match the filter — same semantics as the JS fallback.
+      const conditions = [eq(scanRoutes.scanId, scanId)]
+      if (q?.device)
+        conditions.push(eq(scanRoutes.device, q.device))
+      if (q?.filter?.minScore) {
+        const map = {
+          'performance': scanRoutes.scorePerformance,
+          'accessibility': scanRoutes.scoreAccessibility,
+          'seo': scanRoutes.scoreSeo,
+          'best-practices': scanRoutes.scoreBestPractices,
+        } as const
+        for (const [cat, min] of Object.entries(q.filter.minScore)) {
+          const col = map[cat as keyof typeof map]
+          if (col != null && typeof min === 'number')
+            conditions.push(isNotNull(col), gte(col, min))
+        }
+      }
+      if (q?.filter?.maxMetric) {
+        const map = {
+          lcp: scanRoutes.lcp,
+          cls: scanRoutes.cls,
+          inp: scanRoutes.inp,
+          fcp: scanRoutes.fcp,
+          ttfb: scanRoutes.ttfb,
+          tbt: scanRoutes.tbt,
+          si: scanRoutes.si,
+        } as const
+        for (const [metric, max] of Object.entries(q.filter.maxMetric)) {
+          const col = map[metric as keyof typeof map]
+          // Note: this branch keeps the JS-fallback semantics (null columns
+          // match) by NOT chaining `isNotNull` — `column <= ?` with a null
+          // value yields NULL, which drizzle's `where` treats as "exclude",
+          // contradicting the JS path. We patch it with `OR column IS NULL`.
+          if (col != null && typeof max === 'number')
+            conditions.push(sql`(${col} IS NULL OR ${col} <= ${max})`)
+        }
+      }
+      if (q?.filter?.urlPattern) {
+        // Literal-substring fast path. The wire field on `scan.results`
+        // is documented as a regex source — application-side fallback in
+        // the API handler still re-runs the full RegExp on the result
+        // page for callers that pass a real regex.
+        conditions.push(like(scanRoutes.url, `%${q.filter.urlPattern}%`))
+      }
+      const where = conditions.length > 1 ? and(...conditions) : conditions[0]
 
-      const rows = await db
-        .select()
-        .from(scanRoutes)
-        .where(where)
+      // ORDER BY push-down. The fallback in api/handlers/scan.ts uses the
+      // same column choices so behaviour matches.
+      let orderBy
+      switch (q?.sort) {
+        case 'score-asc': orderBy = asc(scanRoutes.scorePerformance); break
+        case 'score-desc': orderBy = desc(scanRoutes.scorePerformance); break
+        case 'lcp-asc': orderBy = asc(scanRoutes.lcp); break
+        case 'lcp-desc': orderBy = desc(scanRoutes.lcp); break
+        case 'url-asc': orderBy = asc(scanRoutes.url); break
+        case 'capturedAt-desc': orderBy = desc(scanRoutes.capturedAt); break
+        default: orderBy = undefined
+      }
+
+      const baseSelect = db.select().from(scanRoutes).where(where)
+      const rows = await (orderBy ? baseSelect.orderBy(orderBy) : baseSelect)
         .limit(pageSize)
         .offset(offset)
 
