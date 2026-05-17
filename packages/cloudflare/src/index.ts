@@ -1,9 +1,14 @@
 // Cloudflare Workers preset — public surface.
+//
+// `createCloudflareBrowserAuditor` lives on a separate subpath
+// (`@unlighthouse/cloudflare/auditors/browser-rendering`) so its
+// transitive lighthouse dependency only enters the Worker bundle
+// when the operator actually opts in. The default `createCloudflareApp`
+// path uses the mock auditor unless the caller wires a factory via
+// `opts.auditorFactory`.
 
-export type { CloudflareApp, CloudflareEnv } from './app'
+export type { CloudflareApp, CloudflareEnv, CreateCloudflareAppOptions } from './app'
 export { createCloudflareApp } from './app'
-export { createCloudflareBrowserAuditor } from './auditors/browser-rendering'
-export type { CloudflareBrowserAuditorOptions } from './auditors/browser-rendering'
 export { cloudflareCrawler } from './crawlers/cloudflare-crawl'
 export type { CloudflareCrawlerOptions } from './crawlers/cloudflare-crawl'
 export { RateLimiterDO } from './do/rate-limiter'

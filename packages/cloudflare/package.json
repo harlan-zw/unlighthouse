@@ -11,6 +11,10 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
+    "./auditors/browser-rendering": {
+      "types": "./dist/auditors/browser-rendering.d.mts",
+      "import": "./dist/auditors/browser-rendering.mjs"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.mjs",
