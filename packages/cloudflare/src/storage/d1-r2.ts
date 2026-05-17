@@ -366,11 +366,53 @@ function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
         where.push('device = ?')
         args.push(q.device)
       }
+      // Filter / sort push-down — mirrors the drizzle adapter so the
+      // application-side fallback in api/handlers/scan.ts and query.ts
+      // can stay identical between hosts.
+      if (q?.filter?.minScore) {
+        const map: Record<string, string> = {
+          'performance': 'score_performance',
+          'accessibility': 'score_accessibility',
+          'seo': 'score_seo',
+          'best-practices': 'score_best_practices',
+        }
+        for (const [cat, min] of Object.entries(q.filter.minScore)) {
+          const col = map[cat]
+          if (col && typeof min === 'number') {
+            where.push(`${col} IS NOT NULL AND ${col} >= ?`)
+            args.push(min)
+          }
+        }
+      }
+      if (q?.filter?.maxMetric) {
+        const allowed = new Set(['lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si'])
+        for (const [metric, max] of Object.entries(q.filter.maxMetric)) {
+          if (allowed.has(metric) && typeof max === 'number') {
+            // Null columns match (matches the JS-fallback semantics).
+            where.push(`(${metric} IS NULL OR ${metric} <= ?)`)
+            args.push(max)
+          }
+        }
+      }
+      if (q?.filter?.urlPattern) {
+        where.push('url LIKE ?')
+        args.push(`%${q.filter.urlPattern}%`)
+      }
       const whereSql = where.join(' AND ')
+
+      let orderBy = ''
+      switch (q?.sort) {
+        case 'score-asc': orderBy = 'ORDER BY score_performance ASC'; break
+        case 'score-desc': orderBy = 'ORDER BY score_performance DESC'; break
+        case 'lcp-asc': orderBy = 'ORDER BY lcp ASC'; break
+        case 'lcp-desc': orderBy = 'ORDER BY lcp DESC'; break
+        case 'url-asc': orderBy = 'ORDER BY url ASC'; break
+        case 'capturedAt-desc': orderBy = 'ORDER BY captured_at DESC'; break
+      }
 
       const [itemsRes, countRes] = await db.batch<unknown>([
         db
-          .prepare(`SELECT ${ROUTE_COLS} FROM scan_routes WHERE ${whereSql} LIMIT ? OFFSET ?`)
+          .prepare(`SELECT ${ROUTE_COLS} FROM scan_routes WHERE ${whereSql} ${orderBy} LIMIT ? OFFSET ?`)
           .bind(...args, pageSize, offset),
         db
           .prepare(`SELECT count(*) AS count FROM scan_routes WHERE ${whereSql}`)
