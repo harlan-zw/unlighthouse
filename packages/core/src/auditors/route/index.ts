@@ -8,6 +8,8 @@ import type {
   Page,
 } from '@unlighthouse/contracts/ports'
 
+export { createTokenBucket, type RateRule, type TokenBucket } from './token-bucket'
+
 export type PickFn = (
   auditors: NamedAuditor[],
   ctx: { url: string },
@@ -74,17 +76,24 @@ export function roundRobinPick(): PickFn {
   }
 }
 
-/** Weighted random selection by name. Missing names default to weight 0. */
+/**
+ * Weighted random selection by name. Providers absent from the weights map
+ * fall back to weight 1 (equal share) rather than 0 — keeps the strategy
+ * useful as a "round-robin-ish" default when no config is supplied.
+ * Passing an explicit `0` for a name still excludes it.
+ */
 export function weightedPick(weights: Record<string, number>): PickFn {
   return (auditors) => {
     if (!auditors.length)
       throw new Error('routeAuditors: no auditors configured')
-    const total = auditors.reduce((sum, a) => sum + (weights[a.name] ?? 0), 0)
+    const weightOf = (name: string) =>
+      Object.prototype.hasOwnProperty.call(weights, name) ? weights[name]! : 1
+    const total = auditors.reduce((sum, a) => sum + weightOf(a.name), 0)
     if (total <= 0)
       return auditors[0].auditor
     let target = Math.random() * total
     for (const a of auditors) {
-      target -= weights[a.name] ?? 0
+      target -= weightOf(a.name)
       if (target <= 0)
         return a.auditor
     }

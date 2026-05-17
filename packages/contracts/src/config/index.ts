@@ -130,12 +130,33 @@ const AuditorProvider = z.discriminatedUnion('name', [
 
 const AuditorRouterStrategy = z.enum(['round-robin', 'weighted', 'fallback', 'rate-limited'])
 
+// Per-provider routing knobs. `weights` only applies under `weighted`,
+// `rates` only under `rate-limited`; the other strategies ignore both.
+// Keys are provider names (`'local'` / `'psi'` / `'crux'` / …) so multi-
+// `psi`-key setups need to wrap each in `cdp-connect` aliases.
+const AuditorRouterConfig = z.object({
+  /** Weighted strategy: how often each provider gets picked. Defaults to 1. */
+  weights: z.record(z.string(), z.number().nonnegative()).optional(),
+  /**
+   * Rate-limited strategy: token-bucket per provider.
+   * - `capacity`: bucket size (max in-flight + queued)
+   * - `refillPerSec`: tokens added per second
+   * The pick fails over to the next provider when a bucket is empty.
+   */
+  rates: z.record(z.string(), z.object({
+    capacity: z.number().int().positive(),
+    refillPerSec: z.number().positive(),
+  })).optional(),
+})
+
 // Single provider, or a router across many.
 const AuditorConfig = z.union([
   AuditorProvider,
   z.object({
     strategy: AuditorRouterStrategy,
     providers: z.array(AuditorProvider).min(1),
+    /** Per-strategy knobs. Optional; defaults to permissive behaviour. */
+    router: AuditorRouterConfig.optional(),
   }),
 ])
 
@@ -214,6 +235,7 @@ export const defaultConfig: UnlighthouseConfig = {
 export {
   AuditorConfig,
   AuditorProvider,
+  AuditorRouterConfig,
   AuditorRouterStrategy,
   AuthOptions,
   Budget,

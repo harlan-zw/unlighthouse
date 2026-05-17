@@ -1,7 +1,7 @@
 // Auditor resolver — maps UnlighthouseConfig to a single Auditor port.
 // v1.md Phase 3: pure switch + factory call, no new abstraction.
 
-import type { AuditorConfig, AuditorProvider, AuditorRouterStrategy, UnlighthouseConfig } from '@unlighthouse/contracts'
+import type { AuditorConfig, AuditorProvider, AuditorRouterConfig, AuditorRouterStrategy, UnlighthouseConfig } from '@unlighthouse/contracts'
 import type { Auditor, NamedAuditor } from '@unlighthouse/contracts/ports'
 import type { PickFn } from '@unlighthouse/core/auditors'
 import type { z } from 'zod'
@@ -12,6 +12,7 @@ import {
   createLocalAuditor,
   createMockAuditor,
   createPsiAuditor,
+  createTokenBucket,
   fallbackAuditor,
   rateLimitedPick,
   roundRobinPick,
@@ -22,6 +23,7 @@ import {
 type AuditorProviderConfig = z.infer<typeof AuditorProvider>
 type AuditorRouterStrategyConfig = z.infer<typeof AuditorRouterStrategy>
 type AuditorConfigValue = z.infer<typeof AuditorConfig>
+type AuditorRouterConfigValue = z.infer<typeof AuditorRouterConfig>
 
 export interface ResolveAuditorOptions {
   config: UnlighthouseConfig
@@ -63,21 +65,31 @@ function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Aud
   }
 }
 
-// Strategy → PickFn. Weighted/rate-limited need per-provider config we don't
-// surface yet; degrade to permissive defaults so runtime never throws.
-// `fallback` is NOT a PickFn — it needs to observe audit errors. Composed via
-// `fallbackAuditor` in `resolveAuditor` instead.
-// TODO(v7): extend AuditorConfig.router with `weights` / `rates` maps.
-function pickerFor(strategy: Exclude<AuditorRouterStrategyConfig, 'fallback'>): PickFn {
+// Strategy → PickFn. `weighted` and `rate-limited` read their per-provider
+// knobs from `router.weights` / `router.rates`; unconfigured providers
+// degrade to a permissive default (`weighted` falls through to the first
+// auditor when all weights are 0; `rate-limited` always allows when no
+// bucket is declared). `fallback` is NOT a PickFn — it needs to observe
+// audit errors. Composed via `fallbackAuditor` in `resolveAuditor` instead.
+function pickerFor(
+  strategy: Exclude<AuditorRouterStrategyConfig, 'fallback'>,
+  router: AuditorRouterConfigValue | undefined,
+): PickFn {
   switch (strategy) {
     case 'round-robin':
       return roundRobinPick()
     case 'weighted':
-      // TODO(v7): wire per-provider weights from config.
-      return weightedPick({})
-    case 'rate-limited':
-      // TODO(v7): wire token-bucket from config; permissive check = always allow.
-      return rateLimitedPick(async () => true)
+      // Defaults to 1 per provider when no weights are declared so the
+      // strategy degrades to round-robin-ish random — better than
+      // collapsing to a single provider.
+      return weightedPick(router?.weights ?? {})
+    case 'rate-limited': {
+      // One token bucket per resolver (shared across all audit calls in the
+      // process). Providers without a `rates` entry stay permissive — the
+      // bucket helper returns true for unknown names.
+      const bucket = createTokenBucket(router?.rates ?? {})
+      return rateLimitedPick(async name => bucket.try(name))
+    }
   }
 }
 
@@ -97,7 +109,7 @@ export function resolveAuditor(opts: ResolveAuditorOptions): Auditor {
     }))
     if (cfg.strategy === 'fallback')
       return fallbackAuditor(auditors)
-    return routeAuditors({ auditors, pick: pickerFor(cfg.strategy) })
+    return routeAuditors({ auditors, pick: pickerFor(cfg.strategy, cfg.router) })
   }
 
   return buildSingle(cfg, opts)
