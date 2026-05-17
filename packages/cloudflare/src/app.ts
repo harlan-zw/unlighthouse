@@ -17,6 +17,7 @@ import { createHttpRouter } from '@unlighthouse/core/api/http'
 import { createMockAuditor } from '@unlighthouse/core/auditors'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { createApp, toWebHandler } from 'h3'
+import { createCloudflareBrowserAuditor } from './auditors/browser-rendering'
 import { cloudflareCrawler } from './crawlers/cloudflare-crawl'
 import { d1R2Storage } from './storage/d1-r2'
 
@@ -64,9 +65,19 @@ function parseConfig(env: CloudflareEnv): UnlighthouseConfig {
 function buildHandlerCtx(env: CloudflareEnv): HandlerCtx {
   const logger = createWorkersLogger()
   const config = parseConfig(env)
-  // TODO(v5): construct createCdpConnectAuditor against env.BROWSER once the
-  // ws endpoint helper lands. createMockAuditor keeps the wiring compiling.
-  const auditor = createMockAuditor({ logger: (logger as { withTag: (t: string) => Logger }).withTag('auditors/mock') })
+  // D-022 + Phase 5: real auditor backed by env.BROWSER. The wrapper
+  // lazily launches the browser on first audit, exposes wsEndpoint() to
+  // cdp-connect, and reuses it across calls. UNLIGHTHOUSE_USE_MOCK_AUDITOR
+  // stays as an escape hatch for tests / failure modes where the binding
+  // isn't available — same shape as before, just opt-in instead of the
+  // default.
+  const useMock = (env as { UNLIGHTHOUSE_USE_MOCK_AUDITOR?: string }).UNLIGHTHOUSE_USE_MOCK_AUDITOR === '1'
+  const auditor = useMock
+    ? createMockAuditor({ logger: (logger as { withTag: (t: string) => Logger }).withTag('auditors/mock') })
+    : createCloudflareBrowserAuditor({
+        browser: env.BROWSER,
+        logger: (logger as { withTag: (t: string) => Logger }).withTag('auditors/browser-rendering'),
+      })
   const crawler = cloudflareCrawler({ browser: env.BROWSER })
   const storage = d1R2Storage({ db: env.DB, bucket: env.BLOBS })
   const seeds = manualSeeds({
@@ -80,6 +91,34 @@ function buildHandlerCtx(env: CloudflareEnv): HandlerCtx {
     storage,
     logger,
   })
+
+  // Bridge core's hook bus into ScanEventsDO. Every emitted hook with a
+  // scanId-bearing payload is forwarded to the matching DO via its POST
+  // RPC; subscribers (WebSocket clients) downstream of that DO see the
+  // event live without polling. Cross-cutting hooks without a scanId
+  // (the global `log` channel) skip the forward — they belong on a
+  // separate broadcast channel if/when one ships.
+  const hookable = (core as { hooks?: { afterEach?: (cb: (e: { name: string, args: unknown[] }) => void) => () => void } }).hooks
+  if (hookable?.afterEach) {
+    hookable.afterEach((event) => {
+      const payload = event.args?.[0] as { scanId?: string } | undefined
+      const scanId = payload?.scanId
+      if (!scanId)
+        return
+      const id = env.SCAN_EVENTS_DO.idFromName(scanId)
+      const stub = env.SCAN_EVENTS_DO.get(id)
+      // Fire-and-forget; we don't await the DO write because hook
+      // listeners are synchronous and DO RPCs are async. Errors surface
+      // through the DO's own log; failing to fan out shouldn't fail the
+      // hook.
+      void stub.fetch('https://scan-events/', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ event: event.name, payload }),
+      }).catch(() => undefined)
+    })
+  }
+
   return {
     core,
     auditor,
