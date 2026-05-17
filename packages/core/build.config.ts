@@ -12,6 +12,16 @@ export default defineBuildConfig({
         './src/policies/index.ts',
         './src/crawlers/index.ts',
         './src/auditors/index.ts',
+        // Per-auditor subpath bundles so treeshake-sensitive hosts (Workers
+        // CF bundle, browser-only consumers) can import a single adapter
+        // without dragging the rest of the barrel — which would also pull
+        // in `auditors/local` and its transitive `lighthouse` dependency,
+        // breaking the Worker bundle with a Node-only `fileURLToPath` call.
+        './src/auditors/mock.ts',
+        './src/auditors/cdp-connect.ts',
+        './src/auditors/crux.ts',
+        './src/auditors/psi.ts',
+        './src/auditors/route/index.ts',
         './src/storage/index.ts',
         './src/storage/drizzle/index.ts',
         './src/storage/drizzle/init-sql.ts',
