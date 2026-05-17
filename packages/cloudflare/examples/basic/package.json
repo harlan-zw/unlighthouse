@@ -1,0 +1,18 @@
+{
+  "name": "unlighthouse-cf-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@unlighthouse/cloudflare": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "wrangler": "^4.0.0"
+  }
+}

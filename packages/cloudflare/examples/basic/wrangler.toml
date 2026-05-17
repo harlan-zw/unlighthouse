@@ -1,0 +1,68 @@
+# Unlighthouse CF preset — minimal deploy config.
+#
+# Set the values below, then:
+#   pnpm wrangler d1 create unlighthouse           # → copy the database_id
+#   pnpm wrangler r2 bucket create unlighthouse    # → no id needed
+#   pnpm wrangler deploy
+#
+# The DOs migrate themselves on first request; D1's schema is applied
+# in-process by the package's INIT_SQL — no `wrangler d1 migrations`
+# step needed.
+
+name = "unlighthouse"
+main = "worker.ts"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── Bindings ────────────────────────────────────────────────────────────────
+
+[[d1_databases]]
+binding = "DB"
+database_name = "unlighthouse"
+database_id = ""                              # ← paste from `wrangler d1 create`
+
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "unlighthouse"
+
+[browser]
+binding = "BROWSER"
+
+[[durable_objects.bindings]]
+name = "SCAN_EVENTS_DO"
+class_name = "ScanEventsDO"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER_DO"
+class_name = "RateLimiterDO"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ScanEventsDO", "RateLimiterDO"]
+
+# ── Vars ────────────────────────────────────────────────────────────────────
+
+[vars]
+# Inline unlighthouse config (JSON). Same shape as the CLI's
+# `unlighthouse.config.ts` — at minimum `site` is required, the rest
+# defaults from `defaultConfig`.
+UNLIGHTHOUSE_CONFIG = '{"site": "https://example.com"}'
+
+# Surfaced by manifest + health responses. Bump on each deploy.
+UNLIGHTHOUSE_VERSION = "1.0.0-rc.1"
+
+# Token-bucket rate limiter (per API key / IP). Defaults: 10 / 1 per sec.
+RATE_LIMITER_CAPACITY = "10"
+RATE_LIMITER_REFILL_PER_SEC = "1"
+
+# Optional escape hatch — set "1" to fall back to the mock auditor.
+# Only useful for smoke-testing the wiring without hitting Browser Rendering.
+# UNLIGHTHOUSE_USE_MOCK_AUDITOR = "1"
+
+# ── Cron triggers ──────────────────────────────────────────────────────────
+
+# R2 TTL sweeper — walks the bucket hourly and removes any blob whose
+# customMetadata.expiresAt has passed. Adjust the cron expression to your
+# write-volume; once a day is fine for most setups.
+[triggers]
+crons = ["0 * * * *"]
