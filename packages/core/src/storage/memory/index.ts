@@ -142,6 +142,52 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
       let all = Array.from(routesMap.get(scanId)?.values() ?? [])
       if (q?.device)
         all = all.filter(r => r.device === q.device)
+      // Filter/sort push-down for the memory adapter — same semantics the
+      // drizzle adapter pushes to SQL. Kept in lock-step so behaviour
+      // matches between hosts.
+      if (q?.filter) {
+        const f = q.filter
+        const scoreCol = {
+          'performance': 'scorePerformance',
+          'accessibility': 'scoreAccessibility',
+          'seo': 'scoreSeo',
+          'best-practices': 'scoreBestPractices',
+        } as const
+        all = all.filter((r) => {
+          if (f.urlPattern && !r.url.includes(f.urlPattern))
+            return false
+          if (f.minScore) {
+            for (const [cat, min] of Object.entries(f.minScore)) {
+              const v = (r as unknown as Record<string, number | null>)[scoreCol[cat as keyof typeof scoreCol]]
+              if (v == null || v < (min as number))
+                return false
+            }
+          }
+          if (f.maxMetric) {
+            for (const [metric, max] of Object.entries(f.maxMetric)) {
+              const v = (r as unknown as Record<string, number | null>)[metric]
+              if (v != null && v > (max as number))
+                return false
+            }
+          }
+          return true
+        })
+      }
+      if (q?.sort) {
+        const copy = [...all]
+        copy.sort((a, b) => {
+          switch (q.sort) {
+            case 'score-asc': return (a.scorePerformance ?? 0) - (b.scorePerformance ?? 0)
+            case 'score-desc': return (b.scorePerformance ?? 0) - (a.scorePerformance ?? 0)
+            case 'lcp-asc': return (a.lcp ?? Infinity) - (b.lcp ?? Infinity)
+            case 'lcp-desc': return (b.lcp ?? -Infinity) - (a.lcp ?? -Infinity)
+            case 'url-asc': return a.url.localeCompare(b.url)
+            case 'capturedAt-desc': return b.capturedAt.localeCompare(a.capturedAt)
+            default: return 0
+          }
+        })
+        all = copy
+      }
       const total = all.length
       const items = all.slice((page - 1) * pageSize, page * pageSize).map(clone)
       return { items, total, page, pageSize }
