@@ -39,6 +39,47 @@ export interface ListQuery {
   [k: string]: unknown
 }
 
+/**
+ * Sort modes pushed to the storage adapter. Storage implementations that
+ * understand them issue a real `ORDER BY` clause; ones that don't fall back
+ * to the application-side sort the API handler does on the page slice.
+ *
+ * The set mirrors the wire format on `scan.results.input.sort` /
+ * `query.routes.input.sort` 1:1 — kept in sync by convention.
+ */
+export type RouteSort
+  = | 'score-asc'
+    | 'score-desc'
+    | 'lcp-asc'
+    | 'lcp-desc'
+    | 'url-asc'
+    | 'capturedAt-desc'
+
+/**
+ * Filters that storage adapters can push down to SQL. The application-side
+ * fallback in api/handlers/scan.ts honours the same shape so behaviour stays
+ * identical whether or not the adapter implements push-down.
+ */
+export interface RouteFilter {
+  /**
+   * Lighthouse category id → minimum score (0..1). A row matches when every
+   * listed category column is ≥ the threshold (null columns excluded).
+   */
+  minScore?: Partial<Record<'performance' | 'accessibility' | 'seo' | 'best-practices', number>>
+  /**
+   * Metric column id → maximum value. A row matches when every listed metric
+   * is ≤ the threshold (null columns ignored — "no data" is not "too high").
+   */
+  maxMetric?: Partial<Record<'lcp' | 'cls' | 'inp' | 'fcp' | 'ttfb' | 'tbt' | 'si', number>>
+  /**
+   * URL substring (case-sensitive). SQL adapters use `url LIKE '%pattern%'`;
+   * the wire field on `scan.results` allows a regex source — push-down
+   * matches the literal substring fast path, falls back to the API handler's
+   * RegExp for anything fancier.
+   */
+  urlPattern?: string
+}
+
 export interface RouteListQuery {
   page?: number
   pageSize?: number
@@ -47,6 +88,16 @@ export interface RouteListQuery {
   // a specific device pass it here; the wire on those commands carries the
   // same optional field.
   device?: Device
+  /**
+   * Storage-side filter push-down (see RouteFilter). Adapters that can't
+   * push-down ignore this and let the API handler filter the page slice
+   * in JS — behaviour is identical, perf differs at 10k+ rows.
+   */
+  filter?: RouteFilter
+  /**
+   * Storage-side sort. Same fallback semantics as `filter`.
+   */
+  sort?: RouteSort
   [k: string]: unknown
 }
 
