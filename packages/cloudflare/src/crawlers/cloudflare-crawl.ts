@@ -61,7 +61,11 @@ export function cloudflareCrawler(opts: CloudflareCrawlerOptions): Crawler {
 
   async function* run(options: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
     const { seeds, audit, allows, signal } = options
-    const scanId = 'cloudflare-crawl' // TODO(v5): thread scanId from CrawlCtx.
+    // Crawler ctx is observational — core's auditWrapper closes over the
+    // real scanId in its own scope (see core.ts orchestrate). The string
+    // we pass here is only used for adapter-private debug logging, never
+    // for storage writes. Leave it as a stable adapter tag.
+    const ctxTag = 'cloudflare-crawl'
 
     const browser = await puppeteer.launch(browserBinding)
     const events = createEventQueue<CrawlEvent>()
@@ -71,7 +75,7 @@ export function cloudflareCrawler(opts: CloudflareCrawlerOptions): Crawler {
     async function auditOne(url: string) {
       events.push({ type: 'url-started', url })
       try {
-        await audit(url, { scanId, signal })
+        await audit(url, { scanId: ctxTag, signal })
         events.push({ type: 'url-completed', url })
       }
       catch (err) {
