@@ -530,9 +530,18 @@ ON CONFLICT(scan_id, pack_name, pack_version) DO UPDATE SET
 function r2BlobStore(bucket: R2Bucket): BlobStore {
   return {
     async put(key: string, data: Uint8Array, opts?: BlobPutOptions) {
+      // R2 has no native object TTL. We stamp `expiresAt` (ms since epoch)
+      // into customMetadata when the caller asks for one, and ship a
+      // separate Cron-triggered sweeper Worker (see ./sweeper.ts) that
+      // lists + deletes expired objects on a schedule. Without the sweeper
+      // active, expiresAt is observational metadata — same UX you'd get
+      // from R2's built-in object expiry once that lands.
+      const customMetadata: Record<string, string> | undefined = opts?.ttl
+        ? { expiresAt: String(Date.now() + opts.ttl * 1000) }
+        : undefined
       await bucket.put(key, data as Uint8Array, {
         httpMetadata: opts?.contentType ? { contentType: opts.contentType } : undefined,
-        // TODO(v5): R2 has no native ttl; track expiry via customMetadata + a sweeper Worker.
+        customMetadata,
       })
     },
     async get(key: string) {
