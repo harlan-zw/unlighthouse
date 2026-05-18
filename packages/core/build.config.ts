@@ -19,6 +19,10 @@ export default defineBuildConfig({
         // breaking the Worker bundle with a Node-only `fileURLToPath` call.
         './src/auditors/mock.ts',
         './src/auditors/cdp-connect.ts',
+        // Remote Lighthouse adapter — Workers-safe (no lighthouse / puppeteer
+        // import). Subpath let CF preset import without touching the
+        // local-auditor barrel that drags lighthouse into the bundle.
+        './src/auditors/remote-lighthouse.ts',
         './src/auditors/crux.ts',
         './src/auditors/psi.ts',
         './src/auditors/route/index.ts',

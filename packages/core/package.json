@@ -43,6 +43,10 @@
       "types": "./dist/auditors/cdp-connect.d.mts",
       "import": "./dist/auditors/cdp-connect.mjs"
     },
+    "./auditors/remote-lighthouse": {
+      "types": "./dist/auditors/remote-lighthouse.d.mts",
+      "import": "./dist/auditors/remote-lighthouse.mjs"
+    },
     "./auditors/crux": {
       "types": "./dist/auditors/crux.d.mts",
       "import": "./dist/auditors/crux.mjs"
