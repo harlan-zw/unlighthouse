@@ -12,6 +12,9 @@ catalogs:
     '@arethetypeswrong/cli':
       specifier: 0.18.2
       version: 0.18.2
+    '@cloudflare/containers':
+      specifier: ^0.0.18
+      version: 0.0.18
     '@cloudflare/puppeteer':
       specifier: ^1.1.0
       version: 1.1.0
@@ -346,6 +349,9 @@ importers:
 
   packages/cloudflare:
     dependencies:
+      '@cloudflare/containers':
+        specifier: 'catalog:'
+        version: 0.0.18
       '@cloudflare/puppeteer':
         specifier: 'catalog:'
         version: 1.1.0
@@ -362,6 +368,27 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 4.20260511.1
+
+  packages/cloudflare-lighthouse:
+    dependencies:
+      '@unlighthouse/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@unlighthouse/core':
+        specifier: workspace:*
+        version: link:../core
+      h3:
+        specifier: catalog:dependencies
+        version: 1.15.11
+      lighthouse:
+        specifier: catalog:dependencies
+        version: 13.3.0
+      ofetch:
+        specifier: catalog:dependencies
+        version: 1.5.1
+      puppeteer-core:
+        specifier: catalog:dependencies
+        version: 24.43.1
 
   packages/contracts:
     dependencies:
@@ -1074,6 +1101,9 @@ packages:
   '@clack/prompts@1.4.0':
     resolution: {integrity: sha512-S0My7XPGIgpRWMDG8uRqalbgT+a6FmCUdOW+HaIOVVpUPHOb7RrpvjTjiODadKp06fsrVDJZlIzc6yCTp4AnxA==}
     engines: {node: '>= 20.12.0'}
+
+  '@cloudflare/containers@0.0.18':
+    resolution: {integrity: sha512-3XC8AXMWTX7tQJA2jOcjYXEr5S4aFS8lH5T56Fsr8X3sfaD2KoB0XghFpmMsOHK+fc88z6K0LTaVmcX2ELOZ9w==}
 
   '@cloudflare/kv-asset-handler@0.4.1':
     resolution: {integrity: sha512-Nu8ahitGFFJztxUml9oD/DLb7Z28C8cd8F46IVQ7y5Btz575pvMY8AqZsXkX7Gds29eCKdMgIHjIvzskHgPSFg==}
@@ -3958,9 +3988,6 @@ packages:
 
   '@types/mysql@2.15.26':
     resolution: {integrity: sha512-DSLCOXhkvfS5WNNPbfn2KdICAmk8lLc+/PNvnPnF7gOdMZCxopXduqv0OQ13y/yA/zXTSikZZqVgybUxOEg6YQ==}
-
-  '@types/node@25.0.3':
-    resolution: {integrity: sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA==}
 
   '@types/node@25.7.0':
     resolution: {integrity: sha512-z+pdZyxE+RTQE9AcboAZCb4otwcrvgHD+GlBpPgn0emDVt0ohrTMhAwlr2Wd9nZ+nihhYFxO2pThz3C5qSu2Eg==}
@@ -9136,9 +9163,6 @@ packages:
   unctx@2.5.0:
     resolution: {integrity: sha512-p+Rz9x0R7X+CYDkT+Xg8/GhpcShTlU8n+cf9OtOEf7zEQsNcCZO1dPKNRDqvUTaq+P32PMMkxWHwfrxkqfqAYg==}
 
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
-
   undici-types@7.21.0:
     resolution: {integrity: sha512-w9IMgQrz4O0YN1LtB7K5P63vhlIOvC7opSmouCJ+ZywlPAlO9gIkJ+otk6LvGpAs2wg4econaCz3TvQ9xPoyuQ==}
 
@@ -10177,6 +10201,8 @@ snapshots:
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.0
       sisteransi: 1.0.5
+
+  '@cloudflare/containers@0.0.18': {}
 
   '@cloudflare/kv-asset-handler@0.4.1':
     dependencies:
@@ -13099,10 +13125,6 @@ snapshots:
     dependencies:
       '@types/node': 25.7.0
 
-  '@types/node@25.0.3':
-    dependencies:
-      undici-types: 7.16.0
-
   '@types/node@25.7.0':
     dependencies:
       undici-types: 7.21.0
@@ -14279,7 +14301,7 @@ snapshots:
 
   chrome-launcher@1.2.1:
     dependencies:
-      '@types/node': 25.0.3
+      '@types/node': 25.7.0
       escape-string-regexp: 4.0.0
       is-wsl: 2.2.0
       lighthouse-logger: 2.0.2
@@ -19229,8 +19251,6 @@ snapshots:
       estree-walker: 3.0.3
       magic-string: 0.30.21
       unplugin: 2.3.11
-
-  undici-types@7.16.0: {}
 
   undici-types@7.21.0: {}
 

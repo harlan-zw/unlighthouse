@@ -1,0 +1,16 @@
+# Build context is the monorepo root. Keep it lean.
+**/node_modules
+**/.turbo
+**/.cache
+**/dist
+**/.git
+**/.github
+**/test
+**/tests
+**/*.test.ts
+**/*.spec.ts
+**/.DS_Store
+**/.vscode
+**/coverage
+**/*.md
+!packages/cloudflare-lighthouse/dist

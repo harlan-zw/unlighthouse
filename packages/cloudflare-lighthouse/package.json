@@ -1,0 +1,44 @@
+{
+  "name": "@unlighthouse/cloudflare-lighthouse",
+  "type": "module",
+  "version": "0.0.0-v1",
+  "private": true,
+  "description": "Cloudflare Containers-backed real-Lighthouse audit server + Worker-side bridge. Worker calls a DO-bound Container that runs createCdpConnectAuditor against Cloudflare Browser Run's external CDP endpoint.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    "./worker": {
+      "types": "./dist/worker-helper.d.mts",
+      "import": "./dist/worker-helper.mjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.mts",
+      "import": "./dist/server.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "Dockerfile",
+    ".dockerignore"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "typecheck": "tsc --noEmit",
+    "test:attw": "attw --pack --profile esm-only",
+    "test:publint": "publint"
+  },
+  "dependencies": {
+    "@unlighthouse/contracts": "workspace:*",
+    "@unlighthouse/core": "workspace:*",
+    "h3": "catalog:dependencies",
+    "lighthouse": "catalog:dependencies",
+    "ofetch": "catalog:dependencies",
+    "puppeteer-core": "catalog:dependencies"
+  },
+  "devDependencies": {}
+}

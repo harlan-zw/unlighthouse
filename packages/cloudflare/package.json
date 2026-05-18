@@ -34,6 +34,7 @@
     "test:publint": "publint"
   },
   "dependencies": {
+    "@cloudflare/containers": "catalog:",
     "@cloudflare/puppeteer": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
