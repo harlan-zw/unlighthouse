@@ -19,7 +19,11 @@
 # also copied in as tarballs and installed by file path — see the
 # pre-build step in `scripts/prepare-image.mjs` (run by `pnpm build`).
 
-FROM node:22-alpine
+# node-slim (debian) instead of node-alpine — the alpine variant uses
+# musl libc and we suspected a libc-related listener issue inside the
+# Cloudflare Container runtime (local docker run worked because of
+# emulation, prod runs native amd64 and exposed the problem).
+FROM node:22-slim AS deps
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -35,10 +39,18 @@ COPY vendor ./vendor
 # stripped-down image manifest).
 RUN npm install --omit=dev --omit=optional --no-package-lock --no-audit --no-fund
 
+# Final stage — same slim base, just the install artefacts. No build
+# tools, no apk/apt cache.
+FROM node:22-slim
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=deps /app /app
+
 EXPOSE 8080
-# Split node + script into ENTRYPOINT + CMD so Cloudflare Container's
-# launcher invokes both correctly. The node-alpine base image's default
-# entrypoint (`docker-entrypoint.sh`) gets dropped, which is what we want
-# — the launcher runs the exec form directly.
-ENTRYPOINT ["node"]
-CMD ["dist/server.mjs"]
+
+# Shell-form CMD so node runs under sh (PID 1 = sh, not node). Cloudflare's
+# Container launcher seems to need PID 1 to be a shell-like process — direct
+# `["node", "dist/server.mjs"]` doesn't get its port-ready signal picked up
+# by the launcher's TCP probe. Verified empirically: shell-wrap → "Port 8080
+# is ready" in the DO logs; exec-form node → "container is not listening".
+CMD ["sh", "-c", "exec node dist/server.mjs"]

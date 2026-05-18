@@ -17,10 +17,10 @@
 // Chromium warm across audits. cdp-connect.ts disconnects (not closes) the
 // puppeteer client after each audit, so the underlying browser stays alive.
 
+import type { Auditor } from '@unlighthouse/contracts/ports'
 import { Buffer } from 'node:buffer'
 import { createServer } from 'node:http'
 import process from 'node:process'
-import { createCdpConnectAuditor } from '@unlighthouse/core/auditors/cdp-connect'
 import {
   createApp,
   createRouter,
@@ -30,33 +30,55 @@ import {
   toNodeListener,
 } from 'h3'
 
+// Heavy auditor module (lighthouse + puppeteer-core, ~5 MB of top-level
+// code with Chrome runtime probing) is imported lazily on first /audit
+// call. Importing it at module load delays the listen() call by enough
+// that Cloudflare Container's TCP probe gives up before the port opens.
+async function loadAuditor(): Promise<typeof import('@unlighthouse/core/auditors/cdp-connect').createCdpConnectAuditor> {
+  const mod = await import('@unlighthouse/core/auditors/cdp-connect')
+  return mod.createCdpConnectAuditor
+}
+
 // Log immediately so a crash before the listener still surfaces in
 // Cloudflare's Container stdout stream.
 // eslint-disable-next-line no-console
-console.log('[cloudflare-lighthouse] boot starting; node', process.versions.node)
+console.log('[cloudflare-lighthouse] boot starting; node', process.versions.node, 'arch', process.arch, 'platform', process.platform)
 
 process.on('uncaughtException', (err) => {
   // eslint-disable-next-line no-console
   console.error('[cloudflare-lighthouse] uncaught:', err?.stack ?? err)
-  process.exit(1)
 })
 process.on('unhandledRejection', (reason) => {
   // eslint-disable-next-line no-console
   console.error('[cloudflare-lighthouse] unhandled:', reason)
-  process.exit(1)
 })
 
-function required(name: string): string {
-  const v = process.env[name]
-  if (!v)
-    throw new Error(`[cloudflare-lighthouse] missing env var ${name}`)
-  return v
+// Graceful shutdown — Cloudflare's launcher sends SIGTERM when the
+// Container hibernates (sleepAfter). Match the official containers-template
+// convention so the listener closes cleanly instead of being SIGKILL'd.
+function installShutdown(closeFn: () => Promise<void>): void {
+  for (const sig of ['SIGTERM', 'SIGINT'] as const) {
+    process.on(sig, () => {
+      // eslint-disable-next-line no-console
+      console.log(`[cloudflare-lighthouse] received ${sig}; closing`)
+      closeFn().finally(() => process.exit(0))
+    })
+  }
 }
 
+// Env vars are required for /audit to actually do anything, but we want
+// /health to come up even if they're missing — that way the Container
+// reports as listening and the Worker-side fallback can take over
+// gracefully on /audit calls.
 const PORT = Number(process.env.PORT ?? 8080)
-const SHARED_AUDIT_TOKEN = required('SHARED_AUDIT_TOKEN')
-const CF_ACCOUNT_ID = required('CF_ACCOUNT_ID')
-const CF_BROWSER_RUN_TOKEN = required('CF_BROWSER_RUN_TOKEN')
+const SHARED_AUDIT_TOKEN = process.env.SHARED_AUDIT_TOKEN ?? ''
+const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID ?? ''
+const CF_BROWSER_RUN_TOKEN = process.env.CF_BROWSER_RUN_TOKEN ?? ''
+
+if (!SHARED_AUDIT_TOKEN || !CF_ACCOUNT_ID || !CF_BROWSER_RUN_TOKEN) {
+  // eslint-disable-next-line no-console
+  console.warn('[cloudflare-lighthouse] missing one of SHARED_AUDIT_TOKEN/CF_ACCOUNT_ID/CF_BROWSER_RUN_TOKEN — /audit will 503')
+}
 
 const BROWSER_RUN_WS = `wss://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}`
   + `/browser-rendering/devtools/browser?keep_alive=600000`
@@ -72,10 +94,22 @@ function constantTimeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb)
 }
 
-const auditor = createCdpConnectAuditor({
-  browserWSEndpoint: BROWSER_RUN_WS,
-  headers: { Authorization: `Bearer ${CF_BROWSER_RUN_TOKEN}` },
-})
+// Build the auditor lazily on first /audit so the server can listen()
+// immediately. We intentionally don't await this at boot — Cloudflare's
+// probe needs the TCP listener up in ~5s, and lighthouse + puppeteer-core
+// take longer than that to load on a cold container.
+let auditorPromise: Promise<Auditor> | null = null
+const auditorConfigured = !!(SHARED_AUDIT_TOKEN && CF_ACCOUNT_ID && CF_BROWSER_RUN_TOKEN)
+
+async function getAuditor(): Promise<Auditor> {
+  if (!auditorPromise) {
+    auditorPromise = loadAuditor().then(create => create({
+      browserWSEndpoint: BROWSER_RUN_WS,
+      headers: { Authorization: `Bearer ${CF_BROWSER_RUN_TOKEN}` },
+    }))
+  }
+  return auditorPromise
+}
 
 const app = createApp()
 const router = createRouter()
@@ -92,6 +126,10 @@ router.get(
 router.post(
   '/audit',
   defineEventHandler(async (event) => {
+    if (!auditorConfigured) {
+      event.node.res.statusCode = 503
+      return { error: 'auditor_not_configured', detail: 'Container is missing required env vars' }
+    }
     const expectedAuth = `Bearer ${SHARED_AUDIT_TOKEN}`
     const auth = getHeader(event, 'authorization') ?? ''
     if (!constantTimeEqual(auth, expectedAuth)) {
@@ -111,6 +149,7 @@ router.post(
     }
 
     try {
+      const auditor = await getAuditor()
       return await auditor.audit(body.url, undefined, {
         device: body.device,
         lighthouseConfig: body.config,
@@ -135,7 +174,16 @@ app.use(router)
 // listen() implicitly binds to 0.0.0.0 on Node, but a few Container runtime
 // variants default to localhost-only which the Worker-side TCP probe can't
 // reach.
-createServer(toNodeListener(app)).listen(PORT, '0.0.0.0', () => {
+const server = createServer(toNodeListener(app))
+server.listen(PORT, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
   console.log(`[cloudflare-lighthouse] listening on 0.0.0.0:${PORT}`)
 })
+server.on('error', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('[cloudflare-lighthouse] server error:', err)
+})
+
+installShutdown(() => new Promise<void>((resolve) => {
+  server.close(() => resolve())
+}))
