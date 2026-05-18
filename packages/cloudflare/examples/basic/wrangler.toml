@@ -50,12 +50,12 @@ class_name = "LighthouseContainer"
 # that drives real Lighthouse against Cloudflare Browser Run's external CDP
 # endpoint. Worker calls in via env.LIGHTHOUSE_CONTAINER.getByName(...).fetch(...).
 #
-# instance_type "standard" ≈ 1 GiB / 0.5 vCPU — Lighthouse 13 is the hot path,
+# instance_type "standard-1" ≈ 1 GiB / 0.5 vCPU — Lighthouse 13 is the hot path,
 # bump to "standard-2" if you see OOMs on heavy SPAs.
 [[containers]]
 class_name = "LighthouseContainer"
 image = "../../../cloudflare-lighthouse/Dockerfile"
-instance_type = "standard"
+instance_type = "standard-1"
 max_instances = 5
 
 # ── DO migrations ──────────────────────────────────────────────────────────

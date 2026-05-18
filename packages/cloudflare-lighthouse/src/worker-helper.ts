@@ -43,10 +43,19 @@ export interface ResponseLike {
   json: () => Promise<unknown>
 }
 
-export interface ContainerNamespaceLike {
-  // eslint-disable-next-line ts/no-explicit-any
-  getByName: (name: string) => { fetch: (...args: any[]) => Promise<ResponseLike> }
+/* eslint-disable ts/no-explicit-any */
+export interface ContainerStubLike {
+  fetch: (...args: any[]) => Promise<ResponseLike>
 }
+export interface ContainerNamespaceLike {
+  /** Newer Workers types — direct name → stub. Optional. */
+  getByName?: (name: string) => ContainerStubLike
+  /** Classic DO API; always present on any DurableObjectNamespace binding. */
+  idFromName: (name: string) => unknown
+  /** Classic DO API; takes the id returned by idFromName. */
+  get: (id: unknown) => ContainerStubLike
+}
+/* eslint-enable ts/no-explicit-any */
 
 export interface ContainerLighthouseOptions {
   /** Container DO binding (e.g. `env.LIGHTHOUSE_CONTAINER`). */
@@ -70,7 +79,13 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
     token: opts.token,
     timeoutMs: opts.timeoutMs ?? 180_000,
     transport: async (req) => {
-      const stub = opts.container.getByName(opts.instanceName ?? 'default')
+      const name = opts.instanceName ?? 'default'
+      // Prefer the modern getByName accessor; fall back to idFromName+get
+      // for older runtimes / deployments where the convenience method
+      // hasn't shipped yet.
+      const stub = opts.container.getByName
+        ? opts.container.getByName(name)
+        : opts.container.get(opts.container.idFromName(name))
       const res = await stub.fetch('https://container.internal/audit', {
         method: 'POST',
         headers: {

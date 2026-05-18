@@ -99,6 +99,9 @@ catalogs:
     vitest:
       specifier: ^4.1.6
       version: 4.1.6
+    yaml:
+      specifier: ^2.9.0
+      version: 2.9.0
     zod:
       specifier: ^4.4.3
       version: 4.4.3
@@ -389,6 +392,10 @@ importers:
       puppeteer-core:
         specifier: catalog:dependencies
         version: 24.43.1
+    devDependencies:
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
 
   packages/cloudflare/examples/basic:
     dependencies:
@@ -10029,11 +10036,6 @@ packages:
     resolution: {integrity: sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==}
     engines: {node: '>= 6'}
 
-  yaml@2.8.2:
-    resolution: {integrity: sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A==}
-    engines: {node: '>= 14.6'}
-    hasBin: true
-
   yaml@2.9.0:
     resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
     engines: {node: '>= 14.6'}
@@ -15724,7 +15726,7 @@ snapshots:
       pathe: 2.0.3
       pnpm-workspace-yaml: 1.6.0
       tinyglobby: 0.2.16
-      yaml: 2.8.2
+      yaml: 2.9.0
       yaml-eslint-parser: 2.0.0
 
   eslint-plugin-regexp@3.1.0(eslint@10.3.0(jiti@2.6.1)):
@@ -18390,7 +18392,7 @@ snapshots:
 
   pnpm-workspace-yaml@1.6.0:
     dependencies:
-      yaml: 2.8.2
+      yaml: 2.9.0
 
   postcss-calc@10.1.1(postcss@8.5.6):
     dependencies:
@@ -19854,7 +19856,7 @@ snapshots:
       tinyglobby: 0.2.15
       unplugin: 2.3.11
       unplugin-utils: 0.3.1
-      yaml: 2.8.2
+      yaml: 2.9.0
     optionalDependencies:
       vue-router: 4.5.0(vue@3.5.25(typescript@6.0.3))
     transitivePeerDependencies:
@@ -20290,11 +20292,9 @@ snapshots:
   yaml-eslint-parser@2.0.0:
     dependencies:
       eslint-visitor-keys: 5.0.1
-      yaml: 2.8.2
+      yaml: 2.9.0
 
   yaml@1.10.3: {}
-
-  yaml@2.8.2: {}
 
   yaml@2.9.0: {}
 
