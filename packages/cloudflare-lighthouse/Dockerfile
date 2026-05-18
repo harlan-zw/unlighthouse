@@ -1,36 +1,44 @@
-# Cloudflare Container image for unlighthouse Lighthouse host.
+# Cloudflare Container image for the unlighthouse Lighthouse host.
 #
 # Connects to Cloudflare Browser Run remotely via CDP — no Chromium in
 # the image. Final size ≈ 250-300 MB.
 #
-# Build context: monorepo root (so we can `pnpm install` properly with
-# workspace links). Wrangler's `wrangler deploy` builds + pushes this
-# image automatically when `[[containers]]` is declared in wrangler.toml.
-
-FROM node:22-alpine AS deps
-WORKDIR /workspace
-# Manifest layer — cached unless deps change.
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/cloudflare-lighthouse/package.json packages/cloudflare-lighthouse/
-COPY packages/core/package.json packages/core/
-COPY packages/contracts/package.json packages/contracts/
-COPY packages/audit-pool/package.json packages/audit-pool/
-RUN corepack enable && \
-    pnpm install --frozen-lockfile --prod \
-      --filter @unlighthouse/cloudflare-lighthouse...
-
-FROM node:22-alpine AS build
-WORKDIR /workspace
-COPY --from=deps /workspace/node_modules ./node_modules
-COPY --from=deps /workspace/packages/cloudflare-lighthouse/node_modules ./packages/cloudflare-lighthouse/node_modules
-COPY packages/cloudflare-lighthouse/dist packages/cloudflare-lighthouse/dist
-COPY packages/cloudflare-lighthouse/package.json packages/cloudflare-lighthouse/
+# Build context is this directory (the Dockerfile's parent). Wrangler
+# builds + pushes the image automatically when `[[containers]]` is
+# declared in wrangler.toml.
+#
+# This image is intentionally self-contained — it does NOT participate
+# in the monorepo's pnpm workspace at runtime. The pre-built `dist/`
+# artefacts (workspace deps already bundled or externalized per
+# build.config.ts) are copied in, and a minimal package.json carrying
+# only the external runtime deps (`lighthouse`, `puppeteer-core`,
+# `ofetch`, `h3`, plus their transitive) is used to `npm install` them
+# fresh inside the image.
+#
+# Workspace deps (`@unlighthouse/contracts`, `@unlighthouse/core`) are
+# also copied in as tarballs and installed by file path — see the
+# pre-build step in `scripts/prepare-image.mjs` (run by `pnpm build`).
 
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-# Only the cloudflare-lighthouse package + its deps need to land in /app.
-COPY --from=build /workspace/packages/cloudflare-lighthouse ./
-COPY --from=build /workspace/node_modules ./node_modules
+
+# Artefacts published by `pnpm -F @unlighthouse/cloudflare-lighthouse build`
+# (and the pre-build step that vendors workspace deps).
+COPY dist ./dist
+COPY package.runtime.json ./package.json
+COPY vendor ./vendor
+
+# Install Lighthouse + puppeteer-core + ofetch + h3 + workspace tarballs.
+# `--omit=dev` keeps the layer small; `--no-package-lock` because we don't
+# ship a lockfile (lockfile lives in the monorepo and isn't valid for the
+# stripped-down image manifest).
+RUN npm install --omit=dev --omit=optional --no-package-lock --no-audit --no-fund
+
 EXPOSE 8080
-CMD ["node", "dist/server.mjs"]
+# Split node + script into ENTRYPOINT + CMD so Cloudflare Container's
+# launcher invokes both correctly. The node-alpine base image's default
+# entrypoint (`docker-entrypoint.sh`) gets dropped, which is what we want
+# — the launcher runs the exec form directly.
+ENTRYPOINT ["node"]
+CMD ["dist/server.mjs"]

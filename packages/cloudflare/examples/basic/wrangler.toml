@@ -1,13 +1,19 @@
-# Unlighthouse CF preset — minimal deploy config.
+# Unlighthouse CF preset — Phase 5.5 deploy config with real Lighthouse via
+# Cloudflare Containers + Browser Run external CDP.
 #
-# Set the values below, then:
-#   pnpm wrangler d1 create unlighthouse           # → copy the database_id
+# One-time setup:
+#   pnpm wrangler d1 create unlighthouse           # → copy database_id below
 #   pnpm wrangler r2 bucket create unlighthouse    # → no id needed
-#   pnpm wrangler deploy
+#   pnpm wrangler secret put SHARED_AUDIT_TOKEN    # random 32 bytes
+#   pnpm wrangler secret put CF_BROWSER_RUN_TOKEN  # Cloudflare API token,
+#                                                  # scope: Browser Rendering - Edit
+#   pnpm wrangler secret put CF_ACCOUNT_ID         # for Browser Run WS URL
+#   pnpm wrangler secret put CRUX_API_KEY          # optional; CrUX fallback
 #
-# The DOs migrate themselves on first request; D1's schema is applied
-# in-process by the package's INIT_SQL — no `wrangler d1 migrations`
-# step needed.
+# Deploy:
+#   pnpm wrangler deploy   # builds + pushes the Container image, then the Worker
+#
+# Verification curls + risks: see ./README.md.
 
 name = "unlighthouse"
 main = "worker.ts"
@@ -25,12 +31,6 @@ database_id = "3554d93a-6bd5-4578-af41-2593e2aea3b2"
 binding = "BLOBS"
 bucket_name = "unlighthouse"
 
-# Browser Rendering — requires Workers Paid plan ($5/mo). Uncomment when
-# the plan is enabled. Until then UNLIGHTHOUSE_USE_MOCK_AUDITOR=1 below
-# falls back to the mock auditor so the rest of the wiring still verifies.
-# [browser]
-# binding = "BROWSER"
-
 [[durable_objects.bindings]]
 name = "SCAN_EVENTS_DO"
 class_name = "ScanEventsDO"
@@ -39,14 +39,36 @@ class_name = "ScanEventsDO"
 name = "RATE_LIMITER_DO"
 class_name = "RateLimiterDO"
 
+[[durable_objects.bindings]]
+name = "LIGHTHOUSE_CONTAINER"
+class_name = "LighthouseContainer"
+
+# ── Container (real Lighthouse host) ───────────────────────────────────────
+#
+# Cloudflare Containers GA'd Apr 13 2026. The Container image runs the
+# `@unlighthouse/cloudflare-lighthouse/server` entry — a tiny h3 Node server
+# that drives real Lighthouse against Cloudflare Browser Run's external CDP
+# endpoint. Worker calls in via env.LIGHTHOUSE_CONTAINER.getByName(...).fetch(...).
+#
+# instance_type "standard-1" ≈ 1 GiB / 0.5 vCPU — Lighthouse 13 is the hot path,
+# bump to "standard-2" if you see OOMs on heavy SPAs.
+[[containers]]
+class_name = "LighthouseContainer"
+image = "../../../cloudflare-lighthouse/Dockerfile"
+instance_type = "standard-1"
+max_instances = 5
+
+# ── DO migrations ──────────────────────────────────────────────────────────
+
 [[migrations]]
 tag = "v1"
-# `new_sqlite_classes` (instead of `new_classes`) makes the DOs SQLite-backed.
-# This is the only DO storage backend available on the Workers Free plan and
-# also the recommended default on paid — Cloudflare has been migrating new DOs
-# to sqlite since 2025-04. Existing paid deploys on the legacy KV backend can
-# stay on `new_classes` without changing storage.
 new_sqlite_classes = ["ScanEventsDO", "RateLimiterDO"]
+
+# v2 adds the LighthouseContainer DO. Container DOs ride on top of a
+# sqlite-backed DO under the hood, so they go in `new_sqlite_classes`.
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["LighthouseContainer"]
 
 # ── Vars ────────────────────────────────────────────────────────────────────
 
@@ -57,16 +79,16 @@ new_sqlite_classes = ["ScanEventsDO", "RateLimiterDO"]
 UNLIGHTHOUSE_CONFIG = '{"site": "https://example.com"}'
 
 # Surfaced by manifest + health responses. Bump on each deploy.
-UNLIGHTHOUSE_VERSION = "1.0.0-rc.1"
+UNLIGHTHOUSE_VERSION = "1.0.0-rc.2"
 
 # Token-bucket rate limiter (per API key / IP). Defaults: 10 / 1 per sec.
 RATE_LIMITER_CAPACITY = "10"
 RATE_LIMITER_REFILL_PER_SEC = "1"
 
-# Mock auditor mode — no Browser Rendering required. Use this until the
-# Workers Paid plan is enabled; everything else (D1, R2, DOs, HTTP, WS)
-# is verified end-to-end.
-UNLIGHTHOUSE_USE_MOCK_AUDITOR = "1"
+# Mock auditor mode — flip to "1" to bypass the Container and exercise the
+# rest of the wiring (D1, R2, DOs, HTTP, WS) with a synthetic LHR. Useful
+# during smoke tests; off in production.
+# UNLIGHTHOUSE_USE_MOCK_AUDITOR = "1"
 
 # ── Cron triggers ──────────────────────────────────────────────────────────
 

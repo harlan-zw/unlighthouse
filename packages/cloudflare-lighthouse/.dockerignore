@@ -1,16 +1,15 @@
-# Build context is the monorepo root. Keep it lean.
-**/node_modules
-**/.turbo
-**/.cache
-**/dist
-**/.git
-**/.github
-**/test
-**/tests
-**/*.test.ts
-**/*.spec.ts
-**/.DS_Store
-**/.vscode
-**/coverage
-**/*.md
-!packages/cloudflare-lighthouse/dist
+# Build context is this package directory. Keep only what the image needs.
+node_modules
+src
+build.config.ts
+tsconfig.json
+package.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+*.test.ts
+*.spec.ts
+.DS_Store
+.vscode
+coverage
+README.md

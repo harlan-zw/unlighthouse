@@ -6,11 +6,15 @@
 // to the first.
 //
 // Bindings expected on env (declared in wrangler.toml):
-//   DB                R2Bucket   — D1 database for scan + route rows
-//   BLOBS             R2Bucket   — R2 bucket for LHR / reconciled blobs
-//   BROWSER           Browser    — Browser Rendering binding
-//   SCAN_EVENTS_DO    DO         — durable object namespace
-//   RATE_LIMITER_DO   DO         — durable object namespace
+//   DB                  D1Database  — scan + route rows
+//   BLOBS               R2Bucket    — LHR / reconciled blobs
+//   SCAN_EVENTS_DO      DO          — WS fanout for live scan events
+//   RATE_LIMITER_DO     DO          — token-bucket rate limiter
+//   LIGHTHOUSE_CONTAINER DO         — Container running real Lighthouse
+//
+// Secrets (set via `wrangler secret put`):
+//   SHARED_AUDIT_TOKEN  — Bearer shared with the LighthouseContainer
+//   CRUX_API_KEY        — optional; enables CrUX fallback
 //
 // Vars (also in wrangler.toml):
 //   UNLIGHTHOUSE_CONFIG          JSON-encoded unlighthouse config
@@ -21,25 +25,54 @@
 import {
   type CloudflareEnv,
   createCloudflareApp,
+  LighthouseContainer,
   RateLimiterDO,
   ScanEventsDO,
   sweeperWorker,
 } from '@unlighthouse/cloudflare'
+import { createContainerLighthouseAuditor } from '@unlighthouse/cloudflare-lighthouse/worker'
+import type { NamedAuditor } from '@unlighthouse/contracts/ports'
+import { createCruxAuditor } from '@unlighthouse/core/auditors/crux'
+import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
+import { fallbackAuditor } from '@unlighthouse/core/auditors/route'
 
-// Re-export the Durable Object classes so the Workers runtime can find
-// them when wrangler.toml references `class_name = "ScanEventsDO"` etc.
-export { RateLimiterDO, ScanEventsDO }
+// Re-export the Durable Object + Container classes so the Workers runtime
+// can find them when wrangler.toml references `class_name = "..."`.
+export { LighthouseContainer, RateLimiterDO, ScanEventsDO }
 
-// Main HTTP + WS handler.
-const app = {
-  async fetch(req: Request, env: CloudflareEnv, ctx: ExecutionContext) {
-    const handler = createCloudflareApp(env)
+export default {
+  async fetch(req: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
+    const handler = createCloudflareApp(env, {
+      auditorFactory: (cfEnv) => {
+        const tiers: NamedAuditor[] = []
+
+        // Tier 1: Real Lighthouse in the Container, via Browser Run CDP.
+        if (cfEnv.LIGHTHOUSE_CONTAINER && cfEnv.SHARED_AUDIT_TOKEN) {
+          tiers.push({
+            name: 'container-lighthouse',
+            auditor: createContainerLighthouseAuditor({
+              container: cfEnv.LIGHTHOUSE_CONTAINER,
+              token: cfEnv.SHARED_AUDIT_TOKEN,
+            }),
+          })
+        }
+
+        // Tier 2: CrUX field data — survives Container outages, no lab metrics.
+        if (cfEnv.CRUX_API_KEY) {
+          tiers.push({
+            name: 'crux',
+            auditor: createCruxAuditor({ apiKey: cfEnv.CRUX_API_KEY }),
+          })
+        }
+
+        // Tier 3: mock — last resort so the API never 5xx's on auditor outage.
+        // Remove from production deploys once tiers 1-2 prove stable.
+        tiers.push({ name: 'mock', auditor: createMockAuditor() })
+
+        return fallbackAuditor(tiers)
+      },
+    })
     return handler.fetch(req, env, ctx)
   },
-  // Cron trigger → R2 TTL sweep. wrangler.toml `[triggers] crons = [...]`
-  // routes scheduled events here; the rest of the file's exports stay
-  // available for normal request traffic.
   scheduled: sweeperWorker.scheduled,
 }
-
-export default app

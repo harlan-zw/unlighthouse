@@ -20,13 +20,16 @@
   "files": [
     "dist",
     "Dockerfile",
-    ".dockerignore"
+    ".dockerignore",
+    "vendor",
+    "package.runtime.json",
+    "scripts"
   ],
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "obuild",
+    "build": "obuild && node ./scripts/prepare-image.mjs",
     "stub": "obuild --stub",
     "typecheck": "tsc --noEmit",
     "test:attw": "attw --pack --profile esm-only",
@@ -40,5 +43,7 @@
     "ofetch": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "yaml": "catalog:"
+  }
 }

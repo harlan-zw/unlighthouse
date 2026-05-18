@@ -21,13 +21,41 @@ import { createRemoteLighthouseAuditor } from '@unlighthouse/core/auditors/remot
 
 /**
  * Minimal local shape of the Container DO namespace surface this helper
- * uses. Matches `DurableObjectNamespace` from @cloudflare/workers-types
- * for the `getByName(name).fetch(req)` path. Consumers will pass their
- * actual `env.LIGHTHOUSE_CONTAINER` binding here.
+ * uses. The actual `DurableObjectNamespace` from @cloudflare/workers-types
+ * is intentionally not imported here (see file header for the AbortSignal
+ * collision rationale). Consumers pass their `env.LIGHTHOUSE_CONTAINER`
+ * binding and TypeScript checks structural compatibility.
+ *
+ * `fetch` is typed loosely as `(...args: any[]) => Promise<Response>` so
+ * we sidestep the DOM-vs-Workers Request/RequestInit type war — the
+ * Workers `DurableObjectStub.fetch` signature is wider than DOM's and the
+ * two never quite align without one side being `any`.
  */
-export interface ContainerNamespaceLike {
-  getByName: (name: string) => { fetch: (req: Request) => Promise<Response> }
+/**
+ * Minimal `Response` surface this helper consumes. Matches what both DOM
+ * `Response` and Workers types `Response` expose; lets the structural check
+ * succeed against either.
+ */
+export interface ResponseLike {
+  readonly ok: boolean
+  readonly status: number
+  text: () => Promise<string>
+  json: () => Promise<unknown>
 }
+
+/* eslint-disable ts/no-explicit-any */
+export interface ContainerStubLike {
+  fetch: (...args: any[]) => Promise<ResponseLike>
+}
+export interface ContainerNamespaceLike {
+  /** Newer Workers types — direct name → stub. Optional. */
+  getByName?: (name: string) => ContainerStubLike
+  /** Classic DO API; always present on any DurableObjectNamespace binding. */
+  idFromName: (name: string) => unknown
+  /** Classic DO API; takes the id returned by idFromName. */
+  get: (id: unknown) => ContainerStubLike
+}
+/* eslint-enable ts/no-explicit-any */
 
 export interface ContainerLighthouseOptions {
   /** Container DO binding (e.g. `env.LIGHTHOUSE_CONTAINER`). */
@@ -51,8 +79,14 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
     token: opts.token,
     timeoutMs: opts.timeoutMs ?? 180_000,
     transport: async (req) => {
-      const stub = opts.container.getByName(opts.instanceName ?? 'default')
-      const res = await stub.fetch(new Request('https://container.internal/audit', {
+      const name = opts.instanceName ?? 'default'
+      // Prefer the modern getByName accessor; fall back to idFromName+get
+      // for older runtimes / deployments where the convenience method
+      // hasn't shipped yet.
+      const stub = opts.container.getByName
+        ? opts.container.getByName(name)
+        : opts.container.get(opts.container.idFromName(name))
+      const res = await stub.fetch('https://container.internal/audit', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -63,7 +97,7 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
           config: req.lighthouseConfig,
         }),
         signal: req.signal,
-      }))
+      })
       if (!res.ok) {
         const text = await res.text().catch(() => '<unreadable>')
         throw new Error(`LighthouseContainer audit failed: ${res.status} ${text}`)

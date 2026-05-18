@@ -19,6 +19,7 @@
 
 import { Buffer } from 'node:buffer'
 import { createServer } from 'node:http'
+import process from 'node:process'
 import { createCdpConnectAuditor } from '@unlighthouse/core/auditors/cdp-connect'
 import {
   createApp,
@@ -29,10 +30,21 @@ import {
   toNodeListener,
 } from 'h3'
 
-const PORT = Number(process.env.PORT ?? 8080)
-const SHARED_AUDIT_TOKEN = required('SHARED_AUDIT_TOKEN')
-const CF_ACCOUNT_ID = required('CF_ACCOUNT_ID')
-const CF_BROWSER_RUN_TOKEN = required('CF_BROWSER_RUN_TOKEN')
+// Log immediately so a crash before the listener still surfaces in
+// Cloudflare's Container stdout stream.
+// eslint-disable-next-line no-console
+console.log('[cloudflare-lighthouse] boot starting; node', process.versions.node)
+
+process.on('uncaughtException', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('[cloudflare-lighthouse] uncaught:', err?.stack ?? err)
+  process.exit(1)
+})
+process.on('unhandledRejection', (reason) => {
+  // eslint-disable-next-line no-console
+  console.error('[cloudflare-lighthouse] unhandled:', reason)
+  process.exit(1)
+})
 
 function required(name: string): string {
   const v = process.env[name]
@@ -40,6 +52,11 @@ function required(name: string): string {
     throw new Error(`[cloudflare-lighthouse] missing env var ${name}`)
   return v
 }
+
+const PORT = Number(process.env.PORT ?? 8080)
+const SHARED_AUDIT_TOKEN = required('SHARED_AUDIT_TOKEN')
+const CF_ACCOUNT_ID = required('CF_ACCOUNT_ID')
+const CF_BROWSER_RUN_TOKEN = required('CF_BROWSER_RUN_TOKEN')
 
 const BROWSER_RUN_WS = `wss://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}`
   + `/browser-rendering/devtools/browser?keep_alive=600000`
@@ -113,7 +130,12 @@ router.post(
 
 app.use(router)
 
-createServer(toNodeListener(app)).listen(PORT, () => {
+// Bind explicitly to 0.0.0.0 so the Cloudflare Container's network namespace
+// (10.0.0.1 from the launcher's POV) can reach the listener. The default
+// listen() implicitly binds to 0.0.0.0 on Node, but a few Container runtime
+// variants default to localhost-only which the Worker-side TCP probe can't
+// reach.
+createServer(toNodeListener(app)).listen(PORT, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
-  console.log(`[cloudflare-lighthouse] listening on :${PORT}`)
+  console.log(`[cloudflare-lighthouse] listening on 0.0.0.0:${PORT}`)
 })

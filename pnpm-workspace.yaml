@@ -6,6 +6,7 @@ trustPolicy: no-downgrade
 
 packages:
   - packages/*
+  - packages/cloudflare/examples/*
   - crux-api
   - cloud.unlighthouse.dev
   - '!docs'
@@ -53,6 +54,7 @@ catalog:
   unstorage: ^1.17.5
   vitest: ^4.1.6
   vue-router: ^5.0.6
+  yaml: ^2.9.0
   zod: ^4.4.3
 
 catalogs:
@@ -128,5 +130,7 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   maplibre-gl: true
+  sharp: true
   unrs-resolver: true
   vue-demi: true
+  workerd: true
