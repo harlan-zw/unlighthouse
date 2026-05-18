@@ -100,7 +100,21 @@ function parseConfig(env: CloudflareEnv): UnlighthouseConfig {
   return JSON.parse(env.UNLIGHTHOUSE_CONFIG) as UnlighthouseConfig
 }
 
-function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): HandlerCtx {
+// Mutable reference to the site the next scan should seed against.
+// `scan.start` requests update this just before the handler runs (see the
+// body-parse interceptor in createCloudflareApp's fetch path); seeds()
+// reads it lazily so a single Worker instance can serve scans for any
+// number of sites without needing a redeploy per site.
+//
+// Concurrency: `scan.start` is gated by `core.session()` ("active scan
+// conflict") and by the transport-level rate limiter, so two simultaneous
+// writes to this slot can't race in practice — the second request 409s
+// before its seeds() fires.
+interface PendingSeed {
+  site: string | null
+}
+
+function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions, pendingSeed?: PendingSeed): HandlerCtx {
   const logger = createWorkersLogger()
   const config = parseConfig(env)
   // Auditor selection:
@@ -126,7 +140,18 @@ function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions):
     : parallelMapCrawler({ concurrency: 4 })
   const storage = d1R2Storage({ db: env.DB, bucket: env.BLOBS })
   const seeds = manualSeeds({
-    urls: (config as { site?: string }).site ? [(config as { site: string }).site] : [],
+    // Lazy URL list: prefer the site the inbound scan.start carried in its
+    // body (set on `pendingSeed.site` by the fetch interceptor); fall back
+    // to UNLIGHTHOUSE_CONFIG.site for callers that omit it (mostly the
+    // smoke-test path). Default to an empty list if neither is set so the
+    // scan errors cleanly instead of crawling a placeholder.
+    urls: () => {
+      const fromRequest = pendingSeed?.site
+      if (fromRequest)
+        return [fromRequest]
+      const fromConfig = (config as { site?: string }).site
+      return fromConfig ? [fromConfig] : []
+    },
   })
   const core = createUnlighthouseCore({
     config,
@@ -174,7 +199,8 @@ function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions):
 }
 
 export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): CloudflareApp {
-  const ctx = buildHandlerCtx(env, opts)
+  const pendingSeed: PendingSeed = { site: null }
+  const ctx = buildHandlerCtx(env, opts, pendingSeed)
   const router = createHttpRouter({ handlers: createHandlers(), ctx })
 
   const app = createApp()
@@ -211,11 +237,20 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         return stub.fetch(req)
       }
 
-      // Transport-level rate-limit gate for scan.start. Kept out of the HTTP
-      // projection so the limiter never leaks into handler/router concerns.
-      // Path is `/scan/start` (router prefix '/'); the leading `/api` got
-      // dropped when the toWebHandler stopped prefixing routes.
+      // Transport-level rate-limit gate for scan.start + body peek to
+      // capture `site` for the seed-source (so a single deploy can scan
+      // many hosts without redeploying). Cloned read of the body is
+      // non-destructive — the downstream h3 handler re-reads from `req`.
       if (req.method === 'POST' && url.pathname === '/scan/start') {
+        try {
+          const body = await req.clone().json() as { site?: unknown } | null
+          pendingSeed.site = (body && typeof body.site === 'string' && body.site.length > 0)
+            ? body.site
+            : null
+        }
+        catch {
+          pendingSeed.site = null
+        }
         const key = req.headers.get('x-api-key')
           ?? req.headers.get('cf-connecting-ip')
           ?? 'global'

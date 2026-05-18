@@ -105,3 +105,6 @@ storage
 # `pnpm -F @unlighthouse/cloudflare-lighthouse build`).
 packages/cloudflare-lighthouse/vendor/
 packages/cloudflare-lighthouse/package.runtime.json
+
+# Local smoke-test scripts
+/a.sh
