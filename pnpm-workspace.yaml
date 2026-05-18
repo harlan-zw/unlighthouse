@@ -21,6 +21,7 @@ overrides:
 catalog:
   '@antfu/eslint-config': ^9.0.0
   '@arethetypeswrong/cli': 0.18.2
+  '@cloudflare/containers': ^0.0.18
   '@cloudflare/puppeteer': ^1.1.0
   '@cloudflare/workers-types': ^4.20260511.1
   '@modelcontextprotocol/sdk': ^1.29.0

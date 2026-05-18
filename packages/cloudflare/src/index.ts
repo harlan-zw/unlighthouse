@@ -11,6 +11,7 @@ export type { CloudflareApp, CloudflareEnv, CreateCloudflareAppOptions } from '.
 export { createCloudflareApp } from './app'
 export { cloudflareCrawler } from './crawlers/cloudflare-crawl'
 export type { CloudflareCrawlerOptions } from './crawlers/cloudflare-crawl'
+export { LighthouseContainer } from './do/lighthouse-container'
 export { RateLimiterDO } from './do/rate-limiter'
 export type { RateLimiterCheckResult, RateLimiterConfig, RateLimiterEnv } from './do/rate-limiter'
 export { ScanEventsDO } from './do/scan-events'
