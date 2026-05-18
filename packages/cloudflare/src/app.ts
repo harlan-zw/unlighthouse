@@ -42,6 +42,16 @@ export interface CloudflareEnv {
   BROWSER?: BrowserWorker
   SCAN_EVENTS_DO: DurableObjectNamespace
   RATE_LIMITER_DO: DurableObjectNamespace
+  /**
+   * LighthouseContainer DO binding. When present, the example wires
+   * `createContainerLighthouseAuditor` (from @unlighthouse/cloudflare-lighthouse)
+   * into the auditorFactory — real Lighthouse runs in the container.
+   */
+  LIGHTHOUSE_CONTAINER?: DurableObjectNamespace
+  /** Shared bearer between Worker and LighthouseContainer. Set via `wrangler secret put`. */
+  SHARED_AUDIT_TOKEN?: string
+  /** Optional CrUX API key; enables the field-data fallback tier. */
+  CRUX_API_KEY?: string
   /** Inline config JSON; the preset Zod-validates this. */
   UNLIGHTHOUSE_CONFIG?: string
   /** Package version surfaced by `manifest` + `health`. Set during deploy. */

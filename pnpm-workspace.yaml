@@ -6,6 +6,7 @@ trustPolicy: no-downgrade
 
 packages:
   - packages/*
+  - packages/cloudflare/examples/*
   - crux-api
   - cloud.unlighthouse.dev
   - '!docs'
@@ -128,5 +129,7 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   maplibre-gl: true
+  sharp: true
   unrs-resolver: true
   vue-demi: true
+  workerd: true

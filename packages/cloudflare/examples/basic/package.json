@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "tail": "wrangler tail"
+    "tail": "wrangler tail",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@unlighthouse/cloudflare": "workspace:*"
+    "@unlighthouse/cloudflare": "workspace:*",
+    "@unlighthouse/cloudflare-lighthouse": "workspace:*",
+    "@unlighthouse/core": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

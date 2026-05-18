@@ -21,12 +21,31 @@ import { createRemoteLighthouseAuditor } from '@unlighthouse/core/auditors/remot
 
 /**
  * Minimal local shape of the Container DO namespace surface this helper
- * uses. Matches `DurableObjectNamespace` from @cloudflare/workers-types
- * for the `getByName(name).fetch(req)` path. Consumers will pass their
- * actual `env.LIGHTHOUSE_CONTAINER` binding here.
+ * uses. The actual `DurableObjectNamespace` from @cloudflare/workers-types
+ * is intentionally not imported here (see file header for the AbortSignal
+ * collision rationale). Consumers pass their `env.LIGHTHOUSE_CONTAINER`
+ * binding and TypeScript checks structural compatibility.
+ *
+ * `fetch` is typed loosely as `(...args: any[]) => Promise<Response>` so
+ * we sidestep the DOM-vs-Workers Request/RequestInit type war — the
+ * Workers `DurableObjectStub.fetch` signature is wider than DOM's and the
+ * two never quite align without one side being `any`.
  */
+/**
+ * Minimal `Response` surface this helper consumes. Matches what both DOM
+ * `Response` and Workers types `Response` expose; lets the structural check
+ * succeed against either.
+ */
+export interface ResponseLike {
+  readonly ok: boolean
+  readonly status: number
+  text: () => Promise<string>
+  json: () => Promise<unknown>
+}
+
 export interface ContainerNamespaceLike {
-  getByName: (name: string) => { fetch: (req: Request) => Promise<Response> }
+  // eslint-disable-next-line ts/no-explicit-any
+  getByName: (name: string) => { fetch: (...args: any[]) => Promise<ResponseLike> }
 }
 
 export interface ContainerLighthouseOptions {
@@ -52,7 +71,7 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
     timeoutMs: opts.timeoutMs ?? 180_000,
     transport: async (req) => {
       const stub = opts.container.getByName(opts.instanceName ?? 'default')
-      const res = await stub.fetch(new Request('https://container.internal/audit', {
+      const res = await stub.fetch('https://container.internal/audit', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -63,7 +82,7 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
           config: req.lighthouseConfig,
         }),
         signal: req.signal,
-      }))
+      })
       if (!res.ok) {
         const text = await res.text().catch(() => '<unreadable>')
         throw new Error(`LighthouseContainer audit failed: ${res.status} ${text}`)
