@@ -26,7 +26,6 @@ catalog:
   '@cloudflare/puppeteer': ^1.1.0
   '@cloudflare/workers-types': ^4.20260511.1
   '@modelcontextprotocol/sdk': ^1.29.0
-  '@nuxt/eslint': ^1.15.2
   '@types/better-sqlite3': ^7.6.13
   '@types/fs-extra': ^11.0.4
   '@types/lodash-es': ^4.17.12
@@ -54,14 +53,11 @@ catalog:
   unstorage: ^1.17.5
   vitest: ^4.1.6
   vue-router: ^5.0.6
+  wrangler: ^4.0.0
   yaml: ^2.9.0
   zod: ^4.4.3
 
 catalogs:
-  conflicts_dependencies_h24_43_1:
-    puppeteer: ^24.43.1
-  crux-api:
-    nitropack: latest
   dependencies:
     '@clack/prompts': ^1.4.0
     '@nuxt/ui': ^4.7.1
@@ -98,7 +94,6 @@ catalogs:
     object-hash: ^3.0.0
     ofetch: ^1.5.1
     pathe: ^2.0.3
-    puppeteer: ^0.0.0
     puppeteer-core: ^24.43.1
     radix3: ^1.1.2
     regexparam: ^3.0.0

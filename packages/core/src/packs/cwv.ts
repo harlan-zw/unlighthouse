@@ -171,7 +171,7 @@ interface InsightAccum {
   routes: Set<string>
 }
 
-type LhrLike = {
+interface LhrLike {
   audits?: Record<string, {
     title?: string
     metricSavings?: { FCP?: number, LCP?: number, INP?: number, CLS?: number }

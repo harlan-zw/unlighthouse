@@ -22,8 +22,10 @@
 //   RATE_LIMITER_CAPACITY        bucket size (default 10)
 //   RATE_LIMITER_REFILL_PER_SEC  refill rate (default 1)
 
+import type { CloudflareEnv } from '@unlighthouse/cloudflare'
+import type { NamedAuditor } from '@unlighthouse/contracts/ports'
 import {
-  type CloudflareEnv,
+
   createCloudflareApp,
   LighthouseContainer,
   RateLimiterDO,
@@ -31,7 +33,6 @@ import {
   sweeperWorker,
 } from '@unlighthouse/cloudflare'
 import { createContainerLighthouseAuditor } from '@unlighthouse/cloudflare-lighthouse/worker'
-import type { NamedAuditor } from '@unlighthouse/contracts/ports'
 import { createCruxAuditor } from '@unlighthouse/core/auditors/crux'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { fallbackAuditor } from '@unlighthouse/core/auditors/route'

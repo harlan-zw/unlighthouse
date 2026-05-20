@@ -66,7 +66,7 @@ export type ImagesReport = z.infer<typeof ImagesReportSchema>
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-type LhrLike = {
+interface LhrLike {
   audits?: Record<string, {
     score?: number | null
     metricSavings?: { LCP?: number, FCP?: number, CLS?: number }
@@ -299,13 +299,20 @@ async function loadRouteAuditsAsLhrLike(url: string, ctx: PackReconcileCtx): Pro
         // delivery extractor expects it.
         const items = (a.items ?? []).map((it) => {
           const out: Record<string, unknown> = {}
-          if (it.url != null) out.url = it.url
-          if (it.type != null) out.type = it.type
-          if (it.totalBytes != null) out.totalBytes = it.totalBytes
-          if (it.wastedBytes != null) out.wastedBytes = it.wastedBytes
-          if (it.node) out.node = it.node
-          if (it.snippet != null) out.snippet = it.snippet
-          if (it.reason != null) out.subItems = { items: [{ reason: it.reason }] }
+          if (it.url != null)
+            out.url = it.url
+          if (it.type != null)
+            out.type = it.type
+          if (it.totalBytes != null)
+            out.totalBytes = it.totalBytes
+          if (it.wastedBytes != null)
+            out.wastedBytes = it.wastedBytes
+          if (it.node)
+            out.node = it.node
+          if (it.snippet != null)
+            out.snippet = it.snippet
+          if (it.reason != null)
+            out.subItems = { items: [{ reason: it.reason }] }
           return out
         })
         audits[id] = {

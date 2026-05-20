@@ -11,10 +11,10 @@
 //   2. Runtime interfaces (TypeScript) — Pack<T>, PackReconcileCtx. Live inside
 //      a process; closures over storage / logger; not serialisable.
 
-import { z } from 'zod'
 import type { Logger } from '../ports/core'
-import { ScanIdSchema } from '../types/atoms'
 import type { Device, ScanId, ScanRoute } from '../types/atoms'
+import { z } from 'zod'
+import { ScanIdSchema } from '../types/atoms'
 
 // ── Wire-format ────────────────────────────────────────────────────────────
 

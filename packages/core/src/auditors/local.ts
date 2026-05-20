@@ -62,8 +62,12 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
       const lhr = report.raw
       const extracted = extractRouteData(lhr as never)
       const path = (() => {
-        try { return new URL(url).pathname }
-        catch { return url }
+        try {
+          return new URL(url).pathname
+        }
+        catch {
+          return url
+        }
       })()
       const metrics = {
         url,

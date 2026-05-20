@@ -10,8 +10,8 @@
 // help. We sidestep obuild entirely and call rolldown ourselves — no clean,
 // just an overwrite of the stubbed `dist/auditors/local-worker.mjs`.
 
-import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { rolldown } from 'rolldown'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -24,7 +24,8 @@ const bundle = await rolldown({
     // Treat anything that isn't a relative/absolute path as external.
     // The worker's runtime deps (chrome-launcher, lighthouse,
     // @unlighthouse/audit-pool/worker, etc.) resolve via node_modules.
-    if (id.startsWith('.') || id.startsWith('/')) return false
+    if (id.startsWith('.') || id.startsWith('/'))
+      return false
     return true
   },
 })

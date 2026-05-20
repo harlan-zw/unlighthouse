@@ -3,10 +3,10 @@
 // defu owns merging (D-011); c12 layers the file/env/overrides, the Zod schema
 // validates the post-merge result.
 
+import type { UnlighthouseConfig } from '@unlighthouse/contracts'
 import { Buffer } from 'node:buffer'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
-import type { UnlighthouseConfig } from '@unlighthouse/contracts'
 import { UnlighthouseConfigSchema, UnlighthouseError } from '@unlighthouse/contracts'
 import { loadConfig } from 'c12'
 import { defu } from 'defu'

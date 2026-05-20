@@ -18,16 +18,16 @@ export function usePackRun(
   scanId: MaybeRefOrGetter<string | null | undefined>,
   pack: MaybeRefOrGetter<string>,
 ): {
-    data: Ref<PackRunResult | null>
-    pending: Ref<boolean>
-    error: Ref<Error | null>
-    /**
-     * Re-fetch. Pass `{ force: true }` to bypass the server-side pack cache
-     * — useful for a manual "rerun" button after a pack update. The default
-     * (no args) lets the server serve from `packRuns` if the entry exists.
-     */
-    refresh: (opts?: { force?: boolean }) => Promise<void>
-  } {
+  data: Ref<PackRunResult | null>
+  pending: Ref<boolean>
+  error: Ref<Error | null>
+  /**
+   * Re-fetch. Pass `{ force: true }` to bypass the server-side pack cache
+   * — useful for a manual "rerun" button after a pack update. The default
+   * (no args) lets the server serve from `packRuns` if the entry exists.
+   */
+  refresh: (opts?: { force?: boolean }) => Promise<void>
+} {
   const api = useApiClient()
   const data = ref<PackRunResult | null>(null)
   const pending = ref(false)

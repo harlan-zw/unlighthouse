@@ -83,7 +83,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   if (userConfig.debug)
     (logger as any).level = 4
 
-  const { __dirname, require } = createCommonJS(import.meta.url)
+  const { __dirname } = createCommonJS(import.meta.url)
 
   if (userConfig.root && !isAbsolute(userConfig.root))
     userConfig.root = join(process.cwd(), userConfig.root)
@@ -177,7 +177,9 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     // TABLE ADD COLUMN` is not — sqlite errors with "duplicate column name"
     // on second run. Skip-on-error covers the additive-migration case.
     for (const stmt of INIT_SQL_STATEMENTS) {
-      try { sqliteDb.exec(stmt) }
+      try {
+        sqliteDb.exec(stmt)
+      }
       catch (err) {
         const msg = (err as Error).message
         if (!/duplicate column name/i.test(msg))
