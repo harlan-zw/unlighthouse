@@ -338,7 +338,9 @@ export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
             inp75: inpLast?.value,
           }
         : undefined
-      const lhr = buildSyntheticLhr({ url, formFactor: opts.formFactor, latest })
+      const lhr = buildSyntheticLhr({ url, formFactor: opts.formFactor, latest }) as LighthouseReport & {
+        categories: { performance: { score: number | null } }
+      }
       // Attach `lhrGzip` so core's ingest path writes the LHR blob + the
       // D-030 reconciled report. Without it, CrUX scans would persist row
       // data but no per-route blob, and packs that read getLhr/getReconciled

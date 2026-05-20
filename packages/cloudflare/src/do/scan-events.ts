@@ -86,8 +86,10 @@ export class ScanEventsDO {
       return new Response('expected websocket upgrade', { status: 426 })
     }
 
-    // @ts-expect-error - WebSocketPair is a global in Workers runtime.
-    const pair = new WebSocketPair()
+    // WebSocketPair is a Workers-runtime global. @cloudflare/workers-types
+    // only exposes it via /// <reference />, which our tsconfig doesn't
+    // pull in. Cast via globalThis to keep the call site type-safe.
+    const pair = new (globalThis as unknown as { WebSocketPair: new () => [CFWebSocket, CFWebSocket] }).WebSocketPair()
     const client = pair[0] as CFWebSocket
     const server = pair[1] as CFWebSocket
 
