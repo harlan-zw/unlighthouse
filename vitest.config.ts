@@ -15,7 +15,12 @@ export const alias: AliasOptions = {
   '@unlighthouse/contracts': r('./packages/contracts/src/index.ts'),
   '@unlighthouse/core': r('./packages/core/src/'),
   '@unlighthouse/cloudflare': r('./packages/cloudflare/src/'),
+  '@unlighthouse/cloudflare-lighthouse': r('./packages/cloudflare-lighthouse/src/'),
   '@unlighthouse/mcp': r('./packages/mcp/src/'),
+  // `cloudflare:workers` is a Workers-runtime virtual module. Stub it so
+  // tests in Node can import packages (@cloudflare/containers etc.) that
+  // depend on it without spinning up miniflare.
+  'cloudflare:workers': r('./test/stubs/cloudflare-workers.ts'),
 }
 
 export default defineConfig({

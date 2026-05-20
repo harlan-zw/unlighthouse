@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - v1
 
   pull_request:
     branches:
       - main
+      - v1
 
 jobs:
   build:
@@ -40,7 +42,7 @@ jobs:
         run: pnpm run test
 
       - name: Test attw
-        run: pnpm run test:attw || true
+        run: pnpm run test:attw
 
       - name: Test publint
-        run: pnpm run test:publint || true
+        run: pnpm run test:publint
