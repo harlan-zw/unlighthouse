@@ -13,8 +13,7 @@
 // - Worst-routes capped at 5, template groups capped at 5. Designed to stay
 //   under the 1KB budget for the agent summary tier.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts'
-import type { Category, ScanRoute, Url } from '@unlighthouse/contracts'
+import type { Category, Pack, PackReconcileCtx, ScanRoute, Url } from '@unlighthouse/contracts'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────
@@ -101,9 +100,9 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
 
   // Per-category averages across the whole scan.
   const categoryAverages: Partial<Record<Category, number | null>> = {
-    performance: avg(routes.map(r => r.scorePerformance)),
-    accessibility: avg(routes.map(r => r.scoreAccessibility)),
-    seo: avg(routes.map(r => r.scoreSeo)),
+    'performance': avg(routes.map(r => r.scorePerformance)),
+    'accessibility': avg(routes.map(r => r.scoreAccessibility)),
+    'seo': avg(routes.map(r => r.scoreSeo)),
     'best-practices': avg(routes.map(r => r.scoreBestPractices)),
   }
 

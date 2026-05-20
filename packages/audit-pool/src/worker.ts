@@ -156,8 +156,14 @@ function withTimeout<T>(promise: Promise<T> | T, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`Task exceeded timeout of ${ms}ms`)), ms)
     Promise.resolve(promise).then(
-      (v) => { clearTimeout(timer); resolve(v) },
-      (e) => { clearTimeout(timer); reject(e) },
+      (v) => {
+        clearTimeout(timer)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(timer)
+        reject(e)
+      },
     )
   })
 }

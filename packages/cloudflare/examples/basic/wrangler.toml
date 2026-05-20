@@ -18,7 +18,7 @@
 name = "unlighthouse"
 main = "worker.ts"
 compatibility_date = "2025-04-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = [ "nodejs_compat" ]
 
 # ── Bindings ────────────────────────────────────────────────────────────────
 
@@ -62,13 +62,16 @@ max_instances = 5
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["ScanEventsDO", "RateLimiterDO"]
+new_sqlite_classes = [
+  "ScanEventsDO",
+  "RateLimiterDO"
+]
 
 # v2 adds the LighthouseContainer DO. Container DOs ride on top of a
 # sqlite-backed DO under the hood, so they go in `new_sqlite_classes`.
 [[migrations]]
 tag = "v2"
-new_sqlite_classes = ["LighthouseContainer"]
+new_sqlite_classes = [ "LighthouseContainer" ]
 
 # ── Vars ────────────────────────────────────────────────────────────────────
 
@@ -96,4 +99,4 @@ RATE_LIMITER_REFILL_PER_SEC = "1"
 # customMetadata.expiresAt has passed. Adjust the cron expression to your
 # write-volume; once a day is fine for most setups.
 [triggers]
-crons = ["0 * * * *"]
+crons = [ "0 * * * *" ]

@@ -53,7 +53,6 @@ export class LighthouseContainer extends Container<LighthouseContainerEnv> {
   }
 
   override onError(error: unknown): void {
-    // eslint-disable-next-line no-console
     console.error('[LighthouseContainer] error:', error)
   }
 }

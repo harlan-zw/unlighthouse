@@ -45,11 +45,9 @@ async function loadAuditor(): Promise<typeof import('@unlighthouse/core/auditors
 console.log('[cloudflare-lighthouse] boot starting; node', process.versions.node, 'arch', process.arch, 'platform', process.platform)
 
 process.on('uncaughtException', (err) => {
-  // eslint-disable-next-line no-console
   console.error('[cloudflare-lighthouse] uncaught:', err?.stack ?? err)
 })
 process.on('unhandledRejection', (reason) => {
-  // eslint-disable-next-line no-console
   console.error('[cloudflare-lighthouse] unhandled:', reason)
 })
 
@@ -76,7 +74,6 @@ const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID ?? ''
 const CF_BROWSER_RUN_TOKEN = process.env.CF_BROWSER_RUN_TOKEN ?? ''
 
 if (!SHARED_AUDIT_TOKEN || !CF_ACCOUNT_ID || !CF_BROWSER_RUN_TOKEN) {
-  // eslint-disable-next-line no-console
   console.warn('[cloudflare-lighthouse] missing one of SHARED_AUDIT_TOKEN/CF_ACCOUNT_ID/CF_BROWSER_RUN_TOKEN — /audit will 503')
 }
 
@@ -157,7 +154,7 @@ router.post(
     }
     catch (err) {
       event.node.res.statusCode = 502
-      // eslint-disable-next-line no-console
+
       console.error('[cloudflare-lighthouse] audit failed:', err)
       return {
         error: 'audit_failed',
@@ -180,7 +177,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`[cloudflare-lighthouse] listening on 0.0.0.0:${PORT}`)
 })
 server.on('error', (err) => {
-  // eslint-disable-next-line no-console
   console.error('[cloudflare-lighthouse] server error:', err)
 })
 

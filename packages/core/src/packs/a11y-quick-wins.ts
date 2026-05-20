@@ -177,13 +177,15 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
   // path — keeps older scans working without re-ingesting them.
   if (ctx.getReconciled) {
     const reconciled = await ctx.getReconciled(url, 'mobile').catch(() => null) as
-      | { categories?: { accessibility?: { auditRefs?: Array<{ id: string, weight: number }> } }
-        , audits?: Record<string, {
+      | {
+        categories?: { accessibility?: { auditRefs?: Array<{ id: string, weight: number }> } }
+        audits?: Record<string, {
           score: number | null
           title: string | null
           description: string | null
           items: Array<{ node?: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null }> | null
-        }> }
+        }>
+      }
       | null
     if (reconciled?.audits && reconciled.categories?.accessibility?.auditRefs?.length) {
       const audits = new Map<string, RouteViewAudit>()
@@ -309,9 +311,10 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
   const result: A11yFinding[] = [...findings.values()].map((f) => {
     const elementsArr = [...f.elements.values()]
     const routes = new Set<string>()
-    for (const e of elementsArr)
+    for (const e of elementsArr) {
       for (const r of e.routes)
         routes.add(r)
+    }
     const routesArr = [...routes]
     return {
       auditId: f.auditId,

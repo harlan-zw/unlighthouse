@@ -87,7 +87,7 @@ function main() {
     const tgz = packAndCopy(dep)
     // npm install path-based dep: file:vendor/{tgz}
     vendored[dep] = `file:vendor/${tgz}`
-    // eslint-disable-next-line no-console
+
     console.log(`[prepare-image] vendored ${dep} → vendor/${tgz}`)
   }
 
@@ -114,7 +114,7 @@ function main() {
     path.join(PKG_DIR, 'package.runtime.json'),
     `${JSON.stringify(runtimePkg, null, 2)}\n`,
   )
-  // eslint-disable-next-line no-console
+
   console.log(`[prepare-image] wrote package.runtime.json with ${WORKSPACE_DEPS.length} vendored deps`)
 }
 

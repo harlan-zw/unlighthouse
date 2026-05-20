@@ -315,13 +315,6 @@ function buildSyntheticLhr(args: {
   }
 }
 
-function pickLatestEntry(history: NormalizedEntry[]): NormalizedEntry | undefined {
-  if (!history.length)
-    return undefined
-  // History is chronological — last entry is the most recent 28-day window.
-  return history[history.length - 1]
-}
-
 export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
   return {
     capabilities: CRUX_CAPABILITIES,

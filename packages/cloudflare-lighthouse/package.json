@@ -18,12 +18,12 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist",
-    "Dockerfile",
     ".dockerignore",
-    "vendor",
+    "Dockerfile",
+    "dist",
     "package.runtime.json",
-    "scripts"
+    "scripts",
+    "vendor"
   ],
   "engines": {
     "node": ">=22.0.0"

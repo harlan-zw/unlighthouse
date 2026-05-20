@@ -87,7 +87,7 @@ export function weightedPick(weights: Record<string, number>): PickFn {
     if (!auditors.length)
       throw new Error('routeAuditors: no auditors configured')
     const weightOf = (name: string) =>
-      Object.prototype.hasOwnProperty.call(weights, name) ? weights[name]! : 1
+      Object.hasOwn(weights, name) ? weights[name]! : 1
     const total = auditors.reduce((sum, a) => sum + weightOf(a.name), 0)
     if (total <= 0)
       return auditors[0].auditor

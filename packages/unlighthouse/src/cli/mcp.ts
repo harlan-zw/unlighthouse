@@ -8,6 +8,7 @@
 // because there's no scanId to feed it.
 
 import type { UnlighthouseConfig } from '@unlighthouse/contracts'
+import { isAbsolute, join, resolve } from 'node:path'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
@@ -20,7 +21,6 @@ import Database from 'better-sqlite3'
 import { createConsola } from 'consola'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
-import { isAbsolute, join, resolve } from 'node:path'
 import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../../package.json'
 import { resolveAuditor } from '../auditor'
@@ -234,7 +234,9 @@ export async function runMcp(): Promise<void> {
   // Bare `ALTER TABLE ADD COLUMN` errors with "duplicate column name" on
   // second pass — swallow that one; surface everything else as a warning.
   for (const stmt of INIT_SQL_STATEMENTS) {
-    try { sqliteDb.exec(stmt) }
+    try {
+      sqliteDb.exec(stmt)
+    }
     catch (err) {
       const msg = (err as Error).message
       if (!/duplicate column name/i.test(msg))

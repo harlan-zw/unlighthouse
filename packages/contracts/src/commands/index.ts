@@ -1,6 +1,7 @@
 // Command registry — source of truth projected to HTTP, MCP, CLI.
 // See v1.md §"Command registry" (line 706).
 
+import type { Site } from './sites'
 import { AssertEvaluate } from './assert'
 import { CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
 import { EventsSubscribe, EventsTail } from './events'
@@ -22,7 +23,6 @@ import {
   ScanStatusCmd,
   ScanSummaryCmd,
 } from './scan'
-import type { Site } from './sites'
 import { SiteSchema, SitesCreate, SitesDelete, SitesGet, SitesList } from './sites'
 
 export * from './compare'

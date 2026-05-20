@@ -254,26 +254,26 @@ export function reconcileToContract(args: {
   device: 'mobile' | 'desktop'
   lhr: LighthouseResult
 }): {
-    scanId: string
-    url: string
-    device: 'mobile' | 'desktop'
-    metrics: {
-      scorePerformance: number | null
-      scoreAccessibility: number | null
-      scoreSeo: number | null
-      scoreBestPractices: number | null
-      lcp: number | null
-      cls: number | null
-      inp: number | null
-      fcp: number | null
-      ttfb: number | null
-      tbt: number | null
-      si: number | null
-    }
-    categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
-    audits: Record<string, ContractAuditFinding>
-    provenance: { lighthouseVersion: string, userAgent: string | null, capturedAt: string }
-  } {
+  scanId: string
+  url: string
+  device: 'mobile' | 'desktop'
+  metrics: {
+    scorePerformance: number | null
+    scoreAccessibility: number | null
+    scoreSeo: number | null
+    scoreBestPractices: number | null
+    lcp: number | null
+    cls: number | null
+    inp: number | null
+    fcp: number | null
+    ttfb: number | null
+    tbt: number | null
+    si: number | null
+  }
+  categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
+  audits: Record<string, ContractAuditFinding>
+  provenance: { lighthouseVersion: string, userAgent: string | null, capturedAt: string }
+} {
   // The function signature spelled out above mirrors the ReconciledReport
   // contract atom 1:1 — adding fields here means adding them in atoms.ts too.
   const { scanId, url, device, lhr } = args

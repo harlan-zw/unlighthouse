@@ -43,7 +43,6 @@ export interface ResponseLike {
   json: () => Promise<unknown>
 }
 
-/* eslint-disable ts/no-explicit-any */
 export interface ContainerStubLike {
   fetch: (...args: any[]) => Promise<ResponseLike>
 }
@@ -55,7 +54,6 @@ export interface ContainerNamespaceLike {
   /** Classic DO API; takes the id returned by idFromName. */
   get: (id: unknown) => ContainerStubLike
 }
-/* eslint-enable ts/no-explicit-any */
 
 export interface ContainerLighthouseOptions {
   /** Container DO binding (e.g. `env.LIGHTHOUSE_CONTAINER`). */
