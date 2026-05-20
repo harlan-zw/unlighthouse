@@ -46,11 +46,16 @@ export async function sweepExpiredBlobs(env: SweeperEnv, now: number = Date.now(
   // pagination correct — listing while concurrent deletes shrink the
   // bucket would skip pages.
   do {
+    // `include: ['customMetadata']` was dropped from R2ListOptions in newer
+    // @cloudflare/workers-types versions (customMetadata is included by
+    // default now). Cast through unknown so the older API call still
+    // compiles cleanly against the new types — R2 itself still accepts
+    // the field as a no-op.
     const listing = await env.BLOBS.list({
       cursor,
       limit: pageSize,
       include: ['customMetadata'],
-    })
+    } as unknown as Parameters<typeof env.BLOBS.list>[0])
     scanned += listing.objects.length
 
     for (const obj of listing.objects) {

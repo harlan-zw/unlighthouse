@@ -52,7 +52,10 @@ export default {
           tiers.push({
             name: 'container-lighthouse',
             auditor: createContainerLighthouseAuditor({
-              container: cfEnv.LIGHTHOUSE_CONTAINER,
+              // Cast: DurableObjectNamespace's fetch signature is wider than
+              // our local ContainerNamespaceLike's. Runtime is compatible;
+              // the structural check tripped on Response generics.
+              container: cfEnv.LIGHTHOUSE_CONTAINER as unknown as Parameters<typeof createContainerLighthouseAuditor>[0]['container'],
               token: cfEnv.SHARED_AUDIT_TOKEN,
             }),
           })

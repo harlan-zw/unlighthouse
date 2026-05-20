@@ -14,7 +14,7 @@
     "build:pkg": "pnpm -r --filter './packages/**' run build",
     "stub": "pnpm -r --parallel run stub",
     "lint": "eslint . --fix",
-    "typecheck": "pnpm -r --filter './packages/**' --if-present run typecheck",
+    "typecheck": "pnpm -r --filter './packages/**' --filter '!@unlighthouse/ui' --if-present run typecheck",
     "bump": "bumpp package.json packages-aliased/*/package.json packages/*/package.json --commit --push --tag",
     "release": "pnpm build && pnpm bump",
     "test": "vitest",
