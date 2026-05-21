@@ -1,0 +1,13 @@
+* @harlan-zw
+
+/packages/core/        @harlan-zw
+/packages/cloudflare/  @harlan-zw
+/packages/cloudflare-lighthouse/ @harlan-zw
+/packages/contracts/   @harlan-zw
+/packages/mcp/         @harlan-zw
+/packages/audit-pool/  @harlan-zw
+/packages/unlighthouse/ @harlan-zw
+/packages/ui/          @harlan-zw
+
+/docs/                 @harlan-zw
+/.github/              @harlan-zw
