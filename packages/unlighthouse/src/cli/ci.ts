@@ -8,7 +8,7 @@ import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
 import createCli from './createCli'
-import { pickOptions, validateHost, validateOptions } from './util'
+import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
 const cli = createCli()
 
@@ -53,7 +53,12 @@ async function run() {
     })
   })
 
-  const { scanId } = await unlighthouse.start()
+  // D-029: forward parsed `--device` matrix into the run overrides so CI
+  // runs can exercise mobile + desktop under a single scan id.
+  const deviceOverride = parseDevices(options)
+  const { scanId } = await unlighthouse.start(
+    deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
+  )
   const { completed: completedCount } = await completed
   const seconds = Math.round((Date.now() - start.getTime()) / 1000)
   logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${completedCount} routes in ${seconds}s.`)

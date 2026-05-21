@@ -9,6 +9,7 @@ export default function createCli() {
     .version(version)
     .example('unlighthouse --site unlighthouse.dev')
     .example('unlighthouse --site unlighthouse.dev --urls /guide,/api,/glossary --desktop')
+    .example('unlighthouse --site unlighthouse.dev --device mobile,desktop')
 
   cli.option('--root <root>', 'Define the project root. Useful for changing where the config is read from or setting up sampling.')
   cli.option('--config-file <config-file>', 'Path to config file.')
@@ -18,6 +19,7 @@ export default function createCli() {
 
   cli.option('--desktop', 'Simulate device as desktop.')
   cli.option('--mobile', 'Simulate device as mobile.')
+  cli.option('--device <devices>', 'Devices to audit (comma-separated): `mobile`, `desktop`, or `mobile,desktop`.')
 
   cli.option('--site <site>', 'Host URL to scan.')
   cli.option('--user-agent <user-agent>', 'Specify a top-level user agent all requests will use.')

@@ -7,6 +7,44 @@ import { pick } from 'lodash-es'
 import { fetchUrlRaw, normaliseHost } from '../index.ts'
 import { handleError } from './errors'
 
+type Device = 'mobile' | 'desktop'
+
+const VALID_DEVICES: readonly Device[] = ['mobile', 'desktop']
+
+/**
+ * Parse the `--device` CLI flag into a deduplicated ordered list. Accepts a
+ * single value (`mobile`) or a comma-separated list (`mobile,desktop`).
+ * When the flag is absent returns `undefined`. Exits via `handleError` on
+ * an invalid value so the caller doesn't have to.
+ *
+ * When both `--device` and one of `--mobile`/`--desktop` are supplied,
+ * `--device` wins. When `--device` is absent the legacy `--mobile`/`--desktop`
+ * booleans drive `scanner.device` exactly as before.
+ */
+export function parseDevices(options: CiOptions | CliOptions): Device[] | undefined {
+  if (typeof options.device !== 'string' || options.device.trim() === '')
+    return undefined
+  const parts = options.device.split(',').map(s => s.trim()).filter(Boolean)
+  if (parts.length === 0)
+    return undefined
+  const seen = new Set<Device>()
+  const out: Device[] = []
+  for (const part of parts) {
+    if (!(VALID_DEVICES as readonly string[]).includes(part)) {
+      handleError(
+        `Invalid --device value "${part}". Expected one of: ${VALID_DEVICES.join(', ')}, or a comma-separated list (e.g. "mobile,desktop").`,
+      )
+      return undefined
+    }
+    const d = part as Device
+    if (!seen.has(d)) {
+      seen.add(d)
+      out.push(d)
+    }
+  }
+  return out
+}
+
 export async function validateHost(resolvedConfig: ResolvedUserConfig, logger?: Logger) {
   const site = resolvedConfig.site
   // site will not be set from integrations yet
@@ -102,7 +140,16 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   else if (options.disableI18nPages)
     scanner.ignoreI18nPages = true
 
-  if (options.desktop)
+  // `--device` wins over `--mobile`/`--desktop` (back-compat). For a
+  // single-device list we set `scanner.device` directly. For a multi-device
+  // list we still set `scanner.device` to the first (primary) device for
+  // back-compat with adapters/UI reading `config.scanner.device`; the full
+  // matrix is surfaced to `host.start()` via `parseDevices` in cli/ci.ts and
+  // flows through `core.run({ overrides: { device } })`.
+  const devices = parseDevices(options)
+  if (devices && devices.length > 0)
+    scanner.device = devices[0]
+  else if (options.desktop)
     scanner.device = 'desktop'
   else if (options.mobile)
     scanner.device = 'mobile'
