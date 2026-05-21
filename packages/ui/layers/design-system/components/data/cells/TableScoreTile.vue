@@ -8,7 +8,7 @@ const {
   /** Metric name (e.g. "Performance", "LCP"). Used for the aria-label. */
   label?: string
   /** Background class derived from caller's threshold logic (e.g. scoreBgClass()). */
-  bgClass?: string
+  bgClass?: string | string[] | Record<string, boolean>
 }>()
 
 const status = computed<'good' | 'ni' | 'poor' | 'neutral'>(() => {

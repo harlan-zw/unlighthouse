@@ -91,10 +91,11 @@ export function thresholdHex(value: number, good: number, poor: number): string 
   return semanticColors[thresholdToSemantic(value, good, poor)].hex
 }
 
-export function calcTrendPercent(current: number, base: number): number {
+export function calcTrendPercent(current: number, base: number, inverted = false): number {
   if (base === 0)
     return 0
-  return ((current - base) / base) * 100
+  const delta = ((current - base) / base) * 100
+  return inverted ? -delta : delta
 }
 
 export function formatTimeRemaining(ms: number | null): string {

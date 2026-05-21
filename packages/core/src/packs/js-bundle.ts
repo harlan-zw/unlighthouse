@@ -118,7 +118,7 @@ function normaliseUrl(u: string): string {
     return `${p.origin}${p.pathname}`
   }
   catch {
-    return u.split('?')[0]
+    return u.split('?')[0] ?? u
   }
 }
 

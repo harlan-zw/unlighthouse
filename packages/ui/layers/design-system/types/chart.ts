@@ -4,7 +4,7 @@ export interface ChartAxis<T extends string | number | Date = string> extends Ax
   tickThreshold?: number
 }
 
-export interface ChartXYAxis<X, Y> {
+export interface ChartXYAxis<X extends string | number | Date, Y extends string | number | Date> {
   x: ChartAxis<X> & {
     position?: 'top' | 'bottom'
   }
