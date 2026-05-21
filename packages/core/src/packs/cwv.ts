@@ -108,10 +108,14 @@ function p75(values: number[]): number | null {
   const pos = (sorted.length - 1) * 0.75
   const lo = Math.floor(pos)
   const hi = Math.ceil(pos)
+  const loVal = sorted[lo]
+  const hiVal = sorted[hi]
+  if (loVal === undefined || hiVal === undefined)
+    return null
   if (lo === hi)
-    return sorted[lo]
+    return loVal
   const frac = pos - lo
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * frac
+  return loVal + (hiVal - loVal) * frac
 }
 
 function metricFromRow(row: ScanRoute, metric: MetricKey): number | null {

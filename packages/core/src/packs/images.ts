@@ -112,7 +112,7 @@ function normaliseImageUrl(url: string): string {
     return `${u.origin}${u.pathname}`
   }
   catch {
-    return url.split('?')[0]
+    return url.split('?')[0] ?? url
   }
 }
 

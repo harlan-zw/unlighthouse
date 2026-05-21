@@ -18,7 +18,10 @@
     "postinstall": "nuxi prepare"
   },
   "dependencies": {
+    "@internationalized/date": "catalog:dependencies",
     "@nuxt/ui": "catalog:dependencies",
+    "@tanstack/table-core": "catalog:dependencies",
+    "@tanstack/vue-table": "catalog:dependencies",
     "@unovis/ts": "catalog:dependencies",
     "@unovis/vue": "catalog:dependencies",
     "@vueuse/core": "catalog:dependencies",
@@ -27,6 +30,7 @@
     "lodash-es": "catalog:dependencies",
     "motion-v": "catalog:",
     "nuxt": "catalog:",
+    "scule": "catalog:dependencies",
     "tailwindcss": "catalog:dependencies",
     "three": "catalog:dependencies",
     "ufo": "catalog:dependencies",
