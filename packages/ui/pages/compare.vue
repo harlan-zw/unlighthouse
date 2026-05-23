@@ -46,8 +46,13 @@ const { data: scansData, pending: scansPending } = await useAsyncData(
   },
 )
 
+// Only scans that actually produced score data — a structurally `complete`
+// scan with `scoreAverage === null` (e.g. sandbox blocked every audit) makes
+// a pointless diff target, so we hide them from the picker.
 const completeScans = computed<Scan[]>(() =>
-  (scansData.value ?? []).filter(s => s.status === 'complete'),
+  (scansData.value ?? []).filter(
+    s => s.status === 'complete' && s.summary?.scoreAverage != null,
+  ),
 )
 
 function fmtScanLabel(s: Scan): string {

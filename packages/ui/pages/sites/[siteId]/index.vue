@@ -34,7 +34,7 @@ function pct(s: number | null | undefined) {
     <header class="mb-6 flex items-center justify-between gap-4">
       <div>
         <h1 class="text-xl font-semibold text-highlighted flex items-center gap-2">
-          <SiteFavicon :url="site.url" :alt="site.name" class="size-5" />
+          <SiteFavicon :url="site.url" alt="" class="size-5" aria-hidden="true" />
           {{ site.name }}
         </h1>
         <a :href="site.url" target="_blank" class="text-sm text-muted font-mono hover:text-default transition-colors">
@@ -72,11 +72,12 @@ function pct(s: number | null | undefined) {
           <span class="text-xs text-dimmed">{{ scan.summary?.completed ?? 0 }}/{{ scan.summary?.routes ?? 0 }} routes</span>
           <span
             class="text-[11px] px-1.5 py-0.5 rounded"
-            :class="scan.status === 'complete' ? 'bg-success/10 text-success'
-              : scan.status === 'error' || scan.status === 'cancelled' ? 'bg-error/10 text-error'
-                : scan.status === 'scanning' || scan.status === 'starting' || scan.status === 'discovering' ? 'bg-primary/10 text-primary' : 'bg-elevated text-muted'"
+            :class="scan.status === 'complete' && (scan.summary?.completed ?? 0) === 0 ? 'bg-elevated text-dimmed'
+              : scan.status === 'complete' ? 'bg-success/10 text-success'
+                : scan.status === 'error' || scan.status === 'cancelled' ? 'bg-error/10 text-error'
+                  : scan.status === 'scanning' || scan.status === 'starting' || scan.status === 'discovering' ? 'bg-primary/10 text-primary' : 'bg-elevated text-muted'"
           >
-            {{ scan.status }}
+            {{ scan.status === 'complete' && (scan.summary?.completed ?? 0) === 0 ? 'no data' : scan.status }}
           </span>
           <div class="ml-auto flex items-center gap-1.5">
             <TableScoreTile
