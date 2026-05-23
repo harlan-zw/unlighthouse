@@ -1,0 +1,48 @@
+{
+  "name": "@unlighthouse/astro",
+  "type": "module",
+  "version": "0.0.0-v1",
+  "private": true,
+  "description": "Astro integration for Unlighthouse — scan the built site automatically.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:attw": "attw --pack --profile esm-only",
+    "test:publint": "publint"
+  },
+  "peerDependencies": {
+    "astro": "^4.0.0 || ^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "astro": {
+      "optional": false
+    }
+  },
+  "dependencies": {
+    "unlighthouse": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  }
+}

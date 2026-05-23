@@ -24,6 +24,7 @@
       "@unlighthouse/cloudflare": ["./packages/cloudflare/src"],
       "@unlighthouse/nuxt": ["./integrations/nuxt/src"],
       "@unlighthouse/vite": ["./packages/vite-plugin/src"],
+      "@unlighthouse/astro": ["./packages/astro/src"],
       "@unlighthouse/webpack": ["./integrations/webpack/src"]
     },
     "resolveJsonModule": true,
