@@ -22,7 +22,7 @@ import { defineCommand } from './define'
 // wire stays back-compatible.
 export const ScanStart = defineCommand({
   name: 'scan.start',
-  description: 'Start a new scan against a site. `device` accepts a single device or a list for a multi-device matrix scan.',
+  description: 'Start a new scan against a site. `device` accepts a single device ("mobile" or "desktop") or an array — pass `["mobile", "desktop"]` to run a multi-device matrix scan that audits every URL on both form-factors in one pass. Results are keyed on `(scanId, url, device)`; filter back with `device` on scan.results / pack.run / route.get. Omit to use the host default (mobile).',
   input: z.object({
     site: UrlSchema,
     device: z.union([DeviceSchema, z.array(DeviceSchema).min(1)]).optional(),
@@ -211,7 +211,7 @@ export const ScanSummaryCmd = defineCommand({
 // Load-bearing example (v1.md lines 840–853).
 export const ScanResults = defineCommand({
   name: 'scan.results',
-  description: 'List route results for a scan with filter + pagination. For matrix scans, pass `device` to narrow to mobile or desktop; omit to aggregate across the matrix.',
+  description: 'List route results for a scan with filter + pagination. For multi-device matrix scans (scan.start with `device: ["mobile", "desktop"]`), pass `device` to narrow to one form-factor; omit to return every (url, device) row across the matrix.',
   input: z.object({
     scanId: ScanIdSchema,
     // D-029: filter to one device. Omitted = every (url, device) row.

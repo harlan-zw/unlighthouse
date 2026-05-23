@@ -126,6 +126,105 @@ describe('MCP tool surface', () => {
   })
 })
 
+describe('MCP device matrix surfacing (issue #349 Phase 8)', () => {
+  // The contract supports a `device` array on scan_start and a `device` filter
+  // on scan_results. These assertions pin two LLM-facing concerns:
+  //   - the tool description spells out the array shape (so an agent picks the
+  //     matrix mode without an out-of-band hint)
+  //   - the input schema accepts both single-device strings and arrays, and
+  //     rejects non-device values like 'tablet'
+  it('scan_start description mentions the multi-device matrix and the array shape', async () => {
+    const { tools } = await client.listTools()
+    const scanStart = tools.find(t => t.name === 'scan_start')
+    expect(scanStart, 'scan_start must be advertised').toBeTruthy()
+    expect(scanStart!.description).toMatch(/matrix/i)
+    // The literal array example helps an LLM commit to the right shape.
+    expect(scanStart!.description).toMatch(/\["mobile",\s*"desktop"\]/)
+  })
+
+  it('scan_results description mentions device-narrowed matrix output', async () => {
+    const { tools } = await client.listTools()
+    const scanResults = tools.find(t => t.name === 'scan_results')
+    expect(scanResults, 'scan_results must be advertised').toBeTruthy()
+    expect(scanResults!.description).toMatch(/matrix/i)
+    expect(scanResults!.description).toMatch(/device/i)
+  })
+
+  it('scan_start JSON schema for `device` exposes both string and array shapes', async () => {
+    const { tools } = await client.listTools()
+    const scanStart = tools.find(t => t.name === 'scan_start')
+    expect(scanStart).toBeTruthy()
+    // The Zod union projects to JSON Schema as `anyOf`. We don't pin the exact
+    // structure (z.toJSONSchema is upstream-controlled) — just assert that the
+    // serialised shape advertises both `mobile`/`desktop` AND an array form,
+    // so an agent reading the schema can construct either input.
+    const serialised = JSON.stringify(scanStart!.inputSchema)
+    expect(serialised).toMatch(/mobile/)
+    expect(serialised).toMatch(/desktop/)
+    expect(serialised).toMatch(/"type":\s*"array"/)
+  })
+
+  it('accepts a single-device string for back-compat', async () => {
+    // String input — the union's first arm. Should round-trip without
+    // validation errors. We can't drive a full scan here without a fresh
+    // core (the suite-level core already ran one), but ACTIVE_SCAN_CONFLICT
+    // still proves the input passed validation and reached the handler.
+    let caught: unknown
+    try {
+      await client.callTool({
+        name: 'scan_start',
+        arguments: { site: 'http://device-matrix-single', device: 'mobile' },
+      })
+    }
+    catch (err) {
+      caught = err
+    }
+    // Either succeeded or hit the live-session guard — both prove the schema
+    // accepted the input. We only fail if it errored with a validation issue.
+    if (caught) {
+      const msg = (caught as { message?: string }).message ?? String(caught)
+      expect(msg).not.toMatch(/Input validation failed/i)
+    }
+  })
+
+  it('accepts a two-element device array', async () => {
+    let caught: unknown
+    try {
+      await client.callTool({
+        name: 'scan_start',
+        arguments: { site: 'http://device-matrix-array', device: ['mobile', 'desktop'] },
+      })
+    }
+    catch (err) {
+      caught = err
+    }
+    if (caught) {
+      const msg = (caught as { message?: string }).message ?? String(caught)
+      expect(msg).not.toMatch(/Input validation failed/i)
+    }
+  })
+
+  it('rejects unsupported device values like ["tablet"]', async () => {
+    // Zod's enum rejects anything outside ('mobile' | 'desktop'). The
+    // projection wraps that as McpError(InvalidParams).
+    await expect(
+      client.callTool({
+        name: 'scan_start',
+        arguments: { site: 'http://device-matrix-bad', device: ['tablet'] },
+      }),
+    ).rejects.toThrow(/Input validation failed/i)
+  })
+
+  it('rejects an empty device array (matrix must have at least one form-factor)', async () => {
+    await expect(
+      client.callTool({
+        name: 'scan_start',
+        arguments: { site: 'http://device-matrix-empty', device: [] },
+      }),
+    ).rejects.toThrow(/Input validation failed/i)
+  })
+})
+
 describe('MCP scan.start end-to-end (v1.md line 1710 ship gate)', () => {
   it('drives scan_start → scan_status → scan_summary → pack_run via MCP', async () => {
     // The "ship gate" in v1.md: an agent connects, calls scan_start with a
