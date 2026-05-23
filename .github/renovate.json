@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
+  "schedule": ["every weekend"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": false
+    },
+    {
+      "groupName": "nuxt",
+      "matchPackagePatterns": ["^@nuxt/", "^nuxt$", "^nuxt-", "^@nuxtjs/"]
+    },
+    {
+      "groupName": "vitest",
+      "matchPackagePatterns": ["^vitest", "^@vitest/", "^@testing-library/"],
+      "matchPackageNames": ["happy-dom", "jsdom"]
+    },
+    {
+      "groupName": "lighthouse + puppeteer (audit core)",
+      "matchPackagePatterns": ["^lighthouse", "^puppeteer", "^@puppeteer/"],
+      "matchPackageNames": ["chrome-launcher", "playwright", "playwright-core"]
+    },
+    {
+      "groupName": "eslint",
+      "matchPackagePatterns": ["^eslint", "^@eslint/", "^@typescript-eslint/", "^eslint-"]
+    },
+    {
+      "groupName": "typescript",
+      "matchPackageNames": ["typescript", "tsx", "tslib", "ts-node"],
+      "matchPackagePatterns": ["^@tsconfig/"]
+    }
+  ],
+  "ignoreDeps": [],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"]
+  }
+}
