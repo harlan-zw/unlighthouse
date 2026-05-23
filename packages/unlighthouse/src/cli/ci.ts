@@ -73,7 +73,17 @@ async function run() {
     // Hydrate UnlighthouseRouteReport shape from `storage.routes` + LHR blobs;
     // hand off to the existing reporter pipeline (jsonSimple/jsonExpanded/csv).
     const { items } = await unlighthouse.handlerCtx.storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
-    const hydrated = await Promise.all(items.map(async (r) => {
+    // D-029: when `--device` narrows the run to a subset, also narrow the
+    // export so consumers only see the rows they asked for. Matrix scans
+    // (no narrowing, or narrowing to multiple devices) export every (url,
+    // device) row — one CSV/JSON row each.
+    const exportDeviceFilter = deviceOverride && deviceOverride.length > 0
+      ? new Set(deviceOverride)
+      : null
+    const filtered = exportDeviceFilter
+      ? items.filter(r => exportDeviceFilter.has(r.device as never))
+      : items
+    const hydrated = await Promise.all(filtered.map(async (r) => {
       const gz = r.lhrBlobKey ? await unlighthouse.handlerCtx.storage.blobs.get(r.lhrBlobKey) : null
       if (!gz)
         return null
@@ -89,6 +99,10 @@ async function run() {
         : 0
       return {
         route: { path: r.path, url: r.url },
+        // D-029: each storage row is one (url, device) audit. Propagate the
+        // device through to the reporters so multi-device matrix scans emit
+        // distinct rows per form-factor instead of collapsing.
+        device: r.device,
         report: {
           score: scoreAverage,
           categories: categoriesArr,

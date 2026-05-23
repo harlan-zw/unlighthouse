@@ -5,6 +5,35 @@ import _lighthouseReport from './fixtures/lighthouseReport.mjs'
 
 const lighthouseReport = _lighthouseReport as any as UnlighthouseRouteReport[]
 
+// D-029: synthetic matrix fixture — same path on two devices — so the
+// JSON exports can be asserted as one entry per (path, device) without
+// pulling a 36k-line fixture.
+function makeMatrixReport(path: string, device: 'mobile' | 'desktop', perf: number, seo: number): UnlighthouseRouteReport {
+  return {
+    tasks: {} as any,
+    artifactPath: '',
+    artifactUrl: '',
+    reportId: `${path}-${device}`,
+    route: { id: path, url: `https://example.com${path}`, $url: new URL(`https://example.com${path}`), path, definition: { name: '_index', path } } as any,
+    device,
+    report: {
+      score: (perf + seo) / 2,
+      categories: [
+        { key: 'performance', id: 'performance', title: 'Performance', score: perf },
+        { key: 'seo', id: 'seo', title: 'SEO', score: seo },
+      ],
+      audits: {
+        'largest-contentful-paint': { id: 'largest-contentful-paint', title: 'LCP', description: 'd', numericUnit: 'ms', numericValue: 1234, displayValue: '1.2 s' } as any,
+      },
+    } as any,
+  }
+}
+
+const matrixReports: UnlighthouseRouteReport[] = [
+  makeMatrixReport('/', 'mobile', 0.8, 0.9),
+  makeMatrixReport('/', 'desktop', 0.95, 0.9),
+]
+
 describe('reporter', () => {
   it('simple json', () => {
     const actual = generateReportPayload('jsonSimple', lighthouseReport)
@@ -136,6 +165,41 @@ describe('reporter', () => {
     expect(actual.routes[0].categories.accessibility).toBeDefined()
     expect(actual.routes[0].categories.seo).toBeDefined()
     expect(actual.routes[0].categories['best-practices']).toBeDefined()
+  })
+
+  // D-029 Phase 8 — multi-device matrix scans surface one route entry per
+  // (path, device) with the device field populated. Single-device reports
+  // omit the field (back-compat with legacy fixtures asserted in the
+  // snapshots above).
+  it('jsonSimple emits one entry per (path, device) for matrix scans', () => {
+    const actual = generateReportPayload('jsonSimple', matrixReports)
+    expect(actual).toHaveLength(2)
+    const desktop = actual.find(r => r.device === 'desktop')
+    const mobile = actual.find(r => r.device === 'mobile')
+    expect(desktop).toBeDefined()
+    expect(mobile).toBeDefined()
+    expect(desktop!.path).toBe('/')
+    expect(mobile!.path).toBe('/')
+    expect(desktop!.performance).toBeCloseTo(0.95)
+    expect(mobile!.performance).toBeCloseTo(0.8)
+  })
+
+  it('jsonExpanded surfaces device on each route entry for matrix scans', () => {
+    const actual = generateReportPayload('jsonExpanded', matrixReports)
+    expect(actual.routes).toHaveLength(2)
+    // Secondary sort by device → alphabetical → desktop before mobile.
+    expect(actual.routes[0].device).toBe('desktop')
+    expect(actual.routes[1].device).toBe('mobile')
+    expect(actual.routes[0].path).toBe('/')
+    expect(actual.routes[1].path).toBe('/')
+  })
+
+  it('jsonSimple omits the device field for legacy single-device reports', () => {
+    const actual = generateReportPayload('jsonSimple', lighthouseReport)
+    // Snapshot above already asserts shape; this guard catches regressions
+    // where a stray device default would creep into single-device output.
+    for (const r of actual)
+      expect(r.device).toBeUndefined()
   })
 
   it('has metrics information for json expanded report', () => {

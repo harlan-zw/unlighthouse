@@ -2,7 +2,7 @@ import type { UnlighthouseTabs } from '../index.ts'
 import type { UnlighthouseRouteReport } from '../types'
 import type { ReporterConfig } from './types'
 import { get } from 'lodash-es'
-import { csvSimpleFormat } from './csvSimple'
+import { appendDeviceColumn, csvSimpleFormat } from './csvSimple'
 
 type ReportWithLighthouse = UnlighthouseRouteReport & {
   report: NonNullable<UnlighthouseRouteReport['report']>
@@ -25,8 +25,12 @@ function columnKeys(columns: ReporterConfig['columns']): UnlighthouseTabs[] {
 export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: ReporterConfig = {}): string {
   const { headers, body } = csvSimpleFormat(reports)
   const firstReport = reports[0]
-  if (!firstReport || !columns)
+  if (!firstReport || !columns) {
+    // D-029: device column belongs at the end of the row even when no
+    // expanded columns are configured.
+    appendDeviceColumn(headers, body, reports)
     return [headers.join(','), ...body.map(row => row.join(','))].join('\n')
+  }
 
   for (const k of columnKeys(columns)) {
     // already have overview
@@ -74,6 +78,10 @@ export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: 
       )
     }
   })
+
+  // D-029: device column appended last so any future expanded columns can
+  // be added before it without breaking parsers anchored at the end.
+  appendDeviceColumn(headers, body, reports)
 
   return [
     headers.join(','),

@@ -140,6 +140,14 @@ export interface UnlighthouseRouteReport {
    * The SEO meta-data, only set once the html payload has been extracted and passed.
    */
   seo?: HTMLExtractPayload
+  /**
+   * D-029: device form-factor this row was audited under. Multi-device matrix
+   * scans emit one report per (url, device); single-device scans land here as
+   * `'mobile'` or `'desktop'` matching the scan's only device. Optional so
+   * legacy fixtures and in-memory adapters that don't track device still
+   * type-check.
+   */
+  device?: 'mobile' | 'desktop'
 }
 
 export interface HTMLExtractPayload {

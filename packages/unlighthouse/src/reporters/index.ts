@@ -22,7 +22,10 @@ export function generateReportPayload(reporter: 'csvSimple' | 'csv', reports: Un
 export function generateReportPayload(reporter: 'csvExpanded', reports: UnlighthouseRouteReport[], config?: ReporterConfig): string
 export function generateReportPayload(reporter: string, _reports: UnlighthouseRouteReport[], config?: ReporterConfig): any {
   const reports = _reports
-    .sort((a, b) => a.route.path.localeCompare(b.route.path))
+    // D-029: matrix scans emit two rows per path; secondary sort by device
+    // keeps `desktop` ahead of `mobile` for the same path so the CSV / JSON
+    // ordering is deterministic across runs.
+    .sort((a, b) => a.route.path.localeCompare(b.route.path) || (a.device ?? '').localeCompare(b.device ?? ''))
     .filter(hasLighthouseReport)
 
   if (reporter.startsWith('json')) {
