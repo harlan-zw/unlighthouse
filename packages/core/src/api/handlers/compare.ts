@@ -148,33 +148,184 @@ async function emitCompareComplete(ctx: HandlerCtx, baseScanId: string, currentS
   await hooks?.callHook('compare:complete', { baseScanId, currentScanId, regressions, improvements })
 }
 
+// ── Markdown rendering helpers ─────────────────────────────────────────────
+//
+// The PR-comment renderer in `compareMarkdown` is intentionally structured for
+// drive-by review: a single-line verdict, a category delta table, then the
+// noisiest regressing / most improved routes capped at TOP_N. We aggregate
+// route-level deltas across categories so a route only appears once in each
+// list (worst-category drop / best-category gain) rather than spamming the
+// reviewer with per-metric rows.
+
+const TOP_N = 5
+const CATEGORY_ORDER: Category[] = ['performance', 'accessibility', 'best-practices', 'seo']
+const CATEGORY_LABEL: Record<Category, string> = {
+  'performance': 'Performance',
+  'accessibility': 'Accessibility',
+  'best-practices': 'Best Practices',
+  'seo': 'SEO',
+}
+
+function scoreCell(value: number | null | undefined): string {
+  if (value == null)
+    return '—'
+  return String(Math.round(value * 100))
+}
+
+function deltaArrow(delta: number, threshold: number): string {
+  // Use a unicode arrow for screen-reader friendliness; threshold treats
+  // anything inside the band as "unchanged" to avoid noise from rounding.
+  if (delta > threshold)
+    return '▲'
+  if (-delta > threshold)
+    return '▼'
+  return '−'
+}
+
+function signed(delta: number): string {
+  if (delta === 0)
+    return '0'
+  const value = Math.round(delta * 100)
+  return value > 0 ? `+${value}` : `${value}`
+}
+
+// Pick the single worst (or best, for improvements) per-route category diff.
+// We bucket by `${url}|${device}` to keep matrix scans coherent — see the
+// rowKey comment above for why URL alone isn't sufficient.
+function pickTopRouteDiffs(diffs: Diff[], mode: 'regression' | 'improvement'): Diff[] {
+  const onlyScores = diffs.filter(d => CATEGORY_COL[d.metric as string])
+  const byRoute = new Map<string, Diff>()
+  for (const d of onlyScores) {
+    const key = `${d.url}|${d.device}`
+    const incumbent = byRoute.get(key)
+    if (!incumbent) {
+      byRoute.set(key, d)
+      continue
+    }
+    // For regressions: most negative delta wins. For improvements: most
+    // positive. Score deltas are bounded to [-1, 1] so direct comparison is
+    // safe without normalisation.
+    const incumbentBetter = mode === 'regression'
+      ? incumbent.delta <= d.delta
+      : incumbent.delta >= d.delta
+    if (!incumbentBetter)
+      byRoute.set(key, d)
+  }
+  const sorted = [...byRoute.values()].sort((a, b) =>
+    mode === 'regression' ? a.delta - b.delta : b.delta - a.delta,
+  )
+  return sorted.slice(0, TOP_N)
+}
+
+interface CategoryDelta {
+  category: Category
+  base: number | null
+  current: number | null
+  delta: number
+}
+
+function categoryDeltasFromSummaries(
+  base: Partial<Record<Category, number>> | null | undefined,
+  current: Partial<Record<Category, number>> | null | undefined,
+): CategoryDelta[] {
+  return CATEGORY_ORDER.map((category) => {
+    const b = base?.[category] ?? null
+    const c = current?.[category] ?? null
+    const delta = b != null && c != null ? c - b : 0
+    return { category, base: b, current: c, delta }
+  })
+}
+
 export const compareMarkdown: Handler<typeof CompareMarkdown> = {
   command: {} as typeof CompareMarkdown,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
     await emitCompareComplete(ctx, input.baseScanId, input.currentScanId, report.regressions.length, report.improvements.length)
     const title = input.title ?? 'Unlighthouse comparison'
+
+    // Pull both scan summaries so we can render the headline `scoreAverage`
+    // delta and per-category table. `runCompare` already validates that both
+    // scans exist (throws SCAN_NOT_FOUND otherwise), so these reads are safe.
+    const [baseScan, currentScan] = await Promise.all([
+      ctx.storage.scans.get(input.baseScanId as unknown as never),
+      ctx.storage.scans.get(input.currentScanId as unknown as never),
+    ])
+
+    const categoryThreshold = report.thresholds.performance ?? 0.05
+    const categoryDeltas = categoryDeltasFromSummaries(
+      baseScan?.summary?.scoresByCategory,
+      currentScan?.summary?.scoresByCategory,
+    )
+
+    const overallBase = baseScan?.summary?.scoreAverage ?? null
+    const overallCurrent = currentScan?.summary?.scoreAverage ?? null
+    const overallDelta = overallBase != null && overallCurrent != null
+      ? overallCurrent - overallBase
+      : 0
+    const overallArrow = overallBase != null && overallCurrent != null
+      ? deltaArrow(overallDelta, categoryThreshold)
+      : '−'
+
+    const verdictWord = report.regressions.length
+      ? 'Regressions detected'
+      : report.improvements.length
+        ? 'Improvements detected'
+        : 'No significant change'
+
     const lines: string[] = []
-    const icon = report.regressions.length ? 'X' : report.improvements.length ? 'OK' : 'info'
-    lines.push(`## ${icon} ${title}`)
+    lines.push(`## ${title}`)
     lines.push('')
-    lines.push(`- Regressions: ${report.regressions.length}`)
-    lines.push(`- Improvements: ${report.improvements.length}`)
+    lines.push(`**${verdictWord}** — overall score ${scoreCell(overallBase)} → ${scoreCell(overallCurrent)} ${overallArrow} (${signed(overallDelta)})`)
     lines.push('')
-    lines.push(`_Base \`${input.baseScanId.slice(0, 8)}\` → Current \`${input.currentScanId.slice(0, 8)}\`_`)
-    const renderTable = (rows: Diff[], heading: string) => {
-      if (!rows.length)
-        return
-      lines.push('')
-      lines.push(`### ${heading}`)
-      lines.push('')
-      lines.push('| Route | Device | Metric | Base | Current | Δ |')
-      lines.push('|-------|--------|--------|------|---------|---|')
-      for (const r of rows)
-        lines.push(`| \`${r.url}\` | ${r.device} | ${r.metric} | ${r.base ?? '—'} | ${r.current ?? '—'} | ${r.delta.toFixed(3)} |`)
+    lines.push(`Comparing base \`${input.baseScanId.slice(0, 8)}\` → current \`${input.currentScanId.slice(0, 8)}\` · ${report.regressions.length} regression${report.regressions.length === 1 ? '' : 's'}, ${report.improvements.length} improvement${report.improvements.length === 1 ? '' : 's'}.`)
+
+    // ── Category deltas ────────────────────────────────────────────────────
+    // Always rendered, even when a category is missing — the `—` placeholder
+    // makes it obvious that the scan didn't measure it (e.g. matrix scan
+    // without a desktop device).
+    lines.push('')
+    lines.push('### Category scores')
+    lines.push('')
+    lines.push('| Category | Base | Current | Δ |')
+    lines.push('|----------|------|---------|---|')
+    for (const cd of categoryDeltas) {
+      const arrow = cd.base != null && cd.current != null
+        ? deltaArrow(cd.delta, categoryThreshold)
+        : '−'
+      lines.push(`| ${CATEGORY_LABEL[cd.category]} | ${scoreCell(cd.base)} | ${scoreCell(cd.current)} | ${arrow} ${signed(cd.delta)} |`)
     }
-    renderTable(report.regressions, 'Regressions')
-    renderTable(report.improvements, 'Improvements')
+
+    // ── Top regressions ────────────────────────────────────────────────────
+    const topRegressions = pickTopRouteDiffs(report.regressions, 'regression')
+    if (topRegressions.length) {
+      lines.push('')
+      lines.push(`### Worst regressions (top ${topRegressions.length})`)
+      lines.push('')
+      lines.push('| Route | Device | Category | Base | Current | Δ |')
+      lines.push('|-------|--------|----------|------|---------|---|')
+      for (const r of topRegressions) {
+        const arrow = deltaArrow(r.delta, categoryThreshold)
+        lines.push(`| \`${r.url}\` | ${r.device} | ${CATEGORY_LABEL[r.metric as Category]} | ${scoreCell(r.base)} | ${scoreCell(r.current)} | ${arrow} ${signed(r.delta)} |`)
+      }
+    }
+
+    // ── Top improvements ───────────────────────────────────────────────────
+    const topImprovements = pickTopRouteDiffs(report.improvements, 'improvement')
+    if (topImprovements.length) {
+      lines.push('')
+      lines.push(`### Best improvements (top ${topImprovements.length})`)
+      lines.push('')
+      lines.push('| Route | Device | Category | Base | Current | Δ |')
+      lines.push('|-------|--------|----------|------|---------|---|')
+      for (const r of topImprovements) {
+        const arrow = deltaArrow(r.delta, categoryThreshold)
+        lines.push(`| \`${r.url}\` | ${r.device} | ${CATEGORY_LABEL[r.metric as Category]} | ${scoreCell(r.base)} | ${scoreCell(r.current)} | ${arrow} ${signed(r.delta)} |`)
+      }
+    }
+
+    lines.push('')
+    lines.push('<sub>Generated by [Unlighthouse](https://unlighthouse.dev).</sub>')
+
     return {
       markdown: `${lines.join('\n')}\n`,
       hasRegressions: report.regressions.length > 0,
