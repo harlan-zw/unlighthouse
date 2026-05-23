@@ -11,10 +11,49 @@ export interface Sorting {
 
 export const perPage = 10
 
+// Filter atoms for the routes table on results/[scanId]/index.vue.
+// Persisted via useState so they survive layout re-mounts; the page
+// keeps URL ?query in sync by watching these refs.
+export type DeviceFilter = 'all' | 'mobile' | 'desktop'
+export type RegressionStatus = 'all' | 'worse' | 'better' | 'same'
+export type ScoreCategoryFilter
+  = | 'overall'
+    | 'performance'
+    | 'accessibility'
+    | 'best-practices'
+    | 'seo'
+export type ScoreOp = '>=' | '<='
+
 export function useResultsSearch() {
   const searchText = useState<string>('search:text', () => '')
   const sorting = useState<Sorting>('search:sorting', () => ({}))
   const page = useState<number>('search:page', () => 1)
+  // Toolbar filters — see `pages/results/[scanId]/index.vue` for wiring.
+  const deviceFilter = useState<DeviceFilter>('search:device', () => 'all')
+  const scoreCategory = useState<ScoreCategoryFilter>('search:scoreCategory', () => 'overall')
+  const scoreOp = useState<ScoreOp>('search:scoreOp', () => '>=')
+  // `null` means "no threshold" — display as a blank input.
+  const scoreValue = useState<number | null>('search:scoreValue', () => null)
+  const regressionStatus = useState<RegressionStatus>('search:regression', () => 'all')
+
+  function resetFilters() {
+    searchText.value = ''
+    deviceFilter.value = 'all'
+    scoreCategory.value = 'overall'
+    scoreOp.value = '>='
+    scoreValue.value = null
+    regressionStatus.value = 'all'
+    page.value = 1
+  }
+
+  // True when any non-default filter is active. Lets the page render a
+  // "Reset filters" affordance only when there's something to reset.
+  const hasActiveFilters = computed(() =>
+    !!searchText.value
+    || deviceFilter.value !== 'all'
+    || scoreValue.value !== null
+    || regressionStatus.value !== 'all',
+  )
 
   const { reports } = useReports()
   const { configColumns, groupRoutesKey } = useUnlighthouseConfig()
@@ -117,5 +156,13 @@ export function useResultsSearch() {
     incrementSort,
     searchResults,
     paginatedResults,
+    // toolbar filters
+    deviceFilter,
+    scoreCategory,
+    scoreOp,
+    scoreValue,
+    regressionStatus,
+    hasActiveFilters,
+    resetFilters,
   }
 }
