@@ -15,6 +15,7 @@ export interface CliOptions {
   throttle?: boolean
   desktop?: boolean
   mobile?: boolean
+  device?: string
   cache?: boolean
   noCache?: boolean
   version?: boolean

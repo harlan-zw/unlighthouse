@@ -5,7 +5,7 @@
  * Replaces the 465-line createUnlighthouse in unlighthouse.ts (deleted in Step H).
  */
 import type { HookMap, Logger, ResolvedUserConfig, RuntimeSettings, UserConfig } from '@unlighthouse/contracts'
-import type { UnlighthouseCore } from '@unlighthouse/contracts/ports'
+import type { UnlighthouseCore, UnlighthouseCoreRunOverrides } from '@unlighthouse/contracts/ports'
 import type { WS } from '@unlighthouse/core/api'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers/types'
 import type { Hookable } from 'hookable'
@@ -66,8 +66,12 @@ export interface UnlighthouseHost {
   generateClient: () => Promise<void>
   setServerContext: (arg: { url: string, server: any, app: any }) => Promise<void>
   handlerCtx: HandlerCtx
-  /** Begin the scan via core.run(). Returns the started session's scanId. */
-  start: () => Promise<{ scanId: string }>
+  /**
+   * Begin the scan via core.run(). Returns the started session's scanId.
+   * Optional `overrides` are forwarded as `UnlighthouseCoreRunOverrides`
+   * (e.g. multi-device matrix from `--device mobile,desktop`).
+   */
+  start: (overrides?: UnlighthouseCoreRunOverrides) => Promise<{ scanId: string }>
 }
 
 export interface CreateUnlighthouseHostOptions {
@@ -394,10 +398,10 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
   // ── start ────────────────────────────────────────────────────────────────
 
-  const start = async () => {
+  const start = async (overrides?: UnlighthouseCoreRunOverrides) => {
     const { core } = ensurePorts()
     logger.debug?.(`Starting v1 scan [Site: ${resolvedConfig.site}]`)
-    const session = core.run()
+    const session = core.run(overrides ? { overrides } : undefined)
     return { scanId: session.scanId }
   }
 

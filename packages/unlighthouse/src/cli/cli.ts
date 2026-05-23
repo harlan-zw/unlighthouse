@@ -9,7 +9,7 @@ import { joinURL } from 'ufo'
 import { createSitesStore, deriveSiteId } from '../data/sites'
 import { createUnlighthouseHost } from '../index.ts'
 import createCli from './createCli'
-import { pickOptions, validateHost, validateOptions } from './util'
+import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
 async function createServer(resolvedConfig: { server: any }) {
   const app = createApp()
@@ -90,7 +90,15 @@ async function run() {
 
   const { server, app } = await createServer(unlighthouse.resolvedConfig)
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  const { scanId } = await unlighthouse.start()
+  // D-029: multi-device matrix scans flow through `core.run` overrides — not
+  // `scanner.device` (which still carries a single primary device for adapter
+  // back-compat). `parseDevices` returns the parsed `--device` list (or
+  // undefined when the flag was omitted); pass it through so a single scan
+  // run can audit both mobile and desktop.
+  const deviceOverride = parseDevices(options)
+  const { scanId } = await unlighthouse.start(
+    deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
+  )
 
   // Register this scan's site in the persistent registry so it shows up on the dashboard.
   const siteUrl = unlighthouse.resolvedConfig.site
