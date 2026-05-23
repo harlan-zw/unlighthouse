@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useSites } from '~/composables/sites'
+import { useScannedSites } from '~/composables/useScannedSites'
 
 definePageMeta({ layout: 'dashboard' })
 
 const { sites, groups, sitesByGroup } = useSites()
+const { scannedSites } = useScannedSites()
 
 const ungrouped = computed(() => sitesByGroup.value.get(null) || [])
 const groupedList = computed(() =>
@@ -11,12 +13,16 @@ const groupedList = computed(() =>
     .map(g => ({ ...g, sites: sitesByGroup.value.get(g.id) || [] }))
     .filter(g => g.sites.length),
 )
+
+// Sites that have scan history but no matching entry in the curated registry —
+// usually scans started via an explicit `site` override (#345).
+const adHoc = computed(() => scannedSites.value.filter(s => !s.registry))
 </script>
 
 <template>
   <div>
     <!-- Empty state: integrated onboarding -->
-    <div v-if="!sites.length" class="max-w-2xl mx-auto py-20 text-center">
+    <div v-if="!sites.length && !scannedSites.length" class="max-w-2xl mx-auto py-20 text-center">
       <div class="size-12 rounded-sm ring-1 ring-default bg-elevated/60 mx-auto mb-6 flex items-center justify-center">
         <UIcon name="i-heroicons-light-bulb" class="size-6 text-highlighted" />
       </div>
@@ -44,11 +50,21 @@ const groupedList = computed(() =>
           </h1>
           <p class="text-sm text-muted mt-1">
             {{ sites.length }} site{{ sites.length === 1 ? '' : 's' }} tracked
+            <template v-if="scannedSites.length">
+              · <NuxtLink to="/sites" class="hover:text-default underline-offset-2 hover:underline">
+                {{ scannedSites.length }} with scan history
+              </NuxtLink>
+            </template>
           </p>
         </div>
-        <UiMotionButton to="/sites/add" icon="i-heroicons-plus" color="primary">
-          Add site
-        </UiMotionButton>
+        <div class="flex items-center gap-2">
+          <UiMotionButton to="/sites" variant="outline" color="neutral" icon="i-heroicons-squares-2x2">
+            Multi-site view
+          </UiMotionButton>
+          <UiMotionButton to="/sites/add" icon="i-heroicons-plus" color="primary">
+            Add site
+          </UiMotionButton>
+        </div>
       </header>
 
       <section v-for="group in groupedList" :key="group.id" class="mb-8">
@@ -66,6 +82,20 @@ const groupedList = computed(() =>
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <SiteCard v-for="site in ungrouped" :key="site.id" :site="site" />
+        </div>
+      </section>
+
+      <section v-if="adHoc.length" class="mb-8">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <h2 class="text-[11px] font-semibold text-dimmed uppercase tracking-widest">
+            Ad-hoc scans
+          </h2>
+          <NuxtLink to="/sites" class="text-xs text-muted hover:text-default transition-colors">
+            See all →
+          </NuxtLink>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <ScannedSiteCard v-for="site in adHoc" :key="site.url" :site="site" />
         </div>
       </section>
     </div>

@@ -7,6 +7,7 @@ const { sites, groups, sitesByGroup } = useSites()
 
 const topLinks: NavLink[] = [
   { label: 'Dashboard', to: '/', icon: 'i-heroicons-squares-2x2', exact: true },
+  { label: 'All sites', to: '/sites', icon: 'i-heroicons-globe-alt' },
   { label: 'Integrations', to: '/integrations', icon: 'i-heroicons-puzzle-piece' },
 ]
 
