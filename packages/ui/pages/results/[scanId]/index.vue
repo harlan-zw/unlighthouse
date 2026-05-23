@@ -3,12 +3,24 @@ import Fuse from 'fuse.js'
 import { useResultsSearch } from '~/composables/search'
 import { useHistoricalScan } from '~/composables/useHistoricalScan'
 import { useLighthouseReportModal } from '~/composables/useLighthouseReportModal'
+import { usePreviousScan } from '~/composables/usePreviousScan'
 import { useReports } from '~/composables/useReports'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
 
 const { isStatic, resolveArtifactPath } = useUnlighthouseConfig()
 const { reports: liveReports } = useReports()
-const { page, perPage, searchText } = useResultsSearch()
+const {
+  page,
+  perPage,
+  searchText,
+  deviceFilter,
+  scoreCategory,
+  scoreOp,
+  scoreValue,
+  regressionStatus,
+  hasActiveFilters,
+  resetFilters,
+} = useResultsSearch()
 const {
   isOpen: lighthouseReportModalOpen,
   url: iframeModalUrl,
@@ -37,9 +49,82 @@ const modalDeviceTabValue = computed({
 definePageMeta({ layout: 'site' })
 
 const route = useRoute()
+const router = useRouter()
 const scanId = computed(() => route.params.scanId as string | undefined)
 const { data: historicalScan } = useHistoricalScan(scanId)
 const isHistorical = computed(() => !!scanId.value && !!historicalScan.value)
+
+// Previous scan (for the same site) drives the "regression" filter. The
+// dropdown is disabled when no prior scan exists, so a fresh site looks
+// identical to the pre-filter UI.
+const { data: previousScan } = usePreviousScan(scanId)
+const hasComparison = computed(() => !!previousScan.value?.routes?.length)
+
+// Prev-scan per-route lookup: key by `${path}|${device}` so matrix scans
+// compare mobile-to-mobile and desktop-to-desktop instead of muddling them.
+const prevByRouteDevice = computed(() => {
+  const map = new Map<string, any>()
+  for (const r of previousScan.value?.routes ?? []) {
+    map.set(`${r.path}|${r.device}`, r)
+  }
+  return map
+})
+
+// ── Hydrate filter state from URL query on mount ───────────────────────────
+// We hydrate once (not as a deep watch on route.query) so the page is
+// shareable but typing into a filter doesn't trigger a router round-trip
+// for every keystroke before the URL push below runs.
+onMounted(() => {
+  const q = route.query
+  if (typeof q.search === 'string')
+    searchText.value = q.search
+  if (q.device === 'mobile' || q.device === 'desktop' || q.device === 'all')
+    deviceFilter.value = q.device
+  if (q.cat === 'overall' || q.cat === 'performance' || q.cat === 'accessibility' || q.cat === 'best-practices' || q.cat === 'seo')
+    scoreCategory.value = q.cat
+  if (q.scoreOp === '>=' || q.scoreOp === '<=')
+    scoreOp.value = q.scoreOp
+  if (typeof q.score === 'string') {
+    const n = Number.parseInt(q.score, 10)
+    if (Number.isFinite(n) && n >= 0 && n <= 100)
+      scoreValue.value = n
+  }
+  if (q.regression === 'worse' || q.regression === 'better' || q.regression === 'same' || q.regression === 'all')
+    regressionStatus.value = q.regression
+})
+
+// Push filter state back into URL query string. `replace` so we don't
+// pollute history with every keystroke; default values are stripped to
+// keep clean URLs.
+watch(
+  [searchText, deviceFilter, scoreCategory, scoreOp, scoreValue, regressionStatus],
+  () => {
+    const next: Record<string, string> = {}
+    if (searchText.value)
+      next.search = searchText.value
+    if (deviceFilter.value !== 'all')
+      next.device = deviceFilter.value
+    if (scoreValue.value != null) {
+      next.score = String(scoreValue.value)
+      next.cat = scoreCategory.value
+      next.scoreOp = scoreOp.value
+    }
+    if (regressionStatus.value !== 'all')
+      next.regression = regressionStatus.value
+    // Preserve any non-filter query keys (none today, but future-proof).
+    const merged = { ...route.query, ...next }
+    // Strip stale filter keys when reverting to default.
+    for (const k of ['search', 'device', 'score', 'cat', 'scoreOp', 'regression']) {
+      if (!(k in next))
+        delete (merged as any)[k]
+    }
+    router.replace({ query: merged })
+    // Any filter change resets pagination to page 1 — page N may not exist
+    // in the filtered result set.
+    page.value = 1
+  },
+  { flush: 'post' },
+)
 
 // Sort & filter state
 const sortBy = ref<'score' | 'performance' | 'accessibility' | 'best-practices' | 'seo' | 'path'>('path')
@@ -176,6 +261,110 @@ const summaryStats = computed(() => {
   ]
 })
 
+// Per-device score lookup: pulls the chosen category from a report row,
+// returning 0..100 ints (or null when the row has no scored report). Used by
+// the toolbar threshold / regression filters.
+function deviceScore(row: any, cat: string): number | null {
+  if (!row?.report?.categories)
+    return null
+  if (cat === 'overall')
+    return getOverallScore(row)
+  return getCategoryScore(row, cat)
+}
+
+// Prev-scan score atom (0..100). Reads the per-category fields straight off
+// the persisted ScanRoute — `scorePerformance`, `scoreAccessibility`, ….
+function prevDeviceScore(path: string, device: 'mobile' | 'desktop', cat: string): number | null {
+  const r = prevByRouteDevice.value.get(`${path}|${device}`)
+  if (!r)
+    return null
+  const get = (s: number | null | undefined) => (s == null ? null : Math.round(s * 100))
+  if (cat === 'performance')
+    return get(r.scorePerformance)
+  if (cat === 'accessibility')
+    return get(r.scoreAccessibility)
+  if (cat === 'best-practices')
+    return get(r.scoreBestPractices)
+  if (cat === 'seo')
+    return get(r.scoreSeo)
+  // overall — average present categories on the prev row.
+  const present = [r.scorePerformance, r.scoreAccessibility, r.scoreBestPractices, r.scoreSeo]
+    .filter((s): s is number => s != null)
+    .map(s => s * 100)
+  if (!present.length)
+    return null
+  return Math.round(present.reduce((a, b) => a + b, 0) / present.length)
+}
+
+// Bucket a (current, prev) score pair into a regression status. ±2 points
+// of jitter rounds to "same" so noise from one warm-up doesn't paint every
+// route as worse/better.
+function regressionFor(group: RouteGroup, device: 'mobile' | 'desktop', cat: string): 'worse' | 'better' | 'same' | null {
+  const row = device === 'mobile' ? group.mobile : group.desktop
+  if (!row)
+    return null
+  const cur = deviceScore(row, cat)
+  const prev = prevDeviceScore(group.path, device, cat)
+  if (cur == null || prev == null)
+    return null
+  const delta = cur - prev
+  if (delta <= -3)
+    return 'worse'
+  if (delta >= 3)
+    return 'better'
+  return 'same'
+}
+
+// Returns the devices on a group that the current device filter selects.
+// `all` keeps mobile + desktop; `mobile` / `desktop` narrow to one form-factor.
+function selectedDevicesFor(g: RouteGroup): ('mobile' | 'desktop')[] {
+  if (deviceFilter.value === 'mobile')
+    return g.mobile ? ['mobile'] : []
+  if (deviceFilter.value === 'desktop')
+    return g.desktop ? ['desktop'] : []
+  // 'all'
+  const out: ('mobile' | 'desktop')[] = []
+  if (g.mobile)
+    out.push('mobile')
+  if (g.desktop)
+    out.push('desktop')
+  return out
+}
+
+// A group matches the threshold/regression filters iff *any* of its selected
+// devices satisfies them — i.e. one mobile row scoring ≥80 keeps the group
+// even if desktop scores 50. Matches the user's mental model (search by
+// route, scoped to a device).
+function groupMatchesScoreAndRegression(g: RouteGroup): boolean {
+  const devices = selectedDevicesFor(g)
+  if (!devices.length)
+    return false
+  return devices.some((dev) => {
+    const row = dev === 'mobile' ? g.mobile : g.desktop
+    if (!row)
+      return false
+    // Score threshold.
+    if (scoreValue.value != null) {
+      const s = deviceScore(row, scoreCategory.value)
+      if (s == null)
+        return false
+      if (scoreOp.value === '>=' && s < scoreValue.value)
+        return false
+      if (scoreOp.value === '<=' && s > scoreValue.value)
+        return false
+    }
+    // Regression status.
+    if (regressionStatus.value !== 'all' && hasComparison.value) {
+      const r = regressionFor(g, dev, scoreCategory.value)
+      if (r == null)
+        return false
+      if (r !== regressionStatus.value)
+        return false
+    }
+    return true
+  })
+}
+
 // Fuzzy search + sort + filter — operates on grouped rows so paginate/sort
 // reflect logical routes, not (route, device) pairs.
 const searchResults = computed((): RouteGroup[] => {
@@ -188,6 +377,16 @@ const searchResults = computed((): RouteGroup[] => {
       keys: ['path', 'url'],
     })
     data = fuse.search(searchText.value).map(i => i.item)
+  }
+
+  // Toolbar filters: device + score threshold + regression status. Applied
+  // before the quick filter so worst5/best5 reflects the filtered set.
+  if (
+    deviceFilter.value !== 'all'
+    || scoreValue.value != null
+    || (regressionStatus.value !== 'all' && hasComparison.value)
+  ) {
+    data = data.filter(groupMatchesScoreAndRegression)
   }
 
   // Quick filter: scores come from the primary report (mobile when present).
@@ -264,6 +463,32 @@ const filterOptions = [
   { label: 'Below 50', value: 'below50' },
 ]
 
+const deviceOptions = [
+  { label: 'All', value: 'all' },
+  { label: 'Mobile', value: 'mobile' },
+  { label: 'Desktop', value: 'desktop' },
+]
+
+const scoreCategoryOptions = [
+  { label: 'Overall', value: 'overall' },
+  { label: 'Performance', value: 'performance' },
+  { label: 'Accessibility', value: 'accessibility' },
+  { label: 'Best Practices', value: 'best-practices' },
+  { label: 'SEO', value: 'seo' },
+]
+
+const scoreOpOptions: { label: string, value: '>=' | '<=' }[] = [
+  { label: '≥', value: '>=' },
+  { label: '≤', value: '<=' },
+]
+
+const regressionOptions = [
+  { label: 'Any', value: 'all' },
+  { label: 'Worse', value: 'worse' },
+  { label: 'Better', value: 'better' },
+  { label: 'Same', value: 'same' },
+]
+
 </script>
 
 <template>
@@ -307,6 +532,64 @@ const filterOptions = [
       <div class="flex items-center gap-2">
         <span class="text-xs text-dimmed">Filter:</span>
         <UiPillSelect v-model="quickFilter" :options="filterOptions" />
+      </div>
+
+      <div v-if="hasActiveFilters" class="ml-auto">
+        <UiMotionButton
+          variant="ghost"
+          size="xs"
+          icon="i-heroicons-x-mark"
+          @click="resetFilters"
+        >
+          <span class="hidden sm:inline">Reset filters</span>
+        </UiMotionButton>
+      </div>
+    </div>
+
+    <!-- Advanced filter toolbar — collapses to a single wrapping row on
+         narrow viewports. Score threshold + regression status only act on
+         their respective category (Overall / Performance / …). -->
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="text-dimmed">Device:</span>
+        <UiPillSelect v-model="deviceFilter" :options="deviceOptions" />
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-dimmed">Score:</span>
+        <USelectMenu
+          v-model="scoreCategory"
+          :items="scoreCategoryOptions"
+          value-key="value"
+          size="xs"
+          class="w-32"
+        />
+        <UiPillSelect v-model="scoreOp" :options="scoreOpOptions" />
+        <UInput
+          v-model.number="scoreValue"
+          type="number"
+          min="0"
+          max="100"
+          placeholder="–"
+          size="xs"
+          class="w-16"
+          :ui="{ base: 'bg-elevated/60 border-default focus-visible:border-accented focus-visible:ring-accented text-right' }"
+        />
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-dimmed">Regression:</span>
+        <USelectMenu
+          v-model="regressionStatus"
+          :items="regressionOptions"
+          value-key="value"
+          size="xs"
+          class="w-24"
+          :disabled="!hasComparison"
+        />
+        <span v-if="!hasComparison" class="text-dimmed/70 italic">
+          (no prev scan)
+        </span>
       </div>
     </div>
 
