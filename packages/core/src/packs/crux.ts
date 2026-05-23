@@ -1,14 +1,20 @@
 // `crux` pack — bridge to Chrome User Experience Report field data.
 //
-// Phase 11 / issue #349 — first iteration. Scope:
+// Phase 11 / issue #349 — scope:
 //   - Per-route p75 LCP / CLS / INP from CrUX next to the lab numbers
 //   - Origin-level fallback when a URL has no per-URL CrUX coverage
 //   - Severity bucketed against the Google p75 thresholds (good/ni/poor)
+//   - "Lab vs field" gap detector: per (url, device) joins the LAB verdict
+//     (Lighthouse-extracted metrics on the ScanRoute) with the FIELD verdict
+//     (CrUX p75 for the same metric) and partitions into three buckets:
+//       * goodLabPoorField — lab passed but real users hit it (most damning)
+//       * poorLabGoodField — lab pessimistic, real users fine (tuning hint)
+//       * aligned          — lab and field agree on verdict
+//     This is the wedge against single-URL competitors: lab-only scores miss
+//     real-world variance (slow networks, low-end devices) and field-only
+//     hides actionable fixes; we surface both, joined.
 //
 // Deferred to follow-up PRs (see #349):
-//   - "Lab vs field" gap detector (flag routes where lab says good but
-//      field says poor). Today we surface field data; comparison logic
-//      against lab metrics lives in a future pack pass.
 //   - UI surfacing in `packages/ui/` (results pages, dashboard widgets).
 //
 // Why a Pack and not just the existing CrUX auditor:
@@ -33,7 +39,7 @@
 // is safe to register globally; users without a key just see "no
 // field data" instead of a hard failure.
 
-import type { Pack, PackReconcileCtx, ScanRoute } from '@unlighthouse/contracts'
+import type { Device, Pack, PackReconcileCtx, ScanRoute } from '@unlighthouse/contracts'
 import { z } from 'zod'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────
@@ -79,6 +85,36 @@ const SeverityCountsSchema = z.object({
   unknown: z.number().int().nonnegative(),
 })
 
+// Lab-vs-field gap analysis. We restrict the comparison to a verdict — not a
+// raw value — because the units differ (lab numbers come from a single
+// throttled run, field p75 from real users). What matters operationally is:
+// "did Lighthouse say this is fine while real users disagree?".
+const MetricKeySchema = z.enum(['lcp', 'cls', 'inp'])
+const GapVerdictSchema = z.enum(['good', 'needsImprovement', 'poor'])
+
+const GapEntrySchema = z.object({
+  url: z.string(),
+  // CrUX-style form factor for joinability with the rest of the report.
+  formFactor: FormFactorSchema,
+  metric: MetricKeySchema,
+  labVerdict: GapVerdictSchema,
+  fieldVerdict: GapVerdictSchema,
+  labValue: z.number().nullable(),
+  fieldValue: z.number().nullable(),
+})
+
+const GapAnalysisSchema = z.object({
+  // Lab said `good`, field says `poor`. The damning gap — lab passed but real
+  // users feel it.
+  goodLabPoorField: z.array(GapEntrySchema),
+  // Lab said `poor`, field says `good`. Lab was pessimistic — useful for
+  // tuning thresholds or recognising over-conservative single-run noise.
+  poorLabGoodField: z.array(GapEntrySchema),
+  // Both substrates agree on the verdict. Aligned rows are still useful for
+  // confidence — if `good` lab + `good` field, you can trust the result.
+  aligned: z.array(GapEntrySchema),
+})
+
 const CruxReportSchema = z.object({
   scanId: z.string(),
   routesAnalysed: z.number().int().nonnegative(),
@@ -90,12 +126,19 @@ const CruxReportSchema = z.object({
   hasOriginFallback: z.boolean(),
   severityCounts: SeverityCountsSchema,
   findings: z.array(CruxFindingSchema),
+  // Populated whenever we have BOTH lab values (on the ScanRoute) and field
+  // findings (CrUX source !== 'none') to compare. When nothing lines up,
+  // every bucket is the empty array — `null` would be ambiguous with
+  // "feature off" vs "ran but found nothing aligned".
+  gapAnalysis: GapAnalysisSchema,
 })
 
 export type CruxFinding = z.infer<typeof CruxFindingSchema>
 export type CruxReport = z.infer<typeof CruxReportSchema>
 export type CruxFormFactor = z.infer<typeof FormFactorSchema>
 export type CruxSource = z.infer<typeof SourceSchema>
+export type GapEntry = z.infer<typeof GapEntrySchema>
+export type GapAnalysis = z.infer<typeof GapAnalysisSchema>
 
 // ── CrUX API client ─────────────────────────────────────────────────────────
 
@@ -247,6 +290,105 @@ function worstSeverity(metrics: {
   }, 'good')
 }
 
+// ── Lab vs field gap detector ───────────────────────────────────────────────
+
+// CrUX speaks PHONE/DESKTOP/TABLET; the rest of the scan stack speaks
+// 'mobile'/'desktop'. TABLET is intentionally dropped — we never schedule
+// tablet lab runs, so there's nothing to join against.
+function deviceFromFormFactor(formFactor: CruxFormFactor): Device | null {
+  if (formFactor === 'PHONE')
+    return 'mobile'
+  if (formFactor === 'DESKTOP')
+    return 'desktop'
+  // TABLET / ALL_FORM_FACTORS have no lab counterpart in this codebase.
+  return null
+}
+
+// The three CrUX metrics on a finding mapped to their lab ScanRoute columns.
+// Keep this aligned with the THRESHOLDS table at the top of the file — both
+// lab and field verdicts use the same Google p75 thresholds, which is the
+// whole reason an apples-to-apples comparison is meaningful.
+const COMPARABLE_METRICS = [
+  { metric: 'lcp', field: 'lcp_p75', lab: 'lcp' },
+  { metric: 'cls', field: 'cls_p75', lab: 'cls' },
+  { metric: 'inp', field: 'inp_p75', lab: 'inp' },
+] as const
+
+/**
+ * Join lab metrics (per `(url, device)` on ScanRoute) with CrUX findings
+ * (per `(url, formFactor)`) and partition into three buckets by verdict
+ * agreement. Routes / metrics with missing data on either side are skipped
+ * silently — they're not "aligned", they're just "unknown" and don't
+ * belong in any bucket.
+ *
+ * Exported for unit testing — the reconciler is the production caller.
+ */
+export function analyzeLabVsField(
+  routes: ReadonlyArray<ScanRoute>,
+  findings: ReadonlyArray<CruxFinding>,
+): GapAnalysis {
+  const result: GapAnalysis = {
+    goodLabPoorField: [],
+    poorLabGoodField: [],
+    aligned: [],
+  }
+
+  // Index lab routes by `(device, url)` so the inner loop over findings is
+  // O(1) per lookup. Field findings are the natural outer loop because
+  // they're the data we conditionally have — lab is always present.
+  const labIndex = new Map<string, ScanRoute>()
+  for (const route of routes) {
+    labIndex.set(`${route.device}|${route.url}`, route)
+  }
+
+  for (const finding of findings) {
+    // No field data → no comparison possible.
+    if (finding.source === 'none')
+      continue
+    const device = deviceFromFormFactor(finding.formFactor)
+    if (!device)
+      continue
+    const route = labIndex.get(`${device}|${finding.url}`)
+    if (!route)
+      continue
+
+    for (const { metric, field, lab } of COMPARABLE_METRICS) {
+      const fieldValue = finding[field]
+      const labValueRaw = (route as Record<string, unknown>)[lab]
+      const labValue = typeof labValueRaw === 'number' ? labValueRaw : null
+      if (fieldValue == null || labValue == null)
+        continue
+
+      const labVerdict = verdictFor(metric, labValue)
+      const fieldVerdict = verdictFor(metric, fieldValue)
+      if (!labVerdict || !fieldVerdict)
+        continue
+
+      const entry: GapEntry = {
+        url: finding.url,
+        formFactor: finding.formFactor,
+        metric,
+        labVerdict,
+        fieldVerdict,
+        labValue,
+        fieldValue,
+      }
+
+      if (labVerdict === 'good' && fieldVerdict === 'poor')
+        result.goodLabPoorField.push(entry)
+      else if (labVerdict === 'poor' && fieldVerdict === 'good')
+        result.poorLabGoodField.push(entry)
+      else if (labVerdict === fieldVerdict)
+        result.aligned.push(entry)
+      // Other combinations (e.g. good/ni, poor/ni, ni/good) are real but not
+      // in the headline buckets — leave them out rather than invent a fourth
+      // bin nobody asked for. We can extend the schema later if needed.
+    }
+  }
+
+  return result
+}
+
 // ── Pack config ─────────────────────────────────────────────────────────────
 
 export interface CruxPackOptions {
@@ -302,6 +444,9 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
         hasOriginFallback: false,
         severityCounts,
         findings,
+        // No field data → no gaps to detect. Empty buckets keep the wire
+        // shape stable for downstream consumers.
+        gapAnalysis: { goodLabPoorField: [], poorLabGoodField: [], aligned: [] },
       }
     }
 
@@ -350,6 +495,10 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
       hasOriginFallback,
       severityCounts,
       findings,
+      // Always compute — `analyzeLabVsField` short-circuits when there's no
+      // overlap, returning empty buckets. The caller can then decide whether
+      // to surface "0 gaps detected" or hide the section entirely.
+      gapAnalysis: analyzeLabVsField(routes as ScanRoute[], findings),
     }
   }
 

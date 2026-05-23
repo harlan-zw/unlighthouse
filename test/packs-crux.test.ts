@@ -13,8 +13,9 @@
 // All HTTP traffic stubbed with vi.spyOn(globalThis, 'fetch') — never hits the
 // real CrUX API.
 
-import type { PackReconcileCtx, ScanRoute } from '@unlighthouse/contracts'
-import { createCruxPack, cruxPack, queryCrux } from '@unlighthouse/core/packs/crux'
+import type { Device, PackReconcileCtx, ScanRoute } from '@unlighthouse/contracts'
+import type { CruxFinding } from '@unlighthouse/core/packs/crux'
+import { analyzeLabVsField, createCruxPack, cruxPack, queryCrux } from '@unlighthouse/core/packs/crux'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const ORIGINAL_FETCH = globalThis.fetch
@@ -38,20 +39,27 @@ function jsonResponse(body: unknown, init: { status?: number } = {}): Response {
   })
 }
 
-function buildRoute(url: string): ScanRoute {
+interface BuildRouteOverrides {
+  device?: Device
+  lcp?: number | null
+  cls?: number | null
+  inp?: number | null
+}
+
+function buildRoute(url: string, overrides: BuildRouteOverrides = {}): ScanRoute {
   return {
     scanId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     url,
-    device: 'mobile',
+    device: overrides.device ?? 'mobile',
     path: new URL(url).pathname,
     routeName: null,
     scorePerformance: 0.9,
     scoreAccessibility: 0.95,
     scoreSeo: 0.85,
     scoreBestPractices: 0.9,
-    lcp: 1200,
-    cls: 0.01,
-    inp: 100,
+    lcp: overrides.lcp === undefined ? 1200 : overrides.lcp,
+    cls: overrides.cls === undefined ? 0.01 : overrides.cls,
+    inp: overrides.inp === undefined ? 100 : overrides.inp,
     fcp: 1000,
     ttfb: 200,
     tbt: 50,
@@ -292,5 +300,183 @@ describe('cruxPack reconciler', () => {
     const report = await pack.reconciler(ctxFor([buildRoute('https://example.com/')]))
     const parsed = pack.reportSchema.safeParse(report)
     expect(parsed.success).toBe(true)
+  })
+})
+
+// ── analyzeLabVsField — gap detector ────────────────────────────────────────
+// Phase 11 / issue #349 — joins lab metrics (ScanRoute) with field findings
+// (CrUX) per (url, device) and classifies the verdict pair.
+
+describe('analyzeLabVsField', () => {
+  function finding(over: Partial<CruxFinding> & { url: string }): CruxFinding {
+    return {
+      url: over.url,
+      formFactor: over.formFactor ?? 'PHONE',
+      lcp_p75: over.lcp_p75 ?? null,
+      cls_p75: over.cls_p75 ?? null,
+      inp_p75: over.inp_p75 ?? null,
+      source: over.source ?? 'url',
+      severity: over.severity ?? 'good',
+    }
+  }
+
+  it('flags goodLabPoorField when lab passes but field reports poor', async () => {
+    // Lab LCP 1200 (good) on /slow-in-the-wild, CrUX p75 5200 (poor).
+    const routes = [buildRoute('https://example.com/slow-in-the-wild', { lcp: 1200 })]
+    const findings = [finding({
+      url: 'https://example.com/slow-in-the-wild',
+      lcp_p75: 5200,
+      cls_p75: 0.05, // both 'good' — aligned
+      inp_p75: 150,
+    })]
+
+    const gap = analyzeLabVsField(routes, findings)
+    expect(gap.goodLabPoorField).toHaveLength(1)
+    expect(gap.goodLabPoorField[0]).toMatchObject({
+      url: 'https://example.com/slow-in-the-wild',
+      formFactor: 'PHONE',
+      metric: 'lcp',
+      labVerdict: 'good',
+      fieldVerdict: 'poor',
+      labValue: 1200,
+      fieldValue: 5200,
+    })
+    // CLS + INP both 'good' on both sides — they slot into `aligned`.
+    expect(gap.aligned.length).toBeGreaterThanOrEqual(2)
+    expect(gap.poorLabGoodField).toHaveLength(0)
+  })
+
+  it('flags poorLabGoodField when lab is pessimistic but real users are fine', async () => {
+    // Lab CLS 0.30 (poor — e.g. a flaky single-run measure), field CLS 0.05 (good).
+    const routes = [buildRoute('https://example.com/lab-flaky', { lcp: 1200, cls: 0.30, inp: 100 })]
+    const findings = [finding({
+      url: 'https://example.com/lab-flaky',
+      lcp_p75: 1500,
+      cls_p75: 0.05,
+      inp_p75: 100,
+    })]
+
+    const gap = analyzeLabVsField(routes, findings)
+    expect(gap.poorLabGoodField).toHaveLength(1)
+    expect(gap.poorLabGoodField[0]).toMatchObject({
+      metric: 'cls',
+      labVerdict: 'poor',
+      fieldVerdict: 'good',
+      labValue: 0.30,
+      fieldValue: 0.05,
+    })
+    expect(gap.goodLabPoorField).toHaveLength(0)
+  })
+
+  it('skips findings with no field data (source=none)', async () => {
+    const routes = [buildRoute('https://example.com/no-field', { lcp: 1200 })]
+    const findings = [finding({
+      url: 'https://example.com/no-field',
+      lcp_p75: null,
+      cls_p75: null,
+      inp_p75: null,
+      source: 'none',
+      severity: 'unknown',
+    })]
+
+    const gap = analyzeLabVsField(routes, findings)
+    expect(gap.goodLabPoorField).toHaveLength(0)
+    expect(gap.poorLabGoodField).toHaveLength(0)
+    expect(gap.aligned).toHaveLength(0)
+  })
+
+  it('skips findings with no matching lab route (e.g. URL not scanned on this device)', async () => {
+    // Lab data only for mobile, CrUX finding only for DESKTOP → no overlap.
+    const routes = [buildRoute('https://example.com/only-mobile', { device: 'mobile', lcp: 1200 })]
+    const findings = [finding({
+      url: 'https://example.com/only-mobile',
+      formFactor: 'DESKTOP',
+      lcp_p75: 1500,
+    })]
+
+    const gap = analyzeLabVsField(routes, findings)
+    expect(gap.aligned).toHaveLength(0)
+    expect(gap.goodLabPoorField).toHaveLength(0)
+    expect(gap.poorLabGoodField).toHaveLength(0)
+  })
+
+  it('joins per (url, device) — mobile lab pairs with PHONE field, desktop with DESKTOP', async () => {
+    // Same URL, two devices: mobile lab good vs PHONE field poor → gap on mobile.
+    // Desktop lab good vs DESKTOP field good → aligned on desktop.
+    const routes = [
+      buildRoute('https://example.com/', { device: 'mobile', lcp: 1200 }),
+      buildRoute('https://example.com/', { device: 'desktop', lcp: 800 }),
+    ]
+    const findings = [
+      finding({ url: 'https://example.com/', formFactor: 'PHONE', lcp_p75: 5200 }),
+      finding({ url: 'https://example.com/', formFactor: 'DESKTOP', lcp_p75: 1100 }),
+    ]
+
+    const gap = analyzeLabVsField(routes, findings)
+    expect(gap.goodLabPoorField).toHaveLength(1)
+    expect(gap.goodLabPoorField[0]).toMatchObject({ formFactor: 'PHONE', metric: 'lcp' })
+    // The DESKTOP pair is good/good — lands in aligned.
+    expect(gap.aligned.some(e => e.formFactor === 'DESKTOP' && e.metric === 'lcp')).toBe(true)
+  })
+
+  it('skips TABLET findings (no lab counterpart in this codebase)', async () => {
+    const routes = [buildRoute('https://example.com/', { device: 'mobile', lcp: 1200 })]
+    const findings = [finding({ url: 'https://example.com/', formFactor: 'TABLET', lcp_p75: 5200 })]
+    const gap = analyzeLabVsField(routes, findings)
+    expect(gap.goodLabPoorField).toHaveLength(0)
+    expect(gap.aligned).toHaveLength(0)
+  })
+
+  it('handles partial metric coverage (e.g. INP missing from CrUX) without skipping the row', async () => {
+    // LCP & CLS comparable, INP missing on field side → only 2 entries possible.
+    const routes = [buildRoute('https://example.com/', { lcp: 1200, cls: 0.05, inp: 100 })]
+    const findings = [finding({
+      url: 'https://example.com/',
+      lcp_p75: 1500,
+      cls_p75: 0.08,
+      inp_p75: null,
+    })]
+
+    const gap = analyzeLabVsField(routes, findings)
+    const totalEntries
+      = gap.goodLabPoorField.length + gap.poorLabGoodField.length + gap.aligned.length
+    expect(totalEntries).toBe(2)
+    // Both metrics land in `aligned` (good/good).
+    expect(gap.aligned.map(e => e.metric).sort()).toEqual(['cls', 'lcp'])
+  })
+})
+
+// ── gapAnalysis wired into cruxPack.run() ───────────────────────────────────
+
+describe('cruxPack gapAnalysis integration', () => {
+  beforeEach(() => {
+    delete process.env.CRUX_API_KEY
+  })
+
+  it('produces empty buckets when no API key is set (stub path)', async () => {
+    globalThis.fetch = vi.fn() as never
+    const report = await cruxPack.reconciler(ctxFor([buildRoute('https://example.com/')]))
+    expect(report.gapAnalysis).toEqual({
+      goodLabPoorField: [],
+      poorLabGoodField: [],
+      aligned: [],
+    })
+  })
+
+  it('emits a goodLabPoorField entry end-to-end through the reconciler', async () => {
+    // Lab LCP 1200 (good) on the ScanRoute, CrUX returns p75 5200 (poor).
+    globalThis.fetch = vi.fn(async () =>
+      jsonResponse(cruxRecord({ lcp: 5200, cls: 0.05, inp: 150 }, { url: 'https://example.com/' })),
+    ) as never
+
+    const pack = createCruxPack({ apiKey: 'fake' })
+    const report = await pack.reconciler(ctxFor([buildRoute('https://example.com/', { lcp: 1200 })]))
+
+    expect(report.gapAnalysis.goodLabPoorField).toHaveLength(1)
+    expect(report.gapAnalysis.goodLabPoorField[0]).toMatchObject({
+      metric: 'lcp',
+      labVerdict: 'good',
+      fieldVerdict: 'poor',
+    })
   })
 })
