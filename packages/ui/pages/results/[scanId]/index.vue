@@ -6,6 +6,7 @@ import { useLighthouseReportModal } from '~/composables/useLighthouseReportModal
 import { usePreviousScan } from '~/composables/usePreviousScan'
 import { useReports } from '~/composables/useReports'
 import { useUnlighthouseConfig } from '~/composables/useUnlighthouseConfig'
+import { makeRouteGroupComparator } from '~/utils/sortRoutes'
 
 const { isStatic, resolveArtifactPath } = useUnlighthouseConfig()
 const { reports: liveReports } = useReports()
@@ -403,25 +404,12 @@ const searchResults = computed((): RouteGroup[] => {
     }
   }
 
-  // Sort by group key — same comparators as before, just reading from primary.
-  if (sortBy.value === 'path') {
-    data = [...data].sort((a, b) => {
-      const cmp = (a.path || '').localeCompare(b.path || '')
-      return sortDir.value === 'asc' ? cmp : -cmp
-    })
-  }
-  else if (sortBy.value === 'score') {
-    data = [...data].sort((a, b) => {
-      const diff = (getOverallScore(a.primary) ?? -1) - (getOverallScore(b.primary) ?? -1)
-      return sortDir.value === 'asc' ? diff : -diff
-    })
-  }
-  else {
-    data = [...data].sort((a, b) => {
-      const diff = (getCategoryScore(a.primary, sortBy.value) ?? -1) - (getCategoryScore(b.primary, sortBy.value) ?? -1)
-      return sortDir.value === 'asc' ? diff : -diff
-    })
-  }
+  // Sort at the RouteGroup level: nulls always sink, multi-device rows use
+  // the max(mobile, desktop) score per category so a row still scanning on
+  // desktop isn't penalised. Closes #101 — the old comparator used `-1` as a
+  // sentinel for null which placed scanning rows at the *top* in ascending
+  // order. See `utils/sortRoutes.ts` for the pure helpers + tests.
+  data = [...data].sort(makeRouteGroupComparator(sortBy.value, sortDir.value))
 
   return data
 })
