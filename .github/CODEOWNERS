@@ -1,0 +1,11 @@
+# Code owners for unlighthouse
+#
+# These owners will be the default owners for everything in the repo.
+# Order is important; the last matching pattern takes the most precedence.
+# See https://docs.github.com/en/repositories/managing-your-repositories-settings-and-security/customizing-your-repository/about-code-owners
+#
+# Note: this repo currently has a single maintainer with the overwhelming
+# majority of contributions. Per-package owners can be added as the
+# contributor base grows.
+
+* @harlan-zw
