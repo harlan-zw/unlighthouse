@@ -6,7 +6,12 @@ export function useReports() {
   const reports = reportsState()
 
   function onRouteReport(report: UnlighthouseRouteReport) {
-    const idx = reports.value.findIndex(r => r.route.path === report.route.path)
+    // D-029: matrix scans emit one report per (url, device). Key by both so
+    // mobile + desktop rows for the same path don't overwrite each other.
+    const idx = reports.value.findIndex(r =>
+      r.route.path === report.route.path
+      && (r.device ?? null) === (report.device ?? null),
+    )
     if (idx >= 0)
       reports.value[idx] = report
     else
