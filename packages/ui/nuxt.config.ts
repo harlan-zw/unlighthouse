@@ -43,5 +43,16 @@ export default defineNuxtConfig({
       pathPrefix: false,
     },
   ],
+  // Allow extra dev-server hostnames (tailscale, ngrok, cloudflare tunnels…)
+  // through Vite's allowedHosts check. Comma-separated env var so personal
+  // hostnames stay out of the repo. Unset → Vite default (localhost only).
+  vite: {
+    server: {
+      allowedHosts: process.env.NUXT_DEV_ALLOWED_HOSTS
+        ?.split(',')
+        .map(h => h.trim())
+        .filter(Boolean),
+    },
+  },
   compatibilityDate: '2025-12-12',
 })

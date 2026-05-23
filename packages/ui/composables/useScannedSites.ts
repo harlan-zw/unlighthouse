@@ -8,8 +8,8 @@
 // composition over `history.list`).
 
 import type { Scan } from '@unlighthouse/contracts'
-import { useApiClient } from './useApiClient'
 import { siteHostname, useSites } from './sites'
+import { useApiClient } from './useApiClient'
 
 export interface ScannedSiteScores {
   performance: number | null
@@ -86,7 +86,13 @@ export function useScannedSites() {
       // Most-recent first.
       const sorted = [...group].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
       const latest = sorted[0] ?? null
-      const latestComplete = sorted.find(s => s.status === 'complete') ?? latest
+      // A scan can be structurally `complete` but have zero audited routes
+      // (e.g. local Chrome sandbox blocking puppeteer). Skip those when
+      // sourcing the score cards so the dashboard doesn't render "No data"
+      // for a site that actually has older scored scans.
+      const latestComplete = sorted.find(
+        s => s.status === 'complete' && s.summary?.scoreAverage != null,
+      ) ?? sorted.find(s => s.status === 'complete') ?? latest
       // Trend: chronological (oldest→newest), last 10 completed scans with a score.
       const trend = [...sorted]
         .reverse()
