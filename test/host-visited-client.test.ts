@@ -68,11 +68,16 @@ async function bootHost(opts: { autoStartOnVisit: boolean }): Promise<HostFixtur
   return { server, baseUrl, start: startSpy }
 }
 
+// 30s hook budget — host setup (sqlite open + migrations + storage wiring +
+// resolvePath for the client pkg) can exceed vitest's 10s default on CI when
+// other suites (test/ci.test.ts real scans) saturate CPU/disk in parallel.
+const HOOK_TIMEOUT = 30_000
+
 describe('autoStartOnVisit — end-to-end (real host + real HTTP)', () => {
   describe('when behavior.autoStartOnVisit = true', () => {
     let fx: HostFixture
-    beforeAll(async () => { fx = await bootHost({ autoStartOnVisit: true }) })
-    afterAll(async () => { await new Promise(r => fx.server.close(() => r(null))) })
+    beforeAll(async () => { fx = await bootHost({ autoStartOnVisit: true }) }, HOOK_TIMEOUT)
+    afterAll(async () => { if (fx?.server) await new Promise(r => fx.server.close(() => r(null))) }, HOOK_TIMEOUT)
 
     it('GET / triggers host.start() exactly once', async () => {
       await fetch(`${fx.baseUrl}/`)
@@ -89,8 +94,8 @@ describe('autoStartOnVisit — end-to-end (real host + real HTTP)', () => {
 
   describe('when behavior.autoStartOnVisit = false', () => {
     let fx: HostFixture
-    beforeAll(async () => { fx = await bootHost({ autoStartOnVisit: false }) })
-    afterAll(async () => { await new Promise(r => fx.server.close(() => r(null))) })
+    beforeAll(async () => { fx = await bootHost({ autoStartOnVisit: false }) }, HOOK_TIMEOUT)
+    afterAll(async () => { if (fx?.server) await new Promise(r => fx.server.close(() => r(null))) }, HOOK_TIMEOUT)
 
     it('GET / does NOT trigger host.start()', async () => {
       await fetch(`${fx.baseUrl}/`)
