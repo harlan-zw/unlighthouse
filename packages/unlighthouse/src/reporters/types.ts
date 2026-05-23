@@ -15,6 +15,12 @@ export interface MetricScore {
 export interface SimpleRouteReport {
   path: string
   score?: number | string | null | undefined
+  /**
+   * D-029: device form-factor for the audited row. Only emitted when the
+   * source report carries it — legacy single-device callers still get the
+   * historical `path,score,<categories>` shape.
+   */
+  device?: 'mobile' | 'desktop'
   [key: string]: string | number | null | undefined
 }
 
@@ -27,6 +33,10 @@ export interface ExpandedRouteReport {
   metrics: {
     [key: string]: MetricScore
   }
+  /**
+   * D-029: device form-factor for the audited row. See `SimpleRouteReport.device`.
+   */
+  device?: 'mobile' | 'desktop'
 }
 
 export interface CategoryAverageScore {

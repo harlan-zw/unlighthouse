@@ -62,15 +62,24 @@ export function reportJsonExpanded(reports: UnlighthouseRouteReport[]): ReportJs
             },
           }
         }, {})
-      return <ExpandedRouteReport>{
+      // D-029: device dimension carried through so the expanded JSON
+      // surfaces matrix scans as one route entry per (path, device).
+      // Field is only set when present on the input to keep legacy
+      // single-device output unchanged.
+      const row = <ExpandedRouteReport>{
         path: report.route.path,
         score: report.report?.score,
         categories,
         metrics,
       }
+      if (report.device)
+        row.device = report.device
+      return row
     })
-    // make the list ordering consistent
-    .sort((a, b) => a.path.localeCompare(b.path))
+    // make the list ordering consistent. Stable secondary sort by device
+    // so multi-device matrix scans always emit `desktop` before `mobile`
+    // (alphabetical) for the same path.
+    .sort((a, b) => a.path.localeCompare(b.path) || (a.device ?? '').localeCompare(b.device ?? ''))
 
   const averageCategories = extractCategoriesFromRoutes(routes)
   const averageMetrics = extractMetricsFromRoutes(routes)

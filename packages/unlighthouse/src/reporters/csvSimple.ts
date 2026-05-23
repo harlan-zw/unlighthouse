@@ -46,8 +46,28 @@ export function csvSimpleFormat(reports: ReportWithLighthouse[]): { headers: str
   }
 }
 
+// D-029: append the device column last so the existing
+// `URL,Score,<categories>[,<expanded columns>]` prefix is preserved for
+// callers parsing positional indices. Mutates `headers` + `body` in place
+// — both `reportCSVSimple` and `reportCSVExpanded` call this after their
+// own column work, keeping device as the rightmost column.
+export function appendDeviceColumn(
+  headers: string[],
+  body: Array<Array<string | number | boolean>>,
+  reports: Array<{ device?: string }>,
+): void {
+  headers.push('Device')
+  reports.forEach((r, i) => {
+    if (!body[i])
+      return
+    body[i].push(escapeValueForCsv(r.device ?? ''))
+  })
+}
+
 export function reportCSVSimple(reports: UnlighthouseRouteReport[]): string {
-  const { headers, body } = csvSimpleFormat(reports.filter(hasLighthouseReport))
+  const filtered = reports.filter(hasLighthouseReport)
+  const { headers, body } = csvSimpleFormat(filtered)
+  appendDeviceColumn(headers, body, filtered)
   return [
     headers.join(','),
     ...body.map(row => row.join(',')),
