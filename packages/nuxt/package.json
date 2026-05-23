@@ -1,0 +1,48 @@
+{
+  "name": "@unlighthouse/nuxt",
+  "type": "module",
+  "version": "0.0.0-v1",
+  "private": true,
+  "description": "Nuxt module for Unlighthouse — auto-scan routes after nuxi generate.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/module.d.mts",
+      "import": "./dist/module.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/module.mjs",
+  "module": "./dist/module.mjs",
+  "types": "./dist/module.d.mts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:attw": "attw --pack --profile esm-only",
+    "test:publint": "publint"
+  },
+  "peerDependencies": {
+    "nuxt": "^3.0.0 || ^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "nuxt": {
+      "optional": false
+    }
+  },
+  "dependencies": {
+    "unlighthouse": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  }
+}
