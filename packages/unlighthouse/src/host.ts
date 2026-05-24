@@ -13,24 +13,20 @@ import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
+import type { createStorage } from '@unlighthouse/core/storage'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
-import { createStorage } from '@unlighthouse/core/storage'
-import { applyMigrations, drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
-import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
-import Database from 'better-sqlite3'
-import { logger as globalLogger, createTaggedLogger } from '@unlighthouse/core/logger'
+import { createTaggedLogger } from '@unlighthouse/core/logger'
 import { loadConfig } from 'c12'
 import { defu } from 'defu'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
 import { createCommonJS, resolvePath } from 'mlly'
 import { joinURL } from 'ufo'
-import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../package.json'
 import { resolveAuditor } from './auditor'
+import { initStorage } from './cli/storage-init'
 import { ClientPkg } from './constants'
 import { historySubscriber } from './data/history/tracking'
 import { createSitesStore } from './data/sites'
@@ -77,6 +73,98 @@ export interface UnlighthouseHost {
 export interface CreateUnlighthouseHostOptions {
   userConfig: UserConfig
   behavior?: UnlighthouseBehavior
+}
+
+function resolveSeeds(resolvedConfig: ResolvedUserConfig, logger: Logger) {
+  const site = resolvedConfig.site || ''
+  const rawUrls = resolvedConfig.urls
+  const isDashboardPlaceholder = site === 'http://localhost'
+  const urlList: string[] = isDashboardPlaceholder
+    ? []
+    : [
+        ...(site ? [site] : []),
+        ...(Array.isArray(rawUrls) ? rawUrls : []),
+      ]
+  const sources = [
+    manualSeeds({
+      urls: urlList,
+      logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/manual'),
+    }),
+  ]
+  const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false
+    && !(Array.isArray(rawUrls) && rawUrls.length > 0)
+    && !isDashboardPlaceholder
+  if (sitemapEnabled && site) {
+    try {
+      sources.push(sitemapSeeds({
+        resolvedConfig: resolvedConfig as never,
+        siteUrl: new URL(site),
+        sitemaps: Array.isArray(resolvedConfig.scanner?.sitemap)
+          ? resolvedConfig.scanner.sitemap
+          : true,
+        logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/sitemap'),
+      }))
+    }
+    catch (err) {
+      (logger as Logger).warn?.('failed to wire sitemap seeds', err)
+    }
+  }
+  return fuseSeeds(sources)
+}
+
+function wireWsBroadcast(core: UnlighthouseCore, ws: WS | null, logger: Logger) {
+  if (!ws) {
+    logger.debug?.('[host] WS disabled — no broadcast hooks wired')
+    return
+  }
+  logger.debug?.('[host] Wiring WS broadcast hooks')
+  const hookable = core.hooks as Hookable<HookMap>
+  hookable.hook('scan:progress', (payload) => {
+    logger.debug?.(`[ws] scan:progress — discovered: ${payload.discovered}, scanned: ${payload.scanned}/${payload.total}, failed: ${payload.failed}`)
+    ws.broadcast({
+      event: 'scan:progress',
+      data: {
+        discovered: payload.discovered,
+        scanned: payload.scanned,
+        total: payload.total,
+        failed: payload.failed,
+      },
+    })
+  })
+  hookable.hook('scan:route-complete', (payload) => {
+    logger.debug?.(`[ws] scan:route-complete — ${payload.url} (perf: ${payload.metrics?.scorePerformance ?? '?'})`)
+    ws.broadcast({
+      event: 'scan:route-complete',
+      data: {
+        url: payload.url,
+        metrics: payload.metrics,
+      },
+    })
+  })
+  hookable.hook('scan:complete', (payload) => {
+    logger.info?.(`[ws] scan:complete — scanId: ${payload.scanId}, routes: ${payload.summary?.completed}`)
+    ws.broadcast({
+      event: 'scan:complete',
+      data: {
+        scanId: payload.scanId,
+        summary: payload.summary,
+      },
+    })
+  })
+  hookable.hook('scan:cancelled', (payload) => {
+    logger.warn?.(`[ws] scan:cancelled — reason: ${payload.reason}`)
+    ws.broadcast({
+      event: 'scan:cancelled',
+      data: { reason: payload.reason },
+    })
+  })
+  hookable.hook('scan:error', (payload) => {
+    logger.error?.(`[ws] scan:error — ${payload.error}`)
+    ws.broadcast({
+      event: 'scan:error',
+      data: { error: payload.error },
+    })
+  })
 }
 
 export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions): Promise<UnlighthouseHost> {
@@ -171,44 +259,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       fs.ensureDirSync(outputPath)
     }
 
-    logger.debug?.(`Opening SQLite: ${join(outputPath, 'db.sqlite')}`)
-    const sqliteDb = new Database(join(outputPath, 'db.sqlite'))
-    // Apply bundled migrations once on open. drizzle-orm/migrator wants a
-    // _migrations metadata table; for the simple v1.0 schema we just exec
-    // the bundled SQL (`CREATE TABLE IF NOT EXISTS` makes this idempotent).
-    // Apply each statement independently. `CREATE TABLE IF NOT EXISTS` /
-    // `CREATE INDEX IF NOT EXISTS` are inherently idempotent; bare `ALTER
-    // TABLE ADD COLUMN` is not — sqlite errors with "duplicate column name"
-    // on second run. Skip-on-error covers the additive-migration case.
-    for (const stmt of INIT_SQL_STATEMENTS) {
-      try {
-        sqliteDb.exec(stmt)
-      }
-      catch (err) {
-        const msg = (err as Error).message
-        if (!/duplicate column name/i.test(msg))
-          logger.warn?.(`Migration stmt skipped: ${msg}`)
-      }
-    }
-    // Runtime upgrades for databases that pre-date a schema bump.
-    // INIT_SQL above is `CREATE TABLE IF NOT EXISTS`-style — no-op against
-    // existing tables — so anything that adds a column or rewrites a PK
-    // needs an explicit path. applyMigrations runs each pending migration
-    // once and is a no-op on already-current databases.
-    applyMigrations(sqliteDb, {
-      onApply: id => logger.info?.(`[storage] applied migration: ${id}`),
-    })
-    const drizzleDb = drizzle(sqliteDb)
-    const drizzleAdapter = drizzleStorage({
-      driver: drizzleDb,
-      logger: (logger as any).withTag('storage/drizzle'),
-    })
-    const storage = createStorage({
-      rows: { ...drizzleAdapter, db: drizzleAdapter.db },
-      blobs: unstorageBlobs({
-        driver: fsDriver({ base: join(outputPath, 'blobs') }),
-      }),
-    })
+    const { storage } = initStorage({ outputPath, logger })
 
     // Sweep zombies left by a prior process before we wire core — see
     // reapStaleScans for D-019c rationale. Fire-and-forget so boot doesn't
@@ -219,46 +270,11 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     const coreConfig = resolvedConfig as unknown as Parameters<typeof createUnlighthouseCore>[0]['config']
     const auditor = resolveAuditor({ config: coreConfig, logger })
 
-    const site = resolvedConfig.site || ''
-    const rawUrls = resolvedConfig.urls
-    // In dashboard mode (site = http://localhost), don't seed with the
-    // placeholder URL — scan.start will inject the real site via overrides.
-    const isDashboardPlaceholder = site === 'http://localhost'
-    const urlList: string[] = isDashboardPlaceholder
-      ? []
-      : [
-          ...(site ? [site] : []),
-          ...(Array.isArray(rawUrls) ? rawUrls : []),
-        ]
-    const sources = [
-      manualSeeds({
-        urls: urlList,
-        logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/manual'),
-      }),
-    ]
-    const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false
-      && !(Array.isArray(rawUrls) && rawUrls.length > 0)
-      && !isDashboardPlaceholder
-    if (sitemapEnabled && site) {
-      try {
-        sources.push(sitemapSeeds({
-          resolvedConfig: resolvedConfig as never,
-          siteUrl: new URL(site),
-          sitemaps: Array.isArray(resolvedConfig.scanner?.sitemap)
-            ? resolvedConfig.scanner.sitemap
-            : true,
-          logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/sitemap'),
-        }))
-      }
-      catch (err) {
-        (logger as Logger).warn?.('failed to wire sitemap seeds', err)
-      }
-    }
-    const seeds = fuseSeeds(sources)
+    const seeds = resolveSeeds(resolvedConfig, logger)
 
     const crawler = crawleeCrawler({ logger: (logger as any).withTag('crawler/crawlee') as never })
 
-    logger.debug?.(`Creating core — auditor: ${auditor.name}, seeds: ${sources.length} source(s), crawler: crawlee`)
+    logger.debug?.('Creating core — crawler: crawlee')
     const core = createUnlighthouseCore({
       config: coreConfig,
       auditor,
@@ -268,60 +284,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       logger,
     })
 
-    // Wire WS broadcasting to v1 HookMap events
-    if (ws) {
-      logger.debug?.('[host] Wiring WS broadcast hooks')
-      const hookable = core.hooks as Hookable<HookMap>
-      hookable.hook('scan:progress', (payload) => {
-        logger.debug?.(`[ws] scan:progress — discovered: ${payload.discovered}, scanned: ${payload.scanned}/${payload.total}, failed: ${payload.failed}`)
-        ws.broadcast({
-          event: 'scan:progress',
-          data: {
-            discovered: payload.discovered,
-            scanned: payload.scanned,
-            total: payload.total,
-            failed: payload.failed,
-          },
-        })
-      })
-      hookable.hook('scan:route-complete', (payload) => {
-        logger.debug?.(`[ws] scan:route-complete — ${payload.url} (perf: ${payload.metrics?.scorePerformance ?? '?'})`)
-        ws.broadcast({
-          event: 'scan:route-complete',
-          data: {
-            url: payload.url,
-            metrics: payload.metrics,
-          },
-        })
-      })
-      hookable.hook('scan:complete', (payload) => {
-        logger.info?.(`[ws] scan:complete — scanId: ${payload.scanId}, routes: ${payload.summary?.completed}`)
-        ws.broadcast({
-          event: 'scan:complete',
-          data: {
-            scanId: payload.scanId,
-            summary: payload.summary,
-          },
-        })
-      })
-      hookable.hook('scan:cancelled', (payload) => {
-        logger.warn?.(`[ws] scan:cancelled — reason: ${payload.reason}`)
-        ws.broadcast({
-          event: 'scan:cancelled',
-          data: { reason: payload.reason },
-        })
-      })
-      hookable.hook('scan:error', (payload) => {
-        logger.error?.(`[ws] scan:error — ${payload.error}`)
-        ws.broadcast({
-          event: 'scan:error',
-          data: { error: payload.error },
-        })
-      })
-    }
-    else {
-      logger.debug?.('[host] WS disabled — no broadcast hooks wired')
-    }
+    wireWsBroadcast(core, ws, logger)
 
     historySubscriber({
       resolvedConfig,

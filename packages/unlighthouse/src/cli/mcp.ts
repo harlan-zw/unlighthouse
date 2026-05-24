@@ -13,19 +13,15 @@ import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
-import { createStorage } from '@unlighthouse/core/storage'
-import { applyMigrations, drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
-import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
 import { startStdioServer } from '@unlighthouse/mcp'
 import Database from 'better-sqlite3'
 import { createConsola } from 'consola'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
-import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../../package.json'
 import { resolveAuditor } from '../auditor'
 import { resolveConfig } from '../config/resolve'
 import { computeConfigCacheKey, normaliseHost } from '../util'
+import { initStorage } from './storage-init'
 
 function resolveManualUrls(urls: UnlighthouseConfig['urls']): string[] | (() => string[] | Promise<string[]>) {
   if (typeof urls === 'function') {
@@ -229,36 +225,7 @@ export async function runMcp(): Promise<void> {
   // Gated by --debug so production agents don't see internal paths by default.
   diag(`[unlighthouse-mcp] outputPath=${outputPath}\n`)
 
-  const sqliteDb = new Database(join(outputPath, 'db.sqlite'))
-  // Idempotent migration: `CREATE TABLE IF NOT EXISTS` is safe to re-run.
-  // Bare `ALTER TABLE ADD COLUMN` errors with "duplicate column name" on
-  // second pass — swallow that one; surface everything else as a warning.
-  for (const stmt of INIT_SQL_STATEMENTS) {
-    try {
-      sqliteDb.exec(stmt)
-    }
-    catch (err) {
-      const msg = (err as Error).message
-      if (!/duplicate column name/i.test(msg))
-        logger.warn?.(`Migration stmt skipped: ${msg}`)
-    }
-  }
-  // Runtime upgrades for databases that pre-date a schema bump (D-029
-  // device column, etc.). Same code path host.ts uses.
-  applyMigrations(sqliteDb, {
-    onApply: id => logger.info?.(`[storage] applied migration: ${id}`),
-  })
-  const drizzleDb = drizzle(sqliteDb)
-  const drizzleAdapter = drizzleStorage({
-    driver: drizzleDb,
-    logger: (logger as any).withTag('storage/drizzle'),
-  })
-  const storage = createStorage({
-    rows: { ...drizzleAdapter, db: drizzleAdapter.db },
-    blobs: unstorageBlobs({
-      driver: fsDriver({ base: join(outputPath, 'blobs') }),
-    }),
-  })
+  const { storage } = initStorage({ outputPath, logger })
 
   // Sweep zombies left by a prior process. MCP often opens an existing DB
   // written by the CLI; "starting" rows from a Ctrl+C'd CLI run would

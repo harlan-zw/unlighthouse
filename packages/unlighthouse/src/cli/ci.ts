@@ -3,10 +3,11 @@ import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { gunzipSync } from 'node:zlib'
-import { compareScans, evaluateAndStoreAssertions, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
+import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
 import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
+import { runAssertions } from './assertions'
 import createCli from './createCli'
 import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
@@ -126,24 +127,9 @@ async function run() {
   const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
   const assertEnabled = options.assert !== false
   if (assertEnabled && assertionConfigs?.length && db) {
-    const results = await evaluateAndStoreAssertions(db, scanId, assertionConfigs)
-    const failures = results.filter(r => !r.passed)
-
-    if (failures.length > 0) {
-      logger.error(`${failures.length} assertion(s) failed:`)
-      for (const f of failures) {
-        const label = f.assertion.category || f.assertion.metric || f.assertion.type
-        logger.error(`  ${f.assertion.type} ${label}: expected ${f.assertion.value}, got ${f.actual}`)
-        if (f.failingRoutes?.length) {
-          for (const r of f.failingRoutes.slice(0, 5))
-            logger.error(`    - ${r.path} (${r.value})`)
-          if (f.failingRoutes.length > 5)
-            logger.error(`    ... and ${f.failingRoutes.length - 5} more`)
-        }
-      }
+    const { passed } = await runAssertions(db, scanId, assertionConfigs, logger)
+    if (!passed)
       process.exit(1)
-    }
-    logger.success(`All ${results.length} assertion(s) passed.`)
   }
 
   if (options.compare !== undefined && options.compare !== false && db) {

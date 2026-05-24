@@ -6,18 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const route = useRoute()
-const config = useRuntimeConfig()
-const baseUrl = config.public.unlighthouseApiUrl as string
+const api = useApi()
 const scanId = route.params.id as string
 
-const { data, status } = useAsyncData(
+const { data: cruxPack, status } = useAsyncData(
   `crux-${scanId}`,
-  async () => {
-    const res = await fetch(`${baseUrl}/dashboard/crux/${scanId}`)
-    if (!res.ok) return null
-    return await res.json() as CruxData
-  },
+  () => api['pack.run']({ scanId, pack: 'crux' }).catch(() => null),
 )
+
+const data = computed<CruxData | null>(() => (cruxPack.value as any)?.report ?? null)
 
 const activeDevice = ref<'phone' | 'desktop'>('phone')
 

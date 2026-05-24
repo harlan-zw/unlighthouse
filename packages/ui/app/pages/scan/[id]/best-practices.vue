@@ -2,7 +2,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Table,
   TableBody,
@@ -15,31 +14,19 @@ import {
 const route = useRoute()
 const api = useApi()
 const scanId = route.params.id as string
+const { scoreToColor, scoreToLabel } = useScoreColor()
 
-const { data, status } = useAsyncData(
-  `bp-${scanId}`,
-  async () => {
-    const results = await api['scan.results']({ scanId, page: 1, pageSize: 200 }).catch(() => null)
-    if (!results) return null
-    return {
-      routes: results.items.map((r: any) => ({ path: r.path, score: r.scoreBestPractices })),
-    }
-  },
+const { data: bundlePack, status } = useAsyncData(
+  `bp-bundle-${scanId}`,
+  () => api['pack.run']({ scanId, pack: 'js-bundle' }).catch(() => null),
 )
 
-function severityVariant(severity: string) {
-  if (severity === 'critical' || severity === 'high') return 'destructive' as const
-  if (severity === 'medium') return 'secondary' as const
-  return 'outline' as const
-}
+const { data: routeScores } = useAsyncData(
+  `bp-routes-${scanId}`,
+  () => api['scan.results']({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }).catch(() => null),
+)
 
-const totalIssues = computed(() => {
-  if (!data.value) return 0
-  return data.value.securityIssues.length
-    + data.value.vulnerableLibraries.length
-    + data.value.deprecatedApis.length
-    + data.value.consoleErrors.length
-})
+const bundleReport = computed(() => (bundlePack.value as any)?.report ?? null)
 </script>
 
 <template>
@@ -58,144 +45,60 @@ const totalIssues = computed(() => {
       Loading best practices data...
     </div>
 
-    <div v-else-if="!data" class="text-center py-12 text-muted-foreground">
-      No best practices data available.
-    </div>
-
     <template v-else>
-      <!-- Security Issues -->
-      <Card v-if="data.securityIssues.length">
+      <!-- JS Bundle Analysis -->
+      <Card v-if="bundleReport?.findings?.length">
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Security Issues
-            <Badge variant="destructive" class="text-xs">{{ data.securityIssues.length }}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2">
-          <Alert v-for="issue in data.securityIssues" :key="issue.type" variant="destructive">
-            <Icon name="lucide:shield-alert" class="size-4" />
-            <AlertTitle class="text-sm">{{ issue.type }}</AlertTitle>
-            <AlertDescription class="text-xs">
-              <p>{{ issue.description }}</p>
-              <p class="mt-1 text-muted-foreground">{{ issue.pageCount }} page(s) affected</p>
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-
-      <!-- Vulnerable Libraries -->
-      <Card v-if="data.vulnerableLibraries.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Vulnerable Libraries
-            <Badge variant="destructive" class="text-xs">{{ data.vulnerableLibraries.length }}</Badge>
+            JS Bundle Issues
+            <Badge variant="secondary" class="text-xs">{{ bundleReport.findings.length }}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Library</TableHead>
-                <TableHead class="w-24">Version</TableHead>
-                <TableHead class="w-24">Severity</TableHead>
-                <TableHead class="w-32">CVEs</TableHead>
-                <TableHead class="w-20 text-right">Pages</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="lib in data.vulnerableLibraries" :key="lib.name + lib.version">
-                <TableCell class="font-medium text-sm">{{ lib.name }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ lib.version }}</TableCell>
-                <TableCell>
-                  <Badge :variant="severityVariant(lib.highestSeverity)" class="text-[10px]">
-                    {{ lib.highestSeverity }}
-                  </Badge>
-                </TableCell>
-                <TableCell class="text-xs">{{ lib.cves.join(', ') || '—' }}</TableCell>
-                <TableCell class="text-right tabular-nums">{{ lib.pageCount }}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <!-- Detected Libraries -->
-      <Card v-if="data.libraries.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Detected Libraries
-            <Badge variant="secondary" class="text-xs">{{ data.libraries.length }}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Library</TableHead>
-                <TableHead class="w-24">Version</TableHead>
-                <TableHead class="w-24">Status</TableHead>
-                <TableHead class="w-20 text-right">Pages</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="lib in data.libraries" :key="lib.name + lib.version">
-                <TableCell class="font-medium text-sm">{{ lib.name }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ lib.version }}</TableCell>
-                <TableCell><Badge variant="outline" class="text-[10px]">{{ lib.status }}</Badge></TableCell>
-                <TableCell class="text-right tabular-nums">{{ lib.pageCount }}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <!-- Deprecated APIs -->
-      <Card v-if="data.deprecatedApis.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Deprecated APIs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>API</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead class="w-20 text-right">Pages</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="api in data.deprecatedApis" :key="api.api">
-                <TableCell class="font-mono text-xs">{{ api.api }}</TableCell>
-                <TableCell class="text-xs truncate max-w-xs">{{ api.source }}</TableCell>
-                <TableCell class="text-right tabular-nums">{{ api.pageCount }}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <!-- Console Errors -->
-      <Card v-if="data.consoleErrors.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Console Errors
-            <Badge variant="secondary" class="text-xs">{{ data.consoleErrors.length }}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-2">
-            <div v-for="err in data.consoleErrors" :key="err.message" class="rounded-md border p-3">
-              <div class="font-mono text-xs text-red-500 break-all">{{ err.message }}</div>
-              <div class="mt-1 text-xs text-muted-foreground">
-                {{ err.source }} · {{ err.instanceCount }} instances · {{ err.pageCount }} pages
+          <div class="space-y-3">
+            <div v-for="finding in bundleReport.findings" :key="finding.auditId" class="p-3 border rounded-lg">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-medium">{{ finding.title || finding.auditId }}</div>
+                <Badge variant="outline" class="text-xs">{{ finding.routeCount }} routes</Badge>
+              </div>
+              <div v-if="finding.totalWastedBytes" class="text-xs text-orange-500 mt-1">
+                {{ (finding.totalWastedBytes / 1024).toFixed(0) }}KB total wasted
+              </div>
+              <div v-if="finding.worstRoutes?.length" class="mt-2 text-xs text-muted-foreground font-mono">
+                <span v-for="(r, i) in finding.worstRoutes.slice(0, 3)" :key="r">{{ r }}{{ i < 2 ? ', ' : '' }}</span>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div v-if="!totalIssues && !data.libraries.length" class="text-center py-12 text-muted-foreground">
-        No best practices issues found.
+      <!-- Route Scores -->
+      <Card v-if="routeScores?.items?.length">
+        <CardHeader class="pb-3">
+          <CardTitle class="text-sm font-medium text-muted-foreground">Route Scores</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Path</TableHead>
+                <TableHead class="w-28 text-right">Best Practices</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="r in routeScores.items.slice(0, 50)" :key="r.url">
+                <TableCell class="font-mono text-xs truncate max-w-sm">{{ r.path }}</TableCell>
+                <TableCell class="text-right tabular-nums font-bold" :class="scoreToColor(r.scoreBestPractices)">
+                  {{ scoreToLabel(r.scoreBestPractices) }}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <div v-if="!bundleReport && !routeScores?.items?.length" class="text-center py-12 text-muted-foreground">
+        No best practices data available. Run a scan first.
       </div>
     </template>
   </div>

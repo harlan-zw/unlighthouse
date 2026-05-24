@@ -60,11 +60,11 @@ function descStatus(len: number | null) {
 
     <template v-else>
       <!-- Meta Tags -->
-      <Card v-if="data.meta.length">
+      <Card v-if="data.meta?.length">
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
             Meta Tags
-            <Badge variant="secondary" class="text-xs">{{ data.meta.length }} pages</Badge>
+            <Badge variant="secondary" class="text-xs">{{ data.meta?.length }} pages</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent class="overflow-auto">
@@ -114,11 +114,11 @@ function descStatus(len: number | null) {
       </Card>
 
       <!-- Duplicate Content -->
-      <Card v-if="data.duplicates.length">
+      <Card v-if="data.duplicates?.length">
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
             Duplicate Content
-            <Badge variant="destructive" class="text-xs">{{ data.duplicates.length }}</Badge>
+            <Badge variant="destructive" class="text-xs">{{ data.duplicates?.length }}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -142,11 +142,11 @@ function descStatus(len: number | null) {
       </Card>
 
       <!-- Canonical Chains -->
-      <Card v-if="data.canonicalChains.length">
+      <Card v-if="data.canonicalChains?.length">
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
             Canonical Chains
-            <Badge variant="secondary" class="text-xs">{{ data.canonicalChains.length }}</Badge>
+            <Badge variant="secondary" class="text-xs">{{ data.canonicalChains?.length }}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -163,7 +163,7 @@ function descStatus(len: number | null) {
       </Card>
 
       <!-- Link Text Issues -->
-      <Card v-if="data.linkTextIssues.length">
+      <Card v-if="data.linkTextIssues?.length">
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground">Link Text Issues</CardTitle>
         </CardHeader>
@@ -187,7 +187,7 @@ function descStatus(len: number | null) {
         </CardContent>
       </Card>
 
-      <div v-if="!data.meta.length && !data.duplicates.length" class="text-center py-12 text-muted-foreground">
+      <div v-if="!data.meta?.length && !data.duplicates?.length" class="text-center py-12 text-muted-foreground">
         No SEO issues found.
       </div>
     </template>

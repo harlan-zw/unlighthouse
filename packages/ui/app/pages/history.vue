@@ -113,6 +113,7 @@ const totalPages = computed(() => {
           <TableHeader>
             <TableRow>
               <TableHead>Site</TableHead>
+              <TableHead class="w-16">Mode</TableHead>
               <TableHead class="w-20">Device</TableHead>
               <TableHead class="w-24">Status</TableHead>
               <TableHead class="w-16 text-center">Score</TableHead>
@@ -130,6 +131,11 @@ const totalPages = computed(() => {
               @click="router.push(`/scan/${scan.scanId}/overview`)"
             >
               <TableCell class="font-medium text-sm truncate max-w-xs">{{ scan.site }}</TableCell>
+              <TableCell>
+                <Badge :variant="scan.mode === 'page' ? 'secondary' : 'outline'" class="text-[10px]">
+                  {{ scan.mode === 'page' ? 'Page' : 'Site' }}
+                </Badge>
+              </TableCell>
               <TableCell>
                 <Badge variant="outline" class="text-[10px]">{{ scan.device }}</Badge>
               </TableCell>

@@ -190,14 +190,14 @@ async function copyMarkdown() {
     <!-- Results -->
     <template v-if="report">
       <!-- Summary cards -->
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div class="grid gap-4 sm:grid-cols-3">
         <Card :class="report.regressions.length ? 'border-red-500/30' : 'border-green-500/30'">
           <CardContent class="pt-5 pb-5 flex items-center gap-4">
             <div class="flex size-12 items-center justify-center rounded-full" :class="report.regressions.length ? 'bg-red-500/10' : 'bg-green-500/10'">
               <Icon :name="report.regressions.length ? 'lucide:trending-down' : 'lucide:check'" :class="report.regressions.length ? 'text-red-500' : 'text-green-500'" class="size-6" />
             </div>
             <div>
-              <div class="text-2xl font-bold">{{ report.regressions.length }}</div>
+              <div class="text-2xl font-bold">{{ report.summary?.totalRegressions ?? report.regressions.length }}</div>
               <div class="text-sm text-muted-foreground">Regressions</div>
             </div>
           </CardContent>
@@ -208,12 +208,46 @@ async function copyMarkdown() {
               <Icon name="lucide:trending-up" class="size-6 text-green-500" />
             </div>
             <div>
-              <div class="text-2xl font-bold">{{ report.improvements.length }}</div>
+              <div class="text-2xl font-bold">{{ report.summary?.totalImprovements ?? report.improvements.length }}</div>
               <div class="text-sm text-muted-foreground">Improvements</div>
             </div>
           </CardContent>
         </Card>
+        <Card v-if="report.summary?.avgScoreDelta != null">
+          <CardContent class="pt-5 pb-5 flex items-center gap-4">
+            <div class="flex size-12 items-center justify-center rounded-full" :class="report.summary.avgScoreDelta >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'">
+              <Icon :name="report.summary.avgScoreDelta >= 0 ? 'lucide:trending-up' : 'lucide:trending-down'" :class="report.summary.avgScoreDelta >= 0 ? 'text-green-500' : 'text-red-500'" class="size-6" />
+            </div>
+            <div>
+              <div class="text-2xl font-bold tabular-nums">
+                {{ report.summary.avgScoreDelta >= 0 ? '+' : '' }}{{ (report.summary.avgScoreDelta * 100).toFixed(1) }}
+              </div>
+              <div class="text-sm text-muted-foreground">Avg Score Delta</div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      <!-- Pack Diffs -->
+      <Card v-if="report.packDiffs?.length">
+        <CardHeader class="pb-3">
+          <CardTitle class="text-sm font-medium text-muted-foreground">Pack Report Changes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-2">
+            <div v-for="pd in report.packDiffs.filter((d: any) => d.hasChanges)" :key="pd.packName" class="flex items-center justify-between p-3 border rounded-lg">
+              <div class="flex items-center gap-2">
+                <Icon name="lucide:package" class="size-4 text-muted-foreground" />
+                <span class="text-sm font-medium capitalize">{{ pd.packName }}</span>
+              </div>
+              <Badge variant="secondary" class="text-xs">Changed</Badge>
+            </div>
+            <div v-if="!report.packDiffs.some((d: any) => d.hasChanges)" class="text-sm text-muted-foreground text-center py-2">
+              No pack report changes between scans.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <!-- Regressions -->
       <Card v-if="report.regressions.length">

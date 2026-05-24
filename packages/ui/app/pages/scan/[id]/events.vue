@@ -6,9 +6,9 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
 const route = useRoute()
+const scanId = route.params.id as string
 const config = useRuntimeConfig()
 const baseUrl = config.public.unlighthouseApiUrl as string
-const scanId = route.params.id as string
 
 const events = ref<Array<{ event: string, payload: any, timestamp: number }>>([])
 const streaming = ref(false)

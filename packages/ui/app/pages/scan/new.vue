@@ -22,8 +22,8 @@ const store = useScanStore()
 
 const siteUrl = ref((route.query.url as string) || '')
 const device = ref('mobile')
+const scanMode = ref<'site' | 'page'>('site')
 const loading = ref(false)
-const showAdvanced = ref(false)
 
 async function handleSubmit() {
   if (!siteUrl.value.trim()) return
@@ -35,7 +35,7 @@ async function handleSubmit() {
 
   loading.value = true
   try {
-    const result = await store.startScan(api, url, { device: device.value })
+    const result = await store.startScan(api, url, { device: device.value, mode: scanMode.value })
     toast.success('Scan started', { description: url })
     router.push(`/scan/${result.scanId}/overview`)
   }
@@ -76,7 +76,39 @@ async function handleSubmit() {
               autofocus
               class="font-mono"
             />
-            <p class="text-xs text-muted-foreground">The homepage will be scanned. Subpages are discovered via sitemap and crawling.</p>
+            <p class="text-xs text-muted-foreground">
+              {{ scanMode === 'site' ? 'All pages will be discovered via sitemap and crawling.' : 'Only this single URL will be audited.' }}
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <Label>Scan Mode</Label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="rounded-lg border p-3 text-left transition-all"
+                :class="scanMode === 'site' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50'"
+                @click="scanMode = 'site'"
+              >
+                <div class="flex items-center gap-2 text-sm font-medium">
+                  <Icon name="lucide:globe" class="size-4" />
+                  Full Site
+                </div>
+                <p class="text-[11px] text-muted-foreground mt-1">Crawl all pages</p>
+              </button>
+              <button
+                type="button"
+                class="rounded-lg border p-3 text-left transition-all"
+                :class="scanMode === 'page' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50'"
+                @click="scanMode = 'page'"
+              >
+                <div class="flex items-center gap-2 text-sm font-medium">
+                  <Icon name="lucide:file" class="size-4" />
+                  Single Page
+                </div>
+                <p class="text-[11px] text-muted-foreground mt-1">Audit one URL only</p>
+              </button>
+            </div>
           </div>
 
           <div class="space-y-2">

@@ -99,9 +99,10 @@ const failingAudits = computed(() => {
 
 const filteredAudits = computed(() => {
   if (!selectedCategory.value) return failingAudits.value
-  const categoryAudits = routeData.value?.categories?.find((c: any) => c.id === selectedCategory.value)
-  if (!categoryAudits) return failingAudits.value
-  return failingAudits.value
+  const cat = routeData.value?.categories?.find((c: any) => c.id === selectedCategory.value)
+  if (!cat) return failingAudits.value
+  const catAuditIds = new Set((routeData.value?.audits ? Object.keys(routeData.value.audits) : []))
+  return failingAudits.value.filter((a: any) => catAuditIds.has(a.id))
 })
 
 function metricColor(label: string, value: number | null): string {

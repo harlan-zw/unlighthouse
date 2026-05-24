@@ -1,6 +1,5 @@
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
-import { evaluateAndStoreAssertions } from '@unlighthouse/core/comparison'
 import { logger, createTaggedLogger } from '@unlighthouse/core/logger'
 import open from 'better-opn'
 import { createApp, toNodeListener } from 'h3'
@@ -8,6 +7,7 @@ import { listen } from 'listhen'
 import { joinURL } from 'ufo'
 import { createSitesStore, deriveSiteId } from '../data/sites'
 import { createUnlighthouseHost } from '../index.ts'
+import { runAssertions } from './assertions'
 import createCli from './createCli'
 import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
@@ -124,27 +124,9 @@ async function run() {
     if (options.assert && assertionConfigs?.length) {
       const db = (unlighthouse.handlerCtx.storage as { db?: any }).db
       if (db) {
-        const results = await evaluateAndStoreAssertions(db, scanId, assertionConfigs)
-        const failures = results.filter(r => !r.passed)
-
-        if (failures.length > 0) {
-          log.error(`${failures.length} assertion(s) failed:`)
-          for (const f of failures) {
-            const label = f.assertion.category || f.assertion.metric || f.assertion.type
-            log.error(`  ${f.assertion.type} ${label}: expected ${f.assertion.value}, got ${f.actual}`)
-            if (f.failingRoutes?.length) {
-              for (const r of f.failingRoutes.slice(0, 5)) {
-                log.error(`    - ${r.path} (${r.value})`)
-              }
-              if (f.failingRoutes.length > 5)
-                log.error(`    ... and ${f.failingRoutes.length - 5} more`)
-            }
-          }
+        const { passed } = await runAssertions(db, scanId, assertionConfigs, log)
+        if (!passed)
           process.exit(1)
-        }
-        else {
-          log.success(`All ${results.length} assertion(s) passed.`)
-        }
       }
     }
   })
