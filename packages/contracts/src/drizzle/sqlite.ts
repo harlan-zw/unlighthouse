@@ -104,26 +104,38 @@ export const packRuns = sqliteTable(
 // Comparison + Assertion tables (structural, not aggregation)
 // ============================================================================
 
-export const comparisons = sqliteTable('comparisons', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  baseScanId: text('base_scan_id').references(() => scans.scanId, { onDelete: 'cascade' }),
-  currentScanId: text('current_scan_id').references(() => scans.scanId, { onDelete: 'cascade' }),
-  improved: integer('improved').notNull().default(0),
-  regressed: integer('regressed').notNull().default(0),
-  unchanged: integer('unchanged').notNull().default(0),
-  newUrls: integer('new_urls').notNull().default(0),
-  removedUrls: integer('removed_urls').notNull().default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
-})
+export const comparisons = sqliteTable(
+  'comparisons',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    baseScanId: text('base_scan_id').references(() => scans.scanId, { onDelete: 'cascade' }),
+    currentScanId: text('current_scan_id').references(() => scans.scanId, { onDelete: 'cascade' }),
+    improved: integer('improved').notNull().default(0),
+    regressed: integer('regressed').notNull().default(0),
+    unchanged: integer('unchanged').notNull().default(0),
+    newUrls: integer('new_urls').notNull().default(0),
+    removedUrls: integer('removed_urls').notNull().default(0),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+  },
+  table => [
+    index('idx_comparisons_scans').on(table.baseScanId, table.currentScanId),
+  ],
+)
 
-export const comparisonDiffs = sqliteTable('comparison_diffs', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  comparisonId: integer('comparison_id').references(() => comparisons.id, { onDelete: 'cascade' }),
-  path: text('path').notNull(),
-  url: text('url').notNull(),
-  metricDiffs: text('metric_diffs').notNull(),
-  severity: text('severity').notNull(),
-})
+export const comparisonDiffs = sqliteTable(
+  'comparison_diffs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    comparisonId: integer('comparison_id').references(() => comparisons.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    url: text('url').notNull(),
+    metricDiffs: text('metric_diffs').notNull(),
+    severity: text('severity').notNull(),
+  },
+  table => [
+    index('idx_diffs_comparison').on(table.comparisonId),
+  ],
+)
 
 export const assertions = sqliteTable('assertions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -141,14 +153,20 @@ export const assertions = sqliteTable('assertions', {
 // CrUX field data (external source, not derived from LHR)
 // ============================================================================
 
-export const scanCrux = sqliteTable('scan_crux', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  scanId: text('scan_id').notNull().references(() => scans.scanId, { onDelete: 'cascade' }),
-  hostname: text('hostname').notNull(),
-  formFactor: text('form_factor', { enum: ['PHONE', 'DESKTOP'] }).notNull(),
-  seriesJson: text('series_json').notNull(),
-  fetchedAt: integer('fetched_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
-})
+export const scanCrux = sqliteTable(
+  'scan_crux',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    scanId: text('scan_id').notNull().references(() => scans.scanId, { onDelete: 'cascade' }),
+    hostname: text('hostname').notNull(),
+    formFactor: text('form_factor', { enum: ['PHONE', 'DESKTOP'] }).notNull(),
+    seriesJson: text('series_json').notNull(),
+    fetchedAt: integer('fetched_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  },
+  table => [
+    index('idx_scan_crux_scan').on(table.scanId, table.formFactor),
+  ],
+)
 
 // ============================================================================
 // Inferred row types

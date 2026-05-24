@@ -11,8 +11,9 @@ export class WS {
   private wss: WebSocketServer
   constructor() {
     this.wss = new WebSocketServer({ noServer: true })
-    this.wss.on('connection', () => {
-      log.debug(`Client connected (total: ${this.wss.clients.size})`)
+    const wss = this.wss
+    wss.on('connection', () => {
+      log.debug(`Client connected (total: ${wss.clients?.size ?? 0})`)
     })
   }
 
@@ -21,10 +22,11 @@ export class WS {
   }
 
   handleUpgrade(request: IncomingMessage, socket: Socket) {
-    return this.wss.handleUpgrade(request, socket, Buffer.alloc(0), (client: WebSocket) => {
-      this.wss.emit('connection', client, request)
+    const wss = this.wss
+    return wss.handleUpgrade(request, socket, Buffer.alloc(0), (client: WebSocket) => {
+      wss.emit('connection', client, request)
       client.on('close', () => {
-        log.debug(`Client disconnected (remaining: ${this.wss.clients.size})`)
+        log.debug(`Client disconnected (remaining: ${wss.clients?.size ?? 0})`)
       })
     })
   }

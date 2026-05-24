@@ -10,31 +10,28 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 
 const route = useRoute()
 const api = useApi()
 const scanId = route.params.id as string
-const { scoreToColor, scoreToLabel } = useScoreColor()
 
 const { data: seoPack, status } = useAsyncData(
   `seo-${scanId}`,
   () => api['pack.run']({ scanId, pack: 'seo-basics' }).catch(() => null),
 )
 
-const data = computed(() => (seoPack.value as any)?.report ?? null)
+const report = computed(() => (seoPack.value as any)?.report ?? null)
 
-function titleStatus(len: number | null) {
-  if (len == null) return { label: 'Missing', variant: 'destructive' as const }
-  if (len < 30) return { label: 'Too short', variant: 'secondary' as const }
-  if (len > 60) return { label: 'Too long', variant: 'secondary' as const }
-  return { label: 'Good', variant: 'default' as const }
-}
-
-function descStatus(len: number | null) {
-  if (len == null) return { label: 'Missing', variant: 'destructive' as const }
-  if (len < 70) return { label: 'Too short', variant: 'secondary' as const }
-  if (len > 160) return { label: 'Too long', variant: 'secondary' as const }
-  return { label: 'Good', variant: 'default' as const }
+function severityVariant(severity: string) {
+  if (severity === 'critical' || severity === 'serious') return 'destructive' as const
+  if (severity === 'moderate') return 'secondary' as const
+  return 'outline' as const
 }
 </script>
 
@@ -54,140 +51,121 @@ function descStatus(len: number | null) {
       Loading SEO data...
     </div>
 
-    <div v-else-if="!data" class="text-center py-12 text-muted-foreground">
-      No SEO data available.
+    <div v-else-if="!report" class="text-center py-12 text-muted-foreground">
+      No SEO data available. Run a scan first.
     </div>
 
     <template v-else>
-      <!-- Meta Tags -->
-      <Card v-if="data.meta?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Meta Tags
-            <Badge variant="secondary" class="text-xs">{{ data.meta?.length }} pages</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent class="overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Path</TableHead>
-                <TableHead class="w-56">Title</TableHead>
-                <TableHead class="w-20">Title</TableHead>
-                <TableHead class="w-20">Desc</TableHead>
-                <TableHead class="w-16">OG</TableHead>
-                <TableHead class="w-20">Index</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="m in data.meta" :key="m.path">
-                <TableCell class="font-mono text-xs truncate max-w-xs">{{ m.path }}</TableCell>
-                <TableCell class="text-xs truncate max-w-56">{{ m.title || '—' }}</TableCell>
-                <TableCell>
-                  <Badge :variant="titleStatus(m.titleLength).variant" class="text-[10px]">
-                    {{ titleStatus(m.titleLength).label }}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge :variant="descStatus(m.descriptionLength).variant" class="text-[10px]">
-                    {{ descStatus(m.descriptionLength).label }}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Icon
-                    :name="m.hasOgTags ? 'lucide:check' : 'lucide:x'"
-                    :class="m.hasOgTags ? 'text-green-500' : 'text-red-500'"
-                    class="size-4"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Icon
-                    :name="m.isIndexable ? 'lucide:check' : 'lucide:x'"
-                    :class="m.isIndexable ? 'text-green-500' : 'text-red-500'"
-                    class="size-4"
-                  />
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <!-- Duplicate Content -->
-      <Card v-if="data.duplicates?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Duplicate Content
-            <Badge variant="destructive" class="text-xs">{{ data.duplicates?.length }}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead class="w-20 text-right">Pages</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="d in data.duplicates" :key="d.type + d.value">
-                <TableCell><Badge variant="outline" class="text-xs">{{ d.type }}</Badge></TableCell>
-                <TableCell class="text-sm truncate max-w-md">{{ d.value }}</TableCell>
-                <TableCell class="text-right tabular-nums">{{ d.pageCount }}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <!-- Canonical Chains -->
-      <Card v-if="data.canonicalChains?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Canonical Chains
-            <Badge variant="secondary" class="text-xs">{{ data.canonicalChains?.length }}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-2">
-            <div v-for="c in data.canonicalChains" :key="c.chain" class="rounded-md border p-3 text-sm">
-              <div class="flex items-center gap-2 mb-1">
-                <Badge v-if="c.isLoop" variant="destructive" class="text-xs">Loop</Badge>
-                <span class="font-mono text-xs text-muted-foreground">{{ c.chain }}</span>
-              </div>
-              <div class="text-xs text-muted-foreground">{{ c.pages.length }} page(s)</div>
+      <!-- Summary stats -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent class="pt-5 pb-4 text-center">
+            <div class="text-2xl font-bold tabular-nums" :class="report.indexabilityPercent === 100 ? 'text-green-500' : report.indexabilityPercent >= 80 ? 'text-orange-500' : 'text-red-500'">
+              {{ report.indexabilityPercent ?? 0 }}%
             </div>
-          </div>
+            <div class="text-xs text-muted-foreground">Indexability</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-5 pb-4 text-center">
+            <div class="text-2xl font-bold text-green-500 tabular-nums">{{ report.indexableRoutes ?? 0 }}</div>
+            <div class="text-xs text-muted-foreground">Indexable Routes</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-5 pb-4 text-center">
+            <div class="text-2xl font-bold tabular-nums" :class="report.unindexableRoutes > 0 ? 'text-red-500' : 'text-green-500'">{{ report.unindexableRoutes ?? 0 }}</div>
+            <div class="text-xs text-muted-foreground">Unindexable Routes</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-5 pb-4 text-center">
+            <div class="text-2xl font-bold tabular-nums">{{ report.routesAnalysed ?? 0 }}</div>
+            <div class="text-xs text-muted-foreground">Routes Analysed</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- Severity counts -->
+      <div v-if="report.severityCounts" class="flex gap-2 flex-wrap">
+        <Badge v-if="report.severityCounts.critical > 0" variant="destructive" class="text-xs">{{ report.severityCounts.critical }} critical</Badge>
+        <Badge v-if="report.severityCounts.serious > 0" variant="destructive" class="text-xs">{{ report.severityCounts.serious }} serious</Badge>
+        <Badge v-if="report.severityCounts.moderate > 0" variant="secondary" class="text-xs">{{ report.severityCounts.moderate }} moderate</Badge>
+        <Badge v-if="report.severityCounts.minor > 0" variant="outline" class="text-xs">{{ report.severityCounts.minor }} minor</Badge>
+        <Badge v-if="!report.severityCounts.critical && !report.severityCounts.serious && !report.severityCounts.moderate && !report.severityCounts.minor" variant="outline" class="text-xs text-green-600">No issues found</Badge>
+      </div>
+
+      <!-- Findings -->
+      <Card v-if="report.findings?.length">
+        <CardHeader class="pb-3">
+          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            SEO Issues
+            <Badge variant="secondary" class="text-xs">{{ report.findings.length }}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="multiple" class="w-full">
+            <AccordionItem v-for="finding in report.findings" :key="finding.auditId" :value="finding.auditId">
+              <AccordionTrigger class="text-sm">
+                <div class="flex items-center gap-3 text-left flex-1 min-w-0">
+                  <Badge :variant="severityVariant(finding.severity)" class="text-[10px] shrink-0">
+                    {{ finding.severity }}
+                  </Badge>
+                  <span class="truncate">{{ finding.title || finding.auditId }}</span>
+                  <span class="text-xs text-muted-foreground shrink-0">{{ finding.routeCount }} routes</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div class="text-sm space-y-2">
+                  <p v-if="finding.description" class="text-muted-foreground text-xs">{{ finding.description }}</p>
+                  <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
+                    Affected routes:
+                    <ul class="mt-1 space-y-0.5 font-mono">
+                      <li v-for="r in finding.routes.slice(0, 10)" :key="r">{{ r }}</li>
+                      <li v-if="finding.routes.length > 10">+{{ finding.routes.length - 10 }} more</li>
+                    </ul>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </CardContent>
       </Card>
 
-      <!-- Link Text Issues -->
-      <Card v-if="data.linkTextIssues?.length">
+      <!-- Route Checks -->
+      <Card v-if="report.routeChecks?.length">
         <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Link Text Issues</CardTitle>
+          <CardTitle class="text-sm font-medium text-muted-foreground">Route Checks</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Text</TableHead>
-                <TableHead class="w-24 text-right">Instances</TableHead>
-                <TableHead class="w-20 text-right">Pages</TableHead>
+                <TableHead>URL</TableHead>
+                <TableHead class="w-20 text-right">Passes</TableHead>
+                <TableHead class="w-20 text-right">Fails</TableHead>
+                <TableHead class="w-20">Indexable</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="l in data.linkTextIssues" :key="l.text">
-                <TableCell class="text-sm">{{ l.text || '(empty)' }}</TableCell>
-                <TableCell class="text-right tabular-nums">{{ l.instanceCount }}</TableCell>
-                <TableCell class="text-right tabular-nums">{{ l.pageCount }}</TableCell>
+              <TableRow v-for="rc in report.routeChecks" :key="rc.url">
+                <TableCell class="font-mono text-xs truncate max-w-sm">{{ rc.url }}</TableCell>
+                <TableCell class="text-right tabular-nums text-green-500">{{ rc.passes }}</TableCell>
+                <TableCell class="text-right tabular-nums" :class="rc.fails > 0 ? 'text-red-500' : ''">{{ rc.fails }}</TableCell>
+                <TableCell>
+                  <Icon
+                    :name="rc.indexable ? 'lucide:check-circle' : 'lucide:x-circle'"
+                    :class="rc.indexable ? 'text-green-500' : 'text-red-500'"
+                    class="size-4"
+                  />
+                </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      <div v-if="!data.meta?.length && !data.duplicates?.length" class="text-center py-12 text-muted-foreground">
+      <div v-if="!report.findings?.length && !report.routeChecks?.length" class="text-center py-12 text-muted-foreground">
         No SEO issues found.
       </div>
     </template>
