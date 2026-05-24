@@ -562,6 +562,19 @@ importers:
         specifier: 'catalog:'
         version: 1.17.5(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260511.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.8.2)
 
+  packages/github-action:
+    dependencies:
+      unlighthouse:
+        specifier: workspace:*
+        version: link:../unlighthouse
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.7.0
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.6(@opentelemetry/api@1.9.0)(@types/node@25.7.0)(jsdom@26.1.0)(vite@8.0.0-beta.2(@types/node@25.7.0)(esbuild@0.25.12)(jiti@2.6.1)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
+
   packages/mcp:
     dependencies:
       '@modelcontextprotocol/sdk':

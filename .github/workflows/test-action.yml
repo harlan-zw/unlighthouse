@@ -1,0 +1,61 @@
+name: Test GitHub Action
+
+on:
+  push:
+    branches:
+      - v1
+    paths:
+      - 'packages/github-action/**'
+      - .github/workflows/test-action.yml
+  pull_request:
+    paths:
+      - 'packages/github-action/**'
+      - .github/workflows/test-action.yml
+
+jobs:
+  # Lightweight shape check — verifies the composite action's wiring is valid
+  # and the bundled `dist/main.mjs` entrypoint loads cleanly. We do not run a
+  # real Lighthouse scan (Chrome boot is expensive and adds flake to CI); the
+  # action's pure helpers are covered by `packages/github-action/test/`.
+  shape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4.0.0
+
+      - name: Use Node.js v24
+        uses: actions/setup-node@v5
+        with:
+          node-version: v24
+          cache: pnpm
+
+      - run: pnpm install
+      - run: pnpm --filter @unlighthouse/github-action build
+      - run: pnpm --filter @unlighthouse/github-action test
+
+      - name: Validate composite action metadata
+        run: |
+          node --input-type=module -e "
+            import { readFileSync } from 'node:fs';
+            const yml = readFileSync('packages/github-action/action.yml', 'utf8');
+            if (!yml.includes('using: composite')) throw new Error('action.yml is not a composite action');
+            if (!yml.includes('dist/main.mjs')) throw new Error('action.yml does not invoke dist/main.mjs');
+            console.log('action.yml shape OK');
+          "
+
+      - name: Smoke-load the built entrypoint
+        env:
+          UNLIGHTHOUSE_SITE: ''
+        run: |
+          # No site → entrypoint should exit(1) with a clear error. This
+          # verifies the bundle is well-formed and the input parser runs.
+          set +e
+          node packages/github-action/dist/main.mjs
+          rc=$?
+          if [ "$rc" -ne 1 ]; then
+            echo "expected exit 1 from missing site, got $rc" >&2
+            exit 1
+          fi
+          echo "smoke-load OK (exited 1 on missing site as expected)"

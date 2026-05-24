@@ -1,0 +1,63 @@
+name: Unlighthouse
+description: Scan a site with Unlighthouse (multi-device matrix) and post the PR-comment-friendly comparison summary on pull requests.
+author: harlan-zw
+branding:
+  icon: zap
+  color: yellow
+
+inputs:
+  site:
+    description: URL to scan. Required.
+    required: true
+  device:
+    description: 'Device(s) to scan. Single value (`mobile` | `desktop`) or comma-separated list (`mobile,desktop`).'
+    required: false
+    default: mobile
+  budget:
+    description: Minimum score (1-100) required for each page to pass. Forwarded to `unlighthouse-ci --budget`.
+    required: false
+  build-static:
+    description: Build a static report alongside the scan.
+    required: false
+    default: 'false'
+  compare-with:
+    description: 'Compare current scan against `latest` (default when set), a `<scanId>`, or a `<branch>` name. Empty disables comparison.'
+    required: false
+    default: ''
+  comment-on-pr:
+    description: 'When the workflow runs on a `pull_request` event, post the comparison Markdown as a PR comment. Requires `pull-requests: write` permission and `GITHUB_TOKEN`.'
+    required: false
+    default: 'true'
+  working-directory:
+    description: Directory the scan is executed from. Defaults to the workspace root.
+    required: false
+    default: .
+  github-token:
+    description: 'Token used to post the PR comment. Defaults to `${{ github.token }}`.'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  has-regressions:
+    description: Set to `true` when comparison detected at least one regression.
+    value: ${{ steps.run.outputs.has-regressions }}
+  compare-markdown-path:
+    description: Filesystem path of the rendered comparison Markdown (empty when no comparison ran).
+    value: ${{ steps.run.outputs.compare-markdown-path }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        UNLIGHTHOUSE_SITE: ${{ inputs.site }}
+        UNLIGHTHOUSE_DEVICE: ${{ inputs.device }}
+        UNLIGHTHOUSE_BUDGET: ${{ inputs.budget }}
+        UNLIGHTHOUSE_BUILD_STATIC: ${{ inputs.build-static }}
+        UNLIGHTHOUSE_COMPARE_WITH: ${{ inputs.compare-with }}
+        UNLIGHTHOUSE_COMMENT_ON_PR: ${{ inputs.comment-on-pr }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        node "${{ github.action_path }}/dist/main.mjs"
