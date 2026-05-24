@@ -13,6 +13,8 @@ import type { AuditPool } from '@unlighthouse/audit-pool'
  */
 import type { Logger, UnlighthouseOptions, UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAuditPool, runTask } from '@unlighthouse/audit-pool'
 import { extractRouteData } from '../report/extract'
@@ -33,7 +35,14 @@ const LOCAL_CAPABILITIES: AuditorCapabilities = {
   categories: ['performance', 'accessibility', 'seo', 'best-practices'],
 }
 
-const WORKER_FILE = fileURLToPath(new URL('./local-worker.mjs', import.meta.url))
+const WORKER_FILE = (() => {
+  const fromMeta = fileURLToPath(new URL('./local-worker.mjs', import.meta.url))
+  if (existsSync(fromMeta)) return fromMeta
+  // Stub mode: import.meta.url points at src/, but the built worker is in dist/
+  const fromDist = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', 'dist', 'auditors', 'local-worker.mjs')
+  if (existsSync(fromDist)) return fromDist
+  return fromMeta
+})()
 
 export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
   let poolPromise: Promise<AuditPool> | undefined

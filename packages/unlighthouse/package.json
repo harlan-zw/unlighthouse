@@ -56,8 +56,8 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "obuild",
-    "stub": "obuild --stub",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
     "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"

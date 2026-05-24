@@ -49,6 +49,7 @@ catalog:
   motion-v: ^2.2.1
   nuxt: ^4.4.6
   obuild: ^0.4.35
+  tsdown: ^0.22.0
   publint: ^0.3.21
   reka-ui: ^2.9.8
   rolldown: ^1.0.2

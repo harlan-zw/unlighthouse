@@ -14,8 +14,7 @@
   "scripts": {
     "dev": "nuxi dev",
     "build": "nuxi generate",
-    "typecheck": "nuxt typecheck",
-    "postinstall": "nuxi prepare"
+    "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "catalog:",
@@ -35,8 +34,9 @@
     "embla-carousel-vue": "catalog:",
     "fuse.js": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
-    "motion-v": "catalog:",
+    "@pinia/nuxt": "^0.11.0",
     "nuxt": "catalog:",
+    "pinia": "^3.0.4",
     "reka-ui": "catalog:",
     "scule": "catalog:dependencies",
     "shadcn-nuxt": "catalog:",

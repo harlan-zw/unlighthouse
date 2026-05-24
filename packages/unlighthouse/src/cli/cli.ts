@@ -1,8 +1,8 @@
 import type { CliOptions } from './types'
 import { setMaxListeners } from 'node:events'
 import { evaluateAndStoreAssertions } from '@unlighthouse/core/comparison'
+import { logger, createTaggedLogger } from '@unlighthouse/core/logger'
 import open from 'better-opn'
-import { createConsola } from 'consola'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 import { joinURL } from 'ufo'
@@ -11,15 +11,17 @@ import { createUnlighthouseHost } from '../index.ts'
 import createCli from './createCli'
 import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
+const log = createTaggedLogger('cli')
+
 async function createServer(resolvedConfig: { server: any }) {
+  log.debug('Creating h3 app + listener...')
   const app = createApp()
-  return {
-    app,
-    server: await listen(toNodeListener(app), {
-      ...resolvedConfig.server,
-      open: false,
-    }),
-  }
+  const server = await listen(toNodeListener(app), {
+    ...resolvedConfig.server,
+    open: false,
+  })
+  log.debug(`Listening on ${server.url}`)
+  return { app, server }
 }
 
 const cli = createCli()
@@ -29,9 +31,8 @@ const { options } = cli.parse() as unknown as { options: CliOptions }
 async function runDashboardMode() {
   setMaxListeners(0)
 
-  const logger = createConsola().withTag('unlighthouse')
-  if (options.debug)
-    logger.level = 4
+  log.debug('Dashboard-only mode (no --site)')
+  log.debug(`Options: ${JSON.stringify({ debug: options.debug, history: options.history, configFile: options.configFile })}`)
 
   const unlighthouse = await createUnlighthouseHost({
     userConfig: {
@@ -41,12 +42,14 @@ async function runDashboardMode() {
     behavior: { generateClient: true, showBanner: true, label: 'cli' },
   })
 
-  logger.info('Starting Unlighthouse dashboard...')
+  log.info('Starting Unlighthouse dashboard...')
 
   const { server, app } = await createServer(unlighthouse.resolvedConfig)
+  log.debug('Setting server context...')
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
 
-  logger.success(`Unlighthouse UI available at: ${unlighthouse.runtimeSettings.clientUrl}`)
+  log.success(`Unlighthouse UI available at: ${unlighthouse.runtimeSettings.clientUrl}`)
+  log.debug(`API: ${server.url} | Output: ${unlighthouse.resolvedConfig.outputPath}`)
 
   if (unlighthouse.resolvedConfig.server.open)
     await open(unlighthouse.runtimeSettings.clientUrl)
@@ -57,7 +60,6 @@ async function run() {
   if (options.help || options.version)
     return
 
-  // No site provided → dashboard-only mode (manage sites, view history).
   if (!options.site && !options.urls) {
     await runDashboardMode()
     return
@@ -70,37 +72,36 @@ async function run() {
 
   setMaxListeners(0)
 
-  const logger = createConsola().withTag('unlighthouse')
-  if (options.debug)
-    logger.level = 4
+  log.debug(`Scan mode — site: ${options.site}`)
+  log.debug(`Options: ${JSON.stringify({ site: options.site, urls: options.urls, device: options.device, samples: options.samples })}`)
 
   const unlighthouse = await createUnlighthouseHost({
     userConfig: {
       ...pickOptions(options),
       hooks: {
         'resolved-config': async (config) => {
-          await validateHost(config, logger)
+          await validateHost(config, logger as any)
         },
       },
     },
     behavior: { generateClient: true, showBanner: true, label: 'cli' },
   })
 
+  log.debug(`Config resolved — site: ${unlighthouse.resolvedConfig.site}`)
   validateOptions(unlighthouse.resolvedConfig)
 
   const { server, app } = await createServer(unlighthouse.resolvedConfig)
+  log.debug('Setting server context...')
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  // D-029: multi-device matrix scans flow through `core.run` overrides — not
-  // `scanner.device` (which still carries a single primary device for adapter
-  // back-compat). `parseDevices` returns the parsed `--device` list (or
-  // undefined when the flag was omitted); pass it through so a single scan
-  // run can audit both mobile and desktop.
+
   const deviceOverride = parseDevices(options)
+  log.debug(`Device override: ${JSON.stringify(deviceOverride)}`)
+
   const { scanId } = await unlighthouse.start(
     deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
   )
+  log.info(`Scan started — scanId: ${scanId}`)
 
-  // Register this scan's site in the persistent registry so it shows up on the dashboard.
   const siteUrl = unlighthouse.resolvedConfig.site
   let scanLandingUrl = unlighthouse.runtimeSettings.clientUrl
   if (siteUrl) {
@@ -117,7 +118,7 @@ async function run() {
     const end = new Date()
     const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
 
-    logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${payload.summary.completed} routes in ${seconds}s.`)
+    log.success(`Scan finished: ${payload.summary.completed} routes in ${seconds}s — ${unlighthouse.resolvedConfig.site}`)
 
     const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
     if (options.assert && assertionConfigs?.length) {
@@ -127,22 +128,22 @@ async function run() {
         const failures = results.filter(r => !r.passed)
 
         if (failures.length > 0) {
-          logger.error(`${failures.length} assertion(s) failed:`)
+          log.error(`${failures.length} assertion(s) failed:`)
           for (const f of failures) {
             const label = f.assertion.category || f.assertion.metric || f.assertion.type
-            logger.error(`  ${f.assertion.type} ${label}: expected ${f.assertion.value}, got ${f.actual}`)
+            log.error(`  ${f.assertion.type} ${label}: expected ${f.assertion.value}, got ${f.actual}`)
             if (f.failingRoutes?.length) {
               for (const r of f.failingRoutes.slice(0, 5)) {
-                logger.error(`    - ${r.path} (${r.value})`)
+                log.error(`    - ${r.path} (${r.value})`)
               }
               if (f.failingRoutes.length > 5)
-                logger.error(`    ... and ${f.failingRoutes.length - 5} more`)
+                log.error(`    ... and ${f.failingRoutes.length - 5} more`)
             }
           }
           process.exit(1)
         }
         else {
-          logger.success(`All ${results.length} assertion(s) passed.`)
+          log.success(`All ${results.length} assertion(s) passed.`)
         }
       }
     }

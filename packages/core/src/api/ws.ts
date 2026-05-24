@@ -3,11 +3,17 @@ import type { Socket } from 'node:net'
 import type { WebSocket } from 'ws'
 import { Buffer } from 'node:buffer'
 import { WebSocketServer } from 'ws'
+import { createTaggedLogger } from '../logger'
+
+const log = createTaggedLogger('ws')
 
 export class WS {
   private wss: WebSocketServer
   constructor() {
     this.wss = new WebSocketServer({ noServer: true })
+    this.wss.on('connection', () => {
+      log.debug(`Client connected (total: ${this.wss.clients.size})`)
+    })
   }
 
   serve(req: IncomingMessage) {
@@ -17,28 +23,31 @@ export class WS {
   handleUpgrade(request: IncomingMessage, socket: Socket) {
     return this.wss.handleUpgrade(request, socket, Buffer.alloc(0), (client: WebSocket) => {
       this.wss.emit('connection', client, request)
+      client.on('close', () => {
+        log.debug(`Client disconnected (remaining: ${this.wss.clients.size})`)
+      })
     })
   }
 
-  /** Publish event + data to all connected clients. */
   broadcast(data: Record<string, unknown>) {
+    const clientCount = this.wss.clients?.size ?? 0
+    if (clientCount === 0) {
+      log.debug(`broadcast ${data.event} — no clients`)
+      return
+    }
     const jsonData = JSON.stringify(data)
+    let sent = 0
     for (const client of this.wss.clients ?? []) {
       try {
         client.send(jsonData)
+        sent++
       }
-      catch {
-        // client not ready; drop silently
-      }
+      catch {}
     }
+    log.debug(`broadcast ${data.event} → ${sent}/${clientCount} clients`)
   }
 }
 
-// Factory wrapper. Stub-mode dev runs go through jiti's interopDefault proxy,
-// which calls `.bind()` on getters and strips the [[Construct]] slot from
-// re-exported classes (unjs/jiti#437). `new WS()` then throws "is not a
-// constructor". Function call traverses the same proxy without that slot
-// requirement, so callers use `createWS()` everywhere instead of `new WS()`.
 export function createWS(): WS {
   return new WS()
 }

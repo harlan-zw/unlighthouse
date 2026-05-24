@@ -59,22 +59,24 @@ export function commandToRoute(cmdName: CommandName): { method: 'GET' | 'POST', 
   return { method, path }
 }
 
-/**
- * Encode a primitive input object as URLSearchParams. Nested objects/arrays
- * are skipped; complex inputs should use POST commands.
- */
 function toSearchParams(input: unknown): string {
   if (!input || typeof input !== 'object')
     return ''
   const params = new URLSearchParams()
-  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
-    if (v == null)
-      continue
-    const t = typeof v
-    if (t === 'string' || t === 'number' || t === 'boolean')
-      params.set(k, String(v))
-    // skip nested objects/arrays
+  function flatten(obj: Record<string, unknown>, prefix = '') {
+    for (const [k, v] of Object.entries(obj)) {
+      if (v == null) continue
+      const key = prefix ? `${prefix}.${k}` : k
+      const t = typeof v
+      if (t === 'string' || t === 'number' || t === 'boolean') {
+        params.set(key, String(v))
+      }
+      else if (t === 'object' && !Array.isArray(v)) {
+        flatten(v as Record<string, unknown>, key)
+      }
+    }
   }
+  flatten(input as Record<string, unknown>)
   const s = params.toString()
   return s ? `?${s}` : ''
 }

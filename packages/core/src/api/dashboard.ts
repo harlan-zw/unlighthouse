@@ -4,7 +4,10 @@ import { Buffer } from 'node:buffer'
 import { gunzipSync } from 'node:zlib'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
 import { compareScans, getComparisonSummary } from '../comparison'
+import { createTaggedLogger } from '../logger'
 import { getDashboardSummary, processScanData } from '../report'
+
+const log = createTaggedLogger('dashboard')
 
 /**
  * Ensure dashboard data is processed (lazy processing).
@@ -27,18 +30,21 @@ async function ensureProcessed(storage: Storage, scanId: string) {
 export function createDashboardApi(storage: Storage): Router {
   const router = createRouter()
 
-  // Get dashboard summary for a scan (auto-processes if not found)
   router.get('/summary/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
+    log.debug(`GET /summary/${scanId}`)
     let summary = await getDashboardSummary(storage, scanId)
     if (!summary) {
+      log.debug(`No cached summary for ${scanId}, processing...`)
       const result = await processScanData(storage, scanId)
       if (!result) {
+        log.debug(`No LHR data found for ${scanId} — returning 404`)
         setResponseStatus(event, 404)
         return { error: 'Summary not found and no LHR data to process' }
       }
       summary = await getDashboardSummary(storage, scanId)
     }
+    log.debug(`Summary for ${scanId}: ${JSON.stringify(summary)}`)
     return summary
   }))
 

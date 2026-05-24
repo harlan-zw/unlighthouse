@@ -6,6 +6,9 @@ import type { H3Event, Router } from 'h3'
 import type { Handler, HandlerCtx, HandlerMap } from './handlers/types'
 import { commands, UnlighthouseError } from '@unlighthouse/contracts'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, readBody, setResponseHeader, setResponseStatus } from 'h3'
+import { createTaggedLogger } from '../logger'
+
+const log = createTaggedLogger('api')
 
 /**
  * Per-request ctx factory. Hosts use this to construct a request-scoped
@@ -85,10 +88,26 @@ function statusForCode(code: string): number {
   return 500
 }
 
+function unflatten(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    const parts = key.split('.')
+    let target = result
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!(parts[i] in target) || typeof target[parts[i]] !== 'object') {
+        target[parts[i]] = {}
+      }
+      target = target[parts[i]] as Record<string, unknown>
+    }
+    target[parts[parts.length - 1]] = value
+  }
+  return result
+}
+
 async function readInput(event: H3Event, method: HttpMethod): Promise<unknown> {
   const params = getRouterParams(event) as Record<string, unknown>
   if (method === 'GET') {
-    return Object.assign({}, getQuery(event), params)
+    return unflatten(Object.assign({}, getQuery(event) as Record<string, unknown>, params))
   }
   // POST / PUT / DELETE → body, fall back to empty object.
   const body = await readBody(event).catch(() => undefined)
@@ -116,10 +135,12 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
 
     const eventHandler = defineEventHandler(async (event) => {
       const raw = await readInput(event, method)
+      log.debug(`${method} ${path} — input: ${JSON.stringify(raw)}`)
 
-      // Validate via Zod. safeParse handles coercion where the schema allows.
       const parsed = cmd.input.safeParse(raw)
       if (!parsed.success) {
+        log.debug(`${method} ${path} — validation failed: ${parsed.error.issues.map(i => i.message).join(', ')}`)
+
         setResponseStatus(event, 400)
         return {
           error: {
@@ -183,6 +204,9 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
         return awaited
       }
       catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        const code = err instanceof UnlighthouseError ? err.code : 'INTERNAL_ERROR'
+        log.debug(`${method} ${path} — error ${code}: ${errMsg}`)
         if (err instanceof UnlighthouseError) {
           setResponseStatus(event, statusForCode(err.code))
           return { error: { code: err.code, message: err.message } }
@@ -191,7 +215,7 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
         return {
           error: {
             code: 'INTERNAL_ERROR',
-            message: err instanceof Error ? err.message : String(err),
+            message: errMsg,
           },
         }
       }

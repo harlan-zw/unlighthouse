@@ -9,7 +9,10 @@ import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
 import fs from 'fs-extra'
 import { createRouter, defineEventHandler, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
+import { createTaggedLogger } from '@unlighthouse/core/logger'
 import launch from 'launch-editor'
+
+const log = createTaggedLogger('server')
 
 // MIME types for static client serving.
 const mimeTypes: Record<string, string> = {
@@ -51,11 +54,12 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
 
   const root = createRouter()
 
-  // Typo redirect: /__lighthouse/ -> resolved router prefix.
+  log.debug(`Mounting — prefix: ${resolvedConfig.routerPrefix}, client: ${runtimeSettings.generatedClientPath}`)
+
   root.get('/__lighthouse/', defineEventHandler(event => sendRedirect(event, resolvedConfig.routerPrefix)))
 
-  // Command-driven REST surface.
   const apiRouter = createHttpRouter({ handlers: createHandlers(), ctx: opts.handlerCtx })
+  log.debug('API router created with command handlers')
 
   // Editor launch endpoint.
   apiRouter.get('/__launch', defineEventHandler((event) => {
@@ -73,6 +77,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
 
   // WebSocket upgrade (only when ws is enabled).
   if (ws) {
+    log.debug('WS upgrade endpoint registered at /api/ws')
     apiRouter.get('/ws', defineEventHandler(event => ws.serve(event.node.req)))
   }
 

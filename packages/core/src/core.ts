@@ -21,7 +21,10 @@ import {
   UnlighthouseError,
 } from '@unlighthouse/contracts'
 import { createHooks } from 'hookable'
+import { createTaggedLogger } from './logger'
 import { persistStableEvents } from './persist-events'
+
+const log = createTaggedLogger('core')
 
 /** Map from CrawlEvent.type → counter side-effect on CrawlStats. */
 type LoggerLike = Logger & {
@@ -207,14 +210,17 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
 
   function run(runOpts?: UnlighthouseCoreRunOptions): CrawlSession {
     if (currentSession) {
+      log.warn('ACTIVE_SCAN_CONFLICT — a scan is already running')
       throw new UnlighthouseError({
         code: 'ACTIVE_SCAN_CONFLICT',
         message: 'A scan is already in flight on this Core instance.',
       })
     }
 
+    const mergedConfig = mergeOverrides(config, runOpts?.overrides)
+    log.debug(`core.run() — site: ${mergedConfig.site}, overrides: ${JSON.stringify(runOpts?.overrides ?? {})}`)
     const session = createSession({
-      config: mergeOverrides(config, runOpts?.overrides),
+      config: mergedConfig,
       storage: opts.storage,
       auditor: opts.auditor,
       seeds: opts.seeds,
@@ -376,6 +382,7 @@ function createSession(deps: SessionDeps): CrawlSession {
 
   // ── Orchestration ──────────────────────────────────────────────────────
   async function orchestrate(): Promise<void> {
+    log.info(`Orchestrating scan ${scanId}`)
     const site = (deps.config.site ?? '') as string
     const scannerDevice = deps.config.scanner?.device
     const validScannerDevice
@@ -399,15 +406,18 @@ function createSession(deps: SessionDeps): CrawlSession {
       ciCommitMessage: overrides?.ciBuild?.message ?? null,
     })
 
+    log.debug(`Scan ${scanId} created — site: ${site}, device: ${devices.join(',')}`)
     await emit('scan:created', { scanId, site: site as never, startedAt })
     await emit('scan:started', { scanId })
 
     setStatus('discovering')
+    log.debug('Status: discovering')
     await emit('scan:discovering', { scanId })
 
     let firstUrlSeen = false
 
     async function auditOnDevice(url: string, device: 'mobile' | 'desktop'): Promise<void> {
+      log.debug(`Auditing ${url} [${device}]`)
       const auditStart = Date.now()
       await emit('audit:before', { scanId, url: url as never, auditor: 'auditor' })
       try {
@@ -501,6 +511,7 @@ function createSession(deps: SessionDeps): CrawlSession {
         }
 
         stats.scanned++
+        log.debug(`Audited ${url} [${device}] in ${Date.now() - auditStart}ms — perf: ${metrics?.scorePerformance ?? '?'}`)
         await emit('scan:route-complete', { scanId, url: url as never, metrics })
         await emit('audit:after', {
           scanId,
@@ -513,7 +524,7 @@ function createSession(deps: SessionDeps): CrawlSession {
       catch (err) {
         stats.failed++
         const structured = toStructuredError(err)
-        logger?.error?.('[unlighthouse] route audit failed', { url, error: structured })
+        log.error(`Audit failed: ${url} [${device}] — ${structured.message || err}`)
         await emit('scan:route-failed', { scanId, url: url as never, error: structured as never })
         await emit('audit:after', {
           scanId,
@@ -538,8 +549,19 @@ function createSession(deps: SessionDeps): CrawlSession {
       }
     }
 
+    // If site was overridden (e.g. scan.start from dashboard mode), inject it
+    // as the primary seed URL so the crawler starts from the right origin.
+    const effectiveSeeds = overrides?.site
+      ? {
+          seeds: async function* () {
+            yield { url: site, source: 'override' } as { url: string, source: string }
+            yield * seeds.seeds()
+          },
+        }
+      : seeds
+
     const crawlEvents = crawler.run({
-      seeds,
+      seeds: effectiveSeeds,
       audit: (url: string) => auditWrapper(url),
       signal,
     })
@@ -606,6 +628,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     }
 
     setStatus('complete')
+    log.info(`Scan ${scanId} complete — ${summary.completed} routes, ${summary.failed} failed, avg score: ${summary.scoreAverage?.toFixed(2) ?? 'N/A'}, ${(summary.durationMs / 1000).toFixed(1)}s`)
     await storage.scans.update(scanId, {
       status: 'complete',
       completedAt: nowIso(),
@@ -634,7 +657,7 @@ function createSession(deps: SessionDeps): CrawlSession {
         await storage.scans
           .update(scanId, { status: 'error', completedAt: nowIso() })
           .catch(() => {})
-        logger?.error?.('[unlighthouse] scan errored', structured)
+        log.error(`Scan ${scanId} errored: ${structured.message || structured.code}`)
         rejectDone(err)
       }
     }

@@ -115,6 +115,11 @@
       "types": "./dist/api/dashboard.d.mts",
       "import": "./dist/api/dashboard.mjs"
     },
+    "./logger": {
+      "types": "./dist/logger.d.mts",
+      "development": "./src/logger.ts",
+      "import": "./dist/logger.mjs"
+    },
     "./packs": {
       "types": "./dist/packs/index.d.mts",
       "import": "./dist/packs/index.mjs"
@@ -132,8 +137,8 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "obuild",
-    "stub": "obuild --stub && node ./scripts/build-worker.mjs",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "test:attw": "attw --pack --profile esm-only",

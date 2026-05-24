@@ -21,8 +21,8 @@ import { createStorage } from '@unlighthouse/core/storage'
 import { applyMigrations, drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
 import Database from 'better-sqlite3'
+import { logger as globalLogger, createTaggedLogger } from '@unlighthouse/core/logger'
 import { loadConfig } from 'c12'
-import { createConsola } from 'consola'
 import { defu } from 'defu'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
@@ -83,9 +83,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   const { behavior = {} } = opts
   let { userConfig } = opts
 
-  const logger = createConsola().withTag('unlighthouse') as Logger
-  if (userConfig.debug)
-    (logger as any).level = 4
+  const logger = createTaggedLogger('host') as unknown as Logger
 
   const { __dirname } = createCommonJS(import.meta.url)
 
@@ -162,6 +160,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       return portsRef
 
     const outputPath = (rs as RuntimeSettings).outputPath || resolvedConfig.outputPath
+    logger.debug?.(`ensurePorts — outputPath: ${outputPath}`)
     fs.ensureDirSync(outputPath)
 
     if (!resolvedConfig.cache && existsSync(outputPath)) {
@@ -172,6 +171,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       fs.ensureDirSync(outputPath)
     }
 
+    logger.debug?.(`Opening SQLite: ${join(outputPath, 'db.sqlite')}`)
     const sqliteDb = new Database(join(outputPath, 'db.sqlite'))
     // Apply bundled migrations once on open. drizzle-orm/migrator wants a
     // _migrations metadata table; for the simple v1.0 schema we just exec
@@ -221,19 +221,24 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     const site = resolvedConfig.site || ''
     const rawUrls = resolvedConfig.urls
-    const urlList: string[] = [
-      ...(site ? [site] : []),
-      ...(Array.isArray(rawUrls) ? rawUrls : []),
-    ]
+    // In dashboard mode (site = http://localhost), don't seed with the
+    // placeholder URL — scan.start will inject the real site via overrides.
+    const isDashboardPlaceholder = site === 'http://localhost'
+    const urlList: string[] = isDashboardPlaceholder
+      ? []
+      : [
+          ...(site ? [site] : []),
+          ...(Array.isArray(rawUrls) ? rawUrls : []),
+        ]
     const sources = [
       manualSeeds({
         urls: urlList,
         logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/manual'),
       }),
     ]
-    // Sitemap discovery is on by default; disable via `scanner.sitemap = false` or
-    // when `--urls` overrides the crawl with an explicit list.
-    const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false && !(Array.isArray(rawUrls) && rawUrls.length > 0)
+    const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false
+      && !(Array.isArray(rawUrls) && rawUrls.length > 0)
+      && !isDashboardPlaceholder
     if (sitemapEnabled && site) {
       try {
         sources.push(sitemapSeeds({
@@ -253,6 +258,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     const crawler = crawleeCrawler({ logger: (logger as any).withTag('crawler/crawlee') as never })
 
+    logger.debug?.(`Creating core — auditor: ${auditor.name}, seeds: ${sources.length} source(s), crawler: crawlee`)
     const core = createUnlighthouseCore({
       config: coreConfig,
       auditor,
@@ -264,8 +270,10 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     // Wire WS broadcasting to v1 HookMap events
     if (ws) {
+      logger.debug?.('[host] Wiring WS broadcast hooks')
       const hookable = core.hooks as Hookable<HookMap>
       hookable.hook('scan:progress', (payload) => {
+        logger.debug?.(`[ws] scan:progress — discovered: ${payload.discovered}, scanned: ${payload.scanned}/${payload.total}, failed: ${payload.failed}`)
         ws.broadcast({
           event: 'scan:progress',
           data: {
@@ -277,6 +285,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         })
       })
       hookable.hook('scan:route-complete', (payload) => {
+        logger.debug?.(`[ws] scan:route-complete — ${payload.url} (perf: ${payload.metrics?.scorePerformance ?? '?'})`)
         ws.broadcast({
           event: 'scan:route-complete',
           data: {
@@ -286,6 +295,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         })
       })
       hookable.hook('scan:complete', (payload) => {
+        logger.info?.(`[ws] scan:complete — scanId: ${payload.scanId}, routes: ${payload.summary?.completed}`)
         ws.broadcast({
           event: 'scan:complete',
           data: {
@@ -295,17 +305,22 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         })
       })
       hookable.hook('scan:cancelled', (payload) => {
+        logger.warn?.(`[ws] scan:cancelled — reason: ${payload.reason}`)
         ws.broadcast({
           event: 'scan:cancelled',
           data: { reason: payload.reason },
         })
       })
       hookable.hook('scan:error', (payload) => {
+        logger.error?.(`[ws] scan:error — ${payload.error}`)
         ws.broadcast({
           event: 'scan:error',
           data: { error: payload.error },
         })
       })
+    }
+    else {
+      logger.debug?.('[host] WS disabled — no broadcast hooks wired')
     }
 
     historySubscriber({
@@ -331,6 +346,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   // ── setServerContext ──────────────────────────────────────────────────────
 
   const setServerContext = async ({ url, server, app }: { url: string, server: any, app: any }) => {
+    logger.debug?.(`setServerContext — url: ${url}`)
     const $server = new URL(url)
 
     let resolvedClientPath = ''
@@ -384,6 +400,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       ws,
       logger,
     }
+    logger.debug?.(`Mounting server — apiPath: ${(rs as RuntimeSettings).apiPath}, clientUrl: ${(rs as RuntimeSettings).clientUrl}`)
     await mountServer(mountDeps, app, { handlerCtx })
 
     if (ws) {
@@ -400,8 +417,9 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
   const start = async (overrides?: UnlighthouseCoreRunOverrides) => {
     const { core } = ensurePorts()
-    logger.debug?.(`Starting v1 scan [Site: ${resolvedConfig.site}]`)
+    logger.info?.(`Starting scan — site: ${resolvedConfig.site}, overrides: ${JSON.stringify(overrides ?? {})}`)
     const session = core.run(overrides ? { overrides } : undefined)
+    logger.info?.(`Scan session created — scanId: ${session.scanId}`)
     return { scanId: session.scanId }
   }
 

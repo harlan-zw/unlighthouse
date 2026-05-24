@@ -44,6 +44,7 @@ export default defineBuildConfig({
         './src/auditors/local-worker.ts',
         './src/util/path.ts',
         './src/util/git-meta.ts',
+        './src/logger.ts',
         './src/core.ts',
       ],
     },
