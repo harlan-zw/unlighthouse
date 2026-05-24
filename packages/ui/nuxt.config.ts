@@ -1,26 +1,26 @@
 export default defineNuxtConfig({
   ssr: false,
-  extends: ['./layers/design-system'],
-  modules: ['@nuxt/ui'],
-  css: ['~/assets/css/main.css'],
+  // extends: ['./layers/design-system'],
+  modules: ['@nuxtjs/tailwindcss', 'shadcn-nuxt', '@nuxtjs/color-mode', '@nuxt/icon'],
+  css: ['~/assets/css/tailwind.css'],
   colorMode: {
     preference: 'system',
     fallback: 'dark',
     classSuffix: '',
   },
-  fonts: {
-    families: [
-      { name: 'Satoshi', provider: 'google' },
-      { name: 'JetBrains Mono', provider: 'google' },
-    ],
-  },
+  // fonts: {
+  //   families: [
+  //     { name: 'Satoshi', provider: 'google' },
+  //     { name: 'JetBrains Mono', provider: 'google' },
+  //   ],
+  // },
   icon: {
     serverBundle: 'local',
     collections: ['heroicons', 'lucide'],
   },
-  imports: {
-    dirs: ['composables', 'utils'],
-  },
+  // imports: {
+  //   dirs: ['composables', 'utils'],
+  // },
   devtools: {
     enabled: false,
   },
@@ -36,13 +36,27 @@ export default defineNuxtConfig({
       unlighthouseWsUrl: process.env.NUXT_PUBLIC_UNLIGHTHOUSE_WS_URL || 'ws://localhost:5678/api/ws',
     },
   },
-  components: [
-    {
-      path: '~/components',
-      extensions: ['vue'],
-      pathPrefix: false,
-    },
-  ],
+  // components: [
+  //   {
+  //     path: '~/components',
+  //     extensions: ['vue'],
+  //     pathPrefix: false,
+  //   },
+  // ],
+  shadcn: {
+    /**
+     * Prefix for all the imported component.
+     * @default "Ui"
+     */
+    prefix: '',
+    /**
+     * Directory that the component lives in.
+     * Will respect the Nuxt aliases.
+     * @link https://nuxt.com/docs/api/nuxt-config#alias
+     * @default "@/components/ui"
+     */
+    componentDir: '@/components/ui'
+  },
   // Allow extra dev-server hostnames (tailscale, ngrok, cloudflare tunnels…)
   // through Vite's allowedHosts check. Comma-separated env var so personal
   // hostnames stay out of the repo. Unset → Vite default (localhost only).
@@ -54,5 +68,5 @@ export default defineNuxtConfig({
         .filter(Boolean),
     },
   },
-  compatibilityDate: '2025-12-12',
+  compatibilityDate: '2026-05-24',
 })

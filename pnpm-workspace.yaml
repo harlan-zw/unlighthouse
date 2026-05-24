@@ -10,8 +10,8 @@ packages:
   - '!docs'
 
 overrides:
-  '@nuxt/kit': 4.2.2
-  nuxt: 4.2.2
+  '@nuxt/kit': 4.4.6
+  nuxt: 4.4.6
   vite: 8.0.14
 catalog:
   '@antfu/eslint-config': ^9.0.0
@@ -47,12 +47,12 @@ catalog:
   eslint: ^10.3.0
   jiti: ^2.6.1
   motion-v: ^2.2.1
-  nuxt: 4.2.2
+  nuxt: ^4.4.6
   obuild: ^0.4.35
   publint: ^0.3.21
   reka-ui: ^2.9.8
-  rolldown: 1.0.0
-  shadcn-nuxt: 2.7.3
+  rolldown: ^1.0.2
+  shadcn-nuxt: ^2.7.3
   shadcn-vue: ^2.7.3
   tailwind-merge: ^3.6.0
   tinypool: ^2.1.0
