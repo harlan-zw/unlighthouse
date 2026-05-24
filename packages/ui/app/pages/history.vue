@@ -55,6 +55,17 @@ function formatDuration(start: string | null, end: string | null) {
   return `${Math.round(ms / 60000)}m`
 }
 
+async function rescanFromHistory(scanId: string) {
+  try {
+    const result = await api['history.rescan']({ scanId })
+    toast.success('Rescan started')
+    router.push(`/scan/${result.scanId}/overview`)
+  }
+  catch (err: any) {
+    toast.error('Rescan failed', { description: err.message })
+  }
+}
+
 async function deleteScan(scanId: string) {
   try {
     await api['scan.delete']({ scanId })
@@ -108,7 +119,7 @@ const totalPages = computed(() => {
               <TableHead class="w-16 text-right">Routes</TableHead>
               <TableHead class="w-20 text-right">Duration</TableHead>
               <TableHead class="w-40">Date</TableHead>
-              <TableHead class="w-10" />
+              <TableHead class="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -144,7 +155,17 @@ const totalPages = computed(() => {
               <TableCell class="text-xs text-muted-foreground">
                 {{ formatDate(scan.startedAt) }}
               </TableCell>
-              <TableCell @click.stop>
+              <TableCell @click.stop class="flex items-center gap-0.5">
+                <Button
+                  v-if="scan.status === 'complete'"
+                  variant="ghost"
+                  size="sm"
+                  class="size-7 p-0 text-muted-foreground hover:text-foreground"
+                  title="Rescan"
+                  @click="rescanFromHistory(scan.scanId)"
+                >
+                  <Icon name="lucide:refresh-cw" class="size-3.5" />
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger as-child>
                     <Button variant="ghost" size="sm" class="size-7 p-0 text-muted-foreground hover:text-destructive">

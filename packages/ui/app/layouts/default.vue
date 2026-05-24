@@ -1,9 +1,27 @@
 <script setup lang="ts">
 const route = useRoute()
 const colorMode = useColorMode()
+const api = useApi()
 
 function toggleColorMode() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+}
+
+const healthy = ref<boolean | null>(null)
+
+async function checkHealth() {
+  try {
+    await api['health']({})
+    healthy.value = true
+  }
+  catch {
+    healthy.value = false
+  }
+}
+
+if (import.meta.client) {
+  checkHealth()
+  setInterval(checkHealth, 30000)
 }
 </script>
 
@@ -17,6 +35,19 @@ function toggleColorMode() {
           </div>
           <span class="text-sm">Unlighthouse</span>
         </NuxtLink>
+
+        <div
+          v-if="healthy !== null"
+          class="flex items-center gap-1.5 text-xs"
+          :class="healthy ? 'text-green-500' : 'text-red-500'"
+          :title="healthy ? 'Backend connected' : 'Backend unreachable'"
+        >
+          <span class="relative flex size-1.5">
+            <span v-if="healthy" class="relative inline-flex size-1.5 rounded-full bg-green-500" />
+            <span v-else class="relative inline-flex size-1.5 rounded-full bg-red-500 animate-pulse" />
+          </span>
+          <span class="hidden sm:inline">{{ healthy ? 'Connected' : 'Disconnected' }}</span>
+        </div>
 
         <div class="ml-auto flex items-center gap-1">
           <NuxtLink
