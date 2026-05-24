@@ -52,6 +52,7 @@ export const scanStart: Handler<typeof ScanStart> = {
     return {
       scanId: session.scanId,
       site: input.site,
+      mode: input.mode ?? 'site',
       startedAt: new Date().toISOString(),
     } as CommandOutput<typeof ScanStart>
   },
@@ -169,6 +170,7 @@ export function applyRouteFilter(items: ScanRoute[], filter: CommandInput<typeof
           'accessibility': 'scoreAccessibility',
           'seo': 'scoreSeo',
           'best-practices': 'scoreBestPractices',
+          'agentic-browsing': 'scoreAgenticBrowsing',
         } as const)[cat as keyof typeof filter.minScore]
         const v = (r as unknown as Record<string, number | null>)[key as string]
         if (v == null || v < (min as number))
@@ -190,17 +192,33 @@ export function applyRouteSort(items: ScanRoute[], sort?: string): ScanRoute[] {
   if (!sort)
     return items
   const copy = [...items]
-  copy.sort((a, b) => {
-    switch (sort) {
-      case 'score-asc': return (a.scorePerformance ?? 0) - (b.scorePerformance ?? 0)
-      case 'score-desc': return (b.scorePerformance ?? 0) - (a.scorePerformance ?? 0)
-      case 'lcp-asc': return (a.lcp ?? Infinity) - (b.lcp ?? Infinity)
-      case 'lcp-desc': return (b.lcp ?? -Infinity) - (a.lcp ?? -Infinity)
-      case 'url-asc': return a.url.localeCompare(b.url)
-      case 'capturedAt-desc': return b.capturedAt.localeCompare(a.capturedAt)
-      default: return 0
-    }
-  })
+  const numSort = (key: keyof ScanRoute, asc: boolean) => (a: ScanRoute, b: ScanRoute) => {
+    const av = (a[key] as number | null) ?? (asc ? Infinity : -Infinity)
+    const bv = (b[key] as number | null) ?? (asc ? Infinity : -Infinity)
+    return asc ? av - bv : bv - av
+  }
+  const sortFn: Record<string, (a: ScanRoute, b: ScanRoute) => number> = {
+    'score-asc': numSort('scorePerformance', true),
+    'score-desc': numSort('scorePerformance', false),
+    'lcp-asc': numSort('lcp', true),
+    'lcp-desc': numSort('lcp', false),
+    'cls-asc': numSort('cls', true),
+    'cls-desc': numSort('cls', false),
+    'fcp-asc': numSort('fcp', true),
+    'fcp-desc': numSort('fcp', false),
+    'tbt-asc': numSort('tbt', true),
+    'tbt-desc': numSort('tbt', false),
+    'ttfb-asc': numSort('ttfb', true),
+    'ttfb-desc': numSort('ttfb', false),
+    'si-asc': numSort('si', true),
+    'si-desc': numSort('si', false),
+    'inp-asc': numSort('inp', true),
+    'inp-desc': numSort('inp', false),
+    'url-asc': (a, b) => a.url.localeCompare(b.url),
+    'capturedAt-desc': (a, b) => b.capturedAt.localeCompare(a.capturedAt),
+  }
+  const fn = sortFn[sort]
+  if (fn) copy.sort(fn)
   return copy
 }
 

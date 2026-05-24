@@ -1,16 +1,7 @@
 <script setup lang="ts">
-import type { AccessibilityData } from '@unlighthouse/contracts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   Accordion,
   AccordionContent,
@@ -19,22 +10,19 @@ import {
 } from '@/components/ui/accordion'
 
 const route = useRoute()
-const config = useRuntimeConfig()
-const baseUrl = config.public.unlighthouseApiUrl as string
+const api = useApi()
 const scanId = route.params.id as string
 
-const { data, status } = useAsyncData(
+const { data: a11yPack, status } = useAsyncData(
   `a11y-${scanId}`,
-  async () => {
-    const res = await fetch(`${baseUrl}/dashboard/accessibility/${scanId}`)
-    if (!res.ok) return null
-    return await res.json() as AccessibilityData
-  },
+  () => api['pack.run']({ scanId, pack: 'a11y-quick-wins' }).catch(() => null),
 )
 
+const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)
+
 function severityVariant(severity: string) {
-  if (severity === 'critical' || severity === 'serious') return 'destructive' as const
-  if (severity === 'moderate') return 'secondary' as const
+  if (severity === 'critical' || severity === 'serious' || severity === 'fail') return 'destructive' as const
+  if (severity === 'moderate' || severity === 'warn') return 'secondary' as const
   return 'outline' as const
 }
 </script>
@@ -55,44 +43,77 @@ function severityVariant(severity: string) {
       Loading accessibility data...
     </div>
 
-    <div v-else-if="!data" class="text-center py-12 text-muted-foreground">
-      No accessibility data available.
+    <div v-else-if="!a11yReport" class="text-center py-12 text-muted-foreground">
+      No accessibility data available. Run a scan first.
     </div>
 
     <template v-else>
-      <!-- Issues by Audit -->
-      <Card v-if="data.issues.length">
+      <!-- Summary stats -->
+      <div v-if="a11yReport.summary" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent class="pt-5 pb-4 text-center">
+            <div class="text-2xl font-bold text-red-500 tabular-nums">{{ a11yReport.summary?.totalFindings ?? 0 }}</div>
+            <div class="text-xs text-muted-foreground">Total Issues</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-5 pb-4 text-center">
+            <div class="text-2xl font-bold tabular-nums">{{ a11yReport.summary?.routesAffected ?? 0 }}</div>
+            <div class="text-xs text-muted-foreground">Routes Affected</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-5 pb-4 text-center">
+            <div class="text-2xl font-bold tabular-nums">{{ a11yReport.summary?.uniqueRules ?? 0 }}</div>
+            <div class="text-xs text-muted-foreground">Unique Rules</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-5 pb-4 text-center">
+            <div class="text-2xl font-bold text-green-500 tabular-nums">{{ a11yReport.routesAnalysed ?? 0 }}</div>
+            <div class="text-xs text-muted-foreground">Routes Analysed</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- Findings -->
+      <Card v-if="a11yReport.findings?.length">
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Issues
-            <Badge variant="secondary" class="text-xs">{{ data.issues.length }}</Badge>
+            Accessibility Issues
+            <Badge variant="secondary" class="text-xs">{{ a11yReport.findings.length }}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Accordion type="multiple" class="w-full">
-            <AccordionItem v-for="issue in data.issues" :key="issue.auditId" :value="issue.auditId">
+            <AccordionItem v-for="finding in a11yReport.findings" :key="finding.auditId" :value="finding.auditId">
               <AccordionTrigger class="text-sm">
                 <div class="flex items-center gap-3 text-left flex-1 min-w-0">
-                  <Badge :variant="severityVariant(issue.severity)" class="text-[10px] shrink-0">
-                    {{ issue.severity }}
+                  <Badge :variant="severityVariant(finding.severity)" class="text-[10px] shrink-0">
+                    {{ finding.severity }}
                   </Badge>
-                  <span class="truncate">{{ issue.title }}</span>
-                  <span class="text-xs text-muted-foreground shrink-0">{{ issue.instanceCount }} instances</span>
+                  <span class="truncate">{{ finding.title || finding.auditId }}</span>
+                  <span class="text-xs text-muted-foreground shrink-0">{{ finding.routeCount }} routes</span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div class="text-sm space-y-3">
-                  <p class="text-muted-foreground">{{ issue.description }}</p>
-                  <div v-if="issue.wcagCriteria.length" class="flex items-center gap-1.5 flex-wrap">
-                    <Badge v-for="w in issue.wcagCriteria" :key="w" variant="outline" class="text-[10px]">
-                      {{ w }}
-                    </Badge>
+                  <p v-if="finding.description" class="text-muted-foreground">{{ finding.description }}</p>
+                  <p v-if="finding.fixHint" class="text-xs bg-muted p-2 rounded">{{ finding.fixHint }}</p>
+                  <div v-if="finding.elements?.length" class="space-y-2">
+                    <div v-for="(el, i) in finding.elements.slice(0, 10)" :key="i" class="rounded border p-2">
+                      <code class="text-xs bg-muted px-1.5 py-0.5 rounded">{{ el.selector || el.snippet }}</code>
+                      <div v-if="el.nodeLabel" class="text-xs text-muted-foreground mt-1">{{ el.nodeLabel }}</div>
+                    </div>
+                    <p v-if="finding.elements.length > 10" class="text-xs text-muted-foreground text-center">
+                      +{{ finding.elements.length - 10 }} more elements
+                    </p>
                   </div>
-                  <div v-if="issue.pages.length" class="text-xs text-muted-foreground">
-                    {{ issue.pageCount }} page(s):
+                  <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
+                    Affected routes:
                     <ul class="mt-1 space-y-0.5 font-mono">
-                      <li v-for="p in issue.pages.slice(0, 5)" :key="p">{{ p }}</li>
-                      <li v-if="issue.pages.length > 5">...and {{ issue.pages.length - 5 }} more</li>
+                      <li v-for="r in finding.routes.slice(0, 5)" :key="r">{{ r }}</li>
+                      <li v-if="finding.routes.length > 5">+{{ finding.routes.length - 5 }} more</li>
                     </ul>
                   </div>
                 </div>
@@ -102,66 +123,7 @@ function severityVariant(severity: string) {
         </CardContent>
       </Card>
 
-      <!-- Missing Alt Images -->
-      <Card v-if="data.missingAltImages.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            Missing Alt Text
-            <Badge variant="destructive" class="text-xs">{{ data.missingAltImages.length }}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Image URL</TableHead>
-                <TableHead class="w-24">Decorative</TableHead>
-                <TableHead class="w-20 text-right">Pages</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="img in data.missingAltImages" :key="img.url">
-                <TableCell class="font-mono text-xs truncate max-w-md">{{ img.url }}</TableCell>
-                <TableCell>
-                  <Badge v-if="img.isDecorative" variant="outline" class="text-xs">Yes</Badge>
-                </TableCell>
-                <TableCell class="text-right tabular-nums">{{ img.pageCount }}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <!-- Element Details -->
-      <Card v-if="data.elements.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Element Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-2">
-            <div
-              v-for="(el, i) in data.elements.slice(0, 20)"
-              :key="i"
-              class="rounded-md border p-3 text-sm space-y-1"
-            >
-              <div class="flex items-center gap-2">
-                <Badge :variant="severityVariant(el.severity)" class="text-[10px]">{{ el.severity }}</Badge>
-                <code class="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-md">{{ el.selector }}</code>
-              </div>
-              <p v-if="el.issueDescription" class="text-xs text-muted-foreground">{{ el.issueDescription }}</p>
-              <div v-if="el.contrastRatio != null" class="text-xs text-muted-foreground">
-                Contrast: {{ el.contrastRatio.toFixed(2) }} (required: {{ el.requiredRatio?.toFixed(2) }})
-              </div>
-              <div v-if="el.snippet" class="text-xs font-mono bg-muted p-2 rounded overflow-x-auto">{{ el.snippet }}</div>
-            </div>
-            <p v-if="data.elements.length > 20" class="text-xs text-muted-foreground text-center">
-              ...and {{ data.elements.length - 20 }} more elements
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div v-if="!data.issues.length && !data.missingAltImages.length" class="text-center py-12 text-muted-foreground">
+      <div v-if="!a11yReport.findings?.length" class="text-center py-12 text-muted-foreground">
         No accessibility issues found.
       </div>
     </template>

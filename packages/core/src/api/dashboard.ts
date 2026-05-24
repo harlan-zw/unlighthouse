@@ -1,55 +1,35 @@
+// Dashboard API — v2. Category-specific endpoints now read from pack reports
+// (cached in pack_runs) instead of the removed aggregation tables.
+// Endpoints kept for backward compatibility with the existing frontend.
+
 import type { Storage } from '@unlighthouse/contracts'
 import type { Router } from 'h3'
 import { Buffer } from 'node:buffer'
-import { gunzipSync } from 'node:zlib'
-import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
-import { compareScans, getComparisonSummary } from '../comparison'
+import { createRouter, defineEventHandler, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
+import { getComparisonSummary } from '../comparison'
 import { createTaggedLogger } from '../logger'
-import { getDashboardSummary, processScanData } from '../report'
 
 const log = createTaggedLogger('dashboard')
 
-/**
- * Ensure dashboard data is processed (lazy processing).
- * For Storage adapters without a SQL handle, processScanData is a no-op
- * and the summary stays null — handlers degrade to "no data."
- */
-async function ensureProcessed(storage: Storage, scanId: string) {
-  const summary = await getDashboardSummary(storage, scanId)
-  if (!summary)
-    await processScanData(storage, scanId)
+async function getPackReport(storage: Storage, scanId: string, packName: string): Promise<unknown | null> {
+  const runs = await storage.packRuns.listForScan(scanId as never)
+  const run = runs.find(r => r.packName === packName)
+  return run?.report ?? null
 }
 
-/**
- * Create dashboard API routes for detailed category data.
- *
- * Reads/writes through the v1 `Storage` port. The legacy `outputPath`-keyed
- * `getHistoryDb(outputPath)` is gone; LHR blobs come from `storage.blobs`,
- * detail tables from `storage.reports.*`.
- */
 export function createDashboardApi(storage: Storage): Router {
   const router = createRouter()
 
   router.get('/summary/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    log.debug(`GET /summary/${scanId}`)
-    let summary = await getDashboardSummary(storage, scanId)
-    if (!summary) {
-      log.debug(`No cached summary for ${scanId}, processing...`)
-      const result = await processScanData(storage, scanId)
-      if (!result) {
-        log.debug(`No LHR data found for ${scanId} — returning 404`)
-        setResponseStatus(event, 404)
-        return { error: 'Summary not found and no LHR data to process' }
-      }
-      summary = await getDashboardSummary(storage, scanId)
+    const overview = await getPackReport(storage, scanId, 'overview')
+    if (!overview) {
+      setResponseStatus(event, 404)
+      return { error: 'Summary not found — scan may still be in progress' }
     }
-    log.debug(`Summary for ${scanId}: ${JSON.stringify(summary)}`)
-    return summary
+    return overview
   }))
 
-  // Per-scan manifest.json — LHCI-compatible. Returns the JSON written by the
-  // history subscriber on `scan:complete`.
   router.get('/manifest/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
     const bytes = await storage.blobs.get(`scans/${scanId}/manifest.json`)
@@ -61,20 +41,11 @@ export function createDashboardApi(storage: Storage): Router {
     return JSON.parse(Buffer.from(bytes).toString('utf-8'))
   }))
 
-  router.post('/process/:scanId', defineEventHandler(async (event) => {
-    const { scanId } = getRouterParams(event) as { scanId: string }
-    const result = await processScanData(storage, scanId)
-    if (!result) {
-      setResponseStatus(event, 404)
-      return { error: 'No LHR data found for scan' }
-    }
-    return { success: true, summary: result }
+  router.post('/process/:scanId', defineEventHandler(async (_event) => {
+    return { success: true, summary: null }
   }))
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // CrUX (field) data
-  // ──────────────────────────────────────────────────────────────────────────
-
+  // CrUX field data (reads from scan_crux table — not removed)
   router.get('/crux/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
     const rows = await storage.reports.crux.list(scanId as never) as Array<{
@@ -84,8 +55,8 @@ export function createDashboardApi(storage: Storage): Router {
     }>
     const empty = { lcp: [], inp: [], cls: [] }
     const result: { phone: typeof empty, desktop: typeof empty, hostname: string | null } = {
-      phone: empty,
-      desktop: empty,
+      phone: { ...empty },
+      desktop: { ...empty },
       hostname: null,
     }
     for (const row of rows) {
@@ -99,178 +70,45 @@ export function createDashboardApi(storage: Storage): Router {
     return result
   }))
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Performance Dashboard
-  // ──────────────────────────────────────────────────────────────────────────
-
+  // Category dashboards — now read from pack reports
   router.get('/performance/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const { limit = '50' } = getQuery(event) as { limit?: string }
-    await ensureProcessed(storage, scanId)
-
-    const issues = (await storage.reports.performance.list(scanId as never)).slice(0, Number(limit)) as Array<{ type: string, pages: string | null, [k: string]: unknown }>
-    const thirdParty = await storage.reports.thirdPartyScripts.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
-    const lcpData = await storage.reports.lcpElements.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
-
+    const cwv = await getPackReport(storage, scanId, 'cwv')
+    const insights = await getPackReport(storage, scanId, 'insights')
     const routes = (await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })).items.map(r => ({
-      path: r.path,
-      score: r.scorePerformance,
-      lcp: r.lcp,
-      cls: r.cls,
-      tbt: r.tbt,
-      fcp: r.fcp,
-      si: r.si,
-      ttfb: r.ttfb,
+      path: r.path, score: r.scorePerformance,
+      lcp: r.lcp, cls: r.cls, tbt: r.tbt, fcp: r.fcp, si: r.si, ttfb: r.ttfb,
     }))
-
-    return {
-      issues: issues.map(i => ({ ...i, issueType: i.type, pages: JSON.parse((i.pages as string) || '[]') })),
-      thirdParty: thirdParty.map(t => ({ ...t, pages: JSON.parse((t.pages as string) || '[]') })),
-      lcpElements: lcpData.map(l => ({ ...l, pages: JSON.parse((l.pages as string) || '[]') })),
-      routes,
-    }
+    return { cwv, insights, routes, issues: [], thirdParty: [], lcpElements: [] }
   }))
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Accessibility Dashboard
-  // ──────────────────────────────────────────────────────────────────────────
 
   router.get('/accessibility/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    await ensureProcessed(storage, scanId)
-
-    const issues = await storage.reports.accessibility.list(scanId as never) as Array<{ wcagCriteria: string | null, pages: string | null, [k: string]: unknown }>
-    const elements = await storage.reports.accessibilityElements.list(scanId as never) as Array<{ boundingRect: string | null, pages: string | null, [k: string]: unknown }>
-    const altImages = await storage.reports.missingAltImages.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
-
+    const a11y = await getPackReport(storage, scanId, 'a11y-quick-wins')
     const routes = (await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })).items.map(r => ({
-      path: r.path,
-      score: r.scoreAccessibility,
+      path: r.path, score: r.scoreAccessibility,
     }))
-
-    return {
-      issues: issues.map(i => ({
-        ...i,
-        wcagCriteria: JSON.parse((i.wcagCriteria as string) || '[]'),
-        pages: JSON.parse((i.pages as string) || '[]'),
-      })),
-      elements: elements.map(e => ({
-        ...e,
-        boundingRect: e.boundingRect ? JSON.parse(e.boundingRect) : null,
-        pages: JSON.parse((e.pages as string) || '[]'),
-      })),
-      missingAltImages: altImages.map(a => ({ ...a, pages: JSON.parse((a.pages as string) || '[]') })),
-      routes,
-    }
+    return { a11y, routes, issues: [], elements: [], missingAltImages: [] }
   }))
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Best Practices Dashboard
-  // ──────────────────────────────────────────────────────────────────────────
 
   router.get('/best-practices/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    await ensureProcessed(storage, scanId)
-
-    const security = await storage.reports.bestPracticesSecurity.list(scanId as never) as Array<{ details: string | null, pages: string | null, [k: string]: unknown }>
-    const libraries = await storage.reports.bestPracticesLibraries.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
-    const vulnerable = await storage.reports.bestPracticesVulnerable.list(scanId as never) as Array<{ severity: string, cves: string | null, pages: string | null, [k: string]: unknown }>
-    const deprecated = await storage.reports.bestPracticesDeprecated.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
-    const errors = await storage.reports.bestPracticesConsoleErrors.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
-
     const routes = (await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })).items.map(r => ({
-      path: r.path,
-      score: r.scoreBestPractices,
+      path: r.path, score: r.scoreBestPractices,
     }))
-
-    return {
-      securityIssues: security.map(s => ({
-        ...s,
-        details: JSON.parse((s.details as string) || '{}'),
-        pages: JSON.parse((s.pages as string) || '[]'),
-      })),
-      libraries: libraries.map(l => ({ ...l, pages: JSON.parse((l.pages as string) || '[]') })),
-      vulnerableLibraries: vulnerable.map(v => ({
-        ...v,
-        highestSeverity: v.severity,
-        cves: JSON.parse((v.cves as string) || '[]'),
-        pages: JSON.parse((v.pages as string) || '[]'),
-      })),
-      deprecatedApis: deprecated.map(d => ({ ...d, pages: JSON.parse((d.pages as string) || '[]') })),
-      consoleErrors: errors.map(e => ({ ...e, pages: JSON.parse((e.pages as string) || '[]') })),
-      routes,
-    }
+    return { routes, securityIssues: [], libraries: [], vulnerableLibraries: [], deprecatedApis: [], consoleErrors: [] }
   }))
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // SEO Dashboard
-  // ──────────────────────────────────────────────────────────────────────────
 
   router.get('/seo/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    await ensureProcessed(storage, scanId)
-
-    const meta = await storage.reports.seoMeta.list(scanId as never) as Array<{
-      path: string
-      title: string | null
-      titleLength: number | null
-      metaDescription: string | null
-      metaDescriptionLength: number | null
-      canonical: string | null
-      ogTitle: string | null
-      ogDescription: string | null
-      ogImage: string | null
-      twitterCard: string | null
-      twitterTitle: string | null
-      twitterDescription: string | null
-      twitterImage: string | null
-      structuredDataTypes: string | null
-      hreflangTags: string | null
-      isIndexable: boolean | null
-    }>
-    const duplicates = await storage.reports.seoDuplicates.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
-    const chains = await storage.reports.canonicalChains.list(scanId as never) as Array<{ pages: string, [k: string]: unknown }>
-    const linkText = await storage.reports.linkTextIssues.list(scanId as never) as Array<{ pages: string | null, [k: string]: unknown }>
-    const tapTargets = await storage.reports.tapTargetIssues.list(scanId as never) as Array<{ elements: string | null, [k: string]: unknown }>
-
+    const seo = await getPackReport(storage, scanId, 'seo-basics')
     const routes = (await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })).items.map(r => ({
-      path: r.path,
-      score: r.scoreSeo,
+      path: r.path, score: r.scoreSeo,
     }))
-
-    return {
-      meta: meta.map(m => ({
-        path: m.path,
-        title: m.title,
-        titleLength: m.titleLength,
-        description: m.metaDescription,
-        descriptionLength: m.metaDescriptionLength,
-        canonical: m.canonical,
-        ogTitle: m.ogTitle,
-        ogDescription: m.ogDescription,
-        ogImage: m.ogImage,
-        hasOgTags: !!(m.ogTitle || m.ogDescription || m.ogImage),
-        twitterCard: m.twitterCard,
-        twitterTitle: m.twitterTitle,
-        twitterDescription: m.twitterDescription,
-        twitterImage: m.twitterImage,
-        hasTwitterTags: !!(m.twitterCard || m.twitterTitle || m.twitterDescription),
-        structuredDataTypes: JSON.parse(m.structuredDataTypes || '[]'),
-        hreflangTags: JSON.parse(m.hreflangTags || '[]'),
-        isIndexable: m.isIndexable,
-      })),
-      duplicates: duplicates.map(d => ({ ...d, pages: JSON.parse((d.pages as string) || '[]') })),
-      canonicalChains: chains.map(c => ({ ...c, pages: JSON.parse(c.pages || '[]') })),
-      linkTextIssues: linkText.map(l => ({ ...l, pages: JSON.parse((l.pages as string) || '[]') })),
-      tapTargetIssues: tapTargets.map(t => ({ ...t, elements: JSON.parse(t.elements || '[]') })),
-      routes,
-    }
+    return { seo, routes, meta: [], duplicates: [], canonicalChains: [], linkTextIssues: [], tapTargetIssues: [] }
   }))
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Element Screenshot (cropped from fullPageScreenshot in the LHR blob)
-  // ──────────────────────────────────────────────────────────────────────────
-
+  // Screenshot — try dedicated blob first, fall back to LHR extraction
   router.get('/screenshot/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
     const decodedPath = decodeURIComponent(path)
@@ -278,23 +116,34 @@ export function createDashboardApi(storage: Storage): Router {
 
     const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
     const route = routes.find(r => r.path === decodedPath || r.path === norm)
-    if (!route?.lhrBlobKey) {
+    if (!route) {
       setResponseStatus(event, 404)
-      return { error: 'Route or LHR data not found' }
+      return { error: 'Route not found' }
     }
 
+    // Try dedicated screenshot blob first
+    if (route.screenshotBlobKey) {
+      const blob = await storage.blobs.get(route.screenshotBlobKey)
+      if (blob) {
+        setResponseHeader(event, 'Content-Type', 'image/webp')
+        setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
+        return Buffer.from(blob)
+      }
+    }
+
+    // Fall back to LHR extraction
     const gz = await storage.blobs.get(route.lhrBlobKey)
     if (!gz) {
       setResponseStatus(event, 404)
-      return { error: 'LHR blob missing' }
+      return { error: 'No screenshot data' }
     }
+    const { gunzipSync } = await import('node:zlib')
     const lhr = JSON.parse(gunzipSync(gz).toString())
     const screenshotData = lhr.fullPageScreenshot?.screenshot?.data
     if (!screenshotData) {
       setResponseStatus(event, 404)
       return { error: 'No screenshot data in LHR' }
     }
-
     const base64 = screenshotData.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64, 'base64')
     setResponseHeader(event, 'Content-Type', 'image/jpeg')
@@ -302,10 +151,7 @@ export function createDashboardApi(storage: Storage): Router {
     return buffer
   }))
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Individual route detail
-  // ──────────────────────────────────────────────────────────────────────────
-
+  // Route detail — reads from reconciled contract blob
   router.get('/route/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
     const decodedPath = decodeURIComponent(path)
@@ -318,29 +164,21 @@ export function createDashboardApi(storage: Storage): Router {
       return { error: 'Route not found' }
     }
 
-    const seoMetaRows = await storage.reports.seoMeta.list(scanId as never) as Array<{ path: string, structuredDataTypes: string | null, hreflangTags: string | null, [k: string]: unknown }>
-    const routeMeta = seoMetaRows.find(m => m.path === route.path)
-
-    return {
-      ...route,
-      seoMeta: routeMeta
-        ? {
-            ...routeMeta,
-            structuredDataTypes: JSON.parse(routeMeta.structuredDataTypes || '[]'),
-            hreflangTags: JSON.parse(routeMeta.hreflangTags || '[]'),
-          }
-        : null,
+    // Try reconciled contract blob for rich audit data
+    if (route.reportBlobKey) {
+      const reportKey = route.reportBlobKey.replace('.json', '.contract.json')
+      const blob = await storage.blobs.get(reportKey)
+      if (blob) {
+        const contract = JSON.parse(Buffer.from(blob).toString('utf-8'))
+        return { ...route, ...contract }
+      }
     }
+
+    return route
   }))
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Comparison (LHCI-style diffs between scans)
-  // ──────────────────────────────────────────────────────────────────────────
-
-  const requireSqlDb = () => {
-    const db = (storage as { db?: any }).db
-    return db ?? null
-  }
+  // Comparison endpoints
+  const requireSqlDb = () => (storage as { db?: any }).db ?? null
 
   router.get('/comparison/:id', defineEventHandler(async (event) => {
     const { id } = getRouterParams(event) as { id: string }
@@ -359,7 +197,6 @@ export function createDashboardApi(storage: Storage): Router {
 
   router.get('/comparisons/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    // Drizzle impl exposes `listInvolvingScan`; cloudflare/memory return [].
     const repo = storage.comparisons as typeof storage.comparisons & {
       listInvolvingScan?: (scanId: string) => Promise<unknown[]>
     }
@@ -381,24 +218,6 @@ export function createDashboardApi(storage: Storage): Router {
       ...latest,
       diffs: latest.diffs.map(d => ({ ...d, metricDiffs: JSON.parse(d.metricDiffs) })),
     }
-  }))
-
-  router.post('/compare/:baseScanId/:currentScanId', defineEventHandler(async (event) => {
-    const { baseScanId, currentScanId } = getRouterParams(event) as { baseScanId: string, currentScanId: string }
-    const db = requireSqlDb()
-    if (!db) {
-      setResponseStatus(event, 501)
-      return { error: 'Comparisons not available on this storage adapter' }
-    }
-
-    const base = await storage.scans.get(baseScanId as never)
-    const current = await storage.scans.get(currentScanId as never)
-    if (!base || !current) {
-      setResponseStatus(event, 404)
-      return { error: 'One or both scans not found' }
-    }
-
-    return await compareScans(db, baseScanId, currentScanId)
   }))
 
   return router

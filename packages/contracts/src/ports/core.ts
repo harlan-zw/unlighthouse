@@ -78,7 +78,7 @@ export interface UnlighthouseCoreRunOverrides {
    */
   device?: 'mobile' | 'desktop' | Array<'mobile' | 'desktop'>
   /** Lighthouse categories — mapped onto `lighthouseOptions.onlyCategories`. */
-  categories?: Array<'performance' | 'accessibility' | 'seo' | 'best-practices'>
+  categories?: Array<'performance' | 'accessibility' | 'seo' | 'best-practices' | 'agentic-browsing'>
   /** Sample count — mapped onto `scanner.samples`. */
   sampleSize?: number
   /** Auditor provider name — selects from `config.auditor` when it's a router. */

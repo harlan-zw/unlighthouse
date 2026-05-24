@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { BestPracticesData } from '@unlighthouse/contracts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,16 +13,17 @@ import {
 } from '@/components/ui/table'
 
 const route = useRoute()
-const config = useRuntimeConfig()
-const baseUrl = config.public.unlighthouseApiUrl as string
+const api = useApi()
 const scanId = route.params.id as string
 
 const { data, status } = useAsyncData(
   `bp-${scanId}`,
   async () => {
-    const res = await fetch(`${baseUrl}/dashboard/best-practices/${scanId}`)
-    if (!res.ok) return null
-    return await res.json() as BestPracticesData
+    const results = await api['scan.results']({ scanId, page: 1, pageSize: 200 }).catch(() => null)
+    if (!results) return null
+    return {
+      routes: results.items.map((r: any) => ({ path: r.path, score: r.scoreBestPractices })),
+    }
   },
 )
 

@@ -25,12 +25,26 @@ const RouteDiffSchema = z.object({
 })
 export type RouteDiff = z.infer<typeof RouteDiffSchema>
 
+const PackDiffSchema = z.object({
+  packName: z.string(),
+  base: z.unknown().nullable(),
+  current: z.unknown().nullable(),
+  hasChanges: z.boolean(),
+})
+export type PackDiff = z.infer<typeof PackDiffSchema>
+
 const CompareReportSchema = z.object({
   baseScanId: ScanIdSchema,
   currentScanId: ScanIdSchema,
+  summary: z.object({
+    totalRegressions: z.number().int().nonnegative(),
+    totalImprovements: z.number().int().nonnegative(),
+    avgScoreDelta: z.number().nullable(),
+  }),
   regressions: z.array(RouteDiffSchema),
   improvements: z.array(RouteDiffSchema),
   thresholds: z.partialRecord(ThresholdKey, z.number()),
+  packDiffs: z.array(PackDiffSchema),
 })
 export type CompareReport = z.infer<typeof CompareReportSchema>
 

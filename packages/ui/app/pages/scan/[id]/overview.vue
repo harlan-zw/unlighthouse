@@ -69,19 +69,29 @@ async function handleRescanAll() {
   }
 }
 
+const categoryMeta: Record<string, { label: string, icon: string, path: string }> = {
+  'performance': { label: 'Performance', icon: 'lucide:gauge', path: 'performance' },
+  'accessibility': { label: 'Accessibility', icon: 'lucide:accessibility', path: 'accessibility' },
+  'seo': { label: 'SEO', icon: 'lucide:search', path: 'seo' },
+  'best-practices': { label: 'Best Practices', icon: 'lucide:shield-check', path: 'best-practices' },
+  'agentic-browsing': { label: 'Agentic Browsing', icon: 'lucide:bot', path: 'packs' },
+}
+
 const categoryCards = computed(() => {
   if (!scanSummary.value?.categoryAverages) return []
-  const categories = [
-    { key: 'performance', label: 'Performance', icon: 'lucide:gauge', path: 'performance' },
-    { key: 'accessibility', label: 'Accessibility', icon: 'lucide:accessibility', path: 'accessibility' },
-    { key: 'seo', label: 'SEO', icon: 'lucide:search', path: 'seo' },
-    { key: 'best-practices', label: 'Best Practices', icon: 'lucide:shield-check', path: 'best-practices' },
-  ]
-  return categories.map(cat => ({
-    ...cat,
-    score: (scanSummary.value!.categoryAverages as Record<string, number | null>)[cat.key] ?? null,
-    to: `/scan/${scanId.value}/${cat.path}`,
-  }))
+  const avgs = scanSummary.value.categoryAverages as Record<string, number | null>
+  return Object.entries(avgs)
+    .filter(([, score]) => score != null)
+    .map(([key, score]) => {
+      const meta = categoryMeta[key] || { label: key, icon: 'lucide:folder', path: 'packs' }
+      return {
+        key,
+        label: meta.label,
+        icon: meta.icon,
+        score,
+        to: `/scan/${scanId.value}/${meta.path}`,
+      }
+    })
 })
 
 const navCards = [
@@ -121,7 +131,7 @@ const navCards = [
     <ScanProgress v-if="currentScanIsActive" />
 
     <!-- Category score cards (clickable -> detail pages) -->
-    <div v-if="categoryCards.length" class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    <div v-if="categoryCards.length" class="grid gap-4 grid-cols-2" :class="categoryCards.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
       <NuxtLink
         v-for="card in categoryCards"
         :key="card.key"

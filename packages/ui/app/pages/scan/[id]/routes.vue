@@ -37,7 +37,20 @@ const sortOptions = [
   { value: 'score-desc', label: 'Score (high to low)' },
   { value: 'lcp-desc', label: 'LCP (slowest)' },
   { value: 'lcp-asc', label: 'LCP (fastest)' },
+  { value: 'cls-desc', label: 'CLS (worst)' },
+  { value: 'cls-asc', label: 'CLS (best)' },
+  { value: 'fcp-desc', label: 'FCP (slowest)' },
+  { value: 'fcp-asc', label: 'FCP (fastest)' },
+  { value: 'tbt-desc', label: 'TBT (slowest)' },
+  { value: 'tbt-asc', label: 'TBT (fastest)' },
+  { value: 'ttfb-desc', label: 'TTFB (slowest)' },
+  { value: 'ttfb-asc', label: 'TTFB (fastest)' },
+  { value: 'si-desc', label: 'SI (slowest)' },
+  { value: 'si-asc', label: 'SI (fastest)' },
+  { value: 'inp-desc', label: 'INP (slowest)' },
+  { value: 'inp-asc', label: 'INP (fastest)' },
   { value: 'url-asc', label: 'URL (A-Z)' },
+  { value: 'capturedAt-desc', label: 'Most Recent' },
 ]
 
 const { data: scanResults, refresh } = useAsyncData(

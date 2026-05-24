@@ -164,12 +164,14 @@ function aggregateScores(routes: Array<{
   scoreAccessibility: number | null
   scoreSeo: number | null
   scoreBestPractices: number | null
+  scoreAgenticBrowsing: number | null
 }>): Pick<ScanSummary, 'scoreAverage' | 'scoresByCategory'> {
   const cols = {
     'performance': 'scorePerformance',
     'accessibility': 'scoreAccessibility',
     'seo': 'scoreSeo',
     'best-practices': 'scoreBestPractices',
+    'agentic-browsing': 'scoreAgenticBrowsing',
   } as const
   const byCategory: ScanSummary['scoresByCategory'] = {}
   const overall: number[] = []
@@ -394,9 +396,12 @@ function createSession(deps: SessionDeps): CrawlSession {
     const devices = resolveDeviceMatrix(validScannerDevice, overrides?.device)
     const primaryDevice = devices[0]
 
+    const scanMode = deps.config.scanner?.mode === 'page' ? 'page' as const : 'site' as const
+
     await storage.scans.create({
       scanId,
       site: site as never,
+      mode: scanMode,
       device: primaryDevice,
       status: 'starting',
       startedAt,
@@ -436,6 +441,7 @@ function createSession(deps: SessionDeps): CrawlSession {
           scoreAccessibility: null,
           scoreSeo: null,
           scoreBestPractices: null,
+          scoreAgenticBrowsing: null,
           lcp: null,
           cls: null,
           inp: null,
@@ -508,10 +514,25 @@ function createSession(deps: SessionDeps): CrawlSession {
             await storage.blobs.put(contractKey, bytes).catch(() => {})
           }
           catch { /* best-effort; packs fall back to getLhr */ }
+
+          // Extract and store fullPageScreenshot as a separate blob.
+          try {
+            const { gunzipSync } = await import('node:zlib')
+            const lhrObj = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
+            const fpScreenshot = (lhrObj as { fullPageScreenshot?: { screenshot?: { data?: string } } })
+              .fullPageScreenshot?.screenshot?.data
+            if (fpScreenshot && typeof fpScreenshot === 'string') {
+              const base64Data = fpScreenshot.replace(/^data:image\/\w+;base64,/, '')
+              const screenshotKey = `scans/${scanId}/screenshots/${hash}-${device}.webp`
+              const buf = Buffer.from(base64Data, 'base64')
+              await storage.blobs.put(screenshotKey, new Uint8Array(buf)).catch(() => {})
+            }
+          }
+          catch { /* best-effort; screenshot is optional */ }
         }
 
         stats.scanned++
-        log.debug(`Audited ${url} [${device}] in ${Date.now() - auditStart}ms — perf: ${metrics?.scorePerformance ?? '?'}`)
+        log.debug(`Audited ${url} [${device}] in ${Date.now() - auditStart}ms — perf: ${(metrics as { scorePerformance?: number | null })?.scorePerformance ?? '?'}`)
         await emit('scan:route-complete', { scanId, url: url as never, metrics })
         await emit('audit:after', {
           scanId,
@@ -625,6 +646,51 @@ function createSession(deps: SessionDeps): CrawlSession {
       failed: stats.failed,
       ...aggregateScores(scoredRoutes),
       durationMs: Date.now() - startedAtMs,
+    }
+
+    // Run all built-in packs automatically so reports are ready immediately.
+    if (scoredRoutes.length > 0) {
+      try {
+        const { builtInPacks } = await import('./packs/index')
+        for (const [name, pack] of Object.entries(builtInPacks)) {
+          try {
+            const packStart = nowIso()
+            const report = await pack.reconciler({
+              scanId,
+              routes: scoredRoutes,
+              getReconciled: async (url: string, dev) => {
+                const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
+                const key = `scans/${scanId}/reports/${hash}-${dev}.contract.json`
+                const blob = await storage.blobs.get(key)
+                return blob ? JSON.parse(new TextDecoder().decode(blob)) : null
+              },
+              getLhr: async (url: string, dev) => {
+                const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
+                const key = `scans/${scanId}/lhr/${hash}-${dev}.json.gz`
+                const blob = await storage.blobs.get(key)
+                if (!blob) return null
+                const { gunzipSync } = await import('node:zlib')
+                return JSON.parse(gunzipSync(blob).toString())
+              },
+              logger: logger as any,
+            })
+            await storage.packRuns.put({
+              scanId,
+              packName: name,
+              packVersion: pack.version,
+              startedAt: packStart,
+              completedAt: nowIso(),
+              report,
+              reportBlobKey: null,
+            })
+            log.debug(`Pack "${name}" completed for scan ${scanId}`)
+          }
+          catch (packErr) {
+            log.warn(`Pack "${name}" failed for scan ${scanId}: ${packErr}`)
+          }
+        }
+      }
+      catch { /* pack system failure should not block scan completion */ }
     }
 
     setStatus('complete')

@@ -52,6 +52,18 @@ export type RouteSort
     | 'score-desc'
     | 'lcp-asc'
     | 'lcp-desc'
+    | 'cls-asc'
+    | 'cls-desc'
+    | 'fcp-asc'
+    | 'fcp-desc'
+    | 'tbt-asc'
+    | 'tbt-desc'
+    | 'ttfb-asc'
+    | 'ttfb-desc'
+    | 'si-asc'
+    | 'si-desc'
+    | 'inp-asc'
+    | 'inp-desc'
     | 'url-asc'
     | 'capturedAt-desc'
 
@@ -65,7 +77,7 @@ export interface RouteFilter {
    * Lighthouse category id → minimum score (0..1). A row matches when every
    * listed category column is ≥ the threshold (null columns excluded).
    */
-  minScore?: Partial<Record<'performance' | 'accessibility' | 'seo' | 'best-practices', number>>
+  minScore?: Partial<Record<'performance' | 'accessibility' | 'seo' | 'best-practices' | 'agentic-browsing', number>>
   /**
    * Metric column id → maximum value. A row matches when every listed metric
    * is ≤ the threshold (null columns ignored — "no data" is not "too high").
@@ -160,25 +172,10 @@ export interface ReportListRepository<Row> {
   list: (scanId: ScanId) => Promise<Row[]>
 }
 
+// v2: dashboard aggregation tables removed. Only CrUX (external field data)
+// remains. All cross-route analysis flows through the pack system.
 export interface ReportRepositories {
-  accessibility: ReportListRepository<unknown>
-  accessibilityElements: ReportListRepository<unknown>
-  missingAltImages: ReportListRepository<unknown>
-  performance: ReportListRepository<unknown>
-  thirdPartyScripts: ReportListRepository<unknown>
-  lcpElements: ReportListRepository<unknown>
-  seoMeta: ReportListRepository<unknown>
-  seoDuplicates: ReportListRepository<unknown>
-  canonicalChains: ReportListRepository<unknown>
-  linkTextIssues: ReportListRepository<unknown>
-  tapTargetIssues: ReportListRepository<unknown>
-  bestPracticesSecurity: ReportListRepository<unknown>
-  bestPracticesLibraries: ReportListRepository<unknown>
-  bestPracticesVulnerable: ReportListRepository<unknown>
-  bestPracticesDeprecated: ReportListRepository<unknown>
-  bestPracticesConsoleErrors: ReportListRepository<unknown>
   crux: ReportListRepository<unknown>
-  dashboardSummary: { get: (scanId: ScanId) => Promise<unknown | null> }
 }
 
 export interface ComparisonListQuery {

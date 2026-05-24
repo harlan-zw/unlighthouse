@@ -24,6 +24,8 @@ export interface LighthouseResult {
     'accessibility'?: { score: number | null }
     'best-practices'?: { score: number | null }
     'seo'?: { score: number | null }
+    'agentic-browsing'?: { score: number | null }
+    [key: string]: { score: number | null } | undefined
   }
   audits: Record<string, LighthouseAudit>
 }
@@ -42,6 +44,7 @@ export interface ExtractedRoute {
     accessibility: number | null
     bestPractices: number | null
     seo: number | null
+    agenticBrowsing: number | null
   }
   audits: Record<string, LighthouseAudit>
   lhrGzip: Buffer

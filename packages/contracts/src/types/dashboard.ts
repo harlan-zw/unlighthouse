@@ -1,14 +1,8 @@
-// Wire shapes returned by /api/dashboard/* endpoints. Shared so client and
-// server agree on the contract; drift becomes a typecheck failure.
+// Wire shapes for dashboard endpoints. Shared between server and frontend
+// so both sides agree on the contract. v2: dashboard endpoints read from
+// pack reports, so these types reflect the pack-based output.
 
-export interface DashboardSummary {
-  performance: { avgScore: number, issues: number }
-  accessibility: { avgScore: number, issues: number }
-  bestPractices: { avgScore: number, issues: number }
-  seo: { avgScore: number, issues: number }
-  totalRoutes: number
-}
-
+// CrUX data (field data from Chrome User Experience Report)
 export interface CruxHistoryEntry {
   value: number
   time: number
@@ -29,31 +23,72 @@ export interface CruxData {
   desktop: CruxSeries
 }
 
-export interface PerformanceData {
-  issues: Array<{
-    id: string
+// Route detail (returned by route.get command and /dashboard/route endpoint)
+export interface RouteDetail {
+  route: {
     url: string
-    type: string
-    issueType: string
-    issueSubtype: string | null
-    wastedBytes: number
-    wastedMs: number
-    pages: string[]
+    path: string
+    device: string
+    scorePerformance: number | null
+    scoreAccessibility: number | null
+    scoreSeo: number | null
+    scoreBestPractices: number | null
+    scoreAgenticBrowsing: number | null
+    lcp: number | null
+    cls: number | null
+    inp: number | null
+    fcp: number | null
+    ttfb: number | null
+    tbt: number | null
+    si: number | null
+    lighthouseVersion: string
+    screenshotBlobKey: string | null
+  }
+  categories: Array<{
+    id: string
+    title: string
+    score: number | null
+    auditCount: number
+    passingCount: number
+    failingCount: number
   }>
-  thirdParty: Array<{
-    entity: string
-    totalTbt: number
-    avgTbt: number
-    pageCount: number
-    pages: string[]
+  audits: Record<string, {
+    id: string
+    score: number | null
+    severity: 'pass' | 'warn' | 'fail'
+    title: string | null
+    description: string | null
+    displayValue: string | null
+    metricSavings: Record<string, number> | null
+    items: Array<Record<string, unknown>> | null
   }>
-  lcpElements: Array<{
-    selector: string
-    elementType: string
-    avgLcp: number
-    pageCount: number
-    pages: string[]
-  }>
+  provenance: {
+    lighthouseVersion: string
+    userAgent: string | null
+    capturedAt: string
+    benchmarkIndex: number | null
+    timingTotal: number | null
+    warnings: string[]
+    runtimeError: { code: string, message: string } | null
+  }
+  stackPacks: Array<{
+    id: string
+    title: string
+    iconDataURL: string | null
+    descriptions: Record<string, string>
+  }> | null
+  entities: Array<{
+    name: string
+    isFirstParty: boolean
+    origins: string[]
+  }> | null
+  screenshotUrl: string | null
+}
+
+// Dashboard performance response (pack-based)
+export interface PerformanceData {
+  cwv: unknown
+  insights: unknown
   routes: Array<{
     path: string
     score: number | null
@@ -66,124 +101,19 @@ export interface PerformanceData {
   }>
 }
 
+// Dashboard accessibility response (pack-based)
 export interface AccessibilityData {
-  issues: Array<{
-    auditId: string
-    title: string
-    description: string
-    severity: string
-    instanceCount: number
-    pageCount: number
-    wcagCriteria: string[]
-    pages: string[]
-  }>
-  elements: Array<{
-    selector: string
-    snippet?: string
-    auditId: string
-    severity: string
-    issueDescription?: string
-    foregroundColor?: string
-    backgroundColor?: string
-    contrastRatio?: number
-    requiredRatio?: number
-    boundingRect?: { left: number, top: number, width: number, height: number } | null
-    screenshotPage?: string | null
-    pageCount: number
-    pages: string[]
-  }>
-  missingAltImages: Array<{
-    url: string
-    thumbnail: string | null
-    isDecorative: boolean
-    pageCount: number
-    pages: string[]
-  }>
+  a11y: unknown
   routes: Array<{ path: string, score: number | null }>
 }
 
+// Dashboard best-practices response
 export interface BestPracticesData {
-  securityIssues: Array<{
-    type: string
-    severity: string
-    description: string
-    pageCount: number
-    details: Record<string, any>
-    pages: string[]
-  }>
-  libraries: Array<{
-    name: string
-    version: string
-    status: string
-    pageCount: number
-    pages: string[]
-  }>
-  vulnerableLibraries: Array<{
-    name: string
-    version: string
-    highestSeverity: string
-    cves: string[]
-    pageCount: number
-    pages: string[]
-  }>
-  deprecatedApis: Array<{
-    api: string
-    source: string
-    pageCount: number
-    pages: string[]
-  }>
-  consoleErrors: Array<{
-    message: string
-    source: string
-    instanceCount: number
-    pageCount: number
-    pages: string[]
-  }>
   routes: Array<{ path: string, score: number | null }>
 }
 
+// Dashboard SEO response (pack-based)
 export interface SeoData {
-  meta: Array<{
-    path: string
-    title: string | null
-    titleLength: number | null
-    description: string | null
-    descriptionLength: number | null
-    canonical: string | null
-    ogTitle: string | null
-    ogDescription: string | null
-    ogImage: string | null
-    hasOgTags: boolean
-    twitterCard: string | null
-    twitterTitle: string | null
-    twitterDescription: string | null
-    twitterImage: string | null
-    hasTwitterTags: boolean
-    structuredDataTypes: string[]
-    hreflangTags: string[]
-    isIndexable: boolean
-  }>
-  duplicates: Array<{
-    type: string
-    value: string
-    pageCount: number
-    pages: string[]
-  }>
-  canonicalChains: Array<{
-    chain: string
-    isLoop: boolean
-    pages: string[]
-  }>
-  linkTextIssues: Array<{
-    text: string
-    instanceCount: number
-    pageCount: number
-    pages: string[]
-  }>
-  tapTargetIssues: Array<{
-    path: string
-    elementCount: number
-    elements: Array<{ selector: string, size: string }>
-  }>
+  seo: unknown
   routes: Array<{ path: string, score: number | null }>
 }

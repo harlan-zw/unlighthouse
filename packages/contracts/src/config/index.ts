@@ -80,6 +80,7 @@ const DiscoveryOptions = z.union([
 ])
 
 const ScannerConfig = z.object({
+  mode: z.enum(['site', 'page']).optional(),
   customSampling: z.record(z.string(), z.unknown()).optional(),
   ignoreI18nPages: z.boolean().optional(),
   maxRoutes: z.union([z.number().int().positive(), z.literal(false)]).optional(),

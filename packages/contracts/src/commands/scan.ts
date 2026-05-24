@@ -25,6 +25,7 @@ export const ScanStart = defineCommand({
   description: 'Start a new scan against a site. `device` accepts a single device ("mobile" or "desktop") or an array — pass `["mobile", "desktop"]` to run a multi-device matrix scan that audits every URL on both form-factors in one pass. Results are keyed on `(scanId, url, device)`; filter back with `device` on scan.results / pack.run / query.routes. Omit to use the host default (mobile).',
   input: z.object({
     site: UrlSchema,
+    mode: z.enum(['site', 'page']).default('site').optional(),
     device: z.union([DeviceSchema, z.array(DeviceSchema).min(1)]).optional(),
     sampleSize: z.number().int().min(1).max(10).optional(),
     categories: z.array(CategorySchema).optional(),
@@ -40,6 +41,7 @@ export const ScanStart = defineCommand({
   output: z.object({
     scanId: ScanIdSchema,
     site: UrlSchema,
+    mode: z.enum(['site', 'page']),
     startedAt: z.iso.datetime(),
   }),
   exitCodes: { ACTIVE_SCAN_CONFLICT: 9, QUOTA_EXCEEDED: 78 },
@@ -224,11 +226,43 @@ export const ScanResults = defineCommand({
       })
       .optional(),
     sort: z
-      .enum(['score-asc', 'score-desc', 'lcp-asc', 'lcp-desc', 'url-asc'])
+      .enum([
+        'score-asc', 'score-desc',
+        'lcp-asc', 'lcp-desc',
+        'cls-asc', 'cls-desc',
+        'fcp-asc', 'fcp-desc',
+        'tbt-asc', 'tbt-desc',
+        'ttfb-asc', 'ttfb-desc',
+        'si-asc', 'si-desc',
+        'inp-asc', 'inp-desc',
+        'url-asc',
+        'capturedAt-desc',
+      ])
       .optional(),
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(500).default(50),
   }),
   output: PaginatedSchema(ScanRouteSchema),
+  exitCodes: { SCAN_NOT_FOUND: 64 },
+})
+
+// ── scan.categories ────────────────────────────────────────────────────────
+export const ScanCategories = defineCommand({
+  name: 'scan.categories',
+  description: 'Get all Lighthouse categories for a scan with average scores and audit pass/fail counts. Includes agentic-browsing and any future categories dynamically.',
+  input: z.object({
+    scanId: ScanIdSchema,
+    device: DeviceSchema.optional(),
+  }),
+  output: z.object({
+    categories: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      avgScore: z.number().nullable(),
+      auditCount: z.number().int().nonnegative(),
+      passingCount: z.number().int().nonnegative(),
+      failingCount: z.number().int().nonnegative(),
+    })),
+  }),
   exitCodes: { SCAN_NOT_FOUND: 64 },
 })

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { SeoData } from '@unlighthouse/contracts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,19 +12,16 @@ import {
 } from '@/components/ui/table'
 
 const route = useRoute()
-const config = useRuntimeConfig()
-const baseUrl = config.public.unlighthouseApiUrl as string
+const api = useApi()
 const scanId = route.params.id as string
 const { scoreToColor, scoreToLabel } = useScoreColor()
 
-const { data, status } = useAsyncData(
+const { data: seoPack, status } = useAsyncData(
   `seo-${scanId}`,
-  async () => {
-    const res = await fetch(`${baseUrl}/dashboard/seo/${scanId}`)
-    if (!res.ok) return null
-    return await res.json() as SeoData
-  },
+  () => api['pack.run']({ scanId, pack: 'seo-basics' }).catch(() => null),
 )
+
+const data = computed(() => (seoPack.value as any)?.report ?? null)
 
 function titleStatus(len: number | null) {
   if (len == null) return { label: 'Missing', variant: 'destructive' as const }

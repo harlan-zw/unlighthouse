@@ -14,6 +14,7 @@ const CATEGORY_COL: Record<Category, keyof ScanRoute> = {
   'accessibility': 'scoreAccessibility',
   'seo': 'scoreSeo',
   'best-practices': 'scoreBestPractices',
+  'agentic-browsing': 'scoreAgenticBrowsing',
 }
 
 function isCategory(value: string): value is Category {

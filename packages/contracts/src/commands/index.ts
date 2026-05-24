@@ -9,9 +9,10 @@ import { HistoryList, HistoryRescan } from './history'
 import { AuditorsList, Health, Manifest } from './meta'
 import { PackList, PackRunCmd } from './pack'
 import { QueryRoutes } from './query'
-import { RouteRescan } from './route'
+import { RouteAudits, RouteGet, RouteRescan } from './route'
 import {
   ScanCancel,
+  ScanCategories,
   ScanCurrent,
   ScanDelete,
   ScanMetaCmd,
@@ -42,8 +43,11 @@ export {
   PackList,
   PackRunCmd,
   QueryRoutes,
+  RouteAudits,
+  RouteGet,
   RouteRescan,
   ScanCancel,
+  ScanCategories,
   ScanCurrent,
   ScanDelete,
   ScanMetaCmd,
@@ -87,7 +91,11 @@ export const commands = {
   'scan.current': ScanCurrent,
   'scan.rescanAll': ScanRescanAll,
 
+  'route.get': RouteGet,
+  'route.audits': RouteAudits,
   'route.rescan': RouteRescan,
+
+  'scan.categories': ScanCategories,
 
   'history.list': HistoryList,
   'history.rescan': HistoryRescan,

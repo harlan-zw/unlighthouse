@@ -14,11 +14,10 @@
 //   under the 1KB budget for the agent summary tier.
 
 import type { Category, Pack, PackReconcileCtx, ScanRoute, Url } from '@unlighthouse/contracts'
+import { CategorySchema } from '@unlighthouse/contracts'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────
-
-const CategorySchema = z.enum(['performance', 'accessibility', 'seo', 'best-practices'])
 
 const OverviewReportSchema = z.object({
   scanId: z.string(),
@@ -68,6 +67,7 @@ function worstCategory(row: ScanRoute): Category | null {
     ['accessibility', row.scoreAccessibility],
     ['seo', row.scoreSeo],
     ['best-practices', row.scoreBestPractices],
+    ['agentic-browsing', row.scoreAgenticBrowsing],
   ]
   let pick: { cat: Category, score: number } | null = null
   for (const [cat, score] of candidates) {
@@ -104,6 +104,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
     'accessibility': avg(routes.map(r => r.scoreAccessibility)),
     'seo': avg(routes.map(r => r.scoreSeo)),
     'best-practices': avg(routes.map(r => r.scoreBestPractices)),
+    'agentic-browsing': avg(routes.map(r => r.scoreAgenticBrowsing)),
   }
 
   // Lighthouse threshold buckets (≥ 0.9 passing, ≥ 0.5 needs-work, < 0.5 poor).

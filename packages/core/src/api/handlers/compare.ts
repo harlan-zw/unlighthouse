@@ -158,12 +158,13 @@ async function emitCompareComplete(ctx: HandlerCtx, baseScanId: string, currentS
 // reviewer with per-metric rows.
 
 const TOP_N = 5
-const CATEGORY_ORDER: Category[] = ['performance', 'accessibility', 'best-practices', 'seo']
+const CATEGORY_ORDER: Category[] = ['performance', 'accessibility', 'best-practices', 'seo', 'agentic-browsing']
 const CATEGORY_LABEL: Record<Category, string> = {
   'performance': 'Performance',
   'accessibility': 'Accessibility',
   'best-practices': 'Best Practices',
   'seo': 'SEO',
+  'agentic-browsing': 'Agentic Browsing',
 }
 
 function scoreCell(value: number | null | undefined): string {
