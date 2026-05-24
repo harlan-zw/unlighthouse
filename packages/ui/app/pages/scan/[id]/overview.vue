@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -9,9 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
 const route = useRoute()
+const router = useRouter()
 const api = useApi()
 const store = useScanStore()
 const scanId = computed(() => route.params.id as string)
@@ -50,6 +53,22 @@ const ws = $ws as { on: (e: string, fn: (d: any) => void) => void, off: (e: stri
 onMounted(() => ws.on('scan:complete', refreshSummary))
 onUnmounted(() => ws.off('scan:complete', refreshSummary))
 
+const rescanningAll = ref(false)
+async function handleRescanAll() {
+  rescanningAll.value = true
+  try {
+    const result = await api['scan.rescanAll']({ scanId: scanId.value })
+    toast.success('Rescan started')
+    router.push(`/scan/${result.scanId}/overview`)
+  }
+  catch (err: any) {
+    toast.error('Rescan failed', { description: err.message })
+  }
+  finally {
+    rescanningAll.value = false
+  }
+}
+
 const categoryCards = computed(() => {
   if (!scanSummary.value?.categoryAverages) return []
   const categories = [
@@ -68,6 +87,7 @@ const categoryCards = computed(() => {
 const navCards = [
   { label: 'All Routes', description: 'Browse all scanned pages with scores and metrics', icon: 'lucide:route', path: 'routes' },
   { label: 'Compare', description: 'Compare this scan against a previous run', icon: 'lucide:git-compare-arrows', path: 'compare' },
+  { label: 'CrUX Field Data', description: 'Real-world Chrome user experience metrics over time', icon: 'lucide:globe', path: 'crux' },
 ]
 </script>
 
