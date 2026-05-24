@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
@@ -12,7 +13,7 @@ const routePath = decodeURIComponent(route.params.path as string)
 const config = useRuntimeConfig()
 const baseUrl = config.public.unlighthouseApiUrl as string
 const api = useApi()
-const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
+const { scoreToLabel, scoreToRingColor } = useScoreColor()
 
 const rescanning = ref(false)
 
@@ -50,27 +51,34 @@ function formatMetric(value: number | null, unit: string = 'ms') {
   return value.toFixed(3)
 }
 
+const categoryIcons: Record<string, string> = {
+  'performance': 'lucide:gauge',
+  'accessibility': 'lucide:accessibility',
+  'seo': 'lucide:search',
+  'best-practices': 'lucide:shield-check',
+  'agentic-browsing': 'lucide:bot',
+}
+
+const categoryLabels: Record<string, string> = {
+  'performance': 'Performance',
+  'accessibility': 'Accessibility',
+  'seo': 'SEO',
+  'best-practices': 'Best Practices',
+  'agentic-browsing': 'Agentic Browsing',
+}
+
 const scores = computed(() => {
   if (!routeData.value) return []
   const d = routeData.value
   const cats = [
-    { id: 'performance', label: 'Performance', score: d.scorePerformance ?? d.metrics?.scorePerformance, icon: 'lucide:gauge' },
-    { id: 'accessibility', label: 'Accessibility', score: d.scoreAccessibility ?? d.metrics?.scoreAccessibility, icon: 'lucide:accessibility' },
-    { id: 'seo', label: 'SEO', score: d.scoreSeo ?? d.metrics?.scoreSeo, icon: 'lucide:search' },
-    { id: 'best-practices', label: 'Best Practices', score: d.scoreBestPractices ?? d.metrics?.scoreBestPractices, icon: 'lucide:shield-check' },
+    { id: 'performance', label: 'Performance', score: d.scorePerformance ?? d.metrics?.scorePerformance },
+    { id: 'accessibility', label: 'Accessibility', score: d.scoreAccessibility ?? d.metrics?.scoreAccessibility },
+    { id: 'seo', label: 'SEO', score: d.scoreSeo ?? d.metrics?.scoreSeo },
+    { id: 'best-practices', label: 'Best Practices', score: d.scoreBestPractices ?? d.metrics?.scoreBestPractices },
   ]
   const ab = d.scoreAgenticBrowsing ?? d.metrics?.scoreAgenticBrowsing
-  if (ab != null) {
-    cats.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: ab, icon: 'lucide:bot' })
-  }
-  // If reconciled categories exist, use them
-  if (d.categories?.length) {
-    return d.categories.map((c: any) => ({
-      ...c,
-      label: c.title || c.id,
-      icon: ({ performance: 'lucide:gauge', accessibility: 'lucide:accessibility', seo: 'lucide:search', 'best-practices': 'lucide:shield-check', 'agentic-browsing': 'lucide:bot' } as Record<string, string>)[c.id] || 'lucide:folder',
-    }))
-  }
+  if (ab != null)
+    cats.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: ab })
   return cats.filter(c => c.score != null)
 })
 
@@ -88,16 +96,52 @@ const metrics = computed(() => {
   ]
 })
 
-const failingAudits = computed(() => {
-  if (!routeData.value?.audits) return []
-  return Object.entries(routeData.value.audits)
-    .filter(([_, a]: [string, any]) => a.severity === 'fail' || a.severity === 'warn')
-    .sort(([, a]: [string, any], [, b]: [string, any]) => {
-      if (a.severity === 'fail' && b.severity !== 'fail') return -1
-      if (a.severity !== 'fail' && b.severity === 'fail') return 1
-      return (a.score ?? 0) - (b.score ?? 0)
-    })
-    .map(([id, a]: [string, any]) => ({ id, ...a }))
+interface AuditEntry {
+  id: string
+  title: string | null
+  description: string | null
+  severity: 'pass' | 'warn' | 'fail'
+  score: number | null
+  displayValue: string | null
+  metricSavings: Record<string, number> | null
+  items: any[] | null
+  scoreDisplayMode: string
+}
+
+const categoryAudits = computed(() => {
+  if (!routeData.value?.categories || !routeData.value?.audits) return []
+  const cats = routeData.value.categories as Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
+  const audits = routeData.value.audits as Record<string, AuditEntry>
+
+  return Object.entries(cats).map(([catId, cat]) => {
+    const catAudits = cat.auditRefs
+      .map(r => audits[r.id])
+      .filter((a): a is AuditEntry => !!a)
+
+    const failing = catAudits
+      .filter(a => a.severity === 'fail' || a.severity === 'warn')
+      .sort((a, b) => {
+        if (a.severity === 'fail' && b.severity !== 'fail') return -1
+        if (a.severity !== 'fail' && b.severity === 'fail') return 1
+        return (a.score ?? 0) - (b.score ?? 0)
+      })
+
+    const passing = catAudits
+      .filter(a => a.severity === 'pass' && a.scoreDisplayMode !== 'notApplicable' && a.scoreDisplayMode !== 'manual')
+
+    const notApplicable = catAudits
+      .filter(a => a.scoreDisplayMode === 'notApplicable' || a.scoreDisplayMode === 'manual')
+
+    return {
+      id: catId,
+      label: categoryLabels[catId] || catId,
+      icon: categoryIcons[catId] || 'lucide:folder',
+      score: cat.score,
+      failing,
+      passing,
+      notApplicable,
+    }
+  })
 })
 
 function metricColor(label: string, value: number | null | undefined): string {
@@ -116,6 +160,24 @@ function severityColor(severity: string): string {
   if (severity === 'fail') return 'destructive'
   if (severity === 'warn') return 'secondary'
   return 'outline'
+}
+
+function renderMarkdownLinks(text: string): string {
+  return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="underline text-primary hover:text-primary/80">$1</a>')
+}
+
+function hasVisibleContent(item: any): boolean {
+  return !!(item.url || item.node?.snippet || item.reason || item.wastedBytes || item.wastedMs || item.snippet)
+}
+
+function hasNonZeroSavings(savings: Record<string, any>): boolean {
+  return Object.values(savings).some(v => typeof v === 'number' ? v > 0 : !!v)
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)}KB`
+  return `${bytes}B`
 }
 </script>
 
@@ -157,6 +219,26 @@ function severityColor(severity: string): string {
         </Button>
       </div>
 
+      <!-- Runtime Error -->
+      <div v-if="routeData.provenance?.runtimeError" class="border border-red-500/30 bg-red-500/5 rounded-lg p-4">
+        <div class="flex items-center gap-2 text-sm font-medium text-red-500">
+          <Icon name="lucide:alert-triangle" class="size-4" />
+          Runtime Error: {{ routeData.provenance.runtimeError.code }}
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">{{ routeData.provenance.runtimeError.message }}</p>
+      </div>
+
+      <!-- Warnings -->
+      <div v-if="routeData.provenance?.warnings?.length" class="border border-orange-500/30 bg-orange-500/5 rounded-lg p-4">
+        <div class="flex items-center gap-2 text-sm font-medium text-orange-500 mb-2">
+          <Icon name="lucide:alert-circle" class="size-4" />
+          Warnings ({{ routeData.provenance.warnings.length }})
+        </div>
+        <ul class="text-xs text-muted-foreground space-y-1">
+          <li v-for="(w, i) in routeData.provenance.warnings" :key="i">{{ w }}</li>
+        </ul>
+      </div>
+
       <!-- Category Scores -->
       <div class="grid grid-cols-2" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'" style="gap: 1rem;">
         <Card v-for="s in scores" :key="s.id">
@@ -190,53 +272,138 @@ function severityColor(severity: string): string {
         </CardContent>
       </Card>
 
-      <!-- Failing Audits (only when reconciled data exists) -->
-      <Card v-if="failingAudits.length > 0">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
-            Failing Audits
-            <Badge variant="secondary" class="ml-2">{{ failingAudits.length }}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Accordion type="multiple" class="w-full">
-            <AccordionItem v-for="audit in failingAudits" :key="audit.id" :value="audit.id">
-              <AccordionTrigger class="text-sm">
-                <div class="flex items-center gap-2 text-left">
-                  <Badge :variant="severityColor(audit.severity)" class="text-[10px] w-10 justify-center">
-                    {{ audit.severity }}
-                  </Badge>
-                  <span>{{ audit.title || audit.id }}</span>
-                  <span v-if="audit.displayValue" class="text-muted-foreground text-xs ml-auto mr-4">
-                    {{ audit.displayValue }}
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div class="space-y-3 pt-2">
-                  <p v-if="audit.description" class="text-xs text-muted-foreground">{{ audit.description }}</p>
-                  <div v-if="audit.metricSavings" class="flex gap-2 flex-wrap">
-                    <Badge v-for="(val, key) in audit.metricSavings" :key="key" variant="outline" class="text-[10px]">
-                      {{ key }}: {{ typeof val === 'number' ? `${Math.round(val)}ms` : val }}
+      <!-- Category Sections -->
+      <template v-for="cat in categoryAudits" :key="cat.id">
+        <Card>
+          <CardHeader class="pb-3">
+            <div class="flex items-center justify-between">
+              <CardTitle class="flex items-center gap-2 text-base">
+                <Icon :name="cat.icon" class="size-4" />
+                {{ cat.label }}
+              </CardTitle>
+              <div class="flex items-center gap-2">
+                <Badge v-if="cat.failing.length" variant="destructive" class="text-xs">
+                  {{ cat.failing.length }} failing
+                </Badge>
+                <Badge v-if="cat.passing.length" variant="outline" class="text-xs text-green-600">
+                  {{ cat.passing.length }} passed
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <!-- Failing audits -->
+            <Accordion v-if="cat.failing.length" type="multiple" class="w-full">
+              <AccordionItem v-for="audit in cat.failing" :key="audit.id" :value="audit.id">
+                <AccordionTrigger class="text-sm">
+                  <div class="flex items-center gap-2 text-left">
+                    <Badge :variant="severityColor(audit.severity)" class="text-[10px] w-10 justify-center shrink-0">
+                      {{ audit.severity }}
                     </Badge>
+                    <span>{{ audit.title || audit.id }}</span>
+                    <span v-if="audit.displayValue" class="text-muted-foreground text-xs ml-auto mr-4 shrink-0">
+                      {{ audit.displayValue }}
+                    </span>
                   </div>
-                  <div v-if="audit.items?.length" class="border rounded-lg overflow-hidden">
-                    <div v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx" class="border-b last:border-b-0 p-2 text-xs">
-                      <div v-if="item.url" class="font-mono break-all text-muted-foreground">{{ item.url }}</div>
-                      <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.node.snippet }}</div>
-                      <div v-if="item.reason" class="text-muted-foreground mt-1">{{ item.reason }}</div>
-                      <div class="flex gap-2 mt-1">
-                        <span v-if="item.wastedBytes" class="text-orange-500">{{ (item.wastedBytes / 1024).toFixed(1) }}KB wasted</span>
-                        <span v-if="item.wastedMs" class="text-orange-500">{{ Math.round(item.wastedMs) }}ms wasted</span>
-                      </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div class="space-y-3 pt-2">
+                    <p v-if="audit.description" class="text-xs text-muted-foreground" v-html="renderMarkdownLinks(audit.description)" />
+                    <div v-if="audit.metricSavings && hasNonZeroSavings(audit.metricSavings)" class="flex gap-2 flex-wrap">
+                      <template v-for="(val, key) in audit.metricSavings" :key="key">
+                        <Badge v-if="typeof val === 'number' ? val > 0 : !!val" variant="outline" class="text-[10px]">
+                          {{ key }}: {{ typeof val === 'number' ? `${Math.round(val)}ms` : val }}
+                        </Badge>
+                      </template>
+                    </div>
+                    <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
+                      <template v-for="(item, idx) in audit.items.slice(0, 20)" :key="idx">
+                        <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
+                          <div v-if="item.url" class="font-mono break-all text-muted-foreground">{{ item.url }}</div>
+                          <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.node.snippet }}</div>
+                          <div v-if="item.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.snippet }}</div>
+                          <div v-if="item.node?.nodeLabel" class="text-muted-foreground mt-1">{{ item.node.nodeLabel }}</div>
+                          <div v-if="item.reason" class="text-muted-foreground mt-1">{{ item.reason }}</div>
+                          <div class="flex gap-2 mt-1 flex-wrap">
+                            <span v-if="item.wastedBytes" class="text-orange-500">{{ formatBytes(item.wastedBytes) }} wasted</span>
+                            <span v-if="item.wastedMs" class="text-orange-500">{{ Math.round(item.wastedMs) }}ms wasted</span>
+                            <span v-if="item.totalBytes" class="text-muted-foreground">{{ formatBytes(item.totalBytes) }} total</span>
+                            <span v-if="item.transferSize" class="text-muted-foreground">{{ formatBytes(item.transferSize) }} transferred</span>
+                            <span v-if="item.blockingTime" class="text-orange-500">{{ Math.round(item.blockingTime) }}ms blocking</span>
+                          </div>
+                        </div>
+                      </template>
                     </div>
                   </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            <Separator v-if="cat.failing.length && (cat.passing.length || cat.notApplicable.length)" />
+
+            <!-- Passed audits (collapsible) -->
+            <Collapsible v-if="cat.passing.length">
+              <CollapsibleTrigger class="flex items-center gap-2 w-full text-sm py-1 group">
+                <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
+                <Icon name="lucide:check-circle" class="size-4 text-green-500" />
+                <span class="text-green-600 font-medium">Passed Audits</span>
+                <Badge variant="outline" class="text-[10px] text-green-600">{{ cat.passing.length }}</Badge>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Accordion type="multiple" class="w-full mt-2">
+                  <AccordionItem v-for="audit in cat.passing" :key="audit.id" :value="audit.id">
+                    <AccordionTrigger class="text-sm py-2">
+                      <div class="flex items-center gap-2 text-left">
+                        <Icon name="lucide:check" class="size-3.5 text-green-500 shrink-0" />
+                        <span class="text-muted-foreground">{{ audit.title || audit.id }}</span>
+                        <span v-if="audit.displayValue" class="text-muted-foreground/60 text-xs ml-auto mr-4 shrink-0">
+                          {{ audit.displayValue }}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div class="space-y-2 pt-1 pl-6">
+                        <p v-if="audit.description" class="text-xs text-muted-foreground" v-html="renderMarkdownLinks(audit.description)" />
+                        <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
+                          <template v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx">
+                            <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
+                              <div v-if="item.url" class="font-mono break-all text-muted-foreground">{{ item.url }}</div>
+                              <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.node.snippet }}</div>
+                              <div v-if="item.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.snippet }}</div>
+                              <div class="flex gap-2 mt-1 flex-wrap">
+                                <span v-if="item.totalBytes" class="text-muted-foreground">{{ formatBytes(item.totalBytes) }}</span>
+                                <span v-if="item.transferSize" class="text-muted-foreground">{{ formatBytes(item.transferSize) }} transferred</span>
+                              </div>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <!-- Not Applicable (collapsible) -->
+            <Collapsible v-if="cat.notApplicable.length">
+              <CollapsibleTrigger class="flex items-center gap-2 w-full text-sm py-1 group">
+                <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
+                <Icon name="lucide:minus-circle" class="size-4 text-muted-foreground" />
+                <span class="text-muted-foreground">Not Applicable</span>
+                <Badge variant="outline" class="text-[10px]">{{ cat.notApplicable.length }}</Badge>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div class="space-y-0.5 pt-2 pl-6">
+                  <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted-foreground/60">
+                    <Icon name="lucide:minus" class="size-3 shrink-0" />
+                    <span>{{ audit.title || audit.id }}</span>
+                  </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </CardContent>
-      </Card>
+              </CollapsibleContent>
+            </Collapsible>
+          </CardContent>
+        </Card>
+      </template>
 
       <!-- SEO Meta -->
       <Card v-if="routeData.seoMeta">

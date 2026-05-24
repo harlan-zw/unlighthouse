@@ -14,8 +14,9 @@ function emptyFile(): FileShape {
   return { version: 1, sites: [] }
 }
 
-function deriveId(url: string): string {
-  return encodeURIComponent(new URL(url).hostname)
+function deriveId(url: string, device?: string): string {
+  const hostname = encodeURIComponent(new URL(url).hostname)
+  return device ? `${hostname}:${device}` : hostname
 }
 
 function deriveName(url: string): string {
@@ -52,7 +53,7 @@ export function createSitesStore({ outputPath }: CreateSitesStoreOptions): Sites
     },
     async create(input: SitesStoreCreateInput) {
       const data = await read()
-      const id = deriveId(input.url)
+      const id = deriveId(input.url, input.device)
       const existing = data.sites.find(s => s.id === id)
       if (existing) {
         const merged: Site = {

@@ -92,15 +92,8 @@ function formatTime(ts: number) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center gap-3">
-      <Button variant="ghost" size="sm" as-child>
-        <NuxtLink :to="`/scan/${scanId}/overview`">
-          <Icon name="lucide:arrow-left" class="size-4 mr-1" />
-          Overview
-        </NuxtLink>
-      </Button>
-      <h1 class="text-xl font-bold tracking-tight">Event Stream</h1>
-    </div>
+    <ScanNav />
+    <h1 class="text-xl font-bold tracking-tight">Event Stream</h1>
 
     <div class="flex items-center gap-4">
       <Button v-if="!streaming" @click="startStream">

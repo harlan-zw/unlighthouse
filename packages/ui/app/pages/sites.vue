@@ -52,8 +52,15 @@ async function addSite() {
 
   adding.value = true
   try {
-    await api['sites.create']({ url, device: newDevice.value as any })
-    toast.success('Site added')
+    if (newDevice.value === 'both') {
+      await api['sites.create']({ url, device: 'mobile' })
+      await api['sites.create']({ url, device: 'desktop' })
+      toast.success('Site added for both devices')
+    }
+    else {
+      await api['sites.create']({ url, device: newDevice.value as any })
+      toast.success('Site added')
+    }
     addOpen.value = false
     newUrl.value = ''
     refresh()
@@ -114,6 +121,7 @@ function scanSite(url: string) {
                 <SelectContent>
                   <SelectItem value="mobile">Mobile</SelectItem>
                   <SelectItem value="desktop">Desktop</SelectItem>
+                  <SelectItem value="both">Both (Mobile + Desktop)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

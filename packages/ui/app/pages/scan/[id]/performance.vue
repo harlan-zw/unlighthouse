@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import {
   Table,
   TableBody,
@@ -26,6 +31,11 @@ const { data: insightsData } = useAsyncData(
   () => api['pack.run']({ scanId, pack: 'insights' }).catch(() => null),
 )
 
+const { data: imagesData } = useAsyncData(
+  `perf-images-${scanId}`,
+  () => api['pack.run']({ scanId, pack: 'images' }).catch(() => null),
+)
+
 const { data: routeScores } = useAsyncData(
   `perf-routes-${scanId}`,
   () => api['scan.results']({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }).catch(() => null),
@@ -36,27 +46,33 @@ function formatMs(ms: number) {
   return `${Math.round(ms)}ms`
 }
 
+function formatBytes(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)}KB`
+  return `${bytes}B`
+}
+
 function verdictColor(verdict: string) {
   if (verdict === 'good') return 'text-green-500'
   if (verdict === 'needsImprovement') return 'text-orange-500'
   return 'text-red-500'
 }
 
+function severityVariant(severity: string) {
+  if (severity === 'critical' || severity === 'serious') return 'destructive' as const
+  if (severity === 'moderate') return 'secondary' as const
+  return 'outline' as const
+}
+
 const cwvReport = computed(() => (cwvData.value as any)?.report ?? null)
 const insightsReport = computed(() => (insightsData.value as any)?.report ?? null)
+const imagesReport = computed(() => (imagesData.value as any)?.report ?? null)
 </script>
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center gap-3">
-      <Button variant="ghost" size="sm" as-child>
-        <NuxtLink :to="`/scan/${scanId}/overview`">
-          <Icon name="lucide:arrow-left" class="size-4 mr-1" />
-          Overview
-        </NuxtLink>
-      </Button>
-      <h1 class="text-xl font-bold tracking-tight">Performance</h1>
-    </div>
+    <ScanNav />
+    <h1 class="text-xl font-bold tracking-tight">Performance</h1>
 
     <div v-if="cwvStatus === 'pending'" class="text-center py-12 text-muted-foreground">
       Loading performance data...
@@ -131,6 +147,59 @@ const insightsReport = computed(() => (insightsData.value as any)?.report ?? nul
         </CardContent>
       </Card>
 
+      <!-- Image Optimization -->
+      <Card v-if="imagesReport?.findings?.length">
+        <CardHeader class="pb-3">
+          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Icon name="lucide:image" class="size-4" />
+            Image Optimization
+            <Badge variant="secondary" class="text-xs">{{ imagesReport.findings.length }} issues</Badge>
+            <Badge v-if="imagesReport.totalBytesSavable > 0" variant="outline" class="text-xs text-orange-500">
+              {{ formatBytes(imagesReport.totalBytesSavable) }} savable
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div v-if="imagesReport.severityCounts" class="flex gap-2 flex-wrap mb-4">
+            <Badge v-if="imagesReport.severityCounts.critical > 0" variant="destructive" class="text-xs">{{ imagesReport.severityCounts.critical }} critical</Badge>
+            <Badge v-if="imagesReport.severityCounts.serious > 0" variant="destructive" class="text-xs">{{ imagesReport.severityCounts.serious }} serious</Badge>
+            <Badge v-if="imagesReport.severityCounts.moderate > 0" variant="secondary" class="text-xs">{{ imagesReport.severityCounts.moderate }} moderate</Badge>
+            <Badge v-if="imagesReport.severityCounts.minor > 0" variant="outline" class="text-xs">{{ imagesReport.severityCounts.minor }} minor</Badge>
+          </div>
+          <Accordion type="multiple" class="w-full">
+            <AccordionItem v-for="finding in imagesReport.findings.slice(0, 20)" :key="finding.imageUrl" :value="finding.imageUrl">
+              <AccordionTrigger class="text-sm">
+                <div class="flex items-center gap-3 text-left flex-1 min-w-0">
+                  <Badge :variant="severityVariant(finding.severity)" class="text-[10px] shrink-0">
+                    {{ finding.severity }}
+                  </Badge>
+                  <span class="truncate font-mono text-xs">{{ finding.imageUrl }}</span>
+                  <span class="text-xs text-muted-foreground shrink-0">{{ finding.routeCount }} routes</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div class="text-sm space-y-2">
+                  <div class="flex gap-2 flex-wrap">
+                    <Badge variant="outline" class="text-xs">{{ finding.kind }}</Badge>
+                    <Badge v-if="finding.wastedBytes" variant="outline" class="text-xs text-orange-500">{{ formatBytes(finding.wastedBytes) }} wasted</Badge>
+                    <Badge v-if="finding.lcpImpactMs" variant="outline" class="text-xs text-red-500">LCP +{{ formatMs(finding.lcpImpactMs) }}</Badge>
+                  </div>
+                  <p v-if="finding.reason" class="text-xs text-muted-foreground">{{ finding.reason }}</p>
+                  <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
+                    <ul class="mt-1 space-y-0.5 font-mono">
+                      <li v-for="r in finding.routes" :key="r">{{ r }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+          <p v-if="imagesReport.findings.length > 20" class="text-xs text-muted-foreground mt-3 text-center">
+            +{{ imagesReport.findings.length - 20 }} more image issues
+          </p>
+        </CardContent>
+      </Card>
+
       <!-- Route Scores -->
       <Card v-if="routeScores?.items?.length">
         <CardHeader class="pb-3">
@@ -149,7 +218,12 @@ const insightsReport = computed(() => (insightsData.value as any)?.report ?? nul
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="r in routeScores.items.slice(0, 50)" :key="r.url">
+              <TableRow
+                v-for="r in routeScores.items.slice(0, 50)"
+                :key="r.url"
+                class="cursor-pointer hover:bg-muted/50"
+                @click="navigateTo(`/scan/${scanId}/route/${encodeURIComponent(r.path)}`)"
+              >
                 <TableCell class="font-mono text-xs truncate max-w-sm">{{ r.path }}</TableCell>
                 <TableCell class="text-right tabular-nums font-bold" :class="scoreToColor(r.scorePerformance)">{{ scoreToLabel(r.scorePerformance) }}</TableCell>
                 <TableCell class="text-right tabular-nums text-xs">{{ r.lcp != null ? formatMs(r.lcp) : '—' }}</TableCell>
@@ -162,7 +236,7 @@ const insightsReport = computed(() => (insightsData.value as any)?.report ?? nul
         </CardContent>
       </Card>
 
-      <div v-if="!cwvReport && !insightsReport" class="text-center py-12 text-muted-foreground">
+      <div v-if="!cwvReport && !insightsReport && !imagesReport" class="text-center py-12 text-muted-foreground">
         No performance data available. Run a scan first.
       </div>
     </template>

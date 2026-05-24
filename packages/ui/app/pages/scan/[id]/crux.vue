@@ -2,7 +2,6 @@
 import type { CruxData } from '@unlighthouse/contracts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const route = useRoute()
@@ -55,15 +54,8 @@ function latestValue(entries: Array<{ value: number }>) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center gap-3">
-      <Button variant="ghost" size="sm" as-child>
-        <NuxtLink :to="`/scan/${scanId}/overview`">
-          <Icon name="lucide:arrow-left" class="size-4 mr-1" />
-          Overview
-        </NuxtLink>
-      </Button>
-      <h1 class="text-xl font-bold tracking-tight">CrUX Field Data</h1>
-    </div>
+    <ScanNav />
+    <h1 class="text-xl font-bold tracking-tight">CrUX Field Data</h1>
 
     <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">Loading CrUX data...</div>
 

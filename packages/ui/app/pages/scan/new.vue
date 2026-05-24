@@ -33,9 +33,11 @@ async function handleSubmit() {
     url = `https://${url}`
   }
 
+  const deviceValue = device.value === 'both' ? ['mobile', 'desktop'] : device.value
+
   loading.value = true
   try {
-    const result = await store.startScan(api, url, { device: device.value, mode: scanMode.value })
+    const result = await store.startScan(api, url, { device: deviceValue as any, mode: scanMode.value })
     toast.success('Scan started', { description: url })
     router.push(`/scan/${result.scanId}/overview`)
   }
@@ -128,6 +130,13 @@ async function handleSubmit() {
                   <div class="flex items-center gap-2">
                     <Icon name="lucide:monitor" class="size-4" />
                     Desktop
+                  </div>
+                </SelectItem>
+                <SelectItem value="both">
+                  <div class="flex items-center gap-2">
+                    <Icon name="lucide:smartphone" class="size-4" />
+                    <Icon name="lucide:monitor" class="size-4 -ml-1" />
+                    Both
                   </div>
                 </SelectItem>
               </SelectContent>

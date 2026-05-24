@@ -97,13 +97,8 @@ function openRoute(r: any) {
 
 <template>
   <div class="space-y-4">
+    <ScanNav />
     <div class="flex items-center gap-3">
-      <Button variant="ghost" size="sm" as-child>
-        <NuxtLink :to="`/scan/${scanId}/overview`">
-          <Icon name="lucide:arrow-left" class="size-4 mr-1" />
-          Overview
-        </NuxtLink>
-      </Button>
       <h1 class="text-xl font-bold tracking-tight">Routes</h1>
       <Badge v-if="scanResults" variant="secondary" class="text-xs">{{ scanResults.total }} total</Badge>
     </div>

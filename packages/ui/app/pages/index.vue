@@ -19,6 +19,15 @@ const { data: scans, status: historyStatus } = useAsyncData('recent-scans', asyn
   }
 })
 
+const { data: sitesData } = useAsyncData('dashboard-sites', async () => {
+  try {
+    return await api['sites.list']({})
+  }
+  catch {
+    return { sites: [] }
+  }
+})
+
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -96,8 +105,38 @@ function formatDuration(start: string | null, end: string | null) {
       </Button>
     </div>
 
+    <!-- Sites -->
+    <div v-if="sitesData?.sites?.length" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Sites</h2>
+        <NuxtLink to="/sites" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Manage
+          <Icon name="lucide:arrow-right" class="size-3 inline ml-0.5" />
+        </NuxtLink>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card
+          v-for="site in sitesData.sites.slice(0, 8)"
+          :key="site.id"
+          class="cursor-pointer transition-all hover:border-primary/30 hover:shadow-sm"
+          @click="router.push({ path: '/scan/new', query: { url: site.url } })"
+        >
+          <CardContent class="pt-4 pb-3">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-sm font-medium truncate">{{ site.name }}</span>
+              <Badge variant="outline" class="text-[10px] shrink-0 ml-2">
+                <Icon :name="site.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-2.5 mr-0.5" />
+                {{ site.device }}
+              </Badge>
+            </div>
+            <div class="text-xs text-muted-foreground font-mono truncate">{{ site.url }}</div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+
     <!-- Recent scans -->
-    <div v-else-if="scans?.items?.length" class="space-y-4">
+    <div v-if="scans?.items?.length" class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold">Recent Scans</h2>
         <NuxtLink to="/history" class="text-sm text-muted-foreground hover:text-foreground transition-colors">

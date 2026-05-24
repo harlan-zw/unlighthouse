@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -69,49 +68,74 @@ async function handleRescanAll() {
   }
 }
 
-const categoryMeta: Record<string, { label: string, icon: string, path: string }> = {
-  'performance': { label: 'Performance', icon: 'lucide:gauge', path: 'performance' },
-  'accessibility': { label: 'Accessibility', icon: 'lucide:accessibility', path: 'accessibility' },
-  'seo': { label: 'SEO', icon: 'lucide:search', path: 'seo' },
-  'best-practices': { label: 'Best Practices', icon: 'lucide:shield-check', path: 'best-practices' },
-  'agentic-browsing': { label: 'Agentic Browsing', icon: 'lucide:bot', path: 'packs' },
-}
-
-const categoryCards = computed(() => {
-  if (!scanSummary.value?.categoryAverages) return []
-  const avgs = scanSummary.value.categoryAverages as Record<string, number | null>
-  return Object.entries(avgs)
-    .filter(([, score]) => score != null)
-    .map(([key, score]) => {
-      const meta = categoryMeta[key] || { label: key, icon: 'lucide:folder', path: 'packs' }
-      return {
-        key,
-        label: meta.label,
-        icon: meta.icon,
-        score,
-        to: `/scan/${scanId.value}/${meta.path}`,
-      }
-    })
+const categories = computed(() => {
+  const avgs = (scanSummary.value?.categoryAverages ?? {}) as Record<string, number | null>
+  return [
+    { key: 'performance', label: 'Performance', icon: 'lucide:gauge', path: 'performance', score: avgs['performance'] ?? null },
+    { key: 'seo', label: 'SEO', icon: 'lucide:search', path: 'seo', score: avgs['seo'] ?? null },
+    { key: 'accessibility', label: 'Accessibility', icon: 'lucide:accessibility', path: 'accessibility', score: avgs['accessibility'] ?? null },
+    { key: 'best-practices', label: 'Best Practices', icon: 'lucide:shield-check', path: 'best-practices', score: avgs['best-practices'] ?? null },
+    { key: 'agentic-browsing', label: 'Agentic', icon: 'lucide:bot', path: 'agentic-browsing', score: avgs['agentic-browsing'] ?? null },
+  ]
 })
 
-const navCards = [
-  { label: 'All Routes', description: 'Browse all scanned pages with scores and metrics', icon: 'lucide:route', path: 'routes' },
-  { label: 'Compare', description: 'Compare this scan against a previous run', icon: 'lucide:git-compare-arrows', path: 'compare' },
-  { label: 'Analysis Packs', description: 'Run CWV, images, SEO and more cross-route analyses', icon: 'lucide:package', path: 'packs' },
-  { label: 'CrUX Field Data', description: 'Real-world Chrome user experience metrics over time', icon: 'lucide:globe', path: 'crux' },
-  { label: 'Event Stream', description: 'Real-time scan events and logs', icon: 'lucide:radio', path: 'events' },
+const tools = [
+  { label: 'All Routes', description: 'Browse all scanned pages', icon: 'lucide:route', path: 'routes' },
+  { label: 'Compare', description: 'Compare against previous scan', icon: 'lucide:git-compare-arrows', path: 'compare' },
+  { label: 'CrUX Field Data', description: 'Real-world Chrome UX metrics', icon: 'lucide:globe', path: 'crux' },
+  { label: 'Event Stream', description: 'Real-time scan logs', icon: 'lucide:radio', path: 'events' },
 ]
+
+const distribution = computed(() => {
+  if (!scanSummary.value) return null
+  const d = scanSummary.value.distribution
+  const total = scanSummary.value.routesScanned || 1
+  return {
+    total,
+    segments: [
+      { label: 'Pass', count: d.passing, pct: (d.passing / total) * 100, color: '#22c55e' },
+      { label: 'Needs Work', count: d.needsWork, pct: (d.needsWork / total) * 100, color: '#f97316' },
+      { label: 'Poor', count: d.poor, pct: (d.poor / total) * 100, color: '#ef4444' },
+    ].filter(s => s.count > 0),
+  }
+})
+
+const donutArcs = computed(() => {
+  if (!distribution.value) return []
+  const segs = distribution.value.segments
+  const total = segs.reduce((s, v) => s + v.count, 0) || 1
+  const gap = 0.02
+  const totalGap = gap * segs.length
+  const available = 1 - totalGap
+  let offset = -0.25
+  return segs.map((seg) => {
+    const ratio = (seg.count / total) * available
+    const circumference = 2 * Math.PI * 40
+    const dashLen = ratio * circumference
+    const gapLen = circumference - dashLen
+    const rotation = offset * 360
+    offset += ratio + gap
+    return { ...seg, dashLen, gapLen, rotation }
+  })
+})
+
+function scoreColor(score: number | null) {
+  if (score == null) return 'var(--muted-foreground)'
+  return scoreToRingColor(score)
+}
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Site info + status -->
+  <div class="space-y-8">
+    <ScanNav />
+
+    <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-bold tracking-tight truncate max-w-lg">
+        <h1 class="text-2xl font-bold tracking-tight truncate max-w-lg">
           {{ scanMeta?.site || store.site || 'Scan' }}
         </h1>
-        <div class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+        <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground">
           <ScanStatusBadge :status="resolvedStatus" />
           <Badge v-if="scanMeta?.device" variant="outline" class="text-xs">{{ scanMeta.device }}</Badge>
           <span v-if="scanMeta?.startedAt" class="text-xs">{{ new Date(scanMeta.startedAt).toLocaleString() }}</span>
@@ -127,146 +151,165 @@ const navCards = [
       </div>
     </div>
 
-    <!-- Active scan progress -->
     <ScanProgress v-if="currentScanIsActive" />
 
-    <!-- Category score cards (clickable -> detail pages) -->
-    <div v-if="categoryCards.length" class="grid gap-4 grid-cols-2" :class="categoryCards.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
-      <NuxtLink
-        v-for="card in categoryCards"
-        :key="card.key"
-        :to="card.to"
-        class="group"
-      >
-        <Card class="transition-all hover:border-primary/50 hover:shadow-sm group-hover:bg-muted/30">
-          <CardContent class="pt-5 pb-4">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-sm font-medium text-muted-foreground">{{ card.label }}</span>
-              <Icon :name="card.icon" class="size-4 text-muted-foreground/60" />
-            </div>
-            <div class="flex items-center gap-3">
-              <ScoreRing :score="card.score" size="sm" />
-              <span class="text-3xl font-bold tabular-nums" :style="{ color: scoreToRingColor(card.score) }">
-                {{ scoreToLabel(card.score) }}
-              </span>
-            </div>
-            <div class="mt-2 text-xs text-muted-foreground flex items-center gap-1">
-              View details
-              <Icon name="lucide:arrow-right" class="size-3 transition-transform group-hover:translate-x-0.5" />
-            </div>
-          </CardContent>
-        </Card>
-      </NuxtLink>
+    <!-- Stats row -->
+    <div v-if="scanSummary" class="flex items-center gap-8 border-b pb-6">
+      <div>
+        <div class="text-3xl font-bold tabular-nums">{{ scanSummary.routesScanned }}</div>
+        <div class="text-xs text-muted-foreground mt-0.5">Routes</div>
+      </div>
+      <div>
+        <div class="text-3xl font-bold tabular-nums" :class="scoreToColor(scanSummary.avgScore)">
+          {{ scoreToLabel(scanSummary.avgScore) }}
+        </div>
+        <div class="text-xs text-muted-foreground mt-0.5">Avg Score</div>
+      </div>
+      <div class="flex-1 max-w-xs">
+        <div class="flex h-3 rounded-full overflow-hidden">
+          <div
+            v-for="seg in distribution?.segments"
+            :key="seg.label"
+            :style="{ width: `${seg.pct}%`, backgroundColor: seg.color }"
+          />
+        </div>
+        <div class="flex gap-3 mt-1.5 text-[11px] text-muted-foreground">
+          <span v-for="seg in distribution?.segments" :key="seg.label">{{ seg.count }} {{ seg.label }}</span>
+        </div>
+      </div>
     </div>
 
-    <div v-if="scanSummary" class="grid gap-4 lg:grid-cols-2">
-      <!-- Score Distribution -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Score Distribution</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-2.5">
-            <div class="flex items-center gap-3">
-              <div class="w-20 text-sm">Passing</div>
-              <div class="flex-1 bg-muted rounded-full h-2.5 overflow-hidden">
-                <div
-                  class="bg-green-500 h-full rounded-full transition-all"
-                  :style="{ width: `${scanSummary.routesScanned ? (scanSummary.distribution.passing / scanSummary.routesScanned) * 100 : 0}%` }"
-                />
-              </div>
-              <span class="text-sm font-medium tabular-nums w-6 text-right">{{ scanSummary.distribution.passing }}</span>
+    <!-- Charts row -->
+    <div v-if="scanSummary" class="grid gap-6 lg:grid-cols-5">
+      <!-- Category scores - horizontal bars -->
+      <div class="lg:col-span-3">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Category Scores</h2>
+        <div class="rounded-lg border px-5 py-4 space-y-4">
+          <div v-for="cat in categories.filter(c => c.score != null)" :key="cat.key" class="flex items-center gap-3">
+            <span class="text-xs text-muted-foreground w-24 shrink-0 truncate">{{ cat.label }}</span>
+            <div class="flex-1 h-5 bg-muted rounded overflow-hidden">
+              <div
+                class="h-full rounded transition-all duration-500"
+                :style="{ width: `${(cat.score ?? 0) * 100}%`, backgroundColor: scoreColor(cat.score) }"
+              />
             </div>
-            <div class="flex items-center gap-3">
-              <div class="w-20 text-sm">Needs Work</div>
-              <div class="flex-1 bg-muted rounded-full h-2.5 overflow-hidden">
-                <div
-                  class="bg-orange-500 h-full rounded-full transition-all"
-                  :style="{ width: `${scanSummary.routesScanned ? (scanSummary.distribution.needsWork / scanSummary.routesScanned) * 100 : 0}%` }"
-                />
-              </div>
-              <span class="text-sm font-medium tabular-nums w-6 text-right">{{ scanSummary.distribution.needsWork }}</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="w-20 text-sm">Poor</div>
-              <div class="flex-1 bg-muted rounded-full h-2.5 overflow-hidden">
-                <div
-                  class="bg-red-500 h-full rounded-full transition-all"
-                  :style="{ width: `${scanSummary.routesScanned ? (scanSummary.distribution.poor / scanSummary.routesScanned) * 100 : 0}%` }"
-                />
-              </div>
-              <span class="text-sm font-medium tabular-nums w-6 text-right">{{ scanSummary.distribution.poor }}</span>
+            <span class="text-sm font-bold tabular-nums w-8 text-right" :style="{ color: scoreColor(cat.score) }">
+              {{ scoreToLabel(cat.score) }}
+            </span>
+          </div>
+          <div v-if="categories.every(c => c.score == null)" class="text-sm text-muted-foreground text-center py-4">
+            No score data yet
+          </div>
+        </div>
+      </div>
+
+      <!-- Donut chart -->
+      <div v-if="distribution" class="lg:col-span-2">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Score Distribution</h2>
+        <div class="rounded-lg border px-5 py-4 flex items-center gap-6 justify-center">
+          <div class="relative shrink-0">
+            <svg viewBox="0 0 100 100" class="size-32">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--muted))" stroke-width="10" />
+              <circle
+                v-for="(arc, i) in donutArcs"
+                :key="i"
+                cx="50" cy="50" r="40"
+                fill="none"
+                :stroke="arc.color"
+                stroke-width="10"
+                stroke-linecap="round"
+                :stroke-dasharray="`${arc.dashLen} ${arc.gapLen}`"
+                :transform="`rotate(${arc.rotation} 50 50)`"
+                class="transition-all duration-500"
+              />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-2xl font-bold tabular-nums">{{ distribution.total }}</span>
+              <span class="text-[10px] text-muted-foreground">routes</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <!-- Summary -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <div class="text-2xl font-bold tabular-nums">{{ scanSummary.routesScanned }}</div>
-              <div class="text-xs text-muted-foreground">Routes Scanned</div>
-            </div>
-            <div>
-              <div class="text-2xl font-bold tabular-nums" :class="scoreToColor(scanSummary.avgScore)">
-                {{ scoreToLabel(scanSummary.avgScore) }}
-              </div>
-              <div class="text-xs text-muted-foreground">Average Score</div>
+          <div class="flex flex-col gap-3">
+            <div v-for="seg in distribution.segments" :key="seg.label" class="flex items-center gap-2.5">
+              <span class="size-2.5 rounded-full shrink-0" :style="{ backgroundColor: seg.color }" />
+              <span class="text-xs text-muted-foreground w-20">{{ seg.label }}</span>
+              <span class="text-sm font-semibold tabular-nums">{{ seg.count }}</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
 
-    <!-- Navigation cards -->
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <NuxtLink
-        v-for="nav in navCards"
-        :key="nav.path"
-        :to="`/scan/${scanId}/${nav.path}`"
-        class="group"
-      >
-        <Card class="transition-all hover:border-primary/50 hover:shadow-sm group-hover:bg-muted/30">
-          <CardContent class="pt-5 pb-4 flex items-center gap-4">
-            <div class="flex size-10 items-center justify-center rounded-lg bg-muted">
-              <Icon :name="nav.icon" class="size-5 text-muted-foreground" />
+    <!-- Categories -->
+    <section>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Categories</h2>
+      <div class="divide-y rounded-lg border">
+        <NuxtLink
+          v-for="cat in categories"
+          :key="cat.key"
+          :to="`/scan/${scanId}/${cat.path}`"
+          class="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50 transition-colors"
+        >
+          <Icon :name="cat.icon" class="size-4 text-muted-foreground" />
+          <span class="text-sm font-medium flex-1">{{ cat.label }}</span>
+          <template v-if="cat.score != null">
+            <div class="w-28 h-1.5 rounded-full bg-muted overflow-hidden hidden sm:block">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :style="{ width: `${cat.score * 100}%`, backgroundColor: scoreColor(cat.score) }"
+              />
             </div>
-            <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm">{{ nav.label }}</div>
-              <div class="text-xs text-muted-foreground">{{ nav.description }}</div>
-            </div>
-            <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
-          </CardContent>
-        </Card>
-      </NuxtLink>
-    </div>
+            <span class="text-sm font-bold tabular-nums w-8 text-right" :style="{ color: scoreColor(cat.score) }">
+              {{ scoreToLabel(cat.score) }}
+            </span>
+          </template>
+          <span v-else class="text-sm text-muted-foreground/40">—</span>
+          <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground/50" />
+        </NuxtLink>
+      </div>
+    </section>
+
+    <!-- Tools -->
+    <section>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Tools</h2>
+      <div class="divide-y rounded-lg border">
+        <NuxtLink
+          v-for="tool in tools"
+          :key="tool.path"
+          :to="`/scan/${scanId}/${tool.path}`"
+          class="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50 transition-colors"
+        >
+          <Icon :name="tool.icon" class="size-4 text-muted-foreground" />
+          <div class="flex-1">
+            <span class="text-sm font-medium">{{ tool.label }}</span>
+            <span class="text-xs text-muted-foreground ml-2 hidden sm:inline">{{ tool.description }}</span>
+          </div>
+          <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground/50" />
+        </NuxtLink>
+      </div>
+    </section>
 
     <!-- Worst Routes -->
-    <Card v-if="scanSummary?.worstRoutes?.length">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-sm font-medium text-muted-foreground">Worst Routes</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <section v-if="scanSummary?.worstRoutes?.length">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Worst Performing Routes</h2>
+      <div class="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>URL</TableHead>
               <TableHead class="w-24 text-right">Score</TableHead>
-              <TableHead class="w-32">Category</TableHead>
+              <TableHead class="w-32">Weakest</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="r in scanSummary.worstRoutes" :key="r.url">
+            <TableRow
+              v-for="r in scanSummary.worstRoutes"
+              :key="r.url"
+              class="cursor-pointer hover:bg-muted/50"
+              @click="navigateTo(`/scan/${scanId}/route/${encodeURIComponent(new URL(r.url).pathname)}`)"
+            >
               <TableCell class="font-mono text-xs truncate max-w-md">{{ r.url }}</TableCell>
               <TableCell class="text-right">
-                <span class="font-bold tabular-nums" :class="scoreToColor(r.score)">
-                  {{ scoreToLabel(r.score) }}
-                </span>
+                <span class="font-bold tabular-nums" :class="scoreToColor(r.score)">{{ scoreToLabel(r.score) }}</span>
               </TableCell>
               <TableCell>
                 <Badge variant="outline" class="text-xs capitalize">{{ r.category || '—' }}</Badge>
@@ -274,8 +317,8 @@ const navCards = [
             </TableRow>
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
 
     <!-- Loading -->
     <div v-if="!scanSummary && !currentScanIsActive" class="py-12 text-center text-muted-foreground">
