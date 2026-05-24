@@ -30,14 +30,16 @@ export const historyRescan: Handler<typeof HistoryRescan> = {
       throw new UnlighthouseError({ code: 'SCAN_NOT_FOUND', message: `scanId=${input.scanId}` })
     if (ctx.core.session())
       throw new UnlighthouseError({ code: 'ACTIVE_SCAN_CONFLICT', message: 'A scan is already in flight' })
-    // Single-session host model: Core already holds the resolved config. For multi-site
-    // hosts, mutate ctx.config.site before run().
-    if (input.overrideSite)
-      (ctx.config as { site?: string }).site = input.overrideSite
-    const session = ctx.core.run()
+    const site = input.overrideSite ?? source.site
+    const session = ctx.core.run({
+      overrides: {
+        site,
+        device: source.device ? [source.device as 'mobile' | 'desktop'] : undefined,
+      },
+    })
     return {
       scanId: session.scanId,
-      site: input.overrideSite ?? source.site,
+      site,
       startedAt: new Date().toISOString(),
       sourceScanId: input.scanId,
     } as CommandOutput<typeof HistoryRescan>

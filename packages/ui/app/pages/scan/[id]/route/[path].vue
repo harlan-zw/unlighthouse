@@ -9,16 +9,17 @@ import { toast } from 'vue-sonner'
 const route = useRoute()
 const scanId = route.params.id as string
 const routePath = decodeURIComponent(route.params.path as string)
+const config = useRuntimeConfig()
+const baseUrl = config.public.unlighthouseApiUrl as string
 const api = useApi()
 const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
 
 const rescanning = ref(false)
-const selectedCategory = ref<string | null>(null)
 
 async function rescanRoute() {
   rescanning.value = true
   try {
-    await api['route.rescan']({ scanId, url: routeData.value?.route?.url || routePath })
+    await api['route.rescan']({ scanId, url: routeData.value?.url || routePath })
     toast.success('Route rescan started')
   }
   catch (err: any) {
@@ -33,10 +34,9 @@ const { data: routeData, status } = useAsyncData(
   `route-detail-${scanId}-${routePath}`,
   async () => {
     try {
-      return await api['route.get']({
-        scanId,
-        url: routePath.startsWith('http') ? routePath : `https://${routePath}`,
-      })
+      const res = await fetch(`${baseUrl}/dashboard/route/${scanId}/${encodeURIComponent(routePath)}`)
+      if (!res.ok) return null
+      return await res.json()
     }
     catch {
       return null
@@ -45,43 +45,46 @@ const { data: routeData, status } = useAsyncData(
 )
 
 function formatMetric(value: number | null, unit: string = 'ms') {
-  if (value === null) return '—'
+  if (value === null || value === undefined) return '—'
   if (unit === 'ms') return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`
   return value.toFixed(3)
 }
 
-const categoryIcons: Record<string, string> = {
-  'performance': 'lucide:gauge',
-  'accessibility': 'lucide:accessibility',
-  'seo': 'lucide:search',
-  'best-practices': 'lucide:shield-check',
-  'agentic-browsing': 'lucide:bot',
-}
-
 const scores = computed(() => {
-  if (!routeData.value?.categories) return []
-  return routeData.value.categories.map((c: any) => ({
-    id: c.id,
-    label: c.title || c.id,
-    score: c.score,
-    auditCount: c.auditCount,
-    passingCount: c.passingCount,
-    failingCount: c.failingCount,
-    icon: categoryIcons[c.id] || 'lucide:folder',
-  }))
+  if (!routeData.value) return []
+  const d = routeData.value
+  const cats = [
+    { id: 'performance', label: 'Performance', score: d.scorePerformance ?? d.metrics?.scorePerformance, icon: 'lucide:gauge' },
+    { id: 'accessibility', label: 'Accessibility', score: d.scoreAccessibility ?? d.metrics?.scoreAccessibility, icon: 'lucide:accessibility' },
+    { id: 'seo', label: 'SEO', score: d.scoreSeo ?? d.metrics?.scoreSeo, icon: 'lucide:search' },
+    { id: 'best-practices', label: 'Best Practices', score: d.scoreBestPractices ?? d.metrics?.scoreBestPractices, icon: 'lucide:shield-check' },
+  ]
+  const ab = d.scoreAgenticBrowsing ?? d.metrics?.scoreAgenticBrowsing
+  if (ab != null) {
+    cats.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: ab, icon: 'lucide:bot' })
+  }
+  // If reconciled categories exist, use them
+  if (d.categories?.length) {
+    return d.categories.map((c: any) => ({
+      ...c,
+      label: c.title || c.id,
+      icon: ({ performance: 'lucide:gauge', accessibility: 'lucide:accessibility', seo: 'lucide:search', 'best-practices': 'lucide:shield-check', 'agentic-browsing': 'lucide:bot' } as Record<string, string>)[c.id] || 'lucide:folder',
+    }))
+  }
+  return cats.filter(c => c.score != null)
 })
 
 const metrics = computed(() => {
-  if (!routeData.value?.route) return []
-  const r = routeData.value.route
+  if (!routeData.value) return []
+  const d = routeData.value
   return [
-    { label: 'LCP', value: r.lcp, unit: 'ms', description: 'Largest Contentful Paint' },
-    { label: 'CLS', value: r.cls, unit: '', description: 'Cumulative Layout Shift' },
-    { label: 'TBT', value: r.tbt, unit: 'ms', description: 'Total Blocking Time' },
-    { label: 'FCP', value: r.fcp, unit: 'ms', description: 'First Contentful Paint' },
-    { label: 'SI', value: r.si, unit: 'ms', description: 'Speed Index' },
-    { label: 'TTFB', value: r.ttfb, unit: 'ms', description: 'Time to First Byte' },
-    { label: 'INP', value: r.inp, unit: 'ms', description: 'Interaction to Next Paint' },
+    { label: 'LCP', value: d.lcp ?? d.metrics?.lcp, unit: 'ms', description: 'Largest Contentful Paint' },
+    { label: 'CLS', value: d.cls ?? d.metrics?.cls, unit: '', description: 'Cumulative Layout Shift' },
+    { label: 'TBT', value: d.tbt ?? d.metrics?.tbt, unit: 'ms', description: 'Total Blocking Time' },
+    { label: 'FCP', value: d.fcp ?? d.metrics?.fcp, unit: 'ms', description: 'First Contentful Paint' },
+    { label: 'SI', value: d.si ?? d.metrics?.si, unit: 'ms', description: 'Speed Index' },
+    { label: 'TTFB', value: d.ttfb ?? d.metrics?.ttfb, unit: 'ms', description: 'Time to First Byte' },
+    { label: 'INP', value: d.inp ?? d.metrics?.inp, unit: 'ms', description: 'Interaction to Next Paint' },
   ]
 })
 
@@ -97,24 +100,11 @@ const failingAudits = computed(() => {
     .map(([id, a]: [string, any]) => ({ id, ...a }))
 })
 
-const filteredAudits = computed(() => {
-  if (!selectedCategory.value) return failingAudits.value
-  const cat = routeData.value?.categories?.find((c: any) => c.id === selectedCategory.value)
-  if (!cat) return failingAudits.value
-  const catAuditIds = new Set((routeData.value?.audits ? Object.keys(routeData.value.audits) : []))
-  return failingAudits.value.filter((a: any) => catAuditIds.has(a.id))
-})
-
-function metricColor(label: string, value: number | null): string {
-  if (value === null) return 'text-muted-foreground'
+function metricColor(label: string, value: number | null | undefined): string {
+  if (value == null) return 'text-muted-foreground'
   const thresholds: Record<string, [number, number]> = {
-    LCP: [2500, 4000],
-    CLS: [0.1, 0.25],
-    TBT: [200, 600],
-    FCP: [1800, 3000],
-    SI: [3400, 5800],
-    TTFB: [800, 1800],
-    INP: [200, 500],
+    LCP: [2500, 4000], CLS: [0.1, 0.25], TBT: [200, 600],
+    FCP: [1800, 3000], SI: [3400, 5800], TTFB: [800, 1800], INP: [200, 500],
   }
   const [good, poor] = thresholds[label] || [Infinity, Infinity]
   if (value <= good) return 'text-green-500'
@@ -141,28 +131,23 @@ function severityColor(severity: string): string {
     </div>
 
     <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">Loading...</div>
-
     <div v-else-if="!routeData" class="text-center py-12 text-muted-foreground">Route not found.</div>
 
     <template v-else>
       <!-- Header -->
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <h1 class="text-lg font-bold font-mono break-all">{{ routeData.route?.path || routeData.route?.url }}</h1>
+          <h1 class="text-lg font-bold font-mono break-all">{{ routeData.path || routeData.route?.path }}</h1>
           <div class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-            <Badge variant="outline" class="text-xs">{{ routeData.route?.device }}</Badge>
-            <a :href="routeData.route?.url" target="_blank" class="hover:underline flex items-center gap-1">
-              {{ routeData.route?.url }}
+            <Badge variant="outline" class="text-xs">{{ routeData.device || routeData.route?.device }}</Badge>
+            <a :href="routeData.url || routeData.route?.url" target="_blank" class="hover:underline flex items-center gap-1">
+              {{ routeData.url || routeData.route?.url }}
               <Icon name="lucide:external-link" class="size-3" />
             </a>
           </div>
-          <!-- Provenance info -->
-          <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted-foreground/60">
-            <span>LH {{ routeData.provenance.lighthouseVersion }}</span>
-            <span v-if="routeData.provenance.timingTotal">{{ (routeData.provenance.timingTotal / 1000).toFixed(1) }}s audit</span>
-            <span v-if="routeData.provenance.warnings?.length" class="text-orange-500">
-              {{ routeData.provenance.warnings.length }} warning(s)
-            </span>
+          <div v-if="routeData.provenance || routeData.lighthouseVersion" class="flex items-center gap-3 mt-1 text-xs text-muted-foreground/60">
+            <span>LH {{ routeData.provenance?.lighthouseVersion || routeData.lighthouseVersion }}</span>
+            <span v-if="routeData.provenance?.timingTotal">{{ (routeData.provenance.timingTotal / 1000).toFixed(1) }}s audit</span>
           </div>
         </div>
         <Button variant="outline" size="sm" :disabled="rescanning" @click="rescanRoute">
@@ -172,25 +157,15 @@ function severityColor(severity: string): string {
         </Button>
       </div>
 
-      <!-- Screenshot -->
-      <Card v-if="routeData.screenshotUrl">
-        <CardContent class="pt-4">
-          <img :src="routeData.screenshotUrl" alt="Page screenshot" class="rounded-lg border max-h-64 object-contain mx-auto" />
-        </CardContent>
-      </Card>
-
-      <!-- Category Scores (dynamic) -->
-      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card v-for="s in scores" :key="s.id" class="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20" @click="selectedCategory = selectedCategory === s.id ? null : s.id">
+      <!-- Category Scores -->
+      <div class="grid grid-cols-2" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'" style="gap: 1rem;">
+        <Card v-for="s in scores" :key="s.id">
           <CardContent class="pt-5 pb-4 flex items-center gap-4">
             <ScoreRing :score="s.score" size="md" />
             <div>
               <div class="text-sm font-medium">{{ s.label }}</div>
               <div class="text-2xl font-bold tabular-nums" :style="{ color: scoreToRingColor(s.score) }">
                 {{ scoreToLabel(s.score) }}
-              </div>
-              <div class="text-[10px] text-muted-foreground">
-                {{ s.passingCount }}/{{ s.auditCount }} passing
               </div>
             </div>
           </CardContent>
@@ -215,22 +190,17 @@ function severityColor(severity: string): string {
         </CardContent>
       </Card>
 
-      <!-- Failing Audits -->
+      <!-- Failing Audits (only when reconciled data exists) -->
       <Card v-if="failingAudits.length > 0">
         <CardHeader class="pb-3">
-          <div class="flex items-center justify-between">
-            <CardTitle class="text-sm font-medium text-muted-foreground">
-              {{ selectedCategory ? `${selectedCategory} Audits` : 'Failing Audits' }}
-              <Badge variant="secondary" class="ml-2">{{ filteredAudits.length }}</Badge>
-            </CardTitle>
-            <Button v-if="selectedCategory" variant="ghost" size="sm" @click="selectedCategory = null">
-              Show all
-            </Button>
-          </div>
+          <CardTitle class="text-sm font-medium text-muted-foreground">
+            Failing Audits
+            <Badge variant="secondary" class="ml-2">{{ failingAudits.length }}</Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Accordion type="multiple" class="w-full">
-            <AccordionItem v-for="audit in filteredAudits" :key="audit.id" :value="audit.id">
+            <AccordionItem v-for="audit in failingAudits" :key="audit.id" :value="audit.id">
               <AccordionTrigger class="text-sm">
                 <div class="flex items-center gap-2 text-left">
                   <Badge :variant="severityColor(audit.severity)" class="text-[10px] w-10 justify-center">
@@ -245,13 +215,11 @@ function severityColor(severity: string): string {
               <AccordionContent>
                 <div class="space-y-3 pt-2">
                   <p v-if="audit.description" class="text-xs text-muted-foreground">{{ audit.description }}</p>
-                  <!-- Metric savings -->
                   <div v-if="audit.metricSavings" class="flex gap-2 flex-wrap">
                     <Badge v-for="(val, key) in audit.metricSavings" :key="key" variant="outline" class="text-[10px]">
                       {{ key }}: {{ typeof val === 'number' ? `${Math.round(val)}ms` : val }}
                     </Badge>
                   </div>
-                  <!-- Items -->
                   <div v-if="audit.items?.length" class="border rounded-lg overflow-hidden">
                     <div v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx" class="border-b last:border-b-0 p-2 text-xs">
                       <div v-if="item.url" class="font-mono break-all text-muted-foreground">{{ item.url }}</div>
@@ -260,11 +228,7 @@ function severityColor(severity: string): string {
                       <div class="flex gap-2 mt-1">
                         <span v-if="item.wastedBytes" class="text-orange-500">{{ (item.wastedBytes / 1024).toFixed(1) }}KB wasted</span>
                         <span v-if="item.wastedMs" class="text-orange-500">{{ Math.round(item.wastedMs) }}ms wasted</span>
-                        <span v-if="item.blockingTime" class="text-red-500">{{ Math.round(item.blockingTime) }}ms blocking</span>
                       </div>
-                    </div>
-                    <div v-if="audit.items.length > 10" class="p-2 text-xs text-muted-foreground text-center">
-                      +{{ audit.items.length - 10 }} more items
                     </div>
                   </div>
                 </div>
@@ -274,25 +238,59 @@ function severityColor(severity: string): string {
         </CardContent>
       </Card>
 
-      <!-- Stack Packs (framework recommendations) -->
+      <!-- SEO Meta -->
+      <Card v-if="routeData.seoMeta">
+        <CardHeader class="pb-3">
+          <CardTitle class="text-sm font-medium text-muted-foreground">SEO Meta</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <div class="text-xs text-muted-foreground mb-1">Title</div>
+              <div class="text-sm">{{ routeData.seoMeta.title || '(missing)' }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-muted-foreground mb-1">Meta Description</div>
+              <div class="text-sm">{{ routeData.seoMeta.metaDescription || '(missing)' }}</div>
+            </div>
+          </div>
+          <Separator />
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <div class="text-xs text-muted-foreground mb-1">Canonical</div>
+              <div class="text-sm font-mono break-all">{{ routeData.seoMeta.canonical || '(none)' }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-muted-foreground mb-1">Indexable</div>
+              <div class="flex items-center gap-1.5">
+                <Icon
+                  :name="routeData.seoMeta.isIndexable ? 'lucide:check-circle' : 'lucide:x-circle'"
+                  :class="routeData.seoMeta.isIndexable ? 'text-green-500' : 'text-red-500'"
+                  class="size-4"
+                />
+                <span class="text-sm">{{ routeData.seoMeta.isIndexable ? 'Yes' : 'No' }}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Stack Packs -->
       <Card v-if="routeData.stackPacks?.length">
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground">Framework Recommendations</CardTitle>
         </CardHeader>
         <CardContent>
           <div v-for="pack in routeData.stackPacks" :key="pack.id" class="mb-4 last:mb-0">
-            <div class="flex items-center gap-2 mb-2">
-              <img v-if="pack.iconDataURL" :src="pack.iconDataURL" :alt="pack.title" class="size-5" />
-              <span class="text-sm font-medium">{{ pack.title }}</span>
-            </div>
-            <div v-for="(desc, auditId) in pack.descriptions" :key="auditId" class="text-xs text-muted-foreground ml-7 mb-1">
+            <div class="text-sm font-medium mb-1">{{ pack.title }}</div>
+            <div v-for="(desc, auditId) in pack.descriptions" :key="auditId" class="text-xs text-muted-foreground ml-4 mb-1">
               <span class="font-mono text-primary/80">{{ auditId }}</span>: {{ desc }}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <!-- Entities (third parties) -->
+      <!-- Entities -->
       <Card v-if="routeData.entities?.length">
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground">Third-Party Entities</CardTitle>
@@ -301,7 +299,6 @@ function severityColor(severity: string): string {
           <div class="flex flex-wrap gap-2">
             <Badge v-for="entity in routeData.entities" :key="entity.name" :variant="entity.isFirstParty ? 'default' : 'outline'" class="text-xs">
               {{ entity.name }}
-              <span v-if="entity.isFirstParty" class="ml-1 text-[10px] opacity-60">1P</span>
             </Badge>
           </div>
         </CardContent>

@@ -8,7 +8,8 @@
   "scripts": {
     "cli": "node packages/unlighthouse/dist/cli/cli.mjs",
     "ci": "node packages/unlighthouse/dist/cli/ci.mjs",
-    "dev:cli": "pnpm -r --filter './packages/{contracts,audit-pool,core,unlighthouse}' dev",
+    "dev:cli": "tsx --watch packages/unlighthouse/src/cli/cli.ts",
+    "dev:build": "pnpm -r --filter './packages/{contracts,audit-pool,core,unlighthouse}' dev",
     "ci:docs": "node packages/unlighthouse/dist/cli/ci.mjs --site unlighthouse.dev --build-static --debug",
     "build": "pnpm run build:pkg",
     "build:docs": "cd docs && pnpm i && nuxi build",

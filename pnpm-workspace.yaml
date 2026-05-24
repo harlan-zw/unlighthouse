@@ -22,6 +22,7 @@ catalog:
   '@nuxt/icon': 2.2.2
   '@nuxtjs/color-mode': 4.0.0
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
+  '@pinia/nuxt': ^0.11.0
   '@types/better-sqlite3': ^7.6.13
   '@types/fs-extra': ^11.0.4
   '@types/lodash-es': ^4.17.12
@@ -43,6 +44,7 @@ catalog:
   motion-v: ^2.2.1
   nuxt: ^4.4.6
   obuild: ^0.4.35
+  pinia: ^3.0.4
   tsdown: ^0.22.0
   publint: ^0.3.21
   reka-ui: ^2.9.8

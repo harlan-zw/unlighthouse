@@ -119,6 +119,29 @@ function wireWsBroadcast(core: UnlighthouseCore, ws: WS | null, logger: Logger) 
   }
   logger.debug?.('[host] Wiring WS broadcast hooks')
   const hookable = core.hooks as Hookable<HookMap>
+  hookable.hook('scan:created', (payload) => {
+    logger.debug?.(`[ws] scan:created — scanId: ${payload.scanId}, site: ${payload.site}`)
+    ws.broadcast({
+      event: 'scan:created',
+      data: {
+        scanId: payload.scanId,
+        site: payload.site,
+        startedAt: payload.startedAt,
+      },
+    })
+  })
+  hookable.hook('scan:started', (payload) => {
+    ws.broadcast({ event: 'scan:started', data: { scanId: payload.scanId } })
+  })
+  hookable.hook('scan:discovering', (payload) => {
+    ws.broadcast({ event: 'scan:discovering', data: { scanId: payload.scanId } })
+  })
+  hookable.hook('scan:scanning', (payload) => {
+    ws.broadcast({
+      event: 'scan:scanning',
+      data: { scanId: payload.scanId, discovered: payload.discovered },
+    })
+  })
   hookable.hook('scan:progress', (payload) => {
     logger.debug?.(`[ws] scan:progress — discovered: ${payload.discovered}, scanned: ${payload.scanned}/${payload.total}, failed: ${payload.failed}`)
     ws.broadcast({
@@ -156,6 +179,12 @@ function wireWsBroadcast(core: UnlighthouseCore, ws: WS | null, logger: Logger) 
     ws.broadcast({
       event: 'scan:cancelled',
       data: { reason: payload.reason },
+    })
+  })
+  hookable.hook('scan:route-failed', (payload) => {
+    ws.broadcast({
+      event: 'scan:route-failed',
+      data: { url: payload.url, error: payload.error },
     })
   })
   hookable.hook('scan:error', (payload) => {

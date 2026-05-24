@@ -64,18 +64,18 @@ const insightsReport = computed(() => (insightsData.value as any)?.report ?? nul
 
     <template v-else>
       <!-- Core Web Vitals -->
-      <div v-if="cwvReport?.metrics" class="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card v-for="m in cwvReport.metrics" :key="m.name">
+      <div v-if="cwvReport?.metrics?.length" class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card v-for="m in cwvReport.metrics" :key="m.metric">
           <CardContent class="pt-5 pb-4 text-center">
-            <div class="text-xs text-muted-foreground mb-1">{{ m.name.toUpperCase() }}</div>
+            <div class="text-xs text-muted-foreground mb-1">{{ m.metric?.toUpperCase() }}</div>
             <div class="text-2xl font-bold tabular-nums" :class="verdictColor(m.verdict)">
-              {{ m.p75 != null ? formatMs(m.p75) : '—' }}
+              {{ m.p75 != null ? (m.metric === 'cls' ? m.p75.toFixed(3) : formatMs(m.p75)) : '—' }}
             </div>
-            <div class="text-[10px] text-muted-foreground mt-1">p75 across {{ m.routeCount }} routes</div>
+            <div class="text-[10px] text-muted-foreground mt-1">p75 across {{ (m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0) }} routes</div>
             <div class="flex justify-center gap-1 mt-2">
-              <Badge variant="outline" class="text-[9px] text-green-600">{{ m.good }} good</Badge>
-              <Badge variant="outline" class="text-[9px] text-orange-600">{{ m.needsImprovement }} NI</Badge>
-              <Badge variant="outline" class="text-[9px] text-red-600">{{ m.poor }} poor</Badge>
+              <Badge variant="outline" class="text-[9px] text-green-600">{{ m.distribution?.good ?? 0 }} good</Badge>
+              <Badge variant="outline" class="text-[9px] text-orange-600">{{ m.distribution?.needsImprovement ?? 0 }} NI</Badge>
+              <Badge variant="outline" class="text-[9px] text-red-600">{{ m.distribution?.poor ?? 0 }} poor</Badge>
             </div>
           </CardContent>
         </Card>

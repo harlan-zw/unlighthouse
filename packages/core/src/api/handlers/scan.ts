@@ -257,9 +257,13 @@ export const scanRescanAll: Handler<typeof ScanRescanAll> = {
       notFound(input.scanId)
     if (ctx.core.session())
       throw new UnlighthouseError({ code: 'ACTIVE_SCAN_CONFLICT', message: 'A scan is already in flight' })
-    // Drop all routes for this scan; crawler will re-discover async, consumers poll scan.status.
     await ctx.storage.routes.delete(input.scanId)
-    const session = ctx.core.run()
+    const session = ctx.core.run({
+      overrides: {
+        site: scan.site,
+        device: scan.device ? [scan.device as 'mobile' | 'desktop'] : undefined,
+      },
+    })
     return { scanId: session.scanId, queued: 0 } as CommandOutput<typeof ScanRescanAll>
   },
 }
