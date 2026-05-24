@@ -94,4 +94,77 @@ export const CompareFindPrevious = defineCommand({
   }),
 })
 
+// ── compare.detail ─────────────────────────────────────────────────────────
+// Full route-by-route comparison for the UI. Unlike compare.run (which only
+// returns threshold-exceeding diffs), this returns every matched route with
+// all metrics side-by-side.
+
+const CompareRouteMetricsSchema = z.object({
+  scorePerformance: z.number().nullable(),
+  scoreAccessibility: z.number().nullable(),
+  scoreSeo: z.number().nullable(),
+  scoreBestPractices: z.number().nullable(),
+  lcp: z.number().nullable(),
+  cls: z.number().nullable(),
+  inp: z.number().nullable(),
+  fcp: z.number().nullable(),
+  ttfb: z.number().nullable(),
+  tbt: z.number().nullable(),
+  si: z.number().nullable(),
+})
+
+const CompareRouteRowSchema = z.object({
+  url: UrlSchema,
+  path: z.string(),
+  device: DeviceSchema,
+  base: CompareRouteMetricsSchema.nullable(),
+  current: CompareRouteMetricsSchema.nullable(),
+  deltas: CompareRouteMetricsSchema,
+  status: z.enum(['unchanged', 'regressed', 'improved', 'added', 'removed']),
+})
+export type CompareRouteRow = z.infer<typeof CompareRouteRowSchema>
+
+export const CompareDetail = defineCommand({
+  name: 'compare.detail',
+  description: 'Full route-by-route comparison of two scans with all metrics.',
+  input: z.object({
+    baseScanId: ScanIdSchema,
+    currentScanId: ScanIdSchema,
+    page: z.number().int().positive().optional().default(1),
+    pageSize: z.number().int().positive().max(500).optional().default(100),
+    sort: z.string().optional().default('delta-perf-desc'),
+    filter: z.object({
+      url: z.string().optional(),
+      status: z.enum(['all', 'regressed', 'improved', 'changed', 'added', 'removed']).optional().default('all'),
+    }).optional(),
+  }),
+  output: z.object({
+    baseScanId: ScanIdSchema,
+    currentScanId: ScanIdSchema,
+    summary: z.object({
+      totalRoutes: z.number().int().nonnegative(),
+      changedRoutes: z.number().int().nonnegative(),
+      regressedRoutes: z.number().int().nonnegative(),
+      improvedRoutes: z.number().int().nonnegative(),
+      addedRoutes: z.number().int().nonnegative(),
+      removedRoutes: z.number().int().nonnegative(),
+      avgScoreDelta: z.number().nullable(),
+      categoryDeltas: z.array(z.object({
+        category: z.string(),
+        label: z.string(),
+        base: z.number().nullable(),
+        current: z.number().nullable(),
+        delta: z.number().nullable(),
+      })),
+    }),
+    routes: z.object({
+      items: z.array(CompareRouteRowSchema),
+      total: z.number().int().nonnegative(),
+      page: z.number().int().positive(),
+      pageSize: z.number().int().positive(),
+    }),
+  }),
+  exitCodes: { SCAN_NOT_FOUND: 64 },
+})
+
 export { CompareReportSchema, RouteDiffSchema }

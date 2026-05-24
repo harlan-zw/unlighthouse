@@ -9,6 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
@@ -137,7 +144,10 @@ function scoreColor(score: number | null) {
         </h1>
         <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground">
           <ScanStatusBadge :status="resolvedStatus" />
-          <Badge v-if="scanMeta?.device" variant="outline" class="text-xs">{{ scanMeta.device }}</Badge>
+          <Badge v-if="scanMeta?.device" variant="outline" class="text-xs">
+            <Icon :name="scanMeta.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-2.5 mr-0.5" />
+            {{ scanMeta.device }}
+          </Badge>
           <span v-if="scanMeta?.startedAt" class="text-xs">{{ new Date(scanMeta.startedAt).toLocaleString() }}</span>
         </div>
       </div>
@@ -296,6 +306,7 @@ function scoreColor(score: number | null) {
           <TableHeader>
             <TableRow>
               <TableHead>URL</TableHead>
+              <TableHead class="w-16 text-center">Device</TableHead>
               <TableHead class="w-24 text-right">Score</TableHead>
               <TableHead class="w-32">Weakest</TableHead>
             </TableRow>
@@ -308,6 +319,9 @@ function scoreColor(score: number | null) {
               @click="navigateTo(`/scan/${scanId}/route/${encodeURIComponent(new URL(r.url).pathname)}`)"
             >
               <TableCell class="font-mono text-xs truncate max-w-md">{{ r.url }}</TableCell>
+              <TableCell class="text-center">
+                <Icon v-if="r.device" :name="r.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5 text-muted-foreground inline" />
+              </TableCell>
               <TableCell class="text-right">
                 <span class="font-bold tabular-nums" :class="scoreToColor(r.score)">{{ scoreToLabel(r.score) }}</span>
               </TableCell>

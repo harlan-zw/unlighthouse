@@ -2,7 +2,7 @@
 
 import type { HandlerMap } from './types'
 import { assertEvaluate } from './assert'
-import { compareFindPrevious, compareMarkdown, compareRun } from './compare'
+import { compareDetail, compareFindPrevious, compareMarkdown, compareRun } from './compare'
 import { eventsSubscribe, eventsTail } from './events'
 import { historyList, historyRescan } from './history'
 import { auditorsList, health, manifest } from './meta'
@@ -41,6 +41,7 @@ export function createHandlers(): HandlerMap {
     'history.list': historyList,
     'history.rescan': historyRescan,
     'compare.run': compareRun,
+    'compare.detail': compareDetail,
     'compare.markdown': compareMarkdown,
     'compare.findPrevious': compareFindPrevious,
     'assert.evaluate': assertEvaluate,

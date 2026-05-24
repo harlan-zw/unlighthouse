@@ -3,7 +3,7 @@
 
 import type { Site } from './sites'
 import { AssertEvaluate } from './assert'
-import { CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
+import { CompareDetail, CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
 import { EventsSubscribe, EventsTail } from './events'
 import { HistoryList, HistoryRescan } from './history'
 import { AuditorsList, Health, Manifest } from './meta'
@@ -31,6 +31,7 @@ export * from './compare'
 export {
   AssertEvaluate,
   AuditorsList,
+  CompareDetail,
   CompareFindPrevious,
   CompareMarkdown,
   CompareRun,
@@ -101,6 +102,7 @@ export const commands = {
   'history.rescan': HistoryRescan,
 
   'compare.run': CompareRun,
+  'compare.detail': CompareDetail,
   'compare.markdown': CompareMarkdown,
   'compare.findPrevious': CompareFindPrevious,
 

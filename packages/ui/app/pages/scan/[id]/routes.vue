@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { Card, CardContent } from '@/components/ui/card'
+import type { ColumnDef, SortingState } from '@tanstack/vue-table'
+import { FlexRender, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -11,13 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useScanStore } from '~/stores/scan'
 
 const route = useRoute()
@@ -30,28 +31,8 @@ const { scoreToColor, scoreToLabel } = useScoreColor()
 const page = ref(1)
 const pageSize = 50
 const urlFilter = ref('')
-const sortKey = ref('score-asc')
-
-const sortOptions = [
-  { value: 'score-asc', label: 'Score (low to high)' },
-  { value: 'score-desc', label: 'Score (high to low)' },
-  { value: 'lcp-desc', label: 'LCP (slowest)' },
-  { value: 'lcp-asc', label: 'LCP (fastest)' },
-  { value: 'cls-desc', label: 'CLS (worst)' },
-  { value: 'cls-asc', label: 'CLS (best)' },
-  { value: 'fcp-desc', label: 'FCP (slowest)' },
-  { value: 'fcp-asc', label: 'FCP (fastest)' },
-  { value: 'tbt-desc', label: 'TBT (slowest)' },
-  { value: 'tbt-asc', label: 'TBT (fastest)' },
-  { value: 'ttfb-desc', label: 'TTFB (slowest)' },
-  { value: 'ttfb-asc', label: 'TTFB (fastest)' },
-  { value: 'si-desc', label: 'SI (slowest)' },
-  { value: 'si-asc', label: 'SI (fastest)' },
-  { value: 'inp-desc', label: 'INP (slowest)' },
-  { value: 'inp-asc', label: 'INP (fastest)' },
-  { value: 'url-asc', label: 'URL (A-Z)' },
-  { value: 'capturedAt-desc', label: 'Most Recent' },
-]
+const deviceFilter = ref<string>('')
+const serverSort = ref('score-asc')
 
 const { data: scanResults, refresh } = useAsyncData(
   `scan-routes-${scanId.value}`,
@@ -59,16 +40,23 @@ const { data: scanResults, refresh } = useAsyncData(
     scanId: scanId.value,
     page: page.value,
     pageSize,
-    sort: sortKey.value as any,
+    sort: serverSort.value as any,
+    device: deviceFilter.value || undefined,
     filter: urlFilter.value ? { urlPattern: urlFilter.value } : undefined,
   }).catch(() => null),
-  { watch: [scanId, page, sortKey, urlFilter] },
+  { watch: [scanId, page, serverSort, urlFilter, deviceFilter] },
 )
 
 const { $ws } = useNuxtApp()
 const ws = $ws as any
 onMounted(() => ws.on('scan:complete', refresh))
 onUnmounted(() => ws.off('scan:complete', refresh))
+
+const hasMultipleDevices = computed(() => {
+  if (!scanResults.value?.items) return false
+  const devices = new Set(scanResults.value.items.map((r: any) => r.device))
+  return devices.size > 1
+})
 
 function formatMetric(value: number | null, unit: string = 'ms') {
   if (value === null) return '—'
@@ -93,6 +81,127 @@ function onFilterInput(e: Event) {
 function openRoute(r: any) {
   router.push(`/scan/${scanId.value}/route/${encodeURIComponent(r.path || r.url)}`)
 }
+
+interface RouteRow {
+  url: string
+  path: string
+  device: string
+  scorePerformance: number | null
+  scoreAccessibility: number | null
+  scoreSeo: number | null
+  scoreBestPractices: number | null
+  lcp: number | null
+  cls: number | null
+  tbt: number | null
+}
+
+const columns = computed<ColumnDef<RouteRow>[]>(() => {
+  const cols: ColumnDef<RouteRow>[] = [
+    {
+      accessorKey: 'path',
+      header: 'Path',
+      cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-xs' }, row.original.path || row.original.url),
+    },
+  ]
+
+  if (hasMultipleDevices.value && !deviceFilter.value) {
+    cols.push({
+      accessorKey: 'device',
+      header: 'Device',
+      cell: ({ row }) => h(resolveComponent('Icon'), {
+        name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor',
+        class: 'size-3.5 text-muted-foreground',
+      }),
+      size: 60,
+    })
+  }
+
+  cols.push(
+    {
+      accessorKey: 'scorePerformance',
+      header: 'Perf',
+      cell: ({ row }) => {
+        const score = row.original.scorePerformance
+        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
+      },
+      size: 60,
+    },
+    {
+      accessorKey: 'scoreAccessibility',
+      header: 'A11y',
+      cell: ({ row }) => {
+        const score = row.original.scoreAccessibility
+        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
+      },
+      size: 60,
+    },
+    {
+      accessorKey: 'scoreSeo',
+      header: 'SEO',
+      cell: ({ row }) => {
+        const score = row.original.scoreSeo
+        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
+      },
+      size: 60,
+    },
+    {
+      accessorKey: 'scoreBestPractices',
+      header: 'BP',
+      cell: ({ row }) => {
+        const score = row.original.scoreBestPractices
+        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
+      },
+      size: 60,
+    },
+    {
+      accessorKey: 'lcp',
+      header: 'LCP',
+      cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.lcp)),
+      size: 80,
+    },
+    {
+      accessorKey: 'cls',
+      header: 'CLS',
+      cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.cls, '')),
+      size: 60,
+    },
+    {
+      accessorKey: 'tbt',
+      header: 'TBT',
+      cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.tbt)),
+      size: 80,
+    },
+  )
+
+  return cols
+})
+
+const sorting = ref<SortingState>([])
+
+const table = useVueTable({
+  get data() { return (scanResults.value?.items ?? []) as RouteRow[] },
+  get columns() { return columns.value },
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  state: {
+    get sorting() { return sorting.value },
+  },
+  onSortingChange: (updater) => {
+    sorting.value = typeof updater === 'function' ? updater(sorting.value) : updater
+  },
+  manualPagination: true,
+})
+
+const sortOptions = [
+  { value: 'score-asc', label: 'Score (low → high)' },
+  { value: 'score-desc', label: 'Score (high → low)' },
+  { value: 'lcp-desc', label: 'LCP (slowest)' },
+  { value: 'cls-desc', label: 'CLS (worst)' },
+  { value: 'tbt-desc', label: 'TBT (slowest)' },
+  { value: 'ttfb-desc', label: 'TTFB (slowest)' },
+  { value: 'url-asc', label: 'URL (A-Z)' },
+  { value: 'capturedAt-desc', label: 'Most Recent' },
+]
 </script>
 
 <template>
@@ -103,12 +212,33 @@ function openRoute(r: any) {
       <Badge v-if="scanResults" variant="secondary" class="text-xs">{{ scanResults.total }} total</Badge>
     </div>
 
-    <div class="flex items-center gap-3">
+    <!-- Toolbar -->
+    <div class="flex items-center gap-3 flex-wrap">
       <div class="relative flex-1 max-w-sm">
         <Icon name="lucide:search" class="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
         <Input placeholder="Filter by URL..." class="pl-8" :model-value="urlFilter" @input="onFilterInput" />
       </div>
-      <Select v-model="sortKey">
+      <Select v-if="hasMultipleDevices || deviceFilter" v-model="deviceFilter">
+        <SelectTrigger class="w-36">
+          <SelectValue placeholder="All Devices" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">All Devices</SelectItem>
+          <SelectItem value="mobile">
+            <div class="flex items-center gap-1.5">
+              <Icon name="lucide:smartphone" class="size-3.5" />
+              Mobile
+            </div>
+          </SelectItem>
+          <SelectItem value="desktop">
+            <div class="flex items-center gap-1.5">
+              <Icon name="lucide:monitor" class="size-3.5" />
+              Desktop
+            </div>
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <Select v-model="serverSort">
         <SelectTrigger class="w-48">
           <SelectValue />
         </SelectTrigger>
@@ -118,60 +248,61 @@ function openRoute(r: any) {
       </Select>
     </div>
 
-    <Card>
-      <CardContent class="p-0">
-        <div v-if="scanResults?.items?.length" class="overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead class="min-w-[200px]">Path</TableHead>
-                <TableHead class="w-16 text-center">Perf</TableHead>
-                <TableHead class="w-16 text-center">A11y</TableHead>
-                <TableHead class="w-16 text-center">SEO</TableHead>
-                <TableHead class="w-16 text-center">BP</TableHead>
-                <TableHead class="w-20 text-right">LCP</TableHead>
-                <TableHead class="w-16 text-right">CLS</TableHead>
-                <TableHead class="w-20 text-right">TBT</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow
-                v-for="r in scanResults.items"
-                :key="r.url + r.device"
-                class="cursor-pointer hover:bg-muted/50"
-                @click="openRoute(r)"
+    <!-- DataTable -->
+    <div class="rounded-lg border overflow-auto">
+      <Table>
+        <TableHeader>
+          <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+            <TableHead
+              v-for="header in headerGroup.headers"
+              :key="header.id"
+              :class="[
+                header.column.id === 'path' ? 'min-w-[200px]' : '',
+                ['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices', 'device'].includes(header.column.id) ? 'text-center w-16' : '',
+                ['lcp', 'cls', 'tbt'].includes(header.column.id) ? 'text-right w-20' : '',
+              ]"
+            >
+              <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <template v-if="table.getRowModel().rows.length">
+            <TableRow
+              v-for="row in table.getRowModel().rows"
+              :key="row.id"
+              class="cursor-pointer hover:bg-muted/50"
+              @click="openRoute(row.original)"
+            >
+              <TableCell
+                v-for="cell in row.getVisibleCells()"
+                :key="cell.id"
+                :class="[
+                  ['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices', 'device'].includes(cell.column.id) ? 'text-center' : '',
+                  ['lcp', 'cls', 'tbt'].includes(cell.column.id) ? 'text-right' : '',
+                ]"
               >
-                <TableCell class="font-mono text-xs">
-                  <div class="truncate max-w-xs">{{ r.path || r.url }}</div>
-                </TableCell>
-                <TableCell class="text-center">
-                  <span class="text-xs font-bold tabular-nums" :class="scoreToColor(r.scorePerformance)">{{ scoreToLabel(r.scorePerformance) }}</span>
-                </TableCell>
-                <TableCell class="text-center">
-                  <span class="text-xs font-bold tabular-nums" :class="scoreToColor(r.scoreAccessibility)">{{ scoreToLabel(r.scoreAccessibility) }}</span>
-                </TableCell>
-                <TableCell class="text-center">
-                  <span class="text-xs font-bold tabular-nums" :class="scoreToColor(r.scoreSeo)">{{ scoreToLabel(r.scoreSeo) }}</span>
-                </TableCell>
-                <TableCell class="text-center">
-                  <span class="text-xs font-bold tabular-nums" :class="scoreToColor(r.scoreBestPractices)">{{ scoreToLabel(r.scoreBestPractices) }}</span>
-                </TableCell>
-                <TableCell class="text-right tabular-nums text-xs text-muted-foreground">{{ formatMetric(r.lcp) }}</TableCell>
-                <TableCell class="text-right tabular-nums text-xs text-muted-foreground">{{ formatMetric(r.cls, '') }}</TableCell>
-                <TableCell class="text-right tabular-nums text-xs text-muted-foreground">{{ formatMetric(r.tbt) }}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-        <div v-else class="text-center py-12 text-muted-foreground">
-          <p v-if="store.isActive">Routes will appear as they are scanned...</p>
-          <p v-else>No routes found.</p>
-        </div>
-      </CardContent>
-    </Card>
+                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+              </TableCell>
+            </TableRow>
+          </template>
+          <template v-else>
+            <TableRow>
+              <TableCell :colspan="columns.length" class="text-center py-12 text-muted-foreground">
+                <p v-if="store.isActive">Routes will appear as they are scanned...</p>
+                <p v-else>No routes found.</p>
+              </TableCell>
+            </TableRow>
+          </template>
+        </TableBody>
+      </Table>
+    </div>
 
+    <!-- Pagination -->
     <div v-if="totalPages > 1" class="flex items-center justify-between">
-      <span class="text-sm text-muted-foreground">Page {{ page }} of {{ totalPages }}</span>
+      <span class="text-sm text-muted-foreground">
+        Page {{ page }} of {{ totalPages }} · {{ scanResults?.total ?? 0 }} routes
+      </span>
       <div class="flex gap-1">
         <Button variant="outline" size="sm" :disabled="page <= 1" @click="page--">
           <Icon name="lucide:chevron-left" class="size-4" />

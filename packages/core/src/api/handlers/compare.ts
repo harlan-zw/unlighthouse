@@ -3,6 +3,7 @@
 import type {
   Category,
   CommandOutput,
+  CompareDetail,
   CompareFindPrevious,
   CompareMarkdown,
   CompareRun,
@@ -131,6 +132,13 @@ async function runCompare(ctx: HandlerCtx, baseScanId: string, currentScanId: st
     regressions,
     improvements,
     thresholds: resolvedThresholds,
+    summary: null as {
+      totalRegressions: number
+      totalImprovements: number
+      avgScoreDelta: number | null
+      categoryDeltas: Array<{ category: string, label: string, base: number | null, current: number | null, delta: number | null }>
+    } | null,
+    packDiffs: [] as Array<{ packName: string, hasChanges: boolean }>,
   }
 }
 
@@ -138,8 +146,187 @@ export const compareRun: Handler<typeof CompareRun> = {
   command: {} as typeof CompareRun,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
+
+    const [baseScan, currentScan] = await Promise.all([
+      ctx.storage.scans.get(input.baseScanId as unknown as never),
+      ctx.storage.scans.get(input.currentScanId as unknown as never),
+    ])
+
+    const baseAvg = baseScan?.summary?.scoreAverage ?? null
+    const currentAvg = currentScan?.summary?.scoreAverage ?? null
+
+    const baseScores = baseScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined
+    const currentScores = currentScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined
+
+    const categoryDeltas = CATEGORY_ORDER.map((category) => {
+      const base = baseScores?.[category] ?? null
+      const current = currentScores?.[category] ?? null
+      const delta = base != null && current != null ? current - base : null
+      return { category, label: CATEGORY_LABEL[category], base, current, delta }
+    })
+
+    report.summary = {
+      totalRegressions: report.regressions.length,
+      totalImprovements: report.improvements.length,
+      avgScoreDelta: baseAvg != null && currentAvg != null ? currentAvg - baseAvg : null,
+      categoryDeltas,
+    }
+
+    report.packDiffs = []
+
     await emitCompareComplete(ctx, input.baseScanId, input.currentScanId, report.regressions.length, report.improvements.length)
     return report as unknown as CommandOutput<typeof CompareRun>
+  },
+}
+
+// ── compare.detail ─────────────────────────────────────────────────────────
+
+const METRIC_KEYS = ['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices', 'lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si'] as const
+const SCORE_KEYS = new Set(['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices'])
+
+function extractMetrics(route: ScanRoute) {
+  const m: Record<string, number | null> = {}
+  for (const k of METRIC_KEYS)
+    m[k] = (route as unknown as Record<string, number | null>)[k] ?? null
+  return m
+}
+
+function computeDeltas(base: Record<string, number | null> | null, current: Record<string, number | null> | null) {
+  const d: Record<string, number | null> = {}
+  for (const k of METRIC_KEYS)
+    d[k] = base?.[k] != null && current?.[k] != null ? current[k]! - base[k]! : null
+  return d
+}
+
+function classifyRow(deltas: Record<string, number | null>, base: Record<string, number | null> | null, current: Record<string, number | null> | null): 'unchanged' | 'regressed' | 'improved' | 'added' | 'removed' {
+  if (!base) return 'added'
+  if (!current) return 'removed'
+  let hasRegression = false
+  let hasImprovement = false
+  for (const k of METRIC_KEYS) {
+    const d = deltas[k]
+    if (d == null) continue
+    const isScore = SCORE_KEYS.has(k)
+    if (isScore ? d < -0.01 : d > 50) hasRegression = true
+    if (isScore ? d > 0.01 : d < -50) hasImprovement = true
+  }
+  if (hasRegression) return 'regressed'
+  if (hasImprovement) return 'improved'
+  return 'unchanged'
+}
+
+interface DetailRow {
+  url: string
+  path: string
+  device: string
+  base: Record<string, number | null> | null
+  current: Record<string, number | null> | null
+  deltas: Record<string, number | null>
+  status: 'unchanged' | 'regressed' | 'improved' | 'added' | 'removed'
+}
+
+export const compareDetail: Handler<typeof CompareDetail> = {
+  command: {} as typeof CompareDetail,
+  async run(input, ctx) {
+    const [baseRoutes, currentRoutes] = await Promise.all([
+      loadRoutes(ctx, input.baseScanId),
+      loadRoutes(ctx, input.currentScanId),
+    ])
+
+    const baseByKey = new Map(baseRoutes.map(r => [rowKey(r), r]))
+    const currentByKey = new Map(currentRoutes.map(r => [rowKey(r), r]))
+    const allKeys = new Set([...baseByKey.keys(), ...currentByKey.keys()])
+
+    const allRows: DetailRow[] = []
+    for (const key of allKeys) {
+      const baseRoute = baseByKey.get(key)
+      const currentRoute = currentByKey.get(key)
+      const route = currentRoute ?? baseRoute!
+      const baseMetrics = baseRoute ? extractMetrics(baseRoute) : null
+      const currentMetrics = currentRoute ? extractMetrics(currentRoute) : null
+      const deltas = computeDeltas(baseMetrics, currentMetrics)
+      const status = classifyRow(deltas, baseMetrics, currentMetrics)
+      allRows.push({
+        url: route.url,
+        path: route.path,
+        device: route.device,
+        base: baseMetrics,
+        current: currentMetrics,
+        deltas,
+        status,
+      })
+    }
+
+    const filter = input.filter ?? {}
+    let filtered = allRows
+    if (filter.url)
+      filtered = filtered.filter(r => r.url.includes(filter.url!) || r.path.includes(filter.url!))
+    if (filter.status && filter.status !== 'all') {
+      if (filter.status === 'changed')
+        filtered = filtered.filter(r => r.status !== 'unchanged')
+      else
+        filtered = filtered.filter(r => r.status === filter.status)
+    }
+
+    const sort = input.sort || 'delta-perf-desc'
+    const [sortType, sortKey, sortDir] = sort.split('-')
+    if (sortType === 'delta') {
+      const metricKey = sortKey === 'perf' ? 'scorePerformance'
+        : sortKey === 'a11y' ? 'scoreAccessibility'
+          : sortKey === 'seo' ? 'scoreSeo'
+            : sortKey === 'bp' ? 'scoreBestPractices'
+              : sortKey === 'lcp' ? 'lcp' : sortKey === 'cls' ? 'cls' : 'scorePerformance'
+      filtered.sort((a, b) => {
+        const av = a.deltas[metricKey] ?? 0
+        const bv = b.deltas[metricKey] ?? 0
+        return sortDir === 'asc' ? av - bv : bv - av
+      })
+    }
+    else {
+      filtered.sort((a, b) => a.url.localeCompare(b.url))
+    }
+
+    const total = filtered.length
+    const page = input.page ?? 1
+    const pageSize = input.pageSize ?? 100
+    const start = (page - 1) * pageSize
+    const items = filtered.slice(start, start + pageSize)
+
+    const counts = { regressed: 0, improved: 0, added: 0, removed: 0, unchanged: 0 }
+    for (const r of allRows) counts[r.status]++
+
+    const [baseScan, currentScan] = await Promise.all([
+      ctx.storage.scans.get(input.baseScanId as unknown as never),
+      ctx.storage.scans.get(input.currentScanId as unknown as never),
+    ])
+
+    const baseScores = baseScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined
+    const currentScores = currentScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined
+    const baseAvg = baseScan?.summary?.scoreAverage ?? null
+    const currentAvg = currentScan?.summary?.scoreAverage ?? null
+
+    const categoryDeltas = CATEGORY_ORDER.map((category) => {
+      const base = baseScores?.[category] ?? null
+      const current = currentScores?.[category] ?? null
+      const delta = base != null && current != null ? current - base : null
+      return { category, label: CATEGORY_LABEL[category], base, current, delta }
+    })
+
+    return {
+      baseScanId: input.baseScanId,
+      currentScanId: input.currentScanId,
+      summary: {
+        totalRoutes: allRows.length,
+        changedRoutes: counts.regressed + counts.improved + counts.added + counts.removed,
+        regressedRoutes: counts.regressed,
+        improvedRoutes: counts.improved,
+        addedRoutes: counts.added,
+        removedRoutes: counts.removed,
+        avgScoreDelta: baseAvg != null && currentAvg != null ? currentAvg - baseAvg : null,
+        categoryDeltas,
+      },
+      routes: { items, total, page, pageSize },
+    } as unknown as CommandOutput<typeof CompareDetail>
   },
 }
 
@@ -241,12 +428,8 @@ export const compareMarkdown: Handler<typeof CompareMarkdown> = {
   command: {} as typeof CompareMarkdown,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
-    await emitCompareComplete(ctx, input.baseScanId, input.currentScanId, report.regressions.length, report.improvements.length)
     const title = input.title ?? 'Unlighthouse comparison'
 
-    // Pull both scan summaries so we can render the headline `scoreAverage`
-    // delta and per-category table. `runCompare` already validates that both
-    // scans exist (throws SCAN_NOT_FOUND otherwise), so these reads are safe.
     const [baseScan, currentScan] = await Promise.all([
       ctx.storage.scans.get(input.baseScanId as unknown as never),
       ctx.storage.scans.get(input.currentScanId as unknown as never),

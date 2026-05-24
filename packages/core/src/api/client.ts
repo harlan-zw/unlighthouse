@@ -37,6 +37,7 @@ const GET_COMMANDS = new Set<CommandName>([
   'route.audits',
   'history.list',
   'compare.findPrevious',
+  'compare.detail',
   'pack.list',
   'query.routes',
   'events.subscribe',
