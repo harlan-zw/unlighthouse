@@ -32,9 +32,7 @@ const GET_COMMANDS = new Set<CommandName>([
   'scan.summary',
   'scan.meta',
   'scan.current',
-  'route.get',
   'history.list',
-  'history.get',
   'compare.findPrevious',
   'pack.list',
   'query.routes',
@@ -44,7 +42,6 @@ const GET_COMMANDS = new Set<CommandName>([
   'health',
   'auditors.list',
   'sites.list',
-  'sites.get',
 ])
 
 /**

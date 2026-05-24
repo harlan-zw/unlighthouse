@@ -4,7 +4,7 @@
 
 import type { Storage } from '@unlighthouse/contracts'
 import { packRun } from '@unlighthouse/core/api/handlers/pack'
-import { routeGet, routeRescan } from '@unlighthouse/core/api/handlers/route'
+import { routeRescan } from '@unlighthouse/core/api/handlers/route'
 import { scanResults } from '@unlighthouse/core/api/handlers/scan'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'

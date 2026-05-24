@@ -5,7 +5,6 @@ import type {
   Site,
   SitesCreate,
   SitesDelete,
-  SitesGet,
   SitesList,
 } from '@unlighthouse/contracts'
 import type { Handler } from './types'
@@ -40,14 +39,6 @@ export const sitesList: Handler<typeof SitesList> = {
   async run(_input, ctx) {
     const store = requireStore(ctx as { sites?: SitesStore })
     return { sites: await store.list() } as CommandOutput<typeof SitesList>
-  },
-}
-
-export const sitesGet: Handler<typeof SitesGet> = {
-  command: {} as typeof SitesGet,
-  async run(input, ctx) {
-    const store = requireStore(ctx as { sites?: SitesStore })
-    return { site: await store.get(input.id) } as CommandOutput<typeof SitesGet>
   },
 }
 

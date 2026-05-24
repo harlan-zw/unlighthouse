@@ -37,20 +37,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 const GET_PREFIXES = ['query.']
 const GET_EXACT = new Set<string>([
   'history.list',
-  'history.get',
   'scan.status',
   'scan.results',
   'scan.summary',
   'scan.meta',
   'scan.current',
-  'route.get',
   'compare.findPrevious',
   'pack.list',
   'manifest',
   'health',
   'auditors.list',
   'sites.list',
-  'sites.get',
 ])
 
 function defaultMethod(cmd: Command): HttpMethod {

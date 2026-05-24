@@ -23,13 +23,6 @@ export const SitesList = defineCommand({
   output: z.object({ sites: z.array(SiteSchema) }),
 })
 
-export const SitesGet = defineCommand({
-  name: 'sites.get',
-  description: 'Get a single site by id.',
-  input: z.object({ id: z.string() }),
-  output: z.object({ site: SiteSchema.nullable() }),
-})
-
 export const SitesCreate = defineCommand({
   name: 'sites.create',
   description: 'Create (or upsert by id) a site.',

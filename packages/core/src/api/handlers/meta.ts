@@ -2,7 +2,6 @@
 
 import type {
   AuditorsList,
-  AuditorsTest,
   CommandOutput,
   Health,
   Manifest,
@@ -93,23 +92,3 @@ export const auditorsList: Handler<typeof AuditorsList> = {
   },
 }
 
-export const auditorsTest: Handler<typeof AuditorsTest> = {
-  command: {} as typeof AuditorsTest,
-  async run(input, ctx) {
-    if (!ctx.auditors?.test) {
-      return {
-        ok: false,
-        durationMs: 0,
-        lhr: null,
-        error: { code: 'NOT_SUPPORTED', message: 'auditors.test is not wired by the host preset' },
-      } as CommandOutput<typeof AuditorsTest>
-    }
-    const start = Date.now()
-    const info = await ctx.auditors.test(input.auditor)
-    return {
-      ok: info.ok ?? true,
-      durationMs: Date.now() - start,
-      lhr: null,
-    } as CommandOutput<typeof AuditorsTest>
-  },
-}

@@ -5,11 +5,11 @@ import type { Site } from './sites'
 import { AssertEvaluate } from './assert'
 import { CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
 import { EventsSubscribe, EventsTail } from './events'
-import { HistoryDelete, HistoryGet, HistoryList, HistoryRescan } from './history'
-import { AuditorsList, AuditorsTest, Health, Manifest } from './meta'
+import { HistoryList, HistoryRescan } from './history'
+import { AuditorsList, Health, Manifest } from './meta'
 import { PackList, PackRunCmd } from './pack'
 import { QueryRoutes } from './query'
-import { RouteGet, RouteRescan } from './route'
+import { RouteRescan } from './route'
 import {
   ScanCancel,
   ScanCurrent,
@@ -23,29 +23,25 @@ import {
   ScanStatusCmd,
   ScanSummaryCmd,
 } from './scan'
-import { SiteSchema, SitesCreate, SitesDelete, SitesGet, SitesList } from './sites'
+import { SiteSchema, SitesCreate, SitesDelete, SitesList } from './sites'
 
 export * from './compare'
 
 export {
   AssertEvaluate,
   AuditorsList,
-  AuditorsTest,
   CompareFindPrevious,
   CompareMarkdown,
   CompareRun,
   EventsSubscribe,
   EventsTail,
   Health,
-  HistoryDelete,
-  HistoryGet,
   HistoryList,
   HistoryRescan,
   Manifest,
   PackList,
   PackRunCmd,
   QueryRoutes,
-  RouteGet,
   RouteRescan,
   ScanCancel,
   ScanCurrent,
@@ -61,7 +57,6 @@ export {
   SiteSchema,
   SitesCreate,
   SitesDelete,
-  SitesGet,
   SitesList,
 }
 
@@ -92,12 +87,9 @@ export const commands = {
   'scan.current': ScanCurrent,
   'scan.rescanAll': ScanRescanAll,
 
-  'route.get': RouteGet,
   'route.rescan': RouteRescan,
 
   'history.list': HistoryList,
-  'history.get': HistoryGet,
-  'history.delete': HistoryDelete,
   'history.rescan': HistoryRescan,
 
   'compare.run': CompareRun,
@@ -117,10 +109,8 @@ export const commands = {
   'manifest': Manifest,
   'health': Health,
   'auditors.list': AuditorsList,
-  'auditors.test': AuditorsTest,
 
   'sites.list': SitesList,
-  'sites.get': SitesGet,
   'sites.create': SitesCreate,
   'sites.delete': SitesDelete,
 } as const
