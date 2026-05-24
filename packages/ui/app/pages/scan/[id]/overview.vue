@@ -87,7 +87,9 @@ const categoryCards = computed(() => {
 const navCards = [
   { label: 'All Routes', description: 'Browse all scanned pages with scores and metrics', icon: 'lucide:route', path: 'routes' },
   { label: 'Compare', description: 'Compare this scan against a previous run', icon: 'lucide:git-compare-arrows', path: 'compare' },
+  { label: 'Analysis Packs', description: 'Run CWV, images, SEO and more cross-route analyses', icon: 'lucide:package', path: 'packs' },
   { label: 'CrUX Field Data', description: 'Real-world Chrome user experience metrics over time', icon: 'lucide:globe', path: 'crux' },
+  { label: 'Event Stream', description: 'Real-time scan events and logs', icon: 'lucide:radio', path: 'events' },
 ]
 </script>
 

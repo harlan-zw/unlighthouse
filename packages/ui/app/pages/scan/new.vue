@@ -15,11 +15,12 @@ import {
 import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
+const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const store = useScanStore()
 
-const siteUrl = ref('')
+const siteUrl = ref((route.query.url as string) || '')
 const device = ref('mobile')
 const loading = ref(false)
 const showAdvanced = ref(false)

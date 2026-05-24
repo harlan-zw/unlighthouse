@@ -27,6 +27,13 @@ function toggleColorMode() {
             <span class="hidden sm:inline">New Scan</span>
           </NuxtLink>
           <NuxtLink
+            to="/sites"
+            class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Icon name="lucide:globe" class="size-3.5" />
+            <span class="hidden sm:inline">Sites</span>
+          </NuxtLink>
+          <NuxtLink
             to="/history"
             class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >

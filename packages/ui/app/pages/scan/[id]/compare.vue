@@ -3,6 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -104,6 +111,34 @@ function findScanLabel(id: string) {
   const scan = history.value?.items?.find(s => s.scanId === id)
   if (!scan) return id.slice(0, 8)
   return `${scan.site} — ${new Date(scan.startedAt).toLocaleDateString()}`
+}
+
+const markdownLoading = ref(false)
+const markdownContent = ref('')
+const showMarkdown = ref(false)
+
+async function exportMarkdown() {
+  if (!baseScanId.value) return
+  markdownLoading.value = true
+  try {
+    const result = await api['compare.markdown']({
+      baseScanId: baseScanId.value,
+      currentScanId: scanId,
+    })
+    markdownContent.value = result.markdown
+    showMarkdown.value = true
+  }
+  catch (err: any) {
+    toast.error('Export failed', { description: err.message })
+  }
+  finally {
+    markdownLoading.value = false
+  }
+}
+
+async function copyMarkdown() {
+  await navigator.clipboard.writeText(markdownContent.value)
+  toast.success('Copied to clipboard')
 }
 </script>
 
@@ -263,6 +298,33 @@ function findScanLabel(id: string) {
       <div v-if="!report.regressions.length && !report.improvements.length" class="text-center py-12 text-muted-foreground">
         No differences found between the two scans.
       </div>
+
+      <!-- Export -->
+      <div class="flex justify-end">
+        <Button variant="outline" :disabled="markdownLoading" @click="exportMarkdown">
+          <Icon v-if="markdownLoading" name="lucide:loader-2" class="size-4 mr-2 animate-spin" />
+          <Icon v-else name="lucide:file-text" class="size-4 mr-2" />
+          Export as Markdown
+        </Button>
+      </div>
     </template>
+
+    <!-- Markdown dialog -->
+    <Dialog v-model:open="showMarkdown">
+      <DialogContent class="sm:max-w-2xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            PR Comment
+            <Button size="sm" variant="outline" @click="copyMarkdown">
+              <Icon name="lucide:copy" class="size-3.5 mr-1" />
+              Copy
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        <ScrollArea class="h-[60vh]">
+          <pre class="text-xs font-mono whitespace-pre-wrap break-all p-4 bg-muted rounded-lg">{{ markdownContent }}</pre>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
