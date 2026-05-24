@@ -24,14 +24,16 @@ const { data: scanMeta } = useAsyncData(
   { watch: [scanId] },
 )
 
-const currentScanIsActive = computed(() =>
-  store.scanId === scanId.value && store.isActive,
-)
+const isCurrentScan = computed(() => store.scanId === scanId.value)
+const currentScanIsActive = computed(() => isCurrentScan.value && store.isActive)
 
-const scanIsComplete = computed(() => {
-  if (scanMeta.value?.summary) return true
-  return store.scanId === scanId.value && store.status === 'complete'
+const resolvedStatus = computed(() => {
+  if (scanMeta.value?.summary) return 'complete'
+  if (isCurrentScan.value) return store.status
+  return 'complete'
 })
+
+const scanIsComplete = computed(() => resolvedStatus.value === 'complete')
 
 const { data: scanSummary, refresh: refreshSummary } = useAsyncData(
   `scan-summary-${scanId.value}`,
@@ -77,7 +79,7 @@ const navCards = [
           {{ scanMeta?.site || store.site || 'Scan' }}
         </h1>
         <div class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-          <ScanStatusBadge :status="scanMeta?.summary ? 'complete' : store.status" />
+          <ScanStatusBadge :status="resolvedStatus" />
           <Badge v-if="scanMeta?.device" variant="outline" class="text-xs">{{ scanMeta.device }}</Badge>
           <span v-if="scanMeta?.startedAt" class="text-xs">{{ new Date(scanMeta.startedAt).toLocaleString() }}</span>
         </div>

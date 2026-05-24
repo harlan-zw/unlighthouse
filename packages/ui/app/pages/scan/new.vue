@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -11,16 +13,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'vue-sonner'
-
-const siteUrl = ref('')
-const device = ref('mobile')
-const loading = ref(false)
-
 import { useScanStore } from '~/stores/scan'
 
 const router = useRouter()
 const api = useApi()
 const store = useScanStore()
+
+const siteUrl = ref('')
+const device = ref('mobile')
+const loading = ref(false)
+const showAdvanced = ref(false)
 
 async function handleSubmit() {
   if (!siteUrl.value.trim()) return
@@ -56,17 +58,13 @@ async function handleSubmit() {
 <template>
   <div class="mx-auto max-w-lg space-y-6">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight">
-        New Scan
-      </h1>
-      <p class="text-muted-foreground">
-        Enter a website URL to start a Lighthouse scan.
-      </p>
+      <h1 class="text-2xl font-bold tracking-tight">New Scan</h1>
+      <p class="text-sm text-muted-foreground">Enter a website URL to start a Lighthouse audit.</p>
     </div>
 
     <Card>
       <CardContent class="pt-6">
-        <form class="space-y-6" @submit.prevent="handleSubmit">
+        <form class="space-y-5" @submit.prevent="handleSubmit">
           <div class="space-y-2">
             <Label for="site-url">Site URL</Label>
             <Input
@@ -75,7 +73,9 @@ async function handleSubmit() {
               placeholder="https://example.com"
               required
               autofocus
+              class="font-mono"
             />
+            <p class="text-xs text-muted-foreground">The homepage will be scanned. Subpages are discovered via sitemap and crawling.</p>
           </div>
 
           <div class="space-y-2">
@@ -86,19 +86,25 @@ async function handleSubmit() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="mobile">
-                  Mobile
+                  <div class="flex items-center gap-2">
+                    <Icon name="lucide:smartphone" class="size-4" />
+                    Mobile
+                  </div>
                 </SelectItem>
                 <SelectItem value="desktop">
-                  Desktop
+                  <div class="flex items-center gap-2">
+                    <Icon name="lucide:monitor" class="size-4" />
+                    Desktop
+                  </div>
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div class="flex items-center gap-3 pt-2">
-            <Button type="submit" :disabled="loading || !siteUrl.trim()">
+            <Button type="submit" :disabled="loading || !siteUrl.trim()" class="flex-1 sm:flex-none">
               <Icon v-if="loading" name="lucide:loader-2" class="size-4 mr-2 animate-spin" />
-              <Icon v-else name="lucide:scan" class="size-4 mr-2" />
+              <Icon v-else name="lucide:radar" class="size-4 mr-2" />
               Start Scan
             </Button>
             <Button type="button" variant="outline" @click="router.push('/')">
