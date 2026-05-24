@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const scanId = route.params.id as string
@@ -11,6 +12,22 @@ const config = useRuntimeConfig()
 const baseUrl = config.public.unlighthouseApiUrl as string
 const api = useApi()
 const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
+
+const rescanning = ref(false)
+
+async function rescanRoute() {
+  rescanning.value = true
+  try {
+    await api['route.rescan']({ scanId, url: routeData.value?.url || routePath })
+    toast.success('Route rescan started')
+  }
+  catch (err: any) {
+    toast.error('Rescan failed', { description: err.message })
+  }
+  finally {
+    rescanning.value = false
+  }
+}
 
 const { data: routeData, status } = useAsyncData(
   `route-detail-${scanId}-${routePath}`,
@@ -83,15 +100,22 @@ function metricColor(label: string, value: number | null): string {
 
     <template v-else>
       <!-- Header -->
-      <div>
-        <h1 class="text-lg font-bold font-mono break-all">{{ routeData.path || routeData.url }}</h1>
-        <div class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-          <Badge variant="outline" class="text-xs">{{ routeData.device }}</Badge>
-          <a :href="routeData.url" target="_blank" class="hover:underline flex items-center gap-1">
-            {{ routeData.url }}
-            <Icon name="lucide:external-link" class="size-3" />
-          </a>
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <h1 class="text-lg font-bold font-mono break-all">{{ routeData.path || routeData.url }}</h1>
+          <div class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+            <Badge variant="outline" class="text-xs">{{ routeData.device }}</Badge>
+            <a :href="routeData.url" target="_blank" class="hover:underline flex items-center gap-1">
+              {{ routeData.url }}
+              <Icon name="lucide:external-link" class="size-3" />
+            </a>
+          </div>
         </div>
+        <Button variant="outline" size="sm" :disabled="rescanning" @click="rescanRoute">
+          <Icon v-if="rescanning" name="lucide:loader-2" class="size-4 mr-1 animate-spin" />
+          <Icon v-else name="lucide:refresh-cw" class="size-4 mr-1" />
+          Rescan
+        </Button>
       </div>
 
       <!-- Category Scores -->

@@ -1,6 +1,5 @@
 export default defineNuxtConfig({
   ssr: false,
-  // extends: ['./layers/design-system'],
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', 'shadcn-nuxt', '@nuxtjs/color-mode', '@nuxt/icon'],
   css: ['~/assets/css/tailwind.css'],
   colorMode: {
@@ -8,12 +7,6 @@ export default defineNuxtConfig({
     fallback: 'dark',
     classSuffix: '',
   },
-  // fonts: {
-  //   families: [
-  //     { name: 'Satoshi', provider: 'google' },
-  //     { name: 'JetBrains Mono', provider: 'google' },
-  //   ],
-  // },
   icon: {
     serverBundle: 'local',
     collections: ['heroicons', 'lucide'],

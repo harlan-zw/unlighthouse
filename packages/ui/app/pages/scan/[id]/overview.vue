@@ -41,7 +41,7 @@ const { data: scanSummary, refresh: refreshSummary } = useAsyncData(
     if (!scanIsComplete.value) return Promise.resolve(null)
     return api['scan.summary']({ scanId: scanId.value }).catch(() => null)
   },
-  { watch: [scanId, scanIsComplete], immediate: false },
+  { watch: [scanId, scanIsComplete] },
 )
 
 const { $ws } = useNuxtApp()
@@ -67,6 +67,7 @@ const categoryCards = computed(() => {
 
 const navCards = [
   { label: 'All Routes', description: 'Browse all scanned pages with scores and metrics', icon: 'lucide:route', path: 'routes' },
+  { label: 'Compare', description: 'Compare this scan against a previous run', icon: 'lucide:git-compare-arrows', path: 'compare' },
 ]
 </script>
 
@@ -84,7 +85,14 @@ const navCards = [
           <span v-if="scanMeta?.startedAt" class="text-xs">{{ new Date(scanMeta.startedAt).toLocaleString() }}</span>
         </div>
       </div>
-      <ScanActions v-if="currentScanIsActive || store.status === 'paused'" />
+      <div class="flex items-center gap-2">
+        <ScanActions v-if="currentScanIsActive || store.status === 'paused'" />
+        <Button v-if="scanIsComplete && !currentScanIsActive" variant="outline" size="sm" :disabled="rescanningAll" @click="handleRescanAll">
+          <Icon v-if="rescanningAll" name="lucide:loader-2" class="size-4 mr-1 animate-spin" />
+          <Icon v-else name="lucide:refresh-cw" class="size-4 mr-1" />
+          Rescan All
+        </Button>
+      </div>
     </div>
 
     <!-- Active scan progress -->
