@@ -11,6 +11,7 @@ function makeFilter(events?: string[]) {
   return (e: HookEvent) => set.has(e.event)
 }
 
+// INTERNAL: not used by the UI; kept for backwards compatibility and test coverage.
 export const eventsSubscribe: Handler<typeof EventsSubscribe> = {
   command: {} as typeof EventsSubscribe,
   run(input, ctx) {

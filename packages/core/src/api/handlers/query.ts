@@ -11,6 +11,7 @@ function isLiteralSubstring(pattern: string): boolean {
   return /^[\w./\-:?#]+$/.test(pattern)
 }
 
+// INTERNAL: not used by the UI; kept for power users and test coverage (d029).
 export const queryRoutes: Handler<typeof QueryRoutes> = {
   command: {} as typeof QueryRoutes,
   async run(input, ctx) {

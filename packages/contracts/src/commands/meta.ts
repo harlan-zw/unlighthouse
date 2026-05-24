@@ -1,7 +1,6 @@
 // meta commands — self-describing surface, health, auditor introspection.
 // `manifest` is the load-bearing AI-integration command (v1.md lines 864–880).
-// `auditors.list` + `auditors.test` are CLI-hidden; their info surfaces via
-// `manifest` output (v1.md line 14).
+// `auditors.list` is CLI-hidden; its info also surfaces via `manifest` output.
 
 import { z } from 'zod'
 import { defineCommand } from './define'

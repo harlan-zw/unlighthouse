@@ -83,6 +83,7 @@ function evalAssertion(assertion: Assertion, routes: ScanRoute[], baseByKey: Map
   }
 }
 
+// INTERNAL: not used by the UI; CI bypasses this handler but kept for direct API users.
 export const assertEvaluate: Handler<typeof AssertEvaluate> = {
   command: {} as typeof AssertEvaluate,
   async run(input, ctx) {

@@ -22,7 +22,7 @@ import { defineCommand } from './define'
 // wire stays back-compatible.
 export const ScanStart = defineCommand({
   name: 'scan.start',
-  description: 'Start a new scan against a site. `device` accepts a single device ("mobile" or "desktop") or an array — pass `["mobile", "desktop"]` to run a multi-device matrix scan that audits every URL on both form-factors in one pass. Results are keyed on `(scanId, url, device)`; filter back with `device` on scan.results / pack.run / route.get. Omit to use the host default (mobile).',
+  description: 'Start a new scan against a site. `device` accepts a single device ("mobile" or "desktop") or an array — pass `["mobile", "desktop"]` to run a multi-device matrix scan that audits every URL on both form-factors in one pass. Results are keyed on `(scanId, url, device)`; filter back with `device` on scan.results / pack.run / query.routes. Omit to use the host default (mobile).',
   input: z.object({
     site: UrlSchema,
     device: z.union([DeviceSchema, z.array(DeviceSchema).min(1)]).optional(),

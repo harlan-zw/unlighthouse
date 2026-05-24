@@ -1,4 +1,4 @@
-// meta handlers: manifest, health, auditors.list, auditors.test.
+// meta handlers: manifest, health, auditors.list.
 
 import type {
   AuditorsList,
@@ -22,6 +22,7 @@ function toJsonSchema(schema: z.ZodType): unknown {
   return toJSON ? toJSON(schema) : { $todo: 'zod-toJSONSchema-unavailable' }
 }
 
+// INTERNAL: not used by the UI; kept for API discovery and tooling integration.
 export const manifest: Handler<typeof Manifest> = {
   command: {} as typeof Manifest,
   async run(_input, ctx) {
