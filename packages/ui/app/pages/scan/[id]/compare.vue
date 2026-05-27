@@ -74,6 +74,43 @@ watch(autoBase, (id) => {
 })
 
 const report = ref<any>(null)
+const copyingMarkdown = ref(false)
+
+async function copyAsMarkdown() {
+  if (!baseScanId.value) return
+  copyingMarkdown.value = true
+  try {
+    const res = await api['compare.markdown']({
+      baseScanId: baseScanId.value as any,
+      currentScanId: scanId as any,
+    })
+    // The clipboard API requires a secure context (https / localhost) and
+    // navigator.clipboard. Fall back to a textarea + execCommand for older
+    // browsers and the textarea trick on http tailnet URLs — the dashboard
+    // is served over a tailscale tunnel which is treated as secure, but
+    // belt-and-braces.
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(res.markdown)
+    }
+    else {
+      const ta = document.createElement('textarea')
+      ta.value = res.markdown
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    toast.success(res.hasRegressions ? 'Copied — regressions present' : 'Copied to clipboard')
+  }
+  catch (err: any) {
+    toast.error('Copy failed', { description: err.message })
+  }
+  finally {
+    copyingMarkdown.value = false
+  }
+}
 
 async function handleCompare() {
   if (!baseScanId.value) return
@@ -229,6 +266,18 @@ function fmtMetric(v: number | null, isScore: boolean) {
     </section>
 
     <template v-if="report">
+      <!-- Action bar — copy the comparison as a PR-ready Markdown block.
+           The handler reuses the same renderer the CI assert pipeline does,
+           so what gets pasted into a PR comment matches what the bot would
+           leave automatically. -->
+      <div class="flex justify-end">
+        <Button variant="outline" size="sm" :disabled="copyingMarkdown || !baseScanId" @click="copyAsMarkdown">
+          <Icon v-if="copyingMarkdown" name="lucide:loader-2" class="size-4 mr-2 animate-spin" />
+          <Icon v-else name="lucide:clipboard-copy" class="size-4 mr-2" />
+          Copy as Markdown
+        </Button>
+      </div>
+
       <!-- Summary stats -->
       <div class="flex items-center gap-6 flex-wrap border-b pb-5">
         <div class="text-center">
