@@ -219,6 +219,55 @@ export function createDashboardApi(storage: Storage): Router {
     return json
   }))
 
+  // Full-scan export — bundles the scan record + every route's metadata +
+  // every route's reconciled contract blob + all pack runs into a single
+  // self-contained JSON. Lets users archive a scan, share it offline, or
+  // feed it into downstream tooling without holding the dashboard open.
+  // Deliberately omits raw LHR blobs (they're megabytes each and already
+  // downloadable individually via /dashboard/lhr/:scanId/:path).
+  router.get('/export/:scanId', defineEventHandler(async (event) => {
+    const { scanId } = getRouterParams(event) as { scanId: string }
+    const scan = await storage.scans.get(scanId as never)
+    if (!scan) {
+      setResponseStatus(event, 404)
+      return { error: 'Scan not found' }
+    }
+
+    const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+
+    // Hydrate each route with its reconciled contract blob. Routes without
+    // a blob (imported scans that didn't carry LHR data) stay {contract:
+    // null} so the consumer can distinguish "no data" from "data lost".
+    const hydratedRoutes = await Promise.all(routes.map(async (r) => {
+      let contract: unknown = null
+      if (r.reportBlobKey) {
+        const blob = await storage.blobs.get(r.reportBlobKey.replace('.json', '.contract.json'))
+        if (blob) {
+          try { contract = JSON.parse(Buffer.from(blob).toString('utf-8')) }
+          catch { /* leave null */ }
+        }
+      }
+      return { ...r, contract }
+    }))
+
+    const packRuns = await storage.packRuns.listForScan(scanId as never).catch(() => [])
+
+    const payload = {
+      // Schema version so downstream tooling can guard against format
+      // changes. Bump when the wire shape changes incompatibly.
+      exportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      scan,
+      routes: hydratedRoutes,
+      packRuns,
+    }
+
+    setResponseHeader(event, 'Content-Type', 'application/json; charset=utf-8')
+    const safeName = `${scanId}-export.json`
+    setResponseHeader(event, 'Content-Disposition', `attachment; filename="${safeName}"`)
+    return payload
+  }))
+
   // Comparison endpoints
   const requireSqlDb = () => (storage as { db?: any }).db ?? null
 

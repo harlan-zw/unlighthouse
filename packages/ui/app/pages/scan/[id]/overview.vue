@@ -21,6 +21,7 @@ const router = useRouter()
 const api = useApi()
 const store = useScanStore()
 const scanId = computed(() => route.params.id as string)
+const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
 
 const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
 
@@ -179,6 +180,16 @@ function scoreColor(score: number | null) {
       </div>
       <div class="flex items-center gap-2">
         <ScanActions v-if="currentScanIsActive || store.status === 'paused'" />
+        <Button v-if="scanIsComplete && !currentScanIsActive" variant="outline" size="sm" as-child>
+          <a
+            :href="`${exportBaseUrl}/dashboard/export/${scanId}`"
+            :download="`${scanId}-export.json`"
+            title="Download a self-contained JSON of this scan (data only, no raw LHR blobs)"
+          >
+            <Icon name="lucide:download" class="size-4 mr-1" />
+            Export
+          </a>
+        </Button>
         <Button v-if="scanIsComplete && !currentScanIsActive" variant="outline" size="sm" :disabled="rescanningAll" @click="handleRescanAll">
           <Icon v-if="rescanningAll" name="lucide:loader-2" class="size-4 mr-1 animate-spin" />
           <Icon v-else name="lucide:refresh-cw" class="size-4 mr-1" />
