@@ -125,11 +125,35 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     return fs.readFile(htmlPath, 'utf-8')
   }))
 
-  // CORS for dev: the UI runs on :3000 while the API is on :5678. Open up
-  // everything because the host is bound to localhost by default; tighten if
-  // the listen address ever moves off the loopback.
+  // CORS. Default is the LAN-friendly localhost set so a fresh CLI
+  // still talks to the Nuxt UI on :3000. Hosted deploys override via
+  // UNLIGHTHOUSE_CORS_ORIGINS (comma-separated) to pin the dashboard
+  // origin(s) and reject everything else. `*` is still accepted as a
+  // sentinel for "open" but should never be combined with the auth gate
+  // — they cancel each other out as a security boundary.
+  const corsOriginsEnv = process.env.UNLIGHTHOUSE_CORS_ORIGINS
+  const corsAllowlist: string[] = corsOriginsEnv
+    ? corsOriginsEnv.split(',').map(s => s.trim()).filter(Boolean)
+    : ['http://localhost:3000', 'http://127.0.0.1:3000']
+  const corsAllowAny = corsAllowlist.includes('*')
+  log.info(`cors: ${corsAllowAny ? 'open (*)' : `allowlist [${corsAllowlist.join(', ')}]`}`)
+
   app.use(defineEventHandler((event) => {
-    setResponseHeader(event, 'Access-Control-Allow-Origin', '*')
+    const origin = getHeader(event, 'origin')
+    // Echo back the requesting origin only when it's allowed. Echoing
+    // `*` works for unauthenticated GETs but breaks credentialed
+    // requests (browsers reject `*` with credentials) — picking the
+    // single origin is broader-compatible and tighter.
+    if (origin && (corsAllowAny || corsAllowlist.includes(origin))) {
+      setResponseHeader(event, 'Access-Control-Allow-Origin', origin)
+      setResponseHeader(event, 'Vary', 'Origin')
+    }
+    else if (corsAllowAny && !origin) {
+      // Non-browser callers (curl, server-side fetch) skip Origin
+      // entirely; an Allow-Origin header is harmless and lets bare
+      // tools probe the API.
+      setResponseHeader(event, 'Access-Control-Allow-Origin', '*')
+    }
     setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS')
     setResponseHeader(event, 'Access-Control-Allow-Headers', 'Content-Type, Authorization')
     if (event.node.req.method === 'OPTIONS') {
@@ -158,6 +182,13 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
       // Don't refuse to start — operator may be experimenting — but log
       // loudly so a weak token isn't accidentally shipped to prod.
       logger?.warn?.('[auth] UNLIGHTHOUSE_API_TOKEN is shorter than 16 chars; use a high-entropy token (e.g. `openssl rand -hex 32`).')
+    }
+    if (corsAllowAny) {
+      // `*` CORS while auth is enforced means a successful XSS on a
+      // user's open browser tab could read responses — the token is the
+      // only barrier and we'd hand over the egress. Loud warn, don't
+      // refuse to start.
+      logger?.warn?.('[cors] UNLIGHTHOUSE_CORS_ORIGINS=* while UNLIGHTHOUSE_API_TOKEN is set. Pin specific origins instead.')
     }
     const expected = Buffer.from(apiToken, 'utf8')
     // The API base is `routerPrefix + apiPrefix` (e.g. '/' + '/api' = '/api').
