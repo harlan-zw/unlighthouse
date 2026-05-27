@@ -181,6 +181,18 @@ export async function resolveUserConfig(userConfig: UserConfig, logger?: Logger)
       config.puppeteerOptions.args.push('--disable-setuid-sandbox')
   }
 
+  // Honour CHROME_FLAGS env (space-separated) for local dev where the user
+  // can't run as root but still needs flags like --no-sandbox (e.g. Ubuntu
+  // 23.10+ AppArmor blocks unprivileged user namespaces).
+  const envFlags = (process.env.CHROME_FLAGS || '').split(/\s+/).filter(Boolean)
+  if (envFlags.length) {
+    config.puppeteerOptions.args = config.puppeteerOptions.args || []
+    for (const f of envFlags) {
+      if (!config.puppeteerOptions.args.includes(f))
+        config.puppeteerOptions.args.push(f)
+    }
+  }
+
   await resolveChrome({
     chrome: config.chrome,
     puppeteerOptions: config.puppeteerOptions,
