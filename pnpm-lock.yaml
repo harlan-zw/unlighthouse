@@ -21,6 +21,9 @@ catalogs:
     '@cloudflare/workers-types':
       specifier: ^4.20260511.1
       version: 4.20260523.1
+    '@libsql/client':
+      specifier: ^0.15.15
+      version: 0.15.15
     '@lucide/vue':
       specifier: ^1.16.0
       version: 1.16.0
@@ -328,7 +331,7 @@ importers:
         version: 11.1.0
       drizzle-orm:
         specifier: catalog:dependencies
-        version: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
+        version: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
       eslint:
         specifier: 'catalog:'
         version: 10.4.0(jiti@2.7.0)
@@ -464,7 +467,7 @@ importers:
     dependencies:
       drizzle-orm:
         specifier: catalog:dependencies
-        version: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
+        version: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
       hookable:
         specifier: catalog:dependencies
         version: 6.1.1
@@ -583,13 +586,13 @@ importers:
         version: 0.31.10
       drizzle-orm:
         specifier: catalog:dependencies
-        version: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
+        version: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
       rolldown:
         specifier: 'catalog:'
         version: 1.0.2
       unstorage:
         specifier: 'catalog:'
-        version: 1.17.5(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1)
+        version: 1.17.5(db0@0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1)
 
   packages/github-action:
     dependencies:
@@ -662,7 +665,7 @@ importers:
         version: 4.3.0
       nuxt:
         specifier: 4.4.6
-        version: 4.4.6(49eafeb354e097e80598d1147bc4e4bb)
+        version: 4.4.6(c124105b965d8a4f372a50b94602cecf)
       pinia:
         specifier: ^3.0.4
         version: 3.0.4(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3))
@@ -692,7 +695,7 @@ importers:
         version: 5.0.7(@vue/compiler-sfc@3.5.34)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3)))(vue@3.5.34(typescript@6.0.3))
       vue-sonner:
         specifier: 'catalog:'
-        version: 2.0.9(@nuxt/kit@4.4.6(magicast@0.5.3))(@nuxt/schema@4.4.6)(nuxt@4.4.6(49eafeb354e097e80598d1147bc4e4bb))
+        version: 2.0.9(@nuxt/kit@4.4.6(magicast@0.5.3))(@nuxt/schema@4.4.6)(nuxt@4.4.6(c124105b965d8a4f372a50b94602cecf))
     devDependencies:
       '@nuxtjs/tailwindcss':
         specifier: 'catalog:'
@@ -718,6 +721,9 @@ importers:
       '@clack/prompts':
         specifier: catalog:dependencies
         version: 1.4.0
+      '@libsql/client':
+        specifier: 'catalog:'
+        version: 0.15.15
       '@puppeteer/browsers':
         specifier: catalog:dependencies
         version: 2.13.2
@@ -783,7 +789,7 @@ importers:
         version: 6.1.7
       drizzle-orm:
         specifier: catalog:dependencies
-        version: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
+        version: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
       execa:
         specifier: catalog:dependencies
         version: 9.6.1
@@ -864,7 +870,7 @@ importers:
         version: 2.5.0
       unstorage:
         specifier: 'catalog:'
-        version: 1.17.5(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1)
+        version: 1.17.5(db0@0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1)
       wrap-ansi:
         specifier: catalog:dependencies
         version: 10.0.0
@@ -2449,6 +2455,67 @@ packages:
   '@kwsites/promise-deferred@1.1.1':
     resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
 
+  '@libsql/client@0.15.15':
+    resolution: {integrity: sha512-twC0hQxPNHPKfeOv3sNT6u2pturQjLcI+CnpTM0SjRpocEGgfiZ7DWKXLNnsothjyJmDqEsBQJ5ztq9Wlu470w==}
+
+  '@libsql/core@0.15.15':
+    resolution: {integrity: sha512-C88Z6UKl+OyuKKPwz224riz02ih/zHYI3Ho/LAcVOgjsunIRZoBw7fjRfaH9oPMmSNeQfhGklSG2il1URoOIsA==}
+
+  '@libsql/darwin-arm64@0.5.29':
+    resolution: {integrity: sha512-K+2RIB1OGFPYQbfay48GakLhqf3ArcbHqPFu7EZiaUcRgFcdw8RoltsMyvbj5ix2fY0HV3Q3Ioa/ByvQdaSM0A==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@libsql/darwin-x64@0.5.29':
+    resolution: {integrity: sha512-OtT+KFHsKFy1R5FVadr8FJ2Bb1mghtXTyJkxv0trocq7NuHntSki1eUbxpO5ezJesDvBlqFjnWaYYY516QNLhQ==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@libsql/hrana-client@0.7.0':
+    resolution: {integrity: sha512-OF8fFQSkbL7vJY9rfuegK1R7sPgQ6kFMkDamiEccNUvieQ+3urzfDFI616oPl8V7T9zRmnTkSjMOImYCAVRVuw==}
+
+  '@libsql/isomorphic-fetch@0.3.1':
+    resolution: {integrity: sha512-6kK3SUK5Uu56zPq/Las620n5aS9xJq+jMBcNSOmjhNf/MUvdyji4vrMTqD7ptY7/4/CAVEAYDeotUz60LNQHtw==}
+    engines: {node: '>=18.0.0'}
+
+  '@libsql/isomorphic-ws@0.1.5':
+    resolution: {integrity: sha512-DtLWIH29onUYR00i0GlQ3UdcTRC6EP4u9w/h9LxpUZJWRMARk6dQwZ6Jkd+QdwVpuAOrdxt18v0K2uIYR3fwFg==}
+
+  '@libsql/linux-arm-gnueabihf@0.5.29':
+    resolution: {integrity: sha512-CD4n4zj7SJTHso4nf5cuMoWoMSS7asn5hHygsDuhRl8jjjCTT3yE+xdUvI4J7zsyb53VO5ISh4cwwOtf6k2UhQ==}
+    cpu: [arm]
+    os: [linux]
+
+  '@libsql/linux-arm-musleabihf@0.5.29':
+    resolution: {integrity: sha512-2Z9qBVpEJV7OeflzIR3+l5yAd4uTOLxklScYTwpZnkm2vDSGlC1PRlueLaufc4EFITkLKXK2MWBpexuNJfMVcg==}
+    cpu: [arm]
+    os: [linux]
+
+  '@libsql/linux-arm64-gnu@0.5.29':
+    resolution: {integrity: sha512-gURBqaiXIGGwFNEaUj8Ldk7Hps4STtG+31aEidCk5evMMdtsdfL3HPCpvys+ZF/tkOs2MWlRWoSq7SOuCE9k3w==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@libsql/linux-arm64-musl@0.5.29':
+    resolution: {integrity: sha512-fwgYZ0H8mUkyVqXZHF3mT/92iIh1N94Owi/f66cPVNsk9BdGKq5gVpoKO+7UxaNzuEH1roJp2QEwsCZMvBLpqg==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@libsql/linux-x64-gnu@0.5.29':
+    resolution: {integrity: sha512-y14V0vY0nmMC6G0pHeJcEarcnGU2H6cm21ZceRkacWHvQAEhAG0latQkCtoS2njFOXiYIg+JYPfAoWKbi82rkg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@libsql/linux-x64-musl@0.5.29':
+    resolution: {integrity: sha512-gquqwA/39tH4pFl+J9n3SOMSymjX+6kZ3kWgY3b94nXFTwac9bnFNMffIomgvlFaC4ArVqMnOZD3nuJ3H3VO1w==}
+    cpu: [x64]
+    os: [linux]
+
+  '@libsql/win32-x64-msvc@0.5.29':
+    resolution: {integrity: sha512-4/0CvEdhi6+KjMxMaVbFM2n2Z44escBRoEYpR+gZg64DdetzGnYm8mcNLcoySaDJZNaBd6wz5DNdgRmcI4hXcg==}
+    cpu: [x64]
+    os: [win32]
+
   '@loaderkit/resolve@1.0.6':
     resolution: {integrity: sha512-G8FdIoF5CypfwmD9rl8BXod5HDn8JqB0CCNBXDTaRZ+yRYhARrrSToX1zg1zy9jX3zLqigsELwhT4gNtkdQAUg==}
 
@@ -2580,6 +2647,9 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@neon-rs/load@0.0.4':
+    resolution: {integrity: sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw==}
 
   '@noble/ciphers@1.3.0':
     resolution: {integrity: sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==}
@@ -5556,6 +5626,10 @@ packages:
     resolution: {integrity: sha512-e1U46jVP+w7Iut8Jt8ri1YsPOvFpg46k+K8TpCb0P+zjCkjkPnV7WzfDJzMHy1LnA+wj5pLT1wjO901gLXeEhA==}
     engines: {node: '>=12'}
 
+  data-uri-to-buffer@4.0.1:
+    resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
+    engines: {node: '>= 12'}
+
   data-uri-to-buffer@6.0.2:
     resolution: {integrity: sha512-7hvf7/GW8e86rW0ptuwS3OcBGDjIi6SZva7hCyWC0yYry2cOPmLIjXAUHI6DK2HsnwJd9ifmt57i8eV2n4YNpw==}
     engines: {node: '>= 14'}
@@ -5699,6 +5773,10 @@ packages:
 
   destr@2.0.5:
     resolution: {integrity: sha512-ugFTXCtDZunbzasqBxrK93Ik/DRYsO6S/fedkWEMKqt04xZ4csmnmwGDBAb07QWNaGMAmnTIemsYZCksjATwsA==}
+
+  detect-libc@2.0.2:
+    resolution: {integrity: sha512-UX6sGumvvqSaXgdKGUsgZWqcUyIXZ/vZTrlRT/iobiKhGL0zL4d3osHj3uqllWJK+i+sixDS/3COVEOFbupFyw==}
+    engines: {node: '>=8'}
 
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
@@ -6349,6 +6427,10 @@ packages:
       picomatch:
         optional: true
 
+  fetch-blob@3.2.0:
+    resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
+    engines: {node: ^12.20 || >= 14.13}
+
   fflate@0.8.3:
     resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
 
@@ -6450,6 +6532,10 @@ packages:
   format@0.2.2:
     resolution: {integrity: sha512-wzsgA6WOq+09wrU1tsJ09udeR/YZRaeArL9e1wPbFg3GG2yDnC2ldKpxs4xunpFF9DgqCqOIra3bc1HWrJ37Ww==}
     engines: {node: '>=0.4.x'}
+
+  formdata-polyfill@4.0.10:
+    resolution: {integrity: sha512-buewHzMvYL29jdeQTVILecSaZKnt/RJWjoZCF5OW60Z67/GmSLBkOFM7qh1PI3zFNtJbaZL5eQu1vLfazOwj4g==}
+    engines: {node: '>=12.20.0'}
 
   forwarded-parse@2.1.2:
     resolution: {integrity: sha512-alTFZZQDKMporBH77856pXgzhEzaUVmLCDk+egLgIgHst3Tpndzz8MnKe+GzRJRfvVdn69HhpW7cmXzvtLvJAw==}
@@ -7037,6 +7123,9 @@ packages:
   jquery@3.7.1:
     resolution: {integrity: sha512-m4avr8yL8kmFN8psrbFFFmB/If14iN5o9nw/NgnnM+kybDJpRsAynV2BsfpTYrTRysYUdADVD7CkUUizgkpLfg==}
 
+  js-base64@3.7.8:
+    resolution: {integrity: sha512-hNngCeKxIUQiEUN3GPJOkz4wF/YvdUdbNL9hsBcMQTkKzboD7T/q3OYOuuPZLUE6dBxSGpwhk5mwuDud7JVAow==}
+
   js-library-detector@6.7.0:
     resolution: {integrity: sha512-c80Qupofp43y4cJ7+8TTDN/AsDwLi5oOm/plBrWI+iQt485vKXCco+yVmOwEgdo9VOdsYTuV0UlTeetVPTriXA==}
     engines: {node: '>=12'}
@@ -7150,6 +7239,11 @@ packages:
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
+
+  libsql@0.5.29:
+    resolution: {integrity: sha512-8lMP8iMgiBzzoNbAPQ59qdVcj6UaE/Vnm+fiwX4doX4Narook0a4GPKWBEv+CR8a1OwbfkgL18uBfBjWdF0Fzg==}
+    cpu: [x64, arm64, wasm32, arm]
+    os: [darwin, linux, win32]
 
   lighthouse-logger@2.0.2:
     resolution: {integrity: sha512-vWl2+u5jgOQuZR55Z1WM0XDdrJT6mzMP8zHUct7xTlWhuQs+eV0g+QL0RQdFjT54zVmbhLCP8vIVpy1wGn/gCg==}
@@ -7715,6 +7809,11 @@ packages:
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
 
+  node-domexception@1.0.0:
+    resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
+    engines: {node: '>=10.5.0'}
+    deprecated: Use your platform's native DOMException instead
+
   node-emoji@2.2.0:
     resolution: {integrity: sha512-Z3lTE9pLaJF47NyMhd4ww1yFTAP8YhYI8SleJiHzM46Fgpm5cnNzSl9XfzFNqbaz+VlJrIj3fXQ4DeN1Rjm6cw==}
     engines: {node: '>=18'}
@@ -7730,6 +7829,10 @@ packages:
     peerDependenciesMeta:
       encoding:
         optional: true
+
+  node-fetch@3.3.2:
+    resolution: {integrity: sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   node-forge@1.4.0:
     resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
@@ -8395,6 +8498,9 @@ packages:
   progress@2.0.3:
     resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
     engines: {node: '>=0.4.0'}
+
+  promise-limit@2.7.0:
+    resolution: {integrity: sha512-7nJ6v5lnJsXwGprnGXga4wx6d1POjvi5Qmf1ivTRxTjH4Z/9Czja/UCMLVmB9N93GeWOU93XaFaEt6jbuoagNw==}
 
   prompts@2.4.2:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
@@ -9844,6 +9950,10 @@ packages:
 
   web-features@3.29.0:
     resolution: {integrity: sha512-r8m0Xj77/PSHXEbv2U3UuLhw5gE4U+YAPek5hCor5DMsS9Qnwtxl5FSfam3dXQo7Gl0gxK9BRrcQLlOBZZZXpw==}
+
+  web-streams-polyfill@3.3.3:
+    resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
+    engines: {node: '>= 8'}
 
   web-worker@1.5.0:
     resolution: {integrity: sha512-RiMReJrTAiA+mBjGONMnjVDP2u3p9R1vkcGz6gDIrOMT3oGuYwX2WRMYI9ipkphSuE5XKEhydbhNEJh4NY9mlw==}
@@ -11534,6 +11644,68 @@ snapshots:
 
   '@kwsites/promise-deferred@1.1.1': {}
 
+  '@libsql/client@0.15.15':
+    dependencies:
+      '@libsql/core': 0.15.15
+      '@libsql/hrana-client': 0.7.0
+      js-base64: 3.7.8
+      libsql: 0.5.29
+      promise-limit: 2.7.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@libsql/core@0.15.15':
+    dependencies:
+      js-base64: 3.7.8
+
+  '@libsql/darwin-arm64@0.5.29':
+    optional: true
+
+  '@libsql/darwin-x64@0.5.29':
+    optional: true
+
+  '@libsql/hrana-client@0.7.0':
+    dependencies:
+      '@libsql/isomorphic-fetch': 0.3.1
+      '@libsql/isomorphic-ws': 0.1.5
+      js-base64: 3.7.8
+      node-fetch: 3.3.2
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@libsql/isomorphic-fetch@0.3.1': {}
+
+  '@libsql/isomorphic-ws@0.1.5':
+    dependencies:
+      '@types/ws': 8.18.1
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@libsql/linux-arm-gnueabihf@0.5.29':
+    optional: true
+
+  '@libsql/linux-arm-musleabihf@0.5.29':
+    optional: true
+
+  '@libsql/linux-arm64-gnu@0.5.29':
+    optional: true
+
+  '@libsql/linux-arm64-musl@0.5.29':
+    optional: true
+
+  '@libsql/linux-x64-gnu@0.5.29':
+    optional: true
+
+  '@libsql/linux-x64-musl@0.5.29':
+    optional: true
+
+  '@libsql/win32-x64-msvc@0.5.29':
+    optional: true
+
   '@loaderkit/resolve@1.0.6':
     dependencies:
       '@braidai/lang': 1.1.2
@@ -11662,6 +11834,8 @@ snapshots:
       '@emnapi/runtime': 1.10.0
       '@tybys/wasm-util': 0.10.2
     optional: true
+
+  '@neon-rs/load@0.0.4': {}
 
   '@noble/ciphers@1.3.0': {}
 
@@ -11831,7 +12005,7 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
-  '@nuxt/nitro-server@4.4.6(@babel/plugin-syntax-typescript@7.28.6(@babel/core@7.29.0))(better-sqlite3@12.10.0)(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.3)(nuxt@4.4.6(49eafeb354e097e80598d1147bc4e4bb))(oxc-parser@0.131.0)(rolldown@1.0.2)(srvx@0.11.16)(typescript@6.0.3)':
+  '@nuxt/nitro-server@4.4.6(@babel/plugin-syntax-typescript@7.28.6(@babel/core@7.29.0))(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(db0@0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.3)(nuxt@4.4.6(c124105b965d8a4f372a50b94602cecf))(oxc-parser@0.131.0)(rolldown@1.0.2)(srvx@0.11.16)(typescript@6.0.3)':
     dependencies:
       '@nuxt/devalue': 2.0.2
       '@nuxt/kit': 4.4.6(magicast@0.5.3)
@@ -11848,8 +12022,8 @@ snapshots:
       impound: 1.1.5
       klona: 2.0.6
       mocked-exports: 0.1.1
-      nitropack: 2.13.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(oxc-parser@0.131.0)(rolldown@1.0.2)(srvx@0.11.16)
-      nuxt: 4.4.6(49eafeb354e097e80598d1147bc4e4bb)
+      nitropack: 2.13.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(oxc-parser@0.131.0)(rolldown@1.0.2)(srvx@0.11.16)
+      nuxt: 4.4.6(c124105b965d8a4f372a50b94602cecf)
       nypm: 0.6.6
       ohash: 2.0.11
       pathe: 2.0.3
@@ -11857,7 +12031,7 @@ snapshots:
       std-env: 4.1.0
       ufo: 1.6.4
       unctx: 2.5.0
-      unstorage: 1.17.5(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1)
+      unstorage: 1.17.5(db0@0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1)
       vue: 3.5.34(typescript@6.0.3)
       vue-bundle-renderer: 2.2.0
       vue-devtools-stub: 0.1.0
@@ -11918,7 +12092,7 @@ snapshots:
       rc9: 3.0.1
       std-env: 4.1.0
 
-  '@nuxt/vite-builder@4.4.6(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@types/node@25.9.1)(esbuild@0.28.0)(eslint@10.4.0(jiti@2.7.0))(magicast@0.5.3)(nuxt@4.4.6(49eafeb354e097e80598d1147bc4e4bb))(optionator@0.9.4)(rolldown@1.0.2)(rollup-plugin-visualizer@7.0.1(rolldown@1.0.2)(rollup@4.60.4))(rollup@4.60.4)(stylus@0.57.0)(terser@5.48.0)(tsx@4.22.3)(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3))(yaml@2.9.0)':
+  '@nuxt/vite-builder@4.4.6(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@types/node@25.9.1)(esbuild@0.28.0)(eslint@10.4.0(jiti@2.7.0))(magicast@0.5.3)(nuxt@4.4.6(c124105b965d8a4f372a50b94602cecf))(optionator@0.9.4)(rolldown@1.0.2)(rollup-plugin-visualizer@7.0.1(rolldown@1.0.2)(rollup@4.60.4))(rollup@4.60.4)(stylus@0.57.0)(terser@5.48.0)(tsx@4.22.3)(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3))(yaml@2.9.0)':
     dependencies:
       '@nuxt/kit': 4.4.6(magicast@0.5.3)
       '@rollup/plugin-replace': 6.0.3(rollup@4.60.4)
@@ -11936,7 +12110,7 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.2
       mocked-exports: 0.1.1
-      nuxt: 4.4.6(49eafeb354e097e80598d1147bc4e4bb)
+      nuxt: 4.4.6(c124105b965d8a4f372a50b94602cecf)
       nypm: 0.6.6
       pathe: 2.0.3
       pkg-types: 2.3.1
@@ -14900,6 +15074,8 @@ snapshots:
       d3-transition: 3.0.1(d3-selection@3.0.0)
       d3-zoom: 3.0.0
 
+  data-uri-to-buffer@4.0.1: {}
+
   data-uri-to-buffer@6.0.2: {}
 
   data-urls@5.0.0:
@@ -14909,10 +15085,11 @@ snapshots:
 
   date-fns@4.3.0: {}
 
-  db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)):
+  db0@0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)):
     optionalDependencies:
+      '@libsql/client': 0.15.15
       better-sqlite3: 12.10.0
-      drizzle-orm: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
+      drizzle-orm: 0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)
 
   debug@2.6.9:
     dependencies:
@@ -14989,6 +15166,8 @@ snapshots:
 
   destr@2.0.5: {}
 
+  detect-libc@2.0.2: {}
+
   detect-libc@2.1.2: {}
 
   devalue@5.8.1: {}
@@ -15052,9 +15231,10 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.22.3
 
-  drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0):
+  drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0):
     optionalDependencies:
       '@cloudflare/workers-types': 4.20260523.1
+      '@libsql/client': 0.15.15
       '@opentelemetry/api': 1.9.1
       '@types/better-sqlite3': 7.6.13
       '@types/pg': 8.6.1
@@ -15742,6 +15922,11 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.4
 
+  fetch-blob@3.2.0:
+    dependencies:
+      node-domexception: 1.0.0
+      web-streams-polyfill: 3.3.3
+
   fflate@0.8.3: {}
 
   figlet@1.11.0:
@@ -15838,6 +16023,10 @@ snapshots:
       mime-types: 2.1.35
 
   format@0.2.2: {}
+
+  formdata-polyfill@4.0.10:
+    dependencies:
+      fetch-blob: 3.2.0
 
   forwarded-parse@2.1.2: {}
 
@@ -16440,6 +16629,8 @@ snapshots:
 
   jquery@3.7.1: {}
 
+  js-base64@3.7.8: {}
+
   js-library-detector@6.7.0: {}
 
   js-tokens@4.0.0: {}
@@ -16548,6 +16739,21 @@ snapshots:
     dependencies:
       prelude-ls: 1.2.1
       type-check: 0.4.0
+
+  libsql@0.5.29:
+    dependencies:
+      '@neon-rs/load': 0.0.4
+      detect-libc: 2.0.2
+    optionalDependencies:
+      '@libsql/darwin-arm64': 0.5.29
+      '@libsql/darwin-x64': 0.5.29
+      '@libsql/linux-arm-gnueabihf': 0.5.29
+      '@libsql/linux-arm-musleabihf': 0.5.29
+      '@libsql/linux-arm64-gnu': 0.5.29
+      '@libsql/linux-arm64-musl': 0.5.29
+      '@libsql/linux-x64-gnu': 0.5.29
+      '@libsql/linux-x64-musl': 0.5.29
+      '@libsql/win32-x64-msvc': 0.5.29
 
   lighthouse-logger@2.0.2:
     dependencies:
@@ -17316,7 +17522,7 @@ snapshots:
 
   netmask@2.1.1: {}
 
-  nitropack@2.13.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(oxc-parser@0.131.0)(rolldown@1.0.2)(srvx@0.11.16):
+  nitropack@2.13.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(oxc-parser@0.131.0)(rolldown@1.0.2)(srvx@0.11.16):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.2
       '@rollup/plugin-alias': 6.0.0(rollup@4.60.4)
@@ -17337,7 +17543,7 @@ snapshots:
       cookie-es: 2.0.1
       croner: 10.0.1
       crossws: 0.3.5
-      db0: 0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))
+      db0: 0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))
       defu: 6.1.7
       destr: 2.0.5
       dot-prop: 10.1.0
@@ -17383,7 +17589,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       unimport: 6.3.0(oxc-parser@0.131.0)(rolldown@1.0.2)
       unplugin-utils: 0.3.1
-      unstorage: 1.17.5(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1)
+      unstorage: 1.17.5(db0@0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1)
       untyped: 2.0.0
       unwasm: 0.5.3
       youch: 4.1.1
@@ -17427,6 +17633,8 @@ snapshots:
 
   node-addon-api@7.1.1: {}
 
+  node-domexception@1.0.0: {}
+
   node-emoji@2.2.0:
     dependencies:
       '@sindresorhus/is': 4.6.0
@@ -17439,6 +17647,12 @@ snapshots:
   node-fetch@2.7.0:
     dependencies:
       whatwg-url: 5.0.0
+
+  node-fetch@3.3.2:
+    dependencies:
+      data-uri-to-buffer: 4.0.1
+      fetch-blob: 3.2.0
+      formdata-polyfill: 4.0.10
 
   node-forge@1.4.0: {}
 
@@ -17478,16 +17692,16 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nuxt@4.4.6(49eafeb354e097e80598d1147bc4e4bb):
+  nuxt@4.4.6(c124105b965d8a4f372a50b94602cecf):
     dependencies:
       '@dxup/nuxt': 0.4.1(magicast@0.5.3)(typescript@6.0.3)
       '@nuxt/cli': 3.35.2(@nuxt/schema@4.4.6)(cac@6.7.14)(magicast@0.5.3)
       '@nuxt/devtools': 3.2.4(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(stylus@0.57.0)(terser@5.48.0)(tsx@4.22.3)(yaml@2.9.0))(vue@3.5.34(typescript@6.0.3))
       '@nuxt/kit': 4.4.6(magicast@0.5.3)
-      '@nuxt/nitro-server': 4.4.6(@babel/plugin-syntax-typescript@7.28.6(@babel/core@7.29.0))(better-sqlite3@12.10.0)(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.3)(nuxt@4.4.6(49eafeb354e097e80598d1147bc4e4bb))(oxc-parser@0.131.0)(rolldown@1.0.2)(srvx@0.11.16)(typescript@6.0.3)
+      '@nuxt/nitro-server': 4.4.6(@babel/plugin-syntax-typescript@7.28.6(@babel/core@7.29.0))(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(db0@0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.3)(nuxt@4.4.6(c124105b965d8a4f372a50b94602cecf))(oxc-parser@0.131.0)(rolldown@1.0.2)(srvx@0.11.16)(typescript@6.0.3)
       '@nuxt/schema': 4.4.6
       '@nuxt/telemetry': 2.8.0(@nuxt/kit@4.4.6(magicast@0.5.3))
-      '@nuxt/vite-builder': 4.4.6(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@types/node@25.9.1)(esbuild@0.28.0)(eslint@10.4.0(jiti@2.7.0))(magicast@0.5.3)(nuxt@4.4.6(49eafeb354e097e80598d1147bc4e4bb))(optionator@0.9.4)(rolldown@1.0.2)(rollup-plugin-visualizer@7.0.1(rolldown@1.0.2)(rollup@4.60.4))(rollup@4.60.4)(stylus@0.57.0)(terser@5.48.0)(tsx@4.22.3)(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3))(yaml@2.9.0)
+      '@nuxt/vite-builder': 4.4.6(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@types/node@25.9.1)(esbuild@0.28.0)(eslint@10.4.0(jiti@2.7.0))(magicast@0.5.3)(nuxt@4.4.6(c124105b965d8a4f372a50b94602cecf))(optionator@0.9.4)(rolldown@1.0.2)(rollup-plugin-visualizer@7.0.1(rolldown@1.0.2)(rollup@4.60.4))(rollup@4.60.4)(stylus@0.57.0)(terser@5.48.0)(tsx@4.22.3)(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3))(yaml@2.9.0)
       '@unhead/vue': 2.1.15(vue@3.5.34(typescript@6.0.3))
       '@vue/shared': 3.5.34
       chokidar: 5.0.0
@@ -18289,6 +18503,8 @@ snapshots:
   process@0.11.10: {}
 
   progress@2.0.3: {}
+
+  promise-limit@2.7.0: {}
 
   prompts@2.4.2:
     dependencies:
@@ -19576,7 +19792,7 @@ snapshots:
       escape-string-regexp: 5.0.0
       ufo: 1.6.4
 
-  unstorage@1.17.5(db0@0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1):
+  unstorage@1.17.5(db0@0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0)))(ioredis@5.10.1):
     dependencies:
       anymatch: 3.1.3
       chokidar: 5.0.0
@@ -19587,7 +19803,7 @@ snapshots:
       ofetch: 1.5.1
       ufo: 1.6.4
     optionalDependencies:
-      db0: 0.3.4(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))
+      db0: 0.3.4(@libsql/client@0.15.15)(better-sqlite3@12.10.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260523.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.10.0))
       ioredis: 5.10.1
 
   untun@0.1.3:
@@ -19866,11 +20082,11 @@ snapshots:
       '@vue/compiler-sfc': 3.5.34
       pinia: 3.0.4(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3))
 
-  vue-sonner@2.0.9(@nuxt/kit@4.4.6(magicast@0.5.3))(@nuxt/schema@4.4.6)(nuxt@4.4.6(49eafeb354e097e80598d1147bc4e4bb)):
+  vue-sonner@2.0.9(@nuxt/kit@4.4.6(magicast@0.5.3))(@nuxt/schema@4.4.6)(nuxt@4.4.6(c124105b965d8a4f372a50b94602cecf)):
     optionalDependencies:
       '@nuxt/kit': 4.4.6(magicast@0.5.3)
       '@nuxt/schema': 4.4.6
-      nuxt: 4.4.6(49eafeb354e097e80598d1147bc4e4bb)
+      nuxt: 4.4.6(c124105b965d8a4f372a50b94602cecf)
 
   vue@3.5.34(typescript@6.0.3):
     dependencies:
@@ -19891,6 +20107,8 @@ snapshots:
       defaults: 1.0.4
 
   web-features@3.29.0: {}
+
+  web-streams-polyfill@3.3.3: {}
 
   web-worker@1.5.0: {}
 

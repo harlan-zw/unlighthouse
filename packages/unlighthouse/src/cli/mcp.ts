@@ -225,7 +225,7 @@ export async function runMcp(): Promise<void> {
   // Gated by --debug so production agents don't see internal paths by default.
   diag(`[unlighthouse-mcp] outputPath=${outputPath}\n`)
 
-  const { storage } = initStorage({ outputPath, logger })
+  const { storage } = await initStorage({ outputPath, logger })
 
   // Sweep zombies left by a prior process. MCP often opens an existing DB
   // written by the CLI; "starting" rows from a Ctrl+C'd CLI run would

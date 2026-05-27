@@ -266,70 +266,103 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   const ws = behavior.ws !== undefined ? behavior.ws : createWS()
 
   // ── Ports (lazy: Storage + Core built after outputPath is known) ──────────
-  // These are (re-)built inside setServerContext once the server URL is known.
-  // For CI / non-server flows they're built in start() via ensurePorts().
+  // Init is async (libsql adapter needs await for the dynamic import +
+  // schema apply), but downstream proxy getters and the cached read path
+  // need to stay sync. Resolved by splitting `initPortsAsync()` (await'd
+  // by every entry point before it touches a port) from `ensurePorts()`
+  // (sync; reads the cached ref or throws). Every entry point —
+  // setServerContext, start, generateClientStub — already awaits before
+  // any proxy access, so the proxies are guaranteed to find a hydrated
+  // cache when they fire.
   interface Ports { core: UnlighthouseCore, storage: ReturnType<typeof createStorage>, auditor: ReturnType<typeof resolveAuditor>, handlerCtx: HandlerCtx }
   let portsRef: Ports | null = null
+  let portsInitPromise: Promise<Ports> | null = null
 
-  const ensurePorts = (): Ports => {
+  const initPortsAsync = async (): Promise<Ports> => {
     if (portsRef)
       return portsRef
+    // Coalesce concurrent inits — two parallel start()s would otherwise
+    // create two stores / two cores against the same DB and race the
+    // migration apply.
+    if (portsInitPromise)
+      return portsInitPromise
 
-    const outputPath = (rs as RuntimeSettings).outputPath || resolvedConfig.outputPath
-    logger.debug?.(`ensurePorts — outputPath: ${outputPath}`)
-    fs.ensureDirSync(outputPath)
-
-    if (!resolvedConfig.cache && existsSync(outputPath)) {
-      try {
-        fs.rmSync(outputPath, { recursive: true })
-      }
-      catch {}
+    portsInitPromise = (async () => {
+      const outputPath = (rs as RuntimeSettings).outputPath || resolvedConfig.outputPath
+      logger.debug?.(`initPortsAsync — outputPath: ${outputPath}`)
       fs.ensureDirSync(outputPath)
+
+      if (!resolvedConfig.cache && existsSync(outputPath)) {
+        try {
+          fs.rmSync(outputPath, { recursive: true })
+        }
+        catch {}
+        fs.ensureDirSync(outputPath)
+      }
+
+      const { storage } = await initStorage({ outputPath, logger })
+
+      // Sweep zombies left by a prior process before we wire core — see
+      // reapStaleScans for D-019c rationale. Fire-and-forget so boot doesn't
+      // block on storage IO; a stale row that survives one extra boot is
+      // tolerable, blocking the CLI on a slow disk is not.
+      reapStaleScans(storage, logger).catch(() => {})
+
+      const coreConfig = resolvedConfig as unknown as Parameters<typeof createUnlighthouseCore>[0]['config']
+      const auditor = resolveAuditor({ config: coreConfig, logger })
+
+      const seeds = resolveSeeds(resolvedConfig, logger)
+
+      const crawler = crawleeCrawler({ logger: (logger as any).withTag('crawler/crawlee') as never })
+
+      logger.debug?.('Creating core — crawler: crawlee')
+      const core = createUnlighthouseCore({
+        config: coreConfig,
+        auditor,
+        seeds,
+        crawler,
+        storage,
+        logger,
+      })
+
+      wireWsBroadcast(core, ws, logger)
+
+      historySubscriber({
+        resolvedConfig,
+        storage,
+        hooks: core.hooks as Hookable<HookMap>,
+        logger,
+      })
+
+      const handlerCtx: HandlerCtx = {
+        core,
+        auditor,
+        storage,
+        config: coreConfig,
+        version,
+      }
+
+      portsRef = { core, storage, auditor, handlerCtx }
+      return portsRef
+    })()
+
+    try {
+      return await portsInitPromise
     }
-
-    const { storage } = initStorage({ outputPath, logger })
-
-    // Sweep zombies left by a prior process before we wire core — see
-    // reapStaleScans for D-019c rationale. Fire-and-forget so boot doesn't
-    // block on storage IO; a stale row that survives one extra boot is
-    // tolerable, blocking the CLI on a slow disk is not.
-    reapStaleScans(storage, logger).catch(() => {})
-
-    const coreConfig = resolvedConfig as unknown as Parameters<typeof createUnlighthouseCore>[0]['config']
-    const auditor = resolveAuditor({ config: coreConfig, logger })
-
-    const seeds = resolveSeeds(resolvedConfig, logger)
-
-    const crawler = crawleeCrawler({ logger: (logger as any).withTag('crawler/crawlee') as never })
-
-    logger.debug?.('Creating core — crawler: crawlee')
-    const core = createUnlighthouseCore({
-      config: coreConfig,
-      auditor,
-      seeds,
-      crawler,
-      storage,
-      logger,
-    })
-
-    wireWsBroadcast(core, ws, logger)
-
-    historySubscriber({
-      resolvedConfig,
-      storage,
-      hooks: core.hooks as Hookable<HookMap>,
-      logger,
-    })
-
-    const handlerCtx: HandlerCtx = {
-      core,
-      auditor,
-      storage,
-      config: coreConfig,
-      version,
+    finally {
+      // Clear the in-flight marker so a failed init can be retried;
+      // portsRef stays the source of truth on success.
+      if (portsRef) portsInitPromise = null
     }
+  }
 
-    portsRef = { core, storage, auditor, handlerCtx }
+  const ensurePorts = (): Ports => {
+    if (!portsRef) {
+      throw new Error(
+        'unlighthouse: ports accessed before initialisation. '
+        + 'Call host.start() or mount the server first, or await host.handlerCtx via setServerContext.',
+      )
+    }
     return portsRef
   }
 
@@ -373,7 +406,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     fs.ensureDirSync((rs as RuntimeSettings).outputPath)
 
-    const { handlerCtx } = ensurePorts()
+    const { handlerCtx } = await initPortsAsync()
 
     // Indirection so callers (tests, integrations) can override `host.start`
     // after construction and still have autoStartOnVisit honour the override.
@@ -406,7 +439,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   // ── start ────────────────────────────────────────────────────────────────
 
   const start = async (overrides?: UnlighthouseCoreRunOverrides) => {
-    const { core } = ensurePorts()
+    const { core } = await initPortsAsync()
     logger.info?.(`Starting scan — site: ${resolvedConfig.site}, overrides: ${JSON.stringify(overrides ?? {})}`)
     const session = core.run(overrides ? { overrides } : undefined)
     logger.info?.(`Scan session created — scanId: ${session.scanId}`)
@@ -414,7 +447,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   }
 
   const generateClientStub = async () => {
-    const { storage } = ensurePorts()
+    const { storage } = await initPortsAsync()
     const { generateClient } = await import('./build')
     await generateClient({ static: false }, {
       resolvedConfig,

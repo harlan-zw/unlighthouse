@@ -72,6 +72,7 @@
   },
   "dependencies": {
     "@clack/prompts": "catalog:dependencies",
+    "@libsql/client": "catalog:",
     "@puppeteer/browsers": "catalog:dependencies",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",

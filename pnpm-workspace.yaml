@@ -64,6 +64,7 @@ catalog:
   wrangler: ^4.0.0
   yaml: ^2.9.0
   zod: ^4.4.3
+  '@libsql/client': ^0.15.15
 
 catalogs:
   dependencies:
