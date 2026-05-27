@@ -158,11 +158,20 @@ export const useScanStore = defineStore('scan', () => {
     catch {}
   }
 
-  async function startScan(api: any, siteUrl: string, options?: { device?: string, mode?: 'site' | 'page' }) {
+  async function startScan(api: any, siteUrl: string, options?: {
+    device?: string
+    mode?: 'site' | 'page'
+    sampleSize?: number
+    categories?: string[]
+    ciBuild?: { branch?: string, hash?: string, message?: string }
+  }) {
     const result = await api['scan.start']({
       site: siteUrl,
       device: options?.device,
       mode: options?.mode,
+      sampleSize: options?.sampleSize,
+      categories: options?.categories,
+      ciBuild: options?.ciBuild,
     })
     scanId.value = result.scanId
     site.value = siteUrl
