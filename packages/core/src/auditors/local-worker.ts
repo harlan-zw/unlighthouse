@@ -26,8 +26,12 @@ const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (
   let port = options.port || (options.lighthouseFlags?.port as number)
 
   if (!port) {
+    // CHROME_FLAGS env (space-separated) — lets local dev pass --no-sandbox
+    // without running as root (Ubuntu 23.10+ AppArmor blocks unprivileged
+    // user namespaces, Chrome dies on launch otherwise).
+    const envFlags = (process.env.CHROME_FLAGS || '').split(/\s+/).filter(Boolean)
     chrome = await launch({
-      chromeFlags: ['--headless', ...(options.launchOptions?.chromeFlags || [])],
+      chromeFlags: ['--headless', ...envFlags, ...(options.launchOptions?.chromeFlags || [])],
       ...options.launchOptions,
     })
     port = chrome.port
