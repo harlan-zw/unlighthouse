@@ -178,17 +178,34 @@ const imagesReport = computed(() => (imagesData.value as any)?.report ?? null)
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <div class="text-sm space-y-2">
-                  <div class="flex gap-2 flex-wrap">
-                    <Badge variant="outline" class="text-xs">{{ finding.kind }}</Badge>
-                    <Badge v-if="finding.wastedBytes" variant="outline" class="text-xs text-orange-500">{{ formatBytes(finding.wastedBytes) }} wasted</Badge>
-                    <Badge v-if="finding.lcpImpactMs" variant="outline" class="text-xs text-red-500">LCP +{{ formatMs(finding.lcpImpactMs) }}</Badge>
-                  </div>
-                  <p v-if="finding.reason" class="text-xs text-muted-foreground">{{ finding.reason }}</p>
-                  <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
-                    <ul class="mt-1 space-y-0.5 font-mono">
-                      <li v-for="r in finding.routes" :key="r">{{ r }}</li>
-                    </ul>
+                <div class="text-sm space-y-3">
+                  <div class="flex gap-4 items-start">
+                    <!-- The actual offending image — referrerpolicy=no-referrer
+                         so origin servers that block hotlinking still render
+                         (we're loading their public asset, not stealing it). -->
+                    <a :href="finding.imageUrl" target="_blank" rel="noopener" class="shrink-0">
+                      <img
+                        :src="finding.imageUrl"
+                        loading="lazy"
+                        referrerpolicy="no-referrer"
+                        alt=""
+                        class="w-32 h-20 object-contain bg-muted rounded border"
+                        @error="(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none' }"
+                      >
+                    </a>
+                    <div class="flex-1 min-w-0 space-y-2">
+                      <div class="flex gap-2 flex-wrap">
+                        <Badge variant="outline" class="text-xs">{{ finding.kind }}</Badge>
+                        <Badge v-if="finding.wastedBytes" variant="outline" class="text-xs text-orange-500">{{ formatBytes(finding.wastedBytes) }} wasted</Badge>
+                        <Badge v-if="finding.lcpImpactMs" variant="outline" class="text-xs text-red-500">LCP +{{ formatMs(finding.lcpImpactMs) }}</Badge>
+                      </div>
+                      <p v-if="finding.reason" class="text-xs text-muted-foreground">{{ finding.reason }}</p>
+                      <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
+                        <ul class="mt-1 space-y-0.5 font-mono">
+                          <li v-for="r in finding.routes" :key="r">{{ r }}</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </AccordionContent>
