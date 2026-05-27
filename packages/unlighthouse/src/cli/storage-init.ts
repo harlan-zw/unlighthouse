@@ -1,4 +1,5 @@
 import type { Logger } from '@unlighthouse/contracts'
+import type { Driver } from 'unstorage'
 import { join } from 'node:path'
 import { createStorage } from '@unlighthouse/core/storage'
 import { applyMigrations, drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
@@ -79,6 +80,75 @@ function parseDbUrl(raw: string): ParsedDbUrl {
   throw new Error(`UNLIGHTHOUSE_DB_URL is not a recognised URL or path: ${raw}`)
 }
 
+// Build the unstorage Driver instance for blob storage based on env. The
+// row store and the blob store can be picked independently — most hosted
+// users want SQLite-on-Turso for rows and S3/R2 for the LHR + screenshot
+// blobs (they're MBs each and don't belong in the DB).
+//
+// Driver dispatch:
+//   - fs (default): local files under <outputPath>/blobs
+//   - s3:           any S3-compatible (AWS, Cloudflare R2, MinIO,
+//                   Backblaze B2). Endpoint + creds via env.
+//   - memory:       in-process only; tests + ephemeral CI use.
+async function buildBlobDriver(outputPath: string, logger: InitStorageOptions['logger']): Promise<Driver> {
+  const driverName = (process.env.UNLIGHTHOUSE_BLOBS_DRIVER ?? 'fs').toLowerCase()
+
+  if (driverName === 'fs') {
+    const base = process.env.UNLIGHTHOUSE_BLOBS_BASE ?? join(outputPath, 'blobs')
+    logger?.debug?.(`[blobs] fs driver — base=${base}`)
+    return fsDriver({ base })
+  }
+
+  if (driverName === 'memory') {
+    const { default: memoryDriver } = await import('unstorage/drivers/memory')
+    logger?.debug?.(`[blobs] memory driver`)
+    return memoryDriver()
+  }
+
+  if (driverName === 's3') {
+    // Required: bucket. Everything else is optional/inferred — region
+    // defaults to the SDK default, endpoint stays empty for real AWS,
+    // creds fall through to the SDK's standard chain (env, ~/.aws,
+    // instance profile) when explicit ones aren't set.
+    const bucket = process.env.UNLIGHTHOUSE_BLOBS_S3_BUCKET
+    if (!bucket) {
+      throw new Error(
+        'UNLIGHTHOUSE_BLOBS_DRIVER=s3 requires UNLIGHTHOUSE_BLOBS_S3_BUCKET. '
+        + 'Optionally set UNLIGHTHOUSE_BLOBS_S3_REGION, _ENDPOINT (R2/MinIO), '
+        + '_ACCESS_KEY_ID, _SECRET_ACCESS_KEY, _PREFIX.',
+      )
+    }
+    const { default: s3Driver } = await import('unstorage/drivers/s3')
+    const region = process.env.UNLIGHTHOUSE_BLOBS_S3_REGION ?? 'auto'
+    // The unstorage S3 driver requires an explicit endpoint URL. For
+    // real AWS we derive the standard regional endpoint when one wasn't
+    // provided; R2 / MinIO / Backblaze users always set this explicitly.
+    const endpoint = process.env.UNLIGHTHOUSE_BLOBS_S3_ENDPOINT
+      ?? (region !== 'auto' ? `https://s3.${region}.amazonaws.com` : '')
+    if (!endpoint) {
+      throw new Error(
+        'UNLIGHTHOUSE_BLOBS_DRIVER=s3 needs either an explicit endpoint '
+        + '(UNLIGHTHOUSE_BLOBS_S3_ENDPOINT, e.g. https://<uid>.r2.cloudflarestorage.com) '
+        + 'or a real AWS region via UNLIGHTHOUSE_BLOBS_S3_REGION.',
+      )
+    }
+    const s3Opts: Parameters<typeof s3Driver>[0] = {
+      accessKeyId: process.env.UNLIGHTHOUSE_BLOBS_S3_ACCESS_KEY_ID ?? '',
+      secretAccessKey: process.env.UNLIGHTHOUSE_BLOBS_S3_SECRET_ACCESS_KEY ?? '',
+      bucket,
+      region,
+      endpoint,
+    }
+    logger?.debug?.(`[blobs] s3 driver — bucket=${bucket} region=${region} endpoint=${endpoint}`)
+    return s3Driver(s3Opts)
+  }
+
+  throw new Error(
+    `UNLIGHTHOUSE_BLOBS_DRIVER='${driverName}' not supported. `
+    + `Built-ins: fs (default), s3, memory.`,
+  )
+}
+
 // libsql-backed storage. Returns the same shape as the better-sqlite3
 // path so callers don't branch on driver. Two notable differences:
 //
@@ -133,9 +203,7 @@ async function initLibsqlStorage(
 
   const storage = createStorage({
     rows: { ...drizzleAdapter, db: drizzleAdapter.db },
-    blobs: unstorageBlobs({
-      driver: fsDriver({ base: join(outputPath, 'blobs') }),
-    }),
+    blobs: unstorageBlobs({ driver: await buildBlobDriver(outputPath, logger) }),
   })
 
   // `sqliteDb` is the libsql Client for libsql-backed setups. Shape is
@@ -178,9 +246,7 @@ export async function initStorage({ outputPath, dbUrl, logger }: InitStorageOpti
 
   const storage = createStorage({
     rows: { ...drizzleAdapter, db: drizzleAdapter.db },
-    blobs: unstorageBlobs({
-      driver: fsDriver({ base: join(outputPath, 'blobs') }),
-    }),
+    blobs: unstorageBlobs({ driver: await buildBlobDriver(outputPath, logger) }),
   })
 
   return { sqliteDb, drizzleDb, drizzleAdapter, storage }
