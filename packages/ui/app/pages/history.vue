@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface SiteGroup {
@@ -78,7 +79,30 @@ const groups = computed<SiteGroup[]>(() => {
   return out
 })
 
+// Search query filters the visible site groups client-side. Server-side
+// pagination already pulled up to 200 scans; filtering locally avoids a
+// round-trip per keystroke and keeps Collapsible expansion state stable.
+const searchQuery = ref('')
+
+const filteredGroups = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return groups.value
+  return groups.value.filter((g) => {
+    if (g.site.toLowerCase().includes(q)) return true
+    if (siteHostname(g.site).toLowerCase().includes(q)) return true
+    // Also match scanId / ciCommit so users can paste a build hash and find
+    // its scan without remembering which site it ran against.
+    return g.pairs.some(p =>
+      p.mobile?.scanId.toLowerCase().includes(q)
+      || p.desktop?.scanId.toLowerCase().includes(q)
+      || p.mobile?.ciCommit?.toLowerCase().includes(q)
+      || p.desktop?.ciCommit?.toLowerCase().includes(q),
+    )
+  })
+})
+
 const totalScans = computed(() => scansResp.value?.items?.length ?? 0)
+const filteredScanCount = computed(() => filteredGroups.value.reduce((sum, g) => sum + g.scanCount, 0))
 
 // Expand the most-recent site by default; preserve user toggles per-site.
 const expanded = reactive<Record<string, boolean>>({})
@@ -137,7 +161,12 @@ async function deleteScan(scanId: string) {
           History
         </h1>
         <p class="text-sm text-muted-foreground">
-          {{ totalScans }} scan{{ totalScans === 1 ? '' : 's' }} across {{ groups.length }} site{{ groups.length === 1 ? '' : 's' }}
+          <template v-if="searchQuery">
+            {{ filteredScanCount }} of {{ totalScans }} scan{{ totalScans === 1 ? '' : 's' }} match
+          </template>
+          <template v-else>
+            {{ totalScans }} scan{{ totalScans === 1 ? '' : 's' }} across {{ groups.length }} site{{ groups.length === 1 ? '' : 's' }}
+          </template>
         </p>
       </div>
       <Button as-child>
@@ -146,6 +175,21 @@ async function deleteScan(scanId: string) {
           New Scan
         </NuxtLink>
       </Button>
+    </div>
+
+    <!-- Search bar — site URL, hostname, scanId, or CI commit hash all match. -->
+    <div v-if="groups.length" class="relative max-w-md">
+      <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+      <Input v-model="searchQuery" placeholder="Filter by site, scanId, or commit..." class="pl-8" />
+      <button
+        v-if="searchQuery"
+        type="button"
+        aria-label="Clear search"
+        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        @click="searchQuery = ''"
+      >
+        <Icon name="lucide:x" class="size-4" />
+      </button>
     </div>
 
     <div v-if="status === 'pending'" class="space-y-3">
@@ -161,8 +205,17 @@ async function deleteScan(scanId: string) {
       </CardContent>
     </Card>
 
+    <Card v-else-if="!filteredGroups.length">
+      <CardContent class="flex flex-col items-center justify-center py-12 text-center">
+        <Icon name="lucide:search-x" class="size-10 text-muted-foreground/50 mb-3" />
+        <p class="text-sm text-muted-foreground">
+          No scans match "{{ searchQuery }}".
+        </p>
+      </CardContent>
+    </Card>
+
     <Collapsible
-      v-for="group in groups"
+      v-for="group in filteredGroups"
       v-else
       :key="group.site"
       v-model:open="expanded[group.site]"
