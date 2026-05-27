@@ -3,7 +3,7 @@
 // joined against them by URL.
 
 import { z } from 'zod'
-import { DeviceSchema, UrlSchema } from '../types/atoms'
+import { UrlSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
 export const SiteSchema = z.object({
@@ -11,7 +11,6 @@ export const SiteSchema = z.object({
   name: z.string(),
   url: UrlSchema,
   group: z.string().nullable(),
-  device: DeviceSchema,
   createdAt: z.iso.datetime(),
 })
 export type Site = z.infer<typeof SiteSchema>
@@ -30,7 +29,6 @@ export const SitesCreate = defineCommand({
     name: z.string().optional(),
     url: UrlSchema,
     group: z.string().nullable().optional(),
-    device: DeviceSchema.optional(),
   }),
   output: z.object({ site: SiteSchema }),
   // Persistent registry mutation. Adding ghost sites across restarts is a

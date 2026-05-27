@@ -1,16 +1,9 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -42,7 +35,6 @@ const { data: sitesData, refresh } = useAsyncData(
 
 const addOpen = ref(false)
 const newUrl = ref('')
-const newDevice = ref('mobile')
 const adding = ref(false)
 
 async function addSite() {
@@ -52,15 +44,8 @@ async function addSite() {
 
   adding.value = true
   try {
-    if (newDevice.value === 'both') {
-      await api['sites.create']({ url, device: 'mobile' })
-      await api['sites.create']({ url, device: 'desktop' })
-      toast.success('Site added for both devices')
-    }
-    else {
-      await api['sites.create']({ url, device: newDevice.value as any })
-      toast.success('Site added')
-    }
+    await api['sites.create']({ url })
+    toast.success('Site added')
     addOpen.value = false
     newUrl.value = ''
     refresh()
@@ -112,19 +97,6 @@ function scanSite(url: string) {
               <Label>URL</Label>
               <Input v-model="newUrl" placeholder="https://example.com" required class="font-mono" />
             </div>
-            <div class="space-y-2">
-              <Label>Default Device</Label>
-              <Select v-model="newDevice">
-                <SelectTrigger class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mobile">Mobile</SelectItem>
-                  <SelectItem value="desktop">Desktop</SelectItem>
-                  <SelectItem value="both">Both (Mobile + Desktop)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <DialogFooter>
               <Button type="submit" :disabled="adding || !newUrl.trim()">
                 <Icon v-if="adding" name="lucide:loader-2" class="size-4 mr-2 animate-spin" />
@@ -139,7 +111,7 @@ function scanSite(url: string) {
     <div v-if="!sitesData?.sites?.length" class="flex flex-col items-center justify-center py-16 text-center">
       <Icon name="lucide:globe" class="size-12 text-muted-foreground/50 mb-4" />
       <p class="text-muted-foreground">No sites registered yet.</p>
-      <p class="text-xs text-muted-foreground mt-1">Sites are automatically added when you run a scan.</p>
+      <p class="text-xs text-muted-foreground mt-1">Add a site to start monitoring.</p>
     </div>
 
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -150,7 +122,6 @@ function scanSite(url: string) {
               <div class="font-medium text-sm truncate">{{ site.name }}</div>
               <div class="text-xs text-muted-foreground font-mono truncate mt-0.5">{{ site.url }}</div>
             </div>
-            <Badge variant="outline" class="text-[10px] shrink-0 ml-2">{{ site.device }}</Badge>
           </div>
           <div class="text-xs text-muted-foreground mb-3">
             Added {{ new Date(site.createdAt).toLocaleDateString() }}

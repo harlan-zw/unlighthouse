@@ -1,6 +1,10 @@
 // v2 init SQL — matches contracts/src/drizzle/sqlite.ts.
 // Dashboard aggregation tables removed; all cross-route analysis flows through packs.
 export const INIT_SQL_STATEMENTS: readonly string[] = [
+  // Sites table
+  'CREATE TABLE IF NOT EXISTS `sites` (\n  `id` text PRIMARY KEY NOT NULL,\n  `name` text NOT NULL,\n  `url` text NOT NULL,\n  `group` text,\n  `created_at` text NOT NULL\n);',
+  'CREATE INDEX IF NOT EXISTS `idx_sites_url` ON `sites` (`url`);',
+
   // Core tables
   'CREATE TABLE IF NOT EXISTS `scans` (\n  `scan_id` text PRIMARY KEY NOT NULL,\n  `site` text NOT NULL,\n  `mode` text NOT NULL DEFAULT \'site\',\n  `device` text NOT NULL,\n  `status` text NOT NULL,\n  `started_at` text NOT NULL,\n  `completed_at` text,\n  `ci_branch` text,\n  `ci_commit` text,\n  `ci_commit_message` text,\n  `summary` text,\n  `created_at_ms` integer DEFAULT (unixepoch() * 1000) NOT NULL\n);',
   'CREATE INDEX IF NOT EXISTS `idx_scans_site` ON `scans` (`site`);',
@@ -30,6 +34,8 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
   'ALTER TABLE `scan_routes` ADD COLUMN `score_agentic_browsing` real;',
   'ALTER TABLE `scan_routes` ADD COLUMN `screenshot_blob_key` text;',
   'ALTER TABLE `scan_routes` ADD COLUMN `report_blob_key` text;',
+  'ALTER TABLE `scans` ADD COLUMN `site_id` text REFERENCES `sites`(`id`) ON DELETE SET NULL;',
+  'CREATE INDEX IF NOT EXISTS `idx_scans_site_id` ON `scans` (`site_id`);',
 ]
 
 export const INIT_SQL = INIT_SQL_STATEMENTS.join('\n')

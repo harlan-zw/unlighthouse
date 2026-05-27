@@ -398,8 +398,11 @@ function createSession(deps: SessionDeps): CrawlSession {
 
     const scanMode = deps.config.scanner?.mode === 'page' ? 'page' as const : 'site' as const
 
+    const existingSite = await storage.sites.getByUrl(site).catch(() => null)
+
     await storage.scans.create({
       scanId,
+      siteId: existingSite?.id ?? null,
       site: site as never,
       mode: scanMode,
       device: primaryDevice,

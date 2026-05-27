@@ -29,7 +29,6 @@ import { resolveAuditor } from './auditor'
 import { initStorage } from './cli/storage-init'
 import { ClientPkg } from './constants'
 import { historySubscriber } from './data/history/tracking'
-import { createSitesStore } from './data/sites'
 import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
 import { createServerHooks } from './server-hooks'
@@ -328,7 +327,6 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       storage,
       config: coreConfig,
       version,
-      sites: createSitesStore({ outputPath: resolvedConfig.outputPath }),
     }
 
     portsRef = { core, storage, auditor, handlerCtx }

@@ -122,12 +122,8 @@ function formatDuration(start: string | null, end: string | null) {
           @click="router.push({ path: '/scan/new', query: { url: site.url } })"
         >
           <CardContent class="pt-4 pb-3">
-            <div class="flex items-center justify-between mb-1">
+            <div class="mb-1">
               <span class="text-sm font-medium truncate">{{ site.name }}</span>
-              <Badge variant="outline" class="text-[10px] shrink-0 ml-2">
-                <Icon :name="site.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-2.5 mr-0.5" />
-                {{ site.device }}
-              </Badge>
             </div>
             <div class="text-xs text-muted-foreground font-mono truncate">{{ site.url }}</div>
           </CardContent>

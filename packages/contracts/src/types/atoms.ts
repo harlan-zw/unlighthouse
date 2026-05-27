@@ -83,6 +83,7 @@ export type ScanSummary = z.infer<typeof ScanSummarySchema>
 // A persisted scan row.
 const ScanSchema = z.object({
   scanId: ScanIdSchema,
+  siteId: z.string().nullable(),
   site: UrlSchema,
   mode: ScanModeSchema,
   device: DeviceSchema,

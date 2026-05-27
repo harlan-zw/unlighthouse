@@ -25,6 +25,7 @@ export type {
 // Insert shape: persisted Scan minus server-managed fields.
 // @TODO: tighten to a Zod-inferred ScanInsert once contracts/types adds it.
 export type ScanInsert = Omit<Scan, 'completedAt' | 'summary'> & {
+  siteId?: string | null
   completedAt?: Scan['completedAt']
   summary?: Scan['summary']
 }
@@ -203,7 +204,25 @@ export interface PackRunRepository {
   delete: (scanId: ScanId, packName?: string) => Promise<void>
 }
 
+export interface SiteRecord {
+  id: string
+  name: string
+  url: string
+  group: string | null
+  createdAt: string
+}
+
+export interface SiteRepository {
+  list: () => Promise<SiteRecord[]>
+  get: (id: string) => Promise<SiteRecord | null>
+  getByUrl: (url: string) => Promise<SiteRecord | null>
+  create: (site: SiteRecord) => Promise<SiteRecord>
+  update: (id: string, patch: Partial<Omit<SiteRecord, 'id'>>) => Promise<SiteRecord | null>
+  delete: (id: string) => Promise<boolean>
+}
+
 export interface Storage {
+  sites: SiteRepository
   scans: ScanRepository
   routes: ScanRouteRepository
   blobs: BlobStore

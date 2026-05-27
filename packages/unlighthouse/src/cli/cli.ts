@@ -5,7 +5,6 @@ import open from 'better-opn'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 import { joinURL } from 'ufo'
-import { createSitesStore, deriveSiteId } from '../data/sites'
 import { createUnlighthouseHost } from '../index.ts'
 import { runAssertions } from './assertions'
 import createCli from './createCli'
@@ -105,12 +104,16 @@ async function run() {
   const siteUrl = unlighthouse.resolvedConfig.site
   let scanLandingUrl = unlighthouse.runtimeSettings.clientUrl
   if (siteUrl) {
-    const sitesStore = createSitesStore({ outputPath: unlighthouse.resolvedConfig.outputPath })
-    const site = await sitesStore.create({
+    const storage = unlighthouse.handlerCtx.storage
+    const parsedUrl = new URL(siteUrl)
+    const siteId = encodeURIComponent(parsedUrl.origin)
+    await storage.sites.create({
+      id: siteId,
+      name: parsedUrl.port ? `${parsedUrl.hostname}:${parsedUrl.port}` : parsedUrl.hostname,
       url: siteUrl,
-      device: unlighthouse.resolvedConfig.scanner?.device || undefined,
+      group: null,
+      createdAt: new Date().toISOString(),
     }).catch(() => null)
-    const siteId = site?.id ?? deriveSiteId(siteUrl)
     scanLandingUrl = joinURL(unlighthouse.runtimeSettings.clientUrl, `/sites/${siteId}/scan/${scanId}`)
   }
 

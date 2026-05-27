@@ -59,6 +59,5 @@ export function createHandlers(): HandlerMap {
   } as unknown as HandlerMap
 }
 
-export type { SitesStore, SitesStoreCreateInput } from './sites'
 export * from './types'
 export * from './wrap'

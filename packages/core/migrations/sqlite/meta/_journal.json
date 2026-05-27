@@ -15,6 +15,13 @@
       "when": 1779634515901,
       "tag": "0001_charming_mathemanic",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779897600000,
+      "tag": "0002_add_sites_table",
+      "breakpoints": true
     }
   ]
 }

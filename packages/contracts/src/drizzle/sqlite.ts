@@ -16,10 +16,25 @@ import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm
 // Core tables
 // ============================================================================
 
+export const sites = sqliteTable(
+  'sites',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    group: text('group'),
+    createdAt: text('created_at').notNull(),
+  },
+  table => [
+    index('idx_sites_url').on(table.url),
+  ],
+)
+
 export const scans = sqliteTable(
   'scans',
   {
     scanId: text('scan_id').primaryKey(),
+    siteId: text('site_id').references(() => sites.id, { onDelete: 'set null' }),
     site: text('site').notNull(),
     mode: text('mode').notNull().default('site'),
     device: text('device').notNull(),
@@ -36,6 +51,7 @@ export const scans = sqliteTable(
     index('idx_scans_site').on(table.site),
     index('idx_scans_status').on(table.status),
     index('idx_scans_started_at').on(table.startedAt),
+    index('idx_scans_site_id').on(table.siteId),
     index('idx_scans_find_previous').on(table.site, table.device, table.ciBranch, table.startedAt),
   ],
 )
@@ -172,6 +188,8 @@ export const scanCrux = sqliteTable(
 // Inferred row types
 // ============================================================================
 
+export type SiteRow = typeof sites.$inferSelect
+export type SiteRowInsert = typeof sites.$inferInsert
 export type ScanRow = typeof scans.$inferSelect
 export type ScanRowInsert = typeof scans.$inferInsert
 export type ScanRouteRow = typeof scanRoutes.$inferSelect

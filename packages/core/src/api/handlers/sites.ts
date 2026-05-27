@@ -1,8 +1,5 @@
-// sites.* handlers — backed by a host-provided SitesStore.
-
 import type {
   CommandOutput,
-  Site,
   SitesCreate,
   SitesDelete,
   SitesList,
@@ -10,51 +7,52 @@ import type {
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts'
 
-function requireStore(ctx: { sites?: SitesStore }): SitesStore {
-  if (!ctx.sites) {
-    throw new UnlighthouseError({
-      code: 'NOT_SUPPORTED',
-      message: 'sites store is not wired by the host preset',
-    })
-  }
-  return ctx.sites
+function deriveSiteId(url: string): string {
+  const u = new URL(url)
+  return encodeURIComponent(u.origin)
 }
 
-export interface SitesStoreCreateInput {
-  name?: string
-  url: string
-  group?: string | null
-  device?: 'mobile' | 'desktop'
-}
-
-export interface SitesStore {
-  list: () => Promise<Site[]>
-  get: (id: string) => Promise<Site | null>
-  create: (input: SitesStoreCreateInput) => Promise<Site>
-  delete: (id: string) => Promise<boolean>
+function deriveSiteName(url: string): string {
+  const u = new URL(url)
+  return u.port ? `${u.hostname}:${u.port}` : u.hostname
 }
 
 export const sitesList: Handler<typeof SitesList> = {
   command: {} as typeof SitesList,
   async run(_input, ctx) {
-    const store = requireStore(ctx as { sites?: SitesStore })
-    return { sites: await store.list() } as CommandOutput<typeof SitesList>
+    const sites = await ctx.storage.sites.list()
+    return { sites } as CommandOutput<typeof SitesList>
   },
 }
 
 export const sitesCreate: Handler<typeof SitesCreate> = {
   command: {} as typeof SitesCreate,
   async run(input, ctx) {
-    const store = requireStore(ctx as { sites?: SitesStore })
-    return { site: await store.create(input) } as CommandOutput<typeof SitesCreate>
+    const id = deriveSiteId(input.url)
+    const existing = await ctx.storage.sites.get(id)
+    if (existing) {
+      const updated = await ctx.storage.sites.update(id, {
+        name: input.name ?? existing.name,
+        url: input.url,
+        group: input.group === undefined ? existing.group : input.group,
+      })
+      return { site: updated! } as CommandOutput<typeof SitesCreate>
+    }
+    const site = await ctx.storage.sites.create({
+      id,
+      name: input.name || deriveSiteName(input.url),
+      url: input.url,
+      group: input.group ?? null,
+      createdAt: new Date().toISOString(),
+    })
+    return { site } as CommandOutput<typeof SitesCreate>
   },
 }
 
 export const sitesDelete: Handler<typeof SitesDelete> = {
   command: {} as typeof SitesDelete,
   async run(input, ctx) {
-    const store = requireStore(ctx as { sites?: SitesStore })
-    const ok = await store.delete(input.id)
+    const ok = await ctx.storage.sites.delete(input.id)
     if (!ok) {
       throw new UnlighthouseError({
         code: 'SITE_NOT_FOUND',

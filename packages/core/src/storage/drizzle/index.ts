@@ -1,11 +1,13 @@
-import type { Logger, PackRunRepository, ScanRepository, ScanRouteRepository } from '@unlighthouse/contracts'
+import type { Logger, PackRunRepository, ScanRepository, ScanRouteRepository, SiteRepository } from '@unlighthouse/contracts'
 import { createComparisonRepository } from './repositories/comparisons'
 import { createPackRunRepository } from './repositories/pack-runs'
 import { createReportRepositories } from './repositories/reports'
 import { createScanRouteRepository } from './repositories/routes'
 import { createScanRepository } from './repositories/scans'
+import { createSiteRepository } from './repositories/sites'
 
 export interface DrizzleStorage {
+  sites: SiteRepository
   scans: ScanRepository
   routes: ScanRouteRepository
   reports: ReturnType<typeof createReportRepositories>
@@ -42,6 +44,7 @@ export interface DrizzleStorageOptions {
 export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
   const { driver } = opts
   return {
+    sites: createSiteRepository(driver),
     scans: createScanRepository(driver),
     routes: createScanRouteRepository(driver),
     reports: createReportRepositories(driver),
