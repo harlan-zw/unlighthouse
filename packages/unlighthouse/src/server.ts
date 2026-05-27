@@ -269,46 +269,66 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
       // refuse to start.
       logger?.warn?.('[cors] UNLIGHTHOUSE_CORS_ORIGINS=* while UNLIGHTHOUSE_API_TOKEN is set. Pin specific origins instead.')
     }
-    const expected = Buffer.from(apiToken, 'utf8')
-    // The API base is `routerPrefix + apiPrefix` (e.g. '/' + '/api' = '/api').
-    // Anchored with a trailing slash so prefix matching can't accidentally
-    // gate a `/apidocs` path that just *starts* with `/api`.
-    const apiBase = joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)
-    const apiPathPrefix = apiBase.endsWith('/') ? apiBase : `${apiBase}/`
-    log.info(`auth: Bearer-token gate enabled on ${apiPathPrefix}* (local-bypass=${localBypass})`)
-
-    app.use(defineEventHandler((event) => {
-      const url = event.node.req.url ?? ''
-      // Scope the gate strictly to the API surface. Anything outside
-      // routerPrefix+apiPrefix is the static UI shell + assets.
-      if (!url.startsWith(apiPathPrefix))
-        return
-      if (event.node.req.method === 'OPTIONS')
-        return
-      // Exempt health/ready under the apiPathPrefix.
-      const sub = url.slice(apiPathPrefix.length).split('?')[0]
-      if (sub === 'health' || sub === 'ready')
-        return
-      if (localBypass && isLoopback(getClientIp(event, trustProxy)))
-        return
-
-      const got = parseBearer(event)
-      if (got) {
-        const gotBuf = Buffer.from(got, 'utf8')
-        // timingSafeEqual requires equal lengths; differ-length tokens
-        // would otherwise leak the expected length via timing. Fast-pass
-        // a length mismatch as "wrong" without doing the compare.
-        if (gotBuf.length === expected.length && timingSafeEqual(gotBuf, expected))
-          return
-      }
-
-      setResponseStatus(event, 401)
-      setResponseHeader(event, 'WWW-Authenticate', 'Bearer realm="unlighthouse"')
-      return { error: 'unauthorized', message: 'Bearer token required.' }
+    log.info(`auth: Bearer-token gate enabled on ${joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)}/* (local-bypass=${localBypass})`)
+    app.use(createBearerAuthGate({
+      apiToken,
+      apiBase: joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix),
+      localBypass,
+      trustProxy,
     }))
   }
 
   app.use(resolvedConfig.routerPrefix, root.handler)
+}
+
+// Extracted out of mountServer so it can be tested without spinning up
+// the full host stack (which needs storage + chrome + a real listener).
+// All decisions land in pure functions:
+//   - parseBearer(): header extraction
+//   - getClientIp(): trust-proxy aware client identity
+//   - isLoopback(): bypass classification
+// Returns an h3 event handler that 401s when the request hits the API
+// surface without a valid token. Pass-through (return undefined) on
+// everything that should bypass auth.
+export interface BearerAuthGateOptions {
+  apiToken: string
+  apiBase: string
+  localBypass: boolean
+  trustProxy: boolean
+}
+
+export function createBearerAuthGate(opts: BearerAuthGateOptions) {
+  const expected = Buffer.from(opts.apiToken, 'utf8')
+  // Anchored with trailing slash so a `/apidocs` request doesn't
+  // accidentally match a `/api` prefix.
+  const apiPathPrefix = opts.apiBase.endsWith('/') ? opts.apiBase : `${opts.apiBase}/`
+
+  return defineEventHandler((event) => {
+    const url = event.node.req.url ?? ''
+    if (!url.startsWith(apiPathPrefix))
+      return
+    if (event.node.req.method === 'OPTIONS')
+      return
+    const sub = url.slice(apiPathPrefix.length).split('?')[0]
+    if (sub === 'health' || sub === 'ready')
+      return
+    if (opts.localBypass && isLoopback(getClientIp(event, opts.trustProxy)))
+      return
+
+    const got = parseBearer(event)
+    if (got) {
+      const gotBuf = Buffer.from(got, 'utf8')
+      // timingSafeEqual requires equal lengths — fast-pass a length
+      // mismatch as "wrong" without doing the compare so timing
+      // doesn't leak the expected length.
+      if (gotBuf.length === expected.length && timingSafeEqual(gotBuf, expected))
+        return
+    }
+
+    setResponseStatus(event, 401)
+    setResponseHeader(event, 'WWW-Authenticate', 'Bearer realm="unlighthouse"')
+    return { error: 'unauthorized', message: 'Bearer token required.' }
+  })
 }
 
 // Pull the bearer token from the Authorization header. Returns null if
