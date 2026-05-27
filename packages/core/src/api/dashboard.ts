@@ -5,7 +5,7 @@
 import type { Storage } from '@unlighthouse/contracts'
 import type { Router } from 'h3'
 import { Buffer } from 'node:buffer'
-import { createRouter, defineEventHandler, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
+import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
 import { getComparisonSummary } from '../comparison'
 import { createTaggedLogger } from '../logger'
 
@@ -154,15 +154,22 @@ export function createDashboardApi(storage: Storage): Router {
   // Route detail — reads from reconciled contract blob
   router.get('/route/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
+    const { device } = getQuery(event) as { device?: string }
     const decodedPath = decodeURIComponent(path)
     const norm = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
 
     const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
-    const route = routes.find(r => r.path === decodedPath || r.path === norm)
-    if (!route) {
+    // Match on path; honor an explicit ?device= so a route audited on both
+    // mobile + desktop returns the requested side instead of whichever
+    // listForScan happened to return first. Surface all matching devices so
+    // the UI can show a toggle without a second round-trip.
+    const matches = routes.filter(r => r.path === decodedPath || r.path === norm)
+    if (matches.length === 0) {
       setResponseStatus(event, 404)
       return { error: 'Route not found' }
     }
+    const devices = Array.from(new Set(matches.map(r => r.device))).sort()
+    const route = (device && matches.find(r => r.device === device)) || matches[0]
 
     // Try reconciled contract blob for rich audit data
     if (route.reportBlobKey) {
@@ -170,11 +177,11 @@ export function createDashboardApi(storage: Storage): Router {
       const blob = await storage.blobs.get(reportKey)
       if (blob) {
         const contract = JSON.parse(Buffer.from(blob).toString('utf-8'))
-        return { ...route, ...contract }
+        return { ...route, ...contract, availableDevices: devices }
       }
     }
 
-    return route
+    return { ...route, availableDevices: devices }
   }))
 
   // Comparison endpoints

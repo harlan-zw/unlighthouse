@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
@@ -17,6 +18,9 @@ const { scoreToLabel, scoreToRingColor } = useScoreColor()
 
 const rescanning = ref(false)
 const screenshotVisible = ref(true)
+// Empty string = let the backend default to whichever device was scanned
+// first. The toggle below sets this once we know both devices exist.
+const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
 
 async function rescanRoute() {
   rescanning.value = true
@@ -36,7 +40,10 @@ const { data: routeData, status } = useAsyncData(
   `route-detail-${scanId}-${routePath}`,
   async () => {
     try {
-      const res = await fetch(`${baseUrl}/dashboard/route/${scanId}/${encodeURIComponent(routePath)}`)
+      const url = deviceFilter.value
+        ? `${baseUrl}/dashboard/route/${scanId}/${encodeURIComponent(routePath)}?device=${deviceFilter.value}`
+        : `${baseUrl}/dashboard/route/${scanId}/${encodeURIComponent(routePath)}`
+      const res = await fetch(url)
       if (!res.ok) return null
       return await res.json()
     }
@@ -44,7 +51,11 @@ const { data: routeData, status } = useAsyncData(
       return null
     }
   },
+  { watch: [deviceFilter] },
 )
+
+const availableDevices = computed<string[]>(() => routeData.value?.availableDevices ?? [])
+const hasMultipleDevices = computed(() => availableDevices.value.length > 1)
 
 function formatMetric(value: number | null, unit: string = 'ms') {
   if (value === null || value === undefined) return '—'
@@ -218,6 +229,20 @@ function formatBytes(bytes: number): string {
           <Icon v-else name="lucide:refresh-cw" class="size-4 mr-1" />
           Rescan
         </Button>
+      </div>
+
+      <!-- Device toggle — only renders when this route was audited on both
+           mobile + desktop. Defaults to whichever device the backend picked
+           first (empty value); explicit selection re-fetches and swaps the
+           displayed scores/audits/screenshot in place. -->
+      <div v-if="hasMultipleDevices" class="flex items-center gap-2">
+        <span class="text-xs text-muted-foreground">View as</span>
+        <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
+          <ToggleGroupItem v-for="d in availableDevices" :key="d" :value="d" class="text-xs">
+            <Icon :name="d === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5 mr-1" />
+            {{ d.charAt(0).toUpperCase() + d.slice(1) }}
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       <!-- Visual — full-page screenshot captured by the audit worker
