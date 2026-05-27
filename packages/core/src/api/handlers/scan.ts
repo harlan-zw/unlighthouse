@@ -399,9 +399,18 @@ export const scanSummary: Handler<typeof ScanSummaryCmd> = {
       notFound(input.scanId)
     const all = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
 
+    // Honor `input.device` when present — without this filter the overview
+    // pack reconciles across both devices and mobile/desktop toggles in the
+    // dashboard would all render the same numbers. Empty filter result is
+    // valid (e.g. caller asked for "desktop" on a mobile-only scan); the
+    // pack returns null averages + zero distribution rather than throwing.
+    const items = input.device
+      ? all.items.filter(r => r.device === input.device)
+      : all.items
+
     const report = await overviewPack.reconciler({
       scanId: input.scanId,
-      routes: all.items,
+      routes: items,
       logger: undefined,
     })
 

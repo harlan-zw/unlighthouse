@@ -10,12 +10,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@/components/ui/toggle-group'
 import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
@@ -44,13 +41,42 @@ const resolvedStatus = computed(() => {
 
 const scanIsComplete = computed(() => resolvedStatus.value === 'complete')
 
+// Device filter for the summary view. Defaults to "all" — the dashboard
+// shows both devices' aggregated avg by default. Switching narrows the
+// summary + worst-routes table to the picked device's rows. Persisted only
+// for this session (component-local); a scan link from elsewhere always
+// lands on "all" so screenshots / shares show the same numbers everyone
+// else sees.
+const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
+
+// Probe whether the scan actually has both devices. Skip the toggle for
+// single-device scans so we don't suggest a filter that produces an empty
+// summary. pageSize=1 + total is the cheapest signal.
+const { data: deviceProbe } = useAsyncData(
+  `scan-devices-${scanId.value}`,
+  async () => {
+    if (!scanIsComplete.value) return null
+    const [mob, desk] = await Promise.all([
+      api['scan.results']({ scanId: scanId.value, device: 'mobile', pageSize: 1 }).catch(() => ({ total: 0 } as any)),
+      api['scan.results']({ scanId: scanId.value, device: 'desktop', pageSize: 1 }).catch(() => ({ total: 0 } as any)),
+    ])
+    return { mobile: (mob.total ?? 0) > 0, desktop: (desk.total ?? 0) > 0 }
+  },
+  { watch: [scanId, scanIsComplete] },
+)
+
+const hasMultipleDevices = computed(() => Boolean(deviceProbe.value?.mobile && deviceProbe.value?.desktop))
+
 const { data: scanSummary, refresh: refreshSummary } = useAsyncData(
   `scan-summary-${scanId.value}`,
   () => {
     if (!scanIsComplete.value) return Promise.resolve(null)
-    return api['scan.summary']({ scanId: scanId.value }).catch(() => null)
+    return api['scan.summary']({
+      scanId: scanId.value,
+      device: deviceFilter.value || undefined,
+    }).catch(() => null)
   },
-  { watch: [scanId, scanIsComplete] },
+  { watch: [scanId, scanIsComplete, deviceFilter] },
 )
 
 const { $ws } = useNuxtApp()
@@ -162,6 +188,22 @@ function scoreColor(score: number | null) {
     </div>
 
     <ScanProgress v-if="currentScanIsActive" />
+
+    <!-- Device filter (only when scan captured both) -->
+    <div v-if="hasMultipleDevices && scanIsComplete" class="flex items-center gap-2">
+      <span class="text-xs text-muted-foreground">View as</span>
+      <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
+        <ToggleGroupItem value="" class="text-xs">All</ToggleGroupItem>
+        <ToggleGroupItem value="mobile" class="text-xs">
+          <Icon name="lucide:smartphone" class="size-3.5 mr-1" />
+          Mobile
+        </ToggleGroupItem>
+        <ToggleGroupItem value="desktop" class="text-xs">
+          <Icon name="lucide:monitor" class="size-3.5 mr-1" />
+          Desktop
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </div>
 
     <!-- Stats row -->
     <div v-if="scanSummary" class="flex items-center gap-8 border-b pb-6">
