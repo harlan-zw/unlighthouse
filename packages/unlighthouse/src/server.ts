@@ -1,14 +1,16 @@
 import type { Logger, ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
 import type { WS } from '@unlighthouse/core/api'
-import type { App } from 'h3'
+import type { App, H3Event } from 'h3'
 import type { Hookable } from 'hookable'
 import type { ServerHookMap } from './server-hooks'
+import { timingSafeEqual } from 'node:crypto'
 import { join } from 'node:path'
 import { createDashboardApi } from '@unlighthouse/core/api/dashboard'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
 import fs from 'fs-extra'
-import { createRouter, defineEventHandler, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
+import { createRouter, defineEventHandler, getHeader, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
+import { joinURL } from 'ufo'
 import { createTaggedLogger } from '@unlighthouse/core/logger'
 import launch from 'launch-editor'
 
@@ -136,5 +138,87 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     }
   }))
 
+  // Bearer-token auth for the /api/* surface. Engaged only when
+  // UNLIGHTHOUSE_API_TOKEN is set so the CLI default (no token) stays
+  // unbroken. UI/static assets remain unauthenticated — the dashboard
+  // SPA is supposed to be loadable so it can prompt the user for the
+  // token (UI-level auth gate is a separate concern). Specific paths
+  // bypass even when auth is configured:
+  //
+  //   - OPTIONS preflight: needs to succeed so CORS works at all.
+  //   - /health and /ready: monitoring endpoints; leaking the token to
+  //     a healthcheck poller would be a footgun.
+  //   - Connections from 127.0.0.1 / ::1 when UNLIGHTHOUSE_LOCAL_BYPASS=1
+  //     so an operator can shell in and curl without exporting the token
+  //     into every shell.
+  const apiToken = process.env.UNLIGHTHOUSE_API_TOKEN
+  const localBypass = process.env.UNLIGHTHOUSE_LOCAL_BYPASS === '1'
+  if (apiToken) {
+    if (apiToken.length < 16) {
+      // Don't refuse to start — operator may be experimenting — but log
+      // loudly so a weak token isn't accidentally shipped to prod.
+      logger?.warn?.('[auth] UNLIGHTHOUSE_API_TOKEN is shorter than 16 chars; use a high-entropy token (e.g. `openssl rand -hex 32`).')
+    }
+    const expected = Buffer.from(apiToken, 'utf8')
+    // The API base is `routerPrefix + apiPrefix` (e.g. '/' + '/api' = '/api').
+    // Anchored with a trailing slash so prefix matching can't accidentally
+    // gate a `/apidocs` path that just *starts* with `/api`.
+    const apiBase = joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)
+    const apiPathPrefix = apiBase.endsWith('/') ? apiBase : `${apiBase}/`
+    log.info(`auth: Bearer-token gate enabled on ${apiPathPrefix}* (local-bypass=${localBypass})`)
+
+    app.use(defineEventHandler((event) => {
+      const url = event.node.req.url ?? ''
+      // Scope the gate strictly to the API surface. Anything outside
+      // routerPrefix+apiPrefix is the static UI shell + assets.
+      if (!url.startsWith(apiPathPrefix))
+        return
+      if (event.node.req.method === 'OPTIONS')
+        return
+      // Exempt health/ready under the apiPathPrefix.
+      const sub = url.slice(apiPathPrefix.length).split('?')[0]
+      if (sub === 'health' || sub === 'ready')
+        return
+      if (localBypass && isLoopback(event))
+        return
+
+      const got = parseBearer(event)
+      if (got) {
+        const gotBuf = Buffer.from(got, 'utf8')
+        // timingSafeEqual requires equal lengths; differ-length tokens
+        // would otherwise leak the expected length via timing. Fast-pass
+        // a length mismatch as "wrong" without doing the compare.
+        if (gotBuf.length === expected.length && timingSafeEqual(gotBuf, expected))
+          return
+      }
+
+      setResponseStatus(event, 401)
+      setResponseHeader(event, 'WWW-Authenticate', 'Bearer realm="unlighthouse"')
+      return { error: 'unauthorized', message: 'Bearer token required.' }
+    }))
+  }
+
   app.use(resolvedConfig.routerPrefix, root.handler)
+}
+
+// Pull the bearer token from the Authorization header. Returns null if
+// missing, malformed, or some other scheme. Whitespace around the token
+// is trimmed.
+function parseBearer(event: H3Event): string | null {
+  const header = getHeader(event, 'authorization')
+  if (!header)
+    return null
+  const m = /^Bearer\s+(\S+)\s*$/i.exec(header)
+  return m ? m[1] : null
+}
+
+// Loopback check used by the LOCAL_BYPASS escape hatch. socket.remoteAddress
+// is what node sees, which is the real peer; when running behind a proxy
+// (UNLIGHTHOUSE_TRUST_PROXY) callers should not enable LOCAL_BYPASS because
+// the proxy itself would always appear local. Documented in self-hosted.md.
+function isLoopback(event: H3Event): boolean {
+  const addr = event.node.req.socket?.remoteAddress
+  if (!addr)
+    return false
+  return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1'
 }
