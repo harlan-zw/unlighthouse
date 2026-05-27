@@ -184,6 +184,41 @@ export function createDashboardApi(storage: Storage): Router {
     return { ...route, availableDevices: devices }
   }))
 
+  // Raw Lighthouse JSON — gunzipped and served as application/json so
+  // power users can drop it into the official LH report viewer, parse it
+  // with custom tooling, or attach it to a bug report. Honors ?device=
+  // the same way /route does. Cached aggressively because the blob is
+  // immutable for the life of the scan.
+  router.get('/lhr/:scanId/:path', defineEventHandler(async (event) => {
+    const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
+    const { device } = getQuery(event) as { device?: string }
+    const decodedPath = decodeURIComponent(path)
+    const norm = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
+
+    const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+    const matches = routes.filter(r => r.path === decodedPath || r.path === norm)
+    const route = (device && matches.find(r => r.device === device)) || matches[0]
+    if (!route || !route.lhrBlobKey) {
+      setResponseStatus(event, 404)
+      return { error: 'No LHR data for this route' }
+    }
+    const gz = await storage.blobs.get(route.lhrBlobKey)
+    if (!gz) {
+      setResponseStatus(event, 404)
+      return { error: 'LHR blob missing from storage' }
+    }
+    const { gunzipSync } = await import('node:zlib')
+    const json = gunzipSync(gz).toString('utf-8')
+    setResponseHeader(event, 'Content-Type', 'application/json; charset=utf-8')
+    setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
+    // Hint to the browser to save as a file when opened via the download
+    // button rather than rendering. Filename pins the device so a user
+    // who saves both copies doesn't overwrite the first.
+    const safeName = `${scanId}-${route.device}-${route.path.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'root'}.lhr.json`
+    setResponseHeader(event, 'Content-Disposition', `attachment; filename="${safeName}"`)
+    return json
+  }))
+
   // Comparison endpoints
   const requireSqlDb = () => (storage as { db?: any }).db ?? null
 

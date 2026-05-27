@@ -224,11 +224,27 @@ function formatBytes(bytes: number): string {
             <span v-if="routeData.provenance?.timingTotal">{{ (routeData.provenance.timingTotal / 1000).toFixed(1) }}s audit</span>
           </div>
         </div>
-        <Button variant="outline" size="sm" :disabled="rescanning" @click="rescanRoute">
-          <Icon v-if="rescanning" name="lucide:loader-2" class="size-4 mr-1 animate-spin" />
-          <Icon v-else name="lucide:refresh-cw" class="size-4 mr-1" />
-          Rescan
-        </Button>
+        <div class="flex items-center gap-2">
+          <Button
+            v-if="routeData.lhrBlobKey"
+            variant="outline"
+            size="sm"
+            as-child
+          >
+            <a
+              :href="`${baseUrl}/dashboard/lhr/${scanId}/${encodeURIComponent(routeData.path || routeData.route?.path || routePath)}${deviceFilter ? `?device=${deviceFilter}` : ''}`"
+              :download="`${scanId}-${routeData.device || routeData.route?.device || 'mobile'}.lhr.json`"
+            >
+              <Icon name="lucide:download" class="size-4 mr-1" />
+              Raw LHR
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" :disabled="rescanning" @click="rescanRoute">
+            <Icon v-if="rescanning" name="lucide:loader-2" class="size-4 mr-1 animate-spin" />
+            <Icon v-else name="lucide:refresh-cw" class="size-4 mr-1" />
+            Rescan
+          </Button>
+        </div>
       </div>
 
       <!-- Device toggle — only renders when this route was audited on both
