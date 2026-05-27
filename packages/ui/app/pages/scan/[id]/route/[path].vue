@@ -16,6 +16,7 @@ const api = useApi()
 const { scoreToLabel, scoreToRingColor } = useScoreColor()
 
 const rescanning = ref(false)
+const screenshotVisible = ref(true)
 
 async function rescanRoute() {
   rescanning.value = true
@@ -218,6 +219,30 @@ function formatBytes(bytes: number): string {
           Rescan
         </Button>
       </div>
+
+      <!-- Visual — full-page screenshot captured by the audit worker
+           (core.ts:521). Endpoint 404s when no blob exists; we just
+           hide the whole card so we don't show a broken image marker. -->
+      <Card v-if="screenshotVisible">
+        <CardHeader class="pb-2 flex flex-row items-center justify-between">
+          <CardTitle class="text-sm font-medium text-muted-foreground">Visual</CardTitle>
+          <a
+            :href="`${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(routeData.path || routeData.route?.path || routePath)}`"
+            target="_blank"
+            rel="noopener"
+            class="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+          >Open full size <Icon name="lucide:external-link" class="size-3" /></a>
+        </CardHeader>
+        <CardContent>
+          <img
+            :src="`${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(routeData.path || routeData.route?.path || routePath)}`"
+            loading="lazy"
+            alt="Page screenshot"
+            class="w-full max-w-3xl max-h-[600px] object-contain object-top rounded border bg-muted mx-auto"
+            @error="screenshotVisible = false"
+          >
+        </CardContent>
+      </Card>
 
       <!-- Runtime Error -->
       <div v-if="routeData.provenance?.runtimeError" class="border border-red-500/30 bg-red-500/5 rounded-lg p-4">
