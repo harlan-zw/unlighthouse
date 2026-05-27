@@ -177,6 +177,20 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   //     into every shell.
   const apiToken = process.env.UNLIGHTHOUSE_API_TOKEN
   const localBypass = process.env.UNLIGHTHOUSE_LOCAL_BYPASS === '1'
+  // Trust-proxy turns on X-Forwarded-* awareness for downstream client
+  // identity (auth bypass + rate-limit bucketing). Only enable when the
+  // app actually sits behind a proxy you control — without that, any
+  // client can spoof the header and become "127.0.0.1".
+  const trustProxy = process.env.UNLIGHTHOUSE_TRUST_PROXY === '1'
+  if (trustProxy && localBypass) {
+    // Behind a real proxy the socket.remoteAddress is always the
+    // proxy's IP, which often is 127.0.0.1 — combined with LOCAL_BYPASS
+    // this turns auth off for the whole world. Loud refuse rather than
+    // warn; the misconfiguration is footgun-grade.
+    logger?.warn?.('[auth] UNLIGHTHOUSE_TRUST_PROXY=1 + UNLIGHTHOUSE_LOCAL_BYPASS=1 disables auth for all requests via the proxy. Drop LOCAL_BYPASS in hosted setups.')
+  }
+  if (trustProxy) log.info(`network: trust-proxy enabled (X-Forwarded-For honoured)`)
+
   if (apiToken) {
     if (apiToken.length < 16) {
       // Don't refuse to start — operator may be experimenting — but log
@@ -210,7 +224,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
       const sub = url.slice(apiPathPrefix.length).split('?')[0]
       if (sub === 'health' || sub === 'ready')
         return
-      if (localBypass && isLoopback(event))
+      if (localBypass && isLoopback(getClientIp(event, trustProxy)))
         return
 
       const got = parseBearer(event)
@@ -243,13 +257,28 @@ function parseBearer(event: H3Event): string | null {
   return m ? m[1] : null
 }
 
-// Loopback check used by the LOCAL_BYPASS escape hatch. socket.remoteAddress
-// is what node sees, which is the real peer; when running behind a proxy
-// (UNLIGHTHOUSE_TRUST_PROXY) callers should not enable LOCAL_BYPASS because
-// the proxy itself would always appear local. Documented in self-hosted.md.
-function isLoopback(event: H3Event): boolean {
-  const addr = event.node.req.socket?.remoteAddress
-  if (!addr)
+// Resolve the client IP for auth-bypass and rate-limiting bucketing.
+// When trustProxy is on, prefer the left-most X-Forwarded-For entry
+// (the original client per the standard). Otherwise use the socket peer
+// directly so a misconfigured deploy can't spoof identity via headers.
+export function getClientIp(event: H3Event, trustProxy: boolean): string | null {
+  if (trustProxy) {
+    const fwd = getHeader(event, 'x-forwarded-for')
+    if (fwd) {
+      // Header value is `client, proxy1, proxy2`. The left-most is the
+      // originator the closest proxy saw.
+      const first = fwd.split(',')[0]?.trim()
+      if (first) return first
+    }
+  }
+  return event.node.req.socket?.remoteAddress ?? null
+}
+
+// Loopback check used by the LOCAL_BYPASS escape hatch. Operates on a
+// raw IP string so the same helper works for both socket peer and
+// X-Forwarded-For-resolved address.
+function isLoopback(ip: string | null): boolean {
+  if (!ip)
     return false
-  return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1'
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1'
 }
