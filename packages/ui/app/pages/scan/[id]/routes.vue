@@ -27,6 +27,8 @@ const api = useApi()
 const store = useScanStore()
 const scanId = computed(() => route.params.id as string)
 const { scoreToColor, scoreToLabel } = useScoreColor()
+const config = useRuntimeConfig()
+const baseUrl = config.public.unlighthouseApiUrl as string
 
 const page = ref(1)
 const pageSize = 50
@@ -97,6 +99,25 @@ interface RouteRow {
 
 const columns = computed<ColumnDef<RouteRow>[]>(() => {
   const cols: ColumnDef<RouteRow>[] = [
+    {
+      id: 'thumbnail',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const path = row.original.path || row.original.url
+        const src = `${baseUrl}/dashboard/screenshot/${scanId.value}/${encodeURIComponent(path)}`
+        return h('img', {
+          src,
+          loading: 'lazy',
+          alt: '',
+          class: 'w-14 h-9 object-cover object-top rounded border bg-muted shrink-0',
+          // Endpoint 404s when no screenshot blob exists — hide the broken
+          // image marker so the column stays clean for non-audited rows.
+          onError: (e: Event) => { (e.target as HTMLImageElement).style.visibility = 'hidden' },
+        })
+      },
+      size: 70,
+    },
     {
       accessorKey: 'path',
       header: 'Path',
