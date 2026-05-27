@@ -191,6 +191,71 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   }
   if (trustProxy) log.info(`network: trust-proxy enabled (X-Forwarded-For honoured)`)
 
+  // Rate limit on the /api/* surface. 0 disables; default 120 req/min
+  // per bucket keeps a chatty dashboard happy (avg ~2 req/sec) while
+  // blocking abusive loops. In-memory token bucket — single-process
+  // only, so behind a horizontal-scale deployment you'd want to swap
+  // this for redis-backed; document.
+  const rateLimitRpm = Number.parseInt(process.env.UNLIGHTHOUSE_RATE_LIMIT ?? '120', 10)
+  if (rateLimitRpm > 0) {
+    const buckets = new Map<string, { tokens: number, last: number }>()
+    const refillPerMs = rateLimitRpm / 60_000
+    const capacity = rateLimitRpm
+    log.info(`rate-limit: ${rateLimitRpm} req/min per bucket (token+IP fallback)`)
+
+    app.use(defineEventHandler((event) => {
+      const url = event.node.req.url ?? ''
+      if (!url.startsWith('/'))
+        return
+      // Don't rate-limit health / ready / OPTIONS — monitoring
+      // shouldn't trip the limit and preflight is paired with a
+      // request that will hit the limit anyway.
+      if (event.node.req.method === 'OPTIONS')
+        return
+      const apiBase = joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)
+      const apiPathPrefix = apiBase.endsWith('/') ? apiBase : `${apiBase}/`
+      if (!url.startsWith(apiPathPrefix))
+        return
+      const sub = url.slice(apiPathPrefix.length).split('?')[0]
+      if (sub === 'health' || sub === 'ready')
+        return
+
+      // Bucket key: prefer the token (each tenant gets their own
+      // budget) and fall back to client IP for unauthenticated callers
+      // / the LOCAL_BYPASS path. Don't blend the two — a token's
+      // budget shouldn't be drained by a noisy IP that doesn't use
+      // that token.
+      const got = parseBearer(event)
+      const ip = getClientIp(event, trustProxy)
+      const key = got ? `t:${got}` : `i:${ip ?? 'unknown'}`
+
+      const now = Date.now()
+      let b = buckets.get(key)
+      if (!b) {
+        b = { tokens: capacity, last: now }
+        buckets.set(key, b)
+      }
+      // Lazy refill: each tick adds tokens proportional to elapsed
+      // ms, capped at capacity. Cheaper than a setInterval, and
+      // perfectly fair under bursts.
+      const elapsed = now - b.last
+      b.tokens = Math.min(capacity, b.tokens + elapsed * refillPerMs)
+      b.last = now
+      if (b.tokens < 1) {
+        const retryMs = Math.ceil((1 - b.tokens) / refillPerMs)
+        const retrySec = Math.ceil(retryMs / 1000)
+        setResponseStatus(event, 429)
+        setResponseHeader(event, 'Retry-After', retrySec)
+        setResponseHeader(event, 'X-RateLimit-Limit', String(rateLimitRpm))
+        setResponseHeader(event, 'X-RateLimit-Remaining', '0')
+        return { error: 'rate_limited', message: `Try again in ${retrySec}s.` }
+      }
+      b.tokens -= 1
+      setResponseHeader(event, 'X-RateLimit-Limit', String(rateLimitRpm))
+      setResponseHeader(event, 'X-RateLimit-Remaining', String(Math.floor(b.tokens)))
+    }))
+  }
+
   if (apiToken) {
     if (apiToken.length < 16) {
       // Don't refuse to start — operator may be experimenting — but log
