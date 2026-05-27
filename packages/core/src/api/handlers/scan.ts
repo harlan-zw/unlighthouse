@@ -6,6 +6,7 @@ import type {
   Device,
   ExtractedMetrics,
   ScanCancel,
+  ScanCategories,
   ScanCurrent,
   ScanDelete,
   ScanImport,
@@ -20,6 +21,7 @@ import type {
   ScanSummaryCmd,
 } from '@unlighthouse/contracts'
 import type { Handler } from './types'
+import { Buffer } from 'node:buffer'
 import { UnlighthouseError } from '@unlighthouse/contracts'
 import { overviewPack } from '../../packs/overview'
 import { readGitMeta } from '../../util/git-meta'
@@ -411,5 +413,100 @@ export const scanSummary: Handler<typeof ScanSummaryCmd> = {
       site: scan.site,
       device: input.device ?? scan.device,
     } as CommandOutput<typeof ScanSummaryCmd>
+  },
+}
+
+// Aggregate per-route category scores + audit pass/fail across the whole
+// scan. Walks the reconciled contract blobs route-by-route rather than the
+// raw LHRs so we never pay the gunzip cost on the hot path. Routes without
+// a contract blob (e.g. import paths that didn't include LHR data) are
+// skipped silently — they contribute 0 audits, not a null mean.
+const CATEGORY_TITLES: Record<string, string> = {
+  'performance': 'Performance',
+  'accessibility': 'Accessibility',
+  'seo': 'SEO',
+  'best-practices': 'Best Practices',
+  'pwa': 'PWA',
+  'agentic-browsing': 'Agentic Browsing',
+}
+
+function titleForCategory(id: string): string {
+  return CATEGORY_TITLES[id] ?? id.split('-').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')
+}
+
+interface CategoryAgg {
+  scoreSum: number
+  scoreCount: number
+  passingCount: number
+  failingCount: number
+  auditIds: Set<string>
+}
+
+export const scanCategories: Handler<typeof ScanCategories> = {
+  command: {} as typeof ScanCategories,
+  async run(input, ctx) {
+    const scan = await ctx.storage.scans.get(input.scanId)
+    if (!scan)
+      notFound(input.scanId)
+
+    const { items: routes } = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
+    const filtered = input.device ? routes.filter(r => r.device === input.device) : routes
+
+    const agg = new Map<string, CategoryAgg>()
+
+    for (const route of filtered) {
+      if (!route.reportBlobKey)
+        continue
+      const key = route.reportBlobKey.replace('.json', '.contract.json')
+      const blob = await ctx.storage.blobs.get(key)
+      if (!blob)
+        continue
+      let contract: {
+        categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
+        audits: Record<string, { severity: 'pass' | 'warn' | 'fail' }>
+      }
+      try {
+        contract = JSON.parse(Buffer.from(blob).toString('utf-8'))
+      }
+      catch {
+        continue
+      }
+
+      for (const [id, cat] of Object.entries(contract.categories ?? {})) {
+        let bucket = agg.get(id)
+        if (!bucket) {
+          bucket = { scoreSum: 0, scoreCount: 0, passingCount: 0, failingCount: 0, auditIds: new Set<string>() }
+          agg.set(id, bucket)
+        }
+        if (typeof cat.score === 'number') {
+          bucket.scoreSum += cat.score
+          bucket.scoreCount++
+        }
+        for (const ref of cat.auditRefs ?? []) {
+          // Dedupe by audit id within a category — total auditCount is the
+          // unique set of audits in the category (matches LHR's notion),
+          // not the cumulative across routes.
+          bucket.auditIds.add(ref.id)
+          const a = contract.audits?.[ref.id]
+          if (!a)
+            continue
+          if (a.severity === 'pass')
+            bucket.passingCount++
+          else
+            bucket.failingCount++
+        }
+      }
+    }
+
+    const categories = Array.from(agg.entries()).map(([id, b]) => ({
+      id,
+      title: titleForCategory(id),
+      avgScore: b.scoreCount > 0 ? b.scoreSum / b.scoreCount : null,
+      auditCount: b.auditIds.size,
+      passingCount: b.passingCount,
+      failingCount: b.failingCount,
+    }))
+
+    return { categories } as CommandOutput<typeof ScanCategories>
   },
 }

@@ -8,9 +8,10 @@ import { historyList, historyRescan } from './history'
 import { auditorsList, health, manifest } from './meta'
 import { packList, packRun } from './pack'
 import { queryRoutes } from './query'
-import { routeRescan } from './route'
+import { routeAudits, routeGet, routeRescan } from './route'
 import {
   scanCancel,
+  scanCategories,
   scanCurrent,
   scanDelete,
   scanImport,
@@ -36,9 +37,12 @@ export function createHandlers(): HandlerMap {
     'scan.import': scanImport,
     'scan.results': scanResults,
     'scan.summary': scanSummary,
+    'scan.categories': scanCategories,
     'scan.meta': scanMeta,
     'scan.current': scanCurrent,
     'scan.rescanAll': scanRescanAll,
+    'route.get': routeGet,
+    'route.audits': routeAudits,
     'route.rescan': routeRescan,
     'history.list': historyList,
     'history.rescan': historyRescan,
