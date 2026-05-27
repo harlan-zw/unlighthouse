@@ -31,6 +31,29 @@ export const useScanStore = defineStore('scan', () => {
 
   const recentRoutes = ref<Array<{ url: string, score: number | null, timestamp: number }>>([])
 
+  // Running aggregates updated per `scan:route-complete`. We accumulate
+  // across the whole scan rather than over recentRoutes (which is capped
+  // at 20) so the avg + bucket counts stay accurate as the scan grows.
+  const scoreSum = ref(0)
+  const scoreCount = ref(0)
+  const passCount = ref(0) // perf >= 0.9
+  const needsWorkCount = ref(0) // 0.5 <= perf < 0.9
+  const poorCount = ref(0) // perf < 0.5
+  const avgPerfScore = computed(() => scoreCount.value > 0 ? scoreSum.value / scoreCount.value : null)
+
+  // ETA: time-per-route across what's been scanned, projected over what's
+  // left. Null when there's no signal (nothing scanned yet, or total = 0
+  // because we haven't entered the discover phase). Updated reactively
+  // whenever scanned/total change.
+  const etaMs = computed<number | null>(() => {
+    if (!startedAt.value || scanned.value === 0 || total.value === 0) return null
+    const remaining = total.value - scanned.value
+    if (remaining <= 0) return 0
+    const elapsed = Date.now() - new Date(startedAt.value).getTime()
+    const perRoute = elapsed / scanned.value
+    return Math.round(perRoute * remaining)
+  })
+
   const isActive = computed(() => ['starting', 'discovering', 'scanning'].includes(status.value))
   const isFinished = computed(() => ['complete', 'cancelled', 'error'].includes(status.value))
 
@@ -48,6 +71,11 @@ export const useScanStore = defineStore('scan', () => {
     total.value = 0
     recentRoutes.value = []
     logs.value = []
+    scoreSum.value = 0
+    scoreCount.value = 0
+    passCount.value = 0
+    needsWorkCount.value = 0
+    poorCount.value = 0
   }
 
   function setupWsListeners(ws: any) {
@@ -90,6 +118,16 @@ export const useScanStore = defineStore('scan', () => {
         { url: data.url, score, timestamp: Date.now() },
         ...recentRoutes.value,
       ].slice(0, 20)
+      // Bucket thresholds match Lighthouse's standard pass/needs-work/poor
+      // cutoffs. Skip rows where the audit couldn't produce a perf score
+      // (errored runs, manual audits) — they shouldn't drag the avg down.
+      if (typeof score === 'number') {
+        scoreSum.value += score
+        scoreCount.value++
+        if (score >= 0.9) passCount.value++
+        else if (score >= 0.5) needsWorkCount.value++
+        else poorCount.value++
+      }
       addLog('success', `${data.url}`)
     })
 
@@ -214,6 +252,13 @@ export const useScanStore = defineStore('scan', () => {
     percent,
     logs,
     recentRoutes,
+    scoreSum,
+    scoreCount,
+    avgPerfScore,
+    passCount,
+    needsWorkCount,
+    poorCount,
+    etaMs,
     isActive,
     isFinished,
     init,

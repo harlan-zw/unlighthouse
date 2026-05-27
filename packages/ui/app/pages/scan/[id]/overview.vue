@@ -199,9 +199,10 @@ function scoreColor(score: number | null) {
     </div>
 
     <ScanProgress v-if="currentScanIsActive" />
+    <LiveResults v-if="currentScanIsActive" />
 
     <!-- Device filter (only when scan captured both) -->
-    <div v-if="hasMultipleDevices && scanIsComplete" class="flex items-center gap-2">
+    <div v-if="hasMultipleDevices && scanIsComplete && !currentScanIsActive" class="flex items-center gap-2">
       <span class="text-xs text-muted-foreground">View as</span>
       <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
         <ToggleGroupItem value="" class="text-xs">All</ToggleGroupItem>
@@ -302,8 +303,10 @@ function scoreColor(score: number | null) {
       </div>
     </div>
 
-    <!-- Categories -->
-    <section>
+    <!-- Categories — only when the scan is finished. During a live scan
+         these links would lead to pages with zero data; LiveResults
+         above covers the in-flight view. -->
+    <section v-if="!currentScanIsActive">
       <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Categories</h2>
       <div class="divide-y rounded-lg border">
         <NuxtLink
@@ -331,8 +334,8 @@ function scoreColor(score: number | null) {
       </div>
     </section>
 
-    <!-- Tools -->
-    <section>
+    <!-- Tools — same rationale as Categories above, hide while scanning. -->
+    <section v-if="!currentScanIsActive">
       <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Tools</h2>
       <div class="divide-y rounded-lg border">
         <NuxtLink

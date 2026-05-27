@@ -4,7 +4,46 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
+const { scoreToLabel, scoreToColor } = useScoreColor()
 const expanded = ref(true)
+
+// Re-render the ETA + elapsed labels every second while the scan is
+// active. ETA in the store derives from Date.now() and is otherwise
+// only recomputed when scanned/total change — without this tick the
+// numbers freeze between route completions on slow scans.
+const now = ref(Date.now())
+let tickHandle: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  tickHandle = setInterval(() => { now.value = Date.now() }, 1000)
+})
+onUnmounted(() => {
+  if (tickHandle) clearInterval(tickHandle)
+})
+
+const elapsedLabel = computed(() => {
+  if (!store.startedAt) return '—'
+  const ms = now.value - new Date(store.startedAt).getTime()
+  return formatDuration(ms)
+})
+
+const etaLabel = computed(() => {
+  // Touch `now` so the ETA recomputes each tick even when store.etaMs
+  // returned a value but `scanned`/`total` haven't changed yet.
+  void now.value
+  const ms = store.etaMs
+  if (ms == null) return '—'
+  if (ms < 1000) return '<1s'
+  return formatDuration(ms)
+})
+
+function formatDuration(ms: number): string {
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`
+  const m = Math.floor(ms / 60_000)
+  const s = Math.round((ms % 60_000) / 1000)
+  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`
+  const h = Math.floor(m / 60)
+  return `${h}h ${m % 60}m`
+}
 </script>
 
 <template>
@@ -17,7 +56,7 @@ const expanded = ref(true)
             <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
             <span class="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
-          <span class="text-sm font-medium">Scanning</span>
+          <span class="text-sm font-medium capitalize">{{ store.status }}</span>
           <span class="text-sm text-muted-foreground truncate max-w-xs">{{ store.site }}</span>
         </div>
         <div class="flex items-center gap-3">
@@ -33,7 +72,7 @@ const expanded = ref(true)
 
       <Progress :model-value="store.percent" class="h-1.5" />
 
-      <!-- Stats -->
+      <!-- Counts row — crawler-side numbers. -->
       <div class="grid grid-cols-4 gap-3 text-center text-xs">
         <div>
           <div class="text-base font-bold tabular-nums">{{ store.discovered }}</div>
@@ -50,6 +89,34 @@ const expanded = ref(true)
         <div>
           <div class="text-base font-bold tabular-nums">{{ store.total }}</div>
           <div class="text-muted-foreground">Total</div>
+        </div>
+      </div>
+
+      <!-- Scoring row — appears once at least one audit produced a perf
+           score. Avg + bucket counts + ETA give the user "is this going
+           well + how long to wait" at a glance. -->
+      <div v-if="store.scoreCount > 0 || store.etaMs != null" class="grid grid-cols-5 gap-3 text-center text-xs border-t pt-3">
+        <div>
+          <div class="text-base font-bold tabular-nums" :class="scoreToColor(store.avgPerfScore)">
+            {{ store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—' }}
+          </div>
+          <div class="text-muted-foreground">Avg Perf</div>
+        </div>
+        <div>
+          <div class="text-base font-bold tabular-nums text-green-500">{{ store.passCount }}</div>
+          <div class="text-muted-foreground">Pass</div>
+        </div>
+        <div>
+          <div class="text-base font-bold tabular-nums text-orange-500">{{ store.needsWorkCount }}</div>
+          <div class="text-muted-foreground">Needs Work</div>
+        </div>
+        <div>
+          <div class="text-base font-bold tabular-nums text-red-500">{{ store.poorCount }}</div>
+          <div class="text-muted-foreground">Poor</div>
+        </div>
+        <div>
+          <div class="text-base font-bold tabular-nums">{{ etaLabel }}</div>
+          <div class="text-muted-foreground">ETA · {{ elapsedLabel }}</div>
         </div>
       </div>
 
