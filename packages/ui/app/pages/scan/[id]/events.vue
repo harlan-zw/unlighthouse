@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
@@ -78,6 +79,37 @@ function stopStream() {
 
 onUnmounted(() => stopStream())
 
+// Text filter + severity filter. Applied client-side over the buffered
+// events array so the WS keeps streaming everything and the user can
+// toggle filters without re-subscribing or losing context.
+const textFilter = ref('')
+const severityFilter = ref<'all' | 'error' | 'complete' | 'progress'>('all')
+
+const filteredEvents = computed(() => {
+  const q = textFilter.value.trim().toLowerCase()
+  const sev = severityFilter.value
+  return events.value.filter((e) => {
+    if (sev !== 'all') {
+      // Map the rough buckets to the same substring checks `eventColor`
+      // uses below so the filter chip and badge colors stay consistent.
+      const name = e.event.toLowerCase()
+      if (sev === 'error' && !(name.includes('error') || name.includes('failed'))) return false
+      if (sev === 'complete' && !(name.includes('complete') || name.includes('passed'))) return false
+      if (sev === 'progress' && !(name.includes('progress') || name.includes('scanning'))) return false
+    }
+    if (!q) return true
+    if (e.event.toLowerCase().includes(q)) return true
+    // Cheap full-payload search — payloads are small (sub-1KB typically)
+    // and the alternative (recursive walk) is overkill for an event log.
+    try {
+      return JSON.stringify(e.payload).toLowerCase().includes(q)
+    }
+    catch {
+      return false
+    }
+  })
+})
+
 function eventColor(event: string) {
   if (event.includes('error') || event.includes('failed')) return 'destructive' as const
   if (event.includes('complete') || event.includes('passed')) return 'default' as const
@@ -118,7 +150,33 @@ function formatTime(ts: number) {
         Live
       </Badge>
 
-      <span class="text-sm text-muted-foreground ml-auto tabular-nums">{{ events.length }} events</span>
+      <span class="text-sm text-muted-foreground ml-auto tabular-nums">
+        <template v-if="textFilter || severityFilter !== 'all'">{{ filteredEvents.length }} of {{ events.length }}</template>
+        <template v-else>{{ events.length }} events</template>
+      </span>
+    </div>
+
+    <!-- Filter bar — text searches event name + payload, chips bucket by
+         severity. Filtering is client-side over the buffered list, so
+         changing filters never drops or re-orders incoming events. -->
+    <div class="flex items-center gap-3 flex-wrap">
+      <div class="relative flex-1 max-w-sm">
+        <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+        <Input v-model="textFilter" placeholder="Filter events..." class="pl-8 h-8 text-xs" />
+      </div>
+      <div class="flex items-center gap-1">
+        <Button
+          v-for="sev in (['all', 'error', 'complete', 'progress'] as const)"
+          :key="sev"
+          type="button"
+          size="sm"
+          :variant="severityFilter === sev ? 'default' : 'outline'"
+          class="h-7 text-[11px] capitalize"
+          @click="severityFilter = sev"
+        >
+          {{ sev }}
+        </Button>
+      </div>
     </div>
 
     <Card>
@@ -129,8 +187,12 @@ function formatTime(ts: number) {
             <p v-if="!streaming">Click "Start Stream" to begin receiving events.</p>
             <p v-else>Waiting for events...</p>
           </div>
+          <div v-else-if="!filteredEvents.length" class="text-center py-16 text-muted-foreground text-sm">
+            <Icon name="lucide:search-x" class="size-8 mx-auto mb-3 opacity-50" />
+            <p>No events match the current filter.</p>
+          </div>
           <div
-            v-for="(e, i) in events"
+            v-for="(e, i) in filteredEvents"
             :key="i"
             class="flex items-start gap-3 px-4 py-2 border-b last:border-0 hover:bg-muted/50"
           >
