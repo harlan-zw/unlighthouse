@@ -257,7 +257,11 @@ export const compareDetail: Handler<typeof CompareDetail> = {
       })
     }
 
-    const filter = input.filter ?? {}
+    // Narrow back to the contract's optional shape — zod's inferred type
+    // when the caller omits `filter` is `{}`, which tsc rejects for the
+    // .url / .status accesses below. The shape mirrors the schema in
+    // contracts/commands/compare.ts.
+    const filter: { url?: string, status?: 'all' | 'regressed' | 'improved' | 'changed' | 'added' | 'removed' } = input.filter ?? {}
     let filtered = allRows
     if (filter.url)
       filtered = filtered.filter(r => r.url.includes(filter.url!) || r.path.includes(filter.url!))
