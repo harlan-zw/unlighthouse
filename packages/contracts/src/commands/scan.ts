@@ -2,13 +2,16 @@
 // See v1.md §"Command registry" lines 800, 819–853.
 
 import { z } from 'zod'
+import { PackRunSchema } from '../packs'
 import {
   CategorySchema,
   DeviceSchema,
+  ExtractedMetricsSchema,
   MetricNameSchema,
   PaginatedSchema,
   ScanIdSchema,
   ScanRouteSchema,
+  ScanSchema,
   ScanStatusSchema,
   ScanSummarySchema,
   UrlSchema,
@@ -265,4 +268,32 @@ export const ScanCategories = defineCommand({
     })),
   }),
   exitCodes: { SCAN_NOT_FOUND: 64 },
+})
+
+// ── scan.import ─────────────────────────────────────────────────────────────
+// Accept a pre-computed scan payload — used by CI runs that audit locally
+// and push results into a self-hosted Unlighthouse instance for the
+// dashboard to pick up. No overwrite: existing scanId → SCAN_ALREADY_EXISTS.
+//
+// Wire shape is a thin envelope around the persisted atoms: callers
+// serialise their `Scan` + `ExtractedMetrics[]` + optional `PackRun[]`
+// straight off the host that audited them. Storage adapter (drizzle /
+// memory / D1) writes them verbatim — no recomputation.
+export const ScanImport = defineCommand({
+  name: 'scan.import',
+  description: 'Import a pre-computed scan payload from a CI runner. Writes the scan row + per-route metrics + optional pack runs verbatim into the host\'s storage. Errors with SCAN_ALREADY_EXISTS if `scan.scanId` already exists — call scan.delete first if you intend to replace.',
+  input: z.object({
+    scan: ScanSchema,
+    routes: z.array(ExtractedMetricsSchema.extend({ device: DeviceSchema })),
+    packRuns: z.array(PackRunSchema).optional(),
+  }),
+  output: z.object({
+    scanId: ScanIdSchema,
+    imported: z.literal(true),
+    routes: z.number().int().nonnegative(),
+    packRuns: z.number().int().nonnegative(),
+  }),
+  exitCodes: { SCAN_ALREADY_EXISTS: 9 },
+  // Server-side ingestion; CI uses it, agents shouldn't.
+  mcp: { hidden: true },
 })

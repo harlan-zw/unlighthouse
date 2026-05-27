@@ -3,9 +3,12 @@
 import type {
   CommandInput,
   CommandOutput,
+  Device,
+  ExtractedMetrics,
   ScanCancel,
   ScanCurrent,
   ScanDelete,
+  ScanImport,
   ScanMetaCmd,
   ScanPause,
   ScanRescanAll,
@@ -153,6 +156,66 @@ export const scanDelete: Handler<typeof ScanDelete> = {
       notFound(input.scanId)
     await ctx.storage.scans.delete(input.scanId)
     return { scanId: input.scanId, deleted: true } as CommandOutput<typeof ScanDelete>
+  },
+}
+
+// scan.import — CI runner ingestion. Writes the pre-computed scan +
+// per-route metrics + optional pack runs verbatim into storage. No
+// overwrite: existing scanId throws SCAN_ALREADY_EXISTS (call scan.delete
+// first if you intend to replace).
+export const scanImport: Handler<typeof ScanImport> = {
+  command: {} as typeof ScanImport,
+  async run(input, ctx) {
+    const { scan, routes, packRuns } = input
+
+    const existing = await ctx.storage.scans.get(scan.scanId)
+    if (existing) {
+      throw new UnlighthouseError({
+        code: 'SCAN_ALREADY_EXISTS',
+        message: `Scan ${scan.scanId} already exists. Delete it first with scan.delete to replace.`,
+      })
+    }
+
+    await ctx.storage.scans.create({
+      scanId: scan.scanId,
+      siteId: scan.siteId,
+      site: scan.site,
+      mode: scan.mode,
+      device: scan.device,
+      status: scan.status,
+      startedAt: scan.startedAt,
+      completedAt: scan.completedAt,
+      ciBranch: scan.ciBranch,
+      ciCommit: scan.ciCommit,
+      ciCommitMessage: scan.ciCommitMessage,
+      summary: scan.summary,
+    })
+
+    // routes.putBatch is keyed on (scanId, device) — fan out per-device.
+    const byDevice = new Map<Device, ExtractedMetrics[]>()
+    for (const row of routes) {
+      const { device, ...metrics } = row
+      const arr = byDevice.get(device) ?? []
+      arr.push(metrics)
+      byDevice.set(device, arr)
+    }
+    for (const [device, rows] of byDevice)
+      await ctx.storage.routes.putBatch(scan.scanId, device, rows)
+
+    let importedPackRuns = 0
+    if (packRuns?.length) {
+      for (const run of packRuns) {
+        await ctx.storage.packRuns.put(run)
+        importedPackRuns++
+      }
+    }
+
+    return {
+      scanId: scan.scanId,
+      imported: true,
+      routes: routes.length,
+      packRuns: importedPackRuns,
+    } as CommandOutput<typeof ScanImport>
   },
 }
 
