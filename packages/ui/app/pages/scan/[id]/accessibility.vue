@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { Card, CardContent } from '@/components/ui/card'
 
-const route = useRoute()
 const api = useApi()
-const scanId = route.params.id as string
+const scanId = getScanId()
 
 const { data: a11yPack, status } = useAsyncData(
   `a11y-${scanId}`,
-  () => api['pack.run']({ scanId: scanId as any, pack: 'a11y-quick-wins' }).catch(() => null),
+  () => api['pack.run']({ scanId, pack: 'a11y-quick-wins' }).catch(() => null),
 )
 
 const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)

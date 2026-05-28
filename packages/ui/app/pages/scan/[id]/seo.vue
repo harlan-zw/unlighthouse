@@ -9,13 +9,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-const route = useRoute()
 const api = useApi()
-const scanId = route.params.id as string
+const scanId = getScanId()
 
 const { data: seoPack, status } = useAsyncData(
   `seo-${scanId}`,
-  () => api['pack.run']({ scanId: scanId as any, pack: 'seo-basics' }).catch(() => null),
+  () => api['pack.run']({ scanId, pack: 'seo-basics' }).catch(() => null),
 )
 
 const report = computed(() => (seoPack.value as any)?.report ?? null)

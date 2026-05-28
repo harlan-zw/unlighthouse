@@ -8,13 +8,12 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 
-const route = useRoute()
 const api = useApi()
-const scanId = route.params.id as string
+const scanId = getScanId()
 
 const { data: agenticPack, status } = useAsyncData(
   `agentic-${scanId}`,
-  () => api['pack.run']({ scanId: scanId as any, pack: 'agentic-browsing' }).catch(() => null),
+  () => api['pack.run']({ scanId, pack: 'agentic-browsing' }).catch(() => null),
 )
 
 const report = computed(() => (agenticPack.value as any)?.report ?? null)

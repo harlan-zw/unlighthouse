@@ -9,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
-const scanId = route.params.id as string
+const scanId = getScanId()
 const routePath = decodeURIComponent(route.params.path as string)
 const config = useRuntimeConfig()
 const baseUrl = config.public.unlighthouseApiUrl as string
@@ -46,7 +46,7 @@ const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
 // "Route not found" branch — same as before).
 const { data: scanMeta } = useAsyncData(
   `route-scanmeta-${scanId}`,
-  () => api['scan.meta']({ scanId: scanId as any }).catch(() => null),
+  () => api['scan.meta']({ scanId }).catch(() => null),
 )
 const fullUrl = computed(() => {
   const site = scanMeta.value?.site || 'http://localhost'
@@ -57,7 +57,7 @@ const fullUrl = computed(() => {
 async function rescanRoute() {
   rescanning.value = true
   try {
-    await api['route.rescan']({ scanId: scanId as any, url: (routeData.value as any)?.route?.url || fullUrl.value as any })
+    await api['route.rescan']({ scanId, url: routeData.value?.route?.url || fullUrl.value })
     toast.success('Route rescan started')
   }
   catch (err: any) {
@@ -74,8 +74,8 @@ const { data: routeData, status } = useAsyncData(
     if (!fullUrl.value) return null
     try {
       return await api['route.get']({
-        scanId: scanId as any,
-        url: fullUrl.value as any,
+        scanId,
+        url: fullUrl.value,
         device: deviceFilter.value || undefined,
       })
     }
@@ -86,7 +86,7 @@ const { data: routeData, status } = useAsyncData(
   { watch: [deviceFilter, fullUrl] },
 )
 
-const availableDevices = computed<string[]>(() => (routeData.value as any)?.availableDevices ?? [])
+const availableDevices = computed<string[]>(() => routeData.value?.availableDevices ?? [])
 const hasMultipleDevices = computed(() => availableDevices.value.length > 1)
 
 function formatMetric(value: number | null, unit: string = 'ms') {
