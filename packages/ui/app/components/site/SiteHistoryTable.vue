@@ -35,7 +35,11 @@ const emit = defineEmits<{
 const { scoreToColor } = useScoreColor()
 
 function categoryPct(scan: ScanRow | null, key: string): number | null {
-  const raw = scan?.summary?.scoresByCategory?.[key]
+  // The typed contract narrows scoresByCategory to a Partial<Record<Category, number>>;
+  // this helper takes a free-form string key, so widen the lookup
+  // surface explicitly. Cleaner than constraining `key` to Category
+  // for a single dynamic call site.
+  const raw = (scan?.summary?.scoresByCategory as Record<string, number | undefined> | undefined)?.[key]
   return raw == null ? null : Math.round(raw * 100)
 }
 

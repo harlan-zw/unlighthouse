@@ -27,12 +27,7 @@ function pathFromUrl(url: string): string {
   catch { return url }
 }
 
-function ageLabel(ts: number): string {
-  const sec = Math.round((Date.now() - ts) / 1000)
-  if (sec < 60) return `${sec}s ago`
-  const m = Math.floor(sec / 60)
-  return `${m}m ago`
-}
+const { fmtRelTime: ageLabel } = useFormat()
 </script>
 
 <template>

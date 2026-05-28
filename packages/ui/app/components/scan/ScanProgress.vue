@@ -36,13 +36,13 @@ const etaLabel = computed(() => {
   return formatDuration(ms)
 })
 
+const { fmtDuration: formatDurationHelper } = useFormat()
 function formatDuration(ms: number): string {
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`
-  const m = Math.floor(ms / 60_000)
-  const s = Math.round((ms % 60_000) / 1000)
-  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`
-  const h = Math.floor(m / 60)
-  return `${h}h ${m % 60}m`
+  // Local wrapper preserves the "<1s" sentinel and the never-null
+  // contract this component relied on before useFormat was extracted.
+  // fmtDuration returns '—' for null; ScanProgress always has a real
+  // number by the time it calls this.
+  return formatDurationHelper(ms)
 }
 </script>
 

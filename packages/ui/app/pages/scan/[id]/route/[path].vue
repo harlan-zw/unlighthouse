@@ -15,6 +15,7 @@ const config = useRuntimeConfig()
 const baseUrl = config.public.unlighthouseApiUrl as string
 const api = useApi()
 const { scoreToLabel, scoreToRingColor } = useScoreColor()
+const { fmtBytes: formatBytes } = useFormat()
 
 const rescanning = ref(false)
 const screenshotVisible = ref(true)
@@ -209,11 +210,6 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
   return Object.values(savings).some(v => typeof v === 'number' ? v > 0 : !!v)
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)}KB`
-  return `${bytes}B`
-}
 </script>
 
 <template>

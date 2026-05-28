@@ -41,16 +41,7 @@ const { data: routeScores } = useAsyncData(
   () => api['scan.results']({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }).catch(() => null),
 )
 
-function formatMs(ms: number) {
-  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`
-  return `${Math.round(ms)}ms`
-}
-
-function formatBytes(bytes: number) {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)}KB`
-  return `${bytes}B`
-}
+const { fmtMs: formatMs, fmtBytes: formatBytes } = useFormat()
 
 function verdictColor(verdict: string) {
   if (verdict === 'good') return 'text-green-500'

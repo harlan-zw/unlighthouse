@@ -37,6 +37,7 @@ const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const { scoreToLabel, scoreToRingColor } = useScoreColor()
+const { fmtScore, fmtMs, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = useFormat()
 
 // `currentScanId` comes from /compare/:id; `baseScanId` rides the
 // query string so a compare can be deep-linked and refresh-survives.
@@ -341,27 +342,6 @@ function statusBadge(status: string) {
   return 'outline'
 }
 
-function fmtScore(v: number | null | undefined) {
-  if (v == null) return '—'
-  return Math.round(v * 100)
-}
-
-function fmtMs(v: number | null | undefined) {
-  if (v == null) return '—'
-  if (v >= 1000) return `${(v / 1000).toFixed(1)}s`
-  return `${Math.round(v)}ms`
-}
-
-function fmtDelta(v: number | null | undefined, isScore: boolean) {
-  if (v == null) return '—'
-  if (isScore) {
-    const n = (v * 100).toFixed(1)
-    return v > 0 ? `+${n}` : n
-  }
-  if (Math.abs(v) >= 1000) return `${v > 0 ? '+' : ''}${(v / 1000).toFixed(1)}s`
-  return `${v > 0 ? '+' : ''}${Math.round(v)}ms`
-}
-
 function deltaClass(v: number | null | undefined, isScore: boolean) {
   if (v == null || v === 0) return 'text-muted-foreground'
   if (isScore) return v > 0 ? 'text-green-500' : 'text-red-500'
@@ -460,10 +440,6 @@ const DIAGNOSTIC_METRICS = [
 ]
 const DETAIL_METRICS = [...CATEGORY_METRICS, ...CWV_METRICS, ...DIAGNOSTIC_METRICS]
 
-function fmtMetric(v: number | null, isScore: boolean) {
-  if (isScore) return fmtScore(v)
-  return fmtMs(v)
-}
 
 const sortOptions = [
   { value: 'delta-perf-desc', label: 'Perf Δ (worst first)' },
@@ -496,10 +472,6 @@ function shortId(id: string | null | undefined): string {
   return id.slice(0, 8)
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString()
-}
 
 // Auto-trigger the initial compare when the page loads with a base in
 // the URL OR when autoBase resolves. The user can still click Compare
