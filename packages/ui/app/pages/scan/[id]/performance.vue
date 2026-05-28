@@ -16,9 +16,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-const route = useRoute()
 const api = useApi()
-const scanId = route.params.id as string
+const scanId = getScanId()
 const { scoreToColor, scoreToLabel } = useScoreColor()
 
 const { data: cwvData, status: cwvStatus } = useAsyncData(
@@ -58,19 +57,24 @@ function severityVariant(severity: string) {
 const cwvReport = computed(() => (cwvData.value as any)?.report ?? null)
 const insightsReport = computed(() => (insightsData.value as any)?.report ?? null)
 const imagesReport = computed(() => (imagesData.value as any)?.report ?? null)
+
+// Performance pulls from three packs (cwv / insights / images) plus
+// route scores. "Ready" when any pack produced a report; pass the
+// combined signal to the shell so the empty state only appears when
+// none did.
+const hasData = computed(() => cwvReport.value || insightsReport.value || imagesReport.value)
 </script>
 
 <template>
-  <div class="space-y-6">
-    <ScanNav />
-    <h1 class="text-xl font-bold tracking-tight">Performance</h1>
-
-    <div v-if="cwvStatus === 'pending'" class="text-center py-12 text-muted-foreground">
-      Loading performance data...
-    </div>
-
-    <template v-else>
-      <!-- Core Web Vitals -->
+  <CategoryPageShell
+    title="Performance"
+    pack="cwv"
+    :status="cwvStatus"
+    :report="hasData ? true : null"
+    empty-message="No performance data available. Run a scan first."
+    loading-message="Loading performance data..."
+  >
+    <!-- Core Web Vitals -->
       <div v-if="cwvReport?.metrics?.length" class="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card v-for="m in cwvReport.metrics" :key="m.metric">
           <CardContent class="pt-5 pb-4 text-center">
@@ -131,7 +135,7 @@ const imagesReport = computed(() => (imagesData.value as any)?.report ?? null)
                 </Badge>
               </div>
               <div v-if="insight.worstRoutes?.length" class="mt-2 text-xs text-muted-foreground">
-                Worst: <span v-for="(wr, i) in insight.worstRoutes.slice(0, 3)" :key="wr.url" class="font-mono">{{ wr.url }}{{ i < Math.min(insight.worstRoutes.length, 3) - 1 ? ', ' : '' }}</span>
+                Worst: <span v-for="(wr, i) in insight.worstRoutes.slice(0, 3)" :key="wr.url" class="font-mono">{{ wr.url }}{{ Number(i) < Math.min(insight.worstRoutes.length, 3) - 1 ? ', ' : '' }}</span>
               </div>
             </div>
           </div>
@@ -244,9 +248,5 @@ const imagesReport = computed(() => (imagesData.value as any)?.report ?? null)
         </CardContent>
       </Card>
 
-      <div v-if="!cwvReport && !insightsReport && !imagesReport" class="text-center py-12 text-muted-foreground">
-        No performance data available. Run a scan first.
-      </div>
-    </template>
-  </div>
+  </CategoryPageShell>
 </template>
