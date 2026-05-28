@@ -80,11 +80,7 @@ const { data: scanSummary, refresh: refreshSummary } = useAsyncData(
   { watch: [scanId, scanIsComplete, deviceFilter] },
 )
 
-const { $ws } = useNuxtApp()
-const ws = $ws as { on: (e: string, fn: (d: any) => void) => void, off: (e: string, fn: (d: any) => void) => void }
-
-onMounted(() => ws.on('scan:complete', refreshSummary))
-onUnmounted(() => ws.off('scan:complete', refreshSummary))
+useScanWebsocket({ 'scan:complete': refreshSummary })
 
 const rescanningAll = ref(false)
 async function handleRescanAll() {

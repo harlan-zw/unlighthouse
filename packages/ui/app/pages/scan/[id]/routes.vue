@@ -49,10 +49,7 @@ const { data: scanResults, refresh } = useAsyncData(
   { watch: [scanId, page, serverSort, urlFilter, deviceFilter] },
 )
 
-const { $ws } = useNuxtApp()
-const ws = $ws as any
-onMounted(() => ws.on('scan:complete', refresh))
-onUnmounted(() => ws.off('scan:complete', refresh))
+useScanWebsocket({ 'scan:complete': refresh })
 
 const hasMultipleDevices = computed(() => {
   if (!scanResults.value?.items) return false
