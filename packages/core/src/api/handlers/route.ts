@@ -79,7 +79,7 @@ function screenshotUrlFor(route: ScanRoute): string | null {
   return `dashboard/screenshot/${route.scanId}/${encodeURIComponent(route.path)}`
 }
 
-async function findRoute(ctx: HandlerCtx, scanId: ScanId, url: string, device?: 'mobile' | 'desktop'): Promise<ScanRoute> {
+async function findRoute(ctx: HandlerCtx, scanId: ScanId, url: string, device?: 'mobile' | 'desktop'): Promise<{ route: ScanRoute, availableDevices: Array<'mobile' | 'desktop'> }> {
   const scan = await ctx.storage.scans.get(scanId)
   if (!scan)
     throw new UnlighthouseError({ code: 'SCAN_NOT_FOUND', message: `scanId=${scanId}` })
@@ -90,18 +90,39 @@ async function findRoute(ctx: HandlerCtx, scanId: ScanId, url: string, device?: 
   const tryOrder: Array<'mobile' | 'desktop'> = device
     ? [device]
     : Array.from(new Set<'mobile' | 'desktop'>([scan.device, scan.device === 'mobile' ? 'desktop' : 'mobile']))
-  for (const d of tryOrder) {
+
+  // Walk every device once so we can emit `availableDevices` for the
+  // UI's device toggle in the same round-trip — no second probe call.
+  let route: ScanRoute | null = null
+  const available: Array<'mobile' | 'desktop'> = []
+  for (const d of (['mobile', 'desktop'] as const)) {
     const row = await ctx.storage.routes.get(scanId, url, d)
-    if (row)
-      return row
+    if (row) available.push(d)
   }
-  throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${url} in scan ${scanId}` })
+  if (available.length === 0)
+    throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${url} in scan ${scanId}` })
+
+  for (const d of tryOrder) {
+    if (available.includes(d)) {
+      route = await ctx.storage.routes.get(scanId, url, d)
+      if (route) break
+    }
+  }
+  // Caller asked for a device that isn't there — fall back to whatever
+  // we found first. Same softer behaviour as the legacy dashboard
+  // endpoint so existing deep links keep working.
+  if (!route) {
+    route = await ctx.storage.routes.get(scanId, url, available[0])
+    if (!route)
+      throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${url} in scan ${scanId}` })
+  }
+  return { route, availableDevices: available.sort() }
 }
 
 export const routeGet: Handler<typeof RouteGet> = {
   command: {} as typeof RouteGet,
   async run(input, ctx) {
-    const route = await findRoute(ctx, input.scanId, input.url, input.device)
+    const { route, availableDevices } = await findRoute(ctx, input.scanId, input.url, input.device)
     const contract = await loadContract(ctx, route)
 
     const categories: CommandOutput<typeof RouteGet>['categories'] = []
@@ -128,6 +149,10 @@ export const routeGet: Handler<typeof RouteGet> = {
           auditCount: (cat.auditRefs ?? []).length,
           passingCount: passing,
           failingCount: failing,
+          // Pass the raw auditRefs through so the UI can walk per-
+          // category audits without a second `route.audits` call.
+          // Weight comes from the LHR via the contract reconciler.
+          auditRefs: cat.auditRefs ?? [],
         })
       }
     }
@@ -148,6 +173,7 @@ export const routeGet: Handler<typeof RouteGet> = {
       stackPacks: contract?.stackPacks ?? null,
       entities: contract?.entities ?? null,
       screenshotUrl: screenshotUrlFor(route),
+      availableDevices,
     } as CommandOutput<typeof RouteGet>
   },
 }
@@ -155,7 +181,7 @@ export const routeGet: Handler<typeof RouteGet> = {
 export const routeAudits: Handler<typeof RouteAudits> = {
   command: {} as typeof RouteAudits,
   async run(input, ctx) {
-    const route = await findRoute(ctx, input.scanId, input.url, input.device)
+    const { route } = await findRoute(ctx, input.scanId, input.url, input.device)
     const contract = await loadContract(ctx, route)
     if (!contract)
       return { audits: [] } as CommandOutput<typeof RouteAudits>

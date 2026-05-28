@@ -25,6 +25,11 @@ export const RouteGet = defineCommand({
   }),
   output: z.object({
     route: ScanRouteSchema,
+    // Categories carry both a pre-aggregated summary (counts) AND the
+    // raw auditRefs so consumers can render per-category breakdowns
+    // (failing list, passing list) without a second API call. Weights
+    // come from the LHR auditRefs so a "what dropped the score most"
+    // sort works.
     categories: z.array(z.object({
       id: z.string(),
       title: z.string(),
@@ -32,6 +37,10 @@ export const RouteGet = defineCommand({
       auditCount: z.number().int(),
       passingCount: z.number().int(),
       failingCount: z.number().int(),
+      auditRefs: z.array(z.object({
+        id: z.string(),
+        weight: z.number(),
+      })),
     })),
     audits: z.record(z.string(), AuditFindingSchema),
     provenance: z.object({
@@ -46,6 +55,10 @@ export const RouteGet = defineCommand({
     stackPacks: z.array(StackPackSchema).nullable(),
     entities: z.array(EntitySchema).nullable(),
     screenshotUrl: z.string().nullable(),
+    // Devices this URL was audited on within the scan — so the UI can
+    // show a device toggle without a second probe call. Mirrors the
+    // legacy /dashboard/route response shape that route.get replaces.
+    availableDevices: z.array(DeviceSchema),
   }),
   exitCodes: { ROUTE_NOT_FOUND: 66, SCAN_NOT_FOUND: 64 },
 })

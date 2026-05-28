@@ -22,10 +22,25 @@ const screenshotVisible = ref(true)
 // first. The toggle below sets this once we know both devices exist.
 const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
 
+// The route detail page needs the full URL to call `route.get`, but the
+// URL param is just a path. Read the scan's site once so we can pair
+// them — falls back to "http://localhost<path>" if scan.meta hasn't
+// resolved yet (route.get will reject the URL and we render the
+// "Route not found" branch — same as before).
+const { data: scanMeta } = useAsyncData(
+  `route-scanmeta-${scanId}`,
+  () => api['scan.meta']({ scanId: scanId as any }).catch(() => null),
+)
+const fullUrl = computed(() => {
+  const site = scanMeta.value?.site || 'http://localhost'
+  try { return new URL(routePath, site).toString() }
+  catch { return `${site}${routePath}` }
+})
+
 async function rescanRoute() {
   rescanning.value = true
   try {
-    await api['route.rescan']({ scanId, url: routeData.value?.url || routePath })
+    await api['route.rescan']({ scanId: scanId as any, url: (routeData.value as any)?.route?.url || fullUrl.value as any })
     toast.success('Route rescan started')
   }
   catch (err: any) {
@@ -39,22 +54,22 @@ async function rescanRoute() {
 const { data: routeData, status } = useAsyncData(
   `route-detail-${scanId}-${routePath}`,
   async () => {
+    if (!fullUrl.value) return null
     try {
-      const url = deviceFilter.value
-        ? `${baseUrl}/dashboard/route/${scanId}/${encodeURIComponent(routePath)}?device=${deviceFilter.value}`
-        : `${baseUrl}/dashboard/route/${scanId}/${encodeURIComponent(routePath)}`
-      const res = await fetch(url)
-      if (!res.ok) return null
-      return await res.json()
+      return await api['route.get']({
+        scanId: scanId as any,
+        url: fullUrl.value as any,
+        device: deviceFilter.value || undefined,
+      })
     }
     catch {
       return null
     }
   },
-  { watch: [deviceFilter] },
+  { watch: [deviceFilter, fullUrl] },
 )
 
-const availableDevices = computed<string[]>(() => routeData.value?.availableDevices ?? [])
+const availableDevices = computed<string[]>(() => (routeData.value as any)?.availableDevices ?? [])
 const hasMultipleDevices = computed(() => availableDevices.value.length > 1)
 
 function formatMetric(value: number | null, unit: string = 'ms') {
@@ -79,32 +94,35 @@ const categoryLabels: Record<string, string> = {
   'agentic-browsing': 'Agentic Browsing',
 }
 
+// All persisted route fields (scorePerformance, lcp, etc.) live on
+// `routeData.value.route` now — they're a flat copy of the ScanRoute
+// row. The contract-blob-derived fields (categories, audits,
+// provenance, etc.) live at the top level alongside.
 const scores = computed(() => {
-  if (!routeData.value) return []
-  const d = routeData.value
+  const r = routeData.value?.route
+  if (!r) return []
   const cats = [
-    { id: 'performance', label: 'Performance', score: d.scorePerformance ?? d.metrics?.scorePerformance },
-    { id: 'accessibility', label: 'Accessibility', score: d.scoreAccessibility ?? d.metrics?.scoreAccessibility },
-    { id: 'seo', label: 'SEO', score: d.scoreSeo ?? d.metrics?.scoreSeo },
-    { id: 'best-practices', label: 'Best Practices', score: d.scoreBestPractices ?? d.metrics?.scoreBestPractices },
+    { id: 'performance', label: 'Performance', score: r.scorePerformance },
+    { id: 'accessibility', label: 'Accessibility', score: r.scoreAccessibility },
+    { id: 'seo', label: 'SEO', score: r.scoreSeo },
+    { id: 'best-practices', label: 'Best Practices', score: r.scoreBestPractices },
   ]
-  const ab = d.scoreAgenticBrowsing ?? d.metrics?.scoreAgenticBrowsing
-  if (ab != null)
-    cats.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: ab })
+  if (r.scoreAgenticBrowsing != null)
+    cats.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: r.scoreAgenticBrowsing })
   return cats.filter(c => c.score != null)
 })
 
 const metrics = computed(() => {
-  if (!routeData.value) return []
-  const d = routeData.value
+  const r = routeData.value?.route
+  if (!r) return []
   return [
-    { label: 'LCP', value: d.lcp ?? d.metrics?.lcp, unit: 'ms', description: 'Largest Contentful Paint' },
-    { label: 'CLS', value: d.cls ?? d.metrics?.cls, unit: '', description: 'Cumulative Layout Shift' },
-    { label: 'TBT', value: d.tbt ?? d.metrics?.tbt, unit: 'ms', description: 'Total Blocking Time' },
-    { label: 'FCP', value: d.fcp ?? d.metrics?.fcp, unit: 'ms', description: 'First Contentful Paint' },
-    { label: 'SI', value: d.si ?? d.metrics?.si, unit: 'ms', description: 'Speed Index' },
-    { label: 'TTFB', value: d.ttfb ?? d.metrics?.ttfb, unit: 'ms', description: 'Time to First Byte' },
-    { label: 'INP', value: d.inp ?? d.metrics?.inp, unit: 'ms', description: 'Interaction to Next Paint' },
+    { label: 'LCP', value: r.lcp, unit: 'ms', description: 'Largest Contentful Paint' },
+    { label: 'CLS', value: r.cls, unit: '', description: 'Cumulative Layout Shift' },
+    { label: 'TBT', value: r.tbt, unit: 'ms', description: 'Total Blocking Time' },
+    { label: 'FCP', value: r.fcp, unit: 'ms', description: 'First Contentful Paint' },
+    { label: 'SI', value: r.si, unit: 'ms', description: 'Speed Index' },
+    { label: 'TTFB', value: r.ttfb, unit: 'ms', description: 'Time to First Byte' },
+    { label: 'INP', value: r.inp, unit: 'ms', description: 'Interaction to Next Paint' },
   ]
 })
 
@@ -121,11 +139,16 @@ interface AuditEntry {
 }
 
 const categoryAudits = computed(() => {
-  if (!routeData.value?.categories || !routeData.value?.audits) return []
-  const cats = routeData.value.categories as Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
-  const audits = routeData.value.audits as Record<string, AuditEntry>
+  const cats = routeData.value?.categories as Array<{
+    id: string
+    title: string
+    score: number | null
+    auditRefs: Array<{ id: string, weight: number }>
+  }> | undefined
+  const audits = routeData.value?.audits as Record<string, AuditEntry> | undefined
+  if (!cats || !audits) return []
 
-  return Object.entries(cats).map(([catId, cat]) => {
+  return cats.map((cat) => {
     const catAudits = cat.auditRefs
       .map(r => audits[r.id])
       .filter((a): a is AuditEntry => !!a)
@@ -145,9 +168,9 @@ const categoryAudits = computed(() => {
       .filter(a => a.scoreDisplayMode === 'notApplicable' || a.scoreDisplayMode === 'manual')
 
     return {
-      id: catId,
-      label: categoryLabels[catId] || catId,
-      icon: categoryIcons[catId] || 'lucide:folder',
+      id: cat.id,
+      label: categoryLabels[cat.id] || cat.title,
+      icon: categoryIcons[cat.id] || 'lucide:folder',
       score: cat.score,
       failing,
       passing,
@@ -168,7 +191,7 @@ function metricColor(label: string, value: number | null | undefined): string {
   return 'text-red-500'
 }
 
-function severityColor(severity: string): string {
+function severityColor(severity: string): 'destructive' | 'secondary' | 'outline' {
   if (severity === 'fail') return 'destructive'
   if (severity === 'warn') return 'secondary'
   return 'outline'
@@ -211,29 +234,29 @@ function formatBytes(bytes: number): string {
       <!-- Header -->
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <h1 class="text-lg font-bold font-mono break-all">{{ routeData.path || routeData.route?.path }}</h1>
+          <h1 class="text-lg font-bold font-mono break-all">{{ routeData.route?.path }}</h1>
           <div class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-            <Badge variant="outline" class="text-xs">{{ routeData.device || routeData.route?.device }}</Badge>
-            <a :href="routeData.url || routeData.route?.url" target="_blank" class="hover:underline flex items-center gap-1">
-              {{ routeData.url || routeData.route?.url }}
+            <Badge variant="outline" class="text-xs">{{ routeData.route?.device }}</Badge>
+            <a :href="routeData.route?.url" target="_blank" class="hover:underline flex items-center gap-1">
+              {{ routeData.route?.url }}
               <Icon name="lucide:external-link" class="size-3" />
             </a>
           </div>
-          <div v-if="routeData.provenance || routeData.lighthouseVersion" class="flex items-center gap-3 mt-1 text-xs text-muted-foreground/60">
-            <span>LH {{ routeData.provenance?.lighthouseVersion || routeData.lighthouseVersion }}</span>
-            <span v-if="routeData.provenance?.timingTotal">{{ (routeData.provenance.timingTotal / 1000).toFixed(1) }}s audit</span>
+          <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted-foreground/60">
+            <span>LH {{ routeData.provenance.lighthouseVersion }}</span>
+            <span v-if="routeData.provenance.timingTotal">{{ (routeData.provenance.timingTotal / 1000).toFixed(1) }}s audit</span>
           </div>
         </div>
         <div class="flex items-center gap-2">
           <Button
-            v-if="routeData.lhrBlobKey"
+            v-if="routeData.route?.lhrBlobKey"
             variant="outline"
             size="sm"
             as-child
           >
             <a
-              :href="`${baseUrl}/dashboard/lhr/${scanId}/${encodeURIComponent(routeData.path || routeData.route?.path || routePath)}${deviceFilter ? `?device=${deviceFilter}` : ''}`"
-              :download="`${scanId}-${routeData.device || routeData.route?.device || 'mobile'}.lhr.json`"
+              :href="`${baseUrl}/dashboard/lhr/${scanId}/${encodeURIComponent(routeData.route?.path || routePath)}${deviceFilter ? `?device=${deviceFilter}` : ''}`"
+              :download="`${scanId}-${routeData.route?.device || 'mobile'}.lhr.json`"
             >
               <Icon name="lucide:download" class="size-4 mr-1" />
               Raw LHR
@@ -268,7 +291,7 @@ function formatBytes(bytes: number): string {
         <CardHeader class="pb-2 flex flex-row items-center justify-between">
           <CardTitle class="text-sm font-medium text-muted-foreground">Visual</CardTitle>
           <a
-            :href="`${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(routeData.path || routeData.route?.path || routePath)}`"
+            :href="`${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(routeData.route?.path || routePath)}`"
             target="_blank"
             rel="noopener"
             class="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
@@ -276,7 +299,7 @@ function formatBytes(bytes: number): string {
         </CardHeader>
         <CardContent>
           <img
-            :src="`${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(routeData.path || routeData.route?.path || routePath)}`"
+            :src="`${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(routeData.route?.path || routePath)}`"
             loading="lazy"
             alt="Page screenshot"
             class="w-full max-w-3xl max-h-[600px] object-contain object-top rounded border bg-muted mx-auto"
@@ -470,43 +493,6 @@ function formatBytes(bytes: number): string {
           </CardContent>
         </Card>
       </template>
-
-      <!-- SEO Meta -->
-      <Card v-if="routeData.seoMeta">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">SEO Meta</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <div class="text-xs text-muted-foreground mb-1">Title</div>
-              <div class="text-sm">{{ routeData.seoMeta.title || '(missing)' }}</div>
-            </div>
-            <div>
-              <div class="text-xs text-muted-foreground mb-1">Meta Description</div>
-              <div class="text-sm">{{ routeData.seoMeta.metaDescription || '(missing)' }}</div>
-            </div>
-          </div>
-          <Separator />
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <div class="text-xs text-muted-foreground mb-1">Canonical</div>
-              <div class="text-sm font-mono break-all">{{ routeData.seoMeta.canonical || '(none)' }}</div>
-            </div>
-            <div>
-              <div class="text-xs text-muted-foreground mb-1">Indexable</div>
-              <div class="flex items-center gap-1.5">
-                <Icon
-                  :name="routeData.seoMeta.isIndexable ? 'lucide:check-circle' : 'lucide:x-circle'"
-                  :class="routeData.seoMeta.isIndexable ? 'text-green-500' : 'text-red-500'"
-                  class="size-4"
-                />
-                <span class="text-sm">{{ routeData.seoMeta.isIndexable ? 'Yes' : 'No' }}</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <!-- Stack Packs -->
       <Card v-if="routeData.stackPacks?.length">
