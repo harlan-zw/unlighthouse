@@ -6,76 +6,63 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
-const route = useRoute()
-const scanId = route.params.id as string
-const config = useRuntimeConfig()
-const baseUrl = config.public.unlighthouseApiUrl as string
+const api = useApi()
+const scanId = getScanId()
 
 const events = ref<Array<{ event: string, payload: any, timestamp: number }>>([])
 const streaming = ref(false)
 const follow = ref(true)
-const reader = ref<ReadableStreamDefaultReader | null>(null)
 const scrollRef = ref<HTMLElement>()
+// Cooperative-cancel flag: stopStream() flips it, the for-await loop
+// checks it and breaks. The typed iterator doesn't expose an abort
+// handle (it's a plain AsyncGenerator), so this is how we stop
+// consuming — the underlying reader is released when the generator
+// is abandoned.
+let stopping = false
 
 async function startStream() {
   if (streaming.value) return
   streaming.value = true
+  stopping = false
   events.value = []
 
   try {
-    const res = await fetch(`${baseUrl}/events/tail?scanId=${scanId}&follow=true`, {
-      headers: { Accept: 'application/x-ndjson' },
-    })
-    if (!res.ok || !res.body) {
-      streaming.value = false
-      return
-    }
-
-    reader.value = res.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-      const { value, done } = await reader.value.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      let nl = buffer.indexOf('\n')
-      while (nl !== -1) {
-        const line = buffer.slice(0, nl).trim()
-        buffer = buffer.slice(nl + 1)
-        if (line) {
-          try {
-            const parsed = JSON.parse(line)
-            events.value.push({
-              event: parsed.event,
-              payload: parsed.payload || parsed.data || parsed,
-              timestamp: Date.now(),
-            })
-            if (follow.value) {
-              nextTick(() => {
-                if (scrollRef.value) scrollRef.value.scrollTop = scrollRef.value.scrollHeight
-              })
-            }
-          }
-          catch {}
-        }
-        nl = buffer.indexOf('\n')
+    // Typed streaming via the command client — replaces the raw
+    // fetch + manual NDJSON line buffering the page used to do. The
+    // input + URL derivation are fully typed; the return is cast to
+    // AsyncIterable because `defineCommand` widens `streaming: true`
+    // to `boolean`, so the client's mapped type can't tell this
+    // command streams. (Contract-level fix: make defineCommand
+    // generic over the streaming literal — out of scope here.)
+    const stream = api['events.tail']({ scanId, follow: true }) as unknown as AsyncIterable<{ event?: string, payload?: unknown, data?: unknown }>
+    for await (const evt of stream) {
+      if (stopping) break
+      events.value.push({
+        event: evt.event ?? 'event',
+        payload: evt.payload ?? evt.data ?? evt,
+        timestamp: Date.now(),
+      })
+      if (follow.value) {
+        nextTick(() => {
+          if (scrollRef.value) scrollRef.value.scrollTop = scrollRef.value.scrollHeight
+        })
       }
     }
   }
   catch {}
   finally {
     streaming.value = false
-    reader.value = null
   }
 }
 
 function stopStream() {
-  reader.value?.cancel()
-  reader.value = null
+  stopping = true
   streaming.value = false
 }
+
+// Stop consuming on unmount so we don't leak a live HTTP stream when
+// the user navigates away mid-tail.
+onUnmounted(() => { stopping = true })
 
 onUnmounted(() => stopStream())
 

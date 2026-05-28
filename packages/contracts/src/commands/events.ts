@@ -6,6 +6,22 @@ import { HookEventUnion } from '../hooks'
 import { ScanIdSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
+// Boolean that survives the query-string round-trip. Streaming commands
+// are GET-only, so their inputs arrive as strings ("true" / "false"),
+// not real booleans — z.boolean() rejected them with INPUT_INVALID and
+// broke the whole stream. Accepts a real boolean (JSON-body callers)
+// OR the string forms a query string produces. Anything that isn't an
+// explicit truthy token is false, so `follow=false` means false (unlike
+// z.coerce.boolean() which treats any non-empty string as true).
+const QueryBool = z.preprocess(
+  (v) => {
+    if (typeof v === 'boolean') return v
+    if (typeof v === 'string') return v === 'true' || v === '1'
+    return v
+  },
+  z.boolean(),
+)
+
 // ── events.subscribe ────────────────────────────────────────────────────────
 // Streaming. Returns AsyncIterable<HookEvent>.
 export const EventsSubscribe = defineCommand({
@@ -37,7 +53,7 @@ export const EventsTail = defineCommand({
   streaming: true,
   input: z.object({
     scanId: ScanIdSchema,
-    follow: z.boolean().optional(),
+    follow: QueryBool.optional(),
     events: z.array(z.string()).optional(),
   }),
   output: HookEventUnion,
