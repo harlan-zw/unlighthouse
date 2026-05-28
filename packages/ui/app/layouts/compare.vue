@@ -5,8 +5,16 @@
 // route diff table + per-route detail. Health pulse stays so the
 // "backend down" cue still reaches you from inside compare.
 
+const route = useRoute()
 const colorMode = useColorMode()
 const api = useApi()
+
+// Pick up the current scan id from the route param so "Exit compare"
+// returns to that scan's overview — that's where the user came from
+// (the compare button on the overview tools list). Previously the
+// link went to /history, which felt jarring as a "back" action.
+const currentScanId = computed(() => (route.params.id as string) || '')
+const exitTo = computed(() => currentScanId.value ? `/scan/${currentScanId.value}/overview` : '/history')
 
 function toggleColorMode() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
@@ -34,7 +42,7 @@ if (import.meta.client) {
          underneath (scan picker / swap / threshold etc). Keep this
          strip absolutely minimal so we don't burn vertical space. -->
     <div class="flex items-center gap-2 px-3 h-9 border-b text-xs">
-      <NuxtLink to="/history" class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+      <NuxtLink :to="exitTo" class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
         <Icon name="lucide:arrow-left" class="size-3.5" />
         <span>Exit compare</span>
       </NuxtLink>

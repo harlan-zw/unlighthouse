@@ -14,8 +14,24 @@ const routePath = decodeURIComponent(route.params.path as string)
 const config = useRuntimeConfig()
 const baseUrl = config.public.unlighthouseApiUrl as string
 const api = useApi()
+const router = useRouter()
 const { scoreToLabel, scoreToRingColor } = useScoreColor()
 const { fmtBytes: formatBytes } = useFormat()
+
+// "Back to Routes": if the user navigated here from the routes list,
+// router.back() returns them with filters/page intact. If they
+// landed via a deep link the history has no /routes entry to pop, so
+// we route forwards to the bare list instead. Detected by walking
+// `window.history` length — pre-navigation length === 1 means we're
+// the first entry. On SSR we can't tell; default to back() which is
+// a no-op when history is empty.
+function backToRoutes() {
+  if (import.meta.client && window.history.length <= 1) {
+    router.push(`/scan/${scanId}/routes`)
+    return
+  }
+  router.back()
+}
 
 const rescanning = ref(false)
 const screenshotVisible = ref(true)
@@ -215,11 +231,13 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
 <template>
   <div class="space-y-6">
     <div class="flex items-center gap-3">
-      <Button variant="ghost" size="sm" as-child>
-        <NuxtLink :to="`/scan/${scanId}/routes`">
-          <Icon name="lucide:arrow-left" class="size-4 mr-1" />
-          Routes
-        </NuxtLink>
+      <!-- Back to the routes list. Uses router.back() when the user
+           navigated here from /routes (preserving their filter state /
+           pagination) and falls back to the bare routes URL when the
+           page was opened directly (deep link, share). -->
+      <Button variant="ghost" size="sm" @click="backToRoutes">
+        <Icon name="lucide:arrow-left" class="size-4 mr-1" />
+        Routes
       </Button>
     </div>
 
