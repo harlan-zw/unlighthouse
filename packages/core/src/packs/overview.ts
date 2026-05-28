@@ -14,7 +14,7 @@
 //   under the 1KB budget for the agent summary tier.
 
 import type { Category, Pack, PackReconcileCtx, ScanRoute, Url } from '@unlighthouse/contracts'
-import { CategorySchema } from '@unlighthouse/contracts'
+import { CategorySchema, DeviceSchema } from '@unlighthouse/contracts'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────
@@ -34,6 +34,9 @@ const OverviewReportSchema = z.object({
     url: z.url(),
     score: z.number().nullable(),
     category: CategorySchema.nullable(),
+    // Device dimension on the worst-row so a mobile regression and a
+    // desktop regression of the same URL surface as distinct rows.
+    device: DeviceSchema.nullable(),
   })).max(5),
   templateGroups: z.array(z.object({
     routeName: z.string().nullable(),
@@ -128,6 +131,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
       url: r.url as Url,
       score: rowAverages.get(r.url) ?? null,
       category: worstCategory(r),
+      device: r.device,
     }))
     .filter(r => typeof r.score === 'number')
     .sort((a, b) => {

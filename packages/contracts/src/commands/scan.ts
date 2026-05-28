@@ -209,6 +209,11 @@ export const ScanSummaryCmd = defineCommand({
       url: UrlSchema,
       score: z.number().nullable(),
       category: CategorySchema.nullable(),
+      // Device the worst-row was measured on. Mirrors the (url,
+      // device) PK on scan_routes; the UI shows it so a mobile
+      // regression and a desktop regression of the same URL don't
+      // look like one row.
+      device: DeviceSchema.nullable(),
     })),
     // Template grouping (from seeds/route-definitions matcher). Routes that
     // matched no template land under `routeName: null` which collapses to "/".
