@@ -25,10 +25,28 @@ const RouteDiffSchema = z.object({
 })
 export type RouteDiff = z.infer<typeof RouteDiffSchema>
 
+// Per-pack summary diff. `base` / `current` carry the raw pack reports
+// for callers that want to drill in (they're `unknown` by design — each
+// pack defines its own shape). `summary` lifts a handful of common
+// numeric fields (findings.length, totalBytesSavable, severityCounts)
+// out into a pack-agnostic shape so dashboards can render a one-line
+// "pack X: 12 → 4 findings" row without parsing every pack's contract.
+const PackSummarySchema = z.object({
+  findings: z.number().int().nonnegative().nullable(),
+  routesAnalysed: z.number().int().nonnegative().nullable(),
+  totalBytesSavable: z.number().nonnegative().nullable(),
+  critical: z.number().int().nonnegative().nullable(),
+  serious: z.number().int().nonnegative().nullable(),
+  moderate: z.number().int().nonnegative().nullable(),
+  minor: z.number().int().nonnegative().nullable(),
+})
+
 const PackDiffSchema = z.object({
   packName: z.string(),
   base: z.unknown().nullable(),
   current: z.unknown().nullable(),
+  baseSummary: PackSummarySchema.nullable(),
+  currentSummary: PackSummarySchema.nullable(),
   hasChanges: z.boolean(),
 })
 export type PackDiff = z.infer<typeof PackDiffSchema>
@@ -43,6 +61,13 @@ const CompareReportSchema = z.object({
   }),
   regressions: z.array(RouteDiffSchema),
   improvements: z.array(RouteDiffSchema),
+  // Routes that exist on one side only. Reviewers care: a removed
+  // route may be an unintended 404; an added route is new surface area
+  // to eyeball. Carries one marker entry per (url, device) — the
+  // contract's `current`/`base` nullability flags which side is the
+  // ghost row.
+  added: z.array(RouteDiffSchema),
+  removed: z.array(RouteDiffSchema),
   thresholds: z.partialRecord(ThresholdKey, z.number()),
   packDiffs: z.array(PackDiffSchema),
 })
@@ -136,7 +161,13 @@ export const CompareDetail = defineCommand({
     filter: z.object({
       url: z.string().optional(),
       status: z.enum(['all', 'regressed', 'improved', 'changed', 'added', 'removed']).optional().default('all'),
+      device: DeviceSchema.optional(),
     }).optional(),
+    // Per-metric and per-category thresholds. Same shape as compare.run
+    // so the dashboard threshold inputs map straight onto CI assertion
+    // config. Absent → handler defaults (matches CI defaults so the
+    // counts agree between the two paths).
+    thresholds: z.partialRecord(ThresholdKey, z.number()).optional(),
   }),
   output: z.object({
     baseScanId: ScanIdSchema,
