@@ -127,6 +127,7 @@ const thresholds = reactive<Record<string, string>>({
   'best-practices': '',
   lcp: '',
   cls: '',
+  inp: '',
 })
 
 function thresholdPayload(): Record<string, number> | undefined {
@@ -140,7 +141,15 @@ function thresholdPayload(): Record<string, number> | undefined {
 }
 
 const report = ref<any>(null)
+// Pack diffs come from compare.run (which is the threshold-based diff
+// path); compare.detail only carries route data. We fire compare.run
+// in parallel with compare.detail so the pack section can hydrate at
+// the same time the route table does. Cached in `packReport` separate
+// from `report` so changes to filters/sort don't re-fire it.
+const packReport = ref<any>(null)
 const copyingMarkdown = ref(false)
+const showLegacyMetrics = ref(false)
+const showPackDetails = ref(false)
 
 async function copyAsMarkdown() {
   if (!baseScanId.value) return
@@ -196,13 +205,95 @@ async function fetchPage() {
   }
 }
 
+// Separate fetch for pack diffs — fired once per (base, current) +
+// thresholds combo, not on every filter/sort tweak. compare.run is
+// where packDiffs live (compare.detail returns per-route only).
+async function fetchPacks() {
+  if (!baseScanId.value) return
+  try {
+    packReport.value = await (api as any)['compare.run']({
+      baseScanId: baseScanId.value,
+      currentScanId: currentScanId.value,
+      thresholds: thresholdPayload(),
+    })
+  }
+  catch {
+    packReport.value = null
+  }
+}
+
+// The cwv pack returns p75 metrics per CWV with verdicts — the
+// noise-resistant aggregate of what the per-route table shows raw.
+// Surface it as a headline strip so users land on the smoothed view
+// first.
+const cwvPackDiff = computed(() => {
+  if (!packReport.value?.packDiffs) return null
+  return packReport.value.packDiffs.find((p: any) => p.packName === 'cwv') ?? null
+})
+
+interface CwvP75Row { metric: string, baseP75: number | null, currentP75: number | null, delta: number | null, label: string, verdict: string | null }
+
+const cwvP75Rows = computed<CwvP75Row[]>(() => {
+  const diff = cwvPackDiff.value
+  if (!diff) return []
+  const baseMetrics: any[] = (diff.base as any)?.metrics ?? []
+  const currentMetrics: any[] = (diff.current as any)?.metrics ?? []
+  const byMetric = new Map<string, { base?: any, current?: any }>()
+  for (const m of baseMetrics) byMetric.set(m.metric, { ...(byMetric.get(m.metric) || {}), base: m })
+  for (const m of currentMetrics) byMetric.set(m.metric, { ...(byMetric.get(m.metric) || {}), current: m })
+  // Keep only Web Vitals proper — pack may also report FCP/TTFB but
+  // those land in the diagnostics block below.
+  const order = ['lcp', 'cls', 'inp']
+  return order
+    .filter(m => byMetric.has(m))
+    .map((m) => {
+      const { base, current } = byMetric.get(m)!
+      const baseP75 = base?.p75 ?? null
+      const currentP75 = current?.p75 ?? null
+      const delta = baseP75 != null && currentP75 != null ? currentP75 - baseP75 : null
+      return {
+        metric: m,
+        label: m.toUpperCase(),
+        baseP75,
+        currentP75,
+        delta,
+        verdict: current?.verdict ?? base?.verdict ?? null,
+      }
+    })
+})
+
+// Other packs go in the collapsible section under the route table —
+// not headline, but still useful (images findings count, a11y
+// quick-wins severity, etc.). Filter to ones that actually changed.
+const otherPackChanges = computed(() => {
+  if (!packReport.value?.packDiffs) return []
+  return packReport.value.packDiffs.filter((p: any) => p.packName !== 'cwv' && p.hasChanges)
+})
+
+function fmtCwvP75(metric: string, value: number | null): string {
+  if (value == null) return '—'
+  if (metric === 'cls') return value.toFixed(3)
+  if (metric === 'lcp' || metric === 'inp' || metric === 'fcp' || metric === 'ttfb') {
+    if (value >= 1000) return `${(value / 1000).toFixed(2)}s`
+    return `${Math.round(value)}ms`
+  }
+  return String(Math.round(value))
+}
+
+function cwvVerdictColor(verdict: string | null): string {
+  if (verdict === 'good') return 'text-green-500'
+  if (verdict === 'needs-improvement' || verdict === 'needsImprovement') return 'text-orange-500'
+  if (verdict === 'poor') return 'text-red-500'
+  return 'text-muted-foreground'
+}
+
 async function handleCompare() {
   if (!baseScanId.value) return
   comparing.value = true
   selectedRowKey.value = null
   page.value = 1
   try {
-    await fetchPage()
+    await Promise.all([fetchPage(), fetchPacks()])
   }
   finally {
     comparing.value = false
@@ -277,19 +368,65 @@ function deltaClass(v: number | null | undefined, isScore: boolean) {
   return v < 0 ? 'text-green-500' : 'text-red-500'
 }
 
+// Same colour table as deltaClass but mutes deltas below the
+// per-metric noise floor — important for CWV which is genuinely
+// noisy on parallel-device single-run audits. A 80ms LCP improvement
+// on a single-sample scan is indistinguishable from CPU jitter.
+//
+// `thresholdKey` resolves the configured threshold; falls back to
+// the same defaults the handler uses. `isInsideThreshold` returned
+// alongside so callers can attach a tooltip explaining the mute.
+function deltaClassWithThreshold(v: number | null | undefined, isScore: boolean, thresholdKey: string): { klass: string, mutedByThreshold: boolean } {
+  if (v == null || v === 0) return { klass: 'text-muted-foreground', mutedByThreshold: false }
+  const thr = effectiveThreshold(thresholdKey, isScore)
+  if (thr != null && Math.abs(v) <= thr)
+    return { klass: 'text-muted-foreground/70', mutedByThreshold: true }
+  if (isScore) return { klass: v > 0 ? 'text-green-500' : 'text-red-500', mutedByThreshold: false }
+  return { klass: v < 0 ? 'text-green-500' : 'text-red-500', mutedByThreshold: false }
+}
+
+// Mirrors the DEFAULT_THRESHOLDS table in the handler so the UI's
+// visual cue and the backend's regressed/improved classification stay
+// in lockstep — if a delta is muted here, the handler also rejected it
+// as "unchanged."
+const DEFAULT_THRESHOLDS: Record<string, number> = {
+  performance: 0.05,
+  accessibility: 0.05,
+  seo: 0.05,
+  'best-practices': 0.05,
+  lcp: 500,
+  cls: 0.1,
+  inp: 200,
+  fcp: 300,
+  tbt: 200,
+  ttfb: 200,
+  si: 500,
+}
+function effectiveThreshold(key: string, _isScore: boolean): number | null {
+  const userValue = thresholds[key]
+  if (userValue && userValue.trim() !== '') {
+    const n = Number.parseFloat(userValue)
+    if (!Number.isNaN(n)) return n
+  }
+  return DEFAULT_THRESHOLDS[key] ?? null
+}
+
 // Score cell value: prefer the delta when it exists, otherwise the
 // current absolute score. For added/removed rows the cell shows the
 // one-side value plainly so the user sees what was new / what was
-// lost.
-function rowScoreCell(row: any, key: string): { value: string, klass: string } {
+// lost. Threshold-aware: deltas inside the configured noise floor
+// render muted instead of red/green so users don't chase noise.
+function rowScoreCell(row: any, key: string, thresholdKey: string): { value: string, klass: string, mutedByThreshold: boolean } {
   if (row.status === 'added')
-    return { value: String(fmtScore(row.current?.[key])), klass: 'text-blue-500' }
+    return { value: String(fmtScore(row.current?.[key])), klass: 'text-blue-500', mutedByThreshold: false }
   if (row.status === 'removed')
-    return { value: String(fmtScore(row.base?.[key])), klass: 'text-orange-500' }
+    return { value: String(fmtScore(row.base?.[key])), klass: 'text-orange-500', mutedByThreshold: false }
   const delta = row.deltas?.[key]
-  if (delta != null && delta !== 0)
-    return { value: fmtDelta(delta, true), klass: deltaClass(delta, true) }
-  return { value: String(fmtScore(row.current?.[key])), klass: 'text-muted-foreground' }
+  if (delta != null && delta !== 0) {
+    const { klass, mutedByThreshold } = deltaClassWithThreshold(delta, true, thresholdKey)
+    return { value: fmtDelta(delta, true), klass, mutedByThreshold }
+  }
+  return { value: String(fmtScore(row.current?.[key])), klass: 'text-muted-foreground', mutedByThreshold: false }
 }
 
 const totalPages = computed(() => {
@@ -297,19 +434,31 @@ const totalPages = computed(() => {
   return Math.ceil(report.value.routes.total / report.value.routes.pageSize)
 })
 
-const DETAIL_METRICS = [
-  { key: 'scorePerformance', label: 'Performance', score: true },
-  { key: 'scoreAccessibility', label: 'Accessibility', score: true },
-  { key: 'scoreSeo', label: 'SEO', score: true },
-  { key: 'scoreBestPractices', label: 'Best Practices', score: true },
-  { key: 'lcp', label: 'LCP', score: false },
-  { key: 'cls', label: 'CLS', score: false },
-  { key: 'inp', label: 'INP', score: false },
-  { key: 'fcp', label: 'FCP', score: false },
-  { key: 'tbt', label: 'TBT', score: false },
-  { key: 'ttfb', label: 'TTFB', score: false },
-  { key: 'si', label: 'SI', score: false },
+// Hierarchy reflects what's actionable post-LH13. Categories first
+// (the headline answers "did anything break?"), Core Web Vitals
+// second (Google's stable real-user metrics: LCP/CLS/INP), and the
+// "Diagnostics" group last — these are lab metrics LH still
+// produces but the WV team has either deprecated (Speed Index) or
+// downgraded to triage role (FCP, TBT, TTFB). We render them
+// collapsed by default so users land on what matters.
+const CATEGORY_METRICS = [
+  { key: 'scorePerformance', label: 'Performance', score: true, thresholdKey: 'performance' },
+  { key: 'scoreAccessibility', label: 'Accessibility', score: true, thresholdKey: 'accessibility' },
+  { key: 'scoreSeo', label: 'SEO', score: true, thresholdKey: 'seo' },
+  { key: 'scoreBestPractices', label: 'Best Practices', score: true, thresholdKey: 'best-practices' },
 ]
+const CWV_METRICS = [
+  { key: 'lcp', label: 'LCP', score: false, thresholdKey: 'lcp', hint: 'Largest Contentful Paint — when the main content paints. Good < 2.5s.' },
+  { key: 'cls', label: 'CLS', score: false, thresholdKey: 'cls', hint: 'Cumulative Layout Shift — visual stability. Good < 0.1.' },
+  { key: 'inp', label: 'INP', score: false, thresholdKey: 'inp', hint: 'Interaction to Next Paint — responsiveness. Good < 200ms.' },
+]
+const DIAGNOSTIC_METRICS = [
+  { key: 'fcp', label: 'FCP', score: false, thresholdKey: 'fcp', hint: 'First Contentful Paint — useful for triage when LCP regressed.' },
+  { key: 'tbt', label: 'TBT', score: false, thresholdKey: 'tbt', hint: 'Total Blocking Time — lab-only INP precursor.' },
+  { key: 'ttfb', label: 'TTFB', score: false, thresholdKey: 'ttfb', hint: 'Time to First Byte — server-side signal.' },
+  { key: 'si', label: 'SI', score: false, thresholdKey: 'si', hint: 'Speed Index — deprecated by Google, still in LH scoring.' },
+]
+const DETAIL_METRICS = [...CATEGORY_METRICS, ...CWV_METRICS, ...DIAGNOSTIC_METRICS]
 
 function fmtMetric(v: number | null, isScore: boolean) {
   if (isScore) return fmtScore(v)
@@ -359,6 +508,7 @@ watch([baseScanId, currentScanId], ([b, c]) => {
   if (b && c) {
     page.value = 1
     fetchPage()
+    fetchPacks()
   }
 }, { immediate: true })
 
@@ -426,38 +576,71 @@ function gotoOverview(id: string) {
                 Thresholds
               </Button>
             </PopoverTrigger>
-            <PopoverContent class="w-80">
+            <PopoverContent class="w-96">
               <div class="space-y-3">
                 <div>
                   <h4 class="text-sm font-semibold">Regression thresholds</h4>
-                  <p class="text-xs text-muted-foreground">Empty = CI defaults. Scores are 0–1; CWV are in ms (CLS unitless).</p>
+                  <p class="text-xs text-muted-foreground">Empty = CI defaults. Deltas within threshold render muted (treated as noise).</p>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                  <label class="space-y-1">
-                    <span class="text-muted-foreground">Performance</span>
-                    <Input v-model="thresholds.performance" placeholder="0.05" class="h-7 text-xs" />
-                  </label>
-                  <label class="space-y-1">
-                    <span class="text-muted-foreground">Accessibility</span>
-                    <Input v-model="thresholds.accessibility" placeholder="0.05" class="h-7 text-xs" />
-                  </label>
-                  <label class="space-y-1">
-                    <span class="text-muted-foreground">SEO</span>
-                    <Input v-model="thresholds.seo" placeholder="0.05" class="h-7 text-xs" />
-                  </label>
-                  <label class="space-y-1">
-                    <span class="text-muted-foreground">Best Practices</span>
-                    <Input v-model="thresholds['best-practices']" placeholder="0.05" class="h-7 text-xs" />
-                  </label>
-                  <label class="space-y-1">
-                    <span class="text-muted-foreground">LCP (ms)</span>
-                    <Input v-model="thresholds.lcp" placeholder="500" class="h-7 text-xs" />
-                  </label>
-                  <label class="space-y-1">
-                    <span class="text-muted-foreground">CLS</span>
-                    <Input v-model="thresholds.cls" placeholder="0.1" class="h-7 text-xs" />
-                  </label>
+
+                <!-- Single inline note about sampling — explained once,
+                     not as a banner the user has to dismiss. -->
+                <div class="rounded-md bg-amber-500/10 border border-amber-500/30 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+                  <Icon name="lucide:info" class="size-3 inline mr-1" />
+                  CWV is noisy on parallel single-sample runs. Run with <code class="font-mono text-[10px] bg-amber-500/20 px-1 rounded">--samples 3</code> for stability, or widen these thresholds.
                 </div>
+
+                <div class="space-y-3 text-xs">
+                  <div>
+                    <div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Category scores (0–1)</div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <label class="space-y-1">
+                        <span class="text-muted-foreground">Performance</span>
+                        <Input v-model="thresholds.performance" placeholder="0.05" class="h-7 text-xs" />
+                      </label>
+                      <label class="space-y-1">
+                        <span class="text-muted-foreground">Accessibility</span>
+                        <Input v-model="thresholds.accessibility" placeholder="0.05" class="h-7 text-xs" />
+                      </label>
+                      <label class="space-y-1">
+                        <span class="text-muted-foreground">SEO</span>
+                        <Input v-model="thresholds.seo" placeholder="0.05" class="h-7 text-xs" />
+                      </label>
+                      <label class="space-y-1">
+                        <span class="text-muted-foreground">Best Practices</span>
+                        <Input v-model="thresholds['best-practices']" placeholder="0.05" class="h-7 text-xs" />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Core Web Vitals</div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <label class="space-y-1">
+                        <span class="text-muted-foreground flex justify-between">
+                          LCP (ms)
+                          <span class="text-[9px] italic text-muted-foreground/70" title="Typical jitter on parallel single-run audits">≈ 300ms noise</span>
+                        </span>
+                        <Input v-model="thresholds.lcp" placeholder="500" class="h-7 text-xs" />
+                      </label>
+                      <label class="space-y-1">
+                        <span class="text-muted-foreground flex justify-between">
+                          CLS
+                          <span class="text-[9px] italic text-muted-foreground/70">≈ 0.02 noise</span>
+                        </span>
+                        <Input v-model="thresholds.cls" placeholder="0.1" class="h-7 text-xs" />
+                      </label>
+                      <label class="space-y-1">
+                        <span class="text-muted-foreground flex justify-between">
+                          INP (ms)
+                          <span class="text-[9px] italic text-muted-foreground/70">≈ 100ms noise</span>
+                        </span>
+                        <Input v-model="thresholds.inp" placeholder="200" class="h-7 text-xs" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <Button size="sm" class="w-full" @click="handleCompare">
                   Apply
                 </Button>
@@ -576,6 +759,33 @@ function gotoOverview(id: string) {
         </div>
       </div>
 
+      <!-- Core Web Vitals p75 strip — the smoothed answer to the noisy
+           per-route CWV columns below. Sourced from the cwv pack
+           (aggregates across routes). Hidden when the pack didn't
+           run on either scan. -->
+      <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b bg-card/30 flex items-center gap-6 text-xs">
+        <span class="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+          Web Vitals p75
+        </span>
+        <div v-for="row in cwvP75Rows" :key="row.metric" class="flex items-center gap-1.5">
+          <span class="font-medium uppercase text-[10px]">{{ row.label }}</span>
+          <span class="tabular-nums">{{ fmtCwvP75(row.metric, row.baseP75) }}</span>
+          <Icon name="lucide:arrow-right" class="size-2.5 text-muted-foreground/40" />
+          <span class="tabular-nums font-medium" :class="cwvVerdictColor(row.verdict)">{{ fmtCwvP75(row.metric, row.currentP75) }}</span>
+          <span
+            v-if="row.delta != null"
+            class="text-[10px] tabular-nums"
+            :class="deltaClassWithThreshold(row.delta, false, row.metric).klass"
+            :title="deltaClassWithThreshold(row.delta, false, row.metric).mutedByThreshold ? 'Inside the noise threshold' : ''"
+          >
+            ({{ fmtDelta(row.delta, false) }})
+          </span>
+        </div>
+        <span class="ml-auto text-[10px] text-muted-foreground italic" title="CWV pack aggregates across routes — smoother than the per-route columns below, which can be noisy on single-sample runs.">
+          smoothed across routes
+        </span>
+      </div>
+
       <!-- Filter bar -->
       <div class="px-4 py-2 border-b flex items-center gap-3 flex-wrap">
         <div class="relative w-64">
@@ -618,6 +828,67 @@ function gotoOverview(id: string) {
         </span>
       </div>
 
+      <!-- Pack changes — the aggregated layer above raw per-route numbers.
+           Each pack (images, a11y-quick-wins, cwv, ...) emits its own
+           report; we diff base vs current and surface anything that
+           moved. cwv handled separately above as the headline; this
+           lists the rest. Collapsed by default to keep the route
+           table the primary surface. -->
+      <div v-if="otherPackChanges.length" class="border-b">
+        <button
+          class="px-4 py-2 w-full flex items-center gap-2 hover:bg-muted/30 transition-colors text-xs"
+          @click="showPackDetails = !showPackDetails"
+        >
+          <Icon name="lucide:chevron-right" class="size-3.5 text-muted-foreground transition-transform" :class="{ 'rotate-90': showPackDetails }" />
+          <span class="font-medium">{{ otherPackChanges.length }} pack{{ otherPackChanges.length === 1 ? '' : 's' }} changed</span>
+          <span class="text-muted-foreground text-[10px]">
+            {{ otherPackChanges.map((p: any) => p.packName).join(', ') }}
+          </span>
+          <span class="ml-auto text-[10px] text-muted-foreground italic">click to expand</span>
+        </button>
+        <div v-if="showPackDetails" class="px-4 py-3 bg-card/20 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="pack in otherPackChanges" :key="pack.packName" class="rounded-lg border bg-card p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium capitalize">{{ pack.packName.replace(/-/g, ' ') }}</span>
+              <span class="text-[10px] text-muted-foreground">{{ pack.base ? 'changed' : 'new' }}</span>
+            </div>
+            <!-- Render whatever summary fields the pack-agnostic
+                 summariser surfaced. Nullable so packs that don't
+                 expose findings / severity counts simply hide rows. -->
+            <div class="text-xs space-y-0.5">
+              <div v-if="pack.baseSummary?.findings != null || pack.currentSummary?.findings != null" class="flex justify-between">
+                <span class="text-muted-foreground">Findings</span>
+                <span class="tabular-nums">
+                  {{ pack.baseSummary?.findings ?? '—' }}
+                  <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted-foreground/40" />
+                  <span :class="(pack.currentSummary?.findings ?? 0) > (pack.baseSummary?.findings ?? 0) ? 'text-red-500' : (pack.currentSummary?.findings ?? 0) < (pack.baseSummary?.findings ?? 0) ? 'text-green-500' : ''">
+                    {{ pack.currentSummary?.findings ?? '—' }}
+                  </span>
+                </span>
+              </div>
+              <div v-if="(pack.baseSummary?.critical ?? 0) || (pack.currentSummary?.critical ?? 0)" class="flex justify-between">
+                <span class="text-muted-foreground">Critical</span>
+                <span class="tabular-nums">{{ pack.baseSummary?.critical ?? 0 }} → <span :class="(pack.currentSummary?.critical ?? 0) > (pack.baseSummary?.critical ?? 0) ? 'text-red-500' : 'text-green-500'">{{ pack.currentSummary?.critical ?? 0 }}</span></span>
+              </div>
+              <div v-if="(pack.baseSummary?.serious ?? 0) || (pack.currentSummary?.serious ?? 0)" class="flex justify-between">
+                <span class="text-muted-foreground">Serious</span>
+                <span class="tabular-nums">{{ pack.baseSummary?.serious ?? 0 }} → <span :class="(pack.currentSummary?.serious ?? 0) > (pack.baseSummary?.serious ?? 0) ? 'text-red-500' : 'text-green-500'">{{ pack.currentSummary?.serious ?? 0 }}</span></span>
+              </div>
+              <div v-if="(pack.baseSummary?.totalBytesSavable ?? 0) || (pack.currentSummary?.totalBytesSavable ?? 0)" class="flex justify-between">
+                <span class="text-muted-foreground">Wasted bytes</span>
+                <span class="tabular-nums">
+                  {{ Math.round((pack.baseSummary?.totalBytesSavable ?? 0) / 1024) }}KB
+                  <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted-foreground/40" />
+                  <span :class="(pack.currentSummary?.totalBytesSavable ?? 0) > (pack.baseSummary?.totalBytesSavable ?? 0) ? 'text-red-500' : 'text-green-500'">
+                    {{ Math.round((pack.currentSummary?.totalBytesSavable ?? 0) / 1024) }}KB
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Main split: table left, detail right -->
       <ResizablePanelGroup direction="horizontal" class="flex-1 min-h-0">
         <ResizablePanel :default-size="62" :min-size="35">
@@ -652,17 +923,33 @@ function gotoOverview(id: string) {
                     <TableCell v-if="hasMultipleDevices" class="text-center">
                       <Icon :name="row.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5 text-muted-foreground inline" />
                     </TableCell>
-                    <TableCell class="text-right tabular-nums text-xs" :class="rowScoreCell(row, 'scorePerformance').klass">
-                      {{ rowScoreCell(row, 'scorePerformance').value }}
+                    <TableCell
+                      class="text-right tabular-nums text-xs"
+                      :class="rowScoreCell(row, 'scorePerformance', 'performance').klass"
+                      :title="rowScoreCell(row, 'scorePerformance', 'performance').mutedByThreshold ? 'Inside the noise threshold' : ''"
+                    >
+                      {{ rowScoreCell(row, 'scorePerformance', 'performance').value }}
                     </TableCell>
-                    <TableCell class="text-right tabular-nums text-xs" :class="rowScoreCell(row, 'scoreAccessibility').klass">
-                      {{ rowScoreCell(row, 'scoreAccessibility').value }}
+                    <TableCell
+                      class="text-right tabular-nums text-xs"
+                      :class="rowScoreCell(row, 'scoreAccessibility', 'accessibility').klass"
+                      :title="rowScoreCell(row, 'scoreAccessibility', 'accessibility').mutedByThreshold ? 'Inside the noise threshold' : ''"
+                    >
+                      {{ rowScoreCell(row, 'scoreAccessibility', 'accessibility').value }}
                     </TableCell>
-                    <TableCell class="text-right tabular-nums text-xs" :class="rowScoreCell(row, 'scoreSeo').klass">
-                      {{ rowScoreCell(row, 'scoreSeo').value }}
+                    <TableCell
+                      class="text-right tabular-nums text-xs"
+                      :class="rowScoreCell(row, 'scoreSeo', 'seo').klass"
+                      :title="rowScoreCell(row, 'scoreSeo', 'seo').mutedByThreshold ? 'Inside the noise threshold' : ''"
+                    >
+                      {{ rowScoreCell(row, 'scoreSeo', 'seo').value }}
                     </TableCell>
-                    <TableCell class="text-right tabular-nums text-xs" :class="rowScoreCell(row, 'scoreBestPractices').klass">
-                      {{ rowScoreCell(row, 'scoreBestPractices').value }}
+                    <TableCell
+                      class="text-right tabular-nums text-xs"
+                      :class="rowScoreCell(row, 'scoreBestPractices', 'best-practices').klass"
+                      :title="rowScoreCell(row, 'scoreBestPractices', 'best-practices').mutedByThreshold ? 'Inside the noise threshold' : ''"
+                    >
+                      {{ rowScoreCell(row, 'scoreBestPractices', 'best-practices').value }}
                     </TableCell>
                   </TableRow>
                 </template>
@@ -709,32 +996,92 @@ function gotoOverview(id: string) {
               </div>
             </div>
 
-            <div class="rounded-lg border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Metric</TableHead>
-                    <TableHead class="w-20 text-right">Base</TableHead>
-                    <TableHead class="w-20 text-right">Current</TableHead>
-                    <TableHead class="w-20 text-right">Delta</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow v-for="m in DETAIL_METRICS" :key="m.key">
-                    <TableCell class="text-sm font-medium">{{ m.label }}</TableCell>
-                    <TableCell class="text-right tabular-nums text-sm">
-                      {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
-                    </TableCell>
-                    <TableCell class="text-right tabular-nums text-sm">
-                      {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
-                    </TableCell>
-                    <TableCell class="text-right tabular-nums text-sm font-medium" :class="deltaClass(selectedRow.deltas?.[m.key], m.score)">
-                      {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+            <!-- Categories: the headline. Aggregate of dozens of audits,
+                 noise-resistant. -->
+            <section>
+              <h4 class="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Categories</h4>
+              <div class="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Metric</TableHead>
+                      <TableHead class="w-20 text-right">Base</TableHead>
+                      <TableHead class="w-20 text-right">Current</TableHead>
+                      <TableHead class="w-20 text-right">Delta</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow v-for="m in CATEGORY_METRICS" :key="m.key">
+                      <TableCell class="text-sm font-medium">{{ m.label }}</TableCell>
+                      <TableCell class="text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
+                      <TableCell class="text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
+                      <TableCell
+                        class="text-right tabular-nums text-sm font-medium"
+                        :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
+                        :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
+                      >
+                        {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
+
+            <!-- Core Web Vitals — Google's stable real-user metrics. -->
+            <section>
+              <h4 class="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                Core Web Vitals
+                <Icon name="lucide:info" class="size-2.5 opacity-60" :title="'Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability.'" />
+              </h4>
+              <div class="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableBody>
+                    <TableRow v-for="m in CWV_METRICS" :key="m.key">
+                      <TableCell class="text-sm font-medium" :title="m.hint">{{ m.label }}</TableCell>
+                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
+                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
+                      <TableCell
+                        class="text-right tabular-nums text-sm font-medium w-20"
+                        :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
+                        :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
+                      >
+                        {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
+
+            <!-- Diagnostics: FCP/TBT/TTFB/SI — triage signals, not headlines. Collapsed. -->
+            <section>
+              <button
+                class="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 mb-2"
+                @click="showLegacyMetrics = !showLegacyMetrics"
+              >
+                <Icon name="lucide:chevron-right" class="size-3 transition-transform" :class="{ 'rotate-90': showLegacyMetrics }" />
+                Diagnostics ({{ DIAGNOSTIC_METRICS.length }})
+              </button>
+              <div v-if="showLegacyMetrics" class="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableBody>
+                    <TableRow v-for="m in DIAGNOSTIC_METRICS" :key="m.key">
+                      <TableCell class="text-sm font-medium text-muted-foreground" :title="m.hint">{{ m.label }}</TableCell>
+                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
+                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
+                      <TableCell
+                        class="text-right tabular-nums text-sm font-medium w-20"
+                        :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
+                        :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
+                      >
+                        {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
           </div>
 
           <div v-else class="h-full flex items-center justify-center text-sm text-muted-foreground p-4 text-center">
