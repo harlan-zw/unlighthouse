@@ -125,16 +125,32 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     return fs.readFile(htmlPath, 'utf-8')
   }))
 
-  // CORS. Default is the LAN-friendly localhost set so a fresh CLI
-  // still talks to the Nuxt UI on :3000. Hosted deploys override via
-  // UNLIGHTHOUSE_CORS_ORIGINS (comma-separated) to pin the dashboard
-  // origin(s) and reject everything else. `*` is still accepted as a
-  // sentinel for "open" but should never be combined with the auth gate
-  // — they cancel each other out as a security boundary.
+  // CORS. The decision tree is:
+  //
+  //   - UNLIGHTHOUSE_CORS_ORIGINS set → strict allowlist from the env.
+  //     Hosted deploys do this to pin the dashboard origin(s).
+  //
+  //   - Env not set BUT UNLIGHTHOUSE_API_TOKEN is → "hosted-ish"
+  //     default: localhost allowlist. The token is the auth barrier;
+  //     CORS narrows the blast radius of a stolen token by limiting
+  //     which page origins can exfiltrate via XHR. Operator who exposes
+  //     beyond localhost should set UNLIGHTHOUSE_CORS_ORIGINS explicitly.
+  //
+  //   - Neither set → open (`*`). The CLI default story:  user is
+  //     running unlighthouse on their machine + the Nuxt dashboard
+  //     wherever (localhost, tailnet tunnel, VPN). Without a token
+  //     there's nothing meaningful for CORS to protect, and a strict
+  //     localhost allowlist breaks the tailnet / tunnel paths users
+  //     rely on for "show this dashboard on my phone".
   const corsOriginsEnv = process.env.UNLIGHTHOUSE_CORS_ORIGINS
-  const corsAllowlist: string[] = corsOriginsEnv
-    ? corsOriginsEnv.split(',').map(s => s.trim()).filter(Boolean)
-    : ['http://localhost:3000', 'http://127.0.0.1:3000']
+  const apiTokenForCors = process.env.UNLIGHTHOUSE_API_TOKEN
+  let corsAllowlist: string[]
+  if (corsOriginsEnv)
+    corsAllowlist = corsOriginsEnv.split(',').map(s => s.trim()).filter(Boolean)
+  else if (apiTokenForCors)
+    corsAllowlist = ['http://localhost:3000', 'http://127.0.0.1:3000']
+  else
+    corsAllowlist = ['*']
   const corsAllowAny = corsAllowlist.includes('*')
   log.info(`cors: ${corsAllowAny ? 'open (*)' : `allowlist [${corsAllowlist.join(', ')}]`}`)
 
