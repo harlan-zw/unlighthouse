@@ -96,7 +96,7 @@ const { data: autoBase } = useAsyncData(
         device: currentMeta.value.device,
         // Honour branch when present so deploy-preview comparisons
         // bucket per-branch instead of pulling someone else's commit.
-        branch: (currentMeta.value as any).ciBranch ?? undefined,
+        branch: currentMeta.value.ciBranch ?? undefined,
         excludeScanId: currentScanId.value as any,
       })
       return res.scanId
@@ -540,7 +540,7 @@ function gotoOverview(id: string) {
                   <span class="font-mono">{{ shortId(scan.scanId) }}</span>
                   <Badge variant="outline" class="text-[9px]">{{ scan.device }}</Badge>
                   <span class="text-muted-foreground">{{ fmtDate(scan.completedAt || scan.startedAt) }}</span>
-                  <span v-if="(scan as any).ciCommit" class="font-mono text-[10px] text-muted-foreground">{{ ((scan as any).ciCommit as string).slice(0, 7) }}</span>
+                  <span v-if="scan.ciCommit" class="font-mono text-[10px] text-muted-foreground">{{ scan.ciCommit.slice(0, 7) }}</span>
                 </div>
               </SelectItem>
             </SelectContent>
@@ -666,16 +666,16 @@ function gotoOverview(id: string) {
       <div v-if="baseMeta && currentMeta" class="px-4 py-2 text-xs flex items-center gap-4 flex-wrap border-t bg-background/40">
         <button class="hover:underline text-muted-foreground hover:text-foreground inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
           <Icon name="lucide:external-link" class="size-3" />
-          Base: {{ fmtDate((baseMeta as any).completedAt || baseMeta.startedAt) }}
-          <span v-if="(baseMeta as any).ciCommit" class="font-mono text-[10px]">· {{ ((baseMeta as any).ciCommit as string).slice(0, 7) }}</span>
-          <span v-if="(baseMeta as any).ciBranch" class="text-[10px]">· {{ (baseMeta as any).ciBranch }}</span>
+          Base: {{ fmtDate(baseMeta.completedAt || baseMeta.startedAt) }}
+          <span v-if="baseMeta.ciCommit" class="font-mono text-[10px]">· {{ baseMeta.ciCommit.slice(0, 7) }}</span>
+          <span v-if="baseMeta.ciBranch" class="text-[10px]">· {{ baseMeta.ciBranch }}</span>
         </button>
         <Icon name="lucide:arrow-right" class="size-3 text-muted-foreground" />
         <button class="hover:underline text-muted-foreground hover:text-foreground inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
           <Icon name="lucide:external-link" class="size-3" />
-          Current: {{ fmtDate((currentMeta as any).completedAt || currentMeta.startedAt) }}
-          <span v-if="(currentMeta as any).ciCommit" class="font-mono text-[10px]">· {{ ((currentMeta as any).ciCommit as string).slice(0, 7) }}</span>
-          <span v-if="(currentMeta as any).ciBranch" class="text-[10px]">· {{ (currentMeta as any).ciBranch }}</span>
+          Current: {{ fmtDate(currentMeta.completedAt || currentMeta.startedAt) }}
+          <span v-if="currentMeta.ciCommit" class="font-mono text-[10px]">· {{ currentMeta.ciCommit.slice(0, 7) }}</span>
+          <span v-if="currentMeta.ciBranch" class="text-[10px]">· {{ currentMeta.ciBranch }}</span>
         </button>
       </div>
     </div>

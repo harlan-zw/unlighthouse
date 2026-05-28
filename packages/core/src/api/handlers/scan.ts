@@ -302,7 +302,11 @@ export const scanMeta: Handler<typeof ScanMetaCmd> = {
       device: scan.device,
       throttle: ctx.config.scanner?.throttle ?? true,
       startedAt: scan.startedAt,
+      completedAt: scan.completedAt,
       summary: scan.summary,
+      ciBranch: scan.ciBranch,
+      ciCommit: scan.ciCommit,
+      ciCommitMessage: scan.ciCommitMessage,
     } as CommandOutput<typeof ScanMetaCmd>
   },
 }

@@ -4,18 +4,14 @@
 // of two structurally-identical declarations (which TS treats as
 // incompatible across SFCs).
 
-export interface ScanRow {
-  scanId: string
-  site: string
-  device: 'mobile' | 'desktop'
-  status: string
-  startedAt: string
-  summary?: {
-    routes?: number
-    completed?: number
-    scoresByCategory?: Record<string, number | null>
-  } | null
-}
+import type { Scan } from '@unlighthouse/contracts'
+
+// Re-export the persisted Scan shape so UI code stops re-declaring a
+// thinner version (and stops `as any`-ing the CI fields it didn't
+// know existed). The local alias name preserves the existing
+// import/use sites while the underlying type is now the canonical
+// contract type.
+export type ScanRow = Scan
 
 /** A history row paired across the device matrix.
  *  When mobile + desktop scans of the same site started within ~5 min,

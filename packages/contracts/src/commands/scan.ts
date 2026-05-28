@@ -138,7 +138,16 @@ export const ScanMetaCmd = defineCommand({
     device: DeviceSchema,
     throttle: z.boolean(),
     startedAt: z.iso.datetime(),
+    // Completion timestamp. Null while the scan is in flight or paused.
+    completedAt: z.iso.datetime().nullable(),
     summary: ScanSummarySchema.nullable(),
+    // CI provenance — present whenever scan.start was called with a
+    // ciBuild block or the resolveConfig git-fallback fired. Lets the
+    // dashboard show "compare against this branch" / "scan for commit
+    // abc1234" without a second round-trip to history.list.
+    ciBranch: z.string().nullable(),
+    ciCommit: z.string().nullable(),
+    ciCommitMessage: z.string().nullable(),
   }),
   exitCodes: { SCAN_NOT_FOUND: 64 },
 })
