@@ -16,6 +16,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+definePageMeta({ layout: 'scan' })
+
 const api = useApi()
 const scanId = getScanId()
 const { scoreToColor, scoreToLabel } = useScoreColor()

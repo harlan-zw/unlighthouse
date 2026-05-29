@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
+definePageMeta({ layout: 'scan' })
+
 const api = useApi()
 const scanId = getScanId()
 
@@ -111,7 +113,6 @@ function formatTime(ts: number) {
 
 <template>
   <div class="space-y-6">
-    <ScanNav />
     <h1 class="text-xl font-bold tracking-tight">Event Stream</h1>
 
     <div class="flex items-center gap-4">

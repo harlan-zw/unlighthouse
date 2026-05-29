@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/select'
 import { useScanStore } from '~/stores/scan'
 
+definePageMeta({ layout: 'scan' })
+
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
@@ -192,7 +194,6 @@ const sortOptions = [
 
 <template>
   <div class="space-y-4">
-    <ScanNav />
     <div class="flex items-center gap-3">
       <h1 class="text-xl font-bold tracking-tight">Routes</h1>
       <Badge v-if="scanResults" variant="secondary" class="text-xs">{{ scanResults.total }} total</Badge>

@@ -40,7 +40,6 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
 
 <template>
   <div class="space-y-6">
-    <ScanNav />
     <div class="flex items-center gap-3">
       <h1 class="text-xl font-bold tracking-tight">
         {{ title }}

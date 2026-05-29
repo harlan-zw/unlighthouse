@@ -8,6 +8,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { toast } from 'vue-sonner'
 
+definePageMeta({ layout: 'scan' })
+
 const route = useRoute()
 const scanId = getScanId()
 const routePath = decodeURIComponent(route.params.path as string)

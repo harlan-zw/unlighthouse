@@ -9,6 +9,8 @@ import {
 import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
+definePageMeta({ layout: 'scan' })
+
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
@@ -185,7 +187,6 @@ function scoreColor(score: number | null) {
 
 <template>
   <div class="space-y-8">
-    <ScanNav />
 
     <!-- Header -->
     <div class="flex items-center justify-between">

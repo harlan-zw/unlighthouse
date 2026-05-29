@@ -8,6 +8,8 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 
+definePageMeta({ layout: 'scan' })
+
 const api = useApi()
 const scanId = getScanId()
 

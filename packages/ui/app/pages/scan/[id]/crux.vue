@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
+definePageMeta({ layout: 'scan' })
+
 const route = useRoute()
 const api = useApi()
 const scanId = route.params.id as string
@@ -62,7 +64,6 @@ function latestValue(entries: Array<{ value: number }>) {
 
 <template>
   <div class="space-y-6">
-    <ScanNav />
     <h1 class="text-xl font-bold tracking-tight">CrUX Field Data</h1>
 
     <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">Loading CrUX data...</div>

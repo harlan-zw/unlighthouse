@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Card, CardContent } from '@/components/ui/card'
 
+definePageMeta({ layout: 'scan' })
+
 const api = useApi()
 const scanId = getScanId()
 
