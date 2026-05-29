@@ -7,7 +7,7 @@ import type {
   CrawlEvent,
 } from '@unlighthouse/contracts/ports'
 import type { Hookable } from 'hookable'
-import { CheerioCrawler, log as crawleeLog } from 'crawlee'
+import { CheerioCrawler, log as crawleeLog, RequestQueue } from 'crawlee'
 import { createHooks } from 'hookable'
 
 export interface CrawleeCrawlerOptions {
@@ -118,7 +118,15 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       return
     }
 
+    // Isolate each run in its own request queue. crawlee's default queue is
+    // a per-process singleton, so without this a URL handled by one scan is
+    // seen as already-handled by the next scan of the same URL — it gets
+    // skipped and the scan returns empty. A unique named queue per run (dropped
+    // in finally) keeps re-scans and concurrent scans independent.
+    const requestQueue = await RequestQueue.open(`unlighthouse-${scanId}`)
+
     const crawler = new CheerioCrawler({
+      requestQueue,
       maxConcurrency: concurrency,
       maxRequestsPerCrawl: maxRequests,
       respectRobotsTxtFile: false,
@@ -216,6 +224,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       if (signal)
         signal.removeEventListener('abort', onAbort)
       state = 'idle'
+      // Drop the per-run queue so it doesn't accumulate on disk or leak into
+      // the next run's dedup set.
+      await requestQueue.drop().catch(() => {})
       // Prevent unused-var warning
       void originHost
     }
