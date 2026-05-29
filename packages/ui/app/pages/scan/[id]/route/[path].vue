@@ -41,15 +41,18 @@ const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
 
 // The route detail page needs the full URL to call `route.get`, but the
 // URL param is just a path. Read the scan's site once so we can pair
-// them — falls back to "http://localhost<path>" if scan.meta hasn't
-// resolved yet (route.get will reject the URL and we render the
-// "Route not found" branch — same as before).
-const { data: scanMeta } = useAsyncData(
+// them. `fullUrl` stays empty until scan.meta resolves — the gated fetch
+// below skips firing rather than guessing "http://localhost<path>" (which
+// would 404 every load and only then retry against the real origin once
+// scan.meta lands). The fetch watches `fullUrl`, so it runs as soon as the
+// real site is known.
+const { data: scanMeta, status: scanMetaStatus } = useAsyncData(
   `route-scanmeta-${scanId}`,
   () => api['scan.meta']({ scanId }).catch(() => null),
 )
 const fullUrl = computed(() => {
-  const site = scanMeta.value?.site || 'http://localhost'
+  const site = scanMeta.value?.site
+  if (!site) return ''
   try { return new URL(routePath, site).toString() }
   catch { return `${site}${routePath}` }
 })
@@ -241,7 +244,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
       </Button>
     </div>
 
-    <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">Loading...</div>
+    <div v-if="status === 'pending' || scanMetaStatus === 'pending'" class="text-center py-12 text-muted-foreground">Loading...</div>
     <div v-else-if="!routeData" class="text-center py-12 text-muted-foreground">Route not found.</div>
 
     <template v-else>
