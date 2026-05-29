@@ -316,6 +316,14 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
 
 <template>
   <div class="space-y-4">
+    <!-- Core Web Vitals — professional metric header (p75 + distribution +
+         percentiles across the visible routes). -->
+    <div v-if="filtered.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="[2500, 4000]" :format="(v: number) => formatMetric(v, 'ms')" />
+      <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="[0.1, 0.25]" :format="(v: number) => v.toFixed(3)" />
+      <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="[200, 600]" :format="(v: number) => formatMetric(v, 'ms')" />
+    </div>
+
     <!-- Toolbar -->
     <div class="flex items-center gap-3 flex-wrap">
       <div class="relative flex-1 max-w-xs min-w-[180px]">
