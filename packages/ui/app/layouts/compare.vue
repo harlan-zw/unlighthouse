@@ -14,7 +14,25 @@ const api = useApi()
 // (the compare button on the overview tools list). Previously the
 // link went to /history, which felt jarring as a "back" action.
 const currentScanId = computed(() => (route.params.id as string) || '')
-const exitTo = computed(() => currentScanId.value ? `/scan/${currentScanId.value}/overview` : '/history')
+
+// Resolve the scan's site so "Exit compare" lands directly on the new
+// /sites/{slug}/scans/{id} overview rather than bouncing through the
+// legacy /scan/{id} redirect shim.
+const { data: exitMeta } = useAsyncData(
+  'compare-exit-meta',
+  () => currentScanId.value ? api['scan.meta']({ scanId: currentScanId.value as any }).catch(() => null) : Promise.resolve(null),
+  { watch: [currentScanId] },
+)
+const exitTo = computed(() => {
+  const site = exitMeta.value?.site
+  if (currentScanId.value && site) {
+    try {
+      return `/sites/${new URL(site).hostname}/scans/${currentScanId.value}/overview`
+    }
+    catch {}
+  }
+  return currentScanId.value ? `/scan/${currentScanId.value}/overview` : '/history'
+})
 
 function toggleColorMode() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
