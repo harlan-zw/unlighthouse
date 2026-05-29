@@ -217,10 +217,10 @@ const groupSuggestions = computed(() => {
         <Card v-for="site in bucket.items" :key="site.id">
           <CardContent class="pt-5 pb-4">
             <div class="flex items-start justify-between mb-3">
-              <div class="min-w-0 flex-1">
-                <div class="font-medium text-sm truncate">{{ site.name }}</div>
+              <NuxtLink :to="`/sites/${siteSlug(site.url)}`" class="min-w-0 flex-1 group">
+                <div class="font-medium text-sm truncate group-hover:text-primary transition-colors">{{ site.name }}</div>
                 <div class="text-xs text-muted-foreground font-mono truncate mt-0.5">{{ site.url }}</div>
-              </div>
+              </NuxtLink>
             </div>
             <div class="text-xs text-muted-foreground mb-3">
               Added {{ new Date(site.createdAt).toLocaleDateString() }}

@@ -26,10 +26,6 @@ const { data: scansResp, status, refresh } = useAsyncData(
   () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
 )
 
-/** Mobile + desktop scans of the same site started within 5 min of each
- *  other are treated as one matrix scan and merged onto a single row. */
-const PAIR_WINDOW_MS = 5 * 60_000
-
 const groups = computed<SiteGroup[]>(() => {
   const items = (scansResp.value?.items ?? []) as ScanRow[]
   if (!items.length) return []
@@ -52,41 +48,10 @@ const groups = computed<SiteGroup[]>(() => {
 
   const out: SiteGroup[] = []
   for (const [site, group] of buckets) {
-    const sorted = [...group].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-    const used = new Set<string>()
-    const pairs: DevicePair[] = []
-
-    for (const scan of sorted) {
-      if (used.has(scan.scanId)) continue
-      used.add(scan.scanId)
-
-      const otherDevice = scan.device === 'mobile' ? 'desktop' : 'mobile'
-      const tsScan = new Date(scan.startedAt).getTime()
-      const sibling = sorted.find((s) => {
-        if (used.has(s.scanId)) return false
-        // Only pair separate mobile/desktop scans of the SAME exact URL —
-        // the group now spans multiple paths on the domain.
-        if (s.site !== scan.site) return false
-        if (s.device !== otherDevice) return false
-        return Math.abs(new Date(s.startedAt).getTime() - tsScan) <= PAIR_WINDOW_MS
-      })
-      if (sibling) used.add(sibling.scanId)
-
-      pairs.push({
-        startedAt: scan.startedAt > (sibling?.startedAt ?? '') ? scan.startedAt : (sibling?.startedAt ?? scan.startedAt),
-        routes: Math.max(scan.summary?.routes ?? 0, sibling?.summary?.routes ?? 0),
-        completed: Math.max(scan.summary?.completed ?? 0, sibling?.summary?.completed ?? 0),
-        mobile: scan.device === 'mobile' ? scan : (sibling?.device === 'mobile' ? sibling : null),
-        desktop: scan.device === 'desktop' ? scan : (sibling?.device === 'desktop' ? sibling : null),
-      })
-    }
-
-    out.push({
-      site,
-      scanCount: group.length,
-      latestStartedAt: sorted[0]!.startedAt,
-      pairs,
-    })
+    // Pairing (mobile+desktop within ~5 min) is shared with the per-site page.
+    const pairs = pairScans(group)
+    const latestStartedAt = group.reduce((acc, s) => (s.startedAt > acc ? s.startedAt : acc), '')
+    out.push({ site, scanCount: group.length, latestStartedAt, pairs })
   }
 
   out.sort((a, b) => b.latestStartedAt.localeCompare(a.latestStartedAt))

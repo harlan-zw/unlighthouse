@@ -121,7 +121,7 @@ function formatDuration(start: string | null, end: string | null) {
           v-for="site in sitesData.sites.slice(0, 8)"
           :key="site.id"
           class="cursor-pointer transition-all hover:border-primary/30 hover:shadow-sm"
-          @click="router.push({ path: '/scan/new', query: { url: site.url } })"
+          @click="router.push(`/sites/${siteSlug(site.url)}`)"
         >
           <CardContent class="pt-4 pb-3">
             <div class="mb-1">

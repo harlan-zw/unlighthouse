@@ -11,10 +11,18 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 
-// The persistent left rail. Phase 1 ships the top-level nav; the per-site
-// list (linking to /sites/{slug}) lands in Phase 3 alongside its page so
-// there are no dead links here meanwhile.
+// The persistent left rail: top-level nav plus a live list of registered
+// sites, each linking to its /sites/{slug} detail page.
 const route = useRoute()
+const api = useApi()
+
+// Shared key with the site page so the list loads once and stays in sync.
+const { data: sitesData } = useAsyncData(
+  'sidebar-sites',
+  () => api['sites.list']({}).catch(() => ({ sites: [] as Array<{ id: string, name: string, url: string, group: string | null }> })),
+)
+const sites = computed(() => sitesData.value?.sites ?? [])
+const activeSlug = computed(() => route.params.siteId as string | undefined)
 
 interface NavItem {
   label: string
@@ -61,6 +69,26 @@ const nav: NavItem[] = [
                 <NuxtLink :to="item.to">
                   <Icon :name="item.icon" />
                   <span>{{ item.label }}</span>
+                </NuxtLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarGroup v-if="sites.length">
+        <SidebarGroupLabel>Sites</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem v-for="site in sites" :key="site.id">
+              <SidebarMenuButton
+                as-child
+                :is-active="activeSlug === siteSlug(site.url)"
+                :tooltip="siteSlug(site.url)"
+              >
+                <NuxtLink :to="`/sites/${siteSlug(site.url)}`">
+                  <Icon name="lucide:globe" />
+                  <span>{{ site.name || siteSlug(site.url) }}</span>
                 </NuxtLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
