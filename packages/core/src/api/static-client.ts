@@ -7,6 +7,28 @@
 // Only read commands are meaningful offline. Write/streaming commands
 // (scan.start, route.rescan, events.*, …) reject — a static report is a
 // frozen artefact; the UI gates those controls on `__unlighthouse_static`.
+//
+// ── Remaining integration for `--build-static` (maintainer-owned) ────────────
+// The data layer below is done + tested (test/static-client.test.ts). What's
+// left is wiring it into the build + UI, which touches core's browser
+// portability — an architecture call:
+//   1. build.ts (static:true): call `buildStaticSnapshot()` and embed the
+//      result as `window.__unlighthouse_payload.snapshot`; export screenshot +
+//      LHR blobs to assets/ files and rewrite their URLs with routerPrefix
+//      (this also resolves #275's static-context broken thumbnails).
+//   2. ci.ts: consume `--build-static` → `generateClient({ static: true })`.
+//   3. UI api.client.ts: when `window.__unlighthouse_static`, provide
+//      `createStaticClient(payload.snapshot)` instead of the HTTP client
+//      (single dynamic-import guard; live path untouched). Add a useIsStatic()
+//      composable to hide write buttons / live polling.
+//   BROWSER-COMPAT BLOCKER: importing createStaticClient into the Nuxt
+//   (ssr:false) bundle pulls in createHandlers → route.ts/scan.ts/pack.ts and
+//   memory storage, which carry module-level node:crypto / node:zlib /
+//   node:buffer imports. These must be made browser-safe first (Buffer→
+//   TextDecoder; node:zlib→fflate or rely on pre-run pack cache so the inflate
+//   path is never hit; node:crypto sha1→a JS impl or seed rows so urlHash is
+//   never called). That refactor is the core-portability decision this client
+//   intentionally stops short of.
 import type {
   CommandName,
   PackRun,
