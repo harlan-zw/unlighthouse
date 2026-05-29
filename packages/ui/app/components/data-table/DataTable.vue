@@ -35,12 +35,20 @@ const props = withDefaults(defineProps<{
   emptyText?: string
   /** Classes for the scroll/border container. */
   containerClass?: string
+  /** Row density — 'compact' tightens vertical padding. */
+  density?: 'comfortable' | 'compact'
+  /** Pin the header while the container scrolls (needs a max-height container). */
+  stickyHeader?: boolean
 }>(), {
   manualSorting: false,
   rowClickable: false,
   emptyText: 'No data.',
   containerClass: 'rounded-lg border overflow-auto',
+  density: 'comfortable',
 })
+
+const densityCellClass = computed(() => (props.density === 'compact' ? 'py-1' : ''))
+const stickyHeadClass = computed(() => (props.stickyHeader ? 'sticky top-0 z-10 bg-background' : ''))
 
 const emit = defineEmits<{
   (e: 'update:sorting', value: SortingState): void
@@ -95,6 +103,7 @@ const hasActions = computed(() => !!useSlots().actions)
             :class="[
               alignClass(metaOf(header.column).align),
               metaOf(header.column).headClass,
+              stickyHeadClass,
               header.column.getCanSort() ? 'cursor-pointer select-none' : '',
             ]"
             @click="header.column.getCanSort() ? header.column.getToggleSortingHandler()?.($event) : undefined"
@@ -133,7 +142,7 @@ const hasActions = computed(() => !!useSlots().actions)
             <TableCell
               v-for="cell in row.getVisibleCells()"
               :key="cell.id"
-              :class="[alignClass(metaOf(cell.column).align), metaOf(cell.column).cellClass]"
+              :class="[alignClass(metaOf(cell.column).align), metaOf(cell.column).cellClass, densityCellClass]"
             >
               <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
             </TableCell>

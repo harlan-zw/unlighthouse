@@ -10,6 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useScanStore } from '~/stores/scan'
 
 definePageMeta({ layout: 'scan' })
@@ -28,6 +36,23 @@ const pageSize = 50
 const urlFilter = ref('')
 const deviceFilter = ref<string>('')
 const serverSort = ref('score-asc')
+
+// Table chrome: row density + column visibility (driven through the DataTable's
+// exposed TanStack instance).
+const density = ref<'comfortable' | 'compact'>('comfortable')
+const tableRef = ref<{ table: any } | null>(null)
+const colLabels: Record<string, string> = {
+  thumbnail: 'Thumbnail',
+  path: 'Path',
+  device: 'Device',
+  scorePerformance: 'Performance',
+  scoreAccessibility: 'Accessibility',
+  scoreSeo: 'SEO',
+  scoreBestPractices: 'Best Practices',
+  lcp: 'LCP',
+  cls: 'CLS',
+  tbt: 'TBT',
+}
 
 const { data: scanResults, refresh } = useAsyncData(
   `scan-routes-${scanId.value}`,
@@ -233,12 +258,49 @@ const sortOptions = [
           <SelectItem v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</SelectItem>
         </SelectContent>
       </Select>
+
+      <!-- Column visibility -->
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button variant="outline" size="sm">
+            <Icon name="lucide:columns-3" class="size-4 mr-1.5" />
+            Columns
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="w-44">
+          <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem
+            v-for="col in (tableRef?.table?.getAllLeafColumns() ?? [])"
+            :key="col.id"
+            :model-value="col.getIsVisible()"
+            @update:model-value="col.toggleVisibility()"
+            @select="(e: Event) => e.preventDefault()"
+          >
+            {{ colLabels[col.id] ?? col.id }}
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <!-- Density -->
+      <Button
+        variant="outline"
+        size="sm"
+        :title="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
+        @click="density = density === 'compact' ? 'comfortable' : 'compact'"
+      >
+        <Icon :name="density === 'compact' ? 'lucide:rows-3' : 'lucide:rows-2'" class="size-4" />
+      </Button>
     </div>
 
     <!-- DataTable -->
     <DataTable
+      ref="tableRef"
       :columns="columns"
       :data="(scanResults?.items ?? []) as RouteRow[]"
+      :density="density"
+      sticky-header
+      container-class="rounded-lg border overflow-auto max-h-[72vh]"
       row-clickable
       @row-click="openRoute"
     >
