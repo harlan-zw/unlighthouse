@@ -1,14 +1,7 @@
 <script setup lang="ts">
+import type { ColumnDef } from '@tanstack/vue-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -24,6 +17,41 @@ const scanId = computed(() => route.params.id as string)
 const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
 
 const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
+
+// Worst-routes table columns. Small, unsorted list (server already
+// returns it worst-first), rendered through the shared DataTable.
+const WorstIcon = resolveComponent('Icon')
+const worstRouteColumns: ColumnDef<any, any>[] = [
+  {
+    id: 'url',
+    header: 'URL',
+    enableSorting: false,
+    cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-md' }, row.original.url),
+  },
+  {
+    id: 'device',
+    header: 'Device',
+    enableSorting: false,
+    meta: { align: 'center', headClass: 'w-16' },
+    cell: ({ row }) => row.original.device
+      ? h(WorstIcon, { name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor', class: 'size-3.5 text-muted-foreground inline' })
+      : null,
+  },
+  {
+    id: 'score',
+    header: 'Score',
+    enableSorting: false,
+    meta: { align: 'right', headClass: 'w-24' },
+    cell: ({ row }) => h('span', { class: `font-bold tabular-nums ${scoreToColor(row.original.score)}` }, scoreToLabel(row.original.score)),
+  },
+  {
+    id: 'weakest',
+    header: 'Weakest',
+    enableSorting: false,
+    meta: { headClass: 'w-32' },
+    cell: ({ row }) => h(Badge, { variant: 'outline', class: 'text-xs capitalize' }, () => row.original.category || '—'),
+  },
+]
 
 const { data: scanMeta } = useAsyncData(
   `scan-meta-${scanId.value}`,
@@ -353,37 +381,14 @@ function scoreColor(score: number | null) {
     <!-- Worst Routes -->
     <section v-if="scanSummary?.worstRoutes?.length">
       <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Worst Performing Routes</h2>
-      <div class="rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>URL</TableHead>
-              <TableHead class="w-16 text-center">Device</TableHead>
-              <TableHead class="w-24 text-right">Score</TableHead>
-              <TableHead class="w-32">Weakest</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow
-              v-for="r in scanSummary.worstRoutes"
-              :key="r.url"
-              class="cursor-pointer hover:bg-muted/50"
-              @click="navigateTo(`/scan/${scanId}/route/${encodeURIComponent(new URL(r.url).pathname)}`)"
-            >
-              <TableCell class="font-mono text-xs truncate max-w-md">{{ r.url }}</TableCell>
-              <TableCell class="text-center">
-                <Icon v-if="r.device" :name="r.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5 text-muted-foreground inline" />
-              </TableCell>
-              <TableCell class="text-right">
-                <span class="font-bold tabular-nums" :class="scoreToColor(r.score)">{{ scoreToLabel(r.score) }}</span>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" class="text-xs capitalize">{{ r.category || '—' }}</Badge>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        :columns="worstRouteColumns"
+        :data="scanSummary.worstRoutes"
+        :get-row-id="(r: any) => r.url"
+        row-clickable
+        container-class="rounded-lg border overflow-hidden"
+        @row-click="(r: any) => navigateTo(`/scan/${scanId}/route/${encodeURIComponent(new URL(r.url).pathname)}`)"
+      />
     </section>
 
     <!-- Loading -->
