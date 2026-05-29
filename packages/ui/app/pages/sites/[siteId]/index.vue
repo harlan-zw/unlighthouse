@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { TrendSeries } from '@/components/TrendChart.vue'
+import type { TrendMarker, TrendSeries } from '@/components/TrendChart.vue'
 import type { DevicePair, ScanRow } from '@/components/site/types'
 import { toast } from 'vue-sonner'
+import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -73,6 +74,28 @@ const SCORE_SERIES = [
   { key: 'seo', label: 'SEO', color: '#a855f7' },
   { key: 'best-practices', label: 'Best Practices', color: '#22c55e' },
 ] as const
+
+// Release markers: a pill at each scan that introduced a new commit, drawn
+// over the trend like Expo's release annotations.
+const showReleases = ref(true)
+const releaseMarkers = computed<TrendMarker[]>(() => {
+  const out: TrendMarker[] = []
+  let prevCommit: string | null = null
+  for (const s of trendScans.value) {
+    const commit = s.ciCommit
+    if (commit && commit !== prevCommit) {
+      out.push({
+        t: new Date(s.startedAt).getTime(),
+        label: commit.slice(0, 7),
+        title: [s.ciBranch, commit.slice(0, 7), s.ciCommitMessage].filter(Boolean).join(' · '),
+      })
+    }
+    if (commit)
+      prevCommit = commit
+  }
+  return out
+})
+const hasReleases = computed(() => releaseMarkers.value.length > 0)
 
 const scoreSeries = computed<TrendSeries[]>(() => SCORE_SERIES.map(c => ({
   label: c.label,
@@ -205,17 +228,24 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
     </div>
 
     <template v-else>
-      <!-- Device toggle -->
-      <div v-if="hasBoth" class="flex items-center gap-2">
-        <span class="text-xs text-muted-foreground">Trends for</span>
-        <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
-          <ToggleGroupItem value="mobile" class="text-xs">
-            <Icon name="lucide:smartphone" class="size-3.5 mr-1" /> Mobile
-          </ToggleGroupItem>
-          <ToggleGroupItem value="desktop" class="text-xs">
-            <Icon name="lucide:monitor" class="size-3.5 mr-1" /> Desktop
-          </ToggleGroupItem>
-        </ToggleGroup>
+      <!-- Trend controls -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div v-if="hasBoth" class="flex items-center gap-2">
+          <span class="text-xs text-muted-foreground">Trends for</span>
+          <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
+            <ToggleGroupItem value="mobile" class="text-xs">
+              <Icon name="lucide:smartphone" class="size-3.5 mr-1" /> Mobile
+            </ToggleGroupItem>
+            <ToggleGroupItem value="desktop" class="text-xs">
+              <Icon name="lucide:monitor" class="size-3.5 mr-1" /> Desktop
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        <div v-else />
+        <label v-if="hasReleases" class="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+          <Switch :model-value="showReleases" @update:model-value="(v: boolean) => showReleases = v" />
+          Show releases
+        </label>
       </div>
 
       <!-- Score trend -->
@@ -224,7 +254,7 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
           <CardTitle class="text-sm font-medium text-muted-foreground">Category scores over time</CardTitle>
         </CardHeader>
         <CardContent>
-          <TrendChart :series="scoreSeries" :y-min="0" :y-max="100" :height="220" />
+          <TrendChart :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
         </CardContent>
       </Card>
 

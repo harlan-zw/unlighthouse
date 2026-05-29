@@ -17,6 +17,11 @@ export interface TrendSeries {
   color: string
   points: TrendPoint[]
 }
+export interface TrendMarker {
+  t: number // timestamp (ms) to place the marker at
+  label: string // short pill text (e.g. commit hash)
+  title?: string // hover tooltip
+}
 
 const props = withDefaults(defineProps<{
   series: TrendSeries[]
@@ -25,6 +30,7 @@ const props = withDefaults(defineProps<{
   yMax?: number
   format?: (v: number) => string
   showLegend?: boolean
+  markers?: TrendMarker[]
 }>(), {
   height: 200,
   showLegend: true,
@@ -120,6 +126,12 @@ const xLabels = computed(() => {
 })
 
 const hasData = computed(() => valid.value.length > 0)
+
+const markerPositions = computed(() =>
+  (props.markers ?? [])
+    .filter(m => m.t >= tMin.value && m.t <= tMax.value)
+    .map(m => ({ x: xFor(m.t), label: m.label, title: m.title ?? m.label })),
+)
 </script>
 
 <template>
@@ -130,7 +142,18 @@ const hasData = computed(() => valid.value.length > 0)
         {{ s.label }}
       </div>
     </div>
-    <div ref="wrap" class="w-full">
+    <div ref="wrap" class="w-full relative">
+      <!-- release marker pills, overlaid in HTML for crisp text -->
+      <div
+        v-for="(m, i) in markerPositions"
+        :key="`mp${i}`"
+        class="absolute top-0 -translate-x-1/2 z-10"
+        :style="{ left: `${m.x}px` }"
+      >
+        <span :title="m.title" class="inline-block rounded bg-primary px-1 py-0.5 text-[9px] font-mono leading-none text-primary-foreground whitespace-nowrap">
+          {{ m.label }}
+        </span>
+      </div>
       <svg v-if="width > 0 && hasData" :width="width" :height="height" class="overflow-visible">
         <!-- y gridlines + labels -->
         <g>
@@ -153,6 +176,19 @@ const hasData = computed(() => valid.value.length > 0)
             class="fill-muted-foreground text-[10px] tabular-nums"
           >{{ tick.label }}</text>
         </g>
+
+        <!-- release markers (vertical guides) -->
+        <line
+          v-for="(m, i) in markerPositions"
+          :key="`m${i}`"
+          :x1="m.x"
+          :x2="m.x"
+          :y1="PAD.top"
+          :y2="height - PAD.bottom"
+          class="stroke-primary/40"
+          stroke-width="1"
+          stroke-dasharray="3 3"
+        />
 
         <!-- series -->
         <g v-for="s in series" :key="s.label">
