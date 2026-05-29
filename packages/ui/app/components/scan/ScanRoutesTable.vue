@@ -91,6 +91,9 @@ interface RouteRow {
   lcp: number | null
   cls: number | null
   tbt: number | null
+  fcp: number | null
+  si: number | null
+  ttfb: number | null
 }
 
 const allRows = computed(() => (scanResults.value?.items ?? []) as RouteRow[])
@@ -139,6 +142,27 @@ const QUICK_FILTERS = [
   { key: 'failing', label: 'Failing' },
   { key: 'poor-cwv', label: 'Poor CWV' },
 ] as const
+
+// ── Scan context strip (computed from the loaded routes, no extra fetch) ─────
+const showAllMetrics = ref(false)
+const summary = computed(() => {
+  const rows = filtered.value
+  const overalls = rows.map(overallScore).filter((v): v is number => v != null)
+  const avg = overalls.length ? Math.round(overalls.reduce((a, b) => a + b, 0) / overalls.length) : null
+  let pass = 0
+  let needs = 0
+  let poor = 0
+  for (const o of overalls) {
+    if (o >= 90) pass++
+    else if (o >= 50) needs++
+    else poor++
+  }
+  return { count: rows.length, avg, pass, needs, poor, devices: [...new Set(rows.map(r => r.device))] }
+})
+function score100Color(v: number | null): string {
+  if (v == null) return 'var(--muted-foreground)'
+  return v >= 90 ? '#22c55e' : v >= 50 ? '#f97316' : '#ef4444'
+}
 
 // ── Sorting (client-side, header-driven) ─────────────────────────────────────
 function parseSort(s?: string): SortingState {
@@ -316,12 +340,39 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
 
 <template>
   <div class="space-y-4">
+    <!-- Scan context strip -->
+    <div v-if="filtered.length" class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+        <span class="font-semibold tabular-nums">{{ summary.count }} routes</span>
+        <span class="flex items-center gap-1.5">
+          <span class="size-2 rounded-full" :style="{ backgroundColor: score100Color(summary.avg) }" />
+          avg <span class="font-semibold tabular-nums">{{ summary.avg ?? '—' }}</span>
+        </span>
+        <span class="text-muted-foreground text-xs tabular-nums">
+          <span class="text-green-500 font-medium">{{ summary.pass }}</span> pass ·
+          <span class="text-orange-500 font-medium">{{ summary.needs }}</span> needs work ·
+          <span class="text-red-500 font-medium">{{ summary.poor }}</span> poor
+        </span>
+        <span class="flex items-center gap-1 text-muted-foreground">
+          <Icon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5" />
+        </span>
+      </div>
+      <button class="text-xs text-muted-foreground hover:text-foreground transition-colors" @click="showAllMetrics = !showAllMetrics">
+        {{ showAllMetrics ? 'Fewer metrics' : 'More metrics' }}
+      </button>
+    </div>
+
     <!-- Core Web Vitals — professional metric header (p75 + distribution +
          percentiles across the visible routes). -->
     <div v-if="filtered.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="[2500, 4000]" :format="(v: number) => formatMetric(v, 'ms')" />
       <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="[0.1, 0.25]" :format="(v: number) => v.toFixed(3)" />
       <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="[200, 600]" :format="(v: number) => formatMetric(v, 'ms')" />
+      <template v-if="showAllMetrics">
+        <MetricStatCard label="First Contentful Paint" :values="filtered.map(r => r.fcp)" :thresholds="[1800, 3000]" :format="(v: number) => formatMetric(v, 'ms')" />
+        <MetricStatCard label="Speed Index" :values="filtered.map(r => r.si)" :thresholds="[3400, 5800]" :format="(v: number) => formatMetric(v, 'ms')" />
+        <MetricStatCard label="Time to First Byte" :values="filtered.map(r => r.ttfb)" :thresholds="[800, 1800]" :format="(v: number) => formatMetric(v, 'ms')" />
+      </template>
     </div>
 
     <!-- Toolbar -->
