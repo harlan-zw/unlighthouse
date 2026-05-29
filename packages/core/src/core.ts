@@ -22,6 +22,7 @@ import {
 } from '@unlighthouse/contracts'
 import { createHooks } from 'hookable'
 import { createTaggedLogger } from './logger'
+import { createFilter } from './util/filter'
 import { persistStableEvents } from './persist-events'
 
 const log = createTaggedLogger('core')
@@ -560,12 +561,35 @@ function createSession(deps: SessionDeps): CrawlSession {
       }
     }
 
+    // `scanner.include` / `scanner.exclude` scope the audit set. createFilter
+    // returns `() => true` when neither is set, so the default scan is
+    // unchanged. The predicate runs on the URL pathname (the form users write
+    // include/exclude rules against, e.g. `/products/**`).
+    const routeFilter = createFilter({
+      include: deps.config.scanner?.include,
+      exclude: deps.config.scanner?.exclude,
+    })
+    const allows = (url: string): boolean => {
+      try {
+        return routeFilter(new URL(url).pathname)
+      }
+      catch {
+        return routeFilter(url)
+      }
+    }
+
     // D-029: per-URL fan-out across the device matrix. Devices run
     // sequentially per URL so we don't double up on the auditor's
     // concurrency limit (each adapter typically pins to one browser context);
     // crawler-level concurrency still parallelises URLs. A single device
     // matrix is the common case and degrades to one inner call.
     async function auditWrapper(url: string): Promise<void> {
+      // Gate the audit (not just enqueue) so include/exclude also narrow
+      // sitemap-seeded URLs, which bypass the crawler's link-discovery
+      // `allows` hook. Non-matching URLs are still crawled for link discovery
+      // — only their audit is skipped.
+      if (!allows(url))
+        return
       for (const dev of devices) {
         if (signal.aborted)
           return
@@ -587,6 +611,10 @@ function createSession(deps: SessionDeps): CrawlSession {
     const crawlEvents = crawler.run({
       seeds: effectiveSeeds,
       audit: (url: string) => auditWrapper(url),
+      // Gate discovered-link enqueue so the crawler doesn't follow into
+      // excluded sections of the site (the designed `allows` hook that was
+      // never wired — `scanner.include`/`exclude` were silently ignored).
+      allows,
       signal,
     })
 

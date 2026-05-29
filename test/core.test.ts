@@ -171,6 +171,45 @@ describe('createUnlighthouseCore orchestration', () => {
     expect(session.state()).toBe('complete')
   })
 
+  it('scanner.include scopes the audited routes (config was previously ignored)', async () => {
+    const urls = [
+      'https://example.com/',
+      'https://example.com/products/a',
+      'https://example.com/products/b',
+      'https://example.com/about',
+    ]
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: { ...baseConfig, scanner: { include: ['/products/**'] } },
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+
+    const list = await storage.routes.listForScan(session.scanId)
+    expect(list.items.map(r => r.path).sort()).toEqual(['/products/a', '/products/b'])
+  })
+
+  it('scanner.exclude drops matching routes from the audit set', async () => {
+    const urls = ['https://example.com/', 'https://example.com/admin/x', 'https://example.com/blog']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: { ...baseConfig, scanner: { exclude: ['/admin/**'] } },
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+
+    const list = await storage.routes.listForScan(session.scanId)
+    expect(list.items.map(r => r.path).sort()).toEqual(['/', '/blog'])
+  })
+
   it('aggregates scoreAverage + scoresByCategory on scan:complete', async () => {
     // Regression for the v0→v1 port bug where summary.scoreAverage was
     // hardcoded `null` even after routes finished scoring — broke
