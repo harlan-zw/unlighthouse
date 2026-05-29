@@ -12,11 +12,13 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { toast } from 'vue-sonner'
 import {
   Select,
   SelectContent,
@@ -27,6 +29,7 @@ import {
 import { useScanStore } from '~/stores/scan'
 
 const router = useRouter()
+const route = useRoute()
 const api = useApi()
 const store = useScanStore()
 const { scanId, scanBase } = useScanBase()
@@ -61,10 +64,11 @@ const truncated = computed(() => total.value > allRows.value.length)
 
 const hasMultipleDevices = computed(() => new Set(allRows.value.map(r => r.device)).size > 1)
 
-// ── Filters (client-side) ────────────────────────────────────────────────────
-const q = ref('')
-const deviceFilter = ref<'all' | 'mobile' | 'desktop'>('all')
-const quick = ref<'all' | 'failing' | 'poor-cwv'>('all')
+// ── Filters (client-side) — initial state hydrated from the URL query so the
+// view is shareable / back-button friendly ───────────────────────────────────
+const q = ref((route.query.q as string) || '')
+const deviceFilter = ref<'all' | 'mobile' | 'desktop'>((route.query.device as any) || 'all')
+const quick = ref<'all' | 'failing' | 'poor-cwv'>((route.query.f as any) || 'all')
 
 const CWV_THRESHOLDS: Record<string, [number, number]> = {
   lcp: [2500, 4000],
@@ -102,7 +106,44 @@ const QUICK_FILTERS = [
 ] as const
 
 // ── Sorting (client-side, header-driven) ─────────────────────────────────────
-const sorting = ref<SortingState>([{ id: 'scorePerformance', desc: false }])
+function parseSort(s?: string): SortingState {
+  if (!s)
+    return [{ id: 'scorePerformance', desc: false }]
+  const [id, dir] = s.split(':')
+  return id ? [{ id, desc: dir === 'desc' }] : [{ id: 'scorePerformance', desc: false }]
+}
+const sorting = ref<SortingState>(parseSort(route.query.sort as string))
+
+// Reflect filter/sort into the URL (replace, so we don't spam history).
+watch([q, deviceFilter, quick, sorting], () => {
+  const s = sorting.value[0]
+  const query: Record<string, string> = {}
+  if (q.value.trim()) query.q = q.value.trim()
+  if (deviceFilter.value !== 'all') query.device = deviceFilter.value
+  if (quick.value !== 'all') query.f = quick.value
+  if (s) query.sort = `${s.id}:${s.desc ? 'desc' : 'asc'}`
+  router.replace({ query })
+}, { deep: true })
+
+// ── Row actions ──────────────────────────────────────────────────────────────
+async function copyRouteUrl(r: RouteRow) {
+  try {
+    await navigator.clipboard.writeText(r.url)
+    toast.success('URL copied')
+  }
+  catch {
+    toast.error('Could not copy URL')
+  }
+}
+async function rescanRoute(r: RouteRow) {
+  try {
+    await api['route.rescan']({ scanId: scanId.value, url: r.url })
+    toast.success('Route rescan started', { description: r.path || r.url })
+  }
+  catch (err: any) {
+    toast.error('Rescan failed', { description: err?.message })
+  }
+}
 
 const density = ref<'comfortable' | 'compact'>('comfortable')
 const tableRef = ref<{ table: any } | null>(null)
@@ -301,6 +342,37 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       row-clickable
       @row-click="openRoute"
     >
+      <template #actions="{ row }">
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="sm" class="size-7 p-0 text-muted-foreground hover:text-foreground" @click.stop>
+              <Icon name="lucide:ellipsis" class="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" @click.stop>
+            <DropdownMenuItem @click="openRoute(row)">
+              <Icon name="lucide:bar-chart-3" class="size-4" />
+              View details
+            </DropdownMenuItem>
+            <DropdownMenuItem as-child>
+              <a :href="row.url" target="_blank" rel="noopener">
+                <Icon name="lucide:external-link" class="size-4" />
+                Open page
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="copyRouteUrl(row)">
+              <Icon name="lucide:copy" class="size-4" />
+              Copy URL
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem @click="rescanRoute(row)">
+              <Icon name="lucide:refresh-cw" class="size-4" />
+              Rescan route
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </template>
+
       <template #empty>
         <p v-if="store.isActive">Routes will appear as they are scanned...</p>
         <p v-else-if="q || quick !== 'all'">No routes match the current filter.</p>
