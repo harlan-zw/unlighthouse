@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ColumnDef } from '@tanstack/vue-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -412,6 +413,67 @@ function rowScoreCell(row: any, key: string, thresholdKey: string): { value: str
 const totalPages = computed(() => {
   if (!report.value) return 1
   return Math.ceil(report.value.routes.total / report.value.routes.pageSize)
+})
+
+// Route delta table columns. Server-sorted (via the sort Select), so
+// columns disable client sorting. Sticky headers + alignment ride on
+// `meta`; score cells reuse rowScoreCell() for threshold-aware colour.
+const IconCmp = resolveComponent('Icon')
+const STICKY_HEAD = 'sticky top-0 z-10 bg-background'
+const SHORT_LABEL: Record<string, string> = {
+  scorePerformance: 'Perf',
+  scoreAccessibility: 'A11y',
+  scoreSeo: 'SEO',
+  scoreBestPractices: 'BP',
+}
+function rowKey(r: any): string {
+  return `${r.url}|${r.device}`
+}
+const compareColumns = computed<ColumnDef<any, any>[]>(() => {
+  const cols: ColumnDef<any, any>[] = [
+    {
+      id: 'path',
+      header: 'Path',
+      enableSorting: false,
+      meta: { headClass: `${STICKY_HEAD} min-w-[200px]`, cellClass: 'font-mono text-xs' },
+      cell: ({ row }) => h('span', { title: row.original.url, class: 'block truncate max-w-[400px]' }, row.original.path),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      enableSorting: false,
+      meta: { headClass: `${STICKY_HEAD} w-20` },
+      cell: ({ row }) => h(Badge, { variant: statusBadge(row.original.status), class: 'text-[9px] capitalize' }, () => row.original.status),
+    },
+  ]
+  if (hasMultipleDevices.value) {
+    cols.push({
+      id: 'device',
+      header: 'Dev',
+      enableSorting: false,
+      meta: { align: 'center', headClass: `${STICKY_HEAD} w-16` },
+      cell: ({ row }) => h(IconCmp, {
+        name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor',
+        class: 'size-3.5 text-muted-foreground inline',
+      }),
+    })
+  }
+  for (const m of CATEGORY_METRICS) {
+    cols.push({
+      id: m.key,
+      header: SHORT_LABEL[m.key] ?? m.label,
+      enableSorting: false,
+      meta: { align: 'right', headClass: `${STICKY_HEAD} w-16` },
+      cell: ({ row }) => {
+        const c = rowScoreCell(row.original, m.key, m.thresholdKey)
+        return h('span', {
+          class: ['tabular-nums text-xs', c.klass],
+          title: c.mutedByThreshold ? 'Inside the noise threshold' : undefined,
+        }, c.value)
+      },
+    })
+  }
+  return cols
 })
 
 // Hierarchy reflects what's actionable post-LH13. Categories first
@@ -865,75 +927,17 @@ function gotoOverview(id: string) {
       <ResizablePanelGroup direction="horizontal" class="flex-1 min-h-0">
         <ResizablePanel :default-size="62" :min-size="35">
           <div class="h-full overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead class="sticky top-0 z-10 bg-background min-w-[200px]">Path</TableHead>
-                  <TableHead class="sticky top-0 z-10 bg-background w-20">Status</TableHead>
-                  <TableHead v-if="hasMultipleDevices" class="sticky top-0 z-10 bg-background w-16 text-center">Dev</TableHead>
-                  <TableHead class="sticky top-0 z-10 bg-background w-16 text-right">Perf</TableHead>
-                  <TableHead class="sticky top-0 z-10 bg-background w-16 text-right">A11y</TableHead>
-                  <TableHead class="sticky top-0 z-10 bg-background w-16 text-right">SEO</TableHead>
-                  <TableHead class="sticky top-0 z-10 bg-background w-16 text-right">BP</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <template v-if="report.routes.items.length">
-                  <TableRow
-                    v-for="row in report.routes.items"
-                    :key="`${row.url}|${row.device}`"
-                    class="cursor-pointer"
-                    :class="selectedRowKey === `${row.url}|${row.device}` ? 'bg-muted' : 'hover:bg-muted/50'"
-                    @click="selectedRowKey = `${row.url}|${row.device}`"
-                  >
-                    <TableCell class="font-mono text-xs">
-                      <span :title="row.url" class="block truncate max-w-[400px]">{{ row.path }}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge :variant="statusBadge(row.status)" class="text-[9px] capitalize">{{ row.status }}</Badge>
-                    </TableCell>
-                    <TableCell v-if="hasMultipleDevices" class="text-center">
-                      <Icon :name="row.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5 text-muted-foreground inline" />
-                    </TableCell>
-                    <TableCell
-                      class="text-right tabular-nums text-xs"
-                      :class="rowScoreCell(row, 'scorePerformance', 'performance').klass"
-                      :title="rowScoreCell(row, 'scorePerformance', 'performance').mutedByThreshold ? 'Inside the noise threshold' : ''"
-                    >
-                      {{ rowScoreCell(row, 'scorePerformance', 'performance').value }}
-                    </TableCell>
-                    <TableCell
-                      class="text-right tabular-nums text-xs"
-                      :class="rowScoreCell(row, 'scoreAccessibility', 'accessibility').klass"
-                      :title="rowScoreCell(row, 'scoreAccessibility', 'accessibility').mutedByThreshold ? 'Inside the noise threshold' : ''"
-                    >
-                      {{ rowScoreCell(row, 'scoreAccessibility', 'accessibility').value }}
-                    </TableCell>
-                    <TableCell
-                      class="text-right tabular-nums text-xs"
-                      :class="rowScoreCell(row, 'scoreSeo', 'seo').klass"
-                      :title="rowScoreCell(row, 'scoreSeo', 'seo').mutedByThreshold ? 'Inside the noise threshold' : ''"
-                    >
-                      {{ rowScoreCell(row, 'scoreSeo', 'seo').value }}
-                    </TableCell>
-                    <TableCell
-                      class="text-right tabular-nums text-xs"
-                      :class="rowScoreCell(row, 'scoreBestPractices', 'best-practices').klass"
-                      :title="rowScoreCell(row, 'scoreBestPractices', 'best-practices').mutedByThreshold ? 'Inside the noise threshold' : ''"
-                    >
-                      {{ rowScoreCell(row, 'scoreBestPractices', 'best-practices').value }}
-                    </TableCell>
-                  </TableRow>
-                </template>
-                <template v-else>
-                  <TableRow>
-                    <TableCell :colspan="hasMultipleDevices ? 7 : 6" class="text-center py-10 text-muted-foreground text-sm">
-                      No routes match the current filter.
-                    </TableCell>
-                  </TableRow>
-                </template>
-              </TableBody>
-            </Table>
+            <DataTable
+              :columns="compareColumns"
+              :data="report.routes.items"
+              :get-row-id="(r: any) => rowKey(r)"
+              row-clickable
+              container-class=""
+              :row-class="(r: any) => selectedRowKey === rowKey(r) ? 'bg-muted' : ''"
+              @row-click="(r: any) => { selectedRowKey = rowKey(r) }"
+            >
+              <template #empty>No routes match the current filter.</template>
+            </DataTable>
 
             <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-background">
               <span class="text-xs text-muted-foreground">Page {{ page }} of {{ totalPages }}</span>
