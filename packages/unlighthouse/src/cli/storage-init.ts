@@ -1,8 +1,9 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { Driver } from 'unstorage'
+import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { createStorage } from '@unlighthouse/core/storage'
-import { applyMigrations, drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
+import { applyMigrations, drizzleStorage, ensureSchema, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
 import Database from 'better-sqlite3'
 import { drizzle as drizzleBetterSqlite } from 'drizzle-orm/better-sqlite3'
@@ -221,22 +222,50 @@ export async function initStorage({ outputPath, dbUrl, logger }: InitStorageOpti
 
   // file: scheme (default) — better-sqlite3, sync API, runtime migrations.
   logger?.debug?.(`Opening SQLite (file): ${parsed.path}`)
-  const sqliteDb = new Database(parsed.path)
 
-  for (const stmt of INIT_SQL_STATEMENTS) {
-    try {
-      sqliteDb.exec(stmt)
+  const runInit = (db: Database): void => {
+    for (const stmt of INIT_SQL_STATEMENTS) {
+      try {
+        db.exec(stmt)
+      }
+      catch (err) {
+        const msg = (err as Error).message
+        if (!/duplicate column name/i.test(msg))
+          logger?.warn?.(`Migration stmt skipped: ${msg}`)
+      }
     }
-    catch (err) {
-      const msg = (err as Error).message
-      if (!/duplicate column name/i.test(msg))
-        logger?.warn?.(`Migration stmt skipped: ${msg}`)
-    }
+    applyMigrations(db, {
+      onApply: id => logger?.info?.(`[storage] applied migration: ${id}`),
+    })
   }
 
-  applyMigrations(sqliteDb, {
-    onApply: id => logger?.info?.(`[storage] applied migration: ${id}`),
+  let sqliteDb = new Database(parsed.path)
+  runInit(sqliteDb)
+
+  // Schema-drift guard. Heal any missing additive columns (a stale build or a
+  // forgotten ALTER otherwise crashes mid-scan with "no column named ..."). If
+  // a column genuinely can't be added, the on-disk schema is irreparably stale
+  // → recreate the local scan cache (it's regenerable; a clean reset beats a
+  // cryptic runtime crash).
+  const stillMissing = ensureSchema(sqliteDb, {
+    onAdd: col => logger?.info?.(`[storage] schema: added missing column ${col}`),
   })
+  if (stillMissing.length) {
+    logger?.warn?.(
+      `[storage] outdated DB schema (missing ${stillMissing.join(', ')}) — recreating local scan cache at ${parsed.path}; prior scan history is cleared`,
+    )
+    sqliteDb.close()
+    for (const suffix of ['', '-wal', '-shm']) {
+      try {
+        rmSync(`${parsed.path}${suffix}`, { force: true })
+      }
+      catch {
+        // best-effort; reopen + re-init below recreates the schema regardless
+      }
+    }
+    sqliteDb = new Database(parsed.path)
+    runInit(sqliteDb)
+  }
 
   const drizzleDb = drizzleBetterSqlite(sqliteDb)
   const drizzleAdapter = drizzleStorage({
