@@ -239,9 +239,9 @@ const sortedRoutes = computed(() =>
 
     <!-- Loading -->
     <div v-if="performance.status.value === 'pending'" class="space-y-4">
-      <USkeleton class="h-16 w-full" />
-      <USkeleton class="h-16 w-full" />
-      <USkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
     </div>
 
     <!-- Web Vitals Tab -->

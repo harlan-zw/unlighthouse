@@ -5,8 +5,8 @@
 //
 // closes #227 / phase 17.
 
-import { useScannedSites } from '~/composables/useScannedSites'
 import { useSites } from '~/composables/sites'
+import { useScannedSites } from '~/composables/useScannedSites'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -39,9 +39,9 @@ const adHocCount = computed(() => scannedSites.value.length - registeredCount.va
           </span>
         </p>
       </div>
-      <UiMotionButton to="/sites/add" icon="i-heroicons-plus" color="primary">
+      <UiButton to="/sites/add" icon="i-heroicons-plus" purpose="cta">
         Add site
-      </UiMotionButton>
+      </UiButton>
     </header>
 
     <div v-if="pending && !scannedSites.length" class="text-sm text-dimmed">
@@ -63,12 +63,12 @@ const adHocCount = computed(() => scannedSites.value.length - registeredCount.va
         Register a site or run a scan to start building history.
       </p>
       <div class="flex justify-center gap-3">
-        <UiMotionButton to="/sites/add" icon="i-heroicons-plus" color="primary">
+        <UiButton to="/sites/add" icon="i-heroicons-plus" purpose="cta">
           Add a site
-        </UiMotionButton>
-        <UiMotionButton to="/" variant="outline" color="neutral">
+        </UiButton>
+        <UiButton to="/" purpose="secondary">
           Back to dashboard
-        </UiMotionButton>
+        </UiButton>
       </div>
     </div>
   </div>

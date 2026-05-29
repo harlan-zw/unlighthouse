@@ -182,12 +182,12 @@ const devices = [
           You can change these settings later from the site page.
         </div>
         <div class="flex items-center gap-2">
-          <UiMotionButton variant="ghost" color="neutral" to="/">
+          <UiButton purpose="quiet" to="/">
             Cancel
-          </UiMotionButton>
-          <UiMotionButton type="submit" intensity="cta" color="primary" :loading="submitting" icon="i-heroicons-plus">
+          </UiButton>
+          <UiButton type="submit" purpose="cta" intensity="cta" :loading="submitting" icon="i-heroicons-plus">
             Add site
-          </UiMotionButton>
+          </UiButton>
         </div>
       </div>
     </form>

@@ -41,7 +41,7 @@ const CWV_THRESHOLDS: Record<CwvKey, { good: number, poor: number, format: (v: n
   },
 }
 
-const { good, poor, format: formatValue } = CWV_THRESHOLDS[metric]
+const { good, poor, format: fmtValue } = CWV_THRESHOLDS[metric]
 
 function statusLabel(v: number): string {
   if (v <= good)
@@ -196,7 +196,7 @@ function tooltipTemplate(d: any) {
     <div style="margin-bottom:4px;font-weight:600;color:var(--ui-text)">${date}</div>
     <div style="display:flex;align-items:center;gap:6px">
       <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0"></span>
-      <span style="font-weight:600;color:${color}">${formatValue(d.rawValue)}</span>
+      <span style="font-weight:600;color:${color}">${fmtValue(d.rawValue)}</span>
       <span style="color:var(--ui-text-muted)">${statusLabel(d.rawValue)}</span>
     </div>
     <div style="margin-top:4px;color:var(--ui-text-dimmed);font-size:10px">
@@ -211,7 +211,7 @@ const chartKey = computed(() => `${metric}-${data.length}`)
 <template>
   <div class="crux-chart" :style="{ height: `${height}px` }">
     <div v-if="loading" class="flex items-end gap-1 h-full pb-6 px-1">
-      <USkeleton v-for="i in 16" :key="i" class="flex-1 h-full rounded-sm" />
+      <UiSkeleton v-for="i in 16" :key="i" class="flex-1 h-full rounded-sm" />
     </div>
 
     <ClientOnly v-else-if="combinedData.length">
@@ -248,7 +248,7 @@ const chartKey = computed(() => `${metric}-${data.length}`)
 
       <template #fallback>
         <div class="flex items-end gap-1 h-full pb-6 px-1">
-          <USkeleton v-for="i in 16" :key="i" class="flex-1 h-full rounded-sm" />
+          <UiSkeleton v-for="i in 16" :key="i" class="flex-1 h-full rounded-sm" />
         </div>
       </template>
     </ClientOnly>

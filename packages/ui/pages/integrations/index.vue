@@ -65,9 +65,9 @@ const filtered = computed(() => {
 })
 
 const counts = computed(() => ({
-  all: integrations.value.length,
-  connected: integrations.value.filter(i => i.status === 'connected').length,
-  available: integrations.value.filter(i => i.status === 'available').length,
+  'all': integrations.value.length,
+  'connected': integrations.value.filter(i => i.status === 'connected').length,
+  'available': integrations.value.filter(i => i.status === 'available').length,
   'coming-soon': integrations.value.filter(i => i.status === 'coming-soon').length,
 }))
 
@@ -165,25 +165,24 @@ const statusMeta: Record<Status, { label: string, color: 'success' | 'neutral' |
 
         <div class="px-5 py-3 border-t border-default flex items-center justify-end gap-2 bg-default/30">
           <template v-if="i.status === 'coming-soon'">
-            <UiMotionButton size="xs" variant="soft" color="neutral" icon="i-heroicons-bell" @click="notifyMe(i)">
+            <UiButton size="xs" purpose="quiet" icon="i-heroicons-bell" @click="notifyMe(i)">
               Notify me
-            </UiMotionButton>
+            </UiButton>
           </template>
           <template v-else-if="i.status === 'connected'">
-            <UiMotionButton
+            <UiButton
               size="xs"
-              variant="ghost"
-              color="neutral"
+              purpose="quiet"
               :icon="expanded === i.id ? 'i-heroicons-chevron-up' : 'i-heroicons-cog-6-tooth'"
               @click="toggle(i)"
             >
               {{ expanded === i.id ? 'Close' : 'Configure' }}
-            </UiMotionButton>
+            </UiButton>
           </template>
           <template v-else>
-            <UiMotionButton size="xs" variant="solid" color="primary" icon="i-heroicons-plus" @click="toggle(i)">
+            <UiButton size="xs" purpose="cta" icon="i-heroicons-plus" @click="toggle(i)">
               Connect
-            </UiMotionButton>
+            </UiButton>
           </template>
         </div>
 
@@ -223,9 +222,9 @@ const statusMeta: Record<Status, { label: string, color: 'success' | 'neutral' |
             <UInput type="password" placeholder="AIza..." />
           </UFormField>
           <div class="flex justify-end">
-            <UiMotionButton size="xs" color="primary">
+            <UiButton size="xs" purpose="cta">
               Save & connect
-            </UiMotionButton>
+            </UiButton>
           </div>
         </div>
       </div>

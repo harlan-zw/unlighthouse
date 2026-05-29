@@ -84,9 +84,9 @@ function pct(s: number | null | undefined) {
       <p class="text-muted mb-4">
         Run a scan to surface render-blocking resources, image weight, and a11y gaps.
       </p>
-      <UiMotionButton intensity="cta" :to="`/sites/${site.id}/scan/new`" icon="i-heroicons-bolt" color="primary">
+      <UiButton intensity="cta" :to="`/sites/${site.id}/scan/new`" icon="i-heroicons-bolt" purpose="cta">
         Run scan
-      </UiMotionButton>
+      </UiButton>
     </div>
   </div>
 </template>

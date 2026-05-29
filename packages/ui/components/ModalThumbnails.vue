@@ -109,55 +109,52 @@ onUnmounted(() => {
 
         <!-- Controls -->
         <div class="flex items-center justify-center space-x-4 mb-6">
-          <UiMotionButton
+          <UiButton
             v-if="!isPlaying"
             icon="i-heroicons-arrow-uturn-left"
-            variant="outline"
-            color="neutral"
+            purpose="secondary"
             size="sm"
             title="Reset to start"
             @click="reset"
           />
-          <UiMotionButton
+          <UiButton
             v-if="!isPlaying"
             icon="i-heroicons-backward"
-            variant="outline"
-            color="neutral"
+            purpose="secondary"
             size="sm"
             :disabled="currentFrame === 0"
             title="Previous frame"
             @click="stepBackward"
           />
-          <UiMotionButton
+          <UiButton
             v-if="!isPlaying"
             icon="i-heroicons-forward"
-            variant="outline"
-            color="neutral"
+            purpose="secondary"
             size="sm"
             :disabled="currentFrame === totalFrames - 1"
             title="Next frame"
             @click="stepForward"
           />
-          <UiMotionButton
+          <UiButton
             v-if="!isPlaying"
             icon="i-heroicons-play"
-            color="success"
+            purpose="cta"
             size="sm"
             title="Play animation"
             @click="play"
           >
             Play
-          </UiMotionButton>
-          <UiMotionButton
+          </UiButton>
+          <UiButton
             v-else
             icon="i-heroicons-pause"
-            color="error"
+            purpose="danger"
             size="sm"
             title="Stop animation"
             @click="stop"
           >
             Stop
-          </UiMotionButton>
+          </UiButton>
         </div>
 
         <!-- Timeline Scrubber -->

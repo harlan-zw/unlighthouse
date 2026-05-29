@@ -8,9 +8,9 @@
 // shape is unique to this view and won't be reused elsewhere.
 
 import type { CompareReport, RouteDiff, Scan } from '@unlighthouse/contracts'
+import { siteHostname } from '~/composables/sites'
 import { useApiClient } from '~/composables/useApiClient'
 import { useCompare } from '~/composables/useCompare'
-import { siteHostname } from '~/composables/sites'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -271,14 +271,14 @@ const hasBoth = computed(() => !!baseScanId.value && !!currentScanId.value && ba
         Run at least 2 scans to compare. You currently have
         {{ completeScans.length }} completed scan{{ completeScans.length === 1 ? '' : 's' }}.
       </p>
-      <UiMotionButton to="/" icon="i-heroicons-bolt" color="primary">
+      <UiButton to="/" icon="i-heroicons-bolt" purpose="cta">
         Go to sites
-      </UiMotionButton>
+      </UiButton>
     </div>
 
     <template v-else>
       <!-- Picker row -->
-      <UCard class="mb-6">
+      <UiCard class="mb-6">
         <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto] gap-3 items-center">
           <div>
             <label class="block text-xs text-dimmed mb-1.5">Base scan</label>
@@ -294,9 +294,8 @@ const hasBoth = computed(() => !!baseScanId.value && !!currentScanId.value && ba
           </div>
 
           <div class="hidden md:flex pt-5 justify-center">
-            <UButton
-              variant="ghost"
-              color="neutral"
+            <UiButton
+              purpose="quiet"
               icon="i-heroicons-arrows-right-left"
               size="sm"
               :disabled="!hasBoth"
@@ -319,10 +318,9 @@ const hasBoth = computed(() => !!baseScanId.value && !!currentScanId.value && ba
           </div>
 
           <div class="pt-5 md:pl-2">
-            <UButton
+            <UiButton
               icon="i-heroicons-clipboard-document"
-              variant="outline"
-              color="neutral"
+              purpose="secondary"
               size="sm"
               :disabled="!hasBoth || comparing || copyState === 'copying'"
               :loading="copyState === 'copying'"
@@ -331,14 +329,14 @@ const hasBoth = computed(() => !!baseScanId.value && !!currentScanId.value && ba
               <span v-if="copyState === 'copied'">Copied</span>
               <span v-else-if="copyState === 'error'">Failed</span>
               <span v-else>Copy as Markdown</span>
-            </UButton>
+            </UiButton>
           </div>
         </div>
 
         <p v-if="hasBoth && baseScanId === currentScanId" class="text-xs text-warning mt-3">
           Base and current scans are the same — pick different scans.
         </p>
-      </UCard>
+      </UiCard>
 
       <!-- Pre-selection prompt -->
       <div

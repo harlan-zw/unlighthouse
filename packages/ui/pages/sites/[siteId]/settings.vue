@@ -74,23 +74,23 @@ async function doDelete() {
       </UFormField>
       <UFormField label="Default device">
         <div class="flex gap-2">
-          <UiMotionButton
+          <!-- migrated: review purpose -->
+          <UiButton
             v-for="d in ['mobile', 'desktop'] as const"
             :key="d"
-            :variant="form.device === d ? 'solid' : 'outline'"
-            :color="form.device === d ? 'primary' : 'neutral'"
+            purpose="secondary"
             type="button"
             class="capitalize"
             @click="form.device = d"
           >
             {{ d }}
-          </UiMotionButton>
+          </UiButton>
         </div>
       </UFormField>
       <div class="flex justify-end pt-2">
-        <UiMotionButton type="submit" color="primary">
+        <UiButton type="submit" purpose="cta">
           Save changes
-        </UiMotionButton>
+        </UiButton>
       </div>
     </form>
 
@@ -101,9 +101,9 @@ async function doDelete() {
       <p class="text-sm text-muted mb-4">
         This removes the site from the registry. Past scan history is kept.
       </p>
-      <UiMotionButton color="error" variant="soft" @click="confirmDelete = true">
+      <UiButton purpose="danger" @click="confirmDelete = true">
         Remove site
-      </UiMotionButton>
+      </UiButton>
     </div>
 
     <UModal v-model:open="confirmDelete" title="Remove site?">
@@ -114,12 +114,12 @@ async function doDelete() {
       </template>
       <template #footer>
         <div class="flex justify-end gap-2 p-4">
-          <UiMotionButton variant="ghost" color="neutral" @click="confirmDelete = false">
+          <UiButton purpose="quiet" @click="confirmDelete = false">
             Cancel
-          </UiMotionButton>
-          <UiMotionButton color="error" @click="doDelete">
+          </UiButton>
+          <UiButton purpose="danger" @click="doDelete">
             Remove
-          </UiMotionButton>
+          </UiButton>
         </div>
       </template>
     </UModal>

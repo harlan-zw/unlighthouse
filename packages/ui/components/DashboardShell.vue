@@ -45,10 +45,10 @@ function closeNav() {
 
     <div class="flex-1 min-w-0" :class="sidebarWidth === 56 ? 'lg:ml-56' : 'lg:ml-64'">
       <div class="lg:hidden flex items-center justify-between px-4 pt-4">
-        <UiMotionButton variant="ghost" color="neutral" class="-ml-2" aria-label="Open navigation menu" @click="navOpen = true">
+        <UiButton purpose="quiet" class="-ml-2" aria-label="Open navigation menu" @click="navOpen = true">
           <UIcon name="i-lucide-menu" class="size-5" aria-hidden="true" />
           <span class="ml-2">Menu</span>
-        </UiMotionButton>
+        </UiButton>
         <NuxtLink :to="logoTo" class="flex items-center gap-2 font-semibold text-sm text-highlighted">
           <UiNavIcon icon="i-heroicons-light-bulb" />
           Unlighthouse

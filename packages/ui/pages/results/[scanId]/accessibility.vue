@@ -213,9 +213,9 @@ const auditTitles: Record<string, string> = {
 
     <!-- Loading -->
     <div v-if="accessibility.status.value === 'pending'" class="space-y-4">
-      <USkeleton class="h-16 w-full" />
-      <USkeleton class="h-16 w-full" />
-      <USkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
     </div>
 
     <!-- Issues Tab -->

@@ -80,8 +80,8 @@ function metricLabel(k: GapEntry['metric']) {
     <PageError v-if="error" :title="error.message" />
 
     <div v-else-if="pending && !report" class="space-y-4">
-      <USkeleton class="h-24 w-full" />
-      <USkeleton class="h-64 w-full" />
+      <UiSkeleton class="h-24 w-full" />
+      <UiSkeleton class="h-64 w-full" />
     </div>
 
     <div v-else-if="report" class="space-y-10">

@@ -111,13 +111,13 @@ function trendArrow(v: number) {
 </script>
 
 <template>
-  <UCard variant="subtle">
+  <UiCard variant="subtle">
     <div class="space-y-2">
       <UiHelpLabel :text="config.name" :tooltip="config.description" class="text-sm font-medium text-default" />
 
       <div v-if="loading" class="space-y-2">
-        <USkeleton class="h-8 w-24 rounded" />
-        <USkeleton class="h-3 w-32 rounded" />
+        <UiSkeleton class="h-8 w-24 rounded" />
+        <UiSkeleton class="h-3 w-32 rounded" />
       </div>
       <div v-else-if="latestValue != null" class="flex items-baseline gap-2">
         <span
@@ -165,7 +165,7 @@ function trendArrow(v: number) {
             </span>
           </div>
         </div>
-        <template #content>
+        <template #panel>
           <div class="p-3 text-xs space-y-2 max-w-[280px]">
             <div class="font-semibold text-default">
               P75 distribution over period
@@ -208,5 +208,5 @@ function trendArrow(v: number) {
         :height="140"
       />
     </div>
-  </UCard>
+  </UiCard>
 </template>

@@ -1,0 +1,20 @@
+{
+  "name": "@unlighthouse/brand-kit",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./nuxt.config.ts",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "prepare": "nuxt prepare"
+  },
+  "devDependencies": {
+    "@nuxt/ui": "catalog:dependencies",
+    "@tanstack/vue-table": "catalog:dependencies",
+    "motion-v": "catalog:",
+    "nuxt": "catalog:",
+    "pathe": "catalog:dependencies",
+    "zod": "catalog:"
+  }
+}

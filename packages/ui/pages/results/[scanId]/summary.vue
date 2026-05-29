@@ -40,8 +40,8 @@ function routeName(name: string | null) {
     <PageError v-if="error" :title="error.message" />
 
     <div v-else-if="pending && !summary" class="space-y-4">
-      <USkeleton class="h-24 w-full" />
-      <USkeleton class="h-48 w-full" />
+      <UiSkeleton class="h-24 w-full" />
+      <UiSkeleton class="h-48 w-full" />
     </div>
 
     <div v-else-if="summary" class="space-y-10">

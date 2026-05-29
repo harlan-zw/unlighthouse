@@ -167,33 +167,31 @@ function extractDomain(url: string) {
             </div>
           </div>
           <div class="flex justify-center gap-3 mt-4">
-            <UiMotionButton
+            <UiButton
               intensity="cta"
-              color="primary"
+              purpose="cta"
               size="lg"
               icon="i-heroicons-arrow-path"
               @click="retryScan"
             >
               Run scan
-            </UiMotionButton>
-            <UiMotionButton
+            </UiButton>
+            <UiButton
               v-if="hasPartialResults"
-              color="neutral"
-              variant="outline"
+              purpose="secondary"
               icon="i-heroicons-chart-bar"
               @click="goToResults"
             >
               View partial results
-            </UiMotionButton>
-            <UiMotionButton
+            </UiButton>
+            <UiButton
               v-else
-              color="neutral"
-              variant="outline"
+              purpose="secondary"
               icon="i-heroicons-home"
               @click="navigateTo('/sites/add')"
             >
               Add site
-            </UiMotionButton>
+            </UiButton>
           </div>
         </div>
 
@@ -233,48 +231,46 @@ function extractDomain(url: string) {
         </div>
 
         <div class="flex gap-3">
-          <UiMotionButton
+          <UiButton
             v-if="isScanning && !scanState.paused"
-            color="neutral"
-            variant="outline"
+            purpose="secondary"
             icon="i-heroicons-pause"
             @click="pauseScan"
           >
             Pause
-          </UiMotionButton>
-          <UiMotionButton
+          </UiButton>
+          <UiButton
             v-if="scanState.paused"
-            color="primary"
+            purpose="cta"
             icon="i-heroicons-play"
             @click="resumeScan"
           >
             Resume
-          </UiMotionButton>
-          <UiMotionButton
+          </UiButton>
+          <UiButton
             v-if="isScanning || scanState.paused"
-            color="neutral"
-            variant="outline"
+            purpose="secondary"
             icon="i-heroicons-x-mark"
             @click="handleCancel"
           >
             Cancel
-          </UiMotionButton>
-          <UiMotionButton
+          </UiButton>
+          <UiButton
             v-if="(isScanning || scanState.paused) && scanState.progress.scanned > 0"
-            color="primary"
+            purpose="cta"
             icon="i-heroicons-chart-bar"
             @click="goToResults"
           >
             Preview results
-          </UiMotionButton>
-          <UiMotionButton
+          </UiButton>
+          <UiButton
             v-if="isScanComplete || scanState.status === 'cancelled'"
-            color="primary"
+            purpose="cta"
             icon="i-heroicons-chart-bar"
             @click="goToResults"
           >
             {{ hasPartialResults ? 'View partial results' : 'View report' }}
-          </UiMotionButton>
+          </UiButton>
         </div>
       </div>
 
@@ -300,7 +296,7 @@ function extractDomain(url: string) {
       </div>
 
       <div v-else-if="isScanning" class="space-y-2 py-4">
-        <USkeleton v-for="n in 4" :key="n" class="h-10 w-full rounded-sm" :class="`opacity-${100 - n * 15}`" />
+        <UiSkeleton v-for="n in 4" :key="n" class="h-10 w-full rounded-sm" :class="`opacity-${100 - n * 15}`" />
       </div>
     </main>
 
@@ -312,12 +308,12 @@ function extractDomain(url: string) {
       </template>
       <template #footer>
         <div class="flex justify-end gap-3 p-4">
-          <UiMotionButton variant="ghost" color="neutral" @click="showCancelConfirm = false">
+          <UiButton purpose="quiet" @click="showCancelConfirm = false">
             Keep scanning
-          </UiMotionButton>
-          <UiMotionButton color="error" @click="confirmCancel">
+          </UiButton>
+          <UiButton purpose="danger" @click="confirmCancel">
             Cancel scan
-          </UiMotionButton>
+          </UiButton>
         </div>
       </template>
     </UModal>

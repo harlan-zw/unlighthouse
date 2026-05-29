@@ -1,7 +1,7 @@
 export default defineNuxtConfig({
   ssr: false,
   extends: ['./layers/design-system'],
-  modules: ['@nuxt/ui'],
+  modules: ['@nuxt/ui', 'reka-ui/nuxt'],
   css: ['~/assets/css/main.css'],
   colorMode: {
     preference: 'system',

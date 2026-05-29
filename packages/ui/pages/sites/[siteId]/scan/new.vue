@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useApiClient } from '~/composables/useApiClient'
 import { useSites } from '~/composables/sites'
+import { useApiClient } from '~/composables/useApiClient'
 
 definePageMeta({ layout: 'site' })
 
@@ -83,18 +83,18 @@ async function start() {
     <form class="space-y-6 rounded-sm ring-1 ring-default bg-elevated/40 p-6" @submit.prevent="start">
       <UFormField label="Device">
         <div class="flex gap-2">
-          <UiMotionButton
+          <!-- migrated: review purpose -->
+          <UiButton
             v-for="d in ['mobile', 'desktop'] as const"
             :key="d"
             type="button"
-            :variant="form.device === d ? 'solid' : 'outline'"
-            :color="form.device === d ? 'primary' : 'neutral'"
+            purpose="secondary"
             :icon="d === 'mobile' ? 'i-heroicons-device-phone-mobile' : 'i-heroicons-computer-desktop'"
             class="capitalize"
             @click="form.device = d"
           >
             {{ d }}
-          </UiMotionButton>
+          </UiButton>
         </div>
       </UFormField>
 
@@ -114,43 +114,43 @@ async function start() {
 
       <UFormField label="Sample size">
         <div class="grid grid-cols-4 gap-2">
-          <UiMotionButton
+          <!-- migrated: review purpose -->
+          <UiButton
             v-for="o in sampleSizeOptions"
             :key="o.value"
             type="button"
-            :variant="form.sampleSize === o.value ? 'solid' : 'outline'"
-            :color="form.sampleSize === o.value ? 'primary' : 'neutral'"
+            purpose="secondary"
             size="sm"
             @click="form.sampleSize = o.value"
           >
             {{ o.label }}
-          </UiMotionButton>
+          </UiButton>
         </div>
       </UFormField>
 
       <UFormField label="Categories">
         <div class="grid grid-cols-2 gap-2">
-          <UiMotionButton
+          <!-- migrated: review purpose -->
+          <UiButton
             v-for="c in categoryOptions"
             :key="c.value"
             type="button"
-            :variant="form.categories.includes(c.value) ? 'solid' : 'outline'"
-            :color="form.categories.includes(c.value) ? 'primary' : 'neutral'"
+            purpose="secondary"
             :icon="c.icon"
             @click="toggleCategory(c.value)"
           >
             {{ c.label }}
-          </UiMotionButton>
+          </UiButton>
         </div>
       </UFormField>
 
       <div class="flex items-center justify-end gap-3 pt-2">
-        <UiMotionButton variant="ghost" color="neutral" :to="`/sites/${site.id}`">
+        <UiButton purpose="quiet" :to="`/sites/${site.id}`">
           Cancel
-        </UiMotionButton>
-        <UiMotionButton type="submit" intensity="cta" color="primary" :loading="submitting" icon="i-heroicons-bolt">
+        </UiButton>
+        <UiButton type="submit" intensity="cta" purpose="cta" :loading="submitting" icon="i-heroicons-bolt">
           Start scan
-        </UiMotionButton>
+        </UiButton>
       </div>
     </form>
   </div>

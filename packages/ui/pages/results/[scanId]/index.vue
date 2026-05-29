@@ -476,7 +476,6 @@ const regressionOptions = [
   { label: 'Better', value: 'better' },
   { label: 'Same', value: 'same' },
 ]
-
 </script>
 
 <template>
@@ -509,8 +508,8 @@ const regressionOptions = [
           size="xs"
           class="w-32"
         />
-        <UiMotionButton
-          variant="ghost"
+        <UiButton
+          purpose="quiet"
           size="xs"
           :icon="sortDir === 'asc' ? 'i-heroicons-arrow-up' : 'i-heroicons-arrow-down'"
           @click="sortDir = sortDir === 'asc' ? 'desc' : 'asc'"
@@ -523,14 +522,14 @@ const regressionOptions = [
       </div>
 
       <div v-if="hasActiveFilters" class="ml-auto">
-        <UiMotionButton
-          variant="ghost"
+        <UiButton
+          purpose="quiet"
           size="xs"
           icon="i-heroicons-x-mark"
           @click="resetFilters"
         >
           <span class="hidden sm:inline">Reset filters</span>
-        </UiMotionButton>
+        </UiButton>
       </div>
     </div>
 
@@ -614,7 +613,7 @@ const regressionOptions = [
             <div v-else-if="g.primary?.report" class="w-full h-full flex items-center justify-center">
               <UIcon name="i-heroicons-photo" class="w-5 h-5 text-dimmed" />
             </div>
-            <USkeleton v-else class="w-full h-full rounded-none" />
+            <UiSkeleton v-else class="w-full h-full rounded-none" />
           </div>
 
           <!-- Route Info -->
@@ -625,7 +624,7 @@ const regressionOptions = [
               <span
                 v-if="g.mobile && g.desktop"
                 class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] bg-elevated/60 text-dimmed border border-default"
-                :title="`Mobile + Desktop coverage`"
+                title="Mobile + Desktop coverage"
               >
                 <UIcon name="i-heroicons-device-phone-mobile" class="size-3" />
                 <UIcon name="i-heroicons-computer-desktop" class="size-3" />
@@ -698,21 +697,21 @@ const regressionOptions = [
           </div>
 
           <div v-else class="flex items-center gap-2 text-dimmed">
-            <USkeleton class="size-2 rounded-full" />
+            <UiSkeleton class="size-2 rounded-full" />
             <span class="text-sm">Scanning</span>
           </div>
 
           <!-- View Report Button -->
-          <UiMotionButton
+          <UiButton
             v-if="g.primary?.report"
-            variant="ghost"
+            purpose="quiet"
             size="xs"
             icon="i-heroicons-document-magnifying-glass"
             class="opacity-60 group-hover:opacity-100 transition-opacity shrink-0"
             @click.stop="openRouteModal(g)"
           >
             <span class="hidden md:inline">View report</span>
-          </UiMotionButton>
+          </UiButton>
         </div>
       </div>
     </div>

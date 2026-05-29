@@ -4,9 +4,18 @@ shellEmulator: true
 
 trustPolicy: no-downgrade
 
+# chokidar@4.0.3 (pulled transitively via nuxt → @dxup/nuxt) dropped its
+# provenance attestation in this release; it's already pinned in the lockfile.
+# Exclude just this version from the no-downgrade check so adding new workspace
+# projects can re-resolve without tripping the policy.
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - semver@6.3.1
+
 packages:
   - packages/*
   - packages/cloudflare/examples/*
+  - apps/*
   - crux-api
   - cloud.unlighthouse.dev
   - '!docs'
@@ -25,6 +34,7 @@ catalog:
   '@cloudflare/containers': ^0.0.18
   '@cloudflare/puppeteer': ^1.1.0
   '@cloudflare/workers-types': ^4.20260511.1
+  '@iconify-json/carbon': ^1.2.22
   '@modelcontextprotocol/sdk': ^1.29.0
   '@types/better-sqlite3': ^7.6.13
   '@types/fs-extra': ^11.0.4
@@ -97,6 +107,7 @@ catalogs:
     object-hash: ^3.0.0
     ofetch: ^1.5.1
     pathe: ^2.0.3
+    puppeteer: ^0.0.0
     puppeteer-core: ^24.43.1
     radix3: ^1.1.2
     regexparam: ^3.0.0

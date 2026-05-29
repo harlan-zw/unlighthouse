@@ -88,7 +88,7 @@ provide('historicalScan', historicalScan)
       </NuxtLink>
 
       <div v-if="site" class="space-y-1">
-        <UPopover v-model:open="switcherOpen" :ui="{ content: 'p-0' }">
+        <UiPopover v-model:open="switcherOpen">
           <button
             class="flex items-center gap-2 w-full p-2 rounded-sm ring-1 ring-default bg-elevated/40 hover:bg-elevated transition-colors text-left"
             aria-label="Switch site"
@@ -104,7 +104,7 @@ provide('historicalScan', historicalScan)
             </div>
             <UIcon name="i-heroicons-chevron-up-down" class="size-3.5 text-dimmed shrink-0" aria-hidden="true" />
           </button>
-          <template #content>
+          <template #panel>
             <div class="w-64 max-h-80 overflow-y-auto p-1" role="listbox">
               <button
                 v-for="s in sites"
@@ -121,7 +121,7 @@ provide('historicalScan', historicalScan)
               </button>
             </div>
           </template>
-        </UPopover>
+        </UiPopover>
       </div>
 
       <NavList :links="siteLinks" />
@@ -163,9 +163,9 @@ provide('historicalScan', historicalScan)
       <p class="text-muted mb-6">
         This site no longer exists or was removed.
       </p>
-      <UiMotionButton to="/" icon="i-heroicons-arrow-left" color="primary">
+      <UiButton to="/" icon="i-heroicons-arrow-left" purpose="cta">
         Back to sites
-      </UiMotionButton>
+      </UiButton>
     </div>
     <slot v-else />
   </DashboardShell>

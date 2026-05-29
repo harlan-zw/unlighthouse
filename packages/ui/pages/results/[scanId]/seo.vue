@@ -355,9 +355,9 @@ function fallbackString(...values: Array<string | null | undefined>): string {
 
     <!-- Loading -->
     <div v-if="seo.status.value === 'pending'" class="space-y-4">
-      <USkeleton class="h-16 w-full" />
-      <USkeleton class="h-16 w-full" />
-      <USkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
+      <UiSkeleton class="h-16 w-full" />
     </div>
 
     <!-- Meta Overview Tab -->

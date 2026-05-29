@@ -33,12 +33,12 @@ const adHoc = computed(() => scannedSites.value.filter(s => !s.registry))
         Add a site to start running Lighthouse audits. You can group sites, track history, and connect cloud services from here.
       </p>
       <div class="flex justify-center gap-3">
-        <UiMotionButton to="/sites/add" icon="i-heroicons-plus" size="lg" color="primary">
+        <UiButton to="/sites/add" icon="i-heroicons-plus" size="lg" purpose="cta">
           Add a site
-        </UiMotionButton>
-        <UiMotionButton to="/integrations" variant="outline" color="neutral" icon="i-heroicons-puzzle-piece" size="lg">
+        </UiButton>
+        <UiButton to="/integrations" icon="i-heroicons-puzzle-piece" size="lg" purpose="secondary">
           Integrations
-        </UiMotionButton>
+        </UiButton>
       </div>
     </div>
 
@@ -58,12 +58,12 @@ const adHoc = computed(() => scannedSites.value.filter(s => !s.registry))
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <UiMotionButton to="/sites" variant="outline" color="neutral" icon="i-heroicons-squares-2x2">
+          <UiButton to="/sites" icon="i-heroicons-squares-2x2" purpose="secondary">
             Multi-site view
-          </UiMotionButton>
-          <UiMotionButton to="/sites/add" icon="i-heroicons-plus" color="primary">
+          </UiButton>
+          <UiButton to="/sites/add" icon="i-heroicons-plus" purpose="cta">
             Add site
-          </UiMotionButton>
+          </UiButton>
         </div>
       </header>
 
