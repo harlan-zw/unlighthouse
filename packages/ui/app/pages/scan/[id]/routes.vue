@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { ColumnDef, SortingState } from '@tanstack/vue-table'
-import { FlexRender, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table'
+import type { ColumnDef } from '@tanstack/vue-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -11,14 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useScanStore } from '~/stores/scan'
 
 const route = useRoute()
@@ -94,12 +85,23 @@ interface RouteRow {
   tbt: number | null
 }
 
+// Server-sorted via the sort Select, so every column disables client
+// sorting. Alignment / header widths ride on TanStack column `meta`;
+// the shared DataTable renders the header/body loops and empty row.
+const SCORE_COLS: { key: keyof RouteRow, label: string }[] = [
+  { key: 'scorePerformance', label: 'Perf' },
+  { key: 'scoreAccessibility', label: 'A11y' },
+  { key: 'scoreSeo', label: 'SEO' },
+  { key: 'scoreBestPractices', label: 'BP' },
+]
+
 const columns = computed<ColumnDef<RouteRow>[]>(() => {
   const cols: ColumnDef<RouteRow>[] = [
     {
       id: 'thumbnail',
       header: '',
       enableSorting: false,
+      meta: { headClass: 'w-[70px]' },
       cell: ({ row }) => {
         const path = row.original.path || row.original.url
         const src = `${baseUrl}/dashboard/screenshot/${scanId.value}/${encodeURIComponent(path)}`
@@ -113,11 +115,12 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           onError: (e: Event) => { (e.target as HTMLImageElement).style.visibility = 'hidden' },
         })
       },
-      size: 70,
     },
     {
       accessorKey: 'path',
       header: 'Path',
+      enableSorting: false,
+      meta: { headClass: 'min-w-[200px]' },
       cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-xs' }, row.original.path || row.original.url),
     },
   ]
@@ -126,88 +129,53 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     cols.push({
       accessorKey: 'device',
       header: 'Device',
+      enableSorting: false,
+      meta: { align: 'center', headClass: 'w-16' },
       cell: ({ row }) => h(resolveComponent('Icon'), {
         name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor',
         class: 'size-3.5 text-muted-foreground',
       }),
-      size: 60,
+    })
+  }
+
+  for (const s of SCORE_COLS) {
+    cols.push({
+      accessorKey: s.key,
+      header: s.label,
+      enableSorting: false,
+      meta: { align: 'center', headClass: 'w-16' },
+      cell: ({ row }) => {
+        const score = row.original[s.key] as number | null
+        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
+      },
     })
   }
 
   cols.push(
     {
-      accessorKey: 'scorePerformance',
-      header: 'Perf',
-      cell: ({ row }) => {
-        const score = row.original.scorePerformance
-        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
-      },
-      size: 60,
-    },
-    {
-      accessorKey: 'scoreAccessibility',
-      header: 'A11y',
-      cell: ({ row }) => {
-        const score = row.original.scoreAccessibility
-        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
-      },
-      size: 60,
-    },
-    {
-      accessorKey: 'scoreSeo',
-      header: 'SEO',
-      cell: ({ row }) => {
-        const score = row.original.scoreSeo
-        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
-      },
-      size: 60,
-    },
-    {
-      accessorKey: 'scoreBestPractices',
-      header: 'BP',
-      cell: ({ row }) => {
-        const score = row.original.scoreBestPractices
-        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
-      },
-      size: 60,
-    },
-    {
       accessorKey: 'lcp',
       header: 'LCP',
+      enableSorting: false,
+      meta: { align: 'right', headClass: 'w-20' },
       cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.lcp)),
-      size: 80,
     },
     {
       accessorKey: 'cls',
       header: 'CLS',
+      enableSorting: false,
+      meta: { align: 'right', headClass: 'w-20' },
       cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.cls, '')),
-      size: 60,
     },
     {
       accessorKey: 'tbt',
       header: 'TBT',
+      enableSorting: false,
+      meta: { align: 'right', headClass: 'w-20' },
       cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.tbt)),
-      size: 80,
     },
   )
 
   return cols
-})
-
-const sorting = ref<SortingState>([])
-
-const table = useVueTable({
-  get data() { return (scanResults.value?.items ?? []) as RouteRow[] },
-  get columns() { return columns.value },
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  state: {
-    get sorting() { return sorting.value },
-  },
-  onSortingChange: (updater) => {
-    sorting.value = typeof updater === 'function' ? updater(sorting.value) : updater
-  },
-  manualPagination: true,
 })
 
 const sortOptions = [
@@ -267,54 +235,17 @@ const sortOptions = [
     </div>
 
     <!-- DataTable -->
-    <div class="rounded-lg border overflow-auto">
-      <Table>
-        <TableHeader>
-          <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-            <TableHead
-              v-for="header in headerGroup.headers"
-              :key="header.id"
-              :class="[
-                header.column.id === 'path' ? 'min-w-[200px]' : '',
-                ['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices', 'device'].includes(header.column.id) ? 'text-center w-16' : '',
-                ['lcp', 'cls', 'tbt'].includes(header.column.id) ? 'text-right w-20' : '',
-              ]"
-            >
-              <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <template v-if="table.getRowModel().rows.length">
-            <TableRow
-              v-for="row in table.getRowModel().rows"
-              :key="row.id"
-              class="cursor-pointer hover:bg-muted/50"
-              @click="openRoute(row.original)"
-            >
-              <TableCell
-                v-for="cell in row.getVisibleCells()"
-                :key="cell.id"
-                :class="[
-                  ['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices', 'device'].includes(cell.column.id) ? 'text-center' : '',
-                  ['lcp', 'cls', 'tbt'].includes(cell.column.id) ? 'text-right' : '',
-                ]"
-              >
-                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-              </TableCell>
-            </TableRow>
-          </template>
-          <template v-else>
-            <TableRow>
-              <TableCell :colspan="columns.length" class="text-center py-12 text-muted-foreground">
-                <p v-if="store.isActive">Routes will appear as they are scanned...</p>
-                <p v-else>No routes found.</p>
-              </TableCell>
-            </TableRow>
-          </template>
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      :columns="columns"
+      :data="(scanResults?.items ?? []) as RouteRow[]"
+      row-clickable
+      @row-click="openRoute"
+    >
+      <template #empty>
+        <p v-if="store.isActive">Routes will appear as they are scanned...</p>
+        <p v-else>No routes found.</p>
+      </template>
+    </DataTable>
 
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="flex items-center justify-between">
