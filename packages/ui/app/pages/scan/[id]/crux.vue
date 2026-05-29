@@ -42,8 +42,16 @@ function metricBg(value: number, good: number, poor: number) {
   return 'bg-red-500'
 }
 
+// CrUX reports can come back partial — a device (or a metric series) may be
+// absent when the origin lacks field data. Normalise to guaranteed arrays so
+// the template never dereferences `undefined.lcp` (the crash this guards).
 function getDeviceData(d: CruxData) {
-  return activeDevice.value === 'phone' ? d.phone : d.desktop
+  const dev = (activeDevice.value === 'phone' ? d.phone : d.desktop) as Partial<CruxData['phone']> | undefined
+  return {
+    lcp: dev?.lcp ?? [],
+    inp: dev?.inp ?? [],
+    cls: dev?.cls ?? [],
+  }
 }
 
 function latestValue(entries: Array<{ value: number }>) {
@@ -59,7 +67,7 @@ function latestValue(entries: Array<{ value: number }>) {
 
     <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">Loading CrUX data...</div>
 
-    <div v-else-if="!data || (!data.phone.lcp.length && !data.desktop.lcp.length)" class="text-center py-12 text-muted-foreground">
+    <div v-else-if="!data || (!data.phone?.lcp?.length && !data.desktop?.lcp?.length)" class="text-center py-12 text-muted-foreground">
       <Icon name="lucide:globe" class="size-12 mx-auto mb-3 opacity-50" />
       <p>No CrUX field data available for this site.</p>
       <p class="text-xs mt-1">Field data requires the site to have enough traffic in Chrome User Experience Report.</p>
