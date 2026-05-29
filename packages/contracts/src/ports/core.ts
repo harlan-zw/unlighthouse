@@ -77,6 +77,12 @@ export interface UnlighthouseCoreRunOverrides {
    * scan id. Defaults to the host config's device when omitted.
    */
   device?: 'mobile' | 'desktop' | Array<'mobile' | 'desktop'>
+  /**
+   * Scan mode. `page` audits only the seeded URL(s) (no link-following);
+   * `site` crawls. Defaults to the host config's `scanner.mode` when omitted.
+   * Lets the dashboard's per-scan "single page" toggle reach the crawler.
+   */
+  mode?: 'site' | 'page'
   /** Lighthouse categories — mapped onto `lighthouseOptions.onlyCategories`. */
   categories?: Array<'performance' | 'accessibility' | 'seo' | 'best-practices' | 'agentic-browsing'>
   /** Sample count — mapped onto `scanner.samples`. */

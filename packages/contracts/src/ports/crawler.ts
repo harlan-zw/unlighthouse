@@ -26,6 +26,8 @@ export interface CrawlerRunOptions {
   audit: (url: string, ctx: CrawlCtx) => Promise<void>
   /** Inline Policy shape; defer the Policy port until a second adapter ships. */
   allows?: (url: string) => boolean
+  /** Page mode: audit only the seeded URLs, don't follow discovered links. */
+  noFollow?: boolean
   crawlDelayMs?: number
   signal?: AbortSignal
 }

@@ -144,7 +144,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
           }
         }
 
-        if (opts.noFollow)
+        // Per-scan noFollow (page mode) wins over the adapter-construction
+        // default, so the dashboard's per-scan mode can disable crawling.
+        if (runOpts.noFollow ?? opts.noFollow)
           return
 
         await enqueueLinks({

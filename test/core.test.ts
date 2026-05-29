@@ -210,6 +210,37 @@ describe('createUnlighthouseCore orchestration', () => {
     expect(list.items.map(r => r.path).sort()).toEqual(['/', '/blog'])
   })
 
+  it('page mode passes noFollow to the crawler; site mode does not', async () => {
+    const captured: Record<string, boolean | undefined> = {}
+    function spyCrawler(tag: string): Crawler {
+      return {
+        run(runOpts: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
+          captured[tag] = runOpts.noFollow
+          return (async function* () {
+            for await (const s of runOpts.seeds.seeds())
+              await runOpts.audit(s.url, { scanId: 'x' as never, signal: runOpts.signal })
+            yield { type: 'idle' }
+          })()
+        },
+      }
+    }
+    const run = async (tag: string, overrides: { site: string, mode?: 'site' | 'page' }) => {
+      const core = createUnlighthouseCore({
+        config: baseConfig,
+        auditor: passingAuditor(),
+        seeds: emptySeeds,
+        crawler: spyCrawler(tag),
+        storage: memoryStorage(),
+      })
+      await core.run({ overrides }).done
+    }
+    await run('page', { site: 'https://example.com/', mode: 'page' })
+    await run('site', { site: 'https://example.com/' })
+
+    expect(captured.page).toBe(true)
+    expect(captured.site).toBeFalsy()
+  })
+
   it('aggregates scoreAverage + scoresByCategory on scan:complete', async () => {
     // Regression for the v0→v1 port bug where summary.scoreAverage was
     // hardcoded `null` even after routes finished scoring — broke

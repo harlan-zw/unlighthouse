@@ -313,15 +313,10 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
       const seeds = resolveSeeds(resolvedConfig, logger)
 
-      // Page mode (and an explicit `--urls` list, which the CLI documents as
-      // "disabling the link crawler") audits only the seeded URLs — don't
-      // follow links into the rest of the site. Without this the crawler
-      // always followed links, so `scanner.mode: 'page'` still scanned the
-      // whole site. (Per-scan mode override from the dashboard is a separate
-      // gap: scan.start doesn't yet thread `input.mode` through mergeOverrides.)
-      const noFollow = resolvedConfig.scanner?.mode === 'page'
-        || (Array.isArray(resolvedConfig.urls) && resolvedConfig.urls.length > 0)
-      const crawler = crawleeCrawler({ noFollow, logger: (logger as any).withTag('crawler/crawlee') as never })
+      // noFollow (page mode / explicit urls) is decided per-scan in core's
+      // orchestrate() and passed via CrawlerRunOptions — it's override-aware
+      // so the dashboard's per-scan mode works too. Nothing to set here.
+      const crawler = crawleeCrawler({ logger: (logger as any).withTag('crawler/crawlee') as never })
 
       logger.debug?.('Creating core — crawler: crawlee')
       const core = createUnlighthouseCore({

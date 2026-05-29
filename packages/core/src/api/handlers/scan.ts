@@ -47,6 +47,7 @@ export const scanStart: Handler<typeof ScanStart> = {
     const session = ctx.core.run({
       overrides: {
         site: input.site,
+        mode: input.mode,
         device: input.device,
         sampleSize: input.sampleSize,
         categories: input.categories,

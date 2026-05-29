@@ -71,11 +71,12 @@ function mergeOverrides(
   // adapters/UI reading config.scanner.device directly. The full matrix is
   // surfaced separately to orchestrate() via `resolveDeviceMatrix` below.
   const primaryDevice = Array.isArray(overrides.device) ? overrides.device[0] : overrides.device
-  if (primaryDevice || overrides.sampleSize != null) {
+  if (primaryDevice || overrides.sampleSize != null || overrides.mode) {
     next.scanner = {
       ...(base.scanner ?? {}),
       ...(primaryDevice ? { device: primaryDevice } : {}),
       ...(overrides.sampleSize != null ? { samples: overrides.sampleSize } : {}),
+      ...(overrides.mode ? { mode: overrides.mode } : {}),
     }
   }
   if (overrides.categories && overrides.categories.length) {
@@ -165,7 +166,10 @@ function aggregateScores(routes: Array<{
   scoreAccessibility: number | null
   scoreSeo: number | null
   scoreBestPractices: number | null
-  scoreAgenticBrowsing: number | null
+  // Optional: agentic-browsing is a recently-added dimension absent from
+  // older rows (the schema treats it as nullish). The category map below
+  // reads it defensively.
+  scoreAgenticBrowsing?: number | null
 }>): Pick<ScanSummary, 'scoreAverage' | 'scoresByCategory'> {
   const cols = {
     'performance': 'scorePerformance',
@@ -397,7 +401,13 @@ function createSession(deps: SessionDeps): CrawlSession {
     const devices = resolveDeviceMatrix(validScannerDevice, overrides?.device)
     const primaryDevice = devices[0]
 
-    const scanMode = deps.config.scanner?.mode === 'page' ? 'page' as const : 'site' as const
+    // Per-scan `mode` override (dashboard's single-page toggle) wins over the
+    // host config default; falls back to config when omitted.
+    const scanMode = (overrides?.mode ?? deps.config.scanner?.mode) === 'page' ? 'page' as const : 'site' as const
+    // Page mode — and an explicit `urls` list, which the CLI documents as
+    // disabling the crawler — audit only the seeded URLs; don't follow links.
+    const noFollow = scanMode === 'page'
+      || (Array.isArray((deps.config as { urls?: unknown[] }).urls) && ((deps.config as { urls?: unknown[] }).urls?.length ?? 0) > 0)
 
     const existingSite = await storage.sites.getByUrl(site).catch(() => null)
 
@@ -615,6 +625,8 @@ function createSession(deps: SessionDeps): CrawlSession {
       // excluded sections of the site (the designed `allows` hook that was
       // never wired — `scanner.include`/`exclude` were silently ignored).
       allows,
+      // Page mode / explicit urls: audit only the seeds, don't follow links.
+      noFollow,
       signal,
     })
 
