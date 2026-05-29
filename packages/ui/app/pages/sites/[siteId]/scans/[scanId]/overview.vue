@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { ColumnDef } from '@tanstack/vue-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,41 +19,6 @@ const { scanBase } = useScanBase()
 const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
 
 const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
-
-// Worst-routes table columns. Small, unsorted list (server already
-// returns it worst-first), rendered through the shared DataTable.
-const WorstIcon = resolveComponent('Icon')
-const worstRouteColumns: ColumnDef<any, any>[] = [
-  {
-    id: 'url',
-    header: 'URL',
-    enableSorting: false,
-    cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-md' }, row.original.url),
-  },
-  {
-    id: 'device',
-    header: 'Device',
-    enableSorting: false,
-    meta: { align: 'center', headClass: 'w-16' },
-    cell: ({ row }) => row.original.device
-      ? h(WorstIcon, { name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor', class: 'size-3.5 text-muted-foreground inline' })
-      : null,
-  },
-  {
-    id: 'score',
-    header: 'Score',
-    enableSorting: false,
-    meta: { align: 'right', headClass: 'w-24' },
-    cell: ({ row }) => h('span', { class: `font-bold tabular-nums ${scoreToColor(row.original.score)}` }, scoreToLabel(row.original.score)),
-  },
-  {
-    id: 'weakest',
-    header: 'Weakest',
-    enableSorting: false,
-    meta: { headClass: 'w-32' },
-    cell: ({ row }) => h(Badge, { variant: 'outline', class: 'text-xs capitalize' }, () => row.original.category || '—'),
-  },
-]
 
 const { data: scanMeta } = useAsyncData(
   `scan-meta-${scanId.value}`,
@@ -139,13 +103,6 @@ const categories = computed(() => {
     { key: 'agentic-browsing', label: 'Agentic', icon: 'lucide:bot', path: 'agentic-browsing', score: avgs['agentic-browsing'] ?? null },
   ]
 })
-
-const tools = [
-  { label: 'All Routes', description: 'Browse all scanned pages', icon: 'lucide:route', path: 'routes' },
-  { label: 'Compare', description: 'Compare against previous scan', icon: 'lucide:git-compare-arrows', path: 'compare' },
-  { label: 'CrUX Field Data', description: 'Real-world Chrome UX metrics', icon: 'lucide:globe', path: 'crux' },
-  { label: 'Event Stream', description: 'Real-time scan logs', icon: 'lucide:radio', path: 'events' },
-]
 
 const distribution = computed(() => {
   if (!scanSummary.value) return null
@@ -284,6 +241,13 @@ function scoreColor(score: number | null) {
       </div>
     </div>
 
+    <!-- Routes — the full, advanced table sits right up top so opening a scan
+         lands you straight on every page's scores + Core Web Vitals. -->
+    <section v-if="!currentScanIsActive">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Routes</h2>
+      <ScanRoutesTable />
+    </section>
+
     <!-- Charts row -->
     <div v-if="scanSummary" class="grid gap-6 lg:grid-cols-5">
       <!-- Category scores - horizontal bars -->
@@ -373,39 +337,6 @@ function scoreColor(score: number | null) {
           <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground/50" />
         </NuxtLink>
       </div>
-    </section>
-
-    <!-- Tools — same rationale as Categories above, hide while scanning. -->
-    <section v-if="!currentScanIsActive">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Tools</h2>
-      <div class="divide-y rounded-lg border">
-        <NuxtLink
-          v-for="tool in tools"
-          :key="tool.path"
-          :to="tool.path === 'compare' ? `/compare/${scanId}` : `${scanBase}/${tool.path}`"
-          class="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50 transition-colors"
-        >
-          <Icon :name="tool.icon" class="size-4 text-muted-foreground" />
-          <div class="flex-1">
-            <span class="text-sm font-medium">{{ tool.label }}</span>
-            <span class="text-xs text-muted-foreground ml-2 hidden sm:inline">{{ tool.description }}</span>
-          </div>
-          <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground/50" />
-        </NuxtLink>
-      </div>
-    </section>
-
-    <!-- Worst Routes -->
-    <section v-if="scanSummary?.worstRoutes?.length">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Worst Performing Routes</h2>
-      <DataTable
-        :columns="worstRouteColumns"
-        :data="scanSummary.worstRoutes"
-        :get-row-id="(r: any) => r.url"
-        row-clickable
-        container-class="rounded-lg border overflow-hidden"
-        @row-click="(r: any) => navigateTo(`${scanBase}/route/${encodeURIComponent(new URL(r.url).pathname)}`)"
-      />
     </section>
 
     <!-- Loading -->
