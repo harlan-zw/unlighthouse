@@ -106,7 +106,11 @@ const ExtractedMetricsSchema = z.object({
   scoreAccessibility: z.number().min(0).max(1).nullable(),
   scoreSeo: z.number().min(0).max(1).nullable(),
   scoreBestPractices: z.number().min(0).max(1).nullable(),
-  scoreAgenticBrowsing: z.number().min(0).max(1).nullable(),
+  // Optional dimension: only the agentic-browsing category (LH13) populates
+  // it, and rows from before it existed never will — so absent (undefined)
+  // is as valid as null. nullish() tolerates both; the core score fields
+  // stay strict nullable since every LHR carries them.
+  scoreAgenticBrowsing: z.number().min(0).max(1).nullish(),
   lcp: z.number().nullable(),
   cls: z.number().nullable(),
   inp: z.number().nullable(),
@@ -233,7 +237,7 @@ const ReconciledReportSchema = z.object({
     scoreAccessibility: z.number().min(0).max(1).nullable(),
     scoreSeo: z.number().min(0).max(1).nullable(),
     scoreBestPractices: z.number().min(0).max(1).nullable(),
-    scoreAgenticBrowsing: z.number().min(0).max(1).nullable(),
+    scoreAgenticBrowsing: z.number().min(0).max(1).nullish(),
     lcp: z.number().nullable(),
     cls: z.number().nullable(),
     inp: z.number().nullable(),

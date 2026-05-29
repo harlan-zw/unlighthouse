@@ -20,7 +20,9 @@ const FIXTURE_URL = 'https://example.com/'
 function makeScan(id: string = SCAN_ID): Scan {
   return {
     scanId: id as Scan['scanId'],
+    siteId: 'https://example.com',
     site: 'https://example.com',
+    mode: 'site',
     device: 'mobile',
     status: 'complete',
     startedAt: '2025-01-01T00:00:00.000Z',
