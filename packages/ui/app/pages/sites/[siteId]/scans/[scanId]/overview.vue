@@ -83,7 +83,7 @@ async function handleRescanAll() {
   try {
     const result = await api['scan.rescanAll']({ scanId: scanId.value })
     toast.success('Rescan started')
-    router.push(`/sites/${route.params.siteId}/scans/${result.scanId}/overview`)
+    router.push(`/sites/${route.params.siteId}/scans/${result.scanId}/routes`)
   }
   catch (err: any) {
     toast.error('Rescan failed', { description: err.message })
@@ -240,13 +240,6 @@ function scoreColor(score: number | null) {
         </div>
       </div>
     </div>
-
-    <!-- Routes — the full, advanced table sits right up top so opening a scan
-         lands you straight on every page's scores + Core Web Vitals. -->
-    <section v-if="!currentScanIsActive">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Routes</h2>
-      <ScanRoutesTable />
-    </section>
 
     <!-- Charts row -->
     <div v-if="scanSummary" class="grid gap-6 lg:grid-cols-5">

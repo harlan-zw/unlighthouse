@@ -9,7 +9,7 @@ const scanId = route.params.id as string
 try {
   const meta = await api['scan.meta']({ scanId })
   const slug = new URL(meta.site).hostname
-  await navigateTo(`/sites/${slug}/scans/${scanId}/overview`, { replace: true })
+  await navigateTo(`/sites/${slug}/scans/${scanId}/routes`, { replace: true })
 }
 catch {
   await navigateTo('/history', { replace: true })

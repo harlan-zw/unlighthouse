@@ -64,7 +64,7 @@ function formatDuration(start: string | null, end: string | null) {
     </div>
 
     <!-- Active scan banner -->
-    <Card v-if="store.isActive" class="border-primary/50 bg-primary/5 cursor-pointer" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/overview`)">
+    <Card v-if="store.isActive" class="border-primary/50 bg-primary/5 cursor-pointer" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/routes`)">
       <CardContent class="pt-4 pb-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
@@ -147,7 +147,7 @@ function formatDuration(start: string | null, end: string | null) {
           v-for="scan in scans.items"
           :key="scan.scanId"
           class="cursor-pointer transition-all hover:border-primary/30 hover:shadow-sm group"
-          @click="router.push(`/sites/${siteSlug(scan.site)}/scans/${scan.scanId}/overview`)"
+          @click="router.push(`/sites/${siteSlug(scan.site)}/scans/${scan.scanId}/routes`)"
         >
           <CardContent class="pt-4 pb-4">
             <div class="flex items-center justify-between mb-2">

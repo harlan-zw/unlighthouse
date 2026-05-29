@@ -126,7 +126,7 @@ function primaryScanId(pair: DevicePair): string {
 function openPair(pair: DevicePair) {
   const id = primaryScanId(pair)
   if (id)
-    router.push(`/sites/${slug}/scans/${id}/overview`)
+    router.push(`/sites/${slug}/scans/${id}/routes`)
 }
 async function rescan(scanId: string) {
   if (!scanId)
@@ -134,7 +134,7 @@ async function rescan(scanId: string) {
   try {
     const result = await api['history.rescan']({ scanId: scanId as any })
     toast.success('Rescan started')
-    router.push(`/sites/${slug}/scans/${result.scanId}/overview`)
+    router.push(`/sites/${slug}/scans/${result.scanId}/routes`)
   }
   catch (err: any) {
     toast.error('Rescan failed', { description: err.message })

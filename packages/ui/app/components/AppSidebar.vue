@@ -47,8 +47,8 @@ const sites = computed(() => sitesData.value?.sites ?? [])
 
 // ── Scan context (scan mode) ─────────────────────────────────────────────────
 const SCAN_MENUS = [
-  { key: 'overview', label: 'Overview', icon: 'lucide:layout-dashboard' },
   { key: 'routes', label: 'Routes', icon: 'lucide:list' },
+  { key: 'overview', label: 'Summary', icon: 'lucide:layout-dashboard' },
   { key: 'performance', label: 'Performance', icon: 'lucide:gauge' },
   { key: 'seo', label: 'SEO', icon: 'lucide:search' },
   { key: 'accessibility', label: 'Accessibility', icon: 'lucide:accessibility' },
@@ -63,8 +63,8 @@ const scanSeg = computed(() => {
     return ''
   const prefix = `${scanBase.value}/`
   if (!route.path.startsWith(prefix))
-    return 'overview'
-  const seg = route.path.slice(prefix.length).split('/')[0] || 'overview'
+    return 'routes'
+  const seg = route.path.slice(prefix.length).split('/')[0] || 'routes'
   return seg === 'route' ? 'routes' : seg
 })
 

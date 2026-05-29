@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // /sites/{slug}/scans/{id} → its overview.
 const route = useRoute()
-await navigateTo(`/sites/${route.params.siteId}/scans/${route.params.scanId}/overview`, { replace: true })
+await navigateTo(`/sites/${route.params.siteId}/scans/${route.params.scanId}/routes`, { replace: true })
 </script>
 
 <template>

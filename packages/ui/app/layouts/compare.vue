@@ -27,11 +27,11 @@ const exitTo = computed(() => {
   const site = exitMeta.value?.site
   if (currentScanId.value && site) {
     try {
-      return `/sites/${new URL(site).hostname}/scans/${currentScanId.value}/overview`
+      return `/sites/${new URL(site).hostname}/scans/${currentScanId.value}/routes`
     }
     catch {}
   }
-  return currentScanId.value ? `/scan/${currentScanId.value}/overview` : '/history'
+  return currentScanId.value ? `/scan/${currentScanId.value}/routes` : '/history'
 })
 
 function toggleColorMode() {

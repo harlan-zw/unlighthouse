@@ -106,7 +106,7 @@ async function rescanFromHistory(scanId: string) {
   try {
     const result = await api['history.rescan']({ scanId: scanId as ScanId })
     toast.success('Rescan started')
-    router.push(`/scan/${result.scanId}/overview`)
+    router.push(`/scan/${result.scanId}/routes`)
   }
   catch (err: any) {
     toast.error('Rescan failed', { description: err.message })
@@ -220,7 +220,7 @@ async function deleteScan(scanId: string) {
           :pairs="group.pairs"
           @rescan="rescanFromHistory"
           @delete="deleteScan"
-          @open="(pair) => router.push(`/sites/${siteSlug((pair.mobile ?? pair.desktop)?.site ?? '')}/scans/${primaryScanId(pair)}/overview`)"
+          @open="(pair) => router.push(`/sites/${siteSlug((pair.mobile ?? pair.desktop)?.site ?? '')}/scans/${primaryScanId(pair)}/routes`)"
         />
       </CollapsibleContent>
     </Collapsible>

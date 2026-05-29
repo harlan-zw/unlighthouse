@@ -547,7 +547,7 @@ watch([baseScanId, currentScanId], ([b, c]) => {
 }, { immediate: true })
 
 function gotoOverview(id: string) {
-  router.push(`/scan/${id}/overview`)
+  router.push(`/scan/${id}/routes`)
 }
 </script>
 
