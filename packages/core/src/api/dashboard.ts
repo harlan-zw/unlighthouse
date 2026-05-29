@@ -148,6 +148,30 @@ export function createDashboardApi(storage: Storage): Router {
 
     const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
 
+    // CSV projection — flat per-route rows for spreadsheets / Sheets (#141,
+    // #135). Scores as 0–100 integers, CWV metrics raw, blank for nulls.
+    // Skips the expensive contract/LHR hydration the JSON export does.
+    const format = String((getQuery(event) as { format?: string }).format ?? 'json').toLowerCase()
+    if (format === 'csv') {
+      const cols = ['path', 'url', 'device', 'performance', 'accessibility', 'seo', 'bestPractices', 'agenticBrowsing', 'lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si', 'capturedAt']
+      const pct = (v: number | null | undefined): string => v == null ? '' : String(Math.round(v * 100))
+      const num = (v: number | null | undefined): string => v == null ? '' : String(v)
+      const esc = (v: unknown): string => {
+        const s = String(v ?? '')
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+      }
+      const lines = routes.map(r => [
+        r.path, r.url, r.device,
+        pct(r.scorePerformance), pct(r.scoreAccessibility), pct(r.scoreSeo), pct(r.scoreBestPractices), pct(r.scoreAgenticBrowsing),
+        num(r.lcp), num(r.cls), num(r.inp), num(r.fcp), num(r.ttfb), num(r.tbt), num(r.si),
+        r.capturedAt,
+      ].map(esc).join(','))
+      const csv = `${[cols.join(','), ...lines].join('\n')}\n`
+      setResponseHeader(event, 'Content-Type', 'text/csv; charset=utf-8')
+      setResponseHeader(event, 'Content-Disposition', `attachment; filename="${scanId}-export.csv"`)
+      return csv
+    }
+
     const hydratedRoutes = await Promise.all(routes.map(async (r) => {
       let contract: unknown = null
       if (r.reportBlobKey) {

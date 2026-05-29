@@ -211,7 +211,17 @@ function scoreColor(score: number | null) {
             title="Download a self-contained JSON of this scan (data only, no raw LHR blobs)"
           >
             <Icon name="lucide:download" class="size-4 mr-1" />
-            Export
+            JSON
+          </a>
+        </Button>
+        <Button v-if="scanIsComplete && !currentScanIsActive" variant="outline" size="sm" as-child>
+          <a
+            :href="`${exportBaseUrl}/dashboard/export/${scanId}?format=csv`"
+            :download="`${scanId}-export.csv`"
+            title="Download per-route scores + Core Web Vitals as CSV (for spreadsheets / Google Sheets)"
+          >
+            <Icon name="lucide:table" class="size-4 mr-1" />
+            CSV
           </a>
         </Button>
         <Button v-if="scanIsComplete && !currentScanIsActive" variant="outline" size="sm" :disabled="rescanningAll" @click="handleRescanAll">
