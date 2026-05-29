@@ -195,7 +195,12 @@ function scoreColor(score: number | null) {
         </h1>
         <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground">
           <ScanStatusBadge :status="resolvedStatus" />
-          <Badge v-if="scanMeta?.device" variant="outline" class="text-xs">
+          <Badge v-if="hasMultipleDevices" variant="outline" class="text-xs">
+            <Icon name="lucide:smartphone" class="size-2.5 mr-0.5" />
+            <Icon name="lucide:monitor" class="size-2.5 mr-0.5" />
+            both
+          </Badge>
+          <Badge v-else-if="scanMeta?.device" variant="outline" class="text-xs">
             <Icon :name="scanMeta.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-2.5 mr-0.5" />
             {{ scanMeta.device }}
           </Badge>

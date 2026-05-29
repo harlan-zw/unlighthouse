@@ -6,16 +6,7 @@ import type {
 } from '@unlighthouse/contracts'
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts'
-
-function deriveSiteId(url: string): string {
-  const u = new URL(url)
-  return encodeURIComponent(u.origin)
-}
-
-function deriveSiteName(url: string): string {
-  const u = new URL(url)
-  return u.port ? `${u.hostname}:${u.port}` : u.hostname
-}
+import { deriveSiteId, deriveSiteName } from '../../util/site'
 
 export const sitesList: Handler<typeof SitesList> = {
   command: {} as typeof SitesList,

@@ -32,11 +32,20 @@ const groups = computed<SiteGroup[]>(() => {
   const items = (scansResp.value?.items ?? []) as ScanRow[]
   if (!items.length) return []
 
+  // Group by domain (origin) so every path scanned on a host lands in one
+  // list — not a separate group per exact URL.
   const buckets = new Map<string, ScanRow[]>()
   for (const s of items) {
-    const arr = buckets.get(s.site) ?? []
+    let key: string
+    try {
+      key = new URL(s.site).origin
+    }
+    catch {
+      key = s.site
+    }
+    const arr = buckets.get(key) ?? []
     arr.push(s)
-    buckets.set(s.site, arr)
+    buckets.set(key, arr)
   }
 
   const out: SiteGroup[] = []
@@ -53,6 +62,9 @@ const groups = computed<SiteGroup[]>(() => {
       const tsScan = new Date(scan.startedAt).getTime()
       const sibling = sorted.find((s) => {
         if (used.has(s.scanId)) return false
+        // Only pair separate mobile/desktop scans of the SAME exact URL —
+        // the group now spans multiple paths on the domain.
+        if (s.site !== scan.site) return false
         if (s.device !== otherDevice) return false
         return Math.abs(new Date(s.startedAt).getTime() - tsScan) <= PAIR_WINDOW_MS
       })

@@ -205,7 +205,9 @@ async function run() {
     await storage.sites.create({
       id: siteId,
       name: parsedUrl.port ? `${parsedUrl.hostname}:${parsedUrl.port}` : parsedUrl.hostname,
-      url: siteUrl,
+      // Store the bare origin (the domain-level site), not the full scanned
+      // URL — keeps the model consistent with orchestrate's origin-keyed site.
+      url: parsedUrl.origin,
       group: null,
       createdAt: new Date().toISOString(),
     }).catch(() => null)

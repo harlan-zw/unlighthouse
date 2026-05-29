@@ -23,6 +23,7 @@ import {
 import { createHooks } from 'hookable'
 import { createTaggedLogger } from './logger'
 import { createFilter } from './util/filter'
+import { deriveSiteId, deriveSiteName, siteOrigin } from './util/site'
 import { persistStableEvents } from './persist-events'
 
 const log = createTaggedLogger('core')
@@ -409,11 +410,34 @@ function createSession(deps: SessionDeps): CrawlSession {
     const noFollow = scanMode === 'page'
       || (Array.isArray((deps.config as { urls?: unknown[] }).urls) && ((deps.config as { urls?: unknown[] }).urls?.length ?? 0) > 0)
 
-    const existingSite = await storage.sites.getByUrl(site).catch(() => null)
+    // Associate every scan with a domain-level site (keyed by origin),
+    // creating it on first scan of that origin. This is what groups all scans
+    // of a domain together in history/sites — dashboard scans previously got
+    // siteId=null (the old getByUrl matched the full path, never the origin),
+    // while CLI scans created an origin site. Now both behave the same. Upsert
+    // before scans.create — siteId is a set-null FK to the sites row.
+    let siteId: string | null = null
+    try {
+      siteId = deriveSiteId(site)
+      const existingSite = await storage.sites.get(siteId)
+      if (!existingSite) {
+        await storage.sites.create({
+          id: siteId,
+          name: deriveSiteName(site),
+          url: siteOrigin(site),
+          group: null,
+          createdAt: new Date().toISOString(),
+        }).catch(() => {})
+      }
+    }
+    catch {
+      // Malformed/placeholder site URL — leave the scan unassociated.
+      siteId = null
+    }
 
     await storage.scans.create({
       scanId,
-      siteId: existingSite?.id ?? null,
+      siteId,
       site: site as never,
       mode: scanMode,
       device: primaryDevice,
@@ -689,6 +713,9 @@ function createSession(deps: SessionDeps): CrawlSession {
       failed: stats.failed,
       ...aggregateScores(scoredRoutes),
       durationMs: Date.now() - startedAtMs,
+      // Record the device matrix so the UI can show "both" rather than just
+      // the primary device for a mobile+desktop scan.
+      devices,
     }
 
     // Run all built-in packs automatically so reports are ready immediately.

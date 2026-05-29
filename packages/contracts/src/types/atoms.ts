@@ -77,6 +77,10 @@ const ScanSummarySchema = z.object({
   scoreAverage: z.number().min(0).max(1).nullable(),
   scoresByCategory: z.partialRecord(CategorySchema, z.number().min(0).max(1)),
   durationMs: z.number().nonnegative(),
+  // Device matrix this scan covered. Lets the UI show "both" instead of just
+  // the primary device for a mobile+desktop scan. Optional — older summaries
+  // (and the scan row's primary `device`) predate it.
+  devices: z.array(DeviceSchema).optional(),
 })
 export type ScanSummary = z.infer<typeof ScanSummarySchema>
 
