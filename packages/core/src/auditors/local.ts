@@ -86,6 +86,7 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
         scoreAccessibility: extracted.scores.accessibility,
         scoreSeo: extracted.scores.seo,
         scoreBestPractices: extracted.scores.bestPractices,
+        scoreAgenticBrowsing: extracted.scores.agenticBrowsing,
         lcp: extracted.lcp,
         cls: extracted.cls,
         inp: extracted.inp,

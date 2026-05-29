@@ -254,6 +254,7 @@ export const routeRescan: Handler<typeof RouteRescan> = {
       scoreAccessibility: null,
       scoreSeo: null,
       scoreBestPractices: null,
+      scoreAgenticBrowsing: null,
       lcp: null,
       cls: null,
       inp: null,

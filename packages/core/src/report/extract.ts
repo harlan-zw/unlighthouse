@@ -49,7 +49,12 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
 
   return {
     lcp: getNumeric(lhr, mapAudit('largest-contentful-paint')),
-    cls: Math.round((getNumeric(lhr, mapAudit('cumulative-layout-shift')) ?? 0) * 1000),
+    // CLS is unitless (0–1+). Store it raw — every consumer (cwv pack
+    // thresholds {good:0.1,poor:0.25}, route-detail thresholds, UI
+    // toFixed(3)) reads it on the 0–1 scale, and none divide. Storing
+    // milli-CLS (×1000) made non-zero CLS render 1000× too large and the
+    // cwv pack flag every shifting page as "poor".
+    cls: getNumeric(lhr, mapAudit('cumulative-layout-shift')),
     tbt: getNumeric(lhr, mapAudit('total-blocking-time')),
     fcp: getNumeric(lhr, mapAudit('first-contentful-paint')),
     si: getNumeric(lhr, mapAudit('speed-index')),

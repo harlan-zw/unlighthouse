@@ -42,6 +42,7 @@ function metricsToRow(scanId: string, device: Device, m: ExtractedMetrics) {
     scoreAccessibility: m.scoreAccessibility,
     scoreSeo: m.scoreSeo,
     scoreBestPractices: m.scoreBestPractices,
+    scoreAgenticBrowsing: m.scoreAgenticBrowsing,
     lcp: m.lcp,
     cls: m.cls,
     inp: m.inp,
