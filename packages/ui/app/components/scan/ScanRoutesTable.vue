@@ -45,6 +45,41 @@ const { data: scanResults, refresh } = useAsyncData(
 )
 useScanWebsocket({ 'scan:complete': refresh })
 
+// Overall route score (0..100) = mean of its non-null category scores.
+function overallScore(r: { scorePerformance: number | null, scoreAccessibility: number | null, scoreSeo: number | null, scoreBestPractices: number | null }): number | null {
+  const xs = [r.scorePerformance, r.scoreAccessibility, r.scoreSeo, r.scoreBestPractices].filter((s): s is number => s != null)
+  if (!xs.length)
+    return null
+  return Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 100)
+}
+
+// Trend: pull the previous scan of this site/device and map path → overall
+// score, so the table can show each route's delta vs last time.
+const { data: prevData } = useAsyncData(
+  `routes-prev-${scanId.value}`,
+  async () => {
+    const meta = await api['scan.meta']({ scanId: scanId.value }).catch(() => null)
+    if (!meta)
+      return null
+    const prev = await api['compare.findPrevious']({ site: meta.site, device: meta.device as any, excludeScanId: scanId.value }).catch(() => null)
+    if (!prev?.scanId)
+      return null
+    const res = await api['scan.results']({ scanId: prev.scanId, page: 1, pageSize: 500 }).catch(() => null)
+    if (!res)
+      return null
+    const map = new Map<string, number>()
+    for (const r of res.items as any[]) {
+      const o = overallScore(r)
+      if (o != null)
+        map.set(r.path || r.url, o)
+    }
+    return map
+  },
+  { watch: [scanId] },
+)
+const prevMap = computed(() => prevData.value ?? null)
+const hasPrev = computed(() => (prevMap.value?.size ?? 0) > 0)
+
 interface RouteRow {
   url: string
   path: string
@@ -155,6 +190,7 @@ const colLabels: Record<string, string> = {
   scoreAccessibility: 'Accessibility',
   scoreSeo: 'SEO',
   scoreBestPractices: 'Best Practices',
+  delta: 'Δ vs prev',
   lcp: 'LCP',
   cls: 'CLS',
   tbt: 'TBT',
@@ -227,6 +263,33 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       cell: ({ row }) => {
         const score = row.original[s.key] as number | null
         return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
+      },
+    })
+  }
+
+  if (hasPrev.value) {
+    cols.push({
+      id: 'delta',
+      accessorFn: (row: RouteRow) => {
+        const prev = prevMap.value?.get(row.path || row.url)
+        const cur = overallScore(row)
+        return prev == null || cur == null ? undefined : cur - prev
+      },
+      header: 'Δ',
+      sortUndefined: 'last',
+      meta: { align: 'right', headClass: 'w-16' },
+      cell: ({ row }) => {
+        const prev = prevMap.value?.get(row.original.path || row.original.url)
+        const cur = overallScore(row.original)
+        if (prev == null)
+          return h('span', { class: 'text-[10px] text-muted-foreground border rounded px-1 py-0.5' }, 'new')
+        if (cur == null)
+          return h('span', { class: 'text-muted-foreground' }, '—')
+        const d = cur - prev
+        if (d === 0)
+          return h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, '0')
+        const up = d > 0
+        return h('span', { class: `text-xs font-medium tabular-nums ${up ? 'text-green-500' : 'text-red-500'}` }, `${up ? '▲ +' : '▼ '}${d}`)
       },
     })
   }
