@@ -275,6 +275,8 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
                 :format="m.fmt"
                 :show-legend="false"
                 :height="140"
+                :markers="showReleases ? releaseMarkers : []"
+                :marker-pills="false"
               />
             </div>
           </div>

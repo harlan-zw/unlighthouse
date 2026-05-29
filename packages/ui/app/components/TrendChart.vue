@@ -31,9 +31,13 @@ const props = withDefaults(defineProps<{
   format?: (v: number) => string
   showLegend?: boolean
   markers?: TrendMarker[]
+  // Draw the marker pill labels (true) or just the dashed guide lines (false,
+  // for compact charts that sit under a chart already showing the pills).
+  markerPills?: boolean
 }>(), {
   height: 200,
   showLegend: true,
+  markerPills: true,
 })
 
 const fmt = (v: number) => (props.format ? props.format(v) : String(Math.round(v)))
@@ -132,6 +136,52 @@ const markerPositions = computed(() =>
     .filter(m => m.t >= tMin.value && m.t <= tMax.value)
     .map(m => ({ x: xFor(m.t), label: m.label, title: m.title ?? m.label })),
 )
+
+// ── Hover crosshair + tooltip ─────────────────────────────────────────────────
+const columns = computed(() => {
+  const ts = new Set<number>()
+  for (const s of props.series)
+    for (const p of s.points)
+      if (p.v != null)
+        ts.add(p.t)
+  return [...ts].sort((a, b) => a - b)
+})
+const hoverT = ref<number | null>(null)
+function onMove(e: PointerEvent) {
+  if (!wrap.value || !columns.value.length)
+    return
+  const mx = e.clientX - wrap.value.getBoundingClientRect().left
+  let best = columns.value[0]!
+  let bd = Infinity
+  for (const t of columns.value) {
+    const d = Math.abs(xFor(t) - mx)
+    if (d < bd) {
+      bd = d
+      best = t
+    }
+  }
+  hoverT.value = best
+}
+function onLeave() {
+  hoverT.value = null
+}
+const hoverX = computed(() => (hoverT.value == null ? null : xFor(hoverT.value)))
+const hoverPoints = computed(() => {
+  if (hoverT.value == null)
+    return []
+  return props.series
+    .map((s) => {
+      const p = s.points.find(pp => pp.t === hoverT.value && pp.v != null)
+      return p ? { label: s.label, color: s.color, text: fmt(p.v as number), y: yFor(p.v as number) } : null
+    })
+    .filter((x): x is { label: string, color: string, text: string, y: number } => !!x)
+})
+const hoverDate = computed(() => (hoverT.value == null ? '' : new Date(hoverT.value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })))
+const tooltipLeft = computed(() => {
+  if (hoverX.value == null)
+    return 0
+  return Math.min(Math.max(hoverX.value, 70), width.value - 70)
+})
 </script>
 
 <template>
@@ -142,18 +192,35 @@ const markerPositions = computed(() =>
         {{ s.label }}
       </div>
     </div>
-    <div ref="wrap" class="w-full relative">
+    <div ref="wrap" class="w-full relative" @pointermove="onMove" @pointerleave="onLeave">
       <!-- release marker pills, overlaid in HTML for crisp text -->
+      <template v-if="markerPills">
+        <div
+          v-for="(m, i) in markerPositions"
+          :key="`mp${i}`"
+          class="absolute top-0 -translate-x-1/2 z-10"
+          :style="{ left: `${m.x}px` }"
+        >
+          <span :title="m.title" class="inline-block rounded bg-primary px-1 py-0.5 text-[9px] font-mono leading-none text-primary-foreground whitespace-nowrap">
+            {{ m.label }}
+          </span>
+        </div>
+      </template>
+
+      <!-- hover tooltip -->
       <div
-        v-for="(m, i) in markerPositions"
-        :key="`mp${i}`"
-        class="absolute top-0 -translate-x-1/2 z-10"
-        :style="{ left: `${m.x}px` }"
+        v-if="hoverPoints.length"
+        class="absolute top-0 z-20 -translate-x-1/2 pointer-events-none rounded-md border bg-popover px-2 py-1.5 shadow-md"
+        :style="{ left: `${tooltipLeft}px` }"
       >
-        <span :title="m.title" class="inline-block rounded bg-primary px-1 py-0.5 text-[9px] font-mono leading-none text-primary-foreground whitespace-nowrap">
-          {{ m.label }}
-        </span>
+        <div class="text-[10px] text-muted-foreground mb-1">{{ hoverDate }}</div>
+        <div v-for="row in hoverPoints" :key="row.label" class="flex items-center gap-1.5 text-[11px] whitespace-nowrap">
+          <span class="size-2 rounded-full shrink-0" :style="{ backgroundColor: row.color }" />
+          <span class="text-muted-foreground">{{ row.label }}</span>
+          <span class="ml-auto pl-3 font-semibold tabular-nums">{{ row.text }}</span>
+        </div>
       </div>
+
       <svg v-if="width > 0 && hasData" :width="width" :height="height" class="overflow-visible">
         <!-- y gridlines + labels -->
         <g>
@@ -188,6 +255,27 @@ const markerPositions = computed(() =>
           class="stroke-primary/40"
           stroke-width="1"
           stroke-dasharray="3 3"
+        />
+
+        <!-- hover crosshair -->
+        <line
+          v-if="hoverX != null"
+          :x1="hoverX"
+          :x2="hoverX"
+          :y1="PAD.top"
+          :y2="height - PAD.bottom"
+          class="stroke-muted-foreground/40"
+          stroke-width="1"
+        />
+        <circle
+          v-for="(hp, i) in hoverPoints"
+          :key="`hp${i}`"
+          :cx="hoverX!"
+          :cy="hp.y"
+          r="4"
+          fill="white"
+          :stroke="hp.color"
+          stroke-width="2"
         />
 
         <!-- series -->
