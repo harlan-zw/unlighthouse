@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { useScanStore } from '~/stores/scan'
 
+definePageMeta({ layout: 'root', middleware: 'onboarding' })
+
 const api = useApi()
 const router = useRouter()
 const store = useScanStore()

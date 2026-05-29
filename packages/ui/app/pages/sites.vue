@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'vue-sonner'
 
+definePageMeta({ layout: 'root' })
+
 interface Site {
   id: string
   name: string

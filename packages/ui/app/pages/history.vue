@@ -9,6 +9,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 
+definePageMeta({ layout: 'root' })
+
 interface SiteGroup {
   site: string
   scanCount: number
