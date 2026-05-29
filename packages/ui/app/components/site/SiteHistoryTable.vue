@@ -3,13 +3,9 @@
 // Each instance owns its own sort state so groups don't interfere.
 
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
-import { FlexRender, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table'
 import { h } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
 import {
   AlertDialog,
   AlertDialogAction, AlertDialogCancel,
@@ -71,6 +67,9 @@ const columns: ColumnDef<DevicePair>[] = [
   },
   {
     id: 'routes',
+    // accessorFn (not just sortingFn) is what makes a column sortable —
+    // TanStack disables sorting on accessor-less display columns.
+    accessorFn: row => row.completed ?? 0,
     header: 'Routes',
     cell: ({ row }) => {
       const p = row.original
@@ -86,6 +85,8 @@ const columns: ColumnDef<DevicePair>[] = [
   },
   ...(['performance', 'accessibility', 'best-practices', 'seo'] as const).map(key => ({
     id: key,
+    accessorFn: (row: DevicePair) => Math.max(categoryPct(row.mobile, key) ?? -1, categoryPct(row.desktop, key) ?? -1),
+    meta: { align: 'center' },
     header: () => {
       const label = key === 'best-practices' ? 'Best' : key === 'performance' ? 'Perf' : key === 'accessibility' ? 'A11y' : 'SEO'
       return h('div', { class: 'text-center' }, [
@@ -108,20 +109,17 @@ const columns: ColumnDef<DevicePair>[] = [
       return aMax - bMax
     },
   } satisfies ColumnDef<DevicePair>)),
+  {
+    id: 'status',
+    header: 'Status',
+    enableSorting: false,
+    meta: { align: 'center', headClass: 'w-24' },
+    cell: ({ row }) => {
+      const s = statusForPair(row.original)
+      return h(Badge, { variant: s.variant, class: 'text-[10px] capitalize' }, () => s.label)
+    },
+  },
 ]
-
-const table = useVueTable({
-  get data() { return props.pairs },
-  columns,
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  state: {
-    get sorting() { return sorting.value },
-  },
-  onSortingChange: (updater) => {
-    sorting.value = typeof updater === 'function' ? updater(sorting.value) : updater
-  },
-})
 
 function primaryScanId(pair: DevicePair): string {
   return pair.mobile?.scanId ?? pair.desktop?.scanId ?? ''
@@ -142,87 +140,47 @@ function statusForPair(pair: DevicePair): { label: string, variant: 'default' | 
 </script>
 
 <template>
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead
-          v-for="header in table.getHeaderGroups()[0]?.headers"
-          :key="header.id"
-          :class="header.column.getCanSort() ? 'cursor-pointer select-none' : ''"
-          @click="header.column.getToggleSortingHandler()?.($event)"
+  <DataTable
+    v-model:sorting="sorting"
+    :columns="columns"
+    :data="pairs"
+    container-class=""
+    row-clickable
+    @row-click="(p: DevicePair) => emit('open', p)"
+  >
+    <template #actions="{ row }">
+      <div class="flex items-center justify-end gap-0.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="size-7 p-0 text-muted-foreground hover:text-foreground"
+          title="Rescan"
+          @click="emit('rescan', primaryScanId(row))"
         >
-          <div class="flex items-center gap-1.5">
-            <FlexRender v-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
-            <Icon
-              v-if="header.column.getCanSort()"
-              :name="
-                header.column.getIsSorted() === 'asc' ? 'lucide:arrow-up'
-                : header.column.getIsSorted() === 'desc' ? 'lucide:arrow-down'
-                  : 'lucide:chevrons-up-down'
-              "
-              class="size-3 text-muted-foreground/60"
-            />
-          </div>
-        </TableHead>
-        <TableHead class="w-24 text-center">
-          Status
-        </TableHead>
-        <TableHead class="w-20" />
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      <TableRow
-        v-for="row in table.getRowModel().rows"
-        :key="row.id"
-        class="cursor-pointer"
-        @click="emit('open', row.original)"
-      >
-        <TableCell
-          v-for="cell in row.getVisibleCells()"
-          :key="cell.id"
-        >
-          <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-        </TableCell>
-        <TableCell class="text-center">
-          <Badge :variant="statusForPair(row.original).variant" class="text-[10px] capitalize">
-            {{ statusForPair(row.original).label }}
-          </Badge>
-        </TableCell>
-        <TableCell class="text-right" @click.stop>
-          <div class="flex items-center justify-end gap-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              class="size-7 p-0 text-muted-foreground hover:text-foreground"
-              title="Rescan"
-              @click="emit('rescan', primaryScanId(row.original))"
-            >
-              <Icon name="lucide:refresh-cw" class="size-3.5" />
+          <Icon name="lucide:refresh-cw" class="size-3.5" />
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger as-child>
+            <Button variant="ghost" size="sm" class="size-7 p-0 text-muted-foreground hover:text-destructive">
+              <Icon name="lucide:trash-2" class="size-3.5" />
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger as-child>
-                <Button variant="ghost" size="sm" class="size-7 p-0 text-muted-foreground hover:text-destructive">
-                  <Icon name="lucide:trash-2" class="size-3.5" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete scan?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete this scan and all its data. This cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction @click="emit('delete', primaryScanId(row.original))">
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </TableCell>
-      </TableRow>
-    </TableBody>
-  </Table>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete scan?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this scan and all its data. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction @click="emit('delete', primaryScanId(row))">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </template>
+  </DataTable>
 </template>
