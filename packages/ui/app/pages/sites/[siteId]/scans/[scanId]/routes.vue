@@ -18,7 +18,7 @@ const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const store = useScanStore()
-const scanId = computed(() => route.params.id as string)
+const scanId = computed(() => route.params.scanId as string)
 const { scoreToColor, scoreToLabel } = useScoreColor()
 const config = useRuntimeConfig()
 const baseUrl = config.public.unlighthouseApiUrl as string
@@ -71,7 +71,7 @@ function onFilterInput(e: Event) {
 }
 
 function openRoute(r: any) {
-  router.push(`/scan/${scanId.value}/route/${encodeURIComponent(r.path || r.url)}`)
+  router.push(`/sites/${route.params.siteId}/scans/${scanId.value}/route/${encodeURIComponent(r.path || r.url)}`)
 }
 
 interface RouteRow {

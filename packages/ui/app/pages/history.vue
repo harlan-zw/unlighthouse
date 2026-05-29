@@ -220,7 +220,7 @@ async function deleteScan(scanId: string) {
           :pairs="group.pairs"
           @rescan="rescanFromHistory"
           @delete="deleteScan"
-          @open="(pair) => router.push(`/scan/${primaryScanId(pair)}/overview`)"
+          @open="(pair) => router.push(`/sites/${siteSlug((pair.mobile ?? pair.desktop)?.site ?? '')}/scans/${primaryScanId(pair)}/overview`)"
         />
       </CollapsibleContent>
     </Collapsible>

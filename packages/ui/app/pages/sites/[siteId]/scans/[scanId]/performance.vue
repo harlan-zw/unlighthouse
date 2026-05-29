@@ -236,7 +236,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                 v-for="r in routeScores.items.slice(0, 50)"
                 :key="r.url"
                 class="cursor-pointer hover:bg-muted/50"
-                @click="navigateTo(`/scan/${scanId}/route/${encodeURIComponent(r.path)}`)"
+                @click="navigateTo(`/sites/${$route.params.siteId}/scans/${scanId}/route/${encodeURIComponent(r.path)}`)"
               >
                 <TableCell class="font-mono text-xs truncate max-w-sm">{{ r.path }}</TableCell>
                 <TableCell class="text-right tabular-nums font-bold" :class="scoreToColor(r.scorePerformance)">{{ scoreToLabel(r.scorePerformance) }}</TableCell>

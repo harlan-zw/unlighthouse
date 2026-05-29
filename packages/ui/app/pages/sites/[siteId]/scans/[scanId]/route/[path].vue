@@ -29,7 +29,7 @@ const { fmtBytes: formatBytes } = useFormat()
 // a no-op when history is empty.
 function backToRoutes() {
   if (import.meta.client && window.history.length <= 1) {
-    router.push(`/scan/${scanId}/routes`)
+    router.push(`/sites/${route.params.siteId}/scans/${scanId}/routes`)
     return
   }
   router.back()

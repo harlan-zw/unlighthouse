@@ -109,13 +109,13 @@ async function handleSubmit() {
       ciBuild,
     })
     toast.success('Scan started', { description: url })
-    router.push(`/scan/${result.scanId}/overview`)
+    router.push(`/sites/${siteSlug(url)}/scans/${result.scanId}/overview`)
   }
   catch (err: any) {
     if (err.name === 'ACTIVE_SCAN_CONFLICT') {
       toast.error('A scan is already running')
       if (store.scanId) {
-        router.push(`/scan/${store.scanId}/overview`)
+        router.push(`/sites/${siteSlug(store.site || url)}/scans/${store.scanId}/overview`)
       }
     }
     else {

@@ -15,7 +15,8 @@ const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const store = useScanStore()
-const scanId = computed(() => route.params.id as string)
+const scanId = computed(() => route.params.scanId as string)
+const { scanBase } = useScanBase()
 const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
 
 const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
@@ -118,7 +119,7 @@ async function handleRescanAll() {
   try {
     const result = await api['scan.rescanAll']({ scanId: scanId.value })
     toast.success('Rescan started')
-    router.push(`/scan/${result.scanId}/overview`)
+    router.push(`/sites/${route.params.siteId}/scans/${result.scanId}/overview`)
   }
   catch (err: any) {
     toast.error('Rescan failed', { description: err.message })
@@ -352,7 +353,7 @@ function scoreColor(score: number | null) {
         <NuxtLink
           v-for="cat in categories"
           :key="cat.key"
-          :to="`/scan/${scanId}/${cat.path}`"
+          :to="`${scanBase}/${cat.path}`"
           class="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50 transition-colors"
         >
           <Icon :name="cat.icon" class="size-4 text-muted-foreground" />
@@ -381,7 +382,7 @@ function scoreColor(score: number | null) {
         <NuxtLink
           v-for="tool in tools"
           :key="tool.path"
-          :to="`/scan/${scanId}/${tool.path}`"
+          :to="tool.path === 'compare' ? `/compare/${scanId}` : `${scanBase}/${tool.path}`"
           class="flex items-center gap-4 px-4 py-3.5 hover:bg-muted/50 transition-colors"
         >
           <Icon :name="tool.icon" class="size-4 text-muted-foreground" />
@@ -403,7 +404,7 @@ function scoreColor(score: number | null) {
         :get-row-id="(r: any) => r.url"
         row-clickable
         container-class="rounded-lg border overflow-hidden"
-        @row-click="(r: any) => navigateTo(`/scan/${scanId}/route/${encodeURIComponent(new URL(r.url).pathname)}`)"
+        @row-click="(r: any) => navigateTo(`${scanBase}/route/${encodeURIComponent(new URL(r.url).pathname)}`)"
       />
     </section>
 

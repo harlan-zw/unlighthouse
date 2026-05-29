@@ -21,7 +21,8 @@ import type { ScanId } from '@unlighthouse/contracts'
 //   `/scan/${scanId.value}/routes`
 export function useScanId() {
   const route = useRoute()
-  return computed(() => (route.params.id as string) as ScanId)
+  // New tree uses `scanId`; keep reading `id` for any legacy/route-shim case.
+  return computed(() => ((route.params.scanId ?? route.params.id) as string) as ScanId)
 }
 
 // Non-reactive variant for the common case where the page reads the
@@ -29,5 +30,5 @@ export function useScanId() {
 // subpages). Saves the `.value` ceremony.
 export function getScanId(): ScanId {
   const route = useRoute()
-  return (route.params.id as string) as ScanId
+  return ((route.params.scanId ?? route.params.id) as string) as ScanId
 }

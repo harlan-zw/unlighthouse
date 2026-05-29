@@ -5,9 +5,8 @@ import { useScanStore } from '~/stores/scan'
 const store = useScanStore()
 const { scoreToLabel, scoreToColor } = useScoreColor()
 
-const route = useRoute()
 const router = useRouter()
-const scanId = computed(() => route.params.id as string)
+const { scanBase } = useScanBase()
 
 function openRoute(url: string) {
   // The recentRoutes feed only carries the full URL; reconstruct the
@@ -15,10 +14,10 @@ function openRoute(url: string) {
   // links work even when the scan crawled a host with a non-/ base.
   try {
     const path = new URL(url).pathname || '/'
-    router.push(`/scan/${scanId.value}/route/${encodeURIComponent(path)}`)
+    router.push(`${scanBase.value}/route/${encodeURIComponent(path)}`)
   }
   catch {
-    router.push(`/scan/${scanId.value}/routes`)
+    router.push(`${scanBase.value}/routes`)
   }
 }
 

@@ -8,7 +8,7 @@ definePageMeta({ layout: 'scan' })
 
 const route = useRoute()
 const api = useApi()
-const scanId = route.params.id as string
+const scanId = route.params.scanId as string
 
 const { data: cruxPack, status } = useAsyncData(
   `crux-${scanId}`,
