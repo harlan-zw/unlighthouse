@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import type { ColumnDef } from '@tanstack/vue-table'
+import type { ScanRow } from '@/components/site/types'
+import { h } from 'vue'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useScanStore } from '~/stores/scan'
 
@@ -10,41 +13,199 @@ definePageMeta({ layout: 'root', middleware: 'onboarding' })
 const api = useApi()
 const router = useRouter()
 const store = useScanStore()
-const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
+const { scoreToColor, scoreToLabel } = useScoreColor()
+const { fmtRelTime } = useFormat()
 
-const { data: scans, status: historyStatus } = useAsyncData('recent-scans', async () => {
+const ScanStatusBadge = resolveComponent('ScanStatusBadge')
+const SparklineC = resolveComponent('Sparkline')
+
+const { data: histResp, status: historyStatus } = useAsyncData(
+  'recent-scans',
+  () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
+)
+const { data: sitesData } = useAsyncData(
+  'dashboard-sites',
+  () => api['sites.list']({}).catch(() => ({ sites: [] as Array<{ id: string, name: string, url: string, group: string | null }> })),
+)
+
+const allScans = computed(() => (histResp.value?.items ?? []) as ScanRow[])
+const totalScans = computed(() => histResp.value?.total ?? 0)
+
+function originOf(u: string): string {
   try {
-    return await api['history.list']({ page: 1, pageSize: 12 })
+    return new URL(u).origin
   }
   catch {
-    return null
+    return u
   }
-})
-
-const { data: sitesData } = useAsyncData('dashboard-sites', async () => {
-  try {
-    return await api['sites.list']({})
-  }
-  catch {
-    return { sites: [] }
-  }
-})
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
-function formatDuration(start: string | null, end: string | null) {
-  if (!start || !end) return null
-  const ms = new Date(end).getTime() - new Date(start).getTime()
-  if (ms < 60000) return `${Math.round(ms / 1000)}s`
-  return `${Math.round(ms / 60000)}m`
+// Scans grouped by site origin (newest first).
+const byOrigin = computed(() => {
+  const m = new Map<string, ScanRow[]>()
+  for (const s of allScans.value) {
+    const o = originOf(s.site)
+    const arr = m.get(o) ?? []
+    arr.push(s)
+    m.set(o, arr)
+  }
+  for (const arr of m.values())
+    arr.sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+  return m
+})
+
+interface SiteRow {
+  name: string
+  slug: string
+  url: string
+  avg: number | null
+  cats: Record<string, number | undefined>
+  series: number[]
+  lastAt: string | null
+  scanCount: number
+}
+
+const siteRows = computed<SiteRow[]>(() =>
+  (sitesData.value?.sites ?? []).map((site) => {
+    const scans = (byOrigin.value.get(originOf(site.url)) ?? []).filter(s => s.summary && (s.summary.completed ?? 0) > 0)
+    const latest = scans[0] ?? null
+    const series = [...scans].reverse().slice(-12).map(s => Math.round((s.summary?.scoreAverage ?? 0) * 100))
+    return {
+      name: site.name || siteSlug(site.url),
+      slug: siteSlug(site.url),
+      url: site.url,
+      avg: latest?.summary?.scoreAverage ?? null,
+      cats: (latest?.summary?.scoresByCategory ?? {}) as Record<string, number | undefined>,
+      series,
+      lastAt: latest?.startedAt ?? null,
+      scanCount: scans.length,
+    }
+  }),
+)
+
+const kpis = computed(() => {
+  const avgs = siteRows.value.map(r => r.avg).filter((v): v is number => v != null)
+  return {
+    sites: siteRows.value.length,
+    scans: totalScans.value,
+    avg: avgs.length ? Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 100) : null,
+    needs: siteRows.value.filter(r => r.avg != null && r.avg < 0.9).length,
+  }
+})
+function score100Color(v: number | null): string {
+  if (v == null) return 'var(--muted-foreground)'
+  return v >= 90 ? '#22c55e' : v >= 50 ? '#f97316' : '#ef4444'
+}
+
+// ── Sites table ──────────────────────────────────────────────────────────────
+const CAT_COLS: { key: string, label: string }[] = [
+  { key: 'performance', label: 'Perf' },
+  { key: 'accessibility', label: 'A11y' },
+  { key: 'seo', label: 'SEO' },
+  { key: 'best-practices', label: 'BP' },
+]
+const siteColumns: ColumnDef<SiteRow>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Site',
+    cell: ({ row }) => h('div', { class: 'min-w-0' }, [
+      h('div', { class: 'text-sm font-medium truncate' }, row.original.name),
+      h('div', { class: 'text-[11px] text-muted-foreground font-mono truncate' }, row.original.url),
+    ]),
+  },
+  {
+    id: 'avg',
+    accessorFn: (r: SiteRow) => r.avg ?? undefined,
+    header: 'Score',
+    sortUndefined: 'last',
+    meta: { align: 'center', headClass: 'w-16' },
+    cell: ({ row }) => h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.avg)}` }, scoreToLabel(row.original.avg)),
+  },
+  ...CAT_COLS.map(c => ({
+    id: c.key,
+    accessorFn: (r: SiteRow) => r.cats[c.key] ?? undefined,
+    header: c.label,
+    sortUndefined: 'last' as const,
+    meta: { align: 'center' as const, headClass: 'w-14' },
+    cell: ({ row }: any) => {
+      const v = row.original.cats[c.key] as number | undefined
+      return h('span', { class: `text-xs font-semibold tabular-nums ${scoreToColor(v ?? null)}` }, scoreToLabel(v ?? null))
+    },
+  })),
+  {
+    id: 'trend',
+    header: 'Trend',
+    enableSorting: false,
+    meta: { headClass: 'w-28' },
+    cell: ({ row }) => h(SparklineC, { values: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null) }),
+  },
+  {
+    id: 'last',
+    accessorFn: (r: SiteRow) => r.lastAt ?? '',
+    header: 'Last scan',
+    meta: { align: 'right', headClass: 'w-28' },
+    cell: ({ row }) => h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, row.original.lastAt ? fmtRelTime(row.original.lastAt) : '—'),
+  },
+]
+
+// ── Recent scans table ───────────────────────────────────────────────────────
+const recentColumns: ColumnDef<ScanRow>[] = [
+  {
+    accessorKey: 'site',
+    header: 'Site',
+    enableSorting: false,
+    cell: ({ row }) => h('span', { class: 'text-sm font-mono truncate block max-w-xs' }, (() => {
+      try {
+        return new URL(row.original.site).hostname + new URL(row.original.site).pathname.replace(/\/$/, '')
+      }
+      catch {
+        return row.original.site
+      }
+    })()),
+  },
+  {
+    id: 'device',
+    header: 'Device',
+    enableSorting: false,
+    meta: { align: 'center', headClass: 'w-16' },
+    cell: ({ row }) => h(resolveComponent('Icon'), { name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor', class: 'size-3.5 text-muted-foreground' }),
+  },
+  {
+    id: 'avg',
+    header: 'Score',
+    enableSorting: false,
+    meta: { align: 'center', headClass: 'w-16' },
+    cell: ({ row }) => h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.summary?.scoreAverage ?? null)}` }, scoreToLabel(row.original.summary?.scoreAverage ?? null)),
+  },
+  {
+    id: 'routes',
+    header: 'Routes',
+    enableSorting: false,
+    meta: { align: 'right', headClass: 'w-16' },
+    cell: ({ row }) => h('span', { class: 'text-xs tabular-nums text-muted-foreground' }, String(row.original.summary?.completed ?? 0)),
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    enableSorting: false,
+    meta: { align: 'center', headClass: 'w-24' },
+    cell: ({ row }) => h(ScanStatusBadge, { status: row.original.status }),
+  },
+  {
+    id: 'when',
+    header: 'When',
+    enableSorting: false,
+    meta: { align: 'right', headClass: 'w-24' },
+    cell: ({ row }) => h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, fmtRelTime(row.original.startedAt)),
+  },
+]
+const recentScans = computed(() => allScans.value.slice(0, 10))
+
+function openSite(r: SiteRow) {
+  router.push(`/sites/${r.slug}`)
+}
+function openScan(s: ScanRow) {
+  router.push(`/sites/${siteSlug(s.site)}/scans/${s.scanId}/routes`)
 }
 </script>
 
@@ -53,7 +214,7 @@ function formatDuration(start: string | null, end: string | null) {
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p class="text-sm text-muted-foreground">Start a new scan or view past results.</p>
+        <p class="text-sm text-muted-foreground">Your sites at a glance.</p>
       </div>
       <Button as-child>
         <NuxtLink to="/scan/new">
@@ -80,18 +241,8 @@ function formatDuration(start: string | null, end: string | null) {
       </CardContent>
     </Card>
 
-    <!-- Loading skeleton -->
-    <div v-if="historyStatus === 'pending'" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Card v-for="i in 3" :key="i">
-        <CardHeader>
-          <div class="h-4 w-3/4 bg-muted animate-pulse rounded" />
-          <div class="h-3 w-1/2 bg-muted animate-pulse rounded mt-2" />
-        </CardHeader>
-      </Card>
-    </div>
-
     <!-- Empty state -->
-    <div v-else-if="!scans?.items?.length && !store.isActive" class="flex flex-col items-center justify-center py-20 text-center">
+    <div v-if="historyStatus !== 'pending' && !allScans.length && !store.isActive" class="flex flex-col items-center justify-center py-20 text-center">
       <div class="size-16 rounded-full bg-muted flex items-center justify-center mb-6">
         <Icon name="lucide:radar" class="size-8 text-muted-foreground" />
       </div>
@@ -107,79 +258,56 @@ function formatDuration(start: string | null, end: string | null) {
       </Button>
     </div>
 
-    <!-- Sites -->
-    <div v-if="sitesData?.sites?.length" class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Sites</h2>
-        <NuxtLink to="/sites" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
-          Manage
-          <Icon name="lucide:arrow-right" class="size-3 inline ml-0.5" />
-        </NuxtLink>
-      </div>
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card
-          v-for="site in sitesData.sites.slice(0, 8)"
-          :key="site.id"
-          class="cursor-pointer transition-all hover:border-primary/30 hover:shadow-sm"
-          @click="router.push(`/sites/${siteSlug(site.url)}`)"
-        >
+    <template v-else>
+      <!-- KPI cards -->
+      <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card>
           <CardContent class="pt-4 pb-3">
-            <div class="mb-1">
-              <span class="text-sm font-medium truncate">{{ site.name }}</span>
-            </div>
-            <div class="text-xs text-muted-foreground font-mono truncate">{{ site.url }}</div>
+            <div class="text-xs text-muted-foreground">Sites</div>
+            <div class="text-2xl font-bold tabular-nums mt-1">{{ kpis.sites }}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-4 pb-3">
+            <div class="text-xs text-muted-foreground">Total scans</div>
+            <div class="text-2xl font-bold tabular-nums mt-1">{{ kpis.scans }}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-4 pb-3">
+            <div class="text-xs text-muted-foreground">Avg score</div>
+            <div class="text-2xl font-bold tabular-nums mt-1" :style="{ color: score100Color(kpis.avg) }">{{ kpis.avg ?? '—' }}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="pt-4 pb-3">
+            <div class="text-xs text-muted-foreground">Needs attention</div>
+            <div class="text-2xl font-bold tabular-nums mt-1" :class="kpis.needs ? 'text-orange-500' : ''">{{ kpis.needs }}</div>
           </CardContent>
         </Card>
       </div>
-    </div>
 
-    <!-- Recent scans -->
-    <div v-if="scans?.items?.length" class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Recent Scans</h2>
-        <NuxtLink to="/history" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
-          View all
-          <Icon name="lucide:arrow-right" class="size-3 inline ml-0.5" />
-        </NuxtLink>
+      <!-- Sites -->
+      <div v-if="siteRows.length" class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Sites</h2>
+          <NuxtLink to="/sites" class="text-xs text-muted-foreground hover:text-foreground transition-colors">
+            Manage <Icon name="lucide:arrow-right" class="size-3 inline" />
+          </NuxtLink>
+        </div>
+        <DataTable :columns="siteColumns" :data="siteRows" row-clickable @row-click="openSite" />
       </div>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card
-          v-for="scan in scans.items"
-          :key="scan.scanId"
-          class="cursor-pointer transition-all hover:border-primary/30 hover:shadow-sm group"
-          @click="router.push(`/sites/${siteSlug(scan.site)}/scans/${scan.scanId}/routes`)"
-        >
-          <CardContent class="pt-4 pb-4">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium truncate max-w-[65%]">{{ scan.site }}</span>
-              <ScanStatusBadge :status="scan.status" />
-            </div>
 
-            <!-- Score bar -->
-            <div v-if="scan.summary?.scoreAverage != null" class="flex items-center gap-3 mb-3">
-              <ScoreRing :score="scan.summary.scoreAverage" size="sm" />
-              <div>
-                <div class="text-xl font-bold tabular-nums" :style="{ color: scoreToRingColor(scan.summary.scoreAverage) }">
-                  {{ scoreToLabel(scan.summary.scoreAverage) }}
-                </div>
-                <div class="text-[10px] text-muted-foreground">avg score</div>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline" class="text-[10px] px-1.5 py-0">
-                <Icon :name="scan.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-2.5 mr-0.5" />
-                {{ scan.device }}
-              </Badge>
-              <span v-if="scan.summary">{{ scan.summary.routes }} routes</span>
-              <span v-if="formatDuration(scan.startedAt, scan.completedAt)" class="text-muted-foreground/60">
-                {{ formatDuration(scan.startedAt, scan.completedAt) }}
-              </span>
-              <span class="ml-auto">{{ formatDate(scan.startedAt) }}</span>
-            </div>
-          </CardContent>
-        </Card>
+      <!-- Recent scans -->
+      <div v-if="recentScans.length" class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent scans</h2>
+          <NuxtLink to="/history" class="text-xs text-muted-foreground hover:text-foreground transition-colors">
+            View all <Icon name="lucide:arrow-right" class="size-3 inline" />
+          </NuxtLink>
+        </div>
+        <DataTable :columns="recentColumns" :data="recentScans" row-clickable @row-click="openScan" />
       </div>
-    </div>
+    </template>
   </div>
 </template>
