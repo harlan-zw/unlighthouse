@@ -1,9 +1,11 @@
 <script setup lang="ts">
-// The advanced, self-contained scan-routes table: server sort/filter/
-// pagination, device split, screenshot thumbs, column visibility, density and
-// a sticky header. Reads scanId/siteId from the route so both the dedicated
-// /routes page and the scan overview can drop it in with no props.
-import type { ColumnDef } from '@tanstack/vue-table'
+// The advanced scan-routes table. Loads every route for the scan once (≤500)
+// and does filtering + sorting client-side, so every column header sorts
+// instantly (the server only sorts overall score + CWV) and quick filters
+// apply across all routes, not just a page. Web-vitals cells are coloured by
+// Google's good/needs-work/poor thresholds; screenshot thumbs, device split,
+// column visibility, density and a sticky header round it out.
+import type { ColumnDef, SortingState } from '@tanstack/vue-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,26 +26,83 @@ import {
 } from '@/components/ui/select'
 import { useScanStore } from '~/stores/scan'
 
-const props = withDefaults(defineProps<{
-  /** Smaller page size when embedded (e.g. on the overview). */
-  pageSize?: number
-}>(), {
-  pageSize: 50,
-})
-
 const router = useRouter()
-const route = useRoute()
 const api = useApi()
 const store = useScanStore()
 const { scanId, scanBase } = useScanBase()
 const { scoreToColor, scoreToLabel } = useScoreColor()
 const baseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
 
-const page = ref(1)
-const urlFilter = ref('')
-// 'all' sentinel — reka-ui's Select forbids an empty-string item value.
-const deviceFilter = ref<string>('all')
-const serverSort = ref('score-asc')
+// Load the whole scan once; everything below is client-side. 500 is the
+// scan.results cap — past that we note the truncation.
+const { data: scanResults, refresh } = useAsyncData(
+  `scan-routes-table-${scanId.value}`,
+  () => api['scan.results']({ scanId: scanId.value, page: 1, pageSize: 500 }).catch(() => null),
+  { watch: [scanId] },
+)
+useScanWebsocket({ 'scan:complete': refresh })
+
+interface RouteRow {
+  url: string
+  path: string
+  device: string
+  scorePerformance: number | null
+  scoreAccessibility: number | null
+  scoreSeo: number | null
+  scoreBestPractices: number | null
+  lcp: number | null
+  cls: number | null
+  tbt: number | null
+}
+
+const allRows = computed(() => (scanResults.value?.items ?? []) as RouteRow[])
+const total = computed(() => scanResults.value?.total ?? 0)
+const truncated = computed(() => total.value > allRows.value.length)
+
+const hasMultipleDevices = computed(() => new Set(allRows.value.map(r => r.device)).size > 1)
+
+// ── Filters (client-side) ────────────────────────────────────────────────────
+const q = ref('')
+const deviceFilter = ref<'all' | 'mobile' | 'desktop'>('all')
+const quick = ref<'all' | 'failing' | 'poor-cwv'>('all')
+
+const CWV_THRESHOLDS: Record<string, [number, number]> = {
+  lcp: [2500, 4000],
+  cls: [0.1, 0.25],
+  tbt: [200, 600],
+}
+function cwvColor(metric: 'lcp' | 'cls' | 'tbt', v: number | null): string {
+  if (v == null) return 'text-muted-foreground'
+  const [good, poor] = CWV_THRESHOLDS[metric]!
+  return v <= good ? 'text-green-500' : v <= poor ? 'text-orange-500' : 'text-red-500'
+}
+
+function passesQuick(r: RouteRow): boolean {
+  if (quick.value === 'failing')
+    return [r.scorePerformance, r.scoreAccessibility, r.scoreSeo, r.scoreBestPractices].some(s => s != null && s < 0.9)
+  if (quick.value === 'poor-cwv')
+    return (r.lcp != null && r.lcp > 4000) || (r.cls != null && r.cls > 0.25) || (r.tbt != null && r.tbt > 600)
+  return true
+}
+
+const filtered = computed(() => {
+  const needle = q.value.trim().toLowerCase()
+  return allRows.value.filter((r) => {
+    if (deviceFilter.value !== 'all' && r.device !== deviceFilter.value) return false
+    if (needle && !(r.path || r.url).toLowerCase().includes(needle)) return false
+    if (!passesQuick(r)) return false
+    return true
+  })
+})
+
+const QUICK_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'failing', label: 'Failing' },
+  { key: 'poor-cwv', label: 'Poor CWV' },
+] as const
+
+// ── Sorting (client-side, header-driven) ─────────────────────────────────────
+const sorting = ref<SortingState>([{ id: 'scorePerformance', desc: false }])
 
 const density = ref<'comfortable' | 'compact'>('comfortable')
 const tableRef = ref<{ table: any } | null>(null)
@@ -60,62 +119,14 @@ const colLabels: Record<string, string> = {
   tbt: 'TBT',
 }
 
-const { data: scanResults, refresh } = useAsyncData(
-  `scan-routes-table-${scanId.value}`,
-  () => api['scan.results']({
-    scanId: scanId.value,
-    page: page.value,
-    pageSize: props.pageSize,
-    sort: serverSort.value as any,
-    device: deviceFilter.value !== 'all' ? deviceFilter.value : undefined,
-    filter: urlFilter.value ? { urlPattern: urlFilter.value } : undefined,
-  }).catch(() => null),
-  { watch: [scanId, page, serverSort, urlFilter, deviceFilter] },
-)
-
-useScanWebsocket({ 'scan:complete': refresh })
-
-const hasMultipleDevices = computed(() => {
-  if (!scanResults.value?.items) return false
-  const devices = new Set(scanResults.value.items.map((r: any) => r.device))
-  return devices.size > 1
-})
-
 function formatMetric(value: number | null, unit: string = 'ms') {
   if (value === null) return '—'
   if (unit === 'ms') return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`
   return value.toFixed(3)
 }
 
-const totalPages = computed(() => {
-  if (!scanResults.value) return 0
-  return Math.ceil(scanResults.value.total / props.pageSize)
-})
-
-let filterTimeout: ReturnType<typeof setTimeout>
-function onFilterInput(e: Event) {
-  clearTimeout(filterTimeout)
-  filterTimeout = setTimeout(() => {
-    urlFilter.value = (e.target as HTMLInputElement).value
-    page.value = 1
-  }, 300)
-}
-
-function openRoute(r: any) {
+function openRoute(r: RouteRow) {
   router.push(`${scanBase.value}/route/${encodeURIComponent(r.path || r.url)}`)
-}
-
-interface RouteRow {
-  url: string
-  path: string
-  device: string
-  scorePerformance: number | null
-  scoreAccessibility: number | null
-  scoreSeo: number | null
-  scoreBestPractices: number | null
-  lcp: number | null
-  cls: number | null
-  tbt: number | null
 }
 
 const SCORE_COLS: { key: keyof RouteRow, label: string }[] = [
@@ -147,7 +158,6 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     {
       accessorKey: 'path',
       header: 'Path',
-      enableSorting: false,
       meta: { headClass: 'min-w-[200px]' },
       cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-xs' }, row.original.path || row.original.url),
     },
@@ -168,9 +178,10 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
 
   for (const s of SCORE_COLS) {
     cols.push({
-      accessorKey: s.key,
+      id: s.key,
+      accessorFn: (row: RouteRow) => (row[s.key] as number | null) ?? undefined,
       header: s.label,
-      enableSorting: false,
+      sortUndefined: 'last',
       meta: { align: 'center', headClass: 'w-16' },
       cell: ({ row }) => {
         const score = row.original[s.key] as number | null
@@ -179,81 +190,71 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     })
   }
 
-  cols.push(
-    {
-      accessorKey: 'lcp',
-      header: 'LCP',
-      enableSorting: false,
+  const CWV_COLS: { key: 'lcp' | 'cls' | 'tbt', label: string, unit: string }[] = [
+    { key: 'lcp', label: 'LCP', unit: 'ms' },
+    { key: 'cls', label: 'CLS', unit: '' },
+    { key: 'tbt', label: 'TBT', unit: 'ms' },
+  ]
+  for (const m of CWV_COLS) {
+    cols.push({
+      id: m.key,
+      accessorFn: (row: RouteRow) => (row[m.key] as number | null) ?? undefined,
+      header: m.label,
+      sortUndefined: 'last',
       meta: { align: 'right', headClass: 'w-20' },
-      cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.lcp)),
-    },
-    {
-      accessorKey: 'cls',
-      header: 'CLS',
-      enableSorting: false,
-      meta: { align: 'right', headClass: 'w-20' },
-      cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.cls, '')),
-    },
-    {
-      accessorKey: 'tbt',
-      header: 'TBT',
-      enableSorting: false,
-      meta: { align: 'right', headClass: 'w-20' },
-      cell: ({ row }) => h('span', { class: 'tabular-nums text-xs text-muted-foreground' }, formatMetric(row.original.tbt)),
-    },
-  )
+      cell: ({ row }) => h('span', { class: `tabular-nums text-xs font-medium ${cwvColor(m.key, row.original[m.key] as number | null)}` }, formatMetric(row.original[m.key] as number | null, m.unit)),
+    })
+  }
 
   return cols
 })
-
-const sortOptions = [
-  { value: 'score-asc', label: 'Score (low → high)' },
-  { value: 'score-desc', label: 'Score (high → low)' },
-  { value: 'lcp-desc', label: 'LCP (slowest)' },
-  { value: 'cls-desc', label: 'CLS (worst)' },
-  { value: 'tbt-desc', label: 'TBT (slowest)' },
-  { value: 'ttfb-desc', label: 'TTFB (slowest)' },
-  { value: 'url-asc', label: 'URL (A-Z)' },
-  { value: 'capturedAt-desc', label: 'Most Recent' },
-]
 </script>
 
 <template>
   <div class="space-y-4">
     <!-- Toolbar -->
     <div class="flex items-center gap-3 flex-wrap">
-      <div class="relative flex-1 max-w-sm min-w-[200px]">
+      <div class="relative flex-1 max-w-xs min-w-[180px]">
         <Icon name="lucide:search" class="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-        <Input placeholder="Filter by URL..." class="pl-8" :model-value="urlFilter" @input="onFilterInput" />
+        <Input v-model="q" placeholder="Filter by URL..." class="pl-8" />
       </div>
-      <Badge v-if="scanResults" variant="secondary" class="text-xs">{{ scanResults.total }} total</Badge>
+
+      <!-- Quick filters -->
+      <div class="flex items-center rounded-md border p-0.5">
+        <button
+          v-for="f in QUICK_FILTERS"
+          :key="f.key"
+          type="button"
+          class="px-2.5 py-1 text-xs rounded transition-colors"
+          :class="quick === f.key ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'"
+          @click="quick = f.key"
+        >
+          {{ f.label }}
+        </button>
+      </div>
+
+      <Badge variant="secondary" class="text-xs tabular-nums">
+        {{ filtered.length }}<span v-if="filtered.length !== total" class="text-muted-foreground/70"> / {{ total }}</span>
+      </Badge>
+
       <div class="flex-1" />
-      <Select v-if="hasMultipleDevices || deviceFilter !== 'all'" v-model="deviceFilter">
+
+      <Select v-if="hasMultipleDevices" v-model="deviceFilter">
         <SelectTrigger class="w-36">
-          <SelectValue placeholder="All Devices" />
+          <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Devices</SelectItem>
           <SelectItem value="mobile">
             <div class="flex items-center gap-1.5">
-              <Icon name="lucide:smartphone" class="size-3.5" />
-              Mobile
+              <Icon name="lucide:smartphone" class="size-3.5" /> Mobile
             </div>
           </SelectItem>
           <SelectItem value="desktop">
             <div class="flex items-center gap-1.5">
-              <Icon name="lucide:monitor" class="size-3.5" />
-              Desktop
+              <Icon name="lucide:monitor" class="size-3.5" /> Desktop
             </div>
           </SelectItem>
-        </SelectContent>
-      </Select>
-      <Select v-model="serverSort">
-        <SelectTrigger class="w-48">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -291,8 +292,9 @@ const sortOptions = [
 
     <DataTable
       ref="tableRef"
+      v-model:sorting="sorting"
       :columns="columns"
-      :data="(scanResults?.items ?? []) as RouteRow[]"
+      :data="filtered"
       :density="density"
       sticky-header
       container-class="rounded-lg border overflow-auto max-h-[72vh]"
@@ -301,22 +303,13 @@ const sortOptions = [
     >
       <template #empty>
         <p v-if="store.isActive">Routes will appear as they are scanned...</p>
+        <p v-else-if="q || quick !== 'all'">No routes match the current filter.</p>
         <p v-else>No routes found.</p>
       </template>
     </DataTable>
 
-    <div v-if="totalPages > 1" class="flex items-center justify-between">
-      <span class="text-sm text-muted-foreground">
-        Page {{ page }} of {{ totalPages }} · {{ scanResults?.total ?? 0 }} routes
-      </span>
-      <div class="flex gap-1">
-        <Button variant="outline" size="sm" :disabled="page <= 1" @click="page--">
-          <Icon name="lucide:chevron-left" class="size-4" />
-        </Button>
-        <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="page++">
-          <Icon name="lucide:chevron-right" class="size-4" />
-        </Button>
-      </div>
-    </div>
+    <p v-if="truncated" class="text-xs text-muted-foreground">
+      Showing the first {{ allRows.length }} of {{ total }} routes.
+    </p>
   </div>
 </template>
