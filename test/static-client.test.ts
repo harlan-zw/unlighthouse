@@ -3,7 +3,8 @@
 // This pins the data layer behind `--build-static`.
 
 import type { PackRun, Scan, ScanRoute, UnlighthouseConfig } from '@unlighthouse/contracts'
-import { createStaticClient } from '../packages/core/src/api/static-client'
+import { buildStaticSnapshot, createStaticClient } from '../packages/core/src/api/static-client'
+import { memoryStorage } from '../packages/core/src/storage/memory'
 import { describe, expect, it } from 'vitest'
 
 const SCAN_ID = 'scan-static-0001'
@@ -123,5 +124,30 @@ describe('createStaticClient — offline read commands', () => {
     const api = makeClient()
     await expect(api['scan.rescanAll']({ scanId: SCAN_ID as never })).rejects.toThrow(/static report/i)
     await expect(api['route.rescan']({ scanId: SCAN_ID as never, url: 'https://example.com/' } as never)).rejects.toThrow(/static report/i)
+  })
+})
+
+describe('buildStaticSnapshot → createStaticClient round-trip', () => {
+  it('collects a scan from storage and serves it back offline', async () => {
+    // Seed a live-shaped storage the way a real scan leaves it.
+    const storage = memoryStorage()
+    await storage.scans.create(makeScan() as never)
+    await storage.routes.putBatch(SCAN_ID as never, 'mobile' as never, [makeRoute('/', 1), makeRoute('/about', 0.4)] as never)
+    await storage.packRuns.put(makePackRun())
+    await storage.sites.create({ id: 'https://example.com', name: 'example.com', url: 'https://example.com', group: null, createdAt: '2025-01-01T00:00:00.000Z' })
+
+    // Collect only already-cached packs (skip re-running, which needs LHR blobs).
+    const snapshot = await buildStaticSnapshot({ storage, scanId: SCAN_ID, config, packs: [] })
+    expect(snapshot.scans).toHaveLength(1)
+    expect(snapshot.routes).toHaveLength(2)
+    expect(snapshot.packRuns.map(p => p.packName)).toContain('cwv')
+    expect(snapshot.sites).toHaveLength(1)
+
+    // Feed the collected snapshot to the offline client — full producer→consumer.
+    const api = createStaticClient(snapshot)
+    const results = await api['scan.results']({ scanId: SCAN_ID as never, page: 1, pageSize: 50 })
+    expect(results.total).toBe(2)
+    const pack = await api['pack.run']({ scanId: SCAN_ID as never, pack: 'cwv' } as never)
+    expect(pack.cache).toBe('hit')
   })
 })

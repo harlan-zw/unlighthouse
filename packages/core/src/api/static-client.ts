@@ -45,6 +45,88 @@ export interface StaticSnapshot {
 
 const WRITE_REJECT_MESSAGE = 'This is a static report — live actions are unavailable offline.'
 
+/** Packs the dashboard renders — pre-run at build time so offline pack.run hits the cache. */
+export const STATIC_SNAPSHOT_PACKS = [
+  'cwv',
+  'insights',
+  'images',
+  'seo-basics',
+  'a11y-quick-wins',
+  'js-bundle',
+  'agentic-browsing',
+  'crux',
+  'overview',
+] as const
+
+/**
+ * Collect everything the static client needs to serve one scan offline, by
+ * reading the same storage the live API reads. Pure data-collection (plus an
+ * optional pre-run of the dashboard packs so their pages render offline) — no
+ * fs, no client copy; build.ts embeds the result into the payload.
+ */
+export async function buildStaticSnapshot(opts: {
+  storage: Storage
+  scanId: string
+  config: UnlighthouseConfig
+  version?: string
+  /** Pre-run these packs into the cache before collecting (default: the dashboard set). Pass [] to only collect already-cached runs. */
+  packs?: readonly string[]
+}): Promise<StaticSnapshot> {
+  const { storage, scanId, config } = opts
+  const scan = await storage.scans.get(scanId as never)
+  const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+
+  // Pre-run the dashboard packs so pack.run hits the cache offline. Runs in
+  // Node at build time where zlib/crypto are available; failures are non-fatal
+  // (that pack page just shows empty offline).
+  const packs = opts.packs ?? STATIC_SNAPSHOT_PACKS
+  if (packs.length) {
+    const handlers = createHandlers()
+    const ctx = { core: { session: () => null } as never, auditor: undefined as never, storage, config, version: opts.version ?? 'static' }
+    for (const pack of packs) {
+      try {
+        await (handlers['pack.run'] as { run: (i: unknown, c: unknown) => Promise<unknown> }).run({ scanId, pack }, ctx)
+      }
+      catch {
+        // pack unavailable / no data for this scan — skip
+      }
+    }
+  }
+
+  const packRuns = await storage.packRuns.listForScan(scanId as never)
+
+  // Contract blobs the read handlers reconcile route/summary/categories from,
+  // plus any blob a pack-run cache row spilled to (large reports).
+  const blobKeys = new Set<string>()
+  for (const r of routes) {
+    if (r.reportBlobKey)
+      blobKeys.add(r.reportBlobKey.replace('.json', '.contract.json'))
+  }
+  for (const run of packRuns) {
+    const key = (run as { blobKey?: string }).blobKey
+    if (key)
+      blobKeys.add(key)
+  }
+  const blobs: Record<string, string> = {}
+  for (const key of blobKeys) {
+    const buf = await storage.blobs.get(key)
+    if (buf)
+      blobs[key] = new TextDecoder().decode(buf)
+  }
+
+  const sites = await storage.sites.list()
+
+  return {
+    scans: scan ? [scan] : [],
+    routes,
+    blobs,
+    packRuns,
+    sites,
+    config,
+    version: opts.version,
+  }
+}
+
 const WRITE_COMMANDS = new Set<CommandName>([
   'scan.start',
   'scan.cancel',
