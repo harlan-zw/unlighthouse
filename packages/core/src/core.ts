@@ -651,6 +651,8 @@ function createSession(deps: SessionDeps): CrawlSession {
       allows,
       // Page mode / explicit urls: audit only the seeds, don't follow links.
       noFollow,
+      // Skip auditing localized (x-default alternate) duplicates. Defaults true.
+      ignoreI18nPages: deps.config.scanner?.ignoreI18nPages ?? true,
       signal,
     })
 

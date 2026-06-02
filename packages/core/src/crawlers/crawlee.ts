@@ -7,8 +7,10 @@ import type {
   CrawlEvent,
 } from '@unlighthouse/contracts/ports'
 import type { Hookable } from 'hookable'
+import type { RequestTransform } from 'crawlee'
 import { CheerioCrawler, log as crawleeLog, RequestQueue } from 'crawlee'
 import { createHooks } from 'hookable'
+import { isI18nAlternatePage, sameHostCanonical } from '../util/i18n'
 
 export interface CrawleeCrawlerOptions {
   concurrency?: number
@@ -130,7 +132,7 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       maxConcurrency: concurrency,
       maxRequestsPerCrawl: maxRequests,
       respectRobotsTxtFile: false,
-      requestHandler: async ({ request, enqueueLinks }) => {
+      requestHandler: async ({ request, enqueueLinks, $ }) => {
         if (aborted)
           return
         const url = request.loadedUrl || request.url
@@ -139,7 +141,26 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         if (attempt > 1)
           await hooks.callHook('request:retry', { url, attempt })
 
-        if (!audited.has(url)) {
+        // Shared dedup + allow-filter + discovery-emit used by link, canonical
+        // and x-default enqueue alike.
+        const transformRequestFunction: RequestTransform = (req) => {
+          if (discovered.has(req.url))
+            return false
+          if (runOpts.allows && !runOpts.allows(req.url))
+            return false
+          discovered.add(req.url)
+          emit({ type: 'url-discovered', url: req.url, from: url })
+          return req
+        }
+
+        // A page that declares an `x-default` alternate pointing at a *different*
+        // URL is a localized duplicate. With `ignoreI18nPages` we skip its audit
+        // (the x-default page carries the canonical scan) but still enqueue the
+        // x-default target below so it does get scanned.
+        const xDefaultHref = $ ? $('link[rel="alternate"][hreflang="x-default"]').attr('href') : undefined
+        const isI18nDuplicate = (runOpts.ignoreI18nPages ?? false) && isI18nAlternatePage(url, xDefaultHref)
+
+        if (!audited.has(url) && !isI18nDuplicate) {
           audited.add(url)
           emit({ type: 'url-started', url })
           try {
@@ -159,16 +180,26 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
 
         await enqueueLinks({
           strategy: 'same-hostname',
-          transformRequestFunction: (req) => {
-            if (discovered.has(req.url))
-              return false
-            if (runOpts.allows && !runOpts.allows(req.url))
-              return false
-            discovered.add(req.url)
-            emit({ type: 'url-discovered', url: req.url, from: url })
-            return req
-          },
+          transformRequestFunction,
         })
+
+        // Also follow same-host canonical + x-default targets — these aren't
+        // always reachable through the page's `<a>` links.
+        if ($) {
+          const extra = new Set<string>()
+          const canonical = sameHostCanonical(url, $('link[rel="canonical"]').attr('href'))
+          if (canonical)
+            extra.add(canonical)
+          const xDefault = sameHostCanonical(url, xDefaultHref)
+          if (xDefault)
+            extra.add(xDefault)
+          if (extra.size) {
+            await enqueueLinks({
+              urls: [...extra],
+              transformRequestFunction,
+            })
+          }
+        }
 
         if (runOpts.crawlDelayMs && runOpts.crawlDelayMs > 0)
           await new Promise(r => setTimeout(r, runOpts.crawlDelayMs))
