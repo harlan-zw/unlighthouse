@@ -174,6 +174,26 @@ URL,Score,Performance,Accessibility,Best Practices,SEO,Largest Contentful Paint,
 "/talks",98,90,100,100,100,864.86,0,390.93,427.94,1,1,1,1,1,1,1,1,1,1
 ```
 
+### Import into Google Sheets
+
+The CSV drops straight into Google Sheets for tracking scores over time.
+
+**One-off:** in Sheets, **File → Import → Upload** the generated `.csv` and pick
+*"Replace current sheet"*.
+
+**Auto-refreshing:** if you publish the CSV to a URL (e.g. alongside a
+[static report](#html-reports), or any object store), pull it in live with
+[`IMPORTDATA`](https://support.google.com/docs/answer/3093335) — Sheets re-fetches
+it periodically, so each new scan you publish updates the sheet automatically:
+
+```text
+=IMPORTDATA("https://example.com/reports/unlighthouse.csv")
+```
+
+From there, Sheets' own history (**File → Version history**) plus a dated tab per
+run gives you a longitudinal record. The dashboard also keeps per-site scan
+history natively — see the **History** view in the UI.
+
 ## JSON Reports
 
 You can generate a JSON report by providing the `--reporter json` or `--reporter jsonExpanded` flag.
