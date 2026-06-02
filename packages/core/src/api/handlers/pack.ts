@@ -13,9 +13,9 @@
 
 import type { CommandOutput, Device, PackList, PackRun, PackRunCmd } from '@unlighthouse/contracts'
 import type { Handler } from './types'
-import { createHash } from 'node:crypto'
-import { gunzipSync } from 'node:zlib'
 import { UnlighthouseError } from '@unlighthouse/contracts'
+import { gunzipSync } from 'fflate'
+import { sha1Hex } from '../../util/sha1'
 import { builtInPacks, getPack } from '../../packs/index'
 
 // Inline-vs-spill threshold for cached reports. SQLite handles big JSON
@@ -113,7 +113,7 @@ export const packRun: Handler<typeof PackRunCmd> = {
       const gz = await ctx.storage.blobs.get(row.lhrBlobKey)
       if (!gz)
         return null
-      const lhr = JSON.parse(gunzipSync(gz).toString())
+      const lhr = JSON.parse(new TextDecoder().decode(gunzipSync(gz as Uint8Array)))
       lhrCache.set(cacheKey, lhr)
       return lhr
     }
@@ -134,7 +134,7 @@ export const packRun: Handler<typeof PackRunCmd> = {
         return null
       // Derive the contract-blob key from the same scan / url / device the
       // ingest path wrote. D-029: device segment is in the filename.
-      const hash = createHash('sha1').update(url).digest('hex').slice(0, 16)
+      const hash = sha1Hex(url).slice(0, 16)
       const contractKey = `scans/${input.scanId}/reports/${hash}-${device}.contract.json`
       const buf = await ctx.storage.blobs.get(contractKey)
       if (!buf)

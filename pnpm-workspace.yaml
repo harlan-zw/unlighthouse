@@ -91,6 +91,7 @@ catalogs:
     defu: ^6.1.7
     drizzle-orm: ^0.45.2
     execa: ^9.6.1
+    fflate: ^0.8.2
     fs-extra: ^11.3.5
     globby: ^16.2.0
     h3: ^1.15.11
