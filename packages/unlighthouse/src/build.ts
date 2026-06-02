@@ -43,7 +43,10 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
   const inlineScript = `window.__unlighthouse_static = ${!!options.static}`
   let indexHTML = await fs.readFile(runtimeSettings.resolvedClientPath, 'utf-8')
 
-  const payloadScript = `<script src="${prefix}assets/payload.js"></script>`
+  // Absolute (leading slash) so a hard-load / refresh on a deep client route
+  // still finds the payload — a relative `assets/...` would resolve against the
+  // current path and miss. The prefix-rewrite below adjusts it for sub-path hosting.
+  const payloadScript = `<script src="/assets/payload.js"></script>`
   const inlineScriptTag = `<script data-unlighthouse-inline>${inlineScript}</script>`
   if (indexHTML.includes('</head>')) {
     indexHTML = indexHTML.replace('</head>', `${payloadScript}${inlineScriptTag}</head>`)
@@ -154,14 +157,25 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
         continue
       const file = `screenshots/${idx++}.${ext}`
       await fs.writeFile(join(assetsDir, file), bytes)
-      screenshots[r.path] = `${prefix}assets/${file}`
+      // Absolute from the report root — these render on deep client-side routes,
+      // so a relative URL would resolve against the current path and 404.
+      // `prefix` is '' (root) or '/sub/'; `|| '/'` covers the root case.
+      screenshots[r.path] = `${prefix || '/'}assets/${file}`
     }
     staticData.screenshots = screenshots
   }
 
+  // Escape for safe embedding in a <script>: `<` (so a `</script>` inside any
+  // LHR/contract HTML snippet can't close the tag) and U+2028/U+2029 (valid in
+  // JSON but illegal in a JS string literal — they'd throw a SyntaxError and the
+  // payload would silently never load, falling back to the dead live API).
+  const payloadJson = JSON.stringify(staticData)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
   await fs.writeFile(
     join(assetsDir, 'payload.js'),
-    `window.__unlighthouse_payload = ${JSON.stringify(staticData)}`,
+    `window.__unlighthouse_payload = ${payloadJson}`,
     { encoding: 'utf-8' },
   )
 

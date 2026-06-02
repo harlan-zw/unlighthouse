@@ -48,18 +48,21 @@ async function run() {
 
   validateOptions(unlighthouse.resolvedConfig)
 
+  // D-029: forward parsed `--device` matrix into the run overrides so CI
+  // runs can exercise mobile + desktop under a single scan id.
+  const deviceOverride = parseDevices(options)
+  // start() initialises the host ports (and kicks off the scan); the hooks
+  // proxy throws if accessed before that. Register scan:complete immediately
+  // after — JS runs these synchronous statements before the scan can emit on a
+  // later tick, so there's no race with `await completed` below.
+  const { scanId } = await unlighthouse.start(
+    deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
+  )
   const completed = new Promise<{ completed: number }>((resolve) => {
     unlighthouse.hooks.hook('scan:complete', (payload) => {
       resolve({ completed: payload.summary.completed })
     })
   })
-
-  // D-029: forward parsed `--device` matrix into the run overrides so CI
-  // runs can exercise mobile + desktop under a single scan id.
-  const deviceOverride = parseDevices(options)
-  const { scanId } = await unlighthouse.start(
-    deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
-  )
   const { completed: completedCount } = await completed
   const seconds = Math.round((Date.now() - start.getTime()) / 1000)
   logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${completedCount} routes in ${seconds}s.`)

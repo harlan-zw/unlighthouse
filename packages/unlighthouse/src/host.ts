@@ -451,6 +451,17 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
   const generateClientStub = async (opts?: { static?: boolean }) => {
     const { storage } = await initPortsAsync()
+    // CI (`--build-static`) never mounts a server, so `resolvedClientPath` —
+    // normally set by setServerContext — is still empty. Resolve the
+    // @unlighthouse/ui client package here so build.ts has a source to copy.
+    if (!(rs as RuntimeSettings).resolvedClientPath) {
+      try {
+        const p = await resolvePath(ClientPkg, { url: import.meta.url })
+        if (existsSync(p))
+          (rs as RuntimeSettings).resolvedClientPath = p
+      }
+      catch {}
+    }
     const { generateClient } = await import('./build')
     await generateClient({ static: opts?.static ?? false }, {
       resolvedConfig,
