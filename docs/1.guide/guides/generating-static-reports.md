@@ -80,6 +80,15 @@ If you want to preview the static report you can run `npx sirv-cli .unlighthouse
 
 Note: You will need to host your site using a web server.
 
+The static report is **fully self-contained** — every scan's data, scores and
+route screenshots are embedded into the build, so it runs entirely offline with
+no Unlighthouse API or backend. That means you can drop the output directory onto
+any static host (GitHub Pages, S3, Netlify drop, `npx serve`, an internal
+fileserver) and it just works — no server-side component to deploy.
+
+If you serve the report under a sub-path (e.g. `example.com/reports/`), set
+[`routerPrefix`](/api-doc/config#routerprefix) so the embedded asset URLs resolve.
+
 #### CloudFlare Pages Example
 
 You should create a CloudFlare Pages site using [Direct Upload](https://developers.cloudflare.com/pages/platform/direct-upload/).
