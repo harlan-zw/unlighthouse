@@ -27,3 +27,35 @@ export function buildStorageInjectionScript(opts: {
   }
   return lines.join('\n')
 }
+
+/** One IndexedDB database to seed before the page loads. */
+export interface IndexedDbSeedSpec {
+  version?: number
+  stores: Record<string, {
+    keyPath?: string | string[]
+    autoIncrement?: boolean
+    records: unknown[]
+  }>
+}
+
+/**
+ * Build a script that seeds IndexedDB before the page's own scripts run (#216).
+ * Best-effort: the caller's store schema (keyPath/autoIncrement) must match what
+ * the page expects — IndexedDB is schema-bound, unlike key/value web storage.
+ * Errors are swallowed per-record so a mismatch never aborts the audit.
+ *
+ * Pure: seed map in, JS source string out. Empty/absent → ''.
+ */
+export function buildIndexedDbInjectionScript(seed: Record<string, IndexedDbSeedSpec> | null | undefined): string {
+  if (!seed || !Object.keys(seed).length)
+    return ''
+  // Embed the seed as JSON and replay it with the async IndexedDB API. Kept as a
+  // self-contained IIFE so it runs standalone inside evaluateOnNewDocument.
+  return `(function(){try{var seed=${JSON.stringify(seed)};Object.keys(seed).forEach(function(name){`
+    + `var spec=seed[name];var open=indexedDB.open(name,spec.version||1);`
+    + `open.onupgradeneeded=function(e){var db=e.target.result;Object.keys(spec.stores||{}).forEach(function(s){`
+    + `if(!db.objectStoreNames.contains(s)){var o=spec.stores[s];db.createObjectStore(s,o.keyPath?{keyPath:o.keyPath}:(o.autoIncrement?{autoIncrement:true}:undefined));}});};`
+    + `open.onsuccess=function(e){var db=e.target.result;var names=Object.keys(spec.stores||{});if(!names.length)return;`
+    + `try{var tx=db.transaction(names,'readwrite');names.forEach(function(s){var recs=(spec.stores[s].records)||[];var os=tx.objectStore(s);`
+    + `recs.forEach(function(r){try{os.put(r);}catch(_){}});});}catch(_){}};});}catch(_){}})();`
+}

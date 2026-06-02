@@ -1,4 +1,4 @@
-import { buildStorageInjectionScript } from '@unlighthouse/core/auditors/storage-injection'
+import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from '@unlighthouse/core/auditors/storage-injection'
 import { describe, expect, it } from 'vitest'
 
 describe('buildStorageInjectionScript', () => {
@@ -34,5 +34,32 @@ describe('buildStorageInjectionScript', () => {
   it('wraps each call in try/catch so one failure does not abort the rest', () => {
     const out = buildStorageInjectionScript({ localStorage: { a: '1' }, sessionStorage: { b: '2' } })
     expect(out.split('try {').length - 1).toBe(2)
+  })
+})
+
+describe('buildIndexedDbInjectionScript', () => {
+  it('returns empty string when nothing to seed', () => {
+    expect(buildIndexedDbInjectionScript(undefined)).toBe('')
+    expect(buildIndexedDbInjectionScript(null)).toBe('')
+    expect(buildIndexedDbInjectionScript({})).toBe('')
+  })
+
+  it('embeds the seed and opens the named database', () => {
+    const out = buildIndexedDbInjectionScript({
+      app: { version: 2, stores: { tokens: { keyPath: 'id', records: [{ id: 1, v: 'x' }] } } },
+    })
+    expect(out).toContain('indexedDB.open(name,spec.version||1)')
+    expect(out).toContain('"app"')
+    expect(out).toContain('"tokens"')
+    expect(out).toContain('createObjectStore')
+    expect(out).toContain('os.put(r)')
+  })
+
+  it('produces a self-contained, syntactically valid IIFE', () => {
+    const out = buildIndexedDbInjectionScript({ db: { stores: { s: { records: [] } } } })
+    expect(out.startsWith('(function(){')).toBe(true)
+    expect(out.trim().endsWith('})();')).toBe(true)
+    // parseable as a JS expression
+    expect(() => new Function(out)).not.toThrow()
   })
 })

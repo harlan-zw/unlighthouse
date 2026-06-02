@@ -16,7 +16,7 @@ import lighthouse from 'lighthouse'
 import puppeteer from 'puppeteer-core'
 import { extractInsights } from './extract'
 import { resolveLighthouseConfig } from './lighthouse-config'
-import { buildStorageInjectionScript } from './storage-injection'
+import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from './storage-injection'
 
 export interface LighthousePayload {
   url: string
@@ -44,10 +44,13 @@ const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (
   // #292: seed web storage before the page's own scripts run, for token/session-gated
   // sites. Needs a puppeteer page (init script + navigation mode); without storage we
   // keep the lighter port-only path so the default scan is unchanged.
-  const storageScript = buildStorageInjectionScript({
-    localStorage: options.localStorage,
-    sessionStorage: options.sessionStorage,
-  })
+  const storageScript = [
+    buildStorageInjectionScript({
+      localStorage: options.localStorage,
+      sessionStorage: options.sessionStorage,
+    }),
+    buildIndexedDbInjectionScript(options.indexedDb as never),
+  ].filter(Boolean).join('\n')
 
   const flags = {
     output: 'json' as const,

@@ -347,6 +347,14 @@ export interface ResolvedUserConfig {
    */
   sessionStorage: Record<string, any>
   /**
+   * IndexedDB databases to seed before each audited page loads (#216).
+   * Shape: `{ [dbName]: { version?, stores: { [store]: { keyPath?, autoIncrement?, records } } } }`.
+   * Best-effort pre-auth for IndexedDB-gated apps — the store schema must match the page's.
+   *
+   * @default {}
+   */
+  indexedDb: Record<string, any>
+  /**
    * Extra headers to provide for any HTTP requests.
    *
    * @default false
@@ -756,6 +764,8 @@ export interface UnlighthouseOptions {
   localStorage?: Record<string, unknown>
   /** Seed `sessionStorage` before each audited page loads (e.g. session-token auth). */
   sessionStorage?: Record<string, unknown>
+  /** Seed IndexedDB before each audited page loads (best-effort; #216). */
+  indexedDb?: Record<string, unknown>
 }
 
 export type UnlighthouseProvider = (url: string, options?: UnlighthouseOptions) => Promise<UnlighthouseReport>

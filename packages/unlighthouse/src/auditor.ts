@@ -50,14 +50,17 @@ function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Aud
       // injecting localStorage/sessionStorage before each audited page loads.
       const localStorage = opts.config.localStorage
       const sessionStorage = opts.config.sessionStorage
+      const indexedDb = opts.config.indexedDb
       const hasStorage = !!(localStorage && Object.keys(localStorage).length)
         || !!(sessionStorage && Object.keys(sessionStorage).length)
+        || !!(indexedDb && Object.keys(indexedDb).length)
       return createLocalAuditor({
         defaults: (flags || hasStorage)
           ? {
               ...(flags ? { lighthouseFlags: flags as never } : {}),
               ...(localStorage ? { localStorage } : {}),
               ...(sessionStorage ? { sessionStorage } : {}),
+              ...(indexedDb ? { indexedDb } : {}),
             }
           : undefined,
         logger,

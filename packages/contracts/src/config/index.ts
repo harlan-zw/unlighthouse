@@ -177,6 +177,9 @@ const UnlighthouseConfigSchema = z.object({
   cookies: z.union([z.literal(false), z.array(Cookie)]).optional(),
   localStorage: z.record(z.string(), z.unknown()).optional(),
   sessionStorage: z.record(z.string(), z.unknown()).optional(),
+  // IndexedDB seed: { [dbName]: { version?, stores: { [store]: { keyPath?, autoIncrement?, records } } } }.
+  // Best-effort pre-auth for IndexedDB-gated apps (#216); the store schema must match the page's.
+  indexedDb: z.record(z.string(), z.unknown()).optional(),
   extraHeaders: z.union([z.literal(false), z.record(z.string(), z.string())]).optional(),
   userAgent: z.string().optional(),
   defaultQueryParams: z
