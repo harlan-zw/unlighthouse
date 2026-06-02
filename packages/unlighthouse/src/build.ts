@@ -7,6 +7,7 @@ import type {
   ScanMeta,
 } from './types'
 import { dirname, join, resolve } from 'node:path'
+import { buildStaticSnapshot } from '@unlighthouse/core/api/static-client'
 import fs from 'fs-extra'
 import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
@@ -74,9 +75,26 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
     }
   }
 
-  const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: unknown[] } = {
+  // Full offline snapshot (#290): embed every scan's rows + contract blobs so the
+  // static client serves the dashboard (incl. the homepage/all routes) with no API.
+  let snapshot: Awaited<ReturnType<typeof buildStaticSnapshot>> | undefined
+  if (options.static && scanId) {
+    try {
+      snapshot = await buildStaticSnapshot({
+        storage,
+        scanId: scanId as never,
+        config: resolvedConfig as never,
+      })
+    }
+    catch (err) {
+      logger?.warn?.('Failed to build static snapshot; report will be data-less offline.', err)
+    }
+  }
+
+  const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: unknown[], snapshot?: unknown } = {
     reports: options.static ? routes : [],
     scanMeta,
+    snapshot,
     options: pick({
       ...runtimeSettings,
       ...resolvedConfig,

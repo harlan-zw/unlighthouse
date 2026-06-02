@@ -217,6 +217,9 @@ catalogs:
     execa:
       specifier: ^9.6.1
       version: 9.6.1
+    fflate:
+      specifier: ^0.8.2
+      version: 0.8.3
     fs-extra:
       specifier: ^11.3.5
       version: 11.3.5
@@ -517,6 +520,9 @@ importers:
       crawlee:
         specifier: catalog:dependencies
         version: 3.16.0(@types/node@25.9.1)
+      fflate:
+        specifier: catalog:dependencies
+        version: 0.8.3
       fs-extra:
         specifier: catalog:dependencies
         version: 11.3.5

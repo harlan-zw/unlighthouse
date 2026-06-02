@@ -122,6 +122,14 @@ async function run() {
       logger.success(`Wrote ${reporter} report to ${path}`)
   }
 
+  // #290/#275/#120: build an offline static report embedding a full snapshot
+  // (every route incl. the homepage + contract blobs), served by createStaticClient.
+  if (options.buildStatic) {
+    unlighthouse.runtimeSettings.currentScanId = scanId as never
+    await unlighthouse.generateClient({ static: true })
+    logger.success(`Built static report at ${unlighthouse.runtimeSettings.generatedClientPath}`)
+  }
+
   const db = (unlighthouse.handlerCtx.storage as { db?: any }).db
 
   const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions

@@ -58,7 +58,7 @@ export interface UnlighthouseHost {
   config: ResolvedUserConfig
   resolvedConfig: ResolvedUserConfig
   hooks: Hookable<HookMap>
-  generateClient: () => Promise<void>
+  generateClient: (opts?: { static?: boolean }) => Promise<void>
   setServerContext: (arg: { url: string, server: any, app: any }) => Promise<void>
   handlerCtx: HandlerCtx
   /**
@@ -449,10 +449,10 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     return { scanId: session.scanId }
   }
 
-  const generateClientStub = async () => {
+  const generateClientStub = async (opts?: { static?: boolean }) => {
     const { storage } = await initPortsAsync()
     const { generateClient } = await import('./build')
-    await generateClient({ static: false }, {
+    await generateClient({ static: opts?.static ?? false }, {
       resolvedConfig,
       runtimeSettings: rs as RuntimeSettings,
       storage,
