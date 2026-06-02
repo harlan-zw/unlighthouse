@@ -10,7 +10,6 @@ import type {
   ScanRoute,
 } from '@unlighthouse/contracts'
 import type { Handler, HandlerCtx } from './types'
-import { Buffer } from 'node:buffer'
 import { UnlighthouseError } from '@unlighthouse/contracts'
 
 // Lighthouse's stable category ids → display titles. The reconciled contract
@@ -66,7 +65,7 @@ async function loadContract(ctx: HandlerCtx, route: ScanRoute): Promise<Contract
   if (!blob)
     return null
   try {
-    return JSON.parse(Buffer.from(blob).toString('utf-8')) as ContractBlob
+    return JSON.parse(new TextDecoder().decode(blob)) as ContractBlob
   }
   catch {
     return null

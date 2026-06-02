@@ -21,7 +21,6 @@ import type {
   ScanSummaryCmd,
 } from '@unlighthouse/contracts'
 import type { Handler } from './types'
-import { Buffer } from 'node:buffer'
 import { UnlighthouseError } from '@unlighthouse/contracts'
 import { overviewPack } from '../../packs/overview'
 import { readGitMeta } from '../../util/git-meta'
@@ -480,7 +479,7 @@ export const scanCategories: Handler<typeof ScanCategories> = {
         audits: Record<string, { severity: 'pass' | 'warn' | 'fail' }>
       }
       try {
-        contract = JSON.parse(Buffer.from(blob).toString('utf-8'))
+        contract = JSON.parse(new TextDecoder().decode(blob))
       }
       catch {
         continue

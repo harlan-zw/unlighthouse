@@ -19,7 +19,7 @@ import type {
   SiteRepository,
   Storage,
 } from '@unlighthouse/contracts'
-import { createHash } from 'node:crypto'
+import { sha1Hex } from '../../util/sha1'
 
 /**
  * Pure in-memory `Storage`. Used by:
@@ -50,7 +50,9 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
   const clone = <T>(v: T): T => (v == null ? v : JSON.parse(JSON.stringify(v)) as T)
 
   function urlHash(url: string): string {
-    return createHash('sha1').update(url).digest('hex').slice(0, 16)
+    // Pure-JS sha1 (not node:crypto) so memory storage stays bundleable into the
+    // static, offline dashboard. Same output as the previous createHash path.
+    return sha1Hex(url).slice(0, 16)
   }
 
   function toRoute(scanId: string, device: Device, m: ExtractedMetrics): ScanRoute {
