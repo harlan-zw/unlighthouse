@@ -34,7 +34,7 @@ const api = useApi()
 const store = useScanStore()
 const { scanId, scanBase } = useScanBase()
 const { scoreToColor, scoreToLabel } = useScoreColor()
-const baseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
+const screenshotUrl = useScreenshotUrl()
 
 // Load the whole scan once; everything below is client-side. 500 is the
 // scan.results cap — past that we note the truncation.
@@ -246,7 +246,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       meta: { headClass: 'w-[70px]' },
       cell: ({ row }) => {
         const path = row.original.path || row.original.url
-        const src = `${baseUrl}/dashboard/screenshot/${scanId.value}/${encodeURIComponent(path)}`
+        const src = screenshotUrl(scanId.value, path)
         return h('img', {
           src,
           loading: 'lazy',

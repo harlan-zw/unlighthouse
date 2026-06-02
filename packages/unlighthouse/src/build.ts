@@ -91,7 +91,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
     }
   }
 
-  const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: unknown[], snapshot?: unknown } = {
+  const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: unknown[], snapshot?: unknown, screenshots?: Record<string, string> } = {
     reports: options.static ? routes : [],
     scanMeta,
     snapshot,
@@ -113,6 +113,52 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
 
   const assetsDir = join(runtimeSettings.generatedClientPath, 'assets')
   await fs.ensureDir(assetsDir)
+
+  // #275: export each route's screenshot to a static file so offline thumbnails
+  // resolve without the `/dashboard/screenshot` API. One per path (device-agnostic,
+  // matching the live endpoint). Prefers the dedicated screenshot blob, falls back
+  // to the LHR's fullPageScreenshot.
+  if (options.static && routes.length) {
+    const { gunzipSync } = await import('node:zlib')
+    const shotsDir = join(assetsDir, 'screenshots')
+    await fs.ensureDir(shotsDir)
+    const screenshots: Record<string, string> = {}
+    let idx = 0
+    for (const r of routes) {
+      if (screenshots[r.path])
+        continue
+      let bytes: Uint8Array | undefined
+      let ext = 'webp'
+      if (r.screenshotBlobKey) {
+        const blob = await storage.blobs.get(r.screenshotBlobKey)
+        if (blob)
+          bytes = blob
+      }
+      if (!bytes && r.lhrBlobKey) {
+        const gz = await storage.blobs.get(r.lhrBlobKey)
+        if (gz) {
+          try {
+            const lhr = JSON.parse(gunzipSync(gz).toString())
+            const data: string | undefined = lhr.fullPageScreenshot?.screenshot?.data
+            if (data) {
+              bytes = Buffer.from(data.replace(/^data:image\/\w+;base64,/, ''), 'base64')
+              ext = 'jpeg'
+            }
+          }
+          catch {
+            // unreadable LHR — skip this route's screenshot
+          }
+        }
+      }
+      if (!bytes)
+        continue
+      const file = `screenshots/${idx++}.${ext}`
+      await fs.writeFile(join(assetsDir, file), bytes)
+      screenshots[r.path] = `${prefix}assets/${file}`
+    }
+    staticData.screenshots = screenshots
+  }
+
   await fs.writeFile(
     join(assetsDir, 'payload.js'),
     `window.__unlighthouse_payload = ${JSON.stringify(staticData)}`,

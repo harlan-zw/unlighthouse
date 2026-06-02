@@ -15,6 +15,7 @@ const scanId = getScanId()
 const routePath = decodeURIComponent(route.params.path as string)
 const config = useRuntimeConfig()
 const baseUrl = config.public.unlighthouseApiUrl as string
+const screenshotUrl = useScreenshotUrl()
 const api = useApi()
 const router = useRouter()
 const { scoreToLabel, scoreToRingColor } = useScoreColor()
@@ -310,7 +311,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
         <CardHeader class="pb-2 flex flex-row items-center justify-between">
           <CardTitle class="text-sm font-medium text-muted-foreground">Visual</CardTitle>
           <a
-            :href="`${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(routeData.route?.path || routePath)}`"
+            :href="screenshotUrl(scanId, routeData.route?.path || routePath)"
             target="_blank"
             rel="noopener"
             class="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
@@ -318,7 +319,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
         </CardHeader>
         <CardContent>
           <img
-            :src="`${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(routeData.route?.path || routePath)}`"
+            :src="screenshotUrl(scanId, routeData.route?.path || routePath)"
             loading="lazy"
             alt="Page screenshot"
             class="w-full max-w-3xl max-h-[600px] object-contain object-top rounded border bg-muted mx-auto"
