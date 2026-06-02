@@ -752,6 +752,10 @@ export interface UnlighthouseOptions {
   width?: number
   height?: number
   launchOptions?: ChromeLaunchOptions
+  /** Seed `localStorage` before each audited page loads (e.g. token-gated SPAs). */
+  localStorage?: Record<string, unknown>
+  /** Seed `sessionStorage` before each audited page loads (e.g. session-token auth). */
+  sessionStorage?: Record<string, unknown>
 }
 
 export type UnlighthouseProvider = (url: string, options?: UnlighthouseOptions) => Promise<UnlighthouseReport>

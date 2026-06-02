@@ -13,8 +13,10 @@ import type { UnlighthouseOptions, UnlighthouseReport } from '@unlighthouse/cont
 import { createWorkerHandler, defineTask } from '@unlighthouse/audit-pool/worker'
 import { launch } from 'chrome-launcher'
 import lighthouse from 'lighthouse'
+import puppeteer from 'puppeteer-core'
 import { extractInsights } from './extract'
 import { resolveLighthouseConfig } from './lighthouse-config'
+import { buildStorageInjectionScript } from './storage-injection'
 
 export interface LighthousePayload {
   url: string
@@ -39,13 +41,32 @@ const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (
 
   const config = options.lighthouseConfig || resolveLighthouseConfig(options)
 
+  // #292: seed web storage before the page's own scripts run, for token/session-gated
+  // sites. Needs a puppeteer page (init script + navigation mode); without storage we
+  // keep the lighter port-only path so the default scan is unchanged.
+  const storageScript = buildStorageInjectionScript({
+    localStorage: options.localStorage,
+    sessionStorage: options.sessionStorage,
+  })
+
+  const flags = {
+    output: 'json' as const,
+    logLevel: options.logLevel || 'error',
+    ...options.lighthouseFlags,
+  }
+
+  let browser: Awaited<ReturnType<typeof puppeteer.connect>> | undefined
   try {
-    const result = await lighthouse(url, {
-      port,
-      output: 'json',
-      logLevel: options.logLevel || 'error',
-      ...options.lighthouseFlags,
-    }, config)
+    let result
+    if (storageScript) {
+      browser = await puppeteer.connect({ browserURL: `http://localhost:${port}` })
+      const page = await browser.newPage()
+      await page.evaluateOnNewDocument(storageScript)
+      result = await lighthouse(url, flags, config, page)
+    }
+    else {
+      result = await lighthouse(url, { ...flags, port }, config)
+    }
 
     if (!result || !result.lhr)
       throw new Error('Lighthouse failed to run')
@@ -61,6 +82,8 @@ const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (
     }
   }
   finally {
+    if (browser)
+      browser.disconnect()
     if (chrome)
       await chrome.kill()
   }
