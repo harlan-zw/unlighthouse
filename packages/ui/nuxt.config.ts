@@ -1,6 +1,12 @@
 export default defineNuxtConfig({
   ssr: false,
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', 'shadcn-nuxt', '@nuxtjs/color-mode', '@nuxt/icon'],
+  // Migration to @nuxt/ui (#nuxt-ui-migration): extend the design-system layer
+  // (its app.config + global.css carry the canonical theme). @nuxt/ui drives
+  // Tailwind v4 now, so @nuxtjs/tailwindcss is dropped. shadcn-nuxt stays for
+  // the not-yet-migrated screens — shadcn (`<Button>`), @nuxt/ui (`<UButton>`)
+  // and the layer (`<UiButton>`) live in separate name prefixes, no collision.
+  extends: ['./layers/design-system'],
+  modules: ['@pinia/nuxt', '@nuxt/ui', 'reka-ui/nuxt', 'motion-v/nuxt', 'shadcn-nuxt', '@nuxt/icon'],
   css: ['~/assets/css/tailwind.css'],
   colorMode: {
     preference: 'system',
