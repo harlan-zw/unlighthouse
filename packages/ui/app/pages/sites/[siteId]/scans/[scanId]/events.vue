@@ -113,17 +113,11 @@ function formatTime(ts: number) {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-xl font-bold tracking-tight">Event Stream</h1>
+    <PageHeader title="Event Stream" flush />
 
     <div class="flex items-center gap-4">
-      <Button v-if="!streaming" @click="startStream">
-        <Icon name="lucide:play" class="size-4 mr-2" />
-        Start Stream
-      </Button>
-      <Button v-else variant="outline" @click="stopStream">
-        <Icon name="lucide:square" class="size-4 mr-2" />
-        Stop
-      </Button>
+      <UiButton v-if="!streaming" purpose="cta" icon="i-lucide-play" @click="startStream">Start Stream</UiButton>
+      <UiButton v-else purpose="secondary" icon="i-lucide-square" @click="stopStream">Stop</UiButton>
 
       <div class="flex items-center gap-2">
         <Switch id="follow" v-model:checked="follow" />

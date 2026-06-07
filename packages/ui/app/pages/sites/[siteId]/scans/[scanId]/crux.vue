@@ -64,7 +64,7 @@ function latestValue(entries: Array<{ value: number }>) {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-xl font-bold tracking-tight">CrUX Field Data</h1>
+    <PageHeader title="CrUX Field Data" flush />
 
     <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">Loading CrUX data...</div>
 
