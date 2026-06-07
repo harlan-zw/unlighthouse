@@ -40,7 +40,7 @@ function zoneText(v: number | null): string {
   if (v == null)
     return 'text-muted-foreground'
   const [good, poor] = props.thresholds
-  return v <= good ? 'text-green-500' : v <= poor ? 'text-orange-500' : 'text-red-500'
+  return v <= good ? 'text-success' : v <= poor ? 'text-warning' : 'text-destructive'
 }
 
 const statCols = computed(() => {
@@ -62,14 +62,14 @@ const statCols = computed(() => {
   <Card>
     <CardContent class="pt-4 pb-3">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-muted-foreground">{{ label }}</span>
-        <span v-if="stats" class="text-[10px] text-muted-foreground/70 tabular-nums">{{ stats.count }} routes</span>
+        <span class="text-label text-muted-foreground">{{ label }}</span>
+        <span v-if="stats" class="text-mini text-muted-foreground/70 tabular-nums">{{ stats.count }} routes</span>
       </div>
 
       <template v-if="stats">
         <div class="mt-1 flex items-baseline gap-2">
-          <span class="text-2xl font-bold tabular-nums" :class="zoneText(stats.p75)">{{ format(stats.p75) }}</span>
-          <span class="text-[10px] text-muted-foreground uppercase tracking-wider">p75</span>
+          <span class="numerals-display text-2xl" :class="zoneText(stats.p75)">{{ format(stats.p75) }}</span>
+          <span class="text-label text-muted-foreground">p75</span>
         </div>
 
         <!-- Distribution histogram -->
@@ -86,8 +86,8 @@ const statCols = computed(() => {
         <!-- Percentile stat row -->
         <div class="mt-3 grid grid-cols-6 gap-1 border-t pt-2">
           <div v-for="c in statCols" :key="c.label" class="text-center">
-            <div class="text-[9px] text-muted-foreground uppercase tracking-wide">{{ c.label }}</div>
-            <div class="text-[11px] font-semibold tabular-nums mt-0.5">{{ c.val }}</div>
+            <div class="text-micro text-muted-foreground">{{ c.label }}</div>
+            <div class="numerals-display text-[11px] mt-0.5">{{ c.val }}</div>
           </div>
         </div>
       </template>

@@ -396,6 +396,10 @@
   /* Label — dense uppercase-tracked chrome label (column/metric/filter labels). */
   .text-label { @apply text-[10px] font-semibold uppercase tracking-wider; }
 
+  /* Micro label — the 9px tier below .text-label, for the tiniest tags
+     (percentile stat captions, inline status flags). */
+  .text-micro { @apply text-[9px] uppercase tracking-wider; }
+
   /* Eyebrow — uppercase tracked kicker for hero/section headers. */
   .eyebrow {
     font-family: var(--font-heading);
