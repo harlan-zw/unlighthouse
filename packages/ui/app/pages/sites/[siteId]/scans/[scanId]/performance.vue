@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   Accordion,
   AccordionContent,
@@ -51,9 +50,9 @@ function verdictColor(verdict: string) {
 }
 
 function severityVariant(severity: string) {
-  if (severity === 'critical' || severity === 'serious') return 'destructive' as const
-  if (severity === 'moderate') return 'secondary' as const
-  return 'outline' as const
+  if (severity === 'critical' || severity === 'serious') return 'error' as const
+  if (severity === 'moderate') return 'warning' as const
+  return 'neutral' as const
 }
 
 const cwvReport = computed(() => (cwvData.value as any)?.report ?? null)
@@ -86,9 +85,9 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
             </div>
             <div class="text-[10px] text-muted-foreground mt-1">p75 across {{ (m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0) }} routes</div>
             <div class="flex justify-center gap-1 mt-2">
-              <Badge variant="outline" class="text-[9px] text-success">{{ m.distribution?.good ?? 0 }} good</Badge>
-              <Badge variant="outline" class="text-[9px] text-warning">{{ m.distribution?.needsImprovement ?? 0 }} NI</Badge>
-              <Badge variant="outline" class="text-[9px] text-destructive">{{ m.distribution?.poor ?? 0 }} poor</Badge>
+              <UBadge color="neutral" variant="outline" class="text-[9px] text-success">{{ m.distribution?.good ?? 0 }} good</UBadge>
+              <UBadge color="neutral" variant="outline" class="text-[9px] text-warning">{{ m.distribution?.needsImprovement ?? 0 }} NI</UBadge>
+              <UBadge color="neutral" variant="outline" class="text-[9px] text-destructive">{{ m.distribution?.poor ?? 0 }} poor</UBadge>
             </div>
           </CardContent>
         </Card>
@@ -107,9 +106,9 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                 <div class="text-xs text-muted-foreground mt-0.5">{{ fix.routeCount }} routes affected</div>
               </div>
               <div class="flex gap-1 flex-wrap justify-end">
-                <Badge v-for="(val, key) in fix.totalSavings" :key="key" variant="outline" class="text-[10px]">
+                <UBadge v-for="(val, key) in fix.totalSavings" :key="key" color="neutral" variant="outline" class="text-[10px]">
                   {{ key }}: {{ typeof val === 'number' ? formatMs(val) : val }}
-                </Badge>
+                </UBadge>
               </div>
             </div>
           </div>
@@ -121,7 +120,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
         <CardHeader class="pb-3">
           <CardTitle class="text-sm font-medium text-muted-foreground">
             Performance Insights
-            <Badge variant="secondary" class="ml-2 text-xs">{{ insightsReport.insights.length }}</Badge>
+            <UBadge color="neutral" variant="soft" class="ml-2 text-xs">{{ insightsReport.insights.length }}</UBadge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -129,12 +128,12 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
             <div v-for="insight in insightsReport.insights" :key="insight.id" class="p-3 border rounded-lg">
               <div class="flex items-center justify-between">
                 <div class="text-sm font-medium">{{ insight.title || insight.id }}</div>
-                <Badge variant="outline" class="text-xs">{{ insight.routeCount }} routes</Badge>
+                <UBadge color="neutral" variant="outline" class="text-xs">{{ insight.routeCount }} routes</UBadge>
               </div>
               <div class="flex gap-1 mt-2 flex-wrap">
-                <Badge v-for="(val, key) in insight.totalSavings" :key="key" variant="secondary" class="text-[10px]">
+                <UBadge v-for="(val, key) in insight.totalSavings" :key="key" color="neutral" variant="soft" class="text-[10px]">
                   {{ key }}: {{ typeof val === 'number' ? formatMs(val) : val }}
-                </Badge>
+                </UBadge>
               </div>
               <div v-if="insight.worstRoutes?.length" class="mt-2 text-xs text-muted-foreground">
                 Worst: <span v-for="(wr, i) in insight.worstRoutes.slice(0, 3)" :key="wr.url" class="font-mono">{{ wr.url }}{{ Number(i) < Math.min(insight.worstRoutes.length, 3) - 1 ? ', ' : '' }}</span>
@@ -150,26 +149,26 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
           <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <Icon name="lucide:image" class="size-4" />
             Image Optimization
-            <Badge variant="secondary" class="text-xs">{{ imagesReport.findings.length }} issues</Badge>
-            <Badge v-if="imagesReport.totalBytesSavable > 0" variant="outline" class="text-xs text-warning">
+            <UBadge color="neutral" variant="soft" class="text-xs">{{ imagesReport.findings.length }} issues</UBadge>
+            <UBadge v-if="imagesReport.totalBytesSavable > 0" color="neutral" variant="outline" class="text-xs text-warning">
               {{ formatBytes(imagesReport.totalBytesSavable) }} savable
-            </Badge>
+            </UBadge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div v-if="imagesReport.severityCounts" class="flex gap-2 flex-wrap mb-4">
-            <Badge v-if="imagesReport.severityCounts.critical > 0" variant="destructive" class="text-xs">{{ imagesReport.severityCounts.critical }} critical</Badge>
-            <Badge v-if="imagesReport.severityCounts.serious > 0" variant="destructive" class="text-xs">{{ imagesReport.severityCounts.serious }} serious</Badge>
-            <Badge v-if="imagesReport.severityCounts.moderate > 0" variant="secondary" class="text-xs">{{ imagesReport.severityCounts.moderate }} moderate</Badge>
-            <Badge v-if="imagesReport.severityCounts.minor > 0" variant="outline" class="text-xs">{{ imagesReport.severityCounts.minor }} minor</Badge>
+            <UBadge v-if="imagesReport.severityCounts.critical > 0" color="error" variant="soft" class="text-xs">{{ imagesReport.severityCounts.critical }} critical</UBadge>
+            <UBadge v-if="imagesReport.severityCounts.serious > 0" color="error" variant="soft" class="text-xs">{{ imagesReport.severityCounts.serious }} serious</UBadge>
+            <UBadge v-if="imagesReport.severityCounts.moderate > 0" color="neutral" variant="soft" class="text-xs">{{ imagesReport.severityCounts.moderate }} moderate</UBadge>
+            <UBadge v-if="imagesReport.severityCounts.minor > 0" color="neutral" variant="outline" class="text-xs">{{ imagesReport.severityCounts.minor }} minor</UBadge>
           </div>
           <Accordion type="multiple" class="w-full">
             <AccordionItem v-for="finding in imagesReport.findings.slice(0, 20)" :key="finding.imageUrl" :value="finding.imageUrl">
               <AccordionTrigger class="text-sm">
                 <div class="flex items-center gap-3 text-left flex-1 min-w-0">
-                  <Badge :variant="severityVariant(finding.severity)" class="text-[10px] shrink-0">
+                  <UBadge :color="severityVariant(finding.severity)" variant="soft" class="text-[10px] shrink-0">
                     {{ finding.severity }}
-                  </Badge>
+                  </UBadge>
                   <span class="truncate font-mono text-xs">{{ finding.imageUrl }}</span>
                   <span class="text-xs text-muted-foreground shrink-0">{{ finding.routeCount }} routes</span>
                 </div>
@@ -192,9 +191,9 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                     </a>
                     <div class="flex-1 min-w-0 space-y-2">
                       <div class="flex gap-2 flex-wrap">
-                        <Badge variant="outline" class="text-xs">{{ finding.kind }}</Badge>
-                        <Badge v-if="finding.wastedBytes" variant="outline" class="text-xs text-warning">{{ formatBytes(finding.wastedBytes) }} wasted</Badge>
-                        <Badge v-if="finding.lcpImpactMs" variant="outline" class="text-xs text-destructive">LCP +{{ formatMs(finding.lcpImpactMs) }}</Badge>
+                        <UBadge color="neutral" variant="outline" class="text-xs">{{ finding.kind }}</UBadge>
+                        <UBadge v-if="finding.wastedBytes" color="neutral" variant="outline" class="text-xs text-warning">{{ formatBytes(finding.wastedBytes) }} wasted</UBadge>
+                        <UBadge v-if="finding.lcpImpactMs" color="neutral" variant="outline" class="text-xs text-destructive">LCP +{{ formatMs(finding.lcpImpactMs) }}</UBadge>
                       </div>
                       <p v-if="finding.reason" class="text-xs text-muted-foreground">{{ finding.reason }}</p>
                       <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
