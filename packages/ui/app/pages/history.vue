@@ -2,8 +2,6 @@
 import type { ScanId } from '@unlighthouse/contracts'
 import type { DevicePair, ScanRow } from '@/components/site/types'
 import { toast } from 'vue-sonner'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
@@ -127,27 +125,17 @@ async function deleteScan(scanId: string) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-title">
-          History
-        </h1>
-        <p class="text-sm text-muted-foreground">
-          <template v-if="searchQuery">
-            {{ filteredScanCount }} of {{ totalScans }} scan{{ totalScans === 1 ? '' : 's' }} match
-          </template>
-          <template v-else>
-            {{ totalScans }} scan{{ totalScans === 1 ? '' : 's' }} across {{ groups.length }} site{{ groups.length === 1 ? '' : 's' }}
-          </template>
-        </p>
-      </div>
-      <Button as-child>
-        <NuxtLink to="/scan/new">
-          <Icon name="lucide:plus" class="size-4 mr-2" />
-          New Scan
-        </NuxtLink>
-      </Button>
-    </div>
+    <PageHeader
+      title="History"
+      :description="searchQuery
+        ? `${filteredScanCount} of ${totalScans} scan${totalScans === 1 ? '' : 's'} match`
+        : `${totalScans} scan${totalScans === 1 ? '' : 's'} across ${groups.length} site${groups.length === 1 ? '' : 's'}`"
+      flush
+    >
+      <template #actions>
+        <UiButton purpose="cta" to="/scan/new" icon="i-lucide-plus">New Scan</UiButton>
+      </template>
+    </PageHeader>
 
     <!-- Search bar — site URL, hostname, scanId, or CI commit hash all match. -->
     <div v-if="groups.length" class="relative max-w-md">
@@ -207,9 +195,9 @@ async function deleteScan(scanId: string) {
             {{ group.site }}
           </div>
         </div>
-        <Badge variant="secondary" class="text-[10px] tabular-nums shrink-0">
+        <UBadge color="neutral" variant="soft" size="xs" class="tabular-nums shrink-0">
           {{ group.scanCount }} scans
-        </Badge>
+        </UBadge>
         <span class="text-xs text-muted-foreground tabular-nums shrink-0">
           latest {{ relTime(group.latestStartedAt) }}
         </span>
