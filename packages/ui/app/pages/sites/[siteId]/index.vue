@@ -3,7 +3,6 @@ import type { TrendMarker, TrendSeries } from '@/components/TrendChart.vue'
 import type { DevicePair, ScanRow } from '@/components/site/types'
 import { toast } from 'vue-sonner'
 import { Switch } from '@/components/ui/switch'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
@@ -204,16 +203,8 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
         </a>
       </div>
       <div class="flex items-center gap-2">
-        <Button v-if="canCompare" variant="outline" size="sm" @click="compareLatest">
-          <Icon name="lucide:git-compare" class="size-4 mr-1.5" />
-          Compare latest two
-        </Button>
-        <Button size="sm" as-child>
-          <NuxtLink :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
-            <Icon name="lucide:plus" class="size-4 mr-1.5" />
-            New Scan
-          </NuxtLink>
-        </Button>
+        <UiButton v-if="canCompare" purpose="secondary" size="sm" icon="i-lucide-git-compare" @click="compareLatest">Compare latest two</UiButton>
+        <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`" icon="i-lucide-plus">New Scan</UiButton>
       </div>
     </div>
 
@@ -222,9 +213,7 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
     <div v-else-if="isEmpty" class="text-center py-16 text-muted-foreground">
       <Icon name="lucide:radar" class="size-10 mx-auto mb-3 opacity-50" />
       <p>No scans yet for this site.</p>
-      <Button size="sm" class="mt-4" as-child>
-        <NuxtLink :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">Start the first scan</NuxtLink>
-      </Button>
+      <UiButton purpose="cta" size="sm" class="mt-4" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">Start the first scan</UiButton>
     </div>
 
     <template v-else>
