@@ -213,8 +213,8 @@ function openScan(s: ScanRow) {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p class="text-sm text-muted-foreground">Your sites at a glance.</p>
+        <h1 class="text-title">Dashboard</h1>
+        <p class="text-description">Your sites at a glance.</p>
       </div>
       <Button as-child>
         <NuxtLink to="/scan/new">
@@ -246,7 +246,7 @@ function openScan(s: ScanRow) {
       <div class="size-16 rounded-full bg-muted flex items-center justify-center mb-6">
         <Icon name="lucide:radar" class="size-8 text-muted-foreground" />
       </div>
-      <h2 class="text-lg font-semibold mb-2">No scans yet</h2>
+      <h2 class="text-heading mb-2">No scans yet</h2>
       <p class="text-muted-foreground mb-6 max-w-sm">
         Start your first scan to get SEO, performance, and accessibility insights for your website.
       </p>
@@ -263,26 +263,26 @@ function openScan(s: ScanRow) {
       <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent class="pt-4 pb-3">
-            <div class="text-xs text-muted-foreground">Sites</div>
-            <div class="text-2xl font-bold tabular-nums mt-1">{{ kpis.sites }}</div>
+            <div class="text-label text-muted-foreground">Sites</div>
+            <div class="numerals-display text-2xl mt-1">{{ kpis.sites }}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent class="pt-4 pb-3">
-            <div class="text-xs text-muted-foreground">Total scans</div>
-            <div class="text-2xl font-bold tabular-nums mt-1">{{ kpis.scans }}</div>
+            <div class="text-label text-muted-foreground">Total scans</div>
+            <div class="numerals-display text-2xl mt-1">{{ kpis.scans }}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent class="pt-4 pb-3">
-            <div class="text-xs text-muted-foreground">Avg score</div>
-            <div class="text-2xl font-bold tabular-nums mt-1" :style="{ color: score100Color(kpis.avg) }">{{ kpis.avg ?? '—' }}</div>
+            <div class="text-label text-muted-foreground">Avg score</div>
+            <div class="numerals-display text-2xl mt-1" :style="{ color: score100Color(kpis.avg) }">{{ kpis.avg ?? '—' }}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent class="pt-4 pb-3">
-            <div class="text-xs text-muted-foreground">Needs attention</div>
-            <div class="text-2xl font-bold tabular-nums mt-1" :class="kpis.needs ? 'text-orange-500' : ''">{{ kpis.needs }}</div>
+            <div class="text-label text-muted-foreground">Needs attention</div>
+            <div class="numerals-display text-2xl mt-1" :class="kpis.needs ? 'text-warning' : ''">{{ kpis.needs }}</div>
           </CardContent>
         </Card>
       </div>
@@ -290,7 +290,7 @@ function openScan(s: ScanRow) {
       <!-- Sites -->
       <div v-if="siteRows.length" class="space-y-3">
         <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Sites</h2>
+          <h2 class="eyebrow">Sites</h2>
           <NuxtLink to="/sites" class="text-xs text-muted-foreground hover:text-foreground transition-colors">
             Manage <Icon name="lucide:arrow-right" class="size-3 inline" />
           </NuxtLink>
@@ -301,7 +301,7 @@ function openScan(s: ScanRow) {
       <!-- Recent scans -->
       <div v-if="recentScans.length" class="space-y-3">
         <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent scans</h2>
+          <h2 class="eyebrow">Recent scans</h2>
           <NuxtLink to="/history" class="text-xs text-muted-foreground hover:text-foreground transition-colors">
             View all <Icon name="lucide:arrow-right" class="size-3 inline" />
           </NuxtLink>
