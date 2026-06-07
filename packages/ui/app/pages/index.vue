@@ -3,7 +3,6 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import type { ScanRow } from '@/components/site/types'
 import { h } from 'vue'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useScanStore } from '~/stores/scan'
@@ -211,18 +210,11 @@ function openScan(s: ScanRow) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-title">Dashboard</h1>
-        <p class="text-description">Your sites at a glance.</p>
-      </div>
-      <Button as-child>
-        <NuxtLink to="/scan/new">
-          <Icon name="lucide:plus" class="size-4 mr-2" />
-          New Scan
-        </NuxtLink>
-      </Button>
-    </div>
+    <PageHeader title="Dashboard" description="Your sites at a glance." flush>
+      <template #actions>
+        <UiButton purpose="cta" to="/scan/new" icon="i-lucide-plus">New Scan</UiButton>
+      </template>
+    </PageHeader>
 
     <!-- Active scan banner -->
     <Card v-if="store.isActive" class="border-primary/50 bg-primary/5 cursor-pointer" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/routes`)">
@@ -250,62 +242,39 @@ function openScan(s: ScanRow) {
       <p class="text-muted-foreground mb-6 max-w-sm">
         Start your first scan to get SEO, performance, and accessibility insights for your website.
       </p>
-      <Button size="lg" as-child>
-        <NuxtLink to="/scan/new">
-          <Icon name="lucide:plus" class="size-4 mr-2" />
-          Start First Scan
-        </NuxtLink>
-      </Button>
+      <UiButton purpose="cta" size="lg" to="/scan/new" icon="i-lucide-plus">Start First Scan</UiButton>
     </div>
 
     <template v-else>
       <!-- KPI cards -->
       <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent class="pt-4 pb-3">
-            <div class="text-label text-muted-foreground">Sites</div>
-            <div class="numerals-display text-2xl mt-1">{{ kpis.sites }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-4 pb-3">
-            <div class="text-label text-muted-foreground">Total scans</div>
-            <div class="numerals-display text-2xl mt-1">{{ kpis.scans }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-4 pb-3">
-            <div class="text-label text-muted-foreground">Avg score</div>
-            <div class="numerals-display text-2xl mt-1" :class="scoreToColor(kpis.avg != null ? kpis.avg / 100 : null)">{{ kpis.avg ?? '—' }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-4 pb-3">
-            <div class="text-label text-muted-foreground">Needs attention</div>
-            <div class="numerals-display text-2xl mt-1" :class="kpis.needs ? 'text-warning' : ''">{{ kpis.needs }}</div>
-          </CardContent>
-        </Card>
+        <UiStat card title="Sites" :value="kpis.sites" />
+        <UiStat card title="Total scans" :value="kpis.scans" />
+        <UiStat card title="Avg score" :value="kpis.avg" :value-class="kpis.avg != null ? scoreToColor(kpis.avg / 100) : ''" />
+        <UiStat card title="Needs attention" :value="kpis.needs" :value-class="kpis.needs ? 'text-warning' : ''" />
       </div>
 
       <!-- Sites -->
       <div v-if="siteRows.length" class="space-y-3">
-        <div class="flex items-center justify-between">
-          <h2 class="eyebrow">Sites</h2>
-          <NuxtLink to="/sites" class="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            Manage <Icon name="lucide:arrow-right" class="size-3 inline" />
-          </NuxtLink>
-        </div>
+        <SectionHeader title="Sites">
+          <template #actions>
+            <NuxtLink to="/sites" class="text-xs text-dimmed hover:text-default transition-colors">
+              Manage <Icon name="lucide:arrow-right" class="size-3 inline" />
+            </NuxtLink>
+          </template>
+        </SectionHeader>
         <DataTable :columns="siteColumns" :data="siteRows" row-clickable @row-click="openSite" />
       </div>
 
       <!-- Recent scans -->
       <div v-if="recentScans.length" class="space-y-3">
-        <div class="flex items-center justify-between">
-          <h2 class="eyebrow">Recent scans</h2>
-          <NuxtLink to="/history" class="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            View all <Icon name="lucide:arrow-right" class="size-3 inline" />
-          </NuxtLink>
-        </div>
+        <SectionHeader title="Recent scans">
+          <template #actions>
+            <NuxtLink to="/history" class="text-xs text-dimmed hover:text-default transition-colors">
+              View all <Icon name="lucide:arrow-right" class="size-3 inline" />
+            </NuxtLink>
+          </template>
+        </SectionHeader>
         <DataTable :columns="recentColumns" :data="recentScans" row-clickable @row-click="openScan" />
       </div>
     </template>
