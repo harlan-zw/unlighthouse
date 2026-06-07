@@ -20,6 +20,8 @@
     "@internationalized/date": "catalog:dependencies",
     "@lucide/vue": "catalog:",
     "@nuxt/icon": "catalog:",
+    "@nuxt/ui": "catalog:dependencies",
+    "motion-v": "catalog:",
     "@nuxtjs/color-mode": "catalog:",
     "@tanstack/table-core": "catalog:dependencies",
     "@tanstack/vue-table": "catalog:dependencies",

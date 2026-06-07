@@ -1,6 +1,6 @@
 export default defineNuxtConfig({
   ssr: false,
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', 'shadcn-nuxt', '@nuxtjs/color-mode', '@nuxt/icon'],
+  modules: ['@pinia/nuxt', '@nuxt/ui', 'shadcn-nuxt', '@nuxtjs/color-mode', '@nuxt/icon'],
   css: ['~/assets/css/tailwind.css'],
   colorMode: {
     preference: 'system',
