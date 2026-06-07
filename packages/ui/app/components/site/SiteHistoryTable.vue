@@ -91,7 +91,7 @@ const columns: ColumnDef<DevicePair>[] = [
       const label = key === 'best-practices' ? 'Best' : key === 'performance' ? 'Perf' : key === 'accessibility' ? 'A11y' : 'SEO'
       return h('div', { class: 'text-center' }, [
         h('div', { class: 'text-xs font-semibold' }, label),
-        h('div', { class: 'text-[9px] text-muted-foreground font-normal mt-0.5 tracking-wider' }, 'M | D'),
+        h('div', { class: 'text-micro text-muted-foreground font-normal mt-0.5' }, 'M | D'),
       ])
     },
     cell: ({ row }: any) => {
