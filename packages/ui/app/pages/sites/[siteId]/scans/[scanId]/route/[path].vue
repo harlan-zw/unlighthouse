@@ -241,10 +241,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
            navigated here from /routes (preserving their filter state /
            pagination) and falls back to the bare routes URL when the
            page was opened directly (deep link, share). -->
-      <Button variant="ghost" size="sm" @click="backToRoutes">
-        <Icon name="lucide:arrow-left" class="size-4 mr-1" />
-        Routes
-      </Button>
+      <UiButton purpose="quiet" size="sm" icon="i-lucide-arrow-left" @click="backToRoutes">Routes</UiButton>
     </div>
 
     <div v-if="status === 'pending' || scanMetaStatus === 'pending'" class="text-center py-12 text-muted-foreground">Loading...</div>
@@ -254,9 +251,9 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
       <!-- Header -->
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <h1 class="text-lg font-bold font-mono break-all">{{ routeData.route?.path }}</h1>
+          <h1 class="text-title font-mono break-all">{{ routeData.route?.path }}</h1>
           <div class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-            <Badge variant="outline" class="text-xs">{{ routeData.route?.device }}</Badge>
+            <UBadge color="neutral" variant="outline" size="xs">{{ routeData.route?.device }}</UBadge>
             <a :href="routeData.route?.url" target="_blank" class="hover:underline flex items-center gap-1">
               {{ routeData.route?.url }}
               <Icon name="lucide:external-link" class="size-3" />
@@ -282,11 +279,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
               Raw LHR
             </a>
           </Button>
-          <Button variant="outline" size="sm" :disabled="rescanning" @click="rescanRoute">
-            <Icon v-if="rescanning" name="lucide:loader-2" class="size-4 mr-1 animate-spin" />
-            <Icon v-else name="lucide:refresh-cw" class="size-4 mr-1" />
-            Rescan
-          </Button>
+          <UiButton purpose="secondary" size="sm" :loading="rescanning" icon="i-lucide-refresh-cw" @click="rescanRoute">Rescan</UiButton>
         </div>
       </div>
 
@@ -372,7 +365,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
             <div v-for="m in metrics" :key="m.label" class="rounded-lg border p-4 text-center">
               <div class="text-xs text-muted-foreground mb-1">{{ m.label }}</div>
-              <div class="text-xl font-bold tabular-nums" :class="metricColor(m.label, m.value)">
+              <div class="numerals-display text-xl" :class="metricColor(m.label, m.value)">
                 {{ formatMetric(m.value, m.unit) }}
               </div>
               <div class="text-[10px] text-muted-foreground/60 mt-1">{{ m.description }}</div>
