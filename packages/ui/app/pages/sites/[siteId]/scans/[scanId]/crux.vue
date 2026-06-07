@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import type { CruxData } from '@unlighthouse/contracts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 definePageMeta({ layout: 'scan' })
 
@@ -66,38 +63,45 @@ function latestValue(entries: Array<{ value: number }>) {
   <div class="space-y-6">
     <h1 class="text-xl font-bold tracking-tight">CrUX Field Data</h1>
 
-    <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">Loading CrUX data...</div>
+    <div v-if="status === 'pending'" class="text-center py-12 text-muted">Loading CrUX data...</div>
 
-    <div v-else-if="!data || (!data.phone?.lcp?.length && !data.desktop?.lcp?.length)" class="text-center py-12 text-muted-foreground">
+    <div v-else-if="!data || (!data.phone?.lcp?.length && !data.desktop?.lcp?.length)" class="text-center py-12 text-muted">
       <Icon name="lucide:globe" class="size-12 mx-auto mb-3 opacity-50" />
       <p>No CrUX field data available for this site.</p>
       <p class="text-xs mt-1">Field data requires the site to have enough traffic in Chrome User Experience Report.</p>
     </div>
 
     <template v-else>
-      <div v-if="data.hostname" class="text-sm text-muted-foreground">
-        Origin: <span class="font-medium text-foreground">{{ data.hostname }}</span>
+      <div v-if="data.hostname" class="text-sm text-muted">
+        Origin: <span class="font-medium text-highlighted">{{ data.hostname }}</span>
       </div>
 
-      <Tabs v-model="activeDevice" class="w-full">
-        <TabsList>
-          <TabsTrigger value="phone">
-            <Icon name="lucide:smartphone" class="size-4 mr-1.5" />
-            Phone
-          </TabsTrigger>
-          <TabsTrigger value="desktop">
-            <Icon name="lucide:monitor" class="size-4 mr-1.5" />
-            Desktop
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div class="inline-flex items-center gap-1 rounded-lg bg-muted p-1">
+        <button
+          type="button"
+          class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          :class="activeDevice === 'phone' ? 'bg-default text-highlighted shadow-sm' : 'text-muted hover:text-highlighted'"
+          @click="activeDevice = 'phone'"
+        >
+          <Icon name="lucide:smartphone" class="size-4 mr-1.5" />
+          Phone
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          :class="activeDevice === 'desktop' ? 'bg-default text-highlighted shadow-sm' : 'text-muted hover:text-highlighted'"
+          @click="activeDevice = 'desktop'"
+        >
+          <Icon name="lucide:monitor" class="size-4 mr-1.5" />
+          Desktop
+        </button>
+      </div>
 
       <div class="grid gap-4 lg:grid-cols-3">
-        <Card v-for="m in metrics" :key="m.key">
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium text-muted-foreground">{{ m.label }}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <UCard v-for="m in metrics" :key="m.key">
+          <template #header>
+            <div class="text-sm font-medium text-muted">{{ m.label }}</div>
+          </template>
             <template v-if="getDeviceData(data)[m.key].length">
               <!-- Current value -->
               <div class="mb-4">
@@ -107,7 +111,7 @@ function latestValue(entries: Array<{ value: number }>) {
                 >
                   {{ formatValue(latestValue(getDeviceData(data)[m.key])!, m.unit) }}
                 </div>
-                <div class="text-xs text-muted-foreground">Current (p75)</div>
+                <div class="text-xs text-muted">Current (p75)</div>
               </div>
 
               <!-- Distribution bar (last entry) -->
@@ -126,7 +130,7 @@ function latestValue(entries: Array<{ value: number }>) {
                     :style="{ width: `${(getDeviceData(data)[m.key].at(-1)!.poor || 0) * 100}%` }"
                   />
                 </div>
-                <div class="flex justify-between mt-1 text-[10px] text-muted-foreground">
+                <div class="flex justify-between mt-1 text-[10px] text-muted">
                   <span>Good {{ ((getDeviceData(data)[m.key].at(-1)!.good || 0) * 100).toFixed(0) }}%</span>
                   <span>NI {{ ((getDeviceData(data)[m.key].at(-1)!.ni || 0) * 100).toFixed(0) }}%</span>
                   <span>Poor {{ ((getDeviceData(data)[m.key].at(-1)!.poor || 0) * 100).toFixed(0) }}%</span>
@@ -144,16 +148,15 @@ function latestValue(entries: Array<{ value: number }>) {
                   :title="`${formatValue(entry.value, m.unit)} — ${new Date(entry.time).toLocaleDateString()}`"
                 />
               </div>
-              <div class="flex justify-between mt-1 text-[10px] text-muted-foreground">
+              <div class="flex justify-between mt-1 text-[10px] text-muted">
                 <span>{{ getDeviceData(data)[m.key].length }} weeks</span>
                 <span>latest →</span>
               </div>
             </template>
-            <div v-else class="text-sm text-muted-foreground py-4 text-center">
+            <div v-else class="text-sm text-muted py-4 text-center">
               No data
             </div>
-          </CardContent>
-        </Card>
+        </UCard>
       </div>
     </template>
   </div>

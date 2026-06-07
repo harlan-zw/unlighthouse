@@ -2,10 +2,6 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { ScanRow } from '@/components/site/types'
 import { h } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { useScanStore } from '~/stores/scan'
 
 definePageMeta({ layout: 'root', middleware: 'onboarding' })
@@ -214,84 +210,70 @@ function openScan(s: ScanRow) {
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p class="text-sm text-muted-foreground">Your sites at a glance.</p>
+        <p class="text-sm text-muted">Your sites at a glance.</p>
       </div>
-      <Button as-child>
-        <NuxtLink to="/scan/new">
-          <Icon name="lucide:plus" class="size-4 mr-2" />
-          New Scan
-        </NuxtLink>
-      </Button>
+      <UButton to="/scan/new">
+        <Icon name="lucide:plus" class="size-4 mr-2" />
+        New Scan
+      </UButton>
     </div>
 
     <!-- Active scan banner -->
-    <Card v-if="store.isActive" class="border-primary/50 bg-primary/5 cursor-pointer" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/routes`)">
-      <CardContent class="pt-4 pb-4">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <span class="relative flex size-2">
-              <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-              <span class="relative inline-flex size-2 rounded-full bg-primary" />
-            </span>
-            <span class="text-sm font-medium">Scanning {{ store.site }}</span>
-          </div>
-          <span class="text-sm tabular-nums text-muted-foreground">{{ store.scanned }}/{{ store.total }}</span>
+    <UCard v-if="store.isActive" class="border-primary/50 bg-primary/5 cursor-pointer" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/routes`)">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="relative flex size-2">
+            <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+            <span class="relative inline-flex size-2 rounded-full bg-primary" />
+          </span>
+          <span class="text-sm font-medium">Scanning {{ store.site }}</span>
         </div>
-        <Progress :model-value="store.percent" class="h-1.5" />
-      </CardContent>
-    </Card>
+        <span class="text-sm tabular-nums text-muted">{{ store.scanned }}/{{ store.total }}</span>
+      </div>
+      <UProgress v-model="store.percent" size="sm" />
+    </UCard>
 
     <!-- Empty state -->
     <div v-if="historyStatus !== 'pending' && !allScans.length && !store.isActive" class="flex flex-col items-center justify-center py-20 text-center">
       <div class="size-16 rounded-full bg-muted flex items-center justify-center mb-6">
-        <Icon name="lucide:radar" class="size-8 text-muted-foreground" />
+        <Icon name="lucide:radar" class="size-8 text-muted" />
       </div>
       <h2 class="text-lg font-semibold mb-2">No scans yet</h2>
-      <p class="text-muted-foreground mb-6 max-w-sm">
+      <p class="text-muted mb-6 max-w-sm">
         Start your first scan to get SEO, performance, and accessibility insights for your website.
       </p>
-      <Button size="lg" as-child>
-        <NuxtLink to="/scan/new">
-          <Icon name="lucide:plus" class="size-4 mr-2" />
-          Start First Scan
-        </NuxtLink>
-      </Button>
+      <UButton size="lg" to="/scan/new">
+        <Icon name="lucide:plus" class="size-4 mr-2" />
+        Start First Scan
+      </UButton>
     </div>
 
     <template v-else>
       <!-- KPI cards -->
       <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent class="pt-4 pb-3">
-            <div class="text-xs text-muted-foreground">Sites</div>
-            <div class="text-2xl font-bold tabular-nums mt-1">{{ kpis.sites }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-4 pb-3">
-            <div class="text-xs text-muted-foreground">Total scans</div>
-            <div class="text-2xl font-bold tabular-nums mt-1">{{ kpis.scans }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-4 pb-3">
-            <div class="text-xs text-muted-foreground">Avg score</div>
-            <div class="text-2xl font-bold tabular-nums mt-1" :style="{ color: score100Color(kpis.avg) }">{{ kpis.avg ?? '—' }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-4 pb-3">
-            <div class="text-xs text-muted-foreground">Needs attention</div>
-            <div class="text-2xl font-bold tabular-nums mt-1" :class="kpis.needs ? 'text-orange-500' : ''">{{ kpis.needs }}</div>
-          </CardContent>
-        </Card>
+        <UCard>
+          <div class="text-xs text-muted">Sites</div>
+          <div class="text-2xl font-bold tabular-nums mt-1">{{ kpis.sites }}</div>
+        </UCard>
+        <UCard>
+          <div class="text-xs text-muted">Total scans</div>
+          <div class="text-2xl font-bold tabular-nums mt-1">{{ kpis.scans }}</div>
+        </UCard>
+        <UCard>
+          <div class="text-xs text-muted">Avg score</div>
+          <div class="text-2xl font-bold tabular-nums mt-1" :style="{ color: score100Color(kpis.avg) }">{{ kpis.avg ?? '—' }}</div>
+        </UCard>
+        <UCard>
+          <div class="text-xs text-muted">Needs attention</div>
+          <div class="text-2xl font-bold tabular-nums mt-1" :class="kpis.needs ? 'text-orange-500' : ''">{{ kpis.needs }}</div>
+        </UCard>
       </div>
 
       <!-- Sites -->
       <div v-if="siteRows.length" class="space-y-3">
         <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Sites</h2>
-          <NuxtLink to="/sites" class="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-muted">Sites</h2>
+          <NuxtLink to="/sites" class="text-xs text-muted hover:text-highlighted transition-colors">
             Manage <Icon name="lucide:arrow-right" class="size-3 inline" />
           </NuxtLink>
         </div>
@@ -301,8 +283,8 @@ function openScan(s: ScanRow) {
       <!-- Recent scans -->
       <div v-if="recentScans.length" class="space-y-3">
         <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent scans</h2>
-          <NuxtLink to="/history" class="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-muted">Recent scans</h2>
+          <NuxtLink to="/history" class="text-xs text-muted hover:text-highlighted transition-colors">
             View all <Icon name="lucide:arrow-right" class="size-3 inline" />
           </NuxtLink>
         </div>

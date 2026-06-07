@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-
 definePageMeta({ layout: 'scan' })
 
 const api = useApi()
@@ -116,29 +109,28 @@ function formatTime(ts: number) {
     <h1 class="text-xl font-bold tracking-tight">Event Stream</h1>
 
     <div class="flex items-center gap-4">
-      <Button v-if="!streaming" @click="startStream">
+      <UButton v-if="!streaming" @click="startStream">
         <Icon name="lucide:play" class="size-4 mr-2" />
         Start Stream
-      </Button>
-      <Button v-else variant="outline" @click="stopStream">
+      </UButton>
+      <UButton v-else color="neutral" variant="outline" @click="stopStream">
         <Icon name="lucide:square" class="size-4 mr-2" />
         Stop
-      </Button>
+      </UButton>
 
       <div class="flex items-center gap-2">
-        <Switch id="follow" v-model:checked="follow" />
-        <Label for="follow" class="text-sm">Auto-scroll</Label>
+        <USwitch id="follow" v-model="follow" label="Auto-scroll" />
       </div>
 
-      <Badge v-if="streaming" variant="secondary" class="animate-pulse">
+      <UBadge v-if="streaming" color="neutral" variant="subtle" class="animate-pulse">
         <span class="relative flex size-2 mr-1.5">
           <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
           <span class="relative inline-flex size-2 rounded-full bg-primary" />
         </span>
         Live
-      </Badge>
+      </UBadge>
 
-      <span class="text-sm text-muted-foreground ml-auto tabular-nums">
+      <span class="text-sm text-muted ml-auto tabular-nums">
         <template v-if="textFilter || severityFilter !== 'all'">{{ filteredEvents.length }} of {{ events.length }}</template>
         <template v-else>{{ events.length }} events</template>
       </span>
@@ -149,47 +141,50 @@ function formatTime(ts: number) {
          changing filters never drops or re-orders incoming events. -->
     <div class="flex items-center gap-3 flex-wrap">
       <div class="relative flex-1 max-w-sm">
-        <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-        <Input v-model="textFilter" placeholder="Filter events..." class="pl-8 h-8 text-xs" />
+        <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted pointer-events-none z-10" />
+        <UInput v-model="textFilter" placeholder="Filter events..." class="w-full" :ui="{ base: 'pl-8 h-8 text-xs' }" />
       </div>
       <div class="flex items-center gap-1">
-        <Button
+        <UButton
           v-for="sev in (['all', 'error', 'complete', 'progress'] as const)"
           :key="sev"
           type="button"
           size="sm"
-          :variant="severityFilter === sev ? 'default' : 'outline'"
+          :color="severityFilter === sev ? 'primary' : 'neutral'"
+          :variant="severityFilter === sev ? 'solid' : 'outline'"
           class="h-7 text-[11px] capitalize"
           @click="severityFilter = sev"
         >
           {{ sev }}
-        </Button>
+        </UButton>
       </div>
     </div>
 
-    <Card>
-      <CardContent class="p-0">
-        <div ref="scrollRef" class="h-[500px] overflow-y-auto font-mono text-xs">
-          <div v-if="!events.length" class="text-center py-16 text-muted-foreground text-sm">
-            <Icon name="lucide:radio" class="size-8 mx-auto mb-3 opacity-50" />
-            <p v-if="!streaming">Click "Start Stream" to begin receiving events.</p>
-            <p v-else>Waiting for events...</p>
-          </div>
-          <div v-else-if="!filteredEvents.length" class="text-center py-16 text-muted-foreground text-sm">
-            <Icon name="lucide:search-x" class="size-8 mx-auto mb-3 opacity-50" />
-            <p>No events match the current filter.</p>
-          </div>
-          <div
-            v-for="(e, i) in filteredEvents"
-            :key="i"
-            class="flex items-start gap-3 px-4 py-2 border-b last:border-0 hover:bg-muted/50"
-          >
-            <span class="text-muted-foreground shrink-0 pt-0.5 tabular-nums">{{ formatTime(e.timestamp) }}</span>
-            <Badge :variant="eventColor(e.event)" class="text-[10px] shrink-0">{{ e.event }}</Badge>
-            <pre class="text-muted-foreground whitespace-pre-wrap break-all flex-1">{{ JSON.stringify(e.payload, null, 2) }}</pre>
-          </div>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
+      <div ref="scrollRef" class="h-[500px] overflow-y-auto font-mono text-xs">
+        <div v-if="!events.length" class="text-center py-16 text-muted text-sm">
+          <Icon name="lucide:radio" class="size-8 mx-auto mb-3 opacity-50" />
+          <p v-if="!streaming">Click "Start Stream" to begin receiving events.</p>
+          <p v-else>Waiting for events...</p>
         </div>
-      </CardContent>
-    </Card>
+        <div v-else-if="!filteredEvents.length" class="text-center py-16 text-muted text-sm">
+          <Icon name="lucide:search-x" class="size-8 mx-auto mb-3 opacity-50" />
+          <p>No events match the current filter.</p>
+        </div>
+        <div
+          v-for="(e, i) in filteredEvents"
+          :key="i"
+          class="flex items-start gap-3 px-4 py-2 border-b border-default last:border-0 hover:bg-muted/50"
+        >
+          <span class="text-muted shrink-0 pt-0.5 tabular-nums">{{ formatTime(e.timestamp) }}</span>
+          <UBadge
+            :color="eventColor(e.event) === 'destructive' ? 'error' : 'neutral'"
+            :variant="eventColor(e.event) === 'default' ? 'solid' : eventColor(e.event) === 'secondary' ? 'subtle' : 'outline'"
+            class="text-[10px] shrink-0"
+          >{{ e.event }}</UBadge>
+          <pre class="text-muted whitespace-pre-wrap break-all flex-1">{{ JSON.stringify(e.payload, null, 2) }}</pre>
+        </div>
+      </div>
+    </UCard>
   </div>
 </template>

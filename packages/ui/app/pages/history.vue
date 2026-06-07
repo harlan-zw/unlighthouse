@@ -2,12 +2,7 @@
 import type { ScanId } from '@unlighthouse/contracts'
 import type { DevicePair, ScanRow } from '@/components/site/types'
 import { toast } from 'vue-sonner'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
 
 definePageMeta({ layout: 'root' })
 
@@ -132,7 +127,7 @@ async function deleteScan(scanId: string) {
         <h1 class="text-2xl font-bold tracking-tight">
           History
         </h1>
-        <p class="text-sm text-muted-foreground">
+        <p class="text-sm text-muted">
           <template v-if="searchQuery">
             {{ filteredScanCount }} of {{ totalScans }} scan{{ totalScans === 1 ? '' : 's' }} match
           </template>
@@ -141,23 +136,21 @@ async function deleteScan(scanId: string) {
           </template>
         </p>
       </div>
-      <Button as-child>
-        <NuxtLink to="/scan/new">
-          <Icon name="lucide:plus" class="size-4 mr-2" />
-          New Scan
-        </NuxtLink>
-      </Button>
+      <UButton to="/scan/new">
+        <Icon name="lucide:plus" class="size-4 mr-2" />
+        New Scan
+      </UButton>
     </div>
 
     <!-- Search bar — site URL, hostname, scanId, or CI commit hash all match. -->
     <div v-if="groups.length" class="relative max-w-md">
-      <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-      <Input v-model="searchQuery" placeholder="Filter by site, scanId, or commit..." class="pl-8" />
+      <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted pointer-events-none z-10" />
+      <UInput v-model="searchQuery" placeholder="Filter by site, scanId, or commit..." class="w-full" :ui="{ base: 'pl-8' }" />
       <button
         v-if="searchQuery"
         type="button"
         aria-label="Clear search"
-        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-highlighted z-10"
         @click="searchQuery = ''"
       >
         <Icon name="lucide:x" class="size-4" />
@@ -165,52 +158,52 @@ async function deleteScan(scanId: string) {
     </div>
 
     <div v-if="status === 'pending'" class="space-y-3">
-      <Skeleton v-for="i in 3" :key="i" class="h-32 w-full" />
+      <USkeleton v-for="i in 3" :key="i" class="h-32 w-full" />
     </div>
 
-    <Card v-else-if="!groups.length">
-      <CardContent class="flex flex-col items-center justify-center py-16 text-center">
-        <Icon name="lucide:history" class="size-12 text-muted-foreground/50 mb-4" />
-        <p class="text-muted-foreground">
+    <UCard v-else-if="!groups.length">
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <Icon name="lucide:history" class="size-12 text-muted/50 mb-4" />
+        <p class="text-muted">
           No scan history yet.
         </p>
-      </CardContent>
-    </Card>
+      </div>
+    </UCard>
 
-    <Card v-else-if="!filteredGroups.length">
-      <CardContent class="flex flex-col items-center justify-center py-12 text-center">
-        <Icon name="lucide:search-x" class="size-10 text-muted-foreground/50 mb-3" />
-        <p class="text-sm text-muted-foreground">
+    <UCard v-else-if="!filteredGroups.length">
+      <div class="flex flex-col items-center justify-center py-12 text-center">
+        <Icon name="lucide:search-x" class="size-10 text-muted/50 mb-3" />
+        <p class="text-sm text-muted">
           No scans match "{{ searchQuery }}".
         </p>
-      </CardContent>
-    </Card>
+      </div>
+    </UCard>
 
     <Collapsible
       v-for="group in filteredGroups"
       v-else
       :key="group.site"
       v-model:open="expanded[group.site]"
-      class="rounded-md border bg-card overflow-hidden"
+      class="rounded-md border border-default bg-default overflow-hidden"
     >
       <CollapsibleTrigger class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors">
         <Icon
           name="lucide:chevron-right"
-          class="size-4 text-muted-foreground transition-transform shrink-0"
+          class="size-4 text-muted transition-transform shrink-0"
           :class="{ 'rotate-90': expanded[group.site] }"
         />
         <div class="flex-1 min-w-0">
           <div class="font-semibold text-sm">
             {{ siteHostname(group.site) }}
           </div>
-          <div class="text-xs text-muted-foreground font-mono truncate">
+          <div class="text-xs text-muted font-mono truncate">
             {{ group.site }}
           </div>
         </div>
-        <Badge variant="secondary" class="text-[10px] tabular-nums shrink-0">
+        <UBadge color="neutral" variant="subtle" class="text-[10px] tabular-nums shrink-0">
           {{ group.scanCount }} scans
-        </Badge>
-        <span class="text-xs text-muted-foreground tabular-nums shrink-0">
+        </UBadge>
+        <span class="text-xs text-muted tabular-nums shrink-0">
           latest {{ relTime(group.latestStartedAt) }}
         </span>
       </CollapsibleTrigger>

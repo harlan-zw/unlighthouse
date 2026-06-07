@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Progress } from '@/components/ui/progress'
-import { Card, CardContent } from '@/components/ui/card'
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
@@ -47,8 +45,8 @@ function formatDuration(ms: number): string {
 </script>
 
 <template>
-  <Card class="border-primary/30 bg-primary/5">
-    <CardContent class="pt-4 pb-4 space-y-4">
+  <UCard class="border-primary/30 bg-primary/5">
+    <div class="space-y-4">
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -57,12 +55,12 @@ function formatDuration(ms: number): string {
             <span class="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
           <span class="text-sm font-medium capitalize">{{ store.status }}</span>
-          <span class="text-sm text-muted-foreground truncate max-w-xs">{{ store.site }}</span>
+          <span class="text-sm text-muted truncate max-w-xs">{{ store.site }}</span>
         </div>
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium tabular-nums">{{ store.percent }}%</span>
           <button
-            class="text-muted-foreground hover:text-foreground transition-colors"
+            class="text-muted hover:text-highlighted transition-colors"
             @click="expanded = !expanded"
           >
             <Icon :name="expanded ? 'lucide:chevron-up' : 'lucide:chevron-down'" class="size-4" />
@@ -70,25 +68,25 @@ function formatDuration(ms: number): string {
         </div>
       </div>
 
-      <Progress :model-value="store.percent" class="h-1.5" />
+      <UProgress :model-value="store.percent" size="sm" />
 
       <!-- Counts row — crawler-side numbers. -->
       <div class="grid grid-cols-4 gap-3 text-center text-xs">
         <div>
           <div class="text-base font-bold tabular-nums">{{ store.discovered }}</div>
-          <div class="text-muted-foreground">Discovered</div>
+          <div class="text-muted">Discovered</div>
         </div>
         <div>
           <div class="text-base font-bold tabular-nums">{{ store.scanned }}</div>
-          <div class="text-muted-foreground">Scanned</div>
+          <div class="text-muted">Scanned</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums" :class="store.failed > 0 ? 'text-destructive' : ''">{{ store.failed }}</div>
-          <div class="text-muted-foreground">Failed</div>
+          <div class="text-base font-bold tabular-nums" :class="store.failed > 0 ? 'text-error' : ''">{{ store.failed }}</div>
+          <div class="text-muted">Failed</div>
         </div>
         <div>
           <div class="text-base font-bold tabular-nums">{{ store.total }}</div>
-          <div class="text-muted-foreground">Total</div>
+          <div class="text-muted">Total</div>
         </div>
       </div>
 
@@ -100,28 +98,28 @@ function formatDuration(ms: number): string {
           <div class="text-base font-bold tabular-nums" :class="scoreToColor(store.avgPerfScore)">
             {{ store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—' }}
           </div>
-          <div class="text-muted-foreground">Avg Perf</div>
+          <div class="text-muted">Avg Perf</div>
         </div>
         <div>
           <div class="text-base font-bold tabular-nums text-green-500">{{ store.passCount }}</div>
-          <div class="text-muted-foreground">Pass</div>
+          <div class="text-muted">Pass</div>
         </div>
         <div>
           <div class="text-base font-bold tabular-nums text-orange-500">{{ store.needsWorkCount }}</div>
-          <div class="text-muted-foreground">Needs Work</div>
+          <div class="text-muted">Needs Work</div>
         </div>
         <div>
           <div class="text-base font-bold tabular-nums text-red-500">{{ store.poorCount }}</div>
-          <div class="text-muted-foreground">Poor</div>
+          <div class="text-muted">Poor</div>
         </div>
         <div>
           <div class="text-base font-bold tabular-nums">{{ etaLabel }}</div>
-          <div class="text-muted-foreground">ETA · {{ elapsedLabel }}</div>
+          <div class="text-muted">ETA · {{ elapsedLabel }}</div>
         </div>
       </div>
 
       <!-- Terminal -->
       <ScanTerminal v-if="expanded" />
-    </CardContent>
-  </Card>
+    </div>
+  </UCard>
 </template>

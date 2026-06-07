@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import type { TrendMarker, TrendSeries } from '@/components/TrendChart.vue'
 import type { DevicePair, ScanRow } from '@/components/site/types'
+import type { TrendMarker, TrendSeries } from '@/components/TrendChart.vue'
 import { toast } from 'vue-sonner'
-import { Switch } from '@/components/ui/switch'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 definePageMeta({ layout: 'site' })
 
@@ -197,41 +193,43 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
     <!-- Header -->
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0">
-        <h1 class="text-2xl font-bold tracking-tight truncate">{{ siteName }}</h1>
-        <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+        <h1 class="text-2xl font-bold tracking-tight truncate">
+          {{ siteName }}
+        </h1>
+        <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted hover:text-highlighted inline-flex items-center gap-1">
           {{ siteUrl }}
           <Icon name="lucide:external-link" class="size-3" />
         </a>
       </div>
       <div class="flex items-center gap-2">
-        <Button v-if="canCompare" variant="outline" size="sm" @click="compareLatest">
+        <UButton v-if="canCompare" color="neutral" variant="outline" size="sm" @click="compareLatest">
           <Icon name="lucide:git-compare" class="size-4 mr-1.5" />
           Compare latest two
-        </Button>
-        <Button size="sm" as-child>
-          <NuxtLink :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
-            <Icon name="lucide:plus" class="size-4 mr-1.5" />
-            New Scan
-          </NuxtLink>
-        </Button>
+        </UButton>
+        <UButton size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
+          <Icon name="lucide:plus" class="size-4 mr-1.5" />
+          New Scan
+        </UButton>
       </div>
     </div>
 
-    <div v-if="loading" class="text-center py-16 text-muted-foreground">Loading site history…</div>
+    <div v-if="loading" class="text-center py-16 text-muted">
+      Loading site history…
+    </div>
 
-    <div v-else-if="isEmpty" class="text-center py-16 text-muted-foreground">
+    <div v-else-if="isEmpty" class="text-center py-16 text-muted">
       <Icon name="lucide:radar" class="size-10 mx-auto mb-3 opacity-50" />
       <p>No scans yet for this site.</p>
-      <Button size="sm" class="mt-4" as-child>
-        <NuxtLink :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">Start the first scan</NuxtLink>
-      </Button>
+      <UButton size="sm" class="mt-4" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
+        Start the first scan
+      </UButton>
     </div>
 
     <template v-else>
       <!-- Trend controls -->
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div v-if="hasBoth" class="flex items-center gap-2">
-          <span class="text-xs text-muted-foreground">Trends for</span>
+          <span class="text-xs text-muted">Trends for</span>
           <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
             <ToggleGroupItem value="mobile" class="text-xs">
               <Icon name="lucide:smartphone" class="size-3.5 mr-1" /> Mobile
@@ -242,50 +240,56 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
           </ToggleGroup>
         </div>
         <div v-else />
-        <label v-if="hasReleases" class="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-          <Switch :model-value="showReleases" @update:model-value="(v: boolean) => showReleases = v" />
+        <label v-if="hasReleases" class="flex items-center gap-2 text-xs text-muted cursor-pointer select-none">
+          <USwitch :model-value="showReleases" @update:model-value="(v: boolean) => showReleases = v" />
           Show releases
         </label>
       </div>
 
       <!-- Score trend -->
-      <Card>
-        <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Category scores over time</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TrendChart :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
-        </CardContent>
-      </Card>
+      <UCard>
+        <template #header>
+          <div class="text-sm font-medium text-muted">
+            Category scores over time
+          </div>
+        </template>
+        <TrendChart :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
+      </UCard>
 
       <!-- Web vitals trend -->
-      <Card>
-        <CardHeader class="pb-2 flex flex-row items-center justify-between">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Core Web Vitals (p75) over time</CardTitle>
-          <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted-foreground inline-flex items-center gap-1">
-            <Icon name="lucide:loader-2" class="size-3.5 animate-spin" /> loading vitals…
-          </span>
-        </CardHeader>
-        <CardContent>
-          <div class="grid gap-6 lg:grid-cols-3">
-            <div v-for="m in VITALS" :key="m.key">
-              <div class="text-xs font-medium mb-1" :style="{ color: m.color }">{{ m.label }}</div>
-              <TrendChart
-                :series="vitalsSeries(m.key, m.label, m.color)"
-                :format="m.fmt"
-                :show-legend="false"
-                :height="140"
-                :markers="showReleases ? releaseMarkers : []"
-                :marker-pills="false"
-              />
+      <UCard>
+        <template #header>
+          <div class="flex flex-row items-center justify-between">
+            <div class="text-sm font-medium text-muted">
+              Core Web Vitals (p75) over time
             </div>
+            <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted inline-flex items-center gap-1">
+              <Icon name="lucide:loader-2" class="size-3.5 animate-spin" /> loading vitals…
+            </span>
           </div>
-        </CardContent>
-      </Card>
+        </template>
+        <div class="grid gap-6 lg:grid-cols-3">
+          <div v-for="m in VITALS" :key="m.key">
+            <div class="text-xs font-medium mb-1" :style="{ color: m.color }">
+              {{ m.label }}
+            </div>
+            <TrendChart
+              :series="vitalsSeries(m.key, m.label, m.color)"
+              :format="m.fmt"
+              :show-legend="false"
+              :height="140"
+              :markers="showReleases ? releaseMarkers : []"
+              :marker-pills="false"
+            />
+          </div>
+        </div>
+      </UCard>
 
       <!-- Scan history -->
       <div>
-        <h2 class="text-sm font-medium text-muted-foreground mb-3">Scan history</h2>
+        <h2 class="text-sm font-medium text-muted mb-3">
+          Scan history
+        </h2>
         <SiteHistoryTable
           :pairs="pairs"
           @open="openPair"

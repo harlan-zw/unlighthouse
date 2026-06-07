@@ -1,15 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-
 definePageMeta({ layout: 'scan' })
 
 const api = useApi()
@@ -137,74 +126,70 @@ const hasData = computed(() =>
     <PackFindings :findings="findings" title="Best Practices Issues" />
 
     <!-- JS Bundle Analysis -->
-    <Card v-if="bundleReport?.findings?.length">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
+    <UCard v-if="bundleReport?.findings?.length">
+      <template #header>
+        <h3 class="text-sm font-medium text-muted flex items-center gap-2">
           JS Bundle Issues
-          <Badge variant="secondary" class="text-xs">
+          <UBadge color="neutral" variant="subtle" class="text-xs">
             {{ bundleReport.findings.length }}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="space-y-3">
-          <div v-for="(finding, idx) in bundleReport.findings" :key="`${finding.kind}-${finding.resource}-${idx}`" class="p-3 border rounded-lg">
-            <div class="flex items-center justify-between gap-3">
-              <div class="min-w-0">
-                <div class="text-sm font-medium flex items-center gap-2">
-                  <Badge variant="outline" class="text-[10px] capitalize shrink-0">
-                    {{ finding.severity }}
-                  </Badge>
-                  {{ bundleKindLabel(finding.kind) }}
-                </div>
-                <div v-if="finding.resource" class="text-xs text-muted-foreground font-mono truncate mt-1" :title="finding.resource">
-                  {{ shortResource(finding.resource) }}
-                </div>
+          </UBadge>
+        </h3>
+      </template>
+      <div class="space-y-3">
+        <div v-for="(finding, idx) in bundleReport.findings" :key="`${finding.kind}-${finding.resource}-${idx}`" class="p-3 border border-default rounded-lg">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-sm font-medium flex items-center gap-2">
+                <UBadge variant="outline" class="text-[10px] capitalize shrink-0">
+                  {{ finding.severity }}
+                </UBadge>
+                {{ bundleKindLabel(finding.kind) }}
               </div>
-              <Badge variant="outline" class="text-xs shrink-0">
-                {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
-              </Badge>
+              <div v-if="finding.resource" class="text-xs text-muted font-mono truncate mt-1" :title="finding.resource">
+                {{ shortResource(finding.resource) }}
+              </div>
             </div>
-            <div v-if="finding.wastedBytes" class="text-xs text-orange-500 mt-2">
-              {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ finding.wastedPercent }}%)</span>
-            </div>
-            <div v-if="finding.fixHint" class="text-xs text-muted-foreground mt-1">
-              {{ finding.fixHint }}
-            </div>
+            <UBadge variant="outline" class="text-xs shrink-0">
+              {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
+            </UBadge>
+          </div>
+          <div v-if="finding.wastedBytes" class="text-xs text-orange-500 mt-2">
+            {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ finding.wastedPercent }}%)</span>
+          </div>
+          <div v-if="finding.fixHint" class="text-xs text-muted mt-1">
+            {{ finding.fixHint }}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </UCard>
 
     <!-- Route Scores -->
-    <Card v-if="routeScores?.items?.length">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-sm font-medium text-muted-foreground">
+    <UCard v-if="routeScores?.items?.length">
+      <template #header>
+        <h3 class="text-sm font-medium text-muted">
           Route Scores
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Path</TableHead>
-              <TableHead class="w-28 text-right">
-                Best Practices
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="r in routeScores.items.slice(0, 50)" :key="r.url">
-              <TableCell class="font-mono text-xs truncate max-w-sm" :title="r.url">
-                {{ r.path }}
-              </TableCell>
-              <TableCell class="text-right tabular-nums font-bold" :class="scoreToColor(r.scoreBestPractices)">
-                {{ scoreToLabel(r.scoreBestPractices) }}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+        </h3>
+      </template>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-default">
+            <th class="text-left font-medium text-muted py-2">Path</th>
+            <th class="w-28 text-right font-medium text-muted py-2">
+              Best Practices
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="r in routeScores.items.slice(0, 50)" :key="r.url" class="border-b border-default">
+            <td class="font-mono text-xs truncate max-w-sm py-2" :title="r.url">
+              {{ r.path }}
+            </td>
+            <td class="text-right tabular-nums font-bold py-2" :class="scoreToColor(r.scoreBestPractices)">
+              {{ scoreToLabel(r.scoreBestPractices) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </UCard>
   </CategoryPageShell>
 </template>

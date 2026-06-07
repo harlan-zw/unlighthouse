@@ -1,36 +1,11 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { toast } from 'vue-sonner'
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from '@/components/ui/toggle-group'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { toast } from 'vue-sonner'
 
 definePageMeta({ layout: 'compare' })
 
@@ -77,7 +52,8 @@ const { data: history } = useAsyncData(
 // to compares with 0 overlapping routes. Filter to scans of the same
 // site as the current scan.
 const otherScans = computed(() => {
-  if (!history.value?.items || !currentMeta.value) return []
+  if (!history.value?.items || !currentMeta.value)
+    return []
   const site = currentMeta.value.site
   return history.value.items.filter(s =>
     s.scanId !== currentScanId.value
@@ -91,7 +67,8 @@ const otherScans = computed(() => {
 const { data: autoBase } = useAsyncData(
   `compare-auto-${currentScanId.value}`,
   async () => {
-    if (!currentMeta.value || baseScanId.value) return null
+    if (!currentMeta.value || baseScanId.value)
+      return null
     try {
       const res = await api['compare.findPrevious']({
         site: currentMeta.value.site,
@@ -109,7 +86,8 @@ const { data: autoBase } = useAsyncData(
 )
 
 watch(autoBase, (id) => {
-  if (id && !baseScanId.value) baseScanId.value = id as string
+  if (id && !baseScanId.value)
+    baseScanId.value = id as string
 })
 
 const comparing = ref(false)
@@ -123,13 +101,13 @@ const selectedRowKey = ref<string | null>(null)
 // Threshold UI bound to the same shape compare.detail accepts. Empty
 // string ⇒ omit (handler falls back to CI defaults).
 const thresholds = reactive<Record<string, string>>({
-  performance: '',
-  accessibility: '',
-  seo: '',
+  'performance': '',
+  'accessibility': '',
+  'seo': '',
   'best-practices': '',
-  lcp: '',
-  cls: '',
-  inp: '',
+  'lcp': '',
+  'cls': '',
+  'inp': '',
 })
 
 function thresholdPayload(): Record<string, number> | undefined {
@@ -154,7 +132,8 @@ const showLegacyMetrics = ref(false)
 const showPackDetails = ref(false)
 
 async function copyAsMarkdown() {
-  if (!baseScanId.value) return
+  if (!baseScanId.value)
+    return
   copyingMarkdown.value = true
   try {
     const res = await api['compare.markdown']({
@@ -186,7 +165,8 @@ async function copyAsMarkdown() {
 }
 
 async function fetchPage() {
-  if (!baseScanId.value) return
+  if (!baseScanId.value)
+    return
   try {
     report.value = await (api as any)['compare.detail']({
       baseScanId: baseScanId.value,
@@ -211,7 +191,8 @@ async function fetchPage() {
 // thresholds combo, not on every filter/sort tweak. compare.run is
 // where packDiffs live (compare.detail returns per-route only).
 async function fetchPacks() {
-  if (!baseScanId.value) return
+  if (!baseScanId.value)
+    return
   try {
     packReport.value = await (api as any)['compare.run']({
       baseScanId: baseScanId.value,
@@ -229,7 +210,8 @@ async function fetchPacks() {
 // Surface it as a headline strip so users land on the smoothed view
 // first.
 const cwvPackDiff = computed(() => {
-  if (!packReport.value?.packDiffs) return null
+  if (!packReport.value?.packDiffs)
+    return null
   return packReport.value.packDiffs.find((p: any) => p.packName === 'cwv') ?? null
 })
 
@@ -237,7 +219,8 @@ interface CwvP75Row { metric: string, baseP75: number | null, currentP75: number
 
 const cwvP75Rows = computed<CwvP75Row[]>(() => {
   const diff = cwvPackDiff.value
-  if (!diff) return []
+  if (!diff)
+    return []
   const baseMetrics: any[] = (diff.base as any)?.metrics ?? []
   const currentMetrics: any[] = (diff.current as any)?.metrics ?? []
   const byMetric = new Map<string, { base?: any, current?: any }>()
@@ -268,29 +251,37 @@ const cwvP75Rows = computed<CwvP75Row[]>(() => {
 // not headline, but still useful (images findings count, a11y
 // quick-wins severity, etc.). Filter to ones that actually changed.
 const otherPackChanges = computed(() => {
-  if (!packReport.value?.packDiffs) return []
+  if (!packReport.value?.packDiffs)
+    return []
   return packReport.value.packDiffs.filter((p: any) => p.packName !== 'cwv' && p.hasChanges)
 })
 
 function fmtCwvP75(metric: string, value: number | null): string {
-  if (value == null) return '—'
-  if (metric === 'cls') return value.toFixed(3)
+  if (value == null)
+    return '—'
+  if (metric === 'cls')
+    return value.toFixed(3)
   if (metric === 'lcp' || metric === 'inp' || metric === 'fcp' || metric === 'ttfb') {
-    if (value >= 1000) return `${(value / 1000).toFixed(2)}s`
+    if (value >= 1000)
+      return `${(value / 1000).toFixed(2)}s`
     return `${Math.round(value)}ms`
   }
   return String(Math.round(value))
 }
 
 function cwvVerdictColor(verdict: string | null): string {
-  if (verdict === 'good') return 'text-green-500'
-  if (verdict === 'needs-improvement' || verdict === 'needsImprovement') return 'text-orange-500'
-  if (verdict === 'poor') return 'text-red-500'
-  return 'text-muted-foreground'
+  if (verdict === 'good')
+    return 'text-green-500'
+  if (verdict === 'needs-improvement' || verdict === 'needsImprovement')
+    return 'text-orange-500'
+  if (verdict === 'poor')
+    return 'text-red-500'
+  return 'text-muted'
 }
 
 async function handleCompare() {
-  if (!baseScanId.value) return
+  if (!baseScanId.value)
+    return
   comparing.value = true
   selectedRowKey.value = null
   page.value = 1
@@ -303,7 +294,8 @@ async function handleCompare() {
 }
 
 function swapDirection() {
-  if (!baseScanId.value) return
+  if (!baseScanId.value)
+    return
   // A→B becomes B→A. New current = old base; navigate so the URL
   // matches the swap (currentScanId is part of the path).
   const oldBase = baseScanId.value
@@ -325,27 +317,49 @@ watch(page, () => fetchPage())
 // Multi-device detection — only show the device chip when both sides
 // of the compare actually have routes audited on both devices.
 const hasMultipleDevices = computed(() => {
-  if (!report.value?.routes?.items) return false
+  if (!report.value?.routes?.items)
+    return false
   const devices = new Set(report.value.routes.items.map((r: any) => r.device))
   return devices.size > 1
 })
 
 const selectedRow = computed(() => {
-  if (!selectedRowKey.value || !report.value) return null
+  if (!selectedRowKey.value || !report.value)
+    return null
   return report.value.routes.items.find((r: any) => `${r.url}|${r.device}` === selectedRowKey.value) ?? null
 })
 
 function statusBadge(status: string) {
-  if (status === 'regressed') return 'destructive'
-  if (status === 'improved') return 'default'
-  if (status === 'added') return 'secondary'
-  if (status === 'removed') return 'outline'
+  if (status === 'regressed')
+    return 'destructive'
+  if (status === 'improved')
+    return 'default'
+  if (status === 'added')
+    return 'secondary'
+  if (status === 'removed')
+    return 'outline'
   return 'outline'
 }
 
+// Map the legacy shadcn <Badge variant> names (still produced by
+// statusBadge() and verdict.tone) onto @nuxt/ui's UBadge color/variant
+// pair so both the template badges and the in-render column cell stay
+// in sync.
+function badgeProps(variant: string): { color: string, variant: string } {
+  switch (variant) {
+    case 'destructive': return { color: 'error', variant: 'subtle' }
+    case 'default': return { color: 'primary', variant: 'subtle' }
+    case 'secondary': return { color: 'neutral', variant: 'subtle' }
+    case 'outline': return { color: 'neutral', variant: 'outline' }
+    default: return { color: 'neutral', variant: 'outline' }
+  }
+}
+
 function deltaClass(v: number | null | undefined, isScore: boolean) {
-  if (v == null || v === 0) return 'text-muted-foreground'
-  if (isScore) return v > 0 ? 'text-green-500' : 'text-red-500'
+  if (v == null || v === 0)
+    return 'text-muted'
+  if (isScore)
+    return v > 0 ? 'text-green-500' : 'text-red-500'
   return v < 0 ? 'text-green-500' : 'text-red-500'
 }
 
@@ -358,11 +372,13 @@ function deltaClass(v: number | null | undefined, isScore: boolean) {
 // the same defaults the handler uses. `isInsideThreshold` returned
 // alongside so callers can attach a tooltip explaining the mute.
 function deltaClassWithThreshold(v: number | null | undefined, isScore: boolean, thresholdKey: string): { klass: string, mutedByThreshold: boolean } {
-  if (v == null || v === 0) return { klass: 'text-muted-foreground', mutedByThreshold: false }
+  if (v == null || v === 0)
+    return { klass: 'text-muted', mutedByThreshold: false }
   const thr = effectiveThreshold(thresholdKey, isScore)
   if (thr != null && Math.abs(v) <= thr)
-    return { klass: 'text-muted-foreground/70', mutedByThreshold: true }
-  if (isScore) return { klass: v > 0 ? 'text-green-500' : 'text-red-500', mutedByThreshold: false }
+    return { klass: 'text-muted/70', mutedByThreshold: true }
+  if (isScore)
+    return { klass: v > 0 ? 'text-green-500' : 'text-red-500', mutedByThreshold: false }
   return { klass: v < 0 ? 'text-green-500' : 'text-red-500', mutedByThreshold: false }
 }
 
@@ -371,23 +387,24 @@ function deltaClassWithThreshold(v: number | null | undefined, isScore: boolean,
 // in lockstep — if a delta is muted here, the handler also rejected it
 // as "unchanged."
 const DEFAULT_THRESHOLDS: Record<string, number> = {
-  performance: 0.05,
-  accessibility: 0.05,
-  seo: 0.05,
+  'performance': 0.05,
+  'accessibility': 0.05,
+  'seo': 0.05,
   'best-practices': 0.05,
-  lcp: 500,
-  cls: 0.1,
-  inp: 200,
-  fcp: 300,
-  tbt: 200,
-  ttfb: 200,
-  si: 500,
+  'lcp': 500,
+  'cls': 0.1,
+  'inp': 200,
+  'fcp': 300,
+  'tbt': 200,
+  'ttfb': 200,
+  'si': 500,
 }
 function effectiveThreshold(key: string, _isScore: boolean): number | null {
   const userValue = thresholds[key]
   if (userValue && userValue.trim() !== '') {
     const n = Number.parseFloat(userValue)
-    if (!Number.isNaN(n)) return n
+    if (!Number.isNaN(n))
+      return n
   }
   return DEFAULT_THRESHOLDS[key] ?? null
 }
@@ -407,11 +424,12 @@ function rowScoreCell(row: any, key: string, thresholdKey: string): { value: str
     const { klass, mutedByThreshold } = deltaClassWithThreshold(delta, true, thresholdKey)
     return { value: fmtDelta(delta, true), klass, mutedByThreshold }
   }
-  return { value: String(fmtScore(row.current?.[key])), klass: 'text-muted-foreground', mutedByThreshold: false }
+  return { value: String(fmtScore(row.current?.[key])), klass: 'text-muted', mutedByThreshold: false }
 }
 
 const totalPages = computed(() => {
-  if (!report.value) return 1
+  if (!report.value)
+    return 1
   return Math.ceil(report.value.routes.total / report.value.routes.pageSize)
 })
 
@@ -419,7 +437,8 @@ const totalPages = computed(() => {
 // columns disable client sorting. Sticky headers + alignment ride on
 // `meta`; score cells reuse rowScoreCell() for threshold-aware colour.
 const IconCmp = resolveComponent('Icon')
-const STICKY_HEAD = 'sticky top-0 z-10 bg-background'
+const UBadgeCmp = resolveComponent('UBadge')
+const STICKY_HEAD = 'sticky top-0 z-10 bg-default'
 const SHORT_LABEL: Record<string, string> = {
   scorePerformance: 'Perf',
   scoreAccessibility: 'A11y',
@@ -443,7 +462,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       header: 'Status',
       enableSorting: false,
       meta: { headClass: `${STICKY_HEAD} w-20` },
-      cell: ({ row }) => h(Badge, { variant: statusBadge(row.original.status), class: 'text-[9px] capitalize' }, () => row.original.status),
+      cell: ({ row }) => h(UBadgeCmp, { ...badgeProps(statusBadge(row.original.status)), size: 'sm', class: 'text-[9px] capitalize' }, () => row.original.status),
     },
   ]
   if (hasMultipleDevices.value) {
@@ -454,7 +473,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       meta: { align: 'center', headClass: `${STICKY_HEAD} w-16` },
       cell: ({ row }) => h(IconCmp, {
         name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor',
-        class: 'size-3.5 text-muted-foreground inline',
+        class: 'size-3.5 text-muted inline',
       }),
     })
   }
@@ -502,6 +521,14 @@ const DIAGNOSTIC_METRICS = [
 ]
 const DETAIL_METRICS = [...CATEGORY_METRICS, ...CWV_METRICS, ...DIAGNOSTIC_METRICS]
 
+// USelect items for the Base picker — keep the raw scan on each item so
+// the #item-label slot can render the rich row (id + device + date +
+// commit). `value` is the scanId, matching the v-model binding.
+const baseScanItems = computed(() => otherScans.value.map(scan => ({
+  label: shortId(scan.scanId),
+  value: scan.scanId,
+  scan,
+})))
 
 const sortOptions = [
   { value: 'delta-perf-desc', label: 'Perf Δ (worst first)' },
@@ -518,7 +545,8 @@ const sortOptions = [
 // the markdown handler's verdict so the dashboard and the PR comment
 // agree on the story.
 const verdict = computed(() => {
-  if (!report.value) return null
+  if (!report.value)
+    return null
   const s = report.value.summary
   if (s.regressedRoutes > 0)
     return { tone: 'destructive', text: `${s.regressedRoutes} route${s.regressedRoutes === 1 ? '' : 's'} regressed` }
@@ -530,10 +558,10 @@ const verdict = computed(() => {
 })
 
 function shortId(id: string | null | undefined): string {
-  if (!id) return ''
+  if (!id)
+    return ''
   return id.slice(0, 8)
 }
-
 
 // Auto-trigger the initial compare when the page loads with a base in
 // the URL OR when autoBase resolves. The user can still click Compare
@@ -554,67 +582,66 @@ function gotoOverview(id: string) {
 <template>
   <div class="h-full flex flex-col">
     <!-- Top toolbar — base/current scan identity, swap, picker, actions -->
-    <div class="border-b bg-card/50">
+    <div class="border-b bg-default/50">
       <div class="px-4 py-2.5 flex items-center gap-3 flex-wrap">
-        <Icon name="lucide:git-compare-arrows" class="size-4 text-muted-foreground shrink-0" />
+        <Icon name="lucide:git-compare-arrows" class="size-4 text-muted shrink-0" />
 
         <!-- Base scan -->
         <div class="flex items-center gap-2 min-w-0">
-          <span class="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Base</span>
-          <Select v-model="baseScanId">
-            <SelectTrigger class="h-8 min-w-[220px] max-w-[320px] text-xs">
-              <SelectValue placeholder="Pick a previous scan..." />
-            </SelectTrigger>
-            <SelectContent>
-              <div v-if="!otherScans.length" class="px-2 py-3 text-center text-xs text-muted-foreground">
-                No other scans of this site yet.
+          <span class="text-[10px] uppercase tracking-wider text-muted shrink-0">Base</span>
+          <USelect
+            v-model="baseScanId"
+            :items="baseScanItems"
+            placeholder="Pick a previous scan..."
+            size="sm"
+            class="min-w-[220px] max-w-[320px] text-xs"
+          >
+            <template #item-label="{ item }">
+              <div class="flex items-center gap-2 text-xs">
+                <span class="font-mono">{{ shortId(item.scan.scanId) }}</span>
+                <UBadge color="neutral" variant="outline" size="sm" class="text-[9px]">
+                  {{ item.scan.device }}
+                </UBadge>
+                <span class="text-muted">{{ fmtDate(item.scan.completedAt || item.scan.startedAt) }}</span>
+                <span v-if="item.scan.ciCommit" class="font-mono text-[10px] text-muted">{{ item.scan.ciCommit.slice(0, 7) }}</span>
               </div>
-              <SelectItem v-for="scan in otherScans" :key="scan.scanId" :value="scan.scanId">
-                <div class="flex items-center gap-2 text-xs">
-                  <span class="font-mono">{{ shortId(scan.scanId) }}</span>
-                  <Badge variant="outline" class="text-[9px]">{{ scan.device }}</Badge>
-                  <span class="text-muted-foreground">{{ fmtDate(scan.completedAt || scan.startedAt) }}</span>
-                  <span v-if="scan.ciCommit" class="font-mono text-[10px] text-muted-foreground">{{ scan.ciCommit.slice(0, 7) }}</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            </template>
+          </USelect>
         </div>
 
         <!-- Swap -->
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <Button variant="ghost" size="sm" class="size-8 p-0" :disabled="!baseScanId" @click="swapDirection">
-                <Icon name="lucide:arrow-left-right" class="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Swap base ↔ current</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <UTooltip text="Swap base ↔ current">
+          <UButton color="neutral" variant="ghost" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" @click="swapDirection">
+            <Icon name="lucide:arrow-left-right" class="size-4" />
+          </UButton>
+        </UTooltip>
 
         <!-- Current scan -->
         <div class="flex items-center gap-2 min-w-0">
-          <span class="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Current</span>
+          <span class="text-[10px] uppercase tracking-wider text-muted shrink-0">Current</span>
           <span class="font-mono text-xs">{{ shortId(currentScanId) }}</span>
-          <Badge v-if="currentMeta" variant="outline" class="text-[9px]">{{ currentMeta.device }}</Badge>
-          <span v-if="currentMeta" class="text-xs text-muted-foreground truncate max-w-[200px]">{{ currentMeta.site }}</span>
+          <UBadge v-if="currentMeta" color="neutral" variant="outline" size="sm" class="text-[9px]">
+            {{ currentMeta.device }}
+          </UBadge>
+          <span v-if="currentMeta" class="text-xs text-muted truncate max-w-[200px]">{{ currentMeta.site }}</span>
         </div>
 
         <div class="ml-auto flex items-center gap-1.5">
           <!-- Thresholds popover -->
-          <Popover>
-            <PopoverTrigger as-child>
-              <Button variant="outline" size="sm" class="h-8">
-                <Icon name="lucide:sliders-horizontal" class="size-3.5 mr-1.5" />
-                Thresholds
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent class="w-96">
-              <div class="space-y-3">
+          <UPopover :content="{ align: 'end' }">
+            <UButton color="neutral" variant="outline" size="sm" class="h-8">
+              <Icon name="lucide:sliders-horizontal" class="size-3.5 mr-1.5" />
+              Thresholds
+            </UButton>
+            <template #content>
+              <div class="w-96 p-4 space-y-3">
                 <div>
-                  <h4 class="text-sm font-semibold">Regression thresholds</h4>
-                  <p class="text-xs text-muted-foreground">Empty = CI defaults. Deltas within threshold render muted (treated as noise).</p>
+                  <h4 class="text-sm font-semibold">
+                    Regression thresholds
+                  </h4>
+                  <p class="text-xs text-muted">
+                    Empty = CI defaults. Deltas within threshold render muted (treated as noise).
+                  </p>
                 </div>
 
                 <!-- Single inline note about sampling — explained once,
@@ -626,86 +653,90 @@ function gotoOverview(id: string) {
 
                 <div class="space-y-3 text-xs">
                   <div>
-                    <div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Category scores (0–1)</div>
+                    <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">
+                      Category scores (0–1)
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
                       <label class="space-y-1">
-                        <span class="text-muted-foreground">Performance</span>
-                        <Input v-model="thresholds.performance" placeholder="0.05" class="h-7 text-xs" />
+                        <span class="text-muted">Performance</span>
+                        <UInput v-model="thresholds.performance" placeholder="0.05" size="sm" class="w-full text-xs" />
                       </label>
                       <label class="space-y-1">
-                        <span class="text-muted-foreground">Accessibility</span>
-                        <Input v-model="thresholds.accessibility" placeholder="0.05" class="h-7 text-xs" />
+                        <span class="text-muted">Accessibility</span>
+                        <UInput v-model="thresholds.accessibility" placeholder="0.05" size="sm" class="w-full text-xs" />
                       </label>
                       <label class="space-y-1">
-                        <span class="text-muted-foreground">SEO</span>
-                        <Input v-model="thresholds.seo" placeholder="0.05" class="h-7 text-xs" />
+                        <span class="text-muted">SEO</span>
+                        <UInput v-model="thresholds.seo" placeholder="0.05" size="sm" class="w-full text-xs" />
                       </label>
                       <label class="space-y-1">
-                        <span class="text-muted-foreground">Best Practices</span>
-                        <Input v-model="thresholds['best-practices']" placeholder="0.05" class="h-7 text-xs" />
+                        <span class="text-muted">Best Practices</span>
+                        <UInput v-model="thresholds['best-practices']" placeholder="0.05" size="sm" class="w-full text-xs" />
                       </label>
                     </div>
                   </div>
 
                   <div>
-                    <div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Core Web Vitals</div>
+                    <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">
+                      Core Web Vitals
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
                       <label class="space-y-1">
-                        <span class="text-muted-foreground flex justify-between">
+                        <span class="text-muted flex justify-between">
                           LCP (ms)
-                          <span class="text-[9px] italic text-muted-foreground/70" title="Typical jitter on parallel single-run audits">≈ 300ms noise</span>
+                          <span class="text-[9px] italic text-muted/70" title="Typical jitter on parallel single-run audits">≈ 300ms noise</span>
                         </span>
-                        <Input v-model="thresholds.lcp" placeholder="500" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.lcp" placeholder="500" size="sm" class="w-full text-xs" />
                       </label>
                       <label class="space-y-1">
-                        <span class="text-muted-foreground flex justify-between">
+                        <span class="text-muted flex justify-between">
                           CLS
-                          <span class="text-[9px] italic text-muted-foreground/70">≈ 0.02 noise</span>
+                          <span class="text-[9px] italic text-muted/70">≈ 0.02 noise</span>
                         </span>
-                        <Input v-model="thresholds.cls" placeholder="0.1" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.cls" placeholder="0.1" size="sm" class="w-full text-xs" />
                       </label>
                       <label class="space-y-1">
-                        <span class="text-muted-foreground flex justify-between">
+                        <span class="text-muted flex justify-between">
                           INP (ms)
-                          <span class="text-[9px] italic text-muted-foreground/70">≈ 100ms noise</span>
+                          <span class="text-[9px] italic text-muted/70">≈ 100ms noise</span>
                         </span>
-                        <Input v-model="thresholds.inp" placeholder="200" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.inp" placeholder="200" size="sm" class="w-full text-xs" />
                       </label>
                     </div>
                   </div>
                 </div>
 
-                <Button size="sm" class="w-full" @click="handleCompare">
+                <UButton size="sm" class="w-full justify-center" @click="handleCompare">
                   Apply
-                </Button>
+                </UButton>
               </div>
-            </PopoverContent>
-          </Popover>
+            </template>
+          </UPopover>
 
-          <Button variant="outline" size="sm" class="h-8" :disabled="copyingMarkdown || !baseScanId || !report" @click="copyAsMarkdown">
+          <UButton color="neutral" variant="outline" size="sm" class="h-8" :disabled="copyingMarkdown || !baseScanId || !report" @click="copyAsMarkdown">
             <Icon v-if="copyingMarkdown" name="lucide:loader-2" class="size-3.5 mr-1.5 animate-spin" />
             <Icon v-else name="lucide:clipboard-copy" class="size-3.5 mr-1.5" />
             Copy MD
-          </Button>
+          </UButton>
 
-          <Button size="sm" class="h-8" :disabled="!baseScanId || comparing" @click="handleCompare">
+          <UButton size="sm" class="h-8" :disabled="!baseScanId || comparing" @click="handleCompare">
             <Icon v-if="comparing" name="lucide:loader-2" class="size-3.5 mr-1.5 animate-spin" />
             <Icon v-else name="lucide:refresh-cw" class="size-3.5 mr-1.5" />
             Compare
-          </Button>
+          </UButton>
         </div>
       </div>
 
       <!-- Scan-metadata strip — visible only when both scans are loaded -->
-      <div v-if="baseMeta && currentMeta" class="px-4 py-2 text-xs flex items-center gap-4 flex-wrap border-t bg-background/40">
-        <button class="hover:underline text-muted-foreground hover:text-foreground inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
+      <div v-if="baseMeta && currentMeta" class="px-4 py-2 text-xs flex items-center gap-4 flex-wrap border-t bg-default/40">
+        <button class="hover:underline text-muted hover:text-highlighted inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
           <Icon name="lucide:external-link" class="size-3" />
           Base: {{ fmtDate(baseMeta.completedAt || baseMeta.startedAt) }}
           <span v-if="baseMeta.ciCommit" class="font-mono text-[10px]">· {{ baseMeta.ciCommit.slice(0, 7) }}</span>
           <span v-if="baseMeta.ciBranch" class="text-[10px]">· {{ baseMeta.ciBranch }}</span>
         </button>
-        <Icon name="lucide:arrow-right" class="size-3 text-muted-foreground" />
-        <button class="hover:underline text-muted-foreground hover:text-foreground inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
+        <Icon name="lucide:arrow-right" class="size-3 text-muted" />
+        <button class="hover:underline text-muted hover:text-highlighted inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
           <Icon name="lucide:external-link" class="size-3" />
           Current: {{ fmtDate(currentMeta.completedAt || currentMeta.startedAt) }}
           <span v-if="currentMeta.ciCommit" class="font-mono text-[10px]">· {{ currentMeta.ciCommit.slice(0, 7) }}</span>
@@ -716,65 +747,69 @@ function gotoOverview(id: string) {
 
     <!-- Empty state — no base picked yet -->
     <div v-if="!baseScanId" class="flex-1 flex items-center justify-center p-8">
-      <Card class="max-w-md">
-        <CardContent class="pt-6 text-center space-y-3">
-          <Icon name="lucide:git-compare-arrows" class="size-12 text-muted-foreground/40 mx-auto" />
-          <h3 class="font-semibold">Pick a scan to compare against</h3>
-          <p class="text-sm text-muted-foreground">
+      <UCard class="max-w-md">
+        <div class="pt-6 text-center space-y-3">
+          <Icon name="lucide:git-compare-arrows" class="size-12 text-muted/40 mx-auto" />
+          <h3 class="font-semibold">
+            Pick a scan to compare against
+          </h3>
+          <p class="text-sm text-muted">
             Use the <strong>Base</strong> dropdown above to pick a prior scan of <span class="font-mono text-xs">{{ currentMeta?.site || 'this site' }}</span>. The most recent scan on the same device + branch is auto-selected when available.
           </p>
-          <p v-if="!otherScans.length" class="text-xs text-muted-foreground/70">
+          <p v-if="!otherScans.length" class="text-xs text-muted/70">
             No other scans of this site exist yet — run another scan first.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </UCard>
     </div>
 
     <!-- No report yet but base picked: instructive empty state -->
     <div v-else-if="!report && !comparing" class="flex-1 flex items-center justify-center p-8">
-      <Card class="max-w-md">
-        <CardContent class="pt-6 text-center space-y-3">
-          <Icon name="lucide:play" class="size-10 text-muted-foreground/40 mx-auto" />
-          <p class="text-sm text-muted-foreground">Press <strong>Compare</strong> to run the diff.</p>
-        </CardContent>
-      </Card>
+      <UCard class="max-w-md">
+        <div class="pt-6 text-center space-y-3">
+          <Icon name="lucide:play" class="size-10 text-muted/40 mx-auto" />
+          <p class="text-sm text-muted">
+            Press <strong>Compare</strong> to run the diff.
+          </p>
+        </div>
+      </UCard>
     </div>
 
     <!-- Loading -->
     <div v-else-if="comparing && !report" class="flex-1 flex items-center justify-center">
-      <Icon name="lucide:loader-2" class="size-6 animate-spin text-muted-foreground" />
+      <Icon name="lucide:loader-2" class="size-6 animate-spin text-muted" />
     </div>
 
     <!-- Report body -->
     <template v-else-if="report">
       <!-- Summary band -->
       <div class="px-4 py-3 border-b flex items-center gap-6 flex-wrap">
-        <Badge v-if="verdict" :variant="verdict.tone as any" class="text-sm px-3 py-1">
+        <UBadge v-if="verdict" v-bind="badgeProps(verdict.tone)" class="text-sm px-3 py-1">
           {{ verdict.text }}
-        </Badge>
+        </UBadge>
         <div class="flex items-center gap-5 text-xs">
           <div class="flex items-center gap-1.5">
-            <span class="text-muted-foreground">Total</span>
+            <span class="text-muted">Total</span>
             <span class="font-bold tabular-nums">{{ report.summary.totalRoutes }}</span>
           </div>
           <div class="flex items-center gap-1.5">
-            <span class="text-muted-foreground">Regressed</span>
+            <span class="text-muted">Regressed</span>
             <span class="font-bold tabular-nums text-red-500">{{ report.summary.regressedRoutes }}</span>
           </div>
           <div class="flex items-center gap-1.5">
-            <span class="text-muted-foreground">Improved</span>
+            <span class="text-muted">Improved</span>
             <span class="font-bold tabular-nums text-green-500">{{ report.summary.improvedRoutes }}</span>
           </div>
           <div v-if="report.summary.addedRoutes" class="flex items-center gap-1.5">
-            <span class="text-muted-foreground">Added</span>
+            <span class="text-muted">Added</span>
             <span class="font-bold tabular-nums text-blue-500">{{ report.summary.addedRoutes }}</span>
           </div>
           <div v-if="report.summary.removedRoutes" class="flex items-center gap-1.5">
-            <span class="text-muted-foreground">Removed</span>
+            <span class="text-muted">Removed</span>
             <span class="font-bold tabular-nums text-orange-500">{{ report.summary.removedRoutes }}</span>
           </div>
           <div class="flex items-center gap-1.5 border-l pl-5">
-            <span class="text-muted-foreground">Avg Score Δ</span>
+            <span class="text-muted">Avg Score Δ</span>
             <span class="font-bold tabular-nums" :class="(report.summary.avgScoreDelta ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'">
               {{ report.summary.avgScoreDelta != null ? (report.summary.avgScoreDelta * 100).toFixed(1) : '—' }}
             </span>
@@ -784,9 +819,9 @@ function gotoOverview(id: string) {
         <!-- Category strip — inline, compact -->
         <div v-if="report.summary.categoryDeltas?.length" class="ml-auto flex items-center gap-3 text-xs">
           <div v-for="cd in report.summary.categoryDeltas" :key="cd.category" class="flex items-center gap-1">
-            <span class="text-muted-foreground">{{ cd.label }}</span>
+            <span class="text-muted">{{ cd.label }}</span>
             <span class="tabular-nums" :style="cd.base != null ? { color: scoreToRingColor(cd.base) } : {}">{{ fmtScore(cd.base) }}</span>
-            <Icon name="lucide:arrow-right" class="size-2.5 text-muted-foreground/40" />
+            <Icon name="lucide:arrow-right" class="size-2.5 text-muted/40" />
             <span class="tabular-nums" :style="cd.current != null ? { color: scoreToRingColor(cd.current) } : {}">{{ fmtScore(cd.current) }}</span>
             <span class="font-bold tabular-nums" :class="deltaClass(cd.delta, true)">{{ fmtDelta(cd.delta, true) }}</span>
           </div>
@@ -797,14 +832,14 @@ function gotoOverview(id: string) {
            per-route CWV columns below. Sourced from the cwv pack
            (aggregates across routes). Hidden when the pack didn't
            run on either scan. -->
-      <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b bg-card/30 flex items-center gap-6 text-xs">
-        <span class="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+      <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b bg-default/30 flex items-center gap-6 text-xs">
+        <span class="text-[10px] uppercase tracking-wider text-muted shrink-0">
           Web Vitals p75
         </span>
         <div v-for="row in cwvP75Rows" :key="row.metric" class="flex items-center gap-1.5">
           <span class="font-medium uppercase text-[10px]">{{ row.label }}</span>
           <span class="tabular-nums">{{ fmtCwvP75(row.metric, row.baseP75) }}</span>
-          <Icon name="lucide:arrow-right" class="size-2.5 text-muted-foreground/40" />
+          <Icon name="lucide:arrow-right" class="size-2.5 text-muted/40" />
           <span class="tabular-nums font-medium" :class="cwvVerdictColor(row.verdict)">{{ fmtCwvP75(row.metric, row.currentP75) }}</span>
           <span
             v-if="row.delta != null"
@@ -815,7 +850,7 @@ function gotoOverview(id: string) {
             ({{ fmtDelta(row.delta, false) }})
           </span>
         </div>
-        <span class="ml-auto text-[10px] text-muted-foreground italic" title="CWV pack aggregates across routes — smoother than the per-route columns below, which can be noisy on single-sample runs.">
+        <span class="ml-auto text-[10px] text-muted italic" title="CWV pack aggregates across routes — smoother than the per-route columns below, which can be noisy on single-sample runs.">
           smoothed across routes
         </span>
       </div>
@@ -823,21 +858,35 @@ function gotoOverview(id: string) {
       <!-- Filter bar -->
       <div class="px-4 py-2 border-b flex items-center gap-3 flex-wrap">
         <div class="relative w-64">
-          <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-          <Input placeholder="Filter by URL or path..." class="pl-8 h-8 text-xs" :model-value="urlFilter" @input="onFilterInput" />
+          <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none z-10" />
+          <UInput placeholder="Filter by URL or path..." size="sm" class="w-full pl-8 text-xs" :model-value="urlFilter" @input="onFilterInput" />
         </div>
 
         <ToggleGroup v-model="statusFilter" type="single" size="sm" variant="outline">
-          <ToggleGroupItem value="all" class="text-xs h-7">All</ToggleGroupItem>
-          <ToggleGroupItem value="changed" class="text-xs h-7">Changed</ToggleGroupItem>
-          <ToggleGroupItem value="regressed" class="text-xs h-7 data-[state=on]:text-red-500">Regressed</ToggleGroupItem>
-          <ToggleGroupItem value="improved" class="text-xs h-7 data-[state=on]:text-green-500">Improved</ToggleGroupItem>
-          <ToggleGroupItem value="added" class="text-xs h-7 data-[state=on]:text-blue-500">Added</ToggleGroupItem>
-          <ToggleGroupItem value="removed" class="text-xs h-7 data-[state=on]:text-orange-500">Removed</ToggleGroupItem>
+          <ToggleGroupItem value="all" class="text-xs h-7">
+            All
+          </ToggleGroupItem>
+          <ToggleGroupItem value="changed" class="text-xs h-7">
+            Changed
+          </ToggleGroupItem>
+          <ToggleGroupItem value="regressed" class="text-xs h-7 data-[state=on]:text-red-500">
+            Regressed
+          </ToggleGroupItem>
+          <ToggleGroupItem value="improved" class="text-xs h-7 data-[state=on]:text-green-500">
+            Improved
+          </ToggleGroupItem>
+          <ToggleGroupItem value="added" class="text-xs h-7 data-[state=on]:text-blue-500">
+            Added
+          </ToggleGroupItem>
+          <ToggleGroupItem value="removed" class="text-xs h-7 data-[state=on]:text-orange-500">
+            Removed
+          </ToggleGroupItem>
         </ToggleGroup>
 
         <ToggleGroup v-if="hasMultipleDevices" v-model="deviceFilter" type="single" size="sm" variant="outline">
-          <ToggleGroupItem value="" class="text-xs h-7">All</ToggleGroupItem>
+          <ToggleGroupItem value="" class="text-xs h-7">
+            All
+          </ToggleGroupItem>
           <ToggleGroupItem value="mobile" class="text-xs h-7">
             <Icon name="lucide:smartphone" class="size-3 mr-1" />Mobile
           </ToggleGroupItem>
@@ -846,18 +895,9 @@ function gotoOverview(id: string) {
           </ToggleGroupItem>
         </ToggleGroup>
 
-        <Select v-model="sortKey">
-          <SelectTrigger class="w-44 h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="opt in sortOptions" :key="opt.value" :value="opt.value" class="text-xs">
-              {{ opt.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <USelect v-model="sortKey" :items="sortOptions" size="sm" class="w-44 text-xs" />
 
-        <span class="ml-auto text-xs text-muted-foreground tabular-nums">
+        <span class="ml-auto text-xs text-muted tabular-nums">
           {{ report.routes.total }} route{{ report.routes.total === 1 ? '' : 's' }}
         </span>
       </div>
@@ -873,46 +913,46 @@ function gotoOverview(id: string) {
           class="px-4 py-2 w-full flex items-center gap-2 hover:bg-muted/30 transition-colors text-xs"
           @click="showPackDetails = !showPackDetails"
         >
-          <Icon name="lucide:chevron-right" class="size-3.5 text-muted-foreground transition-transform" :class="{ 'rotate-90': showPackDetails }" />
+          <Icon name="lucide:chevron-right" class="size-3.5 text-muted transition-transform" :class="{ 'rotate-90': showPackDetails }" />
           <span class="font-medium">{{ otherPackChanges.length }} pack{{ otherPackChanges.length === 1 ? '' : 's' }} changed</span>
-          <span class="text-muted-foreground text-[10px]">
+          <span class="text-muted text-[10px]">
             {{ otherPackChanges.map((p: any) => p.packName).join(', ') }}
           </span>
-          <span class="ml-auto text-[10px] text-muted-foreground italic">click to expand</span>
+          <span class="ml-auto text-[10px] text-muted italic">click to expand</span>
         </button>
-        <div v-if="showPackDetails" class="px-4 py-3 bg-card/20 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="pack in otherPackChanges" :key="pack.packName" class="rounded-lg border bg-card p-3 space-y-2">
+        <div v-if="showPackDetails" class="px-4 py-3 bg-default/20 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="pack in otherPackChanges" :key="pack.packName" class="rounded-lg border bg-default p-3 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium capitalize">{{ pack.packName.replace(/-/g, ' ') }}</span>
-              <span class="text-[10px] text-muted-foreground">{{ pack.base ? 'changed' : 'new' }}</span>
+              <span class="text-[10px] text-muted">{{ pack.base ? 'changed' : 'new' }}</span>
             </div>
             <!-- Render whatever summary fields the pack-agnostic
                  summariser surfaced. Nullable so packs that don't
                  expose findings / severity counts simply hide rows. -->
             <div class="text-xs space-y-0.5">
               <div v-if="pack.baseSummary?.findings != null || pack.currentSummary?.findings != null" class="flex justify-between">
-                <span class="text-muted-foreground">Findings</span>
+                <span class="text-muted">Findings</span>
                 <span class="tabular-nums">
                   {{ pack.baseSummary?.findings ?? '—' }}
-                  <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted-foreground/40" />
+                  <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted/40" />
                   <span :class="(pack.currentSummary?.findings ?? 0) > (pack.baseSummary?.findings ?? 0) ? 'text-red-500' : (pack.currentSummary?.findings ?? 0) < (pack.baseSummary?.findings ?? 0) ? 'text-green-500' : ''">
                     {{ pack.currentSummary?.findings ?? '—' }}
                   </span>
                 </span>
               </div>
               <div v-if="(pack.baseSummary?.critical ?? 0) || (pack.currentSummary?.critical ?? 0)" class="flex justify-between">
-                <span class="text-muted-foreground">Critical</span>
+                <span class="text-muted">Critical</span>
                 <span class="tabular-nums">{{ pack.baseSummary?.critical ?? 0 }} → <span :class="(pack.currentSummary?.critical ?? 0) > (pack.baseSummary?.critical ?? 0) ? 'text-red-500' : 'text-green-500'">{{ pack.currentSummary?.critical ?? 0 }}</span></span>
               </div>
               <div v-if="(pack.baseSummary?.serious ?? 0) || (pack.currentSummary?.serious ?? 0)" class="flex justify-between">
-                <span class="text-muted-foreground">Serious</span>
+                <span class="text-muted">Serious</span>
                 <span class="tabular-nums">{{ pack.baseSummary?.serious ?? 0 }} → <span :class="(pack.currentSummary?.serious ?? 0) > (pack.baseSummary?.serious ?? 0) ? 'text-red-500' : 'text-green-500'">{{ pack.currentSummary?.serious ?? 0 }}</span></span>
               </div>
               <div v-if="(pack.baseSummary?.totalBytesSavable ?? 0) || (pack.currentSummary?.totalBytesSavable ?? 0)" class="flex justify-between">
-                <span class="text-muted-foreground">Wasted bytes</span>
+                <span class="text-muted">Wasted bytes</span>
                 <span class="tabular-nums">
                   {{ Math.round((pack.baseSummary?.totalBytesSavable ?? 0) / 1024) }}KB
-                  <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted-foreground/40" />
+                  <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted/40" />
                   <span :class="(pack.currentSummary?.totalBytesSavable ?? 0) > (pack.baseSummary?.totalBytesSavable ?? 0) ? 'text-red-500' : 'text-green-500'">
                     {{ Math.round((pack.currentSummary?.totalBytesSavable ?? 0) / 1024) }}KB
                   </span>
@@ -936,18 +976,20 @@ function gotoOverview(id: string) {
               :row-class="(r: any) => selectedRowKey === rowKey(r) ? 'bg-muted' : ''"
               @row-click="(r: any) => { selectedRowKey = rowKey(r) }"
             >
-              <template #empty>No routes match the current filter.</template>
+              <template #empty>
+                No routes match the current filter.
+              </template>
             </DataTable>
 
-            <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-background">
-              <span class="text-xs text-muted-foreground">Page {{ page }} of {{ totalPages }}</span>
+            <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-default">
+              <span class="text-xs text-muted">Page {{ page }} of {{ totalPages }}</span>
               <div class="flex gap-1">
-                <Button variant="outline" size="sm" :disabled="page <= 1" @click="page--">
+                <UButton color="neutral" variant="outline" size="sm" :disabled="page <= 1" aria-label="Previous page" @click="page--">
                   <Icon name="lucide:chevron-left" class="size-3.5" />
-                </Button>
-                <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="page++">
+                </UButton>
+                <UButton color="neutral" variant="outline" size="sm" :disabled="page >= totalPages" aria-label="Next page" @click="page++">
                   <Icon name="lucide:chevron-right" class="size-3.5" />
-                </Button>
+                </UButton>
               </div>
             </div>
           </div>
@@ -958,13 +1000,19 @@ function gotoOverview(id: string) {
         <ResizablePanel :default-size="38" :min-size="25">
           <div v-if="selectedRow" class="h-full overflow-auto p-4 space-y-4">
             <div>
-              <div class="font-mono text-sm font-medium break-all">{{ selectedRow.url }}</div>
+              <div class="font-mono text-sm font-medium break-all">
+                {{ selectedRow.url }}
+              </div>
               <div class="flex items-center gap-2 mt-1">
-                <Badge variant="outline" class="text-[10px]">{{ selectedRow.device }}</Badge>
-                <Badge :variant="statusBadge(selectedRow.status)" class="text-[10px] capitalize">{{ selectedRow.status }}</Badge>
+                <UBadge color="neutral" variant="outline" class="text-[10px]">
+                  {{ selectedRow.device }}
+                </UBadge>
+                <UBadge v-bind="badgeProps(statusBadge(selectedRow.status))" class="text-[10px] capitalize">
+                  {{ selectedRow.status }}
+                </UBadge>
                 <NuxtLink
                   :to="`/scan/${currentScanId}/route/${encodeURIComponent(selectedRow.path)}`"
-                  class="text-[10px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                  class="text-[10px] text-muted hover:text-highlighted inline-flex items-center gap-1"
                 >
                   <Icon name="lucide:external-link" class="size-2.5" />
                   Open route detail
@@ -975,94 +1023,122 @@ function gotoOverview(id: string) {
             <!-- Categories: the headline. Aggregate of dozens of audits,
                  noise-resistant. -->
             <section>
-              <h4 class="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Categories</h4>
-              <div class="rounded-lg border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Metric</TableHead>
-                      <TableHead class="w-20 text-right">Base</TableHead>
-                      <TableHead class="w-20 text-right">Current</TableHead>
-                      <TableHead class="w-20 text-right">Delta</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow v-for="m in CATEGORY_METRICS" :key="m.key">
-                      <TableCell class="text-sm font-medium">{{ m.label }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell
-                        class="text-right tabular-nums text-sm font-medium"
+              <h4 class="text-[10px] uppercase tracking-wider text-muted mb-2">
+                Categories
+              </h4>
+              <div class="rounded-lg border border-default overflow-hidden">
+                <table class="w-full">
+                  <thead>
+                    <tr class="border-b border-default">
+                      <th class="text-left text-sm font-medium px-3 py-2">
+                        Metric
+                      </th>
+                      <th class="w-20 text-right text-sm font-medium px-3 py-2">
+                        Base
+                      </th>
+                      <th class="w-20 text-right text-sm font-medium px-3 py-2">
+                        Current
+                      </th>
+                      <th class="w-20 text-right text-sm font-medium px-3 py-2">
+                        Delta
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="m in CATEGORY_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                      <td class="text-sm font-medium px-3 py-2">
+                        {{ m.label }}
+                      </td>
+                      <td class="text-right tabular-nums text-sm px-3 py-2">
+                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td class="text-right tabular-nums text-sm px-3 py-2">
+                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td
+                        class="text-right tabular-nums text-sm font-medium px-3 py-2"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                         :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                       >
                         {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
 
             <!-- Core Web Vitals — Google's stable real-user metrics. -->
             <section>
-              <h4 class="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+              <h4 class="text-[10px] uppercase tracking-wider text-muted mb-2 flex items-center gap-1.5">
                 Core Web Vitals
-                <Icon name="lucide:info" class="size-2.5 opacity-60" :title="'Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability.'" />
+                <Icon name="lucide:info" class="size-2.5 opacity-60" title="Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability." />
               </h4>
-              <div class="rounded-lg border overflow-hidden">
-                <Table>
-                  <TableBody>
-                    <TableRow v-for="m in CWV_METRICS" :key="m.key">
-                      <TableCell class="text-sm font-medium" :title="m.hint">{{ m.label }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell
-                        class="text-right tabular-nums text-sm font-medium w-20"
+              <div class="rounded-lg border border-default overflow-hidden">
+                <table class="w-full">
+                  <tbody>
+                    <tr v-for="m in CWV_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                      <td class="text-sm font-medium px-3 py-2" :title="m.hint">
+                        {{ m.label }}
+                      </td>
+                      <td class="text-right tabular-nums text-sm w-20 px-3 py-2">
+                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td class="text-right tabular-nums text-sm w-20 px-3 py-2">
+                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td
+                        class="text-right tabular-nums text-sm font-medium w-20 px-3 py-2"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                         :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                       >
                         {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
 
             <!-- Diagnostics: FCP/TBT/TTFB/SI — triage signals, not headlines. Collapsed. -->
             <section>
               <button
-                class="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 mb-2"
+                class="text-[10px] uppercase tracking-wider text-muted hover:text-highlighted transition-colors flex items-center gap-1.5 mb-2"
                 @click="showLegacyMetrics = !showLegacyMetrics"
               >
                 <Icon name="lucide:chevron-right" class="size-3 transition-transform" :class="{ 'rotate-90': showLegacyMetrics }" />
                 Diagnostics ({{ DIAGNOSTIC_METRICS.length }})
               </button>
-              <div v-if="showLegacyMetrics" class="rounded-lg border overflow-hidden">
-                <Table>
-                  <TableBody>
-                    <TableRow v-for="m in DIAGNOSTIC_METRICS" :key="m.key">
-                      <TableCell class="text-sm font-medium text-muted-foreground" :title="m.hint">{{ m.label }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell
-                        class="text-right tabular-nums text-sm font-medium w-20"
+              <div v-if="showLegacyMetrics" class="rounded-lg border border-default overflow-hidden">
+                <table class="w-full">
+                  <tbody>
+                    <tr v-for="m in DIAGNOSTIC_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                      <td class="text-sm font-medium text-muted px-3 py-2" :title="m.hint">
+                        {{ m.label }}
+                      </td>
+                      <td class="text-right tabular-nums text-sm w-20 px-3 py-2">
+                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td class="text-right tabular-nums text-sm w-20 px-3 py-2">
+                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td
+                        class="text-right tabular-nums text-sm font-medium w-20 px-3 py-2"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                         :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                       >
                         {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>
 
-          <div v-else class="h-full flex items-center justify-center text-sm text-muted-foreground p-4 text-center">
+          <div v-else class="h-full flex items-center justify-center text-sm text-muted p-4 text-center">
             <div class="space-y-2">
-              <Icon name="lucide:mouse-pointer-click" class="size-8 mx-auto text-muted-foreground/40" />
+              <Icon name="lucide:mouse-pointer-click" class="size-8 mx-auto text-muted/40" />
               <p>Select a route to see the full metric breakdown.</p>
             </div>
           </div>

@@ -3,19 +3,7 @@
 // Each instance owns its own sort state so groups don't interfere.
 
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
-import { h } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+import { h, resolveComponent } from 'vue'
 
 import type { DevicePair, ScanRow } from './types'
 
@@ -61,7 +49,7 @@ const columns: ColumnDef<DevicePair>[] = [
     header: 'Date',
     cell: ({ row }) => h('div', { class: 'flex flex-col' }, [
       h('span', { class: 'text-sm' }, formatDate(row.original.startedAt)),
-      h('span', { class: 'text-[10px] text-muted-foreground' }, relTime(row.original.startedAt)),
+      h('span', { class: 'text-[10px] text-muted' }, relTime(row.original.startedAt)),
     ]),
     sortingFn: (a, b) => a.original.startedAt.localeCompare(b.original.startedAt),
   },
@@ -77,7 +65,7 @@ const columns: ColumnDef<DevicePair>[] = [
       const done = p.completed || 0
       const isEmpty = done === 0 && all > 0
       return h('span', {
-        class: isEmpty ? 'text-xs tabular-nums text-muted-foreground' : 'text-xs tabular-nums',
+        class: isEmpty ? 'text-xs tabular-nums text-muted' : 'text-xs tabular-nums',
         title: isEmpty ? 'Scan completed structurally but no routes were audited' : `${done} of ${all} routes audited`,
       }, `${done}/${all}`)
     },
@@ -91,16 +79,16 @@ const columns: ColumnDef<DevicePair>[] = [
       const label = key === 'best-practices' ? 'Best' : key === 'performance' ? 'Perf' : key === 'accessibility' ? 'A11y' : 'SEO'
       return h('div', { class: 'text-center' }, [
         h('div', { class: 'text-xs font-semibold' }, label),
-        h('div', { class: 'text-[9px] text-muted-foreground font-normal mt-0.5 tracking-wider' }, 'M | D'),
+        h('div', { class: 'text-[9px] text-muted font-normal mt-0.5 tracking-wider' }, 'M | D'),
       ])
     },
     cell: ({ row }: any) => {
       const m = categoryPct(row.original.mobile, key)
       const d = categoryPct(row.original.desktop, key)
       return h('div', { class: 'flex items-center justify-center gap-1.5 tabular-nums text-sm font-medium' }, [
-        h('span', { class: m == null ? 'text-muted-foreground/50' : scoreToColor(m / 100) }, m ?? '—'),
-        h('span', { class: 'text-muted-foreground/30 text-xs' }, '|'),
-        h('span', { class: d == null ? 'text-muted-foreground/50' : scoreToColor(d / 100) }, d ?? '—'),
+        h('span', { class: m == null ? 'text-muted/50' : scoreToColor(m / 100) }, m ?? '—'),
+        h('span', { class: 'text-muted/30 text-xs' }, '|'),
+        h('span', { class: d == null ? 'text-muted/50' : scoreToColor(d / 100) }, d ?? '—'),
       ])
     },
     sortingFn: (a: any, b: any) => {
@@ -116,7 +104,7 @@ const columns: ColumnDef<DevicePair>[] = [
     meta: { align: 'center', headClass: 'w-24' },
     cell: ({ row }) => {
       const s = statusForPair(row.original)
-      return h(Badge, { variant: s.variant, class: 'text-[10px] capitalize' }, () => s.label)
+      return h(resolveComponent('UBadge'), { color: s.color, variant: s.variant, class: 'text-[10px] capitalize' }, () => s.label)
     },
   },
 ]
@@ -124,18 +112,18 @@ const columns: ColumnDef<DevicePair>[] = [
 function primaryScanId(pair: DevicePair): string {
   return pair.mobile?.scanId ?? pair.desktop?.scanId ?? ''
 }
-function statusForPair(pair: DevicePair): { label: string, variant: 'default' | 'secondary' | 'destructive' | 'outline' } {
+function statusForPair(pair: DevicePair): { label: string, color: 'primary' | 'neutral' | 'error', variant: 'solid' | 'subtle' | 'outline' } {
   const m = pair.mobile?.status
   const d = pair.desktop?.status
   const anyComplete = (m === 'complete' && (pair.mobile?.summary?.completed ?? 0) > 0)
     || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) > 0)
-  if (anyComplete) return { label: 'complete', variant: 'default' }
+  if (anyComplete) return { label: 'complete', color: 'primary', variant: 'solid' }
   if ((m === 'complete' && (pair.mobile?.summary?.completed ?? 0) === 0)
     || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) === 0))
-    return { label: 'no data', variant: 'outline' }
+    return { label: 'no data', color: 'neutral', variant: 'outline' }
   if (m === 'error' || d === 'error' || m === 'cancelled' || d === 'cancelled')
-    return { label: 'failed', variant: 'destructive' }
-  return { label: m || d || 'pending', variant: 'secondary' }
+    return { label: 'failed', color: 'error', variant: 'solid' }
+  return { label: m || d || 'pending', color: 'neutral', variant: 'subtle' }
 }
 </script>
 
@@ -150,36 +138,32 @@ function statusForPair(pair: DevicePair): { label: string, variant: 'default' | 
   >
     <template #actions="{ row }">
       <div class="flex items-center justify-end gap-0.5">
-        <Button
+        <UButton
+          color="neutral"
           variant="ghost"
           size="sm"
-          class="size-7 p-0 text-muted-foreground hover:text-foreground"
+          class="size-7 p-0 text-muted hover:text-highlighted"
           title="Rescan"
+          aria-label="Rescan"
           @click="emit('rescan', primaryScanId(row))"
         >
           <Icon name="lucide:refresh-cw" class="size-3.5" />
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger as-child>
-            <Button variant="ghost" size="sm" class="size-7 p-0 text-muted-foreground hover:text-destructive">
-              <Icon name="lucide:trash-2" class="size-3.5" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete scan?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete this scan and all its data. This cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction @click="emit('delete', primaryScanId(row))">
+        </UButton>
+        <UModal title="Delete scan?" description="This will permanently delete this scan and all its data. This cannot be undone.">
+          <UButton color="neutral" variant="ghost" size="sm" class="size-7 p-0 text-muted hover:text-error" aria-label="Delete scan">
+            <Icon name="lucide:trash-2" class="size-3.5" />
+          </UButton>
+          <template #footer="{ close }">
+            <div class="flex justify-end gap-2 w-full">
+              <UButton color="neutral" variant="ghost" @click="close">
+                Cancel
+              </UButton>
+              <UButton color="error" @click="emit('delete', primaryScanId(row)); close()">
                 Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </UButton>
+            </div>
+          </template>
+        </UModal>
       </div>
     </template>
   </DataTable>

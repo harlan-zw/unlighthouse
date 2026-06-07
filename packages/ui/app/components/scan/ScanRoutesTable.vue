@@ -6,8 +6,6 @@
 // Google's good/needs-work/poor thresholds; screenshot thumbs, device split,
 // column visibility, density and a sticky header round it out.
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -17,15 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import { toast } from 'vue-sonner'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useScanStore } from '~/stores/scan'
 
 const router = useRouter()
@@ -114,7 +104,7 @@ const CWV_THRESHOLDS: Record<string, [number, number]> = {
   tbt: [200, 600],
 }
 function cwvColor(metric: 'lcp' | 'cls' | 'tbt', v: number | null): string {
-  if (v == null) return 'text-muted-foreground'
+  if (v == null) return 'text-muted'
   const [good, poor] = CWV_THRESHOLDS[metric]!
   return v <= good ? 'text-green-500' : v <= poor ? 'text-orange-500' : 'text-red-500'
 }
@@ -160,7 +150,7 @@ const summary = computed(() => {
   return { count: rows.length, avg, pass, needs, poor, devices: [...new Set(rows.map(r => r.device))] }
 })
 function score100Color(v: number | null): string {
-  if (v == null) return 'var(--muted-foreground)'
+  if (v == null) return 'var(--ui-text-muted)'
   return v >= 90 ? '#22c55e' : v >= 50 ? '#f97316' : '#ef4444'
 }
 
@@ -251,7 +241,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           src,
           loading: 'lazy',
           alt: '',
-          class: 'w-14 h-9 object-cover object-top rounded border bg-muted shrink-0',
+          class: 'w-14 h-9 object-cover object-top rounded border border-default bg-muted shrink-0',
           onError: (e: Event) => { (e.target as HTMLImageElement).style.visibility = 'hidden' },
         })
       },
@@ -272,7 +262,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       meta: { align: 'center', headClass: 'w-16' },
       cell: ({ row }) => h(resolveComponent('Icon'), {
         name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor',
-        class: 'size-3.5 text-muted-foreground',
+        class: 'size-3.5 text-muted',
       }),
     })
   }
@@ -306,12 +296,12 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         const prev = prevMap.value?.get(row.original.path || row.original.url)
         const cur = overallScore(row.original)
         if (prev == null)
-          return h('span', { class: 'text-[10px] text-muted-foreground border rounded px-1 py-0.5' }, 'new')
+          return h('span', { class: 'text-[10px] text-muted border border-default rounded px-1 py-0.5' }, 'new')
         if (cur == null)
-          return h('span', { class: 'text-muted-foreground' }, '—')
+          return h('span', { class: 'text-muted' }, '—')
         const d = cur - prev
         if (d === 0)
-          return h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, '0')
+          return h('span', { class: 'text-xs text-muted tabular-nums' }, '0')
         const up = d > 0
         return h('span', { class: `text-xs font-medium tabular-nums ${up ? 'text-green-500' : 'text-red-500'}` }, `${up ? '▲ +' : '▼ '}${d}`)
       },
@@ -348,16 +338,16 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           <span class="size-2 rounded-full" :style="{ backgroundColor: score100Color(summary.avg) }" />
           avg <span class="font-semibold tabular-nums">{{ summary.avg ?? '—' }}</span>
         </span>
-        <span class="text-muted-foreground text-xs tabular-nums">
+        <span class="text-muted text-xs tabular-nums">
           <span class="text-green-500 font-medium">{{ summary.pass }}</span> pass ·
           <span class="text-orange-500 font-medium">{{ summary.needs }}</span> needs work ·
           <span class="text-red-500 font-medium">{{ summary.poor }}</span> poor
         </span>
-        <span class="flex items-center gap-1 text-muted-foreground">
+        <span class="flex items-center gap-1 text-muted">
           <Icon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5" />
         </span>
       </div>
-      <button class="text-xs text-muted-foreground hover:text-foreground transition-colors" @click="showAllMetrics = !showAllMetrics">
+      <button class="text-xs text-muted hover:text-highlighted transition-colors" @click="showAllMetrics = !showAllMetrics">
         {{ showAllMetrics ? 'Fewer metrics' : 'More metrics' }}
       </button>
     </div>
@@ -378,55 +368,47 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     <!-- Toolbar -->
     <div class="flex items-center gap-3 flex-wrap">
       <div class="relative flex-1 max-w-xs min-w-[180px]">
-        <Icon name="lucide:search" class="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-        <Input v-model="q" placeholder="Filter by URL..." class="pl-8" />
+        <Icon name="lucide:search" class="absolute left-2.5 top-2.5 size-4 text-muted z-10" />
+        <UInput v-model="q" placeholder="Filter by URL..." class="w-full" :ui="{ base: 'pl-8' }" />
       </div>
 
       <!-- Quick filters -->
-      <div class="flex items-center rounded-md border p-0.5">
+      <div class="flex items-center rounded-md border border-default p-0.5">
         <button
           v-for="f in QUICK_FILTERS"
           :key="f.key"
           type="button"
           class="px-2.5 py-1 text-xs rounded transition-colors"
-          :class="quick === f.key ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'"
+          :class="quick === f.key ? 'bg-muted font-medium text-highlighted' : 'text-muted hover:text-highlighted'"
           @click="quick = f.key"
         >
           {{ f.label }}
         </button>
       </div>
 
-      <Badge variant="secondary" class="text-xs tabular-nums">
-        {{ filtered.length }}<span v-if="filtered.length !== total" class="text-muted-foreground/70"> / {{ total }}</span>
-      </Badge>
+      <UBadge color="neutral" variant="subtle" class="text-xs tabular-nums">
+        {{ filtered.length }}<span v-if="filtered.length !== total" class="text-muted/70"> / {{ total }}</span>
+      </UBadge>
 
       <div class="flex-1" />
 
-      <Select v-if="hasMultipleDevices" v-model="deviceFilter">
-        <SelectTrigger class="w-36">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Devices</SelectItem>
-          <SelectItem value="mobile">
-            <div class="flex items-center gap-1.5">
-              <Icon name="lucide:smartphone" class="size-3.5" /> Mobile
-            </div>
-          </SelectItem>
-          <SelectItem value="desktop">
-            <div class="flex items-center gap-1.5">
-              <Icon name="lucide:monitor" class="size-3.5" /> Desktop
-            </div>
-          </SelectItem>
-        </SelectContent>
-      </Select>
+      <USelect
+        v-if="hasMultipleDevices"
+        v-model="deviceFilter"
+        class="w-36"
+        :items="[
+          { label: 'All Devices', value: 'all' },
+          { label: 'Mobile', value: 'mobile', icon: 'i-lucide-smartphone' },
+          { label: 'Desktop', value: 'desktop', icon: 'i-lucide-monitor' },
+        ]"
+      />
 
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <Button variant="outline" size="sm">
+          <UButton color="neutral" variant="outline" size="sm">
             <Icon name="lucide:columns-3" class="size-4 mr-1.5" />
             Columns
-          </Button>
+          </UButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="w-44">
           <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
@@ -443,14 +425,16 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Button
+      <UButton
+        color="neutral"
         variant="outline"
         size="sm"
         :title="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
+        :aria-label="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
         @click="density = density === 'compact' ? 'comfortable' : 'compact'"
       >
         <Icon :name="density === 'compact' ? 'lucide:rows-3' : 'lucide:rows-2'" class="size-4" />
-      </Button>
+      </UButton>
     </div>
 
     <DataTable
@@ -460,16 +444,16 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       :data="filtered"
       :density="density"
       sticky-header
-      container-class="rounded-lg border overflow-auto max-h-[72vh]"
+      container-class="rounded-lg border border-default overflow-auto max-h-[72vh]"
       row-clickable
       @row-click="openRoute"
     >
       <template #actions="{ row }">
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="sm" class="size-7 p-0 text-muted-foreground hover:text-foreground" @click.stop>
+            <UButton color="neutral" variant="ghost" size="sm" class="size-7 p-0 text-muted hover:text-highlighted" aria-label="Row actions" @click.stop>
               <Icon name="lucide:ellipsis" class="size-4" />
-            </Button>
+            </UButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" @click.stop>
             <DropdownMenuItem @click="openRoute(row)">
@@ -502,7 +486,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       </template>
     </DataTable>
 
-    <p v-if="truncated" class="text-xs text-muted-foreground">
+    <p v-if="truncated" class="text-xs text-muted">
       Showing the first {{ allRows.length }} of {{ total }} routes.
     </p>
   </div>

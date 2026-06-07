@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
@@ -30,39 +29,37 @@ const { fmtRelTime: ageLabel } = useFormat()
 </script>
 
 <template>
-  <Card v-if="store.recentRoutes.length">
-    <CardHeader class="pb-3">
+  <UCard v-if="store.recentRoutes.length" :ui="{ body: 'p-0 sm:p-0' }">
+    <template #header>
       <div class="flex items-center justify-between">
-        <CardTitle class="text-sm font-medium text-muted-foreground">
+        <h3 class="text-sm font-medium text-muted">
           Live results
-        </CardTitle>
-        <span class="text-[10px] text-muted-foreground tabular-nums">
+        </h3>
+        <span class="text-[10px] text-muted tabular-nums">
           last {{ store.recentRoutes.length }}
         </span>
       </div>
-    </CardHeader>
-    <CardContent class="p-0">
-      <div class="divide-y max-h-80 overflow-y-auto">
-        <button
-          v-for="r in store.recentRoutes"
-          :key="r.url + r.timestamp"
-          type="button"
-          class="flex items-center gap-3 px-4 py-2 text-left w-full hover:bg-muted/50 transition-colors"
-          @click="openRoute(r.url)"
-        >
-          <span
-            class="size-1.5 rounded-full shrink-0"
-            :style="{ backgroundColor: r.score == null ? 'var(--muted-foreground)' : (r.score >= 0.9 ? '#22c55e' : r.score >= 0.5 ? '#f97316' : '#ef4444') }"
-          />
-          <span class="font-mono text-xs truncate flex-1">{{ pathFromUrl(r.url) }}</span>
-          <span class="text-xs tabular-nums shrink-0 w-10 text-right font-bold" :class="scoreToColor(r.score)">
-            {{ scoreToLabel(r.score) }}
-          </span>
-          <span class="text-[10px] text-muted-foreground tabular-nums shrink-0 w-14 text-right">
-            {{ ageLabel(r.timestamp) }}
-          </span>
-        </button>
-      </div>
-    </CardContent>
-  </Card>
+    </template>
+    <div class="divide-y divide-default max-h-80 overflow-y-auto">
+      <button
+        v-for="r in store.recentRoutes"
+        :key="r.url + r.timestamp"
+        type="button"
+        class="flex items-center gap-3 px-4 py-2 text-left w-full hover:bg-muted/50 transition-colors"
+        @click="openRoute(r.url)"
+      >
+        <span
+          class="size-1.5 rounded-full shrink-0"
+          :style="{ backgroundColor: r.score == null ? 'var(--ui-text-muted)' : (r.score >= 0.9 ? '#22c55e' : r.score >= 0.5 ? '#f97316' : '#ef4444') }"
+        />
+        <span class="font-mono text-xs truncate flex-1">{{ pathFromUrl(r.url) }}</span>
+        <span class="text-xs tabular-nums shrink-0 w-10 text-right font-bold" :class="scoreToColor(r.score)">
+          {{ scoreToLabel(r.score) }}
+        </span>
+        <span class="text-[10px] text-muted tabular-nums shrink-0 w-14 text-right">
+          {{ ageLabel(r.timestamp) }}
+        </span>
+      </button>
+    </div>
+  </UCard>
 </template>

@@ -11,9 +11,6 @@
 // (the table won't reorder rows itself; it just reflects/emits state).
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
 import { FlexRender, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
 
 interface ColMeta {
   align?: 'center' | 'right'
@@ -48,7 +45,7 @@ const props = withDefaults(defineProps<{
 })
 
 const densityCellClass = computed(() => (props.density === 'compact' ? 'py-1' : ''))
-const stickyHeadClass = computed(() => (props.stickyHeader ? 'sticky top-0 z-10 bg-background' : ''))
+const stickyHeadClass = computed(() => (props.stickyHeader ? 'sticky top-0 z-10 bg-default' : ''))
 
 const emit = defineEmits<{
   (e: 'update:sorting', value: SortingState): void
@@ -94,12 +91,17 @@ const hasActions = computed(() => !!useSlots().actions)
 
 <template>
   <div :class="containerClass">
-    <Table>
-      <TableHeader>
-        <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-          <TableHead
+    <table class="w-full caption-bottom text-sm">
+      <thead class="[&_tr]:border-b">
+        <tr
+          v-for="headerGroup in table.getHeaderGroups()"
+          :key="headerGroup.id"
+          class="border-b border-default transition-colors"
+        >
+          <th
             v-for="header in headerGroup.headers"
             :key="header.id"
+            class="text-highlighted h-10 px-2 text-left align-middle font-medium whitespace-nowrap"
             :class="[
               alignClass(metaOf(header.column).align),
               metaOf(header.column).headClass,
@@ -124,41 +126,43 @@ const hasActions = computed(() => !!useSlots().actions)
                   : header.column.getIsSorted() === 'desc' ? 'lucide:arrow-down'
                     : 'lucide:chevrons-up-down'
                 "
-                class="size-3 text-muted-foreground/60 shrink-0"
+                class="size-3 text-muted/60 shrink-0"
               />
             </div>
-          </TableHead>
-          <TableHead v-if="hasActions" class="w-20" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+          </th>
+          <th v-if="hasActions" class="text-highlighted h-10 px-2 text-left align-middle font-medium whitespace-nowrap w-20" />
+        </tr>
+      </thead>
+      <tbody class="[&_tr:last-child]:border-0">
         <template v-if="table.getRowModel().rows.length">
-          <TableRow
+          <tr
             v-for="row in table.getRowModel().rows"
             :key="row.id"
-            :class="[rowClickable ? 'cursor-pointer hover:bg-muted/50' : '', rowClass?.(row.original)]"
+            class="border-b border-default transition-colors"
+            :class="[rowClickable ? 'cursor-pointer hover:bg-elevated/50' : 'hover:bg-elevated/50', rowClass?.(row.original)]"
             @click="rowClickable ? emit('row-click', row.original) : undefined"
           >
-            <TableCell
+            <td
               v-for="cell in row.getVisibleCells()"
               :key="cell.id"
+              class="p-2 align-middle whitespace-nowrap"
               :class="[alignClass(metaOf(cell.column).align), metaOf(cell.column).cellClass, densityCellClass]"
             >
               <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-            </TableCell>
-            <TableCell v-if="hasActions" class="text-right" @click.stop>
+            </td>
+            <td v-if="hasActions" class="p-2 align-middle whitespace-nowrap text-right" @click.stop>
               <slot name="actions" :row="row.original" />
-            </TableCell>
-          </TableRow>
+            </td>
+          </tr>
         </template>
         <template v-else>
-          <TableRow>
-            <TableCell :colspan="columns.length + (hasActions ? 1 : 0)" class="text-center py-12 text-muted-foreground">
+          <tr class="border-b border-default transition-colors">
+            <td :colspan="columns.length + (hasActions ? 1 : 0)" class="p-2 align-middle text-center py-12 text-muted">
               <slot name="empty">{{ emptyText }}</slot>
-            </TableCell>
-          </TableRow>
+            </td>
+          </tr>
         </template>
-      </TableBody>
-    </Table>
+      </tbody>
+    </table>
   </div>
 </template>
