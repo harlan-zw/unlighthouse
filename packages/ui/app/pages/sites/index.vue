@@ -1,28 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { toast } from 'vue-sonner'
 
 definePageMeta({ layout: 'root' })
@@ -55,6 +31,10 @@ const formName = ref('')
 const formGroup = ref('')
 const saving = ref(false)
 
+// Single confirm modal for delete, keyed on the pending row (vs one
+// AlertDialog per card).
+const pendingDelete = ref<Site | null>(null)
+
 function openAdd() {
   editing.value = null
   formUrl.value = ''
@@ -72,9 +52,11 @@ function openEdit(site: Site) {
 }
 
 async function saveSite() {
-  if (!formUrl.value.trim()) return
+  if (!formUrl.value.trim())
+    return
   let url = formUrl.value.trim()
-  if (!url.startsWith('http://') && !url.startsWith('https://')) url = `https://${url}`
+  if (!url.startsWith('http://') && !url.startsWith('https://'))
+    url = `https://${url}`
 
   saving.value = true
   try {
@@ -101,6 +83,7 @@ async function deleteSite(id: string) {
   try {
     await api['sites.delete']({ id })
     toast.success('Site removed')
+    pendingDelete.value = null
     refresh()
   }
   catch (err: any) {
@@ -140,7 +123,8 @@ const grouped = computed(() => {
 const groupSuggestions = computed(() => {
   const set = new Set<string>()
   for (const s of (sitesData.value?.sites ?? []) as Site[]) {
-    if (s.group?.trim()) set.add(s.group.trim())
+    if (s.group?.trim())
+      set.add(s.group.trim())
   }
   return Array.from(set).sort()
 })
@@ -150,113 +134,138 @@ const groupSuggestions = computed(() => {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">Sites</h1>
-        <p class="text-sm text-muted-foreground">Manage your monitored websites.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-highlighted">
+          Sites
+        </h1>
+        <p class="text-sm text-muted">
+          Manage your monitored websites.
+        </p>
       </div>
-      <Dialog v-model:open="formOpen">
-        <DialogTrigger as-child>
-          <Button @click="openAdd">
-            <Icon name="lucide:plus" class="size-4 mr-2" />
-            Add Site
-          </Button>
-        </DialogTrigger>
-        <DialogContent class="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{{ editing ? 'Edit Site' : 'Add Site' }}</DialogTitle>
-          </DialogHeader>
-          <form class="space-y-4" @submit.prevent="saveSite">
-            <div class="space-y-2">
-              <Label>URL</Label>
-              <Input v-model="formUrl" placeholder="https://example.com" required class="font-mono" />
-              <p v-if="editing && formUrl !== editing.url" class="text-[11px] text-orange-500">
-                Changing the URL creates a new site — the old one will remain.
-              </p>
-            </div>
-            <div class="space-y-2">
-              <Label>Display name <span class="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input v-model="formName" :placeholder="editing?.name || 'example.com'" />
-            </div>
-            <div class="space-y-2">
-              <Label>Group <span class="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input
-                v-model="formGroup"
-                list="site-group-suggestions"
-                placeholder="e.g. Production, Staging"
-              />
-              <datalist id="site-group-suggestions">
-                <option v-for="g in groupSuggestions" :key="g" :value="g" />
-              </datalist>
-            </div>
-            <DialogFooter>
-              <Button type="submit" :disabled="saving || !formUrl.trim()">
-                <Icon v-if="saving" name="lucide:loader-2" class="size-4 mr-2 animate-spin" />
-                {{ editing ? 'Save' : 'Add' }}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <UButton icon="i-lucide-plus" @click="openAdd">
+        Add Site
+      </UButton>
     </div>
 
     <div v-if="!sitesData?.sites?.length" class="flex flex-col items-center justify-center py-16 text-center">
-      <Icon name="lucide:globe" class="size-12 text-muted-foreground/50 mb-4" />
-      <p class="text-muted-foreground">No sites registered yet.</p>
-      <p class="text-xs text-muted-foreground mt-1">Add a site to start monitoring.</p>
+      <UIcon name="i-lucide-globe" class="size-12 text-dimmed mb-4" />
+      <p class="text-muted">
+        No sites registered yet.
+      </p>
+      <p class="text-xs text-muted mt-1">
+        Add a site to start monitoring.
+      </p>
     </div>
 
     <section v-for="bucket in grouped" v-else :key="bucket.name || '__ungrouped'" class="space-y-3">
       <div class="flex items-center gap-2">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted">
           {{ bucket.name || 'Ungrouped' }}
         </h2>
-        <Badge variant="secondary" class="text-[10px] tabular-nums">
+        <UBadge color="neutral" variant="subtle" size="sm" class="tabular-nums">
           {{ bucket.items.length }}
-        </Badge>
+        </UBadge>
       </div>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card v-for="site in bucket.items" :key="site.id">
-          <CardContent class="pt-5 pb-4">
-            <div class="flex items-start justify-between mb-3">
-              <NuxtLink :to="`/sites/${siteSlug(site.url)}`" class="min-w-0 flex-1 group">
-                <div class="font-medium text-sm truncate group-hover:text-primary transition-colors">{{ site.name }}</div>
-                <div class="text-xs text-muted-foreground font-mono truncate mt-0.5">{{ site.url }}</div>
-              </NuxtLink>
-            </div>
-            <div class="text-xs text-muted-foreground mb-3">
-              Added {{ new Date(site.createdAt).toLocaleDateString() }}
-              <span v-if="site.group"> · {{ site.group }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <Button size="sm" variant="outline" class="flex-1" @click="scanSite(site.url)">
-                <Icon name="lucide:radar" class="size-3.5 mr-1" />
-                Scan
-              </Button>
-              <Button size="sm" variant="ghost" class="text-muted-foreground hover:text-foreground" @click="openEdit(site)">
-                <Icon name="lucide:pencil" class="size-3.5" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger as-child>
-                  <Button size="sm" variant="ghost" class="text-muted-foreground hover:text-destructive">
-                    <Icon name="lucide:trash-2" class="size-3.5" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove site?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This removes {{ site.name }} from the registry. Scan history will be preserved.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="deleteSite(site.id)">Remove</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </CardContent>
-        </Card>
+        <UCard v-for="site in bucket.items" :key="site.id">
+          <div class="flex items-start justify-between mb-3">
+            <NuxtLink :to="`/sites/${siteSlug(site.url)}`" class="min-w-0 flex-1 group">
+              <div class="font-medium text-sm truncate text-highlighted group-hover:text-primary transition-colors">
+                {{ site.name }}
+              </div>
+              <div class="text-xs text-muted font-mono truncate mt-0.5">
+                {{ site.url }}
+              </div>
+            </NuxtLink>
+          </div>
+          <div class="text-xs text-muted mb-3">
+            Added {{ new Date(site.createdAt).toLocaleDateString() }}
+            <span v-if="site.group"> · {{ site.group }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <UButton
+              icon="i-lucide-radar"
+              size="sm"
+              color="neutral"
+              variant="outline"
+              class="flex-1 justify-center"
+              @click="scanSite(site.url)"
+            >
+              Scan
+            </UButton>
+            <UButton
+              icon="i-lucide-pencil"
+              size="sm"
+              color="neutral"
+              variant="ghost"
+              aria-label="Edit site"
+              @click="openEdit(site)"
+            />
+            <UButton
+              icon="i-lucide-trash-2"
+              size="sm"
+              color="neutral"
+              variant="ghost"
+              aria-label="Remove site"
+              @click="pendingDelete = site"
+            />
+          </div>
+        </UCard>
       </div>
     </section>
+
+    <!-- Add / Edit -->
+    <UModal v-model:open="formOpen" :title="editing ? 'Edit Site' : 'Add Site'">
+      <template #body>
+        <form id="site-form" class="space-y-4" @submit.prevent="saveSite">
+          <div class="space-y-2">
+            <label class="text-sm font-medium">URL</label>
+            <UInput v-model="formUrl" placeholder="https://example.com" required class="w-full font-mono" />
+            <p v-if="editing && formUrl !== editing.url" class="text-[11px] text-warning">
+              Changing the URL creates a new site — the old one will remain.
+            </p>
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium">Display name <span class="text-muted text-xs">(optional)</span></label>
+            <UInput v-model="formName" :placeholder="editing?.name || 'example.com'" class="w-full" />
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium">Group <span class="text-muted text-xs">(optional)</span></label>
+            <UInput v-model="formGroup" list="site-group-suggestions" placeholder="e.g. Production, Staging" class="w-full" />
+            <datalist id="site-group-suggestions">
+              <option v-for="g in groupSuggestions" :key="g" :value="g" />
+            </datalist>
+          </div>
+        </form>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2 w-full">
+          <UButton color="neutral" variant="ghost" @click="formOpen = false">
+            Cancel
+          </UButton>
+          <UButton type="submit" form="site-form" :loading="saving" :disabled="!formUrl.trim()">
+            {{ editing ? 'Save' : 'Add' }}
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Delete confirm -->
+    <UModal
+      :open="!!pendingDelete"
+      title="Remove site?"
+      :description="pendingDelete ? `This removes ${pendingDelete.name} from the registry. Scan history will be preserved.` : ''"
+      @update:open="(v: boolean) => { if (!v) pendingDelete = null }"
+    >
+      <template #footer>
+        <div class="flex justify-end gap-2 w-full">
+          <UButton color="neutral" variant="ghost" @click="pendingDelete = null">
+            Cancel
+          </UButton>
+          <UButton color="error" @click="pendingDelete && deleteSite(pendingDelete.id)">
+            Remove
+          </UButton>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
