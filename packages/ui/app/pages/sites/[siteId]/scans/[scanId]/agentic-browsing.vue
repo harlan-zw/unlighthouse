@@ -54,7 +54,7 @@ function severityColor(severity: string) {
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums">
+          <div class="numerals-display text-2xl">
             {{ report.routesAnalysed ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">
@@ -64,7 +64,7 @@ function severityColor(severity: string) {
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums" :class="report.avgScore != null && report.avgScore >= 0.9 ? 'text-success' : report.avgScore >= 0.5 ? 'text-warning' : 'text-destructive'">
+          <div class="numerals-display text-2xl" :class="report.avgScore != null && report.avgScore >= 0.9 ? 'text-success' : report.avgScore >= 0.5 ? 'text-warning' : 'text-destructive'">
             {{ report.avgScore != null ? Math.round(report.avgScore * 100) : '—' }}
           </div>
           <div class="text-xs text-muted-foreground">
@@ -86,7 +86,7 @@ function severityColor(severity: string) {
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums">
+          <div class="numerals-display text-2xl">
             {{ report.webmcp?.routesWithTools ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">

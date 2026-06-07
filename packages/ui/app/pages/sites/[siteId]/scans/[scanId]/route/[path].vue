@@ -355,7 +355,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
             <ScoreRing :score="s.score" size="md" />
             <div>
               <div class="text-sm font-medium">{{ s.label }}</div>
-              <div class="text-2xl font-bold tabular-nums" :style="{ color: scoreToRingColor(s.score) }">
+              <div class="numerals-display text-2xl" :style="{ color: scoreToRingColor(s.score) }">
                 {{ scoreToLabel(s.score) }}
               </div>
             </div>

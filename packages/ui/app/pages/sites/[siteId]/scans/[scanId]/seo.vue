@@ -35,7 +35,7 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums" :class="report.indexabilityPercent === 100 ? 'text-success' : report.indexabilityPercent >= 80 ? 'text-warning' : 'text-destructive'">
+          <div class="numerals-display text-2xl" :class="report.indexabilityPercent === 100 ? 'text-success' : report.indexabilityPercent >= 80 ? 'text-warning' : 'text-destructive'">
             {{ report.indexabilityPercent ?? 0 }}%
           </div>
           <div class="text-xs text-muted-foreground">
@@ -55,7 +55,7 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums" :class="report.unindexableRoutes > 0 ? 'text-destructive' : 'text-success'">
+          <div class="numerals-display text-2xl" :class="report.unindexableRoutes > 0 ? 'text-destructive' : 'text-success'">
             {{ report.unindexableRoutes ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">
@@ -65,7 +65,7 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums">
+          <div class="numerals-display text-2xl">
             {{ report.routesAnalysed ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">

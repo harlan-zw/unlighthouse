@@ -149,7 +149,7 @@ function scoreColor(score: number | null) {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight truncate max-w-lg">
+        <h1 class="text-title truncate max-w-lg">
           {{ scanMeta?.site || store.site || 'Scan' }}
         </h1>
         <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground">
@@ -286,7 +286,7 @@ function scoreColor(score: number | null) {
               />
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
-              <span class="text-2xl font-bold tabular-nums">{{ distribution.total }}</span>
+              <span class="numerals-display text-2xl">{{ distribution.total }}</span>
               <span class="text-[10px] text-muted-foreground">routes</span>
             </div>
           </div>

@@ -211,7 +211,7 @@ async function handleSubmit() {
           <CollapsibleTrigger class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground group w-full">
             <Icon name="lucide:chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
             Advanced
-            <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-[10px] uppercase tracking-wider text-primary">customized</span>
+            <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-label text-primary">customized</span>
           </CollapsibleTrigger>
           <CollapsibleContent class="space-y-5 pt-4 pl-6">
             <div class="space-y-2">

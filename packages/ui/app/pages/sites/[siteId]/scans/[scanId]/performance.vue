@@ -81,7 +81,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
         <Card v-for="m in cwvReport.metrics" :key="m.metric">
           <CardContent class="pt-5 pb-4 text-center">
             <div class="text-xs text-muted-foreground mb-1">{{ m.metric?.toUpperCase() }}</div>
-            <div class="text-2xl font-bold tabular-nums" :class="verdictColor(m.verdict)">
+            <div class="numerals-display text-2xl" :class="verdictColor(m.verdict)">
               {{ m.p75 != null ? (m.metric === 'cls' ? m.p75.toFixed(3) : formatMs(m.p75)) : '—' }}
             </div>
             <div class="text-[10px] text-muted-foreground mt-1">p75 across {{ (m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0) }} routes</div>

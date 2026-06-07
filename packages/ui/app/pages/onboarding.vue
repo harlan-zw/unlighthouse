@@ -10,7 +10,7 @@ definePageMeta({ layout: 'root' })
       <div class="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
         <Icon name="lucide:radar" class="size-6" />
       </div>
-      <h1 class="text-2xl font-bold tracking-tight">Welcome to Unlighthouse</h1>
+      <h1 class="text-title">Welcome to Unlighthouse</h1>
       <p class="text-sm text-muted-foreground">
         Scan your first site to get Lighthouse scores across every page. Enter a URL below to begin.
       </p>

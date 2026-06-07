@@ -44,7 +44,7 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
       <h1 class="text-xl font-bold tracking-tight">
         {{ title }}
       </h1>
-      <span v-if="pack" class="text-[10px] uppercase tracking-wider text-muted-foreground rounded-md border px-1.5 py-0.5 font-mono">
+      <span v-if="pack" class="text-label text-muted-foreground rounded-md border px-1.5 py-0.5 font-mono">
         {{ pack }}
       </span>
     </div>

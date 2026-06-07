@@ -37,7 +37,7 @@ const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums">
+          <div class="numerals-display text-2xl">
             {{ a11yReport.summary?.routesAffected ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">
@@ -47,7 +47,7 @@ const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums">
+          <div class="numerals-display text-2xl">
             {{ a11yReport.summary?.uniqueRules ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">

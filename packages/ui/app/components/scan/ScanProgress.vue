@@ -75,19 +75,19 @@ function formatDuration(ms: number): string {
       <!-- Counts row — crawler-side numbers. -->
       <div class="grid grid-cols-4 gap-3 text-center text-xs">
         <div>
-          <div class="text-base font-bold tabular-nums">{{ store.discovered }}</div>
+          <div class="numerals-display text-base">{{ store.discovered }}</div>
           <div class="text-muted-foreground">Discovered</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums">{{ store.scanned }}</div>
+          <div class="numerals-display text-base">{{ store.scanned }}</div>
           <div class="text-muted-foreground">Scanned</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums" :class="store.failed > 0 ? 'text-destructive' : ''">{{ store.failed }}</div>
+          <div class="numerals-display text-base" :class="store.failed > 0 ? 'text-destructive' : ''">{{ store.failed }}</div>
           <div class="text-muted-foreground">Failed</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums">{{ store.total }}</div>
+          <div class="numerals-display text-base">{{ store.total }}</div>
           <div class="text-muted-foreground">Total</div>
         </div>
       </div>
@@ -97,25 +97,25 @@ function formatDuration(ms: number): string {
            well + how long to wait" at a glance. -->
       <div v-if="store.scoreCount > 0 || store.etaMs != null" class="grid grid-cols-5 gap-3 text-center text-xs border-t pt-3">
         <div>
-          <div class="text-base font-bold tabular-nums" :class="scoreToColor(store.avgPerfScore)">
+          <div class="numerals-display text-base" :class="scoreToColor(store.avgPerfScore)">
             {{ store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—' }}
           </div>
           <div class="text-muted-foreground">Avg Perf</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums text-success">{{ store.passCount }}</div>
+          <div class="numerals-display text-base text-success">{{ store.passCount }}</div>
           <div class="text-muted-foreground">Pass</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums text-warning">{{ store.needsWorkCount }}</div>
+          <div class="numerals-display text-base text-warning">{{ store.needsWorkCount }}</div>
           <div class="text-muted-foreground">Needs Work</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums text-destructive">{{ store.poorCount }}</div>
+          <div class="numerals-display text-base text-destructive">{{ store.poorCount }}</div>
           <div class="text-muted-foreground">Poor</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums">{{ etaLabel }}</div>
+          <div class="numerals-display text-base">{{ etaLabel }}</div>
           <div class="text-muted-foreground">ETA · {{ elapsedLabel }}</div>
         </div>
       </div>

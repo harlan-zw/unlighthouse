@@ -197,7 +197,7 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
     <!-- Header -->
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0">
-        <h1 class="text-2xl font-bold tracking-tight truncate">{{ siteName }}</h1>
+        <h1 class="text-title truncate">{{ siteName }}</h1>
         <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
           {{ siteUrl }}
           <Icon name="lucide:external-link" class="size-3" />

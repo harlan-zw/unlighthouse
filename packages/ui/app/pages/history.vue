@@ -129,7 +129,7 @@ async function deleteScan(scanId: string) {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">
+        <h1 class="text-title">
           History
         </h1>
         <p class="text-sm text-muted-foreground">
