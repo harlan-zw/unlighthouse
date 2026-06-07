@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -141,9 +140,9 @@ const hasData = computed(() =>
       <CardHeader class="pb-3">
         <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
           JS Bundle Issues
-          <Badge variant="secondary" class="text-xs">
+          <UBadge color="neutral" variant="soft" class="text-xs">
             {{ bundleReport.findings.length }}
-          </Badge>
+          </UBadge>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -152,18 +151,18 @@ const hasData = computed(() =>
             <div class="flex items-center justify-between gap-3">
               <div class="min-w-0">
                 <div class="text-sm font-medium flex items-center gap-2">
-                  <Badge variant="outline" class="text-[10px] capitalize shrink-0">
+                  <UBadge color="neutral" variant="outline" class="text-[10px] capitalize shrink-0">
                     {{ finding.severity }}
-                  </Badge>
+                  </UBadge>
                   {{ bundleKindLabel(finding.kind) }}
                 </div>
                 <div v-if="finding.resource" class="text-xs text-muted-foreground font-mono truncate mt-1" :title="finding.resource">
                   {{ shortResource(finding.resource) }}
                 </div>
               </div>
-              <Badge variant="outline" class="text-xs shrink-0">
+              <UBadge color="neutral" variant="outline" class="text-xs shrink-0">
                 {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
-              </Badge>
+              </UBadge>
             </div>
             <div v-if="finding.wastedBytes" class="text-xs text-warning mt-2">
               {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ finding.wastedPercent }}%)</span>

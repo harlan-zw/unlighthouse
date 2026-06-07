@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   Accordion,
   AccordionContent,
@@ -24,9 +23,9 @@ const report = computed(() => (agenticPack.value as any)?.report ?? null)
 // critical/serious/moderate scheme PackFindings handles) so we render
 // the findings inline rather than via the shared component.
 function severityVariant(severity: string) {
-  if (severity === 'fail') return 'destructive' as const
-  if (severity === 'warn') return 'secondary' as const
-  return 'outline' as const
+  if (severity === 'fail') return 'error' as const
+  if (severity === 'warn') return 'warning' as const
+  return 'neutral' as const
 }
 
 function severityIcon(severity: string) {
@@ -148,9 +147,9 @@ function severityColor(severity: string) {
       <CardHeader class="pb-3">
         <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
           Audit Findings
-          <Badge variant="secondary" class="text-xs">
+          <UBadge color="neutral" variant="soft" class="text-xs">
             {{ report.findings.length }}
-          </Badge>
+          </UBadge>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -160,9 +159,9 @@ function severityColor(severity: string) {
               <div class="flex items-center gap-3 text-left flex-1 min-w-0">
                 <Icon :name="severityIcon(finding.severity)" :class="severityColor(finding.severity)" class="size-4 shrink-0" />
                 <span class="truncate">{{ finding.title || finding.auditId }}</span>
-                <Badge :variant="severityVariant(finding.severity)" class="text-[10px] shrink-0">
+                <UBadge :color="severityVariant(finding.severity)" variant="soft" class="text-[10px] shrink-0">
                   {{ finding.passingRouteCount }}/{{ finding.routeCount }} pass
-                </Badge>
+                </UBadge>
               </div>
             </AccordionTrigger>
             <AccordionContent>
