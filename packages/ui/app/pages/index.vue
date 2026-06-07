@@ -117,7 +117,7 @@ const siteColumns: ColumnDef<SiteRow>[] = [
     accessorFn: (r: SiteRow) => r.avg ?? undefined,
     header: 'Score',
     sortUndefined: 'last',
-    meta: { align: 'center', headClass: 'w-16' },
+    align: 'center',
     cell: ({ row }) => h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.avg)}` }, scoreToLabel(row.original.avg)),
   },
   ...CAT_COLS.map(c => ({
@@ -125,7 +125,7 @@ const siteColumns: ColumnDef<SiteRow>[] = [
     accessorFn: (r: SiteRow) => r.cats[c.key] ?? undefined,
     header: c.label,
     sortUndefined: 'last' as const,
-    meta: { align: 'center' as const, headClass: 'w-14' },
+    align: 'center' as const,
     cell: ({ row }: any) => {
       const v = row.original.cats[c.key] as number | undefined
       return h('span', { class: `text-xs font-semibold tabular-nums ${scoreToColor(v ?? null)}` }, scoreToLabel(v ?? null))
@@ -135,14 +135,14 @@ const siteColumns: ColumnDef<SiteRow>[] = [
     id: 'trend',
     header: 'Trend',
     enableSorting: false,
-    meta: { headClass: 'w-28' },
+    align: 'left',
     cell: ({ row }) => h(SparklineC, { values: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null) }),
   },
   {
     id: 'last',
     accessorFn: (r: SiteRow) => r.lastAt ?? '',
     header: 'Last scan',
-    meta: { align: 'right', headClass: 'w-28' },
+    align: 'right',
     cell: ({ row }) => h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, row.original.lastAt ? fmtRelTime(row.original.lastAt) : '—'),
   },
 ]
@@ -166,35 +166,35 @@ const recentColumns: ColumnDef<ScanRow>[] = [
     id: 'device',
     header: 'Device',
     enableSorting: false,
-    meta: { align: 'center', headClass: 'w-16' },
+    align: 'center',
     cell: ({ row }) => h(resolveComponent('Icon'), { name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor', class: 'size-3.5 text-muted-foreground' }),
   },
   {
     id: 'avg',
     header: 'Score',
     enableSorting: false,
-    meta: { align: 'center', headClass: 'w-16' },
+    align: 'center',
     cell: ({ row }) => h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.summary?.scoreAverage ?? null)}` }, scoreToLabel(row.original.summary?.scoreAverage ?? null)),
   },
   {
     id: 'routes',
     header: 'Routes',
     enableSorting: false,
-    meta: { align: 'right', headClass: 'w-16' },
+    align: 'right',
     cell: ({ row }) => h('span', { class: 'text-xs tabular-nums text-muted-foreground' }, String(row.original.summary?.completed ?? 0)),
   },
   {
     id: 'status',
     header: 'Status',
     enableSorting: false,
-    meta: { align: 'center', headClass: 'w-24' },
+    align: 'center',
     cell: ({ row }) => h(ScanStatusBadge, { status: row.original.status }),
   },
   {
     id: 'when',
     header: 'When',
     enableSorting: false,
-    meta: { align: 'right', headClass: 'w-24' },
+    align: 'right',
     cell: ({ row }) => h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, fmtRelTime(row.original.startedAt)),
   },
 ]
@@ -263,7 +263,7 @@ function openScan(s: ScanRow) {
             </NuxtLink>
           </template>
         </SectionHeader>
-        <DataTable :columns="siteColumns" :data="siteRows" row-clickable @row-click="openSite" />
+        <UiTable :columns="siteColumns" :data="siteRows" enable-sorting row-clickable row-hover @row-click="openSite" />
       </div>
 
       <!-- Recent scans -->
@@ -275,7 +275,7 @@ function openScan(s: ScanRow) {
             </NuxtLink>
           </template>
         </SectionHeader>
-        <DataTable :columns="recentColumns" :data="recentScans" row-clickable @row-click="openScan" />
+        <UiTable :columns="recentColumns" :data="recentScans" row-clickable row-hover @row-click="openScan" />
       </div>
     </template>
   </div>
