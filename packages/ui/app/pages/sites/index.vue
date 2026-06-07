@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -148,12 +147,9 @@ const groupSuggestions = computed(() => {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-title">Sites</h1>
-        <p class="text-sm text-muted-foreground">Manage your monitored websites.</p>
-      </div>
-      <Dialog v-model:open="formOpen">
+    <PageHeader title="Sites" description="Manage your monitored websites." flush>
+      <template #actions>
+        <Dialog v-model:open="formOpen">
         <DialogTrigger as-child>
           <Button @click="openAdd">
             <Icon name="lucide:plus" class="size-4 mr-2" />
@@ -188,15 +184,15 @@ const groupSuggestions = computed(() => {
               </datalist>
             </div>
             <DialogFooter>
-              <Button type="submit" :disabled="saving || !formUrl.trim()">
-                <Icon v-if="saving" name="lucide:loader-2" class="size-4 mr-2 animate-spin" />
+              <UiButton purpose="cta" type="submit" :loading="saving" :disabled="saving || !formUrl.trim()">
                 {{ editing ? 'Save' : 'Add' }}
-              </Button>
+              </UiButton>
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
-    </div>
+        </Dialog>
+      </template>
+    </PageHeader>
 
     <div v-if="!sitesData?.sites?.length" class="flex flex-col items-center justify-center py-16 text-center">
       <Icon name="lucide:globe" class="size-12 text-muted-foreground/50 mb-4" />
@@ -209,9 +205,7 @@ const groupSuggestions = computed(() => {
         <h2 class="eyebrow">
           {{ bucket.name || 'Ungrouped' }}
         </h2>
-        <Badge variant="secondary" class="text-[10px] tabular-nums">
-          {{ bucket.items.length }}
-        </Badge>
+        <UBadge color="neutral" variant="soft" size="xs" class="tabular-nums">{{ bucket.items.length }}</UBadge>
       </div>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card v-for="site in bucket.items" :key="site.id">
@@ -227,13 +221,8 @@ const groupSuggestions = computed(() => {
               <span v-if="site.group"> · {{ site.group }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <Button size="sm" variant="outline" class="flex-1" @click="scanSite(site.url)">
-                <Icon name="lucide:radar" class="size-3.5 mr-1" />
-                Scan
-              </Button>
-              <Button size="sm" variant="ghost" class="text-muted-foreground hover:text-foreground" @click="openEdit(site)">
-                <Icon name="lucide:pencil" class="size-3.5" />
-              </Button>
+              <UiButton purpose="secondary" size="sm" class="flex-1" icon="i-lucide-radar" @click="scanSite(site.url)">Scan</UiButton>
+              <UiButton purpose="quiet" size="sm" icon="i-lucide-pencil" @click="openEdit(site)" />
               <AlertDialog>
                 <AlertDialogTrigger as-child>
                   <Button size="sm" variant="ghost" class="text-muted-foreground hover:text-destructive">
