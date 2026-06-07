@@ -116,7 +116,7 @@ const CWV_THRESHOLDS: Record<string, [number, number]> = {
 function cwvColor(metric: 'lcp' | 'cls' | 'tbt', v: number | null): string {
   if (v == null) return 'text-muted-foreground'
   const [good, poor] = CWV_THRESHOLDS[metric]!
-  return v <= good ? 'text-green-500' : v <= poor ? 'text-orange-500' : 'text-red-500'
+  return v <= good ? 'text-success' : v <= poor ? 'text-warning' : 'text-destructive'
 }
 
 function passesQuick(r: RouteRow): boolean {
@@ -313,7 +313,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         if (d === 0)
           return h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, '0')
         const up = d > 0
-        return h('span', { class: `text-xs font-medium tabular-nums ${up ? 'text-green-500' : 'text-red-500'}` }, `${up ? '▲ +' : '▼ '}${d}`)
+        return h('span', { class: `text-xs font-medium tabular-nums ${up ? 'text-success' : 'text-destructive'}` }, `${up ? '▲ +' : '▼ '}${d}`)
       },
     })
   }
@@ -349,9 +349,9 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           avg <span class="font-semibold tabular-nums">{{ summary.avg ?? '—' }}</span>
         </span>
         <span class="text-muted-foreground text-xs tabular-nums">
-          <span class="text-green-500 font-medium">{{ summary.pass }}</span> pass ·
-          <span class="text-orange-500 font-medium">{{ summary.needs }}</span> needs work ·
-          <span class="text-red-500 font-medium">{{ summary.poor }}</span> poor
+          <span class="text-success font-medium">{{ summary.pass }}</span> pass ·
+          <span class="text-warning font-medium">{{ summary.needs }}</span> needs work ·
+          <span class="text-destructive font-medium">{{ summary.poor }}</span> poor
         </span>
         <span class="flex items-center gap-1 text-muted-foreground">
           <Icon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5" />

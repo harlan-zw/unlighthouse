@@ -165,7 +165,7 @@ const hasData = computed(() =>
                 {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
               </Badge>
             </div>
-            <div v-if="finding.wastedBytes" class="text-xs text-orange-500 mt-2">
+            <div v-if="finding.wastedBytes" class="text-xs text-warning mt-2">
               {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ finding.wastedPercent }}%)</span>
             </div>
             <div v-if="finding.fixHint" class="text-xs text-muted-foreground mt-1">

@@ -45,9 +45,9 @@ const { data: routeScores } = useAsyncData(
 const { fmtMs: formatMs, fmtBytes: formatBytes } = useFormat()
 
 function verdictColor(verdict: string) {
-  if (verdict === 'good') return 'text-green-500'
-  if (verdict === 'needsImprovement') return 'text-orange-500'
-  return 'text-red-500'
+  if (verdict === 'good') return 'text-success'
+  if (verdict === 'needsImprovement') return 'text-warning'
+  return 'text-destructive'
 }
 
 function severityVariant(severity: string) {
@@ -86,9 +86,9 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
             </div>
             <div class="text-[10px] text-muted-foreground mt-1">p75 across {{ (m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0) }} routes</div>
             <div class="flex justify-center gap-1 mt-2">
-              <Badge variant="outline" class="text-[9px] text-green-600">{{ m.distribution?.good ?? 0 }} good</Badge>
-              <Badge variant="outline" class="text-[9px] text-orange-600">{{ m.distribution?.needsImprovement ?? 0 }} NI</Badge>
-              <Badge variant="outline" class="text-[9px] text-red-600">{{ m.distribution?.poor ?? 0 }} poor</Badge>
+              <Badge variant="outline" class="text-[9px] text-success">{{ m.distribution?.good ?? 0 }} good</Badge>
+              <Badge variant="outline" class="text-[9px] text-warning">{{ m.distribution?.needsImprovement ?? 0 }} NI</Badge>
+              <Badge variant="outline" class="text-[9px] text-destructive">{{ m.distribution?.poor ?? 0 }} poor</Badge>
             </div>
           </CardContent>
         </Card>
@@ -151,7 +151,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
             <Icon name="lucide:image" class="size-4" />
             Image Optimization
             <Badge variant="secondary" class="text-xs">{{ imagesReport.findings.length }} issues</Badge>
-            <Badge v-if="imagesReport.totalBytesSavable > 0" variant="outline" class="text-xs text-orange-500">
+            <Badge v-if="imagesReport.totalBytesSavable > 0" variant="outline" class="text-xs text-warning">
               {{ formatBytes(imagesReport.totalBytesSavable) }} savable
             </Badge>
           </CardTitle>
@@ -193,8 +193,8 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                     <div class="flex-1 min-w-0 space-y-2">
                       <div class="flex gap-2 flex-wrap">
                         <Badge variant="outline" class="text-xs">{{ finding.kind }}</Badge>
-                        <Badge v-if="finding.wastedBytes" variant="outline" class="text-xs text-orange-500">{{ formatBytes(finding.wastedBytes) }} wasted</Badge>
-                        <Badge v-if="finding.lcpImpactMs" variant="outline" class="text-xs text-red-500">LCP +{{ formatMs(finding.lcpImpactMs) }}</Badge>
+                        <Badge v-if="finding.wastedBytes" variant="outline" class="text-xs text-warning">{{ formatBytes(finding.wastedBytes) }} wasted</Badge>
+                        <Badge v-if="finding.lcpImpactMs" variant="outline" class="text-xs text-destructive">LCP +{{ formatMs(finding.lcpImpactMs) }}</Badge>
                       </div>
                       <p v-if="finding.reason" class="text-xs text-muted-foreground">{{ finding.reason }}</p>
                       <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">

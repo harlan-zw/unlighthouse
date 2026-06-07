@@ -33,15 +33,15 @@ function formatValue(value: number, unit: string) {
 }
 
 function metricColor(value: number, good: number, poor: number) {
-  if (value <= good) return 'text-green-500'
-  if (value <= poor) return 'text-orange-500'
-  return 'text-red-500'
+  if (value <= good) return 'text-success'
+  if (value <= poor) return 'text-warning'
+  return 'text-destructive'
 }
 
 function metricBg(value: number, good: number, poor: number) {
-  if (value <= good) return 'bg-green-500'
-  if (value <= poor) return 'bg-orange-500'
-  return 'bg-red-500'
+  if (value <= good) return 'bg-success'
+  if (value <= poor) return 'bg-warning'
+  return 'bg-destructive'
 }
 
 // CrUX reports can come back partial — a device (or a metric series) may be
@@ -114,15 +114,15 @@ function latestValue(entries: Array<{ value: number }>) {
               <div v-if="getDeviceData(data)[m.key].at(-1)?.good != null" class="mb-3">
                 <div class="flex h-2.5 rounded-full overflow-hidden">
                   <div
-                    class="bg-green-500"
+                    class="bg-success"
                     :style="{ width: `${(getDeviceData(data)[m.key].at(-1)!.good || 0) * 100}%` }"
                   />
                   <div
-                    class="bg-orange-500"
+                    class="bg-warning"
                     :style="{ width: `${(getDeviceData(data)[m.key].at(-1)!.ni || 0) * 100}%` }"
                   />
                   <div
-                    class="bg-red-500"
+                    class="bg-destructive"
                     :style="{ width: `${(getDeviceData(data)[m.key].at(-1)!.poor || 0) * 100}%` }"
                   />
                 </div>

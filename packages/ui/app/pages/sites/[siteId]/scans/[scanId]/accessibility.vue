@@ -27,7 +27,7 @@ const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)
     <div v-if="a11yReport.summary" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold text-red-500 tabular-nums">
+          <div class="text-2xl font-bold text-destructive tabular-nums">
             {{ a11yReport.summary?.totalFindings ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">
@@ -57,7 +57,7 @@ const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold text-green-500 tabular-nums">
+          <div class="text-2xl font-bold text-success tabular-nums">
             {{ a11yReport.routesAnalysed ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">

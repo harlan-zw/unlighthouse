@@ -51,13 +51,13 @@ onBeforeUnmount(() => {
           <div
             v-if="healthy !== null"
             class="flex items-center gap-1.5 text-xs"
-            :class="healthy ? 'text-green-500' : 'text-red-500'"
+            :class="healthy ? 'text-success' : 'text-destructive'"
             :title="healthy ? 'Backend connected' : 'Backend unreachable'"
           >
             <span class="relative flex size-1.5">
               <span
                 class="relative inline-flex size-1.5 rounded-full"
-                :class="healthy ? 'bg-green-500' : 'bg-red-500 animate-pulse'"
+                :class="healthy ? 'bg-success' : 'bg-destructive animate-pulse'"
               />
             </span>
             <span class="hidden sm:inline">{{ healthy ? 'Connected' : 'Disconnected' }}</span>

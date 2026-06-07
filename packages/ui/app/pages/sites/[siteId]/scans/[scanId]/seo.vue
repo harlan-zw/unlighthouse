@@ -35,7 +35,7 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums" :class="report.indexabilityPercent === 100 ? 'text-green-500' : report.indexabilityPercent >= 80 ? 'text-orange-500' : 'text-red-500'">
+          <div class="text-2xl font-bold tabular-nums" :class="report.indexabilityPercent === 100 ? 'text-success' : report.indexabilityPercent >= 80 ? 'text-warning' : 'text-destructive'">
             {{ report.indexabilityPercent ?? 0 }}%
           </div>
           <div class="text-xs text-muted-foreground">
@@ -45,7 +45,7 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold text-green-500 tabular-nums">
+          <div class="text-2xl font-bold text-success tabular-nums">
             {{ report.indexableRoutes ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">
@@ -55,7 +55,7 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums" :class="report.unindexableRoutes > 0 ? 'text-red-500' : 'text-green-500'">
+          <div class="text-2xl font-bold tabular-nums" :class="report.unindexableRoutes > 0 ? 'text-destructive' : 'text-success'">
             {{ report.unindexableRoutes ?? 0 }}
           </div>
           <div class="text-xs text-muted-foreground">
@@ -106,16 +106,16 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
               <TableCell class="font-mono text-xs truncate max-w-sm" :title="rc.url">
                 {{ rc.url }}
               </TableCell>
-              <TableCell class="text-right tabular-nums text-green-500">
+              <TableCell class="text-right tabular-nums text-success">
                 {{ rc.passes }}
               </TableCell>
-              <TableCell class="text-right tabular-nums" :class="rc.fails > 0 ? 'text-red-500' : ''">
+              <TableCell class="text-right tabular-nums" :class="rc.fails > 0 ? 'text-destructive' : ''">
                 {{ rc.fails }}
               </TableCell>
               <TableCell>
                 <Icon
                   :name="rc.indexable ? 'lucide:check-circle' : 'lucide:x-circle'"
-                  :class="rc.indexable ? 'text-green-500' : 'text-red-500'"
+                  :class="rc.indexable ? 'text-success' : 'text-destructive'"
                   class="size-4"
                 />
               </TableCell>

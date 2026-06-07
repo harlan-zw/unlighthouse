@@ -103,15 +103,15 @@ function formatDuration(ms: number): string {
           <div class="text-muted-foreground">Avg Perf</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums text-green-500">{{ store.passCount }}</div>
+          <div class="text-base font-bold tabular-nums text-success">{{ store.passCount }}</div>
           <div class="text-muted-foreground">Pass</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums text-orange-500">{{ store.needsWorkCount }}</div>
+          <div class="text-base font-bold tabular-nums text-warning">{{ store.needsWorkCount }}</div>
           <div class="text-muted-foreground">Needs Work</div>
         </div>
         <div>
-          <div class="text-base font-bold tabular-nums text-red-500">{{ store.poorCount }}</div>
+          <div class="text-base font-bold tabular-nums text-destructive">{{ store.poorCount }}</div>
           <div class="text-muted-foreground">Poor</div>
         </div>
         <div>

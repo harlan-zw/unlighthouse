@@ -36,9 +36,9 @@ function severityIcon(severity: string) {
 }
 
 function severityColor(severity: string) {
-  if (severity === 'pass') return 'text-green-500'
-  if (severity === 'warn') return 'text-orange-500'
-  return 'text-red-500'
+  if (severity === 'pass') return 'text-success'
+  if (severity === 'warn') return 'text-warning'
+  return 'text-destructive'
 }
 </script>
 
@@ -64,7 +64,7 @@ function severityColor(severity: string) {
       </Card>
       <Card>
         <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold tabular-nums" :class="report.avgScore != null && report.avgScore >= 0.9 ? 'text-green-500' : report.avgScore >= 0.5 ? 'text-orange-500' : 'text-red-500'">
+          <div class="text-2xl font-bold tabular-nums" :class="report.avgScore != null && report.avgScore >= 0.9 ? 'text-success' : report.avgScore >= 0.5 ? 'text-warning' : 'text-destructive'">
             {{ report.avgScore != null ? Math.round(report.avgScore * 100) : '—' }}
           </div>
           <div class="text-xs text-muted-foreground">
@@ -76,7 +76,7 @@ function severityColor(severity: string) {
         <CardContent class="pt-5 pb-4 text-center">
           <Icon
             :name="report.hasLlmsTxt ? 'lucide:check-circle' : 'lucide:x-circle'"
-            :class="report.hasLlmsTxt ? 'text-green-500' : 'text-red-500'"
+            :class="report.hasLlmsTxt ? 'text-success' : 'text-destructive'"
             class="size-6 mx-auto mb-1"
           />
           <div class="text-xs text-muted-foreground">
@@ -107,7 +107,7 @@ function severityColor(severity: string) {
           <div class="p-3 border rounded-lg text-center">
             <Icon
               :name="report.webmcp.hasRegisteredTools ? 'lucide:check-circle' : 'lucide:x-circle'"
-              :class="report.webmcp.hasRegisteredTools ? 'text-green-500' : 'text-muted-foreground'"
+              :class="report.webmcp.hasRegisteredTools ? 'text-success' : 'text-muted-foreground'"
               class="size-5 mx-auto mb-1"
             />
             <div class="text-xs text-muted-foreground">
@@ -125,7 +125,7 @@ function severityColor(severity: string) {
           <div class="p-3 border rounded-lg text-center">
             <Icon
               :name="report.webmcp.schemaValid ? 'lucide:check-circle' : report.webmcp.schemaValid === false ? 'lucide:x-circle' : 'lucide:minus-circle'"
-              :class="report.webmcp.schemaValid ? 'text-green-500' : report.webmcp.schemaValid === false ? 'text-red-500' : 'text-muted-foreground'"
+              :class="report.webmcp.schemaValid ? 'text-success' : report.webmcp.schemaValid === false ? 'text-destructive' : 'text-muted-foreground'"
               class="size-5 mx-auto mb-1"
             />
             <div class="text-xs text-muted-foreground">
@@ -177,7 +177,7 @@ function severityColor(severity: string) {
                   </li>
                 </ul>
               </div>
-              <div v-else class="text-xs text-green-600">
+              <div v-else class="text-xs text-success">
                 All routes passing.
               </div>
             </AccordionContent>

@@ -209,9 +209,9 @@ function metricColor(label: string, value: number | null | undefined): string {
     FCP: [1800, 3000], SI: [3400, 5800], TTFB: [800, 1800], INP: [200, 500],
   }
   const [good, poor] = thresholds[label] || [Infinity, Infinity]
-  if (value <= good) return 'text-green-500'
-  if (value <= poor) return 'text-orange-500'
-  return 'text-red-500'
+  if (value <= good) return 'text-success'
+  if (value <= poor) return 'text-warning'
+  return 'text-destructive'
 }
 
 function severityColor(severity: string): 'destructive' | 'secondary' | 'outline' {
@@ -329,8 +329,8 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
       </Card>
 
       <!-- Runtime Error -->
-      <div v-if="routeData.provenance?.runtimeError" class="border border-red-500/30 bg-red-500/5 rounded-lg p-4">
-        <div class="flex items-center gap-2 text-sm font-medium text-red-500">
+      <div v-if="routeData.provenance?.runtimeError" class="border border-destructive/30 bg-destructive/5 rounded-lg p-4">
+        <div class="flex items-center gap-2 text-sm font-medium text-destructive">
           <Icon name="lucide:alert-triangle" class="size-4" />
           Runtime Error: {{ routeData.provenance.runtimeError.code }}
         </div>
@@ -338,8 +338,8 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
       </div>
 
       <!-- Warnings -->
-      <div v-if="routeData.provenance?.warnings?.length" class="border border-orange-500/30 bg-orange-500/5 rounded-lg p-4">
-        <div class="flex items-center gap-2 text-sm font-medium text-orange-500 mb-2">
+      <div v-if="routeData.provenance?.warnings?.length" class="border border-warning/30 bg-warning/5 rounded-lg p-4">
+        <div class="flex items-center gap-2 text-sm font-medium text-warning mb-2">
           <Icon name="lucide:alert-circle" class="size-4" />
           Warnings ({{ routeData.provenance.warnings.length }})
         </div>
@@ -394,7 +394,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
                 <Badge v-if="cat.failing.length" variant="destructive" class="text-xs">
                   {{ cat.failing.length }} failing
                 </Badge>
-                <Badge v-if="cat.passing.length" variant="outline" class="text-xs text-green-600">
+                <Badge v-if="cat.passing.length" variant="outline" class="text-xs text-success">
                   {{ cat.passing.length }} passed
                 </Badge>
               </div>
@@ -434,11 +434,11 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
                           <div v-if="item.node?.nodeLabel" class="text-muted-foreground mt-1">{{ item.node.nodeLabel }}</div>
                           <div v-if="item.reason" class="text-muted-foreground mt-1">{{ item.reason }}</div>
                           <div class="flex gap-2 mt-1 flex-wrap">
-                            <span v-if="item.wastedBytes" class="text-orange-500">{{ formatBytes(item.wastedBytes) }} wasted</span>
-                            <span v-if="item.wastedMs" class="text-orange-500">{{ Math.round(item.wastedMs) }}ms wasted</span>
+                            <span v-if="item.wastedBytes" class="text-warning">{{ formatBytes(item.wastedBytes) }} wasted</span>
+                            <span v-if="item.wastedMs" class="text-warning">{{ Math.round(item.wastedMs) }}ms wasted</span>
                             <span v-if="item.totalBytes" class="text-muted-foreground">{{ formatBytes(item.totalBytes) }} total</span>
                             <span v-if="item.transferSize" class="text-muted-foreground">{{ formatBytes(item.transferSize) }} transferred</span>
-                            <span v-if="item.blockingTime" class="text-orange-500">{{ Math.round(item.blockingTime) }}ms blocking</span>
+                            <span v-if="item.blockingTime" class="text-warning">{{ Math.round(item.blockingTime) }}ms blocking</span>
                           </div>
                         </div>
                       </template>
@@ -454,16 +454,16 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
             <Collapsible v-if="cat.passing.length">
               <CollapsibleTrigger class="flex items-center gap-2 w-full text-sm py-1 group">
                 <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
-                <Icon name="lucide:check-circle" class="size-4 text-green-500" />
-                <span class="text-green-600 font-medium">Passed Audits</span>
-                <Badge variant="outline" class="text-[10px] text-green-600">{{ cat.passing.length }}</Badge>
+                <Icon name="lucide:check-circle" class="size-4 text-success" />
+                <span class="text-success font-medium">Passed Audits</span>
+                <Badge variant="outline" class="text-[10px] text-success">{{ cat.passing.length }}</Badge>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <Accordion type="multiple" class="w-full mt-2">
                   <AccordionItem v-for="audit in cat.passing" :key="audit.id" :value="audit.id">
                     <AccordionTrigger class="text-sm py-2">
                       <div class="flex items-center gap-2 text-left">
-                        <Icon name="lucide:check" class="size-3.5 text-green-500 shrink-0" />
+                        <Icon name="lucide:check" class="size-3.5 text-success shrink-0" />
                         <span class="text-muted-foreground">{{ audit.title || audit.id }}</span>
                         <span v-if="audit.displayValue" class="text-muted-foreground/60 text-xs ml-auto mr-4 shrink-0">
                           {{ audit.displayValue }}
