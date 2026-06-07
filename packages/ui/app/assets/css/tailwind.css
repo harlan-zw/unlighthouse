@@ -2,7 +2,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
-@import "@nuxt/ui";
 @import "tw-animate-css";
 @import "shadcn-vue/tailwind.css";
 

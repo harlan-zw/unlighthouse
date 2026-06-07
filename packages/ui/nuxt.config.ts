@@ -1,5 +1,9 @@
 export default defineNuxtConfig({
   ssr: false,
+  // Migration: pull in the canonical unlighthouse design-system layer (its
+  // global.css --ui-* token system, ~50 Ui* primitives, and @nuxt/ui theme
+  // via app.config). shadcn coexists until every surface is ported off it.
+  extends: ['./layers/design-system'],
   modules: ['@pinia/nuxt', '@nuxt/ui', 'shadcn-nuxt', '@nuxtjs/color-mode', '@nuxt/icon'],
   css: ['~/assets/css/tailwind.css'],
   colorMode: {
