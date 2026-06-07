@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   ToggleGroup,
@@ -154,15 +153,15 @@ function scoreColor(score: number | null) {
         </h1>
         <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground">
           <ScanStatusBadge :status="resolvedStatus" />
-          <Badge v-if="hasMultipleDevices" variant="outline" class="text-xs">
+          <UBadge v-if="hasMultipleDevices" color="neutral" variant="outline" size="xs">
             <Icon name="lucide:smartphone" class="size-2.5 mr-0.5" />
             <Icon name="lucide:monitor" class="size-2.5 mr-0.5" />
             both
-          </Badge>
-          <Badge v-else-if="scanMeta?.device" variant="outline" class="text-xs">
+          </UBadge>
+          <UBadge v-else-if="scanMeta?.device" color="neutral" variant="outline" size="xs">
             <Icon :name="scanMeta.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-2.5 mr-0.5" />
             {{ scanMeta.device }}
-          </Badge>
+          </UBadge>
           <span v-if="scanMeta?.startedAt" class="text-xs">{{ new Date(scanMeta.startedAt).toLocaleString() }}</span>
         </div>
       </div>
@@ -188,11 +187,7 @@ function scoreColor(score: number | null) {
             CSV
           </a>
         </Button>
-        <Button v-if="scanIsComplete && !currentScanIsActive" variant="outline" size="sm" :disabled="rescanningAll" @click="handleRescanAll">
-          <Icon v-if="rescanningAll" name="lucide:loader-2" class="size-4 mr-1 animate-spin" />
-          <Icon v-else name="lucide:refresh-cw" class="size-4 mr-1" />
-          Rescan All
-        </Button>
+        <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="i-lucide-refresh-cw" @click="handleRescanAll">Rescan All</UiButton>
       </div>
     </div>
 
