@@ -150,7 +150,7 @@ const groupSuggestions = computed(() => {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">Sites</h1>
+        <h1 class="text-title">Sites</h1>
         <p class="text-sm text-muted-foreground">Manage your monitored websites.</p>
       </div>
       <Dialog v-model:open="formOpen">
@@ -168,7 +168,7 @@ const groupSuggestions = computed(() => {
             <div class="space-y-2">
               <Label>URL</Label>
               <Input v-model="formUrl" placeholder="https://example.com" required class="font-mono" />
-              <p v-if="editing && formUrl !== editing.url" class="text-[11px] text-orange-500">
+              <p v-if="editing && formUrl !== editing.url" class="text-[11px] text-warning">
                 Changing the URL creates a new site — the old one will remain.
               </p>
             </div>
@@ -206,7 +206,7 @@ const groupSuggestions = computed(() => {
 
     <section v-for="bucket in grouped" v-else :key="bucket.name || '__ungrouped'" class="space-y-3">
       <div class="flex items-center gap-2">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 class="eyebrow">
           {{ bucket.name || 'Ungrouped' }}
         </h2>
         <Badge variant="secondary" class="text-[10px] tabular-nums">

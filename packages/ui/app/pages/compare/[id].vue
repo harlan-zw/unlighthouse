@@ -283,9 +283,9 @@ function fmtCwvP75(metric: string, value: number | null): string {
 }
 
 function cwvVerdictColor(verdict: string | null): string {
-  if (verdict === 'good') return 'text-green-500'
-  if (verdict === 'needs-improvement' || verdict === 'needsImprovement') return 'text-orange-500'
-  if (verdict === 'poor') return 'text-red-500'
+  if (verdict === 'good') return 'text-success'
+  if (verdict === 'needs-improvement' || verdict === 'needsImprovement') return 'text-warning'
+  if (verdict === 'poor') return 'text-destructive'
   return 'text-muted-foreground'
 }
 
@@ -345,8 +345,8 @@ function statusBadge(status: string) {
 
 function deltaClass(v: number | null | undefined, isScore: boolean) {
   if (v == null || v === 0) return 'text-muted-foreground'
-  if (isScore) return v > 0 ? 'text-green-500' : 'text-red-500'
-  return v < 0 ? 'text-green-500' : 'text-red-500'
+  if (isScore) return v > 0 ? 'text-success' : 'text-destructive'
+  return v < 0 ? 'text-success' : 'text-destructive'
 }
 
 // Same colour table as deltaClass but mutes deltas below the
@@ -362,8 +362,8 @@ function deltaClassWithThreshold(v: number | null | undefined, isScore: boolean,
   const thr = effectiveThreshold(thresholdKey, isScore)
   if (thr != null && Math.abs(v) <= thr)
     return { klass: 'text-muted-foreground/70', mutedByThreshold: true }
-  if (isScore) return { klass: v > 0 ? 'text-green-500' : 'text-red-500', mutedByThreshold: false }
-  return { klass: v < 0 ? 'text-green-500' : 'text-red-500', mutedByThreshold: false }
+  if (isScore) return { klass: v > 0 ? 'text-success' : 'text-destructive', mutedByThreshold: false }
+  return { klass: v < 0 ? 'text-success' : 'text-destructive', mutedByThreshold: false }
 }
 
 // Mirrors the DEFAULT_THRESHOLDS table in the handler so the UI's
@@ -399,9 +399,9 @@ function effectiveThreshold(key: string, _isScore: boolean): number | null {
 // render muted instead of red/green so users don't chase noise.
 function rowScoreCell(row: any, key: string, thresholdKey: string): { value: string, klass: string, mutedByThreshold: boolean } {
   if (row.status === 'added')
-    return { value: String(fmtScore(row.current?.[key])), klass: 'text-blue-500', mutedByThreshold: false }
+    return { value: String(fmtScore(row.current?.[key])), klass: 'text-info', mutedByThreshold: false }
   if (row.status === 'removed')
-    return { value: String(fmtScore(row.base?.[key])), klass: 'text-orange-500', mutedByThreshold: false }
+    return { value: String(fmtScore(row.base?.[key])), klass: 'text-warning', mutedByThreshold: false }
   const delta = row.deltas?.[key]
   if (delta != null && delta !== 0) {
     const { klass, mutedByThreshold } = deltaClassWithThreshold(delta, true, thresholdKey)
@@ -560,7 +560,7 @@ function gotoOverview(id: string) {
 
         <!-- Base scan -->
         <div class="flex items-center gap-2 min-w-0">
-          <span class="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Base</span>
+          <span class="text-label text-muted-foreground shrink-0">Base</span>
           <Select v-model="baseScanId">
             <SelectTrigger class="h-8 min-w-[220px] max-w-[320px] text-xs">
               <SelectValue placeholder="Pick a previous scan..." />
@@ -595,7 +595,7 @@ function gotoOverview(id: string) {
 
         <!-- Current scan -->
         <div class="flex items-center gap-2 min-w-0">
-          <span class="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Current</span>
+          <span class="text-label text-muted-foreground shrink-0">Current</span>
           <span class="font-mono text-xs">{{ shortId(currentScanId) }}</span>
           <Badge v-if="currentMeta" variant="outline" class="text-[9px]">{{ currentMeta.device }}</Badge>
           <span v-if="currentMeta" class="text-xs text-muted-foreground truncate max-w-[200px]">{{ currentMeta.site }}</span>
@@ -626,7 +626,7 @@ function gotoOverview(id: string) {
 
                 <div class="space-y-3 text-xs">
                   <div>
-                    <div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Category scores (0–1)</div>
+                    <div class="text-label text-muted-foreground mb-1.5">Category scores (0–1)</div>
                     <div class="grid grid-cols-2 gap-2">
                       <label class="space-y-1">
                         <span class="text-muted-foreground">Performance</span>
@@ -648,7 +648,7 @@ function gotoOverview(id: string) {
                   </div>
 
                   <div>
-                    <div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Core Web Vitals</div>
+                    <div class="text-label text-muted-foreground mb-1.5">Core Web Vitals</div>
                     <div class="grid grid-cols-2 gap-2">
                       <label class="space-y-1">
                         <span class="text-muted-foreground flex justify-between">
@@ -755,27 +755,27 @@ function gotoOverview(id: string) {
         <div class="flex items-center gap-5 text-xs">
           <div class="flex items-center gap-1.5">
             <span class="text-muted-foreground">Total</span>
-            <span class="font-bold tabular-nums">{{ report.summary.totalRoutes }}</span>
+            <span class="numerals-display">{{ report.summary.totalRoutes }}</span>
           </div>
           <div class="flex items-center gap-1.5">
             <span class="text-muted-foreground">Regressed</span>
-            <span class="font-bold tabular-nums text-red-500">{{ report.summary.regressedRoutes }}</span>
+            <span class="numerals-display text-destructive">{{ report.summary.regressedRoutes }}</span>
           </div>
           <div class="flex items-center gap-1.5">
             <span class="text-muted-foreground">Improved</span>
-            <span class="font-bold tabular-nums text-green-500">{{ report.summary.improvedRoutes }}</span>
+            <span class="numerals-display text-success">{{ report.summary.improvedRoutes }}</span>
           </div>
           <div v-if="report.summary.addedRoutes" class="flex items-center gap-1.5">
             <span class="text-muted-foreground">Added</span>
-            <span class="font-bold tabular-nums text-blue-500">{{ report.summary.addedRoutes }}</span>
+            <span class="numerals-display text-info">{{ report.summary.addedRoutes }}</span>
           </div>
           <div v-if="report.summary.removedRoutes" class="flex items-center gap-1.5">
             <span class="text-muted-foreground">Removed</span>
-            <span class="font-bold tabular-nums text-orange-500">{{ report.summary.removedRoutes }}</span>
+            <span class="numerals-display text-warning">{{ report.summary.removedRoutes }}</span>
           </div>
           <div class="flex items-center gap-1.5 border-l pl-5">
             <span class="text-muted-foreground">Avg Score Δ</span>
-            <span class="font-bold tabular-nums" :class="(report.summary.avgScoreDelta ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'">
+            <span class="numerals-display" :class="(report.summary.avgScoreDelta ?? 0) >= 0 ? 'text-success' : 'text-destructive'">
               {{ report.summary.avgScoreDelta != null ? (report.summary.avgScoreDelta * 100).toFixed(1) : '—' }}
             </span>
           </div>
@@ -788,7 +788,7 @@ function gotoOverview(id: string) {
             <span class="tabular-nums" :style="cd.base != null ? { color: scoreToRingColor(cd.base) } : {}">{{ fmtScore(cd.base) }}</span>
             <Icon name="lucide:arrow-right" class="size-2.5 text-muted-foreground/40" />
             <span class="tabular-nums" :style="cd.current != null ? { color: scoreToRingColor(cd.current) } : {}">{{ fmtScore(cd.current) }}</span>
-            <span class="font-bold tabular-nums" :class="deltaClass(cd.delta, true)">{{ fmtDelta(cd.delta, true) }}</span>
+            <span class="numerals-display" :class="deltaClass(cd.delta, true)">{{ fmtDelta(cd.delta, true) }}</span>
           </div>
         </div>
       </div>
@@ -798,7 +798,7 @@ function gotoOverview(id: string) {
            (aggregates across routes). Hidden when the pack didn't
            run on either scan. -->
       <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b bg-card/30 flex items-center gap-6 text-xs">
-        <span class="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+        <span class="text-label text-muted-foreground shrink-0">
           Web Vitals p75
         </span>
         <div v-for="row in cwvP75Rows" :key="row.metric" class="flex items-center gap-1.5">
@@ -830,10 +830,10 @@ function gotoOverview(id: string) {
         <ToggleGroup v-model="statusFilter" type="single" size="sm" variant="outline">
           <ToggleGroupItem value="all" class="text-xs h-7">All</ToggleGroupItem>
           <ToggleGroupItem value="changed" class="text-xs h-7">Changed</ToggleGroupItem>
-          <ToggleGroupItem value="regressed" class="text-xs h-7 data-[state=on]:text-red-500">Regressed</ToggleGroupItem>
-          <ToggleGroupItem value="improved" class="text-xs h-7 data-[state=on]:text-green-500">Improved</ToggleGroupItem>
-          <ToggleGroupItem value="added" class="text-xs h-7 data-[state=on]:text-blue-500">Added</ToggleGroupItem>
-          <ToggleGroupItem value="removed" class="text-xs h-7 data-[state=on]:text-orange-500">Removed</ToggleGroupItem>
+          <ToggleGroupItem value="regressed" class="text-xs h-7 data-[state=on]:text-destructive">Regressed</ToggleGroupItem>
+          <ToggleGroupItem value="improved" class="text-xs h-7 data-[state=on]:text-success">Improved</ToggleGroupItem>
+          <ToggleGroupItem value="added" class="text-xs h-7 data-[state=on]:text-info">Added</ToggleGroupItem>
+          <ToggleGroupItem value="removed" class="text-xs h-7 data-[state=on]:text-warning">Removed</ToggleGroupItem>
         </ToggleGroup>
 
         <ToggleGroup v-if="hasMultipleDevices" v-model="deviceFilter" type="single" size="sm" variant="outline">
@@ -895,25 +895,25 @@ function gotoOverview(id: string) {
                 <span class="tabular-nums">
                   {{ pack.baseSummary?.findings ?? '—' }}
                   <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted-foreground/40" />
-                  <span :class="(pack.currentSummary?.findings ?? 0) > (pack.baseSummary?.findings ?? 0) ? 'text-red-500' : (pack.currentSummary?.findings ?? 0) < (pack.baseSummary?.findings ?? 0) ? 'text-green-500' : ''">
+                  <span :class="(pack.currentSummary?.findings ?? 0) > (pack.baseSummary?.findings ?? 0) ? 'text-destructive' : (pack.currentSummary?.findings ?? 0) < (pack.baseSummary?.findings ?? 0) ? 'text-success' : ''">
                     {{ pack.currentSummary?.findings ?? '—' }}
                   </span>
                 </span>
               </div>
               <div v-if="(pack.baseSummary?.critical ?? 0) || (pack.currentSummary?.critical ?? 0)" class="flex justify-between">
                 <span class="text-muted-foreground">Critical</span>
-                <span class="tabular-nums">{{ pack.baseSummary?.critical ?? 0 }} → <span :class="(pack.currentSummary?.critical ?? 0) > (pack.baseSummary?.critical ?? 0) ? 'text-red-500' : 'text-green-500'">{{ pack.currentSummary?.critical ?? 0 }}</span></span>
+                <span class="tabular-nums">{{ pack.baseSummary?.critical ?? 0 }} → <span :class="(pack.currentSummary?.critical ?? 0) > (pack.baseSummary?.critical ?? 0) ? 'text-destructive' : 'text-success'">{{ pack.currentSummary?.critical ?? 0 }}</span></span>
               </div>
               <div v-if="(pack.baseSummary?.serious ?? 0) || (pack.currentSummary?.serious ?? 0)" class="flex justify-between">
                 <span class="text-muted-foreground">Serious</span>
-                <span class="tabular-nums">{{ pack.baseSummary?.serious ?? 0 }} → <span :class="(pack.currentSummary?.serious ?? 0) > (pack.baseSummary?.serious ?? 0) ? 'text-red-500' : 'text-green-500'">{{ pack.currentSummary?.serious ?? 0 }}</span></span>
+                <span class="tabular-nums">{{ pack.baseSummary?.serious ?? 0 }} → <span :class="(pack.currentSummary?.serious ?? 0) > (pack.baseSummary?.serious ?? 0) ? 'text-destructive' : 'text-success'">{{ pack.currentSummary?.serious ?? 0 }}</span></span>
               </div>
               <div v-if="(pack.baseSummary?.totalBytesSavable ?? 0) || (pack.currentSummary?.totalBytesSavable ?? 0)" class="flex justify-between">
                 <span class="text-muted-foreground">Wasted bytes</span>
                 <span class="tabular-nums">
                   {{ Math.round((pack.baseSummary?.totalBytesSavable ?? 0) / 1024) }}KB
                   <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted-foreground/40" />
-                  <span :class="(pack.currentSummary?.totalBytesSavable ?? 0) > (pack.baseSummary?.totalBytesSavable ?? 0) ? 'text-red-500' : 'text-green-500'">
+                  <span :class="(pack.currentSummary?.totalBytesSavable ?? 0) > (pack.baseSummary?.totalBytesSavable ?? 0) ? 'text-destructive' : 'text-success'">
                     {{ Math.round((pack.currentSummary?.totalBytesSavable ?? 0) / 1024) }}KB
                   </span>
                 </span>
@@ -975,7 +975,7 @@ function gotoOverview(id: string) {
             <!-- Categories: the headline. Aggregate of dozens of audits,
                  noise-resistant. -->
             <section>
-              <h4 class="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Categories</h4>
+              <h4 class="text-label text-muted-foreground mb-2">Categories</h4>
               <div class="rounded-lg border overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -1006,7 +1006,7 @@ function gotoOverview(id: string) {
 
             <!-- Core Web Vitals — Google's stable real-user metrics. -->
             <section>
-              <h4 class="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+              <h4 class="text-label text-muted-foreground mb-2 flex items-center gap-1.5">
                 Core Web Vitals
                 <Icon name="lucide:info" class="size-2.5 opacity-60" :title="'Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability.'" />
               </h4>
@@ -1033,7 +1033,7 @@ function gotoOverview(id: string) {
             <!-- Diagnostics: FCP/TBT/TTFB/SI — triage signals, not headlines. Collapsed. -->
             <section>
               <button
-                class="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 mb-2"
+                class="text-label text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 mb-2"
                 @click="showLegacyMetrics = !showLegacyMetrics"
               >
                 <Icon name="lucide:chevron-right" class="size-3 transition-transform" :class="{ 'rotate-90': showLegacyMetrics }" />
