@@ -276,7 +276,7 @@ function openScan(s: ScanRow) {
         <Card>
           <CardContent class="pt-4 pb-3">
             <div class="text-label text-muted-foreground">Avg score</div>
-            <div class="numerals-display text-2xl mt-1" :style="{ color: score100Color(kpis.avg) }">{{ kpis.avg ?? '—' }}</div>
+            <div class="numerals-display text-2xl mt-1" :class="scoreToColor(kpis.avg != null ? kpis.avg / 100 : null)">{{ kpis.avg ?? '—' }}</div>
           </CardContent>
         </Card>
         <Card>

@@ -1,16 +1,16 @@
 export function useScoreColor() {
   function scoreToColor(score: number | null): string {
     if (score === null) return 'text-muted-foreground'
-    if (score >= 0.9) return 'text-green-500'
-    if (score >= 0.5) return 'text-orange-500'
-    return 'text-red-500'
+    if (score >= 0.9) return 'text-success'
+    if (score >= 0.5) return 'text-warning'
+    return 'text-destructive'
   }
 
   function scoreToBg(score: number | null): string {
     if (score === null) return 'bg-muted'
-    if (score >= 0.9) return 'bg-green-500/10'
-    if (score >= 0.5) return 'bg-orange-500/10'
-    return 'bg-red-500/10'
+    if (score >= 0.9) return 'bg-success/10'
+    if (score >= 0.5) return 'bg-warning/10'
+    return 'bg-destructive/10'
   }
 
   function scoreToRingColor(score: number | null): string {
