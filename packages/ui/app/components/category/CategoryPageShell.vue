@@ -40,14 +40,11 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center gap-3">
-      <h1 class="text-xl font-bold tracking-tight">
-        {{ title }}
-      </h1>
-      <span v-if="pack" class="text-label text-muted-foreground rounded-md border px-1.5 py-0.5 font-mono">
-        {{ pack }}
-      </span>
-    </div>
+    <PageHeader :title="title" flush>
+      <template v-if="pack" #actions>
+        <UBadge color="neutral" variant="outline" size="xs" class="font-mono">{{ pack }}</UBadge>
+      </template>
+    </PageHeader>
 
     <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">
       {{ loadingMessage }}
