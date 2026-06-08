@@ -1,35 +1,6 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/components/ui/resizable'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from '@/components/ui/toggle-group'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
 import { toast } from 'vue-sonner'
 
 definePageMeta({ layout: 'compare' })
@@ -311,9 +282,9 @@ function swapDirection() {
 }
 
 let filterTimeout: ReturnType<typeof setTimeout>
-function onFilterInput(e: Event) {
+function onFilterInput(val: string) {
   clearTimeout(filterTimeout)
-  urlFilter.value = (e.target as HTMLInputElement).value
+  urlFilter.value = val
   filterTimeout = setTimeout(() => { page.value = 1; fetchPage() }, 300)
 }
 
@@ -341,6 +312,18 @@ function statusBadge(status: string) {
   if (status === 'added') return 'secondary'
   if (status === 'removed') return 'outline'
   return 'outline'
+}
+
+// Map the legacy shadcn badge "tone" vocabulary (destructive/default/
+// secondary/outline) onto @nuxt/ui's color+variant pair, so statusBadge()
+// and verdict.tone keep working through one translation point.
+function badgeProps(tone: string): { color: any, variant: any } {
+  switch (tone) {
+    case 'destructive': return { color: 'error', variant: 'soft' }
+    case 'default': return { color: 'primary', variant: 'soft' }
+    case 'secondary': return { color: 'neutral', variant: 'soft' }
+    default: return { color: 'neutral', variant: 'outline' }
+  }
 }
 
 function deltaClass(v: number | null | undefined, isScore: boolean) {
@@ -419,6 +402,7 @@ const totalPages = computed(() => {
 // columns disable client sorting. Sticky headers + alignment ride on
 // `meta`; score cells reuse rowScoreCell() for threshold-aware colour.
 const IconCmp = resolveComponent('Icon')
+const UBadgeCmp = resolveComponent('UBadge')
 const STICKY_HEAD = 'sticky top-0 z-10 bg-background'
 const SHORT_LABEL: Record<string, string> = {
   scorePerformance: 'Perf',
@@ -443,7 +427,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       header: 'Status',
       enableSorting: false,
       meta: { headClass: `${STICKY_HEAD} w-20` },
-      cell: ({ row }) => h(Badge, { variant: statusBadge(row.original.status), class: 'text-[9px] capitalize' }, () => row.original.status),
+      cell: ({ row }) => h(UBadgeCmp, { ...badgeProps(statusBadge(row.original.status)), size: 'xs', class: 'text-[9px] capitalize' }, () => row.original.status),
     },
   ]
   if (hasMultipleDevices.value) {
@@ -561,57 +545,45 @@ function gotoOverview(id: string) {
         <!-- Base scan -->
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-label text-muted-foreground shrink-0">Base</span>
-          <Select v-model="baseScanId">
-            <SelectTrigger class="h-8 min-w-[220px] max-w-[320px] text-xs">
-              <SelectValue placeholder="Pick a previous scan..." />
-            </SelectTrigger>
-            <SelectContent>
-              <div v-if="!otherScans.length" class="px-2 py-3 text-center text-xs text-muted-foreground">
-                No other scans of this site yet.
+          <USelect
+            v-model="baseScanId"
+            :items="otherScans.map(s => ({ value: s.scanId, label: `${shortId(s.scanId)} · ${s.device}`, scan: s }))"
+            placeholder="Pick a previous scan..."
+            size="sm"
+            class="min-w-[220px] max-w-[320px]"
+          >
+            <template #item="{ item }">
+              <div class="flex items-center gap-2 text-xs">
+                <span class="font-mono">{{ shortId(item.scan.scanId) }}</span>
+                <UBadge color="neutral" variant="outline" size="xs" class="text-[9px]">{{ item.scan.device }}</UBadge>
+                <span class="text-muted-foreground">{{ fmtDate(item.scan.completedAt || item.scan.startedAt) }}</span>
+                <span v-if="item.scan.ciCommit" class="font-mono text-[10px] text-muted-foreground">{{ item.scan.ciCommit.slice(0, 7) }}</span>
               </div>
-              <SelectItem v-for="scan in otherScans" :key="scan.scanId" :value="scan.scanId">
-                <div class="flex items-center gap-2 text-xs">
-                  <span class="font-mono">{{ shortId(scan.scanId) }}</span>
-                  <Badge variant="outline" class="text-[9px]">{{ scan.device }}</Badge>
-                  <span class="text-muted-foreground">{{ fmtDate(scan.completedAt || scan.startedAt) }}</span>
-                  <span v-if="scan.ciCommit" class="font-mono text-[10px] text-muted-foreground">{{ scan.ciCommit.slice(0, 7) }}</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            </template>
+          </USelect>
         </div>
 
         <!-- Swap -->
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <Button variant="ghost" size="sm" class="size-8 p-0" :disabled="!baseScanId" @click="swapDirection">
-                <Icon name="lucide:arrow-left-right" class="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Swap base ↔ current</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <UTooltip text="Swap base ↔ current">
+          <UiButton purpose="quiet" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" icon="i-lucide-arrow-left-right" @click="swapDirection" />
+        </UTooltip>
 
         <!-- Current scan -->
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-label text-muted-foreground shrink-0">Current</span>
           <span class="font-mono text-xs">{{ shortId(currentScanId) }}</span>
-          <Badge v-if="currentMeta" variant="outline" class="text-[9px]">{{ currentMeta.device }}</Badge>
+          <UBadge v-if="currentMeta" color="neutral" variant="outline" size="xs" class="text-[9px]">{{ currentMeta.device }}</UBadge>
           <span v-if="currentMeta" class="text-xs text-muted-foreground truncate max-w-[200px]">{{ currentMeta.site }}</span>
         </div>
 
         <div class="ml-auto flex items-center gap-1.5">
           <!-- Thresholds popover -->
-          <Popover>
-            <PopoverTrigger as-child>
-              <Button variant="outline" size="sm" class="h-8">
-                <Icon name="lucide:sliders-horizontal" class="size-3.5 mr-1.5" />
-                Thresholds
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent class="w-96">
-              <div class="space-y-3">
+          <UPopover>
+            <UiButton purpose="secondary" size="sm" icon="i-lucide-sliders-horizontal">
+              Thresholds
+            </UiButton>
+            <template #content>
+              <div class="w-96 p-4 space-y-3">
                 <div>
                   <h4 class="text-sm font-semibold">Regression thresholds</h4>
                   <p class="text-xs text-muted-foreground">Empty = CI defaults. Deltas within threshold render muted (treated as noise).</p>
@@ -630,19 +602,19 @@ function gotoOverview(id: string) {
                     <div class="grid grid-cols-2 gap-2">
                       <label class="space-y-1">
                         <span class="text-muted-foreground">Performance</span>
-                        <Input v-model="thresholds.performance" placeholder="0.05" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.performance" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted-foreground">Accessibility</span>
-                        <Input v-model="thresholds.accessibility" placeholder="0.05" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.accessibility" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted-foreground">SEO</span>
-                        <Input v-model="thresholds.seo" placeholder="0.05" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.seo" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted-foreground">Best Practices</span>
-                        <Input v-model="thresholds['best-practices']" placeholder="0.05" class="h-7 text-xs" />
+                        <UInput v-model="thresholds['best-practices']" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                     </div>
                   </div>
@@ -655,44 +627,40 @@ function gotoOverview(id: string) {
                           LCP (ms)
                           <span class="text-[9px] italic text-muted-foreground/70" title="Typical jitter on parallel single-run audits">≈ 300ms noise</span>
                         </span>
-                        <Input v-model="thresholds.lcp" placeholder="500" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.lcp" placeholder="500" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted-foreground flex justify-between">
                           CLS
                           <span class="text-[9px] italic text-muted-foreground/70">≈ 0.02 noise</span>
                         </span>
-                        <Input v-model="thresholds.cls" placeholder="0.1" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.cls" placeholder="0.1" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted-foreground flex justify-between">
                           INP (ms)
                           <span class="text-[9px] italic text-muted-foreground/70">≈ 100ms noise</span>
                         </span>
-                        <Input v-model="thresholds.inp" placeholder="200" class="h-7 text-xs" />
+                        <UInput v-model="thresholds.inp" placeholder="200" size="xs" class="w-full" />
                       </label>
                     </div>
                   </div>
                 </div>
 
-                <Button size="sm" class="w-full" @click="handleCompare">
+                <UiButton purpose="cta" size="sm" class="w-full justify-center" @click="handleCompare">
                   Apply
-                </Button>
+                </UiButton>
               </div>
-            </PopoverContent>
-          </Popover>
+            </template>
+          </UPopover>
 
-          <Button variant="outline" size="sm" class="h-8" :disabled="copyingMarkdown || !baseScanId || !report" @click="copyAsMarkdown">
-            <Icon v-if="copyingMarkdown" name="lucide:loader-2" class="size-3.5 mr-1.5 animate-spin" />
-            <Icon v-else name="lucide:clipboard-copy" class="size-3.5 mr-1.5" />
+          <UiButton purpose="secondary" size="sm" :loading="copyingMarkdown" :disabled="copyingMarkdown || !baseScanId || !report" icon="i-lucide-clipboard-copy" @click="copyAsMarkdown">
             Copy MD
-          </Button>
+          </UiButton>
 
-          <Button size="sm" class="h-8" :disabled="!baseScanId || comparing" @click="handleCompare">
-            <Icon v-if="comparing" name="lucide:loader-2" class="size-3.5 mr-1.5 animate-spin" />
-            <Icon v-else name="lucide:refresh-cw" class="size-3.5 mr-1.5" />
+          <UiButton purpose="cta" size="sm" :loading="comparing" :disabled="!baseScanId || comparing" icon="i-lucide-refresh-cw" @click="handleCompare">
             Compare
-          </Button>
+          </UiButton>
         </div>
       </div>
 
@@ -716,8 +684,8 @@ function gotoOverview(id: string) {
 
     <!-- Empty state — no base picked yet -->
     <div v-if="!baseScanId" class="flex-1 flex items-center justify-center p-8">
-      <Card class="max-w-md">
-        <CardContent class="pt-6 text-center space-y-3">
+      <UiCard class="max-w-md">
+        <div class="text-center space-y-3">
           <Icon name="lucide:git-compare-arrows" class="size-12 text-muted-foreground/40 mx-auto" />
           <h3 class="font-semibold">Pick a scan to compare against</h3>
           <p class="text-sm text-muted-foreground">
@@ -726,18 +694,18 @@ function gotoOverview(id: string) {
           <p v-if="!otherScans.length" class="text-xs text-muted-foreground/70">
             No other scans of this site exist yet — run another scan first.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </UiCard>
     </div>
 
     <!-- No report yet but base picked: instructive empty state -->
     <div v-else-if="!report && !comparing" class="flex-1 flex items-center justify-center p-8">
-      <Card class="max-w-md">
-        <CardContent class="pt-6 text-center space-y-3">
+      <UiCard class="max-w-md">
+        <div class="text-center space-y-3">
           <Icon name="lucide:play" class="size-10 text-muted-foreground/40 mx-auto" />
           <p class="text-sm text-muted-foreground">Press <strong>Compare</strong> to run the diff.</p>
-        </CardContent>
-      </Card>
+        </div>
+      </UiCard>
     </div>
 
     <!-- Loading -->
@@ -749,9 +717,9 @@ function gotoOverview(id: string) {
     <template v-else-if="report">
       <!-- Summary band -->
       <div class="px-4 py-3 border-b flex items-center gap-6 flex-wrap">
-        <Badge v-if="verdict" :variant="verdict.tone as any" class="text-sm px-3 py-1">
+        <UBadge v-if="verdict" v-bind="badgeProps(verdict.tone)" class="text-sm px-3 py-1">
           {{ verdict.text }}
-        </Badge>
+        </UBadge>
         <div class="flex items-center gap-5 text-xs">
           <div class="flex items-center gap-1.5">
             <span class="text-muted-foreground">Total</span>
@@ -824,38 +792,36 @@ function gotoOverview(id: string) {
       <div class="px-4 py-2 border-b flex items-center gap-3 flex-wrap">
         <div class="relative w-64">
           <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-          <Input placeholder="Filter by URL or path..." class="pl-8 h-8 text-xs" :model-value="urlFilter" @input="onFilterInput" />
+          <UInput placeholder="Filter by URL or path..." size="sm" class="w-full" :model-value="urlFilter" @update:model-value="onFilterInput" :ui="{ base: 'pl-8' }" />
         </div>
 
-        <ToggleGroup v-model="statusFilter" type="single" size="sm" variant="outline">
-          <ToggleGroupItem value="all" class="text-xs h-7">All</ToggleGroupItem>
-          <ToggleGroupItem value="changed" class="text-xs h-7">Changed</ToggleGroupItem>
-          <ToggleGroupItem value="regressed" class="text-xs h-7 data-[state=on]:text-destructive">Regressed</ToggleGroupItem>
-          <ToggleGroupItem value="improved" class="text-xs h-7 data-[state=on]:text-success">Improved</ToggleGroupItem>
-          <ToggleGroupItem value="added" class="text-xs h-7 data-[state=on]:text-info">Added</ToggleGroupItem>
-          <ToggleGroupItem value="removed" class="text-xs h-7 data-[state=on]:text-warning">Removed</ToggleGroupItem>
-        </ToggleGroup>
+        <UTabs
+          v-model="statusFilter"
+          :content="false"
+          size="sm"
+          :items="[
+            { value: 'all', label: 'All' },
+            { value: 'changed', label: 'Changed' },
+            { value: 'regressed', label: 'Regressed' },
+            { value: 'improved', label: 'Improved' },
+            { value: 'added', label: 'Added' },
+            { value: 'removed', label: 'Removed' },
+          ]"
+        />
 
-        <ToggleGroup v-if="hasMultipleDevices" v-model="deviceFilter" type="single" size="sm" variant="outline">
-          <ToggleGroupItem value="" class="text-xs h-7">All</ToggleGroupItem>
-          <ToggleGroupItem value="mobile" class="text-xs h-7">
-            <Icon name="lucide:smartphone" class="size-3 mr-1" />Mobile
-          </ToggleGroupItem>
-          <ToggleGroupItem value="desktop" class="text-xs h-7">
-            <Icon name="lucide:monitor" class="size-3 mr-1" />Desktop
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <UTabs
+          v-if="hasMultipleDevices"
+          v-model="deviceFilter"
+          :content="false"
+          size="sm"
+          :items="[
+            { value: '', label: 'All' },
+            { value: 'mobile', label: 'Mobile', icon: 'i-lucide-smartphone' },
+            { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+          ]"
+        />
 
-        <Select v-model="sortKey">
-          <SelectTrigger class="w-44 h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="opt in sortOptions" :key="opt.value" :value="opt.value" class="text-xs">
-              {{ opt.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <USelect v-model="sortKey" :items="sortOptions" size="sm" class="w-44" />
 
         <span class="ml-auto text-xs text-muted-foreground tabular-nums">
           {{ report.routes.total }} route{{ report.routes.total === 1 ? '' : 's' }}
@@ -924,8 +890,8 @@ function gotoOverview(id: string) {
       </div>
 
       <!-- Main split: table left, detail right -->
-      <ResizablePanelGroup direction="horizontal" class="flex-1 min-h-0">
-        <ResizablePanel :default-size="62" :min-size="35">
+      <SplitterGroup direction="horizontal" class="flex-1 min-h-0">
+        <SplitterPanel :default-size="62" :min-size="35">
           <div class="h-full overflow-auto">
             <DataTable
               :columns="compareColumns"
@@ -942,26 +908,22 @@ function gotoOverview(id: string) {
             <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-background">
               <span class="text-xs text-muted-foreground">Page {{ page }} of {{ totalPages }}</span>
               <div class="flex gap-1">
-                <Button variant="outline" size="sm" :disabled="page <= 1" @click="page--">
-                  <Icon name="lucide:chevron-left" class="size-3.5" />
-                </Button>
-                <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="page++">
-                  <Icon name="lucide:chevron-right" class="size-3.5" />
-                </Button>
+                <UiButton purpose="secondary" size="sm" :disabled="page <= 1" icon="i-lucide-chevron-left" @click="page--" />
+                <UiButton purpose="secondary" size="sm" :disabled="page >= totalPages" icon="i-lucide-chevron-right" @click="page++" />
               </div>
             </div>
           </div>
-        </ResizablePanel>
+        </SplitterPanel>
 
-        <ResizableHandle with-handle />
+        <SplitterResizeHandle class="w-1.5 bg-border/40 hover:bg-primary/50 transition-colors data-[state=drag]:bg-primary/60" />
 
-        <ResizablePanel :default-size="38" :min-size="25">
+        <SplitterPanel :default-size="38" :min-size="25">
           <div v-if="selectedRow" class="h-full overflow-auto p-4 space-y-4">
             <div>
               <div class="font-mono text-sm font-medium break-all">{{ selectedRow.url }}</div>
               <div class="flex items-center gap-2 mt-1">
-                <Badge variant="outline" class="text-[10px]">{{ selectedRow.device }}</Badge>
-                <Badge :variant="statusBadge(selectedRow.status)" class="text-[10px] capitalize">{{ selectedRow.status }}</Badge>
+                <UBadge color="neutral" variant="outline" size="xs" class="text-[10px]">{{ selectedRow.device }}</UBadge>
+                <UBadge v-bind="badgeProps(statusBadge(selectedRow.status))" size="xs" class="text-[10px] capitalize">{{ selectedRow.status }}</UBadge>
                 <NuxtLink
                   :to="`/scan/${currentScanId}/route/${encodeURIComponent(selectedRow.path)}`"
                   class="text-[10px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
@@ -977,30 +939,30 @@ function gotoOverview(id: string) {
             <section>
               <h4 class="text-label text-muted-foreground mb-2">Categories</h4>
               <div class="rounded-lg border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Metric</TableHead>
-                      <TableHead class="w-20 text-right">Base</TableHead>
-                      <TableHead class="w-20 text-right">Current</TableHead>
-                      <TableHead class="w-20 text-right">Delta</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow v-for="m in CATEGORY_METRICS" :key="m.key">
-                      <TableCell class="text-sm font-medium">{{ m.label }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell
-                        class="text-right tabular-nums text-sm font-medium"
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-default last:border-0">
+                      <th class="text-label text-dimmed px-3 py-2 text-left font-normal">Metric</th>
+                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">Base</th>
+                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">Current</th>
+                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">Delta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="m in CATEGORY_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                      <td class="px-3 py-2 text-sm font-medium">{{ m.label }}</td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</td>
+                      <td
+                        class="px-3 py-2 text-right tabular-nums text-sm font-medium"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                         :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                       >
                         {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
 
@@ -1011,22 +973,22 @@ function gotoOverview(id: string) {
                 <Icon name="lucide:info" class="size-2.5 opacity-60" :title="'Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability.'" />
               </h4>
               <div class="rounded-lg border overflow-hidden">
-                <Table>
-                  <TableBody>
-                    <TableRow v-for="m in CWV_METRICS" :key="m.key">
-                      <TableCell class="text-sm font-medium" :title="m.hint">{{ m.label }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell
-                        class="text-right tabular-nums text-sm font-medium w-20"
+                <table class="w-full text-sm">
+                  <tbody>
+                    <tr v-for="m in CWV_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                      <td class="px-3 py-2 text-sm font-medium" :title="m.hint">{{ m.label }}</td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</td>
+                      <td
+                        class="px-3 py-2 text-right tabular-nums text-sm font-medium w-20"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                         :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                       >
                         {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
 
@@ -1040,22 +1002,22 @@ function gotoOverview(id: string) {
                 Diagnostics ({{ DIAGNOSTIC_METRICS.length }})
               </button>
               <div v-if="showLegacyMetrics" class="rounded-lg border overflow-hidden">
-                <Table>
-                  <TableBody>
-                    <TableRow v-for="m in DIAGNOSTIC_METRICS" :key="m.key">
-                      <TableCell class="text-sm font-medium text-muted-foreground" :title="m.hint">{{ m.label }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell class="text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</TableCell>
-                      <TableCell
-                        class="text-right tabular-nums text-sm font-medium w-20"
+                <table class="w-full text-sm">
+                  <tbody>
+                    <tr v-for="m in DIAGNOSTIC_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                      <td class="px-3 py-2 text-sm font-medium text-muted-foreground" :title="m.hint">{{ m.label }}</td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</td>
+                      <td
+                        class="px-3 py-2 text-right tabular-nums text-sm font-medium w-20"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                         :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                       >
                         {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>
@@ -1066,8 +1028,8 @@ function gotoOverview(id: string) {
               <p>Select a route to see the full metric breakdown.</p>
             </div>
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </SplitterPanel>
+      </SplitterGroup>
     </template>
   </div>
 </template>

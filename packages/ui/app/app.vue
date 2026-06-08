@@ -5,8 +5,10 @@ const colorMode = useColorMode()
 </script>
 
 <template>
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
-  <Toaster position="bottom-right" rich-colors :theme="colorMode.value === 'dark' ? 'dark' : 'light'" />
+  <UApp>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+    <Toaster position="bottom-right" rich-colors :theme="colorMode.value === 'dark' ? 'dark' : 'light'" />
+  </UApp>
 </template>
