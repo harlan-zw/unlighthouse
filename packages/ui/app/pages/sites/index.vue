@@ -1,27 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { toast } from 'vue-sonner'
 
 definePageMeta({ layout: 'root' })
@@ -149,48 +126,33 @@ const groupSuggestions = computed(() => {
   <div class="space-y-6">
     <PageHeader title="Sites" description="Manage your monitored websites." flush>
       <template #actions>
-        <Dialog v-model:open="formOpen">
-        <DialogTrigger as-child>
-          <Button @click="openAdd">
-            <Icon name="lucide:plus" class="size-4 mr-2" />
-            Add Site
-          </Button>
-        </DialogTrigger>
-        <DialogContent class="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{{ editing ? 'Edit Site' : 'Add Site' }}</DialogTitle>
-          </DialogHeader>
-          <form class="space-y-4" @submit.prevent="saveSite">
-            <div class="space-y-2">
-              <Label>URL</Label>
-              <Input v-model="formUrl" placeholder="https://example.com" required class="font-mono" />
+        <UModal v-model:open="formOpen" :title="editing ? 'Edit Site' : 'Add Site'" :ui="{ content: 'sm:max-w-md' }">
+          <UButton color="primary" variant="solid" icon="i-lucide-plus" label="Add Site" @click="openAdd" />
+          <template #body>
+            <form id="site-form" class="space-y-4" @submit.prevent="saveSite">
+              <UFormField label="URL">
+                <UInput v-model="formUrl" placeholder="https://example.com" required class="w-full font-mono" />
+              </UFormField>
               <p v-if="editing && formUrl !== editing.url" class="text-[11px] text-warning">
                 Changing the URL creates a new site — the old one will remain.
               </p>
-            </div>
-            <div class="space-y-2">
-              <Label>Display name <span class="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input v-model="formName" :placeholder="editing?.name || 'example.com'" />
-            </div>
-            <div class="space-y-2">
-              <Label>Group <span class="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input
-                v-model="formGroup"
-                list="site-group-suggestions"
-                placeholder="e.g. Production, Staging"
-              />
-              <datalist id="site-group-suggestions">
-                <option v-for="g in groupSuggestions" :key="g" :value="g" />
-              </datalist>
-            </div>
-            <DialogFooter>
-              <UiButton purpose="cta" type="submit" :loading="saving" :disabled="saving || !formUrl.trim()">
-                {{ editing ? 'Save' : 'Add' }}
-              </UiButton>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-        </Dialog>
+              <UFormField label="Display name" hint="optional">
+                <UInput v-model="formName" :placeholder="editing?.name || 'example.com'" class="w-full" />
+              </UFormField>
+              <UFormField label="Group" hint="optional">
+                <UInput v-model="formGroup" list="site-group-suggestions" placeholder="e.g. Production, Staging" class="w-full" />
+                <datalist id="site-group-suggestions">
+                  <option v-for="g in groupSuggestions" :key="g" :value="g" />
+                </datalist>
+              </UFormField>
+            </form>
+          </template>
+          <template #footer>
+            <UiButton purpose="cta" type="submit" form="site-form" :loading="saving" :disabled="saving || !formUrl.trim()">
+              {{ editing ? 'Save' : 'Add' }}
+            </UiButton>
+          </template>
+        </UModal>
       </template>
     </PageHeader>
 
@@ -208,8 +170,7 @@ const groupSuggestions = computed(() => {
         <UBadge color="neutral" variant="soft" size="xs" class="tabular-nums">{{ bucket.items.length }}</UBadge>
       </div>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card v-for="site in bucket.items" :key="site.id">
-          <CardContent class="pt-5 pb-4">
+        <UiCard v-for="site in bucket.items" :key="site.id" size="sm">
             <div class="flex items-start justify-between mb-3">
               <NuxtLink :to="`/sites/${siteSlug(site.url)}`" class="min-w-0 flex-1 group">
                 <div class="font-medium text-sm truncate group-hover:text-primary transition-colors">{{ site.name }}</div>
@@ -223,28 +184,18 @@ const groupSuggestions = computed(() => {
             <div class="flex items-center gap-2">
               <UiButton purpose="secondary" size="sm" class="flex-1" icon="i-lucide-radar" @click="scanSite(site.url)">Scan</UiButton>
               <UiButton purpose="quiet" size="sm" icon="i-lucide-pencil" @click="openEdit(site)" />
-              <AlertDialog>
-                <AlertDialogTrigger as-child>
-                  <Button size="sm" variant="ghost" class="text-muted-foreground hover:text-destructive">
-                    <Icon name="lucide:trash-2" class="size-3.5" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove site?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This removes {{ site.name }} from the registry. Scan history will be preserved.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="deleteSite(site.id)">Remove</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <UModal
+                title="Remove site?"
+                :description="`This removes ${site.name} from the registry. Scan history will be preserved.`"
+              >
+                <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-trash-2" />
+                <template #footer="{ close }">
+                  <UiButton purpose="quiet" @click="close">Cancel</UiButton>
+                  <UiButton purpose="danger" @click="() => { deleteSite(site.id); close() }">Remove</UiButton>
+                </template>
+              </UModal>
             </div>
-          </CardContent>
-        </Card>
+        </UiCard>
       </div>
     </section>
   </div>
