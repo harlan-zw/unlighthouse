@@ -1,10 +1,4 @@
 <script setup lang="ts">
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 
 definePageMeta({ layout: 'scan' })
 
@@ -38,6 +32,10 @@ function severityColor(severity: string) {
   if (severity === 'warn') return 'text-warning'
   return 'text-destructive'
 }
+
+const findingItems = computed(() =>
+  ((report.value as any)?.findings ?? []).map((f: any) => ({ ...f, value: f.auditId })),
+)
 </script>
 
 <template>
@@ -121,35 +119,33 @@ function severityColor(severity: string) {
           </UBadge>
         </h3>
       </template>
-        <Accordion type="multiple" class="w-full">
-          <AccordionItem v-for="finding in report.findings" :key="finding.auditId" :value="finding.auditId">
-            <AccordionTrigger class="text-sm">
-              <div class="flex items-center gap-3 text-left flex-1 min-w-0">
-                <Icon :name="severityIcon(finding.severity)" :class="severityColor(finding.severity)" class="size-4 shrink-0" />
-                <span class="truncate">{{ finding.title || finding.auditId }}</span>
-                <UBadge :color="severityVariant(finding.severity)" variant="soft" class="text-[10px] shrink-0">
-                  {{ finding.passingRouteCount }}/{{ finding.routeCount }} pass
-                </UBadge>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div v-if="finding.failingRoutes?.length" class="text-xs text-muted-foreground">
-                Failing routes:
-                <ul class="mt-1 space-y-0.5 font-mono">
-                  <li v-for="r in finding.failingRoutes.slice(0, 10)" :key="r">
-                    {{ r }}
-                  </li>
-                  <li v-if="finding.failingRoutes.length > 10">
-                    +{{ finding.failingRoutes.length - 10 }} more
-                  </li>
-                </ul>
-              </div>
-              <div v-else class="text-xs text-success">
-                All routes passing.
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <UAccordion :items="findingItems" type="multiple" class="w-full">
+          <template #default="{ item: finding }">
+            <div class="flex items-center gap-3 text-left flex-1 min-w-0 text-sm">
+              <Icon :name="severityIcon(finding.severity)" :class="severityColor(finding.severity)" class="size-4 shrink-0" />
+              <span class="truncate">{{ finding.title || finding.auditId }}</span>
+              <UBadge :color="severityVariant(finding.severity)" variant="soft" class="text-[10px] shrink-0">
+                {{ finding.passingRouteCount }}/{{ finding.routeCount }} pass
+              </UBadge>
+            </div>
+          </template>
+          <template #content="{ item: finding }">
+            <div v-if="finding.failingRoutes?.length" class="text-xs text-muted-foreground pb-2">
+              Failing routes:
+              <ul class="mt-1 space-y-0.5 font-mono">
+                <li v-for="r in finding.failingRoutes.slice(0, 10)" :key="r">
+                  {{ r }}
+                </li>
+                <li v-if="finding.failingRoutes.length > 10">
+                  +{{ finding.failingRoutes.length - 10 }} more
+                </li>
+              </ul>
+            </div>
+            <div v-else class="text-xs text-success pb-2">
+              All routes passing.
+            </div>
+          </template>
+        </UAccordion>
     </UiCard>
 
     <div v-if="!report.findings?.length" class="text-center py-12 text-muted-foreground">
