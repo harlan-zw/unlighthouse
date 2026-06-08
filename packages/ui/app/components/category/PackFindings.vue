@@ -5,9 +5,6 @@
 // affected-routes list. Five pages were rendering the same block
 // with slight copy variation; co-locate it here.
 
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
 // Index signature so pack-specific fields (a11y's `fixHint` +
 // `elements`, images' `imageUrl`, etc.) flow through the slot without
@@ -37,63 +34,64 @@ const props = withDefaults(defineProps<Props>(), {
   maxRoutesPerFinding: 10,
 })
 
-function severityVariant(severity: string): 'destructive' | 'secondary' | 'outline' {
-  if (severity === 'critical' || severity === 'serious') return 'destructive'
-  if (severity === 'moderate') return 'secondary'
-  return 'outline'
+function severityVariant(severity: string): 'error' | 'warning' | 'neutral' {
+  if (severity === 'critical' || severity === 'serious') return 'error'
+  if (severity === 'moderate') return 'warning'
+  return 'neutral'
 }
+
+// Map findings → UAccordion items (stable value for open-state tracking).
+const accordionItems = computed(() =>
+  props.findings.map(f => ({ ...f, value: f.auditId, label: f.title || f.auditId })),
+)
 </script>
 
 <template>
-  <Card v-if="findings?.length">
-    <CardHeader class="pb-3">
-      <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
+  <UiCard v-if="findings?.length" size="sm">
+    <template #header>
+      <h3 class="text-label text-dimmed flex items-center gap-2">
         {{ title }}
-        <Badge variant="secondary" class="text-xs">
+        <UBadge color="neutral" variant="soft" class="text-xs">
           {{ findings.length }}
-        </Badge>
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <Accordion type="multiple" class="w-full">
-        <AccordionItem v-for="finding in findings" :key="finding.auditId" :value="finding.auditId">
-          <AccordionTrigger class="text-sm">
-            <div class="flex items-center gap-3 text-left flex-1 min-w-0">
-              <Badge :variant="severityVariant(finding.severity)" class="text-[10px] shrink-0 capitalize">
-                {{ finding.severity }}
-              </Badge>
-              <span class="truncate">{{ finding.title || finding.auditId }}</span>
-              <span v-if="finding.routeCount != null" class="text-xs text-muted-foreground shrink-0 ml-auto">
-                {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
-              </span>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div class="text-sm space-y-2">
-              <!-- Slot for the per-pack extra body (image preview, code
-                   snippet, etc.). Receives the finding so the consumer
-                   can decide what to render. -->
-              <slot name="finding-body" :finding="finding">
-                <p v-if="finding.description" class="text-muted-foreground text-xs">
-                  {{ finding.description }}
-                </p>
-              </slot>
+        </UBadge>
+      </h3>
+    </template>
+    <UAccordion :items="accordionItems" type="multiple" class="w-full">
+      <template #default="{ item: finding }">
+        <div class="flex items-center gap-3 text-left flex-1 min-w-0 text-sm">
+          <UBadge :color="severityVariant(finding.severity)" variant="soft" class="text-[10px] shrink-0 capitalize">
+            {{ finding.severity }}
+          </UBadge>
+          <span class="truncate">{{ finding.title || finding.auditId }}</span>
+          <span v-if="finding.routeCount != null" class="text-xs text-muted-foreground shrink-0 ml-auto">
+            {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
+          </span>
+        </div>
+      </template>
+      <template #content="{ item: finding }">
+        <div class="text-sm space-y-2 pb-2">
+          <!-- Slot for the per-pack extra body (image preview, code snippet,
+               etc.). Receives the finding so the consumer can decide what to
+               render. -->
+          <slot name="finding-body" :finding="finding">
+            <p v-if="finding.description" class="text-muted-foreground text-xs">
+              {{ finding.description }}
+            </p>
+          </slot>
 
-              <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
-                Affected routes:
-                <ul class="mt-1 space-y-0.5 font-mono">
-                  <li v-for="r in finding.routes.slice(0, maxRoutesPerFinding)" :key="r">
-                    {{ r }}
-                  </li>
-                  <li v-if="finding.routes.length > maxRoutesPerFinding">
-                    +{{ finding.routes.length - maxRoutesPerFinding }} more
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </CardContent>
-  </Card>
+          <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
+            Affected routes:
+            <ul class="mt-1 space-y-0.5 font-mono">
+              <li v-for="r in finding.routes.slice(0, maxRoutesPerFinding)" :key="r">
+                {{ r }}
+              </li>
+              <li v-if="finding.routes.length > maxRoutesPerFinding">
+                +{{ finding.routes.length - maxRoutesPerFinding }} more
+              </li>
+            </ul>
+          </div>
+        </div>
+      </template>
+    </UAccordion>
+  </UiCard>
 </template>
