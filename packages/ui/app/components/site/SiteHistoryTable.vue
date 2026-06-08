@@ -4,18 +4,6 @@
 
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
 import { h } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 
 import type { DevicePair, ScanRow } from './types'
 
@@ -29,6 +17,8 @@ const emit = defineEmits<{
 }>()
 
 const { scoreToColor } = useScoreColor()
+
+const UBadgeC = resolveComponent('UBadge')
 
 function categoryPct(scan: ScanRow | null, key: string): number | null {
   // The typed contract narrows scoresByCategory to a Partial<Record<Category, number>>;
@@ -116,7 +106,7 @@ const columns: ColumnDef<DevicePair>[] = [
     meta: { align: 'center', headClass: 'w-24' },
     cell: ({ row }) => {
       const s = statusForPair(row.original)
-      return h(Badge, { variant: s.variant, class: 'text-[10px] capitalize' }, () => s.label)
+      return h(UBadgeC, { color: s.color, variant: s.variant, class: 'text-[10px] capitalize' }, () => s.label)
     },
   },
 ]
@@ -124,18 +114,18 @@ const columns: ColumnDef<DevicePair>[] = [
 function primaryScanId(pair: DevicePair): string {
   return pair.mobile?.scanId ?? pair.desktop?.scanId ?? ''
 }
-function statusForPair(pair: DevicePair): { label: string, variant: 'default' | 'secondary' | 'destructive' | 'outline' } {
+function statusForPair(pair: DevicePair): { label: string, color: 'primary' | 'error' | 'neutral', variant: 'solid' | 'soft' | 'outline' } {
   const m = pair.mobile?.status
   const d = pair.desktop?.status
   const anyComplete = (m === 'complete' && (pair.mobile?.summary?.completed ?? 0) > 0)
     || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) > 0)
-  if (anyComplete) return { label: 'complete', variant: 'default' }
+  if (anyComplete) return { label: 'complete', color: 'primary', variant: 'solid' }
   if ((m === 'complete' && (pair.mobile?.summary?.completed ?? 0) === 0)
     || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) === 0))
-    return { label: 'no data', variant: 'outline' }
+    return { label: 'no data', color: 'neutral', variant: 'outline' }
   if (m === 'error' || d === 'error' || m === 'cancelled' || d === 'cancelled')
-    return { label: 'failed', variant: 'destructive' }
-  return { label: m || d || 'pending', variant: 'secondary' }
+    return { label: 'failed', color: 'error', variant: 'soft' }
+  return { label: m || d || 'pending', color: 'neutral', variant: 'soft' }
 }
 </script>
 
@@ -150,36 +140,17 @@ function statusForPair(pair: DevicePair): { label: string, variant: 'default' | 
   >
     <template #actions="{ row }">
       <div class="flex items-center justify-end gap-0.5">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="size-7 p-0 text-muted-foreground hover:text-foreground"
-          title="Rescan"
-          @click="emit('rescan', primaryScanId(row))"
+        <UiButton purpose="quiet" size="sm" icon="i-lucide-refresh-cw" title="Rescan" @click="emit('rescan', primaryScanId(row))" />
+        <UModal
+          title="Delete scan?"
+          description="This will permanently delete this scan and all its data. This cannot be undone."
         >
-          <Icon name="lucide:refresh-cw" class="size-3.5" />
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger as-child>
-            <Button variant="ghost" size="sm" class="size-7 p-0 text-muted-foreground hover:text-destructive">
-              <Icon name="lucide:trash-2" class="size-3.5" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete scan?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete this scan and all its data. This cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction @click="emit('delete', primaryScanId(row))">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-trash-2" />
+          <template #footer="{ close }">
+            <UiButton purpose="quiet" @click="close">Cancel</UiButton>
+            <UiButton purpose="danger" @click="() => { emit('delete', primaryScanId(row)); close() }">Delete</UiButton>
+          </template>
+        </UModal>
       </div>
     </template>
   </DataTable>
