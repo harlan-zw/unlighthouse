@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-
 const props = defineProps<{
   error: {
     statusCode?: number
@@ -45,10 +43,9 @@ const errorMessage = computed(() => {
         {{ error.statusCode }}
       </div>
 
-      <Button size="lg" @click="handleError">
-        <Icon name="lucide:home" class="size-4 mr-2" />
+      <UiButton purpose="cta" size="lg" icon="i-lucide-home" @click="handleError">
         Open dashboard
-      </Button>
+      </UiButton>
 
       <details v-if="error.stack" class="mt-8 text-left">
         <summary class="text-sm text-muted-foreground cursor-pointer hover:text-foreground">

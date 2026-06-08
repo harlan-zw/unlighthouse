@@ -1,22 +1,14 @@
 <script setup lang="ts">
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from '@/components/ui/sidebar'
-
 // The rail has two completely different modes:
 //  - default: brand header, top-level Navigation, the registered Sites list.
 //  - scan: when viewing a scan it transforms into a scan-focused, primary-
 //    tinted rail — a context header (back to the site), the scan menus, and
 //    the full list of scanned routes. The global nav steps aside so the whole
 //    sidebar is about the scan you're in.
+//
+// Rendered as plain content inside SidebarShell's tinted <aside> (and its
+// mobile drawer). Navigation rows use the design-system `UiNavList`
+// primitive; the blue scan-mode wash lives on the <aside> in SidebarShell.
 const route = useRoute()
 const api = useApi()
 
@@ -24,18 +16,11 @@ const siteId = computed(() => route.params.siteId as string | undefined)
 const scanId = computed(() => route.params.scanId as string | undefined)
 const inScan = computed(() => !!scanId.value && !!siteId.value)
 
-interface NavItem {
-  label: string
-  to: string
-  icon: string
-  match: (path: string) => boolean
-}
-
-const nav: NavItem[] = [
-  { label: 'Home', to: '/', icon: 'lucide:layout-dashboard', match: p => p === '/' },
-  { label: 'Sites', to: '/sites', icon: 'lucide:globe', match: p => p === '/sites' },
-  { label: 'History', to: '/history', icon: 'lucide:history', match: p => p.startsWith('/history') },
-  { label: 'New Scan', to: '/scan/new', icon: 'lucide:plus', match: p => p === '/scan/new' },
+const nav = [
+  { label: 'Home', to: '/', icon: 'i-lucide-layout-dashboard', active: (p: string) => p === '/' },
+  { label: 'Sites', to: '/sites', icon: 'i-lucide-globe', active: (p: string) => p === '/sites' },
+  { label: 'History', to: '/history', icon: 'i-lucide-history', active: (p: string) => p.startsWith('/history') },
+  { label: 'New Scan', to: '/scan/new', icon: 'i-lucide-plus', active: (p: string) => p === '/scan/new' },
 ]
 
 // ── Sites list (default mode) ────────────────────────────────────────────────
@@ -44,17 +29,23 @@ const { data: sitesData } = useAsyncData(
   () => api['sites.list']({}).catch(() => ({ sites: [] as Array<{ id: string, name: string, url: string, group: string | null }> })),
 )
 const sites = computed(() => sitesData.value?.sites ?? [])
+const siteLinks = computed(() => sites.value.map(site => ({
+  label: site.name || siteSlug(site.url),
+  to: `/sites/${siteSlug(site.url)}`,
+  icon: 'i-lucide-globe',
+  active: () => siteId.value === siteSlug(site.url),
+})))
 
 // ── Scan context (scan mode) ─────────────────────────────────────────────────
 const SCAN_MENUS = [
-  { key: 'routes', label: 'Routes', icon: 'lucide:list' },
-  { key: 'overview', label: 'Summary', icon: 'lucide:layout-dashboard' },
-  { key: 'performance', label: 'Performance', icon: 'lucide:gauge' },
-  { key: 'seo', label: 'SEO', icon: 'lucide:search' },
-  { key: 'accessibility', label: 'Accessibility', icon: 'lucide:accessibility' },
-  { key: 'best-practices', label: 'Best Practices', icon: 'lucide:shield-check' },
-  { key: 'crux', label: 'CrUX', icon: 'lucide:globe' },
-  { key: 'events', label: 'Events', icon: 'lucide:radio' },
+  { key: 'routes', label: 'Routes', icon: 'i-lucide-list' },
+  { key: 'overview', label: 'Summary', icon: 'i-lucide-layout-dashboard' },
+  { key: 'performance', label: 'Performance', icon: 'i-lucide-gauge' },
+  { key: 'seo', label: 'SEO', icon: 'i-lucide-search' },
+  { key: 'accessibility', label: 'Accessibility', icon: 'i-lucide-accessibility' },
+  { key: 'best-practices', label: 'Best Practices', icon: 'i-lucide-shield-check' },
+  { key: 'crux', label: 'CrUX', icon: 'i-lucide-globe' },
+  { key: 'events', label: 'Events', icon: 'i-lucide-radio' },
 ]
 
 const scanBase = computed(() => `/sites/${siteId.value}/scans/${scanId.value}`)
@@ -66,6 +57,16 @@ const scanSeg = computed(() => {
     return 'routes'
   const seg = route.path.slice(prefix.length).split('/')[0] || 'routes'
   return seg === 'route' ? 'routes' : seg
+})
+
+const scanLinks = computed(() => {
+  if (!inScan.value)
+    return []
+  const base = scanBase.value
+  return [
+    ...SCAN_MENUS.map(m => ({ label: m.label, to: `${base}/${m.key}`, icon: m.icon, active: () => scanSeg.value === m.key })),
+    { label: 'Compare', to: `/compare/${scanId.value}`, icon: 'i-lucide-git-compare', active: () => false },
+  ]
 })
 
 const { data: scanRoutesData } = useAsyncData(
@@ -90,131 +91,53 @@ const uniqueRoutes = computed(() => {
   return out
 })
 const activeRoutePath = computed(() => (route.params.path ? decodeURIComponent(route.params.path as string) : null))
-
-// Primary-tinted palette for scan mode — overrides the sidebar CSS tokens so
-// the whole rail (and its accents) shifts colour. color-mix against
-// --background keeps it correct in both light and dark themes.
-// A cool blue wash (distinct from the near-black primary) so entering a scan
-// is an obvious context shift. color-mix against --background keeps it sane in
-// both themes; the accent tints the active row + hover too.
-const scanTint = '[--sidebar:color-mix(in_srgb,#3b82f6_10%,var(--background))] [--sidebar-border:color-mix(in_srgb,#3b82f6_28%,var(--background))] [--sidebar-accent:color-mix(in_srgb,#3b82f6_22%,var(--background))] [--sidebar-accent-foreground:var(--foreground)]'
+const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
+  label: r.path,
+  to: `${scanBase.value}/route/${encodeURIComponent(r.path)}`,
+  active: () => activeRoutePath.value === r.path,
+})))
 </script>
 
 <template>
-  <Sidebar collapsible="icon" :class="inScan ? scanTint : ''">
-    <SidebarHeader>
-      <SidebarMenu>
-        <!-- Scan mode: context header (back to the site) -->
-        <SidebarMenuItem v-if="inScan">
-          <SidebarMenuButton size="lg" as-child :tooltip="siteId">
-            <NuxtLink :to="`/sites/${siteId}`">
-              <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Icon name="lucide:arrow-left" class="size-4" />
-              </div>
-              <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">{{ siteId }}</span>
-                <span class="truncate text-xs text-muted-foreground font-mono">scan {{ scanId?.slice(0, 8) }}</span>
-              </div>
-            </NuxtLink>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-
-        <!-- Default mode: brand header -->
-        <SidebarMenuItem v-else>
-          <SidebarMenuButton size="lg" as-child tooltip="Unlighthouse">
-            <NuxtLink to="/">
-              <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Icon name="lucide:radar" class="size-4" />
-              </div>
-              <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">Unlighthouse</span>
-                <span class="truncate text-xs text-muted-foreground">Site auditing</span>
-              </div>
-            </NuxtLink>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarHeader>
+  <div class="space-y-5">
+    <!-- Brand / scan-context header -->
+    <NuxtLink
+      :to="inScan ? `/sites/${siteId}` : '/'"
+      class="flex items-center gap-2 px-1 py-1 rounded-md hover:bg-elevated/60 transition-colors"
+    >
+      <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-primary text-inverted shrink-0">
+        <Icon :name="inScan ? 'lucide:arrow-left' : 'lucide:radar'" class="size-4" />
+      </div>
+      <div class="grid flex-1 text-left text-sm leading-tight min-w-0">
+        <span class="truncate font-semibold">{{ inScan ? siteId : 'Unlighthouse' }}</span>
+        <span class="truncate text-xs text-muted" :class="inScan ? 'font-mono' : ''">
+          {{ inScan ? `scan ${scanId?.slice(0, 8)}` : 'Site auditing' }}
+        </span>
+      </div>
+    </NuxtLink>
 
     <!-- ───────── Scan mode ───────── -->
-    <SidebarContent v-if="inScan">
-      <SidebarGroup>
-        <SidebarGroupLabel>Scan</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem v-for="m in SCAN_MENUS" :key="m.key">
-              <SidebarMenuButton as-child :is-active="scanSeg === m.key" :tooltip="m.label">
-                <NuxtLink :to="`${scanBase}/${m.key}`">
-                  <Icon :name="m.icon" />
-                  <span>{{ m.label }}</span>
-                </NuxtLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton as-child tooltip="Compare">
-                <NuxtLink :to="`/compare/${scanId}`">
-                  <Icon name="lucide:git-compare" />
-                  <span>Compare</span>
-                </NuxtLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      <SidebarGroup v-if="uniqueRoutes.length">
-        <SidebarGroupLabel>Routes · {{ uniqueRoutes.length }}</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem v-for="r in uniqueRoutes" :key="r.path">
-              <SidebarMenuButton as-child size="sm" :is-active="activeRoutePath === r.path" :tooltip="r.path">
-                <NuxtLink :to="`${scanBase}/route/${encodeURIComponent(r.path)}`">
-                  <span class="truncate font-mono text-xs">{{ r.path }}</span>
-                </NuxtLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </SidebarContent>
+    <template v-if="inScan">
+      <div>
+        <div class="text-label text-dimmed px-1 mb-1">Scan</div>
+        <UiNavList :links="scanLinks" />
+      </div>
+      <div v-if="routeLinks.length">
+        <div class="text-label text-dimmed px-1 mb-1">Routes · {{ routeLinks.length }}</div>
+        <UiNavList :links="routeLinks" />
+      </div>
+    </template>
 
     <!-- ───────── Default mode ───────── -->
-    <SidebarContent v-else>
-      <SidebarGroup>
-        <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem v-for="item in nav" :key="item.to">
-              <SidebarMenuButton as-child :is-active="item.match(route.path)" :tooltip="item.label">
-                <NuxtLink :to="item.to">
-                  <Icon :name="item.icon" />
-                  <span>{{ item.label }}</span>
-                </NuxtLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      <SidebarGroup v-if="sites.length">
-        <SidebarGroupLabel>Sites</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem v-for="site in sites" :key="site.id">
-              <SidebarMenuButton
-                as-child
-                :is-active="siteId === siteSlug(site.url)"
-                :tooltip="siteSlug(site.url)"
-              >
-                <NuxtLink :to="`/sites/${siteSlug(site.url)}`">
-                  <Icon name="lucide:globe" />
-                  <span>{{ site.name || siteSlug(site.url) }}</span>
-                </NuxtLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </SidebarContent>
-  </Sidebar>
+    <template v-else>
+      <div>
+        <div class="text-label text-dimmed px-1 mb-1">Navigation</div>
+        <UiNavList :links="nav" />
+      </div>
+      <div v-if="siteLinks.length">
+        <div class="text-label text-dimmed px-1 mb-1">Sites</div>
+        <UiNavList :links="siteLinks" />
+      </div>
+    </template>
+  </div>
 </template>
