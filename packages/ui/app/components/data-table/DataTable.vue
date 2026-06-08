@@ -9,11 +9,12 @@
 //
 // Sorting is v-model-able. Pass `manual-sorting` for server-side sort
 // (the table won't reorder rows itself; it just reflects/emits state).
+//
+// Rendered with plain HTML table elements styled off the design-system
+// --ui-* tokens (no shadcn primitives) — header is the .text-label chrome
+// label, rows separated by border-default hairlines.
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
 import { FlexRender, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
 
 interface ColMeta {
   align?: 'center' | 'right'
@@ -43,12 +44,12 @@ const props = withDefaults(defineProps<{
   manualSorting: false,
   rowClickable: false,
   emptyText: 'No data.',
-  containerClass: 'rounded-lg border overflow-auto',
+  containerClass: 'rounded-lg border border-default overflow-auto',
   density: 'comfortable',
 })
 
 const densityCellClass = computed(() => (props.density === 'compact' ? 'py-1' : ''))
-const stickyHeadClass = computed(() => (props.stickyHeader ? 'sticky top-0 z-10 bg-background' : ''))
+const stickyHeadClass = computed(() => (props.stickyHeader ? 'sticky top-0 z-10 bg-default' : ''))
 
 const emit = defineEmits<{
   (e: 'update:sorting', value: SortingState): void
@@ -94,12 +95,13 @@ const hasActions = computed(() => !!useSlots().actions)
 
 <template>
   <div :class="containerClass">
-    <Table>
-      <TableHeader>
-        <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-          <TableHead
+    <table class="w-full">
+      <thead>
+        <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="border-b border-default">
+          <th
             v-for="header in headerGroup.headers"
             :key="header.id"
+            class="text-label text-dimmed whitespace-nowrap px-3 h-10 text-left bg-default"
             :class="[
               alignClass(metaOf(header.column).align),
               metaOf(header.column).headClass,
@@ -127,38 +129,40 @@ const hasActions = computed(() => !!useSlots().actions)
                 class="size-3 text-muted-foreground/60 shrink-0"
               />
             </div>
-          </TableHead>
-          <TableHead v-if="hasActions" class="w-20" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+          </th>
+          <th v-if="hasActions" class="w-20" />
+        </tr>
+      </thead>
+      <tbody>
         <template v-if="table.getRowModel().rows.length">
-          <TableRow
+          <tr
             v-for="row in table.getRowModel().rows"
             :key="row.id"
+            class="border-b border-default last:border-0"
             :class="[rowClickable ? 'cursor-pointer hover:bg-muted/50' : '', rowClass?.(row.original)]"
             @click="rowClickable ? emit('row-click', row.original) : undefined"
           >
-            <TableCell
+            <td
               v-for="cell in row.getVisibleCells()"
               :key="cell.id"
+              class="px-3 py-2 text-xs text-default"
               :class="[alignClass(metaOf(cell.column).align), metaOf(cell.column).cellClass, densityCellClass]"
             >
               <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-            </TableCell>
-            <TableCell v-if="hasActions" class="text-right" @click.stop>
+            </td>
+            <td v-if="hasActions" class="text-right px-3 py-2" @click.stop>
               <slot name="actions" :row="row.original" />
-            </TableCell>
-          </TableRow>
+            </td>
+          </tr>
         </template>
         <template v-else>
-          <TableRow>
-            <TableCell :colspan="columns.length + (hasActions ? 1 : 0)" class="text-center py-12 text-muted-foreground">
+          <tr>
+            <td :colspan="columns.length + (hasActions ? 1 : 0)" class="text-center py-12 text-muted-foreground">
               <slot name="empty">{{ emptyText }}</slot>
-            </TableCell>
-          </TableRow>
+            </td>
+          </tr>
         </template>
-      </TableBody>
-    </Table>
+      </tbody>
+    </table>
   </div>
 </template>
