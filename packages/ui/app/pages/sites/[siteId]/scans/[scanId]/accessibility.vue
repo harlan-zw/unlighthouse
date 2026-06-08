@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent } from '@/components/ui/card'
 
 definePageMeta({ layout: 'scan' })
 
@@ -25,46 +24,10 @@ const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)
   >
     <!-- A11y-specific summary stats. -->
     <div v-if="a11yReport.summary" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card>
-        <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold text-destructive tabular-nums">
-            {{ a11yReport.summary?.totalFindings ?? 0 }}
-          </div>
-          <div class="text-xs text-muted-foreground">
-            Total Issues
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="pt-5 pb-4 text-center">
-          <div class="numerals-display text-2xl">
-            {{ a11yReport.summary?.routesAffected ?? 0 }}
-          </div>
-          <div class="text-xs text-muted-foreground">
-            Routes Affected
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="pt-5 pb-4 text-center">
-          <div class="numerals-display text-2xl">
-            {{ a11yReport.summary?.uniqueRules ?? 0 }}
-          </div>
-          <div class="text-xs text-muted-foreground">
-            Unique Rules
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="pt-5 pb-4 text-center">
-          <div class="text-2xl font-bold text-success tabular-nums">
-            {{ a11yReport.routesAnalysed ?? 0 }}
-          </div>
-          <div class="text-xs text-muted-foreground">
-            Routes Analysed
-          </div>
-        </CardContent>
-      </Card>
+      <UiStat card title="Total Issues" :value="a11yReport.summary?.totalFindings ?? 0" value-class="text-destructive" />
+      <UiStat card title="Routes Affected" :value="a11yReport.summary?.routesAffected ?? 0" />
+      <UiStat card title="Unique Rules" :value="a11yReport.summary?.uniqueRules ?? 0" />
+      <UiStat card title="Routes Analysed" :value="a11yReport.routesAnalysed ?? 0" value-class="text-success" />
     </div>
 
     <!-- Findings: shared accordion + a11y-specific element preview
