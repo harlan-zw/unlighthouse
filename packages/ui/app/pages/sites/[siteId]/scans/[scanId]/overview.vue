@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from '@/components/ui/toggle-group'
 import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
@@ -167,26 +162,26 @@ function scoreColor(score: number | null) {
       </div>
       <div class="flex items-center gap-2">
         <ScanActions v-if="currentScanIsActive || store.status === 'paused'" />
-        <Button v-if="scanIsComplete && !currentScanIsActive" variant="outline" size="sm" as-child>
-          <a
-            :href="`${exportBaseUrl}/dashboard/export/${scanId}`"
-            :download="`${scanId}-export.json`"
-            title="Download a self-contained JSON of this scan (data only, no raw LHR blobs)"
-          >
-            <Icon name="lucide:download" class="size-4 mr-1" />
-            JSON
-          </a>
-        </Button>
-        <Button v-if="scanIsComplete && !currentScanIsActive" variant="outline" size="sm" as-child>
-          <a
-            :href="`${exportBaseUrl}/dashboard/export/${scanId}?format=csv`"
-            :download="`${scanId}-export.csv`"
-            title="Download per-route scores + Core Web Vitals as CSV (for spreadsheets / Google Sheets)"
-          >
-            <Icon name="lucide:table" class="size-4 mr-1" />
-            CSV
-          </a>
-        </Button>
+        <a
+          v-if="scanIsComplete && !currentScanIsActive"
+          :href="`${exportBaseUrl}/dashboard/export/${scanId}`"
+          :download="`${scanId}-export.json`"
+          title="Download a self-contained JSON of this scan (data only, no raw LHR blobs)"
+          class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
+        >
+          <Icon name="lucide:download" class="size-4" />
+          JSON
+        </a>
+        <a
+          v-if="scanIsComplete && !currentScanIsActive"
+          :href="`${exportBaseUrl}/dashboard/export/${scanId}?format=csv`"
+          :download="`${scanId}-export.csv`"
+          title="Download per-route scores + Core Web Vitals as CSV (for spreadsheets / Google Sheets)"
+          class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
+        >
+          <Icon name="lucide:table" class="size-4" />
+          CSV
+        </a>
         <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="i-lucide-refresh-cw" @click="handleRescanAll">Rescan All</UiButton>
       </div>
     </div>
@@ -197,17 +192,16 @@ function scoreColor(score: number | null) {
     <!-- Device filter (only when scan captured both) -->
     <div v-if="hasMultipleDevices && scanIsComplete && !currentScanIsActive" class="flex items-center gap-2">
       <span class="text-xs text-muted-foreground">View as</span>
-      <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
-        <ToggleGroupItem value="" class="text-xs">All</ToggleGroupItem>
-        <ToggleGroupItem value="mobile" class="text-xs">
-          <Icon name="lucide:smartphone" class="size-3.5 mr-1" />
-          Mobile
-        </ToggleGroupItem>
-        <ToggleGroupItem value="desktop" class="text-xs">
-          <Icon name="lucide:monitor" class="size-3.5 mr-1" />
-          Desktop
-        </ToggleGroupItem>
-      </ToggleGroup>
+      <UTabs
+        v-model="deviceFilter"
+        :content="false"
+        size="sm"
+        :items="[
+          { value: '', label: 'All' },
+          { value: 'mobile', label: 'Mobile', icon: 'i-lucide-smartphone' },
+          { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+        ]"
+      />
     </div>
 
     <!-- Stats row -->
