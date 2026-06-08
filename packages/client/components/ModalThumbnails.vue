@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useIntervalFn } from '@vueuse/core'
+import { resolveReportFileUrl } from '../logic'
 
 const props = defineProps<{
   screenshots: any[]
@@ -90,7 +91,7 @@ onUnmounted(() => {
           <div class="bg-white dark:bg-gray-900 rounded shadow-inner flex items-center justify-center overflow-hidden min-h-[400px]">
             <img
               v-if="currentScreenshot"
-              :src="currentScreenshot.data"
+              :src="resolveReportFileUrl(currentScreenshot.data)"
               class="w-auto h-auto max-w-full"
               :alt="`Screenshot at ${currentFrame * 300}ms`"
             >
@@ -192,7 +193,7 @@ onUnmounted(() => {
               @click="currentFrame = index; stop()"
             >
               <img
-                :src="image.data"
+                :src="resolveReportFileUrl(image.data)"
                 class="w-16 h-10 object-cover rounded-sm"
                 :alt="`Thumbnail ${index + 1}`"
               >

@@ -67,6 +67,23 @@ export function resolveArtifactPath(report: UnlighthouseRouteReport, file: strin
   return joinURL(window.location.pathname, withoutBase, file) // dynamic base
 }
 
+/**
+ * Resolve a client-root-relative report file (e.g. a screenshot-thumbnail `data` path) to a URL.
+ *
+ * Lighthouse thumbnail paths are stored relative to the client root (`reports/.../x.jpeg`). Rendering
+ * them raw breaks when a static report is served from a sub-path without a trailing slash, since the
+ * browser resolves them against the parent directory. Prefixing the current pathname mirrors what
+ * `resolveArtifactPath` already does for the working full-page screenshot. (#275)
+ */
+export function resolveReportFileUrl(file: string) {
+  if (!file)
+    return ''
+  let pathname = window.location.pathname
+  if (isStatic)
+    pathname = pathname.replace(/\/index\.html$/, '')
+  return joinURL(pathname, file)
+}
+
 export { apiUrl, basePath, device, dynamicSampling, groupRoutesKey, lighthouseOptions, throttle, wsUrl }
 
 export const website = new $URL(site).origin
