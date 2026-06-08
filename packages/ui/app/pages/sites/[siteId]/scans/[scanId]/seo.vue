@@ -24,9 +24,9 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
   >
     <!-- Indexability summary cards — SEO-specific. -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <UiStat card title="Indexability" :value="report.indexabilityPercent ?? 0" suffix="%" :value-class="report.indexabilityPercent === 100 ? 'text-success' : report.indexabilityPercent >= 80 ? 'text-warning' : 'text-destructive'" />
+      <UiStat card title="Indexability" :value="report.indexabilityPercent ?? 0" suffix="%" :value-class="report.indexabilityPercent === 100 ? 'text-success' : report.indexabilityPercent >= 80 ? 'text-warning' : 'text-error'" />
       <UiStat card title="Indexable Routes" :value="report.indexableRoutes ?? 0" value-class="text-success" />
-      <UiStat card title="Unindexable Routes" :value="report.unindexableRoutes ?? 0" :value-class="report.unindexableRoutes > 0 ? 'text-destructive' : 'text-success'" />
+      <UiStat card title="Unindexable Routes" :value="report.unindexableRoutes ?? 0" :value-class="report.unindexableRoutes > 0 ? 'text-error' : 'text-success'" />
       <UiStat card title="Routes Analysed" :value="report.routesAnalysed ?? 0" />
     </div>
 
@@ -51,16 +51,16 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
           <tr v-for="rc in report.routeChecks" :key="rc.url" class="border-b border-default last:border-0">
             <td class="font-mono text-xs truncate max-w-sm px-3 py-2" :title="rc.url">{{ rc.url }}</td>
             <td class="text-right tabular-nums text-success px-3 py-2">{{ rc.passes }}</td>
-            <td class="text-right tabular-nums px-3 py-2" :class="rc.fails > 0 ? 'text-destructive' : ''">{{ rc.fails }}</td>
+            <td class="text-right tabular-nums px-3 py-2" :class="rc.fails > 0 ? 'text-error' : ''">{{ rc.fails }}</td>
             <td class="px-3 py-2">
-              <Icon :name="rc.indexable ? 'lucide:check-circle' : 'lucide:x-circle'" :class="rc.indexable ? 'text-success' : 'text-destructive'" class="size-4" />
+              <Icon :name="rc.indexable ? 'lucide:check-circle' : 'lucide:x-circle'" :class="rc.indexable ? 'text-success' : 'text-error'" class="size-4" />
             </td>
           </tr>
         </tbody>
       </table>
     </UiCard>
 
-    <div v-if="!report.findings?.length && !report.routeChecks?.length" class="text-center py-12 text-muted-foreground">
+    <div v-if="!report.findings?.length && !report.routeChecks?.length" class="text-center py-12 text-muted">
       No SEO issues found.
     </div>
   </CategoryPageShell>

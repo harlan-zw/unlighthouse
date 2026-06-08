@@ -106,7 +106,7 @@ const siteColumns: ColumnDef<SiteRow>[] = [
     header: 'Site',
     cell: ({ row }) => h('div', { class: 'min-w-0' }, [
       h('div', { class: 'text-sm font-medium truncate' }, row.original.name),
-      h('div', { class: 'text-[11px] text-muted-foreground font-mono truncate' }, row.original.url),
+      h('div', { class: 'text-[11px] text-muted font-mono truncate' }, row.original.url),
     ]),
   },
   {
@@ -140,7 +140,7 @@ const siteColumns: ColumnDef<SiteRow>[] = [
     accessorFn: (r: SiteRow) => r.lastAt ?? '',
     header: 'Last scan',
     align: 'right',
-    cell: ({ row }) => h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, row.original.lastAt ? fmtRelTime(row.original.lastAt) : '—'),
+    cell: ({ row }) => h('span', { class: 'text-xs text-muted tabular-nums' }, row.original.lastAt ? fmtRelTime(row.original.lastAt) : '—'),
   },
 ]
 
@@ -164,7 +164,7 @@ const recentColumns: ColumnDef<ScanRow>[] = [
     header: 'Device',
     enableSorting: false,
     align: 'center',
-    cell: ({ row }) => h(resolveComponent('Icon'), { name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor', class: 'size-3.5 text-muted-foreground' }),
+    cell: ({ row }) => h(resolveComponent('Icon'), { name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor', class: 'size-3.5 text-muted' }),
   },
   {
     id: 'avg',
@@ -178,7 +178,7 @@ const recentColumns: ColumnDef<ScanRow>[] = [
     header: 'Routes',
     enableSorting: false,
     align: 'right',
-    cell: ({ row }) => h('span', { class: 'text-xs tabular-nums text-muted-foreground' }, String(row.original.summary?.completed ?? 0)),
+    cell: ({ row }) => h('span', { class: 'text-xs tabular-nums text-muted' }, String(row.original.summary?.completed ?? 0)),
   },
   {
     id: 'status',
@@ -192,7 +192,7 @@ const recentColumns: ColumnDef<ScanRow>[] = [
     header: 'When',
     enableSorting: false,
     align: 'right',
-    cell: ({ row }) => h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, fmtRelTime(row.original.startedAt)),
+    cell: ({ row }) => h('span', { class: 'text-xs text-muted tabular-nums' }, fmtRelTime(row.original.startedAt)),
   },
 ]
 const recentScans = computed(() => allScans.value.slice(0, 10))
@@ -223,18 +223,18 @@ function openScan(s: ScanRow) {
             </span>
             <span class="text-sm font-medium">Scanning {{ store.site }}</span>
           </div>
-          <span class="text-sm tabular-nums text-muted-foreground">{{ store.scanned }}/{{ store.total }}</span>
+          <span class="text-sm tabular-nums text-muted">{{ store.scanned }}/{{ store.total }}</span>
         </div>
         <UProgress :model-value="store.percent" size="sm" />
     </div>
 
     <!-- Empty state -->
     <div v-if="historyStatus !== 'pending' && !allScans.length && !store.isActive" class="flex flex-col items-center justify-center py-20 text-center">
-      <div class="size-16 rounded-full bg-muted flex items-center justify-center mb-6">
-        <Icon name="lucide:radar" class="size-8 text-muted-foreground" />
+      <div class="size-16 rounded-full bg-elevated flex items-center justify-center mb-6">
+        <Icon name="lucide:radar" class="size-8 text-muted" />
       </div>
       <h2 class="text-heading mb-2">No scans yet</h2>
-      <p class="text-muted-foreground mb-6 max-w-sm">
+      <p class="text-muted mb-6 max-w-sm">
         Start your first scan to get SEO, performance, and accessibility insights for your website.
       </p>
       <UiButton purpose="cta" size="lg" to="/scan/new" icon="i-lucide-plus">Start First Scan</UiButton>

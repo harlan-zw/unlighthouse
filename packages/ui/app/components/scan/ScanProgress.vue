@@ -54,12 +54,12 @@ function formatDuration(ms: number): string {
             <span class="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
           <span class="text-sm font-medium capitalize">{{ store.status }}</span>
-          <span class="text-sm text-muted-foreground truncate max-w-xs">{{ store.site }}</span>
+          <span class="text-sm text-muted truncate max-w-xs">{{ store.site }}</span>
         </div>
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium tabular-nums">{{ store.percent }}%</span>
           <button
-            class="text-muted-foreground hover:text-foreground transition-colors"
+            class="text-muted hover:text-default transition-colors"
             @click="expanded = !expanded"
           >
             <Icon :name="expanded ? 'lucide:chevron-up' : 'lucide:chevron-down'" class="size-4" />
@@ -73,19 +73,19 @@ function formatDuration(ms: number): string {
       <div class="grid grid-cols-4 gap-3 text-center text-xs">
         <div>
           <div class="numerals-display text-base">{{ store.discovered }}</div>
-          <div class="text-muted-foreground">Discovered</div>
+          <div class="text-muted">Discovered</div>
         </div>
         <div>
           <div class="numerals-display text-base">{{ store.scanned }}</div>
-          <div class="text-muted-foreground">Scanned</div>
+          <div class="text-muted">Scanned</div>
         </div>
         <div>
-          <div class="numerals-display text-base" :class="store.failed > 0 ? 'text-destructive' : ''">{{ store.failed }}</div>
-          <div class="text-muted-foreground">Failed</div>
+          <div class="numerals-display text-base" :class="store.failed > 0 ? 'text-error' : ''">{{ store.failed }}</div>
+          <div class="text-muted">Failed</div>
         </div>
         <div>
           <div class="numerals-display text-base">{{ store.total }}</div>
-          <div class="text-muted-foreground">Total</div>
+          <div class="text-muted">Total</div>
         </div>
       </div>
 
@@ -97,23 +97,23 @@ function formatDuration(ms: number): string {
           <div class="numerals-display text-base" :class="scoreToColor(store.avgPerfScore)">
             {{ store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—' }}
           </div>
-          <div class="text-muted-foreground">Avg Perf</div>
+          <div class="text-muted">Avg Perf</div>
         </div>
         <div>
           <div class="numerals-display text-base text-success">{{ store.passCount }}</div>
-          <div class="text-muted-foreground">Pass</div>
+          <div class="text-muted">Pass</div>
         </div>
         <div>
           <div class="numerals-display text-base text-warning">{{ store.needsWorkCount }}</div>
-          <div class="text-muted-foreground">Needs Work</div>
+          <div class="text-muted">Needs Work</div>
         </div>
         <div>
-          <div class="numerals-display text-base text-destructive">{{ store.poorCount }}</div>
-          <div class="text-muted-foreground">Poor</div>
+          <div class="numerals-display text-base text-error">{{ store.poorCount }}</div>
+          <div class="text-muted">Poor</div>
         </div>
         <div>
           <div class="numerals-display text-base">{{ etaLabel }}</div>
-          <div class="text-muted-foreground">ETA · {{ elapsedLabel }}</div>
+          <div class="text-muted">ETA · {{ elapsedLabel }}</div>
         </div>
       </div>
 

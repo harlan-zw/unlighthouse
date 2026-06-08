@@ -51,7 +51,7 @@ const columns: ColumnDef<DevicePair>[] = [
     header: 'Date',
     cell: ({ row }) => h('div', { class: 'flex flex-col' }, [
       h('span', { class: 'text-sm' }, formatDate(row.original.startedAt)),
-      h('span', { class: 'text-[10px] text-muted-foreground' }, relTime(row.original.startedAt)),
+      h('span', { class: 'text-[10px] text-muted' }, relTime(row.original.startedAt)),
     ]),
     sortingFn: (a, b) => a.original.startedAt.localeCompare(b.original.startedAt),
   },
@@ -67,7 +67,7 @@ const columns: ColumnDef<DevicePair>[] = [
       const done = p.completed || 0
       const isEmpty = done === 0 && all > 0
       return h('span', {
-        class: isEmpty ? 'text-xs tabular-nums text-muted-foreground' : 'text-xs tabular-nums',
+        class: isEmpty ? 'text-xs tabular-nums text-muted' : 'text-xs tabular-nums',
         title: isEmpty ? 'Scan completed structurally but no routes were audited' : `${done} of ${all} routes audited`,
       }, `${done}/${all}`)
     },
@@ -81,16 +81,16 @@ const columns: ColumnDef<DevicePair>[] = [
       const label = key === 'best-practices' ? 'Best' : key === 'performance' ? 'Perf' : key === 'accessibility' ? 'A11y' : 'SEO'
       return h('div', { class: 'text-center' }, [
         h('div', { class: 'text-xs font-semibold' }, label),
-        h('div', { class: 'text-micro text-muted-foreground font-normal mt-0.5' }, 'M | D'),
+        h('div', { class: 'text-micro text-muted font-normal mt-0.5' }, 'M | D'),
       ])
     },
     cell: ({ row }: any) => {
       const m = categoryPct(row.original.mobile, key)
       const d = categoryPct(row.original.desktop, key)
       return h('div', { class: 'flex items-center justify-center gap-1.5 tabular-nums text-sm font-medium' }, [
-        h('span', { class: m == null ? 'text-muted-foreground/50' : scoreToColor(m / 100) }, m ?? '—'),
-        h('span', { class: 'text-muted-foreground/30 text-xs' }, '|'),
-        h('span', { class: d == null ? 'text-muted-foreground/50' : scoreToColor(d / 100) }, d ?? '—'),
+        h('span', { class: m == null ? 'text-muted/50' : scoreToColor(m / 100) }, m ?? '—'),
+        h('span', { class: 'text-muted/30 text-xs' }, '|'),
+        h('span', { class: d == null ? 'text-muted/50' : scoreToColor(d / 100) }, d ?? '—'),
       ])
     },
     sortingFn: (a: any, b: any) => {

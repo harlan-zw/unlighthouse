@@ -151,15 +151,15 @@ async function deleteScan(scanId: string) {
     </div>
 
     <div v-else-if="!groups.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 flex flex-col items-center justify-center py-16 text-center">
-      <Icon name="lucide:history" class="size-12 text-muted-foreground/50 mb-4" />
-      <p class="text-muted-foreground">
+      <Icon name="lucide:history" class="size-12 text-muted/50 mb-4" />
+      <p class="text-muted">
         No scan history yet.
       </p>
     </div>
 
     <div v-else-if="!filteredGroups.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 flex flex-col items-center justify-center py-12 text-center">
-      <Icon name="lucide:search-x" class="size-10 text-muted-foreground/50 mb-3" />
-      <p class="text-sm text-muted-foreground">
+      <Icon name="lucide:search-x" class="size-10 text-muted/50 mb-3" />
+      <p class="text-sm text-muted">
         No scans match "{{ searchQuery }}".
       </p>
     </div>
@@ -172,26 +172,26 @@ async function deleteScan(scanId: string) {
     >
       <button
         type="button"
-        class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+        class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-elevated/40 transition-colors"
         @click="expanded[group.site] = !expanded[group.site]"
       >
         <Icon
           name="lucide:chevron-right"
-          class="size-4 text-muted-foreground transition-transform shrink-0"
+          class="size-4 text-muted transition-transform shrink-0"
           :class="{ 'rotate-90': expanded[group.site] }"
         />
         <div class="flex-1 min-w-0">
           <div class="font-semibold text-sm">
             {{ siteHostname(group.site) }}
           </div>
-          <div class="text-xs text-muted-foreground font-mono truncate">
+          <div class="text-xs text-muted font-mono truncate">
             {{ group.site }}
           </div>
         </div>
         <UBadge color="neutral" variant="soft" size="xs" class="tabular-nums shrink-0">
           {{ group.scanCount }} scans
         </UBadge>
-        <span class="text-xs text-muted-foreground tabular-nums shrink-0">
+        <span class="text-xs text-muted tabular-nums shrink-0">
           latest {{ relTime(group.latestStartedAt) }}
         </span>
       </button>

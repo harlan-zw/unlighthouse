@@ -194,7 +194,7 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0">
         <h1 class="text-title truncate">{{ siteName }}</h1>
-        <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+        <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted hover:text-default inline-flex items-center gap-1">
           {{ siteUrl }}
           <Icon name="lucide:external-link" class="size-3" />
         </a>
@@ -205,9 +205,9 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
       </div>
     </div>
 
-    <div v-if="loading" class="text-center py-16 text-muted-foreground">Loading site history…</div>
+    <div v-if="loading" class="text-center py-16 text-muted">Loading site history…</div>
 
-    <div v-else-if="isEmpty" class="text-center py-16 text-muted-foreground">
+    <div v-else-if="isEmpty" class="text-center py-16 text-muted">
       <Icon name="lucide:radar" class="size-10 mx-auto mb-3 opacity-50" />
       <p>No scans yet for this site.</p>
       <UiButton purpose="cta" size="sm" class="mt-4" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">Start the first scan</UiButton>
@@ -217,7 +217,7 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
       <!-- Trend controls -->
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div v-if="hasBoth" class="flex items-center gap-2">
-          <span class="text-xs text-muted-foreground">Trends for</span>
+          <span class="text-xs text-muted">Trends for</span>
           <UTabs
             v-model="deviceFilter"
             :content="false"
@@ -250,7 +250,7 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
         <template #header>
           <div class="flex flex-row items-center justify-between">
             <h3 class="text-label text-dimmed">Core Web Vitals (p75) over time</h3>
-            <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted-foreground inline-flex items-center gap-1">
+            <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted inline-flex items-center gap-1">
               <Icon name="lucide:loader-2" class="size-3.5 animate-spin" /> loading vitals…
             </span>
           </div>
@@ -272,7 +272,7 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
 
       <!-- Scan history -->
       <div>
-        <h2 class="text-sm font-medium text-muted-foreground mb-3">Scan history</h2>
+        <h2 class="text-sm font-medium text-muted mb-3">Scan history</h2>
         <SiteHistoryTable
           :pairs="pairs"
           @open="openPair"

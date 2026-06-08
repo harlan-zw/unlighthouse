@@ -31,7 +31,7 @@ const { fmtMs: formatMs, fmtBytes: formatBytes } = useFormat()
 function verdictColor(verdict: string) {
   if (verdict === 'good') return 'text-success'
   if (verdict === 'needsImprovement') return 'text-warning'
-  return 'text-destructive'
+  return 'text-error'
 }
 
 function severityVariant(severity: string) {
@@ -68,15 +68,15 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
     <!-- Core Web Vitals -->
       <div v-if="cwvReport?.metrics?.length" class="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <div v-for="m in cwvReport.metrics" :key="m.metric" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
-            <div class="text-xs text-muted-foreground mb-1">{{ m.metric?.toUpperCase() }}</div>
+            <div class="text-xs text-muted mb-1">{{ m.metric?.toUpperCase() }}</div>
             <div class="numerals-display text-2xl" :class="verdictColor(m.verdict)">
               {{ m.p75 != null ? (m.metric === 'cls' ? m.p75.toFixed(3) : formatMs(m.p75)) : '—' }}
             </div>
-            <div class="text-[10px] text-muted-foreground mt-1">p75 across {{ (m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0) }} routes</div>
+            <div class="text-[10px] text-muted mt-1">p75 across {{ (m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0) }} routes</div>
             <div class="flex justify-center gap-1 mt-2">
               <UBadge color="neutral" variant="outline" class="text-[9px] text-success">{{ m.distribution?.good ?? 0 }} good</UBadge>
               <UBadge color="neutral" variant="outline" class="text-[9px] text-warning">{{ m.distribution?.needsImprovement ?? 0 }} NI</UBadge>
-              <UBadge color="neutral" variant="outline" class="text-[9px] text-destructive">{{ m.distribution?.poor ?? 0 }} poor</UBadge>
+              <UBadge color="neutral" variant="outline" class="text-[9px] text-error">{{ m.distribution?.poor ?? 0 }} poor</UBadge>
             </div>
         </div>
       </div>
@@ -90,7 +90,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
             <div v-for="fix in cwvReport.topFixes.slice(0, 10)" :key="fix.auditId" class="flex items-start gap-3 p-3 border rounded-lg">
               <div class="flex-1">
                 <div class="text-sm font-medium">{{ fix.title || fix.auditId }}</div>
-                <div class="text-xs text-muted-foreground mt-0.5">{{ fix.routeCount }} routes affected</div>
+                <div class="text-xs text-muted mt-0.5">{{ fix.routeCount }} routes affected</div>
               </div>
               <div class="flex gap-1 flex-wrap justify-end">
                 <UBadge v-for="(val, key) in fix.totalSavings" :key="key" color="neutral" variant="outline" class="text-[10px]">
@@ -120,7 +120,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                   {{ key }}: {{ typeof val === 'number' ? formatMs(val) : val }}
                 </UBadge>
               </div>
-              <div v-if="insight.worstRoutes?.length" class="mt-2 text-xs text-muted-foreground">
+              <div v-if="insight.worstRoutes?.length" class="mt-2 text-xs text-muted">
                 Worst: <span v-for="(wr, i) in insight.worstRoutes.slice(0, 3)" :key="wr.url" class="font-mono">{{ wr.url }}{{ Number(i) < Math.min(insight.worstRoutes.length, 3) - 1 ? ', ' : '' }}</span>
               </div>
             </div>
@@ -152,7 +152,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                   {{ finding.severity }}
                 </UBadge>
                 <span class="truncate font-mono text-xs">{{ finding.imageUrl }}</span>
-                <span class="text-xs text-muted-foreground shrink-0">{{ finding.routeCount }} routes</span>
+                <span class="text-xs text-muted shrink-0">{{ finding.routeCount }} routes</span>
               </div>
             </template>
             <template #content="{ item: finding }">
@@ -167,7 +167,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                         loading="lazy"
                         referrerpolicy="no-referrer"
                         alt=""
-                        class="w-32 h-20 object-contain bg-muted rounded border"
+                        class="w-32 h-20 object-contain bg-elevated rounded border"
                         @error="(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none' }"
                       >
                     </a>
@@ -175,10 +175,10 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                       <div class="flex gap-2 flex-wrap">
                         <UBadge color="neutral" variant="outline" class="text-xs">{{ finding.kind }}</UBadge>
                         <UBadge v-if="finding.wastedBytes" color="neutral" variant="outline" class="text-xs text-warning">{{ formatBytes(finding.wastedBytes) }} wasted</UBadge>
-                        <UBadge v-if="finding.lcpImpactMs" color="neutral" variant="outline" class="text-xs text-destructive">LCP +{{ formatMs(finding.lcpImpactMs) }}</UBadge>
+                        <UBadge v-if="finding.lcpImpactMs" color="neutral" variant="outline" class="text-xs text-error">LCP +{{ formatMs(finding.lcpImpactMs) }}</UBadge>
                       </div>
-                      <p v-if="finding.reason" class="text-xs text-muted-foreground">{{ finding.reason }}</p>
-                      <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
+                      <p v-if="finding.reason" class="text-xs text-muted">{{ finding.reason }}</p>
+                      <div v-if="finding.routes?.length" class="text-xs text-muted">
                         <ul class="mt-1 space-y-0.5 font-mono">
                           <li v-for="r in finding.routes" :key="r">{{ r }}</li>
                         </ul>
@@ -188,7 +188,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                 </div>
             </template>
           </UAccordion>
-          <p v-if="imagesReport.findings.length > 20" class="text-xs text-muted-foreground mt-3 text-center">
+          <p v-if="imagesReport.findings.length > 20" class="text-xs text-muted mt-3 text-center">
             +{{ imagesReport.findings.length - 20 }} more image issues
           </p>
       </UiCard>
@@ -213,7 +213,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
             <tr
               v-for="r in routeScores.items.slice(0, 50)"
               :key="r.url"
-              class="border-b border-default last:border-0 cursor-pointer hover:bg-muted/50"
+              class="border-b border-default last:border-0 cursor-pointer hover:bg-elevated/50"
               @click="navigateTo(`/sites/${$route.params.siteId}/scans/${scanId}/route/${encodeURIComponent(r.path)}`)"
             >
               <td class="font-mono text-xs truncate max-w-sm px-3 py-2">{{ r.path }}</td>

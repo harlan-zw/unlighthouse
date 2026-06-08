@@ -10,14 +10,14 @@ const scanId = computed(() => (route.params.scanId as string) ?? '')
   <SidebarShell>
     <template #subnav>
       <nav class="flex items-center gap-1.5 text-sm min-w-0">
-        <NuxtLink to="/sites" class="text-muted-foreground hover:text-foreground transition-colors shrink-0">
+        <NuxtLink to="/sites" class="text-muted hover:text-default transition-colors shrink-0">
           Sites
         </NuxtLink>
-        <Icon name="lucide:chevron-right" class="size-3.5 text-muted-foreground shrink-0" />
-        <NuxtLink :to="`/sites/${siteId}`" class="text-muted-foreground hover:text-foreground transition-colors truncate">
+        <Icon name="lucide:chevron-right" class="size-3.5 text-muted shrink-0" />
+        <NuxtLink :to="`/sites/${siteId}`" class="text-muted hover:text-default transition-colors truncate">
           {{ siteId }}
         </NuxtLink>
-        <Icon name="lucide:chevron-right" class="size-3.5 text-muted-foreground shrink-0" />
+        <Icon name="lucide:chevron-right" class="size-3.5 text-muted shrink-0" />
         <span class="font-mono text-xs font-medium truncate">{{ scanId.slice(0, 8) }}</span>
       </nav>
     </template>

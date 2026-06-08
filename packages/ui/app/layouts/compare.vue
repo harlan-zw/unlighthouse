@@ -55,12 +55,12 @@ if (import.meta.client) {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+  <div class="h-screen flex flex-col bg-default text-default overflow-hidden">
     <!-- Slim top strip; the page itself owns the in-flow toolbar
          underneath (scan picker / swap / threshold etc). Keep this
          strip absolutely minimal so we don't burn vertical space. -->
     <div class="flex items-center gap-2 px-3 h-9 border-b text-xs">
-      <NuxtLink :to="exitTo" class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+      <NuxtLink :to="exitTo" class="inline-flex items-center gap-1 text-muted hover:text-default transition-colors">
         <Icon name="lucide:arrow-left" class="size-3.5" />
         <span>Exit compare</span>
       </NuxtLink>
@@ -76,7 +76,7 @@ if (import.meta.client) {
 
       <div class="ml-auto flex items-center gap-1">
         <button
-          class="inline-flex items-center justify-center rounded-md size-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          class="inline-flex items-center justify-center rounded-md size-7 text-muted hover:text-default hover:bg-elevated transition-colors"
           :title="`Switch to ${colorMode.value === 'dark' ? 'light' : 'dark'} mode`"
           @click="toggleColorMode"
         >

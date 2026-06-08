@@ -46,11 +46,11 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
       </template>
     </PageHeader>
 
-    <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">
+    <div v-if="status === 'pending'" class="text-center py-12 text-muted">
       {{ loadingMessage }}
     </div>
 
-    <div v-else-if="!ready" class="text-center py-12 text-muted-foreground">
+    <div v-else-if="!ready" class="text-center py-12 text-muted">
       {{ emptyMessage }}
     </div>
 

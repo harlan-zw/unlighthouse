@@ -157,9 +157,9 @@ const groupSuggestions = computed(() => {
     </PageHeader>
 
     <div v-if="!sitesData?.sites?.length" class="flex flex-col items-center justify-center py-16 text-center">
-      <Icon name="lucide:globe" class="size-12 text-muted-foreground/50 mb-4" />
-      <p class="text-muted-foreground">No sites registered yet.</p>
-      <p class="text-xs text-muted-foreground mt-1">Add a site to start monitoring.</p>
+      <Icon name="lucide:globe" class="size-12 text-muted/50 mb-4" />
+      <p class="text-muted">No sites registered yet.</p>
+      <p class="text-xs text-muted mt-1">Add a site to start monitoring.</p>
     </div>
 
     <section v-for="bucket in grouped" v-else :key="bucket.name || '__ungrouped'" class="space-y-3">
@@ -174,10 +174,10 @@ const groupSuggestions = computed(() => {
             <div class="flex items-start justify-between mb-3">
               <NuxtLink :to="`/sites/${siteSlug(site.url)}`" class="min-w-0 flex-1 group">
                 <div class="font-medium text-sm truncate group-hover:text-primary transition-colors">{{ site.name }}</div>
-                <div class="text-xs text-muted-foreground font-mono truncate mt-0.5">{{ site.url }}</div>
+                <div class="text-xs text-muted font-mono truncate mt-0.5">{{ site.url }}</div>
               </NuxtLink>
             </div>
-            <div class="text-xs text-muted-foreground mb-3">
+            <div class="text-xs text-muted mb-3">
               Added {{ new Date(site.createdAt).toLocaleDateString() }}
               <span v-if="site.group"> · {{ site.group }}</span>
             </div>

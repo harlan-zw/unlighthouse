@@ -187,7 +187,7 @@ const tooltipLeft = computed(() => {
 <template>
   <div>
     <div v-if="showLegend" class="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2">
-      <div v-for="s in series" :key="s.label" class="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div v-for="s in series" :key="s.label" class="flex items-center gap-1.5 text-xs text-muted">
         <span class="inline-block size-2 rounded-full" :style="{ backgroundColor: s.color }" />
         {{ s.label }}
       </div>
@@ -201,7 +201,7 @@ const tooltipLeft = computed(() => {
           class="absolute top-0 -translate-x-1/2 z-10"
           :style="{ left: `${m.x}px` }"
         >
-          <span :title="m.title" class="inline-block rounded bg-primary px-1 py-0.5 text-[9px] font-mono leading-none text-primary-foreground whitespace-nowrap">
+          <span :title="m.title" class="inline-block rounded bg-primary px-1 py-0.5 text-[9px] font-mono leading-none text-inverted whitespace-nowrap">
             {{ m.label }}
           </span>
         </div>
@@ -210,13 +210,13 @@ const tooltipLeft = computed(() => {
       <!-- hover tooltip -->
       <div
         v-if="hoverPoints.length"
-        class="absolute top-0 z-20 -translate-x-1/2 pointer-events-none rounded-md border bg-popover px-2 py-1.5 shadow-md"
+        class="absolute top-0 z-20 -translate-x-1/2 pointer-events-none rounded-md border bg-default px-2 py-1.5 shadow-md"
         :style="{ left: `${tooltipLeft}px` }"
       >
-        <div class="text-[10px] text-muted-foreground mb-1">{{ hoverDate }}</div>
+        <div class="text-[10px] text-muted mb-1">{{ hoverDate }}</div>
         <div v-for="row in hoverPoints" :key="row.label" class="flex items-center gap-1.5 text-[11px] whitespace-nowrap">
           <span class="size-2 rounded-full shrink-0" :style="{ backgroundColor: row.color }" />
-          <span class="text-muted-foreground">{{ row.label }}</span>
+          <span class="text-muted">{{ row.label }}</span>
           <span class="ml-auto pl-3 font-semibold tabular-nums">{{ row.text }}</span>
         </div>
       </div>
@@ -231,7 +231,7 @@ const tooltipLeft = computed(() => {
             :x2="width - PAD.right"
             :y1="tick.y"
             :y2="tick.y"
-            class="stroke-border"
+            class="stroke-[var(--ui-border)]"
             stroke-width="1"
           />
           <text
@@ -240,7 +240,7 @@ const tooltipLeft = computed(() => {
             :x="PAD.left - 6"
             :y="tick.y + 3"
             text-anchor="end"
-            class="fill-muted-foreground text-[10px] tabular-nums"
+            class="fill-[var(--ui-text-muted)] text-[10px] tabular-nums"
           >{{ tick.label }}</text>
         </g>
 
@@ -264,7 +264,7 @@ const tooltipLeft = computed(() => {
           :x2="hoverX"
           :y1="PAD.top"
           :y2="height - PAD.bottom"
-          class="stroke-muted-foreground/40"
+          class="stroke-[var(--ui-text-muted)]/40"
           stroke-width="1"
         />
         <circle
@@ -300,10 +300,10 @@ const tooltipLeft = computed(() => {
           :x="xl.x"
           :y="height - 6"
           :text-anchor="i === 0 && xLabels.length > 1 ? 'start' : (i === xLabels.length - 1 && xLabels.length > 1 ? 'end' : 'middle')"
-          class="fill-muted-foreground text-[10px]"
+          class="fill-[var(--ui-text-muted)] text-[10px]"
         >{{ xl.label }}</text>
       </svg>
-      <div v-else-if="width > 0" class="flex items-center justify-center text-xs text-muted-foreground" :style="{ height: `${height}px` }">
+      <div v-else-if="width > 0" class="flex items-center justify-center text-xs text-muted" :style="{ height: `${height}px` }">
         No trend data yet.
       </div>
     </div>

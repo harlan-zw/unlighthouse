@@ -146,7 +146,7 @@ const hasData = computed(() =>
                   </UBadge>
                   {{ bundleKindLabel(finding.kind) }}
                 </div>
-                <div v-if="finding.resource" class="text-xs text-muted-foreground font-mono truncate mt-1" :title="finding.resource">
+                <div v-if="finding.resource" class="text-xs text-muted font-mono truncate mt-1" :title="finding.resource">
                   {{ shortResource(finding.resource) }}
                 </div>
               </div>
@@ -157,7 +157,7 @@ const hasData = computed(() =>
             <div v-if="finding.wastedBytes" class="text-xs text-warning mt-2">
               {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ finding.wastedPercent }}%)</span>
             </div>
-            <div v-if="finding.fixHint" class="text-xs text-muted-foreground mt-1">
+            <div v-if="finding.fixHint" class="text-xs text-muted mt-1">
               {{ finding.fixHint }}
             </div>
           </div>

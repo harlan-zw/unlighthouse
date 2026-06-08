@@ -42,7 +42,7 @@ const color = computed(() => scoreToRingColor(props.score))
         :r="radius"
         fill="none"
         :stroke-width="strokeWidth"
-        class="stroke-muted"
+        class="stroke-[var(--ui-bg-elevated)]"
       />
       <circle
         :cx="dimensions / 2"

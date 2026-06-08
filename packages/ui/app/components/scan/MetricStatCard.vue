@@ -37,9 +37,9 @@ function zoneColor(v: number): string {
 }
 function zoneText(v: number | null): string {
   if (v == null)
-    return 'text-muted-foreground'
+    return 'text-muted'
   const [good, poor] = props.thresholds
-  return v <= good ? 'text-success' : v <= poor ? 'text-warning' : 'text-destructive'
+  return v <= good ? 'text-success' : v <= poor ? 'text-warning' : 'text-error'
 }
 
 const statCols = computed(() => {
@@ -60,14 +60,14 @@ const statCols = computed(() => {
 <template>
   <UiCard size="sm">
       <div class="flex items-center justify-between">
-        <span class="text-label text-muted-foreground">{{ label }}</span>
-        <span v-if="stats" class="text-mini text-muted-foreground/70 tabular-nums">{{ stats.count }} routes</span>
+        <span class="text-label text-muted">{{ label }}</span>
+        <span v-if="stats" class="text-mini text-muted/70 tabular-nums">{{ stats.count }} routes</span>
       </div>
 
       <template v-if="stats">
         <div class="mt-1 flex items-baseline gap-2">
           <span class="numerals-display text-2xl" :class="zoneText(stats.p75)">{{ format(stats.p75) }}</span>
-          <span class="text-label text-muted-foreground">p75</span>
+          <span class="text-label text-muted">p75</span>
         </div>
 
         <!-- Distribution histogram -->
@@ -84,12 +84,12 @@ const statCols = computed(() => {
         <!-- Percentile stat row -->
         <div class="mt-3 grid grid-cols-6 gap-1 border-t pt-2">
           <div v-for="c in statCols" :key="c.label" class="text-center">
-            <div class="text-micro text-muted-foreground">{{ c.label }}</div>
+            <div class="text-micro text-muted">{{ c.label }}</div>
             <div class="numerals-display text-[11px] mt-0.5">{{ c.val }}</div>
           </div>
         </div>
       </template>
 
-      <div v-else class="py-6 text-center text-xs text-muted-foreground">No data</div>
+      <div v-else class="py-6 text-center text-xs text-muted">No data</div>
   </UiCard>
 </template>

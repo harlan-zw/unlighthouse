@@ -139,26 +139,26 @@ async function handleSubmit() {
             <button
               type="button"
               class="rounded-lg border p-3 text-left transition-all"
-              :class="scanMode === 'site' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50'"
+              :class="scanMode === 'site' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50'"
               @click="scanMode = 'site'"
             >
               <div class="flex items-center gap-2 text-sm font-medium">
                 <Icon name="lucide:globe" class="size-4" />
                 Full Site
               </div>
-              <p class="text-[11px] text-muted-foreground mt-1">Crawl all pages</p>
+              <p class="text-[11px] text-muted mt-1">Crawl all pages</p>
             </button>
             <button
               type="button"
               class="rounded-lg border p-3 text-left transition-all"
-              :class="scanMode === 'page' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50'"
+              :class="scanMode === 'page' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50'"
               @click="scanMode = 'page'"
             >
               <div class="flex items-center gap-2 text-sm font-medium">
                 <Icon name="lucide:file" class="size-4" />
                 Single Page
               </div>
-              <p class="text-[11px] text-muted-foreground mt-1">Audit one URL only</p>
+              <p class="text-[11px] text-muted mt-1">Audit one URL only</p>
             </button>
           </div>
         </div>
@@ -178,7 +178,7 @@ async function handleSubmit() {
         <div>
           <button
             type="button"
-            class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground group w-full"
+            class="flex items-center gap-2 text-sm font-medium text-muted hover:text-default group w-full"
             @click="advancedOpen = !advancedOpen"
           >
             <Icon name="lucide:chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
@@ -210,13 +210,13 @@ async function handleSubmit() {
                   :key="cat"
                   type="button"
                   class="rounded-md border px-3 py-2 text-xs text-left transition-all capitalize"
-                  :class="selectedCategories.includes(cat) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50 text-muted-foreground'"
+                  :class="selectedCategories.includes(cat) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50 text-muted'"
                   @click="toggleCategory(cat)"
                 >
                   {{ cat.replace('-', ' ') }}
                 </button>
               </div>
-              <p class="text-[11px] text-muted-foreground">
+              <p class="text-[11px] text-muted">
                 Skipping categories cuts audit time. At least one must stay selected.
               </p>
             </div>
@@ -228,7 +228,7 @@ async function handleSubmit() {
                 <UInput v-model="ciHash" placeholder="commit hash" class="font-mono text-xs" />
               </div>
               <UInput v-model="ciMessage" placeholder="commit message (optional)" class="w-full text-xs" />
-              <p class="text-[11px] text-muted-foreground">
+              <p class="text-[11px] text-muted">
                 Pin this scan to a deploy. Compare against previous scans on the same branch via the compare page.
               </p>
             </div>

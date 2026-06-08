@@ -126,7 +126,7 @@ const hasActions = computed(() => !!useSlots().actions)
                   : header.column.getIsSorted() === 'desc' ? 'lucide:arrow-down'
                     : 'lucide:chevrons-up-down'
                 "
-                class="size-3 text-muted-foreground/60 shrink-0"
+                class="size-3 text-muted/60 shrink-0"
               />
             </div>
           </th>
@@ -139,7 +139,7 @@ const hasActions = computed(() => !!useSlots().actions)
             v-for="row in table.getRowModel().rows"
             :key="row.id"
             class="border-b border-default last:border-0"
-            :class="[rowClickable ? 'cursor-pointer hover:bg-muted/50' : '', rowClass?.(row.original)]"
+            :class="[rowClickable ? 'cursor-pointer hover:bg-elevated/50' : '', rowClass?.(row.original)]"
             @click="rowClickable ? emit('row-click', row.original) : undefined"
           >
             <td
@@ -157,7 +157,7 @@ const hasActions = computed(() => !!useSlots().actions)
         </template>
         <template v-else>
           <tr>
-            <td :colspan="columns.length + (hasActions ? 1 : 0)" class="text-center py-12 text-muted-foreground">
+            <td :colspan="columns.length + (hasActions ? 1 : 0)" class="text-center py-12 text-muted">
               <slot name="empty">{{ emptyText }}</slot>
             </td>
           </tr>

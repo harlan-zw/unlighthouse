@@ -42,5 +42,5 @@ const lastPos = computed(() => {
     <path :d="path" fill="none" :stroke="color || 'currentColor'" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round" />
     <circle v-if="lastPos" :cx="lastPos.x" :cy="lastPos.y" r="2" :fill="color || 'currentColor'" vector-effect="non-scaling-stroke" />
   </svg>
-  <span v-else class="text-[10px] text-muted-foreground/60">—</span>
+  <span v-else class="text-[10px] text-muted/60">—</span>
 </template>

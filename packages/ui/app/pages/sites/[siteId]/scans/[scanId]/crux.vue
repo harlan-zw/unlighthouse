@@ -32,13 +32,13 @@ function formatValue(value: number, unit: string) {
 function metricColor(value: number, good: number, poor: number) {
   if (value <= good) return 'text-success'
   if (value <= poor) return 'text-warning'
-  return 'text-destructive'
+  return 'text-error'
 }
 
 function metricBg(value: number, good: number, poor: number) {
   if (value <= good) return 'bg-success'
   if (value <= poor) return 'bg-warning'
-  return 'bg-destructive'
+  return 'bg-error'
 }
 
 // CrUX reports can come back partial — a device (or a metric series) may be
@@ -63,17 +63,17 @@ function latestValue(entries: Array<{ value: number }>) {
   <div class="space-y-6">
     <PageHeader title="CrUX Field Data" flush />
 
-    <div v-if="status === 'pending'" class="text-center py-12 text-muted-foreground">Loading CrUX data...</div>
+    <div v-if="status === 'pending'" class="text-center py-12 text-muted">Loading CrUX data...</div>
 
-    <div v-else-if="!data || (!data.phone?.lcp?.length && !data.desktop?.lcp?.length)" class="text-center py-12 text-muted-foreground">
+    <div v-else-if="!data || (!data.phone?.lcp?.length && !data.desktop?.lcp?.length)" class="text-center py-12 text-muted">
       <Icon name="lucide:globe" class="size-12 mx-auto mb-3 opacity-50" />
       <p>No CrUX field data available for this site.</p>
       <p class="text-xs mt-1">Field data requires the site to have enough traffic in Chrome User Experience Report.</p>
     </div>
 
     <template v-else>
-      <div v-if="data.hostname" class="text-sm text-muted-foreground">
-        Origin: <span class="font-medium text-foreground">{{ data.hostname }}</span>
+      <div v-if="data.hostname" class="text-sm text-muted">
+        Origin: <span class="font-medium text-default">{{ data.hostname }}</span>
       </div>
 
       <UTabs
@@ -100,7 +100,7 @@ function latestValue(entries: Array<{ value: number }>) {
                 >
                   {{ formatValue(latestValue(getDeviceData(data)[m.key])!, m.unit) }}
                 </div>
-                <div class="text-xs text-muted-foreground">Current (p75)</div>
+                <div class="text-xs text-muted">Current (p75)</div>
               </div>
 
               <!-- Distribution bar (last entry) -->
@@ -115,11 +115,11 @@ function latestValue(entries: Array<{ value: number }>) {
                     :style="{ width: `${(getDeviceData(data)[m.key].at(-1)!.ni || 0) * 100}%` }"
                   />
                   <div
-                    class="bg-destructive"
+                    class="bg-error"
                     :style="{ width: `${(getDeviceData(data)[m.key].at(-1)!.poor || 0) * 100}%` }"
                   />
                 </div>
-                <div class="flex justify-between mt-1 text-[10px] text-muted-foreground">
+                <div class="flex justify-between mt-1 text-[10px] text-muted">
                   <span>Good {{ ((getDeviceData(data)[m.key].at(-1)!.good || 0) * 100).toFixed(0) }}%</span>
                   <span>NI {{ ((getDeviceData(data)[m.key].at(-1)!.ni || 0) * 100).toFixed(0) }}%</span>
                   <span>Poor {{ ((getDeviceData(data)[m.key].at(-1)!.poor || 0) * 100).toFixed(0) }}%</span>
@@ -137,12 +137,12 @@ function latestValue(entries: Array<{ value: number }>) {
                   :title="`${formatValue(entry.value, m.unit)} — ${new Date(entry.time).toLocaleDateString()}`"
                 />
               </div>
-              <div class="flex justify-between mt-1 text-[10px] text-muted-foreground">
+              <div class="flex justify-between mt-1 text-[10px] text-muted">
                 <span>{{ getDeviceData(data)[m.key].length }} weeks</span>
                 <span>latest →</span>
               </div>
             </template>
-            <div v-else class="text-sm text-muted-foreground py-4 text-center">
+            <div v-else class="text-sm text-muted py-4 text-center">
               No data
             </div>
         </UiCard>

@@ -32,7 +32,7 @@ const { fmtRelTime: ageLabel } = useFormat()
   <div v-if="store.recentRoutes.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3 border-b border-default">
       <h3 class="text-label text-dimmed">Live results</h3>
-      <span class="text-[10px] text-muted-foreground tabular-nums">
+      <span class="text-[10px] text-muted tabular-nums">
         last {{ store.recentRoutes.length }}
       </span>
     </div>
@@ -41,7 +41,7 @@ const { fmtRelTime: ageLabel } = useFormat()
           v-for="r in store.recentRoutes"
           :key="r.url + r.timestamp"
           type="button"
-          class="flex items-center gap-3 px-4 py-2 text-left w-full hover:bg-muted/50 transition-colors"
+          class="flex items-center gap-3 px-4 py-2 text-left w-full hover:bg-elevated/50 transition-colors"
           @click="openRoute(r.url)"
         >
           <span
@@ -52,7 +52,7 @@ const { fmtRelTime: ageLabel } = useFormat()
           <span class="text-xs tabular-nums shrink-0 w-10 text-right font-bold" :class="scoreToColor(r.score)">
             {{ scoreToLabel(r.score) }}
           </span>
-          <span class="text-[10px] text-muted-foreground tabular-nums shrink-0 w-14 text-right">
+          <span class="text-[10px] text-muted tabular-nums shrink-0 w-14 text-right">
             {{ ageLabel(r.timestamp) }}
           </span>
         </button>

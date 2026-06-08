@@ -196,7 +196,7 @@ const categoryAudits = computed(() => {
 })
 
 function metricColor(label: string, value: number | null | undefined): string {
-  if (value == null) return 'text-muted-foreground'
+  if (value == null) return 'text-muted'
   const thresholds: Record<string, [number, number]> = {
     LCP: [2500, 4000], CLS: [0.1, 0.25], TBT: [200, 600],
     FCP: [1800, 3000], SI: [3400, 5800], TTFB: [800, 1800], INP: [200, 500],
@@ -204,7 +204,7 @@ function metricColor(label: string, value: number | null | undefined): string {
   const [good, poor] = thresholds[label] || [Infinity, Infinity]
   if (value <= good) return 'text-success'
   if (value <= poor) return 'text-warning'
-  return 'text-destructive'
+  return 'text-error'
 }
 
 function severityColor(severity: string): 'error' | 'warning' | 'neutral' {
@@ -237,22 +237,22 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
       <UiButton purpose="quiet" size="sm" icon="i-lucide-arrow-left" @click="backToRoutes">Routes</UiButton>
     </div>
 
-    <div v-if="status === 'pending' || scanMetaStatus === 'pending'" class="text-center py-12 text-muted-foreground">Loading...</div>
-    <div v-else-if="!routeData" class="text-center py-12 text-muted-foreground">Route not found.</div>
+    <div v-if="status === 'pending' || scanMetaStatus === 'pending'" class="text-center py-12 text-muted">Loading...</div>
+    <div v-else-if="!routeData" class="text-center py-12 text-muted">Route not found.</div>
 
     <template v-else>
       <!-- Header -->
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
           <h1 class="text-title font-mono break-all">{{ routeData.route?.path }}</h1>
-          <div class="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+          <div class="flex items-center gap-2 mt-1 text-sm text-muted">
             <UBadge color="neutral" variant="outline" size="xs">{{ routeData.route?.device }}</UBadge>
             <a :href="routeData.route?.url" target="_blank" class="hover:underline flex items-center gap-1">
               {{ routeData.route?.url }}
               <Icon name="lucide:external-link" class="size-3" />
             </a>
           </div>
-          <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted-foreground/60">
+          <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted/60">
             <span>LH {{ routeData.provenance.lighthouseVersion }}</span>
             <span v-if="routeData.provenance.timingTotal">{{ (routeData.provenance.timingTotal / 1000).toFixed(1) }}s audit</span>
           </div>
@@ -276,7 +276,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
            first (empty value); explicit selection re-fetches and swaps the
            displayed scores/audits/screenshot in place. -->
       <div v-if="hasMultipleDevices" class="flex items-center gap-2">
-        <span class="text-xs text-muted-foreground">View as</span>
+        <span class="text-xs text-muted">View as</span>
         <UTabs
           v-model="deviceFilter"
           :content="false"
@@ -296,7 +296,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
               :href="screenshotUrl(scanId, routeData.route?.path || routePath)"
               target="_blank"
               rel="noopener"
-              class="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+              class="text-xs text-muted hover:text-default transition-colors inline-flex items-center gap-1"
             >Open full size <Icon name="lucide:external-link" class="size-3" /></a>
           </div>
         </template>
@@ -304,18 +304,18 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
           :src="screenshotUrl(scanId, routeData.route?.path || routePath)"
           loading="lazy"
           alt="Page screenshot"
-          class="w-full max-w-3xl max-h-[600px] object-contain object-top rounded border bg-muted mx-auto"
+          class="w-full max-w-3xl max-h-[600px] object-contain object-top rounded border bg-elevated mx-auto"
           @error="screenshotVisible = false"
         >
       </UiCard>
 
       <!-- Runtime Error -->
-      <div v-if="routeData.provenance?.runtimeError" class="border border-destructive/30 bg-destructive/5 rounded-lg p-4">
-        <div class="flex items-center gap-2 text-sm font-medium text-destructive">
+      <div v-if="routeData.provenance?.runtimeError" class="border border-error/30 bg-error/5 rounded-lg p-4">
+        <div class="flex items-center gap-2 text-sm font-medium text-error">
           <Icon name="lucide:alert-triangle" class="size-4" />
           Runtime Error: {{ routeData.provenance.runtimeError.code }}
         </div>
-        <p class="text-xs text-muted-foreground mt-1">{{ routeData.provenance.runtimeError.message }}</p>
+        <p class="text-xs text-muted mt-1">{{ routeData.provenance.runtimeError.message }}</p>
       </div>
 
       <!-- Warnings -->
@@ -324,7 +324,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
           <Icon name="lucide:alert-circle" class="size-4" />
           Warnings ({{ routeData.provenance.warnings.length }})
         </div>
-        <ul class="text-xs text-muted-foreground space-y-1">
+        <ul class="text-xs text-muted space-y-1">
           <li v-for="(w, i) in routeData.provenance.warnings" :key="i">{{ w }}</li>
         </ul>
       </div>
@@ -349,11 +349,11 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
         </template>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
             <div v-for="m in metrics" :key="m.label" class="rounded-lg border p-4 text-center">
-              <div class="text-xs text-muted-foreground mb-1">{{ m.label }}</div>
+              <div class="text-xs text-muted mb-1">{{ m.label }}</div>
               <div class="numerals-display text-xl" :class="metricColor(m.label, m.value)">
                 {{ formatMetric(m.value, m.unit) }}
               </div>
-              <div class="text-[10px] text-muted-foreground/60 mt-1">{{ m.description }}</div>
+              <div class="text-[10px] text-muted/60 mt-1">{{ m.description }}</div>
             </div>
           </div>
       </UiCard>
@@ -386,14 +386,14 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
                       {{ audit.severity }}
                     </UBadge>
                     <span>{{ audit.title || audit.id }}</span>
-                    <span v-if="audit.displayValue" class="text-muted-foreground text-xs ml-auto mr-4 shrink-0">
+                    <span v-if="audit.displayValue" class="text-muted text-xs ml-auto mr-4 shrink-0">
                       {{ audit.displayValue }}
                     </span>
                   </div>
               </template>
               <template #content="{ item: audit }">
                   <div class="space-y-3 pt-2 pb-2">
-                    <p v-if="audit.description" class="text-xs text-muted-foreground" v-html="renderMarkdownLinks(audit.description)" />
+                    <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
                     <div v-if="audit.metricSavings && hasNonZeroSavings(audit.metricSavings)" class="flex gap-2 flex-wrap">
                       <template v-for="(val, key) in audit.metricSavings" :key="key">
                         <UBadge v-if="typeof val === 'number' ? val > 0 : !!val" color="neutral" variant="outline" class="text-[10px]">
@@ -404,16 +404,16 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
                     <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
                       <template v-for="(item, idx) in audit.items.slice(0, 20)" :key="idx">
                         <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
-                          <div v-if="item.url" class="font-mono break-all text-muted-foreground">{{ item.url }}</div>
-                          <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.node.snippet }}</div>
-                          <div v-if="item.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.snippet }}</div>
-                          <div v-if="item.node?.nodeLabel" class="text-muted-foreground mt-1">{{ item.node.nodeLabel }}</div>
-                          <div v-if="item.reason" class="text-muted-foreground mt-1">{{ item.reason }}</div>
+                          <div v-if="item.url" class="font-mono break-all text-muted">{{ item.url }}</div>
+                          <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">{{ item.node.snippet }}</div>
+                          <div v-if="item.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">{{ item.snippet }}</div>
+                          <div v-if="item.node?.nodeLabel" class="text-muted mt-1">{{ item.node.nodeLabel }}</div>
+                          <div v-if="item.reason" class="text-muted mt-1">{{ item.reason }}</div>
                           <div class="flex gap-2 mt-1 flex-wrap">
                             <span v-if="item.wastedBytes" class="text-warning">{{ formatBytes(item.wastedBytes) }} wasted</span>
                             <span v-if="item.wastedMs" class="text-warning">{{ Math.round(item.wastedMs) }}ms wasted</span>
-                            <span v-if="item.totalBytes" class="text-muted-foreground">{{ formatBytes(item.totalBytes) }} total</span>
-                            <span v-if="item.transferSize" class="text-muted-foreground">{{ formatBytes(item.transferSize) }} transferred</span>
+                            <span v-if="item.totalBytes" class="text-muted">{{ formatBytes(item.totalBytes) }} total</span>
+                            <span v-if="item.transferSize" class="text-muted">{{ formatBytes(item.transferSize) }} transferred</span>
                             <span v-if="item.blockingTime" class="text-warning">{{ Math.round(item.blockingTime) }}ms blocking</span>
                           </div>
                         </div>
@@ -428,7 +428,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
             <!-- Passed audits (collapsible) -->
             <details v-if="cat.passing.length" class="group">
               <summary class="flex items-center gap-2 w-full text-sm py-1 cursor-pointer list-none">
-                <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
+                <Icon name="lucide:chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
                 <Icon name="lucide:check-circle" class="size-4 text-success" />
                 <span class="text-success font-medium">Passed Audits</span>
                 <UBadge color="neutral" variant="outline" class="text-[10px] text-success">{{ cat.passing.length }}</UBadge>
@@ -437,24 +437,24 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
                 <template #default="{ item: audit }">
                       <div class="flex items-center gap-2 text-left text-sm">
                         <Icon name="lucide:check" class="size-3.5 text-success shrink-0" />
-                        <span class="text-muted-foreground">{{ audit.title || audit.id }}</span>
-                        <span v-if="audit.displayValue" class="text-muted-foreground/60 text-xs ml-auto mr-4 shrink-0">
+                        <span class="text-muted">{{ audit.title || audit.id }}</span>
+                        <span v-if="audit.displayValue" class="text-muted/60 text-xs ml-auto mr-4 shrink-0">
                           {{ audit.displayValue }}
                         </span>
                       </div>
                 </template>
                 <template #content="{ item: audit }">
                       <div class="space-y-2 pt-1 pl-6 pb-2">
-                        <p v-if="audit.description" class="text-xs text-muted-foreground" v-html="renderMarkdownLinks(audit.description)" />
+                        <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
                         <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
                           <template v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx">
                             <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
-                              <div v-if="item.url" class="font-mono break-all text-muted-foreground">{{ item.url }}</div>
-                              <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.node.snippet }}</div>
-                              <div v-if="item.snippet" class="font-mono text-[10px] bg-muted p-1 rounded mt-1">{{ item.snippet }}</div>
+                              <div v-if="item.url" class="font-mono break-all text-muted">{{ item.url }}</div>
+                              <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">{{ item.node.snippet }}</div>
+                              <div v-if="item.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">{{ item.snippet }}</div>
                               <div class="flex gap-2 mt-1 flex-wrap">
-                                <span v-if="item.totalBytes" class="text-muted-foreground">{{ formatBytes(item.totalBytes) }}</span>
-                                <span v-if="item.transferSize" class="text-muted-foreground">{{ formatBytes(item.transferSize) }} transferred</span>
+                                <span v-if="item.totalBytes" class="text-muted">{{ formatBytes(item.totalBytes) }}</span>
+                                <span v-if="item.transferSize" class="text-muted">{{ formatBytes(item.transferSize) }} transferred</span>
                               </div>
                             </div>
                           </template>
@@ -467,13 +467,13 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
             <!-- Not Applicable (collapsible) -->
             <details v-if="cat.notApplicable.length" class="group">
               <summary class="flex items-center gap-2 w-full text-sm py-1 cursor-pointer list-none">
-                <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
-                <Icon name="lucide:minus-circle" class="size-4 text-muted-foreground" />
-                <span class="text-muted-foreground">Not Applicable</span>
+                <Icon name="lucide:chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
+                <Icon name="lucide:minus-circle" class="size-4 text-muted" />
+                <span class="text-muted">Not Applicable</span>
                 <UBadge color="neutral" variant="outline" class="text-[10px]">{{ cat.notApplicable.length }}</UBadge>
               </summary>
                 <div class="space-y-0.5 pt-2 pl-6">
-                  <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted-foreground/60">
+                  <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted/60">
                     <Icon name="lucide:minus" class="size-3 shrink-0" />
                     <span>{{ audit.title || audit.id }}</span>
                   </div>
@@ -490,7 +490,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
         </template>
           <div v-for="pack in routeData.stackPacks" :key="pack.id" class="mb-4 last:mb-0">
             <div class="text-sm font-medium mb-1">{{ pack.title }}</div>
-            <div v-for="(desc, auditId) in pack.descriptions" :key="auditId" class="text-xs text-muted-foreground ml-4 mb-1">
+            <div v-for="(desc, auditId) in pack.descriptions" :key="auditId" class="text-xs text-muted ml-4 mb-1">
               <span class="font-mono text-primary/80">{{ auditId }}</span>: {{ desc }}
             </div>
           </div>

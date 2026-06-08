@@ -63,7 +63,7 @@ const accordionItems = computed(() =>
             {{ finding.severity }}
           </UBadge>
           <span class="truncate">{{ finding.title || finding.auditId }}</span>
-          <span v-if="finding.routeCount != null" class="text-xs text-muted-foreground shrink-0 ml-auto">
+          <span v-if="finding.routeCount != null" class="text-xs text-muted shrink-0 ml-auto">
             {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
           </span>
         </div>
@@ -74,12 +74,12 @@ const accordionItems = computed(() =>
                etc.). Receives the finding so the consumer can decide what to
                render. -->
           <slot name="finding-body" :finding="finding">
-            <p v-if="finding.description" class="text-muted-foreground text-xs">
+            <p v-if="finding.description" class="text-muted text-xs">
               {{ finding.description }}
             </p>
           </slot>
 
-          <div v-if="finding.routes?.length" class="text-xs text-muted-foreground">
+          <div v-if="finding.routes?.length" class="text-xs text-muted">
             Affected routes:
             <ul class="mt-1 space-y-0.5 font-mono">
               <li v-for="r in finding.routes.slice(0, maxRoutesPerFinding)" :key="r">

@@ -123,7 +123,7 @@ function formatTime(ts: number) {
         Live
       </UBadge>
 
-      <span class="text-sm text-muted-foreground ml-auto tabular-nums">
+      <span class="text-sm text-muted ml-auto tabular-nums">
         <template v-if="textFilter || severityFilter !== 'all'">{{ filteredEvents.length }} of {{ events.length }}</template>
         <template v-else>{{ events.length }} events</template>
       </span>
@@ -151,23 +151,23 @@ function formatTime(ts: number) {
 
     <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 overflow-hidden">
         <div ref="scrollRef" class="h-[500px] overflow-y-auto font-mono text-xs">
-          <div v-if="!events.length" class="text-center py-16 text-muted-foreground text-sm">
+          <div v-if="!events.length" class="text-center py-16 text-muted text-sm">
             <Icon name="lucide:radio" class="size-8 mx-auto mb-3 opacity-50" />
             <p v-if="!streaming">Click "Start Stream" to begin receiving events.</p>
             <p v-else>Waiting for events...</p>
           </div>
-          <div v-else-if="!filteredEvents.length" class="text-center py-16 text-muted-foreground text-sm">
+          <div v-else-if="!filteredEvents.length" class="text-center py-16 text-muted text-sm">
             <Icon name="lucide:search-x" class="size-8 mx-auto mb-3 opacity-50" />
             <p>No events match the current filter.</p>
           </div>
           <div
             v-for="(e, i) in filteredEvents"
             :key="i"
-            class="flex items-start gap-3 px-4 py-2 border-b last:border-0 hover:bg-muted/50"
+            class="flex items-start gap-3 px-4 py-2 border-b last:border-0 hover:bg-elevated/50"
           >
-            <span class="text-muted-foreground shrink-0 pt-0.5 tabular-nums">{{ formatTime(e.timestamp) }}</span>
+            <span class="text-muted shrink-0 pt-0.5 tabular-nums">{{ formatTime(e.timestamp) }}</span>
             <UBadge :color="eventColor(e.event)" variant="soft" class="text-[10px] shrink-0">{{ e.event }}</UBadge>
-            <pre class="text-muted-foreground whitespace-pre-wrap break-all flex-1">{{ JSON.stringify(e.payload, null, 2) }}</pre>
+            <pre class="text-muted whitespace-pre-wrap break-all flex-1">{{ JSON.stringify(e.payload, null, 2) }}</pre>
           </div>
         </div>
     </div>

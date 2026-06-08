@@ -30,7 +30,7 @@ function severityIcon(severity: string) {
 function severityColor(severity: string) {
   if (severity === 'pass') return 'text-success'
   if (severity === 'warn') return 'text-warning'
-  return 'text-destructive'
+  return 'text-error'
 }
 
 const findingItems = computed(() =>
@@ -50,19 +50,19 @@ const findingItems = computed(() =>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
         <div class="numerals-display text-2xl">{{ report.routesAnalysed ?? 0 }}</div>
-        <div class="text-xs text-muted-foreground">Routes Analysed</div>
+        <div class="text-xs text-muted">Routes Analysed</div>
       </div>
       <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
-        <div class="numerals-display text-2xl" :class="report.avgScore != null && report.avgScore >= 0.9 ? 'text-success' : report.avgScore >= 0.5 ? 'text-warning' : 'text-destructive'">{{ report.avgScore != null ? Math.round(report.avgScore * 100) : '—' }}</div>
-        <div class="text-xs text-muted-foreground">Avg Score</div>
+        <div class="numerals-display text-2xl" :class="report.avgScore != null && report.avgScore >= 0.9 ? 'text-success' : report.avgScore >= 0.5 ? 'text-warning' : 'text-error'">{{ report.avgScore != null ? Math.round(report.avgScore * 100) : '—' }}</div>
+        <div class="text-xs text-muted">Avg Score</div>
       </div>
       <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
-        <Icon :name="report.hasLlmsTxt ? 'lucide:check-circle' : 'lucide:x-circle'" :class="report.hasLlmsTxt ? 'text-success' : 'text-destructive'" class="size-6 mx-auto mb-1" />
-        <div class="text-xs text-muted-foreground">llms.txt</div>
+        <Icon :name="report.hasLlmsTxt ? 'lucide:check-circle' : 'lucide:x-circle'" :class="report.hasLlmsTxt ? 'text-success' : 'text-error'" class="size-6 mx-auto mb-1" />
+        <div class="text-xs text-muted">llms.txt</div>
       </div>
       <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
         <div class="numerals-display text-2xl">{{ report.webmcp?.routesWithTools ?? 0 }}</div>
-        <div class="text-xs text-muted-foreground">Routes with Tools</div>
+        <div class="text-xs text-muted">Routes with Tools</div>
       </div>
     </div>
 
@@ -74,10 +74,10 @@ const findingItems = computed(() =>
           <div class="p-3 border rounded-lg text-center">
             <Icon
               :name="report.webmcp.hasRegisteredTools ? 'lucide:check-circle' : 'lucide:x-circle'"
-              :class="report.webmcp.hasRegisteredTools ? 'text-success' : 'text-muted-foreground'"
+              :class="report.webmcp.hasRegisteredTools ? 'text-success' : 'text-muted'"
               class="size-5 mx-auto mb-1"
             />
-            <div class="text-xs text-muted-foreground">
+            <div class="text-xs text-muted">
               Registered Tools
             </div>
           </div>
@@ -85,17 +85,17 @@ const findingItems = computed(() =>
             <div class="text-lg font-bold tabular-nums">
               {{ report.webmcp.formCoverage != null ? `${Math.round(report.webmcp.formCoverage * 100)}%` : '—' }}
             </div>
-            <div class="text-xs text-muted-foreground">
+            <div class="text-xs text-muted">
               Form Coverage
             </div>
           </div>
           <div class="p-3 border rounded-lg text-center">
             <Icon
               :name="report.webmcp.schemaValid ? 'lucide:check-circle' : report.webmcp.schemaValid === false ? 'lucide:x-circle' : 'lucide:minus-circle'"
-              :class="report.webmcp.schemaValid ? 'text-success' : report.webmcp.schemaValid === false ? 'text-destructive' : 'text-muted-foreground'"
+              :class="report.webmcp.schemaValid ? 'text-success' : report.webmcp.schemaValid === false ? 'text-error' : 'text-muted'"
               class="size-5 mx-auto mb-1"
             />
-            <div class="text-xs text-muted-foreground">
+            <div class="text-xs text-muted">
               Schema Valid
             </div>
           </div>
@@ -103,7 +103,7 @@ const findingItems = computed(() =>
             <div class="text-lg font-bold tabular-nums">
               {{ report.agentA11yTree?.passingCount ?? 0 }}/{{ report.agentA11yTree?.routeCount ?? 0 }}
             </div>
-            <div class="text-xs text-muted-foreground">
+            <div class="text-xs text-muted">
               A11y Tree Pass
             </div>
           </div>
@@ -130,7 +130,7 @@ const findingItems = computed(() =>
             </div>
           </template>
           <template #content="{ item: finding }">
-            <div v-if="finding.failingRoutes?.length" class="text-xs text-muted-foreground pb-2">
+            <div v-if="finding.failingRoutes?.length" class="text-xs text-muted pb-2">
               Failing routes:
               <ul class="mt-1 space-y-0.5 font-mono">
                 <li v-for="r in finding.failingRoutes.slice(0, 10)" :key="r">
@@ -148,7 +148,7 @@ const findingItems = computed(() =>
         </UAccordion>
     </UiCard>
 
-    <div v-if="!report.findings?.length" class="text-center py-12 text-muted-foreground">
+    <div v-if="!report.findings?.length" class="text-center py-12 text-muted">
       No agentic browsing issues found.
     </div>
   </CategoryPageShell>

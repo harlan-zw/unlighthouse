@@ -95,9 +95,9 @@ const CWV_THRESHOLDS: Record<string, [number, number]> = {
   tbt: [200, 600],
 }
 function cwvColor(metric: 'lcp' | 'cls' | 'tbt', v: number | null): string {
-  if (v == null) return 'text-muted-foreground'
+  if (v == null) return 'text-muted'
   const [good, poor] = CWV_THRESHOLDS[metric]!
-  return v <= good ? 'text-success' : v <= poor ? 'text-warning' : 'text-destructive'
+  return v <= good ? 'text-success' : v <= poor ? 'text-warning' : 'text-error'
 }
 
 function passesQuick(r: RouteRow): boolean {
@@ -245,7 +245,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           src,
           loading: 'lazy',
           alt: '',
-          class: 'w-14 h-9 object-cover object-top rounded border bg-muted shrink-0',
+          class: 'w-14 h-9 object-cover object-top rounded border bg-elevated shrink-0',
           onError: (e: Event) => { (e.target as HTMLImageElement).style.visibility = 'hidden' },
         })
       },
@@ -266,7 +266,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       meta: { align: 'center', headClass: 'w-16' },
       cell: ({ row }) => h(resolveComponent('Icon'), {
         name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor',
-        class: 'size-3.5 text-muted-foreground',
+        class: 'size-3.5 text-muted',
       }),
     })
   }
@@ -300,14 +300,14 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         const prev = prevMap.value?.get(row.original.path || row.original.url)
         const cur = overallScore(row.original)
         if (prev == null)
-          return h('span', { class: 'text-[10px] text-muted-foreground border rounded px-1 py-0.5' }, 'new')
+          return h('span', { class: 'text-[10px] text-muted border rounded px-1 py-0.5' }, 'new')
         if (cur == null)
-          return h('span', { class: 'text-muted-foreground' }, '—')
+          return h('span', { class: 'text-muted' }, '—')
         const d = cur - prev
         if (d === 0)
-          return h('span', { class: 'text-xs text-muted-foreground tabular-nums' }, '0')
+          return h('span', { class: 'text-xs text-muted tabular-nums' }, '0')
         const up = d > 0
-        return h('span', { class: `text-xs font-medium tabular-nums ${up ? 'text-success' : 'text-destructive'}` }, `${up ? '▲ +' : '▼ '}${d}`)
+        return h('span', { class: `text-xs font-medium tabular-nums ${up ? 'text-success' : 'text-error'}` }, `${up ? '▲ +' : '▼ '}${d}`)
       },
     })
   }
@@ -342,16 +342,16 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           <span class="size-2 rounded-full" :style="{ backgroundColor: score100Color(summary.avg) }" />
           avg <span class="font-semibold tabular-nums">{{ summary.avg ?? '—' }}</span>
         </span>
-        <span class="text-muted-foreground text-xs tabular-nums">
+        <span class="text-muted text-xs tabular-nums">
           <span class="text-success font-medium">{{ summary.pass }}</span> pass ·
           <span class="text-warning font-medium">{{ summary.needs }}</span> needs work ·
-          <span class="text-destructive font-medium">{{ summary.poor }}</span> poor
+          <span class="text-error font-medium">{{ summary.poor }}</span> poor
         </span>
-        <span class="flex items-center gap-1 text-muted-foreground">
+        <span class="flex items-center gap-1 text-muted">
           <Icon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5" />
         </span>
       </div>
-      <button class="text-xs text-muted-foreground hover:text-foreground transition-colors" @click="showAllMetrics = !showAllMetrics">
+      <button class="text-xs text-muted hover:text-default transition-colors" @click="showAllMetrics = !showAllMetrics">
         {{ showAllMetrics ? 'Fewer metrics' : 'More metrics' }}
       </button>
     </div>
@@ -380,7 +380,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           :key="f.key"
           type="button"
           class="px-2.5 py-1 text-xs rounded transition-colors"
-          :class="quick === f.key ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'"
+          :class="quick === f.key ? 'bg-elevated font-medium text-default' : 'text-muted hover:text-default'"
           @click="quick = f.key"
         >
           {{ f.label }}
@@ -388,7 +388,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       </div>
 
       <UBadge color="neutral" variant="soft" class="text-xs tabular-nums">
-        {{ filtered.length }}<span v-if="filtered.length !== total" class="text-muted-foreground/70"> / {{ total }}</span>
+        {{ filtered.length }}<span v-if="filtered.length !== total" class="text-muted/70"> / {{ total }}</span>
       </UBadge>
 
       <div class="flex-1" />
@@ -451,7 +451,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       </template>
     </DataTable>
 
-    <p v-if="truncated" class="text-xs text-muted-foreground">
+    <p v-if="truncated" class="text-xs text-muted">
       Showing the first {{ allRows.length }} of {{ total }} routes.
     </p>
   </div>
