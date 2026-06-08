@@ -8,6 +8,8 @@ keywords:
   - chrome connection refused
   - wsl lighthouse
   - lighthouse troubleshooting
+  - stop unlighthouse
+  - ctrl c not working git bash
 navigation:
   title: "Common Errors"
 relatedPages:
@@ -56,3 +58,19 @@ export default defineUnlighthouseConfig({
   },
 })
 ```
+
+## Can't stop the scan with `Ctrl+C`
+
+Unlighthouse keeps running after a scan so you can browse the dashboard. Press `Ctrl+C` in the terminal to stop it; this shuts down the dev server and closes Chrome.
+
+If `Ctrl+C` does nothing, you are almost certainly running inside **Git Bash (MinTTY)** on Windows. MinTTY does not forward `Ctrl+C` to native console programs such as Node, so the process keeps running and you have to kill it from Task Manager.
+
+**Solutions**
+
+- Wrap the command with [winpty](https://github.com/rprichard/winpty), which ships with Git for Windows:
+
+```bash
+winpty npx unlighthouse --site example.com
+```
+
+- Or run the command from **PowerShell**, **Command Prompt**, or **Windows Terminal** instead of Git Bash, where `Ctrl+C` works as expected.

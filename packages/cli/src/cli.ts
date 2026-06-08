@@ -50,6 +50,22 @@ async function run() {
     process.exit(1)
   }
 
+  // Gracefully shut down on Ctrl+C so the dev server and Chrome instances are torn down instead of
+  // being orphaned. A second signal forces an immediate exit in case teardown hangs. (#378)
+  let shuttingDown = false
+  const shutdown = async (signal: NodeJS.Signals) => {
+    if (shuttingDown) {
+      process.exit(1)
+    }
+    shuttingDown = true
+    logger.info(`Received ${signal}, shutting down Unlighthouse (press again to force quit)...`)
+    await unlighthouse.worker.cluster.close().catch(() => {})
+    await server.close().catch(() => {})
+    process.exit(0)
+  }
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
+
   unlighthouse.hooks.hook('worker-finished', async () => {
     const end = new Date()
     const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
