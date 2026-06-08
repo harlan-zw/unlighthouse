@@ -2,7 +2,6 @@
 // Expo-Observe-style metric card: a headline p75, a threshold-coloured
 // distribution histogram across the scan's routes, and a Median/Avg/Min/Max/
 // P75/P95 stat row. Pure presentational — pass the raw per-route values.
-import { Card, CardContent } from '@/components/ui/card'
 
 const props = defineProps<{
   label: string
@@ -59,8 +58,7 @@ const statCols = computed(() => {
 </script>
 
 <template>
-  <Card>
-    <CardContent class="pt-4 pb-3">
+  <UiCard size="sm">
       <div class="flex items-center justify-between">
         <span class="text-label text-muted-foreground">{{ label }}</span>
         <span v-if="stats" class="text-mini text-muted-foreground/70 tabular-nums">{{ stats.count }} routes</span>
@@ -93,6 +91,5 @@ const statCols = computed(() => {
       </template>
 
       <div v-else class="py-6 text-center text-xs text-muted-foreground">No data</div>
-    </CardContent>
-  </Card>
+  </UiCard>
 </template>

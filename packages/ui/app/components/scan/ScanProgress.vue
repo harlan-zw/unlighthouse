@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Progress } from '@/components/ui/progress'
-import { Card, CardContent } from '@/components/ui/card'
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
@@ -47,8 +45,7 @@ function formatDuration(ms: number): string {
 </script>
 
 <template>
-  <Card class="border-primary/30 bg-primary/5">
-    <CardContent class="pt-4 pb-4 space-y-4">
+  <div class="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-4">
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -70,7 +67,7 @@ function formatDuration(ms: number): string {
         </div>
       </div>
 
-      <Progress :model-value="store.percent" class="h-1.5" />
+      <UProgress :model-value="store.percent" size="sm" />
 
       <!-- Counts row — crawler-side numbers. -->
       <div class="grid grid-cols-4 gap-3 text-center text-xs">
@@ -122,6 +119,5 @@ function formatDuration(ms: number): string {
 
       <!-- Terminal -->
       <ScanTerminal v-if="expanded" />
-    </CardContent>
-  </Card>
+  </div>
 </template>
