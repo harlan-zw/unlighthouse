@@ -1,10 +1,11 @@
 export default defineNuxtConfig({
   ssr: false,
-  // Migration: pull in the canonical unlighthouse design-system layer (its
+  // The UI is built on the canonical unlighthouse design-system layer (its
   // global.css --ui-* token system, ~50 Ui* primitives, and @nuxt/ui theme
-  // via app.config). shadcn coexists until every surface is ported off it.
+  // via app.config). The legacy shadcn token utilities still live in
+  // tailwind.css as a transitional compat layer (text-muted-foreground etc.).
   extends: ['./layers/design-system'],
-  modules: ['@pinia/nuxt', '@nuxt/ui', 'shadcn-nuxt', '@nuxtjs/color-mode', '@nuxt/icon'],
+  modules: ['@pinia/nuxt', '@nuxt/ui', '@nuxtjs/color-mode', '@nuxt/icon'],
   css: ['~/assets/css/tailwind.css'],
   colorMode: {
     preference: 'system',
@@ -40,20 +41,6 @@ export default defineNuxtConfig({
       pathPrefix: false,
     },
   ],
-  shadcn: {
-    /**
-     * Prefix for all the imported component.
-     * @default "Ui"
-     */
-    prefix: '',
-    /**
-     * Directory that the component lives in.
-     * Will respect the Nuxt aliases.
-     * @link https://nuxt.com/docs/api/nuxt-config#alias
-     * @default "@/components/ui"
-     */
-    componentDir: '@/components/ui'
-  },
   // Allow extra dev-server hostnames (tailscale, ngrok, cloudflare tunnels…)
   // through Vite's allowedHosts check. Comma-separated env var so personal
   // hostnames stay out of the repo. Unset → Vite default (localhost only).
@@ -62,7 +49,6 @@ export default defineNuxtConfig({
       include: [
         '@lucide/vue',
         '@vueuse/core',
-        'class-variance-authority',
         'clsx',
         'reka-ui',
         'tailwind-merge',

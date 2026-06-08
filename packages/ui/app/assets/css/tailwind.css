@@ -3,9 +3,23 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn-vue/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Base layer formerly provided by shadcn-vue/tailwind.css (now removed).
+   Keeps the global default border colour + body surface bound to the
+   transitional token vars that components across the app still use. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
    Token → utility bridge. shadcn components read `bg-primary`, `text-muted-
