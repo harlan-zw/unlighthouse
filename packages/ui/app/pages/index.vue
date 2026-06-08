@@ -2,9 +2,6 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { ScanRow } from '@/components/site/types'
 import { h } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { useScanStore } from '~/stores/scan'
 
 definePageMeta({ layout: 'root', middleware: 'onboarding' })
@@ -217,8 +214,7 @@ function openScan(s: ScanRow) {
     </PageHeader>
 
     <!-- Active scan banner -->
-    <Card v-if="store.isActive" class="border-primary/50 bg-primary/5 cursor-pointer" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/routes`)">
-      <CardContent class="pt-4 pb-4">
+    <div v-if="store.isActive" class="rounded-xl border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/routes`)">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="relative flex size-2">
@@ -229,9 +225,8 @@ function openScan(s: ScanRow) {
           </div>
           <span class="text-sm tabular-nums text-muted-foreground">{{ store.scanned }}/{{ store.total }}</span>
         </div>
-        <Progress :model-value="store.percent" class="h-1.5" />
-      </CardContent>
-    </Card>
+        <UProgress :model-value="store.percent" size="sm" />
+    </div>
 
     <!-- Empty state -->
     <div v-if="historyStatus !== 'pending' && !allScans.length && !store.isActive" class="flex flex-col items-center justify-center py-20 text-center">
