@@ -6,26 +6,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Base layer formerly provided by shadcn-vue/tailwind.css (now removed).
-   Keeps the global default border colour + body surface bound to the
-   transitional token vars that components across the app still use. */
-@layer base {
-  *,
-  ::before,
-  ::after {
-    border-color: var(--border);
-  }
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-  }
-}
-
 /* ─────────────────────────────────────────────────────────────────────────
-   Token → utility bridge. shadcn components read `bg-primary`, `text-muted-
-   foreground`, `border-border` etc; these map the Tailwind colour utilities
-   onto the semantic CSS vars defined in :root / .dark below. The whole brand
+   Token → utility bridge. The brand's own semantic colour system: maps the
+   Tailwind colour utilities (`bg-primary`, `border-border`, the brand
+   `text-title`/`elevation-*`/`surface-*` utilities below, bare `border` and
+   `body`) onto the CSS vars defined in :root / .dark. The whole brand
    re-skins from those vars — never hardcode a colour in a component.
+   (Component utility classes use the @nuxt/ui kit tokens — text-muted,
+   bg-elevated, border-default — sourced from the design-system layer.)
    ───────────────────────────────────────────────────────────────────────── */
 @theme inline {
   --font-heading: var(--font-sans);
