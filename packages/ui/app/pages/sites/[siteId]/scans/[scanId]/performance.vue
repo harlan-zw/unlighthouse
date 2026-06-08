@@ -1,19 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 
 definePageMeta({ layout: 'scan' })
 
@@ -55,6 +40,11 @@ function severityVariant(severity: string) {
   return 'neutral' as const
 }
 
+// Image findings → UAccordion items (stable value = imageUrl).
+const imageItems = computed(() =>
+  ((imagesReport.value as any)?.findings ?? []).slice(0, 20).map((f: any) => ({ ...f, value: f.imageUrl })),
+)
+
 const cwvReport = computed(() => (cwvData.value as any)?.report ?? null)
 const insightsReport = computed(() => (insightsData.value as any)?.report ?? null)
 const imagesReport = computed(() => (imagesData.value as any)?.report ?? null)
@@ -77,8 +67,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
   >
     <!-- Core Web Vitals -->
       <div v-if="cwvReport?.metrics?.length" class="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card v-for="m in cwvReport.metrics" :key="m.metric">
-          <CardContent class="pt-5 pb-4 text-center">
+        <div v-for="m in cwvReport.metrics" :key="m.metric" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
             <div class="text-xs text-muted-foreground mb-1">{{ m.metric?.toUpperCase() }}</div>
             <div class="numerals-display text-2xl" :class="verdictColor(m.verdict)">
               {{ m.p75 != null ? (m.metric === 'cls' ? m.p75.toFixed(3) : formatMs(m.p75)) : '—' }}
@@ -89,16 +78,14 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
               <UBadge color="neutral" variant="outline" class="text-[9px] text-warning">{{ m.distribution?.needsImprovement ?? 0 }} NI</UBadge>
               <UBadge color="neutral" variant="outline" class="text-[9px] text-destructive">{{ m.distribution?.poor ?? 0 }} poor</UBadge>
             </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
       <!-- Top Fixes from CWV pack -->
-      <Card v-if="cwvReport?.topFixes?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Top Fixes (by impact)</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <UiCard v-if="cwvReport?.topFixes?.length" size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed">Top Fixes (by impact)</h3>
+        </template>
           <div class="space-y-3">
             <div v-for="fix in cwvReport.topFixes.slice(0, 10)" :key="fix.auditId" class="flex items-start gap-3 p-3 border rounded-lg">
               <div class="flex-1">
@@ -112,18 +99,16 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </UiCard>
 
       <!-- Insights pack -->
-      <Card v-if="insightsReport?.insights?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
+      <UiCard v-if="insightsReport?.insights?.length" size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed">
             Performance Insights
             <UBadge color="neutral" variant="soft" class="ml-2 text-xs">{{ insightsReport.insights.length }}</UBadge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </template>
           <div class="space-y-3">
             <div v-for="insight in insightsReport.insights" :key="insight.id" class="p-3 border rounded-lg">
               <div class="flex items-center justify-between">
@@ -140,41 +125,38 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </UiCard>
 
       <!-- Image Optimization -->
-      <Card v-if="imagesReport?.findings?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
+      <UiCard v-if="imagesReport?.findings?.length" size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed flex items-center gap-2">
             <Icon name="lucide:image" class="size-4" />
             Image Optimization
             <UBadge color="neutral" variant="soft" class="text-xs">{{ imagesReport.findings.length }} issues</UBadge>
             <UBadge v-if="imagesReport.totalBytesSavable > 0" color="neutral" variant="outline" class="text-xs text-warning">
               {{ formatBytes(imagesReport.totalBytesSavable) }} savable
             </UBadge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </template>
           <div v-if="imagesReport.severityCounts" class="flex gap-2 flex-wrap mb-4">
             <UBadge v-if="imagesReport.severityCounts.critical > 0" color="error" variant="soft" class="text-xs">{{ imagesReport.severityCounts.critical }} critical</UBadge>
             <UBadge v-if="imagesReport.severityCounts.serious > 0" color="error" variant="soft" class="text-xs">{{ imagesReport.severityCounts.serious }} serious</UBadge>
             <UBadge v-if="imagesReport.severityCounts.moderate > 0" color="neutral" variant="soft" class="text-xs">{{ imagesReport.severityCounts.moderate }} moderate</UBadge>
             <UBadge v-if="imagesReport.severityCounts.minor > 0" color="neutral" variant="outline" class="text-xs">{{ imagesReport.severityCounts.minor }} minor</UBadge>
           </div>
-          <Accordion type="multiple" class="w-full">
-            <AccordionItem v-for="finding in imagesReport.findings.slice(0, 20)" :key="finding.imageUrl" :value="finding.imageUrl">
-              <AccordionTrigger class="text-sm">
-                <div class="flex items-center gap-3 text-left flex-1 min-w-0">
-                  <UBadge :color="severityVariant(finding.severity)" variant="soft" class="text-[10px] shrink-0">
-                    {{ finding.severity }}
-                  </UBadge>
-                  <span class="truncate font-mono text-xs">{{ finding.imageUrl }}</span>
-                  <span class="text-xs text-muted-foreground shrink-0">{{ finding.routeCount }} routes</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div class="text-sm space-y-3">
+          <UAccordion :items="imageItems" type="multiple" class="w-full">
+            <template #default="{ item: finding }">
+              <div class="flex items-center gap-3 text-left flex-1 min-w-0 text-sm">
+                <UBadge :color="severityVariant(finding.severity)" variant="soft" class="text-[10px] shrink-0">
+                  {{ finding.severity }}
+                </UBadge>
+                <span class="truncate font-mono text-xs">{{ finding.imageUrl }}</span>
+                <span class="text-xs text-muted-foreground shrink-0">{{ finding.routeCount }} routes</span>
+              </div>
+            </template>
+            <template #content="{ item: finding }">
+                <div class="text-sm space-y-3 pb-2">
                   <div class="flex gap-4 items-start">
                     <!-- The actual offending image — referrerpolicy=no-referrer
                          so origin servers that block hotlinking still render
@@ -204,50 +186,46 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                     </div>
                   </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+            </template>
+          </UAccordion>
           <p v-if="imagesReport.findings.length > 20" class="text-xs text-muted-foreground mt-3 text-center">
             +{{ imagesReport.findings.length - 20 }} more image issues
           </p>
-        </CardContent>
-      </Card>
+      </UiCard>
 
       <!-- Route Scores -->
-      <Card v-if="routeScores?.items?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Route Scores</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Path</TableHead>
-                <TableHead class="w-20 text-right">Score</TableHead>
-                <TableHead class="w-24 text-right">LCP</TableHead>
-                <TableHead class="w-20 text-right">CLS</TableHead>
-                <TableHead class="w-24 text-right">TBT</TableHead>
-                <TableHead class="w-24 text-right">INP</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow
-                v-for="r in routeScores.items.slice(0, 50)"
-                :key="r.url"
-                class="cursor-pointer hover:bg-muted/50"
-                @click="navigateTo(`/sites/${$route.params.siteId}/scans/${scanId}/route/${encodeURIComponent(r.path)}`)"
-              >
-                <TableCell class="font-mono text-xs truncate max-w-sm">{{ r.path }}</TableCell>
-                <TableCell class="text-right tabular-nums font-bold" :class="scoreToColor(r.scorePerformance)">{{ scoreToLabel(r.scorePerformance) }}</TableCell>
-                <TableCell class="text-right tabular-nums text-xs">{{ r.lcp != null ? formatMs(r.lcp) : '—' }}</TableCell>
-                <TableCell class="text-right tabular-nums text-xs">{{ r.cls?.toFixed(3) ?? '—' }}</TableCell>
-                <TableCell class="text-right tabular-nums text-xs">{{ r.tbt != null ? formatMs(r.tbt) : '—' }}</TableCell>
-                <TableCell class="text-right tabular-nums text-xs">{{ r.inp != null ? formatMs(r.inp) : '—' }}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <UiCard v-if="routeScores?.items?.length" size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed">Route Scores</h3>
+        </template>
+        <table class="w-full">
+          <thead>
+            <tr class="h-9 border-b border-default">
+              <th class="text-label text-dimmed text-left px-3">Path</th>
+              <th class="text-label text-dimmed text-right px-3 w-20">Score</th>
+              <th class="text-label text-dimmed text-right px-3 w-24">LCP</th>
+              <th class="text-label text-dimmed text-right px-3 w-20">CLS</th>
+              <th class="text-label text-dimmed text-right px-3 w-24">TBT</th>
+              <th class="text-label text-dimmed text-right px-3 w-24">INP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="r in routeScores.items.slice(0, 50)"
+              :key="r.url"
+              class="border-b border-default last:border-0 cursor-pointer hover:bg-muted/50"
+              @click="navigateTo(`/sites/${$route.params.siteId}/scans/${scanId}/route/${encodeURIComponent(r.path)}`)"
+            >
+              <td class="font-mono text-xs truncate max-w-sm px-3 py-2">{{ r.path }}</td>
+              <td class="text-right tabular-nums font-bold px-3 py-2" :class="scoreToColor(r.scorePerformance)">{{ scoreToLabel(r.scorePerformance) }}</td>
+              <td class="text-right tabular-nums text-xs px-3 py-2">{{ r.lcp != null ? formatMs(r.lcp) : '—' }}</td>
+              <td class="text-right tabular-nums text-xs px-3 py-2">{{ r.cls?.toFixed(3) ?? '—' }}</td>
+              <td class="text-right tabular-nums text-xs px-3 py-2">{{ r.tbt != null ? formatMs(r.tbt) : '—' }}</td>
+              <td class="text-right tabular-nums text-xs px-3 py-2">{{ r.inp != null ? formatMs(r.inp) : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </UiCard>
 
   </CategoryPageShell>
 </template>

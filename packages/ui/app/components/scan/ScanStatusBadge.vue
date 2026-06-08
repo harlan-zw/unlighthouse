@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
-
 const props = defineProps<{
   status: string
 }>()
 
+const color = computed(() => {
+  switch (props.status) {
+    case 'complete': return 'primary' as const
+    case 'error': return 'error' as const
+    default: return 'neutral' as const
+  }
+})
+
 const variant = computed(() => {
   switch (props.status) {
-    case 'complete': return 'default' as const
-    case 'scanning':
-    case 'discovering':
-    case 'starting': return 'secondary' as const
-    case 'error': return 'destructive' as const
+    case 'complete': return 'solid' as const
     case 'cancelled':
     case 'paused': return 'outline' as const
-    default: return 'outline' as const
+    default: return 'soft' as const
   }
 })
 
@@ -34,7 +36,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <Badge :variant="variant" class="text-xs">
+  <UBadge :color="color" :variant="variant" class="text-xs">
     {{ label }}
-  </Badge>
+  </UBadge>
 </template>
