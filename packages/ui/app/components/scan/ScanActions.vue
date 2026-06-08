@@ -1,16 +1,4 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
@@ -51,38 +39,29 @@ async function handleResume() {
 <template>
   <div class="flex items-center gap-2">
     <template v-if="store.isActive">
-      <Button v-if="store.status === 'scanning'" variant="outline" size="sm" @click="handlePause">
-        <Icon name="lucide:pause" class="size-4 mr-1" />
+      <UiButton v-if="store.status === 'scanning'" purpose="secondary" size="sm" icon="i-lucide-pause" @click="handlePause">
         Pause
-      </Button>
+      </UiButton>
 
-      <AlertDialog>
-        <AlertDialogTrigger as-child>
-          <Button variant="outline" size="sm">
-            <Icon name="lucide:x" class="size-4 mr-1" />
-            Cancel
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel scan?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will stop the current scan. Completed results will be preserved.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep scanning</AlertDialogCancel>
-            <AlertDialogAction @click="handleCancel">
-              Cancel scan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <UModal
+        title="Cancel scan?"
+        description="This will stop the current scan. Completed results will be preserved."
+      >
+        <UButton color="neutral" variant="outline" size="sm" icon="i-lucide-x" label="Cancel" />
+
+        <template #footer="{ close }">
+          <UiButton purpose="quiet" @click="close">
+            Keep scanning
+          </UiButton>
+          <UiButton purpose="danger" @click="() => { handleCancel(); close() }">
+            Cancel scan
+          </UiButton>
+        </template>
+      </UModal>
     </template>
 
-    <Button v-if="store.status === 'paused'" variant="outline" size="sm" @click="handleResume">
-      <Icon name="lucide:play" class="size-4 mr-1" />
+    <UiButton v-if="store.status === 'paused'" purpose="secondary" size="sm" icon="i-lucide-play" @click="handleResume">
       Resume
-    </Button>
+    </UiButton>
   </div>
 </template>

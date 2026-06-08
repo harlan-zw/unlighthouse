@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
@@ -30,19 +29,14 @@ const { fmtRelTime: ageLabel } = useFormat()
 </script>
 
 <template>
-  <Card v-if="store.recentRoutes.length">
-    <CardHeader class="pb-3">
-      <div class="flex items-center justify-between">
-        <CardTitle class="text-sm font-medium text-muted-foreground">
-          Live results
-        </CardTitle>
-        <span class="text-[10px] text-muted-foreground tabular-nums">
-          last {{ store.recentRoutes.length }}
-        </span>
-      </div>
-    </CardHeader>
-    <CardContent class="p-0">
-      <div class="divide-y max-h-80 overflow-y-auto">
+  <div v-if="store.recentRoutes.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-default">
+      <h3 class="text-label text-dimmed">Live results</h3>
+      <span class="text-[10px] text-muted-foreground tabular-nums">
+        last {{ store.recentRoutes.length }}
+      </span>
+    </div>
+    <div class="divide-y max-h-80 overflow-y-auto">
         <button
           v-for="r in store.recentRoutes"
           :key="r.url + r.timestamp"
@@ -63,6 +57,5 @@ const { fmtRelTime: ageLabel } = useFormat()
           </span>
         </button>
       </div>
-    </CardContent>
-  </Card>
+  </div>
 </template>
