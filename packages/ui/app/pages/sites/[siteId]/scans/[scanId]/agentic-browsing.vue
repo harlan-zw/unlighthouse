@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Accordion,
   AccordionContent,
@@ -51,58 +50,29 @@ function severityColor(severity: string) {
     loading-message="Loading agentic browsing data..."
   >
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card>
-        <CardContent class="pt-5 pb-4 text-center">
-          <div class="numerals-display text-2xl">
-            {{ report.routesAnalysed ?? 0 }}
-          </div>
-          <div class="text-xs text-muted-foreground">
-            Routes Analysed
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="pt-5 pb-4 text-center">
-          <div class="numerals-display text-2xl" :class="report.avgScore != null && report.avgScore >= 0.9 ? 'text-success' : report.avgScore >= 0.5 ? 'text-warning' : 'text-destructive'">
-            {{ report.avgScore != null ? Math.round(report.avgScore * 100) : '—' }}
-          </div>
-          <div class="text-xs text-muted-foreground">
-            Avg Score
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="pt-5 pb-4 text-center">
-          <Icon
-            :name="report.hasLlmsTxt ? 'lucide:check-circle' : 'lucide:x-circle'"
-            :class="report.hasLlmsTxt ? 'text-success' : 'text-destructive'"
-            class="size-6 mx-auto mb-1"
-          />
-          <div class="text-xs text-muted-foreground">
-            llms.txt
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="pt-5 pb-4 text-center">
-          <div class="numerals-display text-2xl">
-            {{ report.webmcp?.routesWithTools ?? 0 }}
-          </div>
-          <div class="text-xs text-muted-foreground">
-            Routes with Tools
-          </div>
-        </CardContent>
-      </Card>
+      <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
+        <div class="numerals-display text-2xl">{{ report.routesAnalysed ?? 0 }}</div>
+        <div class="text-xs text-muted-foreground">Routes Analysed</div>
+      </div>
+      <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
+        <div class="numerals-display text-2xl" :class="report.avgScore != null && report.avgScore >= 0.9 ? 'text-success' : report.avgScore >= 0.5 ? 'text-warning' : 'text-destructive'">{{ report.avgScore != null ? Math.round(report.avgScore * 100) : '—' }}</div>
+        <div class="text-xs text-muted-foreground">Avg Score</div>
+      </div>
+      <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
+        <Icon :name="report.hasLlmsTxt ? 'lucide:check-circle' : 'lucide:x-circle'" :class="report.hasLlmsTxt ? 'text-success' : 'text-destructive'" class="size-6 mx-auto mb-1" />
+        <div class="text-xs text-muted-foreground">llms.txt</div>
+      </div>
+      <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
+        <div class="numerals-display text-2xl">{{ report.webmcp?.routesWithTools ?? 0 }}</div>
+        <div class="text-xs text-muted-foreground">Routes with Tools</div>
+      </div>
     </div>
 
-    <Card v-if="report.webmcp">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-sm font-medium text-muted-foreground">
-          WebMCP
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <UiCard v-if="report.webmcp" size="sm">
+      <template #header>
+        <h3 class="text-label text-dimmed">WebMCP</h3>
+      </template>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="p-3 border rounded-lg text-center">
             <Icon
               :name="report.webmcp.hasRegisteredTools ? 'lucide:check-circle' : 'lucide:x-circle'"
@@ -140,19 +110,17 @@ function severityColor(severity: string) {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </UiCard>
 
-    <Card v-if="report.findings?.length">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
+    <UiCard v-if="report.findings?.length" size="sm">
+      <template #header>
+        <h3 class="text-label text-dimmed flex items-center gap-2">
           Audit Findings
           <UBadge color="neutral" variant="soft" class="text-xs">
             {{ report.findings.length }}
           </UBadge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </h3>
+      </template>
         <Accordion type="multiple" class="w-full">
           <AccordionItem v-for="finding in report.findings" :key="finding.auditId" :value="finding.auditId">
             <AccordionTrigger class="text-sm">
@@ -182,8 +150,7 @@ function severityColor(severity: string) {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </CardContent>
-    </Card>
+    </UiCard>
 
     <div v-if="!report.findings?.length" class="text-center py-12 text-muted-foreground">
       No agentic browsing issues found.
