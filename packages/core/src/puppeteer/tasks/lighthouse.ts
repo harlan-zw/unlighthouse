@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { computeMedianRun } from 'lighthouse/core/lib/median-run.js'
+import { ReportGenerator } from 'lighthouse/report/generator/report-generator.js'
 import { map, pick, sumBy } from 'lodash-es'
 import { normalize, relative } from 'pathe'
 import { withQuery } from 'ufo'
@@ -92,6 +93,20 @@ export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result
   }
 }
 
+/**
+ * Render the `lighthouse.html` and `lighthouse.json` artifacts from a single lighthouse result.
+ *
+ * The worker process writes both artifacts once per sample run, leaving the last run on disk. When
+ * sampling, the dashboard column renders the median run instead, so the detailed report and the
+ * column drift apart. Regenerating both artifacts from the same chosen result keeps them in sync. (#376)
+ */
+export function generateReportArtifacts(report: Result): { html: string, json: string } {
+  return {
+    html: ReportGenerator.generateReport(report, 'html') as string,
+    json: ReportGenerator.generateReport(report, 'json') as string,
+  }
+}
+
 export const runLighthouseTask: PuppeteerTask = async (props) => {
   const logger = useLogger()
   const { resolvedConfig, runtimeSettings } = useUnlighthouse()
@@ -176,6 +191,11 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
     catch (e) {
       logger.warn('Error when computing median score, possibly audit failed.', e)
     }
+    // the on-disk artifacts reflect the last sample run, but we display `report` (the median run);
+    // regenerate them from `report` so the detailed report matches the dashboard column. (#376)
+    const { html, json } = generateReportArtifacts(report)
+    await writeFile(join(routeReport.artifactPath, ReportArtifacts.reportHtml), html)
+    await writeFile(reportJsonPath, json)
   }
 
   // we need to export all base64 data to improve the stability of the client
