@@ -6,26 +6,7 @@
 // Google's good/needs-work/poor thresholds; screenshot thumbs, device split,
 // column visibility, density and a sticky header round it out.
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import { toast } from 'vue-sonner'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useScanStore } from '~/stores/scan'
 
 const router = useRouter()
@@ -206,6 +187,19 @@ async function rescanRoute(r: RouteRow) {
 
 const density = ref<'comfortable' | 'compact'>('comfortable')
 const tableRef = ref<{ table: any } | null>(null)
+
+// Column-toggle dropdown items for UDropdownMenu's data-driven :items API —
+// a label-header group + a checkbox per leaf column.
+const columnToggleItems = computed(() => [
+  [{ label: 'Toggle columns', type: 'label' as const }],
+  (tableRef.value?.table?.getAllLeafColumns() ?? []).map((col: any) => ({
+    label: colLabels[col.id] ?? col.id,
+    type: 'checkbox' as const,
+    checked: col.getIsVisible(),
+    onUpdateChecked: () => col.toggleVisibility(),
+    onSelect: (e: Event) => e.preventDefault(),
+  })),
+])
 const colLabels: Record<string, string> = {
   thumbnail: 'Thumbnail',
   path: 'Path',
@@ -377,10 +371,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
 
     <!-- Toolbar -->
     <div class="flex items-center gap-3 flex-wrap">
-      <div class="relative flex-1 max-w-xs min-w-[180px]">
-        <Icon name="lucide:search" class="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-        <Input v-model="q" placeholder="Filter by URL..." class="pl-8" />
-      </div>
+      <UInput v-model="q" icon="i-lucide-search" placeholder="Filter by URL..." class="flex-1 max-w-xs min-w-[180px]" />
 
       <!-- Quick filters -->
       <div class="flex items-center rounded-md border p-0.5">
@@ -396,61 +387,35 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         </button>
       </div>
 
-      <Badge variant="secondary" class="text-xs tabular-nums">
+      <UBadge color="neutral" variant="soft" class="text-xs tabular-nums">
         {{ filtered.length }}<span v-if="filtered.length !== total" class="text-muted-foreground/70"> / {{ total }}</span>
-      </Badge>
+      </UBadge>
 
       <div class="flex-1" />
 
-      <Select v-if="hasMultipleDevices" v-model="deviceFilter">
-        <SelectTrigger class="w-36">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Devices</SelectItem>
-          <SelectItem value="mobile">
-            <div class="flex items-center gap-1.5">
-              <Icon name="lucide:smartphone" class="size-3.5" /> Mobile
-            </div>
-          </SelectItem>
-          <SelectItem value="desktop">
-            <div class="flex items-center gap-1.5">
-              <Icon name="lucide:monitor" class="size-3.5" /> Desktop
-            </div>
-          </SelectItem>
-        </SelectContent>
-      </Select>
+      <USelect
+        v-if="hasMultipleDevices"
+        v-model="deviceFilter"
+        :items="[
+          { label: 'All Devices', value: 'all' },
+          { label: 'Mobile', value: 'mobile', icon: 'i-lucide-smartphone' },
+          { label: 'Desktop', value: 'desktop', icon: 'i-lucide-monitor' },
+        ]"
+        class="w-36"
+      />
 
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <Button variant="outline" size="sm">
-            <Icon name="lucide:columns-3" class="size-4 mr-1.5" />
-            Columns
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" class="w-44">
-          <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuCheckboxItem
-            v-for="col in (tableRef?.table?.getAllLeafColumns() ?? [])"
-            :key="col.id"
-            :model-value="col.getIsVisible()"
-            @update:model-value="col.toggleVisibility()"
-            @select="(e: Event) => e.preventDefault()"
-          >
-            {{ colLabels[col.id] ?? col.id }}
-          </DropdownMenuCheckboxItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <UDropdownMenu :items="columnToggleItems" :content="{ align: 'end' }" :ui="{ content: 'w-44' }">
+        <UButton color="neutral" variant="outline" size="sm" icon="i-lucide-columns-3" label="Columns" />
+      </UDropdownMenu>
 
-      <Button
+      <UButton
+        color="neutral"
         variant="outline"
         size="sm"
         :title="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
+        :icon="density === 'compact' ? 'i-lucide-rows-3' : 'i-lucide-rows-2'"
         @click="density = density === 'compact' ? 'comfortable' : 'compact'"
-      >
-        <Icon :name="density === 'compact' ? 'lucide:rows-3' : 'lucide:rows-2'" class="size-4" />
-      </Button>
+      />
     </div>
 
     <DataTable
@@ -465,34 +430,18 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       @row-click="openRoute"
     >
       <template #actions="{ row }">
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="sm" class="size-7 p-0 text-muted-foreground hover:text-foreground" @click.stop>
-              <Icon name="lucide:ellipsis" class="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" @click.stop>
-            <DropdownMenuItem @click="openRoute(row)">
-              <Icon name="lucide:bar-chart-3" class="size-4" />
-              View details
-            </DropdownMenuItem>
-            <DropdownMenuItem as-child>
-              <a :href="row.url" target="_blank" rel="noopener">
-                <Icon name="lucide:external-link" class="size-4" />
-                Open page
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem @click="copyRouteUrl(row)">
-              <Icon name="lucide:copy" class="size-4" />
-              Copy URL
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem @click="rescanRoute(row)">
-              <Icon name="lucide:refresh-cw" class="size-4" />
-              Rescan route
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <UDropdownMenu
+          :items="[
+            { label: 'View details', icon: 'i-lucide-bar-chart-3', onSelect: () => openRoute(row) },
+            { label: 'Open page', icon: 'i-lucide-external-link', to: row.url, target: '_blank' },
+            { label: 'Copy URL', icon: 'i-lucide-copy', onSelect: () => copyRouteUrl(row) },
+            { type: 'separator' },
+            { label: 'Rescan route', icon: 'i-lucide-refresh-cw', onSelect: () => rescanRoute(row) },
+          ]"
+          :content="{ align: 'end' }"
+        >
+          <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-ellipsis" class="size-7 p-0" @click.stop />
+        </UDropdownMenu>
       </template>
 
       <template #empty>
