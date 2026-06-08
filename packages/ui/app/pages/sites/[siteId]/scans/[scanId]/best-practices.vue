@@ -1,13 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 
 definePageMeta({ layout: 'scan' })
 
@@ -136,17 +127,16 @@ const hasData = computed(() =>
     <PackFindings :findings="findings" title="Best Practices Issues" />
 
     <!-- JS Bundle Analysis -->
-    <Card v-if="bundleReport?.findings?.length">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
+    <UiCard v-if="bundleReport?.findings?.length" size="sm">
+      <template #header>
+        <h3 class="text-label text-dimmed flex items-center gap-2">
           JS Bundle Issues
           <UBadge color="neutral" variant="soft" class="text-xs">
             {{ bundleReport.findings.length }}
           </UBadge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="space-y-3">
+        </h3>
+      </template>
+      <div class="space-y-3">
           <div v-for="(finding, idx) in bundleReport.findings" :key="`${finding.kind}-${finding.resource}-${idx}`" class="p-3 border rounded-lg">
             <div class="flex items-center justify-between gap-3">
               <div class="min-w-0">
@@ -172,38 +162,27 @@ const hasData = computed(() =>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </UiCard>
 
     <!-- Route Scores -->
-    <Card v-if="routeScores?.items?.length">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-sm font-medium text-muted-foreground">
-          Route Scores
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Path</TableHead>
-              <TableHead class="w-28 text-right">
-                Best Practices
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="r in routeScores.items.slice(0, 50)" :key="r.url">
-              <TableCell class="font-mono text-xs truncate max-w-sm" :title="r.url">
-                {{ r.path }}
-              </TableCell>
-              <TableCell class="text-right tabular-nums font-bold" :class="scoreToColor(r.scoreBestPractices)">
-                {{ scoreToLabel(r.scoreBestPractices) }}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <UiCard v-if="routeScores?.items?.length" size="sm">
+      <template #header>
+        <h3 class="text-label text-dimmed">Route Scores</h3>
+      </template>
+      <table class="w-full">
+        <thead>
+          <tr class="h-9 border-b border-default">
+            <th class="text-label text-dimmed text-left px-3">Path</th>
+            <th class="text-label text-dimmed text-right px-3 w-28">Best Practices</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="r in routeScores.items.slice(0, 50)" :key="r.url" class="border-b border-default last:border-0">
+            <td class="font-mono text-xs truncate max-w-sm px-3 py-2" :title="r.url">{{ r.path }}</td>
+            <td class="text-right tabular-nums font-bold px-3 py-2" :class="scoreToColor(r.scoreBestPractices)">{{ scoreToLabel(r.scoreBestPractices) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </UiCard>
   </CategoryPageShell>
 </template>
