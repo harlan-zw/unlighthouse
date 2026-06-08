@@ -1,16 +1,4 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
@@ -129,26 +117,24 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <Card>
-    <CardContent class="pt-6">
+  <UiCard>
       <form class="space-y-5" @submit.prevent="handleSubmit">
-        <div class="space-y-2">
-          <Label for="site-url">Site URL</Label>
-          <Input
+        <UFormField label="Site URL">
+          <UInput
             id="site-url"
             v-model="siteUrl"
             placeholder="https://example.com"
             required
             autofocus
-            class="font-mono"
+            class="w-full font-mono"
           />
-          <p class="text-xs text-muted-foreground">
+          <template #help>
             {{ scanMode === 'site' ? 'All pages will be discovered via sitemap and crawling.' : 'Only this single URL will be audited.' }}
-          </p>
-        </div>
+          </template>
+        </UFormField>
 
         <div class="space-y-2">
-          <Label>Scan Mode</Label>
+          <div class="text-sm font-medium">Scan Mode</div>
           <div class="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -177,62 +163,47 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <div class="space-y-2">
-          <Label for="device">Device</Label>
-          <Select v-model="device">
-            <SelectTrigger id="device" class="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mobile">
-                <div class="flex items-center gap-2">
-                  <Icon name="lucide:smartphone" class="size-4" />
-                  Mobile
-                </div>
-              </SelectItem>
-              <SelectItem value="desktop">
-                <div class="flex items-center gap-2">
-                  <Icon name="lucide:monitor" class="size-4" />
-                  Desktop
-                </div>
-              </SelectItem>
-              <SelectItem value="both">
-                <div class="flex items-center gap-2">
-                  <Icon name="lucide:smartphone" class="size-4" />
-                  <Icon name="lucide:monitor" class="size-4 -ml-1" />
-                  Both
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <UFormField label="Device">
+          <USelect
+            v-model="device"
+            :items="[
+              { label: 'Mobile', value: 'mobile', icon: 'i-lucide-smartphone' },
+              { label: 'Desktop', value: 'desktop', icon: 'i-lucide-monitor' },
+              { label: 'Both', value: 'both', icon: 'i-lucide-smartphone' },
+            ]"
+            class="w-full"
+          />
+        </UFormField>
 
-        <Collapsible v-model:open="advancedOpen">
-          <CollapsibleTrigger class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground group w-full">
+        <div>
+          <button
+            type="button"
+            class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground group w-full"
+            @click="advancedOpen = !advancedOpen"
+          >
             <Icon name="lucide:chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
             Advanced
             <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-label text-primary">customized</span>
-          </CollapsibleTrigger>
-          <CollapsibleContent class="space-y-5 pt-4 pl-6">
-            <div class="space-y-2">
-              <Label for="sample-size">Sample size</Label>
-              <Select :model-value="String(sampleSize)" @update:model-value="(v) => sampleSize = Number(v)">
-                <SelectTrigger id="sample-size" class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 run (fastest)</SelectItem>
-                  <SelectItem value="3">3 runs (median)</SelectItem>
-                  <SelectItem value="5">5 runs (most stable)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p class="text-[11px] text-muted-foreground">
+          </button>
+          <div v-show="advancedOpen" class="space-y-5 pt-4 pl-6">
+            <UFormField label="Sample size">
+              <USelect
+                :model-value="String(sampleSize)"
+                :items="[
+                  { label: '1 run (fastest)', value: '1' },
+                  { label: '3 runs (median)', value: '3' },
+                  { label: '5 runs (most stable)', value: '5' },
+                ]"
+                class="w-full"
+                @update:model-value="(v) => sampleSize = Number(v)"
+              />
+              <template #help>
                 Lighthouse runs N times per URL and takes the median. Higher = more stable CWV but ~Nx slower.
-              </p>
-            </div>
+              </template>
+            </UFormField>
 
             <div class="space-y-2">
-              <Label>Categories</Label>
+              <div class="text-sm font-medium">Categories</div>
               <div class="grid grid-cols-2 gap-2">
                 <button
                   v-for="cat in allCategories"
@@ -251,30 +222,27 @@ async function handleSubmit() {
             </div>
 
             <div class="space-y-2">
-              <Label>CI build metadata</Label>
+              <div class="text-sm font-medium">CI build metadata</div>
               <div class="grid grid-cols-2 gap-2">
-                <Input v-model="ciBranch" placeholder="branch" class="font-mono text-xs" />
-                <Input v-model="ciHash" placeholder="commit hash" class="font-mono text-xs" />
+                <UInput v-model="ciBranch" placeholder="branch" class="font-mono text-xs" />
+                <UInput v-model="ciHash" placeholder="commit hash" class="font-mono text-xs" />
               </div>
-              <Input v-model="ciMessage" placeholder="commit message (optional)" class="text-xs" />
+              <UInput v-model="ciMessage" placeholder="commit message (optional)" class="w-full text-xs" />
               <p class="text-[11px] text-muted-foreground">
                 Pin this scan to a deploy. Compare against previous scans on the same branch via the compare page.
               </p>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+          </div>
+        </div>
 
         <div class="flex items-center gap-3 pt-2">
-          <Button type="submit" :disabled="loading || !siteUrl.trim()" class="flex-1 sm:flex-none">
-            <Icon v-if="loading" name="lucide:loader-2" class="size-4 mr-2 animate-spin" />
-            <Icon v-else name="lucide:radar" class="size-4 mr-2" />
+          <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading || !siteUrl.trim()" icon="i-lucide-radar" class="flex-1 sm:flex-none">
             Start Scan
-          </Button>
-          <Button v-if="!hideCancel" type="button" variant="outline" @click="router.push(cancelTo)">
+          </UiButton>
+          <UiButton v-if="!hideCancel" type="button" purpose="secondary" @click="router.push(cancelTo)">
             Cancel
-          </Button>
+          </UiButton>
         </div>
       </form>
-    </CardContent>
-  </Card>
+  </UiCard>
 </template>
