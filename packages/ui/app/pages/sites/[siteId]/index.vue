@@ -2,9 +2,6 @@
 import type { TrendMarker, TrendSeries } from '@/components/TrendChart.vue'
 import type { DevicePair, ScanRow } from '@/components/site/types'
 import { toast } from 'vue-sonner'
-import { Switch } from '@/components/ui/switch'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 definePageMeta({ layout: 'site' })
 
@@ -221,41 +218,43 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div v-if="hasBoth" class="flex items-center gap-2">
           <span class="text-xs text-muted-foreground">Trends for</span>
-          <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
-            <ToggleGroupItem value="mobile" class="text-xs">
-              <Icon name="lucide:smartphone" class="size-3.5 mr-1" /> Mobile
-            </ToggleGroupItem>
-            <ToggleGroupItem value="desktop" class="text-xs">
-              <Icon name="lucide:monitor" class="size-3.5 mr-1" /> Desktop
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <UTabs
+            v-model="deviceFilter"
+            :content="false"
+            size="sm"
+            :items="[
+              { value: 'mobile', label: 'Mobile', icon: 'i-lucide-smartphone' },
+              { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+            ]"
+          />
         </div>
         <div v-else />
-        <label v-if="hasReleases" class="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-          <Switch :model-value="showReleases" @update:model-value="(v: boolean) => showReleases = v" />
-          Show releases
-        </label>
+        <USwitch
+          v-if="hasReleases"
+          :model-value="showReleases"
+          label="Show releases"
+          @update:model-value="(v: boolean) => showReleases = v"
+        />
       </div>
 
       <!-- Score trend -->
-      <Card>
-        <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Category scores over time</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <UiCard size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed">Category scores over time</h3>
+        </template>
           <TrendChart :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
-        </CardContent>
-      </Card>
+      </UiCard>
 
       <!-- Web vitals trend -->
-      <Card>
-        <CardHeader class="pb-2 flex flex-row items-center justify-between">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Core Web Vitals (p75) over time</CardTitle>
-          <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted-foreground inline-flex items-center gap-1">
-            <Icon name="lucide:loader-2" class="size-3.5 animate-spin" /> loading vitals…
-          </span>
-        </CardHeader>
-        <CardContent>
+      <UiCard size="sm">
+        <template #header>
+          <div class="flex flex-row items-center justify-between">
+            <h3 class="text-label text-dimmed">Core Web Vitals (p75) over time</h3>
+            <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted-foreground inline-flex items-center gap-1">
+              <Icon name="lucide:loader-2" class="size-3.5 animate-spin" /> loading vitals…
+            </span>
+          </div>
+        </template>
           <div class="grid gap-6 lg:grid-cols-3">
             <div v-for="m in VITALS" :key="m.key">
               <div class="text-xs font-medium mb-1" :style="{ color: m.color }">{{ m.label }}</div>
@@ -269,8 +268,7 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </UiCard>
 
       <!-- Scan history -->
       <div>
