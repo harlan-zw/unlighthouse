@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import type { CruxData } from '@unlighthouse/contracts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 definePageMeta({ layout: 'scan' })
 
@@ -79,30 +76,26 @@ function latestValue(entries: Array<{ value: number }>) {
         Origin: <span class="font-medium text-foreground">{{ data.hostname }}</span>
       </div>
 
-      <Tabs v-model="activeDevice" class="w-full">
-        <TabsList>
-          <TabsTrigger value="phone">
-            <Icon name="lucide:smartphone" class="size-4 mr-1.5" />
-            Phone
-          </TabsTrigger>
-          <TabsTrigger value="desktop">
-            <Icon name="lucide:monitor" class="size-4 mr-1.5" />
-            Desktop
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <UTabs
+        v-model="activeDevice"
+        :content="false"
+        :items="[
+          { value: 'phone', label: 'Phone', icon: 'i-lucide-smartphone' },
+          { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+        ]"
+        class="w-full"
+      />
 
       <div class="grid gap-4 lg:grid-cols-3">
-        <Card v-for="m in metrics" :key="m.key">
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium text-muted-foreground">{{ m.label }}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <UiCard v-for="m in metrics" :key="m.key" size="sm">
+          <template #header>
+            <h3 class="text-label text-dimmed">{{ m.label }}</h3>
+          </template>
             <template v-if="getDeviceData(data)[m.key].length">
               <!-- Current value -->
               <div class="mb-4">
                 <div
-                  class="text-3xl font-bold tabular-nums"
+                  class="numerals-display text-3xl"
                   :class="metricColor(latestValue(getDeviceData(data)[m.key])!, m.good, m.poor)"
                 >
                   {{ formatValue(latestValue(getDeviceData(data)[m.key])!, m.unit) }}
@@ -152,8 +145,7 @@ function latestValue(entries: Array<{ value: number }>) {
             <div v-else class="text-sm text-muted-foreground py-4 text-center">
               No data
             </div>
-          </CardContent>
-        </Card>
+        </UiCard>
       </div>
     </template>
   </div>
