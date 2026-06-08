@@ -2,10 +2,6 @@
 import type { ScanId } from '@unlighthouse/contracts'
 import type { DevicePair, ScanRow } from '@/components/site/types'
 import { toast } from 'vue-sonner'
-import { Card, CardContent } from '@/components/ui/card'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
 
 definePageMeta({ layout: 'root' })
 
@@ -138,50 +134,47 @@ async function deleteScan(scanId: string) {
     </PageHeader>
 
     <!-- Search bar — site URL, hostname, scanId, or CI commit hash all match. -->
-    <div v-if="groups.length" class="relative max-w-md">
-      <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-      <Input v-model="searchQuery" placeholder="Filter by site, scanId, or commit..." class="pl-8" />
-      <button
-        v-if="searchQuery"
-        type="button"
-        aria-label="Clear search"
-        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-        @click="searchQuery = ''"
-      >
-        <Icon name="lucide:x" class="size-4" />
-      </button>
-    </div>
+    <UInput
+      v-if="groups.length"
+      v-model="searchQuery"
+      icon="i-lucide-search"
+      placeholder="Filter by site, scanId, or commit..."
+      class="max-w-md w-full"
+    >
+      <template v-if="searchQuery" #trailing>
+        <UButton color="neutral" variant="link" size="sm" icon="i-lucide-x" aria-label="Clear search" @click="searchQuery = ''" />
+      </template>
+    </UInput>
 
     <div v-if="status === 'pending'" class="space-y-3">
-      <Skeleton v-for="i in 3" :key="i" class="h-32 w-full" />
+      <USkeleton v-for="i in 3" :key="i" class="h-32 w-full" />
     </div>
 
-    <Card v-else-if="!groups.length">
-      <CardContent class="flex flex-col items-center justify-center py-16 text-center">
-        <Icon name="lucide:history" class="size-12 text-muted-foreground/50 mb-4" />
-        <p class="text-muted-foreground">
-          No scan history yet.
-        </p>
-      </CardContent>
-    </Card>
+    <div v-else-if="!groups.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 flex flex-col items-center justify-center py-16 text-center">
+      <Icon name="lucide:history" class="size-12 text-muted-foreground/50 mb-4" />
+      <p class="text-muted-foreground">
+        No scan history yet.
+      </p>
+    </div>
 
-    <Card v-else-if="!filteredGroups.length">
-      <CardContent class="flex flex-col items-center justify-center py-12 text-center">
-        <Icon name="lucide:search-x" class="size-10 text-muted-foreground/50 mb-3" />
-        <p class="text-sm text-muted-foreground">
-          No scans match "{{ searchQuery }}".
-        </p>
-      </CardContent>
-    </Card>
+    <div v-else-if="!filteredGroups.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 flex flex-col items-center justify-center py-12 text-center">
+      <Icon name="lucide:search-x" class="size-10 text-muted-foreground/50 mb-3" />
+      <p class="text-sm text-muted-foreground">
+        No scans match "{{ searchQuery }}".
+      </p>
+    </div>
 
-    <Collapsible
+    <div
       v-for="group in filteredGroups"
       v-else
       :key="group.site"
-      v-model:open="expanded[group.site]"
-      class="rounded-md border bg-card overflow-hidden"
+      class="rounded-xl border border-default bg-default overflow-hidden"
     >
-      <CollapsibleTrigger class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors">
+      <button
+        type="button"
+        class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+        @click="expanded[group.site] = !expanded[group.site]"
+      >
         <Icon
           name="lucide:chevron-right"
           class="size-4 text-muted-foreground transition-transform shrink-0"
@@ -201,16 +194,16 @@ async function deleteScan(scanId: string) {
         <span class="text-xs text-muted-foreground tabular-nums shrink-0">
           latest {{ relTime(group.latestStartedAt) }}
         </span>
-      </CollapsibleTrigger>
+      </button>
 
-      <CollapsibleContent class="border-t">
+      <div v-show="expanded[group.site]" class="border-t border-default">
         <SiteHistoryTable
           :pairs="group.pairs"
           @rescan="rescanFromHistory"
           @delete="deleteScan"
           @open="(pair) => router.push(`/sites/${siteSlug((pair.mobile ?? pair.desktop)?.site ?? '')}/scans/${primaryScanId(pair)}/routes`)"
         />
-      </CollapsibleContent>
-    </Collapsible>
+      </div>
+    </div>
   </div>
 </template>
