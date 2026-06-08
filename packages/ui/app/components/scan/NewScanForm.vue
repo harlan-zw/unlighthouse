@@ -97,13 +97,16 @@ async function handleSubmit() {
       ciBuild,
     })
     toast.success('Scan started', { description: url })
-    router.push(`/sites/${siteSlug(url)}/scans/${result.scanId}/routes`)
+    // Land on the scan overview — that's where ScanProgress (live terminal)
+    // + LiveResults render while the scan is running. /routes only shows the
+    // (empty until done) results table, not the live progress.
+    router.push(`/sites/${siteSlug(url)}/scans/${result.scanId}/overview`)
   }
   catch (err: any) {
     if (err.name === 'ACTIVE_SCAN_CONFLICT') {
       toast.error('A scan is already running')
       if (store.scanId) {
-        router.push(`/sites/${siteSlug(store.site || url)}/scans/${store.scanId}/routes`)
+        router.push(`/sites/${siteSlug(store.site || url)}/scans/${store.scanId}/overview`)
       }
     }
     else {

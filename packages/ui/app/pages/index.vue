@@ -214,7 +214,7 @@ function openScan(s: ScanRow) {
     </PageHeader>
 
     <!-- Active scan banner -->
-    <div v-if="store.isActive" class="rounded-xl border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/routes`)">
+    <div v-if="store.isActive" class="rounded-xl border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/overview`)">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="relative flex size-2">

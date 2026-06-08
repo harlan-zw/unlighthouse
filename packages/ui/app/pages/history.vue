@@ -100,7 +100,7 @@ async function rescanFromHistory(scanId: string) {
   try {
     const result = await api['history.rescan']({ scanId: scanId as ScanId })
     toast.success('Rescan started')
-    router.push(`/scan/${result.scanId}/routes`)
+    router.push(`/scan/${result.scanId}/overview`)
   }
   catch (err: any) {
     toast.error('Rescan failed', { description: err.message })

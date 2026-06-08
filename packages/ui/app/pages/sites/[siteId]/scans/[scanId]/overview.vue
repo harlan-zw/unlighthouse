@@ -77,7 +77,7 @@ async function handleRescanAll() {
   try {
     const result = await api['scan.rescanAll']({ scanId: scanId.value })
     toast.success('Rescan started')
-    router.push(`/sites/${route.params.siteId}/scans/${result.scanId}/routes`)
+    router.push(`/sites/${route.params.siteId}/scans/${result.scanId}/overview`)
   }
   catch (err: any) {
     toast.error('Rescan failed', { description: err.message })
