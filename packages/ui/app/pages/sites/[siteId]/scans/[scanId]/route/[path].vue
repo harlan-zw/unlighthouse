@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { toast } from 'vue-sonner'
 
 definePageMeta({ layout: 'scan' })
@@ -214,10 +207,10 @@ function metricColor(label: string, value: number | null | undefined): string {
   return 'text-destructive'
 }
 
-function severityColor(severity: string): 'destructive' | 'secondary' | 'outline' {
-  if (severity === 'fail') return 'destructive'
-  if (severity === 'warn') return 'secondary'
-  return 'outline'
+function severityColor(severity: string): 'error' | 'warning' | 'neutral' {
+  if (severity === 'fail') return 'error'
+  if (severity === 'warn') return 'warning'
+  return 'neutral'
 }
 
 function renderMarkdownLinks(text: string): string {
@@ -265,20 +258,15 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <Button
+          <a
             v-if="routeData.route?.lhrBlobKey"
-            variant="outline"
-            size="sm"
-            as-child
+            :href="`${baseUrl}/dashboard/lhr/${scanId}/${encodeURIComponent(routeData.route?.path || routePath)}${deviceFilter ? `?device=${deviceFilter}` : ''}`"
+            :download="`${scanId}-${routeData.route?.device || 'mobile'}.lhr.json`"
+            class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
           >
-            <a
-              :href="`${baseUrl}/dashboard/lhr/${scanId}/${encodeURIComponent(routeData.route?.path || routePath)}${deviceFilter ? `?device=${deviceFilter}` : ''}`"
-              :download="`${scanId}-${routeData.route?.device || 'mobile'}.lhr.json`"
-            >
-              <Icon name="lucide:download" class="size-4 mr-1" />
-              Raw LHR
-            </a>
-          </Button>
+            <Icon name="lucide:download" class="size-4" />
+            Raw LHR
+          </a>
           <UiButton purpose="secondary" size="sm" :loading="rescanning" icon="i-lucide-refresh-cw" @click="rescanRoute">Rescan</UiButton>
         </div>
       </div>
@@ -289,37 +277,37 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
            displayed scores/audits/screenshot in place. -->
       <div v-if="hasMultipleDevices" class="flex items-center gap-2">
         <span class="text-xs text-muted-foreground">View as</span>
-        <ToggleGroup v-model="deviceFilter" type="single" size="sm" variant="outline">
-          <ToggleGroupItem v-for="d in availableDevices" :key="d" :value="d" class="text-xs">
-            <Icon :name="d === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5 mr-1" />
-            {{ d.charAt(0).toUpperCase() + d.slice(1) }}
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <UTabs
+          v-model="deviceFilter"
+          :content="false"
+          size="sm"
+          :items="availableDevices.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1), icon: d === 'mobile' ? 'i-lucide-smartphone' : 'i-lucide-monitor' }))"
+        />
       </div>
 
       <!-- Visual — full-page screenshot captured by the audit worker
            (core.ts:521). Endpoint 404s when no blob exists; we just
            hide the whole card so we don't show a broken image marker. -->
-      <Card v-if="screenshotVisible">
-        <CardHeader class="pb-2 flex flex-row items-center justify-between">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Visual</CardTitle>
-          <a
-            :href="screenshotUrl(scanId, routeData.route?.path || routePath)"
-            target="_blank"
-            rel="noopener"
-            class="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-          >Open full size <Icon name="lucide:external-link" class="size-3" /></a>
-        </CardHeader>
-        <CardContent>
-          <img
-            :src="screenshotUrl(scanId, routeData.route?.path || routePath)"
-            loading="lazy"
-            alt="Page screenshot"
-            class="w-full max-w-3xl max-h-[600px] object-contain object-top rounded border bg-muted mx-auto"
-            @error="screenshotVisible = false"
-          >
-        </CardContent>
-      </Card>
+      <UiCard v-if="screenshotVisible" size="sm">
+        <template #header>
+          <div class="flex flex-row items-center justify-between">
+            <h3 class="text-label text-dimmed">Visual</h3>
+            <a
+              :href="screenshotUrl(scanId, routeData.route?.path || routePath)"
+              target="_blank"
+              rel="noopener"
+              class="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+            >Open full size <Icon name="lucide:external-link" class="size-3" /></a>
+          </div>
+        </template>
+        <img
+          :src="screenshotUrl(scanId, routeData.route?.path || routePath)"
+          loading="lazy"
+          alt="Page screenshot"
+          class="w-full max-w-3xl max-h-[600px] object-contain object-top rounded border bg-muted mx-auto"
+          @error="screenshotVisible = false"
+        >
+      </UiCard>
 
       <!-- Runtime Error -->
       <div v-if="routeData.provenance?.runtimeError" class="border border-destructive/30 bg-destructive/5 rounded-lg p-4">
@@ -343,25 +331,22 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
 
       <!-- Category Scores -->
       <div class="grid grid-cols-2" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'" style="gap: 1rem;">
-        <Card v-for="s in scores" :key="s.id">
-          <CardContent class="pt-5 pb-4 flex items-center gap-4">
-            <ScoreRing :score="s.score" size="md" />
-            <div>
-              <div class="text-sm font-medium">{{ s.label }}</div>
-              <div class="numerals-display text-2xl" :style="{ color: scoreToRingColor(s.score) }">
-                {{ scoreToLabel(s.score) }}
-              </div>
+        <div v-for="s in scores" :key="s.id" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4">
+          <ScoreRing :score="s.score" size="md" />
+          <div>
+            <div class="text-sm font-medium">{{ s.label }}</div>
+            <div class="numerals-display text-2xl" :style="{ color: scoreToRingColor(s.score) }">
+              {{ scoreToLabel(s.score) }}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <!-- Core Web Vitals -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Core Web Vitals & Metrics</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <UiCard size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed">Core Web Vitals &amp; Metrics</h3>
+        </template>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
             <div v-for="m in metrics" :key="m.label" class="rounded-lg border p-4 text-center">
               <div class="text-xs text-muted-foreground mb-1">{{ m.label }}</div>
@@ -371,51 +356,49 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
               <div class="text-[10px] text-muted-foreground/60 mt-1">{{ m.description }}</div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </UiCard>
 
       <!-- Category Sections -->
       <template v-for="cat in categoryAudits" :key="cat.id">
-        <Card>
-          <CardHeader class="pb-3">
+        <UiCard size="sm">
+          <template #header>
             <div class="flex items-center justify-between">
-              <CardTitle class="flex items-center gap-2 text-base">
+              <h3 class="text-heading text-default flex items-center gap-2">
                 <Icon :name="cat.icon" class="size-4" />
                 {{ cat.label }}
-              </CardTitle>
+              </h3>
               <div class="flex items-center gap-2">
-                <Badge v-if="cat.failing.length" variant="destructive" class="text-xs">
+                <UBadge v-if="cat.failing.length" color="error" variant="soft" class="text-xs">
                   {{ cat.failing.length }} failing
-                </Badge>
-                <Badge v-if="cat.passing.length" variant="outline" class="text-xs text-success">
+                </UBadge>
+                <UBadge v-if="cat.passing.length" color="neutral" variant="outline" class="text-xs text-success">
                   {{ cat.passing.length }} passed
-                </Badge>
+                </UBadge>
               </div>
             </div>
-          </CardHeader>
-          <CardContent class="space-y-4">
+          </template>
+          <div class="space-y-4">
             <!-- Failing audits -->
-            <Accordion v-if="cat.failing.length" type="multiple" class="w-full">
-              <AccordionItem v-for="audit in cat.failing" :key="audit.id" :value="audit.id">
-                <AccordionTrigger class="text-sm">
-                  <div class="flex items-center gap-2 text-left">
-                    <Badge :variant="severityColor(audit.severity)" class="text-[10px] w-10 justify-center shrink-0">
+            <UAccordion v-if="cat.failing.length" :items="cat.failing.map((a: any) => ({ ...a, value: a.id }))" type="multiple" class="w-full">
+              <template #default="{ item: audit }">
+                  <div class="flex items-center gap-2 text-left text-sm">
+                    <UBadge :color="severityColor(audit.severity)" variant="soft" class="text-[10px] w-10 justify-center shrink-0">
                       {{ audit.severity }}
-                    </Badge>
+                    </UBadge>
                     <span>{{ audit.title || audit.id }}</span>
                     <span v-if="audit.displayValue" class="text-muted-foreground text-xs ml-auto mr-4 shrink-0">
                       {{ audit.displayValue }}
                     </span>
                   </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div class="space-y-3 pt-2">
+              </template>
+              <template #content="{ item: audit }">
+                  <div class="space-y-3 pt-2 pb-2">
                     <p v-if="audit.description" class="text-xs text-muted-foreground" v-html="renderMarkdownLinks(audit.description)" />
                     <div v-if="audit.metricSavings && hasNonZeroSavings(audit.metricSavings)" class="flex gap-2 flex-wrap">
                       <template v-for="(val, key) in audit.metricSavings" :key="key">
-                        <Badge v-if="typeof val === 'number' ? val > 0 : !!val" variant="outline" class="text-[10px]">
+                        <UBadge v-if="typeof val === 'number' ? val > 0 : !!val" color="neutral" variant="outline" class="text-[10px]">
                           {{ key }}: {{ typeof val === 'number' ? `${Math.round(val)}ms` : val }}
-                        </Badge>
+                        </UBadge>
                       </template>
                     </div>
                     <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
@@ -437,34 +420,31 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
                       </template>
                     </div>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+              </template>
+            </UAccordion>
 
-            <Separator v-if="cat.failing.length && (cat.passing.length || cat.notApplicable.length)" />
+            <USeparator v-if="cat.failing.length && (cat.passing.length || cat.notApplicable.length)" />
 
             <!-- Passed audits (collapsible) -->
-            <Collapsible v-if="cat.passing.length">
-              <CollapsibleTrigger class="flex items-center gap-2 w-full text-sm py-1 group">
-                <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
+            <details v-if="cat.passing.length" class="group">
+              <summary class="flex items-center gap-2 w-full text-sm py-1 cursor-pointer list-none">
+                <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
                 <Icon name="lucide:check-circle" class="size-4 text-success" />
                 <span class="text-success font-medium">Passed Audits</span>
-                <Badge variant="outline" class="text-[10px] text-success">{{ cat.passing.length }}</Badge>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <Accordion type="multiple" class="w-full mt-2">
-                  <AccordionItem v-for="audit in cat.passing" :key="audit.id" :value="audit.id">
-                    <AccordionTrigger class="text-sm py-2">
-                      <div class="flex items-center gap-2 text-left">
+                <UBadge color="neutral" variant="outline" class="text-[10px] text-success">{{ cat.passing.length }}</UBadge>
+              </summary>
+              <UAccordion :items="cat.passing.map((a: any) => ({ ...a, value: a.id }))" type="multiple" class="w-full mt-2">
+                <template #default="{ item: audit }">
+                      <div class="flex items-center gap-2 text-left text-sm">
                         <Icon name="lucide:check" class="size-3.5 text-success shrink-0" />
                         <span class="text-muted-foreground">{{ audit.title || audit.id }}</span>
                         <span v-if="audit.displayValue" class="text-muted-foreground/60 text-xs ml-auto mr-4 shrink-0">
                           {{ audit.displayValue }}
                         </span>
                       </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div class="space-y-2 pt-1 pl-6">
+                </template>
+                <template #content="{ item: audit }">
+                      <div class="space-y-2 pt-1 pl-6 pb-2">
                         <p v-if="audit.description" class="text-xs text-muted-foreground" v-html="renderMarkdownLinks(audit.description)" />
                         <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
                           <template v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx">
@@ -480,61 +460,53 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
                           </template>
                         </div>
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CollapsibleContent>
-            </Collapsible>
+                </template>
+              </UAccordion>
+            </details>
 
             <!-- Not Applicable (collapsible) -->
-            <Collapsible v-if="cat.notApplicable.length">
-              <CollapsibleTrigger class="flex items-center gap-2 w-full text-sm py-1 group">
-                <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
+            <details v-if="cat.notApplicable.length" class="group">
+              <summary class="flex items-center gap-2 w-full text-sm py-1 cursor-pointer list-none">
+                <Icon name="lucide:chevron-right" class="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
                 <Icon name="lucide:minus-circle" class="size-4 text-muted-foreground" />
                 <span class="text-muted-foreground">Not Applicable</span>
-                <Badge variant="outline" class="text-[10px]">{{ cat.notApplicable.length }}</Badge>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
+                <UBadge color="neutral" variant="outline" class="text-[10px]">{{ cat.notApplicable.length }}</UBadge>
+              </summary>
                 <div class="space-y-0.5 pt-2 pl-6">
                   <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted-foreground/60">
                     <Icon name="lucide:minus" class="size-3 shrink-0" />
                     <span>{{ audit.title || audit.id }}</span>
                   </div>
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </CardContent>
-        </Card>
+            </details>
+          </div>
+        </UiCard>
       </template>
 
       <!-- Stack Packs -->
-      <Card v-if="routeData.stackPacks?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Framework Recommendations</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <UiCard v-if="routeData.stackPacks?.length" size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed">Framework Recommendations</h3>
+        </template>
           <div v-for="pack in routeData.stackPacks" :key="pack.id" class="mb-4 last:mb-0">
             <div class="text-sm font-medium mb-1">{{ pack.title }}</div>
             <div v-for="(desc, auditId) in pack.descriptions" :key="auditId" class="text-xs text-muted-foreground ml-4 mb-1">
               <span class="font-mono text-primary/80">{{ auditId }}</span>: {{ desc }}
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </UiCard>
 
       <!-- Entities -->
-      <Card v-if="routeData.entities?.length">
-        <CardHeader class="pb-3">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Third-Party Entities</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <UiCard v-if="routeData.entities?.length" size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed">Third-Party Entities</h3>
+        </template>
           <div class="flex flex-wrap gap-2">
-            <Badge v-for="entity in routeData.entities" :key="entity.name" :variant="entity.isFirstParty ? 'default' : 'outline'" class="text-xs">
+            <UBadge v-for="entity in routeData.entities" :key="entity.name" :color="entity.isFirstParty ? 'primary' : 'neutral'" :variant="entity.isFirstParty ? 'solid' : 'outline'" class="text-xs">
               {{ entity.name }}
-            </Badge>
+            </UBadge>
           </div>
-        </CardContent>
-      </Card>
+      </UiCard>
     </template>
   </div>
 </template>
