@@ -47,7 +47,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
+  /* NOTE: --color-muted intentionally NOT registered. It would generate a
+     `text-muted` Tailwind utility from --muted (a light SURFACE colour,
+     oklch 0.967) that overrides @nuxt/ui's kit `text-muted` (proper muted
+     TEXT), turning all muted text near-white in light mode. Components use
+     the kit `text-muted`/`bg-elevated`; brand utilities read raw `var(--muted)`
+     directly (still defined). `text-muted-foreground` stays (no kit collision). */
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
