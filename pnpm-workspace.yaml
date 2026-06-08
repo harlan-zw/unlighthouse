@@ -5,6 +5,7 @@ shellEmulator: true
 packages:
   - packages/*
   - packages/cloudflare/examples/*
+  - apps/*
   - '!docs'
 
 overrides:
