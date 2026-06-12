@@ -1,137 +1,184 @@
-# Unlighthouse on Cloudflare — minimal deploy
+# Unlighthouse on Cloudflare
 
-End-to-end deploy of the `@unlighthouse/cloudflare` preset with real
-Lighthouse running in a Cloudflare Container driving Browser Run remotely.
-Once it's up, `POST /api/scan/start` kicks off a real scan against the
-configured site; results stream to D1 + R2 + Durable Object WebSocket
-subscribers.
+A single Worker that hosts **both** the Unlighthouse dashboard (the Nuxt SPA)
+and its API, with real Lighthouse running in a Cloudflare Container driving
+Browser Rendering remotely. Open the Worker URL in a browser to use the panel;
+the same origin serves `POST /api/scan/start` and the rest of the command API.
+
+```
+https://<worker>.workers.dev/                ← dashboard panel (Nuxt SPA, from ASSETS)
+https://<worker>.workers.dev/api/scan/start  ← API (same origin, /api prefix)
+```
 
 ## Architecture
 
 ```
-Worker (HTTP, D1, R2, DOs, WS fanout, cron sweeper)
+Worker (static panel + HTTP API, D1, R2, DOs, cron sweeper)
   │ env.LIGHTHOUSE_CONTAINER.getByName('default').fetch('/audit', ...)
   ▼
 LighthouseContainer (Node 22 image, ~250 MB, no Chromium)
-  │ puppeteer.connect to wss://api.cloudflare.com/.../browser-rendering/...
+  │ puppeteer.connect to wss://…/browser-rendering/…
   ▼
-Browser Run (managed Chromium on Cloudflare's edge)
+Browser Rendering (managed Chromium on Cloudflare's edge)
 ```
 
-The Worker never touches `lighthouse` (it can't — `fileURLToPath(import.meta.url)`
-crashes in the Workers runtime). The Container does the Lighthouse work
-and talks to Cloudflare-hosted Chromium over CDP.
+The Worker never imports `lighthouse` directly (it can't — `fileURLToPath` crashes
+in the Workers runtime). The Container does the Lighthouse work and talks to
+Cloudflare-hosted Chromium over CDP. Static dashboard assets are served straight
+from the `ASSETS` binding; non-API GET routes fall back to the SPA's `index.html`.
 
 ## Prerequisites
 
-- Cloudflare Workers **Paid** plan (Containers + Browser Run both require it; $5/mo).
-- `wrangler` ≥ 4 installed locally.
+- Cloudflare Workers **Paid** plan (Containers + Browser Rendering both require it; from $5/mo).
+- `wrangler` ≥ 4 installed locally (`pnpm install` pulls it into this example).
 - `wrangler login` once per machine.
+- `pnpm` + a checkout of this monorepo (the panel is built from `packages/ui`).
 
-## Setup
+## One-time setup
 
 ```sh
-# 1. Provision D1. Paste the database_id into wrangler.toml.
+# 1. Provision D1, then paste the printed database_id into wrangler.toml.
 wrangler d1 create unlighthouse
 
 # 2. Provision R2.
 wrangler r2 bucket create unlighthouse
 
-# 3. Set secrets (Wrangler stores them encrypted; not in wrangler.toml):
-wrangler secret put SHARED_AUDIT_TOKEN       # random 32 bytes, e.g. `openssl rand -hex 32`
-wrangler secret put CF_ACCOUNT_ID            # your Cloudflare account ID
-wrangler secret put CF_BROWSER_RUN_TOKEN     # API token, scope: Browser Rendering - Edit
-wrangler secret put CRUX_API_KEY             # optional; enables CrUX fallback
+# 3. Set secrets (stored encrypted by Wrangler; never in wrangler.toml):
+wrangler secret put SHARED_AUDIT_TOKEN     # random 32 bytes: openssl rand -hex 32
+wrangler secret put CF_ACCOUNT_ID          # your Cloudflare account ID
+wrangler secret put CF_BROWSER_RUN_TOKEN   # API token, scope: Browser Rendering – Edit
+wrangler secret put CRUX_API_KEY           # optional; enables the CrUX field-data tier
 
 # 4. Edit wrangler.toml:
-#    - paste the database_id
-#    - replace UNLIGHTHOUSE_CONFIG's site with your real target
-#    - bump UNLIGHTHOUSE_VERSION on each deploy
-
-# 5. Install deps.
-pnpm install
+#    - paste the database_id from step 1
+#    - set UNLIGHTHOUSE_CONFIG's "site" to a default target (scans can override it)
+#    - bump UNLIGHTHOUSE_VERSION on each deploy (surfaced by /api/health)
 ```
+
+## Build the dashboard panel (required before every deploy)
+
+The Worker serves the **prebuilt** Nuxt SPA from `packages/ui/.output/public`
+(referenced by the `[assets]` block in `wrangler.toml`). It is **not** built by
+`wrangler deploy`, so build it yourself first. Two env vars must be set at build
+time so the SPA talks to *this* Worker instead of a local dev server:
+
+```sh
+# From the repo root:
+NUXT_PUBLIC_UNLIGHTHOUSE_API_URL=/api \
+NUXT_PUBLIC_UNLIGHTHOUSE_WS_URL= \
+  pnpm --filter @unlighthouse/ui build
+```
+
+| Build env var                       | Value  | Why                                                                                         |
+| ----------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| `NUXT_PUBLIC_UNLIGHTHOUSE_API_URL`  | `/api` | Same-origin API base. The Worker strips the `/api` prefix and routes to the command handlers. |
+| `NUXT_PUBLIC_UNLIGHTHOUSE_WS_URL`   | *(empty)* | This deploy has no global WebSocket bus, so the panel skips the socket and uses REST polling. Leaving it unset would default to `ws://localhost:5678/...` and spam connection errors. |
+
+> Defaults (used by `pnpm dev` locally) live in `packages/ui/nuxt.config.ts`:
+> `http://localhost:5678/api` and `ws://localhost:5678/api/ws`. The two env vars
+> above override them for production.
+>
+> **Don't** put these in `packages/ui/.env` — `nuxi dev` reads it too and would
+> point your local dashboard at `/api` (no dev server there). Keep them on the
+> build command (or use the `deploy` script below, which sets them for you).
 
 ## Deploy
 
 ```sh
+# From this directory (packages/cloudflare/examples/basic):
 pnpm deploy
 ```
 
-`wrangler deploy` builds + pushes the Container image, then deploys the
-Worker. The DO migrations run automatically (`v1` for ScanEvents +
-RateLimiter, `v2` for LighthouseContainer). The D1 schema is applied
-in-process on first request — no separate `wrangler d1 migrations apply`.
+`pnpm deploy` runs `build:panel` (builds the Nuxt SPA with the production env
+vars from the table above — you don't set them by hand) and then `wrangler
+deploy`, which:
+1. uploads the built panel from `../../../ui/.output/public` to the `ASSETS` binding,
+2. builds + pushes the Container image (skipped if unchanged),
+3. deploys the Worker and runs the DO migrations (`v1` ScanEvents + RateLimiter,
+   `v2` LighthouseContainer).
+
+The D1 schema is applied in-process on the first request (`CREATE TABLE IF NOT
+EXISTS`, idempotent) — no separate `wrangler d1 migrations apply` needed.
+
+> `pnpm deploy:worker-only` skips the panel rebuild — use it when only the
+> Worker/preset code changed and the panel is already current.
+
+If you changed the Worker preset itself (`@unlighthouse/cloudflare`), build it
+too before deploying:
+
+```sh
+pnpm --filter @unlighthouse/cloudflare build
+```
 
 ## Verify
 
 ```sh
-WORKER=https://<your-worker>.workers.dev
+WORKER=https://<your-worker>.workers.dev   # e.g. https://unlighthouse.srvrun.workers.dev
 
-# 1. Health — proves the Worker is up.
-curl $WORKER/api/health
-# → { ok: true, version: "1.0.0-rc.2", uptimeMs, storage, activeScans }
+# 1. Panel loads (HTML).
+curl -fsS -o /dev/null -w '%{http_code} %{content_type}\n' $WORKER/
+# → 200 text/html
 
-# 2. Kick a scan. Watch wrangler tail in another terminal — you should
-#    see the Container boot ("LighthouseContainer started"), then h3's
-#    "[cloudflare-lighthouse] listening on :8080".
+# 2. A deep UI route falls back to the SPA (not a 404).
+curl -fsS -o /dev/null -w '%{http_code} %{content_type}\n' "$WORKER/sites/example.com"
+# → 200 text/html
+
+# 3. API is up (works with or without the /api prefix).
+curl -fsS $WORKER/api/health
+# → { "ok": true, "version": "...", "storage": { "rows": "ok", "blobs": "ok" }, ... }
+
+# 4. Kick a real scan. Run `wrangler tail` in another terminal to watch the
+#    Container boot and Lighthouse run.
 SCAN=$(curl -fsS -X POST $WORKER/api/scan/start \
   -H 'content-type: application/json' \
-  -d '{"site":"https://example.com"}' | jq -r .scanId)
+  -d '{"site":"https://example.com","device":["mobile","desktop"]}' | jq -r .scanId)
 echo "scanId=$SCAN"
 
-# 3. Poll until done (status: completed).
-while [ "$(curl -fsS "$WORKER/api/scan/status?scanId=$SCAN" | jq -r .status)" != "completed" ]; do
+# 5. Poll until complete.
+while [ "$(curl -fsS "$WORKER/api/scan/status?scanId=$SCAN" | jq -r .status)" != "complete" ]; do
   sleep 5
 done
 
-# 4. Inspect the LHR — `performance.score` is a non-null number 0..1
-#    when real Lighthouse ran. Mock returns null.
-curl -fsS "$WORKER/api/scan/results?scanId=$SCAN" \
-  | jq '.routes[0].extracted.categories.performance.score'
-# → 0.92  (or similar — NOT null)
-
-curl -fsS "$WORKER/api/scan/results?scanId=$SCAN" \
-  | jq '.routes[0].extracted.categories | keys'
-# → ["accessibility","best-practices","performance","seo"]
+# 6. Real Lighthouse ran when scores are non-null numbers (mock returns null).
+curl -fsS "$WORKER/api/scan/results?scanId=$SCAN&pageSize=1" \
+  | jq '.items[0] | {device, scorePerformance, lcp, scoreSeo}'
+# → { "device": "mobile", "scorePerformance": 0.9, "lcp": 1200, "scoreSeo": 1 }
 ```
 
-## Fallback verification
+Then open `$WORKER/` in a browser — the dashboard should show the site, the
+scan in **History**, and the per-route report under the scan's pages.
 
-The `auditorFactory` wires `fallbackAuditor([container, crux?, mock])`.
-To prove the cascade works:
+## Notes & known limits
 
-```sh
-# Find the running Container instance and force-stop it.
-wrangler containers instances list
-wrangler containers instances stop <id> --force
+- **No live progress bar.** This deploy has no WebSocket event bus, so the panel
+  doesn't stream per-route progress while a scan runs — it polls and the status
+  jumps from `starting` to `complete`. The scan itself runs fine; only the live
+  animation is absent. (Wiring `events.subscribe` through `SCAN_EVENTS_DO` to the
+  UI's WS bus is a future enhancement.)
+- **Rebuild the panel when the UI changes.** `wrangler deploy` ships whatever is
+  currently in `packages/ui/.output/public`. Stale panel = rebuild + redeploy.
+- **`/api` prefix.** The command router mounts prefix-less (`/scan/start`). The
+  Worker accepts both `/scan/start` and `/api/scan/start`; the panel uses the
+  `/api` form. UI page routes that collide on a first segment (`/sites/<host>`,
+  `/route/*`, `/compare/*`, `/history`) are served from the SPA, not the API.
 
-# Re-run the scan. wrangler tail should show:
-#   "container-lighthouse failed: ECONNREFUSED"
-#   "trying next auditor: crux"  (if CRUX_API_KEY was set)
-# or fall through to mock if no CRUX key.
-```
+## Tuning (`wrangler.toml`)
 
-## Tuning
-
-`wrangler.toml` knobs:
-
-- `RATE_LIMITER_CAPACITY` / `RATE_LIMITER_REFILL_PER_SEC` — token bucket
-  per (API key | IP). Defaults: 10 / 1 per sec.
-- `UNLIGHTHOUSE_CONFIG` — full inline config JSON (same schema as the
-  CLI's `unlighthouse.config.ts`). Only `site` is required.
+- `RATE_LIMITER_CAPACITY` / `RATE_LIMITER_REFILL_PER_SEC` — token bucket per
+  (API key | IP). Defaults: 10 / 1 per sec.
+- `UNLIGHTHOUSE_CONFIG` — inline config JSON (same schema as the CLI config).
+  Only `site` is required; `scan.start` can override the target per request.
 - `UNLIGHTHOUSE_USE_MOCK_AUDITOR=1` — escape hatch; bypasses the Container.
-- `[[containers]] instance_type` — `standard` (1 GiB / 0.5 vCPU) handles
-  most sites. Bump to `standard-2` if Lighthouse OOMs on heavy SPAs.
-- `[[containers]] max_instances` — caps blast radius. 5 is fine for v1.
-- `[triggers] crons` — R2 TTL sweeper schedule. Default hourly.
+- `[[containers]] instance_type` — `standard-1` handles most sites; bump to
+  `standard-2` if Lighthouse OOMs on heavy SPAs.
+- `[[containers]] max_instances` — caps concurrency/blast radius (5 is fine).
+- `[triggers] crons` — R2 TTL sweeper schedule (default hourly).
 
-## Cost (rough)
+## Cost (rough, ~100 audits/day)
 
-For 100 audits/day:
 - Workers Paid: $5/mo flat
-- Browser Run: ~$3/mo (audits stay under the included 10 browser-hours/mo)
-- Container: ~$7/mo (standard instance, 5-10h/day active, scales to zero)
+- Browser Rendering: ~$3/mo (within the included browser-hours)
+- Container: ~$7/mo (standard instance, scales to zero when idle)
 - **Total ≈ $15/mo**
 
 ## Observability
@@ -140,31 +187,13 @@ For 100 audits/day:
 wrangler tail        # live logs (Worker + Container)
 ```
 
-The sweeper logs `[r2-sweeper] scanned=N deleted=M` on each cron run.
-The Container logs `[LighthouseContainer] started/stopped` and h3's
-`[cloudflare-lighthouse] listening on :8080`.
+The sweeper logs `[r2-sweeper] scanned=N deleted=M` per cron run. The Container
+logs `[LighthouseContainer] started/stopped`.
 
 ## Tear-down
 
 ```sh
-wrangler delete                                # removes the Worker + Container
-wrangler d1 delete unlighthouse                # removes the D1 database
-wrangler r2 bucket delete unlighthouse         # removes the R2 bucket
+wrangler delete                          # removes the Worker + Container
+wrangler d1 delete unlighthouse          # removes the D1 database
+wrangler r2 bucket delete unlighthouse   # removes the R2 bucket
 ```
-
-## Risks (read once before first deploy)
-
-- **Worker → Container fetch may exceed 60s.** Workers have no documented
-  subrequest timeout while the client is connected, but if you see
-  truncated audits, swap the container API to 2-phase
-  (`POST /audit/start → jobId`, `GET /result/:jobId` polled via
-  `ctx.waitUntil`).
-- **Browser Run CDP command compatibility.** Cloudflare's CDP has been
-  "plain CDP" since June 2026. If Lighthouse's `Emulation.*` or
-  `Network.*` calls get blocked, the perf score will be null — fall
-  back to disabling the `performance` category in cdp-connect.
-- **Cold start ~3-5s** after the Container goes to sleep
-  (`sleepAfter = '10m'`). First request after idle pays the boot.
-- **`fallbackAuditor` capability AND-down.** Mock advertises
-  `reliablePerfScores: false`, so the composed router does too. Strip
-  mock from the fallback list in production once the Container is stable.
