@@ -38,18 +38,24 @@ const props = withDefaults(defineProps<{
   containerClass?: string
   /** Row density — 'compact' tightens vertical padding. */
   density?: 'comfortable' | 'compact'
-  /** Pin the header while the container scrolls (needs a max-height container). */
+  /** Pin the header while scrolling. Works for both a max-height scroll
+   *  container and whole-page scroll (use `stickyOffset` to clear a fixed bar). */
   stickyHeader?: boolean
+  /** Tailwind top-* class for where the sticky header pins. Defaults to `top-0`
+   *  (scroll-container case); pass e.g. `top-12` to sit below a sticky app bar
+   *  when the page itself scrolls. */
+  stickyOffset?: string
 }>(), {
   manualSorting: false,
   rowClickable: false,
   emptyText: 'No data.',
   containerClass: 'rounded-lg border border-default overflow-auto',
   density: 'comfortable',
+  stickyOffset: 'top-0',
 })
 
 const densityCellClass = computed(() => (props.density === 'compact' ? 'py-1' : ''))
-const stickyHeadClass = computed(() => (props.stickyHeader ? 'sticky top-0 z-10 bg-default' : ''))
+const stickyHeadClass = computed(() => (props.stickyHeader ? `sticky ${props.stickyOffset} z-10 bg-default` : ''))
 
 const emit = defineEmits<{
   (e: 'update:sorting', value: SortingState): void

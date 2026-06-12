@@ -16,6 +16,11 @@ const route = useRoute()
 
 const inScan = computed(() => !!route.params.scanId && !!route.params.siteId)
 
+// Pages that want the full content width (e.g. the wide routes table) opt in
+// via `definePageMeta({ fluid: true })`. Default stays the centered max-w-7xl
+// column so reading-width pages aren't stretched on ultrawide displays.
+const fluid = computed(() => route.meta.fluid === true)
+
 function toggleColorMode() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
 }
@@ -109,7 +114,7 @@ onBeforeUnmount(() => {
       </header>
 
       <div class="flex-1 overflow-auto">
-        <div class="mx-auto max-w-7xl px-4 py-6">
+        <div class="px-4 py-6" :class="fluid ? 'w-full' : 'mx-auto max-w-7xl'">
           <slot />
         </div>
       </div>

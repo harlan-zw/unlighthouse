@@ -237,7 +237,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       id: 'thumbnail',
       header: '',
       enableSorting: false,
-      meta: { headClass: 'w-[70px]' },
+      meta: { headClass: 'w-[140px]' },
       cell: ({ row }) => {
         const path = row.original.path || row.original.url
         const src = screenshotUrl(scanId.value, path)
@@ -245,7 +245,11 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           src,
           loading: 'lazy',
           alt: '',
-          class: 'w-14 h-9 object-cover object-top rounded border bg-elevated shrink-0',
+          // Inline sizing (not just w-/h- classes) so the table's auto layout
+          // can't squeeze the cell — full-page mobile screenshots are very tall,
+          // object-cover/top crops to a clean wide thumbnail.
+          class: 'object-cover object-top rounded-md border bg-elevated shrink-0',
+          style: 'width:128px;height:80px;min-width:128px;max-width:128px',
           onError: (e: Event) => { (e.target as HTMLImageElement).style.visibility = 'hidden' },
         })
       },
@@ -425,7 +429,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       :data="filtered"
       :density="density"
       sticky-header
-      container-class="rounded-lg border overflow-auto max-h-[72vh]"
+      container-class="border-y"
       row-clickable
       @row-click="openRoute"
     >

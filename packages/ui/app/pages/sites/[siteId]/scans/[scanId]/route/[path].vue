@@ -31,6 +31,9 @@ function backToRoutes() {
 
 const rescanning = ref(false)
 const screenshotVisible = ref(true)
+// Full-page mobile screenshots are extremely tall (e.g. 412×6000+), so by
+// default we show a cropped preview and let the user expand to the full capture.
+const screenshotExpanded = ref(false)
 // Empty string = let the backend default to whichever device was scanned
 // first. The toggle below sets this once we know both devices exist.
 const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
@@ -290,23 +293,46 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
            hide the whole card so we don't show a broken image marker. -->
       <UiCard v-if="screenshotVisible" size="sm">
         <template #header>
-          <div class="flex flex-row items-center justify-between">
+          <div class="flex flex-row items-center justify-between gap-2">
             <h3 class="text-label text-dimmed">Visual</h3>
-            <a
-              :href="screenshotUrl(scanId, routeData.route?.path || routePath)"
-              target="_blank"
-              rel="noopener"
-              class="text-xs text-muted hover:text-default transition-colors inline-flex items-center gap-1"
-            >Open full size <Icon name="lucide:external-link" class="size-3" /></a>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                class="text-xs text-muted hover:text-default transition-colors inline-flex items-center gap-1"
+                @click="screenshotExpanded = !screenshotExpanded"
+              >
+                <Icon :name="screenshotExpanded ? 'lucide:chevrons-down-up' : 'lucide:chevrons-up-down'" class="size-3" />
+                {{ screenshotExpanded ? 'Collapse' : 'Expand' }}
+              </button>
+              <a
+                :href="screenshotUrl(scanId, routeData.route?.path || routePath)"
+                target="_blank"
+                rel="noopener"
+                class="text-xs text-muted hover:text-default transition-colors inline-flex items-center gap-1"
+              >Open full size <Icon name="lucide:external-link" class="size-3" /></a>
+            </div>
           </div>
         </template>
-        <img
-          :src="screenshotUrl(scanId, routeData.route?.path || routePath)"
-          loading="lazy"
-          alt="Page screenshot"
-          class="w-full max-w-3xl max-h-[600px] object-contain object-top rounded border bg-elevated mx-auto"
-          @error="screenshotVisible = false"
+        <!-- Collapsed: a cropped preview of the top of the page (full-page
+             captures are very tall). Expanded: the whole capture in a bounded,
+             scrollable viewport so it never dominates the page. Frame width
+             tracks the device — a phone column for mobile, full width for
+             desktop — so neither form factor looks distorted. -->
+        <div
+          class="mx-auto w-full overflow-y-auto rounded border bg-elevated"
+          :class="[
+            screenshotExpanded ? 'max-h-[80vh]' : 'max-h-[420px]',
+            routeData.route?.device === 'desktop' ? 'max-w-4xl' : 'max-w-sm',
+          ]"
         >
+          <img
+            :src="screenshotUrl(scanId, routeData.route?.path || routePath, routeData.route?.device || deviceFilter || undefined)"
+            loading="lazy"
+            alt="Page screenshot"
+            class="block w-full h-auto object-top"
+            @error="screenshotVisible = false"
+          >
+        </div>
       </UiCard>
 
       <!-- Runtime Error -->

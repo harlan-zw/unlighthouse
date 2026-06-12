@@ -40,9 +40,16 @@ function severityVariant(severity: string) {
   return 'neutral' as const
 }
 
-// Image findings → UAccordion items (stable value = imageUrl).
+// Image findings → UAccordion items (stable value = imageUrl). Capped to 20
+// by default so a noisy report doesn't flood the page; the user can expand
+// to the full list on demand.
+const IMAGE_CAP = 20
+const showAllImages = ref(false)
+const allImageFindings = computed(() => ((imagesReport.value as any)?.findings ?? []) as any[])
+const hiddenImageCount = computed(() => Math.max(0, allImageFindings.value.length - IMAGE_CAP))
 const imageItems = computed(() =>
-  ((imagesReport.value as any)?.findings ?? []).slice(0, 20).map((f: any) => ({ ...f, value: f.imageUrl })),
+  (showAllImages.value ? allImageFindings.value : allImageFindings.value.slice(0, IMAGE_CAP))
+    .map((f: any) => ({ ...f, value: f.imageUrl })),
 )
 
 const cwvReport = computed(() => (cwvData.value as any)?.report ?? null)
@@ -188,9 +195,11 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
                 </div>
             </template>
           </UAccordion>
-          <p v-if="imagesReport.findings.length > 20" class="text-xs text-muted mt-3 text-center">
-            +{{ imagesReport.findings.length - 20 }} more image issues
-          </p>
+          <div v-if="hiddenImageCount > 0 || showAllImages" class="mt-3 text-center">
+            <UiButton purpose="quiet" size="sm" :icon="showAllImages ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" @click="showAllImages = !showAllImages">
+              {{ showAllImages ? 'Show fewer' : `Show ${hiddenImageCount} more image ${hiddenImageCount === 1 ? 'issue' : 'issues'}` }}
+            </UiButton>
+          </div>
       </UiCard>
 
       <!-- Route Scores -->

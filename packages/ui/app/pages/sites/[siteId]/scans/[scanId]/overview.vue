@@ -23,6 +23,21 @@ const { data: scanMeta } = useAsyncData(
 const isCurrentScan = computed(() => store.scanId === scanId.value)
 const currentScanIsActive = computed(() => isCurrentScan.value && store.isActive)
 
+// When a scan finishes, always send the user to the routes table — that's the
+// page they want once results exist (the overview is the live-progress view).
+// We redirect on the active→complete transition: watching `store.status` change
+// (not its initial value) means opening an already-finished scan's overview
+// directly does NOT bounce, but any scan that completes while this page is open
+// always lands on /routes.
+watch(
+  () => store.status,
+  (status, prev) => {
+    const becameComplete = status === 'complete' && prev && prev !== 'complete'
+    if (becameComplete && isCurrentScan.value)
+      router.replace(`${scanBase.value}/routes`)
+  },
+)
+
 const resolvedStatus = computed(() => {
   if (scanMeta.value?.summary) return 'complete'
   if (isCurrentScan.value) return store.status
