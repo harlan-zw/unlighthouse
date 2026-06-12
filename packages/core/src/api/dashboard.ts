@@ -30,11 +30,17 @@ export function createDashboardApi(storage: Storage): Router {
   // auditor don't write a separate webp file).
   router.get('/screenshot/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
+    const { device } = getQuery(event) as { device?: string }
     const decodedPath = decodeURIComponent(path)
     const norm = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
 
     const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
-    const route = routes.find(r => r.path === decodedPath || r.path === norm)
+    const matchesPath = (r: typeof routes[number]) => r.path === decodedPath || r.path === norm
+    // In a multi-device scan the same path has a mobile and a desktop row; honour
+    // an explicit `?device=` so the UI can show the screenshot for the device the
+    // user picked, falling back to the first capture for that path.
+    const route = (device ? routes.find(r => matchesPath(r) && r.device === device) : undefined)
+      ?? routes.find(matchesPath)
     if (!route) {
       setResponseStatus(event, 404)
       return { error: 'Route not found' }

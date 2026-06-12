@@ -6,13 +6,16 @@
  */
 export function useScreenshotUrl() {
   const baseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
-  return (scanId: string, path: string): string => {
+  return (scanId: string, path: string, device?: string): string => {
     if (import.meta.client) {
       const map = (window as unknown as { __unlighthouse_payload?: { screenshots?: Record<string, string> } })
         .__unlighthouse_payload?.screenshots
       if (map && map[path])
         return map[path]
     }
-    return `${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(path)}`
+    // `device` selects which form factor's capture to serve in a multi-device
+    // scan (otherwise the endpoint returns the first capture for the path).
+    const q = device ? `?device=${device}` : ''
+    return `${baseUrl}/dashboard/screenshot/${scanId}/${encodeURIComponent(path)}${q}`
   }
 }

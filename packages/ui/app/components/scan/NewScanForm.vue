@@ -20,7 +20,9 @@ const api = useApi()
 const store = useScanStore()
 
 const siteUrl = ref(props.initialUrl)
-const device = ref('mobile')
+// Default to a mobile+desktop matrix scan so every route is captured on both
+// form factors (the route detail + screenshots aren't stuck on mobile-only).
+const device = ref('both')
 const scanMode = ref<'site' | 'page'>('site')
 const loading = ref(false)
 

@@ -67,7 +67,13 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
     capabilities: LOCAL_CAPABILITIES,
     async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
       const pool = await getPool()
-      const report = await runTask<UnlighthouseReport>(pool, 'lighthouse', { url, options: opts.defaults })
+      // Map the per-route device onto Lighthouse's emulatedFormFactor. Without
+      // this every audit (mobile AND desktop) silently ran with the default
+      // mobile emulation, so desktop scores/screenshots were really mobile.
+      const options = _opts?.device
+        ? { ...opts.defaults, emulatedFormFactor: _opts.device }
+        : opts.defaults
+      const report = await runTask<UnlighthouseReport>(pool, 'lighthouse', { url, options })
       const lhr = report.raw
       const extracted = extractRouteData(lhr as never)
       const path = (() => {
