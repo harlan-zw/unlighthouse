@@ -22,6 +22,7 @@ import {
 } from '@unlighthouse/contracts'
 import { createHooks } from 'hookable'
 import { createTaggedLogger } from './logger'
+import { aggregateScores, auditRoute, finalizeScan, nowIso, toStructuredError } from './scan/route-audit'
 import { createFilter } from './util/filter'
 import { deriveSiteId, deriveSiteName, siteOrigin } from './util/site'
 import { persistStableEvents } from './persist-events'
@@ -41,10 +42,6 @@ function tagLogger(logger: LoggerLike | undefined, tag: string): LoggerLike | un
   if (typeof logger.withTag === 'function')
     return logger.withTag(tag) as LoggerLike
   return logger
-}
-
-function nowIso(): string {
-  return new Date().toISOString()
 }
 
 function generateScanId(): ScanId {
@@ -116,14 +113,6 @@ function resolveDeviceMatrix(
   return out as ['mobile' | 'desktop', ...Array<'mobile' | 'desktop'>]
 }
 
-function toStructuredError(err: unknown): { code: string, message: string, cause?: unknown } {
-  if (err instanceof UnlighthouseError)
-    return { code: err.code, message: err.message, cause: err.cause }
-  if (err instanceof Error)
-    return { code: 'INTERNAL', message: err.message, cause: err }
-  return { code: 'INTERNAL', message: String(err) }
-}
-
 /**
  * Boot-time housekeeping: mark any scan still in a non-terminal state
  * (`starting`, `discovering`, `scanning`, `paused`) as `error`. These are
@@ -156,43 +145,6 @@ export async function reapStaleScans(storage: Storage, logger?: Logger): Promise
   if (reaped > 0)
     (logger as { warn?: (msg: string) => void } | undefined)?.warn?.(`[core] reaped ${reaped} stale scan${reaped === 1 ? '' : 's'} from prior process`)
   return reaped
-}
-
-// Compute (scoreAverage, scoresByCategory) over a set of completed routes.
-// Routes with `null` for a given category are skipped — Lighthouse leaves a
-// category null when it failed to run (e.g. a 5xx response on that URL).
-// Returns `scoreAverage: null` only when no route produced *any* score at all.
-function aggregateScores(routes: Array<{
-  scorePerformance: number | null
-  scoreAccessibility: number | null
-  scoreSeo: number | null
-  scoreBestPractices: number | null
-  // Optional: agentic-browsing is a recently-added dimension absent from
-  // older rows (the schema treats it as nullish). The category map below
-  // reads it defensively.
-  scoreAgenticBrowsing?: number | null
-}>): Pick<ScanSummary, 'scoreAverage' | 'scoresByCategory'> {
-  const cols = {
-    'performance': 'scorePerformance',
-    'accessibility': 'scoreAccessibility',
-    'seo': 'scoreSeo',
-    'best-practices': 'scoreBestPractices',
-    'agentic-browsing': 'scoreAgenticBrowsing',
-  } as const
-  const byCategory: ScanSummary['scoresByCategory'] = {}
-  const overall: number[] = []
-  for (const [category, key] of Object.entries(cols) as Array<[keyof typeof cols, (typeof cols)[keyof typeof cols]]>) {
-    const values = routes.map(r => r[key]).filter((v): v is number => v != null)
-    if (values.length === 0)
-      continue
-    const avg = values.reduce((a, b) => a + b, 0) / values.length
-    byCategory[category] = avg
-    overall.push(avg)
-  }
-  return {
-    scoreAverage: overall.length === 0 ? null : overall.reduce((a, b) => a + b, 0) / overall.length,
-    scoresByCategory: byCategory,
-  }
 }
 
 export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): UnlighthouseCore {
@@ -459,140 +411,18 @@ function createSession(deps: SessionDeps): CrawlSession {
 
     let firstUrlSeen = false
 
+    // Audit one URL on one device via the shared `auditRoute` (same code the
+    // Cloudflare ScanRunnerDO drives per alarm tick), then fold the result into
+    // the in-memory stats the crawl loop reports.
     async function auditOnDevice(url: string, device: 'mobile' | 'desktop'): Promise<void> {
-      log.debug(`Auditing ${url} [${device}]`)
-      const auditStart = Date.now()
-      await emit('audit:before', { scanId, url: url as never, auditor: 'auditor' })
-      try {
-        const report = await auditor.audit(url, undefined, { signal, device })
-        // Auditor returns LH report + attached `extracted` (CWV/scores/etc.)
-        // + `lhrGzip` (raw LHR in LHCI-format, gzipped). Route the extracted
-        // metrics to the row store; the LHR blob to the blob store under the
-        // contract-derived `lhrBlobKey`.
-        const extracted = (report as unknown as { extracted?: unknown }).extracted
-        const lhrGzip = (report as unknown as { lhrGzip?: Uint8Array }).lhrGzip
-        const metrics = (extracted ?? {
-          url,
-          path: new URL(url).pathname,
-          routeName: null,
-          scorePerformance: null,
-          scoreAccessibility: null,
-          scoreSeo: null,
-          scoreBestPractices: null,
-          scoreAgenticBrowsing: null,
-          lcp: null,
-          cls: null,
-          inp: null,
-          fcp: null,
-          ttfb: null,
-          tbt: null,
-          si: null,
-          lighthouseVersion: (report as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
-          capturedAt: nowIso(),
-        }) as never
-
-        await storage.routes.putBatch(scanId, device, [metrics])
-
-        if (lhrGzip) {
-          // Mirror `routes.ts:blobKeyFor` derivation so the blob lines up
-          // with the `lhrBlobKey` + `reportBlobKey` columns the row got.
-          // D-029: device segment is part of the filename so mobile + desktop
-          // results for the same URL don't collide on the blob store.
-          const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
-          const lhrKey = `scans/${scanId}/lhr/${hash}-${device}.json.gz`
-          const reportKey = `scans/${scanId}/reports/${hash}-${device}.json`
-          // D-030 contract-shape reconciled blob, written alongside the v0
-          // UI-shape one above. Packs read this; UI still reads the v0 one.
-          // Two blobs are cheaper than coupling pack stability to dashboard
-          // shape changes.
-          const contractKey = `scans/${scanId}/reports/${hash}-${device}.contract.json`
-          await storage.blobs.put(lhrKey, lhrGzip).catch(() => {})
-
-          // Reconciled per-route report — UI-shaped, decoupled from LHR shape.
-          // Uses the auditor's reconciled output if present (faster);
-          // otherwise gunzips + reconciles here as a fallback.
-          const reconciled = (report as unknown as { reconciled?: unknown }).reconciled
-          let payload: unknown = reconciled
-          let lhrCache: unknown = null
-          if (!payload) {
-            try {
-              const { reconcileRoute } = await import('./report/extract')
-              const { gunzipSync } = await import('node:zlib')
-              lhrCache = JSON.parse(gunzipSync(lhrGzip).toString())
-              payload = reconcileRoute({
-                url,
-                path: (metrics as { path?: string }).path ?? new URL(url).pathname,
-                routeName: (metrics as { routeName?: string | null }).routeName ?? null,
-                reportBlobKey: reportKey,
-                lhr: lhrCache as never,
-              })
-            }
-            catch { /* best-effort; UI falls back to LHR blob */ }
-          }
-          if (payload) {
-            const bytes = new TextEncoder().encode(JSON.stringify(payload))
-            await storage.blobs.put(reportKey, bytes).catch(() => {})
-          }
-
-          // D-030 contract reconciled report. Same LHR gunzip if we already
-          // did one above; otherwise do it now. Packs that opt into
-          // `getReconciled` read this; everything else still reads the
-          // raw LHR via `lhrBlobKey`.
-          try {
-            const { reconcileToContract } = await import('./report/extract')
-            const { gunzipSync } = await import('node:zlib')
-            const lhr = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
-            const contract = reconcileToContract({
-              scanId,
-              url,
-              device,
-              lhr: lhr as never,
-            })
-            const bytes = new TextEncoder().encode(JSON.stringify(contract))
-            await storage.blobs.put(contractKey, bytes).catch(() => {})
-          }
-          catch { /* best-effort; packs fall back to getLhr */ }
-
-          // Extract and store fullPageScreenshot as a separate blob.
-          try {
-            const { gunzipSync } = await import('node:zlib')
-            const lhrObj = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
-            const fpScreenshot = (lhrObj as { fullPageScreenshot?: { screenshot?: { data?: string } } })
-              .fullPageScreenshot?.screenshot?.data
-            if (fpScreenshot && typeof fpScreenshot === 'string') {
-              const base64Data = fpScreenshot.replace(/^data:image\/\w+;base64,/, '')
-              const screenshotKey = `scans/${scanId}/screenshots/${hash}-${device}.webp`
-              const buf = Buffer.from(base64Data, 'base64')
-              await storage.blobs.put(screenshotKey, new Uint8Array(buf)).catch(() => {})
-            }
-          }
-          catch { /* best-effort; screenshot is optional */ }
-        }
-
+      const { ok } = await auditRoute(
+        { auditor, storage, logger: log as never, emit },
+        { scanId, url, device, signal },
+      )
+      if (ok)
         stats.scanned++
-        log.debug(`Audited ${url} [${device}] in ${Date.now() - auditStart}ms — perf: ${(metrics as { scorePerformance?: number | null })?.scorePerformance ?? '?'}`)
-        await emit('scan:route-complete', { scanId, url: url as never, metrics })
-        await emit('audit:after', {
-          scanId,
-          url: url as never,
-          auditor: 'auditor',
-          durationMs: Date.now() - auditStart,
-          ok: true,
-        })
-      }
-      catch (err) {
+      else
         stats.failed++
-        const structured = toStructuredError(err)
-        log.error(`Audit failed: ${url} [${device}] — ${structured.message || err}`)
-        await emit('scan:route-failed', { scanId, url: url as never, error: structured as never })
-        await emit('audit:after', {
-          scanId,
-          url: url as never,
-          auditor: 'auditor',
-          durationMs: Date.now() - auditStart,
-          ok: false,
-        })
-      }
     }
 
     // `scanner.include` / `scanner.exclude` scope the audit set. createFilter
@@ -701,78 +531,14 @@ function createSession(deps: SessionDeps): CrawlSession {
       throw new UnlighthouseError({ code: 'SCAN_CANCELLED', message: 'Scan cancelled.' })
     }
 
-    // Aggregate scores across completed routes. Contract says scoreAverage is
-    // `null` until at least one route has scored — for a non-empty scan it
-    // should always be populated. `compare.run` and the dashboard summary
-    // tile both read these; leaving them null was a v0→v1 regression where
-    // the aggregation logic got lost mid-port.
-    const scoredRoutes = stats.scanned > 0
-      ? (await storage.routes.listForScan(scanId, { page: 1, pageSize: 10_000 })).items
-      : []
-    const summary: ScanSummary = {
-      routes: stats.discovered,
-      completed: stats.scanned,
-      failed: stats.failed,
-      ...aggregateScores(scoredRoutes),
-      durationMs: Date.now() - startedAtMs,
-      // Record the device matrix so the UI can show "both" rather than just
-      // the primary device for a mobile+desktop scan.
-      devices,
-    }
-
-    // Run all built-in packs automatically so reports are ready immediately.
-    if (scoredRoutes.length > 0) {
-      try {
-        const { builtInPacks } = await import('./packs/index')
-        for (const [name, pack] of Object.entries(builtInPacks)) {
-          try {
-            const packStart = nowIso()
-            const report = await pack.reconciler({
-              scanId,
-              routes: scoredRoutes,
-              getReconciled: async (url: string, dev) => {
-                const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
-                const key = `scans/${scanId}/reports/${hash}-${dev}.contract.json`
-                const blob = await storage.blobs.get(key)
-                return blob ? JSON.parse(new TextDecoder().decode(blob)) : null
-              },
-              getLhr: async (url: string, dev) => {
-                const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
-                const key = `scans/${scanId}/lhr/${hash}-${dev}.json.gz`
-                const blob = await storage.blobs.get(key)
-                if (!blob) return null
-                const { gunzipSync } = await import('node:zlib')
-                return JSON.parse(gunzipSync(blob).toString())
-              },
-              logger: logger as any,
-            })
-            await storage.packRuns.put({
-              scanId,
-              packName: name,
-              packVersion: pack.version,
-              startedAt: packStart,
-              completedAt: nowIso(),
-              report,
-              reportBlobKey: null,
-            })
-            log.debug(`Pack "${name}" completed for scan ${scanId}`)
-          }
-          catch (packErr) {
-            log.warn(`Pack "${name}" failed for scan ${scanId}: ${packErr}`)
-          }
-        }
-      }
-      catch { /* pack system failure should not block scan completion */ }
-    }
-
+    // Aggregate scores, run built-in packs, write the terminal `complete` row,
+    // and emit scan:complete — all via the shared `finalizeScan` (same code the
+    // Cloudflare ScanRunnerDO calls when its queue drains).
+    const summary = await finalizeScan(
+      { storage, config: deps.config, logger: log as never, emit },
+      { scanId, devices, startedAtMs, stats },
+    )
     setStatus('complete')
-    log.info(`Scan ${scanId} complete — ${summary.completed} routes, ${summary.failed} failed, avg score: ${summary.scoreAverage?.toFixed(2) ?? 'N/A'}, ${(summary.durationMs / 1000).toFixed(1)}s`)
-    await storage.scans.update(scanId, {
-      status: 'complete',
-      completedAt: nowIso(),
-      summary,
-    })
-    await emit('scan:complete', { scanId, summary })
     resolveDone({ scanId, summary })
   }
 
