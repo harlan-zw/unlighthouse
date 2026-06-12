@@ -5,6 +5,27 @@ interface CreateFilterOptions {
   exclude?: (string | RegExp)[]
 }
 
+// Expand a user-written string pattern into the radix3 patterns that match what
+// people actually mean by it. The footgun this fixes: `include: ['/products']`
+// (or the `/products/*` form shown in our own docs) only matched `/products`
+// and its direct children — so for a folder of deep URLs like product-detail
+// pages (`/products/cat/item-123`), every page was silently dropped (#152,
+// #385). We add a `/**` catch-all variant so a folder pattern covers the whole
+// subtree, while leaving the literal and single-level forms working as before.
+function expandPattern(rule: string): string[] {
+  // Author already used a recursive glob — respect it as-is.
+  if (rule.includes('**'))
+    return [rule]
+  const trimmed = rule.replace(/\/+$/, '') || '/'
+  // `/foo/*` → also match deeper paths via `/foo/**` (keep `/*` for one level).
+  if (trimmed.endsWith('/*')) {
+    const base = trimmed.slice(0, -2) || '/'
+    return [trimmed, `${base}/**`]
+  }
+  // Plain `/foo` → match the folder itself AND everything under it.
+  return [rule, trimmed, `${trimmed}/**`]
+}
+
 export function createFilter(options: CreateFilterOptions = {}): (path: string) => boolean {
   const include = options.include || []
   const exclude = options.exclude || []
@@ -27,8 +48,10 @@ export function createFilter(options: CreateFilterOptions = {}): (path: string) 
             return v.result
 
           // need to flip the array data for radix3 format, true value is arbitrary
-          // @ts-expect-error untyped
-          routes[r] = true
+          for (const pattern of expandPattern(r)) {
+            // @ts-expect-error untyped
+            routes[pattern] = true
+          }
         }
         const routeRulesMatcher = toRouteMatcher(createRouter({ routes, strictTrailingSlash: false }))
         if (routeRulesMatcher.matchAll(path).length > 0)

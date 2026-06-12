@@ -265,6 +265,10 @@ configuration to be able to run properly
 
 Paths to explicitly include from the search, this will exclude any paths not listed here.
 
+A folder pattern covers the whole subtree: `'/products'` (or `'/products/*'`)
+matches `/products`, `/products/item-123` and `/products/cat/item-123` alike.
+Use a `RegExp` for finer control.
+
 See [Include URL Patterns](/guide/recipes/large-sites#include-url-patterns) for more information.
 
 ### `scanner.exclude`{lang="ts"}
