@@ -10,9 +10,9 @@ import type {
   KVNamespace,
   R2Bucket,
 } from '@cloudflare/workers-types'
-import type { Logger, UnlighthouseConfig } from '@unlighthouse/contracts'
+import type { Device, Logger, UnlighthouseConfig } from '@unlighthouse/contracts'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
-import { createUnlighthouseCore } from '@unlighthouse/core'
+import { auditRoute, createUnlighthouseCore } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
 // Subpath imports keep the Worker bundle off `@unlighthouse/core/auditors`
@@ -29,6 +29,7 @@ import { createApp, toWebHandler } from 'h3'
 // bundle. lighthouse uses node:url and other Node-only APIs at top-level
 // and breaks the Workers runtime even when never invoked.
 import { cloudflareCrawler } from './crawlers/cloudflare-crawl'
+import { scanEventsEmit } from './scan-events-emit'
 import { fuseSeedsDedup, workerSitemapSeeds } from './seeds'
 import { d1R2Storage, migrate as migrateD1 } from './storage/d1-r2'
 
@@ -44,6 +45,18 @@ export interface CloudflareEnv {
   BROWSER?: BrowserWorker
   SCAN_EVENTS_DO: DurableObjectNamespace
   RATE_LIMITER_DO: DurableObjectNamespace
+  /**
+   * Alarm-driven durable scan scheduler. When present, scan.start delegates to
+   * it (durable, survives the waitUntil budget) instead of running the whole
+   * scan inside execCtx.waitUntil. Optional — absent → legacy waitUntil path.
+   */
+  SCAN_RUNNER_DO?: DurableObjectNamespace
+  /**
+   * Service binding to this same Worker. ScanRunnerDO uses it to delegate each
+   * per-URL audit back to the Worker (where the consumer's auditor lives), one
+   * fresh invocation per URL. Required for the SCAN_RUNNER_DO path.
+   */
+  SELF?: Fetcher
   /**
    * LighthouseContainer DO binding. When present, the example wires
    * `createContainerLighthouseAuditor` (from @unlighthouse/cloudflare-lighthouse)
@@ -256,6 +269,25 @@ function isApiPath(pathname: string): boolean {
   return API_EXCLUSIVE_ROOTS.has(root)
 }
 
+interface ScanStartBody {
+  site?: unknown
+  device?: unknown
+  mode?: unknown
+}
+
+// Normalise a scan.start `device` input (single | array | absent) into a
+// deduped device matrix, defaulting to ['mobile'] — mirrors core's
+// resolveDeviceMatrix so the DO path honours `device: ["mobile","desktop"]`.
+function resolveDevices(input: unknown): Device[] {
+  const raw = Array.isArray(input) ? input : input != null ? [input] : []
+  const out: Device[] = []
+  for (const d of raw) {
+    if ((d === 'mobile' || d === 'desktop') && !out.includes(d))
+      out.push(d)
+  }
+  return out.length ? out : ['mobile']
+}
+
 export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): CloudflareApp {
   const pendingSeed: PendingSeed = { site: null }
   const ctx = buildHandlerCtx(env, opts, pendingSeed)
@@ -294,6 +326,44 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         return runtimeEnv.ASSETS.fetch(req as never) as unknown as Response
       }
 
+      // Internal audit endpoint — ScanRunnerDO delegates each per-URL audit here
+      // (via the SELF service binding) so the audit runs with the consumer's
+      // auditor (which only the Worker's auditorFactory has) AND in a fresh
+      // invocation with its own budget. Token-guarded; never exposed publicly.
+      if (req.method === 'POST' && url.pathname === '/__scan/audit') {
+        const token = req.headers.get('x-audit-token')
+        if (!runtimeEnv.SHARED_AUDIT_TOKEN || token !== runtimeEnv.SHARED_AUDIT_TOKEN)
+          return new Response('unauthorized', { status: 401 })
+        let body: { scanId?: string, url?: string, devices?: unknown }
+        try {
+          body = await req.json() as typeof body
+        }
+        catch {
+          return new Response('bad request', { status: 400 })
+        }
+        const scanId = body.scanId
+        const targetUrl = body.url
+        if (!scanId || !targetUrl)
+          return new Response('bad request', { status: 400 })
+        const emit = scanEventsEmit(runtimeEnv, scanId)
+        let scanned = 0
+        let failed = 0
+        for (const device of resolveDevices(body.devices)) {
+          const { ok } = await auditRoute(
+            { auditor: ctx.auditor, storage: ctx.storage, logger: undefined, emit },
+            { scanId: scanId as never, url: targetUrl, device },
+          )
+          if (ok)
+            scanned++
+          else
+            failed++
+        }
+        return new Response(JSON.stringify({ scanned, failed }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+
       // WebSocket subscribe → ScanEventsDO. Avoids the standard HTTP pipeline
       // since toWebHandler can't return a 101 with a webSocket field.
       if (url.pathname === '/api/events/subscribe' && req.headers.get('Upgrade') === 'websocket') {
@@ -326,11 +396,12 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
       // request that's actually handed downstream — so the body isn't consumed
       // out from under the h3 handler (the `/api` rewrite above already moved
       // the body onto `apiReq`).
+      let startBody: ScanStartBody | null = null
       if (apiReq.method === 'POST' && url.pathname === '/scan/start') {
         try {
-          const body = await apiReq.clone().json() as { site?: unknown } | null
-          pendingSeed.site = (body && typeof body.site === 'string' && body.site.length > 0)
-            ? body.site
+          startBody = await apiReq.clone().json() as ScanStartBody
+          pendingSeed.site = (startBody && typeof startBody.site === 'string' && startBody.site.length > 0)
+            ? startBody.site
             : null
         }
         catch {
@@ -355,6 +426,45 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
                 'retry-after': String(retryAfter),
               },
             },
+          )
+        }
+
+        // Durable scan path: when the alarm-driven runner DO is wired, delegate
+        // the whole scan to it (discovery + per-URL audit + finalize all happen
+        // across alarm ticks, surviving the waitUntil budget that wedged the
+        // legacy path at "scanning" on multi-URL sites). Await the DO's /start
+        // so the scan row + queue exist before we respond (status polling works
+        // immediately); the alarm loop then runs independently of this request.
+        if (runtimeEnv.SCAN_RUNNER_DO && runtimeEnv.SELF) {
+          const site = pendingSeed.site ?? (ctx.config as { site?: string }).site ?? null
+          if (!site) {
+            return new Response(
+              JSON.stringify({ error: { code: 'INVALID_INPUT', message: 'site is required' } }),
+              { status: 400, headers: { 'content-type': 'application/json' } },
+            )
+          }
+          const devices = resolveDevices(startBody?.device)
+          const mode = startBody?.mode === 'page' ? 'page' : 'site'
+          const scanId = crypto.randomUUID()
+          const startedAt = new Date().toISOString()
+          const runnerId = runtimeEnv.SCAN_RUNNER_DO.idFromName(scanId)
+          const runner = runtimeEnv.SCAN_RUNNER_DO.get(runnerId)
+          try {
+            await runner.fetch('https://scan-runner/start', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ scanId, site, devices, mode, config: ctx.config }),
+            } as never)
+          }
+          catch {
+            return new Response(
+              JSON.stringify({ error: { code: 'INTERNAL', message: 'failed to start scan' } }),
+              { status: 500, headers: { 'content-type': 'application/json' } },
+            )
+          }
+          return new Response(
+            JSON.stringify({ scanId, site, mode, startedAt }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
           )
         }
       }

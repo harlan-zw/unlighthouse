@@ -19,6 +19,7 @@ import type {
   Storage,
   UnlighthouseConfig,
 } from '@unlighthouse/contracts'
+import { Buffer } from 'node:buffer'
 import { UnlighthouseError } from '@unlighthouse/contracts'
 
 export type Device = 'mobile' | 'desktop'
@@ -193,7 +194,9 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
         const { gunzipSync } = await import('node:zlib')
         const lhrObj = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
         const fpScreenshot = (lhrObj as { fullPageScreenshot?: { screenshot?: { data?: string } } })
-          .fullPageScreenshot?.screenshot?.data
+          .fullPageScreenshot
+          ?.screenshot
+          ?.data
         if (fpScreenshot && typeof fpScreenshot === 'string') {
           const base64Data = fpScreenshot.replace(/^data:image\/\w+;base64,/, '')
           const screenshotKey = `scans/${scanId}/screenshots/${hash}-${device}.webp`

@@ -22,10 +22,10 @@ import {
 } from '@unlighthouse/contracts'
 import { createHooks } from 'hookable'
 import { createTaggedLogger } from './logger'
-import { aggregateScores, auditRoute, finalizeScan, nowIso, toStructuredError } from './scan/route-audit'
+import { persistStableEvents } from './persist-events'
+import { auditRoute, finalizeScan, nowIso, toStructuredError } from './scan/route-audit'
 import { createFilter } from './util/filter'
 import { deriveSiteId, deriveSiteName, siteOrigin } from './util/site'
-import { persistStableEvents } from './persist-events'
 
 const log = createTaggedLogger('core')
 
@@ -222,7 +222,7 @@ interface SessionDeps {
 }
 
 function createSession(deps: SessionDeps): CrawlSession {
-  const { storage, auditor, seeds, crawler, hooks, logger, userSignal, overrides } = deps
+  const { storage, auditor, seeds, crawler, hooks, userSignal, overrides } = deps
 
   const scanId = generateScanId()
   const startedAt = nowIso()
@@ -465,9 +465,9 @@ function createSession(deps: SessionDeps): CrawlSession {
     // as the primary seed URL so the crawler starts from the right origin.
     const effectiveSeeds = overrides?.site
       ? {
-          seeds: async function* () {
+          async* seeds() {
             yield { url: site, source: 'override' } as { url: string, source: string }
-            yield * seeds.seeds()
+            yield* seeds.seeds()
           },
         }
       : seeds
