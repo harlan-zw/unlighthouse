@@ -7,7 +7,7 @@
  */
 
 /** Normalise a URL for equality comparison: absolute form, no trailing slash, no hash. */
-function normaliseUrl(href: string, base?: string): string | undefined {
+export function normaliseUrl(href: string, base?: string): string | undefined {
   try {
     const url = new URL(href, base)
     url.hash = ''

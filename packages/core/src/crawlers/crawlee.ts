@@ -10,7 +10,7 @@ import type { Hookable } from 'hookable'
 import type { RequestTransform } from 'crawlee'
 import { CheerioCrawler, log as crawleeLog, RequestQueue } from 'crawlee'
 import { createHooks } from 'hookable'
-import { isI18nAlternatePage, sameHostCanonical } from '../util/i18n'
+import { isI18nAlternatePage, normaliseUrl, sameHostCanonical } from '../util/i18n'
 
 export interface CrawleeCrawlerOptions {
   concurrency?: number
@@ -79,6 +79,13 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       wake()
     }
 
+    // Dedup on a normalised key (absolute, no trailing slash, no hash) rather
+    // than the raw href. Without this, `/blog`, `/blog/`, `/blog#x` and the
+    // same link repeated across every page's nav each count as a fresh
+    // "discovered" URL — which inflated the discovered/total stat to many times
+    // the real page count (e.g. 449 for a 22-page site) and re-queued the same
+    // page repeatedly. Falls back to the raw URL if it can't be parsed.
+    const dedupKey = (url: string): string => normaliseUrl(url) ?? url
     const discovered = new Set<string>()
     const audited = new Set<string>()
     let aborted = false
@@ -101,9 +108,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         break
       if (runOpts.allows && !runOpts.allows(seed.url))
         continue
-      if (discovered.has(seed.url))
+      if (discovered.has(dedupKey(seed.url)))
         continue
-      discovered.add(seed.url)
+      discovered.add(dedupKey(seed.url))
       initialUrls.push(seed.url)
       emit({ type: 'url-discovered', url: seed.url, from: seed.source })
       try {
@@ -144,11 +151,30 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         // Shared dedup + allow-filter + discovery-emit used by link, canonical
         // and x-default enqueue alike.
         const transformRequestFunction: RequestTransform = (req) => {
-          if (discovered.has(req.url))
+          // Only same-host http(s) pages count as discovered routes. The crawler
+          // surfaces every link it sees here — including outbound links
+          // (github.com, twitter.com, youtube.com…) and non-http schemes
+          // (mailto:, tel:) — none of which are ever audited (enqueue uses
+          // `same-hostname`). Counting them inflated `discovered`/`total` to many
+          // times the real page count (449 / 222 for a ~22-page site).
+          let reqHost: string | undefined
+          try {
+            const parsed = new URL(req.url)
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+              return false
+            reqHost = parsed.host
+          }
+          catch {
+            return false
+          }
+          if (originHost && reqHost !== originHost)
+            return false
+          const key = dedupKey(req.url)
+          if (discovered.has(key))
             return false
           if (runOpts.allows && !runOpts.allows(req.url))
             return false
-          discovered.add(req.url)
+          discovered.add(key)
           emit({ type: 'url-discovered', url: req.url, from: url })
           return req
         }
@@ -160,8 +186,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         const xDefaultHref = $ ? $('link[rel="alternate"][hreflang="x-default"]').attr('href') : undefined
         const isI18nDuplicate = (runOpts.ignoreI18nPages ?? false) && isI18nAlternatePage(url, xDefaultHref)
 
-        if (!audited.has(url) && !isI18nDuplicate) {
-          audited.add(url)
+        const auditKey = dedupKey(url)
+        if (!audited.has(auditKey) && !isI18nDuplicate) {
+          audited.add(auditKey)
           emit({ type: 'url-started', url })
           try {
             await runOpts.audit(url, ctx)
@@ -208,8 +235,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         const url = request.loadedUrl || request.url
         const err = error instanceof Error ? error : new Error(String(error))
         opts.logger?.debug?.(`crawlee failed: ${url}`, err)
-        if (!audited.has(url)) {
-          audited.add(url)
+        const failKey = dedupKey(url)
+        if (!audited.has(failKey)) {
+          audited.add(failKey)
           emit({ type: 'url-failed', url, error: err })
         }
       },
