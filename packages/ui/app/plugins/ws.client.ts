@@ -15,11 +15,15 @@ class WsBus {
 
   constructor(url: string) {
     this.url = url
-    this.connect()
+    // An empty URL disables the live-event socket entirely (e.g. the Cloudflare
+    // deploy, which has no global WS bus — pages fall back to REST polling).
+    // Without this the bus would spin forever retrying a bad/localhost URL.
+    if (url)
+      this.connect()
   }
 
   private connect() {
-    if (this.disposed) return
+    if (this.disposed || !this.url) return
 
     try {
       this.ws = new WebSocket(this.url)

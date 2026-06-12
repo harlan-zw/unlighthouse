@@ -20,6 +20,15 @@ main = "worker.ts"
 compatibility_date = "2025-04-01"
 compatibility_flags = [ "nodejs_compat" ]
 
+# ── Dashboard SPA ─────────────────────────────────────────────────────────────
+# The built Nuxt UI (packages/ui/.output/public). The Worker serves it for all
+# non-API GET routes (see app.ts), so one Worker hosts both the panel and the
+# API. Build it first with: NUXT_PUBLIC_UNLIGHTHOUSE_API_URL=/api pnpm --filter @unlighthouse/ui build
+[assets]
+binding = "ASSETS"
+directory = "../../../ui/.output/public"
+not_found_handling = "single-page-application"
+
 # ── Bindings ────────────────────────────────────────────────────────────────
 
 [[d1_databases]]

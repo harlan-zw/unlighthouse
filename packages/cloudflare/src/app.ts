@@ -6,6 +6,7 @@ import type {
   D1Database,
   DurableObjectNamespace,
   ExecutionContext,
+  Fetcher,
   KVNamespace,
   R2Bucket,
 } from '@cloudflare/workers-types'
@@ -58,6 +59,13 @@ export interface CloudflareEnv {
   UNLIGHTHOUSE_VERSION?: string
   /** Set to "1" to fall back to the mock auditor (no Browser Rendering needed). */
   UNLIGHTHOUSE_USE_MOCK_AUDITOR?: string
+  /**
+   * Static assets binding (the built Nuxt dashboard SPA). Optional — when
+   * present, non-API requests are served from it with SPA fallback, so a single
+   * Worker hosts both the panel and the API. Configured via `[assets]` in
+   * wrangler.toml with `binding = "ASSETS"`.
+   */
+  ASSETS?: Fetcher
 }
 
 export interface CloudflareApp {
@@ -198,6 +206,34 @@ function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions, 
   } as HandlerCtx
 }
 
+// Distinguish API calls from UI routes so non-API GETs can be served from the
+// bundled SPA. The dashboard always calls the API under its configured `/api/*`
+// base, so that prefix is unambiguously API and is the path the panel uses.
+//
+// The bare, prefix-less command roots also need to resolve (raw `/scan/start`
+// callers, the WS path), but several collide with UI routes that share a first
+// segment: `/sites/list` is API while `/sites/example.com` is a page; likewise
+// `/route/*`, `/compare/*`, `/history/*`. Since the panel never calls those
+// without the `/api` prefix, we treat the prefix-less form as API only for roots
+// that have NO UI collision, plus the two singletons. Everything else falls
+// through to the SPA.
+const API_EXCLUSIVE_ROOTS = new Set([
+  'api',
+  'scan',
+  'pack',
+  'query',
+  'events',
+  'auditors',
+  'assert',
+  'dashboard',
+])
+function isApiPath(pathname: string): boolean {
+  if (pathname === '/health' || pathname === '/manifest')
+    return true
+  const root = pathname.split('/')[1] ?? ''
+  return API_EXCLUSIVE_ROOTS.has(root)
+}
+
 export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): CloudflareApp {
   const pendingSeed: PendingSeed = { site: null }
   const ctx = buildHandlerCtx(env, opts, pendingSeed)
@@ -225,6 +261,17 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
       await ensureMigrated(runtimeEnv)
       const url = new URL(req.url)
 
+      // Serve the bundled dashboard SPA for everything that isn't an API call.
+      // The API surface is `/api/*` plus the bare command roots (the router
+      // mounts prefix-less); anything else is a UI route and is handed to the
+      // ASSETS binding, which does its own static lookup + SPA fallback to
+      // index.html for client-side routes like `/sites/example.com`.
+      if (runtimeEnv.ASSETS && req.method === 'GET' && !isApiPath(url.pathname)) {
+        // Cast across the workers-types ⇆ lib.dom Request/Response split (the
+        // same split the DO stub.fetch calls below work around).
+        return runtimeEnv.ASSETS.fetch(req as never) as unknown as Response
+      }
+
       // WebSocket subscribe → ScanEventsDO. Avoids the standard HTTP pipeline
       // since toWebHandler can't return a 101 with a webSocket field.
       if (url.pathname === '/api/events/subscribe' && req.headers.get('Upgrade') === 'websocket') {
@@ -237,13 +284,29 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         return stub.fetch(req)
       }
 
+      // The HTTP command router mounts routes WITHOUT a prefix (`/scan/start`),
+      // but the dashboard client (and the WS path above) speak the conventional
+      // `/api/*` surface. Strip a leading `/api` so both the bundled panel and
+      // raw `/api/...` callers reach the same routes — and the prefix-less
+      // `/scan/start` form keeps working too.
+      let apiReq = req
+      if (url.pathname.startsWith('/api/') || url.pathname === '/api') {
+        const stripped = url.pathname.replace(/^\/api(?=\/|$)/, '') || '/'
+        const rewritten = new URL(req.url)
+        rewritten.pathname = stripped
+        apiReq = new Request(rewritten, req)
+        url.pathname = stripped
+      }
+
       // Transport-level rate-limit gate for scan.start + body peek to
       // capture `site` for the seed-source (so a single deploy can scan
-      // many hosts without redeploying). Cloned read of the body is
-      // non-destructive — the downstream h3 handler re-reads from `req`.
-      if (req.method === 'POST' && url.pathname === '/scan/start') {
+      // many hosts without redeploying). Read the clone of `apiReq` — the
+      // request that's actually handed downstream — so the body isn't consumed
+      // out from under the h3 handler (the `/api` rewrite above already moved
+      // the body onto `apiReq`).
+      if (apiReq.method === 'POST' && url.pathname === '/scan/start') {
         try {
-          const body = await req.clone().json() as { site?: unknown } | null
+          const body = await apiReq.clone().json() as { site?: unknown } | null
           pendingSeed.site = (body && typeof body.site === 'string' && body.site.length > 0)
             ? body.site
             : null
@@ -251,8 +314,8 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         catch {
           pendingSeed.site = null
         }
-        const key = req.headers.get('x-api-key')
-          ?? req.headers.get('cf-connecting-ip')
+        const key = apiReq.headers.get('x-api-key')
+          ?? apiReq.headers.get('cf-connecting-ip')
           ?? 'global'
         const id = runtimeEnv.RATE_LIMITER_DO.idFromName(key)
         const stub = runtimeEnv.RATE_LIMITER_DO.get(id)
@@ -274,14 +337,16 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         }
       }
 
-      const res = await webHandler(req)
+      const res = await webHandler(apiReq)
 
       // If scan.start kicked off a session, register session.done with the
       // Worker's ExecutionContext so the runtime keeps the orchestration
       // alive after the response returns. Without this, Workers GCs the
-      // request scope as soon as the response is sent and the scan never
-      // actually writes its row + LHR blobs.
-      if (req.method === 'POST' && url.pathname === '/scan/start' && res.ok) {
+      // request scope as soon as the response is sent and the scan stays
+      // wedged in `starting` (its row + LHR blobs never get written).
+      // Use `apiReq`/`url` (both already normalised past the /api strip) so the
+      // match is robust whether the caller hit `/scan/start` or `/api/scan/start`.
+      if (apiReq.method === 'POST' && url.pathname === '/scan/start' && res.ok) {
         const session = ctx.core.session?.()
         if (session?.done)
           execCtx.waitUntil(session.done.catch(() => undefined))
