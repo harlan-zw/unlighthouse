@@ -1,4 +1,5 @@
 import type { CliOptions } from './types'
+import { execFileSync } from 'node:child_process'
 import { setMaxListeners } from 'node:events'
 import { logger, createTaggedLogger } from '@unlighthouse/core/logger'
 import open from 'better-opn'
@@ -37,6 +38,27 @@ async function createServer(resolvedConfig: { server: any }) {
 //      open indefinitely.
 //
 // Twice-pressed Ctrl+C bypasses the drain and exits immediately —
+// Reap any Lighthouse-spawned Chrome processes. The audit worker launches
+// Chrome inside a worker_thread, so when the host is killed (SIGTERM/SIGINT, or
+// a tsx dev restart) those threads don't get to run their own cleanup and the
+// Chromes are re-parented to init and leak — each one still holding its
+// debugging port. Lighthouse's Chrome always runs with a `--user-data-dir`
+// under a temp `lighthouse.<rand>` dir, which is a precise, safe signature to
+// target (it never matches the user's real browser). Best-effort + synchronous
+// so it completes before the process exits.
+function killLighthouseChromes(): void {
+  if (process.platform === 'win32')
+    return
+  try {
+    // pkill -f matches against the full command line; the user-data-dir flag is
+    // unique to Lighthouse's headless Chrome.
+    execFileSync('pkill', ['-9', '-f', 'user-data-dir=.*lighthouse\\.'], { stdio: 'ignore' })
+  }
+  catch {
+    // pkill exits non-zero when nothing matched — that's the common, fine case.
+  }
+}
+
 // matches the convention used by nuxt / next / vite dev servers.
 function setupGracefulShutdown(
   server: { server: { close: (cb?: (err?: Error) => void) => void } },
@@ -108,12 +130,19 @@ function setupGracefulShutdown(
       log.debug?.(`[shutdown] db.close skipped: ${(err as Error).message}`)
     }
 
+    // Reap leaked Lighthouse Chromes before we go — the worker threads that
+    // spawned them won't get a chance to once we exit.
+    killLighthouseChromes()
+
     process.stderr.write(`[unlighthouse] drained cleanly.\n`)
     process.exit(0)
   }
 
   process.on('SIGTERM', () => { void drain('SIGTERM') })
   process.on('SIGINT', () => { void drain('SIGINT') })
+  // Last-ditch synchronous reap for any exit path that bypasses drain()
+  // (uncaught fatal, explicit process.exit elsewhere). Safe to run twice.
+  process.on('exit', () => { killLighthouseChromes() })
 }
 
 const cli = createCli()
