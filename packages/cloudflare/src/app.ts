@@ -29,6 +29,7 @@ import { createApp, toWebHandler } from 'h3'
 // bundle. lighthouse uses node:url and other Node-only APIs at top-level
 // and breaks the Workers runtime even when never invoked.
 import { cloudflareCrawler } from './crawlers/cloudflare-crawl'
+import { fuseSeedsDedup, workerSitemapSeeds } from './seeds'
 import { d1R2Storage, migrate as migrateD1 } from './storage/d1-r2'
 
 export interface CloudflareEnv {
@@ -147,20 +148,41 @@ function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions, 
     ? cloudflareCrawler({ browser: env.BROWSER })
     : parallelMapCrawler({ concurrency: 4 })
   const storage = d1R2Storage({ db: env.DB, bucket: env.BLOBS })
-  const seeds = manualSeeds({
-    // Lazy URL list: prefer the site the inbound scan.start carried in its
-    // body (set on `pendingSeed.site` by the fetch interceptor); fall back
-    // to UNLIGHTHOUSE_CONFIG.site for callers that omit it (mostly the
-    // smoke-test path). Default to an empty list if neither is set so the
-    // scan errors cleanly instead of crawling a placeholder.
-    urls: () => {
-      const fromRequest = pendingSeed?.site
-      if (fromRequest)
-        return [fromRequest]
-      const fromConfig = (config as { site?: string }).site
-      return fromConfig ? [fromConfig] : []
-    },
-  })
+  // Resolve the site to scan lazily: prefer the host the inbound scan.start
+  // carried in its body (set on `pendingSeed.site` by the fetch interceptor);
+  // fall back to UNLIGHTHOUSE_CONFIG.site for callers that omit it (mostly the
+  // smoke-test path). Null when neither is set so the scan errors cleanly
+  // instead of crawling a placeholder.
+  const siteFor = (): string | null => {
+    const fromRequest = pendingSeed?.site
+    if (fromRequest)
+      return fromRequest
+    const fromConfig = (config as { site?: string }).site
+    return fromConfig ?? null
+  }
+  // Seeds: manual (the site root, always) fused with Workers-native sitemap
+  // discovery. Without the sitemap source the Worker only ever audits the
+  // single seed URL — the cloudflare/parallel-map crawlers do no in-page link
+  // discovery — so "scan the whole site" degraded to one page. Sitemap
+  // discovery (global fetch + regex parse, no Node deps) restores it. Gated by
+  // `scanner.sitemap !== false` to mirror the local host's behaviour.
+  const sitemapConfig = (config as { scanner?: { sitemap?: true | string[] | false } }).scanner?.sitemap
+  const seedSources = [
+    manualSeeds({
+      urls: () => {
+        const s = siteFor()
+        return s ? [s] : []
+      },
+    }),
+  ]
+  if (sitemapConfig !== false) {
+    seedSources.push(workerSitemapSeeds({
+      site: siteFor,
+      sitemaps: Array.isArray(sitemapConfig) ? sitemapConfig : true,
+      logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/sitemap'),
+    }))
+  }
+  const seeds = fuseSeedsDedup(seedSources)
   const core = createUnlighthouseCore({
     config,
     auditor,
