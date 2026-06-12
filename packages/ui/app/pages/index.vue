@@ -14,6 +14,7 @@ const { fmtRelTime } = useFormat()
 
 const ScanStatusBadge = resolveComponent('ScanStatusBadge')
 const SparklineC = resolveComponent('Sparkline')
+const FaviconC = resolveComponent('Favicon')
 
 const { data: histResp, status: historyStatus } = useAsyncData(
   'recent-scans',
@@ -104,9 +105,12 @@ const siteColumns: ColumnDef<SiteRow>[] = [
   {
     accessorKey: 'name',
     header: 'Site',
-    cell: ({ row }) => h('div', { class: 'min-w-0' }, [
-      h('div', { class: 'text-sm font-medium truncate' }, row.original.name),
-      h('div', { class: 'text-[11px] text-muted font-mono truncate' }, row.original.url),
+    cell: ({ row }) => h('div', { class: 'flex items-center gap-2.5 min-w-0' }, [
+      h(FaviconC, { domain: row.original.slug, size: 24, alt: `${row.original.name} favicon` }),
+      h('div', { class: 'min-w-0' }, [
+        h('div', { class: 'text-sm font-medium truncate' }, row.original.name),
+        h('div', { class: 'text-[11px] text-muted font-mono truncate' }, row.original.url),
+      ]),
     ]),
   },
   {

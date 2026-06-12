@@ -11,9 +11,11 @@ const api = useApi()
 const slug = route.params.siteId as string
 
 // Shared key with AppSidebar's sites fetch so we don't double-load.
+// Shared key + handler with AppSidebar's sites fetch so we don't double-load
+// (and so Nuxt doesn't warn about incompatible options for the same key).
 const { data: sitesData } = useAsyncData(
   'sidebar-sites',
-  () => api['sites.list']({}).catch(() => ({ sites: [] as Array<{ id: string, name: string, url: string, group: string | null }> })),
+  () => api['sites.list']({}),
 )
 const siteMeta = computed(() => (sitesData.value?.sites ?? []).find(s => siteSlug(s.url) === slug) ?? null)
 const siteUrl = computed(() => resolveSiteUrl(slug, sitesData.value?.sites ?? []))
@@ -192,12 +194,15 @@ const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
   <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-wrap items-start justify-between gap-3">
-      <div class="min-w-0">
-        <h1 class="text-title truncate">{{ siteName }}</h1>
-        <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted hover:text-default inline-flex items-center gap-1">
-          {{ siteUrl }}
-          <Icon name="lucide:external-link" class="size-3" />
-        </a>
+      <div class="flex items-start gap-3 min-w-0">
+        <Favicon :domain="slug" :size="36" :alt="`${siteName} favicon`" class="mt-1" />
+        <div class="min-w-0">
+          <h1 class="text-title truncate">{{ siteName }}</h1>
+          <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted hover:text-default inline-flex items-center gap-1">
+            {{ siteUrl }}
+            <Icon name="lucide:external-link" class="size-3" />
+          </a>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <UiButton v-if="canCompare" purpose="secondary" size="sm" icon="i-lucide-git-compare" @click="compareLatest">Compare latest two</UiButton>

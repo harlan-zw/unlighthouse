@@ -69,23 +69,25 @@ function formatDuration(ms: number): string {
 
       <UProgress :model-value="store.percent" size="sm" />
 
-      <!-- Counts row — crawler-side numbers. -->
+      <!-- Counts row — crawler-side numbers. `discovered`/`total` track the same
+           thing (same-host pages found so far), so we show Pages once and use
+           the fourth slot for the live remaining count rather than duplicating. -->
       <div class="grid grid-cols-4 gap-3 text-center text-xs">
         <div>
-          <div class="numerals-display text-base">{{ store.discovered }}</div>
-          <div class="text-muted">Discovered</div>
+          <div class="numerals-display text-base">{{ store.total }}</div>
+          <div class="text-muted">Pages found</div>
         </div>
         <div>
           <div class="numerals-display text-base">{{ store.scanned }}</div>
-          <div class="text-muted">Scanned</div>
+          <div class="text-muted">Audited</div>
         </div>
         <div>
           <div class="numerals-display text-base" :class="store.failed > 0 ? 'text-error' : ''">{{ store.failed }}</div>
           <div class="text-muted">Failed</div>
         </div>
         <div>
-          <div class="numerals-display text-base">{{ store.total }}</div>
-          <div class="text-muted">Total</div>
+          <div class="numerals-display text-base">{{ Math.max(0, store.total - store.scanned - store.failed) }}</div>
+          <div class="text-muted">Remaining</div>
         </div>
       </div>
 

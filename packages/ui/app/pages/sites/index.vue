@@ -172,9 +172,12 @@ const groupSuggestions = computed(() => {
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <UiCard v-for="site in bucket.items" :key="site.id" size="sm">
             <div class="flex items-start justify-between mb-3">
-              <NuxtLink :to="`/sites/${siteSlug(site.url)}`" class="min-w-0 flex-1 group">
-                <div class="font-medium text-sm truncate group-hover:text-primary transition-colors">{{ site.name }}</div>
-                <div class="text-xs text-muted font-mono truncate mt-0.5">{{ site.url }}</div>
+              <NuxtLink :to="`/sites/${siteSlug(site.url)}`" class="min-w-0 flex-1 group flex items-center gap-2.5">
+                <Favicon :domain="siteSlug(site.url)" :size="28" :alt="`${site.name} favicon`" class="mt-0.5" />
+                <div class="min-w-0">
+                  <div class="font-medium text-sm truncate group-hover:text-primary transition-colors">{{ site.name }}</div>
+                  <div class="text-xs text-muted font-mono truncate mt-0.5">{{ site.url }}</div>
+                </div>
               </NuxtLink>
             </div>
             <div class="text-xs text-muted mb-3">

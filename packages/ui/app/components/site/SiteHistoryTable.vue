@@ -66,10 +66,14 @@ const columns: ColumnDef<DevicePair>[] = [
       const all = p.routes || 0
       const done = p.completed || 0
       const isEmpty = done === 0 && all > 0
+      // When every found page was audited (the normal case), show one number —
+      // "22/22" reads like something was skipped. Only show "done/all" when they
+      // genuinely differ (older scans, or a scan that didn't finish).
+      const label = all > 0 && done !== all ? `${done}/${all}` : `${done || all}`
       return h('span', {
         class: isEmpty ? 'text-xs tabular-nums text-muted' : 'text-xs tabular-nums',
-        title: isEmpty ? 'Scan completed structurally but no routes were audited' : `${done} of ${all} routes audited`,
-      }, `${done}/${all}`)
+        title: isEmpty ? 'Scan completed structurally but no routes were audited' : `${done} of ${all} pages audited`,
+      }, label)
     },
     sortingFn: (a, b) => (a.original.completed ?? 0) - (b.original.completed ?? 0),
   },
