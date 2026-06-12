@@ -32,6 +32,57 @@ import { scanEventsEmit } from '../scan-events-emit'
 import { fuseSeedsDedup, workerSitemapSeeds } from '../seeds'
 import { d1R2Storage } from '../storage/d1-r2'
 
+// Safety cap on total queue size when link-discovery is crawling a sitemap-less
+// site, so a deep/looping site can't grow the queue without bound.
+const MAX_QUEUE = 200
+
+// Asset/non-page extensions we never enqueue as routes when extracting links.
+const ASSET_EXT_RE = /\.(?:css|js|mjs|json|xml|txt|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|pdf|zip|gz|map)(?:$|\?)/i
+
+const HREF_RE = /href\s*=\s*["']([^"'\s>]+)["']/gi
+
+/** Build the include/exclude allows predicate from config (pathname-based). */
+function buildAllows(config: UnlighthouseConfig): (u: string) => boolean {
+  const filter = createFilter({
+    include: (config as { scanner?: { include?: string[] } }).scanner?.include,
+    exclude: (config as { scanner?: { exclude?: string[] } }).scanner?.exclude,
+  })
+  return (u: string): boolean => {
+    try {
+      return filter(new URL(u).pathname)
+    }
+    catch {
+      return filter(u)
+    }
+  }
+}
+
+/**
+ * Extract same-origin page links from an HTML string. Used as the sitemap-less
+ * fallback so Cloudflare scans crawl by following links (like the local
+ * crawlee crawler) instead of only auditing the seed. Drops asset URLs, hashes,
+ * and cross-origin links; normalises to absolute, hash-stripped form.
+ */
+function extractSameOriginLinks(html: string, pageUrl: string, origin: string): string[] {
+  const out: string[] = []
+  let m: RegExpExecArray | null
+  // eslint-disable-next-line no-cond-assign
+  while ((m = HREF_RE.exec(html)) !== null) {
+    const raw = m[1].trim()
+    if (!raw || raw.startsWith('mailto:') || raw.startsWith('tel:') || raw.startsWith('javascript:') || raw.startsWith('#'))
+      continue
+    try {
+      const u = new URL(raw, pageUrl)
+      u.hash = ''
+      if (u.origin !== origin || ASSET_EXT_RE.test(u.pathname))
+        continue
+      out.push(u.toString())
+    }
+    catch { /* skip malformed */ }
+  }
+  return out
+}
+
 export interface ScanRunnerEnv {
   DB: D1Database
   BLOBS: R2Bucket
@@ -57,6 +108,12 @@ interface RunnerState extends ScanRunnerStartBody {
   failed: number
   startedAtMs: number
   cancelled?: boolean
+  /**
+   * Follow in-page links to discover routes (the sitemap-less fallback). Set at
+   * /start when the sitemap yielded no extra URLs; off when the sitemap already
+   * enumerated the site (no need to re-fetch every page's HTML).
+   */
+  linkDiscovery?: boolean
 }
 
 export class ScanRunnerDO {
@@ -109,18 +166,7 @@ export class ScanRunnerDO {
         sitemaps: Array.isArray(sitemapCfg) ? sitemapCfg : true,
       }))
     }
-    const filter = createFilter({
-      include: (config as { scanner?: { include?: string[] } }).scanner?.include,
-      exclude: (config as { scanner?: { exclude?: string[] } }).scanner?.exclude,
-    })
-    const allows = (u: string): boolean => {
-      try {
-        return filter(new URL(u).pathname)
-      }
-      catch {
-        return filter(u)
-      }
-    }
+    const allows = buildAllows(config)
     const urls: string[] = []
     const seen = new Set<string>()
     for await (const seed of fuseSeedsDedup(seedSources).seeds()) {
@@ -129,6 +175,13 @@ export class ScanRunnerDO {
       seen.add(seed.url)
       urls.push(seed.url)
     }
+
+    // Sitemap-less fallback: if discovery yielded only the seed (no sitemap, or
+    // an empty one), crawl by following in-page links as each URL is audited —
+    // mirroring the local crawlee crawler so a site without a sitemap still gets
+    // more than its homepage scanned. When the sitemap already enumerated the
+    // site, skip it (no need to re-fetch every page's HTML).
+    const linkDiscovery = mode !== 'page' && urls.length <= 1
 
     // Site + scan row (mirrors core.ts orchestrate's row creation).
     let siteId: string | null = null
@@ -181,6 +234,7 @@ export class ScanRunnerDO {
       scanned: 0,
       failed: 0,
       startedAtMs,
+      linkDiscovery,
     }
     await this.state.storage.put('state', next)
     await this.state.storage.setAlarm(Date.now())
@@ -221,6 +275,7 @@ export class ScanRunnerDO {
     // consumer's auditor lives. Each delegate call is a fresh invocation with
     // its own budget — the whole point.
     const targetUrl = st.urls[st.index]
+    let auditOk = false
     try {
       const res = await this.env.SELF.fetch('https://scan-runner.internal/__scan/audit', {
         method: 'POST',
@@ -234,6 +289,7 @@ export class ScanRunnerDO {
         const j = await res.json() as { scanned?: number, failed?: number }
         st.scanned += j.scanned ?? 0
         st.failed += j.failed ?? 0
+        auditOk = (j.scanned ?? 0) > 0
       }
       else {
         st.failed += st.devices.length
@@ -243,10 +299,52 @@ export class ScanRunnerDO {
       st.failed += st.devices.length
     }
 
-    // Persist index + counters together AFTER the audit so a crash before this
-    // line re-runs the (idempotent) audit on retry without double-counting.
+    // Sitemap-less link discovery: enqueue new same-origin links found on the
+    // page we just audited, so a site without a sitemap gets crawled rather
+    // than stopping at the seed. Bounded by MAX_QUEUE; best-effort.
+    if (st.linkDiscovery && auditOk && st.urls.length < MAX_QUEUE) {
+      try {
+        const origin = new URL(st.site).origin
+        const resp = await fetch(targetUrl, { headers: { accept: 'text/html' }, redirect: 'follow' })
+        if (resp.ok && (resp.headers.get('content-type') ?? '').includes('text/html')) {
+          const html = await resp.text()
+          const allows = buildAllows(st.config)
+          const known = new Set(st.urls)
+          for (const link of extractSameOriginLinks(html, targetUrl, origin)) {
+            if (st.urls.length >= MAX_QUEUE)
+              break
+            if (known.has(link) || !allows(link))
+              continue
+            known.add(link)
+            st.urls.push(link)
+          }
+        }
+      }
+      catch { /* best-effort discovery */ }
+    }
+
+    // Persist index + counters + any newly-discovered URLs together AFTER the
+    // audit so a crash before this line re-runs the (idempotent) audit on retry
+    // without double-counting.
     st.index += 1
     await this.state.storage.put('state', st)
+
+    // Live progress: write a partial summary onto the scan row so scan.status
+    // (which reads the row, not the DO's private state.storage) shows the
+    // climbing discovered/scanned counts during the scan instead of 0 until
+    // finalize. finalize overwrites this with the fully-scored summary.
+    await this.storage().scans.update(st.scanId as never, {
+      summary: {
+        routes: st.urls.length,
+        completed: st.scanned,
+        failed: st.failed,
+        scoreAverage: null,
+        scoresByCategory: {},
+        durationMs: Date.now() - st.startedAtMs,
+        devices: st.devices,
+      },
+    } as never).catch(() => {})
+
     await emit('scan:progress', {
       scanId: st.scanId as never,
       discovered: st.urls.length,
