@@ -54,7 +54,15 @@ export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
         return result.lhr as unknown as LighthouseReport
       }
       finally {
-        await browser.disconnect()
+        // CLOSE (not disconnect) so the remote Browser Run session is
+        // TERMINATED right after the audit. `disconnect()` only detaches the
+        // puppeteer client — the underlying session then lives out its full
+        // `keep_alive` window (up to 10 min), so a ~30s audit was billed ~20x
+        // its real time. Connecting to the bare `/browser` endpoint spawns a
+        // NEW session per audit (no reuse), so those idle windows stacked up to
+        // ~87 Browser-Run hours. close() bills ~the audit duration instead.
+        // Fall back to disconnect() only if close() throws.
+        await browser.close().catch(() => browser.disconnect().catch(() => {}))
       }
     },
   }
