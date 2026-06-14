@@ -27,7 +27,6 @@ import type { NamedAuditor } from '@unlighthouse/contracts/ports'
 import {
 
   createCloudflareApp,
-  LighthouseContainer,
   RateLimiterDO,
   ScanEventsDO,
   ScanRunnerDO,
@@ -40,7 +39,7 @@ import { fallbackAuditor } from '@unlighthouse/core/auditors/route'
 
 // Re-export the Durable Object + Container classes so the Workers runtime
 // can find them when wrangler.toml references `class_name = "..."`.
-export { LighthouseContainer, RateLimiterDO, ScanEventsDO, ScanRunnerDO }
+export { RateLimiterDO, ScanEventsDO, ScanRunnerDO }
 
 export default {
   async fetch(req: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
