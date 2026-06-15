@@ -67,6 +67,12 @@ export interface CloudflareEnv {
   SHARED_AUDIT_TOKEN?: string
   /** Optional CrUX API key; enables the field-data fallback tier. */
   CRUX_API_KEY?: string
+  /**
+   * Optional Google PageSpeed Insights API key. The PSI auditor (real
+   * Lighthouse via Google, no container/Browser Run cost) works without it but
+   * at a low rate limit; a free key raises the quota (~25k/day).
+   */
+  PSI_API_KEY?: string
   /** Inline config JSON; the preset Zod-validates this. */
   UNLIGHTHOUSE_CONFIG?: string
   /** Package version surfaced by `manifest` + `health`. Set during deploy. */
