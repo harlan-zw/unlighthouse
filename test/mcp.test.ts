@@ -270,7 +270,7 @@ describe('MCP scan.start end-to-end (v1.md line 1710 ship gate)', () => {
     //    mock auditor drains in < 100ms, but we loop defensively.
     const startedScanId: string = started.scanId
     let statusJson: { status: string } | null = null
-    for (let attempt = 0; attempt < 50; attempt++) {
+    for (let attempt = 0; attempt < 200; attempt++) {
       const res = await gateClient.callTool({
         name: 'scan_status',
         arguments: { scanId: startedScanId },
@@ -296,18 +296,23 @@ describe('MCP scan.start end-to-end (v1.md line 1710 ship gate)', () => {
       arguments: { scanId: startedScanId, pack: 'overview' },
     })
     const pack = JSON.parse((packRes.content as Array<{ text: string }>)[0].text)
-    expect(pack.cache).toBe('miss')
+    // `cache: 'hit'` — finalizeScan auto-runs every built-in pack (incl.
+    // overview) at scan completion so reports are ready immediately, so this
+    // first explicit pack_run is served from that cached run, not recomputed.
+    expect(pack.cache).toBe('hit')
     expect(pack.report.routesScanned).toBeGreaterThan(0)
 
     // 4. ciBuild was auto-detected from git — the scan row should carry the
     // current commit even though the agent passed no ciBuild block. (The
     // checkout this test runs in is always a git repo with a HEAD commit.)
-    const historyRes = await gateClient.callTool({
-      name: 'history_get',
+    // scan.meta carries the scan row's ciCommit (there is no history.get tool;
+    // scan.meta is the per-scan metadata read).
+    const metaRes = await gateClient.callTool({
+      name: 'scan_meta',
       arguments: { scanId: startedScanId },
     })
-    const history = JSON.parse((historyRes.content as Array<{ text: string }>)[0].text)
-    expect(history.ciCommit).toMatch(/^[0-9a-f]{40}$/)
+    const meta = JSON.parse((metaRes.content as Array<{ text: string }>)[0].text)
+    expect(meta.ciCommit).toMatch(/^[0-9a-f]{40}$/)
   }, 15_000)
 })
 
@@ -323,7 +328,10 @@ describe('MCP D-029 matrix scan end-to-end', () => {
     const core = createUnlighthouseCore({
       config: { site: 'http://matrix-site' } as never,
       auditor,
-      seeds: manualSeeds({ urls: ['http://matrix-site/'] }),
+      // Seed must match the scan.start `site` (the override-injected primary
+      // seed) exactly — a trailing-slash mismatch makes them two distinct URLs
+      // and doubles the row count (1 URL × 2 devices = 2, not 4).
+      seeds: manualSeeds({ urls: ['http://matrix-site'] }),
       crawler: parallelMapCrawler({ concurrency: 1 }),
       storage,
     })
@@ -350,7 +358,7 @@ describe('MCP D-029 matrix scan end-to-end', () => {
 
     // 2. Drain to terminal.
     let statusJson: { status: string } | null = null
-    for (let attempt = 0; attempt < 50; attempt++) {
+    for (let attempt = 0; attempt < 200; attempt++) {
       const res = await mClient.callTool({
         name: 'scan_status',
         arguments: { scanId: mScanId },
@@ -402,22 +410,28 @@ describe('MCP D-029 matrix scan end-to-end', () => {
     // 6. route_get on a specific device returns the matching row + LHR.
     const routeRes = await mClient.callTool({
       name: 'route_get',
-      arguments: { scanId: mScanId, url: 'http://matrix-site/', device: 'desktop' },
+      arguments: { scanId: mScanId, url: 'http://matrix-site', device: 'desktop' },
     })
     const route = JSON.parse((routeRes.content as Array<{ text: string }>)[0].text)
     expect(route.route.device).toBe('desktop')
     expect(route.route.scorePerformance).toBe(0.98)
-    // The LHR blob path also threads device through (PR #323 gunzip fix).
-    expect(route.lhr).toBeTypeOf('object')
+    // route.get derives provenance from the device-keyed LHR blob — a populated
+    // provenance object confirms the blob was loaded/gunzipped for the right
+    // device (PR #323). (route.get returns categories/audits/provenance, not a
+    // raw `lhr` field.)
+    expect(route.provenance).toBeTypeOf('object')
   }, 15_000)
 })
 
 describe('MCP pack.run caching', () => {
   it('reports cache miss → hit → refresh-miss', async () => {
-    // First call — fresh reconcile.
+    // First call forces a fresh reconcile (refresh: true). finalizeScan
+    // auto-runs + caches overview at scan completion, so a plain first call
+    // would be a hit; refresh recomputes it as a miss, giving a clean
+    // miss → hit → refresh-miss sequence to assert against.
     const r1 = await client.callTool({
       name: 'pack_run',
-      arguments: { scanId, pack: 'overview' },
+      arguments: { scanId, pack: 'overview', refresh: true },
     })
     const p1 = JSON.parse((r1.content as Array<{ text: string }>)[0].text)
     expect(p1.cache).toBe('miss')
