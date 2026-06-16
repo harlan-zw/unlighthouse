@@ -7,8 +7,6 @@
 // Returns null fields when run outside a git repo, on a detached HEAD, or
 // anywhere git isn't on PATH.
 
-import { execFileSync } from 'node:child_process'
-
 export interface GitMeta {
   branch: string | null
   commit: string | null
@@ -17,6 +15,15 @@ export interface GitMeta {
 
 function gitOutput(args: string[], cwd: string): string | null {
   try {
+    // `node:child_process` is resolved lazily, NOT as a top-level import, so
+    // this module stays loadable in a browser bundle. The static client
+    // (api/static-client) imports the handler barrel — and thus this file —
+    // transitively, but never calls readGitMeta. A top-level
+    // `import … from 'node:child_process'` makes Vite externalise the builtin
+    // and the browser stub has no `execFileSync` export, crashing app boot.
+    // process.getBuiltinModule (Node ≥20.16/22.3) returns it synchronously so
+    // readGitMeta stays sync for its server-side callers.
+    const { execFileSync } = process.getBuiltinModule('node:child_process')
     const out = execFileSync('git', args, {
       cwd,
       stdio: ['ignore', 'pipe', 'ignore'],

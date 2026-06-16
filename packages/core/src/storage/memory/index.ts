@@ -15,9 +15,11 @@ import type {
   ScanRepository,
   ScanRoute,
   ScanRouteRepository,
+  SiteRecord,
+  SiteRepository,
   Storage,
 } from '@unlighthouse/contracts'
-import { createHash } from 'node:crypto'
+import { sha1Hex } from '../../util/sha1'
 
 /**
  * Pure in-memory `Storage`. Used by:
@@ -33,6 +35,7 @@ export interface MemoryStorageOptions {
 }
 
 export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
+  const sitesMap = new Map<string, SiteRecord>()
   const scansMap = new Map<ScanId, Scan & { _createdAtMs: number }>()
   // D-029: keyed on `${url}|${device}` so the same URL on mobile + desktop
   // each carry their own row, mirroring the SQL PK.
@@ -47,7 +50,9 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
   const clone = <T>(v: T): T => (v == null ? v : JSON.parse(JSON.stringify(v)) as T)
 
   function urlHash(url: string): string {
-    return createHash('sha1').update(url).digest('hex').slice(0, 16)
+    // Pure-JS sha1 (not node:crypto) so memory storage stays bundleable into the
+    // static, offline dashboard. Same output as the previous createHash path.
+    return sha1Hex(url).slice(0, 16)
   }
 
   function toRoute(scanId: string, device: Device, m: ExtractedMetrics): ScanRoute {
@@ -288,5 +293,29 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     },
   }
 
-  return { scans: scanRepo, routes: routeRepo, blobs: blobStore, reports: reportRepos, comparisons: comparisonsRepo, packRuns: packRunsRepo }
+  const sitesRepo: SiteRepository = {
+    async list() { return Array.from(sitesMap.values()).map(clone) },
+    async get(id) {
+      const s = sitesMap.get(id)
+      return s ? clone(s) : null
+    },
+    async getByUrl(url) {
+      const s = Array.from(sitesMap.values()).find(s => s.url === url)
+      return s ? clone(s) : null
+    },
+    async create(site) {
+      sitesMap.set(site.id, clone(site))
+      return clone(site)
+    },
+    async update(id, patch) {
+      const s = sitesMap.get(id)
+      if (!s)
+        return null
+      Object.assign(s, patch)
+      return clone(s)
+    },
+    async delete(id) { return sitesMap.delete(id) },
+  }
+
+  return { sites: sitesRepo, scans: scanRepo, routes: routeRepo, blobs: blobStore, reports: reportRepos, comparisons: comparisonsRepo, packRuns: packRunsRepo }
 }

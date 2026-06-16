@@ -10,12 +10,16 @@
 //
 // Browser delivery: Cloudflare Browser Run's external CDP endpoint
 //   wss://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}
-//     /browser-rendering/devtools/browser?keep_alive=600000
+//     /browser-rendering/devtools/browser?keep_alive=${KEEP_ALIVE_MS}
 // authenticated with Authorization: Bearer ${CF_BROWSER_RUN_TOKEN}.
 //
-// The keep_alive=600000 (10 min max per Browser Run limits) keeps Cloudflare's
-// Chromium warm across audits. cdp-connect.ts disconnects (not closes) the
-// puppeteer client after each audit, so the underlying browser stays alive.
+// COST: keep_alive is the idle window a Browser Run session stays alive (and
+// BILLED) after the client detaches. cdp-connect.ts now CLOSES the browser
+// after each audit, which terminates the session immediately — so keep_alive is
+// only a safety net for a failed close. It used to be 600000 (10 min) paired
+// with disconnect()-not-close(), which billed every ~30s audit for the full
+// 10-min window (~20x) and stacked up to ~87 Browser-Run hours. Keep it just
+// above a single audit's duration. Overridable via CF_BROWSER_KEEP_ALIVE_MS.
 
 import type { Auditor } from '@unlighthouse/contracts/ports'
 import { Buffer } from 'node:buffer'
@@ -77,8 +81,12 @@ if (!SHARED_AUDIT_TOKEN || !CF_ACCOUNT_ID || !CF_BROWSER_RUN_TOKEN) {
   console.warn('[cloudflare-lighthouse] missing one of SHARED_AUDIT_TOKEN/CF_ACCOUNT_ID/CF_BROWSER_RUN_TOKEN — /audit will 503')
 }
 
+// Idle window before Browser Run reaps (and stops billing) a detached session.
+// Default 60s — comfortably above one audit, far below the old 600s. We close()
+// after each audit anyway, so this only bounds the bill if a close() is lost.
+const KEEP_ALIVE_MS = Number(process.env.CF_BROWSER_KEEP_ALIVE_MS ?? 60000)
 const BROWSER_RUN_WS = `wss://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}`
-  + `/browser-rendering/devtools/browser?keep_alive=600000`
+  + `/browser-rendering/devtools/browser?keep_alive=${KEEP_ALIVE_MS}`
 
 // Constant-time-ish bearer compare. Lengths must match before timingSafeEqual.
 function constantTimeEqual(a: string, b: string): boolean {

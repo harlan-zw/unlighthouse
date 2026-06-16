@@ -35,11 +35,11 @@ function lhrWithItems() {
           })),
         },
       },
-      // Off-list audit (insight audit not in the allowlist) — items stay null.
-      'render-blocking-insight': {
+      // Off-list audit (diagnostic not in the allowlist) — items stay null.
+      'network-rtt': {
         score: 0.5,
         scoreDisplayMode: 'numeric',
-        title: 'Render-blocking',
+        title: 'Network Round Trip Times',
         details: { items: [{ url: 'https://example.com/blocker.js' }] },
       },
     },
@@ -67,7 +67,7 @@ describe('reconciled report details.items projection', () => {
       device: 'mobile',
       lhr: lhrWithItems(),
     })
-    expect(out.audits['render-blocking-insight'].items).toBeNull()
+    expect(out.audits['network-rtt'].items).toBeNull()
   })
 
   it('audits without any details.items keep items: null', () => {

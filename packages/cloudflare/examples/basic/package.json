@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "build:panel": "cd ../../../.. && NUXT_PUBLIC_UNLIGHTHOUSE_API_URL=/api NUXT_PUBLIC_UNLIGHTHOUSE_WS_URL= pnpm --filter @unlighthouse/ui build",
+    "deploy": "pnpm run build:panel && wrangler deploy",
+    "deploy:worker-only": "wrangler deploy",
     "tail": "wrangler tail",
     "typecheck": "tsc --noEmit"
   },

@@ -3,17 +3,19 @@
 
 import type { Site } from './sites'
 import { AssertEvaluate } from './assert'
-import { CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
+import { CompareDetail, CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
 import { EventsSubscribe, EventsTail } from './events'
-import { HistoryDelete, HistoryGet, HistoryList, HistoryRescan } from './history'
-import { AuditorsList, AuditorsTest, Health, Manifest } from './meta'
+import { HistoryList, HistoryRescan } from './history'
+import { AuditorsList, Health, Manifest } from './meta'
 import { PackList, PackRunCmd } from './pack'
 import { QueryRoutes } from './query'
-import { RouteGet, RouteRescan } from './route'
+import { RouteAudits, RouteGet, RouteRescan } from './route'
 import {
   ScanCancel,
+  ScanCategories,
   ScanCurrent,
   ScanDelete,
+  ScanImport,
   ScanMetaCmd,
   ScanPause,
   ScanRescanAll,
@@ -23,33 +25,34 @@ import {
   ScanStatusCmd,
   ScanSummaryCmd,
 } from './scan'
-import { SiteSchema, SitesCreate, SitesDelete, SitesGet, SitesList } from './sites'
+import { SiteSchema, SitesCreate, SitesDelete, SitesList } from './sites'
 
 export * from './compare'
 
 export {
   AssertEvaluate,
   AuditorsList,
-  AuditorsTest,
+  CompareDetail,
   CompareFindPrevious,
   CompareMarkdown,
   CompareRun,
   EventsSubscribe,
   EventsTail,
   Health,
-  HistoryDelete,
-  HistoryGet,
   HistoryList,
   HistoryRescan,
   Manifest,
   PackList,
   PackRunCmd,
   QueryRoutes,
+  RouteAudits,
   RouteGet,
   RouteRescan,
   ScanCancel,
+  ScanCategories,
   ScanCurrent,
   ScanDelete,
+  ScanImport,
   ScanMetaCmd,
   ScanPause,
   ScanRescanAll,
@@ -61,7 +64,6 @@ export {
   SiteSchema,
   SitesCreate,
   SitesDelete,
-  SitesGet,
   SitesList,
 }
 
@@ -86,6 +88,7 @@ export const commands = {
   'scan.pause': ScanPause,
   'scan.resume': ScanResume,
   'scan.delete': ScanDelete,
+  'scan.import': ScanImport,
   'scan.results': ScanResults,
   'scan.summary': ScanSummaryCmd,
   'scan.meta': ScanMetaCmd,
@@ -93,14 +96,16 @@ export const commands = {
   'scan.rescanAll': ScanRescanAll,
 
   'route.get': RouteGet,
+  'route.audits': RouteAudits,
   'route.rescan': RouteRescan,
 
+  'scan.categories': ScanCategories,
+
   'history.list': HistoryList,
-  'history.get': HistoryGet,
-  'history.delete': HistoryDelete,
   'history.rescan': HistoryRescan,
 
   'compare.run': CompareRun,
+  'compare.detail': CompareDetail,
   'compare.markdown': CompareMarkdown,
   'compare.findPrevious': CompareFindPrevious,
 
@@ -117,10 +122,8 @@ export const commands = {
   'manifest': Manifest,
   'health': Health,
   'auditors.list': AuditorsList,
-  'auditors.test': AuditorsTest,
 
   'sites.list': SitesList,
-  'sites.get': SitesGet,
   'sites.create': SitesCreate,
   'sites.delete': SitesDelete,
 } as const

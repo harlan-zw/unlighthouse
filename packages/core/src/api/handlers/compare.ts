@@ -3,6 +3,7 @@
 import type {
   Category,
   CommandOutput,
+  CompareDetail,
   CompareFindPrevious,
   CompareMarkdown,
   CompareRun,
@@ -92,13 +93,70 @@ async function runCompare(ctx: HandlerCtx, baseScanId: string, currentScanId: st
 
   const regressions: Diff[] = []
   const improvements: Diff[] = []
+  // Routes that existed only on one side. The previous loop walked
+  // currentRoutes alone and silently dropped base-only rows — the
+  // markdown handler then emitted PR comments that pretended deleted
+  // pages had never been audited. Walking the union surfaces removals
+  // and additions explicitly so the caller can decide how to render
+  // them (we surface them on RouteDiff via `delta: NaN` markers below).
+  const added: Diff[] = []
+  const removed: Diff[] = []
 
-  for (const current of currentRoutes) {
-    // Match base to current on (url, device). A matrix scan compared against
-    // a single-device base will still find pairs for the overlapping device
-    // and skip the rest — no false regressions from missing base rows.
-    const base = baseByKey.get(rowKey(current))
-    if (!base)
+  const currentByKey = new Map(currentRoutes.map(r => [rowKey(r), r]))
+  const allKeys = new Set([...baseByKey.keys(), ...currentByKey.keys()])
+
+  for (const key of allKeys) {
+    const base = baseByKey.get(key)
+    const current = currentByKey.get(key)
+
+    // Route was on base but not current — removed. Emit one diff per
+    // category score that existed on base so the PR comment surface
+    // can list it under a "removed routes" section.
+    if (base && !current) {
+      for (const metric of metrics) {
+        if (!isScore(metric))
+          continue // only emit one removal marker per route (the categories)
+        const baseVal = valueOf(base, metric)
+        if (baseVal == null)
+          continue
+        removed.push({
+          url: base.url,
+          device: base.device,
+          metric,
+          base: baseVal,
+          current: null,
+          delta: -baseVal, // negative current → represented as full drop
+          regressed: false,
+        })
+        break // first non-null category is enough to identify the removal
+      }
+      continue
+    }
+
+    // Route was on current but not base — added.
+    if (current && !base) {
+      for (const metric of metrics) {
+        if (!isScore(metric))
+          continue
+        const currentVal = valueOf(current, metric)
+        if (currentVal == null)
+          continue
+        added.push({
+          url: current.url,
+          device: current.device,
+          metric,
+          base: null,
+          current: currentVal,
+          delta: currentVal,
+          regressed: false,
+        })
+        break
+      }
+      continue
+    }
+
+    // Route on both — full metric-by-metric diff.
+    if (!base || !current)
       continue
     for (const metric of metrics) {
       const baseVal = valueOf(base, metric)
@@ -130,7 +188,16 @@ async function runCompare(ctx: HandlerCtx, baseScanId: string, currentScanId: st
     currentScanId,
     regressions,
     improvements,
+    added,
+    removed,
     thresholds: resolvedThresholds,
+    summary: null as {
+      totalRegressions: number
+      totalImprovements: number
+      avgScoreDelta: number | null
+      categoryDeltas: Array<{ category: string, label: string, base: number | null, current: number | null, delta: number | null }>
+    } | null,
+    packDiffs: [] as Array<{ packName: string, hasChanges: boolean }>,
   }
 }
 
@@ -138,8 +205,313 @@ export const compareRun: Handler<typeof CompareRun> = {
   command: {} as typeof CompareRun,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
+
+    const [baseScan, currentScan] = await Promise.all([
+      ctx.storage.scans.get(input.baseScanId as unknown as never),
+      ctx.storage.scans.get(input.currentScanId as unknown as never),
+    ])
+
+    const baseAvg = baseScan?.summary?.scoreAverage ?? null
+    const currentAvg = currentScan?.summary?.scoreAverage ?? null
+
+    const baseScores = baseScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined
+    const currentScores = currentScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined
+
+    const categoryDeltas = CATEGORY_ORDER.map((category) => {
+      const base = baseScores?.[category] ?? null
+      const current = currentScores?.[category] ?? null
+      const delta = base != null && current != null ? current - base : null
+      return { category, label: CATEGORY_LABEL[category], base, current, delta }
+    })
+
+    report.summary = {
+      totalRegressions: report.regressions.length,
+      totalImprovements: report.improvements.length,
+      avgScoreDelta: baseAvg != null && currentAvg != null ? currentAvg - baseAvg : null,
+      categoryDeltas,
+    }
+
+    report.packDiffs = await computePackDiffs(ctx, input.baseScanId, input.currentScanId)
+
     await emitCompareComplete(ctx, input.baseScanId, input.currentScanId, report.regressions.length, report.improvements.length)
     return report as unknown as CommandOutput<typeof CompareRun>
+  },
+}
+
+// Pack reports are `unknown` at the schema level — each pack defines
+// its own contract — but a few fields recur across the built-in packs
+// (findings.length, totalBytesSavable, severityCounts.*). Extracting
+// these into a pack-agnostic summary lets the dashboard render
+// "Images: 12 → 4 findings" without us having to embed pack-specific
+// rendering code. Off-list fields stay null and the UI hides the row.
+interface PackSummary {
+  findings: number | null
+  routesAnalysed: number | null
+  totalBytesSavable: number | null
+  critical: number | null
+  serious: number | null
+  moderate: number | null
+  minor: number | null
+}
+
+function summarisePackReport(report: unknown): PackSummary {
+  if (!report || typeof report !== 'object')
+    return { findings: null, routesAnalysed: null, totalBytesSavable: null, critical: null, serious: null, moderate: null, minor: null }
+  const r = report as Record<string, unknown>
+  const sev = (r.severityCounts as Record<string, number> | undefined) ?? {}
+  const findings = Array.isArray(r.findings) ? r.findings.length : null
+  const routesAnalysed = typeof r.routesAnalysed === 'number' ? r.routesAnalysed : null
+  const totalBytesSavable = typeof r.totalBytesSavable === 'number' ? r.totalBytesSavable : null
+  return {
+    findings,
+    routesAnalysed,
+    totalBytesSavable,
+    critical: typeof sev.critical === 'number' ? sev.critical : null,
+    serious: typeof sev.serious === 'number' ? sev.serious : null,
+    moderate: typeof sev.moderate === 'number' ? sev.moderate : null,
+    minor: typeof sev.minor === 'number' ? sev.minor : null,
+  }
+}
+
+// Cheap deep-equal via JSON stringify. Pack reports are bounded (sub-100KB
+// typically) and we only run this on compare so the cost is fine. We use
+// it just to decide hasChanges; UI consumers can still walk the raw
+// reports themselves.
+function deepEqual(a: unknown, b: unknown): boolean {
+  try {
+    return JSON.stringify(a) === JSON.stringify(b)
+  }
+  catch {
+    return false
+  }
+}
+
+async function computePackDiffs(ctx: HandlerCtx, baseScanId: string, currentScanId: string): Promise<Array<{
+  packName: string
+  base: unknown
+  current: unknown
+  baseSummary: PackSummary | null
+  currentSummary: PackSummary | null
+  hasChanges: boolean
+}>> {
+  const [baseRuns, currentRuns] = await Promise.all([
+    ctx.storage.packRuns.listForScan(baseScanId as unknown as never).catch(() => [] as Array<{ packName: string, report?: unknown }>),
+    ctx.storage.packRuns.listForScan(currentScanId as unknown as never).catch(() => [] as Array<{ packName: string, report?: unknown }>),
+  ])
+  const baseByName = new Map(baseRuns.map(r => [r.packName, r.report]))
+  const currentByName = new Map(currentRuns.map(r => [r.packName, r.report]))
+  const allPacks = new Set([...baseByName.keys(), ...currentByName.keys()])
+
+  const out: Array<{
+    packName: string
+    base: unknown
+    current: unknown
+    baseSummary: PackSummary | null
+    currentSummary: PackSummary | null
+    hasChanges: boolean
+  }> = []
+  for (const name of Array.from(allPacks).sort()) {
+    const base = baseByName.get(name) ?? null
+    const current = currentByName.get(name) ?? null
+    out.push({
+      packName: name,
+      base,
+      current,
+      baseSummary: base ? summarisePackReport(base) : null,
+      currentSummary: current ? summarisePackReport(current) : null,
+      // Both-sides-missing can't happen (we built allPacks from the
+      // union), so hasChanges is just "they differ" or "one side missing".
+      hasChanges: !deepEqual(base, current),
+    })
+  }
+  return out
+}
+
+// ── compare.detail ─────────────────────────────────────────────────────────
+
+const METRIC_KEYS = ['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices', 'lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si'] as const
+const SCORE_KEYS = new Set(['scorePerformance', 'scoreAccessibility', 'scoreSeo', 'scoreBestPractices'])
+
+function extractMetrics(route: ScanRoute) {
+  const m: Record<string, number | null> = {}
+  for (const k of METRIC_KEYS)
+    m[k] = (route as unknown as Record<string, number | null>)[k] ?? null
+  return m
+}
+
+function computeDeltas(base: Record<string, number | null> | null, current: Record<string, number | null> | null) {
+  const d: Record<string, number | null> = {}
+  for (const k of METRIC_KEYS)
+    d[k] = base?.[k] != null && current?.[k] != null ? current[k]! - base[k]! : null
+  return d
+}
+
+// Map our per-row metric keys back to the contract's ThresholdKey shape
+// (which uses category id / metric name, not the persisted column).
+const THRESHOLD_KEY: Record<string, string> = {
+  scorePerformance: 'performance',
+  scoreAccessibility: 'accessibility',
+  scoreSeo: 'seo',
+  scoreBestPractices: 'best-practices',
+  lcp: 'lcp',
+  cls: 'cls',
+  inp: 'inp',
+  fcp: 'fcp',
+  ttfb: 'ttfb',
+  tbt: 'tbt',
+  si: 'si',
+}
+
+function classifyRow(
+  deltas: Record<string, number | null>,
+  base: Record<string, number | null> | null,
+  current: Record<string, number | null> | null,
+  thresholds: Record<string, number>,
+): 'unchanged' | 'regressed' | 'improved' | 'added' | 'removed' {
+  if (!base) return 'added'
+  if (!current) return 'removed'
+  let hasRegression = false
+  let hasImprovement = false
+  for (const k of METRIC_KEYS) {
+    const d = deltas[k]
+    if (d == null) continue
+    const isScore = SCORE_KEYS.has(k)
+    // Threshold by the metric/category key the contract uses (e.g.
+    // 'performance' for scorePerformance). Falls back to a small noise
+    // band so two-decimal rounding doesn't flag rows as "regressed."
+    const thr = thresholds[THRESHOLD_KEY[k]] ?? (isScore ? 0.01 : 50)
+    if (isScore ? -d > thr : d > thr) hasRegression = true
+    if (isScore ? d > thr : -d > thr) hasImprovement = true
+  }
+  if (hasRegression) return 'regressed'
+  if (hasImprovement) return 'improved'
+  return 'unchanged'
+}
+
+interface DetailRow {
+  url: string
+  path: string
+  device: string
+  base: Record<string, number | null> | null
+  current: Record<string, number | null> | null
+  deltas: Record<string, number | null>
+  status: 'unchanged' | 'regressed' | 'improved' | 'added' | 'removed'
+}
+
+export const compareDetail: Handler<typeof CompareDetail> = {
+  command: {} as typeof CompareDetail,
+  async run(input, ctx) {
+    const [baseRoutes, currentRoutes] = await Promise.all([
+      loadRoutes(ctx, input.baseScanId),
+      loadRoutes(ctx, input.currentScanId),
+    ])
+
+    const baseByKey = new Map(baseRoutes.map(r => [rowKey(r), r]))
+    const currentByKey = new Map(currentRoutes.map(r => [rowKey(r), r]))
+    const allKeys = new Set([...baseByKey.keys(), ...currentByKey.keys()])
+
+    const resolvedThresholds = { ...DEFAULT_THRESHOLDS, ...(input.thresholds ?? {}) }
+
+    const allRows: DetailRow[] = []
+    for (const key of allKeys) {
+      const baseRoute = baseByKey.get(key)
+      const currentRoute = currentByKey.get(key)
+      const route = currentRoute ?? baseRoute!
+      const baseMetrics = baseRoute ? extractMetrics(baseRoute) : null
+      const currentMetrics = currentRoute ? extractMetrics(currentRoute) : null
+      const deltas = computeDeltas(baseMetrics, currentMetrics)
+      const status = classifyRow(deltas, baseMetrics, currentMetrics, resolvedThresholds)
+      allRows.push({
+        url: route.url,
+        path: route.path,
+        device: route.device,
+        base: baseMetrics,
+        current: currentMetrics,
+        deltas,
+        status,
+      })
+    }
+
+    // Narrow back to the contract's optional shape — zod's inferred type
+    // when the caller omits `filter` is `{}`, which tsc rejects for the
+    // .url / .status accesses below. The shape mirrors the schema in
+    // contracts/commands/compare.ts.
+    const filter: {
+      url?: string
+      status?: 'all' | 'regressed' | 'improved' | 'changed' | 'added' | 'removed'
+      device?: 'mobile' | 'desktop'
+    } = input.filter ?? {}
+    let filtered = allRows
+    if (filter.url)
+      filtered = filtered.filter(r => r.url.includes(filter.url!) || r.path.includes(filter.url!))
+    if (filter.device)
+      filtered = filtered.filter(r => r.device === filter.device)
+    if (filter.status && filter.status !== 'all') {
+      if (filter.status === 'changed')
+        filtered = filtered.filter(r => r.status !== 'unchanged')
+      else
+        filtered = filtered.filter(r => r.status === filter.status)
+    }
+
+    const sort = input.sort || 'delta-perf-desc'
+    const [sortType, sortKey, sortDir] = sort.split('-')
+    if (sortType === 'delta') {
+      const metricKey = sortKey === 'perf' ? 'scorePerformance'
+        : sortKey === 'a11y' ? 'scoreAccessibility'
+          : sortKey === 'seo' ? 'scoreSeo'
+            : sortKey === 'bp' ? 'scoreBestPractices'
+              : sortKey === 'lcp' ? 'lcp' : sortKey === 'cls' ? 'cls' : 'scorePerformance'
+      filtered.sort((a, b) => {
+        const av = a.deltas[metricKey] ?? 0
+        const bv = b.deltas[metricKey] ?? 0
+        return sortDir === 'asc' ? av - bv : bv - av
+      })
+    }
+    else {
+      filtered.sort((a, b) => a.url.localeCompare(b.url))
+    }
+
+    const total = filtered.length
+    const page = input.page ?? 1
+    const pageSize = input.pageSize ?? 100
+    const start = (page - 1) * pageSize
+    const items = filtered.slice(start, start + pageSize)
+
+    const counts = { regressed: 0, improved: 0, added: 0, removed: 0, unchanged: 0 }
+    for (const r of allRows) counts[r.status]++
+
+    const [baseScan, currentScan] = await Promise.all([
+      ctx.storage.scans.get(input.baseScanId as unknown as never),
+      ctx.storage.scans.get(input.currentScanId as unknown as never),
+    ])
+
+    const baseScores = baseScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined
+    const currentScores = currentScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined
+    const baseAvg = baseScan?.summary?.scoreAverage ?? null
+    const currentAvg = currentScan?.summary?.scoreAverage ?? null
+
+    const categoryDeltas = CATEGORY_ORDER.map((category) => {
+      const base = baseScores?.[category] ?? null
+      const current = currentScores?.[category] ?? null
+      const delta = base != null && current != null ? current - base : null
+      return { category, label: CATEGORY_LABEL[category], base, current, delta }
+    })
+
+    return {
+      baseScanId: input.baseScanId,
+      currentScanId: input.currentScanId,
+      summary: {
+        totalRoutes: allRows.length,
+        changedRoutes: counts.regressed + counts.improved + counts.added + counts.removed,
+        regressedRoutes: counts.regressed,
+        improvedRoutes: counts.improved,
+        addedRoutes: counts.added,
+        removedRoutes: counts.removed,
+        avgScoreDelta: baseAvg != null && currentAvg != null ? currentAvg - baseAvg : null,
+        categoryDeltas,
+      },
+      routes: { items, total, page, pageSize },
+    } as unknown as CommandOutput<typeof CompareDetail>
   },
 }
 
@@ -158,12 +530,13 @@ async function emitCompareComplete(ctx: HandlerCtx, baseScanId: string, currentS
 // reviewer with per-metric rows.
 
 const TOP_N = 5
-const CATEGORY_ORDER: Category[] = ['performance', 'accessibility', 'best-practices', 'seo']
+const CATEGORY_ORDER: Category[] = ['performance', 'accessibility', 'best-practices', 'seo', 'agentic-browsing']
 const CATEGORY_LABEL: Record<Category, string> = {
   'performance': 'Performance',
   'accessibility': 'Accessibility',
   'best-practices': 'Best Practices',
   'seo': 'SEO',
+  'agentic-browsing': 'Agentic Browsing',
 }
 
 function scoreCell(value: number | null | undefined): string {
@@ -240,12 +613,8 @@ export const compareMarkdown: Handler<typeof CompareMarkdown> = {
   command: {} as typeof CompareMarkdown,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
-    await emitCompareComplete(ctx, input.baseScanId, input.currentScanId, report.regressions.length, report.improvements.length)
     const title = input.title ?? 'Unlighthouse comparison'
 
-    // Pull both scan summaries so we can render the headline `scoreAverage`
-    // delta and per-category table. `runCompare` already validates that both
-    // scans exist (throws SCAN_NOT_FOUND otherwise), so these reads are safe.
     const [baseScan, currentScan] = await Promise.all([
       ctx.storage.scans.get(input.baseScanId as unknown as never),
       ctx.storage.scans.get(input.currentScanId as unknown as never),
@@ -321,6 +690,29 @@ export const compareMarkdown: Handler<typeof CompareMarkdown> = {
         const arrow = deltaArrow(r.delta, categoryThreshold)
         lines.push(`| \`${r.url}\` | ${r.device} | ${CATEGORY_LABEL[r.metric as Category]} | ${scoreCell(r.base)} | ${scoreCell(r.current)} | ${arrow} ${signed(r.delta)} |`)
       }
+    }
+
+    // ── Added / removed routes ─────────────────────────────────────────────
+    // Surfaced explicitly because PR reviewers care: a removed route
+    // could be an unintended 404, an added route is new surface area
+    // worth eyeballing.
+    if (report.added.length) {
+      lines.push('')
+      lines.push(`### Added routes (${report.added.length})`)
+      lines.push('')
+      for (const r of report.added.slice(0, TOP_N))
+        lines.push(`- \`${r.url}\` (${r.device}) — Performance ${scoreCell(r.current)}`)
+      if (report.added.length > TOP_N)
+        lines.push(`- … and ${report.added.length - TOP_N} more`)
+    }
+    if (report.removed.length) {
+      lines.push('')
+      lines.push(`### Removed routes (${report.removed.length})`)
+      lines.push('')
+      for (const r of report.removed.slice(0, TOP_N))
+        lines.push(`- \`${r.url}\` (${r.device}) — was Performance ${scoreCell(r.base)}`)
+      if (report.removed.length > TOP_N)
+        lines.push(`- … and ${report.removed.length - TOP_N} more`)
     }
 
     lines.push('')

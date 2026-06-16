@@ -131,13 +131,13 @@ describe('e2e: HTTP projection over the wire', () => {
 
   it('error mapping: unknown scanId → 404 + UnlighthouseError name', async () => {
     let caught: Error | null = null
-    await client['route.get']({
+    await client['route.rescan']({
       scanId: '00000000-0000-0000-0000-000000000000',
       url: 'http://localhost/',
     } as never).catch((err: Error) => { caught = err })
     expect(caught).not.toBeNull()
-    // statusForCode maps SCAN_NOT_FOUND / ROUTE_NOT_FOUND → 404.
-    expect(['SCAN_NOT_FOUND', 'ROUTE_NOT_FOUND']).toContain(caught!.name)
+    // statusForCode maps SCAN_NOT_FOUND → 404.
+    expect(caught!.name).toBe('SCAN_NOT_FOUND')
   })
 
   it('events.subscribe streams NDJSON shaped {event, payload}', async () => {

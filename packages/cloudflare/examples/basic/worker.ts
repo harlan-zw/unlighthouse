@@ -27,19 +27,20 @@ import type { NamedAuditor } from '@unlighthouse/contracts/ports'
 import {
 
   createCloudflareApp,
-  LighthouseContainer,
   RateLimiterDO,
   ScanEventsDO,
+  ScanRunnerDO,
   sweeperWorker,
 } from '@unlighthouse/cloudflare'
 import { createContainerLighthouseAuditor } from '@unlighthouse/cloudflare-lighthouse/worker'
 import { createCruxAuditor } from '@unlighthouse/core/auditors/crux'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
+import { createPsiAuditor } from '@unlighthouse/core/auditors/psi'
 import { fallbackAuditor } from '@unlighthouse/core/auditors/route'
 
 // Re-export the Durable Object + Container classes so the Workers runtime
 // can find them when wrangler.toml references `class_name = "..."`.
-export { LighthouseContainer, RateLimiterDO, ScanEventsDO }
+export { RateLimiterDO, ScanEventsDO, ScanRunnerDO }
 
 export default {
   async fetch(req: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
@@ -47,7 +48,18 @@ export default {
       auditorFactory: (cfEnv) => {
         const tiers: NamedAuditor[] = []
 
-        // Tier 1: Real Lighthouse in the Container, via Browser Run CDP.
+        // Tier 1 (primary): real Lighthouse via Google PageSpeed Insights.
+        // Runs entirely in the Worker (a single HTTP call to Google), so there
+        // is NO container, NO Docker, and NO Cloudflare Browser Run cost —
+        // Google runs Lighthouse on its own infra and returns the LHR. Public
+        // URLs only; the optional PSI_API_KEY raises Google's rate limit.
+        tiers.push({
+          name: 'psi',
+          auditor: createPsiAuditor({ apiKey: cfEnv.PSI_API_KEY }),
+        })
+
+        // Tier 2: Real Lighthouse in the Container, via Browser Run CDP.
+        // Dormant unless the container is re-added (binding absent → skipped).
         if (cfEnv.LIGHTHOUSE_CONTAINER && cfEnv.SHARED_AUDIT_TOKEN) {
           tiers.push({
             name: 'container-lighthouse',

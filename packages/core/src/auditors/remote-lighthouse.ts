@@ -1,6 +1,7 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
 import { ofetch } from 'ofetch'
+import { extractRouteData } from '../report/extract'
 
 // Generic remote-Lighthouse adapter. The remote service runs Lighthouse on its own
 // hardware and returns the raw LHR — unlike cdp-connect (D-022), perf scores are
@@ -67,7 +68,7 @@ export function createRemoteLighthouseAuditor(opts: RemoteLighthouseOptions): Au
     capabilities: REMOTE_LIGHTHOUSE_CAPABILITIES,
     async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<LighthouseReport> {
       const lighthouseConfig = auditOpts.lighthouseConfig ?? {}
-      return transport({
+      const lhr = await transport({
         endpoint: opts.endpoint,
         url,
         lighthouseConfig,
@@ -76,6 +77,43 @@ export function createRemoteLighthouseAuditor(opts: RemoteLighthouseOptions): Au
         timeoutMs,
         signal: auditOpts.signal,
       })
+      // The remote service returns a raw LHR. Run the canonical extraction here
+      // and attach `.extracted` (the scored metrics row) + `.lhrGzip`, exactly
+      // like the local auditor — without this, the persist path (auditRoute)
+      // finds no `.extracted` and writes a row with all scores null, so the
+      // dashboard shows the routes with no numbers. Mirrors local.ts.
+      const extracted = extractRouteData(lhr as never)
+      const path = (() => {
+        try {
+          return new URL(url).pathname
+        }
+        catch {
+          return url
+        }
+      })()
+      const metrics = {
+        url,
+        path,
+        routeName: null,
+        scorePerformance: extracted.scores.performance,
+        scoreAccessibility: extracted.scores.accessibility,
+        scoreSeo: extracted.scores.seo,
+        scoreBestPractices: extracted.scores.bestPractices,
+        scoreAgenticBrowsing: extracted.scores.agenticBrowsing,
+        lcp: extracted.lcp,
+        cls: extracted.cls,
+        inp: extracted.inp,
+        fcp: extracted.fcp,
+        ttfb: extracted.ttfb,
+        tbt: extracted.tbt,
+        si: extracted.si,
+        lighthouseVersion: (lhr as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
+        capturedAt: new Date().toISOString(),
+      }
+      return Object.assign(
+        lhr as unknown as LighthouseReport,
+        { extracted: metrics, lhrGzip: extracted.lhrGzip },
+      )
     },
   }
 }

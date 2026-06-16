@@ -28,6 +28,8 @@ import type {
   ScanRouteRepository,
   ScanStatus,
   ScanSummary,
+  SiteRecord,
+  SiteRepository,
   Storage,
 } from '@unlighthouse/contracts'
 
@@ -85,7 +87,13 @@ interface RouteRawRow {
 function rowToScan(r: ScanRawRow): Scan {
   return {
     scanId: r.scan_id as ScanId,
+    // siteId/mode were added to the Scan contract after this D1 schema was
+    // written. Rather than a schema migration, derive them: siteId is the site
+    // origin (the registry key the dashboard groups by) and mode defaults to a
+    // full-site crawl — the only mode this worker drives.
+    siteId: originOf(r.site),
     site: r.site,
+    mode: 'site',
     device: r.device as Scan['device'],
     status: r.status as ScanStatus,
     startedAt: r.started_at,
@@ -95,6 +103,16 @@ function rowToScan(r: ScanRawRow): Scan {
     ciCommitMessage: r.ci_commit_message,
     // summary is stored as JSON-encoded text (sqlite has no native JSON).
     summary: r.summary ? (JSON.parse(r.summary) as ScanSummary) : null,
+  }
+}
+
+// Best-effort origin for siteId. Falls back to the raw value if not a URL.
+function originOf(site: string): string {
+  try {
+    return new URL(site).origin
+  }
+  catch {
+    return site
   }
 }
 
@@ -169,6 +187,72 @@ function buildUpdateClause(patch: Partial<ScanInsert>): { setSql: string, args: 
       args.push(v === undefined ? null : v)
   }
   return { setSql: cols.join(', '), args }
+}
+
+interface SiteRawRow {
+  id: string
+  name: string
+  url: string
+  group: string | null
+  created_at: string
+}
+
+function rowToSite(r: SiteRawRow): SiteRecord {
+  return { id: r.id, name: r.name, url: r.url, group: r.group, createdAt: r.created_at }
+}
+
+// Site registry (the user's saved sites the dashboard groups scans under).
+// Added to the storage contract in v1; mirrors the core drizzle repository.
+function d1SiteRepository(db: D1Database): SiteRepository {
+  return {
+    async list(): Promise<SiteRecord[]> {
+      const res = await db.prepare(`SELECT * FROM sites ORDER BY created_at DESC`).all<SiteRawRow>()
+      return (res.results ?? []).map(rowToSite)
+    },
+    async get(id: string): Promise<SiteRecord | null> {
+      const r = await db.prepare(`SELECT * FROM sites WHERE id = ?`).bind(id).first<SiteRawRow>()
+      return r ? rowToSite(r) : null
+    },
+    async getByUrl(url: string): Promise<SiteRecord | null> {
+      const r = await db.prepare(`SELECT * FROM sites WHERE url = ?`).bind(url).first<SiteRawRow>()
+      return r ? rowToSite(r) : null
+    },
+    async create(site: SiteRecord): Promise<SiteRecord> {
+      await db
+        .prepare(`INSERT INTO sites (id, name, url, "group", created_at) VALUES (?, ?, ?, ?, ?)`)
+        .bind(site.id, site.name, site.url, site.group, site.createdAt)
+        .run()
+      return site
+    },
+    async update(id: string, patch: Partial<Omit<SiteRecord, 'id'>>): Promise<SiteRecord | null> {
+      const cols: string[] = []
+      const args: unknown[] = []
+      if (patch.name !== undefined) {
+        cols.push(`name = ?`)
+        args.push(patch.name)
+      }
+      if (patch.url !== undefined) {
+        cols.push(`url = ?`)
+        args.push(patch.url)
+      }
+      if (patch.group !== undefined) {
+        cols.push(`"group" = ?`)
+        args.push(patch.group)
+      }
+      if (patch.createdAt !== undefined) {
+        cols.push(`created_at = ?`)
+        args.push(patch.createdAt)
+      }
+      if (cols.length) {
+        await db.prepare(`UPDATE sites SET ${cols.join(', ')} WHERE id = ?`).bind(...args, id).run()
+      }
+      return this.get(id)
+    },
+    async delete(id: string): Promise<boolean> {
+      const res = await db.prepare(`DELETE FROM sites WHERE id = ?`).bind(id).run()
+      return (res.meta?.changes ?? 0) > 0
+    },
+  }
 }
 
 function d1ScanRepository(db: D1Database): ScanRepository {
@@ -402,12 +486,18 @@ function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
 
       let orderBy = ''
       switch (q?.sort) {
-        case 'score-asc': orderBy = 'ORDER BY score_performance ASC'; break
-        case 'score-desc': orderBy = 'ORDER BY score_performance DESC'; break
-        case 'lcp-asc': orderBy = 'ORDER BY lcp ASC'; break
-        case 'lcp-desc': orderBy = 'ORDER BY lcp DESC'; break
-        case 'url-asc': orderBy = 'ORDER BY url ASC'; break
-        case 'capturedAt-desc': orderBy = 'ORDER BY captured_at DESC'; break
+        case 'score-asc': orderBy = 'ORDER BY score_performance ASC'
+          break
+        case 'score-desc': orderBy = 'ORDER BY score_performance DESC'
+          break
+        case 'lcp-asc': orderBy = 'ORDER BY lcp ASC'
+          break
+        case 'lcp-desc': orderBy = 'ORDER BY lcp DESC'
+          break
+        case 'url-asc': orderBy = 'ORDER BY url ASC'
+          break
+        case 'capturedAt-desc': orderBy = 'ORDER BY captured_at DESC'
+          break
       }
 
       const [itemsRes, countRes] = await db.batch<unknown>([
@@ -564,6 +654,13 @@ function r2BlobStore(bucket: R2Bucket): BlobStore {
 // One-shot schema bootstrap for tests / local dev. Production users should
 // run `wrangler d1 migrations apply` against packages/core/migrations/sqlite.
 const INIT_SQL: string[] = [
+  `CREATE TABLE IF NOT EXISTS sites (
+    id text PRIMARY KEY NOT NULL,
+    name text NOT NULL,
+    url text NOT NULL,
+    "group" text,
+    created_at text NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS scans (
     scan_id text PRIMARY KEY NOT NULL,
     site text NOT NULL,
@@ -631,28 +728,15 @@ export function d1R2Storage(opts: D1R2StorageOptions): Storage {
   // + `summary` JSON) still serve.
   const emptyList = { list: async () => [] }
   return {
+    sites: d1SiteRepository(opts.db),
     scans: d1ScanRepository(opts.db),
     routes: d1ScanRouteRepository(opts.db),
     blobs: r2BlobStore(opts.bucket),
+    // v2: the per-category dashboard aggregation tables were removed; all
+    // cross-route analysis now flows through the pack system. Only CrUX
+    // (external field data) remains in ReportRepositories.
     reports: {
-      accessibility: emptyList,
-      accessibilityElements: emptyList,
-      missingAltImages: emptyList,
-      performance: emptyList,
-      thirdPartyScripts: emptyList,
-      lcpElements: emptyList,
-      seoMeta: emptyList,
-      seoDuplicates: emptyList,
-      canonicalChains: emptyList,
-      linkTextIssues: emptyList,
-      tapTargetIssues: emptyList,
-      bestPracticesSecurity: emptyList,
-      bestPracticesLibraries: emptyList,
-      bestPracticesVulnerable: emptyList,
-      bestPracticesDeprecated: emptyList,
-      bestPracticesConsoleErrors: emptyList,
       crux: emptyList,
-      dashboardSummary: { get: async () => null },
     },
     comparisons: {
       async list() { return [] },

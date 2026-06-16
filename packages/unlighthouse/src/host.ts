@@ -13,27 +13,22 @@ import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
+import type { createStorage } from '@unlighthouse/core/storage'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
-import { createStorage } from '@unlighthouse/core/storage'
-import { applyMigrations, drizzleStorage, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
-import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
-import Database from 'better-sqlite3'
+import { createTaggedLogger } from '@unlighthouse/core/logger'
 import { loadConfig } from 'c12'
-import { createConsola } from 'consola'
 import { defu } from 'defu'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
 import fs from 'fs-extra'
 import { createCommonJS, resolvePath } from 'mlly'
 import { joinURL } from 'ufo'
-import fsDriver from 'unstorage/drivers/fs'
 import { version } from '../package.json'
 import { resolveAuditor } from './auditor'
+import { initStorage } from './cli/storage-init'
 import { ClientPkg } from './constants'
 import { historySubscriber } from './data/history/tracking'
-import { createSitesStore } from './data/sites'
 import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
 import { createServerHooks } from './server-hooks'
@@ -63,7 +58,7 @@ export interface UnlighthouseHost {
   config: ResolvedUserConfig
   resolvedConfig: ResolvedUserConfig
   hooks: Hookable<HookMap>
-  generateClient: () => Promise<void>
+  generateClient: (opts?: { static?: boolean }) => Promise<void>
   setServerContext: (arg: { url: string, server: any, app: any }) => Promise<void>
   handlerCtx: HandlerCtx
   /**
@@ -79,13 +74,132 @@ export interface CreateUnlighthouseHostOptions {
   behavior?: UnlighthouseBehavior
 }
 
+function resolveSeeds(resolvedConfig: ResolvedUserConfig, logger: Logger) {
+  const site = resolvedConfig.site || ''
+  const rawUrls = resolvedConfig.urls
+  const isDashboardPlaceholder = site === 'http://localhost'
+  const urlList: string[] = isDashboardPlaceholder
+    ? []
+    : [
+        ...(site ? [site] : []),
+        ...(Array.isArray(rawUrls) ? rawUrls : []),
+      ]
+  const sources = [
+    manualSeeds({
+      urls: urlList,
+      logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/manual'),
+    }),
+  ]
+  const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false
+    && !(Array.isArray(rawUrls) && rawUrls.length > 0)
+    && !isDashboardPlaceholder
+  if (sitemapEnabled && site) {
+    try {
+      sources.push(sitemapSeeds({
+        resolvedConfig: resolvedConfig as never,
+        siteUrl: new URL(site),
+        sitemaps: Array.isArray(resolvedConfig.scanner?.sitemap)
+          ? resolvedConfig.scanner.sitemap
+          : true,
+        logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/sitemap'),
+      }))
+    }
+    catch (err) {
+      (logger as Logger).warn?.('failed to wire sitemap seeds', err)
+    }
+  }
+  return fuseSeeds(sources)
+}
+
+function wireWsBroadcast(core: UnlighthouseCore, ws: WS | null, logger: Logger) {
+  if (!ws) {
+    logger.debug?.('[host] WS disabled — no broadcast hooks wired')
+    return
+  }
+  logger.debug?.('[host] Wiring WS broadcast hooks')
+  const hookable = core.hooks as Hookable<HookMap>
+  hookable.hook('scan:created', (payload) => {
+    logger.debug?.(`[ws] scan:created — scanId: ${payload.scanId}, site: ${payload.site}`)
+    ws.broadcast({
+      event: 'scan:created',
+      data: {
+        scanId: payload.scanId,
+        site: payload.site,
+        startedAt: payload.startedAt,
+      },
+    })
+  })
+  hookable.hook('scan:started', (payload) => {
+    ws.broadcast({ event: 'scan:started', data: { scanId: payload.scanId } })
+  })
+  hookable.hook('scan:discovering', (payload) => {
+    ws.broadcast({ event: 'scan:discovering', data: { scanId: payload.scanId } })
+  })
+  hookable.hook('scan:scanning', (payload) => {
+    ws.broadcast({
+      event: 'scan:scanning',
+      data: { scanId: payload.scanId, discovered: payload.discovered },
+    })
+  })
+  hookable.hook('scan:progress', (payload) => {
+    logger.debug?.(`[ws] scan:progress — discovered: ${payload.discovered}, scanned: ${payload.scanned}/${payload.total}, failed: ${payload.failed}`)
+    ws.broadcast({
+      event: 'scan:progress',
+      data: {
+        discovered: payload.discovered,
+        scanned: payload.scanned,
+        total: payload.total,
+        failed: payload.failed,
+      },
+    })
+  })
+  hookable.hook('scan:route-complete', (payload) => {
+    logger.debug?.(`[ws] scan:route-complete — ${payload.url} (perf: ${payload.metrics?.scorePerformance ?? '?'})`)
+    ws.broadcast({
+      event: 'scan:route-complete',
+      data: {
+        url: payload.url,
+        metrics: payload.metrics,
+      },
+    })
+  })
+  hookable.hook('scan:complete', (payload) => {
+    logger.info?.(`[ws] scan:complete — scanId: ${payload.scanId}, routes: ${payload.summary?.completed}`)
+    ws.broadcast({
+      event: 'scan:complete',
+      data: {
+        scanId: payload.scanId,
+        summary: payload.summary,
+      },
+    })
+  })
+  hookable.hook('scan:cancelled', (payload) => {
+    logger.warn?.(`[ws] scan:cancelled — reason: ${payload.reason}`)
+    ws.broadcast({
+      event: 'scan:cancelled',
+      data: { reason: payload.reason },
+    })
+  })
+  hookable.hook('scan:route-failed', (payload) => {
+    ws.broadcast({
+      event: 'scan:route-failed',
+      data: { url: payload.url, error: payload.error },
+    })
+  })
+  hookable.hook('scan:error', (payload) => {
+    logger.error?.(`[ws] scan:error — ${payload.error}`)
+    ws.broadcast({
+      event: 'scan:error',
+      data: { error: payload.error },
+    })
+  })
+}
+
 export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions): Promise<UnlighthouseHost> {
   const { behavior = {} } = opts
   let { userConfig } = opts
 
-  const logger = createConsola().withTag('unlighthouse') as Logger
-  if (userConfig.debug)
-    (logger as any).level = 4
+  const logger = createTaggedLogger('host') as unknown as Logger
 
   const { __dirname } = createCommonJS(import.meta.url)
 
@@ -152,185 +266,113 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   const ws = behavior.ws !== undefined ? behavior.ws : createWS()
 
   // ── Ports (lazy: Storage + Core built after outputPath is known) ──────────
-  // These are (re-)built inside setServerContext once the server URL is known.
-  // For CI / non-server flows they're built in start() via ensurePorts().
+  // Init is async (libsql adapter needs await for the dynamic import +
+  // schema apply), but downstream proxy getters and the cached read path
+  // need to stay sync. Resolved by splitting `initPortsAsync()` (await'd
+  // by every entry point before it touches a port) from `ensurePorts()`
+  // (sync; reads the cached ref or throws). Every entry point —
+  // setServerContext, start, generateClientStub — already awaits before
+  // any proxy access, so the proxies are guaranteed to find a hydrated
+  // cache when they fire.
   interface Ports { core: UnlighthouseCore, storage: ReturnType<typeof createStorage>, auditor: ReturnType<typeof resolveAuditor>, handlerCtx: HandlerCtx }
   let portsRef: Ports | null = null
+  let portsInitPromise: Promise<Ports> | null = null
 
-  const ensurePorts = (): Ports => {
+  const initPortsAsync = async (): Promise<Ports> => {
     if (portsRef)
       return portsRef
+    // Coalesce concurrent inits — two parallel start()s would otherwise
+    // create two stores / two cores against the same DB and race the
+    // migration apply.
+    if (portsInitPromise)
+      return portsInitPromise
 
-    const outputPath = (rs as RuntimeSettings).outputPath || resolvedConfig.outputPath
-    fs.ensureDirSync(outputPath)
-
-    if (!resolvedConfig.cache && existsSync(outputPath)) {
-      try {
-        fs.rmSync(outputPath, { recursive: true })
-      }
-      catch {}
+    portsInitPromise = (async () => {
+      const outputPath = (rs as RuntimeSettings).outputPath || resolvedConfig.outputPath
+      logger.debug?.(`initPortsAsync — outputPath: ${outputPath}`)
       fs.ensureDirSync(outputPath)
-    }
 
-    const sqliteDb = new Database(join(outputPath, 'db.sqlite'))
-    // Apply bundled migrations once on open. drizzle-orm/migrator wants a
-    // _migrations metadata table; for the simple v1.0 schema we just exec
-    // the bundled SQL (`CREATE TABLE IF NOT EXISTS` makes this idempotent).
-    // Apply each statement independently. `CREATE TABLE IF NOT EXISTS` /
-    // `CREATE INDEX IF NOT EXISTS` are inherently idempotent; bare `ALTER
-    // TABLE ADD COLUMN` is not — sqlite errors with "duplicate column name"
-    // on second run. Skip-on-error covers the additive-migration case.
-    for (const stmt of INIT_SQL_STATEMENTS) {
-      try {
-        sqliteDb.exec(stmt)
+      if (!resolvedConfig.cache && existsSync(outputPath)) {
+        try {
+          fs.rmSync(outputPath, { recursive: true })
+        }
+        catch {}
+        fs.ensureDirSync(outputPath)
       }
-      catch (err) {
-        const msg = (err as Error).message
-        if (!/duplicate column name/i.test(msg))
-          logger.warn?.(`Migration stmt skipped: ${msg}`)
+
+      const { storage } = await initStorage({ outputPath, logger })
+
+      // Sweep zombies left by a prior process before we wire core — see
+      // reapStaleScans for D-019c rationale. Fire-and-forget so boot doesn't
+      // block on storage IO; a stale row that survives one extra boot is
+      // tolerable, blocking the CLI on a slow disk is not.
+      reapStaleScans(storage, logger).catch(() => {})
+
+      const coreConfig = resolvedConfig as unknown as Parameters<typeof createUnlighthouseCore>[0]['config']
+      const auditor = resolveAuditor({ config: coreConfig, logger })
+
+      const seeds = resolveSeeds(resolvedConfig, logger)
+
+      // noFollow (page mode / explicit urls) is decided per-scan in core's
+      // orchestrate() and passed via CrawlerRunOptions — it's override-aware
+      // so the dashboard's per-scan mode works too. Nothing to set here.
+      const crawler = crawleeCrawler({ logger: (logger as any).withTag('crawler/crawlee') as never })
+
+      logger.debug?.('Creating core — crawler: crawlee')
+      const core = createUnlighthouseCore({
+        config: coreConfig,
+        auditor,
+        seeds,
+        crawler,
+        storage,
+        logger,
+      })
+
+      wireWsBroadcast(core, ws, logger)
+
+      historySubscriber({
+        resolvedConfig,
+        storage,
+        hooks: core.hooks as Hookable<HookMap>,
+        logger,
+      })
+
+      const handlerCtx: HandlerCtx = {
+        core,
+        auditor,
+        storage,
+        config: coreConfig,
+        version,
       }
+
+      portsRef = { core, storage, auditor, handlerCtx }
+      return portsRef
+    })()
+
+    try {
+      return await portsInitPromise
     }
-    // Runtime upgrades for databases that pre-date a schema bump.
-    // INIT_SQL above is `CREATE TABLE IF NOT EXISTS`-style — no-op against
-    // existing tables — so anything that adds a column or rewrites a PK
-    // needs an explicit path. applyMigrations runs each pending migration
-    // once and is a no-op on already-current databases.
-    applyMigrations(sqliteDb, {
-      onApply: id => logger.info?.(`[storage] applied migration: ${id}`),
-    })
-    const drizzleDb = drizzle(sqliteDb)
-    const drizzleAdapter = drizzleStorage({
-      driver: drizzleDb,
-      logger: (logger as any).withTag('storage/drizzle'),
-    })
-    const storage = createStorage({
-      rows: { ...drizzleAdapter, db: drizzleAdapter.db },
-      blobs: unstorageBlobs({
-        driver: fsDriver({ base: join(outputPath, 'blobs') }),
-      }),
-    })
-
-    // Sweep zombies left by a prior process before we wire core — see
-    // reapStaleScans for D-019c rationale. Fire-and-forget so boot doesn't
-    // block on storage IO; a stale row that survives one extra boot is
-    // tolerable, blocking the CLI on a slow disk is not.
-    reapStaleScans(storage, logger).catch(() => {})
-
-    const coreConfig = resolvedConfig as unknown as Parameters<typeof createUnlighthouseCore>[0]['config']
-    const auditor = resolveAuditor({ config: coreConfig, logger })
-
-    const site = resolvedConfig.site || ''
-    const rawUrls = resolvedConfig.urls
-    const urlList: string[] = [
-      ...(site ? [site] : []),
-      ...(Array.isArray(rawUrls) ? rawUrls : []),
-    ]
-    const sources = [
-      manualSeeds({
-        urls: urlList,
-        logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/manual'),
-      }),
-    ]
-    // Sitemap discovery is on by default; disable via `scanner.sitemap = false` or
-    // when `--urls` overrides the crawl with an explicit list.
-    const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false && !(Array.isArray(rawUrls) && rawUrls.length > 0)
-    if (sitemapEnabled && site) {
-      try {
-        sources.push(sitemapSeeds({
-          resolvedConfig: resolvedConfig as never,
-          siteUrl: new URL(site),
-          sitemaps: Array.isArray(resolvedConfig.scanner?.sitemap)
-            ? resolvedConfig.scanner.sitemap
-            : true,
-          logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/sitemap'),
-        }))
-      }
-      catch (err) {
-        (logger as Logger).warn?.('failed to wire sitemap seeds', err)
-      }
+    finally {
+      // Clear the in-flight marker so a failed init can be retried;
+      // portsRef stays the source of truth on success.
+      if (portsRef) portsInitPromise = null
     }
-    const seeds = fuseSeeds(sources)
+  }
 
-    const crawler = crawleeCrawler({ logger: (logger as any).withTag('crawler/crawlee') as never })
-
-    const core = createUnlighthouseCore({
-      config: coreConfig,
-      auditor,
-      seeds,
-      crawler,
-      storage,
-      logger,
-    })
-
-    // Wire WS broadcasting to v1 HookMap events
-    if (ws) {
-      const hookable = core.hooks as Hookable<HookMap>
-      hookable.hook('scan:progress', (payload) => {
-        ws.broadcast({
-          event: 'scan:progress',
-          data: {
-            discovered: payload.discovered,
-            scanned: payload.scanned,
-            total: payload.total,
-            failed: payload.failed,
-          },
-        })
-      })
-      hookable.hook('scan:route-complete', (payload) => {
-        ws.broadcast({
-          event: 'scan:route-complete',
-          data: {
-            url: payload.url,
-            metrics: payload.metrics,
-          },
-        })
-      })
-      hookable.hook('scan:complete', (payload) => {
-        ws.broadcast({
-          event: 'scan:complete',
-          data: {
-            scanId: payload.scanId,
-            summary: payload.summary,
-          },
-        })
-      })
-      hookable.hook('scan:cancelled', (payload) => {
-        ws.broadcast({
-          event: 'scan:cancelled',
-          data: { reason: payload.reason },
-        })
-      })
-      hookable.hook('scan:error', (payload) => {
-        ws.broadcast({
-          event: 'scan:error',
-          data: { error: payload.error },
-        })
-      })
+  const ensurePorts = (): Ports => {
+    if (!portsRef) {
+      throw new Error(
+        'unlighthouse: ports accessed before initialisation. '
+        + 'Call host.start() or mount the server first, or await host.handlerCtx via setServerContext.',
+      )
     }
-
-    historySubscriber({
-      resolvedConfig,
-      storage,
-      hooks: core.hooks as Hookable<HookMap>,
-      logger,
-    })
-
-    const handlerCtx: HandlerCtx = {
-      core,
-      auditor,
-      storage,
-      config: coreConfig,
-      version,
-      sites: createSitesStore({ outputPath: resolvedConfig.outputPath }),
-    }
-
-    portsRef = { core, storage, auditor, handlerCtx }
     return portsRef
   }
 
   // ── setServerContext ──────────────────────────────────────────────────────
 
   const setServerContext = async ({ url, server, app }: { url: string, server: any, app: any }) => {
+    logger.debug?.(`setServerContext — url: ${url}`)
     const $server = new URL(url)
 
     let resolvedClientPath = ''
@@ -367,7 +409,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     fs.ensureDirSync((rs as RuntimeSettings).outputPath)
 
-    const { handlerCtx } = ensurePorts()
+    const { handlerCtx } = await initPortsAsync()
 
     // Indirection so callers (tests, integrations) can override `host.start`
     // after construction and still have autoStartOnVisit honour the override.
@@ -384,6 +426,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       ws,
       logger,
     }
+    logger.debug?.(`Mounting server — apiPath: ${(rs as RuntimeSettings).apiPath}, clientUrl: ${(rs as RuntimeSettings).clientUrl}`)
     await mountServer(mountDeps, app, { handlerCtx })
 
     if (ws) {
@@ -399,16 +442,28 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   // ── start ────────────────────────────────────────────────────────────────
 
   const start = async (overrides?: UnlighthouseCoreRunOverrides) => {
-    const { core } = ensurePorts()
-    logger.debug?.(`Starting v1 scan [Site: ${resolvedConfig.site}]`)
+    const { core } = await initPortsAsync()
+    logger.info?.(`Starting scan — site: ${resolvedConfig.site}, overrides: ${JSON.stringify(overrides ?? {})}`)
     const session = core.run(overrides ? { overrides } : undefined)
+    logger.info?.(`Scan session created — scanId: ${session.scanId}`)
     return { scanId: session.scanId }
   }
 
-  const generateClientStub = async () => {
-    const { storage } = ensurePorts()
+  const generateClientStub = async (opts?: { static?: boolean }) => {
+    const { storage } = await initPortsAsync()
+    // CI (`--build-static`) never mounts a server, so `resolvedClientPath` —
+    // normally set by setServerContext — is still empty. Resolve the
+    // @unlighthouse/ui client package here so build.ts has a source to copy.
+    if (!(rs as RuntimeSettings).resolvedClientPath) {
+      try {
+        const p = await resolvePath(ClientPkg, { url: import.meta.url })
+        if (existsSync(p))
+          (rs as RuntimeSettings).resolvedClientPath = p
+      }
+      catch {}
+    }
     const { generateClient } = await import('./build')
-    await generateClient({ static: false }, {
+    await generateClient({ static: opts?.static ?? false }, {
       resolvedConfig,
       runtimeSettings: rs as RuntimeSettings,
       storage,

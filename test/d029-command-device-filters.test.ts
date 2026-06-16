@@ -4,7 +4,7 @@
 
 import type { Storage } from '@unlighthouse/contracts'
 import { packRun } from '@unlighthouse/core/api/handlers/pack'
-import { routeGet, routeRescan } from '@unlighthouse/core/api/handlers/route'
+import { routeRescan } from '@unlighthouse/core/api/handlers/route'
 import { scanResults } from '@unlighthouse/core/api/handlers/scan'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
@@ -31,43 +31,6 @@ const makeCtx = (storage: Storage) => ({
   core: { hooks: undefined } as never,
   auditor: createMockAuditor(),
 } as never)
-
-// ── route.get ──────────────────────────────────────────────────────────────
-
-describe('route.get accepts device input', () => {
-  let storage: Storage
-  let scanId: string
-
-  beforeAll(async () => {
-    storage = memoryStorage()
-    scanId = await runMatrixScan(storage)
-  })
-
-  it('returns the requested device row', async () => {
-    const desktop = await routeGet.run(
-      { scanId: scanId as never, url: 'http://example.com/' as never, device: 'desktop' },
-      makeCtx(storage),
-    )
-    expect(desktop.route.device).toBe('desktop')
-    expect(desktop.route.scorePerformance).toBe(0.98) // mock desktop bump
-
-    const mobile = await routeGet.run(
-      { scanId: scanId as never, url: 'http://example.com/' as never, device: 'mobile' },
-      makeCtx(storage),
-    )
-    expect(mobile.route.device).toBe('mobile')
-    expect(mobile.route.scorePerformance).toBe(0.9)
-  })
-
-  it('falls back to the scan primary device when input.device is omitted', async () => {
-    const out = await routeGet.run(
-      { scanId: scanId as never, url: 'http://example.com/' as never },
-      makeCtx(storage),
-    )
-    // The matrix above is ['mobile', 'desktop'] so primary = 'mobile'.
-    expect(out.route.device).toBe('mobile')
-  })
-})
 
 // ── scan.results ───────────────────────────────────────────────────────────
 

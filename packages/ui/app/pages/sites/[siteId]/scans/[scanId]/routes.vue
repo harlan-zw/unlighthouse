@@ -1,0 +1,13 @@
+<script setup lang="ts">
+// `fluid` lets the routes table use the full window width (SidebarShell drops
+// its centered max-w-7xl column) so the data-dense table + bigger thumbnails
+// have room and scroll comfortably.
+definePageMeta({ layout: 'scan', fluid: true })
+</script>
+
+<template>
+  <div class="space-y-4">
+    <h1 class="text-xl font-bold tracking-tight">Routes</h1>
+    <ScanRoutesTable />
+  </div>
+</template>

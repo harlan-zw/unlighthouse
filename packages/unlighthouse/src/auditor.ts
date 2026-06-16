@@ -46,8 +46,23 @@ function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Aud
       // Pass as `lighthouseFlags`; `createLocalProvider` builds the config via
       // `resolveLighthouseConfig` (extends `lighthouse:default`, supplies artifacts).
       const flags = p.lighthouseOptions ?? opts.config.lighthouseOptions
+      // Web-storage seeding (#292): pre-authenticate token/session-gated pages by
+      // injecting localStorage/sessionStorage before each audited page loads.
+      const localStorage = opts.config.localStorage
+      const sessionStorage = opts.config.sessionStorage
+      const indexedDb = opts.config.indexedDb
+      const hasStorage = !!(localStorage && Object.keys(localStorage).length)
+        || !!(sessionStorage && Object.keys(sessionStorage).length)
+        || !!(indexedDb && Object.keys(indexedDb).length)
       return createLocalAuditor({
-        defaults: flags ? { lighthouseFlags: flags as never } : undefined,
+        defaults: (flags || hasStorage)
+          ? {
+              ...(flags ? { lighthouseFlags: flags as never } : {}),
+              ...(localStorage ? { localStorage } : {}),
+              ...(sessionStorage ? { sessionStorage } : {}),
+              ...(indexedDb ? { indexedDb } : {}),
+            }
+          : undefined,
         logger,
       })
     }

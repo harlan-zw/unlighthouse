@@ -14,34 +14,39 @@
   "scripts": {
     "dev": "nuxi dev",
     "build": "nuxi generate",
-    "typecheck": "nuxt typecheck",
-    "postinstall": "nuxi prepare"
+    "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@internationalized/date": "catalog:dependencies",
+    "@lucide/vue": "catalog:",
+    "@nuxt/icon": "catalog:",
     "@nuxt/ui": "catalog:dependencies",
+    "motion-v": "catalog:",
+    "@nuxtjs/color-mode": "catalog:",
     "@tanstack/table-core": "catalog:dependencies",
     "@tanstack/vue-table": "catalog:dependencies",
     "@unovis/ts": "catalog:dependencies",
     "@unovis/vue": "catalog:dependencies",
     "@vueuse/core": "catalog:dependencies",
+    "clsx": "catalog:",
     "date-fns": "catalog:dependencies",
-    "fuse.js": "catalog:dependencies",
-    "lodash-es": "catalog:dependencies",
-    "motion-v": "catalog:",
+    "@pinia/nuxt": "catalog:",
     "nuxt": "catalog:",
-    "scule": "catalog:dependencies",
-    "tailwindcss": "catalog:dependencies",
-    "three": "catalog:dependencies",
-    "ufo": "catalog:dependencies",
+    "pinia": "catalog:",
+    "reka-ui": "catalog:",
+    "tailwind-merge": "catalog:",
+    "vaul-vue": "catalog:",
     "vue": "catalog:dependencies",
-    "vue-router": "catalog:"
+    "vue-input-otp": "catalog:",
+    "vue-router": "catalog:",
+    "vue-sonner": "catalog:"
   },
   "devDependencies": {
-    "@types/lodash-es": "catalog:",
-    "@types/three": "catalog:",
+    "@nuxtjs/tailwindcss": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
+    "tailwindcss": "catalog:dependencies",
+    "tw-animate-css": "catalog:",
     "unlighthouse": "workspace:*"
   }
 }

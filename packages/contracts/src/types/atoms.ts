@@ -16,9 +16,13 @@ export type Url = z.infer<typeof UrlSchema>
 const DeviceSchema = z.enum(['mobile', 'desktop'])
 export type Device = z.infer<typeof DeviceSchema>
 
-// Lighthouse audit categories (lhci.md-aligned).
-const CategorySchema = z.enum(['performance', 'accessibility', 'seo', 'best-practices'])
+// Lighthouse audit categories. Includes agentic-browsing added in LH 13.
+const CategorySchema = z.enum(['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'])
 export type Category = z.infer<typeof CategorySchema>
+
+// Scan mode: 'site' crawls all pages, 'page' audits a single URL.
+const ScanModeSchema = z.enum(['site', 'page'])
+export type ScanMode = z.infer<typeof ScanModeSchema>
 
 // Core Web Vitals + perf metrics (lab and field).
 // LCP/INP/FCP/TTFB/TBT/SI in milliseconds. CLS is dimensionless float.
@@ -73,13 +77,19 @@ const ScanSummarySchema = z.object({
   scoreAverage: z.number().min(0).max(1).nullable(),
   scoresByCategory: z.partialRecord(CategorySchema, z.number().min(0).max(1)),
   durationMs: z.number().nonnegative(),
+  // Device matrix this scan covered. Lets the UI show "both" instead of just
+  // the primary device for a mobile+desktop scan. Optional — older summaries
+  // (and the scan row's primary `device`) predate it.
+  devices: z.array(DeviceSchema).optional(),
 })
 export type ScanSummary = z.infer<typeof ScanSummarySchema>
 
 // A persisted scan row.
 const ScanSchema = z.object({
   scanId: ScanIdSchema,
+  siteId: z.string().nullable(),
   site: UrlSchema,
+  mode: ScanModeSchema,
   device: DeviceSchema,
   status: ScanStatusSchema,
   startedAt: z.iso.datetime(),
@@ -92,8 +102,6 @@ const ScanSchema = z.object({
 export type Scan = z.infer<typeof ScanSchema>
 
 // Per-route extracted metrics. Hot path; one row per audited URL.
-// `routeName` is an optional human-readable route identifier sourced from seed
-// metadata (e.g. sitemap entries); null when not available.
 const ExtractedMetricsSchema = z.object({
   url: UrlSchema,
   path: z.string(),
@@ -102,6 +110,11 @@ const ExtractedMetricsSchema = z.object({
   scoreAccessibility: z.number().min(0).max(1).nullable(),
   scoreSeo: z.number().min(0).max(1).nullable(),
   scoreBestPractices: z.number().min(0).max(1).nullable(),
+  // Optional dimension: only the agentic-browsing category (LH13) populates
+  // it, and rows from before it existed never will — so absent (undefined)
+  // is as valid as null. nullish() tolerates both; the core score fields
+  // stay strict nullable since every LHR carries them.
+  scoreAgenticBrowsing: z.number().min(0).max(1).nullish(),
   lcp: z.number().nullable(),
   cls: z.number().nullable(),
   inp: z.number().nullable(),
@@ -125,9 +138,8 @@ const ScanRouteSchema = ExtractedMetricsSchema.extend({
   scanId: ScanIdSchema,
   device: DeviceSchema,
   lhrBlobKey: z.string(),
-  // UI-reconciled report blob key. Nullable for rows persisted before the
-  // reconciliation pipeline landed.
   reportBlobKey: z.string().nullish(),
+  screenshotBlobKey: z.string().nullish(),
 })
 export type ScanRoute = z.infer<typeof ScanRouteSchema>
 
@@ -157,19 +169,17 @@ const AuditDetailNodeSchema = z.object({
 })
 
 const AuditDetailItemSchema = z.object({
-  // URL-shaped fields (image-* audits + render-blocking-insight).
   url: z.string().nullable(),
-  // For audits that emit an item type (LHR distinguishes 'node' from
-  // checklist rows on lcp-discovery-insight, for example).
   type: z.string().nullable(),
   totalBytes: z.number().nullable(),
   wastedBytes: z.number().nullable(),
-  // Element-level data for a11y / element audits.
   node: AuditDetailNodeSchema.nullable(),
   snippet: z.string().nullable(),
-  // First sub-item's reason field — image-delivery-insight stuffs the
-  // remediation hint there. We keep only the first to bound size.
   reason: z.string().nullable(),
+  entity: z.string().nullable(),
+  blockingTime: z.number().nullable(),
+  transferSize: z.number().nullable(),
+  wastedMs: z.number().nullable(),
 })
 
 const AuditFindingSchema = z.object({
@@ -207,16 +217,31 @@ const AuditFindingSchema = z.object({
 })
 export type AuditFinding = z.infer<typeof AuditFindingSchema>
 
+const StackPackSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  iconDataURL: z.string().nullable(),
+  descriptions: z.record(z.string(), z.string()),
+})
+export type StackPack = z.infer<typeof StackPackSchema>
+
+const EntitySchema = z.object({
+  name: z.string(),
+  isFirstParty: z.boolean(),
+  origins: z.array(z.string()),
+})
+export type Entity = z.infer<typeof EntitySchema>
+
 const ReconciledReportSchema = z.object({
   scanId: ScanIdSchema,
   url: UrlSchema,
   device: DeviceSchema,
-  // Metric atoms minus the identity fields already on the parent row.
   metrics: z.object({
     scorePerformance: z.number().min(0).max(1).nullable(),
     scoreAccessibility: z.number().min(0).max(1).nullable(),
     scoreSeo: z.number().min(0).max(1).nullable(),
     scoreBestPractices: z.number().min(0).max(1).nullable(),
+    scoreAgenticBrowsing: z.number().min(0).max(1).nullish(),
     lcp: z.number().nullable(),
     cls: z.number().nullable(),
     inp: z.number().nullable(),
@@ -225,25 +250,27 @@ const ReconciledReportSchema = z.object({
     tbt: z.number().nullable(),
     si: z.number().nullable(),
   }),
-  // Per-category roll-ups: score + the audit refs that contributed (so packs
-  // can iterate a category without walking the full audits map). `weight`
-  // mirrors Lighthouse's category weighting — load-bearing for severity rules
-  // like seo-basics' `severityFromWeight` (is-crawlable carries weight 3-4,
-  // most others weight 1).
-  categories: z.partialRecord(CategorySchema, z.object({
+  // String-keyed so unknown future categories (beyond the 5 in CategorySchema)
+  // pass through without schema rejection.
+  categories: z.record(z.string(), z.object({
     score: z.number().nullable(),
     auditRefs: z.array(z.object({
       id: z.string(),
       weight: z.number().nonnegative(),
     })),
   })),
-  // Per-audit findings keyed by Lighthouse audit id.
   audits: z.record(z.string(), AuditFindingSchema),
   provenance: z.object({
     lighthouseVersion: z.string(),
     userAgent: z.string().nullable(),
     capturedAt: z.iso.datetime(),
+    benchmarkIndex: z.number().nullable(),
+    timingTotal: z.number().nullable(),
+    warnings: z.array(z.string()),
+    runtimeError: z.object({ code: z.string(), message: z.string() }).nullable(),
   }),
+  stackPacks: z.array(StackPackSchema).nullable(),
+  entities: z.array(EntitySchema).nullable(),
 })
 export type ReconciledReport = z.infer<typeof ReconciledReportSchema>
 
@@ -299,16 +326,19 @@ export {
   AuditFindingSchema,
   CategorySchema,
   DeviceSchema,
+  EntitySchema,
   ExtractedMetricsSchema,
   MetricNameSchema,
   PaginatedSchema,
   ReconciledReportSchema,
   ScanIdSchema,
+  ScanModeSchema,
   ScanRouteSchema,
   ScanSchema,
   ScanStatusSchema,
   ScanSummarySchema,
   SeedSchema,
+  StackPackSchema,
   StructuredErrorSchema,
   UrlSchema,
 }

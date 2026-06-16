@@ -1,10 +1,8 @@
 // meta commands — self-describing surface, health, auditor introspection.
 // `manifest` is the load-bearing AI-integration command (v1.md lines 864–880).
-// `auditors.list` + `auditors.test` are CLI-hidden; their info surfaces via
-// `manifest` output (v1.md line 14).
+// `auditors.list` is CLI-hidden; its info also surfaces via `manifest` output.
 
 import { z } from 'zod'
-import { CategorySchema, DeviceSchema, UrlSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
 // ── manifest ────────────────────────────────────────────────────────────────
@@ -83,32 +81,3 @@ export const AuditorsList = defineCommand({
   cli: { hidden: true },
 })
 
-// ── auditors.test ───────────────────────────────────────────────────────────
-// Hidden in CLI per v1.md line 14.
-export const AuditorsTest = defineCommand({
-  name: 'auditors.test',
-  description: 'Test an auditor against a single URL and return the raw LH report.',
-  input: z.object({
-    auditor: z.string(),
-    url: UrlSchema,
-    device: DeviceSchema.optional(),
-    categories: z.array(CategorySchema).optional(),
-  }),
-  output: z.object({
-    ok: z.boolean(),
-    durationMs: z.number().nonnegative(),
-    lighthouseVersion: z.string().optional(),
-    lhr: z.unknown(),
-    error: z
-      .object({
-        code: z.string(),
-        message: z.string(),
-      })
-      .optional(),
-  }),
-  cli: { hidden: true },
-  // Fires a real Lighthouse run against an arbitrary URL — agent-controlled
-  // input could SSRF to internal hosts or burn a Chrome slot. Triggering a
-  // live audit is what scan.start is for; this is a dev-only diagnostic.
-  mcp: { hidden: true },
-})

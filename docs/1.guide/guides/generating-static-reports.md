@@ -80,6 +80,15 @@ If you want to preview the static report you can run `npx sirv-cli .unlighthouse
 
 Note: You will need to host your site using a web server.
 
+The static report is **fully self-contained** — every scan's data, scores and
+route screenshots are embedded into the build, so it runs entirely offline with
+no Unlighthouse API or backend. That means you can drop the output directory onto
+any static host (GitHub Pages, S3, Netlify drop, `npx serve`, an internal
+fileserver) and it just works — no server-side component to deploy.
+
+If you serve the report under a sub-path (e.g. `example.com/reports/`), set
+[`routerPrefix`](/api-doc/config#routerprefix) so the embedded asset URLs resolve.
+
 #### CloudFlare Pages Example
 
 You should create a CloudFlare Pages site using [Direct Upload](https://developers.cloudflare.com/pages/platform/direct-upload/).
@@ -164,6 +173,26 @@ URL,Score,Performance,Accessibility,Best Practices,SEO,Largest Contentful Paint,
 "/sponsors",92,69,100,100,100,4438.15,0,362.62,408.63,1,1,1,1,1,1,1,1,1,1
 "/talks",98,90,100,100,100,864.86,0,390.93,427.94,1,1,1,1,1,1,1,1,1,1
 ```
+
+### Import into Google Sheets
+
+The CSV drops straight into Google Sheets for tracking scores over time.
+
+**One-off:** in Sheets, **File → Import → Upload** the generated `.csv` and pick
+*"Replace current sheet"*.
+
+**Auto-refreshing:** if you publish the CSV to a URL (e.g. alongside a
+[static report](#html-reports), or any object store), pull it in live with
+[`IMPORTDATA`](https://support.google.com/docs/answer/3093335) — Sheets re-fetches
+it periodically, so each new scan you publish updates the sheet automatically:
+
+```text
+=IMPORTDATA("https://example.com/reports/unlighthouse.csv")
+```
+
+From there, Sheets' own history (**File → Version history**) plus a dated tab per
+run gives you a longitudinal record. The dashboard also keeps per-site scan
+history natively — see the **History** view in the UI.
 
 ## JSON Reports
 

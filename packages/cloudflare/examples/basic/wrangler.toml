@@ -20,6 +20,15 @@ main = "worker.ts"
 compatibility_date = "2025-04-01"
 compatibility_flags = [ "nodejs_compat" ]
 
+# ── Dashboard SPA ─────────────────────────────────────────────────────────────
+# The built Nuxt UI (packages/ui/.output/public). The Worker serves it for all
+# non-API GET routes (see app.ts), so one Worker hosts both the panel and the
+# API. Build it first with: NUXT_PUBLIC_UNLIGHTHOUSE_API_URL=/api pnpm --filter @unlighthouse/ui build
+[assets]
+binding = "ASSETS"
+directory = "../../../ui/.output/public"
+not_found_handling = "single-page-application"
+
 # ── Bindings ────────────────────────────────────────────────────────────────
 
 [[d1_databases]]
@@ -39,24 +48,31 @@ class_name = "ScanEventsDO"
 name = "RATE_LIMITER_DO"
 class_name = "RateLimiterDO"
 
-[[durable_objects.bindings]]
-name = "LIGHTHOUSE_CONTAINER"
-class_name = "LighthouseContainer"
+# NOTE: the LIGHTHOUSE_CONTAINER binding + [[containers]] block were removed to
+# stop Browser Run / container compute cost. Real Lighthouse is gone; scans fall
+# back to crux→mock. To restore: re-add the binding + container block below, the
+# `LighthouseContainer` import/export in worker.ts, and a `new_sqlite_classes`
+# migration — and deploy with Docker (image build). The Browser-Run-session
+# cost fix (close() + keep_alive 60s, commit 26e46f92d) is already in the code.
 
-# ── Container (real Lighthouse host) ───────────────────────────────────────
-#
-# Cloudflare Containers GA'd Apr 13 2026. The Container image runs the
-# `@unlighthouse/cloudflare-lighthouse/server` entry — a tiny h3 Node server
-# that drives real Lighthouse against Cloudflare Browser Run's external CDP
-# endpoint. Worker calls in via env.LIGHTHOUSE_CONTAINER.getByName(...).fetch(...).
-#
-# instance_type "standard-1" ≈ 1 GiB / 0.5 vCPU — Lighthouse 13 is the hot path,
-# bump to "standard-2" if you see OOMs on heavy SPAs.
-[[containers]]
-class_name = "LighthouseContainer"
-image = "../../../cloudflare-lighthouse/Dockerfile"
-instance_type = "standard-1"
-max_instances = 5
+# Alarm-driven durable scan scheduler. Owns the per-scan URL queue and drives
+# one audit per alarm tick (delegated back to the Worker via the SELF service
+# binding), so multi-URL scans survive past the waitUntil budget.
+[[durable_objects.bindings]]
+name = "SCAN_RUNNER_DO"
+class_name = "ScanRunnerDO"
+
+# ── Service binding to self ─────────────────────────────────────────────────
+# ScanRunnerDO calls back into this same Worker (POST /__scan/audit) to run each
+# per-URL audit with the consumer's auditor, one fresh invocation per URL.
+[[services]]
+binding = "SELF"
+service = "unlighthouse"
+
+# ── Container (real Lighthouse host) — REMOVED to stop cost ─────────────────
+# The [[containers]] block + LighthouseContainer DO were removed; see the note
+# by the durable_objects bindings above for how to restore. Without it, wrangler
+# deploy needs no Docker image build.
 
 # ── DO migrations ──────────────────────────────────────────────────────────
 
@@ -72,6 +88,18 @@ new_sqlite_classes = [
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = [ "LighthouseContainer" ]
+
+# v3 adds the alarm-driven ScanRunnerDO. setAlarm requires the SQLite storage
+# backend, so it must be registered via new_sqlite_classes.
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = [ "ScanRunnerDO" ]
+
+# v4 removes the LighthouseContainer DO/container to stop Browser Run + container
+# compute cost. (binding + [[containers]] block also removed above.)
+[[migrations]]
+tag = "v4"
+deleted_classes = [ "LighthouseContainer" ]
 
 # ── Vars ────────────────────────────────────────────────────────────────────
 

@@ -52,7 +52,7 @@ type _AssertScanRouteShape = Expect<Equal<Normalize<ScanRouteRow>, Normalize<Sca
 // ExtractedMetrics (callers pass it as a separate arg to putBatch/upsert).
 type _AssertExtractedMetricsShape = Expect<
   Equal<
-    Normalize<Omit<ScanRouteRow, 'scanId' | 'device' | 'lhrBlobKey' | 'reportBlobKey'>>,
+    Normalize<Omit<ScanRouteRow, 'scanId' | 'device' | 'lhrBlobKey' | 'reportBlobKey' | 'screenshotBlobKey'>>,
     Normalize<ExtractedMetrics>
   >
 >

@@ -3,9 +3,13 @@
 import type {
   CommandInput,
   CommandOutput,
+  Device,
+  ExtractedMetrics,
   ScanCancel,
+  ScanCategories,
   ScanCurrent,
   ScanDelete,
+  ScanImport,
   ScanMetaCmd,
   ScanPause,
   ScanRescanAll,
@@ -42,6 +46,7 @@ export const scanStart: Handler<typeof ScanStart> = {
     const session = ctx.core.run({
       overrides: {
         site: input.site,
+        mode: input.mode,
         device: input.device,
         sampleSize: input.sampleSize,
         categories: input.categories,
@@ -52,6 +57,7 @@ export const scanStart: Handler<typeof ScanStart> = {
     return {
       scanId: session.scanId,
       site: input.site,
+      mode: input.mode ?? 'site',
       startedAt: new Date().toISOString(),
     } as CommandOutput<typeof ScanStart>
   },
@@ -155,6 +161,66 @@ export const scanDelete: Handler<typeof ScanDelete> = {
   },
 }
 
+// scan.import — CI runner ingestion. Writes the pre-computed scan +
+// per-route metrics + optional pack runs verbatim into storage. No
+// overwrite: existing scanId throws SCAN_ALREADY_EXISTS (call scan.delete
+// first if you intend to replace).
+export const scanImport: Handler<typeof ScanImport> = {
+  command: {} as typeof ScanImport,
+  async run(input, ctx) {
+    const { scan, routes, packRuns } = input
+
+    const existing = await ctx.storage.scans.get(scan.scanId)
+    if (existing) {
+      throw new UnlighthouseError({
+        code: 'SCAN_ALREADY_EXISTS',
+        message: `Scan ${scan.scanId} already exists. Delete it first with scan.delete to replace.`,
+      })
+    }
+
+    await ctx.storage.scans.create({
+      scanId: scan.scanId,
+      siteId: scan.siteId,
+      site: scan.site,
+      mode: scan.mode,
+      device: scan.device,
+      status: scan.status,
+      startedAt: scan.startedAt,
+      completedAt: scan.completedAt,
+      ciBranch: scan.ciBranch,
+      ciCommit: scan.ciCommit,
+      ciCommitMessage: scan.ciCommitMessage,
+      summary: scan.summary,
+    })
+
+    // routes.putBatch is keyed on (scanId, device) — fan out per-device.
+    const byDevice = new Map<Device, ExtractedMetrics[]>()
+    for (const row of routes) {
+      const { device, ...metrics } = row
+      const arr = byDevice.get(device) ?? []
+      arr.push(metrics)
+      byDevice.set(device, arr)
+    }
+    for (const [device, rows] of byDevice)
+      await ctx.storage.routes.putBatch(scan.scanId, device, rows)
+
+    let importedPackRuns = 0
+    if (packRuns?.length) {
+      for (const run of packRuns) {
+        await ctx.storage.packRuns.put(run)
+        importedPackRuns++
+      }
+    }
+
+    return {
+      scanId: scan.scanId,
+      imported: true,
+      routes: routes.length,
+      packRuns: importedPackRuns,
+    } as CommandOutput<typeof ScanImport>
+  },
+}
+
 // Helpers shared with query.routes.
 export function applyRouteFilter(items: ScanRoute[], filter: CommandInput<typeof ScanResults>['filter']): ScanRoute[] {
   if (!filter)
@@ -169,6 +235,7 @@ export function applyRouteFilter(items: ScanRoute[], filter: CommandInput<typeof
           'accessibility': 'scoreAccessibility',
           'seo': 'scoreSeo',
           'best-practices': 'scoreBestPractices',
+          'agentic-browsing': 'scoreAgenticBrowsing',
         } as const)[cat as keyof typeof filter.minScore]
         const v = (r as unknown as Record<string, number | null>)[key as string]
         if (v == null || v < (min as number))
@@ -190,17 +257,33 @@ export function applyRouteSort(items: ScanRoute[], sort?: string): ScanRoute[] {
   if (!sort)
     return items
   const copy = [...items]
-  copy.sort((a, b) => {
-    switch (sort) {
-      case 'score-asc': return (a.scorePerformance ?? 0) - (b.scorePerformance ?? 0)
-      case 'score-desc': return (b.scorePerformance ?? 0) - (a.scorePerformance ?? 0)
-      case 'lcp-asc': return (a.lcp ?? Infinity) - (b.lcp ?? Infinity)
-      case 'lcp-desc': return (b.lcp ?? -Infinity) - (a.lcp ?? -Infinity)
-      case 'url-asc': return a.url.localeCompare(b.url)
-      case 'capturedAt-desc': return b.capturedAt.localeCompare(a.capturedAt)
-      default: return 0
-    }
-  })
+  const numSort = (key: keyof ScanRoute, asc: boolean) => (a: ScanRoute, b: ScanRoute) => {
+    const av = (a[key] as number | null) ?? (asc ? Infinity : -Infinity)
+    const bv = (b[key] as number | null) ?? (asc ? Infinity : -Infinity)
+    return asc ? av - bv : bv - av
+  }
+  const sortFn: Record<string, (a: ScanRoute, b: ScanRoute) => number> = {
+    'score-asc': numSort('scorePerformance', true),
+    'score-desc': numSort('scorePerformance', false),
+    'lcp-asc': numSort('lcp', true),
+    'lcp-desc': numSort('lcp', false),
+    'cls-asc': numSort('cls', true),
+    'cls-desc': numSort('cls', false),
+    'fcp-asc': numSort('fcp', true),
+    'fcp-desc': numSort('fcp', false),
+    'tbt-asc': numSort('tbt', true),
+    'tbt-desc': numSort('tbt', false),
+    'ttfb-asc': numSort('ttfb', true),
+    'ttfb-desc': numSort('ttfb', false),
+    'si-asc': numSort('si', true),
+    'si-desc': numSort('si', false),
+    'inp-asc': numSort('inp', true),
+    'inp-desc': numSort('inp', false),
+    'url-asc': (a, b) => a.url.localeCompare(b.url),
+    'capturedAt-desc': (a, b) => b.capturedAt.localeCompare(a.capturedAt),
+  }
+  const fn = sortFn[sort]
+  if (fn) copy.sort(fn)
   return copy
 }
 
@@ -219,7 +302,11 @@ export const scanMeta: Handler<typeof ScanMetaCmd> = {
       device: scan.device,
       throttle: ctx.config.scanner?.throttle ?? true,
       startedAt: scan.startedAt,
+      completedAt: scan.completedAt,
       summary: scan.summary,
+      ciBranch: scan.ciBranch,
+      ciCommit: scan.ciCommit,
+      ciCommitMessage: scan.ciCommitMessage,
     } as CommandOutput<typeof ScanMetaCmd>
   },
 }
@@ -239,9 +326,13 @@ export const scanRescanAll: Handler<typeof ScanRescanAll> = {
       notFound(input.scanId)
     if (ctx.core.session())
       throw new UnlighthouseError({ code: 'ACTIVE_SCAN_CONFLICT', message: 'A scan is already in flight' })
-    // Drop all routes for this scan; crawler will re-discover async, consumers poll scan.status.
     await ctx.storage.routes.delete(input.scanId)
-    const session = ctx.core.run()
+    const session = ctx.core.run({
+      overrides: {
+        site: scan.site,
+        device: scan.device ? [scan.device as 'mobile' | 'desktop'] : undefined,
+      },
+    })
     return { scanId: session.scanId, queued: 0 } as CommandOutput<typeof ScanRescanAll>
   },
 }
@@ -312,9 +403,18 @@ export const scanSummary: Handler<typeof ScanSummaryCmd> = {
       notFound(input.scanId)
     const all = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
 
+    // Honor `input.device` when present — without this filter the overview
+    // pack reconciles across both devices and mobile/desktop toggles in the
+    // dashboard would all render the same numbers. Empty filter result is
+    // valid (e.g. caller asked for "desktop" on a mobile-only scan); the
+    // pack returns null averages + zero distribution rather than throwing.
+    const items = input.device
+      ? all.items.filter(r => r.device === input.device)
+      : all.items
+
     const report = await overviewPack.reconciler({
       scanId: input.scanId,
-      routes: all.items,
+      routes: items,
       logger: undefined,
     })
 
@@ -326,5 +426,100 @@ export const scanSummary: Handler<typeof ScanSummaryCmd> = {
       site: scan.site,
       device: input.device ?? scan.device,
     } as CommandOutput<typeof ScanSummaryCmd>
+  },
+}
+
+// Aggregate per-route category scores + audit pass/fail across the whole
+// scan. Walks the reconciled contract blobs route-by-route rather than the
+// raw LHRs so we never pay the gunzip cost on the hot path. Routes without
+// a contract blob (e.g. import paths that didn't include LHR data) are
+// skipped silently — they contribute 0 audits, not a null mean.
+const CATEGORY_TITLES: Record<string, string> = {
+  'performance': 'Performance',
+  'accessibility': 'Accessibility',
+  'seo': 'SEO',
+  'best-practices': 'Best Practices',
+  'pwa': 'PWA',
+  'agentic-browsing': 'Agentic Browsing',
+}
+
+function titleForCategory(id: string): string {
+  return CATEGORY_TITLES[id] ?? id.split('-').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')
+}
+
+interface CategoryAgg {
+  scoreSum: number
+  scoreCount: number
+  passingCount: number
+  failingCount: number
+  auditIds: Set<string>
+}
+
+export const scanCategories: Handler<typeof ScanCategories> = {
+  command: {} as typeof ScanCategories,
+  async run(input, ctx) {
+    const scan = await ctx.storage.scans.get(input.scanId)
+    if (!scan)
+      notFound(input.scanId)
+
+    const { items: routes } = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
+    const filtered = input.device ? routes.filter(r => r.device === input.device) : routes
+
+    const agg = new Map<string, CategoryAgg>()
+
+    for (const route of filtered) {
+      if (!route.reportBlobKey)
+        continue
+      const key = route.reportBlobKey.replace('.json', '.contract.json')
+      const blob = await ctx.storage.blobs.get(key)
+      if (!blob)
+        continue
+      let contract: {
+        categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
+        audits: Record<string, { severity: 'pass' | 'warn' | 'fail' }>
+      }
+      try {
+        contract = JSON.parse(new TextDecoder().decode(blob))
+      }
+      catch {
+        continue
+      }
+
+      for (const [id, cat] of Object.entries(contract.categories ?? {})) {
+        let bucket = agg.get(id)
+        if (!bucket) {
+          bucket = { scoreSum: 0, scoreCount: 0, passingCount: 0, failingCount: 0, auditIds: new Set<string>() }
+          agg.set(id, bucket)
+        }
+        if (typeof cat.score === 'number') {
+          bucket.scoreSum += cat.score
+          bucket.scoreCount++
+        }
+        for (const ref of cat.auditRefs ?? []) {
+          // Dedupe by audit id within a category — total auditCount is the
+          // unique set of audits in the category (matches LHR's notion),
+          // not the cumulative across routes.
+          bucket.auditIds.add(ref.id)
+          const a = contract.audits?.[ref.id]
+          if (!a)
+            continue
+          if (a.severity === 'pass')
+            bucket.passingCount++
+          else
+            bucket.failingCount++
+        }
+      }
+    }
+
+    const categories = Array.from(agg.entries()).map(([id, b]) => ({
+      id,
+      title: titleForCategory(id),
+      avgScore: b.scoreCount > 0 ? b.scoreSum / b.scoreCount : null,
+      auditCount: b.auditIds.size,
+      passingCount: b.passingCount,
+      failingCount: b.failingCount,
+    }))
+
+    return { categories } as CommandOutput<typeof ScanCategories>
   },
 }

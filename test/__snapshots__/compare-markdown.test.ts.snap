@@ -15,6 +15,7 @@ Comparing base \`scan-fix\` → current \`scan-fix\` · 2 regressions, 1 improve
 | Accessibility | 90 | 93 | − +3 |
 | Best Practices | 92 | 92 | − 0 |
 | SEO | 100 | 100 | − 0 |
+| Agentic Browsing | — | — | − 0 |
 
 ### Worst regressions (top 2)
 

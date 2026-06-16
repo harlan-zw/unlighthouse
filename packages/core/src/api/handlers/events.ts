@@ -2,7 +2,7 @@
 
 import type { CommandOutput, EventsSubscribe, EventsTail, HookEvent } from '@unlighthouse/contracts'
 import type { Handler } from './types'
-import { gunzipSync } from 'node:zlib'
+import { gunzipSync } from 'fflate'
 
 function makeFilter(events?: string[]) {
   if (!events?.length)
@@ -11,6 +11,7 @@ function makeFilter(events?: string[]) {
   return (e: HookEvent) => set.has(e.event)
 }
 
+// INTERNAL: not used by the UI; kept for backwards compatibility and test coverage.
 export const eventsSubscribe: Handler<typeof EventsSubscribe> = {
   command: {} as typeof EventsSubscribe,
   run(input, ctx) {
@@ -45,7 +46,7 @@ export const eventsTail: Handler<typeof EventsTail> = {
       const blobKey = `scans/${input.scanId}/events.jsonl.gz`
       const blob = await ctx.storage.blobs.get(blobKey)
       if (blob) {
-        const text = gunzipSync(blob).toString('utf-8')
+        const text = new TextDecoder().decode(gunzipSync(blob as Uint8Array))
         for (const line of text.split('\n')) {
           if (!line.trim())
             continue

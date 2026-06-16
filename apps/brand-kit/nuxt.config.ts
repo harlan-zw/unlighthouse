@@ -10,6 +10,11 @@ const repoRoot = resolve(here, '../..')
 const designSystem = resolve(repoRoot, 'packages/ui/layers/design-system')
 
 export default defineNuxtConfig({
+  // SPA — the brand-kit is a client-only styleguide (mirrors packages/ui's
+  // ssr:false). Also sidesteps the @nuxt/icon nitro server route that ENOENTs
+  // on `.nuxt/imports` under SSR in this workspace.
+  ssr: false,
+
   // Showcase the design-system layer only. Domain layers (results, scan,
   // audit) are intentionally NOT extended — they pull in server routes and
   // runtime services the showcase doesn't need.
@@ -46,6 +51,18 @@ export default defineNuxtConfig({
     },
   },
 
+  // Resolve icons from the Iconify API (matching the note below) instead of a
+  // local server bundle — @nuxt/icon's default `serverBundle: 'local'` needs
+  // `@iconify-json/carbon` + a generated `.nuxt/imports` nitro route, which
+  // ENOENTs in this workspace. Wiring-only; the 1:1 showcase code is untouched.
+  icon: {
+    // Client-only Iconify provider — no @nuxt/icon nitro server route (which
+    // ENOENTs on `.nuxt/imports` here). Icons fetch from the Iconify API, as
+    // the note below intends. Fits the ssr:false SPA showcase.
+    provider: 'iconify',
+    serverBundle: false,
+  },
+
   // Carbon icons drive the nav + showcase pages and the layer's icon map.
   // Served from the Iconify API rather than a local bundle so the brand-kit
   // adds no new registry dependency to the workspace (keeps the no-downgrade
@@ -63,8 +80,11 @@ export default defineNuxtConfig({
     enabled: true,
   },
 
+  // v1 set compatibilityVersion 5 (Nuxt 5 future); this workspace pins Nuxt
+  // 4.4.6, where that flag breaks nitro's `#imports` resolution for the
+  // @nuxt/icon server route. Use the Nuxt 4 default (matches packages/ui).
   future: {
-    compatibilityVersion: 5,
+    compatibilityVersion: 4,
   },
 
   compatibilityDate: '2026-05-01',

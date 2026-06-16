@@ -81,7 +81,7 @@ describe('extract.ts against a Lighthouse 13 LHR', () => {
   it('extractRouteData reads canonical perf metrics unchanged', () => {
     const out = extractRouteData(lh13Lhr())
     expect(out.lcp).toBe(1450)
-    expect(out.cls).toBe(20) // round(0.02 * 1000)
+    expect(out.cls).toBe(0.02) // CLS stored raw (unitless 0–1), matching the thresholds every consumer uses
     expect(out.tbt).toBe(80)
     expect(out.fcp).toBe(920)
     expect(out.si).toBe(1400)

@@ -1,7 +1,8 @@
-import type { BlobStore, PackRunRepository, ScanRepository, ScanRouteRepository, Storage } from '@unlighthouse/contracts'
+import type { BlobStore, PackRunRepository, ScanRepository, ScanRouteRepository, SiteRepository, Storage } from '@unlighthouse/contracts'
 
 export interface CreateStorageOptions {
   rows: {
+    sites: SiteRepository
     scans: ScanRepository
     routes: ScanRouteRepository
     /** Drizzle adapter exposes report repos + raw db handle; memory omits. */
@@ -52,6 +53,7 @@ const emptyComparisons: Storage['comparisons'] = {
 
 export function createStorage(opts: CreateStorageOptions): Storage {
   return {
+    sites: opts.rows.sites,
     scans: opts.rows.scans,
     routes: opts.rows.routes,
     blobs: opts.blobs,

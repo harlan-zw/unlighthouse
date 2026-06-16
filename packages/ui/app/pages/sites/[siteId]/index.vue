@@ -1,0 +1,290 @@
+<script setup lang="ts">
+import type { TrendMarker, TrendSeries } from '@/components/TrendChart.vue'
+import type { DevicePair, ScanRow } from '@/components/site/types'
+import { toast } from 'vue-sonner'
+
+definePageMeta({ layout: 'site' })
+
+const route = useRoute()
+const router = useRouter()
+const api = useApi()
+const slug = route.params.siteId as string
+
+// Shared key with AppSidebar's sites fetch so we don't double-load.
+// Shared key + handler with AppSidebar's sites fetch so we don't double-load
+// (and so Nuxt doesn't warn about incompatible options for the same key).
+const { data: sitesData } = useAsyncData(
+  'sidebar-sites',
+  () => api['sites.list']({}),
+)
+const siteMeta = computed(() => (sitesData.value?.sites ?? []).find(s => siteSlug(s.url) === slug) ?? null)
+const siteUrl = computed(() => resolveSiteUrl(slug, sitesData.value?.sites ?? []))
+const siteName = computed(() => siteMeta.value?.name || slug)
+
+// Scans store `site` as the exact scanned URL (per page), so history.list's
+// site filter is too narrow to gather a whole domain. Fetch the recent scans
+// once (shared key with /history) and group by origin client-side — the same
+// approach history.vue uses.
+const { data: histData, status: histStatus } = useAsyncData(
+  'scan-history-grouped',
+  () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
+)
+
+const siteOrigin = computed(() => {
+  try {
+    return new URL(siteUrl.value).origin
+  }
+  catch {
+    return siteUrl.value
+  }
+})
+const allScans = computed(() => ((histData.value?.items ?? []) as ScanRow[]).filter((s) => {
+  try {
+    return new URL(s.site).origin === siteOrigin.value
+  }
+  catch {
+    return false
+  }
+}))
+const presentDevices = computed(() => new Set(allScans.value.map(s => s.device)))
+const hasBoth = computed(() => presentDevices.value.has('mobile') && presentDevices.value.has('desktop'))
+
+const deviceFilter = ref<'mobile' | 'desktop'>('mobile')
+const effectiveDevice = computed<'mobile' | 'desktop'>(() => {
+  if (presentDevices.value.has(deviceFilter.value))
+    return deviceFilter.value
+  return presentDevices.value.has('mobile') ? 'mobile' : 'desktop'
+})
+
+// Completed, scored scans for the active device, oldest→newest, capped to the
+// most recent 30 so the trend (and the per-scan vitals fetch) stays bounded.
+const trendScans = computed(() =>
+  allScans.value
+    .filter(s => s.device === effectiveDevice.value && s.summary && (s.summary.completed ?? 0) > 0)
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    .slice(-30),
+)
+
+// ── Score trend (free, from scan summaries) ─────────────────────────────────
+const SCORE_SERIES = [
+  { key: 'performance', label: 'Performance', color: '#f97316' },
+  { key: 'accessibility', label: 'Accessibility', color: '#3b82f6' },
+  { key: 'seo', label: 'SEO', color: '#a855f7' },
+  { key: 'best-practices', label: 'Best Practices', color: '#22c55e' },
+] as const
+
+// Release markers: a pill at each scan that introduced a new commit, drawn
+// over the trend like Expo's release annotations.
+const showReleases = ref(true)
+const releaseMarkers = computed<TrendMarker[]>(() => {
+  const out: TrendMarker[] = []
+  let prevCommit: string | null = null
+  for (const s of trendScans.value) {
+    const commit = s.ciCommit
+    if (commit && commit !== prevCommit) {
+      out.push({
+        t: new Date(s.startedAt).getTime(),
+        label: commit.slice(0, 7),
+        title: [s.ciBranch, commit.slice(0, 7), s.ciCommitMessage].filter(Boolean).join(' · '),
+      })
+    }
+    if (commit)
+      prevCommit = commit
+  }
+  return out
+})
+const hasReleases = computed(() => releaseMarkers.value.length > 0)
+
+const scoreSeries = computed<TrendSeries[]>(() => SCORE_SERIES.map(c => ({
+  label: c.label,
+  color: c.color,
+  points: trendScans.value.map((s) => {
+    const raw = (s.summary?.scoresByCategory as Record<string, number | undefined> | undefined)?.[c.key]
+    return { t: new Date(s.startedAt).getTime(), v: raw == null ? null : Math.round(raw * 100) }
+  }),
+})))
+
+// ── Web-vitals trend (eager: one cached cwv pack per scan) ──────────────────
+const VITALS = [
+  { key: 'lcp', label: 'LCP', color: '#6366f1', fmt: (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}s` : `${Math.round(v)}ms`) },
+  { key: 'cls', label: 'CLS', color: '#8b5cf6', fmt: (v: number) => v.toFixed(3) },
+  { key: 'tbt', label: 'TBT', color: '#ec4899', fmt: (v: number) => `${Math.round(v)}ms` },
+] as const
+
+const { data: vitalsData, status: vitalsStatus } = useAsyncData(
+  `site-vitals-${slug}`,
+  async () => {
+    const list = trendScans.value
+    if (!list.length)
+      return [] as Array<{ t: number, report: any }>
+    const res = await Promise.all(list.map(s =>
+      api['pack.run']({ scanId: s.scanId, pack: 'cwv' })
+        .then((r: any) => ({ t: new Date(s.startedAt).getTime(), report: r?.report }))
+        .catch(() => null),
+    ))
+    return res.filter(Boolean) as Array<{ t: number, report: any }>
+  },
+  { watch: [trendScans] },
+)
+
+function vitalsSeries(metricKey: string, label: string, color: string): TrendSeries[] {
+  return [{
+    label,
+    color,
+    points: (vitalsData.value ?? []).map((d) => {
+      const m = (d.report?.metrics as Array<{ metric: string, p75: number | null }> | undefined)?.find(x => x.metric === metricKey)
+      return { t: d.t, v: m?.p75 ?? null }
+    }),
+  }]
+}
+
+// ── Scan history table ──────────────────────────────────────────────────────
+const pairs = computed<DevicePair[]>(() => pairScans(allScans.value))
+
+function primaryScanId(pair: DevicePair): string {
+  return pair.mobile?.scanId ?? pair.desktop?.scanId ?? ''
+}
+function openPair(pair: DevicePair) {
+  const id = primaryScanId(pair)
+  if (id)
+    router.push(`/sites/${slug}/scans/${id}/routes`)
+}
+async function rescan(scanId: string) {
+  if (!scanId)
+    return
+  try {
+    const result = await api['history.rescan']({ scanId: scanId as any })
+    toast.success('Rescan started')
+    router.push(`/sites/${slug}/scans/${result.scanId}/overview`)
+  }
+  catch (err: any) {
+    toast.error('Rescan failed', { description: err.message })
+  }
+}
+async function deleteScan(scanId: string) {
+  if (!scanId)
+    return
+  try {
+    await api['scan.delete']({ scanId: scanId as any })
+    toast.success('Scan deleted')
+  }
+  catch (err: any) {
+    toast.error('Failed to delete', { description: err.message })
+  }
+}
+
+// ── Compare latest two (same device) ────────────────────────────────────────
+const recentForDevice = computed(() =>
+  allScans.value
+    .filter(s => s.device === effectiveDevice.value && s.summary && (s.summary.completed ?? 0) > 0)
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
+)
+const canCompare = computed(() => recentForDevice.value.length >= 2)
+function compareLatest() {
+  const [current, base] = recentForDevice.value
+  if (current && base)
+    router.push(`/compare/${current.scanId}?base=${base.scanId}`)
+}
+
+const loading = computed(() => histStatus.value === 'pending')
+const isEmpty = computed(() => !loading.value && allScans.value.length === 0)
+</script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="flex items-start gap-3 min-w-0">
+        <Favicon :domain="slug" :size="36" :alt="`${siteName} favicon`" class="mt-1" />
+        <div class="min-w-0">
+          <h1 class="text-title truncate">{{ siteName }}</h1>
+          <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted hover:text-default inline-flex items-center gap-1">
+            {{ siteUrl }}
+            <Icon name="lucide:external-link" class="size-3" />
+          </a>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <UiButton v-if="canCompare" purpose="secondary" size="sm" icon="i-lucide-git-compare" @click="compareLatest">Compare latest two</UiButton>
+        <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`" icon="i-lucide-plus">New Scan</UiButton>
+      </div>
+    </div>
+
+    <div v-if="loading" class="text-center py-16 text-muted">Loading site history…</div>
+
+    <div v-else-if="isEmpty" class="text-center py-16 text-muted">
+      <Icon name="lucide:radar" class="size-10 mx-auto mb-3 opacity-50" />
+      <p>No scans yet for this site.</p>
+      <UiButton purpose="cta" size="sm" class="mt-4" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">Start the first scan</UiButton>
+    </div>
+
+    <template v-else>
+      <!-- Trend controls -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div v-if="hasBoth" class="flex items-center gap-2">
+          <span class="text-xs text-muted">Trends for</span>
+          <UTabs
+            v-model="deviceFilter"
+            :content="false"
+            size="sm"
+            :items="[
+              { value: 'mobile', label: 'Mobile', icon: 'i-lucide-smartphone' },
+              { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+            ]"
+          />
+        </div>
+        <div v-else />
+        <USwitch
+          v-if="hasReleases"
+          :model-value="showReleases"
+          label="Show releases"
+          @update:model-value="(v: boolean) => showReleases = v"
+        />
+      </div>
+
+      <!-- Score trend -->
+      <UiCard size="sm">
+        <template #header>
+          <h3 class="text-label text-dimmed">Category scores over time</h3>
+        </template>
+          <TrendChart :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
+      </UiCard>
+
+      <!-- Web vitals trend -->
+      <UiCard size="sm">
+        <template #header>
+          <div class="flex flex-row items-center justify-between">
+            <h3 class="text-label text-dimmed">Core Web Vitals (p75) over time</h3>
+            <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted inline-flex items-center gap-1">
+              <Icon name="lucide:loader-2" class="size-3.5 animate-spin" /> loading vitals…
+            </span>
+          </div>
+        </template>
+          <div class="grid gap-6 lg:grid-cols-3">
+            <div v-for="m in VITALS" :key="m.key">
+              <div class="text-xs font-medium mb-1" :style="{ color: m.color }">{{ m.label }}</div>
+              <TrendChart
+                :series="vitalsSeries(m.key, m.label, m.color)"
+                :format="m.fmt"
+                :show-legend="false"
+                :height="140"
+                :markers="showReleases ? releaseMarkers : []"
+                :marker-pills="false"
+              />
+            </div>
+          </div>
+      </UiCard>
+
+      <!-- Scan history -->
+      <div>
+        <h2 class="text-sm font-medium text-muted mb-3">Scan history</h2>
+        <SiteHistoryTable
+          :pairs="pairs"
+          @open="openPair"
+          @rescan="rescan"
+          @delete="deleteScan"
+        />
+      </div>
+    </template>
+  </div>
+</template>

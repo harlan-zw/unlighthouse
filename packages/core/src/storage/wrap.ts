@@ -108,5 +108,5 @@ export function wrapStorage(base: Storage, opts: WrapStorageOptions): Storage {
   // `routes.*` (any scanId reaching `reports.*` was filtered upstream).
   // packRuns goes through too — the cache is keyed on `scanId` and any
   // scan-level access control would already have been applied upstream.
-  return { scans, routes, blobs, reports: base.reports, comparisons: base.comparisons, packRuns: base.packRuns }
+  return { sites: base.sites, scans, routes, blobs, reports: base.reports, comparisons: base.comparisons, packRuns: base.packRuns }
 }

@@ -23,6 +23,7 @@ function rowToScan(row: ScanRow): Scan {
 function insertToRow(scan: ScanInsert): ScanRowInsert {
   return {
     scanId: scan.scanId,
+    siteId: scan.siteId ?? null,
     site: scan.site,
     device: scan.device,
     status: scan.status,

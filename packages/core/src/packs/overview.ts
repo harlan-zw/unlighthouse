@@ -14,11 +14,10 @@
 //   under the 1KB budget for the agent summary tier.
 
 import type { Category, Pack, PackReconcileCtx, ScanRoute, Url } from '@unlighthouse/contracts'
+import { CategorySchema, DeviceSchema } from '@unlighthouse/contracts'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────
-
-const CategorySchema = z.enum(['performance', 'accessibility', 'seo', 'best-practices'])
 
 const OverviewReportSchema = z.object({
   scanId: z.string(),
@@ -35,6 +34,9 @@ const OverviewReportSchema = z.object({
     url: z.url(),
     score: z.number().nullable(),
     category: CategorySchema.nullable(),
+    // Device dimension on the worst-row so a mobile regression and a
+    // desktop regression of the same URL surface as distinct rows.
+    device: DeviceSchema.nullable(),
   })).max(5),
   templateGroups: z.array(z.object({
     routeName: z.string().nullable(),
@@ -68,6 +70,7 @@ function worstCategory(row: ScanRoute): Category | null {
     ['accessibility', row.scoreAccessibility],
     ['seo', row.scoreSeo],
     ['best-practices', row.scoreBestPractices],
+    ['agentic-browsing', row.scoreAgenticBrowsing],
   ]
   let pick: { cat: Category, score: number } | null = null
   for (const [cat, score] of candidates) {
@@ -104,6 +107,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
     'accessibility': avg(routes.map(r => r.scoreAccessibility)),
     'seo': avg(routes.map(r => r.scoreSeo)),
     'best-practices': avg(routes.map(r => r.scoreBestPractices)),
+    'agentic-browsing': avg(routes.map(r => r.scoreAgenticBrowsing)),
   }
 
   // Lighthouse threshold buckets (≥ 0.9 passing, ≥ 0.5 needs-work, < 0.5 poor).
@@ -127,6 +131,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
       url: r.url as Url,
       score: rowAverages.get(r.url) ?? null,
       category: worstCategory(r),
+      device: r.device,
     }))
     .filter(r => typeof r.score === 'number')
     .sort((a, b) => {

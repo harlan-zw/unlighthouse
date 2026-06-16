@@ -2,47 +2,34 @@ catalogMode: prefer
 
 shellEmulator: true
 
-trustPolicy: no-downgrade
-
-# chokidar@4.0.3 (pulled transitively via nuxt → @dxup/nuxt) dropped its
-# provenance attestation in this release; it's already pinned in the lockfile.
-# Exclude just this version from the no-downgrade check so adding new workspace
-# projects can re-resolve without tripping the policy.
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - semver@6.3.1
-
 packages:
   - packages/*
   - packages/cloudflare/examples/*
   - apps/*
-  - crux-api
-  - cloud.unlighthouse.dev
   - '!docs'
 
 overrides:
-  '@nuxt/kit': 4.2.2
-  '@vue/compiler-sfc': 3.5.25
-  '@vue/server-renderer': 3.5.25
-  nuxt: 4.2.2
-  vite: 8.0.0-beta.2
-  vue: 3.5.25
-  vue-router: 4.5.0
+  '@nuxt/kit': 4.4.6
+  nuxt: 4.4.6
+  vite: 8.0.14
 catalog:
   '@antfu/eslint-config': ^9.0.0
   '@arethetypeswrong/cli': 0.18.2
   '@cloudflare/containers': ^0.0.18
   '@cloudflare/puppeteer': ^1.1.0
   '@cloudflare/workers-types': ^4.20260511.1
-  '@iconify-json/carbon': ^1.2.22
+  '@lucide/vue': ^1.16.0
   '@modelcontextprotocol/sdk': ^1.29.0
+  '@nuxt/icon': 2.2.2
+  '@nuxtjs/color-mode': 4.0.0
+  '@nuxtjs/tailwindcss': 7.0.0-beta.1
+  '@pinia/nuxt': ^0.11.0
   '@types/better-sqlite3': ^7.6.13
   '@types/fs-extra': ^11.0.4
   '@types/lodash-es': ^4.17.12
   '@types/minimist': ^1.2.5
   '@types/node': ^25.7.0
   '@types/object-hash': ^3.0.6
-  '@types/three': ^0.184.1
   '@types/ws': ^8.18.1
   '@unrouted/core': ^0.6.0
   '@unrouted/fetch': ^0.6.0
@@ -50,22 +37,32 @@ catalog:
   '@unrouted/preset-api': ^0.6.0
   '@unrouted/preset-node': ^0.6.0
   bumpp: ^11.1.0
+  clsx: ^2.1.1
   drizzle-kit: ^0.31.10
   eslint: ^10.3.0
   jiti: ^2.6.1
   motion-v: ^2.2.1
-  nuxt: 4.2.2
+  nuxt: ^4.4.6
   obuild: ^0.4.35
+  pinia: ^3.0.4
+  tsdown: ^0.22.0
   publint: ^0.3.21
-  rolldown: 1.0.0
+  reka-ui: ^2.9.8
+  rolldown: ^1.0.2
+  tailwind-merge: ^3.6.0
   tinypool: ^2.1.0
+  tw-animate-css: ^1.4.0
   typescript: ^6.0.3
   unstorage: ^1.17.5
+  vaul-vue: ^0.4.1
   vitest: ^4.1.6
+  vue-input-otp: ^0.3.2
   vue-router: ^5.0.6
+  vue-sonner: ^2.0.9
   wrangler: ^4.0.0
   yaml: ^2.9.0
   zod: ^4.4.3
+  '@libsql/client': ^0.15.15
 
 catalogs:
   dependencies:
@@ -92,8 +89,8 @@ catalogs:
     defu: ^6.1.7
     drizzle-orm: ^0.45.2
     execa: ^9.6.1
+    fflate: ^0.8.2
     fs-extra: ^11.3.5
-    fuse.js: ^7.3.0
     globby: ^16.2.0
     h3: ^1.15.11
     hookable: ^6.1.1
@@ -107,16 +104,13 @@ catalogs:
     object-hash: ^3.0.0
     ofetch: ^1.5.1
     pathe: ^2.0.3
-    puppeteer: ^0.0.0
     puppeteer-core: ^24.43.1
     radix3: ^1.1.2
     regexparam: ^3.0.0
     sanitize-filename: ^1.6.4
-    scule: ^1.3.0
     sitemapper: ^4.1.6
     slugify: ^1.6.9
     tailwindcss: ^4.3.0
-    three: ^0.184.0
     tinyexec: ^1.1.2
     tinyglobby: ^0.2.16
     ufo: ^1.6.4

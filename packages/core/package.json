@@ -103,6 +103,10 @@
       "types": "./dist/api/client.d.mts",
       "import": "./dist/api/client.mjs"
     },
+    "./api/static-client": {
+      "types": "./dist/api/static-client.d.mts",
+      "import": "./dist/api/static-client.mjs"
+    },
     "./api/http": {
       "types": "./dist/api/http.d.mts",
       "import": "./dist/api/http.mjs"
@@ -114,6 +118,11 @@
     "./api/dashboard": {
       "types": "./dist/api/dashboard.d.mts",
       "import": "./dist/api/dashboard.mjs"
+    },
+    "./logger": {
+      "types": "./dist/logger.d.mts",
+      "development": "./src/logger.ts",
+      "import": "./dist/logger.mjs"
     },
     "./packs": {
       "types": "./dist/packs/index.d.mts",
@@ -132,8 +141,8 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "obuild",
-    "stub": "obuild --stub && node ./scripts/build-worker.mjs",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "test:attw": "attw --pack --profile esm-only",
@@ -163,6 +172,7 @@
     "chrome-launcher": "catalog:dependencies",
     "consola": "catalog:dependencies",
     "crawlee": "catalog:dependencies",
+    "fflate": "catalog:dependencies",
     "fs-extra": "catalog:dependencies",
     "h3": "catalog:dependencies",
     "hookable": "catalog:dependencies",

@@ -26,6 +26,14 @@ export interface CrawlerRunOptions {
   audit: (url: string, ctx: CrawlCtx) => Promise<void>
   /** Inline Policy shape; defer the Policy port until a second adapter ships. */
   allows?: (url: string) => boolean
+  /** Page mode: audit only the seeded URLs, don't follow discovered links. */
+  noFollow?: boolean
+  /**
+   * Skip auditing pages that declare a `<link rel="alternate" hreflang="x-default">`
+   * pointing at a different URL — i.e. localized copies of another page. Mirrors
+   * `scanner.ignoreI18nPages`. The x-default target is still enqueued for discovery.
+   */
+  ignoreI18nPages?: boolean
   crawlDelayMs?: number
   signal?: AbortSignal
 }

@@ -33,7 +33,6 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
   const version = lhr.lighthouseVersion.split('.')[0]
   const mapAudit = (id: string) => AUDIT_MAP[version]?.[id] ?? id
 
-  // Extract fullPageScreenshot node bounding rects (coordinates only, not the image)
   const fpNodes = (lhr as any).fullPageScreenshot?.nodes
   let screenshotNodes: Record<string, { left: number, top: number, width: number, height: number }> | undefined
   if (fpNodes && typeof fpNodes === 'object') {
@@ -50,7 +49,12 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
 
   return {
     lcp: getNumeric(lhr, mapAudit('largest-contentful-paint')),
-    cls: Math.round((getNumeric(lhr, mapAudit('cumulative-layout-shift')) ?? 0) * 1000),
+    // CLS is unitless (0–1+). Store it raw — every consumer (cwv pack
+    // thresholds {good:0.1,poor:0.25}, route-detail thresholds, UI
+    // toFixed(3)) reads it on the 0–1 scale, and none divide. Storing
+    // milli-CLS (×1000) made non-zero CLS render 1000× too large and the
+    // cwv pack flag every shifting page as "poor".
+    cls: getNumeric(lhr, mapAudit('cumulative-layout-shift')),
     tbt: getNumeric(lhr, mapAudit('total-blocking-time')),
     fcp: getNumeric(lhr, mapAudit('first-contentful-paint')),
     si: getNumeric(lhr, mapAudit('speed-index')),
@@ -61,6 +65,7 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
       accessibility: lhr.categories.accessibility?.score ?? null,
       bestPractices: lhr.categories['best-practices']?.score ?? null,
       seo: lhr.categories.seo?.score ?? null,
+      agenticBrowsing: lhr.categories['agentic-browsing']?.score ?? null,
     },
     audits: lhr.audits,
     lhrGzip: gzipSync(JSON.stringify(lhr)),
@@ -74,7 +79,7 @@ export function decompressLhr(gzipped: Buffer): LighthouseResult {
 
 export interface ReconciledRouteReport {
   route: { path: string, url: string, routeName: string | null }
-  scores: { performance: number | null, accessibility: number | null, seo: number | null, bestPractices: number | null }
+  scores: { performance: number | null, accessibility: number | null, seo: number | null, bestPractices: number | null, agenticBrowsing: number | null }
   metrics: { lcp: number | null, cls: number | null, tbt: number | null, fcp: number | null, si: number | null, ttfb: number | null, inp: number | null }
   categories: Array<{ key: string, id: string, title: string, score: number | null }>
   audits: Record<string, { score: number | null, numericValue?: number, displayValue?: string, title?: string, description?: string }>
@@ -127,6 +132,7 @@ export function reconcileRoute(args: {
       accessibility: ext.scores.accessibility,
       seo: ext.scores.seo,
       bestPractices: ext.scores.bestPractices,
+      agenticBrowsing: ext.scores.agenticBrowsing,
     },
     metrics: {
       lcp: ext.lcp,
@@ -167,6 +173,10 @@ interface ContractAuditDetailItem {
   node: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null
   snippet: string | null
   reason: string | null
+  entity: string | null
+  blockingTime: number | null
+  transferSize: number | null
+  wastedMs: number | null
 }
 
 interface ContractAuditFinding {
@@ -188,36 +198,147 @@ interface ContractAuditFinding {
 //
 // Membership chosen by what the built-in packs actually read (a11y-quick-
 // wins + images today). Third-party packs can still call getLhr.
+// Project details.items for ALL audits that produce actionable item data.
+// This eliminates the need to gunzip the 200KB+ raw LHR for most queries.
 const PROJECTED_DETAIL_AUDITS = new Set<string>([
-  // images pack
+  // Performance — Insight audits (LH13)
+  'cache-insight',
+  'cls-culprits-insight',
+  'document-latency-insight',
+  'dom-size-insight',
+  'duplicated-javascript-insight',
+  'font-display-insight',
+  'forced-reflow-insight',
   'image-delivery-insight',
+  'inp-breakdown-insight',
+  'lcp-breakdown-insight',
   'lcp-discovery-insight',
+  'legacy-javascript-insight',
+  'modern-http-insight',
+  'network-dependency-tree-insight',
+  'render-blocking-insight',
+  'third-parties-insight',
+  'viewport-insight',
+  // Performance — Diagnostics
+  'unminified-css',
+  'unminified-javascript',
+  'unused-css-rules',
+  'unused-javascript',
+  'total-byte-weight',
+  'bootup-time',
+  'mainthread-work-breakdown',
+  'long-tasks',
+  'non-composited-animations',
   'unsized-images',
-  'image-alt',
-  // a11y-quick-wins pack reads element-level data on every failing a11y
-  // audit; we project the common ids the pack covers via FIX_HINTS. Other
-  // a11y audits stay on the LHR path until a real workflow needs them in
-  // the blob.
-  'color-contrast',
-  'label',
-  'button-name',
-  'link-name',
-  'html-has-lang',
-  'meta-viewport',
-  'document-title',
-  'aria-valid-attr-value',
-  'aria-valid-attr',
+  'bf-cache',
+  'user-timings',
+  // Performance — Hidden but useful
+  'network-requests',
+  'resource-summary',
+  'redirects',
+  'server-response-time',
+  // Accessibility — all failing audits with element-level data
+  'accesskeys',
   'aria-allowed-attr',
+  'aria-command-name',
+  'aria-conditional-attr',
+  'aria-deprecated-role',
+  'aria-dialog-name',
   'aria-hidden-body',
   'aria-hidden-focus',
-  'aria-conditional-attr',
+  'aria-input-field-name',
+  'aria-meter-name',
+  'aria-progressbar-name',
   'aria-prohibited-attr',
-  'tabindex',
+  'aria-required-attr',
+  'aria-required-children',
+  'aria-required-parent',
+  'aria-roles',
+  'aria-text',
+  'aria-toggle-field-name',
+  'aria-tooltip-name',
+  'aria-treeitem-name',
+  'aria-valid-attr-value',
+  'aria-valid-attr',
+  'button-name',
+  'bypass',
+  'color-contrast',
+  'definition-list',
+  'dlitem',
+  'document-title',
   'duplicate-id-aria',
-  'duplicate-id-active',
+  'empty-heading',
+  'form-field-multiple-labels',
   'frame-title',
+  'heading-order',
+  'html-has-lang',
+  'html-lang-valid',
+  'html-xml-lang-mismatch',
+  'identical-links-same-purpose',
+  'image-alt',
+  'image-redundant-alt',
+  'input-button-name',
+  'input-image-alt',
+  'label-content-name-mismatch',
+  'label',
+  'landmark-one-main',
+  'link-in-text-block',
+  'link-name',
+  'list',
+  'listitem',
+  'meta-refresh',
+  'meta-viewport',
+  'object-alt',
+  'select-name',
+  'skip-link',
+  'tabindex',
+  'table-duplicate-name',
+  'table-fake-caption',
+  'target-size',
+  'td-has-header',
+  'td-headers-attr',
+  'th-has-data-cells',
   'valid-lang',
   'video-caption',
+  'autocomplete-valid',
+  'presentation-role-conflict',
+  'svg-img-alt',
+  // Best Practices
+  'is-on-https',
+  'redirects-http',
+  'geolocation-on-start',
+  'notification-on-start',
+  'csp-xss',
+  'has-hsts',
+  'origin-isolation',
+  'clickjacking-mitigation',
+  'trusted-types-xss',
+  'paste-preventing-inputs',
+  'image-aspect-ratio',
+  'image-size-responsive',
+  'doctype',
+  'charset',
+  'deprecations',
+  'third-party-cookies',
+  'errors-in-console',
+  'inspector-issues',
+  'js-libraries',
+  'valid-source-maps',
+  // SEO
+  'is-crawlable',
+  'meta-description',
+  'http-status-code',
+  'link-text',
+  'crawlable-anchors',
+  'robots-txt',
+  'hreflang',
+  'canonical',
+  // Agentic Browsing (LH13)
+  'agent-accessibility-tree',
+  'webmcp-registered-tools',
+  'webmcp-form-coverage',
+  'webmcp-schema-validity',
+  'llms-txt',
 ])
 
 const DETAIL_ITEM_CAP = 30
@@ -232,9 +353,6 @@ function projectDetailItem(raw: unknown): ContractAuditDetailItem {
         nodeLabel: typeof rawNode.nodeLabel === 'string' ? rawNode.nodeLabel : null,
       }
     : null
-  // image-delivery-insight stuffs the remediation hint into subItems[0].reason.
-  // Pulling the first sub-item's reason is enough for the pack; we don't
-  // project the full subItems tree.
   const subItems = (r.subItems as { items?: Array<{ reason?: unknown }> } | undefined)?.items
   const reason = typeof subItems?.[0]?.reason === 'string' ? subItems[0].reason : null
   return {
@@ -245,6 +363,10 @@ function projectDetailItem(raw: unknown): ContractAuditDetailItem {
     node,
     snippet: typeof r.snippet === 'string' ? r.snippet : null,
     reason,
+    entity: typeof r.entity === 'string' ? r.entity : null,
+    blockingTime: typeof r.blockingTime === 'number' ? r.blockingTime : null,
+    transferSize: typeof r.transferSize === 'number' ? r.transferSize : null,
+    wastedMs: typeof r.wastedMs === 'number' ? r.wastedMs : null,
   }
 }
 
@@ -262,6 +384,7 @@ export function reconcileToContract(args: {
     scoreAccessibility: number | null
     scoreSeo: number | null
     scoreBestPractices: number | null
+    scoreAgenticBrowsing: number | null
     lcp: number | null
     cls: number | null
     inp: number | null
@@ -272,7 +395,17 @@ export function reconcileToContract(args: {
   }
   categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
   audits: Record<string, ContractAuditFinding>
-  provenance: { lighthouseVersion: string, userAgent: string | null, capturedAt: string }
+  provenance: {
+    lighthouseVersion: string
+    userAgent: string | null
+    capturedAt: string
+    benchmarkIndex: number | null
+    timingTotal: number | null
+    warnings: string[]
+    runtimeError: { code: string, message: string } | null
+  }
+  stackPacks: Array<{ id: string, title: string, iconDataURL: string | null, descriptions: Record<string, string> }> | null
+  entities: Array<{ name: string, isFirstParty: boolean, origins: string[] }> | null
 } {
   // The function signature spelled out above mirrors the ReconciledReport
   // contract atom 1:1 — adding fields here means adding them in atoms.ts too.
@@ -343,6 +476,31 @@ export function reconcileToContract(args: {
     }
   }
 
+  // Extract stackPacks (framework-specific recommendations)
+  const rawStackPacks = (lhr as { stackPacks?: Array<{ id: string, title: string, iconDataURL?: string, descriptions?: Record<string, string> }> }).stackPacks
+  const stackPacks = rawStackPacks?.length
+    ? rawStackPacks.map(sp => ({
+      id: sp.id,
+      title: typeof sp.title === 'string' ? sp.title : sp.id,
+      iconDataURL: sp.iconDataURL ?? null,
+      descriptions: sp.descriptions ?? {},
+    }))
+    : null
+
+  // Extract entities (third-party origins)
+  const rawEntities = (lhr as { entities?: Array<{ name: string, isFirstParty?: boolean, origins?: string[] }> }).entities
+  const entities = rawEntities?.length
+    ? rawEntities.map(e => ({
+      name: e.name,
+      isFirstParty: e.isFirstParty ?? false,
+      origins: e.origins ?? [],
+    }))
+    : null
+
+  const timing = (lhr as { timing?: { total?: number } }).timing
+  const runtimeError = (lhr as { runtimeError?: { code?: string, message?: string } }).runtimeError
+  const runWarnings = (lhr as { runWarnings?: string[] }).runWarnings
+
   return {
     scanId,
     url,
@@ -352,6 +510,7 @@ export function reconcileToContract(args: {
       scoreAccessibility: ext.scores.accessibility,
       scoreSeo: ext.scores.seo,
       scoreBestPractices: ext.scores.bestPractices,
+      scoreAgenticBrowsing: ext.scores.agenticBrowsing,
       lcp: ext.lcp,
       cls: ext.cls,
       inp: ext.inp,
@@ -366,7 +525,13 @@ export function reconcileToContract(args: {
       lighthouseVersion: lhr.lighthouseVersion,
       userAgent: (lhr as { userAgent?: string }).userAgent ?? null,
       capturedAt: new Date().toISOString(),
+      benchmarkIndex: (lhr as { environment?: { benchmarkIndex?: number } }).environment?.benchmarkIndex ?? null,
+      timingTotal: timing?.total ?? null,
+      warnings: Array.isArray(runWarnings) ? runWarnings : [],
+      runtimeError: runtimeError?.code ? { code: runtimeError.code, message: runtimeError.message ?? '' } : null,
     },
+    stackPacks,
+    entities,
   }
 }
 

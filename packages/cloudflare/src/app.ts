@@ -6,12 +6,13 @@ import type {
   D1Database,
   DurableObjectNamespace,
   ExecutionContext,
+  Fetcher,
   KVNamespace,
   R2Bucket,
 } from '@cloudflare/workers-types'
-import type { Logger, UnlighthouseConfig } from '@unlighthouse/contracts'
+import type { Device, Logger, UnlighthouseConfig } from '@unlighthouse/contracts'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
-import { createUnlighthouseCore } from '@unlighthouse/core'
+import { auditRoute, createUnlighthouseCore } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
 // Subpath imports keep the Worker bundle off `@unlighthouse/core/auditors`
@@ -28,6 +29,8 @@ import { createApp, toWebHandler } from 'h3'
 // bundle. lighthouse uses node:url and other Node-only APIs at top-level
 // and breaks the Workers runtime even when never invoked.
 import { cloudflareCrawler } from './crawlers/cloudflare-crawl'
+import { scanEventsEmit } from './scan-events-emit'
+import { fuseSeedsDedup, workerSitemapSeeds } from './seeds'
 import { d1R2Storage, migrate as migrateD1 } from './storage/d1-r2'
 
 export interface CloudflareEnv {
@@ -43,6 +46,18 @@ export interface CloudflareEnv {
   SCAN_EVENTS_DO: DurableObjectNamespace
   RATE_LIMITER_DO: DurableObjectNamespace
   /**
+   * Alarm-driven durable scan scheduler. When present, scan.start delegates to
+   * it (durable, survives the waitUntil budget) instead of running the whole
+   * scan inside execCtx.waitUntil. Optional — absent → legacy waitUntil path.
+   */
+  SCAN_RUNNER_DO?: DurableObjectNamespace
+  /**
+   * Service binding to this same Worker. ScanRunnerDO uses it to delegate each
+   * per-URL audit back to the Worker (where the consumer's auditor lives), one
+   * fresh invocation per URL. Required for the SCAN_RUNNER_DO path.
+   */
+  SELF?: Fetcher
+  /**
    * LighthouseContainer DO binding. When present, the example wires
    * `createContainerLighthouseAuditor` (from @unlighthouse/cloudflare-lighthouse)
    * into the auditorFactory — real Lighthouse runs in the container.
@@ -52,12 +67,25 @@ export interface CloudflareEnv {
   SHARED_AUDIT_TOKEN?: string
   /** Optional CrUX API key; enables the field-data fallback tier. */
   CRUX_API_KEY?: string
+  /**
+   * Optional Google PageSpeed Insights API key. The PSI auditor (real
+   * Lighthouse via Google, no container/Browser Run cost) works without it but
+   * at a low rate limit; a free key raises the quota (~25k/day).
+   */
+  PSI_API_KEY?: string
   /** Inline config JSON; the preset Zod-validates this. */
   UNLIGHTHOUSE_CONFIG?: string
   /** Package version surfaced by `manifest` + `health`. Set during deploy. */
   UNLIGHTHOUSE_VERSION?: string
   /** Set to "1" to fall back to the mock auditor (no Browser Rendering needed). */
   UNLIGHTHOUSE_USE_MOCK_AUDITOR?: string
+  /**
+   * Static assets binding (the built Nuxt dashboard SPA). Optional — when
+   * present, non-API requests are served from it with SPA fallback, so a single
+   * Worker hosts both the panel and the API. Configured via `[assets]` in
+   * wrangler.toml with `binding = "ASSETS"`.
+   */
+  ASSETS?: Fetcher
 }
 
 export interface CloudflareApp {
@@ -139,20 +167,41 @@ function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions, 
     ? cloudflareCrawler({ browser: env.BROWSER })
     : parallelMapCrawler({ concurrency: 4 })
   const storage = d1R2Storage({ db: env.DB, bucket: env.BLOBS })
-  const seeds = manualSeeds({
-    // Lazy URL list: prefer the site the inbound scan.start carried in its
-    // body (set on `pendingSeed.site` by the fetch interceptor); fall back
-    // to UNLIGHTHOUSE_CONFIG.site for callers that omit it (mostly the
-    // smoke-test path). Default to an empty list if neither is set so the
-    // scan errors cleanly instead of crawling a placeholder.
-    urls: () => {
-      const fromRequest = pendingSeed?.site
-      if (fromRequest)
-        return [fromRequest]
-      const fromConfig = (config as { site?: string }).site
-      return fromConfig ? [fromConfig] : []
-    },
-  })
+  // Resolve the site to scan lazily: prefer the host the inbound scan.start
+  // carried in its body (set on `pendingSeed.site` by the fetch interceptor);
+  // fall back to UNLIGHTHOUSE_CONFIG.site for callers that omit it (mostly the
+  // smoke-test path). Null when neither is set so the scan errors cleanly
+  // instead of crawling a placeholder.
+  const siteFor = (): string | null => {
+    const fromRequest = pendingSeed?.site
+    if (fromRequest)
+      return fromRequest
+    const fromConfig = (config as { site?: string }).site
+    return fromConfig ?? null
+  }
+  // Seeds: manual (the site root, always) fused with Workers-native sitemap
+  // discovery. Without the sitemap source the Worker only ever audits the
+  // single seed URL — the cloudflare/parallel-map crawlers do no in-page link
+  // discovery — so "scan the whole site" degraded to one page. Sitemap
+  // discovery (global fetch + regex parse, no Node deps) restores it. Gated by
+  // `scanner.sitemap !== false` to mirror the local host's behaviour.
+  const sitemapConfig = (config as { scanner?: { sitemap?: true | string[] | false } }).scanner?.sitemap
+  const seedSources = [
+    manualSeeds({
+      urls: () => {
+        const s = siteFor()
+        return s ? [s] : []
+      },
+    }),
+  ]
+  if (sitemapConfig !== false) {
+    seedSources.push(workerSitemapSeeds({
+      site: siteFor,
+      sitemaps: Array.isArray(sitemapConfig) ? sitemapConfig : true,
+      logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/sitemap'),
+    }))
+  }
+  const seeds = fuseSeedsDedup(seedSources)
   const core = createUnlighthouseCore({
     config,
     auditor,
@@ -198,6 +247,53 @@ function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions, 
   } as HandlerCtx
 }
 
+// Distinguish API calls from UI routes so non-API GETs can be served from the
+// bundled SPA. The dashboard always calls the API under its configured `/api/*`
+// base, so that prefix is unambiguously API and is the path the panel uses.
+//
+// The bare, prefix-less command roots also need to resolve (raw `/scan/start`
+// callers, the WS path), but several collide with UI routes that share a first
+// segment: `/sites/list` is API while `/sites/example.com` is a page; likewise
+// `/route/*`, `/compare/*`, `/history/*`. Since the panel never calls those
+// without the `/api` prefix, we treat the prefix-less form as API only for roots
+// that have NO UI collision, plus the two singletons. Everything else falls
+// through to the SPA.
+const API_EXCLUSIVE_ROOTS = new Set([
+  'api',
+  'scan',
+  'pack',
+  'query',
+  'events',
+  'auditors',
+  'assert',
+  'dashboard',
+])
+function isApiPath(pathname: string): boolean {
+  if (pathname === '/health' || pathname === '/manifest')
+    return true
+  const root = pathname.split('/')[1] ?? ''
+  return API_EXCLUSIVE_ROOTS.has(root)
+}
+
+interface ScanStartBody {
+  site?: unknown
+  device?: unknown
+  mode?: unknown
+}
+
+// Normalise a scan.start `device` input (single | array | absent) into a
+// deduped device matrix, defaulting to ['mobile'] — mirrors core's
+// resolveDeviceMatrix so the DO path honours `device: ["mobile","desktop"]`.
+function resolveDevices(input: unknown): Device[] {
+  const raw = Array.isArray(input) ? input : input != null ? [input] : []
+  const out: Device[] = []
+  for (const d of raw) {
+    if ((d === 'mobile' || d === 'desktop') && !out.includes(d))
+      out.push(d)
+  }
+  return out.length ? out : ['mobile']
+}
+
 export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): CloudflareApp {
   const pendingSeed: PendingSeed = { site: null }
   const ctx = buildHandlerCtx(env, opts, pendingSeed)
@@ -225,6 +321,55 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
       await ensureMigrated(runtimeEnv)
       const url = new URL(req.url)
 
+      // Serve the bundled dashboard SPA for everything that isn't an API call.
+      // The API surface is `/api/*` plus the bare command roots (the router
+      // mounts prefix-less); anything else is a UI route and is handed to the
+      // ASSETS binding, which does its own static lookup + SPA fallback to
+      // index.html for client-side routes like `/sites/example.com`.
+      if (runtimeEnv.ASSETS && req.method === 'GET' && !isApiPath(url.pathname)) {
+        // Cast across the workers-types ⇆ lib.dom Request/Response split (the
+        // same split the DO stub.fetch calls below work around).
+        return runtimeEnv.ASSETS.fetch(req as never) as unknown as Response
+      }
+
+      // Internal audit endpoint — ScanRunnerDO delegates each per-URL audit here
+      // (via the SELF service binding) so the audit runs with the consumer's
+      // auditor (which only the Worker's auditorFactory has) AND in a fresh
+      // invocation with its own budget. Token-guarded; never exposed publicly.
+      if (req.method === 'POST' && url.pathname === '/__scan/audit') {
+        const token = req.headers.get('x-audit-token')
+        if (!runtimeEnv.SHARED_AUDIT_TOKEN || token !== runtimeEnv.SHARED_AUDIT_TOKEN)
+          return new Response('unauthorized', { status: 401 })
+        let body: { scanId?: string, url?: string, devices?: unknown }
+        try {
+          body = await req.json() as typeof body
+        }
+        catch {
+          return new Response('bad request', { status: 400 })
+        }
+        const scanId = body.scanId
+        const targetUrl = body.url
+        if (!scanId || !targetUrl)
+          return new Response('bad request', { status: 400 })
+        const emit = scanEventsEmit(runtimeEnv, scanId)
+        let scanned = 0
+        let failed = 0
+        for (const device of resolveDevices(body.devices)) {
+          const { ok } = await auditRoute(
+            { auditor: ctx.auditor, storage: ctx.storage, logger: undefined, emit },
+            { scanId: scanId as never, url: targetUrl, device },
+          )
+          if (ok)
+            scanned++
+          else
+            failed++
+        }
+        return new Response(JSON.stringify({ scanned, failed }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+
       // WebSocket subscribe → ScanEventsDO. Avoids the standard HTTP pipeline
       // since toWebHandler can't return a 101 with a webSocket field.
       if (url.pathname === '/api/events/subscribe' && req.headers.get('Upgrade') === 'websocket') {
@@ -237,22 +382,39 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         return stub.fetch(req)
       }
 
+      // The HTTP command router mounts routes WITHOUT a prefix (`/scan/start`),
+      // but the dashboard client (and the WS path above) speak the conventional
+      // `/api/*` surface. Strip a leading `/api` so both the bundled panel and
+      // raw `/api/...` callers reach the same routes — and the prefix-less
+      // `/scan/start` form keeps working too.
+      let apiReq = req
+      if (url.pathname.startsWith('/api/') || url.pathname === '/api') {
+        const stripped = url.pathname.replace(/^\/api(?=\/|$)/, '') || '/'
+        const rewritten = new URL(req.url)
+        rewritten.pathname = stripped
+        apiReq = new Request(rewritten, req)
+        url.pathname = stripped
+      }
+
       // Transport-level rate-limit gate for scan.start + body peek to
       // capture `site` for the seed-source (so a single deploy can scan
-      // many hosts without redeploying). Cloned read of the body is
-      // non-destructive — the downstream h3 handler re-reads from `req`.
-      if (req.method === 'POST' && url.pathname === '/scan/start') {
+      // many hosts without redeploying). Read the clone of `apiReq` — the
+      // request that's actually handed downstream — so the body isn't consumed
+      // out from under the h3 handler (the `/api` rewrite above already moved
+      // the body onto `apiReq`).
+      let startBody: ScanStartBody | null = null
+      if (apiReq.method === 'POST' && url.pathname === '/scan/start') {
         try {
-          const body = await req.clone().json() as { site?: unknown } | null
-          pendingSeed.site = (body && typeof body.site === 'string' && body.site.length > 0)
-            ? body.site
+          startBody = await apiReq.clone().json() as ScanStartBody
+          pendingSeed.site = (startBody && typeof startBody.site === 'string' && startBody.site.length > 0)
+            ? startBody.site
             : null
         }
         catch {
           pendingSeed.site = null
         }
-        const key = req.headers.get('x-api-key')
-          ?? req.headers.get('cf-connecting-ip')
+        const key = apiReq.headers.get('x-api-key')
+          ?? apiReq.headers.get('cf-connecting-ip')
           ?? 'global'
         const id = runtimeEnv.RATE_LIMITER_DO.idFromName(key)
         const stub = runtimeEnv.RATE_LIMITER_DO.get(id)
@@ -272,16 +434,57 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
             },
           )
         }
+
+        // Durable scan path: when the alarm-driven runner DO is wired, delegate
+        // the whole scan to it (discovery + per-URL audit + finalize all happen
+        // across alarm ticks, surviving the waitUntil budget that wedged the
+        // legacy path at "scanning" on multi-URL sites). Await the DO's /start
+        // so the scan row + queue exist before we respond (status polling works
+        // immediately); the alarm loop then runs independently of this request.
+        if (runtimeEnv.SCAN_RUNNER_DO && runtimeEnv.SELF) {
+          const site = pendingSeed.site ?? (ctx.config as { site?: string }).site ?? null
+          if (!site) {
+            return new Response(
+              JSON.stringify({ error: { code: 'INVALID_INPUT', message: 'site is required' } }),
+              { status: 400, headers: { 'content-type': 'application/json' } },
+            )
+          }
+          const devices = resolveDevices(startBody?.device)
+          const mode = startBody?.mode === 'page' ? 'page' : 'site'
+          const scanId = crypto.randomUUID()
+          const startedAt = new Date().toISOString()
+          const runnerId = runtimeEnv.SCAN_RUNNER_DO.idFromName(scanId)
+          const runner = runtimeEnv.SCAN_RUNNER_DO.get(runnerId)
+          try {
+            await runner.fetch('https://scan-runner/start', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ scanId, site, devices, mode, config: ctx.config }),
+            } as never)
+          }
+          catch {
+            return new Response(
+              JSON.stringify({ error: { code: 'INTERNAL', message: 'failed to start scan' } }),
+              { status: 500, headers: { 'content-type': 'application/json' } },
+            )
+          }
+          return new Response(
+            JSON.stringify({ scanId, site, mode, startedAt }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          )
+        }
       }
 
-      const res = await webHandler(req)
+      const res = await webHandler(apiReq)
 
       // If scan.start kicked off a session, register session.done with the
       // Worker's ExecutionContext so the runtime keeps the orchestration
       // alive after the response returns. Without this, Workers GCs the
-      // request scope as soon as the response is sent and the scan never
-      // actually writes its row + LHR blobs.
-      if (req.method === 'POST' && url.pathname === '/scan/start' && res.ok) {
+      // request scope as soon as the response is sent and the scan stays
+      // wedged in `starting` (its row + LHR blobs never get written).
+      // Use `apiReq`/`url` (both already normalised past the /api strip) so the
+      // match is robust whether the caller hit `/scan/start` or `/api/scan/start`.
+      if (apiReq.method === 'POST' && url.pathname === '/scan/start' && res.ok) {
         const session = ctx.core.session?.()
         if (session?.done)
           execCtx.waitUntil(session.done.catch(() => undefined))

@@ -3,10 +3,11 @@ import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { gunzipSync } from 'node:zlib'
-import { compareScans, evaluateAndStoreAssertions, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
+import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
 import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
+import { runAssertions } from './assertions'
 import createCli from './createCli'
 import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
@@ -47,18 +48,21 @@ async function run() {
 
   validateOptions(unlighthouse.resolvedConfig)
 
+  // D-029: forward parsed `--device` matrix into the run overrides so CI
+  // runs can exercise mobile + desktop under a single scan id.
+  const deviceOverride = parseDevices(options)
+  // start() initialises the host ports (and kicks off the scan); the hooks
+  // proxy throws if accessed before that. Register scan:complete immediately
+  // after — JS runs these synchronous statements before the scan can emit on a
+  // later tick, so there's no race with `await completed` below.
+  const { scanId } = await unlighthouse.start(
+    deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
+  )
   const completed = new Promise<{ completed: number }>((resolve) => {
     unlighthouse.hooks.hook('scan:complete', (payload) => {
       resolve({ completed: payload.summary.completed })
     })
   })
-
-  // D-029: forward parsed `--device` matrix into the run overrides so CI
-  // runs can exercise mobile + desktop under a single scan id.
-  const deviceOverride = parseDevices(options)
-  const { scanId } = await unlighthouse.start(
-    deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
-  )
   const { completed: completedCount } = await completed
   const seconds = Math.round((Date.now() - start.getTime()) / 1000)
   logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${completedCount} routes in ${seconds}s.`)
@@ -121,29 +125,22 @@ async function run() {
       logger.success(`Wrote ${reporter} report to ${path}`)
   }
 
+  // #290/#275/#120: build an offline static report embedding a full snapshot
+  // (every route incl. the homepage + contract blobs), served by createStaticClient.
+  if (options.buildStatic) {
+    unlighthouse.runtimeSettings.currentScanId = scanId as never
+    await unlighthouse.generateClient({ static: true })
+    logger.success(`Built static report at ${unlighthouse.runtimeSettings.generatedClientPath}`)
+  }
+
   const db = (unlighthouse.handlerCtx.storage as { db?: any }).db
 
   const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
   const assertEnabled = options.assert !== false
   if (assertEnabled && assertionConfigs?.length && db) {
-    const results = await evaluateAndStoreAssertions(db, scanId, assertionConfigs)
-    const failures = results.filter(r => !r.passed)
-
-    if (failures.length > 0) {
-      logger.error(`${failures.length} assertion(s) failed:`)
-      for (const f of failures) {
-        const label = f.assertion.category || f.assertion.metric || f.assertion.type
-        logger.error(`  ${f.assertion.type} ${label}: expected ${f.assertion.value}, got ${f.actual}`)
-        if (f.failingRoutes?.length) {
-          for (const r of f.failingRoutes.slice(0, 5))
-            logger.error(`    - ${r.path} (${r.value})`)
-          if (f.failingRoutes.length > 5)
-            logger.error(`    ... and ${f.failingRoutes.length - 5} more`)
-        }
-      }
+    const { passed } = await runAssertions(db, scanId, assertionConfigs, logger)
+    if (!passed)
       process.exit(1)
-    }
-    logger.success(`All ${results.length} assertion(s) passed.`)
   }
 
   if (options.compare !== undefined && options.compare !== false && db) {

@@ -2,13 +2,16 @@
 // See v1.md §"Command registry" lines 800, 819–853.
 
 import { z } from 'zod'
+import { PackRunSchema } from '../packs'
 import {
   CategorySchema,
   DeviceSchema,
+  ExtractedMetricsSchema,
   MetricNameSchema,
   PaginatedSchema,
   ScanIdSchema,
   ScanRouteSchema,
+  ScanSchema,
   ScanStatusSchema,
   ScanSummarySchema,
   UrlSchema,
@@ -22,9 +25,10 @@ import { defineCommand } from './define'
 // wire stays back-compatible.
 export const ScanStart = defineCommand({
   name: 'scan.start',
-  description: 'Start a new scan against a site. `device` accepts a single device ("mobile" or "desktop") or an array — pass `["mobile", "desktop"]` to run a multi-device matrix scan that audits every URL on both form-factors in one pass. Results are keyed on `(scanId, url, device)`; filter back with `device` on scan.results / pack.run / route.get. Omit to use the host default (mobile).',
+  description: 'Start a new scan against a site. `device` accepts a single device ("mobile" or "desktop") or an array — pass `["mobile", "desktop"]` to run a multi-device matrix scan that audits every URL on both form-factors in one pass. Results are keyed on `(scanId, url, device)`; filter back with `device` on scan.results / pack.run / query.routes. Omit to use the host default (mobile).',
   input: z.object({
     site: UrlSchema,
+    mode: z.enum(['site', 'page']).default('site').optional(),
     device: z.union([DeviceSchema, z.array(DeviceSchema).min(1)]).optional(),
     sampleSize: z.number().int().min(1).max(10).optional(),
     categories: z.array(CategorySchema).optional(),
@@ -40,6 +44,7 @@ export const ScanStart = defineCommand({
   output: z.object({
     scanId: ScanIdSchema,
     site: UrlSchema,
+    mode: z.enum(['site', 'page']),
     startedAt: z.iso.datetime(),
   }),
   exitCodes: { ACTIVE_SCAN_CONFLICT: 9, QUOTA_EXCEEDED: 78 },
@@ -133,7 +138,16 @@ export const ScanMetaCmd = defineCommand({
     device: DeviceSchema,
     throttle: z.boolean(),
     startedAt: z.iso.datetime(),
+    // Completion timestamp. Null while the scan is in flight or paused.
+    completedAt: z.iso.datetime().nullable(),
     summary: ScanSummarySchema.nullable(),
+    // CI provenance — present whenever scan.start was called with a
+    // ciBuild block or the resolveConfig git-fallback fired. Lets the
+    // dashboard show "compare against this branch" / "scan for commit
+    // abc1234" without a second round-trip to history.list.
+    ciBranch: z.string().nullable(),
+    ciCommit: z.string().nullable(),
+    ciCommitMessage: z.string().nullable(),
   }),
   exitCodes: { SCAN_NOT_FOUND: 64 },
 })
@@ -195,6 +209,11 @@ export const ScanSummaryCmd = defineCommand({
       url: UrlSchema,
       score: z.number().nullable(),
       category: CategorySchema.nullable(),
+      // Device the worst-row was measured on. Mirrors the (url,
+      // device) PK on scan_routes; the UI shows it so a mobile
+      // regression and a desktop regression of the same URL don't
+      // look like one row.
+      device: DeviceSchema.nullable(),
     })),
     // Template grouping (from seeds/route-definitions matcher). Routes that
     // matched no template land under `routeName: null` which collapses to "/".
@@ -224,11 +243,71 @@ export const ScanResults = defineCommand({
       })
       .optional(),
     sort: z
-      .enum(['score-asc', 'score-desc', 'lcp-asc', 'lcp-desc', 'url-asc'])
+      .enum([
+        'score-asc', 'score-desc',
+        'lcp-asc', 'lcp-desc',
+        'cls-asc', 'cls-desc',
+        'fcp-asc', 'fcp-desc',
+        'tbt-asc', 'tbt-desc',
+        'ttfb-asc', 'ttfb-desc',
+        'si-asc', 'si-desc',
+        'inp-asc', 'inp-desc',
+        'url-asc',
+        'capturedAt-desc',
+      ])
       .optional(),
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(500).default(50),
   }),
   output: PaginatedSchema(ScanRouteSchema),
   exitCodes: { SCAN_NOT_FOUND: 64 },
+})
+
+// ── scan.categories ────────────────────────────────────────────────────────
+export const ScanCategories = defineCommand({
+  name: 'scan.categories',
+  description: 'Get all Lighthouse categories for a scan with average scores and audit pass/fail counts. Includes agentic-browsing and any future categories dynamically.',
+  input: z.object({
+    scanId: ScanIdSchema,
+    device: DeviceSchema.optional(),
+  }),
+  output: z.object({
+    categories: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      avgScore: z.number().nullable(),
+      auditCount: z.number().int().nonnegative(),
+      passingCount: z.number().int().nonnegative(),
+      failingCount: z.number().int().nonnegative(),
+    })),
+  }),
+  exitCodes: { SCAN_NOT_FOUND: 64 },
+})
+
+// ── scan.import ─────────────────────────────────────────────────────────────
+// Accept a pre-computed scan payload — used by CI runs that audit locally
+// and push results into a self-hosted Unlighthouse instance for the
+// dashboard to pick up. No overwrite: existing scanId → SCAN_ALREADY_EXISTS.
+//
+// Wire shape is a thin envelope around the persisted atoms: callers
+// serialise their `Scan` + `ExtractedMetrics[]` + optional `PackRun[]`
+// straight off the host that audited them. Storage adapter (drizzle /
+// memory / D1) writes them verbatim — no recomputation.
+export const ScanImport = defineCommand({
+  name: 'scan.import',
+  description: 'Import a pre-computed scan payload from a CI runner. Writes the scan row + per-route metrics + optional pack runs verbatim into the host\'s storage. Errors with SCAN_ALREADY_EXISTS if `scan.scanId` already exists — call scan.delete first if you intend to replace.',
+  input: z.object({
+    scan: ScanSchema,
+    routes: z.array(ExtractedMetricsSchema.extend({ device: DeviceSchema })),
+    packRuns: z.array(PackRunSchema).optional(),
+  }),
+  output: z.object({
+    scanId: ScanIdSchema,
+    imported: z.literal(true),
+    routes: z.number().int().nonnegative(),
+    packRuns: z.number().int().nonnegative(),
+  }),
+  exitCodes: { SCAN_ALREADY_EXISTS: 9 },
+  // Server-side ingestion; CI uses it, agents shouldn't.
+  mcp: { hidden: true },
 })

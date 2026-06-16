@@ -1,35 +1,235 @@
 // route.* handlers.
 
-import type { CommandOutput, ExtractedMetrics, RouteGet, RouteRescan } from '@unlighthouse/contracts'
-import type { Handler } from './types'
-import { gunzipSync } from 'node:zlib'
+import type {
+  CommandOutput,
+  ExtractedMetrics,
+  RouteAudits,
+  RouteGet,
+  RouteRescan,
+  ScanId,
+  ScanRoute,
+} from '@unlighthouse/contracts'
+import type { Handler, HandlerCtx } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts'
+
+// Lighthouse's stable category ids → display titles. The reconciled contract
+// blob keeps `categories` keyed by id and drops the LHR title string (it's
+// the same for every route, no point persisting per-route). We reconstruct
+// it here so the public API output matches what the dashboard renders.
+// Unknown ids fall back to titlecasing the id — covers third-party LH
+// plugins without us hardcoding them.
+const CATEGORY_TITLES: Record<string, string> = {
+  'performance': 'Performance',
+  'accessibility': 'Accessibility',
+  'seo': 'SEO',
+  'best-practices': 'Best Practices',
+  'pwa': 'PWA',
+  'agentic-browsing': 'Agentic Browsing',
+}
+
+function titleForCategory(id: string): string {
+  return CATEGORY_TITLES[id] ?? id.split('-').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')
+}
+
+interface ContractBlob {
+  categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
+  audits: Record<string, {
+    id: string
+    score: number | null
+    scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
+    displayValue: string | null
+    title: string | null
+    description: string | null
+    severity: 'pass' | 'warn' | 'fail'
+    metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
+    items: unknown[] | null
+  }>
+  provenance?: {
+    lighthouseVersion: string
+    userAgent: string | null
+    capturedAt: string
+    benchmarkIndex: number | null
+    timingTotal: number | null
+    warnings: string[]
+    runtimeError: { code: string, message: string } | null
+  }
+  stackPacks?: Array<{ id: string, title: string, iconDataURL: string | null, descriptions: Record<string, string> }> | null
+  entities?: Array<{ name: string, isFirstParty: boolean, origins: string[] }> | null
+}
+
+async function loadContract(ctx: HandlerCtx, route: ScanRoute): Promise<ContractBlob | null> {
+  if (!route.reportBlobKey)
+    return null
+  const key = route.reportBlobKey.replace('.json', '.contract.json')
+  const blob = await ctx.storage.blobs.get(key)
+  if (!blob)
+    return null
+  try {
+    return JSON.parse(new TextDecoder().decode(blob)) as ContractBlob
+  }
+  catch {
+    return null
+  }
+}
+
+function screenshotUrlFor(route: ScanRoute): string | null {
+  if (!route.screenshotBlobKey)
+    return null
+  return `dashboard/screenshot/${route.scanId}/${encodeURIComponent(route.path)}`
+}
+
+async function findRoute(ctx: HandlerCtx, scanId: ScanId, url: string, device?: 'mobile' | 'desktop'): Promise<{ route: ScanRoute, availableDevices: Array<'mobile' | 'desktop'> }> {
+  const scan = await ctx.storage.scans.get(scanId)
+  if (!scan)
+    throw new UnlighthouseError({ code: 'SCAN_NOT_FOUND', message: `scanId=${scanId}` })
+
+  // Try the explicit device first, then the scan's primary, then the other —
+  // dashboards often link to a route without knowing which device emulation
+  // produced the row, especially after a CI import.
+  const tryOrder: Array<'mobile' | 'desktop'> = device
+    ? [device]
+    : Array.from(new Set<'mobile' | 'desktop'>([scan.device, scan.device === 'mobile' ? 'desktop' : 'mobile']))
+
+  // Walk every device once so we can emit `availableDevices` for the
+  // UI's device toggle in the same round-trip — no second probe call.
+  let route: ScanRoute | null = null
+  const available: Array<'mobile' | 'desktop'> = []
+  for (const d of (['mobile', 'desktop'] as const)) {
+    const row = await ctx.storage.routes.get(scanId, url, d)
+    if (row) available.push(d)
+  }
+  if (available.length === 0)
+    throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${url} in scan ${scanId}` })
+
+  for (const d of tryOrder) {
+    if (available.includes(d)) {
+      route = await ctx.storage.routes.get(scanId, url, d)
+      if (route) break
+    }
+  }
+  // Caller asked for a device that isn't there — fall back to whatever
+  // we found first. Same softer behaviour as the legacy dashboard
+  // endpoint so existing deep links keep working.
+  if (!route) {
+    route = await ctx.storage.routes.get(scanId, url, available[0])
+    if (!route)
+      throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${url} in scan ${scanId}` })
+  }
+  return { route, availableDevices: available.sort() }
+}
 
 export const routeGet: Handler<typeof RouteGet> = {
   command: {} as typeof RouteGet,
   async run(input, ctx) {
-    const scan = await ctx.storage.scans.get(input.scanId)
-    if (!scan)
-      throw new UnlighthouseError({ code: 'SCAN_NOT_FOUND', message: `scanId=${input.scanId}` })
-    // D-029: prefer the caller's explicit device; fall back to the scan's
-    // primary device so single-device callers stay unchanged. Matrix scans
-    // returning ROUTE_NOT_FOUND on a specific device tells the caller the
-    // form-factor wasn't part of the scan — useful signal, don't swallow.
-    const device = input.device ?? scan.device
-    const route = await ctx.storage.routes.get(input.scanId, input.url, device)
-    if (!route)
-      throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${input.scanId}/${input.url} (device=${device})` })
-    // The LHR blob is gzipped (core.ts ingest writes via gzipSync). Without
-    // gunzipping first, JSON.parse barfs on the magic bytes. Pre-D-029 this
-    // was latent because no test path hit route.get end-to-end after a real
-    // scan; the matrix tests now do.
-    let lhr: unknown = null
-    if (route.lhrBlobKey) {
-      const blob = await ctx.storage.blobs.get(route.lhrBlobKey)
-      if (blob)
-        lhr = JSON.parse(gunzipSync(blob as never).toString('utf-8'))
+    const { route, availableDevices } = await findRoute(ctx, input.scanId, input.url, input.device)
+    const contract = await loadContract(ctx, route)
+
+    const categories: CommandOutput<typeof RouteGet>['categories'] = []
+    if (contract) {
+      for (const [id, cat] of Object.entries(contract.categories ?? {})) {
+        let passing = 0
+        let failing = 0
+        for (const ref of cat.auditRefs ?? []) {
+          const audit = contract.audits?.[ref.id]
+          if (!audit)
+            continue
+          // Severity buckets the contract reconciler already computed.
+          // "warn" counts as a fail for the dashboard's pass/fail badge so
+          // users see anything below 0.9 as actionable.
+          if (audit.severity === 'pass')
+            passing++
+          else
+            failing++
+        }
+        categories.push({
+          id,
+          title: titleForCategory(id),
+          score: cat.score,
+          auditCount: (cat.auditRefs ?? []).length,
+          passingCount: passing,
+          failingCount: failing,
+          // Pass the raw auditRefs through so the UI can walk per-
+          // category audits without a second `route.audits` call.
+          // Weight comes from the LHR via the contract reconciler.
+          auditRefs: cat.auditRefs ?? [],
+        })
+      }
     }
-    return { route, lhr } as CommandOutput<typeof RouteGet>
+
+    return {
+      route,
+      categories,
+      audits: contract?.audits ?? {},
+      provenance: contract?.provenance ?? {
+        lighthouseVersion: 'unknown',
+        userAgent: null,
+        capturedAt: route.capturedAt ?? new Date().toISOString(),
+        benchmarkIndex: null,
+        timingTotal: null,
+        warnings: [],
+        runtimeError: null,
+      },
+      stackPacks: contract?.stackPacks ?? null,
+      entities: contract?.entities ?? null,
+      screenshotUrl: screenshotUrlFor(route),
+      availableDevices,
+    } as CommandOutput<typeof RouteGet>
+  },
+}
+
+export const routeAudits: Handler<typeof RouteAudits> = {
+  command: {} as typeof RouteAudits,
+  async run(input, ctx) {
+    const { route } = await findRoute(ctx, input.scanId, input.url, input.device)
+    const contract = await loadContract(ctx, route)
+    if (!contract)
+      return { audits: [] } as CommandOutput<typeof RouteAudits>
+
+    // When a category filter is set, restrict to that category's auditRefs so
+    // the weight comes from the right place (a single audit can carry
+    // different weights under different categories — rare in LH core but
+    // possible with plugin categories).
+    const targetCategory = input.category ? contract.categories?.[input.category] : null
+    if (input.category && !targetCategory)
+      return { audits: [] } as CommandOutput<typeof RouteAudits>
+
+    const refs: Array<{ id: string, weight: number }> = targetCategory
+      ? targetCategory.auditRefs ?? []
+      // No filter → flatten across all categories, deduping by audit id and
+      // keeping the highest weight encountered (so a "perf" audit re-used in
+      // another category doesn't lose its perf weight).
+      : Array.from(
+        Object.values(contract.categories ?? {})
+          .flatMap(c => c.auditRefs ?? [])
+          .reduce((acc, r) => {
+            const prev = acc.get(r.id)
+            if (!prev || r.weight > prev.weight)
+              acc.set(r.id, r)
+            return acc
+          }, new Map<string, { id: string, weight: number }>())
+          .values(),
+      )
+
+    const audits = refs
+      .map((ref) => {
+        const a = contract.audits?.[ref.id]
+        if (!a)
+          return null
+        return {
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          score: a.score,
+          severity: a.severity,
+          displayValue: a.displayValue,
+          weight: ref.weight,
+          metricSavings: a.metricSavings,
+          items: a.items,
+        }
+      })
+      .filter((a): a is NonNullable<typeof a> => a !== null)
+
+    return { audits } as CommandOutput<typeof RouteAudits>
   },
 }
 
@@ -53,6 +253,7 @@ export const routeRescan: Handler<typeof RouteRescan> = {
       scoreAccessibility: null,
       scoreSeo: null,
       scoreBestPractices: null,
+      scoreAgenticBrowsing: null,
       lcp: null,
       cls: null,
       inp: null,

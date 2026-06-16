@@ -1,5 +1,5 @@
 import type { ExtractedMetrics, Scan, ScanId, ScanInsert, Storage } from '../packages/contracts/src'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
@@ -7,10 +7,15 @@ import { describe, expect, it } from 'vitest'
 import { memoryStorage } from '../packages/core/src/storage/memory'
 import { drizzleStorage } from '../packages/core/src/storage/drizzle'
 
-const INIT_SQL = readFileSync(
-  resolve(__dirname, '../packages/core/migrations/sqlite/0000_init.sql'),
-  'utf8',
-)
+// Apply every drizzle-kit migration in order. Filenames carry a numeric
+// prefix (0000_, 0001_, …) plus a random slug, so sort lexically and
+// concatenate — yields the current full schema without pinning a name.
+const MIGRATIONS_DIR = resolve(__dirname, '../packages/core/migrations/sqlite')
+const INIT_SQL = readdirSync(MIGRATIONS_DIR)
+  .filter(f => f.endsWith('.sql'))
+  .sort()
+  .map(f => readFileSync(resolve(MIGRATIONS_DIR, f), 'utf8'))
+  .join('\n--> statement-breakpoint\n')
 
 function makeDrizzleStorage(): Storage {
   const sqlite = new Database(':memory:')

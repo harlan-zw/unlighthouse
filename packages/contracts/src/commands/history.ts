@@ -5,20 +5,10 @@ import {
   DeviceSchema,
   PaginatedSchema,
   ScanIdSchema,
-  ScanRouteSchema,
   ScanSchema,
   UrlSchema,
 } from '../types/atoms'
 import { defineCommand } from './define'
-
-// ── history.get ─────────────────────────────────────────────────────────────
-export const HistoryGet = defineCommand({
-  name: 'history.get',
-  description: 'Get full scan metadata + routes by scanId.',
-  input: z.object({ scanId: ScanIdSchema }),
-  output: ScanSchema.extend({ routes: z.array(ScanRouteSchema) }),
-  exitCodes: { SCAN_NOT_FOUND: 64 },
-})
 
 // ── history.list ────────────────────────────────────────────────────────────
 export const HistoryList = defineCommand({
@@ -32,25 +22,6 @@ export const HistoryList = defineCommand({
     pageSize: z.coerce.number().int().min(1).max(500).default(50),
   }),
   output: PaginatedSchema(ScanSchema),
-})
-
-// ── history.delete ──────────────────────────────────────────────────────────
-export const HistoryDelete = defineCommand({
-  name: 'history.delete',
-  description: 'Delete one or more past scans by id, or by site + retention.',
-  input: z.union([
-    z.object({ scanIds: z.array(ScanIdSchema).min(1) }),
-    z.object({
-      site: UrlSchema,
-      keep: z.number().int().nonnegative().optional(),
-      olderThan: z.iso.datetime().optional(),
-    }),
-  ]),
-  output: z.object({
-    deleted: z.array(ScanIdSchema),
-  }),
-  // Bulk destructive op. Agent has no business deleting user history.
-  mcp: { hidden: true },
 })
 
 // ── history.rescan ──────────────────────────────────────────────────────────

@@ -263,3 +263,92 @@ Fired when a path discovered internal links, used for "crawl" mode.
 - **Type:** `(page: Page) => HookResult`{lang="ts"}
 
 After a page has been visited with puppeteer. Useful for running
+
+## Recipes
+
+End-to-end examples of driving Unlighthouse from code. Each builds on
+[`createUnlighthouse()`](#createunlighthouse) and the [hooks](#hooks) above.
+
+### Run a scan and collect every route report
+
+Use the [`task-complete`](#task-complete) hook to capture each report as it
+finishes, and [`worker-finished`](#worker-finished) to act once the run is done.
+
+```ts
+import { createUnlighthouse } from 'unlighthouse'
+
+const { hooks, start } = await createUnlighthouse({
+  site: 'https://example.com',
+  scanner: { device: 'mobile' },
+})
+
+const scores: Record<string, number> = {}
+hooks.hook('task-complete', (path, report) => {
+  scores[path] = (report.report?.score ?? 0) * 100
+})
+
+hooks.hook('worker-finished', () => {
+  console.log('Scores by route:', scores)
+})
+
+await start()
+```
+
+### Headless / CI: scan and fail on a budget
+
+`setCiContext()` runs the worker to completion without serving the UI — ideal
+for pipelines. Collect scores via `task-complete`, then assert on
+`worker-finished`.
+
+```ts
+import { createUnlighthouse } from 'unlighthouse'
+
+const { hooks, setCiContext } = await createUnlighthouse({
+  site: process.env.SITE_URL,
+})
+
+const failures: string[] = []
+hooks.hook('task-complete', (path, report) => {
+  if ((report.report?.score ?? 0) * 100 < 90)
+    failures.push(path)
+})
+hooks.hook('worker-finished', () => {
+  if (failures.length) {
+    console.error(`Below budget:`, failures)
+    process.exit(1)
+  }
+})
+
+await setCiContext()
+```
+
+### Authenticate pages before they're scanned
+
+For token / session-gated apps, seed cookies or web storage in your config —
+they're applied to every audited page before its scripts run.
+
+```ts
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
+  site: 'https://app.example.com',
+  // sent as a request header
+  cookies: [{ name: 'session', value: process.env.SESSION_TOKEN! }],
+  // injected into the page before load (SPAs reading auth from storage)
+  sessionStorage: { token: process.env.SESSION_TOKEN! },
+  localStorage: { 'feature-flags': JSON.stringify({ beta: true }) },
+})
+```
+
+### Provide your own routes (skip crawling)
+
+Set `urls` to scan an explicit list — this disables sitemap/crawler discovery.
+
+```ts
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
+export default defineUnlighthouseConfig({
+  site: 'https://example.com',
+  urls: ['/', '/pricing', '/blog/hello-world'],
+})
+```

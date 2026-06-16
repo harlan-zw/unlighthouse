@@ -14,6 +14,7 @@ const CATEGORY_COL: Record<Category, keyof ScanRoute> = {
   'accessibility': 'scoreAccessibility',
   'seo': 'scoreSeo',
   'best-practices': 'scoreBestPractices',
+  'agentic-browsing': 'scoreAgenticBrowsing',
 }
 
 function isCategory(value: string): value is Category {
@@ -83,6 +84,7 @@ function evalAssertion(assertion: Assertion, routes: ScanRoute[], baseByKey: Map
   }
 }
 
+// INTERNAL: not used by the UI; CI bypasses this handler but kept for direct API users.
 export const assertEvaluate: Handler<typeof AssertEvaluate> = {
   command: {} as typeof AssertEvaluate,
   async run(input, ctx) {

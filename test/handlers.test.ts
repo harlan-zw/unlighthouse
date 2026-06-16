@@ -20,7 +20,9 @@ const FIXTURE_URL = 'https://example.com/'
 function makeScan(id: string = SCAN_ID): Scan {
   return {
     scanId: id as Scan['scanId'],
+    siteId: 'https://example.com',
     site: 'https://example.com',
+    mode: 'site',
     device: 'mobile',
     status: 'complete',
     startedAt: '2025-01-01T00:00:00.000Z',
@@ -139,11 +141,8 @@ const cases: Record<string, Case> = {
   'scan.meta': { input: { scanId: SCAN_ID } },
   'scan.current': { input: {} },
   'scan.rescanAll': { input: { scanId: SCAN_ID }, smokeSkip: true },
-  'route.get': { input: { scanId: SCAN_ID, url: FIXTURE_URL } },
   'route.rescan': { input: { scanId: SCAN_ID, url: FIXTURE_URL } },
   'history.list': { input: { page: 1, pageSize: 50 } },
-  'history.get': { input: { scanId: SCAN_ID } },
-  'history.delete': { input: { scanIds: [SCAN_ID] } },
   'history.rescan': { input: { scanId: SCAN_ID }, smokeSkip: true },
   'compare.run': { input: { baseScanId: SCAN_ID, currentScanId: SCAN_ID } },
   'compare.markdown': { input: { baseScanId: SCAN_ID, currentScanId: SCAN_ID } },
@@ -160,7 +159,6 @@ const cases: Record<string, Case> = {
   'manifest': { input: {} },
   'health': { input: {} },
   'auditors.list': { input: {} },
-  'auditors.test': { input: { auditor: 'mock', url: FIXTURE_URL } },
 }
 
 describe('handlers — smoke', () => {
@@ -206,9 +204,7 @@ describe('handlers — SCAN_NOT_FOUND', () => {
     { name: 'scan.results', input: { scanId: 'missing', page: 1, pageSize: 50 } },
     { name: 'scan.meta', input: { scanId: 'missing' } },
     { name: 'scan.rescanAll', input: { scanId: 'missing' } },
-    { name: 'route.get', input: { scanId: 'missing', url: FIXTURE_URL } },
     { name: 'route.rescan', input: { scanId: 'missing', url: FIXTURE_URL } },
-    { name: 'history.get', input: { scanId: 'missing' } },
     { name: 'history.rescan', input: { scanId: 'missing' } },
     { name: 'compare.run', input: { baseScanId: 'missing', currentScanId: 'missing' } },
     { name: 'assert.evaluate', input: { scanId: 'missing', assertions: [{ type: 'minScore', category: 'performance', value: 0.5 }] } },

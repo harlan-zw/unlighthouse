@@ -1,25 +1,23 @@
 export default defineNuxtConfig({
   ssr: false,
+  // The UI is built on the canonical unlighthouse design-system layer (its
+  // global.css --ui-* token system, ~50 Ui* primitives, and @nuxt/ui theme
+  // via app.config). The legacy shadcn token utilities still live in
+  // tailwind.css as a transitional compat layer (text-muted-foreground etc.).
   extends: ['./layers/design-system'],
-  modules: ['@nuxt/ui', 'reka-ui/nuxt'],
-  css: ['~/assets/css/main.css'],
+  modules: ['@pinia/nuxt', '@nuxt/ui', '@nuxtjs/color-mode', '@nuxt/icon'],
+  css: ['~/assets/css/tailwind.css'],
   colorMode: {
     preference: 'system',
     fallback: 'dark',
     classSuffix: '',
-  },
-  fonts: {
-    families: [
-      { name: 'Satoshi', provider: 'google' },
-      { name: 'JetBrains Mono', provider: 'google' },
-    ],
   },
   icon: {
     serverBundle: 'local',
     collections: ['heroicons', 'lucide'],
   },
   imports: {
-    dirs: ['composables', 'utils'],
+    dirs: ['composables', 'lib'],
   },
   devtools: {
     enabled: false,
@@ -47,6 +45,17 @@ export default defineNuxtConfig({
   // through Vite's allowedHosts check. Comma-separated env var so personal
   // hostnames stay out of the repo. Unset → Vite default (localhost only).
   vite: {
+    optimizeDeps: {
+      include: [
+        '@lucide/vue',
+        '@vueuse/core',
+        'clsx',
+        'reka-ui',
+        'tailwind-merge',
+        'vue-sonner',
+        'zod',
+      ],
+    },
     server: {
       allowedHosts: process.env.NUXT_DEV_ALLOWED_HOSTS
         ?.split(',')
@@ -54,5 +63,5 @@ export default defineNuxtConfig({
         .filter(Boolean),
     },
   },
-  compatibilityDate: '2025-12-12',
+  compatibilityDate: '2026-05-24',
 })

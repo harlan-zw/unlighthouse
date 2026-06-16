@@ -2,17 +2,19 @@
 
 import type { HandlerMap } from './types'
 import { assertEvaluate } from './assert'
-import { compareFindPrevious, compareMarkdown, compareRun } from './compare'
+import { compareDetail, compareFindPrevious, compareMarkdown, compareRun } from './compare'
 import { eventsSubscribe, eventsTail } from './events'
-import { historyDelete, historyGet, historyList, historyRescan } from './history'
-import { auditorsList, auditorsTest, health, manifest } from './meta'
+import { historyList, historyRescan } from './history'
+import { auditorsList, health, manifest } from './meta'
 import { packList, packRun } from './pack'
 import { queryRoutes } from './query'
-import { routeGet, routeRescan } from './route'
+import { routeAudits, routeGet, routeRescan } from './route'
 import {
   scanCancel,
+  scanCategories,
   scanCurrent,
   scanDelete,
+  scanImport,
   scanMeta,
   scanPause,
   scanRescanAll,
@@ -22,7 +24,7 @@ import {
   scanStatus,
   scanSummary,
 } from './scan'
-import { sitesCreate, sitesDelete, sitesGet, sitesList } from './sites'
+import { sitesCreate, sitesDelete, sitesList } from './sites'
 
 export function createHandlers(): HandlerMap {
   return {
@@ -32,18 +34,20 @@ export function createHandlers(): HandlerMap {
     'scan.pause': scanPause,
     'scan.resume': scanResume,
     'scan.delete': scanDelete,
+    'scan.import': scanImport,
     'scan.results': scanResults,
     'scan.summary': scanSummary,
+    'scan.categories': scanCategories,
     'scan.meta': scanMeta,
     'scan.current': scanCurrent,
     'scan.rescanAll': scanRescanAll,
     'route.get': routeGet,
+    'route.audits': routeAudits,
     'route.rescan': routeRescan,
     'history.list': historyList,
-    'history.get': historyGet,
-    'history.delete': historyDelete,
     'history.rescan': historyRescan,
     'compare.run': compareRun,
+    'compare.detail': compareDetail,
     'compare.markdown': compareMarkdown,
     'compare.findPrevious': compareFindPrevious,
     'assert.evaluate': assertEvaluate,
@@ -55,14 +59,11 @@ export function createHandlers(): HandlerMap {
     'manifest': manifest,
     'health': health,
     'auditors.list': auditorsList,
-    'auditors.test': auditorsTest,
     'sites.list': sitesList,
-    'sites.get': sitesGet,
     'sites.create': sitesCreate,
     'sites.delete': sitesDelete,
   } as unknown as HandlerMap
 }
 
-export type { SitesStore, SitesStoreCreateInput } from './sites'
 export * from './types'
 export * from './wrap'

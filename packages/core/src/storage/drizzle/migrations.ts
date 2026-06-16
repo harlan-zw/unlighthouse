@@ -104,6 +104,56 @@ const MIGRATIONS: Migration[] = [
   },
 ]
 
+// Columns added additively over the schema's life. INIT_SQL_STATEMENTS also
+// carries ALTERs for these, but those run blind (errors swallowed) and a stale
+// build or a forgotten ALTER can leave an existing DB missing one — which then
+// crashes at INSERT time with a cryptic "table X has no column named Y"
+// mid-scan. This list is the authoritative guard: checked (only ALTER when
+// missing) and verified afterwards, so drift is healed loudly or escalated to
+// a reset rather than surfacing as a runtime crash.
+const ADDITIVE_COLUMNS: Array<{ table: string, column: string, ddl: string }> = [
+  { table: 'scans', column: 'mode', ddl: 'ALTER TABLE `scans` ADD COLUMN `mode` text DEFAULT \'site\'' },
+  { table: 'scans', column: 'site_id', ddl: 'ALTER TABLE `scans` ADD COLUMN `site_id` text REFERENCES `sites`(`id`) ON DELETE SET NULL' },
+  { table: 'scan_routes', column: 'score_agentic_browsing', ddl: 'ALTER TABLE `scan_routes` ADD COLUMN `score_agentic_browsing` real' },
+  { table: 'scan_routes', column: 'report_blob_key', ddl: 'ALTER TABLE `scan_routes` ADD COLUMN `report_blob_key` text' },
+  { table: 'scan_routes', column: 'screenshot_blob_key', ddl: 'ALTER TABLE `scan_routes` ADD COLUMN `screenshot_blob_key` text' },
+]
+
+export interface EnsureSchemaOptions {
+  /** Called when a missing column is added. */
+  onAdd?: (col: string) => void
+  /** Called when a column couldn't be added (will trigger a reset upstream). */
+  onUnhealable?: (col: string, err: string) => void
+}
+
+/**
+ * Verify the additive columns exist; add any that are missing. Returns the
+ * columns that are STILL missing afterwards (an ALTER threw) — the caller
+ * treats a non-empty result as an irreparably-stale DB and recreates it.
+ * Idempotent + cheap (a PRAGMA per column), safe on every boot.
+ */
+export function ensureSchema(db: Database, opts: EnsureSchemaOptions = {}): string[] {
+  const stillMissing: string[] = []
+  for (const { table, column, ddl } of ADDITIVE_COLUMNS) {
+    if (!tableExists(db, table))
+      continue
+    if (hasColumn(db, table, column))
+      continue
+    try {
+      db.exec(ddl)
+      opts.onAdd?.(`${table}.${column}`)
+    }
+    catch {
+      // fall through to the post-check
+    }
+    if (!hasColumn(db, table, column)) {
+      stillMissing.push(`${table}.${column}`)
+      opts.onUnhealable?.(`${table}.${column}`, 'ALTER did not add the column')
+    }
+  }
+  return stillMissing
+}
+
 interface ApplyMigrationsOptions {
   /** Called with each migration's id once it applies. Useful for logging. */
   onApply?: (id: string) => void

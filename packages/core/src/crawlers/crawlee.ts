@@ -7,8 +7,10 @@ import type {
   CrawlEvent,
 } from '@unlighthouse/contracts/ports'
 import type { Hookable } from 'hookable'
-import { CheerioCrawler, log as crawleeLog } from 'crawlee'
+import type { RequestTransform } from 'crawlee'
+import { CheerioCrawler, log as crawleeLog, RequestQueue } from 'crawlee'
 import { createHooks } from 'hookable'
+import { isI18nAlternatePage, normaliseUrl, sameHostCanonical } from '../util/i18n'
 
 export interface CrawleeCrawlerOptions {
   concurrency?: number
@@ -77,6 +79,13 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       wake()
     }
 
+    // Dedup on a normalised key (absolute, no trailing slash, no hash) rather
+    // than the raw href. Without this, `/blog`, `/blog/`, `/blog#x` and the
+    // same link repeated across every page's nav each count as a fresh
+    // "discovered" URL — which inflated the discovered/total stat to many times
+    // the real page count (e.g. 449 for a 22-page site) and re-queued the same
+    // page repeatedly. Falls back to the raw URL if it can't be parsed.
+    const dedupKey = (url: string): string => normaliseUrl(url) ?? url
     const discovered = new Set<string>()
     const audited = new Set<string>()
     let aborted = false
@@ -99,9 +108,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         break
       if (runOpts.allows && !runOpts.allows(seed.url))
         continue
-      if (discovered.has(seed.url))
+      if (discovered.has(dedupKey(seed.url)))
         continue
-      discovered.add(seed.url)
+      discovered.add(dedupKey(seed.url))
       initialUrls.push(seed.url)
       emit({ type: 'url-discovered', url: seed.url, from: seed.source })
       try {
@@ -118,11 +127,19 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       return
     }
 
+    // Isolate each run in its own request queue. crawlee's default queue is
+    // a per-process singleton, so without this a URL handled by one scan is
+    // seen as already-handled by the next scan of the same URL — it gets
+    // skipped and the scan returns empty. A unique named queue per run (dropped
+    // in finally) keeps re-scans and concurrent scans independent.
+    const requestQueue = await RequestQueue.open(`unlighthouse-${scanId}`)
+
     const crawler = new CheerioCrawler({
+      requestQueue,
       maxConcurrency: concurrency,
       maxRequestsPerCrawl: maxRequests,
       respectRobotsTxtFile: false,
-      requestHandler: async ({ request, enqueueLinks }) => {
+      requestHandler: async ({ request, enqueueLinks, $ }) => {
         if (aborted)
           return
         const url = request.loadedUrl || request.url
@@ -131,8 +148,47 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         if (attempt > 1)
           await hooks.callHook('request:retry', { url, attempt })
 
-        if (!audited.has(url)) {
-          audited.add(url)
+        // Shared dedup + allow-filter + discovery-emit used by link, canonical
+        // and x-default enqueue alike.
+        const transformRequestFunction: RequestTransform = (req) => {
+          // Only same-host http(s) pages count as discovered routes. The crawler
+          // surfaces every link it sees here — including outbound links
+          // (github.com, twitter.com, youtube.com…) and non-http schemes
+          // (mailto:, tel:) — none of which are ever audited (enqueue uses
+          // `same-hostname`). Counting them inflated `discovered`/`total` to many
+          // times the real page count (449 / 222 for a ~22-page site).
+          let reqHost: string | undefined
+          try {
+            const parsed = new URL(req.url)
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+              return false
+            reqHost = parsed.host
+          }
+          catch {
+            return false
+          }
+          if (originHost && reqHost !== originHost)
+            return false
+          const key = dedupKey(req.url)
+          if (discovered.has(key))
+            return false
+          if (runOpts.allows && !runOpts.allows(req.url))
+            return false
+          discovered.add(key)
+          emit({ type: 'url-discovered', url: req.url, from: url })
+          return req
+        }
+
+        // A page that declares an `x-default` alternate pointing at a *different*
+        // URL is a localized duplicate. With `ignoreI18nPages` we skip its audit
+        // (the x-default page carries the canonical scan) but still enqueue the
+        // x-default target below so it does get scanned.
+        const xDefaultHref = $ ? $('link[rel="alternate"][hreflang="x-default"]').attr('href') : undefined
+        const isI18nDuplicate = (runOpts.ignoreI18nPages ?? false) && isI18nAlternatePage(url, xDefaultHref)
+
+        const auditKey = dedupKey(url)
+        if (!audited.has(auditKey) && !isI18nDuplicate) {
+          audited.add(auditKey)
           emit({ type: 'url-started', url })
           try {
             await runOpts.audit(url, ctx)
@@ -144,21 +200,33 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
           }
         }
 
-        if (opts.noFollow)
+        // Per-scan noFollow (page mode) wins over the adapter-construction
+        // default, so the dashboard's per-scan mode can disable crawling.
+        if (runOpts.noFollow ?? opts.noFollow)
           return
 
         await enqueueLinks({
           strategy: 'same-hostname',
-          transformRequestFunction: (req) => {
-            if (discovered.has(req.url))
-              return false
-            if (runOpts.allows && !runOpts.allows(req.url))
-              return false
-            discovered.add(req.url)
-            emit({ type: 'url-discovered', url: req.url, from: url })
-            return req
-          },
+          transformRequestFunction,
         })
+
+        // Also follow same-host canonical + x-default targets — these aren't
+        // always reachable through the page's `<a>` links.
+        if ($) {
+          const extra = new Set<string>()
+          const canonical = sameHostCanonical(url, $('link[rel="canonical"]').attr('href'))
+          if (canonical)
+            extra.add(canonical)
+          const xDefault = sameHostCanonical(url, xDefaultHref)
+          if (xDefault)
+            extra.add(xDefault)
+          if (extra.size) {
+            await enqueueLinks({
+              urls: [...extra],
+              transformRequestFunction,
+            })
+          }
+        }
 
         if (runOpts.crawlDelayMs && runOpts.crawlDelayMs > 0)
           await new Promise(r => setTimeout(r, runOpts.crawlDelayMs))
@@ -167,8 +235,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         const url = request.loadedUrl || request.url
         const err = error instanceof Error ? error : new Error(String(error))
         opts.logger?.debug?.(`crawlee failed: ${url}`, err)
-        if (!audited.has(url)) {
-          audited.add(url)
+        const failKey = dedupKey(url)
+        if (!audited.has(failKey)) {
+          audited.add(failKey)
           emit({ type: 'url-failed', url, error: err })
         }
       },
@@ -214,6 +283,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       if (signal)
         signal.removeEventListener('abort', onAbort)
       state = 'idle'
+      // Drop the per-run queue so it doesn't accumulate on disk or leak into
+      // the next run's dedup set.
+      await requestQueue.drop().catch(() => {})
       // Prevent unused-var warning
       void originHost
     }

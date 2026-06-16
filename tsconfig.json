@@ -22,9 +22,7 @@
       "@unlighthouse/core/*": ["./packages/core/src/*"],
       "@unlighthouse/mcp": ["./packages/mcp/src"],
       "@unlighthouse/cloudflare": ["./packages/cloudflare/src"],
-      "@unlighthouse/nuxt": ["./integrations/nuxt/src"],
-      "@unlighthouse/vite": ["./packages/vite-plugin/src"],
-      "@unlighthouse/webpack": ["./integrations/webpack/src"]
+      "@unlighthouse/vite": ["./packages/vite-plugin/src"]
     },
     "resolveJsonModule": true,
     "types": [],
