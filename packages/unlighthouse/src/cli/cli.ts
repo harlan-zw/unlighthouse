@@ -1,7 +1,7 @@
 import type { CliOptions } from './types'
 import { execFileSync } from 'node:child_process'
 import { setMaxListeners } from 'node:events'
-import { logger, createTaggedLogger } from '@unlighthouse/core/logger'
+import { createTaggedLogger, logger } from '@unlighthouse/core/logger'
 import open from 'better-opn'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
@@ -94,7 +94,8 @@ function setupGracefulShutdown(
     await new Promise<void>((resolve) => {
       try {
         server.server.close((err) => {
-          if (err) log.warn(`[shutdown] server.close error: ${err.message}`)
+          if (err)
+            log.warn(`[shutdown] server.close error: ${err.message}`)
           resolve()
         })
       }
@@ -138,11 +139,17 @@ function setupGracefulShutdown(
     process.exit(0)
   }
 
-  process.on('SIGTERM', () => { void drain('SIGTERM') })
-  process.on('SIGINT', () => { void drain('SIGINT') })
+  process.on('SIGTERM', () => {
+    void drain('SIGTERM')
+  })
+  process.on('SIGINT', () => {
+    void drain('SIGINT')
+  })
   // Last-ditch synchronous reap for any exit path that bypasses drain()
   // (uncaught fatal, explicit process.exit elsewhere). Safe to run twice.
-  process.on('exit', () => { killLighthouseChromes() })
+  process.on('exit', () => {
+    killLighthouseChromes()
+  })
 }
 
 const cli = createCli()

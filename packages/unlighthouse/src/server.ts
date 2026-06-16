@@ -3,16 +3,17 @@ import type { WS } from '@unlighthouse/core/api'
 import type { App, H3Event } from 'h3'
 import type { Hookable } from 'hookable'
 import type { ServerHookMap } from './server-hooks'
+import { Buffer } from 'node:buffer'
 import { timingSafeEqual } from 'node:crypto'
 import { join } from 'node:path'
 import { createDashboardApi } from '@unlighthouse/core/api/dashboard'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
+import { createTaggedLogger } from '@unlighthouse/core/logger'
 import fs from 'fs-extra'
 import { createRouter, defineEventHandler, getHeader, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
-import { joinURL } from 'ufo'
-import { createTaggedLogger } from '@unlighthouse/core/logger'
 import launch from 'launch-editor'
+import { joinURL } from 'ufo'
 
 const log = createTaggedLogger('server')
 
@@ -205,7 +206,8 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     // warn; the misconfiguration is footgun-grade.
     logger?.warn?.('[auth] UNLIGHTHOUSE_TRUST_PROXY=1 + UNLIGHTHOUSE_LOCAL_BYPASS=1 disables auth for all requests via the proxy. Drop LOCAL_BYPASS in hosted setups.')
   }
-  if (trustProxy) log.info(`network: trust-proxy enabled (X-Forwarded-For honoured)`)
+  if (trustProxy)
+    log.info(`network: trust-proxy enabled (X-Forwarded-For honoured)`)
 
   // Rate limit on the /api/* surface. 0 disables; default 120 req/min
   // per bucket keeps a chatty dashboard happy (avg ~2 req/sec) while
@@ -369,7 +371,8 @@ export function getClientIp(event: H3Event, trustProxy: boolean): string | null 
       // Header value is `client, proxy1, proxy2`. The left-most is the
       // originator the closest proxy saw.
       const first = fwd.split(',')[0]?.trim()
-      if (first) return first
+      if (first)
+        return first
     }
   }
   return event.node.req.socket?.remoteAddress ?? null

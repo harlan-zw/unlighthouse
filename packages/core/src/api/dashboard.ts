@@ -167,9 +167,21 @@ export function createDashboardApi(storage: Storage): Router {
         return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
       }
       const lines = routes.map(r => [
-        r.path, r.url, r.device,
-        pct(r.scorePerformance), pct(r.scoreAccessibility), pct(r.scoreSeo), pct(r.scoreBestPractices), pct(r.scoreAgenticBrowsing),
-        num(r.lcp), num(r.cls), num(r.inp), num(r.fcp), num(r.ttfb), num(r.tbt), num(r.si),
+        r.path,
+        r.url,
+        r.device,
+        pct(r.scorePerformance),
+        pct(r.scoreAccessibility),
+        pct(r.scoreSeo),
+        pct(r.scoreBestPractices),
+        pct(r.scoreAgenticBrowsing),
+        num(r.lcp),
+        num(r.cls),
+        num(r.inp),
+        num(r.fcp),
+        num(r.ttfb),
+        num(r.tbt),
+        num(r.si),
         r.capturedAt,
       ].map(esc).join(','))
       const csv = `${[cols.join(','), ...lines].join('\n')}\n`
@@ -183,7 +195,9 @@ export function createDashboardApi(storage: Storage): Router {
       if (r.reportBlobKey) {
         const blob = await storage.blobs.get(r.reportBlobKey.replace('.json', '.contract.json'))
         if (blob) {
-          try { contract = JSON.parse(Buffer.from(blob).toString('utf-8')) }
+          try {
+            contract = JSON.parse(Buffer.from(blob).toString('utf-8'))
+          }
           catch { /* leave null */ }
         }
       }

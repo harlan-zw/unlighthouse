@@ -39,6 +39,9 @@ catalogs:
     '@nuxtjs/tailwindcss':
       specifier: 7.0.0-beta.1
       version: 7.0.0-beta.1
+    '@pinia/nuxt':
+      specifier: ^0.11.0
+      version: 0.11.3
     '@types/better-sqlite3':
       specifier: ^7.6.13
       version: 7.6.13
@@ -96,6 +99,9 @@ catalogs:
     obuild:
       specifier: ^0.4.35
       version: 0.4.36
+    pinia:
+      specifier: ^3.0.4
+      version: 3.0.4
     publint:
       specifier: ^0.3.21
       version: 0.3.21
@@ -667,7 +673,7 @@ importers:
         specifier: 'catalog:'
         version: 4.0.0(magicast@0.5.3)
       '@pinia/nuxt':
-        specifier: ^0.11.0
+        specifier: 'catalog:'
         version: 0.11.3(magicast@0.5.3)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3)))
       '@tanstack/table-core':
         specifier: catalog:dependencies
@@ -697,7 +703,7 @@ importers:
         specifier: 4.4.6
         version: 4.4.6(caeb091718cedda9918d5b06ef782ee2)
       pinia:
-        specifier: ^3.0.4
+        specifier: 'catalog:'
         version: 3.0.4(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3))
       reka-ui:
         specifier: 'catalog:'

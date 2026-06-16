@@ -295,10 +295,25 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
 
   const sitesRepo: SiteRepository = {
     async list() { return Array.from(sitesMap.values()).map(clone) },
-    async get(id) { const s = sitesMap.get(id); return s ? clone(s) : null },
-    async getByUrl(url) { const s = Array.from(sitesMap.values()).find(s => s.url === url); return s ? clone(s) : null },
-    async create(site) { sitesMap.set(site.id, clone(site)); return clone(site) },
-    async update(id, patch) { const s = sitesMap.get(id); if (!s) return null; Object.assign(s, patch); return clone(s) },
+    async get(id) {
+      const s = sitesMap.get(id)
+      return s ? clone(s) : null
+    },
+    async getByUrl(url) {
+      const s = Array.from(sitesMap.values()).find(s => s.url === url)
+      return s ? clone(s) : null
+    },
+    async create(site) {
+      sitesMap.set(site.id, clone(site))
+      return clone(site)
+    },
+    async update(id, patch) {
+      const s = sitesMap.get(id)
+      if (!s)
+        return null
+      Object.assign(s, patch)
+      return clone(s)
+    },
     async delete(id) { return sitesMap.delete(id) },
   }
 

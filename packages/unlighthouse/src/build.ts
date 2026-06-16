@@ -6,6 +6,7 @@ import type {
   RuntimeSettings,
   ScanMeta,
 } from './types'
+import { Buffer } from 'node:buffer'
 import { dirname, join, resolve } from 'node:path'
 import { buildStaticSnapshot } from '@unlighthouse/core/api/static-client'
 import fs from 'fs-extra'

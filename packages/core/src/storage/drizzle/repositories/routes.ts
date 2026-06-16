@@ -10,7 +10,7 @@ import type {
 import type { ScanRouteRow } from '@unlighthouse/contracts/drizzle'
 import { createHash } from 'node:crypto'
 import { scanRoutes } from '@unlighthouse/contracts/drizzle'
-import { and, asc, desc, eq, gte, isNotNull, like, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, isNotNull, like, sql } from 'drizzle-orm'
 
 type AnyDrizzle = any
 
@@ -157,12 +157,18 @@ export function createScanRouteRepository(db: AnyDrizzle): ScanRouteRepository {
       // same column choices so behaviour matches.
       let orderBy
       switch (q?.sort) {
-        case 'score-asc': orderBy = asc(scanRoutes.scorePerformance); break
-        case 'score-desc': orderBy = desc(scanRoutes.scorePerformance); break
-        case 'lcp-asc': orderBy = asc(scanRoutes.lcp); break
-        case 'lcp-desc': orderBy = desc(scanRoutes.lcp); break
-        case 'url-asc': orderBy = asc(scanRoutes.url); break
-        case 'capturedAt-desc': orderBy = desc(scanRoutes.capturedAt); break
+        case 'score-asc': orderBy = asc(scanRoutes.scorePerformance)
+          break
+        case 'score-desc': orderBy = desc(scanRoutes.scorePerformance)
+          break
+        case 'lcp-asc': orderBy = asc(scanRoutes.lcp)
+          break
+        case 'lcp-desc': orderBy = desc(scanRoutes.lcp)
+          break
+        case 'url-asc': orderBy = asc(scanRoutes.url)
+          break
+        case 'capturedAt-desc': orderBy = desc(scanRoutes.capturedAt)
+          break
         default: orderBy = undefined
       }
 

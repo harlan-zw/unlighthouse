@@ -227,10 +227,22 @@ function d1SiteRepository(db: D1Database): SiteRepository {
     async update(id: string, patch: Partial<Omit<SiteRecord, 'id'>>): Promise<SiteRecord | null> {
       const cols: string[] = []
       const args: unknown[] = []
-      if (patch.name !== undefined) { cols.push(`name = ?`); args.push(patch.name) }
-      if (patch.url !== undefined) { cols.push(`url = ?`); args.push(patch.url) }
-      if (patch.group !== undefined) { cols.push(`"group" = ?`); args.push(patch.group) }
-      if (patch.createdAt !== undefined) { cols.push(`created_at = ?`); args.push(patch.createdAt) }
+      if (patch.name !== undefined) {
+        cols.push(`name = ?`)
+        args.push(patch.name)
+      }
+      if (patch.url !== undefined) {
+        cols.push(`url = ?`)
+        args.push(patch.url)
+      }
+      if (patch.group !== undefined) {
+        cols.push(`"group" = ?`)
+        args.push(patch.group)
+      }
+      if (patch.createdAt !== undefined) {
+        cols.push(`created_at = ?`)
+        args.push(patch.createdAt)
+      }
       if (cols.length) {
         await db.prepare(`UPDATE sites SET ${cols.join(', ')} WHERE id = ?`).bind(...args, id).run()
       }
@@ -474,12 +486,18 @@ function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
 
       let orderBy = ''
       switch (q?.sort) {
-        case 'score-asc': orderBy = 'ORDER BY score_performance ASC'; break
-        case 'score-desc': orderBy = 'ORDER BY score_performance DESC'; break
-        case 'lcp-asc': orderBy = 'ORDER BY lcp ASC'; break
-        case 'lcp-desc': orderBy = 'ORDER BY lcp DESC'; break
-        case 'url-asc': orderBy = 'ORDER BY url ASC'; break
-        case 'capturedAt-desc': orderBy = 'ORDER BY captured_at DESC'; break
+        case 'score-asc': orderBy = 'ORDER BY score_performance ASC'
+          break
+        case 'score-desc': orderBy = 'ORDER BY score_performance DESC'
+          break
+        case 'lcp-asc': orderBy = 'ORDER BY lcp ASC'
+          break
+        case 'lcp-desc': orderBy = 'ORDER BY lcp DESC'
+          break
+        case 'url-asc': orderBy = 'ORDER BY url ASC'
+          break
+        case 'capturedAt-desc': orderBy = 'ORDER BY captured_at DESC'
+          break
       }
 
       const [itemsRes, countRes] = await db.batch<unknown>([
