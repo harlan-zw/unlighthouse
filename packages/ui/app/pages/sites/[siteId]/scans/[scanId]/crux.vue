@@ -3,9 +3,8 @@ import type { CruxData } from '@unlighthouse/contracts'
 
 definePageMeta({ layout: 'scan' })
 
-const route = useRoute()
 const api = useApi()
-const scanId = route.params.scanId as string
+const scanId = getScanId()
 
 const { data: cruxPack, status } = useAsyncData(
   `crux-${scanId}`,
@@ -54,8 +53,8 @@ function getDeviceData(d: CruxData) {
 }
 
 function latestValue(entries: Array<{ value: number }>) {
-  if (!entries.length) return null
-  return entries[entries.length - 1].value
+  const last = entries[entries.length - 1]
+  return last?.value ?? null
 }
 </script>
 

@@ -223,7 +223,7 @@ export async function initStorage({ outputPath, dbUrl, logger }: InitStorageOpti
   // file: scheme (default) — better-sqlite3, sync API, runtime migrations.
   logger?.debug?.(`Opening SQLite (file): ${parsed.path}`)
 
-  const runInit = (db: Database): void => {
+  const runInit = (db: Database.Database): void => {
     for (const stmt of INIT_SQL_STATEMENTS) {
       try {
         db.exec(stmt)

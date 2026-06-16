@@ -48,7 +48,7 @@ const { width } = useElementSize(wrap)
 const PAD = { top: 10, right: 10, bottom: 22, left: 40 }
 
 const allPoints = computed(() => props.series.flatMap(s => s.points))
-const valid = computed(() => allPoints.value.filter(p => p.v != null) as Array<Required<TrendPoint>>)
+const valid = computed(() => allPoints.value.filter((p): p is TrendPoint & { v: number } => p.v != null))
 
 const tMin = computed(() => Math.min(...allPoints.value.map(p => p.t)))
 const tMax = computed(() => Math.max(...allPoints.value.map(p => p.t)))

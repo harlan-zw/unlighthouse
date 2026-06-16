@@ -8,8 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const store = useScanStore()
-const scanId = computed(() => route.params.scanId as string)
-const { scanBase } = useScanBase()
+const { scanId, scanBase } = useScanBase()
 const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
 
 const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
@@ -62,8 +61,8 @@ const { data: deviceProbe } = useAsyncData(
   async () => {
     if (!scanIsComplete.value) return null
     const [mob, desk] = await Promise.all([
-      api['scan.results']({ scanId: scanId.value, device: 'mobile', pageSize: 1 }).catch(() => ({ total: 0 } as any)),
-      api['scan.results']({ scanId: scanId.value, device: 'desktop', pageSize: 1 }).catch(() => ({ total: 0 } as any)),
+      api['scan.results']({ scanId: scanId.value, device: 'mobile', page: 1, pageSize: 1 }).catch(() => ({ total: 0 } as any)),
+      api['scan.results']({ scanId: scanId.value, device: 'desktop', page: 1, pageSize: 1 }).catch(() => ({ total: 0 } as any)),
     ])
     return { mobile: (mob.total ?? 0) > 0, desktop: (desk.total ?? 0) > 0 }
   },

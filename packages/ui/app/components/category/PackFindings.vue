@@ -41,7 +41,13 @@ function severityVariant(severity: string): 'error' | 'warning' | 'neutral' {
 }
 
 // Map findings → UAccordion items (stable value for open-state tracking).
-const accordionItems = computed(() =>
+// Spreading `Finding` here would otherwise drop its `[extra: string]: any`
+// index signature from the inferred item type, so the per-pack extra fields
+// (a11y's `fixHint`/`elements`, images' `imageUrl`, etc.) would no longer be
+// visible on the slot's `item`. Annotate the result so the index signature —
+// and therefore those fields — survives through to the `finding-body` slot.
+type AccordionItem = Finding & { value: string, label: string }
+const accordionItems = computed<AccordionItem[]>(() =>
   props.findings.map(f => ({ ...f, value: f.auditId, label: f.title || f.auditId })),
 )
 </script>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ScanId } from '@unlighthouse/contracts'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
 import { toast } from 'vue-sonner'
@@ -13,8 +14,11 @@ const { fmtScore, fmtMs, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = useForma
 
 // `currentScanId` comes from /compare/:id; `baseScanId` rides the
 // query string so a compare can be deep-linked and refresh-survives.
-const currentScanId = computed(() => route.params.id as string)
-const baseScanId = ref<string>((route.query.base as string) || '')
+const currentScanId = computed(() => route.params.id as string as ScanId)
+// `undefined` is the "nothing picked" sentinel; once chosen it's a real
+// ScanId, matching both the `value: s.scanId` items the USelect renders and
+// the v-model type the select infers from those items.
+const baseScanId = ref<ScanId | undefined>((route.query.base as string) ? (route.query.base as string as ScanId) : undefined)
 
 watch(baseScanId, (v) => {
   // Sync the picked base back into the URL — preserves on refresh,
@@ -24,14 +28,14 @@ watch(baseScanId, (v) => {
 
 const { data: currentMeta } = useAsyncData(
   `compare-current-meta-${currentScanId.value}`,
-  () => api['scan.meta']({ scanId: currentScanId.value as any }).catch(() => null),
+  () => api['scan.meta']({ scanId: currentScanId.value }).catch(() => null),
   { watch: [currentScanId] },
 )
 
 const { data: baseMeta } = useAsyncData(
   `compare-base-meta-${baseScanId.value}`,
   () => baseScanId.value
-    ? api['scan.meta']({ scanId: baseScanId.value as any }).catch(() => null)
+    ? api['scan.meta']({ scanId: baseScanId.value }).catch(() => null)
     : Promise.resolve(null),
   { watch: [baseScanId] },
 )
@@ -70,7 +74,7 @@ const { data: autoBase } = useAsyncData(
         // Honour branch when present so deploy-preview comparisons
         // bucket per-branch instead of pulling someone else's commit.
         branch: currentMeta.value.ciBranch ?? undefined,
-        excludeScanId: currentScanId.value as any,
+        excludeScanId: currentScanId.value,
       })
       return res.scanId
     }
@@ -80,7 +84,7 @@ const { data: autoBase } = useAsyncData(
 )
 
 watch(autoBase, (id) => {
-  if (id && !baseScanId.value) baseScanId.value = id as string
+  if (id && !baseScanId.value) baseScanId.value = id
 })
 
 const comparing = ref(false)
@@ -129,8 +133,8 @@ async function copyAsMarkdown() {
   copyingMarkdown.value = true
   try {
     const res = await api['compare.markdown']({
-      baseScanId: baseScanId.value as any,
-      currentScanId: currentScanId.value as any,
+      baseScanId: baseScanId.value,
+      currentScanId: currentScanId.value,
       thresholds: thresholdPayload() as any,
     })
     if (navigator.clipboard?.writeText) {
@@ -530,7 +534,8 @@ watch([baseScanId, currentScanId], ([b, c]) => {
   }
 }, { immediate: true })
 
-function gotoOverview(id: string) {
+function gotoOverview(id: string | undefined) {
+  if (!id) return
   router.push(`/scan/${id}/routes`)
 }
 </script>

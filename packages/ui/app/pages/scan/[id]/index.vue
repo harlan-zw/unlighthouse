@@ -2,9 +2,8 @@
 // Back-compat shim. Old bookmarks/CI links used /scan/{id}. The new tree
 // nests scans under their site, so resolve the slug from scan.meta (the only
 // place a scanId→site mapping lives) and redirect to the new overview.
-const route = useRoute()
 const api = useApi()
-const scanId = route.params.id as string
+const scanId = getScanId()
 
 try {
   const meta = await api['scan.meta']({ scanId })

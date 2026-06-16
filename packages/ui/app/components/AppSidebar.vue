@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ScanId } from '@unlighthouse/contracts'
 // The rail has two completely different modes:
 //  - default: brand header, top-level Navigation, the registered Sites list.
 //  - scan: when viewing a scan it transforms into a scan-focused, primary-
@@ -89,7 +90,7 @@ const { data: scanRoutesData } = useAsyncData(
   () => {
     if (!scanId.value)
       return Promise.resolve(null)
-    return api['scan.results']({ scanId: scanId.value, page: 1, pageSize: 500 }).catch(() => null)
+    return api['scan.results']({ scanId: scanId.value as ScanId, page: 1, pageSize: 500 }).catch(() => null)
   },
   { watch: [scanId] },
 )

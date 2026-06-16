@@ -3,7 +3,7 @@
 // `compare` is the exception — it's a standalone full-bleed page at /compare.
 const route = useRoute()
 const api = useApi()
-const scanId = route.params.id as string
+const scanId = getScanId()
 const rest = route.params.rest
 const restPath = Array.isArray(rest) ? rest.join('/') : (rest as string)
 
