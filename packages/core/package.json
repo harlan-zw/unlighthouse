@@ -135,7 +135,8 @@
   "types": "./dist/index.d.mts",
   "files": [
     "dist",
-    "dist/migrations/sqlite/**"
+    "dist/migrations/sqlite/**",
+    "src/logger.ts"
   ],
   "engines": {
     "node": ">=22.0.0"
