@@ -14,7 +14,7 @@ overrides:
   vite: 8.0.14
 catalog:
   '@antfu/eslint-config': ^9.0.0
-  '@arethetypeswrong/cli': 0.18.2
+  '@arethetypeswrong/cli': 0.18.3
   '@cloudflare/containers': ^0.0.18
   '@cloudflare/puppeteer': ^1.1.0
   '@cloudflare/workers-types': ^4.20260511.1

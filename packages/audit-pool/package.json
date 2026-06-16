@@ -27,8 +27,8 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
+    "build": "obuild",
+    "dev": "obuild --watch",
     "typecheck": "tsc --noEmit",
     "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"
@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsdown": "catalog:",
+    "obuild": "catalog:",
     "puppeteer-core": "catalog:dependencies",
     "typescript": "catalog:"
   }

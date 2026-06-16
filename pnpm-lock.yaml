@@ -10,8 +10,8 @@ catalogs:
       specifier: ^9.0.0
       version: 9.0.0
     '@arethetypeswrong/cli':
-      specifier: 0.18.2
-      version: 0.18.2
+      specifier: 0.18.3
+      version: 0.18.3
     '@cloudflare/containers':
       specifier: ^0.0.18
       version: 0.0.18
@@ -328,7 +328,7 @@ importers:
         version: 9.0.0(@typescript-eslint/rule-tester@8.59.4(eslint@10.4.0(jiti@2.7.0))(typescript@6.0.3))(@typescript-eslint/typescript-estree@8.59.4(typescript@6.0.3))(@typescript-eslint/utils@8.59.4(eslint@10.4.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.34)(eslint@10.4.0(jiti@2.7.0))(typescript@6.0.3)(vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.9.1)(jsdom@26.1.0)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.3)(yaml@2.9.0)))
       '@arethetypeswrong/cli':
         specifier: 'catalog:'
-        version: 0.18.2
+        version: 0.18.3
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
         version: 1.29.0(zod@4.4.3)
@@ -367,7 +367,7 @@ importers:
         version: 1.1.2
       tsdown:
         specifier: 'catalog:'
-        version: 0.22.0(@arethetypeswrong/core@0.18.2)(publint@0.3.21)(tsx@4.22.3)(typescript@6.0.3)
+        version: 0.22.0(@arethetypeswrong/core@0.18.3)(publint@0.3.21)(tsx@4.22.3)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -417,12 +417,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.1
+      obuild:
+        specifier: 'catalog:'
+        version: 0.4.36(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(magicast@0.5.3)(typescript@6.0.3)
       puppeteer-core:
         specifier: catalog:dependencies
         version: 24.43.1
-      tsdown:
-        specifier: 'catalog:'
-        version: 0.22.0(@arethetypeswrong/core@0.18.2)(publint@0.3.21)(tsx@4.22.3)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1048,13 +1048,13 @@ packages:
   '@apify/utilities@2.32.0':
     resolution: {integrity: sha512-3uFEELCdBGepb+vJNtZ5CtS00MUhmLt4VSO4bjhiUXcoBaUMGhDXkDIA3pkli+JFVabnzkEw5v5hY4b5PLh0LQ==}
 
-  '@arethetypeswrong/cli@0.18.2':
-    resolution: {integrity: sha512-PcFM20JNlevEDKBg4Re29Rtv2xvjvQZzg7ENnrWFSS0PHgdP2njibVFw+dRUhNkPgNfac9iUqO0ohAXqQL4hbw==}
+  '@arethetypeswrong/cli@0.18.3':
+    resolution: {integrity: sha512-GeAlc+lUD4gKHD/LDQNvQY30FfQ+xAXg2inbQKUjFZgTOdI5ygEweaOnGHGBPSKXSLGQC7VLhpXu9zMnYk/4sQ==}
     engines: {node: '>=20'}
     hasBin: true
 
-  '@arethetypeswrong/core@0.18.2':
-    resolution: {integrity: sha512-GiwTmBFOU1/+UVNqqCGzFJYfBXEytUkiI+iRZ6Qx7KmUVtLm00sYySkfe203C9QtPG11yOz1ZaMek8dT/xnlgg==}
+  '@arethetypeswrong/core@0.18.3':
+    resolution: {integrity: sha512-sWBB/tdIktaT5xMq0Dz6CJyqcf6oMNdmiKiuPU1lWoJLTL6gjRSsksBuSgqot21hylkklBQY1wiSu+PkZhW7sw==}
     engines: {node: '>=20'}
 
   '@asamuzakjp/css-color@3.2.0':
@@ -10429,9 +10429,9 @@ snapshots:
       '@apify/consts': 2.53.2
       '@apify/log': 2.5.40
 
-  '@arethetypeswrong/cli@0.18.2':
+  '@arethetypeswrong/cli@0.18.3':
     dependencies:
-      '@arethetypeswrong/core': 0.18.2
+      '@arethetypeswrong/core': 0.18.3
       chalk: 4.1.2
       cli-table3: 0.6.5
       commander: 10.0.1
@@ -10439,7 +10439,7 @@ snapshots:
       marked-terminal: 7.3.0(marked@9.1.6)
       semver: 7.8.1
 
-  '@arethetypeswrong/core@0.18.2':
+  '@arethetypeswrong/core@0.18.3':
     dependencies:
       '@andrewbranch/untar.js': 1.0.3
       '@loaderkit/resolve': 1.0.6
@@ -19839,7 +19839,7 @@ snapshots:
     dependencies:
       typescript: 6.0.3
 
-  tsdown@0.22.0(@arethetypeswrong/core@0.18.2)(publint@0.3.21)(tsx@4.22.3)(typescript@6.0.3):
+  tsdown@0.22.0(@arethetypeswrong/core@0.18.3)(publint@0.3.21)(tsx@4.22.3)(typescript@6.0.3):
     dependencies:
       ansis: 4.3.0
       cac: 7.0.0
@@ -19857,7 +19857,7 @@ snapshots:
       tree-kill: 1.2.2
       unconfig-core: 7.5.0
     optionalDependencies:
-      '@arethetypeswrong/core': 0.18.2
+      '@arethetypeswrong/core': 0.18.3
       publint: 0.3.21
       tsx: 4.22.3
       typescript: 6.0.3
