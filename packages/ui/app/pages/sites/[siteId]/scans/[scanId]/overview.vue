@@ -37,6 +37,26 @@ watch(
   },
 )
 
+// No live-event socket (e.g. the Cloudflare deploy builds the panel with an
+// empty WS URL) → there are no `scan:*` events to flip the store into the
+// active state, so the live progress view never showed. Detect an in-progress
+// scan for this URL via REST and drive ScanProgress/LiveResults by polling
+// scan.status instead. WS deploys skip this entirely (the socket owns state).
+const wsEnabled = Boolean(useRuntimeConfig().public.unlighthouseWsUrl)
+
+async function startPollingIfActive() {
+  if (wsEnabled) return
+  const s = await api['scan.status']({ scanId: scanId.value }).catch(() => null)
+  if (s && ['starting', 'discovering', 'scanning'].includes(s.status)) {
+    store.hydrateActive(scanId.value, { ...s, site: scanMeta.value?.site })
+    store.startPolling(api)
+  }
+}
+
+onMounted(startPollingIfActive)
+watch(scanId, () => { store.stopPolling(); startPollingIfActive() })
+onBeforeUnmount(() => store.stopPolling())
+
 const resolvedStatus = computed(() => {
   if (scanMeta.value?.summary) return 'complete'
   if (isCurrentScan.value) return store.status

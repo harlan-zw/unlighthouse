@@ -46,9 +46,11 @@ export const useScanStore = defineStore('scan', () => {
   // because we haven't entered the discover phase). Updated reactively
   // whenever scanned/total change.
   const etaMs = computed<number | null>(() => {
-    if (!startedAt.value || scanned.value === 0 || total.value === 0) return null
+    if (!startedAt.value || scanned.value === 0 || total.value === 0)
+      return null
     const remaining = total.value - scanned.value
-    if (remaining <= 0) return 0
+    if (remaining <= 0)
+      return 0
     const elapsed = Date.now() - new Date(startedAt.value).getTime()
     const perRoute = elapsed / scanned.value
     return Math.round(perRoute * remaining)
@@ -124,8 +126,10 @@ export const useScanStore = defineStore('scan', () => {
       if (typeof score === 'number') {
         scoreSum.value += score
         scoreCount.value++
-        if (score >= 0.9) passCount.value++
-        else if (score >= 0.5) needsWorkCount.value++
+        if (score >= 0.9)
+          passCount.value++
+        else if (score >= 0.5)
+          needsWorkCount.value++
         else poorCount.value++
       }
       addLog('success', `${data.url}`)
@@ -222,18 +226,117 @@ export const useScanStore = defineStore('scan', () => {
     return result
   }
 
+  // --- Polling fallback (no-WS deploys, e.g. Cloudflare) -------------------
+  // When the live-event socket is disabled (empty WS URL) there are no
+  // `scan:*` events to drive the progress view, so the overview page polls
+  // scan.status on an interval and we mirror the snapshot onto the same state
+  // the WS listeners would set. ScanProgress / LiveResults then render
+  // identically. WS deploys never start this loop, so the two paths can't fight.
+  let pollHandle: ReturnType<typeof setInterval> | null = null
+
+  function applyStatusSnapshot(s: any) {
+    if (!s)
+      return
+    status.value = s.status as ScanStatus
+    discovered.value = s.discovered ?? discovered.value
+    scanned.value = s.scanned ?? scanned.value
+    failed.value = s.failed ?? failed.value
+    total.value = s.total ?? total.value
+    if (s.startedAt)
+      startedAt.value = s.startedAt
+    if (s.completedAt)
+      completedAt.value = s.completedAt
+  }
+
+  function applySummarySnapshot(sum: any) {
+    if (!sum)
+      return
+    // Drive avg + buckets from the authoritative summary. scoreSum/scoreCount
+    // are internal accumulators for the WS path; in poll mode we set them so
+    // the existing `avgPerfScore` computed resolves to the summary's perf avg.
+    const perf = sum.categoryAverages?.performance
+    if (typeof perf === 'number') {
+      scoreSum.value = perf
+      scoreCount.value = 1
+    }
+    const d = sum.distribution
+    if (d) {
+      passCount.value = d.passing ?? 0
+      needsWorkCount.value = d.needsWork ?? 0
+      poorCount.value = d.poor ?? 0
+    }
+  }
+
+  function applyRoutesSnapshot(res: any) {
+    const items = res?.items
+    if (!Array.isArray(items))
+      return
+    // The queue drains in order, so the tail rows are the most recently
+    // audited. Show them newest-first, capped at 20 like the WS feed.
+    recentRoutes.value = items
+      .slice(-20)
+      .reverse()
+      .map((r: any) => ({ url: r.url, score: r.scorePerformance ?? null, timestamp: Date.now() }))
+  }
+
+  // Adopt an in-progress scan found via REST (overview deep-link or a freshly
+  // started scan) so `isCurrentScan` + `isActive` switch the live view on.
+  function hydrateActive(id: string, snapshot: any) {
+    scanId.value = id
+    if (snapshot?.site)
+      site.value = snapshot.site
+    applyStatusSnapshot(snapshot)
+  }
+
+  async function pollTick(api: any) {
+    const id = scanId.value
+    if (!id)
+      return
+    const [s, sum, routes] = await Promise.all([
+      api['scan.status']({ scanId: id }).catch(() => null),
+      api['scan.summary']({ scanId: id }).catch(() => null),
+      api['query.routes']({ scanId: id }).catch(() => null),
+    ])
+    // A tick that resolves after the user switched scans must not clobber the
+    // new scan's state.
+    if (scanId.value !== id)
+      return
+    applyStatusSnapshot(s)
+    applySummarySnapshot(sum)
+    applyRoutesSnapshot(routes)
+    if (isFinished.value)
+      stopPolling()
+  }
+
+  function startPolling(api: any, intervalMs = 1500) {
+    if (pollHandle)
+      return
+    void pollTick(api)
+    pollHandle = setInterval(() => void pollTick(api), intervalMs)
+  }
+
+  function stopPolling() {
+    if (pollHandle) {
+      clearInterval(pollHandle)
+      pollHandle = null
+    }
+  }
+
   async function cancelScan(api: any) {
-    if (!scanId.value) return
+    if (!scanId.value)
+      return
     await api['scan.cancel']({ scanId: scanId.value })
   }
 
   async function pauseScan(api: any) {
-    if (!scanId.value) return
+    if (!scanId.value)
+      return
     await api['scan.pause']({ scanId: scanId.value })
   }
 
   async function resumeScan(api: any) {
-    if (!scanId.value) return
+    if (!scanId.value)
+      return
     await api['scan.resume']({ scanId: scanId.value })
   }
 
@@ -267,5 +370,8 @@ export const useScanStore = defineStore('scan', () => {
     pauseScan,
     resumeScan,
     addLog,
+    hydrateActive,
+    startPolling,
+    stopPolling,
   }
 })
