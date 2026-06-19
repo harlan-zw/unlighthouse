@@ -147,7 +147,7 @@ function primaryScanId(pair: DevicePair): string {
 function openPair(pair: DevicePair) {
   const id = primaryScanId(pair)
   if (id)
-    router.push(`/sites/${slug}/scans/${id}/routes`)
+    router.push(scanLinkPath(slug, id, pair.mobile?.status ?? pair.desktop?.status))
 }
 async function rescan(scanId: string) {
   if (!scanId)

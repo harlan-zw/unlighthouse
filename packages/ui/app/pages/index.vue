@@ -205,7 +205,7 @@ function openSite(r: SiteRow) {
   router.push(`/sites/${r.slug}`)
 }
 function openScan(s: ScanRow) {
-  router.push(`/sites/${siteSlug(s.site)}/scans/${s.scanId}/routes`)
+  router.push(scanLinkPath(siteSlug(s.site), s.scanId, s.status))
 }
 </script>
 

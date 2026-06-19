@@ -1,7 +1,13 @@
 <script setup lang="ts">
-// /sites/{slug}/scans/{id} → its overview.
+// /sites/{slug}/scans/{id} → the live overview while the scan is still running,
+// otherwise straight to the routes table. Probing scan.status keeps a deep-link
+// to an in-progress scan on the ScanProgress view instead of an empty panel.
 const route = useRoute()
-await navigateTo(`/sites/${route.params.siteId}/scans/${route.params.scanId}/routes`, { replace: true })
+const api = useApi()
+const siteId = route.params.siteId as string
+const scanId = route.params.scanId as string
+const status = await api['scan.status']({ scanId }).then((r: any) => r?.status).catch(() => null)
+await navigateTo(scanLinkPath(siteId, scanId, status), { replace: true })
 </script>
 
 <template>

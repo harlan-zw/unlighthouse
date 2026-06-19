@@ -201,7 +201,7 @@ async function deleteScan(scanId: string) {
           :pairs="group.pairs"
           @rescan="rescanFromHistory"
           @delete="deleteScan"
-          @open="(pair) => router.push(`/sites/${siteSlug((pair.mobile ?? pair.desktop)?.site ?? '')}/scans/${primaryScanId(pair)}/routes`)"
+          @open="(pair) => router.push(scanLinkPath(siteSlug((pair.mobile ?? pair.desktop)?.site ?? ''), primaryScanId(pair), (pair.mobile ?? pair.desktop)?.status))"
         />
       </div>
     </div>
