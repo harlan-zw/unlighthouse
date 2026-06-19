@@ -91,6 +91,14 @@ export interface ScanRunnerEnv {
   SELF: Fetcher
   /** Shared bearer guarding the internal /__scan/audit route. */
   SHARED_AUDIT_TOKEN?: string
+  /**
+   * Lighthouse container DO namespace. Optional — present only when the
+   * self-hosted container tier is wired. When set, the runner explicitly
+   * stop()s the container instance the moment a scan finishes, so the
+   * (paid) container only runs for the duration of an active scan rather
+   * than idling until sleepAfter fires.
+   */
+  LIGHTHOUSE_CONTAINER?: DurableObjectNamespace
 }
 
 export interface ScanRunnerStartBody {
@@ -149,6 +157,24 @@ export class ScanRunnerDO {
 
   private storage() {
     return d1R2Storage({ db: this.env.DB, bucket: this.env.BLOBS })
+  }
+
+  // Stop the Lighthouse container instance (best-effort) so it stops billing as
+  // soon as a scan ends. Calls the @cloudflare/containers Container.stop() RPC
+  // on the 'default' instance — the same instance the auditor drives.
+  private async stopContainer(): Promise<void> {
+    const ns = this.env.LIGHTHOUSE_CONTAINER as
+      | { getByName?: (name: string) => { stop?: () => Promise<void> } }
+      | undefined
+    if (!ns?.getByName)
+      return
+    try {
+      await ns.getByName('default').stop?.()
+    }
+    catch {
+      // never fail a finished scan because the container couldn't be stopped;
+      // the 2-min sleepAfter is the backstop.
+    }
   }
 
   // Discover the URL set, create the scan row, persist the queue, arm the alarm.
@@ -267,6 +293,12 @@ export class ScanRunnerDO {
           stats: { discovered: st.urls.length, scanned: st.scanned, failed: st.failed },
         },
       )
+      // Cost control: the scan is finished, so stop the (paid) Lighthouse
+      // container NOW instead of waiting for its idle sleepAfter to fire — the
+      // container then only bills for the duration of an active scan. No-op when
+      // the container tier isn't wired (PSI/crux/mock leave it undefined).
+      // instanceName 'default' matches the auditor (worker-helper getByName).
+      await this.stopContainer()
       await this.state.storage.delete('state')
       return
     }

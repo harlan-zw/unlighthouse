@@ -7,9 +7,11 @@
 //
 // Lifecycle config:
 //  - `defaultPort = 8080` — matches `process.env.PORT ?? 8080` in server.ts.
-//  - `sleepAfter = '10m'` — Container hibernates after 10 min of no requests.
-//    Matches Browser Run's max `keep_alive` so the inside-Container Browser
-//    Run session and the Container itself wake/sleep together.
+//  - `sleepAfter = '2m'` — backstop hibernation after 2 min idle. ScanRunnerDO
+//    explicitly `stop()`s the container the moment a scan finishes (so billing
+//    ends immediately, not whenever the idle timer fires); this short sleepAfter
+//    only covers crashes / paths that skip the explicit stop. Kept comfortably
+//    above the per-URL alarm gap so it never sleeps mid-scan.
 //
 // Secrets propagated to the Container as env vars: SHARED_AUDIT_TOKEN,
 // CF_ACCOUNT_ID, CF_BROWSER_RUN_TOKEN. The Container's server.ts requires
@@ -27,7 +29,7 @@ interface LighthouseContainerEnv {
 
 export class LighthouseContainer extends Container<LighthouseContainerEnv> {
   override defaultPort = 8080
-  override sleepAfter = '10m'
+  override sleepAfter = '2m'
 
   constructor(ctx: DurableObjectState, env: LighthouseContainerEnv) {
     super(ctx as never, env)
