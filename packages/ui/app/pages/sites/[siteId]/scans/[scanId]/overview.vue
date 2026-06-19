@@ -21,6 +21,9 @@ const { data: scanMeta } = useAsyncData(
 
 const isCurrentScan = computed(() => store.scanId === scanId.value)
 const currentScanIsActive = computed(() => isCurrentScan.value && store.isActive)
+// Paused scans aren't "active" but should still show the live view (frozen
+// progress + Resume) rather than falling through to the completed-scan layout.
+const showLiveView = computed(() => currentScanIsActive.value || (isCurrentScan.value && store.status === 'paused'))
 
 // When a scan finishes, always send the user to the routes table — that's the
 // page they want once results exist (the overview is the live-progress view).
@@ -47,7 +50,7 @@ const wsEnabled = Boolean(useRuntimeConfig().public.unlighthouseWsUrl)
 async function startPollingIfActive() {
   if (wsEnabled) return
   const s = await api['scan.status']({ scanId: scanId.value }).catch(() => null)
-  if (s && ['starting', 'discovering', 'scanning'].includes(s.status)) {
+  if (s && ['starting', 'discovering', 'scanning', 'paused'].includes(s.status)) {
     store.hydrateActive(scanId.value, { ...s, site: scanMeta.value?.site })
     store.startPolling(api)
   }
@@ -220,8 +223,8 @@ function scoreColor(score: number | null) {
       </div>
     </div>
 
-    <ScanProgress v-if="currentScanIsActive" />
-    <LiveResults v-if="currentScanIsActive" />
+    <ScanProgress v-if="showLiveView" />
+    <LiveResults v-if="showLiveView" />
 
     <!-- Device filter (only when scan captured both) -->
     <div v-if="hasMultipleDevices && scanIsComplete && !currentScanIsActive" class="flex items-center gap-2">
@@ -327,7 +330,7 @@ function scoreColor(score: number | null) {
     <!-- Categories — only when the scan is finished. During a live scan
          these links would lead to pages with zero data; LiveResults
          above covers the in-flight view. -->
-    <section v-if="!currentScanIsActive">
+    <section v-if="!showLiveView">
       <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Categories</h2>
       <div class="divide-y rounded-lg border">
         <NuxtLink
@@ -356,7 +359,7 @@ function scoreColor(score: number | null) {
     </section>
 
     <!-- Loading -->
-    <div v-if="!scanSummary && !currentScanIsActive" class="py-12 text-center text-muted">
+    <div v-if="!scanSummary && !showLiveView" class="py-12 text-center text-muted">
       <p v-if="scanIsComplete">Loading results...</p>
       <p v-else>Scan in progress or not found.</p>
     </div>

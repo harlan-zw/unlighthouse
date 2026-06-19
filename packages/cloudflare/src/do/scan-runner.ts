@@ -117,6 +117,11 @@ interface RunnerState extends ScanRunnerStartBody {
   startedAtMs: number
   cancelled?: boolean
   /**
+   * Pause flag. When set, the alarm handler returns without processing the next
+   * URL or re-arming, so the loop halts; /resume clears it and re-arms.
+   */
+  paused?: boolean
+  /**
    * Follow in-page links to discover routes (the sitemap-less fallback). Set at
    * /start when the sitemap yielded no extra URLs; off when the sitemap already
    * enumerated the site (no need to re-fetch every page's HTML).
@@ -148,6 +153,29 @@ export class ScanRunnerDO {
       if (st) {
         st.cancelled = true
         await this.state.storage.put('state', st)
+        await this.state.storage.setAlarm(Date.now())
+      }
+      return new Response(null, { status: 202 })
+    }
+    if (req.method === 'POST' && url.pathname === '/pause') {
+      const st = await this.state.storage.get<RunnerState>('state')
+      if (st && !st.cancelled) {
+        st.paused = true
+        await this.state.storage.put('state', st)
+        // Reflect the pause on the scan row so scan.status (and the polling UI)
+        // shows 'paused'; the in-flight alarm bails on the paused guard.
+        await this.storage().scans.update(st.scanId as never, { status: 'paused' }).catch(() => {})
+        await scanEventsEmit(this.env, st.scanId)('scan:paused', { scanId: st.scanId as never })
+      }
+      return new Response(null, { status: 202 })
+    }
+    if (req.method === 'POST' && url.pathname === '/resume') {
+      const st = await this.state.storage.get<RunnerState>('state')
+      if (st && st.paused && !st.cancelled) {
+        st.paused = false
+        await this.state.storage.put('state', st)
+        await this.storage().scans.update(st.scanId as never, { status: 'scanning' }).catch(() => {})
+        await scanEventsEmit(this.env, st.scanId)('scan:resumed', { scanId: st.scanId as never })
         await this.state.storage.setAlarm(Date.now())
       }
       return new Response(null, { status: 202 })
@@ -282,6 +310,10 @@ export class ScanRunnerDO {
       return
     }
 
+    // Paused → halt the loop without processing or re-arming. /resume re-arms.
+    if (st.paused)
+      return
+
     // Queue drained → finalize (summary + packs + complete row). Idempotent.
     if (st.index >= st.urls.length) {
       await finalizeScan(
@@ -355,17 +387,43 @@ export class ScanRunnerDO {
       catch { /* best-effort discovery */ }
     }
 
-    // Persist index + counters + any newly-discovered URLs together AFTER the
-    // audit so a crash before this line re-runs the (idempotent) audit on retry
-    // without double-counting.
     st.index += 1
+
+    // The audit above is a long `await` (a whole Lighthouse run), during which
+    // the DO can interleave a /cancel|/pause|/resume fetch handler that mutated
+    // the STORED state. Our in-memory `st` predates that, so re-read the control
+    // flags and adopt them — otherwise the put() below write-backs a stale `st`
+    // and clobbers the user's cancel/pause (the bug where the buttons "did
+    // nothing" when clicked mid-audit).
+    const latest = await this.state.storage.get<RunnerState>('state')
+    st.cancelled = latest?.cancelled ?? st.cancelled
+    st.paused = latest?.paused ?? st.paused
+
+    // Persist index + counters + any newly-discovered URLs AFTER the audit so a
+    // crash before this line re-runs the (idempotent) audit without double-count.
     await this.state.storage.put('state', st)
+
+    // Cancel landed during the audit → finalize as cancelled now; don't re-arm.
+    if (st.cancelled) {
+      await this.storage().scans.update(st.scanId as never, {
+        status: 'cancelled',
+        completedAt: new Date().toISOString(),
+      }).catch(() => {})
+      await emit('scan:cancelled', { scanId: st.scanId as never, reason: 'cancelled' })
+      await this.stopContainer()
+      await this.state.storage.delete('state')
+      return
+    }
 
     // Live progress: write a partial summary onto the scan row so scan.status
     // (which reads the row, not the DO's private state.storage) shows the
     // climbing discovered/scanned counts during the scan instead of 0 until
-    // finalize. finalize overwrites this with the fully-scored summary.
+    // finalize. Reassert the row status each tick — 'paused' if a /pause landed
+    // mid-audit (so the row reflects it and we halt below), else 'scanning' (so
+    // a prior pause's row status self-heals after /resume). finalize overwrites
+    // this with the fully-scored summary.
     await this.storage().scans.update(st.scanId as never, {
+      status: st.paused ? 'paused' : 'scanning',
       summary: {
         routes: st.urls.length,
         completed: st.scanned,
@@ -384,6 +442,11 @@ export class ScanRunnerDO {
       failed: st.failed,
       total: st.urls.length,
     })
+
+    // Pause landed during the audit → halt without re-arming; /resume re-arms.
+    if (st.paused)
+      return
+
     await this.state.storage.setAlarm(Date.now())
   }
 }

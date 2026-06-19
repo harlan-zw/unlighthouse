@@ -475,6 +475,31 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         }
       }
 
+      // Durable cancel/pause/resume. The ScanRunnerDO owns the alarm loop, so
+      // these controls must reach the DO — the default webHandler path runs
+      // core's session-based handlers, which don't exist for a DO-driven scan
+      // (so the buttons silently no-op'd). Route to the runner DO by scanId.
+      // Falls through to the webHandler when no scanId / no DO (legacy path).
+      if (
+        runtimeEnv.SCAN_RUNNER_DO
+        && apiReq.method === 'POST'
+        && (url.pathname === '/scan/cancel' || url.pathname === '/scan/pause' || url.pathname === '/scan/resume')
+      ) {
+        const body = await apiReq.clone().json().catch(() => null) as { scanId?: string } | null
+        const scanId = body?.scanId
+        if (scanId) {
+          const action = url.pathname.slice('/scan/'.length) // cancel | pause | resume
+          const runnerId = runtimeEnv.SCAN_RUNNER_DO.idFromName(scanId)
+          const runner = runtimeEnv.SCAN_RUNNER_DO.get(runnerId)
+          await runner.fetch(`https://scan-runner/${action}`, { method: 'POST' } as never).catch(() => undefined)
+          const nextStatus = action === 'cancel' ? 'cancelled' : action === 'pause' ? 'paused' : 'scanning'
+          return new Response(
+            JSON.stringify({ scanId, status: nextStatus }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          )
+        }
+      }
+
       const res = await webHandler(apiReq)
 
       // If scan.start kicked off a session, register session.done with the
