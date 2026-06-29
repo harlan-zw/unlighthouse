@@ -1,5 +1,5 @@
-import { createError, defineCachedEventHandler } from '#imports'
 import { getRouterParam } from 'h3'
+import { createError, defineCachedEventHandler } from '#imports'
 import { fetchCrux } from '../../../app/services/crux'
 
 export default defineCachedEventHandler(async (event) => {
