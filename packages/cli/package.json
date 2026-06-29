@@ -40,6 +40,9 @@
     "bin",
     "dist"
   ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "build": "obuild",
     "stub": "obuild --stub"
@@ -55,7 +58,6 @@
     "lodash-es": "catalog:dependencies",
     "pathe": "catalog:dependencies",
     "std-env": "catalog:dependencies",
-    "tinyexec": "catalog:dependencies",
-    "tinyglobby": "catalog:dependencies"
+    "tinyexec": "catalog:dependencies"
   }
 }

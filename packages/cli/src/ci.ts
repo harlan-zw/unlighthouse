@@ -2,9 +2,9 @@ import type { UserConfig } from '@unlighthouse/core'
 import type { ReporterConfig } from './reporters/types'
 import type { CiOptions } from './types'
 import { setMaxListeners } from 'node:events'
-import { rm } from 'node:fs/promises'
+import { glob, rm } from 'node:fs/promises'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
-import { relative } from 'pathe'
+import { relative, resolve } from 'pathe'
 import { isCI } from 'std-env'
 import createCli from './createCli'
 import { handleError } from './errors'
@@ -123,15 +123,15 @@ async function run() {
       const { runtimeSettings, resolvedConfig } = useUnlighthouse()
       await generateClient({ static: true })
       // delete the json lighthouse payloads, we don't need them for the static mode
-      const { glob } = await import('tinyglobby')
-      const jsonPayloads = await glob(
+      const jsonPayloads = await Array.fromAsync(glob(
         ['lighthouse.json', '**/lighthouse.json', 'assets/lighthouse.fbx'],
-        { cwd: runtimeSettings.generatedClientPath, absolute: true },
-      )
+        { cwd: runtimeSettings.generatedClientPath },
+      ))
       logger.debug(
         `Deleting ${jsonPayloads.length} files not required for static build.`,
       )
-      for (const k in jsonPayloads) await rm(jsonPayloads[k])
+      for (const payload of jsonPayloads)
+        await rm(resolve(runtimeSettings.generatedClientPath, payload))
 
       const relativeDir = `./${relative(resolvedConfig.root, runtimeSettings.generatedClientPath)}`
       logger.success(`Static report is ready for uploading: \`${relativeDir}\``)

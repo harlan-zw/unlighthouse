@@ -167,13 +167,11 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
   }
 
   while (attempt < maxRetries) {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30_000)
     try {
       const res = await fetch(finalUrl, {
         headers,
         redirect: 'follow',
-        signal: controller.signal,
+        signal: AbortSignal.timeout(30_000),
       })
 
       let responseUrl = res.url
@@ -220,7 +218,7 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
       logger.error('Fetch error message:', e?.message)
       if (code)
         logger.error('Fetch error code:', code)
-      if (e?.name === 'AbortError' || code === 'ETIMEDOUT' || code === 'ENETUNREACH') {
+      if (e?.name === 'AbortError' || e?.name === 'TimeoutError' || code === 'ETIMEDOUT' || code === 'ENETUNREACH') {
         attempt++
         logger.info(`Retrying request... (${attempt}/${maxRetries})`)
         continue
@@ -229,9 +227,6 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
         error: e,
         valid: false,
       }
-    }
-    finally {
-      clearTimeout(timeoutId)
     }
   }
   return {

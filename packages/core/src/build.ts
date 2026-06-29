@@ -5,7 +5,7 @@ import type {
   UnlighthouseContext,
   UnlighthouseRouteReport,
 } from './types'
-import { cp, readFile, writeFile } from 'node:fs/promises'
+import { cp, glob, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
@@ -88,11 +88,10 @@ export async function generateClient(options: GenerateClientOptions = {}, unligh
   )
 
   // update the baseurl within the modules
-  const { glob } = await import('tinyglobby')
   const clientAssetsPath = join(dirname(runtimeSettings.resolvedClientPath), 'assets')
   logger.debug(`Looking for index.*.js files in: ${clientAssetsPath}`)
 
-  const indexFiles = await glob(['index*.js', 'index-*.js'], { cwd: clientAssetsPath })
+  const indexFiles = await Array.fromAsync(glob(['index*.js', 'index-*.js'], { cwd: clientAssetsPath }))
   logger.debug(`Found index files:`, indexFiles)
 
   const indexFile = indexFiles?.[0]

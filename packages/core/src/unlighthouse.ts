@@ -11,7 +11,7 @@ import type {
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
-import { isAbsolute, join, dirname as pathDirname } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadConfig } from 'c12'
 import { colorize } from 'consola/utils'
@@ -56,7 +56,6 @@ export function defineConfig(config: UserConfig) {
  */
 export async function createUnlighthouse(userConfig: UserConfig, provider?: Provider) {
   const logger = createLogger(userConfig.debug)
-  const __dirname = pathDirname(fileURLToPath(import.meta.url))
   if (userConfig.root && !isAbsolute(userConfig.root))
     userConfig.root = join(process.cwd(), userConfig.root)
   else if (!userConfig.root)
@@ -79,7 +78,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   userConfig = defu(userConfig, config)
   const runtimeSettings: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
     configFile: configFile || undefined,
-    moduleWorkingDir: __dirname,
+    moduleWorkingDir: import.meta.dirname,
     configCacheKey: '',
     lighthouseProcessPath: '',
   }

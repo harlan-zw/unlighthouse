@@ -27,6 +27,9 @@
     "*.d.ts",
     "dist"
   ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "stub": "pnpm run build",
     "dev": "vite .",
@@ -40,6 +43,7 @@
     "fuse.js": "catalog:dependencies",
     "lightweight-charts": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
+    "ofetch": "catalog:dependencies",
     "ufo": "catalog:dependencies",
     "vue": "catalog:dependencies"
   },

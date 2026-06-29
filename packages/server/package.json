@@ -35,6 +35,9 @@
     "*.d.ts",
     "dist"
   ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "build": "obuild",
     "stub": "obuild --stub"

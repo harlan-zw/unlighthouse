@@ -38,7 +38,7 @@ pnpm dlx unlighthouse --site <your-site>
 > npx skilld add unlighthouse
 > ```
 
-_Requirements: Node >= 20.x._
+_Requirements: Node >= 22.18.0._
 
 ## Getting Started
 

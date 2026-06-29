@@ -29,7 +29,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 22.x
           cache: pnpm
       - run: pnpm i
       - run: pnpm lint
@@ -41,7 +41,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 22.x
           cache: pnpm
       - run: pnpm i
       - run: pnpm typecheck
@@ -53,7 +53,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 22.x
           cache: pnpm
       - run: pnpm i
       - run: pnpm build
@@ -66,7 +66,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 22.x
           cache: pnpm
       - run: pnpm i
       - run: pnpm build
@@ -79,7 +79,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 22.x
           cache: pnpm
       - run: pnpm i
       - run: pnpm build

@@ -19,6 +19,7 @@ declare global {
   const controlledComputed: typeof import('@vueuse/core').controlledComputed
   const controlledRef: typeof import('@vueuse/core').controlledRef
   const createApp: typeof import('vue').createApp
+  const createDisposableDirective: typeof import('@vueuse/core').createDisposableDirective
   const createEventHook: typeof import('@vueuse/core').createEventHook
   const createGlobalState: typeof import('@vueuse/core').createGlobalState
   const createInjectionState: typeof import('@vueuse/core').createInjectionState
@@ -33,13 +34,13 @@ declare global {
   const debouncedWatch: typeof import('@vueuse/core').debouncedWatch
   const defineAsyncComponent: typeof import('vue').defineAsyncComponent
   const defineComponent: typeof import('vue').defineComponent
-  const defineLocale: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/defineLocale').defineLocale
-  const defineShortcuts: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts').defineShortcuts
+  const defineLocale: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/defineLocale').defineLocale
+  const defineShortcuts: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts').defineShortcuts
   const eagerComputed: typeof import('@vueuse/core').eagerComputed
   const effectScope: typeof import('vue').effectScope
-  const extendLocale: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/defineLocale').extendLocale
+  const extendLocale: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/defineLocale').extendLocale
   const extendRef: typeof import('@vueuse/core').extendRef
-  const extractShortcuts: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts').extractShortcuts
+  const extractShortcuts: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts').extractShortcuts
   const fieldGroupInjectionKey: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/composables/useFieldGroup.js').fieldGroupInjectionKey
   const formBusInjectionKey: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/composables/useFormField.js').formBusInjectionKey
   const formErrorsInjectionKey: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/composables/useFormField.js').formErrorsInjectionKey
@@ -135,7 +136,7 @@ declare global {
   const until: typeof import('@vueuse/core').until
   const useActiveElement: typeof import('@vueuse/core').useActiveElement
   const useAnimate: typeof import('@vueuse/core').useAnimate
-  const useAppConfig: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/vue/composables/useAppConfig.js').useAppConfig
+  const useAppConfig: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/vue/composables/useAppConfig.js').useAppConfig
   const useArrayDifference: typeof import('@vueuse/core').useArrayDifference
   const useArrayEvery: typeof import('@vueuse/core').useArrayEvery
   const useArrayFilter: typeof import('@vueuse/core').useArrayFilter
@@ -167,7 +168,7 @@ declare global {
   const useComponentIcons: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/composables/useComponentIcons.js').useComponentIcons
   const useComponentUI: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/composables/useComponentUI.js').useComponentUI
   const useConfirmDialog: typeof import('@vueuse/core').useConfirmDialog
-  const useContentSearch: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useContentSearch').useContentSearch
+  const useContentSearch: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useContentSearch').useContentSearch
   const useCountdown: typeof import('@vueuse/core').useCountdown
   const useCounter: typeof import('@vueuse/core').useCounter
   const useCssModule: typeof import('vue').useCssModule
@@ -204,10 +205,10 @@ declare global {
   const useFieldGroup: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.5.1_@netlify+blo_c63605dc644173eba4971e95f2b02042/node_modules/@nuxt/ui/dist/runtime/composables/useFieldGroup.js').useFieldGroup
   const useFileDialog: typeof import('@vueuse/core').useFileDialog
   const useFileSystemAccess: typeof import('@vueuse/core').useFileSystemAccess
-  const useFileUpload: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useFileUpload').useFileUpload
+  const useFileUpload: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useFileUpload').useFileUpload
   const useFocus: typeof import('@vueuse/core').useFocus
   const useFocusWithin: typeof import('@vueuse/core').useFocusWithin
-  const useFormField: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useFormField').useFormField
+  const useFormField: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useFormField').useFormField
   const useFps: typeof import('@vueuse/core').useFps
   const useFullscreen: typeof import('@vueuse/core').useFullscreen
   const useGamepad: typeof import('@vueuse/core').useGamepad
@@ -219,7 +220,7 @@ declare global {
   const useIntersectionObserver: typeof import('@vueuse/core').useIntersectionObserver
   const useInterval: typeof import('@vueuse/core').useInterval
   const useIntervalFn: typeof import('@vueuse/core').useIntervalFn
-  const useKbd: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useKbd').useKbd
+  const useKbd: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useKbd').useKbd
   const useKeyModifier: typeof import('@vueuse/core').useKeyModifier
   const useLastChanged: typeof import('@vueuse/core').useLastChanged
   const useLink: typeof import('vue-router').useLink
@@ -243,7 +244,7 @@ declare global {
   const useObjectUrl: typeof import('@vueuse/core').useObjectUrl
   const useOffsetPagination: typeof import('@vueuse/core').useOffsetPagination
   const useOnline: typeof import('@vueuse/core').useOnline
-  const useOverlay: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useOverlay').useOverlay
+  const useOverlay: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useOverlay').useOverlay
   const usePageLeave: typeof import('@vueuse/core').usePageLeave
   const useParallax: typeof import('@vueuse/core').useParallax
   const useParentElement: typeof import('@vueuse/core').useParentElement
@@ -262,7 +263,7 @@ declare global {
   const usePrevious: typeof import('@vueuse/core').usePrevious
   const useRafFn: typeof import('@vueuse/core').useRafFn
   const useRefHistory: typeof import('@vueuse/core').useRefHistory
-  const useResizable: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useResizable').useResizable
+  const useResizable: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useResizable').useResizable
   const useResizeObserver: typeof import('@vueuse/core').useResizeObserver
   const useRoute: typeof import('vue-router').useRoute
   const useRouter: typeof import('vue-router').useRouter
@@ -272,8 +273,8 @@ declare global {
   const useScriptTag: typeof import('@vueuse/core').useScriptTag
   const useScroll: typeof import('@vueuse/core').useScroll
   const useScrollLock: typeof import('@vueuse/core').useScrollLock
-  const useScrollShadow: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useScrollShadow').useScrollShadow
-  const useScrollspy: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useScrollspy').useScrollspy
+  const useScrollShadow: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useScrollShadow').useScrollShadow
+  const useScrollspy: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useScrollspy').useScrollspy
   const useSessionStorage: typeof import('@vueuse/core').useSessionStorage
   const useShare: typeof import('@vueuse/core').useShare
   const useSlots: typeof import('vue').useSlots
@@ -303,8 +304,9 @@ declare global {
   const useTitle: typeof import('@vueuse/core').useTitle
   const useToNumber: typeof import('@vueuse/core').useToNumber
   const useToString: typeof import('@vueuse/core').useToString
-  const useToast: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useToast').useToast
+  const useToast: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useToast').useToast
   const useToggle: typeof import('@vueuse/core').useToggle
+  const useTour: typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useTour').useTour
   const useTransition: typeof import('@vueuse/core').useTransition
   const useUrlSearchParams: typeof import('@vueuse/core').useUrlSearchParams
   const useUserMedia: typeof import('@vueuse/core').useUserMedia
@@ -360,6 +362,7 @@ declare module 'vue' {
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
+    readonly createDisposableDirective: UnwrapRef<typeof import('@vueuse/core')['createDisposableDirective']>
     readonly createEventHook: UnwrapRef<typeof import('@vueuse/core')['createEventHook']>
     readonly createGlobalState: UnwrapRef<typeof import('@vueuse/core')['createGlobalState']>
     readonly createInjectionState: UnwrapRef<typeof import('@vueuse/core')['createInjectionState']>
@@ -374,13 +377,13 @@ declare module 'vue' {
     readonly debouncedWatch: UnwrapRef<typeof import('@vueuse/core')['debouncedWatch']>
     readonly defineAsyncComponent: UnwrapRef<typeof import('vue')['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<typeof import('vue')['defineComponent']>
-    readonly defineLocale: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/defineLocale')['defineLocale']>
-    readonly defineShortcuts: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts')['defineShortcuts']>
+    readonly defineLocale: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/defineLocale')['defineLocale']>
+    readonly defineShortcuts: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts')['defineShortcuts']>
     readonly eagerComputed: UnwrapRef<typeof import('@vueuse/core')['eagerComputed']>
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
-    readonly extendLocale: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/defineLocale')['extendLocale']>
+    readonly extendLocale: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/defineLocale')['extendLocale']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
-    readonly extractShortcuts: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts')['extractShortcuts']>
+    readonly extractShortcuts: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts')['extractShortcuts']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
@@ -436,7 +439,6 @@ declare module 'vue' {
     readonly refThrottled: UnwrapRef<typeof import('@vueuse/core')['refThrottled']>
     readonly refWithControl: UnwrapRef<typeof import('@vueuse/core')['refWithControl']>
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
-    readonly resolveRef: UnwrapRef<typeof import('@vueuse/core')['resolveRef']>
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
@@ -461,7 +463,7 @@ declare module 'vue' {
     readonly until: UnwrapRef<typeof import('@vueuse/core')['until']>
     readonly useActiveElement: UnwrapRef<typeof import('@vueuse/core')['useActiveElement']>
     readonly useAnimate: UnwrapRef<typeof import('@vueuse/core')['useAnimate']>
-    readonly useAppConfig: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/vue/composables/useAppConfig.js')['useAppConfig']>
+    readonly useAppConfig: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/vue/composables/useAppConfig.js')['useAppConfig']>
     readonly useArrayDifference: UnwrapRef<typeof import('@vueuse/core')['useArrayDifference']>
     readonly useArrayEvery: UnwrapRef<typeof import('@vueuse/core')['useArrayEvery']>
     readonly useArrayFilter: UnwrapRef<typeof import('@vueuse/core')['useArrayFilter']>
@@ -489,7 +491,7 @@ declare module 'vue' {
     readonly useCloned: UnwrapRef<typeof import('@vueuse/core')['useCloned']>
     readonly useColorMode: UnwrapRef<typeof import('@vueuse/core')['useColorMode']>
     readonly useConfirmDialog: UnwrapRef<typeof import('@vueuse/core')['useConfirmDialog']>
-    readonly useContentSearch: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useContentSearch')['useContentSearch']>
+    readonly useContentSearch: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useContentSearch')['useContentSearch']>
     readonly useCountdown: UnwrapRef<typeof import('@vueuse/core')['useCountdown']>
     readonly useCounter: UnwrapRef<typeof import('@vueuse/core')['useCounter']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>
@@ -524,10 +526,10 @@ declare module 'vue' {
     readonly useFetch: UnwrapRef<typeof import('@vueuse/core')['useFetch']>
     readonly useFileDialog: UnwrapRef<typeof import('@vueuse/core')['useFileDialog']>
     readonly useFileSystemAccess: UnwrapRef<typeof import('@vueuse/core')['useFileSystemAccess']>
-    readonly useFileUpload: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useFileUpload')['useFileUpload']>
+    readonly useFileUpload: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useFileUpload')['useFileUpload']>
     readonly useFocus: UnwrapRef<typeof import('@vueuse/core')['useFocus']>
     readonly useFocusWithin: UnwrapRef<typeof import('@vueuse/core')['useFocusWithin']>
-    readonly useFormField: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useFormField')['useFormField']>
+    readonly useFormField: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useFormField')['useFormField']>
     readonly useFps: UnwrapRef<typeof import('@vueuse/core')['useFps']>
     readonly useFullscreen: UnwrapRef<typeof import('@vueuse/core')['useFullscreen']>
     readonly useGamepad: UnwrapRef<typeof import('@vueuse/core')['useGamepad']>
@@ -539,7 +541,7 @@ declare module 'vue' {
     readonly useIntersectionObserver: UnwrapRef<typeof import('@vueuse/core')['useIntersectionObserver']>
     readonly useInterval: UnwrapRef<typeof import('@vueuse/core')['useInterval']>
     readonly useIntervalFn: UnwrapRef<typeof import('@vueuse/core')['useIntervalFn']>
-    readonly useKbd: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useKbd')['useKbd']>
+    readonly useKbd: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useKbd')['useKbd']>
     readonly useKeyModifier: UnwrapRef<typeof import('@vueuse/core')['useKeyModifier']>
     readonly useLastChanged: UnwrapRef<typeof import('@vueuse/core')['useLastChanged']>
     readonly useLink: UnwrapRef<typeof import('vue-router')['useLink']>
@@ -562,7 +564,7 @@ declare module 'vue' {
     readonly useObjectUrl: UnwrapRef<typeof import('@vueuse/core')['useObjectUrl']>
     readonly useOffsetPagination: UnwrapRef<typeof import('@vueuse/core')['useOffsetPagination']>
     readonly useOnline: UnwrapRef<typeof import('@vueuse/core')['useOnline']>
-    readonly useOverlay: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useOverlay')['useOverlay']>
+    readonly useOverlay: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useOverlay')['useOverlay']>
     readonly usePageLeave: UnwrapRef<typeof import('@vueuse/core')['usePageLeave']>
     readonly useParallax: UnwrapRef<typeof import('@vueuse/core')['useParallax']>
     readonly useParentElement: UnwrapRef<typeof import('@vueuse/core')['useParentElement']>
@@ -580,7 +582,7 @@ declare module 'vue' {
     readonly usePrevious: UnwrapRef<typeof import('@vueuse/core')['usePrevious']>
     readonly useRafFn: UnwrapRef<typeof import('@vueuse/core')['useRafFn']>
     readonly useRefHistory: UnwrapRef<typeof import('@vueuse/core')['useRefHistory']>
-    readonly useResizable: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useResizable')['useResizable']>
+    readonly useResizable: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useResizable')['useResizable']>
     readonly useResizeObserver: UnwrapRef<typeof import('@vueuse/core')['useResizeObserver']>
     readonly useRoute: UnwrapRef<typeof import('vue-router')['useRoute']>
     readonly useRouter: UnwrapRef<typeof import('vue-router')['useRouter']>
@@ -590,8 +592,8 @@ declare module 'vue' {
     readonly useScriptTag: UnwrapRef<typeof import('@vueuse/core')['useScriptTag']>
     readonly useScroll: UnwrapRef<typeof import('@vueuse/core')['useScroll']>
     readonly useScrollLock: UnwrapRef<typeof import('@vueuse/core')['useScrollLock']>
-    readonly useScrollShadow: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useScrollShadow')['useScrollShadow']>
-    readonly useScrollspy: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useScrollspy')['useScrollspy']>
+    readonly useScrollShadow: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useScrollShadow')['useScrollShadow']>
+    readonly useScrollspy: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useScrollspy')['useScrollspy']>
     readonly useSessionStorage: UnwrapRef<typeof import('@vueuse/core')['useSessionStorage']>
     readonly useShare: UnwrapRef<typeof import('@vueuse/core')['useShare']>
     readonly useSlots: UnwrapRef<typeof import('vue')['useSlots']>
@@ -621,8 +623,9 @@ declare module 'vue' {
     readonly useTitle: UnwrapRef<typeof import('@vueuse/core')['useTitle']>
     readonly useToNumber: UnwrapRef<typeof import('@vueuse/core')['useToNumber']>
     readonly useToString: UnwrapRef<typeof import('@vueuse/core')['useToString']>
-    readonly useToast: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.6.1_@netlify+blobs@9.1.2_@tiptap+extensions@3.22.3_@tiptap+core@3.22.3_@tipt_71782ca33e4f745133c7bf682820880d/node_modules/@nuxt/ui/dist/runtime/composables/useToast')['useToast']>
+    readonly useToast: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useToast')['useToast']>
     readonly useToggle: UnwrapRef<typeof import('@vueuse/core')['useToggle']>
+    readonly useTour: UnwrapRef<typeof import('../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/composables/useTour')['useTour']>
     readonly useTransition: UnwrapRef<typeof import('@vueuse/core')['useTransition']>
     readonly useUrlSearchParams: UnwrapRef<typeof import('@vueuse/core')['useUrlSearchParams']>
     readonly useUserMedia: UnwrapRef<typeof import('@vueuse/core')['useUserMedia']>
