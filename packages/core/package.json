@@ -50,6 +50,7 @@
   "dependencies": {
     "@clack/prompts": "catalog:dependencies",
     "@puppeteer/browsers": "catalog:dependencies",
+    "@unlighthouse/client": "workspace:*",
     "c12": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
     "consola": "catalog:dependencies",

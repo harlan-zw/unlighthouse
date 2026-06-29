@@ -379,6 +379,9 @@ importers:
       '@puppeteer/browsers':
         specifier: catalog:dependencies
         version: 3.0.5
+      '@unlighthouse/client':
+        specifier: workspace:*
+        version: link:../client
       c12:
         specifier: catalog:dependencies
         version: 3.3.4(magicast@0.5.3)
