@@ -27,7 +27,6 @@ catalog:
   eslint: ^10.6.0
   obuild: ^0.4.37
   puppeteer: ^25.2.1
-  tinypool: ^0.0.0
   typescript: ^6.0.3
   vitest: ^4.1.9
 

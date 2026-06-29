@@ -4,10 +4,10 @@
   "version": "0.17.10",
   "private": true,
   "packageManager": "pnpm@11.9.0",
+  "license": "MIT",
   "engines": {
     "node": ">=22.18.0"
   },
-  "license": "MIT",
   "scripts": {
     "cli": "JITI_ESM_RESOLVE=1 node packages/cli/dist/cli.mjs",
     "ci": "JITI_ESM_RESOLVE=1 node packages/cli/dist/ci.mjs",
