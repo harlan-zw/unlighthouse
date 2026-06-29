@@ -2,12 +2,10 @@ import type { InstallOptions } from '@puppeteer/browsers'
 import type { Logger } from '@unlighthouse/contracts'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { computeExecutablePath, install } from '@puppeteer/browsers'
-import { detectBrowserPlatform } from '@puppeteer/browsers'
+import { computeExecutablePath, detectBrowserPlatform, install } from '@puppeteer/browsers'
 import { Launcher } from 'chrome-launcher'
-import { resolve as resolveModule } from 'mlly'
 import { launch } from 'puppeteer-core'
-import { PUPPETEER_REVISIONS } from 'puppeteer-core/lib/cjs/puppeteer/revisions.js'
+import { PUPPETEER_REVISIONS } from 'puppeteer-core/internal/revisions.js'
 
 export interface ChromeConfig {
   useSystem?: boolean
@@ -52,7 +50,7 @@ export async function resolveChrome({ chrome, puppeteerOptions, logger }: Resolv
 
   if (!foundChrome) {
     try {
-      await resolveModule('puppeteer')
+      import.meta.resolve('puppeteer')
       foundChrome = true
       logger?.info?.('Using puppeteer dependency for Chrome.')
     }

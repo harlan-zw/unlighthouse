@@ -6,8 +6,8 @@ import type {
   CrawlerState,
   CrawlEvent,
 } from '@unlighthouse/contracts/ports'
-import type { Hookable } from 'hookable'
 import type { RequestTransform } from 'crawlee'
+import type { Hookable } from 'hookable'
 import { CheerioCrawler, log as crawleeLog, RequestQueue } from 'crawlee'
 import { createHooks } from 'hookable'
 import { isI18nAlternatePage, normaliseUrl, sameHostCanonical } from '../util/i18n'

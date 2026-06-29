@@ -1,17 +1,17 @@
+import { spawn } from 'node:child_process'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import fs from 'fs-extra'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { x } from 'tinyexec'
 
 export const cacheDir = resolve(__dirname, '.cache')
 export const ci = resolve(__dirname, '../packages/unlighthouse/bin/unlighthouse-ci.mjs')
 
 beforeAll(async () => {
-  await fs.remove(cacheDir)
+  await rm(cacheDir, { recursive: true, force: true })
 })
 
 afterAll(async () => {
-  await fs.remove(cacheDir)
+  await rm(cacheDir, { recursive: true, force: true })
 })
 
 describe('ci', () => {
@@ -37,23 +37,40 @@ describe('ci', () => {
 async function runCli(configFileFixture: string) {
   const testDir = resolve(cacheDir, Date.now().toString())
 
-  await fs.ensureDir(testDir)
+  await mkdir(testDir, { recursive: true })
 
-  const config = await fs.readFile(configFileFixture, 'utf8')
-  await fs.writeFile(join(testDir, 'unlighthouse.config.ts'), config)
+  const config = await readFile(configFileFixture, 'utf8')
+  await writeFile(join(testDir, 'unlighthouse.config.ts'), config)
 
-  const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir, '--debug', '--site', 'harlanzw.com'], {
-    nodeOptions: { cwd: testDir, env: { ...process.env, JITI_ESM_RESOLVE: '1' } },
-  })
+  const { exitCode, stdout, stderr } = await runNode([ci, '--root', testDir, '--debug', '--site', 'harlanzw.com'], testDir)
 
   const logs = stdout + stderr
   if (exitCode !== 0)
     throw new Error(logs)
 
-  const output = await fs.readJson(resolve(testDir, '.unlighthouse', 'ci-result.json'))
+  const output = JSON.parse(await readFile(resolve(testDir, '.unlighthouse', 'ci-result.json'), 'utf8'))
 
   return {
     output,
     logs,
   }
+}
+
+async function runNode(args: string[], cwd: string): Promise<{ exitCode: number, stdout: string, stderr: string }> {
+  const child = spawn('node', args, {
+    cwd,
+    env: { ...process.env, JITI_ESM_RESOLVE: '1' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let stdout = ''
+  let stderr = ''
+  child.stdout.setEncoding('utf8')
+  child.stderr.setEncoding('utf8')
+  child.stdout.on('data', chunk => stdout += chunk)
+  child.stderr.on('data', chunk => stderr += chunk)
+  const exitCode = await new Promise<number>((resolve, reject) => {
+    child.on('error', reject)
+    child.on('close', code => resolve(code ?? 1))
+  })
+  return { exitCode, stdout, stderr }
 }

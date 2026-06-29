@@ -96,7 +96,8 @@ async function findRoute(ctx: HandlerCtx, scanId: ScanId, url: string, device?: 
   const available: Array<'mobile' | 'desktop'> = []
   for (const d of (['mobile', 'desktop'] as const)) {
     const row = await ctx.storage.routes.get(scanId, url, d)
-    if (row) available.push(d)
+    if (row)
+      available.push(d)
   }
   if (available.length === 0)
     throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${url} in scan ${scanId}` })
@@ -104,7 +105,8 @@ async function findRoute(ctx: HandlerCtx, scanId: ScanId, url: string, device?: 
   for (const d of tryOrder) {
     if (available.includes(d)) {
       route = await ctx.storage.routes.get(scanId, url, d)
-      if (route) break
+      if (route)
+        break
     }
   }
   // Caller asked for a device that isn't there — fall back to whatever
@@ -199,16 +201,16 @@ export const routeAudits: Handler<typeof RouteAudits> = {
       // keeping the highest weight encountered (so a "perf" audit re-used in
       // another category doesn't lose its perf weight).
       : Array.from(
-        Object.values(contract.categories ?? {})
-          .flatMap(c => c.auditRefs ?? [])
-          .reduce((acc, r) => {
-            const prev = acc.get(r.id)
-            if (!prev || r.weight > prev.weight)
-              acc.set(r.id, r)
-            return acc
-          }, new Map<string, { id: string, weight: number }>())
-          .values(),
-      )
+          Object.values(contract.categories ?? {})
+            .flatMap(c => c.auditRefs ?? [])
+            .reduce((acc, r) => {
+              const prev = acc.get(r.id)
+              if (!prev || r.weight > prev.weight)
+                acc.set(r.id, r)
+              return acc
+            }, new Map<string, { id: string, weight: number }>())
+            .values(),
+        )
 
     const audits = refs
       .map((ref) => {

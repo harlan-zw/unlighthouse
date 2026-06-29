@@ -92,4 +92,3 @@ export const auditorsList: Handler<typeof AuditorsList> = {
     } as CommandOutput<typeof AuditorsList>
   },
 }
-

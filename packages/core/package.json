@@ -174,7 +174,6 @@
     "consola": "catalog:dependencies",
     "crawlee": "catalog:dependencies",
     "fflate": "catalog:dependencies",
-    "fs-extra": "catalog:dependencies",
     "h3": "catalog:dependencies",
     "hookable": "catalog:dependencies",
     "launch-editor": "catalog:dependencies",
@@ -183,7 +182,6 @@
     "mdream": "catalog:dependencies",
     "minimist": "catalog:dependencies",
     "ofetch": "catalog:dependencies",
-    "pathe": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "radix3": "catalog:dependencies",
     "sanitize-filename": "catalog:dependencies",
@@ -195,7 +193,6 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",
-    "@types/fs-extra": "catalog:",
     "better-sqlite3": "catalog:dependencies",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:dependencies",

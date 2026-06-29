@@ -21,8 +21,8 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createApp, toNodeListener } from 'h3'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createUnlighthouseHost } from 'unlighthouse'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 interface HostFixture {
   server: Server
@@ -69,17 +69,22 @@ async function bootHost(opts: { autoStartOnVisit: boolean }): Promise<HostFixtur
 }
 
 // 30s hook budget — host setup (sqlite open + migrations + storage wiring +
-// resolvePath for the client pkg) can exceed vitest's 10s default on CI when
+// client package resolution) can exceed vitest's 10s default on CI when
 // other suites (test/ci.test.ts real scans) saturate CPU/disk in parallel.
 const HOOK_TIMEOUT = 30_000
 
 describe('autoStartOnVisit — end-to-end (real host + real HTTP)', () => {
   describe('when behavior.autoStartOnVisit = true', () => {
     let fx: HostFixture
-    beforeAll(async () => { fx = await bootHost({ autoStartOnVisit: true }) }, HOOK_TIMEOUT)
-    afterAll(async () => { if (fx?.server) await new Promise(r => fx.server.close(() => r(null))) }, HOOK_TIMEOUT)
+    beforeAll(async () => {
+      fx = await bootHost({ autoStartOnVisit: true })
+    }, HOOK_TIMEOUT)
+    afterAll(async () => {
+      if (fx?.server)
+        await new Promise(r => fx.server.close(() => r(null)))
+    }, HOOK_TIMEOUT)
 
-    it('GET / triggers host.start() exactly once', async () => {
+    it('get / triggers host.start() exactly once', async () => {
       await fetch(`${fx.baseUrl}/`)
       expect(fx.start).toHaveBeenCalledTimes(1)
     })
@@ -94,10 +99,15 @@ describe('autoStartOnVisit — end-to-end (real host + real HTTP)', () => {
 
   describe('when behavior.autoStartOnVisit = false', () => {
     let fx: HostFixture
-    beforeAll(async () => { fx = await bootHost({ autoStartOnVisit: false }) }, HOOK_TIMEOUT)
-    afterAll(async () => { if (fx?.server) await new Promise(r => fx.server.close(() => r(null))) }, HOOK_TIMEOUT)
+    beforeAll(async () => {
+      fx = await bootHost({ autoStartOnVisit: false })
+    }, HOOK_TIMEOUT)
+    afterAll(async () => {
+      if (fx?.server)
+        await new Promise(r => fx.server.close(() => r(null)))
+    }, HOOK_TIMEOUT)
 
-    it('GET / does NOT trigger host.start()', async () => {
+    it('get / does not trigger host.start()', async () => {
       await fetch(`${fx.baseUrl}/`)
       expect(fx.start).not.toHaveBeenCalled()
     })

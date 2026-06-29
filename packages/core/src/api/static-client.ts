@@ -38,10 +38,10 @@ import type {
   Storage,
   UnlighthouseConfig,
 } from '@unlighthouse/contracts'
+import type { UnlighthouseClient } from './client'
 import { commands } from '@unlighthouse/contracts'
 import { memoryStorage } from '../storage/memory'
 import { createHandlers } from './handlers'
-import type { UnlighthouseClient } from './client'
 
 /**
  * Self-contained snapshot of one or more scans, embedded into the static

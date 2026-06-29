@@ -79,7 +79,8 @@ export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
         }
         catch {}
       }
-      if (!reconciled) continue
+      if (!reconciled)
+        continue
 
       const catScore = reconciled.categories?.['agentic-browsing']?.score
       if (typeof catScore === 'number') {
@@ -89,9 +90,11 @@ export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
 
       for (const id of AGENTIC_AUDIT_IDS) {
         const audit = reconciled.audits?.[id]
-        if (!audit) continue
+        if (!audit)
+          continue
         const entry = findings.get(id)!
-        if (!entry.title && audit.title) entry.title = audit.title
+        if (!entry.title && audit.title)
+          entry.title = audit.title
         entry.total++
         if (audit.severity === 'pass') {
           entry.passing++
@@ -111,8 +114,10 @@ export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
           formCoverageCount++
         }
         if (id === 'webmcp-schema-validity') {
-          if (schemaValidAll === null) schemaValidAll = audit.severity === 'pass'
-          else if (audit.severity !== 'pass') schemaValidAll = false
+          if (schemaValidAll === null)
+            schemaValidAll = audit.severity === 'pass'
+          else if (audit.severity !== 'pass')
+            schemaValidAll = false
         }
       }
     }

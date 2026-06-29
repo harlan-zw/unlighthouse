@@ -65,7 +65,8 @@ function toSearchParams(input: unknown): string {
   const params = new URLSearchParams()
   function flatten(obj: Record<string, unknown>, prefix = '') {
     for (const [k, v] of Object.entries(obj)) {
-      if (v == null) continue
+      if (v == null)
+        continue
       const key = prefix ? `${prefix}.${k}` : k
       const t = typeof v
       if (t === 'string' || t === 'number' || t === 'boolean') {

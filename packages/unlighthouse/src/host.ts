@@ -8,21 +8,20 @@ import type { HookMap, Logger, ResolvedUserConfig, RuntimeSettings, UserConfig }
 import type { UnlighthouseCore, UnlighthouseCoreRunOverrides } from '@unlighthouse/contracts/ports'
 import type { WS } from '@unlighthouse/core/api'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers/types'
+import type { createStorage } from '@unlighthouse/core/storage'
 import type { Hookable } from 'hookable'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
-import type { createStorage } from '@unlighthouse/core/storage'
+import { fileURLToPath } from 'node:url'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
-import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
 import { createTaggedLogger } from '@unlighthouse/core/logger'
+import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
 import { loadConfig } from 'c12'
 import { defu } from 'defu'
-import fs from 'fs-extra'
-import { createCommonJS, resolvePath } from 'mlly'
 import { joinURL } from 'ufo'
 import { version } from '../package.json'
 import { resolveAuditor } from './auditor'
@@ -201,8 +200,6 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
   const logger = createTaggedLogger('host') as unknown as Logger
 
-  const { __dirname } = createCommonJS(import.meta.url)
-
   if (userConfig.root && !isAbsolute(userConfig.root))
     userConfig.root = join(process.cwd(), userConfig.root)
   else if (!userConfig.root)
@@ -223,25 +220,20 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
   const rs: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
     configFile: configFile || undefined,
-    moduleWorkingDir: __dirname,
+    moduleWorkingDir: import.meta.dirname,
     configCacheKey: '',
     lighthouseProcessPath: '',
     currentScanId: null,
   }
 
-  rs.lighthouseProcessPath = await resolvePath(
+  const lighthouseProcessPath = [
     join(rs.moduleWorkingDir, 'lighthouse.mjs'),
-  ).catch(() => '')
-  if (!(await fs.pathExists(rs.lighthouseProcessPath))) {
-    rs.lighthouseProcessPath = await resolvePath(
-      join(rs.moduleWorkingDir, '..', 'lighthouse.mjs'),
-    ).catch(() => '')
-  }
-  if (!(await fs.pathExists(rs.lighthouseProcessPath))) {
-    rs.lighthouseProcessPath = await resolvePath(
-      join(rs.moduleWorkingDir, 'lighthouse.ts'),
-    )
-  }
+    join(rs.moduleWorkingDir, '..', 'lighthouse.mjs'),
+    join(rs.moduleWorkingDir, 'lighthouse.ts'),
+  ].find(existsSync)
+  if (!lighthouseProcessPath)
+    throw new Error('Unable to resolve the unlighthouse lighthouse worker entry.')
+  rs.lighthouseProcessPath = lighthouseProcessPath
 
   rs.configCacheKey = computeConfigCacheKey(userConfig, version)
 
@@ -290,14 +282,14 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     portsInitPromise = (async () => {
       const outputPath = (rs as RuntimeSettings).outputPath || resolvedConfig.outputPath
       logger.debug?.(`initPortsAsync — outputPath: ${outputPath}`)
-      fs.ensureDirSync(outputPath)
+      mkdirSync(outputPath, { recursive: true })
 
       if (!resolvedConfig.cache && existsSync(outputPath)) {
         try {
-          fs.rmSync(outputPath, { recursive: true })
+          rmSync(outputPath, { recursive: true, force: true })
         }
         catch {}
-        fs.ensureDirSync(outputPath)
+        mkdirSync(outputPath, { recursive: true })
       }
 
       const { storage } = await initStorage({ outputPath, logger })
@@ -355,7 +347,8 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     finally {
       // Clear the in-flight marker so a failed init can be retried;
       // portsRef stays the source of truth on success.
-      if (portsRef) portsInitPromise = null
+      if (portsRef)
+        portsInitPromise = null
     }
   }
 
@@ -377,7 +370,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     let resolvedClientPath = ''
     try {
-      resolvedClientPath = await resolvePath(ClientPkg, { url: import.meta.url })
+      resolvedClientPath = fileURLToPath(import.meta.resolve(ClientPkg))
       if (!existsSync(resolvedClientPath))
         resolvedClientPath = ''
     }
@@ -407,7 +400,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       ;(rs as RuntimeSettings).generatedClientPath = outputPath
     }
 
-    fs.ensureDirSync((rs as RuntimeSettings).outputPath)
+    mkdirSync((rs as RuntimeSettings).outputPath, { recursive: true })
 
     const { handlerCtx } = await initPortsAsync()
 
@@ -456,7 +449,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     // @unlighthouse/ui client package here so build.ts has a source to copy.
     if (!(rs as RuntimeSettings).resolvedClientPath) {
       try {
-        const p = await resolvePath(ClientPkg, { url: import.meta.url })
+        const p = fileURLToPath(import.meta.resolve(ClientPkg))
         if (existsSync(p))
           (rs as RuntimeSettings).resolvedClientPath = p
       }

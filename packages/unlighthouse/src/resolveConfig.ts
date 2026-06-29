@@ -1,10 +1,10 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
 import { Buffer } from 'node:buffer'
+import { access } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createDefu, defu } from 'defu'
-import { pathExists } from 'fs-extra'
 import { pick } from 'lodash-es'
 import { defaultConfig } from './constants'
 import { resolveChrome } from './resolveChrome'
@@ -118,7 +118,7 @@ export async function resolveUserConfig(userConfig: UserConfig, logger?: Logger)
 
   // the default pages dir is `${root}/pages`, check if it exists, if not revert to root
   if (config.root && config.discovery && config.discovery.pagesDir === 'pages') {
-    const pagesDirExist = await pathExists(join(config.root, config.discovery.pagesDir))
+    const pagesDirExist = await access(join(config.root, config.discovery.pagesDir)).then(() => true, () => false)
     if (!pagesDirExist) {
       logger?.debug('Unable to locale page files, disabling route discovery.')
       // disable discovery to avoid globbing entire file systems

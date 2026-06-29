@@ -283,7 +283,8 @@ export function applyRouteSort(items: ScanRoute[], sort?: string): ScanRoute[] {
     'capturedAt-desc': (a, b) => b.capturedAt.localeCompare(a.capturedAt),
   }
   const fn = sortFn[sort]
-  if (fn) copy.sort(fn)
+  if (fn)
+    copy.sort(fn)
   return copy
 }
 

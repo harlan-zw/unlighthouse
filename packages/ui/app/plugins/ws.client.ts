@@ -23,7 +23,8 @@ class WsBus {
   }
 
   private connect() {
-    if (this.disposed || !this.url) return
+    if (this.disposed || !this.url)
+      return
 
     try {
       this.ws = new WebSocket(this.url)
@@ -48,7 +49,8 @@ class WsBus {
       }
 
       this.ws.onclose = () => {
-        if (this.disposed) return
+        if (this.disposed)
+          return
         setTimeout(() => this.connect(), this.retryDelay)
         this.retryDelay = Math.min(this.retryDelay * 2, this.maxRetryDelay)
       }
@@ -90,4 +92,4 @@ export default defineNuxtPlugin({ name: 'ws', setup() {
   }
 
   return { provide: { ws: bus } }
-}})
+} })

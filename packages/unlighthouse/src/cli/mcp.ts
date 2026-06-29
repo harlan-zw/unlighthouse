@@ -8,6 +8,7 @@
 // because there's no scanId to feed it.
 
 import type { UnlighthouseConfig } from '@unlighthouse/contracts'
+import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
@@ -16,7 +17,6 @@ import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { startStdioServer } from '@unlighthouse/mcp'
 import Database from 'better-sqlite3'
 import { createConsola } from 'consola'
-import fs from 'fs-extra'
 import { version } from '../../package.json'
 import { resolveAuditor } from '../auditor'
 import { resolveConfig } from '../config/resolve'
@@ -125,14 +125,14 @@ function countScans(dbPath: string): number {
 // mint a fresh cacheKey dir so future writes land somewhere structured.
 function pickScanDir(parent: string, hostname: string, config: unknown, version: string): string {
   const siteDir = join(parent, hostname)
-  if (!fs.existsSync(siteDir))
+  if (!existsSync(siteDir))
     return join(siteDir, computeConfigCacheKey(config, version))
-  const candidates = fs.readdirSync(siteDir)
+  const candidates = readdirSync(siteDir)
     .map((name) => {
       const dbPath = join(siteDir, name, 'db.sqlite')
-      if (!fs.existsSync(dbPath))
+      if (!existsSync(dbPath))
         return null
-      return { name, mtime: fs.statSync(join(siteDir, name)).mtimeMs, count: countScans(dbPath) }
+      return { name, mtime: statSync(join(siteDir, name)).mtimeMs, count: countScans(dbPath) }
     })
     .filter((e): e is { name: string, mtime: number, count: number } => e !== null)
     .sort((a, b) => (b.count - a.count) || (b.mtime - a.mtime))
@@ -181,21 +181,21 @@ export async function runMcp(): Promise<void> {
   }
   else {
     const rootDir = outputPath
-    if (fs.existsSync(rootDir)) {
-      const hostDirs = fs.readdirSync(rootDir)
-        .filter(name => fs.statSync(join(rootDir, name)).isDirectory())
+    if (existsSync(rootDir)) {
+      const hostDirs = readdirSync(rootDir)
+        .filter(name => statSync(join(rootDir, name)).isDirectory())
         .map((hostname) => {
           // Score each hostname by total scans across all <cacheKey> subdirs.
           const hostDir = join(rootDir, hostname)
           let total = 0
           let mtime = 0
-          for (const sub of fs.readdirSync(hostDir)) {
+          for (const sub of readdirSync(hostDir)) {
             const dbPath = join(hostDir, sub, 'db.sqlite')
-            if (!fs.existsSync(dbPath))
+            if (!existsSync(dbPath))
               continue
             const c = countScans(dbPath)
             total += c
-            const m = fs.statSync(join(hostDir, sub)).mtimeMs
+            const m = statSync(join(hostDir, sub)).mtimeMs
             if (m > mtime)
               mtime = m
           }
@@ -220,7 +220,7 @@ export async function runMcp(): Promise<void> {
       // will be empty. Better than guessing a hostname.
     }
   }
-  fs.ensureDirSync(outputPath)
+  mkdirSync(outputPath, { recursive: true })
   // Diagnostic to stderr (stdout is the JSON-RPC channel and must stay clean).
   // Gated by --debug so production agents don't see internal paths by default.
   diag(`[unlighthouse-mcp] outputPath=${outputPath}\n`)

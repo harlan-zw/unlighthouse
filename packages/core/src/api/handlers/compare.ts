@@ -368,23 +368,30 @@ function classifyRow(
   current: Record<string, number | null> | null,
   thresholds: Record<string, number>,
 ): 'unchanged' | 'regressed' | 'improved' | 'added' | 'removed' {
-  if (!base) return 'added'
-  if (!current) return 'removed'
+  if (!base)
+    return 'added'
+  if (!current)
+    return 'removed'
   let hasRegression = false
   let hasImprovement = false
   for (const k of METRIC_KEYS) {
     const d = deltas[k]
-    if (d == null) continue
+    if (d == null)
+      continue
     const isScore = SCORE_KEYS.has(k)
     // Threshold by the metric/category key the contract uses (e.g.
     // 'performance' for scorePerformance). Falls back to a small noise
     // band so two-decimal rounding doesn't flag rows as "regressed."
     const thr = thresholds[THRESHOLD_KEY[k]] ?? (isScore ? 0.01 : 50)
-    if (isScore ? -d > thr : d > thr) hasRegression = true
-    if (isScore ? d > thr : -d > thr) hasImprovement = true
+    if (isScore ? -d > thr : d > thr)
+      hasRegression = true
+    if (isScore ? d > thr : -d > thr)
+      hasImprovement = true
   }
-  if (hasRegression) return 'regressed'
-  if (hasImprovement) return 'improved'
+  if (hasRegression)
+    return 'regressed'
+  if (hasImprovement)
+    return 'improved'
   return 'unchanged'
 }
 
@@ -456,10 +463,14 @@ export const compareDetail: Handler<typeof CompareDetail> = {
     const sort = input.sort || 'delta-perf-desc'
     const [sortType, sortKey, sortDir] = sort.split('-')
     if (sortType === 'delta') {
-      const metricKey = sortKey === 'perf' ? 'scorePerformance'
-        : sortKey === 'a11y' ? 'scoreAccessibility'
-          : sortKey === 'seo' ? 'scoreSeo'
-            : sortKey === 'bp' ? 'scoreBestPractices'
+      const metricKey = sortKey === 'perf'
+        ? 'scorePerformance'
+        : sortKey === 'a11y'
+          ? 'scoreAccessibility'
+          : sortKey === 'seo'
+            ? 'scoreSeo'
+            : sortKey === 'bp'
+              ? 'scoreBestPractices'
               : sortKey === 'lcp' ? 'lcp' : sortKey === 'cls' ? 'cls' : 'scorePerformance'
       filtered.sort((a, b) => {
         const av = a.deltas[metricKey] ?? 0

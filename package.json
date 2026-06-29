@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.17.4",
   "private": true,
-  "packageManager": "pnpm@11.1.1",
+  "packageManager": "pnpm@11.9.0",
   "license": "MIT",
   "scripts": {
     "cli": "node packages/unlighthouse/dist/cli/cli.mjs",
@@ -37,16 +37,14 @@
     "bumpp": "catalog:",
     "drizzle-orm": "catalog:dependencies",
     "eslint": "catalog:",
-    "fs-extra": "catalog:dependencies",
     "h3": "catalog:dependencies",
     "jiti": "catalog:",
     "obuild": "catalog:",
-    "tsdown": "catalog:",
     "publint": "catalog:",
     "rolldown": "catalog:",
-    "tinyexec": "catalog:dependencies",
+    "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:dependencies",
+    "vite": "8.1.0",
     "vitest": "catalog:",
     "zod": "catalog:"
   }

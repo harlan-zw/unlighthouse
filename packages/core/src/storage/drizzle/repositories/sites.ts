@@ -38,10 +38,14 @@ export function createSiteRepository(db: AnyDrizzle): SiteRepository {
 
     async update(id: string, patch: Partial<Omit<SiteRecord, 'id'>>): Promise<SiteRecord | null> {
       const updates: Record<string, unknown> = {}
-      if (patch.name !== undefined) updates.name = patch.name
-      if (patch.url !== undefined) updates.url = patch.url
-      if (patch.group !== undefined) updates.group = patch.group ?? null
-      if (patch.createdAt !== undefined) updates.createdAt = patch.createdAt
+      if (patch.name !== undefined)
+        updates.name = patch.name
+      if (patch.url !== undefined)
+        updates.url = patch.url
+      if (patch.group !== undefined)
+        updates.group = patch.group ?? null
+      if (patch.createdAt !== undefined)
+        updates.createdAt = patch.createdAt
       if (Object.keys(updates).length === 0)
         return this.get(id)
       const [row] = await db.update(sites).set(updates).where(eq(sites.id, id)).returning()

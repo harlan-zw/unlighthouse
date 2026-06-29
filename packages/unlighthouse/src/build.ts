@@ -7,9 +7,9 @@ import type {
   ScanMeta,
 } from './types'
 import { Buffer } from 'node:buffer'
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { buildStaticSnapshot } from '@unlighthouse/core/api/static-client'
-import fs from 'fs-extra'
 import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 
@@ -39,10 +39,10 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
   const clientPathFolder = dirname(runtimeSettings.resolvedClientPath)
 
   logger?.debug(`Copying client from ${clientPathFolder} to ${runtimeSettings.generatedClientPath}`)
-  await fs.copy(clientPathFolder, runtimeSettings.generatedClientPath)
+  await cp(clientPathFolder, runtimeSettings.generatedClientPath, { recursive: true })
 
   const inlineScript = `window.__unlighthouse_static = ${!!options.static}`
-  let indexHTML = await fs.readFile(runtimeSettings.resolvedClientPath, 'utf-8')
+  let indexHTML = await readFile(runtimeSettings.resolvedClientPath, 'utf-8')
 
   // Absolute (leading slash) so a hard-load / refresh on a deep client route
   // still finds the payload — a relative `assets/...` would resolve against the
@@ -60,7 +60,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
       .replace(/(href|src)="\/_fonts\/(.*?)"/g, `$1="${prefix}_fonts/$2"`)
   }
 
-  await fs.writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
+  await writeFile(resolve(runtimeSettings.generatedClientPath, 'index.html'), indexHTML, 'utf-8')
 
   // Resolve current scan via runtimeSettings; absent → empty payload.
   const scanId = runtimeSettings.currentScanId
@@ -116,7 +116,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
   staticData.options.lighthouseOptions = { onlyCategories: resolvedConfig.lighthouseOptions.onlyCategories }
 
   const assetsDir = join(runtimeSettings.generatedClientPath, 'assets')
-  await fs.ensureDir(assetsDir)
+  await mkdir(assetsDir, { recursive: true })
 
   // #275: export each route's screenshot to a static file so offline thumbnails
   // resolve without the `/dashboard/screenshot` API. One per path (device-agnostic,
@@ -125,7 +125,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
   if (options.static && routes.length) {
     const { gunzipSync } = await import('node:zlib')
     const shotsDir = join(assetsDir, 'screenshots')
-    await fs.ensureDir(shotsDir)
+    await mkdir(shotsDir, { recursive: true })
     const screenshots: Record<string, string> = {}
     let idx = 0
     for (const r of routes) {
@@ -157,7 +157,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
       if (!bytes)
         continue
       const file = `screenshots/${idx++}.${ext}`
-      await fs.writeFile(join(assetsDir, file), bytes)
+      await writeFile(join(assetsDir, file), bytes)
       // Absolute from the report root — these render on deep client-side routes,
       // so a relative URL would resolve against the current path and 404.
       // `prefix` is '' (root) or '/sub/'; `|| '/'` covers the root case.
@@ -174,7 +174,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
     .replace(/</g, '\\u003c')
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029')
-  await fs.writeFile(
+  await writeFile(
     join(assetsDir, 'payload.js'),
     `window.__unlighthouse_payload = ${payloadJson}`,
     { encoding: 'utf-8' },

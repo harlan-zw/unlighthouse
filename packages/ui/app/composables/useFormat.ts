@@ -12,15 +12,18 @@ export function useFormat() {
   // Lighthouse score (0..1) → integer percentage. Null when the audit
   // couldn't produce a score (notApplicable / manual / error path).
   function fmtScore(v: number | null | undefined): string {
-    if (v == null) return '—'
+    if (v == null)
+      return '—'
     return String(Math.round(v * 100))
   }
 
   // Millisecond metric. Switches to seconds at 1000ms so e.g. LCP
   // reads "2.4s" rather than "2400ms" in tables.
   function fmtMs(v: number | null | undefined): string {
-    if (v == null) return '—'
-    if (v >= 1000) return `${(v / 1000).toFixed(1)}s`
+    if (v == null)
+      return '—'
+    if (v >= 1000)
+      return `${(v / 1000).toFixed(1)}s`
     return `${Math.round(v)}ms`
   }
 
@@ -28,12 +31,14 @@ export function useFormat() {
   // between percentage-point and ms/s rendering. Sign is always
   // included so the cell shows direction at a glance.
   function fmtDelta(v: number | null | undefined, isScore: boolean): string {
-    if (v == null) return '—'
+    if (v == null)
+      return '—'
     if (isScore) {
       const n = (v * 100).toFixed(1)
       return v > 0 ? `+${n}` : n
     }
-    if (Math.abs(v) >= 1000) return `${v > 0 ? '+' : ''}${(v / 1000).toFixed(1)}s`
+    if (Math.abs(v) >= 1000)
+      return `${v > 0 ? '+' : ''}${(v / 1000).toFixed(1)}s`
     return `${v > 0 ? '+' : ''}${Math.round(v)}ms`
   }
 
@@ -48,9 +53,12 @@ export function useFormat() {
   // use; B as the base for sub-1KB so we don't render "0KB" for
   // genuinely small responses.
   function fmtBytes(v: number | null | undefined): string {
-    if (v == null) return '—'
-    if (v >= 1024 * 1024) return `${(v / (1024 * 1024)).toFixed(1)}MB`
-    if (v >= 1024) return `${(v / 1024).toFixed(1)}KB`
+    if (v == null)
+      return '—'
+    if (v >= 1024 * 1024)
+      return `${(v / (1024 * 1024)).toFixed(1)}MB`
+    if (v >= 1024)
+      return `${(v / 1024).toFixed(1)}KB`
     return `${Math.round(v)}B`
   }
 
@@ -58,17 +66,23 @@ export function useFormat() {
   // the live events feed. Falls back to absolute date for >24h so we
   // don't render meaningless "8327h ago".
   function fmtRelTime(iso: string | number | null | undefined): string {
-    if (iso == null) return '—'
+    if (iso == null)
+      return '—'
     const ms = typeof iso === 'number' ? iso : Date.parse(iso)
-    if (Number.isNaN(ms)) return '—'
+    if (Number.isNaN(ms))
+      return '—'
     const diff = Date.now() - ms
-    if (diff < 0) return 'just now'
+    if (diff < 0)
+      return 'just now'
     const sec = Math.round(diff / 1000)
-    if (sec < 60) return `${sec}s ago`
+    if (sec < 60)
+      return `${sec}s ago`
     const m = Math.floor(sec / 60)
-    if (m < 60) return `${m}m ago`
+    if (m < 60)
+      return `${m}m ago`
     const h = Math.floor(m / 60)
-    if (h < 24) return `${h}h ago`
+    if (h < 24)
+      return `${h}h ago`
     return new Date(ms).toLocaleDateString()
   }
 
@@ -77,11 +91,14 @@ export function useFormat() {
   // a single scan shouldn't take that long; if one does, "Nd" would
   // surface a different problem worth flagging.
   function fmtDuration(ms: number | null | undefined): string {
-    if (ms == null || ms < 0) return '—'
-    if (ms < 60_000) return `${Math.round(ms / 1000)}s`
+    if (ms == null || ms < 0)
+      return '—'
+    if (ms < 60_000)
+      return `${Math.round(ms / 1000)}s`
     const m = Math.floor(ms / 60_000)
     const s = Math.round((ms % 60_000) / 1000)
-    if (m < 60) return s ? `${m}m ${s}s` : `${m}m`
+    if (m < 60)
+      return s ? `${m}m ${s}s` : `${m}m`
     const h = Math.floor(m / 60)
     return `${h}h ${m % 60}m`
   }
@@ -91,9 +108,11 @@ export function useFormat() {
   // wherever the operator is. Default ('long') for headers; 'short'
   // strips seconds for table rows where space is tight.
   function fmtTimestamp(iso: string | number | null | undefined, style: 'long' | 'short' = 'long'): string {
-    if (iso == null) return '—'
+    if (iso == null)
+      return '—'
     const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return '—'
+    if (Number.isNaN(d.getTime()))
+      return '—'
     if (style === 'short')
       return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
     return d.toLocaleString()

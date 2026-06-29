@@ -1,7 +1,7 @@
 import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from '@unlighthouse/contracts'
 import { Buffer } from 'node:buffer'
+import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { ensureDirSync } from 'fs-extra'
 import { joinURL } from 'ufo'
 import { hashPathName, sanitiseUrlForFilePath } from './path'
 
@@ -30,7 +30,7 @@ export function createTaskReportFromRoute(deps: CreateTaskReportDeps, route: Nor
   const scanId = currentScanId
   const reportPath = join(createReportsArtifactBasePath(generatedClientPath, scanId), sanitiseUrlForFilePath(route.path))
 
-  ensureDirSync(reportPath)
+  mkdirSync(reportPath, { recursive: true })
 
   return {
     tasks: {

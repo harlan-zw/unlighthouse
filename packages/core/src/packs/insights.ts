@@ -58,7 +58,8 @@ function mergeSavings(
   target: Record<string, number>,
   source: Record<string, number | undefined> | null | undefined,
 ): void {
-  if (!source) return
+  if (!source)
+    return
   for (const [k, v] of Object.entries(source)) {
     if (typeof v === 'number')
       target[k] = (target[k] ?? 0) + v
@@ -69,7 +70,8 @@ function maxSavings(
   current: Record<string, number>,
   source: Record<string, number | undefined> | null | undefined,
 ): void {
-  if (!source) return
+  if (!source)
+    return
   for (const [k, v] of Object.entries(source)) {
     if (typeof v === 'number')
       current[k] = Math.max(current[k] ?? 0, v)
@@ -116,14 +118,17 @@ export const insightsPack: Pack<InsightsReport> = {
         }
         catch {}
       }
-      if (!reconciled?.audits) continue
+      if (!reconciled?.audits)
+        continue
 
       for (const id of INSIGHT_AUDIT_IDS) {
         const audit = reconciled.audits[id]
-        if (!audit || audit.severity === 'pass') continue
+        if (!audit || audit.severity === 'pass')
+          continue
 
         const entry = insightMap.get(id)!
-        if (!entry.title && audit.title) entry.title = audit.title
+        if (!entry.title && audit.title)
+          entry.title = audit.title
         entry.routeCount++
         mergeSavings(entry.totalSavings, audit.metricSavings)
         maxSavings(entry.maxSingleRouteSavings, audit.metricSavings)

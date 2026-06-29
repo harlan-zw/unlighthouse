@@ -26,26 +26,27 @@ interface WsBus {
   off: (event: string, fn: (data: unknown) => void) => void
 }
 
-type ScanEvent =
-  | 'scan:created'
-  | 'scan:started'
-  | 'scan:discovering'
-  | 'scan:scanning'
-  | 'scan:progress'
-  | 'scan:route-complete'
-  | 'scan:route-failed'
-  | 'scan:paused'
-  | 'scan:resumed'
-  | 'scan:complete'
-  | 'scan:cancelled'
-  | 'scan:error'
+type ScanEvent
+  = | 'scan:created'
+    | 'scan:started'
+    | 'scan:discovering'
+    | 'scan:scanning'
+    | 'scan:progress'
+    | 'scan:route-complete'
+    | 'scan:route-failed'
+    | 'scan:paused'
+    | 'scan:resumed'
+    | 'scan:complete'
+    | 'scan:cancelled'
+    | 'scan:error'
 
 type Handlers = Partial<Record<ScanEvent, (data: any) => void>>
 
 export function useScanWebsocket(handlers: Handlers) {
   const { $ws } = useNuxtApp()
   const ws = $ws as WsBus
-  if (!ws) return
+  if (!ws)
+    return
 
   const entries = Object.entries(handlers) as Array<[ScanEvent, (data: any) => void]>
 

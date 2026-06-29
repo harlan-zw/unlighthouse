@@ -80,4 +80,3 @@ export const AuditorsList = defineCommand({
   }),
   cli: { hidden: true },
 })
-

@@ -37,10 +37,12 @@ const LOCAL_CAPABILITIES: AuditorCapabilities = {
 
 const WORKER_FILE = (() => {
   const fromMeta = fileURLToPath(new URL('./local-worker.mjs', import.meta.url))
-  if (existsSync(fromMeta)) return fromMeta
+  if (existsSync(fromMeta))
+    return fromMeta
   // Stub mode: import.meta.url points at src/, but the built worker is in dist/
   const fromDist = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', 'dist', 'auditors', 'local-worker.mjs')
-  if (existsSync(fromDist)) return fromDist
+  if (existsSync(fromDist))
+    return fromDist
   return fromMeta
 })()
 

@@ -480,21 +480,21 @@ export function reconcileToContract(args: {
   const rawStackPacks = (lhr as { stackPacks?: Array<{ id: string, title: string, iconDataURL?: string, descriptions?: Record<string, string> }> }).stackPacks
   const stackPacks = rawStackPacks?.length
     ? rawStackPacks.map(sp => ({
-      id: sp.id,
-      title: typeof sp.title === 'string' ? sp.title : sp.id,
-      iconDataURL: sp.iconDataURL ?? null,
-      descriptions: sp.descriptions ?? {},
-    }))
+        id: sp.id,
+        title: typeof sp.title === 'string' ? sp.title : sp.id,
+        iconDataURL: sp.iconDataURL ?? null,
+        descriptions: sp.descriptions ?? {},
+      }))
     : null
 
   // Extract entities (third-party origins)
   const rawEntities = (lhr as { entities?: Array<{ name: string, isFirstParty?: boolean, origins?: string[] }> }).entities
   const entities = rawEntities?.length
     ? rawEntities.map(e => ({
-      name: e.name,
-      isFirstParty: e.isFirstParty ?? false,
-      origins: e.origins ?? [],
-    }))
+        name: e.name,
+        isFirstParty: e.isFirstParty ?? false,
+        origins: e.origins ?? [],
+      }))
     : null
 
   const timing = (lhr as { timing?: { total?: number } }).timing

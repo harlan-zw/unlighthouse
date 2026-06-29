@@ -9,7 +9,8 @@ export function useScreenshotUrl() {
   return (scanId: string, path: string, device?: string): string => {
     if (import.meta.client) {
       const map = (window as unknown as { __unlighthouse_payload?: { screenshots?: Record<string, string> } })
-        .__unlighthouse_payload?.screenshots
+        .__unlighthouse_payload
+        ?.screenshots
       if (map && map[path])
         return map[path]
     }

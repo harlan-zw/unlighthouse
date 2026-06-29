@@ -15,8 +15,10 @@ import { defineCommand } from './define'
 // z.coerce.boolean() which treats any non-empty string as true).
 const QueryBool = z.preprocess(
   (v) => {
-    if (typeof v === 'boolean') return v
-    if (typeof v === 'string') return v === 'true' || v === '1'
+    if (typeof v === 'boolean')
+      return v
+    if (typeof v === 'string')
+      return v === 'true' || v === '1'
     return v
   },
   z.boolean(),

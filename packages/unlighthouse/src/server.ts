@@ -5,12 +5,12 @@ import type { Hookable } from 'hookable'
 import type { ServerHookMap } from './server-hooks'
 import { Buffer } from 'node:buffer'
 import { timingSafeEqual } from 'node:crypto'
+import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createDashboardApi } from '@unlighthouse/core/api/dashboard'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
 import { createTaggedLogger } from '@unlighthouse/core/logger'
-import fs from 'fs-extra'
 import { createRouter, defineEventHandler, getHeader, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
 import launch from 'launch-editor'
 import { joinURL } from 'ufo'
@@ -100,16 +100,16 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     const mimeType = mimeTypes[ext]
 
     const filePath = join(runtimeSettings.generatedClientPath, path)
-    const stats = await fs.stat(filePath).catch(() => null)
+    const stats = await stat(filePath).catch(() => null)
 
     if (stats?.isFile()) {
       if (mimeType)
         setResponseHeader(event, 'Content-Type', mimeType)
       return serveStatic(event, {
-        getContents: id => fs.readFile(join(runtimeSettings.generatedClientPath, id)),
+        getContents: id => readFile(join(runtimeSettings.generatedClientPath, id)),
         getMeta: async (id) => {
           const fp = join(runtimeSettings.generatedClientPath, id)
-          const s = await fs.stat(fp).catch(() => null)
+          const s = await stat(fp).catch(() => null)
           if (!s?.isFile())
             return
           return { size: s.size, mtime: s.mtimeMs }
@@ -120,10 +120,10 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     // SPA fallback: 200.html if present, else index.html.
     const fallbackPath = join(runtimeSettings.generatedClientPath, '200.html')
     const indexPath = join(runtimeSettings.generatedClientPath, 'index.html')
-    const htmlPath = await fs.stat(fallbackPath).then(() => fallbackPath).catch(() => indexPath)
+    const htmlPath = await stat(fallbackPath).then(() => fallbackPath).catch(() => indexPath)
 
     setResponseHeader(event, 'Content-Type', 'text/html')
-    return fs.readFile(htmlPath, 'utf-8')
+    return readFile(htmlPath, 'utf-8')
   }))
 
   // CORS. The decision tree is:

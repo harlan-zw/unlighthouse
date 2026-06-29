@@ -15,8 +15,8 @@ import type { CommandOutput, Device, PackList, PackRun, PackRunCmd } from '@unli
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts'
 import { gunzipSync } from 'fflate'
-import { sha1Hex } from '../../util/sha1'
 import { builtInPacks, getPack } from '../../packs/index'
+import { sha1Hex } from '../../util/sha1'
 
 // Inline-vs-spill threshold for cached reports. SQLite handles big JSON
 // columns fine, but the wire format and the row-cache both benefit from

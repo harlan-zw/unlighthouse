@@ -13,9 +13,11 @@ import type { Scan } from '@unlighthouse/contracts'
 // contract type.
 export type ScanRow = Scan
 
-/** A history row paired across the device matrix.
+/**
+ * A history row paired across the device matrix.
  *  When mobile + desktop scans of the same site started within ~5 min,
- *  they collapse into one row with both score halves filled. */
+ *  they collapse into one row with both score halves filled.
+ */
 export interface DevicePair {
   startedAt: string
   routes: number
