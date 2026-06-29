@@ -4,8 +4,8 @@
 // Plus GET /health for the Container runtime's liveness probe.
 //
 // Auth: Authorization: Bearer ${SHARED_AUDIT_TOKEN} (validated constant-time-ish
-// via a string comparison — Node v22 doesn't ship `timingSafeEqual` for
-// strings without the buffer dance; we're behind the DO binding anyway so
+// via a string comparison — `timingSafeEqual` works on buffers, not strings,
+// and we're behind the DO binding anyway so
 // the threat model is "defence in depth" not "first auth boundary").
 //
 // Browser delivery: Cloudflare Browser Run's external CDP endpoint

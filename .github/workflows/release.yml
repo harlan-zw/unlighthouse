@@ -23,7 +23,7 @@ jobs:
       - name: Set node
         uses: actions/setup-node@v5
         with:
-          node-version: latest
+          node-version: v24
           cache: pnpm
           registry-url: 'https://registry.npmjs.org'
 

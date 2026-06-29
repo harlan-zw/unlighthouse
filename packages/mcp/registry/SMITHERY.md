@@ -56,7 +56,7 @@ startCommand:
 
 ```bash
 # 1. Install the Smithery CLI
-npm install -g smithery@latest      # requires Node 20+
+npm install -g smithery@latest      # run from Node 24.13.1+ for this repo
 
 # 2. Authenticate (opens browser for OAuth)
 smithery auth login

@@ -3,6 +3,9 @@
   "type": "module",
   "version": "0.0.0",
   "private": true,
+  "engines": {
+    "node": ">=24.13.1"
+  },
   "scripts": {
     "dev": "wrangler dev",
     "build:panel": "cd ../../../.. && NUXT_PUBLIC_UNLIGHTHOUSE_API_URL=/api NUXT_PUBLIC_UNLIGHTHOUSE_WS_URL= pnpm --filter @unlighthouse/ui build",

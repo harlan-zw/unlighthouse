@@ -16,7 +16,7 @@ https://<worker>.workers.dev/api/scan/start  ← API (same origin, /api prefix)
 Worker (static panel + HTTP API, D1, R2, DOs, cron sweeper)
   │ env.LIGHTHOUSE_CONTAINER.getByName('default').fetch('/audit', ...)
   ▼
-LighthouseContainer (Node 22 image, ~250 MB, no Chromium)
+LighthouseContainer (Node 24 image, ~250 MB, no Chromium)
   │ puppeteer.connect to wss://…/browser-rendering/…
   ▼
 Browser Rendering (managed Chromium on Cloudflare's edge)

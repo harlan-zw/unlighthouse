@@ -23,10 +23,10 @@ export interface DrizzleStorage {
 export interface DrizzleStorageOptions {
   /**
    * Any drizzle instance. Typically:
-   *   - `drizzle(new DatabaseSync(path))` for `node:sqlite` (default CLI)
+   *   - `drizzle(new DatabaseSync(path))` for `node:sqlite`
    *   - `drizzle(env.DB)` for Cloudflare D1
    *   - `drizzle(createClient({ url, authToken }))` for libsql/Turso
-   *   - `drizzle(new Database(path))` for opt-in `better-sqlite3`
+   *   - `drizzle(new Database(path))` for the v1 local CLI `better-sqlite3` default
    */
   driver: any
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */

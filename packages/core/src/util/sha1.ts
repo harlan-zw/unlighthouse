@@ -1,6 +1,6 @@
 /**
  * Pure-JS SHA-1 (hex digest). Browser-safe drop-in for
- * `node:crypto createHash('sha1').update(input).digest('hex')` so the read-path
+ * `node:crypto hash('sha1', input, 'hex')` so the read-path
  * modules (memory storage, handlers) can be bundled into the static, offline
  * dashboard build — Node's `crypto` can't.
  *

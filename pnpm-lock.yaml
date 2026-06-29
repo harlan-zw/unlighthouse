@@ -259,9 +259,6 @@ catalogs:
     radix3:
       specifier: ^1.1.2
       version: 1.1.2
-    regexparam:
-      specifier: ^3.0.0
-      version: 3.0.0
     sanitize-filename:
       specifier: ^1.6.4
       version: 1.6.4
@@ -820,9 +817,6 @@ importers:
       radix3:
         specifier: catalog:dependencies
         version: 1.1.2
-      regexparam:
-        specifier: catalog:dependencies
-        version: 3.0.0
       sanitize-filename:
         specifier: catalog:dependencies
         version: 1.6.4
@@ -8642,10 +8636,6 @@ packages:
   regexp-tree@0.1.27:
     resolution: {integrity: sha512-iETxpjK6YoRWJG5o6hXLwvjYAoW+FEZn9os0PD/b6AP6xQwsa/Y7lCVgIixBbUPMfhu+i2LtdeAqVTgGlQarfA==}
     hasBin: true
-
-  regexparam@3.0.0:
-    resolution: {integrity: sha512-RSYAtP31mvYLkAHrOlh25pCNQ5hWnT106VukGaaFfuJrZFkGRX5GhUAdPqpSDXxOhA2c4akmRuplv1mRqnBn6Q==}
-    engines: {node: '>=8'}
 
   regjsparser@0.13.2:
     resolution: {integrity: sha512-NgRBy2Nx/bE+9F27nVHnqcN5HjyLmecqsqx2PJHu3/IEtADD4WuxuXIVExD5PoSDFVrl78dOonfcOe5O+5nbzQ==}
@@ -18893,8 +18883,6 @@ snapshots:
       refa: 0.12.1
 
   regexp-tree@0.1.27: {}
-
-  regexparam@3.0.0: {}
 
   regjsparser@0.13.2:
     dependencies:

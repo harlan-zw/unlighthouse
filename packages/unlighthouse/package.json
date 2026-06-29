@@ -53,7 +53,7 @@
     "types.d.ts"
   ],
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.13.1"
   },
   "scripts": {
     "build": "tsdown",
@@ -107,7 +107,6 @@
     "ofetch": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "radix3": "catalog:dependencies",
-    "regexparam": "catalog:dependencies",
     "sanitize-filename": "catalog:dependencies",
     "sitemapper": "catalog:dependencies",
     "slugify": "catalog:dependencies",

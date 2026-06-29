@@ -8,7 +8,7 @@ import type {
   ScanRouteRepository,
 } from '@unlighthouse/contracts'
 import type { ScanRouteRow } from '@unlighthouse/contracts/drizzle'
-import { createHash } from 'node:crypto'
+import { hash } from 'node:crypto'
 import { scanRoutes } from '@unlighthouse/contracts/drizzle'
 import { and, asc, desc, eq, gte, isNotNull, like, sql } from 'drizzle-orm'
 
@@ -17,7 +17,7 @@ type AnyDrizzle = any
 const DEFAULT_PAGE_SIZE = 100
 
 function urlHash(url: string): string {
-  return createHash('sha1').update(url).digest('hex').slice(0, 16)
+  return hash('sha1', url, 'hex').slice(0, 16)
 }
 
 // D-029: blob keys are per (scanId, url, device). The device segment is

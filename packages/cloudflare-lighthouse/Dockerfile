@@ -23,7 +23,7 @@
 # musl libc and we suspected a libc-related listener issue inside the
 # Cloudflare Container runtime (local docker run worked because of
 # emulation, prod runs native amd64 and exposed the problem).
-FROM node:22-slim AS deps
+FROM node:24-slim AS deps
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -41,7 +41,7 @@ RUN npm install --omit=dev --omit=optional --no-package-lock --no-audit --no-fun
 
 # Final stage — same slim base, just the install artefacts. No build
 # tools, no apk/apt cache.
-FROM node:22-slim
+FROM node:24-slim
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=deps /app /app

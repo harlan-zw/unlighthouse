@@ -74,7 +74,7 @@ Third-party packs ship as `@unlighthouse-pack/<name>` and are merged in at host 
 ## Workflow
 
 1. **Fork & branch** off `v1` (the active development branch; `main` is the v0 line).
-2. **Install:** `pnpm i` (requires Node ≥ 22, pnpm 11). Node 22 is set in every package's `engines.node`.
+2. **Install:** `pnpm i` (requires Node ≥ 24.13.1, pnpm 11). Node 24.13.1 is set in every package's `engines.node`.
 3. **Build packages:** `pnpm build:pkg` once. This is required before `pnpm cli` will run — the host depends on real build artefacts (especially the tinypool worker file, which can't be stubbed).
 4. **Run the dev loop:**
    - Terminal A: `pnpm cli --site https://example.com --no-open` boots the backend on `:5678` with CORS open.

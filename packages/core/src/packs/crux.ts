@@ -26,7 +26,7 @@
 //     "here's the lab metric AND the CrUX p75 for the same URL" without
 //     having to swap auditors.
 //
-// Network: uses `globalThis.fetch` (Node 20+, undici). No new HTTP deps.
+// Network: uses baseline `globalThis.fetch`. No new HTTP deps.
 // Tests stub `globalThis.fetch` to avoid hitting the live API.
 //
 // API key resolution (matches the `psi.apiKey` style — see

@@ -11,6 +11,9 @@
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=24.13.1"
+  },
   "scripts": {
     "dev": "nuxi dev",
     "build": "nuxi generate",

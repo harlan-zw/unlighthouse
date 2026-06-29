@@ -13,7 +13,7 @@ import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
 import { reconcileToContract } from '@unlighthouse/core/report'
 import { manualSeeds } from '@unlighthouse/core/seeds/manual'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
-import { createHash } from 'node:crypto'
+import { hash as cryptoHash } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 // ── Synthetic LHR fixture ──────────────────────────────────────────────────
@@ -184,7 +184,7 @@ describe('scan ingest persists reconciled contract blob', () => {
 
   it('writes scans/{id}/reports/{urlHash}-{device}.contract.json alongside the LHR blob', async () => {
     const url = 'http://example.com/'
-    const hash = createHash('sha1').update(url).digest('hex').slice(0, 16)
+    const hash = cryptoHash('sha1', url, 'hex').slice(0, 16)
     // D-029: blob filenames carry the device segment so mobile + desktop
     // results for the same URL don't collide.
     const contractKey = `scans/${scanId}/reports/${hash}-mobile.contract.json`
@@ -206,7 +206,7 @@ describe('scan ingest persists reconciled contract blob', () => {
     // and scans/.../reports/{hash}-{device}.contract.json (packs). Sanity-check
     // both wrote out so a future cleanup doesn't accidentally remove the wrong one.
     const url = 'http://example.com/'
-    const hash = createHash('sha1').update(url).digest('hex').slice(0, 16)
+    const hash = cryptoHash('sha1', url, 'hex').slice(0, 16)
     expect(await storage.blobs.has(`scans/${scanId}/reports/${hash}-mobile.json`)).toBe(true)
     expect(await storage.blobs.has(`scans/${scanId}/reports/${hash}-mobile.contract.json`)).toBe(true)
   })

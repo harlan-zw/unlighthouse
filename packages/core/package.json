@@ -139,7 +139,7 @@
     "src/logger.ts"
   ],
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.13.1"
   },
   "scripts": {
     "build": "tsdown",

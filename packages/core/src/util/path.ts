@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { hash } from 'node:crypto'
 import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
@@ -20,8 +20,5 @@ export function sanitiseUrlForFilePath(url: string) {
 
 /** Turn a web path into a 6-char hash for stable identification. */
 export function hashPathName(path: string) {
-  return createHash('md5')
-    .update(sanitiseUrlForFilePath(path))
-    .digest('hex')
-    .substring(0, 6)
+  return hash('md5', sanitiseUrlForFilePath(path), 'hex').substring(0, 6)
 }

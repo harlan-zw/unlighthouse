@@ -48,6 +48,10 @@ export function toStructuredError(err: unknown): { code: string, message: string
   return { code: 'INTERNAL', message: String(err) }
 }
 
+async function urlHash(url: string): Promise<string> {
+  return (await import('node:crypto')).hash('sha1', url, 'hex').slice(0, 16)
+}
+
 // Compute (scoreAverage, scoresByCategory) over a set of completed routes.
 // Routes with `null` for a given category are skipped — Lighthouse leaves a
 // category null when it failed to run (e.g. a 5xx response on that URL).
@@ -145,7 +149,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       // `lhrBlobKey` + `reportBlobKey` columns the row got. Device segment is
       // part of the filename so mobile + desktop results for the same URL don't
       // collide on the blob store.
-      const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
+      const hash = await urlHash(url)
       const lhrKey = `scans/${scanId}/lhr/${hash}-${device}.json.gz`
       const reportKey = `scans/${scanId}/reports/${hash}-${device}.json`
       const contractKey = `scans/${scanId}/reports/${hash}-${device}.contract.json`
@@ -290,13 +294,13 @@ export async function finalizeScan(deps: FinalizeDeps, args: FinalizeArgs): Prom
             scanId,
             routes: scoredRoutes,
             getReconciled: async (url: string, dev) => {
-              const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
+              const hash = await urlHash(url)
               const key = `scans/${scanId}/reports/${hash}-${dev}.contract.json`
               const blob = await storage.blobs.get(key)
               return blob ? JSON.parse(new TextDecoder().decode(blob)) : null
             },
             getLhr: async (url: string, dev) => {
-              const hash = (await import('node:crypto')).createHash('sha1').update(url).digest('hex').slice(0, 16)
+              const hash = await urlHash(url)
               const key = `scans/${scanId}/lhr/${hash}-${dev}.json.gz`
               const blob = await storage.blobs.get(key)
               if (!blob)

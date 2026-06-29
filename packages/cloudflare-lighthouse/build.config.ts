@@ -7,7 +7,7 @@ import { defineBuildConfig } from 'obuild/config'
 // it touches is `@unlighthouse/core/auditors/remote-lighthouse`, which
 // itself only depends on `ofetch`.
 //
-// `server.ts` runs inside the Cloudflare Container (Node 22). It imports
+// `server.ts` runs inside the Cloudflare Container (Node 24). It imports
 // `createCdpConnectAuditor` from `@unlighthouse/core/auditors/cdp-connect`,
 // which pulls `lighthouse` + `puppeteer-core`. That's fine — the
 // Container is a real Node host, not a Workers runtime.

@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "private": true,
   "main": "./nuxt.config.ts",
+  "engines": {
+    "node": ">=24.13.1"
+  },
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
