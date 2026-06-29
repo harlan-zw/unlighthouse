@@ -15,6 +15,8 @@ export default defineConfig({
     './src/auditors/cdp-connect.ts',
     './src/auditors/remote-lighthouse.ts',
     './src/auditors/crux.ts',
+    './src/auditors/dataforseo.ts',
+    './src/auditors/local.ts',
     './src/auditors/psi.ts',
     './src/auditors/route/index.ts',
     './src/auditors/local-worker.ts',

@@ -3,9 +3,10 @@
 // behaviour shouldn't change, but the data path does (fewer LHR fetches,
 // LH-version stable).
 
-import type { PackReconcileCtx, ReconciledReport, ScanRoute } from '@unlighthouse/contracts'
-import { cwvPack } from '@unlighthouse/core/packs/cwv'
-import { seoBasicsPack } from '@unlighthouse/core/packs/seo-basics'
+import type { ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import { cwvPack } from '@unlighthouse/core/packs'
+import { seoBasicsPack } from '@unlighthouse/core/packs'
 import { describe, expect, it, vi } from 'vitest'
 
 // ── Fixture helpers ─────────────────────────────────────────────────────────

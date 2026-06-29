@@ -1,5 +1,5 @@
 import { hash } from 'node:crypto'
-import { sha1Hex } from '@unlighthouse/core/util/sha1'
+import { sha1Hex } from '../packages/core/src/util/sha1'
 import { describe, expect, it } from 'vitest'
 
 const nodeSha1 = (s: string) => hash('sha1', s, 'hex')

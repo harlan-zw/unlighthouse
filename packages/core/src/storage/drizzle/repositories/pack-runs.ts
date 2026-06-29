@@ -1,9 +1,9 @@
 import type {
-  PackRun,
   PackRunRepository,
   ScanId,
 } from '@unlighthouse/contracts'
 import type { PackRunRow } from '@unlighthouse/contracts/drizzle'
+import type { PackRun } from '@unlighthouse/contracts/packs'
 import { packRuns } from '@unlighthouse/contracts/drizzle'
 import { and, eq } from 'drizzle-orm'
 

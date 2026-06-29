@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isI18nAlternatePage, sameHostCanonical } from '@unlighthouse/core/util/i18n'
+import { isI18nAlternatePage, sameHostCanonical } from '../packages/core/src/util/i18n'
 
 describe('isI18nAlternatePage', () => {
   it('returns false when there is no x-default link', () => {

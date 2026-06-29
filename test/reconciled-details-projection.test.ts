@@ -6,9 +6,10 @@
 //      when both fetchers are available; they fall back to LHR when only
 //      that's present.
 
-import type { PackReconcileCtx, ReconciledReport, ScanRoute } from '@unlighthouse/contracts'
-import { a11yQuickWinsPack } from '@unlighthouse/core/packs/a11y-quick-wins'
-import { imagesPack } from '@unlighthouse/core/packs/images'
+import type { ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import { a11yQuickWinsPack } from '@unlighthouse/core/packs'
+import { imagesPack } from '@unlighthouse/core/packs'
 import { reconcileToContract } from '@unlighthouse/core/report'
 import { describe, expect, it, vi } from 'vitest'
 

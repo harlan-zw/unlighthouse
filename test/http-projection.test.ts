@@ -5,9 +5,11 @@
 //   * handler throws map to UnlighthouseError code → HTTP status
 //   * input validation failures return 400 with INPUT_INVALID
 
-import type { Auditor, Storage, UnlighthouseConfig, UnlighthouseCore } from '@unlighthouse/contracts'
-import type { HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers/types'
-import { commands, UnlighthouseError } from '@unlighthouse/contracts'
+import type { Auditor, Storage, UnlighthouseCore } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
+import { commands } from '@unlighthouse/contracts/commands'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { commandToRoute, createHttpRouter } from '@unlighthouse/core/api/http'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'

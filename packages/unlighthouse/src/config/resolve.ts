@@ -3,11 +3,12 @@
 // defu owns merging (D-011); c12 layers the file/env/overrides, the Zod schema
 // validates the post-merge result.
 
-import type { UnlighthouseConfig } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import { Buffer } from 'node:buffer'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
-import { UnlighthouseConfigSchema, UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { loadConfig } from 'c12'
 import { defu } from 'defu'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
@@ -18,6 +19,8 @@ export interface ResolveConfigOptions {
   overrides?: Partial<UnlighthouseConfig>
   /** cwd for c12 lookup (defaults to process.cwd()). */
   cwd?: string
+  /** Explicit config file path/name for c12 lookup. */
+  configFile?: string
 }
 
 export interface ResolvedConfigResult {
@@ -233,6 +236,7 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
   const { config, configFile, layers } = await loadConfig<UnlighthouseConfig>({
     name: 'unlighthouse',
     cwd,
+    configFile: opts.configFile,
     defaults: HOST_DEFAULTS as UnlighthouseConfig,
     overrides: opts.overrides as UnlighthouseConfig | undefined,
     dotenv: true,

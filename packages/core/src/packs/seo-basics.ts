@@ -11,7 +11,8 @@
 // the headline number for an agent or a human auditing whether their site
 // will actually rank.
 
-import type { Pack, PackReconcileCtx, ReconciledReport } from '@unlighthouse/contracts'
+import type { ReconciledReport } from '@unlighthouse/contracts/types/atoms'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────

@@ -1,13 +1,10 @@
-interface WsEvent {
-  event: string
-  data: any
-}
+import type { ScanEventBus, ScanEventHandler, ScanEventName, WsEnvelope } from '~/types/scan-events'
 
-type WsListener = (data: any) => void
+type RawScanEventHandler = (data: unknown) => void
 
-class WsBus {
+class BrowserWsBus implements ScanEventBus {
   private ws: WebSocket | null = null
-  private listeners = new Map<string, Set<WsListener>>()
+  private listeners = new Map<string, Set<RawScanEventHandler>>()
   private url: string
   private retryDelay = 1000
   private maxRetryDelay = 30000
@@ -35,7 +32,7 @@ class WsBus {
 
       this.ws.onmessage = (e) => {
         try {
-          const msg: WsEvent = JSON.parse(e.data)
+          const msg = JSON.parse(e.data) as WsEnvelope
           const handlers = this.listeners.get(msg.event)
           if (handlers) {
             for (const fn of handlers) fn(msg.data)
@@ -65,15 +62,15 @@ class WsBus {
     }
   }
 
-  on(event: string, fn: WsListener) {
+  on<K extends ScanEventName>(event: K, fn: ScanEventHandler<K>) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set())
     }
-    this.listeners.get(event)!.add(fn)
+    this.listeners.get(event)!.add(fn as RawScanEventHandler)
   }
 
-  off(event: string, fn: WsListener) {
-    this.listeners.get(event)?.delete(fn)
+  off<K extends ScanEventName>(event: K, fn: ScanEventHandler<K>) {
+    this.listeners.get(event)?.delete(fn as RawScanEventHandler)
   }
 
   dispose() {
@@ -85,7 +82,7 @@ class WsBus {
 
 export default defineNuxtPlugin({ name: 'ws', setup() {
   const config = useRuntimeConfig()
-  const bus = new WsBus(config.public.unlighthouseWsUrl as string)
+  const bus = new BrowserWsBus(config.public.unlighthouseWsUrl as string)
 
   if (import.meta.client) {
     window.addEventListener('beforeunload', () => bus.dispose())

@@ -8,7 +8,6 @@
 // Workspace deps to vendor:
 //   - @unlighthouse/contracts
 //   - @unlighthouse/core
-//   - @unlighthouse/audit-pool (transitive via core)
 //
 // We `pnpm pack` each one and copy the resulting .tgz into ./vendor, then
 // rewrite package.runtime.json to depend on those tarballs by file path.
@@ -47,7 +46,6 @@ function resolveCatalog(version, name, catalogs) {
 
 const WORKSPACE_DEPS = [
   '@unlighthouse/contracts',
-  '@unlighthouse/audit-pool',
   '@unlighthouse/core',
 ]
 

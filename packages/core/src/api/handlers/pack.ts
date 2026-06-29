@@ -11,9 +11,11 @@
 // version is what invalidates a stale entry. Callers can force a re-run with
 // `refresh: true`.
 
-import type { CommandOutput, Device, PackList, PackRun, PackRunCmd } from '@unlighthouse/contracts'
+import type { Device } from '@unlighthouse/contracts/types/atoms'
+import type { CommandOutput, PackList, PackRunCmd } from '@unlighthouse/contracts/commands'
+import type { PackRun } from '@unlighthouse/contracts/packs'
 import type { Handler } from './types'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { gunzipSync } from 'fflate'
 import { builtInPacks, getPack } from '../../packs/index'
 import { sha1Hex } from '../../util/sha1'

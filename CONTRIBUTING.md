@@ -7,7 +7,7 @@ Thanks for your interest in contributing. This doc covers the conventions, expec
 **Match what's there before adding something new.** Unlighthouse is a monorepo with deliberate package boundaries and established patterns. When you add code, default to the existing infrastructure — package placement, module shape, naming, dependency direction — unless there's a clear architectural or DX reason to deviate. If you think you have one, raise it in the PR description so it can be discussed before review.
 
 This applies to:
-- Which package code lives in (`contracts`, `core`, `audit-pool`, `unlighthouse`, `ui`, `mcp`, `cloudflare`).
+- Which package code lives in (`contracts`, `core`, `unlighthouse`, `ui`, `mcp`, `cloudflare`).
 - Public API surface — prefer extending existing hooks, options, or composables over inventing parallel ones.
 - File organisation within a package — colocate with siblings rather than introducing new top-level folders.
 - Dependency choices — check the pnpm catalog (`pnpm-workspace.yaml`) before adding a new dep.
@@ -36,7 +36,6 @@ Read `DESIGN.md` before writing Vue. If a design rule is missing or wrong, updat
 packages/
   contracts/    Zod schemas, command registry, port interfaces, Pack contract
   core/         scan engine, auditors, crawlers, storage, API handlers, built-in packs
-  audit-pool/   tinypool-backed worker pool for parallel Lighthouse runs
   unlighthouse/ CLI host (bins: unlighthouse, unlighthouse-ci, unlighthouse-mcp)
   ui/           Nuxt 3 dashboard (dark-only, Stone palette — see DESIGN.md)
   mcp/          MCP server preset for AI agents

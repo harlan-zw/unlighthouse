@@ -24,7 +24,8 @@
 // finalizeScan() self-guards against running twice.
 
 import type { D1Database, DurableObjectNamespace, DurableObjectState, Fetcher, R2Bucket } from '@cloudflare/workers-types'
-import type { Device, UnlighthouseConfig } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { deriveSiteId, deriveSiteName, finalizeScan, siteOrigin } from '@unlighthouse/core'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { createFilter } from '@unlighthouse/core/util/filter'

@@ -3,15 +3,17 @@
 
 import type {
   Auditor,
+  Storage,
+  UnlighthouseCore,
+} from '@unlighthouse/contracts'
+import type {
   Command,
   CommandInput,
   CommandName,
   CommandOutput,
   CommandRegistry,
-  Storage,
-  UnlighthouseConfig,
-  UnlighthouseCore,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/commands'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 
 export interface AuditorInfo {
   name: string

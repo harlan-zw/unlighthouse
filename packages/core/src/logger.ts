@@ -1,13 +1,47 @@
+import type { ConsolaInstance } from 'consola'
 import { createConsola } from 'consola'
 
-const isDebug = process.env.DEBUG === '1'
-  || process.env.DEBUG === 'true'
-  || process.env.DEBUG === '*'
+function isDebugEnv(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.DEBUG === '1' || env.DEBUG === 'true' || env.DEBUG === '*'
+}
 
-export const logger = createConsola({
-  level: isDebug ? 4 : 3,
-}).withTag('unlighthouse')
+let rootLogger: ConsolaInstance | undefined
+
+function getRootLogger(): ConsolaInstance {
+  rootLogger ??= createConsola({
+    level: isDebugEnv() ? 4 : 3,
+  }).withTag('unlighthouse')
+  return rootLogger
+}
+
+function lazyLogger(resolve: () => ConsolaInstance): ConsolaInstance {
+  return new Proxy({} as ConsolaInstance, {
+    get(_target, prop, receiver) {
+      const target = resolve()
+      const value = Reflect.get(target, prop, receiver)
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+    set(_target, prop, value, receiver) {
+      return Reflect.set(resolve(), prop, value, receiver)
+    },
+    has(_target, prop) {
+      return prop in resolve()
+    },
+    ownKeys() {
+      return Reflect.ownKeys(resolve())
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      return Reflect.getOwnPropertyDescriptor(resolve(), prop)
+    },
+  })
+}
+
+export const logger = lazyLogger(getRootLogger)
 
 export function createTaggedLogger(tag: string) {
-  return logger.withTag(tag)
+  let tagged: ConsolaInstance | undefined
+  return lazyLogger(() => {
+    tagged ??= getRootLogger().withTag(tag)
+    return tagged
+  })
 }

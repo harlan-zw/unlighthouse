@@ -6,7 +6,6 @@ export default defineConfig({
     './src/cli/cli.ts',
     './src/cli/ci.ts',
     './src/cli/mcp.ts',
-    './src/lighthouse.ts',
   ],
   format: 'esm',
   dts: true,

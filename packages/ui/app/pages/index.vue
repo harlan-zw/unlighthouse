@@ -1,94 +1,31 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import type { ScanRow } from '@/components/site/types'
 import { h } from 'vue'
-import { useScanStore } from '~/stores/scan'
+import type { DashboardSiteRow } from '~/features/dashboard/overview'
+import { useDashboardOverview } from '~/features/dashboard/overview'
+import ScanStatusBadge from '~/features/scan/components/ScanStatusBadge.vue'
+import Sparkline from '~/features/sites/components/Sparkline.vue'
+import type { ScanRow } from '~/features/sites/scan-pairs'
 
 definePageMeta({ layout: 'root', middleware: 'onboarding' })
 
-const api = useApi()
-const router = useRouter()
-const store = useScanStore()
 const { scoreToColor, scoreToLabel } = useScoreColor()
 const { fmtRelTime } = useFormat()
 
-const ScanStatusBadge = resolveComponent('ScanStatusBadge')
-const SparklineC = resolveComponent('Sparkline')
 const FaviconC = resolveComponent('Favicon')
+const {
+  historyStatus,
+  allScans,
+  siteRows,
+  kpis,
+  recentScans,
+  isEmpty,
+  activeScan,
+  openActiveScan,
+  openSite,
+  openScan,
+} = useDashboardOverview()
 
-const { data: histResp, status: historyStatus } = useAsyncData(
-  'recent-scans',
-  () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
-)
-const { data: sitesData } = useAsyncData(
-  'dashboard-sites',
-  () => api['sites.list']({}).catch(() => ({ sites: [] as Array<{ id: string, name: string, url: string, group: string | null }> })),
-)
-
-const allScans = computed(() => (histResp.value?.items ?? []) as ScanRow[])
-const totalScans = computed(() => histResp.value?.total ?? 0)
-
-function originOf(u: string): string {
-  try {
-    return new URL(u).origin
-  }
-  catch {
-    return u
-  }
-}
-
-// Scans grouped by site origin (newest first).
-const byOrigin = computed(() => {
-  const m = new Map<string, ScanRow[]>()
-  for (const s of allScans.value) {
-    const o = originOf(s.site)
-    const arr = m.get(o) ?? []
-    arr.push(s)
-    m.set(o, arr)
-  }
-  for (const arr of m.values())
-    arr.sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-  return m
-})
-
-interface SiteRow {
-  name: string
-  slug: string
-  url: string
-  avg: number | null
-  cats: Record<string, number | undefined>
-  series: number[]
-  lastAt: string | null
-  scanCount: number
-}
-
-const siteRows = computed<SiteRow[]>(() =>
-  (sitesData.value?.sites ?? []).map((site) => {
-    const scans = (byOrigin.value.get(originOf(site.url)) ?? []).filter(s => s.summary && (s.summary.completed ?? 0) > 0)
-    const latest = scans[0] ?? null
-    const series = [...scans].reverse().slice(-12).map(s => Math.round((s.summary?.scoreAverage ?? 0) * 100))
-    return {
-      name: site.name || siteSlug(site.url),
-      slug: siteSlug(site.url),
-      url: site.url,
-      avg: latest?.summary?.scoreAverage ?? null,
-      cats: (latest?.summary?.scoresByCategory ?? {}) as Record<string, number | undefined>,
-      series,
-      lastAt: latest?.startedAt ?? null,
-      scanCount: scans.length,
-    }
-  }),
-)
-
-const kpis = computed(() => {
-  const avgs = siteRows.value.map(r => r.avg).filter((v): v is number => v != null)
-  return {
-    sites: siteRows.value.length,
-    scans: totalScans.value,
-    avg: avgs.length ? Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 100) : null,
-    needs: siteRows.value.filter(r => r.avg != null && r.avg < 0.9).length,
-  }
-})
 function score100Color(v: number | null): string {
   if (v == null) return 'var(--muted-foreground)'
   return v >= 90 ? '#22c55e' : v >= 50 ? '#f97316' : '#ef4444'
@@ -101,7 +38,7 @@ const CAT_COLS: { key: string, label: string }[] = [
   { key: 'seo', label: 'SEO' },
   { key: 'best-practices', label: 'BP' },
 ]
-const siteColumns: ColumnDef<SiteRow>[] = [
+const siteColumns: ColumnDef<DashboardSiteRow>[] = [
   {
     accessorKey: 'name',
     header: 'Site',
@@ -115,7 +52,7 @@ const siteColumns: ColumnDef<SiteRow>[] = [
   },
   {
     id: 'avg',
-    accessorFn: (r: SiteRow) => r.avg ?? undefined,
+    accessorFn: (r: DashboardSiteRow) => r.avg ?? undefined,
     header: 'Score',
     sortUndefined: 'last',
     align: 'center',
@@ -123,7 +60,7 @@ const siteColumns: ColumnDef<SiteRow>[] = [
   },
   ...CAT_COLS.map(c => ({
     id: c.key,
-    accessorFn: (r: SiteRow) => r.cats[c.key] ?? undefined,
+    accessorFn: (r: DashboardSiteRow) => r.cats[c.key] ?? undefined,
     header: c.label,
     sortUndefined: 'last' as const,
     align: 'center' as const,
@@ -137,11 +74,11 @@ const siteColumns: ColumnDef<SiteRow>[] = [
     header: 'Trend',
     enableSorting: false,
     align: 'left',
-    cell: ({ row }) => h(SparklineC, { values: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null) }),
+    cell: ({ row }) => h(Sparkline, { values: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null) }),
   },
   {
     id: 'last',
-    accessorFn: (r: SiteRow) => r.lastAt ?? '',
+    accessorFn: (r: DashboardSiteRow) => r.lastAt ?? '',
     header: 'Last scan',
     align: 'right',
     cell: ({ row }) => h('span', { class: 'text-xs text-muted tabular-nums' }, row.original.lastAt ? fmtRelTime(row.original.lastAt) : '—'),
@@ -199,14 +136,6 @@ const recentColumns: ColumnDef<ScanRow>[] = [
     cell: ({ row }) => h('span', { class: 'text-xs text-muted tabular-nums' }, fmtRelTime(row.original.startedAt)),
   },
 ]
-const recentScans = computed(() => allScans.value.slice(0, 10))
-
-function openSite(r: SiteRow) {
-  router.push(`/sites/${r.slug}`)
-}
-function openScan(s: ScanRow) {
-  router.push(scanLinkPath(siteSlug(s.site), s.scanId, s.status))
-}
 </script>
 
 <template>
@@ -218,22 +147,22 @@ function openScan(s: ScanRow) {
     </PageHeader>
 
     <!-- Active scan banner -->
-    <div v-if="store.isActive" class="rounded-xl border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="router.push(`/sites/${siteSlug(store.site || '')}/scans/${store.scanId}/overview`)">
+    <div v-if="activeScan.isActive" class="rounded-xl border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="openActiveScan">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="relative flex size-2">
               <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
               <span class="relative inline-flex size-2 rounded-full bg-primary" />
             </span>
-            <span class="text-sm font-medium">Scanning {{ store.site }}</span>
+            <span class="text-sm font-medium">Scanning {{ activeScan.site }}</span>
           </div>
-          <span class="text-sm tabular-nums text-muted">{{ store.scanned }}/{{ store.total }}</span>
+          <span class="text-sm tabular-nums text-muted">{{ activeScan.scanned }}/{{ activeScan.total }}</span>
         </div>
-        <UProgress :model-value="store.percent" size="sm" />
+        <UProgress :model-value="activeScan.percent" size="sm" />
     </div>
 
     <!-- Empty state -->
-    <div v-if="historyStatus !== 'pending' && !allScans.length && !store.isActive" class="flex flex-col items-center justify-center py-20 text-center">
+    <div v-if="isEmpty" class="flex flex-col items-center justify-center py-20 text-center">
       <div class="size-16 rounded-full bg-elevated flex items-center justify-center mb-6">
         <Icon name="lucide:radar" class="size-8 text-muted" />
       </div>

@@ -1,7 +1,6 @@
 import type { UnlighthouseColumn, UnlighthouseTabs, UserConfig } from './types'
 
 export const AppName = 'Unlighthouse'
-export const ClientPkg = '@unlighthouse/ui'
 export const DefaultModuleRouterPrefix = '/__unlighthouse'
 export const TagLine = 'Scan your entire website with Google Lighthouse.'
 

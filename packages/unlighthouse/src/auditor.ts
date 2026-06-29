@@ -1,24 +1,24 @@
 // Auditor resolver — maps UnlighthouseConfig to a single Auditor port.
 // v1.md Phase 3: pure switch + factory call, no new abstraction.
 
-import type { AuditorConfig, AuditorProvider, AuditorRouterConfig, AuditorRouterStrategy, UnlighthouseConfig } from '@unlighthouse/contracts'
+import type { AuditorConfig, AuditorProvider, AuditorRouterConfig, AuditorRouterStrategy, UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { Auditor, NamedAuditor } from '@unlighthouse/contracts/ports'
-import type { PickFn } from '@unlighthouse/core/auditors'
+import type { PickFn } from '@unlighthouse/core/auditors/route'
 import type { z } from 'zod'
+import { createCdpConnectAuditor } from '@unlighthouse/core/auditors/cdp-connect'
+import { createCruxAuditor } from '@unlighthouse/core/auditors/crux'
+import { createDataForSeoAuditor } from '@unlighthouse/core/auditors/dataforseo'
+import { createLocalAuditor } from '@unlighthouse/core/auditors/local'
+import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
+import { createPsiAuditor } from '@unlighthouse/core/auditors/psi'
 import {
-  createCdpConnectAuditor,
-  createCruxAuditor,
-  createDataForSeoAuditor,
-  createLocalAuditor,
-  createMockAuditor,
-  createPsiAuditor,
   createTokenBucket,
   fallbackAuditor,
   rateLimitedPick,
   roundRobinPick,
   routeAuditors,
   weightedPick,
-} from '@unlighthouse/core/auditors'
+} from '@unlighthouse/core/auditors/route'
 
 type AuditorProviderConfig = z.infer<typeof AuditorProvider>
 type AuditorRouterStrategyConfig = z.infer<typeof AuditorRouterStrategy>

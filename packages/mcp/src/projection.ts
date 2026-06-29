@@ -1,7 +1,7 @@
 // MCP projection of the command registry.
 // Mirrors @unlighthouse/core/api/http.ts but emits MCP tools.
 
-import type { Command, CommandName } from '@unlighthouse/contracts'
+import type { Command, CommandName } from '@unlighthouse/contracts/commands'
 import type { Handler, HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import {
@@ -10,7 +10,8 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js'
-import { commands, UnlighthouseError } from '@unlighthouse/contracts'
+import { commands } from '@unlighthouse/contracts/commands'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { z } from 'zod'
 
 /**

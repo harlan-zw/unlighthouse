@@ -12,7 +12,8 @@
 // single-device control case locks in the legacy shape for backwards
 // compat: rows still carry `device`, just with one value.
 
-import type { ExtractedMetrics, ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
+import type { ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
+import type { ExtractedMetrics } from '@unlighthouse/contracts/types/atoms'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

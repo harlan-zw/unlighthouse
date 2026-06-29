@@ -12,7 +12,7 @@
 // with `routes` listing every page that ships it. Byte savings count once per
 // image (not per route).
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────

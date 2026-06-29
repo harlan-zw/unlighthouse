@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import CategoryPageShell from '~/features/scan/components/CategoryPageShell.vue'
+import { getScanId } from '~/features/scan/route-context'
 
 definePageMeta({ layout: 'scan' })
 

@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest'
-import { defineConfig } from '../packages/unlighthouse/src'
+import { defineConfig } from 'unlighthouse'
 
 describe('types', () => {
   it('cache on', async () => {

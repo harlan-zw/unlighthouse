@@ -7,7 +7,7 @@
 // world. Without this, history.list returns [] and pack.run can't be invoked
 // because there's no scanId to feed it.
 
-import type { UnlighthouseConfig } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'

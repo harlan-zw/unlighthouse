@@ -6,9 +6,9 @@
 // footer. The fixture is intentionally small (3 routes × 1 device) but
 // includes both a regression and an improvement so neither table is empty.
 
-import type { Scan, ScanRoute } from '@unlighthouse/contracts'
-import type { HandlerCtx } from '@unlighthouse/core/api/handlers/types'
-import { compareMarkdown } from '@unlighthouse/core/api/handlers/compare'
+import type { Scan, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
+import { compareMarkdown } from '@unlighthouse/core/api/handlers'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { describe, expect, it } from 'vitest'

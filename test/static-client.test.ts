@@ -2,9 +2,11 @@
 // embedded snapshot via the real handlers + a seeded memory storage — no API.
 // This pins the data layer behind `--build-static`.
 
-import type { PackRun, Scan, ScanRoute, UnlighthouseConfig } from '@unlighthouse/contracts'
-import { buildStaticSnapshot, createStaticClient } from '../packages/core/src/api/static-client'
-import { memoryStorage } from '../packages/core/src/storage/memory'
+import type { Scan, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { PackRun } from '@unlighthouse/contracts/packs'
+import { buildStaticSnapshot, createStaticClient } from '@unlighthouse/core/api/static-client'
+import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { describe, expect, it } from 'vitest'
 
 const SCAN_ID = 'scan-static-0001'

@@ -3,7 +3,7 @@
 //   types/    — shared atoms + legacy interfaces (LighthouseReport, etc.)
 //   hooks/    — UnlighthouseHooks HookMap + HookEventUnion
 //   errors/   — UnlighthouseError + stable code constants
-//   commands/ — Command<I,O> + defineCommand + the 22-command registry
+//   commands/ — Command<I,O> + defineCommand + command registry
 //   config/   — UnlighthouseConfig validation schema (no defaults; D-011)
 //   ports/    — SeedSource / Crawler / Auditor / Storage (separate agent)
 

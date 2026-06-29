@@ -1,7 +1,7 @@
 // Built-in pack registry. Third-party packs ship as `@unlighthouse-pack/<name>`
 // and are merged in at host wiring time (see core.run / preset config).
 
-import type { Pack } from '@unlighthouse/contracts'
+import type { Pack } from '@unlighthouse/contracts/packs'
 import { a11yQuickWinsPack } from './a11y-quick-wins'
 import { agenticBrowsingPack } from './agentic-browsing'
 import { cruxPack } from './crux'

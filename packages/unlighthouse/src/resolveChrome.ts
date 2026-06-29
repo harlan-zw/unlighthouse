@@ -50,7 +50,8 @@ export async function resolveChrome({ chrome, puppeteerOptions, logger }: Resolv
 
   if (!foundChrome) {
     try {
-      import.meta.resolve('puppeteer')
+      const optionalPuppeteerPackage = 'puppeteer'
+      import.meta.resolve(optionalPuppeteerPackage)
       foundChrome = true
       logger?.info?.('Using puppeteer dependency for Chrome.')
     }

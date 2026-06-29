@@ -14,7 +14,7 @@
 // are MAX-per-URL across routes, not sum — the same script can't be
 // unloaded multiple times. Render-blocking ms is MAX per-URL too.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────

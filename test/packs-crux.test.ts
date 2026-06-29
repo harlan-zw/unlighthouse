@@ -13,9 +13,10 @@
 // All HTTP traffic stubbed with vi.spyOn(globalThis, 'fetch') — never hits the
 // real CrUX API.
 
-import type { Device, PackReconcileCtx, ScanRoute } from '@unlighthouse/contracts'
-import type { CruxFinding } from '@unlighthouse/core/packs/crux'
-import { analyzeLabVsField, createCruxPack, cruxPack, queryCrux } from '@unlighthouse/core/packs/crux'
+import type { Device, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { CruxFinding } from '@unlighthouse/core/packs'
+import { analyzeLabVsField, createCruxPack, cruxPack, queryCrux } from '@unlighthouse/core/packs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const ORIGINAL_FETCH = globalThis.fetch

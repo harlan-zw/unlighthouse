@@ -2,16 +2,18 @@
 
 import type {
   Category,
+  MetricName,
+  ScanRoute,
+} from '@unlighthouse/contracts/types/atoms'
+import type {
   CommandOutput,
   CompareDetail,
   CompareFindPrevious,
   CompareMarkdown,
   CompareRun,
-  MetricName,
-  ScanRoute,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/commands'
 import type { Handler, HandlerCtx } from './types'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 
 const DEFAULT_THRESHOLDS: Record<string, number> = {
   'lcp': 500,

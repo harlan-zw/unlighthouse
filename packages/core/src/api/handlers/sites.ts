@@ -3,9 +3,9 @@ import type {
   SitesCreate,
   SitesDelete,
   SitesList,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { deriveSiteId, deriveSiteName } from '../../util/site'
 
 export const sitesList: Handler<typeof SitesList> = {

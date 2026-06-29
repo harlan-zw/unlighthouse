@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ScanRoutesTable from '~/features/scan/components/ScanRoutesTable.vue'
+
 // `fluid` lets the routes table use the full window width (SidebarShell drops
 // its centered max-w-7xl column) so the data-dense table + bigger thumbnails
 // have room and scroll comfortably.

@@ -7,8 +7,8 @@ import type {
   CommandName,
   CommandOutput,
   CommandRegistry,
-} from '@unlighthouse/contracts'
-import { commands } from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/commands'
+import { commands } from '@unlighthouse/contracts/commands'
 
 export interface CreateClientOptions {
   /** Base URL of the HTTP projection (e.g. '/api', or 'https://host/api'). */

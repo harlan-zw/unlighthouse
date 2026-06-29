@@ -16,7 +16,7 @@
 // 3-6 → moderate, ≤2 → minor. Weight zero means "informational" — those
 // audits are kept but bucketed minor.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────

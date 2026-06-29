@@ -3,7 +3,7 @@
 // objects at it via toWebHandler without booting Chrome / storage / the
 // real /api/* router.
 
-import { createBearerAuthGate } from 'unlighthouse/server'
+import { createBearerAuthGate } from '../packages/unlighthouse/src/server'
 import { createApp, defineEventHandler, toWebHandler } from 'h3'
 import { describe, expect, it } from 'vitest'
 

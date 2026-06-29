@@ -13,8 +13,9 @@
 // - Worst-routes capped at 5, template groups capped at 5. Designed to stay
 //   under the 1KB budget for the agent summary tier.
 
-import type { Category, Pack, PackReconcileCtx, ScanRoute, Url } from '@unlighthouse/contracts'
-import { CategorySchema, DeviceSchema } from '@unlighthouse/contracts'
+import type { Category, ScanRoute, Url } from '@unlighthouse/contracts/types/atoms'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import { CategorySchema, DeviceSchema } from '@unlighthouse/contracts/types/atoms'
 import { z } from 'zod'
 
 // ── Report shape ────────────────────────────────────────────────────────────

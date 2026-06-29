@@ -4,10 +4,9 @@
   "version": "0.0.1",
   "private": true,
   "exports": {
-    ".": "./dist/index.html",
-    "./dist/*": "./dist/*"
+    ".": "./dist/index.html"
   },
-  "main": "dist/index.html",
+  "main": "./dist/index.html",
   "files": [
     "dist"
   ],
@@ -16,40 +15,32 @@
   },
   "scripts": {
     "dev": "nuxi dev",
-    "build": "nuxi generate",
-    "typecheck": "nuxt typecheck"
+    "build": "nuxi generate && node ./scripts/copy-public.mjs",
+    "typecheck": "nuxt typecheck",
+    "test:publint": "publint"
   },
   "dependencies": {
     "@internationalized/date": "catalog:dependencies",
-    "@lucide/vue": "catalog:",
     "@nuxt/icon": "catalog:",
     "@nuxt/ui": "catalog:dependencies",
     "@nuxtjs/color-mode": "catalog:",
     "@pinia/nuxt": "catalog:",
     "@tanstack/table-core": "catalog:dependencies",
     "@tanstack/vue-table": "catalog:dependencies",
-    "@unovis/ts": "catalog:dependencies",
-    "@unovis/vue": "catalog:dependencies",
     "@vueuse/core": "catalog:dependencies",
-    "clsx": "catalog:",
-    "date-fns": "catalog:dependencies",
     "motion-v": "catalog:",
     "nuxt": "catalog:",
     "pinia": "catalog:",
     "reka-ui": "catalog:",
-    "tailwind-merge": "catalog:",
-    "vaul-vue": "catalog:",
     "vue": "catalog:dependencies",
-    "vue-input-otp": "catalog:",
     "vue-router": "catalog:",
     "vue-sonner": "catalog:"
   },
   "devDependencies": {
-    "@nuxtjs/tailwindcss": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "tailwindcss": "catalog:dependencies",
     "tw-animate-css": "catalog:",
-    "unlighthouse": "workspace:*"
+    "vue-tsc": "catalog:"
   }
 }

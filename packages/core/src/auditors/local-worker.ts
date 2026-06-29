@@ -1,5 +1,5 @@
 /**
- * Lighthouse audit worker — runs inside an @unlighthouse/audit-pool worker thread.
+ * Lighthouse audit worker — runs inside core's audit-pool worker thread.
  *
  * Each worker thread has its own lighthouse module instance, which isolates the global
  * `performance.mark` state that lighthouse-logger/marky uses for timing. That isolation is
@@ -10,10 +10,10 @@
  * NOT pre-launch puppeteer here.
  */
 import type { UnlighthouseOptions, UnlighthouseReport } from '@unlighthouse/contracts'
-import { createWorkerHandler, defineTask } from '@unlighthouse/audit-pool/worker'
 import { launch } from 'chrome-launcher'
 import lighthouse from 'lighthouse'
 import puppeteer from 'puppeteer-core'
+import { createWorkerHandler, defineTask } from './audit-pool/worker'
 import { extractInsights } from './extract'
 import { getScreenEmulation, getUserAgent, resolveLighthouseConfig } from './lighthouse-config'
 import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from './storage-injection'

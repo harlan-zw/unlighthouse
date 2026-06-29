@@ -1,4 +1,4 @@
-import type { CommandName, CommandRegistry } from '@unlighthouse/contracts'
+import type { CommandName, CommandRegistry } from '@unlighthouse/contracts/commands'
 import type { Handler, HandlerCtx, HandlerMap } from './types'
 
 /**

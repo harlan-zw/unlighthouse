@@ -6,12 +6,12 @@
 // once via the full ingest path (mock auditor → scan complete → verify the
 // `.contract.json` blob is on disk).
 
-import { ReconciledReportSchema } from '@unlighthouse/contracts'
+import { ReconciledReportSchema } from '@unlighthouse/contracts/types/atoms'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
-import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
+import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
 import { reconcileToContract } from '@unlighthouse/core/report'
-import { manualSeeds } from '@unlighthouse/core/seeds/manual'
+import { manualSeeds } from '@unlighthouse/core/seeds'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { hash as cryptoHash } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'

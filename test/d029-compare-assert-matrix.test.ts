@@ -8,12 +8,12 @@
 // the (url, device) key is verified at the row-store layer too.
 
 import type { Storage } from '@unlighthouse/contracts'
-import { compareRun } from '@unlighthouse/core/api/handlers/compare'
-import { assertEvaluate } from '@unlighthouse/core/api/handlers/assert'
+import { compareRun } from '@unlighthouse/core/api/handlers'
+import { assertEvaluate } from '@unlighthouse/core/api/handlers'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
-import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
-import { manualSeeds } from '@unlighthouse/core/seeds/manual'
+import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
+import { manualSeeds } from '@unlighthouse/core/seeds'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { beforeAll, describe, expect, it } from 'vitest'
 

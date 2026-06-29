@@ -13,7 +13,7 @@ import {
   createTokenBucket,
   rateLimitedPick,
   weightedPick,
-} from '@unlighthouse/core/auditors'
+} from '@unlighthouse/core/auditors/route'
 import { describe, expect, it } from 'vitest'
 
 // Build a stand-in auditor whose audit() returns its own name. Lets the

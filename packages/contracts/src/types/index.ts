@@ -701,10 +701,6 @@ export interface RuntimeSettings {
    * The root directory of the module.
    */
   moduleWorkingDir: string
-  /**
-   * The path to the lighthouse worker.
-   */
-  lighthouseProcessPath: string
 
   /**
    * The server instance.

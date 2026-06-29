@@ -13,7 +13,7 @@
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { alias } from '../vitest.config'
+import { rolldownAlias } from '../vitest.config'
 
 // Resolve rolldown via the local require — works whether it's hoisted or
 // only available via pnpm's nested `.pnpm/rolldown@*` store.
@@ -53,7 +53,7 @@ async function analyse(entryFile: string): Promise<BundleGraph> {
     input: entryFile,
     cwd: resolve(__dirname, '..'),
     resolve: {
-      alias: alias as Record<string, string>,
+      alias: rolldownAlias,
     },
     external: (source) => {
       if (source.startsWith('node:'))

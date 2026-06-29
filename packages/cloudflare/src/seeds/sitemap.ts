@@ -7,8 +7,9 @@
 // using only the global `fetch` and a regex XML scan — no Node deps — so a
 // Cloudflare scan crawls every URL in the sitemap instead of just the seed.
 
-import type { Logger, Seed } from '@unlighthouse/contracts'
+import type { Logger } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
+import type { Seed } from '@unlighthouse/contracts/types/atoms'
 
 export interface WorkerSitemapSeedsOptions {
   /**

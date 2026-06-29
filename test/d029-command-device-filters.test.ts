@@ -3,13 +3,13 @@
 // caller's device choice through to storage.
 
 import type { Storage } from '@unlighthouse/contracts'
-import { packRun } from '@unlighthouse/core/api/handlers/pack'
-import { routeRescan } from '@unlighthouse/core/api/handlers/route'
-import { scanResults } from '@unlighthouse/core/api/handlers/scan'
+import { packRun } from '@unlighthouse/core/api/handlers'
+import { routeRescan } from '@unlighthouse/core/api/handlers'
+import { scanResults } from '@unlighthouse/core/api/handlers'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
-import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
-import { manualSeeds } from '@unlighthouse/core/seeds/manual'
+import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
+import { manualSeeds } from '@unlighthouse/core/seeds'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { beforeAll, describe, expect, it } from 'vitest'
 

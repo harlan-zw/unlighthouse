@@ -4,10 +4,11 @@
  * createUnlighthouseHost: thin factory that wires v1 ports + createUnlighthouseCore.
  * Replaces the 465-line createUnlighthouse in unlighthouse.ts (deleted in Step H).
  */
-import type { HookMap, Logger, ResolvedUserConfig, RuntimeSettings, UserConfig } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig, RuntimeSettings, UserConfig } from '@unlighthouse/contracts'
+import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { UnlighthouseCore, UnlighthouseCoreRunOverrides } from '@unlighthouse/contracts/ports'
 import type { WS } from '@unlighthouse/core/api'
-import type { HandlerCtx } from '@unlighthouse/core/api/handlers/types'
+import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import type { createStorage } from '@unlighthouse/core/storage'
 import type { Hookable } from 'hookable'
 import type { IncomingMessage } from 'node:http'
@@ -20,15 +21,12 @@ import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { createTaggedLogger } from '@unlighthouse/core/logger'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
-import { loadConfig } from 'c12'
-import { defu } from 'defu'
 import { joinURL } from 'ufo'
 import { version } from '../package.json'
 import { resolveAuditor } from './auditor'
 import { initStorage } from './cli/storage-init'
-import { ClientPkg } from './constants'
+import { resolveConfig } from './config/resolve'
 import { historySubscriber } from './data/history/tracking'
-import { resolveUserConfig } from './resolveConfig'
 import { mountServer } from './server'
 import { createServerHooks } from './server-hooks'
 import { computeConfigCacheKey, normaliseHost } from './util'
@@ -208,36 +206,23 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   if (userConfig.configFile && !isAbsolute(userConfig.configFile))
     userConfig.configFile = join(process.cwd(), userConfig.configFile)
 
-  const { configFile, config: fileConfig } = await loadConfig<UserConfig>({
-    name: 'unlighthouse',
+  const { configFile, config } = await resolveConfig({
     cwd: userConfig.root,
     configFile: userConfig.configFile || 'unlighthouse.config',
-    dotenv: true,
+    overrides: userConfig as never,
   })
-  userConfig = defu(userConfig, fileConfig)
+  const resolvedConfig = config as ResolvedUserConfig
 
   // ── RuntimeSettings ──────────────────────────────────────────────────────
 
-  const rs: { moduleWorkingDir: string, lighthouseProcessPath: string } & Partial<RuntimeSettings> = {
+  const rs: { moduleWorkingDir: string } & Partial<RuntimeSettings> = {
     configFile: configFile || undefined,
     moduleWorkingDir: import.meta.dirname,
     configCacheKey: '',
-    lighthouseProcessPath: '',
     currentScanId: null,
   }
 
-  const lighthouseProcessPath = [
-    join(rs.moduleWorkingDir, 'lighthouse.mjs'),
-    join(rs.moduleWorkingDir, '..', 'lighthouse.mjs'),
-    join(rs.moduleWorkingDir, 'lighthouse.ts'),
-  ].find(existsSync)
-  if (!lighthouseProcessPath)
-    throw new Error('Unable to resolve the unlighthouse lighthouse worker entry.')
-  rs.lighthouseProcessPath = lighthouseProcessPath
-
-  rs.configCacheKey = computeConfigCacheKey(userConfig, version)
-
-  const resolvedConfig = await resolveUserConfig(userConfig, logger)
+  rs.configCacheKey = computeConfigCacheKey(resolvedConfig, version)
 
   if (resolvedConfig.site) {
     const site = normaliseHost(resolvedConfig.site)
@@ -370,7 +355,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     let resolvedClientPath = ''
     try {
-      resolvedClientPath = fileURLToPath(import.meta.resolve(ClientPkg))
+      resolvedClientPath = fileURLToPath(import.meta.resolve('@unlighthouse/ui'))
       if (!existsSync(resolvedClientPath))
         resolvedClientPath = ''
     }
@@ -449,7 +434,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     // @unlighthouse/ui client package here so build.ts has a source to copy.
     if (!(rs as RuntimeSettings).resolvedClientPath) {
       try {
-        const p = fileURLToPath(import.meta.resolve(ClientPkg))
+        const p = fileURLToPath(import.meta.resolve('@unlighthouse/ui'))
         if (existsSync(p))
           (rs as RuntimeSettings).resolvedClientPath = p
       }

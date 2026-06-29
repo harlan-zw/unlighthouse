@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createFilter } from '../packages/core/src/util/filter'
+import { createFilter } from '@unlighthouse/core/util/filter'
 
 describe('createFilter', () => {
   it('passes everything when no rules', () => {

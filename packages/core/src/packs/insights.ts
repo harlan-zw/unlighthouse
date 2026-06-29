@@ -3,7 +3,7 @@
 // Aggregates the 17 insight audits across all routes, computing total savings
 // per metric, worst routes, and a prioritized fix order.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
 
 const INSIGHT_AUDIT_IDS = [

@@ -1,11 +1,12 @@
-import type { ExtractedMetrics, Scan, ScanId, ScanInsert, Storage } from '../packages/contracts/src'
+import type { ExtractedMetrics, Scan, ScanId } from '@unlighthouse/contracts/types/atoms'
+import type { ScanInsert, Storage } from '@unlighthouse/contracts/ports'
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { drizzleStorage } from '@unlighthouse/core/storage/drizzle'
+import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { describe, expect, it } from 'vitest'
-import { memoryStorage } from '../packages/core/src/storage/memory'
-import { drizzleStorage } from '../packages/core/src/storage/drizzle'
 
 // Apply every drizzle-kit migration in order. Filenames carry a numeric
 // prefix (0000_, 0001_, …) plus a random slug, so sort lexically and

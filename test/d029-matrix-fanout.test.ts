@@ -6,8 +6,8 @@
 
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
-import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
-import { manualSeeds } from '@unlighthouse/core/seeds/manual'
+import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
+import { manualSeeds } from '@unlighthouse/core/seeds'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { describe, expect, it } from 'vitest'
 

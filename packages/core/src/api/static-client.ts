@@ -30,16 +30,15 @@
 //   never called). That refactor is the core-portability decision this client
 //   intentionally stops short of.
 import type {
-  CommandName,
-  PackRun,
   Scan,
   ScanRoute,
-  SiteRecord,
-  Storage,
-  UnlighthouseConfig,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/types/atoms'
+import type { CommandName } from '@unlighthouse/contracts/commands'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { PackRun } from '@unlighthouse/contracts/packs'
+import type { SiteRecord, Storage } from '@unlighthouse/contracts/ports'
 import type { UnlighthouseClient } from './client'
-import { commands } from '@unlighthouse/contracts'
+import { commands } from '@unlighthouse/contracts/commands'
 import { memoryStorage } from '../storage/memory'
 import { createHandlers } from './handlers'
 

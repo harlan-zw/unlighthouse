@@ -1,10 +1,11 @@
 // HTTP projection: derives an h3 Router from the command registry + handler set.
 // Each command → one route. Streaming commands → NDJSON GETs.
 
-import type { Command, CommandName } from '@unlighthouse/contracts'
+import type { Command, CommandName } from '@unlighthouse/contracts/commands'
 import type { H3Event, Router } from 'h3'
 import type { Handler, HandlerCtx, HandlerMap } from './handlers/types'
-import { commands, UnlighthouseError } from '@unlighthouse/contracts'
+import { commands } from '@unlighthouse/contracts/commands'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, readBody, setResponseHeader, setResponseStatus } from 'h3'
 import { createTaggedLogger } from '../logger'
 

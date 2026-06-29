@@ -1,405 +1,61 @@
 <script setup lang="ts">
-import type { ScanId } from '@unlighthouse/contracts'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
-import { toast } from 'vue-sonner'
+import {
+  CATEGORY_METRICS,
+  CWV_METRICS,
+  DIAGNOSTIC_METRICS,
+  SHORT_LABEL,
+  SORT_OPTIONS as sortOptions,
+  badgeProps,
+  compareRowKey as rowKey,
+  createComparePresentation,
+  cwvVerdictColor,
+  deltaClass,
+  fmtCwvP75,
+  statusBadge,
+} from '~/features/compare/presentation'
+import { useCompareWorkflow } from '~/features/compare/workflow'
 
 definePageMeta({ layout: 'compare' })
 
-const route = useRoute()
-const router = useRouter()
-const api = useApi()
 const { scoreToLabel, scoreToRingColor } = useScoreColor()
 const { fmtScore, fmtMs, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = useFormat()
-
-// `currentScanId` comes from /compare/:id; `baseScanId` rides the
-// query string so a compare can be deep-linked and refresh-survives.
-const currentScanId = computed(() => route.params.id as string as ScanId)
-// `undefined` is the "nothing picked" sentinel; once chosen it's a real
-// ScanId, matching both the `value: s.scanId` items the USelect renders and
-// the v-model type the select infers from those items.
-const baseScanId = ref<ScanId | undefined>((route.query.base as string) ? (route.query.base as string as ScanId) : undefined)
-
-watch(baseScanId, (v) => {
-  // Sync the picked base back into the URL — preserves on refresh,
-  // makes the compare shareable as a single link.
-  router.replace({ query: { ...route.query, base: v || undefined } })
-})
-
-const { data: currentMeta } = useAsyncData(
-  `compare-current-meta-${currentScanId.value}`,
-  () => api['scan.meta']({ scanId: currentScanId.value }).catch(() => null),
-  { watch: [currentScanId] },
-)
-
-const { data: baseMeta } = useAsyncData(
-  `compare-base-meta-${baseScanId.value}`,
-  () => baseScanId.value
-    ? api['scan.meta']({ scanId: baseScanId.value }).catch(() => null)
-    : Promise.resolve(null),
-  { watch: [baseScanId] },
-)
-
-// History is loaded with a generous page size so users with many scans
-// can still pick anything from the dropdown without paging. 200 is the
-// server cap; for orgs that exceed it we'd need a search box.
-const { data: history } = useAsyncData(
-  'compare-history',
-  () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
-)
-
-// CRITICAL FIX: previous version showed scans from any site, leading
-// to compares with 0 overlapping routes. Filter to scans of the same
-// site as the current scan.
-const otherScans = computed(() => {
-  if (!history.value?.items || !currentMeta.value) return []
-  const site = currentMeta.value.site
-  return history.value.items.filter(s =>
-    s.scanId !== currentScanId.value
-    && s.status === 'complete'
-    && s.site === site,
-  )
-})
-
-// Auto-pick the most recent prior scan on the same site (+ branch if
-// the current scan has one). Doesn't override an explicit URL pick.
-const { data: autoBase } = useAsyncData(
-  `compare-auto-${currentScanId.value}`,
-  async () => {
-    if (!currentMeta.value || baseScanId.value) return null
-    try {
-      const res = await api['compare.findPrevious']({
-        site: currentMeta.value.site,
-        device: currentMeta.value.device,
-        // Honour branch when present so deploy-preview comparisons
-        // bucket per-branch instead of pulling someone else's commit.
-        branch: currentMeta.value.ciBranch ?? undefined,
-        excludeScanId: currentScanId.value,
-      })
-      return res.scanId
-    }
-    catch { return null }
-  },
-  { watch: [currentMeta] },
-)
-
-watch(autoBase, (id) => {
-  if (id && !baseScanId.value) baseScanId.value = id
-})
-
-const comparing = ref(false)
-const statusFilter = ref<'all' | 'changed' | 'regressed' | 'improved' | 'added' | 'removed'>('all')
-const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
-const urlFilter = ref('')
-const page = ref(1)
-const sortKey = ref('delta-perf-desc')
-const selectedRowKey = ref<string | null>(null)
-
-// Threshold UI bound to the same shape compare.detail accepts. Empty
-// string ⇒ omit (handler falls back to CI defaults).
-const thresholds = reactive<Record<string, string>>({
-  performance: '',
-  accessibility: '',
-  seo: '',
-  'best-practices': '',
-  lcp: '',
-  cls: '',
-  inp: '',
-})
-
-function thresholdPayload(): Record<string, number> | undefined {
-  const out: Record<string, number> = {}
-  for (const [k, v] of Object.entries(thresholds)) {
-    const n = Number.parseFloat(v)
-    if (!Number.isNaN(n) && v.trim() !== '')
-      out[k] = n
-  }
-  return Object.keys(out).length ? out : undefined
-}
-
-const report = ref<any>(null)
-// Pack diffs come from compare.run (which is the threshold-based diff
-// path); compare.detail only carries route data. We fire compare.run
-// in parallel with compare.detail so the pack section can hydrate at
-// the same time the route table does. Cached in `packReport` separate
-// from `report` so changes to filters/sort don't re-fire it.
-const packReport = ref<any>(null)
-const copyingMarkdown = ref(false)
-const showLegacyMetrics = ref(false)
-const showPackDetails = ref(false)
-
-async function copyAsMarkdown() {
-  if (!baseScanId.value) return
-  copyingMarkdown.value = true
-  try {
-    const res = await api['compare.markdown']({
-      baseScanId: baseScanId.value,
-      currentScanId: currentScanId.value,
-      thresholds: thresholdPayload() as any,
-    })
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(res.markdown)
-    }
-    else {
-      const ta = document.createElement('textarea')
-      ta.value = res.markdown
-      ta.style.position = 'fixed'
-      ta.style.opacity = '0'
-      document.body.appendChild(ta)
-      ta.select()
-      document.execCommand('copy')
-      document.body.removeChild(ta)
-    }
-    toast.success(res.hasRegressions ? 'Copied — regressions present' : 'Copied to clipboard')
-  }
-  catch (err: any) {
-    toast.error('Copy failed', { description: err.message })
-  }
-  finally {
-    copyingMarkdown.value = false
-  }
-}
-
-async function fetchPage() {
-  if (!baseScanId.value) return
-  try {
-    report.value = await (api as any)['compare.detail']({
-      baseScanId: baseScanId.value,
-      currentScanId: currentScanId.value,
-      page: page.value,
-      pageSize: 100,
-      sort: sortKey.value,
-      filter: {
-        url: urlFilter.value || undefined,
-        status: statusFilter.value as any,
-        device: deviceFilter.value || undefined,
-      },
-      thresholds: thresholdPayload(),
-    })
-  }
-  catch (err: any) {
-    toast.error('Compare failed', { description: err.message })
-  }
-}
-
-// Separate fetch for pack diffs — fired once per (base, current) +
-// thresholds combo, not on every filter/sort tweak. compare.run is
-// where packDiffs live (compare.detail returns per-route only).
-async function fetchPacks() {
-  if (!baseScanId.value) return
-  try {
-    packReport.value = await (api as any)['compare.run']({
-      baseScanId: baseScanId.value,
-      currentScanId: currentScanId.value,
-      thresholds: thresholdPayload(),
-    })
-  }
-  catch {
-    packReport.value = null
-  }
-}
-
-// The cwv pack returns p75 metrics per CWV with verdicts — the
-// noise-resistant aggregate of what the per-route table shows raw.
-// Surface it as a headline strip so users land on the smoothed view
-// first.
-const cwvPackDiff = computed(() => {
-  if (!packReport.value?.packDiffs) return null
-  return packReport.value.packDiffs.find((p: any) => p.packName === 'cwv') ?? null
-})
-
-interface CwvP75Row { metric: string, baseP75: number | null, currentP75: number | null, delta: number | null, label: string, verdict: string | null }
-
-const cwvP75Rows = computed<CwvP75Row[]>(() => {
-  const diff = cwvPackDiff.value
-  if (!diff) return []
-  const baseMetrics: any[] = (diff.base as any)?.metrics ?? []
-  const currentMetrics: any[] = (diff.current as any)?.metrics ?? []
-  const byMetric = new Map<string, { base?: any, current?: any }>()
-  for (const m of baseMetrics) byMetric.set(m.metric, { ...(byMetric.get(m.metric) || {}), base: m })
-  for (const m of currentMetrics) byMetric.set(m.metric, { ...(byMetric.get(m.metric) || {}), current: m })
-  // Keep only Web Vitals proper — pack may also report FCP/TTFB but
-  // those land in the diagnostics block below.
-  const order = ['lcp', 'cls', 'inp']
-  return order
-    .filter(m => byMetric.has(m))
-    .map((m) => {
-      const { base, current } = byMetric.get(m)!
-      const baseP75 = base?.p75 ?? null
-      const currentP75 = current?.p75 ?? null
-      const delta = baseP75 != null && currentP75 != null ? currentP75 - baseP75 : null
-      return {
-        metric: m,
-        label: m.toUpperCase(),
-        baseP75,
-        currentP75,
-        delta,
-        verdict: current?.verdict ?? base?.verdict ?? null,
-      }
-    })
-})
-
-// Other packs go in the collapsible section under the route table —
-// not headline, but still useful (images findings count, a11y
-// quick-wins severity, etc.). Filter to ones that actually changed.
-const otherPackChanges = computed(() => {
-  if (!packReport.value?.packDiffs) return []
-  return packReport.value.packDiffs.filter((p: any) => p.packName !== 'cwv' && p.hasChanges)
-})
-
-function fmtCwvP75(metric: string, value: number | null): string {
-  if (value == null) return '—'
-  if (metric === 'cls') return value.toFixed(3)
-  if (metric === 'lcp' || metric === 'inp' || metric === 'fcp' || metric === 'ttfb') {
-    if (value >= 1000) return `${(value / 1000).toFixed(2)}s`
-    return `${Math.round(value)}ms`
-  }
-  return String(Math.round(value))
-}
-
-function cwvVerdictColor(verdict: string | null): string {
-  if (verdict === 'good') return 'text-success'
-  if (verdict === 'needs-improvement' || verdict === 'needsImprovement') return 'text-warning'
-  if (verdict === 'poor') return 'text-error'
-  return 'text-muted'
-}
-
-async function handleCompare() {
-  if (!baseScanId.value) return
-  comparing.value = true
-  selectedRowKey.value = null
-  page.value = 1
-  try {
-    await Promise.all([fetchPage(), fetchPacks()])
-  }
-  finally {
-    comparing.value = false
-  }
-}
-
-function swapDirection() {
-  if (!baseScanId.value) return
-  // A→B becomes B→A. New current = old base; navigate so the URL
-  // matches the swap (currentScanId is part of the path).
-  const oldBase = baseScanId.value
-  router.push(`/compare/${oldBase}?base=${currentScanId.value}`)
-}
-
-let filterTimeout: ReturnType<typeof setTimeout>
-function onFilterInput(val: string) {
-  clearTimeout(filterTimeout)
-  urlFilter.value = val
-  filterTimeout = setTimeout(() => { page.value = 1; fetchPage() }, 300)
-}
-
-watch(statusFilter, () => { page.value = 1; fetchPage() })
-watch(deviceFilter, () => { page.value = 1; fetchPage() })
-watch(sortKey, () => { page.value = 1; fetchPage() })
-watch(page, () => fetchPage())
-
-// Multi-device detection — only show the device chip when both sides
-// of the compare actually have routes audited on both devices.
-const hasMultipleDevices = computed(() => {
-  if (!report.value?.routes?.items) return false
-  const devices = new Set(report.value.routes.items.map((r: any) => r.device))
-  return devices.size > 1
-})
-
-const selectedRow = computed(() => {
-  if (!selectedRowKey.value || !report.value) return null
-  return report.value.routes.items.find((r: any) => `${r.url}|${r.device}` === selectedRowKey.value) ?? null
-})
-
-function statusBadge(status: string) {
-  if (status === 'regressed') return 'destructive'
-  if (status === 'improved') return 'default'
-  if (status === 'added') return 'secondary'
-  if (status === 'removed') return 'outline'
-  return 'outline'
-}
-
-// Map the legacy shadcn badge "tone" vocabulary (destructive/default/
-// secondary/outline) onto @nuxt/ui's color+variant pair, so statusBadge()
-// and verdict.tone keep working through one translation point.
-function badgeProps(tone: string): { color: any, variant: any } {
-  switch (tone) {
-    case 'destructive': return { color: 'error', variant: 'soft' }
-    case 'default': return { color: 'primary', variant: 'soft' }
-    case 'secondary': return { color: 'neutral', variant: 'soft' }
-    default: return { color: 'neutral', variant: 'outline' }
-  }
-}
-
-function deltaClass(v: number | null | undefined, isScore: boolean) {
-  if (v == null || v === 0) return 'text-muted'
-  if (isScore) return v > 0 ? 'text-success' : 'text-error'
-  return v < 0 ? 'text-success' : 'text-error'
-}
-
-// Same colour table as deltaClass but mutes deltas below the
-// per-metric noise floor — important for CWV which is genuinely
-// noisy on parallel-device single-run audits. A 80ms LCP improvement
-// on a single-sample scan is indistinguishable from CPU jitter.
-//
-// `thresholdKey` resolves the configured threshold; falls back to
-// the same defaults the handler uses. `isInsideThreshold` returned
-// alongside so callers can attach a tooltip explaining the mute.
-function deltaClassWithThreshold(v: number | null | undefined, isScore: boolean, thresholdKey: string): { klass: string, mutedByThreshold: boolean } {
-  if (v == null || v === 0) return { klass: 'text-muted', mutedByThreshold: false }
-  const thr = effectiveThreshold(thresholdKey, isScore)
-  if (thr != null && Math.abs(v) <= thr)
-    return { klass: 'text-muted/70', mutedByThreshold: true }
-  if (isScore) return { klass: v > 0 ? 'text-success' : 'text-error', mutedByThreshold: false }
-  return { klass: v < 0 ? 'text-success' : 'text-error', mutedByThreshold: false }
-}
-
-// Mirrors the DEFAULT_THRESHOLDS table in the handler so the UI's
-// visual cue and the backend's regressed/improved classification stay
-// in lockstep — if a delta is muted here, the handler also rejected it
-// as "unchanged."
-const DEFAULT_THRESHOLDS: Record<string, number> = {
-  performance: 0.05,
-  accessibility: 0.05,
-  seo: 0.05,
-  'best-practices': 0.05,
-  lcp: 500,
-  cls: 0.1,
-  inp: 200,
-  fcp: 300,
-  tbt: 200,
-  ttfb: 200,
-  si: 500,
-}
-function effectiveThreshold(key: string, _isScore: boolean): number | null {
-  const userValue = thresholds[key]
-  if (userValue && userValue.trim() !== '') {
-    const n = Number.parseFloat(userValue)
-    if (!Number.isNaN(n)) return n
-  }
-  return DEFAULT_THRESHOLDS[key] ?? null
-}
-
-// Score cell value: prefer the delta when it exists, otherwise the
-// current absolute score. For added/removed rows the cell shows the
-// one-side value plainly so the user sees what was new / what was
-// lost. Threshold-aware: deltas inside the configured noise floor
-// render muted instead of red/green so users don't chase noise.
-function rowScoreCell(row: any, key: string, thresholdKey: string): { value: string, klass: string, mutedByThreshold: boolean } {
-  if (row.status === 'added')
-    return { value: String(fmtScore(row.current?.[key])), klass: 'text-info', mutedByThreshold: false }
-  if (row.status === 'removed')
-    return { value: String(fmtScore(row.base?.[key])), klass: 'text-warning', mutedByThreshold: false }
-  const delta = row.deltas?.[key]
-  if (delta != null && delta !== 0) {
-    const { klass, mutedByThreshold } = deltaClassWithThreshold(delta, true, thresholdKey)
-    return { value: fmtDelta(delta, true), klass, mutedByThreshold }
-  }
-  return { value: String(fmtScore(row.current?.[key])), klass: 'text-muted', mutedByThreshold: false }
-}
-
-const totalPages = computed(() => {
-  if (!report.value) return 1
-  return Math.ceil(report.value.routes.total / report.value.routes.pageSize)
+const {
+  currentScanId,
+  baseScanId,
+  currentMeta,
+  baseMeta,
+  otherScans,
+  comparing,
+  statusFilter,
+  deviceFilter,
+  urlFilter,
+  page,
+  sortKey,
+  selectedRowKey,
+  thresholds,
+  report,
+  copyingMarkdown,
+  showLegacyMetrics,
+  showPackDetails,
+  copyAsMarkdown,
+  cwvP75Rows,
+  otherPackChanges,
+  handleCompare,
+  swapDirection,
+  onFilterInput,
+  hasMultipleDevices,
+  selectedRow,
+  totalPages,
+  verdict,
+  shortId,
+  gotoOverview,
+} = useCompareWorkflow()
+const { deltaClassWithThreshold, rowScoreCell } = createComparePresentation({
+  thresholds,
+  fmtScore,
+  fmtDelta,
 })
 
 // Route delta table columns. Server-sorted (via the sort Select), so
@@ -408,15 +64,6 @@ const totalPages = computed(() => {
 const IconCmp = resolveComponent('Icon')
 const UBadgeCmp = resolveComponent('UBadge')
 const STICKY_HEAD = 'sticky top-0 z-10 bg-default'
-const SHORT_LABEL: Record<string, string> = {
-  scorePerformance: 'Perf',
-  scoreAccessibility: 'A11y',
-  scoreSeo: 'SEO',
-  scoreBestPractices: 'BP',
-}
-function rowKey(r: any): string {
-  return `${r.url}|${r.device}`
-}
 const compareColumns = computed<ColumnDef<any, any>[]>(() => {
   const cols: ColumnDef<any, any>[] = [
     {
@@ -463,81 +110,6 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
   }
   return cols
 })
-
-// Hierarchy reflects what's actionable post-LH13. Categories first
-// (the headline answers "did anything break?"), Core Web Vitals
-// second (Google's stable real-user metrics: LCP/CLS/INP), and the
-// "Diagnostics" group last — these are lab metrics LH still
-// produces but the WV team has either deprecated (Speed Index) or
-// downgraded to triage role (FCP, TBT, TTFB). We render them
-// collapsed by default so users land on what matters.
-const CATEGORY_METRICS = [
-  { key: 'scorePerformance', label: 'Performance', score: true, thresholdKey: 'performance' },
-  { key: 'scoreAccessibility', label: 'Accessibility', score: true, thresholdKey: 'accessibility' },
-  { key: 'scoreSeo', label: 'SEO', score: true, thresholdKey: 'seo' },
-  { key: 'scoreBestPractices', label: 'Best Practices', score: true, thresholdKey: 'best-practices' },
-]
-const CWV_METRICS = [
-  { key: 'lcp', label: 'LCP', score: false, thresholdKey: 'lcp', hint: 'Largest Contentful Paint — when the main content paints. Good < 2.5s.' },
-  { key: 'cls', label: 'CLS', score: false, thresholdKey: 'cls', hint: 'Cumulative Layout Shift — visual stability. Good < 0.1.' },
-  { key: 'inp', label: 'INP', score: false, thresholdKey: 'inp', hint: 'Interaction to Next Paint — responsiveness. Good < 200ms.' },
-]
-const DIAGNOSTIC_METRICS = [
-  { key: 'fcp', label: 'FCP', score: false, thresholdKey: 'fcp', hint: 'First Contentful Paint — useful for triage when LCP regressed.' },
-  { key: 'tbt', label: 'TBT', score: false, thresholdKey: 'tbt', hint: 'Total Blocking Time — lab-only INP precursor.' },
-  { key: 'ttfb', label: 'TTFB', score: false, thresholdKey: 'ttfb', hint: 'Time to First Byte — server-side signal.' },
-  { key: 'si', label: 'SI', score: false, thresholdKey: 'si', hint: 'Speed Index — deprecated by Google, still in LH scoring.' },
-]
-const DETAIL_METRICS = [...CATEGORY_METRICS, ...CWV_METRICS, ...DIAGNOSTIC_METRICS]
-
-
-const sortOptions = [
-  { value: 'delta-perf-desc', label: 'Perf Δ (worst first)' },
-  { value: 'delta-perf-asc', label: 'Perf Δ (best first)' },
-  { value: 'delta-a11y-desc', label: 'A11y Δ (worst first)' },
-  { value: 'delta-seo-desc', label: 'SEO Δ (worst first)' },
-  { value: 'delta-bp-desc', label: 'BP Δ (worst first)' },
-  { value: 'delta-lcp-desc', label: 'LCP Δ (slowest)' },
-  { value: 'delta-cls-desc', label: 'CLS Δ (worst)' },
-  { value: 'url-asc', label: 'URL (A-Z)' },
-]
-
-// Verdict: human-friendly one-liner for the top of the page. Mirrors
-// the markdown handler's verdict so the dashboard and the PR comment
-// agree on the story.
-const verdict = computed(() => {
-  if (!report.value) return null
-  const s = report.value.summary
-  if (s.regressedRoutes > 0)
-    return { tone: 'destructive', text: `${s.regressedRoutes} route${s.regressedRoutes === 1 ? '' : 's'} regressed` }
-  if (s.improvedRoutes > 0)
-    return { tone: 'default', text: `${s.improvedRoutes} route${s.improvedRoutes === 1 ? '' : 's'} improved` }
-  if (s.addedRoutes > 0 || s.removedRoutes > 0)
-    return { tone: 'secondary', text: 'Route set changed' }
-  return { tone: 'outline', text: 'No significant change' }
-})
-
-function shortId(id: string | null | undefined): string {
-  if (!id) return ''
-  return id.slice(0, 8)
-}
-
-
-// Auto-trigger the initial compare when the page loads with a base in
-// the URL OR when autoBase resolves. The user can still click Compare
-// to refresh after changing thresholds / filters.
-watch([baseScanId, currentScanId], ([b, c]) => {
-  if (b && c) {
-    page.value = 1
-    fetchPage()
-    fetchPacks()
-  }
-}, { immediate: true })
-
-function gotoOverview(id: string | undefined) {
-  if (!id) return
-  router.push(`/scan/${id}/routes`)
-}
 </script>
 
 <template>

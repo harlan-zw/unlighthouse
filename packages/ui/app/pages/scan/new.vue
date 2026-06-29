@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import NewScanForm from '~/features/scan/components/NewScanForm.vue'
+
 const route = useRoute()
 const initialUrl = (route.query.url as string) || ''
 </script>

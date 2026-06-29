@@ -4,9 +4,9 @@ import type {
   CommandOutput,
   HistoryList,
   HistoryRescan,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 
 export const historyList: Handler<typeof HistoryList> = {
   command: {} as typeof HistoryList,

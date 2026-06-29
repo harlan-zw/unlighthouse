@@ -47,11 +47,8 @@ export default defineNuxtConfig({
   vite: {
     optimizeDeps: {
       include: [
-        '@lucide/vue',
         '@vueuse/core',
-        'clsx',
         'reka-ui',
-        'tailwind-merge',
         'vue-sonner',
         'zod',
       ],

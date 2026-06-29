@@ -12,15 +12,15 @@
 // on the idempotent routes/blobs upserts, not on the counters).
 
 import type {
-  HookMap,
   Logger,
   ScanId,
   ScanSummary,
   Storage,
-  UnlighthouseConfig,
 } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { HookMap } from '@unlighthouse/contracts/hooks'
 import { Buffer } from 'node:buffer'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 
 export type Device = 'mobile' | 'desktop'
 

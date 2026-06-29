@@ -1,16 +1,18 @@
 // route.* handlers.
 
 import type {
-  CommandOutput,
   ExtractedMetrics,
+  ScanId,
+  ScanRoute,
+} from '@unlighthouse/contracts/types/atoms'
+import type {
+  CommandOutput,
   RouteAudits,
   RouteGet,
   RouteRescan,
-  ScanId,
-  ScanRoute,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/commands'
 import type { Handler, HandlerCtx } from './types'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 
 // Lighthouse's stable category ids → display titles. The reconciled contract
 // blob keeps `categories` keyed by id and drops the LHR title string (it's

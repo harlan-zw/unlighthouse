@@ -1,7 +1,6 @@
-import type { SeedSource } from '../packages/contracts/src/ports/seed-source'
+import type { SeedSource } from '@unlighthouse/contracts/ports'
+import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { describe, expect, it } from 'vitest'
-import { fuseSeeds } from '../packages/core/src/seeds/fuse'
-import { manualSeeds } from '../packages/core/src/seeds/manual'
 
 async function collect(src: SeedSource): Promise<string[]> {
   const out: string[] = []

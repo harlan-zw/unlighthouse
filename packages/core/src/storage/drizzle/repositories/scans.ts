@@ -1,12 +1,14 @@
 import type {
-  FindPreviousQuery,
-  ListQuery,
   Paginated,
   Scan,
   ScanId,
+} from '@unlighthouse/contracts/types/atoms'
+import type {
+  FindPreviousQuery,
+  ListQuery,
   ScanInsert,
   ScanRepository,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/ports'
 import type { ScanRow, ScanRowInsert } from '@unlighthouse/contracts/drizzle'
 import { scans } from '@unlighthouse/contracts/drizzle'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'

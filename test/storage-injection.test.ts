@@ -1,4 +1,4 @@
-import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from '@unlighthouse/core/auditors/storage-injection'
+import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from '../packages/core/src/auditors/storage-injection'
 import { describe, expect, it } from 'vitest'
 
 describe('buildStorageInjectionScript', () => {

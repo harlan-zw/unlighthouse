@@ -1,177 +1,37 @@
 <script setup lang="ts">
-import { toast } from 'vue-sonner'
-import { useScanStore } from '~/stores/scan'
+import LiveResults from '~/features/scan/components/LiveResults.vue'
+import ScanActions from '~/features/scan/components/ScanActions.vue'
+import ScanProgress from '~/features/scan/components/ScanProgress.vue'
+import ScanStatusBadge from '~/features/scan/components/ScanStatusBadge.vue'
+import { useScanOverview } from '~/features/scan/overview'
 
 definePageMeta({ layout: 'scan' })
 
-const route = useRoute()
-const router = useRouter()
-const api = useApi()
-const store = useScanStore()
-const { scanId, scanBase } = useScanBase()
-const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
-
-const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
-
-const { data: scanMeta } = useAsyncData(
-  `scan-meta-${scanId.value}`,
-  () => api['scan.meta']({ scanId: scanId.value }).catch(() => null),
-  { watch: [scanId] },
-)
-
-const isCurrentScan = computed(() => store.scanId === scanId.value)
-const currentScanIsActive = computed(() => isCurrentScan.value && store.isActive)
-// Paused scans aren't "active" but should still show the live view (frozen
-// progress + Resume) rather than falling through to the completed-scan layout.
-const showLiveView = computed(() => currentScanIsActive.value || (isCurrentScan.value && store.status === 'paused'))
-
-// When a scan finishes, always send the user to the routes table — that's the
-// page they want once results exist (the overview is the live-progress view).
-// We redirect on the active→complete transition: watching `store.status` change
-// (not its initial value) means opening an already-finished scan's overview
-// directly does NOT bounce, but any scan that completes while this page is open
-// always lands on /routes.
-watch(
-  () => store.status,
-  (status, prev) => {
-    const becameComplete = status === 'complete' && prev && prev !== 'complete'
-    if (becameComplete && isCurrentScan.value)
-      router.replace(`${scanBase.value}/routes`)
-  },
-)
-
-// No live-event socket (e.g. the Cloudflare deploy builds the panel with an
-// empty WS URL) → there are no `scan:*` events to flip the store into the
-// active state, so the live progress view never showed. Detect an in-progress
-// scan for this URL via REST and drive ScanProgress/LiveResults by polling
-// scan.status instead. WS deploys skip this entirely (the socket owns state).
-const wsEnabled = Boolean(useRuntimeConfig().public.unlighthouseWsUrl)
-
-async function startPollingIfActive() {
-  if (wsEnabled) return
-  const s = await api['scan.status']({ scanId: scanId.value }).catch(() => null)
-  if (s && ['starting', 'discovering', 'scanning', 'paused'].includes(s.status)) {
-    store.hydrateActive(scanId.value, { ...s, site: scanMeta.value?.site })
-    store.startPolling(api)
-  }
-}
-
-onMounted(startPollingIfActive)
-watch(scanId, () => { store.stopPolling(); startPollingIfActive() })
-onBeforeUnmount(() => store.stopPolling())
-
-const resolvedStatus = computed(() => {
-  if (scanMeta.value?.summary) return 'complete'
-  if (isCurrentScan.value) return store.status
-  return 'complete'
-})
-
-const scanIsComplete = computed(() => resolvedStatus.value === 'complete')
-
-// Device filter for the summary view. Defaults to "all" — the dashboard
-// shows both devices' aggregated avg by default. Switching narrows the
-// summary + worst-routes table to the picked device's rows. Persisted only
-// for this session (component-local); a scan link from elsewhere always
-// lands on "all" so screenshots / shares show the same numbers everyone
-// else sees.
-const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
-
-// Probe whether the scan actually has both devices. Skip the toggle for
-// single-device scans so we don't suggest a filter that produces an empty
-// summary. pageSize=1 + total is the cheapest signal.
-const { data: deviceProbe } = useAsyncData(
-  `scan-devices-${scanId.value}`,
-  async () => {
-    if (!scanIsComplete.value) return null
-    const [mob, desk] = await Promise.all([
-      api['scan.results']({ scanId: scanId.value, device: 'mobile', page: 1, pageSize: 1 }).catch(() => ({ total: 0 } as any)),
-      api['scan.results']({ scanId: scanId.value, device: 'desktop', page: 1, pageSize: 1 }).catch(() => ({ total: 0 } as any)),
-    ])
-    return { mobile: (mob.total ?? 0) > 0, desktop: (desk.total ?? 0) > 0 }
-  },
-  { watch: [scanId, scanIsComplete] },
-)
-
-const hasMultipleDevices = computed(() => Boolean(deviceProbe.value?.mobile && deviceProbe.value?.desktop))
-
-const { data: scanSummary, refresh: refreshSummary } = useAsyncData(
-  `scan-summary-${scanId.value}`,
-  () => {
-    if (!scanIsComplete.value) return Promise.resolve(null)
-    return api['scan.summary']({
-      scanId: scanId.value,
-      device: deviceFilter.value || undefined,
-    }).catch(() => null)
-  },
-  { watch: [scanId, scanIsComplete, deviceFilter] },
-)
-
-useScanWebsocket({ 'scan:complete': refreshSummary })
-
-const rescanningAll = ref(false)
-async function handleRescanAll() {
-  rescanningAll.value = true
-  try {
-    const result = await api['scan.rescanAll']({ scanId: scanId.value })
-    toast.success('Rescan started')
-    router.push(`/sites/${route.params.siteId}/scans/${result.scanId}/overview`)
-  }
-  catch (err: any) {
-    toast.error('Rescan failed', { description: err.message })
-  }
-  finally {
-    rescanningAll.value = false
-  }
-}
-
-const categories = computed(() => {
-  const avgs = (scanSummary.value?.categoryAverages ?? {}) as Record<string, number | null>
-  return [
-    { key: 'performance', label: 'Performance', icon: 'lucide:gauge', path: 'performance', score: avgs['performance'] ?? null },
-    { key: 'seo', label: 'SEO', icon: 'lucide:search', path: 'seo', score: avgs['seo'] ?? null },
-    { key: 'accessibility', label: 'Accessibility', icon: 'lucide:accessibility', path: 'accessibility', score: avgs['accessibility'] ?? null },
-    { key: 'best-practices', label: 'Best Practices', icon: 'lucide:shield-check', path: 'best-practices', score: avgs['best-practices'] ?? null },
-    { key: 'agentic-browsing', label: 'Agentic', icon: 'lucide:bot', path: 'agentic-browsing', score: avgs['agentic-browsing'] ?? null },
-  ]
-})
-
-const distribution = computed(() => {
-  if (!scanSummary.value) return null
-  const d = scanSummary.value.distribution
-  const total = scanSummary.value.routesScanned || 1
-  return {
-    total,
-    segments: [
-      { label: 'Pass', count: d.passing, pct: (d.passing / total) * 100, color: '#22c55e' },
-      { label: 'Needs Work', count: d.needsWork, pct: (d.needsWork / total) * 100, color: '#f97316' },
-      { label: 'Poor', count: d.poor, pct: (d.poor / total) * 100, color: '#ef4444' },
-    ].filter(s => s.count > 0),
-  }
-})
-
-const donutArcs = computed(() => {
-  if (!distribution.value) return []
-  const segs = distribution.value.segments
-  const total = segs.reduce((s, v) => s + v.count, 0) || 1
-  const gap = 0.02
-  const totalGap = gap * segs.length
-  const available = 1 - totalGap
-  let offset = -0.25
-  return segs.map((seg) => {
-    const ratio = (seg.count / total) * available
-    const circumference = 2 * Math.PI * 40
-    const dashLen = ratio * circumference
-    const gapLen = circumference - dashLen
-    const rotation = offset * 360
-    offset += ratio + gap
-    return { ...seg, dashLen, gapLen, rotation }
-  })
-})
-
-function scoreColor(score: number | null) {
-  if (score == null) return 'var(--muted-foreground)'
-  return scoreToRingColor(score)
-}
+const {
+  scanBase,
+  scanMeta,
+  siteTitle,
+  currentScanIsActive,
+  showScanActions,
+  showLiveView,
+  resolvedStatus,
+  scanIsComplete,
+  deviceFilter,
+  hasMultipleDevices,
+  scanSummary,
+  rescanningAll,
+  categories,
+  distribution,
+  donutArcs,
+  scoreToColor,
+  scoreToLabel,
+  scoreColor,
+  jsonExportUrl,
+  csvExportUrl,
+  jsonExportName,
+  csvExportName,
+  handleRescanAll,
+} = useScanOverview()
 </script>
 
 <template>
@@ -181,7 +41,7 @@ function scoreColor(score: number | null) {
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-title truncate max-w-lg">
-          {{ scanMeta?.site || store.site || 'Scan' }}
+          {{ siteTitle }}
         </h1>
         <div class="flex items-center gap-2 mt-1.5 text-sm text-muted">
           <ScanStatusBadge :status="resolvedStatus" />
@@ -198,11 +58,11 @@ function scoreColor(score: number | null) {
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <ScanActions v-if="currentScanIsActive || store.status === 'paused'" />
+        <ScanActions v-if="showScanActions" />
         <a
           v-if="scanIsComplete && !currentScanIsActive"
-          :href="`${exportBaseUrl}/dashboard/export/${scanId}`"
-          :download="`${scanId}-export.json`"
+          :href="jsonExportUrl"
+          :download="jsonExportName"
           title="Download a self-contained JSON of this scan (data only, no raw LHR blobs)"
           class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
@@ -211,8 +71,8 @@ function scoreColor(score: number | null) {
         </a>
         <a
           v-if="scanIsComplete && !currentScanIsActive"
-          :href="`${exportBaseUrl}/dashboard/export/${scanId}?format=csv`"
-          :download="`${scanId}-export.csv`"
+          :href="csvExportUrl"
+          :download="csvExportName"
           title="Download per-route scores + Core Web Vitals as CSV (for spreadsheets / Google Sheets)"
           class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >

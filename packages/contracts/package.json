@@ -16,16 +16,36 @@
       "import": "./dist/index.mjs"
     },
     "./types/atoms": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
+      "types": "./dist/types/atoms.d.mts",
+      "import": "./dist/types/atoms.mjs"
     },
     "./ports": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
+      "types": "./dist/ports/index.d.mts",
+      "import": "./dist/ports/index.mjs"
     },
     "./drizzle": {
       "types": "./dist/drizzle/index.d.mts",
       "import": "./dist/drizzle/index.mjs"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.mts",
+      "import": "./dist/config/index.mjs"
+    },
+    "./commands": {
+      "types": "./dist/commands/index.d.mts",
+      "import": "./dist/commands/index.mjs"
+    },
+    "./packs": {
+      "types": "./dist/packs/index.d.mts",
+      "import": "./dist/packs/index.mjs"
+    },
+    "./hooks": {
+      "types": "./dist/hooks/index.d.mts",
+      "import": "./dist/hooks/index.mjs"
+    },
+    "./errors": {
+      "types": "./dist/errors/index.d.mts",
+      "import": "./dist/errors/index.mjs"
     },
     "./package.json": "./package.json"
   },

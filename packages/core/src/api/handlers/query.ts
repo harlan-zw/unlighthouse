@@ -1,6 +1,7 @@
 // query.routes handler — cross-scan route query.
 
-import type { CommandOutput, QueryRoutes, ScanRoute } from '@unlighthouse/contracts'
+import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { CommandOutput, QueryRoutes } from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
 import { applyRouteFilter, applyRouteSort } from './scan'
 

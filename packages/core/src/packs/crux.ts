@@ -39,7 +39,8 @@
 // is safe to register globally; users without a key just see "no
 // field data" instead of a hard failure.
 
-import type { Device, Pack, PackReconcileCtx, ScanRoute } from '@unlighthouse/contracts'
+import type { Device, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────

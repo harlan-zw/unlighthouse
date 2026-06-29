@@ -2,10 +2,13 @@
 // (memory storage + mock auditor + stub core). We verify output shape via
 // the command's Zod `output.safeParse` rather than strict equality.
 
-import type { CrawlSession, Scan, ScanRoute, UnlighthouseConfig, UnlighthouseCore } from '@unlighthouse/contracts'
-import type { HandlerCtx } from '@unlighthouse/core/api/handlers/types'
+import type { CrawlSession, UnlighthouseCore } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { Scan, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import { gzipSync } from 'node:zlib'
-import { commands, UnlighthouseError } from '@unlighthouse/contracts'
+import { commands } from '@unlighthouse/contracts/commands'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'

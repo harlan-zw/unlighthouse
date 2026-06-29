@@ -1,6 +1,5 @@
-import type { AuditPool } from '@unlighthouse/audit-pool'
 /**
- * Local Lighthouse auditor — driver side. Spawns an @unlighthouse/audit-pool whose worker
+ * Local Lighthouse auditor — driver side. Spawns a core-owned audit pool whose worker
  * file is `./local-worker.mjs` (built from `local-worker.ts`).
  *
  * Each audit is dispatched as a `lighthouse` task to a worker thread. Worker-thread isolation
@@ -13,11 +12,12 @@ import type { AuditPool } from '@unlighthouse/audit-pool'
  */
 import type { Logger, UnlighthouseOptions, UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import type { AuditPool } from './audit-pool'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createAuditPool, runTask } from '@unlighthouse/audit-pool'
 import { extractRouteData } from '../report/extract'
+import { createAuditPool, runTask } from './audit-pool'
 
 export interface LocalAuditorOptions {
   /** Default UnlighthouseOptions applied to every audit call. */
@@ -36,14 +36,15 @@ const LOCAL_CAPABILITIES: AuditorCapabilities = {
 }
 
 const WORKER_FILE = (() => {
-  const fromMeta = fileURLToPath(new URL('./local-worker.mjs', import.meta.url))
-  if (existsSync(fromMeta))
-    return fromMeta
-  // Stub mode: import.meta.url points at src/, but the built worker is in dist/
-  const fromDist = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', 'dist', 'auditors', 'local-worker.mjs')
-  if (existsSync(fromDist))
-    return fromDist
-  return fromMeta
+  const candidates = [
+    // Unbundled layout: dist/auditors/local.mjs -> dist/auditors/local-worker.mjs.
+    fileURLToPath(new URL('./local-worker.mjs', import.meta.url)),
+    // Chunked layout: shared local chunk emitted at dist/*.mjs.
+    fileURLToPath(new URL('./auditors/local-worker.mjs', import.meta.url)),
+    // Stub/source layout: src/auditors/local.ts -> dist/auditors/local-worker.mjs.
+    join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', 'dist', 'auditors', 'local-worker.mjs'),
+  ]
+  return candidates.find(candidate => existsSync(candidate)) ?? candidates[0]
 })()
 
 export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {

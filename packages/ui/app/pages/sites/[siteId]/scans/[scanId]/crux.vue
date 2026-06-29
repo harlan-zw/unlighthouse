@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CruxData } from '@unlighthouse/contracts'
+import { getScanId } from '~/features/scan/route-context'
 
 definePageMeta({ layout: 'scan' })
 

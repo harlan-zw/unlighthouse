@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getScanId } from '~/features/scan/route-context'
+
 // Back-compat shim for deep links: old /scan/{id}/{sub} → new tree.
 // `compare` is the exception — it's a standalone full-bleed page at /compare.
 const route = useRoute()

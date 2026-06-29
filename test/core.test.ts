@@ -7,13 +7,13 @@ import type {
   CrawlEvent,
   Crawler,
   CrawlerRunOptions,
-  HookEvent,
   SeedSource,
   Storage,
-  UnlighthouseConfig,
 } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { HookEvent } from '@unlighthouse/contracts/hooks'
 import { describe, expect, it } from 'vitest'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 
@@ -124,13 +124,6 @@ function hangingCrawler(url: string): Crawler {
       })()
     },
   }
-}
-
-async function collectEvents(session: { events: AsyncIterable<HookEvent> }): Promise<HookEvent[]> {
-  const out: HookEvent[] = []
-  for await (const e of session.events)
-    out.push(e)
-  return out
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────

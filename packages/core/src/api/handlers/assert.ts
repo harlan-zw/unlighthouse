@@ -3,11 +3,10 @@
 import type {
   AssertEvaluate,
   CommandOutput,
-} from '@unlighthouse/contracts'
-import type { ScanId, ScanRoute } from '@unlighthouse/contracts/ports'
-import type { Assertion, AssertionResult, Category, MetricName } from '@unlighthouse/contracts/types/atoms'
+} from '@unlighthouse/contracts/commands'
+import type { Assertion, AssertionResult, Category, MetricName, ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Handler, HandlerCtx } from './types'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 
 const CATEGORY_COL: Record<Category, keyof ScanRoute> = {
   'performance': 'scorePerformance',

@@ -1,10 +1,13 @@
 // scan.* handlers — wired to UnlighthouseCore session + Storage.
 
 import type {
-  CommandInput,
-  CommandOutput,
   Device,
   ExtractedMetrics,
+  ScanRoute,
+} from '@unlighthouse/contracts/types/atoms'
+import type {
+  CommandInput,
+  CommandOutput,
   ScanCancel,
   ScanCategories,
   ScanCurrent,
@@ -15,13 +18,12 @@ import type {
   ScanRescanAll,
   ScanResults,
   ScanResume,
-  ScanRoute,
   ScanStart,
   ScanStatusCmd,
   ScanSummaryCmd,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { overviewPack } from '../../packs/overview'
 import { readGitMeta } from '../../util/git-meta'
 

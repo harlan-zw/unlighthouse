@@ -2,24 +2,21 @@ import type {
   CrawlEvent,
   CrawlSession,
   CrawlStats,
-  HookEvent,
-  HookMap,
   Logger,
   ScanId,
   ScanStatus,
   ScanSummary,
   Storage,
-  UnlighthouseConfig,
   UnlighthouseCore,
   UnlighthouseCoreOptions,
   UnlighthouseCoreRunOptions,
   UnlighthouseCoreRunOverrides,
 } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { HookEvent, HookMap } from '@unlighthouse/contracts/hooks'
 import type { Hookable } from 'hookable'
-import {
-  UnlighthouseConfigSchema,
-  UnlighthouseError,
-} from '@unlighthouse/contracts'
+import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createHooks } from 'hookable'
 import { createTaggedLogger } from './logger'
 import { persistStableEvents } from './persist-events'

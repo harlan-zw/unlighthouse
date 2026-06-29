@@ -2,11 +2,10 @@ import type {
   Device,
   ExtractedMetrics,
   Paginated,
-  RouteListQuery,
   ScanId,
   ScanRoute,
-  ScanRouteRepository,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/types/atoms'
+import type { RouteListQuery, ScanRouteRepository } from '@unlighthouse/contracts/ports'
 import type { ScanRouteRow } from '@unlighthouse/contracts/drizzle'
 import { hash } from 'node:crypto'
 import { scanRoutes } from '@unlighthouse/contracts/drizzle'

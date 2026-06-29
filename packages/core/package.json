@@ -51,6 +51,14 @@
       "types": "./dist/auditors/crux.d.mts",
       "import": "./dist/auditors/crux.mjs"
     },
+    "./auditors/dataforseo": {
+      "types": "./dist/auditors/dataforseo.d.mts",
+      "import": "./dist/auditors/dataforseo.mjs"
+    },
+    "./auditors/local": {
+      "types": "./dist/auditors/local.d.mts",
+      "import": "./dist/auditors/local.mjs"
+    },
     "./auditors/psi": {
       "types": "./dist/auditors/psi.d.mts",
       "import": "./dist/auditors/psi.mjs"
@@ -167,7 +175,6 @@
   },
   "dependencies": {
     "@clack/prompts": "catalog:dependencies",
-    "@unlighthouse/audit-pool": "workspace:*",
     "@unlighthouse/contracts": "workspace:*",
     "axios": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
@@ -176,19 +183,16 @@
     "fflate": "catalog:dependencies",
     "h3": "catalog:dependencies",
     "hookable": "catalog:dependencies",
-    "launch-editor": "catalog:dependencies",
     "lighthouse": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
-    "mdream": "catalog:dependencies",
-    "minimist": "catalog:dependencies",
     "ofetch": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "radix3": "catalog:dependencies",
     "sanitize-filename": "catalog:dependencies",
     "sitemapper": "catalog:dependencies",
     "slugify": "catalog:dependencies",
+    "tinypool": "catalog:",
     "ufo": "catalog:dependencies",
-    "unctx": "catalog:dependencies",
     "ws": "catalog:dependencies"
   },
   "devDependencies": {
@@ -196,7 +200,6 @@
     "better-sqlite3": "catalog:dependencies",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:dependencies",
-    "rolldown": "catalog:",
     "unstorage": "catalog:"
   }
 }

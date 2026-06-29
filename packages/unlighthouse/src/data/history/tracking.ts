@@ -1,7 +1,8 @@
-import type { HookMap, Logger, ResolvedUserConfig, Storage } from '@unlighthouse/contracts'
+import type { Logger, ResolvedUserConfig, Storage } from '@unlighthouse/contracts'
+import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { Hookable } from 'hookable'
 import { scanCrux } from '@unlighthouse/contracts/drizzle'
-import { fetchCruxHistory, getSiteOrigin } from '@unlighthouse/core/auditors'
+import { fetchCruxHistory, getSiteOrigin } from '@unlighthouse/core/auditors/crux'
 import { processScanData } from '@unlighthouse/core/report'
 import { and, eq } from 'drizzle-orm'
 

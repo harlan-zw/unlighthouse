@@ -1,233 +1,40 @@
 <script setup lang="ts">
-import { toast } from 'vue-sonner'
+import ScoreRing from '~/features/scan/components/ScoreRing.vue'
+import { useRouteDetail } from '~/features/scan/route-detail'
 
 definePageMeta({ layout: 'scan' })
 
-const route = useRoute()
-const scanId = getScanId()
-const routePath = decodeURIComponent(route.params.path as string)
-const config = useRuntimeConfig()
-const baseUrl = config.public.unlighthouseApiUrl as string
-const screenshotUrl = useScreenshotUrl()
-const api = useApi()
-const router = useRouter()
-const { scoreToLabel, scoreToRingColor } = useScoreColor()
-const { fmtBytes: formatBytes } = useFormat()
-
-// "Back to Routes": if the user navigated here from the routes list,
-// router.back() returns them with filters/page intact. If they
-// landed via a deep link the history has no /routes entry to pop, so
-// we route forwards to the bare list instead. Detected by walking
-// `window.history` length — pre-navigation length === 1 means we're
-// the first entry. On SSR we can't tell; default to back() which is
-// a no-op when history is empty.
-function backToRoutes() {
-  if (import.meta.client && window.history.length <= 1) {
-    router.push(`/sites/${route.params.siteId}/scans/${scanId}/routes`)
-    return
-  }
-  router.back()
-}
-
-const rescanning = ref(false)
-const screenshotVisible = ref(true)
-// Full-page mobile screenshots are extremely tall (e.g. 412×6000+), so by
-// default we show a cropped preview and let the user expand to the full capture.
-const screenshotExpanded = ref(false)
-// Empty string = let the backend default to whichever device was scanned
-// first. The toggle below sets this once we know both devices exist.
-const deviceFilter = ref<'' | 'mobile' | 'desktop'>('')
-
-// The route detail page needs the full URL to call `route.get`, but the
-// URL param is just a path. Read the scan's site once so we can pair
-// them. `fullUrl` stays empty until scan.meta resolves — the gated fetch
-// below skips firing rather than guessing "http://localhost<path>" (which
-// would 404 every load and only then retry against the real origin once
-// scan.meta lands). The fetch watches `fullUrl`, so it runs as soon as the
-// real site is known.
-const { data: scanMeta, status: scanMetaStatus } = useAsyncData(
-  `route-scanmeta-${scanId}`,
-  () => api['scan.meta']({ scanId }).catch(() => null),
-)
-const fullUrl = computed(() => {
-  const site = scanMeta.value?.site
-  if (!site) return ''
-  try { return new URL(routePath, site).toString() }
-  catch { return `${site}${routePath}` }
-})
-
-async function rescanRoute() {
-  rescanning.value = true
-  try {
-    await api['route.rescan']({ scanId, url: routeData.value?.route?.url || fullUrl.value })
-    toast.success('Route rescan started')
-  }
-  catch (err: any) {
-    toast.error('Rescan failed', { description: err.message })
-  }
-  finally {
-    rescanning.value = false
-  }
-}
-
-const { data: routeData, status } = useAsyncData(
-  `route-detail-${scanId}-${routePath}`,
-  async () => {
-    if (!fullUrl.value) return null
-    try {
-      return await api['route.get']({
-        scanId,
-        url: fullUrl.value,
-        device: deviceFilter.value || undefined,
-      })
-    }
-    catch {
-      return null
-    }
-  },
-  { watch: [deviceFilter, fullUrl] },
-)
-
-const availableDevices = computed<string[]>(() => routeData.value?.availableDevices ?? [])
-const hasMultipleDevices = computed(() => availableDevices.value.length > 1)
-
-function formatMetric(value: number | null, unit: string = 'ms') {
-  if (value === null || value === undefined) return '—'
-  if (unit === 'ms') return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`
-  return value.toFixed(3)
-}
-
-const categoryIcons: Record<string, string> = {
-  'performance': 'lucide:gauge',
-  'accessibility': 'lucide:accessibility',
-  'seo': 'lucide:search',
-  'best-practices': 'lucide:shield-check',
-  'agentic-browsing': 'lucide:bot',
-}
-
-const categoryLabels: Record<string, string> = {
-  'performance': 'Performance',
-  'accessibility': 'Accessibility',
-  'seo': 'SEO',
-  'best-practices': 'Best Practices',
-  'agentic-browsing': 'Agentic Browsing',
-}
-
-// All persisted route fields (scorePerformance, lcp, etc.) live on
-// `routeData.value.route` now — they're a flat copy of the ScanRoute
-// row. The contract-blob-derived fields (categories, audits,
-// provenance, etc.) live at the top level alongside.
-const scores = computed(() => {
-  const r = routeData.value?.route
-  if (!r) return []
-  const cats = [
-    { id: 'performance', label: 'Performance', score: r.scorePerformance },
-    { id: 'accessibility', label: 'Accessibility', score: r.scoreAccessibility },
-    { id: 'seo', label: 'SEO', score: r.scoreSeo },
-    { id: 'best-practices', label: 'Best Practices', score: r.scoreBestPractices },
-  ]
-  if (r.scoreAgenticBrowsing != null)
-    cats.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: r.scoreAgenticBrowsing })
-  return cats.filter(c => c.score != null)
-})
-
-const metrics = computed(() => {
-  const r = routeData.value?.route
-  if (!r) return []
-  return [
-    { label: 'LCP', value: r.lcp, unit: 'ms', description: 'Largest Contentful Paint' },
-    { label: 'CLS', value: r.cls, unit: '', description: 'Cumulative Layout Shift' },
-    { label: 'TBT', value: r.tbt, unit: 'ms', description: 'Total Blocking Time' },
-    { label: 'FCP', value: r.fcp, unit: 'ms', description: 'First Contentful Paint' },
-    { label: 'SI', value: r.si, unit: 'ms', description: 'Speed Index' },
-    { label: 'TTFB', value: r.ttfb, unit: 'ms', description: 'Time to First Byte' },
-    { label: 'INP', value: r.inp, unit: 'ms', description: 'Interaction to Next Paint' },
-  ]
-})
-
-interface AuditEntry {
-  id: string
-  title: string | null
-  description: string | null
-  severity: 'pass' | 'warn' | 'fail'
-  score: number | null
-  displayValue: string | null
-  metricSavings: Record<string, number> | null
-  items: any[] | null
-  scoreDisplayMode: string
-}
-
-const categoryAudits = computed(() => {
-  const cats = routeData.value?.categories as Array<{
-    id: string
-    title: string
-    score: number | null
-    auditRefs: Array<{ id: string, weight: number }>
-  }> | undefined
-  const audits = routeData.value?.audits as Record<string, AuditEntry> | undefined
-  if (!cats || !audits) return []
-
-  return cats.map((cat) => {
-    const catAudits = cat.auditRefs
-      .map(r => audits[r.id])
-      .filter((a): a is AuditEntry => !!a)
-
-    const failing = catAudits
-      .filter(a => a.severity === 'fail' || a.severity === 'warn')
-      .sort((a, b) => {
-        if (a.severity === 'fail' && b.severity !== 'fail') return -1
-        if (a.severity !== 'fail' && b.severity === 'fail') return 1
-        return (a.score ?? 0) - (b.score ?? 0)
-      })
-
-    const passing = catAudits
-      .filter(a => a.severity === 'pass' && a.scoreDisplayMode !== 'notApplicable' && a.scoreDisplayMode !== 'manual')
-
-    const notApplicable = catAudits
-      .filter(a => a.scoreDisplayMode === 'notApplicable' || a.scoreDisplayMode === 'manual')
-
-    return {
-      id: cat.id,
-      label: categoryLabels[cat.id] || cat.title,
-      icon: categoryIcons[cat.id] || 'lucide:folder',
-      score: cat.score,
-      failing,
-      passing,
-      notApplicable,
-    }
-  })
-})
-
-function metricColor(label: string, value: number | null | undefined): string {
-  if (value == null) return 'text-muted'
-  const thresholds: Record<string, [number, number]> = {
-    LCP: [2500, 4000], CLS: [0.1, 0.25], TBT: [200, 600],
-    FCP: [1800, 3000], SI: [3400, 5800], TTFB: [800, 1800], INP: [200, 500],
-  }
-  const [good, poor] = thresholds[label] || [Infinity, Infinity]
-  if (value <= good) return 'text-success'
-  if (value <= poor) return 'text-warning'
-  return 'text-error'
-}
-
-function severityColor(severity: string): 'error' | 'warning' | 'neutral' {
-  if (severity === 'fail') return 'error'
-  if (severity === 'warn') return 'warning'
-  return 'neutral'
-}
-
-function renderMarkdownLinks(text: string): string {
-  return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="underline text-primary hover:text-primary/80">$1</a>')
-}
-
-function hasVisibleContent(item: any): boolean {
-  return !!(item.url || item.node?.snippet || item.reason || item.wastedBytes || item.wastedMs || item.snippet)
-}
-
-function hasNonZeroSavings(savings: Record<string, any>): boolean {
-  return Object.values(savings).some(v => typeof v === 'number' ? v > 0 : !!v)
-}
-
+const {
+  scanId,
+  routePath,
+  status,
+  scanMetaStatus,
+  routeData,
+  rescanning,
+  screenshotVisible,
+  screenshotExpanded,
+  deviceFilter,
+  availableDevices,
+  hasMultipleDevices,
+  rawLhrUrl,
+  lhrDownloadName,
+  screenshotFullUrl,
+  screenshotImageUrl,
+  scores,
+  metrics,
+  categoryAudits,
+  scoreToLabel,
+  scoreToRingColor,
+  formatBytes,
+  formatMetric,
+  metricColor,
+  severityColor,
+  renderMarkdownLinks,
+  hasVisibleContent,
+  hasNonZeroSavings,
+  backToRoutes,
+  rescanRoute,
+} = useRouteDetail()
 </script>
 
 <template>
@@ -263,8 +70,8 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
         <div class="flex items-center gap-2">
           <a
             v-if="routeData.route?.lhrBlobKey"
-            :href="`${baseUrl}/dashboard/lhr/${scanId}/${encodeURIComponent(routeData.route?.path || routePath)}${deviceFilter ? `?device=${deviceFilter}` : ''}`"
-            :download="`${scanId}-${routeData.route?.device || 'mobile'}.lhr.json`"
+            :href="rawLhrUrl"
+            :download="lhrDownloadName"
             class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
           >
             <Icon name="lucide:download" class="size-4" />
@@ -305,7 +112,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
                 {{ screenshotExpanded ? 'Collapse' : 'Expand' }}
               </button>
               <a
-                :href="screenshotUrl(scanId, routeData.route?.path || routePath)"
+                :href="screenshotFullUrl"
                 target="_blank"
                 rel="noopener"
                 class="text-xs text-muted hover:text-default transition-colors inline-flex items-center gap-1"
@@ -326,7 +133,7 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
           ]"
         >
           <img
-            :src="screenshotUrl(scanId, routeData.route?.path || routePath, routeData.route?.device || deviceFilter || undefined)"
+            :src="screenshotImageUrl"
             loading="lazy"
             alt="Page screenshot"
             class="block w-full h-auto object-top"

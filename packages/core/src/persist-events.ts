@@ -1,4 +1,4 @@
-import type { HookEvent } from '@unlighthouse/contracts'
+import type { HookEvent } from '@unlighthouse/contracts/hooks'
 import type { ScanId, Storage } from '@unlighthouse/contracts/ports'
 import { Buffer } from 'node:buffer'
 import { gzipSync } from 'node:zlib'

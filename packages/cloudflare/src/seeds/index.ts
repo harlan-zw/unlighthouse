@@ -1,4 +1,4 @@
-import type { Seed } from '@unlighthouse/contracts'
+import type { Seed } from '@unlighthouse/contracts/types/atoms'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
 
 export * from './sitemap'

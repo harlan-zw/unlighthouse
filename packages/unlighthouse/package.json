@@ -62,7 +62,13 @@
     "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"
   },
+  "peerDependencies": {
+    "@lhci/utils": "catalog:"
+  },
   "peerDependenciesMeta": {
+    "@lhci/utils": {
+      "optional": true
+    },
     "puppeteer": {
       "optional": true
     },
@@ -71,28 +77,18 @@
     }
   },
   "dependencies": {
-    "@clack/prompts": "catalog:dependencies",
     "@libsql/client": "catalog:",
     "@puppeteer/browsers": "catalog:dependencies",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/mcp": "workspace:*",
     "@unlighthouse/ui": "workspace:*",
-    "@unrouted/core": "catalog:",
-    "@unrouted/fetch": "catalog:",
-    "@unrouted/plugins": "catalog:",
-    "@unrouted/preset-api": "catalog:",
-    "@unrouted/preset-node": "catalog:",
-    "axios": "catalog:dependencies",
     "better-opn": "catalog:dependencies",
     "better-sqlite3": "catalog:dependencies",
     "c12": "catalog:dependencies",
     "cac": "catalog:dependencies",
-    "cheerio": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
-    "citty": "catalog:dependencies",
     "consola": "catalog:dependencies",
-    "crawlee": "catalog:dependencies",
     "defu": "catalog:dependencies",
     "drizzle-orm": "catalog:dependencies",
     "h3": "catalog:dependencies",
@@ -101,30 +97,19 @@
     "lighthouse": "catalog:dependencies",
     "listhen": "catalog:dependencies",
     "lodash-es": "catalog:dependencies",
-    "mdream": "catalog:dependencies",
     "minimist": "catalog:dependencies",
     "object-hash": "catalog:dependencies",
-    "ofetch": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
-    "radix3": "catalog:dependencies",
-    "sanitize-filename": "catalog:dependencies",
-    "sitemapper": "catalog:dependencies",
-    "slugify": "catalog:dependencies",
     "ufo": "catalog:dependencies",
-    "unconfig": "catalog:dependencies",
-    "unctx": "catalog:dependencies",
     "unstorage": "catalog:",
-    "wrap-ansi": "catalog:dependencies",
-    "ws": "catalog:dependencies",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@lhci/utils": "catalog:",
     "@types/better-sqlite3": "catalog:",
     "@types/lodash-es": "catalog:",
     "@types/minimist": "catalog:",
     "@types/node": "catalog:",
-    "@types/object-hash": "catalog:",
-    "@types/ws": "catalog:",
-    "drizzle-kit": "catalog:"
+    "@types/object-hash": "catalog:"
   }
 }

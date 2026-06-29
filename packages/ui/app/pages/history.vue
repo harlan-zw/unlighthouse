@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { ScanId } from '@unlighthouse/contracts'
-import type { DevicePair, ScanRow } from '@/components/site/types'
 import { toast } from 'vue-sonner'
+import SiteHistoryTable from '~/features/sites/components/SiteHistoryTable.vue'
+import { scanLinkPath } from '~/features/scan/scan-links'
+import { pairScans, type DevicePair, type ScanRow } from '~/features/sites/scan-pairs'
 
 definePageMeta({ layout: 'root' })
 

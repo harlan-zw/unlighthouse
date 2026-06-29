@@ -1,6 +1,7 @@
 // events.* handlers — streaming AsyncGenerators.
 
-import type { CommandOutput, EventsSubscribe, EventsTail, HookEvent } from '@unlighthouse/contracts'
+import type { CommandOutput, EventsSubscribe, EventsTail } from '@unlighthouse/contracts/commands'
+import type { HookEvent } from '@unlighthouse/contracts/hooks'
 import type { Handler } from './types'
 import { gunzipSync } from 'fflate'
 

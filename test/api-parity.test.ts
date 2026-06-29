@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { commands } from '@unlighthouse/contracts'
+import { commands } from '@unlighthouse/contracts/commands'
 import { commandToRoute } from '@unlighthouse/core/api/http'
 import { commandToRoute as clientCommandToRoute } from '@unlighthouse/core/api/client'
 import { createHandlers } from '@unlighthouse/core/api/handlers'

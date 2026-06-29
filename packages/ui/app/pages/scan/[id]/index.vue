@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { getScanId } from '~/features/scan/route-context'
+import { scanLinkPath } from '~/features/scan/scan-links'
+
 // Back-compat shim. Old bookmarks/CI links used /scan/{id}. The new tree
 // nests scans under their site, so resolve the slug from scan.meta (the only
 // place a scanId→site mapping lives) and redirect to the new overview.

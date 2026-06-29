@@ -4,7 +4,7 @@
 import type { BrowserWorker } from '@cloudflare/puppeteer'
 import type { Crawler, CrawlerRunOptions, CrawlEvent } from '@unlighthouse/contracts'
 import puppeteer from '@cloudflare/puppeteer'
-import { UnlighthouseError } from '@unlighthouse/contracts'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 
 export interface CloudflareCrawlerOptions {
   /** Browser Rendering binding (env.BROWSER). */

@@ -26,6 +26,31 @@ import {
 } from './scan'
 import { sitesCreate, sitesDelete, sitesList } from './sites'
 
+export { assertEvaluate } from './assert'
+export { compareDetail, compareFindPrevious, compareMarkdown, compareRun } from './compare'
+export { eventsSubscribe, eventsTail } from './events'
+export { historyList, historyRescan } from './history'
+export { auditorsList, health, manifest } from './meta'
+export { packList, packRun } from './pack'
+export { queryRoutes } from './query'
+export { routeAudits, routeGet, routeRescan } from './route'
+export {
+  scanCancel,
+  scanCategories,
+  scanCurrent,
+  scanDelete,
+  scanImport,
+  scanMeta,
+  scanPause,
+  scanRescanAll,
+  scanResults,
+  scanResume,
+  scanStart,
+  scanStatus,
+  scanSummary,
+} from './scan'
+export { sitesCreate, sitesDelete, sitesList } from './sites'
+
 export function createHandlers(): HandlerMap {
   return {
     'scan.start': scanStart,

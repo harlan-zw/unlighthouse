@@ -5,15 +5,12 @@ import type {
   CommandOutput,
   Health,
   Manifest,
-} from '@unlighthouse/contracts'
+} from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
-import {
-  commands,
-  defaultConfig,
-  ErrorCodeDescriptions,
-  ErrorCodes,
-  HookSchemas,
-} from '@unlighthouse/contracts'
+import { commands } from '@unlighthouse/contracts/commands'
+import { defaultConfig } from '@unlighthouse/contracts/config'
+import { ErrorCodeDescriptions, ErrorCodes } from '@unlighthouse/contracts/errors'
+import { HookSchemas } from '@unlighthouse/contracts/hooks'
 import { z } from 'zod'
 
 function toJsonSchema(schema: z.ZodType): unknown {

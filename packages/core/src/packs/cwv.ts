@@ -17,7 +17,8 @@
 //   - Cross-route fix grouping: "render-blocking-insight saves 200ms FCP
 //     on 18 routes" is one finding, not 18.
 
-import type { Pack, PackReconcileCtx, ReconciledReport, ScanRoute } from '@unlighthouse/contracts'
+import type { ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────

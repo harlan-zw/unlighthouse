@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { isUnlighthouseError } from '../packages/contracts/src/errors'
+import { isUnlighthouseError } from '@unlighthouse/contracts/errors'
 import { resolveConfig } from '../packages/unlighthouse/src/config/resolve'
 
 function freshCwd(): string {

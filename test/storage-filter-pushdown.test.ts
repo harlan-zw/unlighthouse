@@ -7,8 +7,8 @@
 // asserts the same shape the SQL path produces.
 
 import type { Storage } from '@unlighthouse/contracts'
-import { scanResults } from '@unlighthouse/core/api/handlers/scan'
-import { queryRoutes } from '@unlighthouse/core/api/handlers/query'
+import { scanResults } from '@unlighthouse/core/api/handlers'
+import { queryRoutes } from '@unlighthouse/core/api/handlers'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
 

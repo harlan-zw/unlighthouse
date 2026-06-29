@@ -10,7 +10,9 @@ import type {
   KVNamespace,
   R2Bucket,
 } from '@cloudflare/workers-types'
-import type { Device, Logger, UnlighthouseConfig } from '@unlighthouse/contracts'
+import type { Logger } from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { Device } from '@unlighthouse/contracts/types/atoms'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import { auditRoute, createUnlighthouseCore } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
@@ -20,7 +22,7 @@ import { createHttpRouter } from '@unlighthouse/core/api/http'
 // dependency, which breaks the Worker runtime with a Node-only
 // `fileURLToPath` call). Pull the one adapter we use directly.
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
-import { parallelMapCrawler } from '@unlighthouse/core/crawlers/parallel-map'
+import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { createApp, toWebHandler } from 'h3'
 // Note: createCloudflareBrowserAuditor (and its transitive cdp-connect →

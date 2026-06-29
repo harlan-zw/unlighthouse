@@ -1,4 +1,4 @@
-import type { Auditor, AuditorCapabilities, LighthouseReport, NamedAuditor } from '../packages/contracts/src/ports/auditor'
+import type { Auditor, AuditorCapabilities, LighthouseReport, NamedAuditor } from '@unlighthouse/contracts/ports'
 import { describe, expect, it } from 'vitest'
 import {
   fallbackAuditor,
@@ -6,7 +6,7 @@ import {
   rateLimitedPick,
   roundRobinPick,
   weightedPick,
-} from '../packages/core/src/auditors/route'
+} from '@unlighthouse/core/auditors/route'
 
 const caps: AuditorCapabilities = {
   reliablePerfScores: true,

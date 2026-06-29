@@ -3,7 +3,7 @@
 // Analyzes WebMCP tool registration, form coverage, schema validity,
 // agent accessibility tree, and llms.txt across all routes.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts'
+import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
 
 const AGENTIC_AUDIT_IDS = [
