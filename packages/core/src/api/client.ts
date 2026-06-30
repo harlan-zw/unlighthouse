@@ -1,6 +1,7 @@
 // Typed UI client over the HTTP projection. Browser + Node compatible.
-// Routes are derived by the same conventions as the HTTP projection;
-// duplicated here intentionally to keep the client dependency-light.
+// Method/path come from the SAME `commandToRoute` the server uses (in
+// `@unlighthouse/contracts/commands`), so the client can't drift from the
+// projection and honours `http.*` overrides / `query.` prefix / PUT / DELETE.
 
 import type {
   CommandInput,
@@ -8,7 +9,7 @@ import type {
   CommandOutput,
   CommandRegistry,
 } from '@unlighthouse/contracts/commands'
-import { commands } from '@unlighthouse/contracts/commands'
+import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
 
 export interface CreateClientOptions {
   /** Base URL of the HTTP projection (e.g. '/api', or 'https://host/api'). */
@@ -23,40 +24,6 @@ export type UnlighthouseClient = {
   [K in CommandName]: CommandRegistry[K] extends { streaming: true }
     ? (input: CommandInput<CommandRegistry[K]>) => AsyncIterable<CommandOutput<CommandRegistry[K]>>
     : (input: CommandInput<CommandRegistry[K]>) => Promise<CommandOutput<CommandRegistry[K]>>
-}
-
-/** Commands projected as GET (read-only / streaming reads). */
-const GET_COMMANDS = new Set<CommandName>([
-  'scan.status',
-  'scan.results',
-  'scan.summary',
-  'scan.meta',
-  'scan.current',
-  'scan.categories',
-  'route.get',
-  'route.audits',
-  'history.list',
-  'compare.findPrevious',
-  'pack.list',
-  'query.routes',
-  'events.subscribe',
-  'events.tail',
-  'manifest',
-  'health',
-  'auditors.list',
-  'sites.list',
-])
-
-/**
- * Derive `{ method, path }` from a command name. Path: `/<namespace>/<verb>`
- * for dotted names, `/<name>` for bare names.
- */
-export function commandToRoute(cmdName: CommandName): { method: 'GET' | 'POST', path: string } {
-  const method: 'GET' | 'POST' = GET_COMMANDS.has(cmdName) ? 'GET' : 'POST'
-  const path = cmdName.includes('.')
-    ? `/${cmdName.split('.').join('/')}`
-    : `/${cmdName}`
-  return { method, path }
 }
 
 function toSearchParams(input: unknown): string {
@@ -109,7 +76,7 @@ export function createClient(opts: CreateClientOptions = {}): UnlighthouseClient
 
   for (const name of Object.keys(commands) as CommandName[]) {
     const cmd = commands[name]
-    const { method, path } = commandToRoute(name)
+    const { method, path } = commandToRoute(cmd)
     const url = (qs: string) => `${baseUrl}${path}${qs}`
 
     if ((cmd as { streaming?: boolean }).streaming) {

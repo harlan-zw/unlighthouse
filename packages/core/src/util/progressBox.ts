@@ -1,4 +1,4 @@
-import * as p from '@clack/prompts'
+import { clearLine, cursorTo } from 'node:readline'
 
 export interface ProgressData {
   currentTask?: string
@@ -18,17 +18,21 @@ export interface ProgressBox {
  * Create a progress box that displays scanning progress using Clack spinner
  */
 export function createProgressBox(): ProgressBox {
-  let clackSpinner: ReturnType<typeof p.spinner> | undefined
+  let active = false
+  let lastMessage = ''
+
+  function writeMessage(message: string) {
+    active = true
+    lastMessage = message
+    if (process.stderr.isTTY) {
+      clearLine(process.stderr, 0)
+      cursorTo(process.stderr, 0)
+      process.stderr.write(message)
+    }
+  }
 
   const update = (progressData: ProgressData) => {
-    // Initialize Clack spinner if not started
-    if (!clackSpinner && progressData.totalTasks > 0) {
-      clackSpinner = p.spinner()
-      clackSpinner.start('Starting scan...')
-    }
-
-    // Update progress
-    if (clackSpinner && progressData.totalTasks > 0) {
+    if (progressData.totalTasks > 0) {
       const percentage = Math.round((progressData.completedTasks / progressData.totalTasks) * 100)
 
       // Format additional info
@@ -70,15 +74,20 @@ export function createProgressBox(): ProgressBox {
         message += ` • ${currentTask}`
       }
 
-      // Update the spinner message
-      clackSpinner.message(message)
+      writeMessage(message)
     }
   }
 
   const clear = () => {
-    if (clackSpinner) {
-      clackSpinner.stop('Scan completed!')
-      clackSpinner = undefined
+    if (active) {
+      if (process.stderr.isTTY) {
+        clearLine(process.stderr, 0)
+        cursorTo(process.stderr, 0)
+      }
+      if (lastMessage || process.stderr.isTTY)
+        process.stderr.write('Scan completed!\n')
+      active = false
+      lastMessage = ''
     }
   }
 

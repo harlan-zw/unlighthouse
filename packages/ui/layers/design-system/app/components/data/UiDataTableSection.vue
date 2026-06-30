@@ -12,7 +12,7 @@ const {
   pageSize = 12,
   searchable = true,
   searchPlaceholder = 'Search…',
-  emptyIcon = 'i-lucide-search',
+  emptyIcon = 'search',
   emptyTitle = 'No results found',
   emptyDescription = '',
   itemLabel = 'items',
@@ -83,9 +83,10 @@ const showPagination = computed(() => !pending && rows.length > 0 && total > pag
         <UInput
           v-if="searchable"
           v-model="search"
+          type="search"
           class="w-full sm:w-56"
           :placeholder="searchPlaceholder"
-          icon="i-lucide-search"
+          icon="search"
           autocomplete="off"
           size="sm"
           :ui="{ base: 'transition-[width] duration-200 focus-within:w-72' }"
@@ -95,7 +96,7 @@ const showPagination = computed(() => !pending && rows.length > 0 && total > pag
             <UiButton
               v-if="search !== ''"
               purpose="quiet"
-              icon="i-lucide-x"
+              icon="close"
               size="xs"
               class="rounded-lg"
               aria-label="Clear search"
@@ -132,7 +133,7 @@ const showPagination = computed(() => !pending && rows.length > 0 && total > pag
           </h3>
           <p v-if="search || filtersActive || emptyDescription" class="text-sm text-muted mb-4">
             <template v-if="search">
-              No {{ itemLabel }} match "<span class="font-medium text-default">{{ search }}</span>"
+              No {{ itemLabel }} match “<span class="font-medium text-default">{{ search }}</span>”
             </template>
             <template v-else-if="filtersActive">
               No {{ itemLabel }} match the selected filter
@@ -155,31 +156,36 @@ const showPagination = computed(() => !pending && rows.length > 0 && total > pag
       </slot>
     </div>
 
-    <!-- Table -->
-    <div v-else-if="showTable" class="rounded-xl border border-default overflow-hidden bg-default">
-      <UiTable
-        v-model:sorting="sorting"
-        v-model:selected="rowSelection"
-        :data="rows"
-        :columns="columns"
-        :page-size="pageSize"
-        :row-hover="rowHover"
-        :row-clickable="rowClickable"
-        :manual-pagination="manualPagination"
-        :manual-sorting="manualSorting"
-        :enable-sorting="manualSorting"
-        :total="total"
-        :row-id="rowId"
-        :label="label"
-        :loading="pending"
-        :controlled-selection="rowSelectionEnabled"
-        disable-pagination
-        @sort-column="(c: string) => emit('sortColumn', c)"
-        @row-click="(r: T) => emit('rowClick', r)"
-      />
-    </div>
+    <!-- Body: defaults to the table; pass #body to render an alternate view
+         (e.g. a card grid) while keeping the search / empty / pagination chrome. -->
+    <template v-else-if="showTable">
+      <slot name="body" :rows="rows" :pending="pending">
+        <div class="rounded-xl border border-default overflow-hidden bg-default">
+          <UiTable
+            v-model:sorting="sorting"
+            v-model:selected="rowSelection"
+            :data="rows"
+            :columns="columns"
+            :page-size="pageSize"
+            :row-hover="rowHover"
+            :row-clickable="rowClickable"
+            :manual-pagination="manualPagination"
+            :manual-sorting="manualSorting"
+            :enable-sorting="manualSorting"
+            :total="total"
+            :row-id="rowId"
+            :label="label"
+            :loading="pending"
+            :controlled-selection="rowSelectionEnabled"
+            disable-pagination
+            @sort-column="(c: string) => emit('sortColumn', c)"
+            @row-click="(r: T) => emit('rowClick', r)"
+          />
+        </div>
+      </slot>
+    </template>
 
-    <!-- Pagination -->
+    <!-- Pagination (sibling: applies to the table and any #body view) -->
     <div v-if="showPagination" class="flex items-center justify-between gap-4 pt-2">
       <p class="text-sm text-muted">
         <slot name="pagination-leading">

@@ -39,9 +39,9 @@
 // is safe to register globally; users without a key just see "no
 // field data" instead of a hard failure.
 
+import type { CruxFinding, CruxFormFactor, CruxReport, CruxSource, GapAnalysis, GapEntry, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { Device, ScanRoute } from '@unlighthouse/contracts/types/atoms'
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import { z } from 'zod'
+import { CruxReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────
 // web.dev/articles/vitals — kept in sync with the cwv pack's THRESHOLDS table
@@ -55,91 +55,6 @@ const THRESHOLDS = {
 } as const
 
 type MetricKey = keyof typeof THRESHOLDS
-
-// ── Wire-format ─────────────────────────────────────────────────────────────
-
-const FormFactorSchema = z.enum(['PHONE', 'DESKTOP', 'TABLET', 'ALL_FORM_FACTORS'])
-const SourceSchema = z.enum(['url', 'origin', 'none'])
-const SeveritySchema = z.enum(['good', 'needsImprovement', 'poor', 'unknown'])
-
-const CruxFindingSchema = z.object({
-  url: z.string(),
-  formFactor: FormFactorSchema,
-  // CrUX CLS is a raw float (e.g. 0.05) — NOT scaled like lab CLS-units * 1000.
-  // Keep them separate in the report so consumers don't have to guess the unit.
-  lcp_p75: z.number().nullable(),
-  cls_p75: z.number().nullable(),
-  inp_p75: z.number().nullable(),
-  // Which CrUX endpoint produced the row:
-  //   'url'    — per-URL record matched
-  //   'origin' — per-URL missed, origin-level fallback hit
-  //   'none'   — both missed (new site, low traffic) or no API key
-  source: SourceSchema,
-  // Worst severity across the three core metrics. 'unknown' when source='none'.
-  severity: SeveritySchema,
-})
-
-const SeverityCountsSchema = z.object({
-  good: z.number().int().nonnegative(),
-  needsImprovement: z.number().int().nonnegative(),
-  poor: z.number().int().nonnegative(),
-  unknown: z.number().int().nonnegative(),
-})
-
-// Lab-vs-field gap analysis. We restrict the comparison to a verdict — not a
-// raw value — because the units differ (lab numbers come from a single
-// throttled run, field p75 from real users). What matters operationally is:
-// "did Lighthouse say this is fine while real users disagree?".
-const MetricKeySchema = z.enum(['lcp', 'cls', 'inp'])
-const GapVerdictSchema = z.enum(['good', 'needsImprovement', 'poor'])
-
-const GapEntrySchema = z.object({
-  url: z.string(),
-  // CrUX-style form factor for joinability with the rest of the report.
-  formFactor: FormFactorSchema,
-  metric: MetricKeySchema,
-  labVerdict: GapVerdictSchema,
-  fieldVerdict: GapVerdictSchema,
-  labValue: z.number().nullable(),
-  fieldValue: z.number().nullable(),
-})
-
-const GapAnalysisSchema = z.object({
-  // Lab said `good`, field says `poor`. The damning gap — lab passed but real
-  // users feel it.
-  goodLabPoorField: z.array(GapEntrySchema),
-  // Lab said `poor`, field says `good`. Lab was pessimistic — useful for
-  // tuning thresholds or recognising over-conservative single-run noise.
-  poorLabGoodField: z.array(GapEntrySchema),
-  // Both substrates agree on the verdict. Aligned rows are still useful for
-  // confidence — if `good` lab + `good` field, you can trust the result.
-  aligned: z.array(GapEntrySchema),
-})
-
-const CruxReportSchema = z.object({
-  scanId: z.string(),
-  routesAnalysed: z.number().int().nonnegative(),
-  // How many CrUX queries we issued total. routesAnalysed * formFactors in
-  // the simple case; mostly here so consumers can spot "is the pack even
-  // doing anything?" vs "we queried but got nothing back".
-  totalRoutesQueried: z.number().int().nonnegative(),
-  // True iff at least one route fell back to the origin-level record.
-  hasOriginFallback: z.boolean(),
-  severityCounts: SeverityCountsSchema,
-  findings: z.array(CruxFindingSchema),
-  // Populated whenever we have BOTH lab values (on the ScanRoute) and field
-  // findings (CrUX source !== 'none') to compare. When nothing lines up,
-  // every bucket is the empty array — `null` would be ambiguous with
-  // "feature off" vs "ran but found nothing aligned".
-  gapAnalysis: GapAnalysisSchema,
-})
-
-export type CruxFinding = z.infer<typeof CruxFindingSchema>
-export type CruxReport = z.infer<typeof CruxReportSchema>
-export type CruxFormFactor = z.infer<typeof FormFactorSchema>
-export type CruxSource = z.infer<typeof SourceSchema>
-export type GapEntry = z.infer<typeof GapEntrySchema>
-export type GapAnalysis = z.infer<typeof GapAnalysisSchema>
 
 // ── CrUX API client ─────────────────────────────────────────────────────────
 

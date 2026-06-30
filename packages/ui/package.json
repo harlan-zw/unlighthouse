@@ -20,28 +20,25 @@
     "test:publint": "publint"
   },
   "dependencies": {
-    "@internationalized/date": "catalog:dependencies",
     "@nuxt/icon": "catalog:",
     "@nuxt/ui": "catalog:dependencies",
     "@nuxtjs/color-mode": "catalog:",
-    "@pinia/nuxt": "catalog:",
     "@tanstack/table-core": "catalog:dependencies",
     "@tanstack/vue-table": "catalog:dependencies",
+    "@unlighthouse/contracts": "workspace:*",
+    "@unlighthouse/core": "workspace:*",
     "@vueuse/core": "catalog:dependencies",
     "motion-v": "catalog:",
     "nuxt": "catalog:",
     "nuxt-use-query": "link:../../../nuxt-use-query",
-    "pinia": "catalog:",
     "reka-ui": "catalog:",
     "vue": "catalog:dependencies",
     "vue-router": "catalog:",
-    "vue-sonner": "catalog:"
+    "vue-sonner": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@unlighthouse/contracts": "workspace:*",
-    "@unlighthouse/core": "workspace:*",
     "tailwindcss": "catalog:dependencies",
-    "tw-animate-css": "catalog:",
     "vue-tsc": "catalog:"
   }
 }

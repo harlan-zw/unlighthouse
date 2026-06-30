@@ -9,10 +9,10 @@ const slug = computed(() => route.params.siteId as string)
   <SidebarShell>
     <template #subnav>
       <nav class="flex items-center gap-1.5 text-sm min-w-0">
-        <NuxtLink to="/sites" class="text-muted hover:text-default transition-colors shrink-0">
+        <NuxtLink to="/sites" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors shrink-0 lg:min-h-0 lg:min-w-0">
           Sites
         </NuxtLink>
-        <Icon name="lucide:chevron-right" class="size-3.5 text-muted shrink-0" />
+        <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />
         <span class="font-medium truncate">{{ slug }}</span>
       </nav>
     </template>

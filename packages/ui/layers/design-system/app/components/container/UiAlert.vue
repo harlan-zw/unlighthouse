@@ -37,11 +37,11 @@ const colors = computed(() => ({
 }))
 
 const defaultIcons: Record<SemanticStatus, string> = {
-  error: 'i-lucide-circle-alert',
-  warning: 'i-lucide-triangle-alert',
-  info: 'i-lucide-info',
-  success: 'i-lucide-circle-check',
-  neutral: 'i-lucide-circle-dot',
+  error: 'error',
+  warning: 'warning',
+  info: 'info',
+  success: 'success',
+  neutral: 'circle-dash',
 }
 
 const resolvedIcon = computed(() => icon || defaultIcons[status])
@@ -108,7 +108,7 @@ const reduced = useReducedMotion()
         size="xs"
         @click="emit('dismiss')"
       >
-        <UiIcon name="i-lucide-x" class="size-3" aria-hidden="true" />
+        <UiIcon name="close" class="size-3" aria-hidden="true" />
       </UiButton>
     </div>
 

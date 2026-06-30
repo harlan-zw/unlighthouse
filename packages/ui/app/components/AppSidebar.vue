@@ -27,10 +27,10 @@ const scanSiteName = computed(() => {
 })
 
 const nav = [
-  { label: 'Home', to: '/', icon: 'i-lucide-layout-dashboard', active: (p: string) => p === '/' },
-  { label: 'Sites', to: '/sites', icon: 'i-lucide-globe', active: (p: string) => p === '/sites' },
-  { label: 'History', to: '/history', icon: 'i-lucide-history', active: (p: string) => p.startsWith('/history') },
-  { label: 'New Scan', to: '/scan/new', icon: 'i-lucide-plus', active: (p: string) => p === '/scan/new' },
+  { label: 'Home', to: '/', icon: 'layout', active: (p: string) => p === '/' },
+  { label: 'Sites', to: '/sites', icon: 'globe', active: (p: string) => p === '/sites' },
+  { label: 'History', to: '/history', icon: 'history', active: (p: string) => p.startsWith('/history') },
+  { label: 'New Scan', to: '/scan/new', icon: 'add', active: (p: string) => p === '/scan/new' },
 ]
 
 // ── Sites list (default mode) ────────────────────────────────────────────────
@@ -54,14 +54,14 @@ const siteLinks = computed(() => sites.value.map(site => ({
 
 // ── Scan context (scan mode) ─────────────────────────────────────────────────
 const SCAN_MENUS = [
-  { key: 'routes', label: 'Routes', icon: 'i-lucide-list' },
-  { key: 'overview', label: 'Summary', icon: 'i-lucide-layout-dashboard' },
-  { key: 'performance', label: 'Performance', icon: 'i-lucide-gauge' },
-  { key: 'seo', label: 'SEO', icon: 'i-lucide-search' },
-  { key: 'accessibility', label: 'Accessibility', icon: 'i-lucide-accessibility' },
-  { key: 'best-practices', label: 'Best Practices', icon: 'i-lucide-shield-check' },
-  { key: 'crux', label: 'CrUX', icon: 'i-lucide-globe' },
-  { key: 'events', label: 'Events', icon: 'i-lucide-radio' },
+  { key: 'routes', label: 'Routes', icon: 'list' },
+  { key: 'overview', label: 'Summary', icon: 'layout' },
+  { key: 'performance', label: 'Performance', icon: 'gauge' },
+  { key: 'seo', label: 'SEO', icon: 'search' },
+  { key: 'accessibility', label: 'Accessibility', icon: 'accessibility' },
+  { key: 'best-practices', label: 'Best Practices', icon: 'shield-check' },
+  { key: 'crux', label: 'CrUX', icon: 'globe' },
+  { key: 'events', label: 'Events', icon: 'activity' },
 ]
 
 const scanBase = computed(() => `/sites/${siteId.value}/scans/${scanId.value}`)
@@ -81,7 +81,7 @@ const scanLinks = computed(() => {
   const base = scanBase.value
   return [
     ...SCAN_MENUS.map(m => ({ label: m.label, to: `${base}/${m.key}`, icon: m.icon, active: () => scanSeg.value === m.key })),
-    { label: 'Compare', to: `/compare/${scanId.value}`, icon: 'i-lucide-git-compare', active: () => false },
+    { label: 'Compare', to: `/compare/${scanId.value}`, icon: 'compare', active: () => false },
   ]
 })
 
@@ -119,14 +119,14 @@ const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
       :title="inScan ? `Back to ${scanSiteName}` : undefined"
     >
       <div class="relative flex aspect-square size-8 items-center justify-center rounded-md shrink-0" :class="inScan ? 'bg-elevated' : 'bg-primary text-inverted'">
-        <Favicon v-if="inScan && siteId" :domain="siteId" :size="20" :alt="`${scanSiteName} favicon`" />
-        <Icon v-else name="lucide:radar" class="size-4" />
+        <UiFavicon v-if="inScan && siteId" :domain="siteId" :size="20" :alt="`${scanSiteName} favicon`" />
+        <UiIcon v-else name="radar" class="size-4" />
         <!-- Back affordance overlays the favicon on hover in scan mode -->
         <span
           v-if="inScan"
           class="absolute inset-0 flex items-center justify-center rounded-md bg-elevated/90 opacity-0 group-hover/brand:opacity-100 transition-opacity"
         >
-          <Icon name="lucide:arrow-left" class="size-4" />
+          <UiIcon name="back" class="size-4" />
         </span>
       </div>
       <div class="grid flex-1 text-left text-sm leading-tight min-w-0">
@@ -171,19 +171,19 @@ const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
           v-if="sitesUnreachable"
           class="flex items-start gap-2 px-1.5 py-2 rounded-md text-xs bg-error/5 text-error"
         >
-          <Icon name="lucide:plug-zap" class="size-3.5 shrink-0 mt-0.5" />
+          <UiIcon name="plug" class="size-3.5 shrink-0 mt-0.5" />
           <div class="min-w-0">
             <div class="font-medium">
               Can't reach the scan host
             </div>
             <button type="button" class="mt-1 inline-flex items-center gap-1 text-muted hover:text-default" @click="() => refreshSites()">
-              <Icon name="lucide:rotate-cw" class="size-3" /> Retry
+              <UiIcon name="refresh" class="size-3" /> Retry
             </button>
           </div>
         </div>
         <UiNavList v-else-if="siteLinks.length" :links="siteLinks">
           <template #icon="{ link }">
-            <Favicon :domain="link.domain" :size="18" :alt="`${link.label} favicon`" />
+            <UiFavicon :domain="link.domain" :size="18" :alt="`${link.label} favicon`" />
           </template>
         </UiNavList>
         <NuxtLink

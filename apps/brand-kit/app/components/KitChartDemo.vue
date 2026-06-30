@@ -74,9 +74,15 @@ const yExtent = computed(() => {
   let mx = 0
   let mn = Infinity
   for (const row of props.data) {
-    for (const v of row.values) { mx = Math.max(mx, v); mn = Math.min(mn, v) }
+    for (const v of row.values) {
+      mx = Math.max(mx, v)
+      mn = Math.min(mn, v)
+    }
     if (props.showComparison && row.prev) {
-      for (const v of row.prev) { mx = Math.max(mx, v); mn = Math.min(mn, v) }
+      for (const v of row.prev) {
+        mx = Math.max(mx, v)
+        mn = Math.min(mn, v)
+      }
     }
   }
   if (!Number.isFinite(mn))
@@ -187,7 +193,14 @@ function onChartPointerOver(e: MouseEvent) {
   onTooltip(row, prev)
 }
 
-function onChartLeave() { onTooltip(null, null) }
+function onChartPointerMove(e: MouseEvent) {
+  onChartMove(e)
+  onChartPointerOver(e)
+}
+
+function onChartLeave() {
+  onTooltip(null, null)
+}
 
 function fmtVal(n: number | null | undefined): string {
   return n == null ? '—' : n.toLocaleString('en-US')
@@ -201,7 +214,7 @@ function fmtVal(n: number | null | undefined): string {
       class="relative select-none touch-none w-full"
       :class="{ 'cursor-crosshair': !isDragging, 'cursor-ew-resize': isDragging }"
       :style="{ height: `${CHART_HEIGHT}px` }"
-      @mousemove="(e: MouseEvent) => { onChartMove(e); onChartPointerOver(e) }"
+      @mousemove="onChartPointerMove"
       @mouseleave="onChartLeave"
       @pointerenter="refreshChartRect"
       @pointerdown="onPointerDown"

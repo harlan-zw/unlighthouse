@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { ButtonProps } from '@nuxt/ui'
 import type { UiIcon } from '../../shared/ui-icons'
+import type { SlotTextOptions } from '../../utils/slot-text'
 import { useMouseInElement } from '@vueuse/core'
 import { m, useReducedMotion } from 'motion-v'
-import { computed, ref, useSlots, useTemplateRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useAttrs, useSlots, useTemplateRef, watch } from 'vue'
 import { liftPresets } from '../../shared/motion'
-import { resolveUiIcon } from '../../shared/ui-icons'
 
 /**
  * UiButton — the single button primitive. UButton + motion-v lift/press
@@ -18,6 +18,8 @@ import { resolveUiIcon } from '../../shared/ui-icons'
  *   - `secondary` alternative action — neutral outline.
  *   - `quiet`     low-emphasis: alerts, inline, icon-only, back/nav — neutral ghost.
  *   - `danger`    destructive — error soft (error ghost when icon-only).
+ *   - `link`      tertiary action below a cta/secondary — neutral link, no chrome,
+ *                 no FX/lift (the "see other plans" / "or paste a list" tier).
  *
  * Still forwarded: `size`, `block`, `loading`, `disabled`, `to`, `type`,
  * `icon`/`trailing-icon`, `class`, all slots. `intensity` may be set
@@ -45,9 +47,10 @@ const {
   icon,
   leadingIcon,
   trailingIcon,
+  animatedLabel = false,
   ...buttonProps
 } = defineProps<MotionButtonProps>()
-type Purpose = 'cta' | 'secondary' | 'quiet' | 'danger'
+type Purpose = 'cta' | 'secondary' | 'quiet' | 'danger' | 'link'
 type Intensity = 'subtle' | 'default' | 'cta'
 
 interface MotionExtras {
@@ -57,21 +60,30 @@ interface MotionExtras {
   icon?: UiIcon
   leadingIcon?: UiIcon
   trailingIcon?: UiIcon
+  animatedLabel?: boolean | SlotTextOptions
 }
 
 // UButton props minus the styling knobs purpose now owns and the icon props
 // MotionExtras re-types to the curated `UiIcon` union.
 type MotionButtonProps = Omit<ButtonProps, 'color' | 'variant' | 'icon' | 'leadingIcon' | 'trailingIcon'> & MotionExtras
 
-// Resolve semantic icon names to iconify ids before they reach UButton.
-const resolvedIcon = computed(() => resolveUiIcon(icon))
-const resolvedLeadingIcon = computed(() => resolveUiIcon(leadingIcon))
-const resolvedTrailingIcon = computed(() => resolveUiIcon(trailingIcon))
-
+// Semantic icon role names pass straight to UButton; @nuxt/icon's global aliases
+// resolve them to the active set's id (raw `i-*` ids pass through unchanged).
 const slots = useSlots()
 
 // Icon-only when there is no label content (no default slot, no `label` prop).
 const isIconOnly = computed(() => !slots.default && !('label' in buttonProps))
+
+// Dev-time guard: an icon-only button with no accessible name ships silently as
+// an unlabelled control. Warn so the caller passes `aria-label` (or `title`).
+if (import.meta.dev) {
+  const attrs = useAttrs()
+  onMounted(() => {
+    if (isIconOnly.value && !attrs['aria-label'] && !attrs['aria-labelledby'] && !attrs.title) {
+      console.warn('[UiButton] icon-only button has no accessible name — pass `aria-label` (or `title`).', { icon, leadingIcon, trailingIcon })
+    }
+  })
+}
 
 // purpose → resolved UButton color + variant.
 const resolved = computed<{ color: ButtonProps['color'], variant: ButtonProps['variant'] }>(() => {
@@ -80,6 +92,8 @@ const resolved = computed<{ color: ButtonProps['color'], variant: ButtonProps['v
       return { color: 'neutral', variant: 'solid' }
     case 'quiet':
       return { color: 'neutral', variant: 'ghost' }
+    case 'link':
+      return { color: 'neutral', variant: 'link' }
     case 'danger':
       return { color: 'error', variant: isIconOnly.value ? 'ghost' : 'soft' }
     case 'secondary':
@@ -97,14 +111,17 @@ const intensity = computed<Intensity>(() => {
     return intensityProp
   if (purpose === 'cta')
     return (size === 'xl' || size === 'lg' || !size) ? 'cta' : 'default'
-  if (purpose === 'quiet' || size === 'xs')
+  if (purpose === 'quiet' || purpose === 'link' || size === 'xs')
     return 'subtle'
   return 'default'
 })
 
 const reduced = useReducedMotion()
 const wrapperEl = useTemplateRef<HTMLElement>('wrapperEl')
+const clipEl = useTemplateRef<HTMLElement>('clipEl')
 const hovered = ref(false)
+const measuredWidth = ref<number | null>(null)
+let resizeObserver: ResizeObserver | undefined
 
 const isDisabled = computed(() => disabled || loading)
 const showFx = computed(() => intensity.value !== 'subtle' && !isDisabled.value)
@@ -127,9 +144,21 @@ const myPct = computed(() => {
 })
 
 const lift = computed(() => {
-  if (reduced.value)
+  // Link is a text affordance, not a surface — never lift/scale on hover.
+  if (reduced.value || purpose === 'link')
     return { hover: {}, tap: {}, transition: {} }
-  return liftPresets[intensity.value]
+  const preset = liftPresets[intensity.value]
+  // A full-width button scaling horizontally overflows its container and gets
+  // clipped by any `overflow:hidden` ancestor. Keep the vertical lift, drop the
+  // scale so block buttons stay within bounds.
+  if (block) {
+    return {
+      hover: { y: preset.hover.y },
+      tap: { y: preset.tap.y },
+      transition: preset.transition,
+    }
+  }
+  return preset
 })
 
 const wrapperStyle = computed(() => {
@@ -142,8 +171,89 @@ const wrapperStyle = computed(() => {
   }
 })
 
-const wrapperClass = computed(() => block ? 'flex w-full' : 'inline-flex max-w-full')
+// `w-fit` keeps the wrapper hugging its content even when it's a flex/grid item
+// (an inline-flex box blockifies to flex and would otherwise stretch to the
+// column's full width, dragging the halo/spot FX overlays out with it).
+const wrapperClass = computed(() => block ? 'flex w-full' : 'inline-flex w-fit max-w-full')
+const clipMotion = computed(() => {
+  if (block || measuredWidth.value == null)
+    return undefined
+  return { width: measuredWidth.value }
+})
+const leadingIconName = computed(() => loading ? 'loading' : (leadingIcon || icon))
+const hasLeading = computed(() => !!slots.leading || !!leadingIconName.value)
 const hasTrailing = computed(() => !!slots.trailing)
+const buttonLabel = computed(() => typeof buttonProps.label === 'string' ? buttonProps.label : undefined)
+const shouldAutoAnimateLabel = computed(() => {
+  if (!buttonLabel.value || slots.default || block || animatedLabel === false)
+    return false
+  return buttonLabel.value.length <= 24
+})
+const animatedLabelOptions = computed(() => {
+  if (!shouldAutoAnimateLabel.value)
+    return null
+
+  return typeof animatedLabel === 'object' ? animatedLabel : {}
+})
+const hasAnimatedLabel = computed(() => !!animatedLabelOptions.value && !!buttonLabel.value)
+const resolvedButtonProps = computed(() => {
+  if (!hasAnimatedLabel.value)
+    return buttonProps
+  const { label: _label, ...rest } = buttonProps
+  return rest
+})
+const hitTargetClass = 'min-h-11 min-w-11 lg:min-h-0 lg:min-w-0'
+
+function buttonEl() {
+  return domNode(clipEl.value)?.querySelector<HTMLElement>('.ui-motion-button__btn') ?? null
+}
+
+function domNode(value: unknown): HTMLElement | null {
+  if (Array.isArray(value))
+    return domNode(value[0])
+
+  if (value && typeof (value as HTMLElement).querySelector === 'function')
+    return value as HTMLElement
+
+  const el = (value as { $el?: unknown } | null)?.$el
+  if (el && typeof (el as HTMLElement).querySelector === 'function')
+    return el as HTMLElement
+
+  return null
+}
+
+function syncButtonWidth() {
+  if (block)
+    return
+  const el = buttonEl()
+  if (!el)
+    return
+  measuredWidth.value = Math.ceil(el.scrollWidth || el.getBoundingClientRect().width)
+}
+
+onMounted(() => {
+  void nextTick(() => {
+    syncButtonWidth()
+
+    const el = buttonEl()
+    if (!el || typeof ResizeObserver === 'undefined')
+      return
+    resizeObserver = new ResizeObserver(() => syncButtonWidth())
+    resizeObserver.observe(el)
+  })
+})
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+})
+
+watch(
+  () => [buttonLabel.value, loading, icon, leadingIcon, trailingIcon],
+  async () => {
+    await nextTick()
+    syncButtonWidth()
+  },
+)
 </script>
 
 <template>
@@ -169,51 +279,83 @@ const hasTrailing = computed(() => !!slots.trailing)
 
     <!-- Clipper bounds FX overlays to the button shape. Skip overflow:hidden
          when no FX render so the button's native border-radius isn't cropped. -->
-    <div
-      class="ui-motion-button__clip relative w-full"
-      :class="[block ? 'flex' : 'inline-flex', { 'ui-motion-button__clip--active': showFx }]"
+    <m.div
+      class="ui-motion-button__clip-shell"
+      :class="block ? 'flex w-full' : 'inline-flex'"
+      :animate="clipMotion"
+      :transition="reduced ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34, mass: 0.62 }"
     >
-      <UButton
-        v-bind="{ ...buttonProps, ...$attrs } as ButtonProps"
-        :color="color"
-        :size="size"
-        :variant="variant"
-        :loading="loading"
-        :disabled="disabled"
-        :block="block"
-        :icon="resolvedIcon"
-        :leading-icon="resolvedLeadingIcon"
-        :trailing-icon="resolvedTrailingIcon"
-        class="ui-motion-button__btn relative z-10"
+      <div
+        ref="clipEl"
+        class="ui-motion-button__clip relative"
+        :class="[block ? 'flex w-full' : 'inline-flex w-max max-w-none whitespace-nowrap', { 'ui-motion-button__clip--active': showFx }]"
       >
-        <!-- Forward every UButton slot. Trailing gets a hover-nudge wrapper. -->
-        <template v-for="(_, name) in ($slots as Record<string, unknown>)" :key="name" #[name]="slotData">
-          <slot v-if="name !== 'trailing'" :name="name" v-bind="slotData || {}" />
-        </template>
+        <UButton
+          v-bind="{ ...resolvedButtonProps, ...$attrs } as ButtonProps"
+          :color="color"
+          :size="size"
+          :variant="variant"
+          :loading="false"
+          :disabled="isDisabled"
+          :block="block"
+          :icon="undefined"
+          :leading-icon="undefined"
+          :trailing-icon="trailingIcon"
+          class="ui-motion-button__btn relative z-10 whitespace-nowrap"
+          :class="[hitTargetClass, { 'hover:underline underline-offset-2': purpose === 'link' }]"
+        >
+          <template v-if="hasLeading" #leading="slotData">
+            <slot v-if="slots.leading" name="leading" v-bind="slotData || {}" />
+            <m.span
+              v-else-if="leadingIconName"
+              :key="leadingIconName"
+              class="ui-motion-button__leading inline-flex shrink-0"
+              :initial="reduced ? false : { opacity: 0, x: -6, scale: 0.82 }"
+              :animate="{ opacity: 1, x: 0, scale: 1 }"
+              :transition="reduced ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 30, mass: 0.55 }"
+            >
+              <UiIcon
+                :name="leadingIconName"
+                class="size-4"
+                :class="{ 'animate-spin': loading }"
+                aria-hidden="true"
+              />
+            </m.span>
+          </template>
 
-        <template v-if="hasTrailing" #trailing="slotData">
-          <m.span
-            class="inline-flex"
-            :animate="{ x: hovered && !reduced ? 1.5 : 0 }"
-            :transition="{ duration: 0.22, ease: 'easeOut' }"
-          >
-            <slot name="trailing" v-bind="slotData || {}" />
-          </m.span>
-        </template>
-      </UButton>
+          <template v-if="hasAnimatedLabel && buttonLabel && animatedLabelOptions" #default>
+            <UiSlotText :text="buttonLabel" :options="animatedLabelOptions" />
+          </template>
 
-      <span
-        v-if="showFx"
-        class="ui-motion-button__spot pointer-events-none absolute inset-0"
-        aria-hidden="true"
-      />
+          <!-- Forward every UButton slot. Trailing gets a hover-nudge wrapper. -->
+          <template v-for="(_, name) in ($slots as Record<string, unknown>)" :key="name" #[name]="slotData">
+            <slot v-if="name !== 'leading' && name !== 'trailing'" :name="name" v-bind="slotData || {}" />
+          </template>
 
-      <span
-        v-if="showFx && intensity === 'cta'"
-        class="ui-motion-button__shimmer pointer-events-none absolute inset-y-0"
-        aria-hidden="true"
-      />
-    </div>
+          <template v-if="hasTrailing" #trailing="slotData">
+            <m.span
+              class="inline-flex"
+              :animate="{ x: hovered && !reduced ? 1.5 : 0 }"
+              :transition="{ duration: 0.22, ease: 'easeOut' }"
+            >
+              <slot name="trailing" v-bind="slotData || {}" />
+            </m.span>
+          </template>
+        </UButton>
+
+        <span
+          v-if="showFx"
+          class="ui-motion-button__spot pointer-events-none absolute inset-0"
+          aria-hidden="true"
+        />
+
+        <span
+          v-if="showFx && intensity === 'cta'"
+          class="ui-motion-button__shimmer pointer-events-none absolute inset-y-0"
+          aria-hidden="true"
+        />
+      </div>
+    </m.div>
   </m.div>
 </template>
 
@@ -237,9 +379,19 @@ const hasTrailing = computed(() => !!slots.trailing)
   border-radius: 0.5rem;
 }
 
+.ui-motion-button__clip-shell,
 .ui-motion-button__clip--active {
   overflow: hidden;
+}
+
+.ui-motion-button__clip--active {
   border-radius: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-motion-button__clip-shell {
+    transition: none;
+  }
 }
 
 /* ── Halo ── hover-tier elevation: the shared --elevation-hover token, an

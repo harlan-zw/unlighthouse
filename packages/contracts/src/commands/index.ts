@@ -6,7 +6,7 @@ import { AssertEvaluate } from './assert'
 import { CompareDetail, CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
 import { EventsSubscribe, EventsTail } from './events'
 import { HistoryList, HistoryRescan } from './history'
-import { AuditorsList, Health, Manifest } from './meta'
+import { AuditorsList, Health, Manifest, Ready } from './meta'
 import { PackList, PackRunCmd } from './pack'
 import { QueryRoutes } from './query'
 import { RouteAudits, RouteGet, RouteRescan } from './route'
@@ -28,6 +28,7 @@ import {
 import { SiteSchema, SitesCreate, SitesDelete, SitesList } from './sites'
 
 export * from './compare'
+export * from './define'
 
 export {
   AssertEvaluate,
@@ -45,6 +46,7 @@ export {
   PackList,
   PackRunCmd,
   QueryRoutes,
+  Ready,
   RouteAudits,
   RouteGet,
   RouteRescan,
@@ -69,7 +71,7 @@ export {
 
 export type { Site }
 
-export * from './define'
+export { commandToRoute, type HttpMethod } from './projection'
 
 /**
  * Registry of every command, keyed by `name`. Used by:
@@ -121,6 +123,7 @@ export const commands = {
 
   'manifest': Manifest,
   'health': Health,
+  'ready': Ready,
   'auditors.list': AuditorsList,
 
   'sites.list': SitesList,

@@ -1,18 +1,18 @@
+import { iconAliasMap } from './layers/design-system/shared/icons'
+
 export default defineNuxtConfig({
   ssr: false,
-  // The UI is built on the canonical unlighthouse design-system layer (its
-  // global.css --ui-* token system, ~50 Ui* primitives, and @nuxt/ui theme
-  // via app.config). The legacy shadcn token utilities still live in
-  // tailwind.css as a transitional compat layer (text-muted-foreground etc.).
+  // The UI is built on the canonical unlighthouse design-system layer: tokens,
+  // fonts, motion, primitives, and @nuxt/ui theme all come from that layer.
   extends: ['./layers/design-system'],
-  modules: ['@pinia/nuxt', '@nuxt/ui', '@nuxtjs/color-mode', '@nuxt/icon', 'nuxt-use-query'],
-  css: ['~/assets/css/tailwind.css'],
+  modules: ['@nuxt/ui', '@nuxtjs/color-mode', '@nuxt/icon', 'nuxt-use-query'],
   colorMode: {
     preference: 'system',
     fallback: 'dark',
     classSuffix: '',
   },
   icon: {
+    aliases: iconAliasMap(),
     serverBundle: 'local',
     collections: ['heroicons', 'lucide'],
   },

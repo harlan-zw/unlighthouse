@@ -1,11 +1,4 @@
 import type {
-  ExtractedMetrics,
-  Paginated,
-  Scan,
-  ScanId,
-  ScanRoute,
-} from '@unlighthouse/contracts/types/atoms'
-import type {
   BlobPutOptions,
   BlobStore,
   FindPreviousQuery,
@@ -16,6 +9,13 @@ import type {
   ScanRouteRepository,
   Storage,
 } from '@unlighthouse/contracts/ports'
+import type {
+  ExtractedMetrics,
+  Paginated,
+  Scan,
+  ScanId,
+  ScanRoute,
+} from '@unlighthouse/contracts/types/atoms'
 
 /**
  * Generic Storage interceptor. Wraps any `Storage` and fires before/after hooks

@@ -3,8 +3,8 @@
 // Analyzes WebMCP tool registration, form coverage, schema validity,
 // agent accessibility tree, and llms.txt across all routes.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import { z } from 'zod'
+import type { AgenticBrowsingReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import { AgenticBrowsingReportSchema } from '@unlighthouse/contracts/packs'
 
 const AGENTIC_AUDIT_IDS = [
   'agent-accessibility-tree',
@@ -13,34 +13,6 @@ const AGENTIC_AUDIT_IDS = [
   'webmcp-schema-validity',
   'llms-txt',
 ] as const
-
-const AuditSummarySchema = z.object({
-  auditId: z.string(),
-  title: z.string().nullable(),
-  severity: z.enum(['pass', 'warn', 'fail']),
-  routeCount: z.number().int(),
-  passingRouteCount: z.number().int(),
-  failingRoutes: z.array(z.string()),
-})
-
-const AgenticBrowsingReportSchema = z.object({
-  scanId: z.string(),
-  routesAnalysed: z.number().int(),
-  avgScore: z.number().nullable(),
-  findings: z.array(AuditSummarySchema),
-  webmcp: z.object({
-    hasRegisteredTools: z.boolean(),
-    formCoverage: z.number().nullable(),
-    schemaValid: z.boolean().nullable(),
-    routesWithTools: z.number().int(),
-  }),
-  hasLlmsTxt: z.boolean(),
-  agentA11yTree: z.object({
-    routeCount: z.number().int(),
-    passingCount: z.number().int(),
-  }),
-})
-export type AgenticBrowsingReport = z.infer<typeof AgenticBrowsingReportSchema>
 
 export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
   name: 'agentic-browsing',

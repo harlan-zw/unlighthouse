@@ -5,9 +5,19 @@ import { semanticColors } from './semanticColors'
 // `Intl.*` constructors are expensive; hoist to module scope so per-cell
 // formatters across large tables reuse one instance instead of allocating
 // a new one on every call.
-const compactNumberFormat = new Intl.NumberFormat('en', { notation: 'compact' })
-const usdFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const sitemapDateFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' })
+// Locale left as `undefined` so each formatter honours the runtime locale
+// (cf. useChartTickPlan) rather than pinning to US English.
+const compactNumberFormat = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
+// `narrowSymbol` keeps the "$" glyph (prices are USD) while still localising
+// grouping/decimal separators, rather than degrading to the "USD" code in
+// locales that disambiguate the dollar sign (e.g. en-AU).
+const compactUsdFormat = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol', notation: 'compact', maximumFractionDigits: 1 })
+const usdFormat = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol' })
+const sitemapDateFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+const relativeTimeFormat = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'narrow' })
+const signedPercentFormat = new Intl.NumberFormat(undefined, { style: 'percent', signDisplay: 'exceptZero', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const ctrPercentFormat = new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const positionFormat = new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 /**
  * Pure trend percentage between two values.
@@ -44,7 +54,16 @@ export const useHumanFriendlyNumber = useProHumanFriendlyNumber
 export function formatTimeAgo(timestamp: number | string | Date | null | undefined) {
   if (!timestamp)
     return null
-  const date = typeof timestamp === 'number' ? new Date(timestamp * 1000) : new Date(timestamp)
+  // A raw `number` may be unix SECONDS (our `mode:'timestamp'` columns) or unix
+  // MILLISECONDS (the raw-`integer` audit columns — billingEvents / adminEvents /
+  // loginEvents / runtimeErrors, ADR-0082). Disambiguate by magnitude: seconds for
+  // any plausible date are < 1e11, ms are ≥ 1e12. Both render as the same instant.
+  const date = typeof timestamp === 'number'
+    ? new Date(timestamp < 1e11 ? timestamp * 1000 : timestamp)
+    : new Date(timestamp)
+  // Result is relative to the current time, so it differs between SSR and
+  // client render — callers showing this in initial HTML should wrap it in
+  // <ClientOnly> to avoid a hydration mismatch.
   const diff = Date.now() - date.getTime()
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
@@ -52,40 +71,33 @@ export function formatTimeAgo(timestamp: number | string | Date | null | undefin
   if (minutes < 1)
     return 'just now'
   if (minutes < 60)
-    return `${minutes}m ago`
+    return relativeTimeFormat.format(-minutes, 'minute')
   if (hours < 24)
-    return `${hours}h ago`
+    return relativeTimeFormat.format(-hours, 'hour')
   if (days < 30)
-    return `${days}d ago`
+    return relativeTimeFormat.format(-days, 'day')
   const months = Math.floor(days / 30)
   if (months < 12)
-    return `${months}mo ago`
-  return `${Math.floor(days / 365)}y ago`
+    return relativeTimeFormat.format(-months, 'month')
+  return relativeTimeFormat.format(-Math.floor(days / 365), 'year')
 }
 
 export function formatNumber(n: number | null | undefined): string {
   if (n == null)
     return '—'
-  if (n >= 1000000)
-    return `${(n / 1000000).toFixed(1)}M`
-  if (n >= 1000)
-    return `${(n / 1000).toFixed(1)}K`
-  return String(n)
+  return compactNumberFormat.format(n)
 }
 
 export function formatCurrency(n: number | null | undefined): string {
   if (n == null)
     return '—'
-  if (n >= 1000000)
-    return `$${(n / 1000000).toFixed(1)}M`
-  if (n >= 1000)
-    return `$${(n / 1000).toFixed(1)}K`
-  return `$${Math.round(n)}`
+  return compactUsdFormat.format(n)
 }
 
+// `n` is a percentage-point value (e.g. 5 → "+5.0%"), so divide before the
+// percent formatter (which multiplies by 100).
 export function formatPercent(n: number): string {
-  const sign = n > 0 ? '+' : ''
-  return `${sign}${n.toFixed(1)}%`
+  return signedPercentFormat.format(n / 100)
 }
 
 export function formatCurrencyFromCents(cents: number | null | undefined): string {
@@ -97,9 +109,9 @@ export function formatCurrencyFromCents(cents: number | null | undefined): strin
 // GSC metric formatter (replaces duplicated fmtMetric across SC pages)
 export function fmtGscMetric(val: number, metric: string): string {
   if (metric === 'ctr')
-    return `${(val * 100).toFixed(1)}%`
+    return ctrPercentFormat.format(val)
   if (metric === 'position')
-    return val.toFixed(1)
+    return positionFormat.format(val)
   return formatNumber(val)
 }
 
@@ -164,4 +176,30 @@ export function formatSitemapDate(dateStr: string | null | undefined): string {
   if (!dateStr)
     return 'Never'
   return sitemapDateFormat.format(new Date(dateStr))
+}
+
+// --- Reporting-day buckets (GSC/analytics daily rows keyed "YYYY-MM-DD") ---
+// These are calendar-day LABELS owned by the data source (GSC buckets in Pacific
+// Time), not instants. We never shift them into the viewer's timezone — doing so
+// is the off-by-one-day bug. Parse in a fixed UTC frame so the round-trip is
+// identity, and ALWAYS format with `timeZone: 'UTC'` so the label never drifts.
+// See ADR-0082. The `Z`/UTC here is a neutral frame for an opaque label, not a
+// claim that the data is UTC.
+const reportingDayFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+
+/** Parse a "YYYY-MM-DD" reporting-day label into a stable, viewer-independent Date. */
+export function parseReportingDay(iso: string): Date {
+  return new Date(`${iso}T00:00:00Z`)
+}
+
+/**
+ * Format a "YYYY-MM-DD" reporting-day label. Defaults to "Jun 24"; pass `opts` for
+ * other shapes — `timeZone: 'UTC'` is forced so the label can't drift per viewer.
+ */
+export function formatReportingDay(iso: string | null | undefined, opts?: Intl.DateTimeFormatOptions): string {
+  if (!iso)
+    return '—'
+  if (opts)
+    return new Intl.DateTimeFormat(undefined, { ...opts, timeZone: 'UTC' }).format(parseReportingDay(iso))
+  return reportingDayFormat.format(parseReportingDay(iso))
 }

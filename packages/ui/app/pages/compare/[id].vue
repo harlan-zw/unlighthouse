@@ -19,8 +19,8 @@ import { useCompareWorkflow } from '~/features/compare/workflow'
 
 definePageMeta({ layout: 'compare' })
 
-const { scoreToLabel, scoreToRingColor } = useScoreColor()
-const { fmtScore, fmtMs, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = useFormat()
+const { scoreToRingColor } = useScoreColor()
+const { fmtScore, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = useFormat()
 const {
   currentScanId,
   baseScanId,
@@ -63,9 +63,19 @@ const { deltaClassWithThreshold, rowScoreCell } = createComparePresentation({
 // Route delta table columns. Server-sorted (via the sort Select), so
 // columns disable client sorting. Sticky headers + alignment ride on
 // `meta`; score cells reuse rowScoreCell() for threshold-aware colour.
-const IconCmp = resolveComponent('Icon')
-const UBadgeCmp = resolveComponent('UBadge')
+const IconCmp = resolveComponent('UiIcon')
+const UiStatusBadgeCmp = resolveComponent('UiStatusBadge')
 const STICKY_HEAD = 'sticky top-0 z-10 bg-default'
+
+function compareStatusSemantic(status: string) {
+  switch (statusBadge(status)) {
+    case 'destructive': return 'error'
+    case 'default': return 'success'
+    case 'secondary': return 'info'
+    default: return 'neutral'
+  }
+}
+
 const compareColumns = computed<ColumnDef<any, any>[]>(() => {
   const cols: ColumnDef<any, any>[] = [
     {
@@ -80,7 +90,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       header: 'Status',
       enableSorting: false,
       meta: { headClass: `${STICKY_HEAD} w-20` },
-      cell: ({ row }) => h(UBadgeCmp, { ...badgeProps(statusBadge(row.original.status)), size: 'xs', class: 'text-[9px] capitalize' }, () => row.original.status),
+      cell: ({ row }) => h(UiStatusBadgeCmp, { status: compareStatusSemantic(row.original.status), label: row.original.status, class: 'capitalize' }),
     },
   ]
   if (hasMultipleDevices.value) {
@@ -90,7 +100,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       enableSorting: false,
       meta: { align: 'center', headClass: `${STICKY_HEAD} w-16` },
       cell: ({ row }) => h(IconCmp, {
-        name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor',
+        name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
         class: 'size-3.5 text-muted inline',
       }),
     })
@@ -123,7 +133,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
     <!-- Top toolbar — base/current scan identity, swap, picker, actions -->
     <div class="border-b bg-default/50">
       <div class="px-4 py-2.5 flex items-center gap-3 flex-wrap">
-        <Icon name="lucide:git-compare-arrows" class="size-4 text-muted shrink-0" />
+        <UiIcon name="compare" class="size-4 text-muted shrink-0" />
 
         <!-- Base scan -->
         <div class="flex items-center gap-2 min-w-0">
@@ -138,9 +148,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
             <template #item="{ item }">
               <div class="flex items-center gap-2 text-xs">
                 <span class="font-mono">{{ shortId(item.scan.scanId) }}</span>
-                <UBadge color="neutral" variant="outline" size="xs" class="text-[9px]">
+                <UiChip purpose="count">
                   {{ item.scan.device }}
-                </UBadge>
+                </UiChip>
                 <span class="text-muted">{{ fmtDate(item.scan.completedAt || item.scan.startedAt) }}</span>
                 <span v-if="item.scan.ciCommit" class="font-mono text-[10px] text-muted">{{ item.scan.ciCommit.slice(0, 7) }}</span>
               </div>
@@ -150,23 +160,23 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
 
         <!-- Swap -->
         <UTooltip text="Swap base ↔ current">
-          <UiButton purpose="quiet" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" icon="i-lucide-arrow-left-right" @click="swapDirection" />
+          <UiButton purpose="quiet" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" icon="compare" @click="swapDirection" />
         </UTooltip>
 
         <!-- Current scan -->
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-label text-muted shrink-0">Current</span>
           <span class="font-mono text-xs">{{ shortId(currentScanId) }}</span>
-          <UBadge v-if="currentMeta" color="neutral" variant="outline" size="xs" class="text-[9px]">
+          <UiChip v-if="currentMeta" purpose="count">
             {{ currentMeta.device }}
-          </UBadge>
+          </UiChip>
           <span v-if="currentMeta" class="text-xs text-muted truncate max-w-[200px]">{{ currentMeta.site }}</span>
         </div>
 
         <div class="ml-auto flex items-center gap-1.5">
           <!-- Thresholds popover -->
           <UPopover>
-            <UiButton purpose="secondary" size="sm" icon="i-lucide-sliders-horizontal">
+            <UiButton purpose="secondary" size="sm" icon="sliders">
               Thresholds
             </UiButton>
             <template #content>
@@ -182,10 +192,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
 
                 <!-- Single inline note about sampling — explained once,
                      not as a banner the user has to dismiss. -->
-                <div class="rounded-md bg-amber-500/10 border border-amber-500/30 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
-                  <Icon name="lucide:info" class="size-3 inline mr-1" />
-                  CWV is noisy on parallel single-sample runs. Run with <code class="font-mono text-[10px] bg-amber-500/20 px-1 rounded">--samples 3</code> for stability, or widen these thresholds.
-                </div>
+                <UiAlert status="warning" icon="info">
+                  CWV is noisy on parallel single-sample runs. Run with <code class="code-inline text-[10px]">--samples 3</code> for stability, or widen these thresholds.
+                </UiAlert>
 
                 <div class="space-y-3 text-xs">
                   <div>
@@ -249,11 +258,11 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
             </template>
           </UPopover>
 
-          <UiButton purpose="secondary" size="sm" :loading="copyingMarkdown" :disabled="copyingMarkdown || !baseScanId || !report" icon="i-lucide-clipboard-copy" @click="copyAsMarkdown">
+          <UiButton purpose="secondary" size="sm" :loading="copyingMarkdown" :disabled="copyingMarkdown || !baseScanId || !report" icon="copy" @click="copyAsMarkdown">
             Copy MD
           </UiButton>
 
-          <UiButton purpose="cta" size="sm" :loading="comparing" :disabled="!baseScanId || comparing" icon="i-lucide-refresh-cw" @click="handleCompare">
+          <UiButton purpose="cta" size="sm" :loading="comparing" :disabled="!baseScanId || comparing" icon="refresh" @click="handleCompare">
             Compare
           </UiButton>
         </div>
@@ -262,14 +271,14 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       <!-- Scan-metadata strip — visible only when both scans are loaded -->
       <div v-if="baseMeta && currentMeta" class="px-4 py-2 text-xs flex items-center gap-4 flex-wrap border-t bg-default/40">
         <button class="hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
-          <Icon name="lucide:external-link" class="size-3" />
+          <UiIcon name="external" class="size-3" />
           Base: {{ fmtDate(baseMeta.completedAt || baseMeta.startedAt) }}
           <span v-if="baseMeta.ciCommit" class="font-mono text-[10px]">· {{ baseMeta.ciCommit.slice(0, 7) }}</span>
           <span v-if="baseMeta.ciBranch" class="text-[10px]">· {{ baseMeta.ciBranch }}</span>
         </button>
-        <Icon name="lucide:arrow-right" class="size-3 text-muted" />
+        <UiIcon name="next" class="size-3 text-muted" />
         <button class="hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
-          <Icon name="lucide:external-link" class="size-3" />
+          <UiIcon name="external" class="size-3" />
           Current: {{ fmtDate(currentMeta.completedAt || currentMeta.startedAt) }}
           <span v-if="currentMeta.ciCommit" class="font-mono text-[10px]">· {{ currentMeta.ciCommit.slice(0, 7) }}</span>
           <span v-if="currentMeta.ciBranch" class="text-[10px]">· {{ currentMeta.ciBranch }}</span>
@@ -281,7 +290,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
     <div v-if="!baseScanId" class="flex-1 flex items-center justify-center p-8">
       <UiCard class="max-w-md">
         <div class="text-center space-y-3">
-          <Icon name="lucide:git-compare-arrows" class="size-12 text-muted/40 mx-auto" />
+          <UiIcon name="compare" class="size-12 text-muted/40 mx-auto" />
           <h3 class="font-semibold">
             Pick a scan to compare against
           </h3>
@@ -299,7 +308,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
     <div v-else-if="!report && !comparing" class="flex-1 flex items-center justify-center p-8">
       <UiCard class="max-w-md">
         <div class="text-center space-y-3">
-          <Icon name="lucide:play" class="size-10 text-muted/40 mx-auto" />
+          <UiIcon name="play" class="size-10 text-muted/40 mx-auto" />
           <p class="text-sm text-muted">
             Press <strong>Compare</strong> to run the diff.
           </p>
@@ -309,7 +318,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
 
     <!-- Loading -->
     <div v-else-if="comparing && !report" class="flex-1 flex items-center justify-center">
-      <Icon name="lucide:loader-2" class="size-6 animate-spin text-muted" />
+      <UiIcon name="loading" class="size-6 animate-spin text-muted" />
     </div>
 
     <!-- Report body -->
@@ -353,7 +362,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
           <div v-for="cd in report.summary.categoryDeltas" :key="cd.category" class="flex items-center gap-1">
             <span class="text-muted">{{ cd.label }}</span>
             <span class="tabular-nums" :style="cd.base != null ? { color: scoreToRingColor(cd.base) } : {}">{{ fmtScore(cd.base) }}</span>
-            <Icon name="lucide:arrow-right" class="size-2.5 text-muted/40" />
+            <UiIcon name="next" class="size-2.5 text-muted/40" />
             <span class="tabular-nums" :style="cd.current != null ? { color: scoreToRingColor(cd.current) } : {}">{{ fmtScore(cd.current) }}</span>
             <span class="numerals-display" :class="deltaClass(cd.delta, true)">{{ fmtDelta(cd.delta, true) }}</span>
           </div>
@@ -371,7 +380,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
         <div v-for="row in cwvP75Rows" :key="row.metric" class="flex items-center gap-1.5">
           <span class="font-medium uppercase text-[10px]">{{ row.label }}</span>
           <span class="tabular-nums">{{ fmtCwvP75(row.metric, row.baseP75) }}</span>
-          <Icon name="lucide:arrow-right" class="size-2.5 text-muted/40" />
+          <UiIcon name="next" class="size-2.5 text-muted/40" />
           <span class="tabular-nums font-medium" :class="cwvVerdictColor(row.verdict)">{{ fmtCwvP75(row.metric, row.currentP75) }}</span>
           <span
             v-if="row.delta != null"
@@ -390,7 +399,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       <!-- Filter bar -->
       <div class="px-4 py-2 border-b flex items-center gap-3 flex-wrap">
         <div class="relative w-64">
-          <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
+          <UiIcon name="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
           <UInput placeholder="Filter by URL or path..." size="sm" class="w-full" :model-value="urlFilter" :ui="{ base: 'pl-8' }" @update:model-value="onFilterInput" />
         </div>
 
@@ -415,8 +424,8 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
           size="sm"
           :items="[
             { value: '', label: 'All' },
-            { value: 'mobile', label: 'Mobile', icon: 'i-lucide-smartphone' },
-            { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+            { value: 'mobile', label: 'Mobile', icon: 'smartphone' },
+            { value: 'desktop', label: 'Desktop', icon: 'monitor' },
           ]"
         />
 
@@ -438,7 +447,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
           class="px-4 py-2 w-full flex items-center gap-2 hover:bg-elevated/30 transition-colors text-xs"
           @click="showPackDetails = !showPackDetails"
         >
-          <Icon name="lucide:chevron-right" class="size-3.5 text-muted transition-transform" :class="{ 'rotate-90': showPackDetails }" />
+          <UiIcon name="chevron-right" class="size-3.5 text-muted transition-transform" :class="{ 'rotate-90': showPackDetails }" />
           <span class="font-medium">{{ otherPackChanges.length }} pack{{ otherPackChanges.length === 1 ? '' : 's' }} changed</span>
           <span class="text-muted text-[10px]">
             {{ otherPackChanges.map((p: any) => p.packName).join(', ') }}
@@ -459,7 +468,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
                 <span class="text-muted">Findings</span>
                 <span class="tabular-nums">
                   {{ pack.baseSummary?.findings ?? '—' }}
-                  <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted/40" />
+                  <UiIcon name="next" class="size-2.5 inline mx-0.5 text-muted/40" />
                   <span :class="(pack.currentSummary?.findings ?? 0) > (pack.baseSummary?.findings ?? 0) ? 'text-error' : (pack.currentSummary?.findings ?? 0) < (pack.baseSummary?.findings ?? 0) ? 'text-success' : ''">
                     {{ pack.currentSummary?.findings ?? '—' }}
                   </span>
@@ -477,7 +486,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
                 <span class="text-muted">Wasted bytes</span>
                 <span class="tabular-nums">
                   {{ Math.round((pack.baseSummary?.totalBytesSavable ?? 0) / 1024) }}KB
-                  <Icon name="lucide:arrow-right" class="size-2.5 inline mx-0.5 text-muted/40" />
+                  <UiIcon name="next" class="size-2.5 inline mx-0.5 text-muted/40" />
                   <span :class="(pack.currentSummary?.totalBytesSavable ?? 0) > (pack.baseSummary?.totalBytesSavable ?? 0) ? 'text-error' : 'text-success'">
                     {{ Math.round((pack.currentSummary?.totalBytesSavable ?? 0) / 1024) }}KB
                   </span>
@@ -509,8 +518,8 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
             <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-default">
               <span class="text-xs text-muted">Page {{ page }} of {{ totalPages }}</span>
               <div class="flex gap-1">
-                <UiButton purpose="secondary" size="sm" :disabled="page <= 1" icon="i-lucide-chevron-left" @click="page--" />
-                <UiButton purpose="secondary" size="sm" :disabled="page >= totalPages" icon="i-lucide-chevron-right" @click="page++" />
+                <UiButton purpose="secondary" size="sm" :disabled="page <= 1" icon="chevron-left" @click="page--" />
+                <UiButton purpose="secondary" size="sm" :disabled="page >= totalPages" icon="chevron-right" @click="page++" />
               </div>
             </div>
           </div>
@@ -525,17 +534,15 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
                 {{ selectedRow.url }}
               </div>
               <div class="flex items-center gap-2 mt-1">
-                <UBadge color="neutral" variant="outline" size="xs" class="text-[10px]">
+                <UiChip purpose="count">
                   {{ selectedRow.device }}
-                </UBadge>
-                <UBadge v-bind="badgeProps(statusBadge(selectedRow.status))" size="xs" class="text-[10px] capitalize">
-                  {{ selectedRow.status }}
-                </UBadge>
+                </UiChip>
+                <UiStatusBadge :status="compareStatusSemantic(selectedRow.status)" :label="selectedRow.status" class="capitalize" />
                 <NuxtLink
                   :to="`/scan/${currentScanId}/route/${encodeURIComponent(selectedRow.path)}`"
                   class="text-[10px] text-muted hover:text-default inline-flex items-center gap-1"
                 >
-                  <Icon name="lucide:external-link" class="size-2.5" />
+                  <UiIcon name="external" class="size-2.5" />
                   Open route detail
                 </NuxtLink>
               </div>
@@ -593,7 +600,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
             <section>
               <h4 class="text-label text-muted mb-2 flex items-center gap-1.5">
                 Core Web Vitals
-                <Icon name="lucide:info" class="size-2.5 opacity-60" title="Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability." />
+                <UiIcon name="info" class="size-2.5 opacity-60" title="Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability." />
               </h4>
               <div class="rounded-lg border overflow-hidden">
                 <table class="w-full text-sm">
@@ -627,7 +634,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
                 class="text-label text-muted hover:text-default transition-colors flex items-center gap-1.5 mb-2"
                 @click="showLegacyMetrics = !showLegacyMetrics"
               >
-                <Icon name="lucide:chevron-right" class="size-3 transition-transform" :class="{ 'rotate-90': showLegacyMetrics }" />
+                <UiIcon name="chevron-right" class="size-3 transition-transform" :class="{ 'rotate-90': showLegacyMetrics }" />
                 Diagnostics ({{ DIAGNOSTIC_METRICS.length }})
               </button>
               <div v-if="showLegacyMetrics" class="rounded-lg border overflow-hidden">
@@ -659,7 +666,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
 
           <div v-else class="h-full flex items-center justify-center text-sm text-muted p-4 text-center">
             <div class="space-y-2">
-              <Icon name="lucide:mouse-pointer-click" class="size-8 mx-auto text-muted/40" />
+              <UiIcon name="mouse-pointer" class="size-8 mx-auto text-muted/40" />
               <p>Select a route to see the full metric breakdown.</p>
             </div>
           </div>

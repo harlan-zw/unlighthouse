@@ -1,7 +1,6 @@
 import type { UnlighthouseTabs } from '../index.ts'
 import type { UnlighthouseRouteReport } from '../types'
 import type { ReporterConfig } from './types'
-import { get } from 'lodash-es'
 import { appendDeviceColumn, csvSimpleFormat } from './csvSimple'
 
 type ReportWithLighthouse = UnlighthouseRouteReport & {
@@ -20,6 +19,14 @@ function isCsvAuditValue(value: unknown): value is CsvAuditValue {
 
 function columnKeys(columns: ReporterConfig['columns']): UnlighthouseTabs[] {
   return columns ? Object.keys(columns) as UnlighthouseTabs[] : []
+}
+
+function getPathValue(source: unknown, path: string): unknown {
+  return path.split('.').filter(Boolean).reduce<unknown>((current, part) => {
+    if (current == null || typeof current !== 'object')
+      return undefined
+    return (current as Record<string, unknown>)[part]
+  }, source)
 }
 
 export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: ReporterConfig = {}): string {
@@ -45,7 +52,7 @@ export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: 
       ...columns[k]
         .map(column => ({
           column,
-          val: column.key ? get(firstReport, column.key) : undefined,
+          val: column.key ? getPathValue(firstReport, column.key) : undefined,
         }))
         .filter(({ val }) => isCsvAuditValue(val) && val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')
         .map(({ column }) => column.label),
@@ -64,7 +71,7 @@ export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: 
       // headers are good, now add body
       body[i].push(
         ...columns[k]
-          .map(column => column.key ? get(report, column.key.replace('report.', '')) : undefined)
+          .map(column => column.key ? getPathValue(report, column.key.replace('report.', '')) : undefined)
           .filter(isCsvAuditValue)
           .filter(val => val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')
           .map((val) => {

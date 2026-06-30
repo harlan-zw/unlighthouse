@@ -11,7 +11,7 @@ import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { buildCliArgs, buildPrCommentRequest, extractPrNumber, parseBooleanInput } from './index'
+import { buildCliArgs, buildNpxArgs, buildPrCommentRequest, extractPrNumber, parseBooleanInput } from './index'
 
 function readInputs(): ActionInputs {
   const site = (process.env.UNLIGHTHOUSE_SITE ?? '').trim()
@@ -22,6 +22,7 @@ function readInputs(): ActionInputs {
   return {
     site,
     device: process.env.UNLIGHTHOUSE_DEVICE ?? 'mobile',
+    unlighthouseVersion: process.env.UNLIGHTHOUSE_VERSION ?? 'latest',
     budget: process.env.UNLIGHTHOUSE_BUDGET,
     buildStatic: parseBooleanInput(process.env.UNLIGHTHOUSE_BUILD_STATIC, false),
     compareWith: process.env.UNLIGHTHOUSE_COMPARE_WITH ?? '',
@@ -40,9 +41,9 @@ function writeOutput(name: string, value: string): void {
   appendFileSync(file, line, 'utf8')
 }
 
-async function runUnlighthouseCi(args: string[]): Promise<number> {
+async function runUnlighthouseCi(args: string[], unlighthouseVersion: string): Promise<number> {
   return new Promise<number>((resolve, reject) => {
-    const child = spawn('npx', ['--no-install', 'unlighthouse-ci', ...args], {
+    const child = spawn('npx', buildNpxArgs(unlighthouseVersion, args), {
       stdio: 'inherit',
       env: process.env,
       shell: false,
@@ -102,9 +103,9 @@ async function main(): Promise<void> {
   }
 
   const args = buildCliArgs(inputs, compareOutputPath)
-  process.stdout.write(`Running: unlighthouse-ci ${args.join(' ')}\n`)
+  process.stdout.write(`Running: npx ${buildNpxArgs(inputs.unlighthouseVersion, args).join(' ')}\n`)
 
-  const exitCode = await runUnlighthouseCi(args)
+  const exitCode = await runUnlighthouseCi(args, inputs.unlighthouseVersion)
 
   let hasRegressions = false
   if (compareOutputPath && existsSync(compareOutputPath)) {

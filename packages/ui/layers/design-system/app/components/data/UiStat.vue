@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { UiIcon } from '../../shared/ui-icons'
-import { computed, onMounted, ref, resolveComponent } from 'vue'
+import type { SlotTextOptions } from '../../utils/slot-text'
+import { useElementHover } from '@vueuse/core'
+import { computed, onMounted, ref, resolveComponent, useSlots } from 'vue'
 import { semanticColors } from '../../composables/semanticColors'
 
 const {
@@ -17,12 +19,13 @@ const {
   trendSuffix,
   trendLabel,
   invertTrend,
-  trendNeutral,
+  trendColored,
   sparkline,
   size = 'md',
   loading,
   status,
   card,
+  animatedValue = true,
 } = defineProps<UiStatProps>()
 
 // Stat card primitive. Ported from nuxtseo/core with two swaps:
@@ -58,7 +61,12 @@ export interface UiStatProps {
   trendSuffix?: string
   trendLabel?: string
   invertTrend?: boolean
-  trendNeutral?: boolean
+  /**
+   * Trend color budget (DESIGN.md Composition): colored success/error trends
+   * belong to the hero zone only. Default renders neutral; `UiStats
+   * variant="cards"` (the hero pattern) opts its stats in automatically.
+   */
+  trendColored?: boolean
 
   // sparkline
   sparkline?: Datum[]
@@ -68,6 +76,12 @@ export interface UiStatProps {
 
   // state
   loading?: boolean
+
+  /**
+   * Rolls compact metric values when they change. Defaults on for numeric-ish
+   * values; pass false for dense/realtime surfaces or object options to tune.
+   */
+  animatedValue?: boolean | SlotTextOptions
 
   // threshold alerting
   status?: 'crisis' | 'warning' | 'good'
@@ -81,14 +95,21 @@ onMounted(() => {
   hydrated.value = true
 })
 const isLoading = computed(() => hydrated.value && loading)
+const slots = useSlots()
+
+// Hover state for the background viz: the card owns the gesture, the chart
+// (default sparkline or #chart slot) reacts to it. Subtle, opt-in via the
+// chart component itself.
+const cardEl = ref<HTMLElement | null>(null)
+const cardHovered = useElementHover(cardEl)
 
 const rootTag = computed(() => to ? NuxtLink : 'div')
 
 const sizeConfig = computed(() => {
   const map = {
-    sm: { value: 'text-xl', sparkW: 96, sparkH: 32 },
-    md: { value: 'text-2xl', sparkW: 120, sparkH: 32 },
-    lg: { value: 'text-3xl', sparkW: 160, sparkH: 36 },
+    sm: { value: 'text-xl', sparkW: 96, sparkH: 32, ribbonH: 30, bgH: 46 },
+    md: { value: 'text-2xl', sparkW: 120, sparkH: 32, ribbonH: 38, bgH: 56 },
+    lg: { value: 'text-3xl', sparkW: 160, sparkH: 36, ribbonH: 46, bgH: 64 },
   }
   return map[size]
 })
@@ -99,6 +120,19 @@ const displayValue = computed(() => {
   if (format && typeof value === 'number')
     return format(value)
   return String(value)
+})
+
+const animatedValueOptions = computed<SlotTextOptions | null>(() => {
+  if (!displayValue.value || animatedValue === false || slots.default)
+    return null
+
+  const compactMetricValue = /^[+\-$€£¥]?\s*[\d,.]+(?:\s?[kmbt])?(?:\.\d+)?%?$/i.test(displayValue.value)
+  if (typeof animatedValue === 'object')
+    return animatedValue
+
+  return compactMetricValue && displayValue.value.length <= 14
+    ? { direction: 'up', duration: 320, stagger: 24 }
+    : null
 })
 
 const trendDirection = computed(() => {
@@ -116,7 +150,7 @@ const isTrendPositive = computed(() => {
 })
 
 const trendColorClass = computed(() => {
-  if (trendNeutral || isTrendPositive.value === null)
+  if (!trendColored || isTrendPositive.value === null)
     return 'text-muted'
   return isTrendPositive.value ? 'text-success' : 'text-error'
 })
@@ -159,19 +193,21 @@ const formattedTrend = computed(() => {
       to ? 'cursor-pointer' : '',
     ]"
   >
-    <!-- Header: icon + label + trend + status chip -->
+    <!-- Header: icon + label + trend + status chip.
+         `leading-none` collapses .text-label's 1.5 line-box to the cap band so
+         items-center aligns the leading icon to the text, not to empty leading. -->
     <div
-      class="flex items-center gap-1.5"
+      class="flex items-center gap-1.5 leading-none"
       :class="to && !card ? 'transition-opacity hover:opacity-80' : ''"
     >
       <slot name="icon">
         <UiIcon v-if="icon" :name="icon" class="size-3 text-dimmed shrink-0" />
       </slot>
       <slot name="title">
-        <UiTooltip v-if="tooltip && title" :text="tooltipDescription || tooltip">
+        <UiTooltip v-if="tooltip && title" :text="tooltipDescription || tooltip" trigger-as="button">
           <span class="inline-flex items-center gap-1 text-label text-dimmed">
             {{ title }}
-            <UiIcon name="i-lucide-circle-help" class="size-3 opacity-50 shrink-0" />
+            <UiIcon name="help" class="size-3 opacity-50 shrink-0" aria-hidden="true" />
           </span>
         </UiTooltip>
         <span v-else-if="title" class="text-label text-dimmed">{{ title }}</span>
@@ -180,7 +216,7 @@ const formattedTrend = computed(() => {
         <span v-if="trend != null && trend !== 0" class="text-xs numerals-display" :class="trendColorClass">
           {{ formattedTrend }}
         </span>
-        <span v-else class="text-xs numerals-display text-dimmed" aria-label="No comparison data">—</span>
+        <span v-else-if="trend === null || trend === 0" class="text-xs numerals-display text-dimmed" aria-label="No comparison data">—</span>
         <span v-if="trendLabel" class="text-xs text-dimmed">{{ trendLabel }}</span>
       </slot>
       <span
@@ -194,6 +230,7 @@ const formattedTrend = computed(() => {
     </div>
 
     <div
+      ref="cardEl"
       class="group/card relative flex flex-col gap-1 overflow-hidden"
       :class="[
         card ? 'ui-stat-card rounded-xl border border-default bg-[var(--ui-bg-elevated)]/5 p-4 min-h-[5.5rem]' : '',
@@ -204,8 +241,8 @@ const formattedTrend = computed(() => {
       <!-- Hover affordance: chevron signals the card is clickable -->
       <UiIcon
         v-if="to && card"
-        name="i-lucide-chevron-right"
-        class="pointer-events-none absolute top-2.5 right-2.5 size-3.5 text-dimmed opacity-0 -translate-x-1 transition-all duration-150 group-hover/card:opacity-100 group-hover/card:translate-x-0"
+        name="chevron-right"
+        class="pointer-events-none absolute top-2.5 right-2.5 size-3.5 text-dimmed opacity-0 -translate-x-1 transition-[opacity,transform] duration-150 group-hover/card:opacity-100 group-hover/card:translate-x-0"
         aria-hidden="true"
       />
 
@@ -216,12 +253,55 @@ const formattedTrend = computed(() => {
 
       <!-- Content -->
       <template v-else>
-        <!-- Value + sparkline row (inline to reduce vertical weight) -->
-        <div class="relative flex items-end justify-between gap-3">
+        <!-- Card mode: viz fills the lower portion of the card as a background
+             layer (sparkline by default, or a #chart slot e.g. UiCwvSparkline).
+             A left→right bg→transparent fade keeps the value/trend legible where
+             they overlap the chart, so the card keeps its compact height. -->
+        <div
+          v-if="card && (sparkline?.length || $slots.chart)"
+          class="pointer-events-none absolute inset-x-0 bottom-0 z-0"
+          :style="{ height: `${sizeConfig.bgH}px` }"
+        >
+          <!-- Client-only: the chart (sparkline or a motion-driven #chart slot)
+               is decorative and motion components hydrate awkwardly, so skip SSR. -->
+          <ClientOnly>
+            <slot name="chart" :hovered="cardHovered">
+              <UiSparkline
+                :data="sparkline ?? []"
+                :color="sparklineColor"
+                :inverted="invertTrend"
+                area
+                interactive
+                :hovered="cardHovered"
+                :max-points="48"
+                width="100%"
+                height="100%"
+                preserve-aspect-ratio="none"
+                class="block size-full opacity-90"
+              />
+            </slot>
+          </ClientOnly>
+          <!-- Legibility wash: a light left→right dark gradient just takes the
+               edge off the chart under the value. The heavy lifting is the
+               value's text-shadow, so the chart itself stays bright. -->
+          <div class="absolute inset-0 bg-gradient-to-r from-[var(--ui-bg)]/70 via-[var(--ui-bg)]/10 via-[50%] to-transparent" />
+        </div>
+
+        <!-- Value + trend row. In card mode it floats above the background viz
+             (text-shadow keeps it legible); outside card mode the sparkline
+             stays inline on the right. -->
+        <div class="relative z-10 flex items-end justify-between gap-3" :class="card && (sparkline?.length || $slots.chart) ? 'ui-stat-legible' : ''">
           <slot>
             <div v-if="value != null" class="flex items-baseline gap-2 min-w-0">
               <span class="numerals-display tracking-tight" :class="[sizeConfig.value, valueClass || 'text-default']">
-                {{ displayValue }}
+                <UiSlotText
+                  v-if="animatedValueOptions && displayValue"
+                  :text="displayValue"
+                  :options="animatedValueOptions"
+                />
+                <template v-else>
+                  {{ displayValue }}
+                </template>
               </span>
               <span v-if="suffix" class="text-sm text-muted">{{ suffix }}</span>
               <slot v-if="card" name="trend">
@@ -233,7 +313,7 @@ const formattedTrend = computed(() => {
                   {{ formattedTrend }}
                 </span>
                 <span
-                  v-else
+                  v-else-if="trend === null || trend === 0"
                   class="text-xs numerals-display text-dimmed"
                   aria-label="No comparison data"
                 >—</span>
@@ -242,10 +322,22 @@ const formattedTrend = computed(() => {
             </div>
             <span v-else class="font-semibold text-muted" :class="sizeConfig.value" role="img" aria-label="No data">&mdash;</span>
           </slot>
-          <div v-if="sparkline?.length" class="shrink-0 -mb-0.5">
+          <!-- Compact-strip viz: the same chart the card mode floats as a
+               background renders here as a small fixed-size cell on the right
+               (a #chart slot, e.g. the CWV composition), so status tiles keep
+               their signal in compact mode. Falls back to the inline sparkline
+               for metric tiles that supply a `sparkline` array. -->
+          <div v-if="!card && ($slots.chart || sparkline?.length)" class="shrink-0 -mb-0.5">
             <ClientOnly>
+              <div
+                v-if="$slots.chart"
+                :style="{ width: `${sizeConfig.sparkW}px`, height: `${sizeConfig.sparkH}px` }"
+              >
+                <slot name="chart" :hovered="cardHovered" />
+              </div>
               <UiSparkline
-                :data="sparkline"
+                v-else
+                :data="sparkline ?? []"
                 :size="size"
                 :color="sparklineColor"
                 :inverted="invertTrend"
@@ -263,6 +355,15 @@ const formattedTrend = computed(() => {
 </template>
 
 <style scoped>
+/* Value/trend floats over the background chart. A soft halo in the card-bg
+   colour (so it adapts to light/dark) buys contrast without a heavy mask,
+   letting the chart stay bright. */
+.ui-stat-legible {
+  text-shadow:
+    0 0 2px var(--ui-bg),
+    0 1px 10px var(--ui-bg);
+}
+
 .ui-stat-card {
   /* Recessed resting depth — carved edge, no lift. */
   box-shadow: var(--elevation-inset);

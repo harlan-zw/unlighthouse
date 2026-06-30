@@ -80,8 +80,8 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       header: 'Device',
       enableSorting: false,
       meta: { align: 'center', headClass: 'w-16' },
-      cell: ({ row }) => h(resolveComponent('Icon'), {
-        name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor',
+      cell: ({ row }) => h(resolveComponent('UiIcon'), {
+        name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
         class: 'size-3.5 text-muted',
       }),
     })
@@ -159,10 +159,10 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           <span class="text-error font-medium">{{ summary.poor }}</span> poor
         </span>
         <span class="flex items-center gap-1 text-muted">
-          <Icon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-3.5" />
+          <UiIcon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'smartphone' : 'monitor'" class="size-3.5" />
         </span>
       </div>
-      <button class="text-xs text-muted hover:text-default transition-colors" @click="showAllMetrics = !showAllMetrics">
+      <button class="min-h-11 px-2 -mx-2 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:px-0 lg:mx-0" @click="showAllMetrics = !showAllMetrics">
         {{ showAllMetrics ? 'Fewer metrics' : 'More metrics' }}
       </button>
     </div>
@@ -182,7 +182,14 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
 
     <!-- Toolbar -->
     <div class="flex items-center gap-3 flex-wrap">
-      <UInput v-model="q" icon="i-lucide-search" placeholder="Filter by URL..." class="flex-1 max-w-xs min-w-[180px]" />
+      <UInput
+        v-model="q"
+        icon="search"
+        placeholder="Filter by URL..."
+        aria-label="Filter routes by URL"
+        class="flex-1 max-w-xs min-w-[180px]"
+        :ui="{ base: 'min-h-11 lg:min-h-8' }"
+      />
 
       <!-- Quick filters -->
       <div class="flex items-center rounded-md border p-0.5">
@@ -190,7 +197,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           v-for="f in QUICK_FILTERS"
           :key="f.key"
           type="button"
-          class="px-2.5 py-1 text-xs rounded transition-colors"
+          class="min-h-11 min-w-11 px-2.5 py-1 text-xs rounded transition-colors lg:min-h-0 lg:min-w-0"
           :class="quick === f.key ? 'bg-elevated font-medium text-default' : 'text-muted hover:text-default'"
           @click="quick = f.key"
         >
@@ -198,9 +205,9 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         </button>
       </div>
 
-      <UBadge color="neutral" variant="soft" class="text-xs tabular-nums">
+      <UiChip purpose="count" size="sm" tabular>
         {{ filtered.length }}<span v-if="filtered.length !== total" class="text-muted/70"> / {{ total }}</span>
-      </UBadge>
+      </UiChip>
 
       <div class="flex-1" />
 
@@ -209,22 +216,22 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         v-model="deviceFilter"
         :items="[
           { label: 'All Devices', value: 'all' },
-          { label: 'Mobile', value: 'mobile', icon: 'i-lucide-smartphone' },
-          { label: 'Desktop', value: 'desktop', icon: 'i-lucide-monitor' },
+          { label: 'Mobile', value: 'mobile', icon: 'smartphone' },
+          { label: 'Desktop', value: 'desktop', icon: 'monitor' },
         ]"
         class="w-36"
       />
 
       <UDropdownMenu :items="columnToggleItems" :content="{ align: 'end' }" :ui="{ content: 'w-44' }">
-        <UButton color="neutral" variant="outline" size="sm" icon="i-lucide-columns-3" label="Columns" />
+        <UiButton purpose="secondary" size="sm" icon="table" label="Columns" />
       </UDropdownMenu>
 
-      <UButton
-        color="neutral"
-        variant="outline"
+      <UiButton
+        purpose="secondary"
         size="sm"
         :title="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
-        :icon="density === 'compact' ? 'i-lucide-rows-3' : 'i-lucide-rows-2'"
+        :icon="density === 'compact' ? 'list' : 'table'"
+        aria-label="Toggle row density"
         @click="density = density === 'compact' ? 'comfortable' : 'compact'"
       />
     </div>
@@ -243,15 +250,15 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       <template #actions="{ row }">
         <UDropdownMenu
           :items="[
-            { label: 'View details', icon: 'i-lucide-bar-chart-3', onSelect: () => openRoute(row) },
-            { label: 'Open page', icon: 'i-lucide-external-link', to: row.url, target: '_blank' },
-            { label: 'Copy URL', icon: 'i-lucide-copy', onSelect: () => copyRouteUrl(row) },
+            { label: 'View details', icon: 'chart-bar', onSelect: () => openRoute(row) },
+            { label: 'Open page', icon: 'external', to: row.url, target: '_blank' },
+            { label: 'Copy URL', icon: 'copy', onSelect: () => copyRouteUrl(row) },
             { type: 'separator' },
-            { label: 'Rescan route', icon: 'i-lucide-refresh-cw', onSelect: () => rescanRoute(row) },
+            { label: 'Rescan route', icon: 'refresh', onSelect: () => rescanRoute(row) },
           ]"
           :content="{ align: 'end' }"
         >
-          <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-ellipsis" class="size-7 p-0" @click.stop />
+          <UiButton purpose="quiet" size="sm" icon="more-horizontal" class="size-7 p-0 justify-center" aria-label="Route actions" @click.stop />
         </UDropdownMenu>
       </template>
 

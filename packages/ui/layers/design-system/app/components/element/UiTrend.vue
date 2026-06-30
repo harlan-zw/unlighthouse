@@ -9,6 +9,7 @@ const {
   format = 'number',
   showSign = false,
   inverted = false,
+  colored = false,
   isNew = false,
   isLost = false,
   clamp: shouldClamp = true,
@@ -23,6 +24,12 @@ const {
   showSign?: boolean
   /** Invert color logic — positive value shows red, negative shows green (e.g. position where lower is better) */
   inverted?: boolean
+  /**
+   * Trend color budget (DESIGN.md Composition): colored success/error trends
+   * belong to the hero zone only. Default renders neutral (sign + value);
+   * hero components (UiMetricsRow, UiMetricStat, hero cards) opt in.
+   */
+  colored?: boolean
   /** Show a "NEW" badge instead of trend value */
   isNew?: boolean
   /** Show a "LOST" badge instead of trend value */
@@ -58,7 +65,7 @@ const trend = computed<-1 | 0 | 1>(() => {
 
 const trendColor = computed(() => {
   const t = trend.value
-  if (t === 0)
+  if (t === 0 || !colored)
     return 'text-muted'
   const positive = inverted ? t === -1 : t === 1
   return positive ? 'text-success' : 'text-error'
@@ -111,7 +118,7 @@ const displayValue = computed(() => {
 })
 
 const trendIcon = computed(() =>
-  trend.value === 1 ? 'i-lucide-arrow-up-right' : 'i-lucide-arrow-down-right',
+  trend.value === 1 ? 'arrow-up-right' : 'arrow-down-right',
 )
 
 const classes = computed(() => {
@@ -138,7 +145,7 @@ const classes = computed(() => {
     v-else-if="isClamped"
     data-ui="UiTrend"
     class="inline-flex items-center whitespace-nowrap leading-none font-semibold tracking-tight px-1.5 py-0.5 ml-1 rounded cursor-default"
-    :class="[classes, trend === 1 ? 'bg-success/10' : 'bg-error/10']"
+    :class="[classes, colored ? (trend === 1 ? 'bg-success/10' : 'bg-error/10') : 'bg-muted']"
     :title="fullValue"
   >
     {{ trend === 1 ? '10x+' : 'oof' }}

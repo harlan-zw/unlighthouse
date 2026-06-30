@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { BundleReport } from '@unlighthouse/contracts/packs'
 import CategoryPageShell from '~/features/scan/components/CategoryPageShell.vue'
 import PackFindings from '~/features/scan/components/PackFindings.vue'
 import { getScanId } from '~/features/scan/route-context'
@@ -73,7 +74,7 @@ const { data: bpFindings } = useNuxtAsyncQuery<any[]>(
   { key: () => `bp-audits:${scanId}:${(routeScores.value?.items ?? []).map(r => r.url).join(',')}` },
 )
 
-const bundleReport = computed(() => (bundlePack.value as any)?.report ?? null)
+const bundleReport = computed(() => (bundlePack.value?.report ?? null) as BundleReport | null)
 const findings = computed(() => bpFindings.value ?? [])
 
 // js-bundle findings are keyed by `kind` + `resource` — NOT the

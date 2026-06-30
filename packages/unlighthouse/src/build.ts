@@ -10,7 +10,6 @@ import { Buffer } from 'node:buffer'
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { buildStaticSnapshot } from '@unlighthouse/core/api/static-client'
-import { pick } from 'lodash-es'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 
 export interface GenerateClientDeps {
@@ -18,6 +17,15 @@ export interface GenerateClientDeps {
   runtimeSettings: RuntimeSettings
   storage: Storage
   logger?: Logger
+}
+
+function pickKeys<K extends string>(source: object, keys: readonly K[]): Partial<Record<K, unknown>> {
+  const picked: Partial<Record<K, unknown>> = {}
+  for (const key of keys) {
+    if (key in source)
+      picked[key] = (source as Record<K, unknown>)[key]
+  }
+  return picked
 }
 
 /**
@@ -99,7 +107,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
     reports: options.static ? routes : [],
     scanMeta,
     snapshot,
-    options: pick({
+    options: pickKeys({
       ...runtimeSettings,
       ...resolvedConfig,
     }, [
@@ -111,7 +119,7 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
       'routerPrefix',
       'websocketUrl',
       'apiUrl',
-    ]),
+    ]) as ClientOptionsPayload,
   }
   staticData.options.lighthouseOptions = { onlyCategories: resolvedConfig.lighthouseOptions.onlyCategories }
 

@@ -93,7 +93,7 @@ const colorClass = computed(() => {
       :aria-label="label ? `Remove ${label}` : 'Remove'"
       @click.stop="emit('remove')"
     >
-      <UiIcon name="i-lucide-x" class="size-3" />
+      <UiIcon name="close" class="size-3" />
     </button>
   </span>
 </template>

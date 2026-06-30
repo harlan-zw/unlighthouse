@@ -13,23 +13,38 @@ import { overviewPack } from './overview'
 import { seoBasicsPack } from './seo-basics'
 
 export { a11yQuickWinsPack } from './a11y-quick-wins'
-export type { A11yFinding, A11yReport } from './a11y-quick-wins'
 export { agenticBrowsingPack } from './agentic-browsing'
-export type { AgenticBrowsingReport } from './agentic-browsing'
 export { analyzeLabVsField, createCruxPack, cruxPack, queryCrux } from './crux'
-export type { CruxFinding, CruxFormFactor, CruxReport, CruxSource, GapAnalysis, GapEntry } from './crux'
 export { cwvPack } from './cwv'
-export type { CwvFix, CwvReport, MetricSnapshot } from './cwv'
 export { imagesPack } from './images'
-export type { ImageFinding, ImagesReport } from './images'
 export { insightsPack } from './insights'
-export type { InsightsReport } from './insights'
 export { jsBundlePack } from './js-bundle'
-export type { BundleFinding, BundleReport } from './js-bundle'
 export { overviewPack } from './overview'
-export type { OverviewReport } from './overview'
 export { seoBasicsPack } from './seo-basics'
-export type { SeoFinding, SeoReport, SeoRouteCheck } from './seo-basics'
+// Report types are now canonical in @unlighthouse/contracts/packs.
+export type {
+  A11yFinding,
+  A11yReport,
+  AgenticBrowsingReport,
+  BundleFinding,
+  BundleReport,
+  CruxFinding,
+  CruxFormFactor,
+  CruxReport,
+  CruxSource,
+  CwvFix,
+  CwvReport,
+  GapAnalysis,
+  GapEntry,
+  ImageFinding,
+  ImagesReport,
+  InsightsReport,
+  MetricSnapshot,
+  OverviewReport,
+  SeoFinding,
+  SeoReport,
+  SeoRouteCheck,
+} from '@unlighthouse/contracts/packs'
 
 export const builtInPacks: Record<string, Pack<unknown>> = {
   [overviewPack.name]: overviewPack as Pack<unknown>,

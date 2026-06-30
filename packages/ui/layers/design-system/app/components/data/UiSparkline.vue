@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { usePreferredReducedMotion } from '@vueuse/core'
+import { motion } from 'motion-v'
 import { computed, useId } from 'vue'
 import { vizColorMap } from '../../composables/dataVizColors'
 import { semanticColors } from '../../composables/semanticColors'
@@ -33,6 +35,10 @@ interface Props {
   area?: boolean
   /** How to render `previousData`. `ghost` (default) draws a thin neutral line behind the current series. `diverging` recolors the current line green/red per-point against the previous value (noisier; opt in when valence-per-point matters). */
   comparisonStyle?: 'ghost' | 'diverging'
+  /** Enable the hover tracer — a brighter line that draws along the path. Driven by `hovered`. */
+  interactive?: boolean
+  /** Hover state, fed from a parent (e.g. the enclosing UiStat card). */
+  hovered?: boolean
 }
 
 const {
@@ -52,7 +58,14 @@ const {
   inverted = false,
   area = false,
   comparisonStyle = 'ghost',
+  interactive = false,
+  hovered = false,
 } = defineProps<Props>()
+
+// Gate the looping hover tracer dot for reduced-motion users (the CSS tracer
+// line is already gated in <style>).
+const reducedMotionPref = usePreferredReducedMotion()
+const reducedMotion = computed(() => reducedMotionPref.value === 'reduce')
 
 // Named tokens (e.g. `color="blue"`, `color="clicks"`) resolve through the
 // canonical viz palette so the sparkline shares the same blue as the legend
@@ -87,8 +100,14 @@ function normalize(input: number[] | Datum[] | undefined, yAxis?: string): numbe
   if (typeof input[0] === 'number')
     return input as number[]
   const data = input as Datum[]
-  const yKey = yAxis || guessYKey(data[0]!)
-  return data.map(d => Number(d[yKey]) || 0)
+  // A series can carry null/undefined holes (sparse data, gaps in a metric). Detect
+  // the key from the first real datum and treat holes as 0 so neither key-detection
+  // (`key in d`) nor access ever derefs null.
+  const first = data.find(d => d != null)
+  if (!first)
+    return []
+  const yKey = yAxis || guessYKey(first)
+  return data.map(d => (d == null ? 0 : Number(d[yKey]) || 0))
 }
 
 function guessYKey(d: Datum): string {
@@ -425,6 +444,65 @@ const areaY2 = computed(() => trend.value === -1 ? '0' : '1')
         fill="none"
         vector-effect="non-scaling-stroke"
       />
+      <!-- Hover tracer: a brighter copy of the line that draws itself along the
+           path on hover (pathLength=1 normalises dasharray regardless of scale). -->
+      <path
+        v-if="interactive && pathD"
+        class="ui-sparkline-tracer"
+        :class="{ 'is-hovered': hovered }"
+        :d="pathD"
+        :stroke="endColor"
+        :stroke-width="strokeWidth + 0.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+        pathLength="1"
+        vector-effect="non-scaling-stroke"
+      />
+      <!-- Hover tracer dot: rides the exact smoothed path via offset-path so it
+           glides continuously along the curve (not stepping between points). -->
+      <motion.circle
+        v-if="interactive && pathD"
+        :r="2.2"
+        cx="0"
+        cy="0"
+        :fill="endColor"
+        :style="{ offsetPath: `path('${pathD}')`, offsetRotate: '0deg', filter: 'drop-shadow(0 0 2px var(--ui-bg))' }"
+        :initial="{ opacity: 0, offsetDistance: '0%' }"
+        :animate="!hovered
+          ? { opacity: 0 }
+          : reducedMotion
+            ? { offsetDistance: '100%', opacity: 0.9 }
+            : { offsetDistance: ['0%', '100%'], opacity: [0, 1, 1, 0] }"
+        :transition="!hovered
+          ? { duration: 0.25 }
+          : reducedMotion
+            ? { duration: 0 }
+            : { duration: 2.2, ease: 'easeInOut', repeat: Infinity }"
+      />
     </template>
   </svg>
 </template>
+
+<style scoped>
+/* Tracer rests fully retracted (offset = full length) and draws to 0 on hover,
+   so a brighter line sweeps left→right along the data. */
+.ui-sparkline-tracer {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  transition:
+    stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease-out;
+}
+.ui-sparkline-tracer.is-hovered {
+  stroke-dashoffset: 0;
+  opacity: 0.9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-sparkline-tracer {
+    transition: opacity 150ms ease-out;
+    stroke-dashoffset: 0;
+  }
+}
+</style>

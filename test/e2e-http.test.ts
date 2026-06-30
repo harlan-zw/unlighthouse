@@ -59,6 +59,7 @@ beforeAll(async () => {
     auditor,
     storage,
     config: { site: fixtureBaseUrl } as never,
+    version: 'test',
   }
 
   // 3. Project the command registry → h3 router → App → Node listener.
@@ -96,7 +97,7 @@ describe('e2e: HTTP projection over the wire', () => {
       defaults: Record<string, unknown>
     }
     expect(manifest.commands.length).toBe(Object.keys(commands).length)
-    expect(manifest.commands.length).toBe(34)
+    expect(manifest.commands.length).toBe(35)
     expect(Object.keys(manifest.defaults).length).toBeGreaterThan(0)
   })
 

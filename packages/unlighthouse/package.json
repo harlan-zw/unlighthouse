@@ -94,11 +94,7 @@
     "h3": "catalog:dependencies",
     "hookable": "catalog:dependencies",
     "launch-editor": "catalog:dependencies",
-    "lighthouse": "catalog:dependencies",
     "listhen": "catalog:dependencies",
-    "lodash-es": "catalog:dependencies",
-    "minimist": "catalog:dependencies",
-    "object-hash": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "ufo": "catalog:dependencies",
     "unstorage": "catalog:",
@@ -107,9 +103,6 @@
   "devDependencies": {
     "@lhci/utils": "catalog:",
     "@types/better-sqlite3": "catalog:",
-    "@types/lodash-es": "catalog:",
-    "@types/minimist": "catalog:",
-    "@types/node": "catalog:",
-    "@types/object-hash": "catalog:"
+    "@types/node": "catalog:"
   }
 }

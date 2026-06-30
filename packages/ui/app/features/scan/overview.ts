@@ -6,16 +6,16 @@ import { useScanStore } from '~/stores/scan'
 type DeviceFilter = '' | 'mobile' | 'desktop'
 
 const CATEGORY_DEFS = [
-  { key: 'performance', label: 'Performance', icon: 'lucide:gauge', path: 'performance' },
-  { key: 'seo', label: 'SEO', icon: 'lucide:search', path: 'seo' },
-  { key: 'accessibility', label: 'Accessibility', icon: 'lucide:accessibility', path: 'accessibility' },
-  { key: 'best-practices', label: 'Best Practices', icon: 'lucide:shield-check', path: 'best-practices' },
-  { key: 'agentic-browsing', label: 'Agentic', icon: 'lucide:bot', path: 'agentic-browsing' },
+  { key: 'performance', label: 'Performance', icon: 'gauge', path: 'performance' },
+  { key: 'seo', label: 'SEO', icon: 'search', path: 'seo' },
+  { key: 'accessibility', label: 'Accessibility', icon: 'accessibility', path: 'accessibility' },
+  { key: 'best-practices', label: 'Best Practices', icon: 'shield-check', path: 'best-practices' },
+  { key: 'agentic-browsing', label: 'Agentic', icon: 'bot', path: 'agentic-browsing' },
 ] as const
 
 function scoreColorFromRing(scoreToRingColor: (score: number | null) => string, score: number | null): string {
   if (score == null)
-    return 'var(--muted-foreground)'
+    return 'var(--ui-text-muted)'
   return scoreToRingColor(score)
 }
 

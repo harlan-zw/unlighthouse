@@ -39,7 +39,7 @@ const containerClass = computed(() => {
   const isGrid = layout === 'grid' || variant === 'cards'
   return join(
     'justify-around',
-    isGrid ? `grid grid-cols-2 ${gridCols[gridIndex]}` : 'flex flex-row',
+    isGrid ? `grid grid-cols-1 sm:grid-cols-2 ${gridCols[gridIndex]}` : 'flex flex-col md:flex-row',
     wrap && 'flex-wrap',
     variant === 'card' && 'divide-y md:divide-y-0 md:divide-x divide-[var(--ui-border-muted)] rounded-lg border border-default py-4',
     variant === 'cards' && 'gap-4',
@@ -66,6 +66,7 @@ const slots = useSlots()
         <UiStat
           v-bind="item"
           :card="variant === 'cards'"
+          :trend-colored="item.trendColored ?? (variant === 'cards')"
           :class="statClass"
         />
       </template>

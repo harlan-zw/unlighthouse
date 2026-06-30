@@ -6,9 +6,27 @@ import type {
 } from '@unlighthouse/contracts/commands'
 import type { MaybeRefOrGetter } from 'vue'
 import type { ApiError } from './useApiError'
+import { commands } from '@unlighthouse/contracts/commands'
 import { useNuxtAsyncQuery } from 'nuxt-use-query/async-query'
 import { computed, toValue } from 'vue'
 import { normalizeApiError } from './useApiError'
+
+// "Parse, don't validate" at the read boundary. The server validates command
+// *input* but never *output* (no transport runs `cmd.output.parse`), so the UI
+// otherwise trusts response shapes blindly. The command schemas are already
+// bundled in the client, so checking the payload against `commands[cmd].output`
+// is nearly free. Dev-only + pass-through: a mismatch is surfaced as a console
+// warning (contract-drift detector) but the raw data still flows, so tightening
+// a schema can never break a working page. Loose `z.unknown()` outputs
+// (pack.run, …) parse trivially and are no-ops here.
+function validateResponse<K extends ReadCommand>(command: K, data: unknown): void {
+  if (!import.meta.dev)
+    return
+  const schema = (commands as Record<string, { output?: { safeParse?: (d: unknown) => { success: boolean, error?: { issues?: unknown } } } }>)[command]?.output
+  const result = schema?.safeParse?.(data)
+  if (result && !result.success)
+    console.warn(`[useApiQuery] response for "${command}" does not match its contract output schema`, result.error?.issues)
+}
 
 // Non-streaming read commands — the ones useApiQuery can drive. Streaming
 // reads (`events.*`) return an AsyncIterable and stay on the WebSocket / tail
@@ -64,7 +82,11 @@ export function useApiQuery<K extends ReadCommand>(
   )
 
   const query = useNuxtAsyncQuery<CommandOutput<CommandRegistry[K]>>(
-    () => api[command](toValue(input) as never) as Promise<CommandOutput<CommandRegistry[K]>>,
+    async () => {
+      const data = await (api[command](toValue(input) as never) as Promise<CommandOutput<CommandRegistry[K]>>)
+      validateResponse(command, data)
+      return data
+    },
     {
       key,
       enabled: opts.enabled,

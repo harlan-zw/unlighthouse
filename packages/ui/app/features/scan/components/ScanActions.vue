@@ -38,7 +38,7 @@ async function handleResume() {
 <template>
   <div class="flex items-center gap-2">
     <template v-if="store.isActive">
-      <UiButton v-if="store.status === 'scanning'" purpose="secondary" size="sm" icon="i-lucide-pause" @click="handlePause">
+      <UiButton v-if="store.status === 'scanning'" purpose="secondary" size="sm" icon="pause" @click="handlePause">
         Pause
       </UiButton>
 
@@ -46,7 +46,7 @@ async function handleResume() {
         title="Cancel scan?"
         description="This will stop the current scan. Completed results will be preserved."
       >
-        <UButton color="neutral" variant="outline" size="sm" icon="i-lucide-x" label="Cancel" />
+        <UiButton purpose="secondary" size="sm" icon="close" label="Cancel" />
 
         <template #footer="{ close }">
           <UiButton purpose="quiet" @click="close">
@@ -59,7 +59,7 @@ async function handleResume() {
       </UModal>
     </template>
 
-    <UiButton v-if="store.status === 'paused'" purpose="secondary" size="sm" icon="i-lucide-play" @click="handleResume">
+    <UiButton v-if="store.status === 'paused'" purpose="secondary" size="sm" icon="play" @click="handleResume">
       Resume
     </UiButton>
   </div>

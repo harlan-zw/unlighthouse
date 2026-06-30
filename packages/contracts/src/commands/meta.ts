@@ -64,6 +64,13 @@ export const Health = defineCommand({
   }),
 })
 
+export const Ready = defineCommand({
+  name: 'ready',
+  description: 'Readiness probe. Mirrors health so deploy probes can use /api/ready.',
+  input: z.object({}),
+  output: Health.output,
+})
+
 // ── auditors.list ───────────────────────────────────────────────────────────
 // Hidden in CLI per v1.md line 14 — info also surfaces in `manifest`.
 export const AuditorsList = defineCommand({

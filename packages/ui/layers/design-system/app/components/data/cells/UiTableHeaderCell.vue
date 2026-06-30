@@ -28,8 +28,8 @@ const isHeaderEmpty = computed(() => {
 
 const sortIcon = computed(() => {
   if (sortDirection)
-    return 'i-lucide-chevron-up'
-  return 'i-lucide-chevrons-up-down'
+    return 'collapse'
+  return 'sort'
 })
 
 // Chevron rotates 180° between asc/desc — a single icon animates rather than swapping.

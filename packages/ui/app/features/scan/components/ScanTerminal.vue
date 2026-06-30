@@ -17,19 +17,19 @@ watch(() => store.logs.length, () => {
 
 function levelColor(level: string) {
   switch (level) {
-    case 'error': return 'text-red-400'
-    case 'warn': return 'text-yellow-400'
-    case 'success': return 'text-green-400'
-    default: return 'text-zinc-500'
+    case 'error': return 'text-error'
+    case 'warn': return 'text-warning'
+    case 'success': return 'text-success'
+    default: return 'text-dimmed'
   }
 }
 
 function levelIcon(level: string) {
   switch (level) {
-    case 'error': return 'lucide:x-circle'
-    case 'warn': return 'lucide:alert-triangle'
-    case 'success': return 'lucide:check-circle'
-    default: return 'lucide:info'
+    case 'error': return 'error'
+    case 'warn': return 'warning'
+    case 'success': return 'success'
+    default: return 'info'
   }
 }
 
@@ -40,36 +40,36 @@ function formatTime(ts: number) {
 </script>
 
 <template>
-  <div class="rounded-lg border bg-zinc-950 text-zinc-100 font-mono text-xs overflow-hidden">
-    <div class="flex items-center justify-between px-3 py-1.5 bg-zinc-900/80 border-b border-zinc-800">
+  <div class="rounded-lg border border-default bg-elevated text-default font-mono text-xs overflow-hidden">
+    <div class="flex items-center justify-between px-3 py-1.5 bg-muted/60 border-b border-default">
       <div class="flex items-center gap-2">
         <div class="flex gap-1">
-          <div class="size-2.5 rounded-full bg-red-500/60" />
-          <div class="size-2.5 rounded-full bg-yellow-500/60" />
-          <div class="size-2.5 rounded-full bg-green-500/60" />
+          <div class="size-2.5 rounded-full bg-error/60" />
+          <div class="size-2.5 rounded-full bg-warning/60" />
+          <div class="size-2.5 rounded-full bg-success/60" />
         </div>
-        <span class="text-zinc-500 text-[11px]">Terminal</span>
+        <span class="text-dimmed text-[11px]">Terminal</span>
       </div>
       <div class="flex items-center gap-3">
-        <label class="flex items-center gap-1.5 text-zinc-500 text-[11px] cursor-pointer select-none">
-          <input v-model="autoScroll" type="checkbox" class="size-3 accent-primary rounded" />
+        <label class="flex items-center gap-1.5 text-dimmed text-[11px] cursor-pointer select-none">
+          <input v-model="autoScroll" type="checkbox" class="size-3 accent-primary rounded">
           Auto-scroll
         </label>
-        <span class="text-zinc-600 tabular-nums text-[11px]">{{ store.logs.length }}</span>
+        <span class="text-muted tabular-nums text-[11px]">{{ store.logs.length }}</span>
       </div>
     </div>
     <div ref="scrollRef" class="h-48 overflow-y-auto p-2 space-y-px">
-      <div v-if="!store.logs.length" class="text-zinc-600 py-8 text-center">
+      <div v-if="!store.logs.length" class="text-dimmed py-8 text-center">
         Waiting for scan events...
       </div>
       <div
         v-for="log in store.logs"
         :key="log.id"
-        class="flex items-start gap-2 py-0.5 px-1 rounded hover:bg-zinc-900/60"
+        class="flex items-start gap-2 py-0.5 px-1 rounded hover:bg-muted/60"
       >
-        <span class="text-zinc-600 shrink-0 pt-px">{{ formatTime(log.timestamp) }}</span>
-        <Icon :name="levelIcon(log.level)" :class="levelColor(log.level)" class="size-3 shrink-0 mt-0.5" />
-        <span class="text-zinc-300 break-all leading-relaxed">{{ log.message }}</span>
+        <span class="text-dimmed shrink-0 pt-px">{{ formatTime(log.timestamp) }}</span>
+        <UiIcon :name="levelIcon(log.level)" :class="levelColor(log.level)" class="size-3 shrink-0 mt-0.5" />
+        <span class="text-default break-all leading-relaxed">{{ log.message }}</span>
       </div>
     </div>
   </div>

@@ -58,21 +58,23 @@ function latestValue(entries: Array<{ value: number }>) {
 
 <template>
   <div class="space-y-6">
-    <PageHeader title="CrUX Field Data" flush />
+    <UiPageHeader title="CrUX Field Data" flush />
 
     <QueryError v-if="cruxError" :error="cruxError" :on-retry="refreshCrux" />
 
-    <div v-if="status === 'pending'" class="text-center py-12 text-muted">
-      Loading CrUX data...
-    </div>
-
-    <div v-else-if="!data || (!data.phone?.lcp?.length && !data.desktop?.lcp?.length)" class="text-center py-12 text-muted">
-      <Icon name="lucide:globe" class="size-12 mx-auto mb-3 opacity-50" />
-      <p>No CrUX field data available for this site.</p>
-      <p class="text-xs mt-1">
-        Field data requires the site to have enough traffic in Chrome User Experience Report.
+    <div v-if="status === 'pending'" class="space-y-3 py-2">
+      <UiLoadingState :rows="3" />
+      <p class="text-xs text-muted text-center">
+        Loading CrUX data...
       </p>
     </div>
+
+    <UiEmptyState
+      v-else-if="!data || (!data.phone?.lcp?.length && !data.desktop?.lcp?.length)"
+      icon="globe"
+      title="No CrUX field data available for this site."
+      description="Field data requires the site to have enough traffic in Chrome User Experience Report."
+    />
 
     <template v-else>
       <div v-if="data.hostname" class="text-sm text-muted">
@@ -83,8 +85,8 @@ function latestValue(entries: Array<{ value: number }>) {
         v-model="activeDevice"
         :content="false"
         :items="[
-          { value: 'phone', label: 'Phone', icon: 'i-lucide-smartphone' },
-          { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+          { value: 'phone', label: 'Phone', icon: 'smartphone' },
+          { value: 'desktop', label: 'Desktop', icon: 'monitor' },
         ]"
         class="w-full"
       />

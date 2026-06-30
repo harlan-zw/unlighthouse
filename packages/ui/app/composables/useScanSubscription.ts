@@ -11,10 +11,14 @@ import type { WsEnvelope } from '~/types/scan-events'
 // the seam `useNuxtSubscription` covers. Mounted once in the scan layout, so it
 // auto-disposes (and unhooks the `*` listener) when leaving the scan views.
 //
-// Gap (inherited, not introduced): events missed while the socket is down
-// aren't replayed — `$ws` doesn't expose a reconnect signal to drive
-// `ctx.resync()`, so `onReconnect` is omitted. `useApiQuery`'s refetch-on-mount
-// / refetch-on-focus covers cold recovery.
+// Refetch the queries that hold persisted scan data. Prefix match hits every
+// active scanId's query.
+function invalidateScanReads(): void {
+  invalidateNuxtQueries('scan.summary')
+  invalidateNuxtQueries('scan.results')
+  invalidateNuxtQueries('scan.meta')
+}
+
 export function useScanSubscription() {
   const nuxtApp = useNuxtApp()
 
@@ -26,17 +30,23 @@ export function useScanSubscription() {
         return
       const handler = (msg: WsEnvelope) => ctx.push(msg)
       ws.on('*', handler)
-      return () => ws.off('*', handler)
+      // A socket reconnect means we may have missed events during the gap —
+      // tell the bridge to run `onReconnect` and recover.
+      const offReconnect = ws.onReconnect(() => ctx.resync())
+      return () => {
+        ws.off('*', handler)
+        offReconnect()
+      }
     },
     onMessage: (envelope) => {
       // A scan finishing (or being cancelled) makes its persisted results
       // available — refetch summary, per-route results, and meta (which now
-      // carries the summary). Prefix match hits every active scanId's query.
-      if (envelope?.event === 'scan:complete' || envelope?.event === 'scan:cancelled') {
-        invalidateNuxtQueries('scan.summary')
-        invalidateNuxtQueries('scan.results')
-        invalidateNuxtQueries('scan.meta')
-      }
+      // carries the summary).
+      if (envelope?.event === 'scan:complete' || envelope?.event === 'scan:cancelled')
+        invalidateScanReads()
     },
+    // After a socket drop, conservatively refetch — a `scan:complete` that
+    // fired while we were disconnected would otherwise be lost.
+    onReconnect: invalidateScanReads,
   })
 }

@@ -1,10 +1,8 @@
 import { defineBuildConfig } from 'obuild/config'
 
-// `unlighthouse` ships its own CLI bin which we exec at runtime, so keep it
-// external — the action consumer's installed copy resolves it. Node builtins
-// stay external for the same reason as `@unlighthouse/vite`.
+// The action shells out through `npx --package unlighthouse@<version>` at
+// runtime. Node builtins stay external for the same reason as `@unlighthouse/vite`.
 const externals = [
-  'unlighthouse',
   'node:child_process',
   'node:fs',
   'node:fs/promises',

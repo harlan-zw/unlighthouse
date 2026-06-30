@@ -13,6 +13,10 @@ inputs:
     description: 'Device(s) to scan. Single value (`mobile` | `desktop`) or comma-separated list (`mobile,desktop`).'
     required: false
     default: mobile
+  unlighthouse-version:
+    description: npm version or dist-tag of `unlighthouse` to run.
+    required: false
+    default: latest
   budget:
     description: Minimum score (1-100) required for each page to pass. Forwarded to `unlighthouse-ci --budget`.
     required: false
@@ -54,6 +58,7 @@ runs:
       env:
         UNLIGHTHOUSE_SITE: ${{ inputs.site }}
         UNLIGHTHOUSE_DEVICE: ${{ inputs.device }}
+        UNLIGHTHOUSE_VERSION: ${{ inputs.unlighthouse-version }}
         UNLIGHTHOUSE_BUDGET: ${{ inputs.budget }}
         UNLIGHTHOUSE_BUILD_STATIC: ${{ inputs.build-static }}
         UNLIGHTHOUSE_COMPARE_WITH: ${{ inputs.compare-with }}

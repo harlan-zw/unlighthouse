@@ -75,10 +75,11 @@ export function useScrollSpy(sections: MaybeRefOrGetter<SectionInput[]>, options
       const rect = element.getBoundingClientRect()
       const absoluteTop = window.scrollY + rect.top - offsetPx
 
-      // Scroll with smooth behavior
+      // Scroll smoothly, unless the user prefers reduced motion (then jump).
+      const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
       window.scrollTo({
         top: absoluteTop,
-        behavior: 'smooth',
+        behavior: prefersReduced ? 'auto' : 'smooth',
       })
 
       // Reset the flag after the smooth scroll is likely complete

@@ -3,8 +3,8 @@
 // Aggregates the 17 insight audits across all routes, computing total savings
 // per metric, worst routes, and a prioritized fix order.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import { z } from 'zod'
+import type { InsightsReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import { InsightsReportSchema } from '@unlighthouse/contracts/packs'
 
 const INSIGHT_AUDIT_IDS = [
   'cache-insight',
@@ -25,34 +25,6 @@ const INSIGHT_AUDIT_IDS = [
   'third-parties-insight',
   'viewport-insight',
 ] as const
-
-const SavingsSchema = z.object({
-  LCP: z.number().optional(),
-  FCP: z.number().optional(),
-  INP: z.number().optional(),
-  CLS: z.number().optional(),
-  TBT: z.number().optional(),
-})
-
-const InsightFindingSchema = z.object({
-  id: z.string(),
-  title: z.string().nullable(),
-  routeCount: z.number().int(),
-  totalSavings: SavingsSchema,
-  maxSingleRouteSavings: SavingsSchema,
-  worstRoutes: z.array(z.object({
-    url: z.string(),
-    savings: SavingsSchema,
-  })),
-})
-
-const InsightsReportSchema = z.object({
-  scanId: z.string(),
-  routesAnalysed: z.number().int(),
-  insights: z.array(InsightFindingSchema),
-  priorityOrder: z.array(z.string()),
-})
-export type InsightsReport = z.infer<typeof InsightsReportSchema>
 
 function mergeSavings(
   target: Record<string, number>,

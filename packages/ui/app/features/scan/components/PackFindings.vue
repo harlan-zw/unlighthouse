@@ -5,7 +5,6 @@
 // affected-routes list. Five pages were rendering the same block
 // with slight copy variation; co-locate it here.
 
-
 // Index signature so pack-specific fields (a11y's `fixHint` +
 // `elements`, images' `imageUrl`, etc.) flow through the slot without
 // the consumer needing to cast. The shared layer only relies on the
@@ -17,8 +16,13 @@ interface Finding {
   description?: string | null
   routeCount?: number
   routes?: string[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [extra: string]: any
+  fixHint?: string | null
+  topElements?: Array<{
+    selector?: string | null
+    snippet?: string | null
+    nodeLabel?: string | null
+  }>
+  [extra: string]: unknown
 }
 
 interface Props {
@@ -35,8 +39,10 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 function severityVariant(severity: string): 'error' | 'warning' | 'neutral' {
-  if (severity === 'critical' || severity === 'serious') return 'error'
-  if (severity === 'moderate') return 'warning'
+  if (severity === 'critical' || severity === 'serious')
+    return 'error'
+  if (severity === 'moderate')
+    return 'warning'
   return 'neutral'
 }
 

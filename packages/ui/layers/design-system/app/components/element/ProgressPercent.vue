@@ -1,30 +1,12 @@
-<script lang="ts" setup>
-import { computed } from 'vue'
-
-type ProgressColor = 'error' | 'info' | 'primary' | 'neutral' | 'secondary' | 'tertiary' | 'success' | 'warning' | 'pro'
-
-const { total, value, tooltip, color = 'primary' } = defineProps<{
-  total?: string | number
-  value: string | number
-  tooltip?: string
-  color?: ProgressColor
-}>()
-
-const percentage = computed(() => {
-  return (Number(value) / Number(total || 100)) * 100
-})
+<script setup lang="ts">
+defineOptions({ inheritAttrs: false })
+const props = defineProps<{ [key: string]: any }>()
 </script>
 
 <template>
-  <UiTooltip :text="tooltip || `${percentage.toFixed(1)}% of clicks`" class="block w-full">
-    <slot />
-    <UProgress
-      :model-value="percentage || 0"
-      :color="color"
-      :aria-label="tooltip || `${percentage.toFixed(1)}% of clicks`"
-      class="opacity-90"
-      size="xs"
-      v-bind="$attrs"
-    />
-  </UiTooltip>
+  <UiProgressPercent v-bind="{ ...props, ...$attrs } as any">
+    <template v-for="(_, name) in $slots" #[name]="slotProps">
+      <slot :name="name" v-bind="slotProps || {}" />
+    </template>
+  </UiProgressPercent>
 </template>

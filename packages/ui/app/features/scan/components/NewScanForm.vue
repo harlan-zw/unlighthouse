@@ -129,9 +129,11 @@ async function handleSubmit() {
           id="site-url"
           v-model="siteUrl"
           placeholder="https://example.com"
+          aria-label="Site URL"
           required
           autofocus
           class="w-full font-mono"
+          :ui="{ base: 'min-h-11 lg:min-h-8' }"
         />
         <template #help>
           {{ scanMode === 'site' ? 'All pages will be discovered via sitemap and crawling.' : 'Only this single URL will be audited.' }}
@@ -150,7 +152,7 @@ async function handleSubmit() {
             @click="scanMode = 'site'"
           >
             <div class="flex items-center gap-2 text-sm font-medium">
-              <Icon name="lucide:globe" class="size-4" />
+              <UiIcon name="globe" class="size-4" />
               Full Site
             </div>
             <p class="text-[11px] text-muted mt-1">
@@ -164,7 +166,7 @@ async function handleSubmit() {
             @click="scanMode = 'page'"
           >
             <div class="flex items-center gap-2 text-sm font-medium">
-              <Icon name="lucide:file" class="size-4" />
+              <UiIcon name="file" class="size-4" />
               Single Page
             </div>
             <p class="text-[11px] text-muted mt-1">
@@ -178,21 +180,22 @@ async function handleSubmit() {
         <USelect
           v-model="device"
           :items="[
-            { label: 'Mobile', value: 'mobile', icon: 'i-lucide-smartphone' },
-            { label: 'Desktop', value: 'desktop', icon: 'i-lucide-monitor' },
-            { label: 'Both', value: 'both', icon: 'i-lucide-smartphone' },
+            { label: 'Mobile', value: 'mobile', icon: 'smartphone' },
+            { label: 'Desktop', value: 'desktop', icon: 'monitor' },
+            { label: 'Both', value: 'both', icon: 'smartphone' },
           ]"
           class="w-full"
+          :ui="{ base: 'min-h-11 lg:min-h-8' }"
         />
       </UFormField>
 
       <div>
         <button
           type="button"
-          class="flex items-center gap-2 text-sm font-medium text-muted hover:text-default group w-full"
+          class="flex min-h-11 items-center gap-2 text-sm font-medium text-muted hover:text-default group w-full lg:min-h-0"
           @click="advancedOpen = !advancedOpen"
         >
-          <Icon name="lucide:chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
+          <UiIcon name="chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
           Advanced
           <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-label text-primary">customized</span>
         </button>
@@ -206,6 +209,7 @@ async function handleSubmit() {
                 { label: '5 runs (most stable)', value: '5' },
               ]"
               class="w-full"
+              :ui="{ base: 'min-h-11 lg:min-h-8' }"
               @update:model-value="(v) => sampleSize = Number(v)"
             />
             <template #help>
@@ -239,10 +243,10 @@ async function handleSubmit() {
               CI build metadata
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <UInput v-model="ciBranch" placeholder="branch" class="font-mono text-xs" />
-              <UInput v-model="ciHash" placeholder="commit hash" class="font-mono text-xs" />
+              <UInput v-model="ciBranch" placeholder="branch" aria-label="CI branch" class="font-mono text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              <UInput v-model="ciHash" placeholder="commit hash" aria-label="CI commit hash" class="font-mono text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
             </div>
-            <UInput v-model="ciMessage" placeholder="commit message (optional)" class="w-full text-xs" />
+            <UInput v-model="ciMessage" placeholder="commit message (optional)" aria-label="CI commit message" class="w-full text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
             <p class="text-[11px] text-muted">
               Pin this scan to a deploy. Compare against previous scans on the same branch via the compare page.
             </p>
@@ -251,7 +255,7 @@ async function handleSubmit() {
       </div>
 
       <div class="flex items-center gap-3 pt-2">
-        <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading || !siteUrl.trim()" icon="i-lucide-radar" class="flex-1 sm:flex-none">
+        <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading || !siteUrl.trim()" icon="radar" class="flex-1 sm:flex-none">
           Start Scan
         </UiButton>
         <UiButton v-if="!hideCancel" type="button" purpose="secondary" @click="router.push(cancelTo)">

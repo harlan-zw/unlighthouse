@@ -17,9 +17,9 @@
 //   - Cross-route fix grouping: "render-blocking-insight saves 200ms FCP
 //     on 18 routes" is one finding, not 18.
 
+import type { CwvFix, CwvReport, MetricSnapshot, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import { z } from 'zod'
+import { CwvReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────
 // web.dev/articles/vitals — last updated when this file was written.
@@ -47,56 +47,6 @@ function verdictFor(metric: MetricKey, value: number | null | undefined): 'good'
     return 'needsImprovement'
   return 'poor'
 }
-
-// ── Report shape ────────────────────────────────────────────────────────────
-
-const MetricKeySchema = z.enum(['lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si'])
-const VerdictSchema = z.enum(['good', 'needsImprovement', 'poor'])
-
-const MetricSnapshotSchema = z.object({
-  metric: MetricKeySchema,
-  p75: z.number().nullable(),
-  verdict: VerdictSchema.nullable(),
-  distribution: z.object({
-    good: z.number().int().nonnegative(),
-    needsImprovement: z.number().int().nonnegative(),
-    poor: z.number().int().nonnegative(),
-    unknown: z.number().int().nonnegative(),
-  }),
-  // Up to 3 worst-scoring routes for the metric. URL kept short.
-  worstRoutes: z.array(z.object({
-    url: z.string(),
-    value: z.number(),
-  })).max(3),
-})
-
-const CwvFixSchema = z.object({
-  insight: z.string(), // e.g. 'render-blocking-insight'
-  title: z.string(),
-  // Largest single-route impact reported by the LHR (we don't sum across
-  // routes because impacts aren't additive — fixing render-blocking on
-  // /blog doesn't shave time off /about).
-  maxImpactMs: z.number(),
-  metric: MetricKeySchema,
-  // Routes that flagged this insight with non-zero savings, capped at 5.
-  routes: z.array(z.string()).max(5),
-  routeCount: z.number().int().nonnegative(),
-})
-
-const CwvReportSchema = z.object({
-  scanId: z.string(),
-  routesAnalysed: z.number().int().nonnegative(),
-  metrics: z.array(MetricSnapshotSchema),
-  // Site-wide pass: every Core Web Vital (LCP, CLS, INP) p75 in `good`.
-  // Mirrors the CrUX "Site passes" rule on PageSpeed Insights.
-  passesCoreWebVitals: z.boolean(),
-  // Top-N fix suggestions by impact. Capped at 10 for the wire payload.
-  topFixes: z.array(CwvFixSchema).max(10),
-})
-
-export type MetricSnapshot = z.infer<typeof MetricSnapshotSchema>
-export type CwvFix = z.infer<typeof CwvFixSchema>
-export type CwvReport = z.infer<typeof CwvReportSchema>
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

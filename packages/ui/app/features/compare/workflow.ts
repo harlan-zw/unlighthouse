@@ -163,21 +163,25 @@ export function useCompareWorkflow() {
   }
 
   async function fetchPage() {
-    if (!baseScanId.value)
+    const base = baseScanId.value
+    if (!base)
       return
     try {
-      report.value = await (api as any)['compare.detail']({
-        baseScanId: baseScanId.value,
+      // Typed command call (no `api as any`): only `thresholds` keeps a narrow
+      // cast — the UI builds a plain `Record<string, number>`, looser than the
+      // contract's `Partial<Record<ThresholdKey, number>>`.
+      report.value = await api['compare.detail']({
+        baseScanId: base,
         currentScanId: currentScanId.value,
         page: page.value,
         pageSize: 100,
         sort: sortKey.value,
         filter: {
           url: urlFilter.value || undefined,
-          status: statusFilter.value as any,
+          status: statusFilter.value,
           device: deviceFilter.value || undefined,
         },
-        thresholds: currentThresholdPayload(),
+        thresholds: currentThresholdPayload() as never,
       })
     }
     catch (err: any) {
@@ -186,13 +190,14 @@ export function useCompareWorkflow() {
   }
 
   async function fetchPacks() {
-    if (!baseScanId.value)
+    const base = baseScanId.value
+    if (!base)
       return
     try {
-      packReport.value = await (api as any)['compare.run']({
-        baseScanId: baseScanId.value,
+      packReport.value = await api['compare.run']({
+        baseScanId: base,
         currentScanId: currentScanId.value,
-        thresholds: currentThresholdPayload(),
+        thresholds: currentThresholdPayload() as never,
       })
     }
     catch {

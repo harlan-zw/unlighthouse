@@ -16,7 +16,11 @@ const {
 </script>
 
 <template>
-  <div data-ui="UiTableShell" :class="bordered ? 'rounded-xl border border-default overflow-hidden bg-default' : ''">
+  <div
+    data-ui="UiTableShell"
+    class="overflow-x-auto overscroll-x-contain lg:overflow-x-visible"
+    :class="bordered ? 'rounded-xl border border-default bg-default' : ''"
+  >
     <table class="w-full" :data-size="size">
       <caption v-if="label" class="sr-only">
         {{ label }}

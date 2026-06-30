@@ -3,6 +3,7 @@
 // pack.run. Output is content-addressable by (scanId, packName, packVersion).
 
 import { z } from 'zod'
+import { PackReportSchema } from '../packs/reports'
 import { DeviceSchema, ScanIdSchema } from '../types/atoms'
 import { defineCommand } from './define'
 
@@ -21,16 +22,14 @@ export const PackRunCmd = defineCommand({
     // on the second visit; UI exposes this as a "Refresh" button.
     refresh: z.boolean().optional(),
   }),
-  // Report shape is per-pack; the wire format wraps it generically so the
-  // command registry stays single-signature. Consumers narrow `report` by
-  // pulling the pack's `reportSchema` from contracts/packs.
+  // Report is the union of all 9 pack report schemas (PackReportSchema).
   output: z.object({
     scanId: ScanIdSchema,
     packName: z.string(),
     packVersion: z.string(),
     startedAt: z.iso.datetime(),
     completedAt: z.iso.datetime(),
-    report: z.unknown(),
+    report: PackReportSchema,
     // `cache: 'hit'` means the report came from packRuns storage; `'miss'`
     // means it was just reconciled. Useful for "Last computed at …" UI hints
     // and for asserting cache behaviour in tests.

@@ -15,6 +15,71 @@
   --tracking-data: -0.005em;
 }
 
+.ui-slot-text {
+  display: inline-flex;
+  white-space: pre;
+}
+
+.ui-slot-text__slot {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  overflow: hidden;
+  overflow-x: visible;
+  overflow-y: clip;
+  line-height: 1.3;
+  vertical-align: bottom;
+}
+
+.ui-slot-text__sizer {
+  visibility: hidden;
+  white-space: pre;
+}
+
+.ui-slot-text__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: pre;
+  transition:
+    transform var(--ui-slot-duration, 260ms) var(--ui-slot-easing, cubic-bezier(0.34, 1.56, 0.64, 1)) var(--ui-slot-delay, 0ms),
+    opacity var(--ui-slot-duration, 260ms) var(--ease-standard) var(--ui-slot-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+.ui-slot-text-roll-enter-from {
+  opacity: 0;
+}
+
+.ui-slot-text-roll-leave-to {
+  opacity: 0;
+}
+
+.ui-slot-text--up .ui-slot-text-roll-enter-from {
+  transform: translateY(105%);
+}
+
+.ui-slot-text--up .ui-slot-text-roll-leave-to {
+  transform: translateY(-105%);
+}
+
+.ui-slot-text--down .ui-slot-text-roll-enter-from {
+  transform: translateY(-105%);
+}
+
+.ui-slot-text--down .ui-slot-text-roll-leave-to {
+  transform: translateY(105%);
+}
+
+.ui-slot-text-roll-enter-to,
+.ui-slot-text-roll-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Palette overrides — MUST be `@theme static`.
    Tailwind v4 tree-shakes any `@theme` variable that no utility class
    references, so it never lands in `:root`. Nuxt UI's color plugin builds
@@ -64,8 +129,41 @@
   --color-violet-950: oklch(24.0% 0.120 292);
 }
 
+/* Semantic TEXT legibility — `--text-color-*` outranks `--color-*` for the
+   `text-*` utilities only, so `text-warning` et al resolve through these while
+   bg/border/ring/charts keep Nuxt UI's `--ui-*` defaults (tints, badges and
+   solid fills are untouched). Why: the stock 500 shades fail WCAG on white
+   (amber-500 1.9:1, red-500 3.8:1, green-500 2.2:1, blue-500 3.8:1), so light
+   mode steps each hue down to its lightest AA-passing stop (warning 700 5.0:1,
+   error 600 4.8:1, success 700 5.0:1, info 600 5.3:1). Dark mode keeps the
+   Nuxt UI per-mode `--ui-*` value (400 shades — already passing). `static`
+   because several consumers reference these via runtime-built class maps. */
+@theme static {
+  --text-color-success: var(--ui-text-success);
+  --text-color-info: var(--ui-text-info);
+  --text-color-warning: var(--ui-text-warning);
+  --text-color-error: var(--ui-text-error);
+}
+
 :root {
-  --container-width: 90rem;
+  --ui-text-success: var(--ui-color-success-700);
+  --ui-text-info: var(--ui-color-info-600);
+  --ui-text-warning: var(--ui-color-warning-700);
+  --ui-text-error: var(--ui-color-error-600);
+}
+
+.dark {
+  --ui-text-success: var(--ui-success);
+  --ui-text-info: var(--ui-info);
+  --ui-text-warning: var(--ui-warning);
+  --ui-text-error: var(--ui-error);
+}
+
+:root {
+  /* Let the UA animate to/from intrinsic keywords (height: auto, width:
+     min-content, …). Pure progressive enhancement — unsupported browsers
+     ignore it. Inherited, so declaring once on :root covers the tree. */
+  interpolate-size: allow-keywords;
 
   /* Pro dashboard container — single source of truth for the page-content
      width + horizontal padding. Consumed via the `.pro-container` utility
@@ -78,10 +176,13 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
-  /* Density — editorial defaults. .dashboard-theme overrides to compact. */
-  --density-card-padding: 1.5rem;
-  --density-element-gap: 0.75rem;
-  --density-section-gap: 4rem;
+  /* Density — the central spacing knobs. Consumed by UiCard (md size, sm+
+     breakpoint) and ProPageZone (zone margins/gaps); values are re-based to
+     match the shipped rendering, so changing one here retunes the whole
+     surface in a single review. */
+  --density-card-padding: 1.5rem; /* UiCard md body/header padding at sm+ */
+  --density-element-gap: 1.5rem; /* in-zone gap (secondary/tertiary; primary runs 0.5rem tighter) */
+  --density-section-gap: 2.5rem; /* between-zone margin (secondary/tertiary; primary runs 0.5rem tighter) */
 
   /* ═══ Variable-font type axes (Hubot Sans: wght 200–900, wdth 75–125%) ═══
      Single source of truth for every typographic axis the semantic text tokens
@@ -147,6 +248,7 @@
        raised   resting drop shadow + bevel     — marketing cards, hover states
        overlay  atmospheric shadow + bevel      — modals, drawers, alerts
        popover  atmospheric + brand bevel       — tooltip / popover / dropdown
+       emphasis lift + brand bevel, remap-proof — THE one card that matters (max 1/page)
        hover    accent-tinted halo, hover-only  — buttons, cards, links
      --surface-raised is the matching top-lit gradient FILL for overlay-tier
      surfaces (applied as background-image, not box-shadow). */
@@ -155,6 +257,16 @@
   --elevation-raised: var(--_depth-ambient-low), var(--_depth-bevel);
   --elevation-overlay: var(--_depth-ambient-high), var(--_depth-bevel);
   --elevation-popover: var(--_depth-ambient-high), var(--_depth-bevel-brand);
+  /* Emphasis: the single sanctioned in-page contrast move. Deliberately NOT
+     remapped by .dashboard-theme (unlike raised→flat) — it exists so exactly
+     one surface per page can outrank the flat hairline field. Budget: one.
+     Stack = primary-tinted hairline ring + soft brand ambient + lift + brand
+     bevel (the login-panel glow recipe, dialed down to card scale). */
+  --elevation-emphasis:
+    0 0 0 1px color-mix(in oklab, var(--ui-color-primary-400) 35%, var(--ui-border)),
+    0 2px 16px -2px color-mix(in oklab, var(--ui-color-primary-500) 18%, transparent),
+    var(--_depth-ambient-low),
+    inset 0 1.5px 0 0 color-mix(in srgb, var(--ui-color-primary-400) 32%, transparent);
   --elevation-hover:
     0 2px 8px -2px color-mix(in oklab, var(--fx-accent) 10%, transparent),
     0 8px 20px -8px color-mix(in oklab, var(--fx-accent) 8%, transparent);
@@ -202,9 +314,11 @@
    :root as the single source of truth; override them here if the dashboard ever
    wants denser tuning than the editorial default. */
 .dashboard-theme {
-  --density-card-padding: 0.75rem;
-  --density-element-gap: 0.5rem;
-  --density-section-gap: 1.5rem;
+  /* Density currently matches the editorial defaults (the previous 0.75rem/
+     0.5rem/1.5rem overrides were aspirational — no component read them, and
+     wiring them in as-was would have halved padding on ~130 cards). Tighten
+     deliberately by overriding the --density-* vars here; UiCard md and
+     ProPageZone pick it up everywhere at once. */
   --elevation-raised: var(--elevation-flat);
 
   /* Compact heading sizes — the dense dashboard runs titles far smaller than the
@@ -231,6 +345,13 @@
   font-weight: var(--wght-heading);
   font-stretch: var(--wdth-heading);
   letter-spacing: var(--tracking-snug);
+}
+
+/* Drop the 300ms double-tap-zoom delay on interactive controls (touch). Scoped
+   to controls (zero-specificity :where) so component classes still win and page
+   content keeps normal pinch-zoom. */
+:where(button, a, summary, label, [role="button"], [role="tab"], [role="menuitem"], [role="switch"], [role="option"]) {
+  touch-action: manipulation;
 }
 
 .light {
@@ -284,6 +405,16 @@ body {
   /* Normalize fallback x-height to Hubot's so the swap (and any web-font failure)
      holds layout — complements @nuxt/fonts' generated metric overrides. */
   font-size-adjust: from-font;
+  /* Hubot Sans has a full 200–900 weight axis, so faux-bold should never fire;
+     kill WEIGHT synthesis only. Style synthesis is left ON deliberately — Hubot
+     ships no italic master, so `<em>`, blockquote cites and the italic-selection
+     effect all rely on synthesized obliques. (Not `font-synthesis: none`, which
+     would render every italic upright.) */
+  font-synthesis-weight: none;
+  /* The legibility win without `text-rendering: optimizeLegibility` (a layout
+     footgun on long bodies): turn on kerning + common ligatures explicitly. */
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
 }
 
 p, h1, h2, h3, h4, h5, h6 {
@@ -301,6 +432,91 @@ h1, h2, h3, h4, h5, h6 {
 
 #root, #__nuxt {
   isolation: isolate;
+}
+
+/* ─── Highlighter text selection ──────────────────────────────────────────────
+   Instead of the native highlight bar, selected text gets a hand-drawn violet
+   marker swipe. CSS `::selection` can't do gradients / slanted ends / rough
+   edges, so the plugin (`app/plugins/selection-highlight.client.ts`) paints an
+   OVERLAY of `.mark` divs over the selection's per-line client-rects. The overlay
+   never mutates the document (selection, copy and live Vue surfaces are all
+   untouched) and paints live during the drag.
+
+   These rules: (1) blank the native highlight, (2) re-assert it inside regions
+   the overlay skips, (3) style the overlay marks, (4) expose the per-theme ink
+   tokens the plugin reads off the selected element. Everything is gated on
+   `html.selection-hl-ready`, a class the plugin adds ONLY when JS runs and
+   reduced-motion is not requested, so the no-JS / reduced-motion fallback keeps
+   the normal native selection. */
+:root {
+  /* Ink tokens (light defaults). `--hl`/`--hl2` are the duotone stroke, `--pool`
+     the ink-pool depth at the bottom edge, `--blend`/`--hlop` how the layer
+     composites, `--streak` the dry-marker texture. Dark overrides below. */
+  --selection-hl: oklch(62% 0.19 292);
+  --selection-hl2: oklch(58% 0.21 326);
+  --selection-pool: oklch(46% 0.22 300 / 0.55);
+  --selection-streak: rgba(255, 255, 255, 0.05);
+  --selection-blend: multiply;
+  --selection-op: 0.56;
+}
+.dark {
+  --selection-hl: oklch(64% 0.18 292);
+  --selection-hl2: oklch(70% 0.16 268);
+  --selection-pool: oklch(74% 0.16 300 / 0.40);
+  --selection-streak: rgba(0, 0, 0, 0.05);
+  --selection-blend: screen;
+}
+
+html.selection-hl-ready ::selection {
+  background-color: transparent;
+  color: inherit;
+}
+html.selection-hl-ready ::-moz-selection {
+  background-color: transparent;
+  color: inherit;
+}
+
+/* Re-assert the native highlight inside regions the overlay never paints (it
+   bails on these — keep in sync with EXCLUDE in selection-highlight.client.ts).
+   Without this the blank above leaves selection invisible there. Placed after the
+   blank so it wins the specificity tie. */
+html.selection-hl-ready :is(input, textarea, [contenteditable], pre, code, .shiki)::selection,
+html.selection-hl-ready :is(input, textarea, [contenteditable], pre, code, .shiki) ::selection {
+  background-color: Highlight;
+  color: HighlightText;
+}
+html.selection-hl-ready :is(input, textarea, [contenteditable], pre, code, .shiki)::-moz-selection,
+html.selection-hl-ready :is(input, textarea, [contenteditable], pre, code, .shiki) ::-moz-selection {
+  background-color: Highlight;
+  color: HighlightText;
+}
+
+/* Overlay container (one per document) + per-theme isolated, blended sub-layers
+   + the marks. Opaque marks inside an isolated group can overlap to close the
+   line gaps without doubling the darkness; blend + translucency live on the
+   group. The rough hand-drawn edge is applied only once a selection settles
+   (`.rough`), since displacing every frame while dragging makes edges crawl. */
+#selection-hl-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+}
+#selection-hl-layer .group {
+  position: fixed;
+  inset: 0;
+  isolation: isolate;
+}
+#selection-hl-layer .mark {
+  position: fixed;
+  background:
+    repeating-linear-gradient(91deg, transparent 0 9px, var(--mk-streak) 9px 10px),
+    linear-gradient(180deg, transparent 52%, var(--mk-pool) 108%),
+    linear-gradient(94deg, transparent 0, var(--mk-hl) 7px, var(--mk-hl2) 50%, var(--mk-hl) calc(100% - 7px), transparent 100%);
+  border-radius: 6px 7px 5px 8px;
+}
+#selection-hl-layer.rough .mark {
+  filter: url(#selection-hl-rough);
 }
 
 html .light .shiki span {
@@ -391,6 +607,44 @@ html {
   border-radius: .25rem;
 }
 
+/* Thin overlay scrollbar — hidden track, faint thumb that firms up on hover.
+   Opt-in via `.scroll-overlay` on a scroll container (e.g. the dashboard
+   sidebar) so it reads modern without restyling every scroller. Standard
+   props are Baseline; the @supports block is the WebKit/Blink fallback. */
+.scroll-overlay {
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color .2s ease;
+}
+
+.scroll-overlay:hover,
+.scroll-overlay:focus-within {
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+@supports not (scrollbar-color: auto) {
+  .scroll-overlay::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scroll-overlay::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  .scroll-overlay::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+    transition: background-color .2s ease;
+  }
+
+  .scroll-overlay:hover::-webkit-scrollbar-thumb,
+  .scroll-overlay:focus-within::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+  }
+}
+
 /* ─── Modern form affordances (2026) ──────────────────────────────────────
    Progressive enhancements — unsupported browsers fall back to native UA
    behaviour with no JS. */
@@ -429,6 +683,20 @@ textarea {
   max-block-size: 16lh;
 }
 
+/* Figma-style squircle corners on box primitives, as a native progressive
+   enhancement (Chrome 139+). `corner-shape` applies to the border, background
+   and overflow clipping in one declaration, so it needs no JS and renders at
+   SSR with zero hydration morph. `:where()` keeps specificity 0 so anything
+   can still override it. `rounded-full` is excluded deliberately — a
+   superellipse at pill/avatar radius distorts the circle into a blob. Browsers
+   without support ignore the property and keep the round `border-radius`;
+   UiCard additionally falls back to Lisse's clip-path (see `useSquircle`). */
+@supports (corner-shape: squircle) {
+  :where(.rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl) {
+    corner-shape: squircle;
+  }
+}
+
 .page-enter-active,
 .page-leave-active {
   transition: all 0.2s var(--ease-standard);
@@ -439,6 +707,28 @@ textarea {
   opacity: 0;
   transform: translateY(1rem);
   filter: blur(0.2rem);
+}
+
+/* Auth card content entrance (login / onboarding). These pages set
+   `pageTransition: false`: wrapping their Suspense subtree in Nuxt's page
+   `<Transition>` deadlocks the leave (the leaving page's unmount callback waits
+   on the incoming Suspense and never fires), so the incoming page never mounts
+   and the form stays blank until a hard reload. A mount-triggered CSS animation
+   gives the same fade-in without any Transition/Suspense involvement — it
+   replays whenever the page root element is freshly inserted on navigation. */
+@keyframes auth-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.auth-content-in {
+  animation: auth-content-in 0.28s var(--ease-standard) both;
 }
 
 /* Ambient page glow. The diffuse halo is baked into the gradient itself (soft
@@ -885,8 +1175,28 @@ textarea {
   border-top-width: 1px;
 }
 
+/* Disclosure (UiDisclosure) — native <details>. Chromium animates the content
+   block to its intrinsic height via interpolate-size + ::details-content;
+   Firefox/Safari toggle instantly (graceful degradation, no JS fallback). */
+.ui-disclosure {
+  interpolate-size: allow-keywords;
+}
+
+.ui-disclosure::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size 200ms var(--ease-standard),
+    content-visibility 200ms allow-discrete;
+}
+
+.ui-disclosure[open]::details-content {
+  block-size: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ui-dropdown-item {
+  .ui-dropdown-item,
+  .ui-disclosure::details-content {
     transition: none !important;
   }
 
@@ -899,6 +1209,10 @@ textarea {
   .slide-up-enter-active,
   .slide-up-leave-active {
     transition: none !important;
+  }
+
+  .auth-content-in {
+    animation: none !important;
   }
 
   .slide-right,

@@ -27,7 +27,8 @@ const fontSize = computed(() => {
 const radius = computed(() => (dimensions.value - strokeWidth.value) / 2)
 const circumference = computed(() => 2 * Math.PI * radius.value)
 const offset = computed(() => {
-  if (props.score === null) return circumference.value
+  if (props.score === null)
+    return circumference.value
   return circumference.value * (1 - props.score)
 })
 const color = computed(() => scoreToRingColor(props.score))

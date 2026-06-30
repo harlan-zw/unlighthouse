@@ -60,7 +60,7 @@ const { healthy } = useBackendHealth()
           purpose="quiet"
           class="lg:hidden -ml-2 size-8 justify-center"
           aria-label="Open navigation menu"
-          icon="i-lucide-menu"
+          icon="menu"
           @click="navOpen = true"
         />
 
@@ -87,7 +87,7 @@ const { healthy } = useBackendHealth()
             purpose="quiet"
             class="size-8 justify-center"
             :title="colorMode.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-            :icon="colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon'"
+            :icon="colorMode.value === 'dark' ? 'light' : 'dark'"
             @click="toggleColorMode"
           />
         </div>

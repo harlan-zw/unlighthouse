@@ -36,22 +36,22 @@ const {
     <!-- Header -->
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex items-start gap-3 min-w-0">
-        <Favicon :domain="slug" :size="36" :alt="`${siteName} favicon`" class="mt-1" />
+        <UiFavicon :domain="slug" :size="36" :alt="`${siteName} favicon`" class="mt-1" />
         <div class="min-w-0">
           <h1 class="text-title truncate">
             {{ siteName }}
           </h1>
           <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted hover:text-default inline-flex items-center gap-1">
             {{ siteUrl }}
-            <Icon name="lucide:external-link" class="size-3" />
+            <UiIcon name="external" class="size-3" />
           </a>
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <UiButton v-if="canCompare" purpose="secondary" size="sm" icon="i-lucide-git-compare" @click="compareLatest">
+        <UiButton v-if="canCompare" purpose="secondary" size="sm" icon="compare" @click="compareLatest">
           Compare latest two
         </UiButton>
-        <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`" icon="i-lucide-plus">
+        <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`" icon="add">
           New Scan
         </UiButton>
       </div>
@@ -59,17 +59,13 @@ const {
 
     <QueryError v-if="histError" :error="histError" :on-retry="refreshHistory" />
 
-    <div v-else-if="loading" class="text-center py-16 text-muted">
-      Loading site history…
-    </div>
+    <UiLoadingState v-else-if="loading" :rows="3" />
 
-    <div v-else-if="isEmpty" class="text-center py-16 text-muted">
-      <Icon name="lucide:radar" class="size-10 mx-auto mb-3 opacity-50" />
-      <p>No scans yet for this site.</p>
-      <UiButton purpose="cta" size="sm" class="mt-4" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
+    <UiEmptyState v-else-if="isEmpty" icon="radar" title="No scans yet for this site.">
+      <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
         Start the first scan
       </UiButton>
-    </div>
+    </UiEmptyState>
 
     <template v-else>
       <!-- Trend controls -->
@@ -81,8 +77,8 @@ const {
             :content="false"
             size="sm"
             :items="[
-              { value: 'mobile', label: 'Mobile', icon: 'i-lucide-smartphone' },
-              { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+              { value: 'mobile', label: 'Mobile', icon: 'smartphone' },
+              { value: 'desktop', label: 'Desktop', icon: 'monitor' },
             ]"
           />
         </div>
@@ -113,7 +109,7 @@ const {
               Core Web Vitals (p75) over time
             </h3>
             <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted inline-flex items-center gap-1">
-              <Icon name="lucide:loader-2" class="size-3.5 animate-spin" /> loading vitals…
+              <UiIcon name="loading" class="size-3.5 animate-spin" /> loading vitals…
             </span>
           </div>
         </template>

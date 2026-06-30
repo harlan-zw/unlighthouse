@@ -5,8 +5,6 @@ import { useRouteDetail } from '~/features/scan/route-detail'
 definePageMeta({ layout: 'scan' })
 
 const {
-  scanId,
-  routePath,
   status,
   scanMetaStatus,
   routeError,
@@ -48,19 +46,15 @@ const {
            navigated here from /routes (preserving their filter state /
            pagination) and falls back to the bare routes URL when the
            page was opened directly (deep link, share). -->
-      <UiButton purpose="quiet" size="sm" icon="i-lucide-arrow-left" @click="backToRoutes">
+      <UiButton purpose="quiet" size="sm" icon="back" @click="backToRoutes">
         Routes
       </UiButton>
     </div>
 
     <QueryError v-if="scanMetaError" :error="scanMetaError" :on-retry="refreshScanMeta" />
     <QueryError v-else-if="routeError" :error="routeError" :on-retry="refreshRoute" />
-    <div v-else-if="status === 'pending' || scanMetaStatus === 'pending'" class="text-center py-12 text-muted">
-      Loading...
-    </div>
-    <div v-else-if="!routeData" class="text-center py-12 text-muted">
-      Route not found.
-    </div>
+    <UiLoadingState v-else-if="status === 'pending' || scanMetaStatus === 'pending'" :rows="3" />
+    <UiEmptyState v-else-if="!routeData" icon="file-x" title="Route not found." compact />
 
     <template v-else>
       <!-- Header -->
@@ -73,9 +67,9 @@ const {
             <UBadge color="neutral" variant="outline" size="xs">
               {{ routeData.route?.device }}
             </UBadge>
-            <a :href="routeData.route?.url" target="_blank" class="hover:underline flex items-center gap-1">
+            <a :href="routeData.route?.url" target="_blank" class="flex min-h-11 items-center gap-1 hover:underline lg:min-h-0">
               {{ routeData.route?.url }}
-              <Icon name="lucide:external-link" class="size-3" />
+              <UiIcon name="external" class="size-3" />
             </a>
           </div>
           <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted/60">
@@ -88,12 +82,12 @@ const {
             v-if="routeData.route?.lhrBlobKey"
             :href="rawLhrUrl"
             :download="lhrDownloadName"
-            class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
+            class="inline-flex min-h-11 min-w-11 items-center gap-1 rounded-md px-2.5 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors lg:h-8 lg:min-h-0 lg:min-w-0"
           >
-            <Icon name="lucide:download" class="size-4" />
+            <UiIcon name="download" class="size-4" />
             Raw LHR
           </a>
-          <UiButton purpose="secondary" size="sm" :loading="rescanning" icon="i-lucide-refresh-cw" @click="rescanRoute">
+          <UiButton purpose="secondary" size="sm" :loading="rescanning" icon="refresh" @click="rescanRoute">
             Rescan
           </UiButton>
         </div>
@@ -109,7 +103,7 @@ const {
           v-model="deviceFilter"
           :content="false"
           size="sm"
-          :items="availableDevices.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1), icon: d === 'mobile' ? 'i-lucide-smartphone' : 'i-lucide-monitor' }))"
+          :items="availableDevices.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1), icon: d === 'mobile' ? 'smartphone' : 'monitor' }))"
         />
       </div>
 
@@ -125,18 +119,18 @@ const {
             <div class="flex items-center gap-3">
               <button
                 type="button"
-                class="text-xs text-muted hover:text-default transition-colors inline-flex items-center gap-1"
+                class="inline-flex min-h-11 min-w-11 items-center gap-1 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:min-w-0"
                 @click="screenshotExpanded = !screenshotExpanded"
               >
-                <Icon :name="screenshotExpanded ? 'lucide:chevrons-down-up' : 'lucide:chevrons-up-down'" class="size-3" />
+                <UiIcon :name="screenshotExpanded ? 'chevrons-up' : 'sort'" class="size-3" />
                 {{ screenshotExpanded ? 'Collapse' : 'Expand' }}
               </button>
               <a
                 :href="screenshotFullUrl"
                 target="_blank"
                 rel="noopener"
-                class="text-xs text-muted hover:text-default transition-colors inline-flex items-center gap-1"
-              >Open full size <Icon name="lucide:external-link" class="size-3" /></a>
+                class="inline-flex min-h-11 min-w-11 items-center gap-1 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:min-w-0"
+              >Open full size <UiIcon name="external" class="size-3" /></a>
             </div>
           </div>
         </template>
@@ -165,7 +159,7 @@ const {
       <!-- Runtime Error -->
       <div v-if="routeData.provenance?.runtimeError" class="border border-error/30 bg-error/5 rounded-lg p-4">
         <div class="flex items-center gap-2 text-sm font-medium text-error">
-          <Icon name="lucide:alert-triangle" class="size-4" />
+          <UiIcon name="warning" class="size-4" />
           Runtime Error: {{ routeData.provenance.runtimeError.code }}
         </div>
         <p class="text-xs text-muted mt-1">
@@ -176,7 +170,7 @@ const {
       <!-- Warnings -->
       <div v-if="routeData.provenance?.warnings?.length" class="border border-warning/30 bg-warning/5 rounded-lg p-4">
         <div class="flex items-center gap-2 text-sm font-medium text-warning mb-2">
-          <Icon name="lucide:alert-circle" class="size-4" />
+          <UiIcon name="caution" class="size-4" />
           Warnings ({{ routeData.provenance.warnings.length }})
         </div>
         <ul class="text-xs text-muted space-y-1">
@@ -187,7 +181,7 @@ const {
       </div>
 
       <!-- Category Scores -->
-      <div class="grid grid-cols-2" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'" style="gap: 1rem;">
+      <div class="grid grid-cols-2 gap-4" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
         <div v-for="s in scores" :key="s.id" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4">
           <ScoreRing :score="s.score" size="md" />
           <div>
@@ -229,7 +223,7 @@ const {
           <template #header>
             <div class="flex items-center justify-between">
               <h3 class="text-heading text-default flex items-center gap-2">
-                <Icon :name="cat.icon" class="size-4" />
+                <UiIcon :name="cat.icon" class="size-4" />
                 {{ cat.label }}
               </h3>
               <div class="flex items-center gap-2">
@@ -303,8 +297,8 @@ const {
             <!-- Passed audits (collapsible) -->
             <details v-if="cat.passing.length" class="group">
               <summary class="flex items-center gap-2 w-full text-sm py-1 cursor-pointer list-none">
-                <Icon name="lucide:chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
-                <Icon name="lucide:check-circle" class="size-4 text-success" />
+                <UiIcon name="chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
+                <UiIcon name="success" class="size-4 text-success" />
                 <span class="text-success font-medium">Passed Audits</span>
                 <UBadge color="neutral" variant="outline" class="text-[10px] text-success">
                   {{ cat.passing.length }}
@@ -313,7 +307,7 @@ const {
               <UAccordion :items="cat.passing.map((a: any) => ({ ...a, value: a.id }))" type="multiple" class="w-full mt-2">
                 <template #default="{ item: audit }">
                   <div class="flex items-center gap-2 text-left text-sm">
-                    <Icon name="lucide:check" class="size-3.5 text-success shrink-0" />
+                    <UiIcon name="check" class="size-3.5 text-success shrink-0" />
                     <span class="text-muted">{{ audit.title || audit.id }}</span>
                     <span v-if="audit.displayValue" class="text-muted/60 text-xs ml-auto mr-4 shrink-0">
                       {{ audit.displayValue }}
@@ -350,8 +344,8 @@ const {
             <!-- Not Applicable (collapsible) -->
             <details v-if="cat.notApplicable.length" class="group">
               <summary class="flex items-center gap-2 w-full text-sm py-1 cursor-pointer list-none">
-                <Icon name="lucide:chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
-                <Icon name="lucide:minus-circle" class="size-4 text-muted" />
+                <UiIcon name="chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
+                <UiIcon name="minus" class="size-4 text-muted" />
                 <span class="text-muted">Not Applicable</span>
                 <UBadge color="neutral" variant="outline" class="text-[10px]">
                   {{ cat.notApplicable.length }}
@@ -359,7 +353,7 @@ const {
               </summary>
               <div class="space-y-0.5 pt-2 pl-6">
                 <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted/60">
-                  <Icon name="lucide:minus" class="size-3 shrink-0" />
+                  <UiIcon name="minus" class="size-3 shrink-0" />
                   <span>{{ audit.title || audit.id }}</span>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import type {
   CommandOutput,
   Health,
   Manifest,
+  Ready,
 } from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
 import { commands } from '@unlighthouse/contracts/commands'
@@ -76,6 +77,11 @@ export const health: Handler<typeof Health> = {
       activeScans: ctx.core.session() ? 1 : 0,
     } as CommandOutput<typeof Health>
   },
+}
+
+export const ready: Handler<typeof Ready> = {
+  command: {} as typeof Ready,
+  run: health.run,
 }
 
 export const auditorsList: Handler<typeof AuditorsList> = {

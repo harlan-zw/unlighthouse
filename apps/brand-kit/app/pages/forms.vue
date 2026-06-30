@@ -17,7 +17,7 @@ const SiteSettingsSchema = z.object({
   // Normalising to https:// is the server/contract's job, not the form's.
   url: z.string()
     .min(1, 'Site URL is required')
-    .refine(v => /^([a-z][\w+.-]*:\/\/)?[^\s./]+\.\S{2,}$/i.test(v.trim()), 'Enter a domain, e.g. example.com'),
+    .refine(v => /^(?:[a-z][\w+.-]*:\/\/)?[^\s./]+\.\S{2,}$/i.test(v.trim()), 'Enter a domain, e.g. example.com'),
   region: z.enum(['us', 'eu', 'ap']),
   crawlFreq: z.number().min(1).max(24),
   notes: z.string().max(500).optional(),
@@ -54,7 +54,9 @@ function resetForm() {
   settingsForm.value?.clear()
 }
 // Drop the "Saved" confirmation the moment the user edits again.
-watch(state, () => { saved.value = false })
+watch(state, () => {
+  saved.value = false
+})
 
 // ── State playground — flip every prop-driven state live ───────────────────
 const stDisabled = ref(false)

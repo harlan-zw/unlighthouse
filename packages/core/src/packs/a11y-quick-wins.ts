@@ -16,61 +16,8 @@
 // 3-6 → moderate, ≤2 → minor. Weight zero means "informational" — those
 // audits are kept but bucketed minor.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import { z } from 'zod'
-
-// ── Report shape ────────────────────────────────────────────────────────────
-
-const SeveritySchema = z.enum(['critical', 'serious', 'moderate', 'minor'])
-
-const AffectedElementSchema = z.object({
-  selector: z.string(),
-  snippet: z.string().nullable(),
-  nodeLabel: z.string().nullable(),
-  // The first route URL on which this element was seen. Useful for the
-  // "view in context" affordance later.
-  firstSeenOn: z.string(),
-})
-
-const A11yFindingSchema = z.object({
-  auditId: z.string(),
-  title: z.string(),
-  description: z.string().nullable(),
-  severity: SeveritySchema,
-  // Lighthouse a11y category weight (the source of severity).
-  weight: z.number().int().nonnegative(),
-  // Number of unique elements (selector) that violate this rule, across
-  // the whole site. NOT the same as routeCount — one route can have
-  // multiple violating elements.
-  elementCount: z.number().int().nonnegative(),
-  // Unique routes that flagged this rule.
-  routeCount: z.number().int().nonnegative(),
-  routes: z.array(z.string()).max(5),
-  // Top 3 affected elements for orientation. The agent / UI drills into
-  // raw LHR if it needs the full list.
-  topElements: z.array(AffectedElementSchema).max(3),
-  // One-line copy-paste hint for the fix. Audit-keyed; falls back to the
-  // audit's own description when we don't have a hand-written tip.
-  fixHint: z.string().nullable(),
-})
-
-const A11yReportSchema = z.object({
-  scanId: z.string(),
-  routesAnalysed: z.number().int().nonnegative(),
-  // Total violation instances across the site (sum of routeCount × element
-  // hits — gives "X total fails", the agent's headline number).
-  totalViolations: z.number().int().nonnegative(),
-  severityCounts: z.object({
-    critical: z.number().int().nonnegative(),
-    serious: z.number().int().nonnegative(),
-    moderate: z.number().int().nonnegative(),
-    minor: z.number().int().nonnegative(),
-  }),
-  findings: z.array(A11yFindingSchema),
-})
-
-export type A11yFinding = z.infer<typeof A11yFindingSchema>
-export type A11yReport = z.infer<typeof A11yReportSchema>
+import type { A11yFinding, A11yReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import { A11yReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

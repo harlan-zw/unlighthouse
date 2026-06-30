@@ -3,8 +3,8 @@ export function useScoreColor() {
     switch (scoreBand(score)) {
       case 'good': return 'text-success'
       case 'average': return 'text-warning'
-      case 'poor': return 'text-destructive'
-      default: return 'text-muted-foreground'
+      case 'poor': return 'text-error'
+      default: return 'text-muted'
     }
   }
 
@@ -12,7 +12,7 @@ export function useScoreColor() {
     switch (scoreBand(score)) {
       case 'good': return 'bg-success/10'
       case 'average': return 'bg-warning/10'
-      case 'poor': return 'bg-destructive/10'
+      case 'poor': return 'bg-error/10'
       default: return 'bg-muted'
     }
   }

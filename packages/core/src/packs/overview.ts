@@ -13,40 +13,9 @@
 // - Worst-routes capped at 5, template groups capped at 5. Designed to stay
 //   under the 1KB budget for the agent summary tier.
 
+import type { OverviewReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { Category, ScanRoute, Url } from '@unlighthouse/contracts/types/atoms'
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import { CategorySchema, DeviceSchema } from '@unlighthouse/contracts/types/atoms'
-import { z } from 'zod'
-
-// ── Report shape ────────────────────────────────────────────────────────────
-
-const OverviewReportSchema = z.object({
-  scanId: z.string(),
-  device: z.enum(['mobile', 'desktop']),
-  routesScanned: z.number().int().nonnegative(),
-  avgScore: z.number().nullable(),
-  categoryAverages: z.partialRecord(CategorySchema, z.number().nullable()),
-  distribution: z.object({
-    passing: z.number().int().nonnegative(),
-    needsWork: z.number().int().nonnegative(),
-    poor: z.number().int().nonnegative(),
-  }),
-  worstRoutes: z.array(z.object({
-    url: z.url(),
-    score: z.number().nullable(),
-    category: CategorySchema.nullable(),
-    // Device dimension on the worst-row so a mobile regression and a
-    // desktop regression of the same URL surface as distinct rows.
-    device: DeviceSchema.nullable(),
-  })).max(5),
-  templateGroups: z.array(z.object({
-    routeName: z.string().nullable(),
-    routes: z.number().int().nonnegative(),
-    avgScore: z.number().nullable(),
-  })).max(5),
-})
-
-export type OverviewReport = z.infer<typeof OverviewReportSchema>
+import { OverviewReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Reconciler ──────────────────────────────────────────────────────────────
 

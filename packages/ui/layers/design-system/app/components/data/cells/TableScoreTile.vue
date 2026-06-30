@@ -1,49 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
-const {
-  score,
-  label,
-  bgClass = '',
-} = defineProps<{
-  score: number | null | undefined
-  /** Metric name (e.g. "Performance", "LCP"). Used for the aria-label. */
-  label?: string
-  /** Background class derived from caller's threshold logic (e.g. scoreBgClass()). */
-  bgClass?: string
-}>()
-
-const status = computed<'good' | 'ni' | 'poor' | 'neutral'>(() => {
-  if (score == null)
-    return 'neutral'
-  if (score >= 90)
-    return 'good'
-  if (score >= 50)
-    return 'ni'
-  return 'poor'
-})
-
-const statusWord: Record<typeof status['value'], string> = {
-  good: 'Good',
-  ni: 'Needs improvement',
-  poor: 'Poor',
-  neutral: 'No data',
-}
-
-const ariaLabel = computed(() => {
-  const value = score == null ? 'No data' : String(score)
-  const word = statusWord[status.value]
-  return label ? `${label} ${value}, ${word}` : `${value}, ${word}`
-})
+defineOptions({ inheritAttrs: false })
+const props = defineProps<{ [key: string]: any }>()
 </script>
 
 <template>
-  <div
-    class="inline-flex items-center justify-center size-8 rounded-md text-mini font-bold font-mono tabular-nums"
-    :class="bgClass"
-    role="img"
-    :aria-label="ariaLabel"
-  >
-    <span aria-hidden="true">{{ score ?? '—' }}</span>
-  </div>
+  <UiTableScoreTile v-bind="{ ...props, ...$attrs } as any">
+    <template v-for="(_, name) in $slots" #[name]="slotProps">
+      <slot :name="name" v-bind="slotProps || {}" />
+    </template>
+  </UiTableScoreTile>
 </template>

@@ -52,15 +52,15 @@ const {
         </h1>
         <div class="flex items-center gap-2 mt-1.5 text-sm text-muted">
           <ScanStatusBadge :status="resolvedStatus" />
-          <UBadge v-if="hasMultipleDevices" color="neutral" variant="outline" size="xs">
-            <Icon name="lucide:smartphone" class="size-2.5 mr-0.5" />
-            <Icon name="lucide:monitor" class="size-2.5 mr-0.5" />
+          <UiChip v-if="hasMultipleDevices" purpose="count">
+            <UiIcon name="smartphone" class="size-2.5 mr-0.5" />
+            <UiIcon name="monitor" class="size-2.5 mr-0.5" />
             both
-          </UBadge>
-          <UBadge v-else-if="scanMeta?.device" color="neutral" variant="outline" size="xs">
-            <Icon :name="scanMeta.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor'" class="size-2.5 mr-0.5" />
+          </UiChip>
+          <UiChip v-else-if="scanMeta?.device" purpose="count">
+            <UiIcon :name="scanMeta.device === 'mobile' ? 'smartphone' : 'monitor'" class="size-2.5 mr-0.5" />
             {{ scanMeta.device }}
-          </UBadge>
+          </UiChip>
           <span v-if="scanMeta?.startedAt" class="text-xs">{{ new Date(scanMeta.startedAt).toLocaleString() }}</span>
         </div>
       </div>
@@ -73,7 +73,7 @@ const {
           title="Download a self-contained JSON of this scan (data only, no raw LHR blobs)"
           class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
-          <Icon name="lucide:download" class="size-4" />
+          <UiIcon name="download" class="size-4" />
           JSON
         </a>
         <a
@@ -83,10 +83,10 @@ const {
           title="Download per-route scores + Core Web Vitals as CSV (for spreadsheets / Google Sheets)"
           class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
-          <Icon name="lucide:table" class="size-4" />
+          <UiIcon name="table" class="size-4" />
           CSV
         </a>
-        <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="i-lucide-refresh-cw" @click="handleRescanAll">
+        <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="refresh" @click="handleRescanAll">
           Rescan All
         </UiButton>
       </div>
@@ -104,8 +104,8 @@ const {
         size="sm"
         :items="[
           { value: '', label: 'All' },
-          { value: 'mobile', label: 'Mobile', icon: 'i-lucide-smartphone' },
-          { value: 'desktop', label: 'Desktop', icon: 'i-lucide-monitor' },
+          { value: 'mobile', label: 'Mobile', icon: 'smartphone' },
+          { value: 'desktop', label: 'Desktop', icon: 'monitor' },
         ]"
       />
     </div>
@@ -176,7 +176,7 @@ const {
         <div class="rounded-lg border px-5 py-4 flex items-center gap-6 justify-center">
           <div class="relative shrink-0">
             <svg viewBox="0 0 100 100" class="size-32">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--muted))" stroke-width="10" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ui-border)" stroke-width="10" />
               <circle
                 v-for="(arc, i) in donutArcs"
                 :key="i"
@@ -220,7 +220,7 @@ const {
           :to="`${scanBase}/${cat.path}`"
           class="flex items-center gap-4 px-4 py-3.5 hover:bg-elevated/50 transition-colors"
         >
-          <Icon :name="cat.icon" class="size-4 text-muted" />
+          <UiIcon :name="cat.icon" class="size-4 text-muted" />
           <span class="text-sm font-medium flex-1">{{ cat.label }}</span>
           <template v-if="cat.score != null">
             <div class="w-28 h-1.5 rounded-full bg-elevated overflow-hidden hidden sm:block">
@@ -234,7 +234,7 @@ const {
             </span>
           </template>
           <span v-else class="text-sm text-muted/40">—</span>
-          <Icon name="lucide:chevron-right" class="size-4 text-muted/50" />
+          <UiIcon name="chevron-right" class="size-4 text-muted/50" />
         </NuxtLink>
       </div>
     </section>

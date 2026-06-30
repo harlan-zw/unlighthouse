@@ -1,5 +1,6 @@
 import type { MaybeRefOrGetter } from 'vue'
 import { computed, toValue } from 'vue'
+import { parseReportingDay } from './formatting'
 
 // Calendar-aware tick planning for time-series charts. Picks tick positions +
 // label format based on the span:
@@ -22,10 +23,12 @@ export interface UseChartTickPlanOptions {
   maxTicks?: number
 }
 
-const weekdayDayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric' })
-const monthDayFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
-const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'short' })
-const monthYearFmt = new Intl.DateTimeFormat(undefined, { month: 'short', year: '2-digit' })
+// Ticks label reporting-day buckets ("YYYY-MM-DD"), not instants — force UTC so
+// the label never drifts with the viewer's timezone (cf. parseReportingDay, ADR-0082).
+const weekdayDayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', timeZone: 'UTC' })
+const monthDayFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC' })
+const monthYearFmt = new Intl.DateTimeFormat(undefined, { month: 'short', year: '2-digit', timeZone: 'UTC' })
 
 export function useChartTickPlan(opts: UseChartTickPlanOptions) {
   const maxTicks = opts.maxTicks ?? 14
@@ -77,14 +80,14 @@ export function useChartTickPlan(opts: UseChartTickPlanOptions) {
       const keep = Math.ceil(indices.length / 12)
       return {
         indices: indices.filter((_, i) => i % keep === 0),
-        format: (d, i, firstYear) => (d.getMonth() === 0 || i === 0) && d.getFullYear() !== firstYear
+        format: (d, i, firstYear) => (d.getUTCMonth() === 0 || i === 0) && d.getUTCFullYear() !== firstYear
           ? monthYearFmt.format(d)
           : monthFmt.format(d),
       }
     }
     return {
       indices,
-      format: (d, i, _firstYear) => (d.getMonth() === 0 && i > 0) || (i === 0 && d.getMonth() !== 0 && indices.length > 6)
+      format: (d, i, _firstYear) => (d.getUTCMonth() === 0 && i > 0) || (i === 0 && d.getUTCMonth() !== 0 && indices.length > 6)
         ? monthYearFmt.format(d)
         : monthFmt.format(d),
     }
@@ -93,8 +96,10 @@ export function useChartTickPlan(opts: UseChartTickPlanOptions) {
   const firstTickYear = computed(() => {
     const dates = toValue(opts.dates)
     const first = tickPlan.value.indices[0]
+    // No ticks → `format` never runs, so a stable sentinel (not a clock read,
+    // which would risk an SSR≠client year boundary) is enough.
     if (first == null || !dates[first])
-      return new Date().getFullYear()
+      return 0
     return Number(dates[first]!.slice(0, 4))
   })
 
@@ -106,7 +111,7 @@ export function useChartTickPlan(opts: UseChartTickPlanOptions) {
     if (!date)
       return ''
     const tickIdx = tickPlan.value.indices.indexOf(idx)
-    return tickPlan.value.format(new Date(`${date}T00:00:00`), tickIdx, firstTickYear.value)
+    return tickPlan.value.format(parseReportingDay(date), tickIdx, firstTickYear.value)
   }
 
   return { tickPlan, firstTickYear, tickFormat }

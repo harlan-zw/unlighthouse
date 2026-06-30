@@ -194,7 +194,7 @@ function wireWsBroadcast(core: UnlighthouseCore, ws: WS | null, logger: Logger) 
 
 export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions): Promise<UnlighthouseHost> {
   const { behavior = {} } = opts
-  let { userConfig } = opts
+  const { userConfig } = opts
 
   const logger = createTaggedLogger('host') as unknown as Logger
 

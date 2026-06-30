@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import type { CwvReport, ImagesReport, InsightsReport } from '@unlighthouse/contracts/packs'
 import CategoryPageShell from '~/features/scan/components/CategoryPageShell.vue'
-import { getScanId } from '~/features/scan/route-context'
+import { getScanId, useScanBase } from '~/features/scan/route-context'
 
 definePageMeta({ layout: 'scan' })
 
 const scanId = getScanId()
+const { scanBase } = useScanBase()
 const { scoreToColor, scoreToLabel } = useScoreColor()
 
 const { data: cwvData, status: cwvStatus, error: cwvError, refresh: refreshCwv } = useApiQuery('pack.run', () => ({ scanId, pack: 'cwv' }))
@@ -14,11 +16,13 @@ const { data: routeScores } = useApiQuery('scan.results', () => ({ scanId, page:
 
 const { fmtMs: formatMs, fmtBytes: formatBytes } = useFormat()
 
-function verdictColor(verdict: string) {
+function verdictColor(verdict: string | null) {
   if (verdict === 'good')
     return 'text-success'
   if (verdict === 'needsImprovement')
     return 'text-warning'
+  if (verdict == null)
+    return 'text-muted'
   return 'text-error'
 }
 
@@ -35,16 +39,19 @@ function severityVariant(severity: string) {
 // to the full list on demand.
 const IMAGE_CAP = 20
 const showAllImages = ref(false)
-const allImageFindings = computed(() => ((imagesReport.value as any)?.findings ?? []) as any[])
+const allImageFindings = computed(() => imagesReport.value?.findings ?? [])
 const hiddenImageCount = computed(() => Math.max(0, allImageFindings.value.length - IMAGE_CAP))
 const imageItems = computed(() =>
   (showAllImages.value ? allImageFindings.value : allImageFindings.value.slice(0, IMAGE_CAP))
-    .map((f: any) => ({ ...f, value: f.imageUrl })),
+    .map(f => ({ ...f, value: f.imageUrl })),
 )
 
-const cwvReport = computed(() => (cwvData.value as any)?.report ?? null)
-const insightsReport = computed(() => (insightsData.value as any)?.report ?? null)
-const imagesReport = computed(() => (imagesData.value as any)?.report ?? null)
+const cwvReport = computed(() => (cwvData.value?.report ?? null) as CwvReport | null)
+const insightsReport = computed(() => (insightsData.value?.report ?? null) as InsightsReport | null)
+const imagesReport = computed(() => (imagesData.value?.report ?? null) as ImagesReport | null)
+function openRoute(path: string) {
+  return navigateTo(`${scanBase.value}/route/${encodeURIComponent(path)}`)
+}
 
 // Performance pulls from three packs (cwv / insights / images) plus
 // route scores. "Ready" when any pack produced a report; pass the
@@ -98,18 +105,18 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
         </h3>
       </template>
       <div class="space-y-3">
-        <div v-for="fix in cwvReport.topFixes.slice(0, 10)" :key="fix.auditId" class="flex items-start gap-3 p-3 border rounded-lg">
+        <div v-for="fix in cwvReport.topFixes.slice(0, 10)" :key="`${fix.insight}:${fix.metric}`" class="flex items-start gap-3 p-3 border rounded-lg">
           <div class="flex-1">
             <div class="text-sm font-medium">
-              {{ fix.title || fix.auditId }}
+              {{ fix.title || fix.insight }}
             </div>
             <div class="text-xs text-muted mt-0.5">
-              {{ fix.routeCount }} routes affected
+              {{ fix.routeCount }} routes affected · {{ fix.metric.toUpperCase() }}
             </div>
           </div>
           <div class="flex gap-1 flex-wrap justify-end">
-            <UBadge v-for="(val, key) in fix.totalSavings" :key="key" color="neutral" variant="outline" class="text-[10px]">
-              {{ key }}: {{ typeof val === 'number' ? formatMs(val) : val }}
+            <UBadge color="neutral" variant="outline" class="text-[10px]">
+              {{ formatMs(fix.maxImpactMs) }} max impact
             </UBadge>
           </div>
         </div>
@@ -152,7 +159,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
     <UiCard v-if="imagesReport?.findings?.length" size="sm">
       <template #header>
         <h3 class="text-label text-dimmed flex items-center gap-2">
-          <Icon name="lucide:image" class="size-4" />
+          <UiIcon name="image" class="size-4" />
           Image Optimization
           <UBadge color="neutral" variant="soft" class="text-xs">
             {{ imagesReport.findings.length }} issues
@@ -230,7 +237,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
         </template>
       </UAccordion>
       <div v-if="hiddenImageCount > 0 || showAllImages" class="mt-3 text-center">
-        <UiButton purpose="quiet" size="sm" :icon="showAllImages ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" @click="showAllImages = !showAllImages">
+        <UiButton purpose="quiet" size="sm" :icon="showAllImages ? 'chevron-up' : 'chevron-down'" @click="showAllImages = !showAllImages">
           {{ showAllImages ? 'Show fewer' : `Show ${hiddenImageCount} more image ${hiddenImageCount === 1 ? 'issue' : 'issues'}` }}
         </UiButton>
       </div>
@@ -271,7 +278,7 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
             v-for="r in routeScores.items.slice(0, 50)"
             :key="r.url"
             class="border-b border-default last:border-0 cursor-pointer hover:bg-elevated/50"
-            @click="navigateTo(`/sites/${$route.params.siteId}/scans/${scanId}/route/${encodeURIComponent(r.path)}`)"
+            @click="openRoute(r.path)"
           >
             <td class="font-mono text-xs truncate max-w-sm px-3 py-2">
               {{ r.path }}

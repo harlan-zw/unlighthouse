@@ -1,11 +1,8 @@
 // Workers-native sitemap discovery.
 //
-// The core `sitemapSeeds` (packages/core/src/seeds/sitemap.ts) relies on
-// `Sitemapper` + `fetchUrlRaw`, which pull in Node-only APIs (`node:dns`,
-// `node:http`, `node:https`) and break the Workers runtime. This adapter
-// reproduces the same "discover the whole site from its sitemap" behaviour
-// using only the global `fetch` and a regex XML scan — no Node deps — so a
-// Cloudflare scan crawls every URL in the sitemap instead of just the seed.
+// This adapter reproduces the core "discover the whole site from its sitemap"
+// behaviour using only the global `fetch` and a regex XML scan — no Node deps —
+// so a Cloudflare scan crawls every URL in the sitemap instead of just the seed.
 
 import type { Logger } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'

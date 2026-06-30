@@ -3,20 +3,22 @@ const props = defineProps<{
   status: string
 }>()
 
-const color = computed(() => {
+const semanticStatus = computed(() => {
   switch (props.status) {
-    case 'complete': return 'primary' as const
-    case 'error': return 'error' as const
-    default: return 'neutral' as const
-  }
-})
-
-const variant = computed(() => {
-  switch (props.status) {
-    case 'complete': return 'solid' as const
+    case 'complete':
+      return 'success'
+    case 'error':
+      return 'error'
+    case 'starting':
+    case 'discovering':
+    case 'scanning':
+      return 'info'
+    case 'paused':
+      return 'warning'
     case 'cancelled':
-    case 'paused': return 'outline' as const
-    default: return 'soft' as const
+    case 'idle':
+    default:
+      return 'neutral'
   }
 })
 
@@ -36,7 +38,5 @@ const label = computed(() => {
 </script>
 
 <template>
-  <UBadge :color="color" :variant="variant" class="text-xs">
-    {{ label }}
-  </UBadge>
+  <UiStatusBadge :status="semanticStatus" :label="label" />
 </template>

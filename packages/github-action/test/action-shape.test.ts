@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildCliArgs,
+  buildNpxArgs,
   buildPrCommentRequest,
   extractPrNumber,
   parseBooleanInput,
@@ -23,6 +24,7 @@ describe('buildCliArgs', () => {
   const base = {
     site: 'https://example.com',
     device: 'mobile',
+    unlighthouseVersion: 'latest',
     buildStatic: false,
     compareWith: '',
     commentOnPr: false,
@@ -62,6 +64,28 @@ describe('buildCliArgs', () => {
     expect(args).toContain('--budget')
     expect(args[args.indexOf('--budget') + 1]).toBe('85')
     expect(args).toContain('--build-static')
+  })
+})
+
+describe('buildNpxArgs', () => {
+  it('runs unlighthouse-ci from the requested package version', () => {
+    expect(buildNpxArgs('0.17.7', ['--site', 'https://example.com'])).toEqual([
+      '--yes',
+      '--package',
+      'unlighthouse@0.17.7',
+      'unlighthouse-ci',
+      '--site',
+      'https://example.com',
+    ])
+  })
+
+  it('defaults to latest when the version input is empty', () => {
+    expect(buildNpxArgs('', [])).toEqual([
+      '--yes',
+      '--package',
+      'unlighthouse@latest',
+      'unlighthouse-ci',
+    ])
   })
 })
 

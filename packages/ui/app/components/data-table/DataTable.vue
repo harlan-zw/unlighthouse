@@ -2,7 +2,7 @@
 // Reusable TanStack-powered table. Pages own their column defs, data,
 // toolbar and pagination; this component owns the repetitive bits that
 // every table shared before it existed: the header/body FlexRender loops,
-// sort-toggle headers, alignment, the empty row, and row-click wiring.
+// sort-toggle headers, alignment, the empty row, and rowClick wiring.
 //
 // Column alignment / per-cell classes ride on TanStack's `meta`:
 //   { meta: { align: 'center' | 'right', headClass, cellClass } }
@@ -30,7 +30,7 @@ const props = withDefaults(defineProps<{
   /** Server-side sort: reflect/emit sort state without reordering rows. */
   manualSorting?: boolean
   getRowId?: (row: T, index: number) => string
-  /** Apply hover/cursor affordance and emit `row-click`. */
+  /** Apply hover/cursor affordance and emit `rowClick`. */
   rowClickable?: boolean
   rowClass?: (row: T) => string
   emptyText?: string
@@ -54,13 +54,12 @@ const props = withDefaults(defineProps<{
   stickyOffset: 'top-0',
 })
 
-const densityCellClass = computed(() => (props.density === 'compact' ? 'py-1' : ''))
-const stickyHeadClass = computed(() => (props.stickyHeader ? `sticky ${props.stickyOffset} z-10 bg-default` : ''))
-
 const emit = defineEmits<{
   (e: 'update:sorting', value: SortingState): void
-  (e: 'row-click', row: T): void
+  (e: 'rowClick', row: T): void
 }>()
+const densityCellClass = computed(() => (props.density === 'compact' ? 'py-1' : ''))
+const stickyHeadClass = computed(() => (props.stickyHeader ? `sticky ${props.stickyOffset} z-10 bg-default` : ''))
 
 const internalSorting = ref<SortingState>([])
 const sortingState = computed<SortingState>({
@@ -125,12 +124,12 @@ const hasActions = computed(() => !!useSlots().actions)
                 :render="header.column.columnDef.header"
                 :props="header.getContext()"
               />
-              <Icon
+              <UiIcon
                 v-if="header.column.getCanSort()"
                 :name="
-                  header.column.getIsSorted() === 'asc' ? 'lucide:arrow-up'
-                  : header.column.getIsSorted() === 'desc' ? 'lucide:arrow-down'
-                    : 'lucide:chevrons-up-down'
+                  header.column.getIsSorted() === 'asc' ? 'up'
+                  : header.column.getIsSorted() === 'desc' ? 'down'
+                    : 'sort'
                 "
                 class="size-3 text-muted/60 shrink-0"
               />
@@ -146,7 +145,7 @@ const hasActions = computed(() => !!useSlots().actions)
             :key="row.id"
             class="border-b border-default last:border-0"
             :class="[rowClickable ? 'cursor-pointer hover:bg-elevated/50' : '', rowClass?.(row.original)]"
-            @click="rowClickable ? emit('row-click', row.original) : undefined"
+            @click="rowClickable ? emit('rowClick', row.original) : undefined"
           >
             <td
               v-for="cell in row.getVisibleCells()"
@@ -164,7 +163,9 @@ const hasActions = computed(() => !!useSlots().actions)
         <template v-else>
           <tr>
             <td :colspan="columns.length + (hasActions ? 1 : 0)" class="text-center py-12 text-muted">
-              <slot name="empty">{{ emptyText }}</slot>
+              <slot name="empty">
+                {{ emptyText }}
+              </slot>
             </td>
           </tr>
         </template>

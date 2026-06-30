@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import type { ChartBrushRange } from '../../composables/useChartBrush'
-import { AnimatePresence, motion } from 'motion-v'
+import { AnimatePresence, motion, useReducedMotion } from 'motion-v'
 import { computed } from 'vue'
+import { parseReportingDay } from '../../composables/formatting'
 
 // Brush overlay for time-series charts. Pairs with useChartBrush — pass through
 // `dragRange`, `selectionLeft`, `selectionWidth`. Renders:
@@ -24,8 +25,13 @@ const props = defineProps<{
 function formatDragDate(iso: string): string {
   if (!iso)
     return ''
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+  // Reporting-day label — UTC frame so it doesn't drift per viewer (ADR-0082).
+  return parseReportingDay(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
+
+// Honour reduced-motion: collapse the entry/exit tween to an instant cut.
+const reduced = useReducedMotion()
+const enterTransition = computed(() => reduced.value ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' as const })
 
 const startLabel = computed(() => formatDragDate(props.dragRange?.startDate ?? ''))
 const endLabel = computed(() => formatDragDate(props.dragRange?.endDate ?? ''))
@@ -46,7 +52,7 @@ const durationLabel = computed(() => {
       :initial="{ opacity: 0 }"
       :animate="{ opacity: 1 }"
       :exit="{ opacity: 0 }"
-      :transition="{ duration: 0.12, ease: 'easeOut' }"
+      :transition="enterTransition"
       :style="{ left: `${selectionLeft}px`, width: `${selectionWidth}px`, bottom: `${bottomOffset ?? 36}px` }"
       class="absolute top-0 z-10 pointer-events-none bg-primary/10"
     />
@@ -56,7 +62,7 @@ const durationLabel = computed(() => {
       :initial="{ opacity: 0, y: 4 }"
       :animate="{ opacity: 1, y: 0 }"
       :exit="{ opacity: 0, y: 4 }"
-      :transition="{ duration: 0.15, ease: 'easeOut' }"
+      :transition="enterTransition"
       :style="{ left: `${selectionLeft}px`, bottom: `${bottomOffset ?? 36}px` }"
       class="absolute z-10 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-inverted text-inverted text-mini font-medium tabular-nums whitespace-nowrap pointer-events-none shadow-sm"
     >
@@ -68,7 +74,7 @@ const durationLabel = computed(() => {
       :initial="{ opacity: 0, y: 4 }"
       :animate="{ opacity: 1, y: 0 }"
       :exit="{ opacity: 0, y: 4 }"
-      :transition="{ duration: 0.15, ease: 'easeOut' }"
+      :transition="enterTransition"
       :style="{ left: `${selectionLeft + selectionWidth}px`, bottom: `${bottomOffset ?? 36}px` }"
       class="absolute z-10 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-inverted text-inverted text-mini font-medium tabular-nums whitespace-nowrap pointer-events-none shadow-sm"
     >
@@ -80,7 +86,7 @@ const durationLabel = computed(() => {
       :initial="{ opacity: 0, scale: 0.9 }"
       :animate="{ opacity: 1, scale: 1 }"
       :exit="{ opacity: 0, scale: 0.9 }"
-      :transition="{ duration: 0.15, ease: 'easeOut' }"
+      :transition="enterTransition"
       :style="{ left: `${selectionLeft + selectionWidth / 2}px` }"
       class="absolute top-2 z-10 -translate-x-1/2 px-2 py-0.5 rounded-full bg-primary/90 text-inverted text-label whitespace-nowrap pointer-events-none shadow-sm"
     >

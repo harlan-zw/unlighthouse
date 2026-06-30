@@ -6,6 +6,7 @@
 export interface ActionInputs {
   site: string
   device: string
+  unlighthouseVersion: string
   budget?: string
   buildStatic: boolean
   compareWith: string
@@ -61,6 +62,11 @@ export function buildCliArgs(inputs: ActionInputs, compareOutputPath: string | n
   }
 
   return args
+}
+
+export function buildNpxArgs(unlighthouseVersion: string | undefined, cliArgs: string[]): string[] {
+  const version = unlighthouseVersion?.trim() || 'latest'
+  return ['--yes', '--package', `unlighthouse@${version}`, 'unlighthouse-ci', ...cliArgs]
 }
 
 /**

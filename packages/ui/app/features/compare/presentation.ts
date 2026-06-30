@@ -15,17 +15,17 @@ interface RowScoreCell {
 type BadgeTone = 'destructive' | 'default' | 'secondary' | 'outline'
 
 const DEFAULT_THRESHOLDS: Record<string, number> = {
-  performance: 0.05,
-  accessibility: 0.05,
-  seo: 0.05,
+  'performance': 0.05,
+  'accessibility': 0.05,
+  'seo': 0.05,
   'best-practices': 0.05,
-  lcp: 500,
-  cls: 0.1,
-  inp: 200,
-  fcp: 300,
-  tbt: 200,
-  ttfb: 200,
-  si: 500,
+  'lcp': 500,
+  'cls': 0.1,
+  'inp': 200,
+  'fcp': 300,
+  'tbt': 200,
+  'ttfb': 200,
+  'si': 500,
 }
 
 export const SHORT_LABEL: Record<string, string> = {

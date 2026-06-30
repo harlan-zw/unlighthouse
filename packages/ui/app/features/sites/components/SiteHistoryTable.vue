@@ -3,11 +3,11 @@
 // Each instance owns its own sort state so groups don't interfere.
 
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
-import { h } from 'vue'
-
 import type { DevicePair, ScanRow } from '../scan-pairs'
 
-const props = defineProps<{
+import { h } from 'vue'
+
+defineProps<{
   pairs: DevicePair[]
 }>()
 const emit = defineEmits<{
@@ -17,8 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const { scoreToColor } = useScoreColor()
-
-const UBadgeC = resolveComponent('UBadge')
+const UiStatusBadgeC = resolveComponent('UiStatusBadge')
 
 function categoryPct(scan: ScanRow | null, key: string): number | null {
   // The typed contract narrows scoresByCategory to a Partial<Record<Category, number>>;
@@ -35,10 +34,13 @@ function formatDate(iso: string) {
 function relTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.round(diff / 60_000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
+  if (m < 1)
+    return 'just now'
+  if (m < 60)
+    return `${m}m ago`
   const h = Math.round(m / 60)
-  if (h < 24) return `${h}h ago`
+  if (h < 24)
+    return `${h}h ago`
   return `${Math.round(h / 24)}d ago`
 }
 
@@ -110,7 +112,7 @@ const columns: ColumnDef<DevicePair>[] = [
     meta: { align: 'center', headClass: 'w-24' },
     cell: ({ row }) => {
       const s = statusForPair(row.original)
-      return h(UBadgeC, { color: s.color, variant: s.variant, class: 'text-[10px] capitalize' }, () => s.label)
+      return h(UiStatusBadgeC, { status: s.status, label: s.label, class: 'capitalize' })
     },
   },
 ]
@@ -118,18 +120,24 @@ const columns: ColumnDef<DevicePair>[] = [
 function primaryScanId(pair: DevicePair): string {
   return pair.mobile?.scanId ?? pair.desktop?.scanId ?? ''
 }
-function statusForPair(pair: DevicePair): { label: string, color: 'primary' | 'error' | 'neutral', variant: 'solid' | 'soft' | 'outline' } {
+function statusForPair(pair: DevicePair): { label: string, status: 'success' | 'error' | 'warning' | 'info' | 'neutral' } {
   const m = pair.mobile?.status
   const d = pair.desktop?.status
   const anyComplete = (m === 'complete' && (pair.mobile?.summary?.completed ?? 0) > 0)
     || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) > 0)
-  if (anyComplete) return { label: 'complete', color: 'primary', variant: 'solid' }
+  if (anyComplete)
+    return { label: 'complete', status: 'success' }
   if ((m === 'complete' && (pair.mobile?.summary?.completed ?? 0) === 0)
-    || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) === 0))
-    return { label: 'no data', color: 'neutral', variant: 'outline' }
+    || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) === 0)) {
+    return { label: 'no data', status: 'neutral' }
+  }
   if (m === 'error' || d === 'error' || m === 'cancelled' || d === 'cancelled')
-    return { label: 'failed', color: 'error', variant: 'soft' }
-  return { label: m || d || 'pending', color: 'neutral', variant: 'soft' }
+    return { label: 'failed', status: 'error' }
+  if (m === 'scanning' || d === 'scanning' || m === 'discovering' || d === 'discovering' || m === 'starting' || d === 'starting')
+    return { label: m || d || 'pending', status: 'info' }
+  if (m === 'paused' || d === 'paused')
+    return { label: 'paused', status: 'warning' }
+  return { label: m || d || 'pending', status: 'neutral' }
 }
 </script>
 
@@ -144,15 +152,19 @@ function statusForPair(pair: DevicePair): { label: string, color: 'primary' | 'e
   >
     <template #actions="{ row }">
       <div class="flex items-center justify-end gap-0.5">
-        <UiButton purpose="quiet" size="sm" icon="i-lucide-refresh-cw" title="Rescan" @click="emit('rescan', primaryScanId(row))" />
+        <UiButton purpose="quiet" size="sm" icon="refresh" title="Rescan" @click="emit('rescan', primaryScanId(row))" />
         <UModal
           title="Delete scan?"
           description="This will permanently delete this scan and all its data. This cannot be undone."
         >
-          <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-trash-2" />
+          <UiButton purpose="quiet" size="sm" icon="delete" aria-label="Delete scan" />
           <template #footer="{ close }">
-            <UiButton purpose="quiet" @click="close">Cancel</UiButton>
-            <UiButton purpose="danger" @click="() => { emit('delete', primaryScanId(row)); close() }">Delete</UiButton>
+            <UiButton purpose="quiet" @click="close">
+              Cancel
+            </UiButton>
+            <UiButton purpose="danger" @click="() => { emit('delete', primaryScanId(row)); close() }">
+              Delete
+            </UiButton>
           </template>
         </UModal>
       </div>

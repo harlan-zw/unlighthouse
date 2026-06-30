@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import type { UiIcon } from '../../shared/ui-icons'
-import { computed } from 'vue'
-import { resolveUiIcon } from '../../shared/ui-icons'
 
 /**
- * UiIcon — the icon primitive. Wraps Nuxt UI's `UIcon` and resolves a curated
- * semantic name (`refresh`, `next`, `delete`, …) to its iconify id. Raw `i-*`
- * strings pass straight through, so it is a drop-in replacement for `<UIcon>`.
+ * UiIcon — the icon primitive. A thin, typed wrapper over Nuxt UI's `<UIcon>`.
  *
- * Use this instead of `<UIcon>` anywhere the icon is a design choice, so the
- * whole design system speaks one curated icon vocabulary. See `ui-icons.ts`.
+ * The `name` is a curated semantic role (`refresh`, `next`, `delete`, …) or a raw
+ * `i-*` id. Roles resolve to the active set's icon via @nuxt/icon's global aliases
+ * (registered in the design-system nuxt.config from the registry), so this component
+ * passes `name` straight through — no runtime registry, nothing extra shipped to the
+ * client. The `UiIcon` type keeps role autocomplete; type-only import is erased at build.
+ *
+ * To preview a specific set side-by-side (brand-kit /icons), call `resolveUiIcon(role, set)`
+ * directly and feed the id to `<UIcon>` — that's the one place the registry runs client-side.
  */
-const { name } = defineProps<{ name: UiIcon }>()
-
-const resolved = computed(() => resolveUiIcon(name))
+const { name } = defineProps<{ name?: UiIcon }>()
 </script>
 
 <template>
-  <UIcon :name="resolved" />
+  <UIcon :name="name" />
 </template>

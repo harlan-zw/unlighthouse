@@ -8,7 +8,7 @@ const {
   empty,
   skeletonLines = 5,
   skeletonType = 'text',
-  emptyIcon = 'i-lucide-inbox',
+  emptyIcon = 'inbox',
   emptyTitle = 'No data',
   emptyMessage = 'There is no data to display',
 } = defineProps<{
@@ -51,7 +51,7 @@ const isEmpty = computed(() => status === 'success' && empty)
     <slot v-else-if="isError" name="error" :error="error" :retry="() => emit('retry')">
       <div class="flex flex-col items-center justify-center py-8 px-4 text-center" role="alert">
         <div class="size-10 rounded-xl bg-error/10 flex items-center justify-center mb-3">
-          <UiIcon name="i-lucide-alert-circle" class="size-5 text-error" aria-hidden="true" />
+          <UiIcon name="caution" class="size-5 text-error" aria-hidden="true" />
         </div>
         <p class="text-sm font-medium text-default mb-1">
           Something went wrong
@@ -65,7 +65,7 @@ const isEmpty = computed(() => status === 'success' && empty)
       </div>
     </slot>
     <slot v-else-if="isEmpty" name="empty">
-      <EmptyState :icon="emptyIcon" :title="emptyTitle" :description="emptyMessage" compact />
+      <UiEmptyState :icon="emptyIcon" :title="emptyTitle" :description="emptyMessage" compact />
     </slot>
     <slot v-else />
   </div>

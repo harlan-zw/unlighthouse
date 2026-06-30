@@ -47,23 +47,24 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
 
 <template>
   <div class="space-y-6">
-    <PageHeader :title="title" flush>
+    <UiPageHeader :title="title" flush>
       <template v-if="pack" #actions>
-        <UBadge color="neutral" variant="outline" size="xs" class="font-mono">
+        <UiChip purpose="count" mono>
           {{ pack }}
-        </UBadge>
+        </UiChip>
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <QueryError v-if="error" :error="error" :on-retry="onRetry" />
 
-    <div v-else-if="status === 'pending'" class="text-center py-12 text-muted">
-      {{ loadingMessage }}
+    <div v-else-if="status === 'pending'" class="space-y-3 py-2">
+      <UiLoadingState :rows="3" />
+      <p class="text-xs text-muted text-center">
+        {{ loadingMessage }}
+      </p>
     </div>
 
-    <div v-else-if="!ready" class="text-center py-12 text-muted">
-      {{ emptyMessage }}
-    </div>
+    <UiEmptyState v-else-if="!ready" icon="inbox" :title="emptyMessage" compact />
 
     <template v-else>
       <slot />

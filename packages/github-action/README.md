@@ -22,6 +22,7 @@ jobs:
         with:
           site: https://example.com
           device: mobile,desktop
+          unlighthouse-version: latest
           compare-with: latest
 ```
 
@@ -31,6 +32,7 @@ jobs:
 | ------------------- | --------------------- | ---------------------------------------------------------------------------- |
 | `site`              | —                     | Required. URL to scan.                                                       |
 | `device`            | `mobile`              | `mobile`, `desktop`, or comma-separated list (`mobile,desktop`).             |
+| `unlighthouse-version` | `latest`           | npm version or dist-tag of `unlighthouse` to run.                            |
 | `budget`            | —                     | Minimum score (1-100); forwarded to `--budget`.                              |
 | `build-static`      | `false`               | Also build a static report (`--build-static`).                               |
 | `compare-with`      | `''`                  | `latest`, `<scanId>`, or `<branch>`. Empty = no comparison.                  |

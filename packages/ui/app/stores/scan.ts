@@ -2,12 +2,12 @@ import type { ScanId } from '@unlighthouse/contracts'
 import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
 import type { ActiveScanSnapshot } from '~/features/scan/progress-state'
 import type { ScanEventBus } from '~/types/scan-events'
-import { defineStore } from 'pinia'
+import { reactive } from 'vue'
 import { createScanProgressState } from '~/features/scan/progress-state'
 
 type ScanStartOptions = Omit<Parameters<UnlighthouseClient['scan.start']>[0], 'site'>
 
-export const useScanStore = defineStore('scan', () => {
+function createScanStore() {
   const progress = createScanProgressState()
   const {
     scanId,
@@ -164,7 +164,7 @@ export const useScanStore = defineStore('scan', () => {
     progress.hydrateActive(id, snapshot)
   }
 
-  return {
+  return reactive({
     scanId,
     status,
     site,
@@ -197,5 +197,14 @@ export const useScanStore = defineStore('scan', () => {
     hydrateActive,
     startPolling,
     stopPolling,
-  }
-})
+  })
+}
+
+type ScanStore = ReturnType<typeof createScanStore>
+
+let scanStore: ScanStore | null = null
+
+export function useScanStore() {
+  scanStore ??= createScanStore()
+  return scanStore
+}

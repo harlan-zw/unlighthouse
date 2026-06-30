@@ -113,7 +113,7 @@ export function cwvColor(metric: string, value: number | null): string {
 
 function routeScore100Color(value: number | null): string {
   if (value == null)
-    return 'var(--muted-foreground)'
+    return 'var(--ui-text-muted)'
   return bandHex(scoreBand(value / 100))
 }
 

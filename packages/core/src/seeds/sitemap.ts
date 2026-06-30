@@ -2,13 +2,40 @@ import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
 import type { ConsolaInstance } from 'consola'
 import { createConsola } from 'consola'
-import Sitemapper from 'sitemapper'
-import { $URL, withBase } from 'ufo'
 import { isScanOrigin } from '../api/util'
 import { fetchUrlRaw } from '../util/fetch'
 
+const LOC_RE = /<loc\b[^>]*>([\s\S]*?)<\/loc>/gi
+
 function validSitemapEntry(url: string) {
   return url && (url.startsWith('http') || url.startsWith('/'))
+}
+
+function decodeXmlValue(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, '\'')
+    .trim()
+}
+
+function extractLocs(xml: string): string[] {
+  const out: string[] = []
+  let match: RegExpExecArray | null
+  LOC_RE.lastIndex = 0
+  // eslint-disable-next-line no-cond-assign
+  while ((match = LOC_RE.exec(xml)) !== null) {
+    const loc = decodeXmlValue(match[1] || '')
+    if (loc)
+      out.push(loc)
+  }
+  return out
+}
+
+function isSitemapIndex(xml: string): boolean {
+  return /<sitemapindex[\s>]/i.test(xml)
 }
 
 export interface ExtractSitemapDeps {
@@ -17,50 +44,81 @@ export interface ExtractSitemapDeps {
   logger?: Logger
 }
 
+async function fetchSitemapText(deps: ExtractSitemapDeps, sitemapUrl: string): Promise<string | null> {
+  const fetched = await fetchUrlRaw(
+    sitemapUrl,
+    deps.resolvedConfig,
+    { logger: deps.logger },
+  )
+  return fetched.valid && fetched.response ? fetched.response.data : null
+}
+
 /**
  * Fetches routes from a sitemap file.
  */
 export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: string, sitemaps: true | (string[])) {
   // make sure we're working from the host name
-  site = new $URL(site).origin
+  site = new URL(site).origin
   const logger = (deps.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
   if (sitemaps === true || sitemaps.length === 0)
     sitemaps = [`${site}/sitemap.xml`]
-  const sitemap = new Sitemapper({
-    timeout: 15000, // 15 seconds
-    debug: deps.resolvedConfig.debug,
-  })
+  const seenSitemaps = new Set<string>()
+  const fetchedSitemaps: string[] = []
   let paths: string[] = []
-  for (let sitemapUrl of new Set(sitemaps)) {
-    logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
-    // make sure it's absolute
-    if (!sitemapUrl.startsWith('http'))
-      sitemapUrl = withBase(sitemapUrl, site)
-    // sitemapper does not support txt sitemaps
-    if (sitemapUrl.endsWith('.txt')) {
-      const sitemapTxt = await fetchUrlRaw(
-        sitemapUrl,
-        deps.resolvedConfig,
-        { logger: deps.logger },
-      )
-      if (sitemapTxt.valid) {
-        const sites = (sitemapTxt.response!.data as string).trim().split('\n').filter(validSitemapEntry)
-        if (sites?.length)
-          paths = [...paths, ...sites]
 
-        logger.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
+  async function visit(rawUrl: string, depth: number): Promise<void> {
+    if (depth > 3)
+      return
+    const sitemapUrl = rawUrl.startsWith('http')
+      ? rawUrl
+      : new URL(rawUrl, site).toString()
+    if (seenSitemaps.has(sitemapUrl))
+      return
+    seenSitemaps.add(sitemapUrl)
+    fetchedSitemaps.push(sitemapUrl)
+
+    logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
+    const text = await fetchSitemapText(deps, sitemapUrl)
+    if (text == null) {
+      logger.debug(`Failed to fetch ${sitemapUrl}.`)
+      return
+    }
+
+    if (sitemapUrl.endsWith('.txt')) {
+      const sites = text.trim().split('\n').map(s => s.trim()).filter(validSitemapEntry)
+      if (sites.length)
+        paths = [...paths, ...sites]
+
+      logger.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
+      return
+    }
+
+    const locs = extractLocs(text)
+    if (isSitemapIndex(text)) {
+      for (const loc of locs) {
+        try {
+          const child = new URL(loc, site)
+          if (child.origin === deps.siteUrl.origin)
+            await visit(child.toString(), depth + 1)
+        }
+        catch {
+          // skip malformed sitemap locs
+        }
       }
     }
     else {
-      const { sites } = await sitemap.fetch(sitemapUrl)
-      if (sites?.length)
-        paths = [...paths, ...sites]
-      logger.debug(`Fetched ${sitemapUrl} with ${sites?.length || '0'} URLs.`)
+      if (locs.length)
+        paths = [...paths, ...locs]
+      logger.debug(`Fetched ${sitemapUrl} with ${locs.length} URLs.`)
     }
   }
+
+  for (const sitemapUrl of new Set(sitemaps))
+    await visit(sitemapUrl, 0)
+
   const filtered = paths.filter(url => isScanOrigin({ siteUrl: deps.siteUrl }, url))
   // for the paths we need to validate that they will be scanned
-  return { paths: filtered, ignored: paths.length - filtered.length, sitemaps }
+  return { paths: filtered, ignored: paths.length - filtered.length, sitemaps: fetchedSitemaps.length ? fetchedSitemaps : sitemaps }
 }
 
 export interface SitemapSeedsOptions {

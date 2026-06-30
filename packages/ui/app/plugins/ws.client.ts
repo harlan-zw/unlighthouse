@@ -5,9 +5,13 @@ type RawScanEventHandler = (data: unknown) => void
 function createBrowserWsBus(url: string): ScanEventBus {
   let ws: WebSocket | null = null
   const listeners = new Map<string, Set<RawScanEventHandler>>()
+  const reconnectListeners = new Set<() => void>()
   let retryDelay = 1000
   const maxRetryDelay = 30000
   let disposed = false
+  // The first `onopen` is the initial connect; every later one followed a drop,
+  // so it's a reconnect — and events may have been missed in the gap.
+  let connectedOnce = false
 
   function connect() {
     if (disposed || !url)
@@ -18,6 +22,12 @@ function createBrowserWsBus(url: string): ScanEventBus {
 
       ws.onopen = () => {
         retryDelay = 1000
+        if (connectedOnce) {
+          for (const fn of reconnectListeners) fn()
+        }
+        else {
+          connectedOnce = true
+        }
       }
 
       ws.onmessage = (e) => {
@@ -68,10 +78,15 @@ function createBrowserWsBus(url: string): ScanEventBus {
     off<K extends ScanEventName>(event: K, fn: ScanEventHandler<K>) {
       listeners.get(event)?.delete(fn as RawScanEventHandler)
     },
+    onReconnect(fn: () => void) {
+      reconnectListeners.add(fn)
+      return () => reconnectListeners.delete(fn)
+    },
     dispose() {
       disposed = true
       ws?.close()
       listeners.clear()
+      reconnectListeners.clear()
     },
   }
 }

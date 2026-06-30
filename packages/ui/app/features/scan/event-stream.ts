@@ -10,7 +10,7 @@ export interface StreamEvent {
   json: string
 }
 
-type TailEvent = {
+interface TailEvent {
   event?: string
   payload?: unknown
   data?: unknown
@@ -41,6 +41,7 @@ export function createScanEventStream(deps: {
 
   const MAX_EVENTS = deps.maxEvents ?? DEFAULT_MAX_EVENTS
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let resolveReconnectDelay: (() => void) | null = null
   let stopping = false
   let sawTerminal = false
   let droppedCount = 0
@@ -113,7 +114,10 @@ export function createScanEventStream(deps: {
   }
 
   async function runListenLoop() {
-    while (listening.value && !stopping) {
+    while (listening.value) {
+      if (stopping)
+        break
+
       try {
         await connectOnce()
       }
@@ -136,7 +140,12 @@ export function createScanEventStream(deps: {
       reconnectAttempts.value++
       const delay = Math.min(5000, 2 ** Math.min(reconnectAttempts.value - 1, 3) * 1000)
       await new Promise<void>((resolve) => {
-        reconnectTimer = setTimeout(resolve, delay)
+        resolveReconnectDelay = resolve
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = null
+          resolveReconnectDelay = null
+          resolve()
+        }, delay)
       })
     }
   }
@@ -161,6 +170,10 @@ export function createScanEventStream(deps: {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
     }
+    if (resolveReconnectDelay) {
+      resolveReconnectDelay()
+      resolveReconnectDelay = null
+    }
   }
 
   const textFilter = ref('')
@@ -172,9 +185,12 @@ export function createScanEventStream(deps: {
     return events.value.filter((e) => {
       if (sev !== 'all') {
         const name = e.event.toLowerCase()
-        if (sev === 'error' && !(name.includes('error') || name.includes('failed'))) return false
-        if (sev === 'complete' && !(name.includes('complete') || name.includes('passed'))) return false
-        if (sev === 'progress' && !(name.includes('progress') || name.includes('scanning'))) return false
+        if (sev === 'error' && !(name.includes('error') || name.includes('failed')))
+          return false
+        if (sev === 'complete' && !(name.includes('complete') || name.includes('passed')))
+          return false
+        if (sev === 'progress' && !(name.includes('progress') || name.includes('scanning')))
+          return false
       }
       if (!q)
         return true
@@ -213,9 +229,12 @@ export function useScanEventStream(scanId: ScanId) {
 
 export function eventColor(event: string) {
   const name = event.toLowerCase()
-  if (name.includes('error') || name.includes('failed')) return 'error' as const
-  if (name.includes('complete') || name.includes('passed')) return 'primary' as const
-  if (name.includes('progress') || name.includes('scanning')) return 'info' as const
+  if (name.includes('error') || name.includes('failed'))
+    return 'error' as const
+  if (name.includes('complete') || name.includes('passed'))
+    return 'primary' as const
+  if (name.includes('progress') || name.includes('scanning'))
+    return 'info' as const
   return 'neutral' as const
 }
 

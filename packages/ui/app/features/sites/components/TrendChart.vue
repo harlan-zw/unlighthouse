@@ -140,10 +140,12 @@ const markerPositions = computed(() =>
 // ── Hover crosshair + tooltip ─────────────────────────────────────────────────
 const columns = computed(() => {
   const ts = new Set<number>()
-  for (const s of props.series)
-    for (const p of s.points)
+  for (const s of props.series) {
+    for (const p of s.points) {
       if (p.v != null)
         ts.add(p.t)
+    }
+  }
   return [...ts].sort((a, b) => a - b)
 })
 const hoverT = ref<number | null>(null)
@@ -213,7 +215,9 @@ const tooltipLeft = computed(() => {
         class="absolute top-0 z-20 -translate-x-1/2 pointer-events-none rounded-md border bg-default px-2 py-1.5 shadow-md"
         :style="{ left: `${tooltipLeft}px` }"
       >
-        <div class="text-[10px] text-muted mb-1">{{ hoverDate }}</div>
+        <div class="text-[10px] text-muted mb-1">
+          {{ hoverDate }}
+        </div>
         <div v-for="row in hoverPoints" :key="row.label" class="flex items-center gap-1.5 text-[11px] whitespace-nowrap">
           <span class="size-2 rounded-full shrink-0" :style="{ backgroundColor: row.color }" />
           <span class="text-muted">{{ row.label }}</span>
@@ -273,7 +277,7 @@ const tooltipLeft = computed(() => {
           :cx="hoverX!"
           :cy="hp.y"
           r="4"
-          fill="white"
+          fill="var(--ui-bg)"
           :stroke="hp.color"
           stroke-width="2"
         />

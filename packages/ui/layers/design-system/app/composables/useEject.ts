@@ -1,6 +1,6 @@
 import type { ComputedRef, MaybeRefOrGetter } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import type { EjectChat, EjectLink, EjectMcp } from '../components/element/EjectMenu.vue'
+import type { EjectChat, EjectLink, EjectMcp } from '../components/element/eject-menu'
 import { computed, toValue } from 'vue'
 
 /**
@@ -13,7 +13,7 @@ import { computed, toValue } from 'vue'
  * The composable is dumb plumbing. It does no fetching, no auth resolution, no
  * runtime config reading; the caller passes the API base + key surface, the
  * schema reference, and the entity/filter context. The result feeds directly
- * into `<EjectMenu />` props.
+ * into `<UiEjectMenu />` props.
  */
 export interface EjectQuery {
   /** MCP tool name. Required for MCP + AI chat ejection. */

@@ -127,7 +127,7 @@ async function deleteScan(scanId: string) {
 
 <template>
   <div class="space-y-6">
-    <PageHeader
+    <UiPageHeader
       title="History"
       :description="searchQuery
         ? `${filteredScanCount} of ${totalScans} scan${totalScans === 1 ? '' : 's'} match`
@@ -135,44 +135,38 @@ async function deleteScan(scanId: string) {
       flush
     >
       <template #actions>
-        <UiButton purpose="cta" to="/scan/new" icon="i-lucide-plus">
+        <UiButton purpose="cta" to="/scan/new" icon="add">
           New Scan
         </UiButton>
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <!-- Search bar — site URL, hostname, scanId, or CI commit hash all match. -->
     <UInput
       v-if="groups.length"
       v-model="searchQuery"
-      icon="i-lucide-search"
+      icon="search"
       placeholder="Filter by site, scanId, or commit..."
       class="max-w-md w-full"
     >
       <template v-if="searchQuery" #trailing>
-        <UButton color="neutral" variant="link" size="sm" icon="i-lucide-x" aria-label="Clear search" @click="searchQuery = ''" />
+        <UiButton purpose="quiet" size="xs" icon="close" aria-label="Clear search" @click="searchQuery = ''" />
       </template>
     </UInput>
 
     <QueryError v-if="historyError" :error="historyError" :on-retry="refresh" />
 
-    <div v-else-if="status === 'pending'" class="space-y-3">
-      <USkeleton v-for="i in 3" :key="i" class="h-32 w-full" />
-    </div>
+    <UiLoadingState v-else-if="status === 'pending'" :rows="3" />
 
-    <div v-else-if="!groups.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 flex flex-col items-center justify-center py-16 text-center">
-      <Icon name="lucide:history" class="size-12 text-muted/50 mb-4" />
-      <p class="text-muted">
-        No scan history yet.
-      </p>
-    </div>
+    <UiEmptyState v-else-if="!groups.length" icon="history" title="No scan history yet." compact />
 
-    <div v-else-if="!filteredGroups.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 flex flex-col items-center justify-center py-12 text-center">
-      <Icon name="lucide:search-x" class="size-10 text-muted/50 mb-3" />
-      <p class="text-sm text-muted">
-        No scans match "{{ searchQuery }}".
-      </p>
-    </div>
+    <UiEmptyState
+      v-else-if="!filteredGroups.length"
+      icon="search-x"
+      title="No scans match this filter."
+      :description="searchQuery"
+      compact
+    />
 
     <div
       v-for="group in filteredGroups"
@@ -185,8 +179,8 @@ async function deleteScan(scanId: string) {
         class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-elevated/40 transition-colors"
         @click="expanded[group.site] = !expanded[group.site]"
       >
-        <Icon
-          name="lucide:chevron-right"
+        <UiIcon
+          name="chevron-right"
           class="size-4 text-muted transition-transform shrink-0"
           :class="{ 'rotate-90': expanded[group.site] }"
         />
@@ -198,9 +192,9 @@ async function deleteScan(scanId: string) {
             {{ group.site }}
           </div>
         </div>
-        <UBadge color="neutral" variant="soft" size="xs" class="tabular-nums shrink-0">
+        <UiChip purpose="count" tabular class="shrink-0">
           {{ group.scanCount }} scans
-        </UBadge>
+        </UiChip>
         <span class="text-xs text-muted tabular-nums shrink-0">
           latest {{ relTime(group.latestStartedAt) }}
         </span>

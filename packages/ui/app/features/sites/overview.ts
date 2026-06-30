@@ -11,16 +11,16 @@ import { siteSlug } from '~/utils/site'
 type SiteDevice = 'mobile' | 'desktop'
 
 const SCORE_SERIES = [
-  { key: 'performance', label: 'Performance', color: '#f97316' },
-  { key: 'accessibility', label: 'Accessibility', color: '#3b82f6' },
-  { key: 'seo', label: 'SEO', color: '#a855f7' },
-  { key: 'best-practices', label: 'Best Practices', color: '#22c55e' },
+  { key: 'performance', label: 'Performance', color: presetVizColors.orange.hex },
+  { key: 'accessibility', label: 'Accessibility', color: semanticColors.info.hex },
+  { key: 'seo', label: 'SEO', color: presetVizColors.purple.hex },
+  { key: 'best-practices', label: 'Best Practices', color: semanticColors.success.hex },
 ] as const
 
 const VITALS = [
-  { key: 'lcp', label: 'LCP', color: '#6366f1', fmt: (value: number) => formatMs(value) },
-  { key: 'cls', label: 'CLS', color: '#8b5cf6', fmt: (value: number) => value.toFixed(3) },
-  { key: 'tbt', label: 'TBT', color: '#ec4899', fmt: (value: number) => `${Math.round(value)}ms` },
+  { key: 'lcp', label: 'LCP', color: cwvMetricColors.lcp.hex, fmt: (value: number) => formatMs(value) },
+  { key: 'cls', label: 'CLS', color: cwvMetricColors.cls.hex, fmt: (value: number) => value.toFixed(3) },
+  { key: 'tbt', label: 'TBT', color: cwvMetricColors.tbt.hex, fmt: (value: number) => `${Math.round(value)}ms` },
 ] as const
 
 interface SiteEntry {

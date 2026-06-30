@@ -40,7 +40,7 @@ defineProps<{
         </h3>
         <UiIcon
           v-if="locked"
-          name="i-lucide-lock"
+          name="lock"
           class="size-3 text-dimmed"
           title="Not available for the current data source"
         />
@@ -50,7 +50,7 @@ defineProps<{
         :to="ctaHref"
         class="text-mini text-muted hover:text-primary inline-flex items-center gap-1"
       >
-        {{ ctaLabel ?? 'View' }} <UiIcon name="i-lucide-arrow-right" class="size-3" />
+        {{ ctaLabel ?? 'View' }} <UiIcon name="next" class="size-3" />
       </NuxtLink>
     </div>
 

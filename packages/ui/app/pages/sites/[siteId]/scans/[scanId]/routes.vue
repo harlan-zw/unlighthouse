@@ -9,7 +9,9 @@ definePageMeta({ layout: 'scan', fluid: true })
 
 <template>
   <div class="space-y-4">
-    <h1 class="text-xl font-bold tracking-tight">Routes</h1>
+    <h1 class="text-xl font-bold tracking-tight">
+      Routes
+    </h1>
     <ScanRoutesTable />
   </div>
 </template>

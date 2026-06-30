@@ -48,28 +48,29 @@ const { healthy } = useBackendHealth()
          underneath (scan picker / swap / threshold etc). Keep this
          strip absolutely minimal so we don't burn vertical space. -->
     <div class="flex items-center gap-2 px-3 h-9 border-b text-xs">
-      <NuxtLink :to="exitTo" class="inline-flex items-center gap-1 text-muted hover:text-default transition-colors">
-        <Icon name="lucide:arrow-left" class="size-3.5" />
+      <NuxtLink :to="exitTo" class="inline-flex min-h-11 min-w-11 items-center gap-1 text-muted hover:text-default transition-colors lg:min-h-0 lg:min-w-0">
+        <UiIcon name="back" class="size-3.5" />
         <span>Exit compare</span>
       </NuxtLink>
 
       <div
         v-if="healthy !== null"
         class="flex items-center gap-1 ml-2"
-        :class="healthy ? 'text-green-500' : 'text-red-500'"
+        :class="healthy ? 'text-success' : 'text-error'"
         :title="healthy ? 'Backend connected' : 'Backend unreachable'"
       >
-        <span class="size-1.5 rounded-full" :class="healthy ? 'bg-green-500' : 'bg-red-500 animate-pulse'" />
+        <span class="size-1.5 rounded-full" :class="healthy ? 'bg-success' : 'bg-error animate-pulse'" />
       </div>
 
       <div class="ml-auto flex items-center gap-1">
-        <button
-          class="inline-flex items-center justify-center rounded-md size-7 text-muted hover:text-default hover:bg-elevated transition-colors"
+        <UiButton
+          purpose="quiet"
+          size="xs"
+          class="size-7 justify-center"
           :title="`Switch to ${colorMode.value === 'dark' ? 'light' : 'dark'} mode`"
+          :icon="colorMode.value === 'dark' ? 'light' : 'dark'"
           @click="toggleColorMode"
-        >
-          <Icon :name="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'" class="size-3.5" />
-        </button>
+        />
       </div>
     </div>
 

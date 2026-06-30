@@ -1,17 +1,15 @@
 import type { ScoreBand } from '~/utils/scoring'
 
-// The single source for the good/average/poor hex palette (Lighthouse's
-// green/orange/red gauge colours). Previously the same three hex values were
-// re-typed in scoreToRingColor, routeScore100Color, and MetricStatCard. Tailwind
-// token mappings (text-success/-warning/-error vs -destructive) are deliberately
-// left per-consumer — that naming is an unresolved theme decision.
+// The single app-level bridge from Lighthouse score bands to the design-system
+// semantic palette. SVG/canvas consumers need hex strings, so keep that boundary
+// here instead of retyping status hexes per component.
 export const BAND_HEX: Record<ScoreBand, string> = {
-  good: '#22c55e',
-  average: '#f97316',
-  poor: '#ef4444',
+  good: semanticColors.success.hex,
+  average: semanticColors.warning.hex,
+  poor: semanticColors.error.hex,
 }
 
-const BAND_HEX_MUTED = '#9ca3af'
+const BAND_HEX_MUTED = semanticColors.neutral.hex
 
 /** Band → gauge hex; null band (no score / unknown) → muted grey. */
 export function bandHex(band: ScoreBand | null): string {

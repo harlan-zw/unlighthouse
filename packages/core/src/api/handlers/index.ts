@@ -5,7 +5,7 @@ import { assertEvaluate } from './assert'
 import { compareDetail, compareFindPrevious, compareMarkdown, compareRun } from './compare'
 import { eventsSubscribe, eventsTail } from './events'
 import { historyList, historyRescan } from './history'
-import { auditorsList, health, manifest } from './meta'
+import { auditorsList, health, manifest, ready } from './meta'
 import { packList, packRun } from './pack'
 import { queryRoutes } from './query'
 import { routeAudits, routeGet, routeRescan } from './route'
@@ -83,6 +83,7 @@ export function createHandlers(): HandlerMap {
     'events.tail': eventsTail,
     'manifest': manifest,
     'health': health,
+    'ready': ready,
     'auditors.list': auditorsList,
     'sites.list': sitesList,
     'sites.create': sitesCreate,

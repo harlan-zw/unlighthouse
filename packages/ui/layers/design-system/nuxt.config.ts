@@ -1,6 +1,7 @@
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineNuxtConfig } from 'nuxt/config'
+import { iconAliasMap } from './shared/icons'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
@@ -24,6 +25,7 @@ export default defineNuxtConfig({
   components: [
     {
       path: join(currentDir, './app/components'),
+      extensions: ['vue'],
       pathPrefix: false,
       // Higher priority so design-system primitives win shadow conflicts against
       // the consuming app's own app/components/* of the same basename.
@@ -40,6 +42,10 @@ export default defineNuxtConfig({
       { name: 'Hubot Sans', weights: ['400 700'], stretch: '75% 125%', global: true },
       { name: 'Fira Code', weights: [400, 500], global: true },
     ],
+  },
+
+  icon: {
+    aliases: iconAliasMap(),
   },
 
   ui: {

@@ -1,10 +1,10 @@
 // HTTP projection: derives an h3 Router from the command registry + handler set.
 // Each command → one route. Streaming commands → NDJSON GETs.
 
-import type { Command, CommandName } from '@unlighthouse/contracts/commands'
+import type { Command, CommandName, HttpMethod } from '@unlighthouse/contracts/commands'
 import type { H3Event, Router } from 'h3'
 import type { Handler, HandlerCtx, HandlerMap } from './handlers/types'
-import { commands } from '@unlighthouse/contracts/commands'
+import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, readBody, setResponseHeader, setResponseStatus } from 'h3'
 import { createTaggedLogger } from '../logger'
@@ -26,54 +26,18 @@ export interface CreateHttpRouterOptions {
   ctx: HandlerCtx | HandlerCtxFactory
   /** Optional path prefix (default '/api'). */
   prefix?: string
+  /**
+   * Validate each handler's result against the command's `output` schema and
+   * log a warning on mismatch (the response is still sent — this is a
+   * contract-drift detector, not an enforcer, so a stricter schema can't break
+   * a working client). Inputs are always validated; outputs are not enforced
+   * anywhere by default. Defaults to on outside production.
+   */
+  validateOutput?: boolean
 }
-
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value)
-}
-
-// Commands that read state — projected as GET even without an explicit hint.
-const GET_PREFIXES = ['query.']
-const GET_EXACT = new Set<string>([
-  'history.list',
-  'scan.status',
-  'scan.results',
-  'scan.summary',
-  'scan.categories',
-  'scan.meta',
-  'scan.current',
-  'route.get',
-  'route.audits',
-  'compare.findPrevious',
-  'pack.list',
-  'manifest',
-  'health',
-  'auditors.list',
-  'sites.list',
-])
-
-function defaultMethod(cmd: Command): HttpMethod {
-  if (cmd.streaming)
-    return 'GET'
-  if (GET_PREFIXES.some(p => cmd.name.startsWith(p)))
-    return 'GET'
-  if (GET_EXACT.has(cmd.name))
-    return 'GET'
-  return 'POST'
-}
-
-function defaultPath(cmd: Command): string {
-  return `/${cmd.name.split('.').join('/')}`
-}
-
-/** Resolve the HTTP method + path for a single command. Exported for parity tests. */
-export function commandToRoute(cmd: Command): { method: HttpMethod, path: string } {
-  return {
-    method: (cmd.http?.method as HttpMethod | undefined) ?? defaultMethod(cmd),
-    path: cmd.http?.path ?? defaultPath(cmd),
-  }
 }
 
 // Map UnlighthouseError.code → HTTP status.
@@ -121,10 +85,27 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
   return value != null && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === 'function'
 }
 
+// Contract-drift detector: the server validates command input but nothing
+// validates output, so a handler that returns the wrong shape ships silently.
+// This re-checks the result against `cmd.output` and warns on mismatch — it
+// never throws or rewrites the response, so a stricter schema can't break a
+// working client; it just surfaces the drift in the log.
+function warnOnOutputMismatch(cmd: Command, value: unknown): void {
+  const result = cmd.output.safeParse(value)
+  if (!result.success) {
+    const issues = result.error.issues
+      .slice(0, 8)
+      .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
+      .join('; ')
+    log.warn(`${cmd.name} — response does not match its output contract: ${issues}`)
+  }
+}
+
 export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
   const { handlers, ctx: ctxOpt } = opts
   const ctxFactory: HandlerCtxFactory
     = typeof ctxOpt === 'function' ? ctxOpt : () => ctxOpt
+  const validateOutput = opts.validateOutput ?? (process.env.NODE_ENV !== 'production')
   const router = createRouter()
 
   for (const name of Object.keys(commands) as CommandName[]) {
@@ -202,6 +183,8 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
             out.push(chunk)
           return out
         }
+        if (validateOutput)
+          warnOnOutputMismatch(cmd, awaited)
         return awaited
       }
       catch (err) {

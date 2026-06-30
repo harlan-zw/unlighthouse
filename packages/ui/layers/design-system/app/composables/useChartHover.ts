@@ -1,7 +1,7 @@
 import type { MotionValue } from 'motion-v'
 import type { Ref } from 'vue'
 import { useMotionValue, useSpring } from 'motion-v'
-import { onScopeDispose, shallowRef } from 'vue'
+import { onScopeDispose, ref, shallowRef } from 'vue'
 
 // Hover/tooltip half of a time-series chart's pointer UX. Sibling to
 // useChartBrush — both cards (Gsc, Analytics) had near-identical tooltip
@@ -83,8 +83,12 @@ export function useChartHover<T, E = void>(opts: UseChartHoverOptions): UseChart
 
   const cardX = useMotionValue(0)
   const cursorY = useMotionValue(0)
-  const cardSpring = useSpring(cardX, opts.cardSpring ?? DEFAULT_SPRING)
-  const cursorYSpring = useSpring(cursorY, opts.cardSpring ?? DEFAULT_SPRING)
+  // Honour prefers-reduced-motion: skip the glide spring and track the cursor
+  // position directly so the tooltip jumps instead of easing.
+  const prefersReduced = import.meta.client
+    && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+  const cardSpring = prefersReduced ? cardX : useSpring(cardX, opts.cardSpring ?? DEFAULT_SPRING)
+  const cursorYSpring = prefersReduced ? cursorY : useSpring(cursorY, opts.cardSpring ?? DEFAULT_SPRING)
   // Default 'above' (tooltip floats above cursor). Flips to 'below' when the
   // cursor is too close to the top edge to fit the tooltip without clipping.
   const placement = ref<'above' | 'below'>('above')

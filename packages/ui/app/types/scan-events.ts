@@ -57,6 +57,12 @@ export type ScanEventHandler<K extends ScanEventName = ScanEventName> = (data: S
 export interface ScanEventBus {
   on: <K extends ScanEventName>(event: K, fn: ScanEventHandler<K>) => void
   off: <K extends ScanEventName>(event: K, fn: ScanEventHandler<K>) => void
+  /**
+   * Subscribe to socket *re*connects (not the initial connect). Lets a
+   * consumer recover events missed while the socket was down — e.g. drive
+   * `useNuxtSubscription`'s `ctx.resync()`. Returns an unsubscribe fn.
+   */
+  onReconnect: (fn: () => void) => () => void
   dispose: () => void
 }
 

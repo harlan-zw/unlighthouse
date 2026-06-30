@@ -1,10 +1,29 @@
 import { hash } from 'node:crypto'
-import sanitize from 'sanitize-filename'
-import slugify from 'slugify'
 import { withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 
 /** Strip leading + trailing slashes. */
 export const trimSlashes = (s: string) => withoutLeadingSlash(withoutTrailingSlash(s))
+
+const CONTROL_AND_RESERVED_RE = /[\p{Cc}<>:"\\|?*]/gu
+const COMBINING_MARKS_RE = /[\u0300-\u036F]/g
+const RESERVED_BASENAME_RE = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i
+
+function sanitisePathSegment(segment: string): string {
+  const slug = segment
+    .normalize('NFKD')
+    .replace(COMBINING_MARKS_RE, '')
+    .replace(/['’]/g, '')
+    .replace(/[^\w.~-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(CONTROL_AND_RESERVED_RE, '')
+    .replace(/[ .]+$/g, '')
+
+  if (!slug || slug === '.' || slug === '..')
+    return ''
+  if (RESERVED_BASENAME_RE.test(slug))
+    return `_${slug}`
+  return slug
+}
 
 /** Sanitise a URL for use as a filesystem path; retains the path hierarchy. */
 export function sanitiseUrlForFilePath(url: string) {
@@ -14,7 +33,7 @@ export function sanitiseUrlForFilePath(url: string) {
 
   return url
     .split('/')
-    .map(part => sanitize(slugify(part)))
+    .map(part => sanitisePathSegment(part))
     .join('/')
 }
 

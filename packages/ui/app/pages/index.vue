@@ -12,12 +12,10 @@ definePageMeta({ layout: 'root', middleware: 'onboarding' })
 const { scoreToColor, scoreToLabel } = useScoreColor()
 const { fmtRelTime } = useFormat()
 
-const FaviconC = resolveComponent('Favicon')
+const FaviconC = resolveComponent('UiFavicon')
 const {
-  historyStatus,
   historyError,
   refreshHistory,
-  allScans,
   siteRows,
   kpis,
   recentScans,
@@ -107,7 +105,7 @@ const recentColumns: ColumnDef<ScanRow>[] = [
     header: 'Device',
     enableSorting: false,
     align: 'center',
-    cell: ({ row }) => h(resolveComponent('Icon'), { name: row.original.device === 'mobile' ? 'lucide:smartphone' : 'lucide:monitor', class: 'size-3.5 text-muted' }),
+    cell: ({ row }) => h(resolveComponent('UiIcon'), { name: row.original.device === 'mobile' ? 'smartphone' : 'monitor', class: 'size-3.5 text-muted' }),
   },
   {
     id: 'avg',
@@ -142,13 +140,13 @@ const recentColumns: ColumnDef<ScanRow>[] = [
 
 <template>
   <div class="space-y-6">
-    <PageHeader title="Dashboard" description="Your sites at a glance." flush>
+    <UiPageHeader title="Dashboard" description="Your sites at a glance." flush>
       <template #actions>
-        <UiButton purpose="cta" to="/scan/new" icon="i-lucide-plus">
+        <UiButton purpose="cta" to="/scan/new" icon="add">
           New Scan
         </UiButton>
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <!-- Active scan banner -->
     <div v-if="activeScan.isActive" class="rounded-xl border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="openActiveScan">
@@ -172,7 +170,7 @@ const recentColumns: ColumnDef<ScanRow>[] = [
     <!-- Empty state -->
     <div v-else-if="isEmpty" class="flex flex-col items-center justify-center py-20 text-center">
       <div class="size-16 rounded-full bg-elevated flex items-center justify-center mb-6">
-        <Icon name="lucide:radar" class="size-8 text-muted" />
+        <UiIcon name="radar" class="size-8 text-muted" />
       </div>
       <h2 class="text-heading mb-2">
         No scans yet
@@ -180,7 +178,7 @@ const recentColumns: ColumnDef<ScanRow>[] = [
       <p class="text-muted mb-6 max-w-sm">
         Start your first scan to get SEO, performance, and accessibility insights for your website.
       </p>
-      <UiButton purpose="cta" size="lg" to="/scan/new" icon="i-lucide-plus">
+      <UiButton purpose="cta" size="lg" to="/scan/new" icon="add">
         Start First Scan
       </UiButton>
     </div>
@@ -196,25 +194,25 @@ const recentColumns: ColumnDef<ScanRow>[] = [
 
       <!-- Sites -->
       <div v-if="siteRows.length" class="space-y-3">
-        <SectionHeader title="Sites">
+        <UiSectionHeader title="Sites">
           <template #actions>
             <NuxtLink to="/sites" class="text-xs text-dimmed hover:text-default transition-colors">
-              Manage <Icon name="lucide:arrow-right" class="size-3 inline" />
+              Manage <UiIcon name="next" class="size-3 inline" />
             </NuxtLink>
           </template>
-        </SectionHeader>
+        </UiSectionHeader>
         <UiTable :columns="siteColumns" :data="siteRows" enable-sorting row-clickable row-hover @row-click="openSite" />
       </div>
 
       <!-- Recent scans -->
       <div v-if="recentScans.length" class="space-y-3">
-        <SectionHeader title="Recent scans">
+        <UiSectionHeader title="Recent scans">
           <template #actions>
             <NuxtLink to="/history" class="text-xs text-dimmed hover:text-default transition-colors">
-              View all <Icon name="lucide:arrow-right" class="size-3 inline" />
+              View all <UiIcon name="next" class="size-3 inline" />
             </NuxtLink>
           </template>
-        </SectionHeader>
+        </UiSectionHeader>
         <UiTable :columns="recentColumns" :data="recentScans" row-clickable row-hover @row-click="openScan" />
       </div>
     </template>

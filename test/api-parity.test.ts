@@ -4,9 +4,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { commands } from '@unlighthouse/contracts/commands'
-import { commandToRoute } from '@unlighthouse/core/api/http'
-import { commandToRoute as clientCommandToRoute } from '@unlighthouse/core/api/client'
+import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 
 const STREAMING_NAMES = new Set(['events.subscribe', 'events.tail'])
@@ -15,8 +13,8 @@ describe('api parity', () => {
   const handlers = createHandlers()
   const commandList = Object.entries(commands)
 
-  it('registry has 34 commands', () => {
-    expect(commandList.length).toBe(34)
+  it('registry has 35 commands', () => {
+    expect(commandList.length).toBe(35)
   })
 
   it.each(commandList)('%s has a handler', (name) => {
@@ -33,11 +31,9 @@ describe('api parity', () => {
     expect(cmd.description.length).toBeGreaterThan(0)
   })
 
-  it.each(commandList)('%s projects to the same HTTP route in server + client', (_name, cmd) => {
-    const server = commandToRoute(cmd)
-    const client = clientCommandToRoute(cmd.name as never)
-    expect(client).toEqual(server)
-  })
+  // Server and client now derive routes from this same `commandToRoute`
+  // (in @unlighthouse/contracts), so they can no longer disagree by
+  // construction — the old server-vs-client parity case is obsolete.
 
   it.each(commandList)('%s method is GET or POST', (_name, cmd) => {
     const { method } = commandToRoute(cmd)

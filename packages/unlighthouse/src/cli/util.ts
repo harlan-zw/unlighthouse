@@ -3,13 +3,21 @@ import type { ResolvedUserConfig, UserConfig } from '../index.ts'
 import type { CiOptions, CliOptions } from './types'
 import { URL } from 'node:url'
 import { defu } from 'defu'
-import { pick } from 'lodash-es'
 import { fetchUrlRaw, normaliseHost } from '../index.ts'
 import { handleError } from './errors'
 
 type Device = 'mobile' | 'desktop'
 
 const VALID_DEVICES: readonly Device[] = ['mobile', 'desktop']
+
+function pickKeys<K extends string>(source: object, keys: readonly K[]): Partial<Record<K, unknown>> {
+  const picked: Partial<Record<K, unknown>> = {}
+  for (const key of keys) {
+    if (key in source)
+      picked[key] = (source as Record<K, unknown>)[key]
+  }
+  return picked
+}
 
 /**
  * Parse the `--device` CLI flag into a deduplicated ordered list. Accepts a
@@ -215,7 +223,7 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     picked.defaultQueryParams = defaultQueryParams
   }
 
-  const config = pick(options, [
+  const config = pickKeys(options, [
     // root level options
     'samples',
     'site',

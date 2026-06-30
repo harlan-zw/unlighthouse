@@ -30,7 +30,7 @@ const errorMessage = computed(() => {
   <div class="min-h-screen bg-default text-default flex flex-col items-center justify-center p-6">
     <div class="max-w-md text-center">
       <div class="size-16 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-8">
-        <Icon name="lucide:triangle-alert" class="size-8 text-error" />
+        <UiIcon name="warning" class="size-8 text-error" />
       </div>
       <h1 class="text-3xl font-semibold mb-3">
         {{ errorTitle }}
@@ -43,7 +43,7 @@ const errorMessage = computed(() => {
         {{ error.statusCode }}
       </div>
 
-      <UiButton purpose="cta" size="lg" icon="i-lucide-home" @click="handleError">
+      <UiButton purpose="cta" size="lg" icon="home" @click="handleError">
         Open dashboard
       </UiButton>
 

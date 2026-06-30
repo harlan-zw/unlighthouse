@@ -175,6 +175,20 @@ useIntersectionObserver(sentinelEl, ([entry]) => {
   if (entry)
     isScrolled.value = !entry.isIntersecting
 })
+
+// Dev guard: pagination (default + manual) bounds the rendered rows, but
+// `disablePagination` mounts every row. Warn before that becomes a perf problem
+// so the caller paginates or caps the list rather than virtualizing blindly.
+if (import.meta.dev) {
+  const ROW_WARN_THRESHOLD = 150
+  let warned = false
+  watch(() => disablePagination && data.length, () => {
+    if (disablePagination && data.length > ROW_WARN_THRESHOLD && !warned) {
+      warned = true
+      console.warn(`[UiTable] rendering ${data.length} rows with disablePagination — every row mounts to the DOM. Paginate, cap the list, or split it to keep rendering performant.`)
+    }
+  }, { immediate: true })
+}
 </script>
 
 <script lang="ts">
@@ -237,7 +251,7 @@ export interface UiTableProps<T> {
 </script>
 
 <template>
-  <div data-ui="UiTable" class="w-full" :data-scrolled="isScrolled || undefined">
+  <div data-ui="UiTable" class="w-full overflow-x-auto overscroll-x-contain lg:overflow-x-visible" :data-scrolled="isScrolled || undefined">
     <div ref="sentinelEl" aria-hidden="true" class="h-px w-full" />
     <table class="w-full" :aria-busy="loading || undefined">
       <caption v-if="label" class="sr-only">

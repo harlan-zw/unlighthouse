@@ -37,6 +37,17 @@ export interface UseChartBrush {
 
 const DRAG_THRESHOLD_PX = 5
 
+// Suppress page text-selection for the duration of a brush drag — a fast drag
+// otherwise selects surrounding copy (the "disable text selection during drag"
+// rule). Restored when the drag ends/cancels.
+function setSelectSuppressed(on: boolean) {
+  if (typeof document === 'undefined')
+    return
+  const s = document.documentElement.style
+  s.setProperty('user-select', on ? 'none' : '')
+  s.setProperty('-webkit-user-select', on ? 'none' : '')
+}
+
 export function useChartBrush(opts: UseChartBrushOptions): UseChartBrush {
   const wrapRef = ref<HTMLElement | null>(null)
   // Cached geometry — avoids synchronous layout reads on every pointermove.
@@ -130,6 +141,7 @@ export function useChartBrush(opts: UseChartBrushOptions): UseChartBrush {
           if (Math.abs(currentX - dragStartX) < DRAG_THRESHOLD_PX)
             return
           isDragging.value = true
+          setSelectSuppressed(true)
         }
         const currentIdx = pixelToIdx(currentX)
         const startIdx = Math.min(dragStartIdx, currentIdx)
@@ -159,6 +171,7 @@ export function useChartBrush(opts: UseChartBrushOptions): UseChartBrush {
     removeWindowListeners = () => {
       if (moveRaf != null)
         cancelAnimationFrame(moveRaf)
+      setSelectSuppressed(false)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)

@@ -11,61 +11,9 @@
 // the headline number for an agent or a human auditing whether their site
 // will actually rank.
 
+import type { Pack, PackReconcileCtx, SeoFinding, SeoReport, SeoRouteCheck } from '@unlighthouse/contracts/packs'
 import type { ReconciledReport } from '@unlighthouse/contracts/types/atoms'
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import { z } from 'zod'
-
-// ── Report shape ────────────────────────────────────────────────────────────
-
-const SeveritySchema = z.enum(['critical', 'serious', 'moderate', 'minor'])
-
-const RouteCheckSchema = z.object({
-  url: z.string(),
-  passes: z.number().int().nonnegative(),
-  fails: z.number().int().nonnegative(),
-  indexable: z.boolean(),
-})
-
-const SeoFindingSchema = z.object({
-  auditId: z.string(),
-  title: z.string(),
-  description: z.string().nullable(),
-  severity: SeveritySchema,
-  weight: z.number().nonnegative(),
-  // Route count where this audit failed.
-  routeCount: z.number().int().nonnegative(),
-  routes: z.array(z.string()).max(5),
-  // For array-items audits (link-text, hreflang) — sample affected elements.
-  sampleElements: z.array(z.object({
-    selector: z.string().nullable(),
-    snippet: z.string().nullable(),
-    nodeLabel: z.string().nullable(),
-  })).max(3),
-  fixHint: z.string(),
-})
-
-const SeoReportSchema = z.object({
-  scanId: z.string(),
-  routesAnalysed: z.number().int().nonnegative(),
-  // Headline: % of routes that pass the crawlability triad.
-  indexabilityPercent: z.number().min(0).max(100),
-  // The same number split out, for the UI.
-  indexableRoutes: z.number().int().nonnegative(),
-  unindexableRoutes: z.number().int().nonnegative(),
-  // Per-route summary (top 50, sorted unindexable-first then by fail count).
-  routeChecks: z.array(RouteCheckSchema).max(50),
-  severityCounts: z.object({
-    critical: z.number().int().nonnegative(),
-    serious: z.number().int().nonnegative(),
-    moderate: z.number().int().nonnegative(),
-    minor: z.number().int().nonnegative(),
-  }),
-  findings: z.array(SeoFindingSchema),
-})
-
-export type SeoFinding = z.infer<typeof SeoFindingSchema>
-export type SeoRouteCheck = z.infer<typeof RouteCheckSchema>
-export type SeoReport = z.infer<typeof SeoReportSchema>
+import { SeoReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

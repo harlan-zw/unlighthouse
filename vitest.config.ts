@@ -4,10 +4,12 @@ import { defineConfig } from 'vite'
 
 const r = (p: string) => resolve(__dirname, p)
 const escapeRegExp = (id: string) => id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const exact = (id: string, path: string) => ({
-  find: new RegExp(`^${escapeRegExp(id)}$`),
-  replacement: r(path),
-})
+function exact(id: string, path: string) {
+  return {
+    find: new RegExp(`^${escapeRegExp(id)}$`),
+    replacement: r(path),
+  }
+}
 
 // Workspace path aliases for tests. Shared runtime deps (drizzle-orm, h3,
 // zod, fs-extra, tinyexec, better-sqlite3) are declared as root devDeps in

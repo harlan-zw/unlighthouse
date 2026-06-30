@@ -41,6 +41,13 @@ interface Props {
   /** Whether the cursor may enter the tooltip body. Default `true` (tooltip semantics). */
   disableHoverableContent?: boolean
   disabled?: boolean
+  /**
+   * Default-variant trigger element. `'span'` (default) wraps the slot in a
+   * non-focusable span — correct when the slot content is itself focusable.
+   * `'button'` wraps it in a focusable button so a non-interactive trigger
+   * (e.g. a bare info icon) stays keyboard- and screen-reader-reachable.
+   */
+  triggerAs?: 'span' | 'button'
 }
 
 const {
@@ -54,6 +61,7 @@ const {
   disableHoverableContent = true,
   disabled = false,
   size = 'md',
+  triggerAs = 'span',
 } = defineProps<Props>()
 
 defineSlots<{
@@ -88,8 +96,11 @@ export const sizes = {
         :disable-hoverable-content="disableHoverableContent"
         :disabled="disabled || !hasContent"
       >
-        <TooltipTrigger as-child>
-          <UiIcon name="i-carbon-help" class="size-3 text-dimmed hover:text-muted transition-colors cursor-help" />
+        <TooltipTrigger
+          :aria-label="`More information: ${label}`"
+          class="inline-flex items-center rounded-full text-dimmed hover:text-muted transition-colors cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <UiIcon name="life-buoy" class="size-3" aria-hidden="true" />
         </TooltipTrigger>
         <TooltipPortal>
           <TooltipContent
@@ -132,10 +143,25 @@ export const sizes = {
       :disabled="disabled || !hasContent"
     >
       <TooltipTrigger as-child>
-        <span :class="$slots.default ? 'inline-block' : 'inline-flex'">
-          <slot v-if="$slots.default" />
-          <UiIcon v-else name="i-carbon-help" color="primary" :size="iconSize || 'md'" class="cursor-help" />
+        <span v-if="$slots.default && triggerAs === 'span'" class="inline-block">
+          <slot />
         </span>
+        <button
+          v-else-if="$slots.default"
+          type="button"
+          :aria-label="text || title || description"
+          class="inline-flex cursor-help rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <slot />
+        </button>
+        <button
+          v-else
+          type="button"
+          aria-label="More information"
+          class="inline-flex cursor-help rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <UiIcon name="life-buoy" color="primary" :size="iconSize || 'md'" aria-hidden="true" />
+        </button>
       </TooltipTrigger>
       <TooltipPortal>
         <TooltipContent

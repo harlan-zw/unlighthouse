@@ -14,63 +14,8 @@
 // are MAX-per-URL across routes, not sum — the same script can't be
 // unloaded multiple times. Render-blocking ms is MAX per-URL too.
 
-import type { Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import { z } from 'zod'
-
-// ── Report shape ────────────────────────────────────────────────────────────
-
-const FindingKindSchema = z.enum([
-  'unused-js',
-  'unused-css',
-  'render-blocking',
-  'third-party',
-  'legacy-js',
-  'duplicated-js',
-])
-const SeveritySchema = z.enum(['critical', 'serious', 'moderate', 'minor'])
-
-const BundleFindingSchema = z.object({
-  kind: FindingKindSchema,
-  // Either a resource URL (most kinds) or an entity name (third-party).
-  // Display as a URL when possible; the UI sniffs `http(s)://`.
-  resource: z.string(),
-  severity: SeveritySchema,
-  // Wasted bytes counted once per resource (max across routes).
-  totalBytes: z.number().int().nullable(),
-  wastedBytes: z.number().int().nullable(),
-  // Percent of `totalBytes` unused (from the LHR — only present on
-  // unused-* audits).
-  wastedPercent: z.number().nullable(),
-  // Render-blocking only: estimated FCP improvement in ms.
-  wastedMs: z.number().int().nullable(),
-  // Third-party only: main-thread + blocking time.
-  mainThreadMs: z.number().int().nullable(),
-  blockingMs: z.number().int().nullable(),
-  // One-line copy-paste hint.
-  fixHint: z.string(),
-  routes: z.array(z.string()).max(5),
-  routeCount: z.number().int().nonnegative(),
-})
-
-const BundleReportSchema = z.object({
-  scanId: z.string(),
-  routesAnalysed: z.number().int().nonnegative(),
-  // Site-wide max savings if every unused-js / unused-css fix lands. Counted
-  // once per URL, no double-counting across routes.
-  totalBytesSavable: z.number().int().nonnegative(),
-  // Site-wide max render-blocking ms savings.
-  totalRenderBlockingMs: z.number().int().nonnegative(),
-  severityCounts: z.object({
-    critical: z.number().int().nonnegative(),
-    serious: z.number().int().nonnegative(),
-    moderate: z.number().int().nonnegative(),
-    minor: z.number().int().nonnegative(),
-  }),
-  findings: z.array(BundleFindingSchema),
-})
-
-export type BundleFinding = z.infer<typeof BundleFindingSchema>
-export type BundleReport = z.infer<typeof BundleReportSchema>
+import type { BundleFinding, BundleReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import { BundleReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

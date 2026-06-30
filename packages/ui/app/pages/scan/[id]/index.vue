@@ -21,7 +21,7 @@ catch {
 
 <template>
   <div class="flex items-center justify-center py-20 text-muted">
-    <Icon name="lucide:loader-2" class="size-5 animate-spin mr-2" />
+    <UiIcon name="loading" class="size-5 animate-spin mr-2" />
     Redirecting…
   </div>
 </template>

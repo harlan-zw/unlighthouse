@@ -16,17 +16,27 @@ export interface UiNavLink {
   badge?: string
   badgeColor?: 'primary' | 'warning'
   stability?: UiNavStability | null
+  /** Trailing "waiting" dot — the surface exists but a prerequisite (e.g. an
+   *  integration connection or first sync) isn't met yet. */
+  pending?: boolean
+  pendingTooltip?: string
   active?: (path: string) => boolean
 }
 
-const { links, activeMode = 'exact' } = defineProps<{
+const { links, activeMode = 'exact', label } = defineProps<{
   links: T[]
   activeMode?: 'exact' | 'prefix'
+  /**
+   * Accessible name for this `<nav>` landmark. Pass a distinct value when more
+   * than one nav list renders on a page (e.g. grouped sidebars) so the landmarks
+   * stay unique for screen readers.
+   */
+  label?: string
 }>()
 
 defineSlots<{
   /** Custom leading visual per item (e.g. a favicon). Replaces `UiNavIcon`. */
-  icon?: (props: { link: T }) => any
+  icon?: (props: { link: T, active: boolean }) => any
   /** Trailing per-row action (e.g. a hover menu). Rendered as a sibling of the
    *  link, not nested inside the anchor, so interactive triggers stay valid. */
   action?: (props: { link: T }) => any
@@ -44,7 +54,7 @@ function isActive(link: T) {
 </script>
 
 <template>
-  <nav class="space-y-0.5">
+  <nav class="space-y-0.5" :aria-label="label">
     <div
       v-for="link in links"
       :key="link.to"
@@ -54,7 +64,7 @@ function isActive(link: T) {
         :to="link.disabled ? undefined : link.to"
         :aria-disabled="link.disabled || undefined"
         :tabindex="link.disabled ? -1 : undefined"
-        class="flex items-center gap-1.5 px-1 py-1 rounded text-sm transition-colors"
+        class="flex items-center gap-1.5 px-1 py-1 min-h-11 lg:min-h-0 rounded text-sm transition-colors"
         :class="[
           link.disabled
             ? 'text-dimmed cursor-not-allowed'
@@ -65,21 +75,34 @@ function isActive(link: T) {
         :style="isActive(link) && !link.disabled ? { boxShadow: 'var(--elevation-raised)', backgroundImage: 'var(--surface-raised)' } : undefined"
         :title="link.title"
       >
-        <slot v-if="$slots.icon" name="icon" :link="link" />
+        <slot v-if="$slots.icon" name="icon" :link="link" :active="isActive(link)" />
         <UiNavIcon
           v-else-if="link.icon"
           :icon="link.icon"
+          :active="isActive(link)"
         />
-        <span class="truncate">{{ link.label }}</span>
+        <span class="min-w-0 truncate">{{ link.label }}</span>
         <span
           v-if="link.badge"
           class="ml-auto text-mini font-medium px-1.5 py-0.5 rounded-md"
           :class="link.badgeColor === 'warning'
-            ? `${semanticColors.warning.text} ${semanticColors.warning.bg}`
+            ? 'text-warning bg-warning/10'
             : 'text-primary bg-primary/10'"
         >
           {{ link.badge }}
         </span>
+        <UiTooltip
+          v-else-if="link.pending"
+          :text="link.pendingTooltip || 'Waiting for data'"
+        >
+          <span
+            class="ml-auto flex items-center"
+            role="img"
+            :aria-label="link.pendingTooltip || 'Waiting for data'"
+          >
+            <span class="size-1.5 rounded-full bg-current text-warning motion-safe:animate-pulse" aria-hidden="true" />
+          </span>
+        </UiTooltip>
         <UiTooltip
           v-else-if="link.stability"
           :text="link.stability.tooltip"

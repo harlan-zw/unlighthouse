@@ -1,7 +1,6 @@
 import type { Logger, NormalisedRoute, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { ConsolaInstance } from 'consola'
 import { createConsola } from 'consola'
-import { get, groupBy } from 'lodash-es'
 import { fetchRobotsTxt, mergeRobotsTxtConfig } from '../policies/robots'
 import { parseRobotsTxt } from '../policies/robots/parser'
 import { extractSitemapRoutes } from './sitemap'
@@ -25,6 +24,24 @@ function sampleRoutes(routes: NormalisedRoute[], size: number): NormalisedRoute[
     shuffled[j] = current
   }
   return shuffled.slice(0, size)
+}
+
+function getPathValue(source: unknown, path: string): unknown {
+  return path.split('.').filter(Boolean).reduce<unknown>((current, part) => {
+    if (current == null || typeof current !== 'object')
+      return undefined
+    return (current as Record<string, unknown>)[part]
+  }, source)
+}
+
+function groupRoutesBy(routes: NormalisedRoute[], getKey: (route: NormalisedRoute) => string): Record<string, NormalisedRoute[]> {
+  const grouped: Record<string, NormalisedRoute[]> = {}
+  for (const route of routes) {
+    const key = getKey(route)
+    grouped[key] ||= []
+    grouped[key].push(route)
+  }
+  return grouped
 }
 
 /**
@@ -114,10 +131,10 @@ export function applyDynamicSampling(deps: { resolvedConfig: ResolvedUserConfig,
   if (!resolvedConfig.scanner.dynamicSampling)
     return routes
 
-  const pathsChunkedToGroup = groupBy(
+  const pathsChunkedToGroup = groupRoutesBy(
     routes,
-    (route: NormalisedRoute) => String(get(route, resolvedConfig.client.groupRoutesKey.replace('route.', ''))),
-  ) as Record<string, NormalisedRoute[]>
+    (route: NormalisedRoute) => String(getPathValue(route, resolvedConfig.client.groupRoutesKey.replace('route.', ''))),
+  )
 
   const sampledRoutes = Object.values(pathsChunkedToGroup).map(
     (group: NormalisedRoute[]) => {

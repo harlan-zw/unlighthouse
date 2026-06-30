@@ -26,9 +26,41 @@ export interface VizColor {
   dot: string
 }
 
-function viz(bg: string, hex: string, text: string): VizColor {
-  return { bg, hex, text, dot: bg }
+/**
+ * `dot` is the solid identity colour (legend dots, sparkline strokes); `bg` is its
+ * translucent fill variant for proportion bars / badge backgrounds so the value sitting
+ * on top stays readable. Standard `bg-{hue}-{shade}` tokens get a `/15` fill; tokens that
+ * already carry an opacity modifier or use a semantic name (e.g. `bg-accented`) pass through.
+ *
+ * The `/15` variants are built at runtime, so Tailwind's content scanner never sees them
+ * as literals — they must be safelisted (see `vizFillSafelist` below) or the bar renders
+ * transparent.
+ */
+function viz(dot: string, hex: string, text: string): VizColor {
+  const bg = /^bg-[a-z]+-\d+$/.test(dot) ? `${dot}/15` : dot
+  return { bg, hex, text, dot }
 }
+
+/**
+ * Tailwind JIT safelist. Every `bg-<hue>-<shade>/15` fill `viz()` can emit must appear
+ * here as a literal so Tailwind's source scanner generates the CSS (clicks/impressions
+ * worked only because `periodVizColors` happened to spell them out). Keep in sync with
+ * the `viz()` inputs below — a missing entry makes that metric's proportion bar invisible.
+ */
+export const vizFillSafelist = [
+  'bg-blue-500/15',
+  'bg-purple-500/15',
+  'bg-emerald-500/15',
+  'bg-orange-500/15',
+  'bg-cyan-500/15',
+  'bg-amber-500/15',
+  'bg-red-500/15',
+  'bg-violet-500/15',
+  'bg-blue-400/15',
+  'bg-green-400/15',
+  'bg-amber-400/15',
+  'bg-emerald-400/15',
+] as const
 
 /**
  * GSC metric identity — pinned so every clicks chart reads blue, every
@@ -53,10 +85,14 @@ export const analyticsMetricColors = {
   pageviews: viz('bg-purple-500', '#a855f7', 'text-purple-500'),
 } as const satisfies Record<string, VizColor>
 
-/** Core Web Vitals metric identity. */
+/**
+ * Core Web Vitals metric identity. `tbt` (synthetic lab) shares INP's amber —
+ *  it occupies the same responsiveness slot when the source is Lighthouse.
+ */
 export const cwvMetricColors = {
   lcp: viz('bg-blue-500', '#3b82f6', 'text-blue-500'),
   inp: viz('bg-amber-500', '#f59e0b', 'text-amber-500'),
+  tbt: viz('bg-amber-500', '#f59e0b', 'text-amber-500'),
   cls: viz('bg-purple-500', '#a855f7', 'text-purple-500'),
 } as const satisfies Record<string, VizColor>
 
@@ -89,6 +125,10 @@ export const positionDistColors = {
   pageOne: { bg: 'bg-info', hex: semanticColors.info.hex, text: 'text-info', dot: 'bg-info' },
   secondPage: { bg: 'bg-muted', hex: semanticColors.neutral.hex, text: 'text-muted', dot: 'bg-muted' },
   beyond: { bg: 'bg-elevated', hex: semanticColors.neutral.hex, text: 'text-muted', dot: 'bg-elevated' },
+  top3: { bg: 'bg-warning', hex: semanticColors.warning.hex, text: 'text-warning', dot: 'bg-warning' },
+  page1: { bg: 'bg-info', hex: semanticColors.info.hex, text: 'text-info', dot: 'bg-info' },
+  page2: { bg: 'bg-muted', hex: semanticColors.neutral.hex, text: 'text-muted', dot: 'bg-muted' },
+  deep: { bg: 'bg-elevated', hex: semanticColors.neutral.hex, text: 'text-muted', dot: 'bg-elevated' },
 } as const satisfies Record<string, VizColor>
 
 /**

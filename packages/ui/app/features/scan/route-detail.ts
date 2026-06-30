@@ -18,11 +18,11 @@ interface AuditEntry {
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
-  'performance': 'lucide:gauge',
-  'accessibility': 'lucide:accessibility',
-  'seo': 'lucide:search',
-  'best-practices': 'lucide:shield-check',
-  'agentic-browsing': 'lucide:bot',
+  'performance': 'gauge',
+  'accessibility': 'accessibility',
+  'seo': 'search',
+  'best-practices': 'shield-check',
+  'agentic-browsing': 'bot',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -219,7 +219,7 @@ export function useRouteDetail() {
       return {
         id: category.id,
         label: CATEGORY_LABELS[category.id] || category.title,
-        icon: CATEGORY_ICONS[category.id] || 'lucide:folder',
+        icon: CATEGORY_ICONS[category.id] || 'folder',
         score: category.score,
         failing,
         passing,

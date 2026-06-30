@@ -4,10 +4,10 @@
   "version": "0.17.4",
   "private": true,
   "packageManager": "pnpm@11.9.0",
+  "license": "MIT",
   "engines": {
     "node": ">=24.13.1"
   },
-  "license": "MIT",
   "scripts": {
     "cli": "node packages/unlighthouse/dist/cli/cli.mjs",
     "ci": "node packages/unlighthouse/dist/cli/ci.mjs",
@@ -47,7 +47,7 @@
     "rolldown": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vite": "8.1.0",
+    "vite": "catalog:dependencies",
     "vitest": "catalog:",
     "vue": "catalog:dependencies",
     "zod": "catalog:"
