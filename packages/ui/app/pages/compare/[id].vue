@@ -2,17 +2,17 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
 import {
-  CATEGORY_METRICS,
-  CWV_METRICS,
-  DIAGNOSTIC_METRICS,
-  SHORT_LABEL,
-  SORT_OPTIONS as sortOptions,
   badgeProps,
-  compareRowKey as rowKey,
+  CATEGORY_METRICS,
   createComparePresentation,
+  CWV_METRICS,
   cwvVerdictColor,
   deltaClass,
+  DIAGNOSTIC_METRICS,
   fmtCwvP75,
+  compareRowKey as rowKey,
+  SHORT_LABEL,
+  SORT_OPTIONS as sortOptions,
   statusBadge,
 } from '~/features/compare/presentation'
 import { useCompareWorkflow } from '~/features/compare/workflow'
@@ -25,6 +25,8 @@ const {
   currentScanId,
   baseScanId,
   currentMeta,
+  currentMetaError,
+  refreshCurrentMeta,
   baseMeta,
   otherScans,
   comparing,
@@ -114,6 +116,10 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
 
 <template>
   <div class="h-full flex flex-col">
+    <!-- Couldn't load the current scan — the compare can't proceed, so
+         surface it above the toolbar with a retry. -->
+    <QueryError v-if="currentMetaError" :error="currentMetaError" :on-retry="refreshCurrentMeta" class="m-4" />
+
     <!-- Top toolbar — base/current scan identity, swap, picker, actions -->
     <div class="border-b bg-default/50">
       <div class="px-4 py-2.5 flex items-center gap-3 flex-wrap">
@@ -132,7 +138,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
             <template #item="{ item }">
               <div class="flex items-center gap-2 text-xs">
                 <span class="font-mono">{{ shortId(item.scan.scanId) }}</span>
-                <UBadge color="neutral" variant="outline" size="xs" class="text-[9px]">{{ item.scan.device }}</UBadge>
+                <UBadge color="neutral" variant="outline" size="xs" class="text-[9px]">
+                  {{ item.scan.device }}
+                </UBadge>
                 <span class="text-muted">{{ fmtDate(item.scan.completedAt || item.scan.startedAt) }}</span>
                 <span v-if="item.scan.ciCommit" class="font-mono text-[10px] text-muted">{{ item.scan.ciCommit.slice(0, 7) }}</span>
               </div>
@@ -149,7 +157,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-label text-muted shrink-0">Current</span>
           <span class="font-mono text-xs">{{ shortId(currentScanId) }}</span>
-          <UBadge v-if="currentMeta" color="neutral" variant="outline" size="xs" class="text-[9px]">{{ currentMeta.device }}</UBadge>
+          <UBadge v-if="currentMeta" color="neutral" variant="outline" size="xs" class="text-[9px]">
+            {{ currentMeta.device }}
+          </UBadge>
           <span v-if="currentMeta" class="text-xs text-muted truncate max-w-[200px]">{{ currentMeta.site }}</span>
         </div>
 
@@ -162,8 +172,12 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
             <template #content>
               <div class="w-96 p-4 space-y-3">
                 <div>
-                  <h4 class="text-sm font-semibold">Regression thresholds</h4>
-                  <p class="text-xs text-muted">Empty = CI defaults. Deltas within threshold render muted (treated as noise).</p>
+                  <h4 class="text-sm font-semibold">
+                    Regression thresholds
+                  </h4>
+                  <p class="text-xs text-muted">
+                    Empty = CI defaults. Deltas within threshold render muted (treated as noise).
+                  </p>
                 </div>
 
                 <!-- Single inline note about sampling — explained once,
@@ -175,7 +189,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
 
                 <div class="space-y-3 text-xs">
                   <div>
-                    <div class="text-label text-muted mb-1.5">Category scores (0–1)</div>
+                    <div class="text-label text-muted mb-1.5">
+                      Category scores (0–1)
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
                       <label class="space-y-1">
                         <span class="text-muted">Performance</span>
@@ -197,7 +213,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
                   </div>
 
                   <div>
-                    <div class="text-label text-muted mb-1.5">Core Web Vitals</div>
+                    <div class="text-label text-muted mb-1.5">
+                      Core Web Vitals
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
                       <label class="space-y-1">
                         <span class="text-muted flex justify-between">
@@ -264,7 +282,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       <UiCard class="max-w-md">
         <div class="text-center space-y-3">
           <Icon name="lucide:git-compare-arrows" class="size-12 text-muted/40 mx-auto" />
-          <h3 class="font-semibold">Pick a scan to compare against</h3>
+          <h3 class="font-semibold">
+            Pick a scan to compare against
+          </h3>
           <p class="text-sm text-muted">
             Use the <strong>Base</strong> dropdown above to pick a prior scan of <span class="font-mono text-xs">{{ currentMeta?.site || 'this site' }}</span>. The most recent scan on the same device + branch is auto-selected when available.
           </p>
@@ -280,7 +300,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       <UiCard class="max-w-md">
         <div class="text-center space-y-3">
           <Icon name="lucide:play" class="size-10 text-muted/40 mx-auto" />
-          <p class="text-sm text-muted">Press <strong>Compare</strong> to run the diff.</p>
+          <p class="text-sm text-muted">
+            Press <strong>Compare</strong> to run the diff.
+          </p>
         </div>
       </UiCard>
     </div>
@@ -369,7 +391,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       <div class="px-4 py-2 border-b flex items-center gap-3 flex-wrap">
         <div class="relative w-64">
           <Icon name="lucide:search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
-          <UInput placeholder="Filter by URL or path..." size="sm" class="w-full" :model-value="urlFilter" @update:model-value="onFilterInput" :ui="{ base: 'pl-8' }" />
+          <UInput placeholder="Filter by URL or path..." size="sm" class="w-full" :model-value="urlFilter" :ui="{ base: 'pl-8' }" @update:model-value="onFilterInput" />
         </div>
 
         <UTabs
@@ -479,7 +501,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
               :row-class="(r: any) => selectedRowKey === rowKey(r) ? 'bg-elevated' : ''"
               @row-click="(r: any) => { selectedRowKey = rowKey(r) }"
             >
-              <template #empty>No routes match the current filter.</template>
+              <template #empty>
+                No routes match the current filter.
+              </template>
             </DataTable>
 
             <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-default">
@@ -497,10 +521,16 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
         <SplitterPanel :default-size="38" :min-size="25">
           <div v-if="selectedRow" class="h-full overflow-auto p-4 space-y-4">
             <div>
-              <div class="font-mono text-sm font-medium break-all">{{ selectedRow.url }}</div>
+              <div class="font-mono text-sm font-medium break-all">
+                {{ selectedRow.url }}
+              </div>
               <div class="flex items-center gap-2 mt-1">
-                <UBadge color="neutral" variant="outline" size="xs" class="text-[10px]">{{ selectedRow.device }}</UBadge>
-                <UBadge v-bind="badgeProps(statusBadge(selectedRow.status))" size="xs" class="text-[10px] capitalize">{{ selectedRow.status }}</UBadge>
+                <UBadge color="neutral" variant="outline" size="xs" class="text-[10px]">
+                  {{ selectedRow.device }}
+                </UBadge>
+                <UBadge v-bind="badgeProps(statusBadge(selectedRow.status))" size="xs" class="text-[10px] capitalize">
+                  {{ selectedRow.status }}
+                </UBadge>
                 <NuxtLink
                   :to="`/scan/${currentScanId}/route/${encodeURIComponent(selectedRow.path)}`"
                   class="text-[10px] text-muted hover:text-default inline-flex items-center gap-1"
@@ -514,22 +544,38 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
             <!-- Categories: the headline. Aggregate of dozens of audits,
                  noise-resistant. -->
             <section>
-              <h4 class="text-label text-muted mb-2">Categories</h4>
+              <h4 class="text-label text-muted mb-2">
+                Categories
+              </h4>
               <div class="rounded-lg border overflow-hidden">
                 <table class="w-full text-sm">
                   <thead>
                     <tr class="border-b border-default last:border-0">
-                      <th class="text-label text-dimmed px-3 py-2 text-left font-normal">Metric</th>
-                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">Base</th>
-                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">Current</th>
-                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">Delta</th>
+                      <th class="text-label text-dimmed px-3 py-2 text-left font-normal">
+                        Metric
+                      </th>
+                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">
+                        Base
+                      </th>
+                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">
+                        Current
+                      </th>
+                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">
+                        Delta
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="m in CATEGORY_METRICS" :key="m.key" class="border-b border-default last:border-0">
-                      <td class="px-3 py-2 text-sm font-medium">{{ m.label }}</td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</td>
+                      <td class="px-3 py-2 text-sm font-medium">
+                        {{ m.label }}
+                      </td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm">
+                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm">
+                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                      </td>
                       <td
                         class="px-3 py-2 text-right tabular-nums text-sm font-medium"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
@@ -547,15 +593,21 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
             <section>
               <h4 class="text-label text-muted mb-2 flex items-center gap-1.5">
                 Core Web Vitals
-                <Icon name="lucide:info" class="size-2.5 opacity-60" :title="'Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability.'" />
+                <Icon name="lucide:info" class="size-2.5 opacity-60" title="Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability." />
               </h4>
               <div class="rounded-lg border overflow-hidden">
                 <table class="w-full text-sm">
                   <tbody>
                     <tr v-for="m in CWV_METRICS" :key="m.key" class="border-b border-default last:border-0">
-                      <td class="px-3 py-2 text-sm font-medium" :title="m.hint">{{ m.label }}</td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</td>
+                      <td class="px-3 py-2 text-sm font-medium" :title="m.hint">
+                        {{ m.label }}
+                      </td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">
+                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">
+                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                      </td>
                       <td
                         class="px-3 py-2 text-right tabular-nums text-sm font-medium w-20"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
@@ -582,9 +634,15 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
                 <table class="w-full text-sm">
                   <tbody>
                     <tr v-for="m in DIAGNOSTIC_METRICS" :key="m.key" class="border-b border-default last:border-0">
-                      <td class="px-3 py-2 text-sm font-medium text-muted" :title="m.hint">{{ m.label }}</td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}</td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">{{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}</td>
+                      <td class="px-3 py-2 text-sm font-medium text-muted" :title="m.hint">
+                        {{ m.label }}
+                      </td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">
+                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                      </td>
+                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">
+                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                      </td>
                       <td
                         class="px-3 py-2 text-right tabular-nums text-sm font-medium w-20"
                         :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"

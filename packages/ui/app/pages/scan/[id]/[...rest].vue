@@ -15,7 +15,7 @@ if (restPath.startsWith('compare')) {
 else {
   try {
     const meta = await api['scan.meta']({ scanId })
-    const slug = new URL(meta.site).hostname
+    const slug = siteSlug(meta.site)
     await navigateTo(`/sites/${slug}/scans/${scanId}/${restPath}`, { replace: true })
   }
   catch {

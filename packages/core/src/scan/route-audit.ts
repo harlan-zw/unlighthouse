@@ -21,6 +21,8 @@ import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
 import { Buffer } from 'node:buffer'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { createPackReconcileCtx } from '../packs/reconcile-context'
+import { routeContractBlobKeyForReport } from '../report/route-contracts'
 
 export type Device = 'mobile' | 'desktop'
 
@@ -152,7 +154,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       const hash = await urlHash(url)
       const lhrKey = `scans/${scanId}/lhr/${hash}-${device}.json.gz`
       const reportKey = `scans/${scanId}/reports/${hash}-${device}.json`
-      const contractKey = `scans/${scanId}/reports/${hash}-${device}.contract.json`
+      const contractKey = routeContractBlobKeyForReport(reportKey)
       await storage.blobs.put(lhrKey, lhrGzip).catch(() => {})
 
       // Reconciled per-route report — UI-shaped, decoupled from LHR shape.
@@ -189,7 +191,8 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
         const lhr = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
         const contract = reconcileToContract({ scanId, url, device, lhr: lhr as never })
         const bytes = new TextEncoder().encode(JSON.stringify(contract))
-        await storage.blobs.put(contractKey, bytes).catch(() => {})
+        if (contractKey)
+          await storage.blobs.put(contractKey, bytes).catch(() => {})
       }
       catch { /* best-effort; packs fall back to getLhr */ }
 
@@ -287,29 +290,16 @@ export async function finalizeScan(deps: FinalizeDeps, args: FinalizeArgs): Prom
   if (scoredRoutes.length > 0) {
     try {
       const { builtInPacks } = await import('../packs/index')
+      const packCtx = createPackReconcileCtx({
+        scanId,
+        routes: scoredRoutes,
+        blobs: storage.blobs,
+        logger: logger as never,
+      })
       for (const [name, pack] of Object.entries(builtInPacks)) {
         try {
           const packStart = nowIso()
-          const report = await pack.reconciler({
-            scanId,
-            routes: scoredRoutes,
-            getReconciled: async (url: string, dev) => {
-              const hash = await urlHash(url)
-              const key = `scans/${scanId}/reports/${hash}-${dev}.contract.json`
-              const blob = await storage.blobs.get(key)
-              return blob ? JSON.parse(new TextDecoder().decode(blob)) : null
-            },
-            getLhr: async (url: string, dev) => {
-              const hash = await urlHash(url)
-              const key = `scans/${scanId}/lhr/${hash}-${dev}.json.gz`
-              const blob = await storage.blobs.get(key)
-              if (!blob)
-                return null
-              const { gunzipSync } = await import('node:zlib')
-              return JSON.parse(gunzipSync(blob).toString())
-            },
-            logger: logger as never,
-          })
+          const report = await pack.reconciler(packCtx)
           await storage.packRuns.put({
             scanId,
             packName: name,

@@ -1,9 +1,10 @@
 import type { ScanId } from '@unlighthouse/contracts'
+import type { TrendMarker, TrendSeries } from '~/features/sites/components/TrendChart.vue'
+import type { DevicePair, ScanRow } from '~/features/sites/scan-pairs'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { scanLinkPath } from '~/features/scan/scan-links'
-import type { TrendMarker, TrendSeries } from '~/features/sites/components/TrendChart.vue'
-import { pairScans, type DevicePair, type ScanRow } from '~/features/sites/scan-pairs'
+import { pairScans } from '~/features/sites/scan-pairs'
 import { resolveSiteUrl } from '~/features/sites/site-url'
 import { siteSlug } from '~/utils/site'
 
@@ -17,7 +18,7 @@ const SCORE_SERIES = [
 ] as const
 
 const VITALS = [
-  { key: 'lcp', label: 'LCP', color: '#6366f1', fmt: (value: number) => (value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`) },
+  { key: 'lcp', label: 'LCP', color: '#6366f1', fmt: (value: number) => formatMs(value) },
   { key: 'cls', label: 'CLS', color: '#8b5cf6', fmt: (value: number) => value.toFixed(3) },
   { key: 'tbt', label: 'TBT', color: '#ec4899', fmt: (value: number) => `${Math.round(value)}ms` },
 ] as const
@@ -55,18 +56,15 @@ export function useSiteOverview() {
   const api = useApi()
   const slug = route.params.siteId as string
 
-  const { data: sitesData } = useAsyncData(
-    'sidebar-sites',
-    () => api['sites.list']({}),
-  )
+  const { data: sitesData, error: sitesError } = useApiQuery('sites.list', () => ({}))
 
   const siteMeta = computed(() => ((sitesData.value?.sites ?? []) as SiteEntry[]).find(site => siteSlug(site.url) === slug) ?? null)
   const siteUrl = computed(() => resolveSiteUrl(slug, sitesData.value?.sites ?? []))
   const siteName = computed(() => siteMeta.value?.name || slug)
 
-  const { data: histData, status: histStatus } = useAsyncData(
-    'scan-history-grouped',
-    () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
+  const { data: histData, status: histStatus, error: histError, refresh: refreshHistory } = useApiQuery(
+    'history.list',
+    () => ({ page: 1, pageSize: 200 }),
   )
 
   const siteOrigin = computed(() => originOf(siteUrl.value) ?? siteUrl.value)
@@ -116,8 +114,11 @@ export function useSiteOverview() {
     }),
   })))
 
-  const { data: vitalsData, status: vitalsStatus } = useAsyncData(
-    `site-vitals-${slug}`,
+  // Composite: one `pack.run` per trend scan, fanned out. Per-scan `.catch`
+  // drops a scan whose pack failed rather than failing the whole chart — an
+  // expected, ignorable gap — so this stays a handler query. Keyed on the
+  // scan-id set so it refetches when the trend window changes.
+  const { data: vitalsData, status: vitalsStatus } = useNuxtAsyncQuery<CwvReportEntry[]>(
     async () => {
       const scans = trendScans.value
       if (!scans.length)
@@ -129,7 +130,7 @@ export function useSiteOverview() {
       ))
       return results.filter(Boolean) as CwvReportEntry[]
     },
-    { watch: [trendScans] },
+    { key: () => `site-vitals:${slug}:${trendScans.value.map(scan => scan.scanId).join(',')}` },
   )
 
   function vitalsSeries(metricKey: string, label: string, color: string): TrendSeries[] {
@@ -151,29 +152,29 @@ export function useSiteOverview() {
       router.push(scanLinkPath(slug, id, pair.mobile?.status ?? pair.desktop?.status))
   }
 
+  const rescanMutation = useApiMutation('history.rescan')
   async function rescan(scanId: string) {
     if (!scanId)
       return
-    try {
-      const result = await api['history.rescan']({ scanId: scanId as ScanId })
-      toast.success('Rescan started')
-      router.push(`/sites/${slug}/scans/${result.scanId}/overview`)
+    const result = await rescanMutation.mutateSafe({ scanId: scanId as ScanId })
+    if (result._tag === 'err') {
+      toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+      return
     }
-    catch (err: any) {
-      toast.error('Rescan failed', { description: err.message })
-    }
+    toast.success('Rescan started')
+    router.push(`/sites/${slug}/scans/${result.data.scanId}/overview`)
   }
 
+  const deleteMutation = useApiMutation('scan.delete', { invalidates: ['history.list'] })
   async function deleteScan(scanId: string) {
     if (!scanId)
       return
-    try {
-      await api['scan.delete']({ scanId: scanId as ScanId })
-      toast.success('Scan deleted')
+    const result = await deleteMutation.mutateSafe({ scanId: scanId as ScanId })
+    if (result._tag === 'err') {
+      toast.error('Failed to delete', { description: normalizeApiError(result.error).message })
+      return
     }
-    catch (err: any) {
-      toast.error('Failed to delete', { description: err.message })
-    }
+    toast.success('Scan deleted')
   }
 
   const recentForDevice = computed(() =>
@@ -195,6 +196,9 @@ export function useSiteOverview() {
     slug,
     siteUrl,
     siteName,
+    sitesError,
+    histError,
+    refreshHistory,
     hasBoth,
     deviceFilter,
     showReleases,

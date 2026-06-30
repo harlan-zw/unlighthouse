@@ -5,13 +5,9 @@ import { getScanId } from '~/features/scan/route-context'
 
 definePageMeta({ layout: 'scan' })
 
-const api = useApi()
 const scanId = getScanId()
 
-const { data: seoPack, status } = useAsyncData(
-  `seo-${scanId}`,
-  () => api['pack.run']({ scanId, pack: 'seo-basics' }).catch(() => null),
-)
+const { data: seoPack, status, error: seoError, refresh: refreshSeo } = useApiQuery('pack.run', () => ({ scanId, pack: 'seo-basics' }))
 
 const report = computed(() => (seoPack.value as any)?.report ?? null)
 </script>
@@ -21,6 +17,8 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
     title="SEO"
     pack="seo-basics"
     :status="status"
+    :error="seoError"
+    :on-retry="refreshSeo"
     :report="report"
     empty-message="No SEO data available. Run a scan first."
     loading-message="Loading SEO data..."
@@ -39,22 +37,38 @@ const report = computed(() => (seoPack.value as any)?.report ?? null)
     <!-- Per-route checks table (SEO-specific again). -->
     <UiCard v-if="report.routeChecks?.length" size="sm">
       <template #header>
-        <h3 class="text-label text-dimmed">Route Checks</h3>
+        <h3 class="text-label text-dimmed">
+          Route Checks
+        </h3>
       </template>
       <table class="w-full">
         <thead>
           <tr class="h-9 border-b border-default">
-            <th class="text-label text-dimmed text-left px-3">URL</th>
-            <th class="text-label text-dimmed text-right px-3 w-20">Passes</th>
-            <th class="text-label text-dimmed text-right px-3 w-20">Fails</th>
-            <th class="text-label text-dimmed text-left px-3 w-20">Indexable</th>
+            <th class="text-label text-dimmed text-left px-3">
+              URL
+            </th>
+            <th class="text-label text-dimmed text-right px-3 w-20">
+              Passes
+            </th>
+            <th class="text-label text-dimmed text-right px-3 w-20">
+              Fails
+            </th>
+            <th class="text-label text-dimmed text-left px-3 w-20">
+              Indexable
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="rc in report.routeChecks" :key="rc.url" class="border-b border-default last:border-0">
-            <td class="font-mono text-xs truncate max-w-sm px-3 py-2" :title="rc.url">{{ rc.url }}</td>
-            <td class="text-right tabular-nums text-success px-3 py-2">{{ rc.passes }}</td>
-            <td class="text-right tabular-nums px-3 py-2" :class="rc.fails > 0 ? 'text-error' : ''">{{ rc.fails }}</td>
+            <td class="font-mono text-xs truncate max-w-sm px-3 py-2" :title="rc.url">
+              {{ rc.url }}
+            </td>
+            <td class="text-right tabular-nums text-success px-3 py-2">
+              {{ rc.passes }}
+            </td>
+            <td class="text-right tabular-nums px-3 py-2" :class="rc.fails > 0 ? 'text-error' : ''">
+              {{ rc.fails }}
+            </td>
             <td class="px-3 py-2">
               <Icon :name="rc.indexable ? 'lucide:check-circle' : 'lucide:x-circle'" :class="rc.indexable ? 'text-success' : 'text-error'" class="size-4" />
             </td>

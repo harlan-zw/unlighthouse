@@ -1,15 +1,8 @@
+import type { ScanRow } from '~/features/sites/scan-pairs'
 import { computed } from 'vue'
 import { scanLinkPath } from '~/features/scan/scan-links'
-import type { ScanRow } from '~/features/sites/scan-pairs'
 import { useScanStore } from '~/stores/scan'
 import { siteSlug } from '~/utils/site'
-
-interface SiteEntry {
-  id: string
-  name: string
-  url: string
-  group: string | null
-}
 
 export interface DashboardSiteRow {
   name: string
@@ -36,18 +29,14 @@ function completedScans(scans: ScanRow[]): ScanRow[] {
 }
 
 export function useDashboardOverview() {
-  const api = useApi()
   const router = useRouter()
   const store = useScanStore()
 
-  const { data: histResp, status: historyStatus } = useAsyncData(
-    'recent-scans',
-    () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
+  const { data: histResp, status: historyStatus, error: historyError, refresh: refreshHistory } = useApiQuery(
+    'history.list',
+    () => ({ page: 1, pageSize: 200 }),
   )
-  const { data: sitesData } = useAsyncData(
-    'dashboard-sites',
-    () => api['sites.list']({}).catch(() => ({ sites: [] as SiteEntry[] })),
-  )
+  const { data: sitesData, error: sitesError, refresh: refreshSites } = useApiQuery('sites.list', () => ({}))
 
   const allScans = computed(() => (histResp.value?.items ?? []) as ScanRow[])
   const totalScans = computed(() => histResp.value?.total ?? 0)
@@ -89,7 +78,10 @@ export function useDashboardOverview() {
       sites: siteRows.value.length,
       scans: totalScans.value,
       avg: averages.length ? Math.round((averages.reduce((total, value) => total + value, 0) / averages.length) * 100) : null,
-      needs: siteRows.value.filter(row => row.avg != null && row.avg < 0.9).length,
+      needs: siteRows.value.filter((row) => {
+        const band = scoreBand(row.avg)
+        return band != null && band !== 'good'
+      }).length,
     }
   })
 
@@ -121,6 +113,10 @@ export function useDashboardOverview() {
 
   return {
     historyStatus,
+    historyError,
+    sitesError,
+    refreshHistory,
+    refreshSites,
     allScans,
     siteRows,
     kpis,

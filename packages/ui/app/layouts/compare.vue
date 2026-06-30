@@ -7,7 +7,6 @@
 
 const route = useRoute()
 const colorMode = useColorMode()
-const api = useApi()
 
 // Pick up the current scan id from the route param so "Exit compare"
 // returns to that scan's overview — that's where the user came from
@@ -18,16 +17,18 @@ const currentScanId = computed(() => (route.params.id as string) || '')
 // Resolve the scan's site so "Exit compare" lands directly on the new
 // /sites/{slug}/scans/{id} overview rather than bouncing through the
 // legacy /scan/{id} redirect shim.
-const { data: exitMeta } = useAsyncData(
-  'compare-exit-meta',
-  () => currentScanId.value ? api['scan.meta']({ scanId: currentScanId.value as any }).catch(() => null) : Promise.resolve(null),
-  { watch: [currentScanId] },
+// Best-effort: only feeds the "Exit compare" link target, so a failure just
+// falls back to the legacy /scan path — no error surface needed.
+const { data: exitMeta } = useApiQuery(
+  'scan.meta',
+  () => ({ scanId: currentScanId.value as any }),
+  { enabled: () => !!currentScanId.value },
 )
 const exitTo = computed(() => {
   const site = exitMeta.value?.site
   if (currentScanId.value && site) {
     try {
-      return `/sites/${new URL(site).hostname}/scans/${currentScanId.value}/routes`
+      return `/sites/${siteSlug(site)}/scans/${currentScanId.value}/routes`
     }
     catch {}
   }
@@ -38,20 +39,7 @@ function toggleColorMode() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
 }
 
-const healthy = ref<boolean | null>(null)
-async function checkHealth() {
-  try {
-    await api['health']({})
-    healthy.value = true
-  }
-  catch {
-    healthy.value = false
-  }
-}
-if (import.meta.client) {
-  checkHealth()
-  setInterval(checkHealth, 30000)
-}
+const { healthy } = useBackendHealth()
 </script>
 
 <template>

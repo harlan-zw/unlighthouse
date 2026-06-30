@@ -3,7 +3,7 @@ import { useScanBase } from '~/features/scan/route-context'
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
-const { scoreToLabel, scoreToColor } = useScoreColor()
+const { scoreToLabel, scoreToColor, scoreToRingColor } = useScoreColor()
 
 const router = useRouter()
 const { scanBase } = useScanBase()
@@ -32,31 +32,33 @@ const { fmtRelTime: ageLabel } = useFormat()
 <template>
   <div v-if="store.recentRoutes.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3 border-b border-default">
-      <h3 class="text-label text-dimmed">Live results</h3>
+      <h3 class="text-label text-dimmed">
+        Live results
+      </h3>
       <span class="text-[10px] text-muted tabular-nums">
         last {{ store.recentRoutes.length }}
       </span>
     </div>
     <div class="divide-y max-h-80 overflow-y-auto">
-        <button
-          v-for="r in store.recentRoutes"
-          :key="r.url + r.timestamp"
-          type="button"
-          class="flex items-center gap-3 px-4 py-2 text-left w-full hover:bg-elevated/50 transition-colors"
-          @click="openRoute(r.url)"
-        >
-          <span
-            class="size-1.5 rounded-full shrink-0"
-            :style="{ backgroundColor: r.score == null ? 'var(--muted-foreground)' : (r.score >= 0.9 ? '#22c55e' : r.score >= 0.5 ? '#f97316' : '#ef4444') }"
-          />
-          <span class="font-mono text-xs truncate flex-1">{{ pathFromUrl(r.url) }}</span>
-          <span class="text-xs tabular-nums shrink-0 w-10 text-right font-bold" :class="scoreToColor(r.score)">
-            {{ scoreToLabel(r.score) }}
-          </span>
-          <span class="text-[10px] text-muted tabular-nums shrink-0 w-14 text-right">
-            {{ ageLabel(r.timestamp) }}
-          </span>
-        </button>
-      </div>
+      <button
+        v-for="r in store.recentRoutes"
+        :key="r.url + r.timestamp"
+        type="button"
+        class="flex items-center gap-3 px-4 py-2 text-left w-full hover:bg-elevated/50 transition-colors"
+        @click="openRoute(r.url)"
+      >
+        <span
+          class="size-1.5 rounded-full shrink-0"
+          :style="{ backgroundColor: scoreToRingColor(r.score) }"
+        />
+        <span class="font-mono text-xs truncate flex-1">{{ pathFromUrl(r.url) }}</span>
+        <span class="text-xs tabular-nums shrink-0 w-10 text-right font-bold" :class="scoreToColor(r.score)">
+          {{ scoreToLabel(r.score) }}
+        </span>
+        <span class="text-[10px] text-muted tabular-nums shrink-0 w-14 text-right">
+          {{ ageLabel(r.timestamp) }}
+        </span>
+      </button>
+    </div>
   </div>
 </template>

@@ -1,18 +1,19 @@
 // route.* handlers.
 
 import type {
-  ExtractedMetrics,
-  ScanId,
-  ScanRoute,
-} from '@unlighthouse/contracts/types/atoms'
-import type {
   CommandOutput,
   RouteAudits,
   RouteGet,
   RouteRescan,
 } from '@unlighthouse/contracts/commands'
+import type {
+  ExtractedMetrics,
+  ScanId,
+  ScanRoute,
+} from '@unlighthouse/contracts/types/atoms'
 import type { Handler, HandlerCtx } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { loadRouteContract } from '../../report/route-contracts'
 
 // Lighthouse's stable category ids → display titles. The reconciled contract
 // blob keeps `categories` keyed by id and drops the LHR title string (it's
@@ -31,47 +32,6 @@ const CATEGORY_TITLES: Record<string, string> = {
 
 function titleForCategory(id: string): string {
   return CATEGORY_TITLES[id] ?? id.split('-').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')
-}
-
-interface ContractBlob {
-  categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
-  audits: Record<string, {
-    id: string
-    score: number | null
-    scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
-    displayValue: string | null
-    title: string | null
-    description: string | null
-    severity: 'pass' | 'warn' | 'fail'
-    metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
-    items: unknown[] | null
-  }>
-  provenance?: {
-    lighthouseVersion: string
-    userAgent: string | null
-    capturedAt: string
-    benchmarkIndex: number | null
-    timingTotal: number | null
-    warnings: string[]
-    runtimeError: { code: string, message: string } | null
-  }
-  stackPacks?: Array<{ id: string, title: string, iconDataURL: string | null, descriptions: Record<string, string> }> | null
-  entities?: Array<{ name: string, isFirstParty: boolean, origins: string[] }> | null
-}
-
-async function loadContract(ctx: HandlerCtx, route: ScanRoute): Promise<ContractBlob | null> {
-  if (!route.reportBlobKey)
-    return null
-  const key = route.reportBlobKey.replace('.json', '.contract.json')
-  const blob = await ctx.storage.blobs.get(key)
-  if (!blob)
-    return null
-  try {
-    return JSON.parse(new TextDecoder().decode(blob)) as ContractBlob
-  }
-  catch {
-    return null
-  }
 }
 
 function screenshotUrlFor(route: ScanRoute): string | null {
@@ -126,7 +86,7 @@ export const routeGet: Handler<typeof RouteGet> = {
   command: {} as typeof RouteGet,
   async run(input, ctx) {
     const { route, availableDevices } = await findRoute(ctx, input.scanId, input.url, input.device)
-    const contract = await loadContract(ctx, route)
+    const contract = await loadRouteContract(ctx.storage.blobs, route)
 
     const categories: CommandOutput<typeof RouteGet>['categories'] = []
     if (contract) {
@@ -185,7 +145,7 @@ export const routeAudits: Handler<typeof RouteAudits> = {
   command: {} as typeof RouteAudits,
   async run(input, ctx) {
     const { route } = await findRoute(ctx, input.scanId, input.url, input.device)
-    const contract = await loadContract(ctx, route)
+    const contract = await loadRouteContract(ctx.storage.blobs, route)
     if (!contract)
       return { audits: [] } as CommandOutput<typeof RouteAudits>
 

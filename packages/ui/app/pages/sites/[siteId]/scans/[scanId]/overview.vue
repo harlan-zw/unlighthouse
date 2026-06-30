@@ -19,6 +19,10 @@ const {
   deviceFilter,
   hasMultipleDevices,
   scanSummary,
+  scanMetaError,
+  scanSummaryError,
+  refreshScanMeta,
+  refreshSummary,
   rescanningAll,
   categories,
   distribution,
@@ -36,6 +40,9 @@ const {
 
 <template>
   <div class="space-y-8">
+    <!-- Scan failed to load (unreachable backend / missing scan). Shown above
+         everything so it isn't hidden behind empty stat rows. -->
+    <QueryError v-if="scanMetaError" :error="scanMetaError" :on-retry="refreshScanMeta" />
 
     <!-- Header -->
     <div class="flex items-center justify-between">
@@ -79,7 +86,9 @@ const {
           <Icon name="lucide:table" class="size-4" />
           CSV
         </a>
-        <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="i-lucide-refresh-cw" @click="handleRescanAll">Rescan All</UiButton>
+        <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="i-lucide-refresh-cw" @click="handleRescanAll">
+          Rescan All
+        </UiButton>
       </div>
     </div>
 
@@ -104,14 +113,20 @@ const {
     <!-- Stats row -->
     <div v-if="scanSummary" class="flex items-center gap-8 border-b pb-6">
       <div>
-        <div class="text-3xl font-bold tabular-nums">{{ scanSummary.routesScanned }}</div>
-        <div class="text-xs text-muted mt-0.5">Routes</div>
+        <div class="text-3xl font-bold tabular-nums">
+          {{ scanSummary.routesScanned }}
+        </div>
+        <div class="text-xs text-muted mt-0.5">
+          Routes
+        </div>
       </div>
       <div>
         <div class="text-3xl font-bold tabular-nums" :class="scoreToColor(scanSummary.avgScore)">
           {{ scoreToLabel(scanSummary.avgScore) }}
         </div>
-        <div class="text-xs text-muted mt-0.5">Avg Score</div>
+        <div class="text-xs text-muted mt-0.5">
+          Avg Score
+        </div>
       </div>
       <div class="flex-1 max-w-xs">
         <div class="flex h-3 rounded-full overflow-hidden">
@@ -131,7 +146,9 @@ const {
     <div v-if="scanSummary" class="grid gap-6 lg:grid-cols-5">
       <!-- Category scores - horizontal bars -->
       <div class="lg:col-span-3">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Category Scores</h2>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
+          Category Scores
+        </h2>
         <div class="rounded-lg border px-5 py-4 space-y-4">
           <div v-for="cat in categories.filter(c => c.score != null)" :key="cat.key" class="flex items-center gap-3">
             <span class="text-xs text-muted w-24 shrink-0 truncate">{{ cat.label }}</span>
@@ -153,7 +170,9 @@ const {
 
       <!-- Donut chart -->
       <div v-if="distribution" class="lg:col-span-2">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Score Distribution</h2>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
+          Score Distribution
+        </h2>
         <div class="rounded-lg border px-5 py-4 flex items-center gap-6 justify-center">
           <div class="relative shrink-0">
             <svg viewBox="0 0 100 100" class="size-32">
@@ -191,7 +210,9 @@ const {
          these links would lead to pages with zero data; LiveResults
          above covers the in-flight view. -->
     <section v-if="!showLiveView">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Categories</h2>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
+        Categories
+      </h2>
       <div class="divide-y rounded-lg border">
         <NuxtLink
           v-for="cat in categories"
@@ -218,10 +239,16 @@ const {
       </div>
     </section>
 
-    <!-- Loading -->
-    <div v-if="!scanSummary && !showLiveView" class="py-12 text-center text-muted">
-      <p v-if="scanIsComplete">Loading results...</p>
-      <p v-else>Scan in progress or not found.</p>
+    <!-- Results error / loading — error checked first so a failed results
+         fetch isn't masked by the loading copy. -->
+    <QueryError v-if="scanSummaryError" :error="scanSummaryError" :on-retry="refreshSummary" />
+    <div v-else-if="!scanSummary && !showLiveView" class="py-12 text-center text-muted">
+      <p v-if="scanIsComplete">
+        Loading results...
+      </p>
+      <p v-else>
+        Scan in progress or not found.
+      </p>
     </div>
   </div>
 </template>

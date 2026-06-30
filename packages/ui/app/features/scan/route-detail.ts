@@ -33,16 +33,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   'agentic-browsing': 'Agentic Browsing',
 }
 
-const METRIC_THRESHOLDS: Record<string, [number, number]> = {
-  LCP: [2500, 4000],
-  CLS: [0.1, 0.25],
-  TBT: [200, 600],
-  FCP: [1800, 3000],
-  SI: [3400, 5800],
-  TTFB: [800, 1800],
-  INP: [200, 500],
-}
-
 function routeParamPath(value: unknown): string {
   if (Array.isArray(value))
     return decodeURIComponent(value.join('/'))
@@ -61,22 +51,16 @@ function resolveRouteUrl(path: string, site?: string | null): string {
 }
 
 function formatRouteDetailMetric(value: number | null | undefined, unit: string = 'ms'): string {
-  if (value === null || value === undefined)
-    return '—'
-  if (unit === 'ms')
-    return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`
-  return value.toFixed(3)
+  return formatMetricValue(value, unit as 'ms' | '')
 }
 
 function routeMetricColor(label: string, value: number | null | undefined): string {
-  if (value == null)
-    return 'text-muted'
-  const [good, poor] = METRIC_THRESHOLDS[label] || [Infinity, Infinity]
-  if (value <= good)
-    return 'text-success'
-  if (value <= poor)
-    return 'text-warning'
-  return 'text-error'
+  switch (cwvBand(label, value)) {
+    case 'good': return 'text-success'
+    case 'average': return 'text-warning'
+    case 'poor': return 'text-error'
+    default: return 'text-muted'
+  }
 }
 
 function routeSeverityColor(severity: string): 'error' | 'warning' | 'neutral' {
@@ -102,7 +86,6 @@ function hasNonZeroSavings(savings: Record<string, any>): boolean {
 export function useRouteDetail() {
   const route = useRoute()
   const router = useRouter()
-  const api = useApi()
   const config = useRuntimeConfig()
   const screenshotUrl = useScreenshotUrl()
   const { scoreToLabel, scoreToRingColor } = useScoreColor()
@@ -112,7 +95,6 @@ export function useRouteDetail() {
   const routePath = routeParamPath(route.params.path)
   const baseUrl = config.public.unlighthouseApiUrl as string
 
-  const rescanning = ref(false)
   const screenshotVisible = ref(true)
   const screenshotExpanded = ref(false)
   const deviceFilter = ref<DeviceFilter>('')
@@ -125,44 +107,31 @@ export function useRouteDetail() {
     router.back()
   }
 
-  const { data: scanMeta, status: scanMetaStatus } = useAsyncData(
-    `route-scanmeta-${scanId}`,
-    () => api['scan.meta']({ scanId }).catch(() => null),
+  const { data: scanMeta, status: scanMetaStatus, error: scanMetaError, refresh: refreshScanMeta } = useApiQuery(
+    'scan.meta',
+    () => ({ scanId }),
   )
 
   const fullUrl = computed(() => resolveRouteUrl(routePath, scanMeta.value?.site))
 
-  const { data: routeData, status } = useAsyncData(
-    `route-detail-${scanId}-${routePath}`,
-    async () => {
-      if (!fullUrl.value)
-        return null
-      try {
-        return await api['route.get']({
-          scanId,
-          url: fullUrl.value,
-          device: deviceFilter.value || undefined,
-        })
-      }
-      catch {
-        return null
-      }
-    },
-    { watch: [deviceFilter, fullUrl] },
+  // Gated on `fullUrl` (derived from scanMeta.site) — until the meta loads
+  // there's no absolute URL to fetch. The input getter reads `fullUrl` +
+  // `deviceFilter`, so the key changes (and refetches) when either does.
+  const { data: routeData, status, error: routeError, refresh: refreshRoute } = useApiQuery(
+    'route.get',
+    () => ({ scanId, url: fullUrl.value, device: deviceFilter.value || undefined }),
+    { enabled: () => !!fullUrl.value },
   )
 
+  const rescan = useApiMutation('route.rescan')
+  const rescanning = rescan.isPending
   async function rescanRoute() {
-    rescanning.value = true
-    try {
-      await api['route.rescan']({ scanId, url: routeData.value?.route?.url || fullUrl.value })
-      toast.success('Route rescan started')
+    const result = await rescan.mutateSafe({ scanId, url: routeData.value?.route?.url || fullUrl.value })
+    if (result._tag === 'err') {
+      toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+      return
     }
-    catch (err: any) {
-      toast.error('Rescan failed', { description: err.message })
-    }
-    finally {
-      rescanning.value = false
-    }
+    toast.success('Route rescan started')
   }
 
   const availableDevices = computed<string[]>(() => routeData.value?.availableDevices ?? [])
@@ -264,6 +233,10 @@ export function useRouteDetail() {
     routePath,
     status,
     scanMetaStatus,
+    routeError,
+    scanMetaError,
+    refreshRoute,
+    refreshScanMeta,
     routeData,
     rescanning,
     screenshotVisible,

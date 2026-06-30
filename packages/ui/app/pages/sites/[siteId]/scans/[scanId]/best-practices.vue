@@ -10,15 +10,8 @@ const scanId = getScanId()
 const { scoreToColor, scoreToLabel } = useScoreColor()
 const { fmtBytes } = useFormat()
 
-const { data: bundlePack, status } = useAsyncData(
-  `bp-bundle-${scanId}`,
-  () => api['pack.run']({ scanId, pack: 'js-bundle' }).catch(() => null),
-)
-
-const { data: routeScores } = useAsyncData(
-  `bp-routes-${scanId}`,
-  () => api['scan.results']({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }).catch(() => null),
-)
+const { data: bundlePack, status, error: bundleError, refresh: refreshBundle } = useApiQuery('pack.run', () => ({ scanId, pack: 'js-bundle' }))
+const { data: routeScores } = useApiQuery('scan.results', () => ({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }))
 
 // There is no dedicated "best-practices" pack, so the actual failing
 // audits (image-aspect-ratio, errors-in-console, inspector-issues, the
@@ -27,8 +20,10 @@ const { data: routeScores } = useAsyncData(
 // same way the SEO/a11y packs do: fan out `route.audits` per route, keep
 // the failing ones, and group by audit id into PackFindings-shaped
 // findings.
-const { data: bpFindings } = useAsyncData(
-  `bp-audits-${scanId}`,
+// Composite fan-out (one `route.audits` per route); per-route `.catch`
+// degrades a failed audit to empty rather than failing the page. Keyed on
+// the route set so it refetches when the scores load / change.
+const { data: bpFindings } = useNuxtAsyncQuery<any[]>(
   async () => {
     const list = routeScores.value?.items ?? []
     if (!list.length)
@@ -75,7 +70,7 @@ const { data: bpFindings } = useAsyncData(
         || b.routeCount - a.routeCount,
       )
   },
-  { watch: [routeScores] },
+  { key: () => `bp-audits:${scanId}:${(routeScores.value?.items ?? []).map(r => r.url).join(',')}` },
 )
 
 const bundleReport = computed(() => (bundlePack.value as any)?.report ?? null)
@@ -121,6 +116,8 @@ const hasData = computed(() =>
     title="Best Practices"
     pack="js-bundle"
     :status="status"
+    :error="bundleError"
+    :on-retry="refreshBundle"
     :report="hasData ? true : null"
     empty-message="No best practices data available. Run a scan first."
     loading-message="Loading best practices data..."
@@ -140,49 +137,59 @@ const hasData = computed(() =>
         </h3>
       </template>
       <div class="space-y-3">
-          <div v-for="(finding, idx) in bundleReport.findings" :key="`${finding.kind}-${finding.resource}-${idx}`" class="p-3 border rounded-lg">
-            <div class="flex items-center justify-between gap-3">
-              <div class="min-w-0">
-                <div class="text-sm font-medium flex items-center gap-2">
-                  <UBadge color="neutral" variant="outline" class="text-[10px] capitalize shrink-0">
-                    {{ finding.severity }}
-                  </UBadge>
-                  {{ bundleKindLabel(finding.kind) }}
-                </div>
-                <div v-if="finding.resource" class="text-xs text-muted font-mono truncate mt-1" :title="finding.resource">
-                  {{ shortResource(finding.resource) }}
-                </div>
+        <div v-for="(finding, idx) in bundleReport.findings" :key="`${finding.kind}-${finding.resource}-${idx}`" class="p-3 border rounded-lg">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-sm font-medium flex items-center gap-2">
+                <UBadge color="neutral" variant="outline" class="text-[10px] capitalize shrink-0">
+                  {{ finding.severity }}
+                </UBadge>
+                {{ bundleKindLabel(finding.kind) }}
               </div>
-              <UBadge color="neutral" variant="outline" class="text-xs shrink-0">
-                {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
-              </UBadge>
+              <div v-if="finding.resource" class="text-xs text-muted font-mono truncate mt-1" :title="finding.resource">
+                {{ shortResource(finding.resource) }}
+              </div>
             </div>
-            <div v-if="finding.wastedBytes" class="text-xs text-warning mt-2">
-              {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ finding.wastedPercent }}%)</span>
-            </div>
-            <div v-if="finding.fixHint" class="text-xs text-muted mt-1">
-              {{ finding.fixHint }}
-            </div>
+            <UBadge color="neutral" variant="outline" class="text-xs shrink-0">
+              {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
+            </UBadge>
+          </div>
+          <div v-if="finding.wastedBytes" class="text-xs text-warning mt-2">
+            {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ finding.wastedPercent }}%)</span>
+          </div>
+          <div v-if="finding.fixHint" class="text-xs text-muted mt-1">
+            {{ finding.fixHint }}
           </div>
         </div>
+      </div>
     </UiCard>
 
     <!-- Route Scores -->
     <UiCard v-if="routeScores?.items?.length" size="sm">
       <template #header>
-        <h3 class="text-label text-dimmed">Route Scores</h3>
+        <h3 class="text-label text-dimmed">
+          Route Scores
+        </h3>
       </template>
       <table class="w-full">
         <thead>
           <tr class="h-9 border-b border-default">
-            <th class="text-label text-dimmed text-left px-3">Path</th>
-            <th class="text-label text-dimmed text-right px-3 w-28">Best Practices</th>
+            <th class="text-label text-dimmed text-left px-3">
+              Path
+            </th>
+            <th class="text-label text-dimmed text-right px-3 w-28">
+              Best Practices
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="r in routeScores.items.slice(0, 50)" :key="r.url" class="border-b border-default last:border-0">
-            <td class="font-mono text-xs truncate max-w-sm px-3 py-2" :title="r.url">{{ r.path }}</td>
-            <td class="text-right tabular-nums font-bold px-3 py-2" :class="scoreToColor(r.scoreBestPractices)">{{ scoreToLabel(r.scoreBestPractices) }}</td>
+            <td class="font-mono text-xs truncate max-w-sm px-3 py-2" :title="r.url">
+              {{ r.path }}
+            </td>
+            <td class="text-right tabular-nums font-bold px-3 py-2" :class="scoreToColor(r.scoreBestPractices)">
+              {{ scoreToLabel(r.scoreBestPractices) }}
+            </td>
           </tr>
         </tbody>
       </table>

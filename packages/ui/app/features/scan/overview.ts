@@ -1,6 +1,5 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
-import { useScanWebsocket } from '~/features/scan/live-events'
 import { useScanBase } from '~/features/scan/route-context'
 import { useScanStore } from '~/stores/scan'
 
@@ -29,10 +28,9 @@ export function useScanOverview() {
   const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
   const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
 
-  const { data: scanMeta } = useAsyncData(
-    `scan-meta-${scanId.value}`,
-    () => api['scan.meta']({ scanId: scanId.value }).catch(() => null),
-    { watch: [scanId] },
+  const { data: scanMeta, error: scanMetaError, refresh: refreshScanMeta } = useApiQuery(
+    'scan.meta',
+    () => ({ scanId: scanId.value }),
   )
 
   const isCurrentScan = computed(() => store.scanId === scanId.value)
@@ -57,7 +55,7 @@ export function useScanOverview() {
     const status = await api['scan.status']({ scanId: scanId.value }).catch(() => null)
     if (status && ['starting', 'discovering', 'scanning', 'paused'].includes(status.status)) {
       store.hydrateActive(scanId.value, { ...status, site: scanMeta.value?.site })
-      store.startPolling(api)
+      store.startPolling()
     }
   }
 
@@ -79,51 +77,41 @@ export function useScanOverview() {
   const scanIsComplete = computed(() => resolvedStatus.value === 'complete')
   const deviceFilter = ref<DeviceFilter>('')
 
-  const { data: deviceProbe } = useAsyncData(
-    `scan-devices-${scanId.value}`,
+  // Composite probe (two reads), so it uses the handler-based query directly.
+  // The per-device `.catch` is a deliberate "treat an errored probe as absent"
+  // fallback, not error-swallowing — a missing device just hides the toggle.
+  const { data: deviceProbe } = useNuxtAsyncQuery<{ mobile: boolean, desktop: boolean }>(
     async () => {
-      if (!scanIsComplete.value)
-        return null
       const [mobile, desktop] = await Promise.all([
         api['scan.results']({ scanId: scanId.value, device: 'mobile', page: 1, pageSize: 1 }).catch(() => ({ total: 0 } as any)),
         api['scan.results']({ scanId: scanId.value, device: 'desktop', page: 1, pageSize: 1 }).catch(() => ({ total: 0 } as any)),
       ])
       return { mobile: (mobile.total ?? 0) > 0, desktop: (desktop.total ?? 0) > 0 }
     },
-    { watch: [scanId, scanIsComplete] },
+    {
+      key: () => `scan-devices:${scanId.value}`,
+      enabled: scanIsComplete,
+    },
   )
 
   const hasMultipleDevices = computed(() => Boolean(deviceProbe.value?.mobile && deviceProbe.value?.desktop))
 
-  const { data: scanSummary, refresh: refreshSummary } = useAsyncData(
-    `scan-summary-${scanId.value}`,
-    () => {
-      if (!scanIsComplete.value)
-        return Promise.resolve(null)
-      return api['scan.summary']({
-        scanId: scanId.value,
-        device: deviceFilter.value || undefined,
-      }).catch(() => null)
-    },
-    { watch: [scanId, scanIsComplete, deviceFilter] },
+  const { data: scanSummary, error: scanSummaryError, refresh: refreshSummary } = useApiQuery(
+    'scan.summary',
+    () => ({ scanId: scanId.value, device: deviceFilter.value || undefined }),
+    { enabled: scanIsComplete },
   )
 
-  useScanWebsocket({ 'scan:complete': refreshSummary })
-
-  const rescanningAll = ref(false)
+  const rescan = useApiMutation('scan.rescanAll')
+  const rescanningAll = rescan.isPending
   async function handleRescanAll() {
-    rescanningAll.value = true
-    try {
-      const result = await api['scan.rescanAll']({ scanId: scanId.value })
-      toast.success('Rescan started')
-      router.push(`/sites/${route.params.siteId}/scans/${result.scanId}/overview`)
+    const result = await rescan.mutateSafe({ scanId: scanId.value })
+    if (result._tag === 'err') {
+      toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+      return
     }
-    catch (err: any) {
-      toast.error('Rescan failed', { description: err.message })
-    }
-    finally {
-      rescanningAll.value = false
-    }
+    toast.success('Rescan started')
+    router.push(`/sites/${route.params.siteId}/scans/${result.data.scanId}/overview`)
   }
 
   const categories = computed(() => {
@@ -142,9 +130,9 @@ export function useScanOverview() {
     return {
       total,
       segments: [
-        { label: 'Pass', count: distribution.passing, pct: (distribution.passing / total) * 100, color: '#22c55e' },
-        { label: 'Needs Work', count: distribution.needsWork, pct: (distribution.needsWork / total) * 100, color: '#f97316' },
-        { label: 'Poor', count: distribution.poor, pct: (distribution.poor / total) * 100, color: '#ef4444' },
+        { label: 'Pass', count: distribution.passing, pct: (distribution.passing / total) * 100, color: BAND_HEX.good },
+        { label: 'Needs Work', count: distribution.needsWork, pct: (distribution.needsWork / total) * 100, color: BAND_HEX.average },
+        { label: 'Poor', count: distribution.poor, pct: (distribution.poor / total) * 100, color: BAND_HEX.poor },
       ].filter(segment => segment.count > 0),
     }
   })
@@ -191,6 +179,10 @@ export function useScanOverview() {
     deviceFilter,
     hasMultipleDevices,
     scanSummary,
+    scanMetaError,
+    scanSummaryError,
+    refreshScanMeta,
+    refreshSummary,
     rescanningAll,
     categories,
     distribution,

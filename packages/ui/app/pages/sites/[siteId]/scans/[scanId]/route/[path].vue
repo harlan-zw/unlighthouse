@@ -9,6 +9,10 @@ const {
   routePath,
   status,
   scanMetaStatus,
+  routeError,
+  scanMetaError,
+  refreshRoute,
+  refreshScanMeta,
   routeData,
   rescanning,
   screenshotVisible,
@@ -44,19 +48,31 @@ const {
            navigated here from /routes (preserving their filter state /
            pagination) and falls back to the bare routes URL when the
            page was opened directly (deep link, share). -->
-      <UiButton purpose="quiet" size="sm" icon="i-lucide-arrow-left" @click="backToRoutes">Routes</UiButton>
+      <UiButton purpose="quiet" size="sm" icon="i-lucide-arrow-left" @click="backToRoutes">
+        Routes
+      </UiButton>
     </div>
 
-    <div v-if="status === 'pending' || scanMetaStatus === 'pending'" class="text-center py-12 text-muted">Loading...</div>
-    <div v-else-if="!routeData" class="text-center py-12 text-muted">Route not found.</div>
+    <QueryError v-if="scanMetaError" :error="scanMetaError" :on-retry="refreshScanMeta" />
+    <QueryError v-else-if="routeError" :error="routeError" :on-retry="refreshRoute" />
+    <div v-else-if="status === 'pending' || scanMetaStatus === 'pending'" class="text-center py-12 text-muted">
+      Loading...
+    </div>
+    <div v-else-if="!routeData" class="text-center py-12 text-muted">
+      Route not found.
+    </div>
 
     <template v-else>
       <!-- Header -->
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <h1 class="text-title font-mono break-all">{{ routeData.route?.path }}</h1>
+          <h1 class="text-title font-mono break-all">
+            {{ routeData.route?.path }}
+          </h1>
           <div class="flex items-center gap-2 mt-1 text-sm text-muted">
-            <UBadge color="neutral" variant="outline" size="xs">{{ routeData.route?.device }}</UBadge>
+            <UBadge color="neutral" variant="outline" size="xs">
+              {{ routeData.route?.device }}
+            </UBadge>
             <a :href="routeData.route?.url" target="_blank" class="hover:underline flex items-center gap-1">
               {{ routeData.route?.url }}
               <Icon name="lucide:external-link" class="size-3" />
@@ -77,7 +93,9 @@ const {
             <Icon name="lucide:download" class="size-4" />
             Raw LHR
           </a>
-          <UiButton purpose="secondary" size="sm" :loading="rescanning" icon="i-lucide-refresh-cw" @click="rescanRoute">Rescan</UiButton>
+          <UiButton purpose="secondary" size="sm" :loading="rescanning" icon="i-lucide-refresh-cw" @click="rescanRoute">
+            Rescan
+          </UiButton>
         </div>
       </div>
 
@@ -101,7 +119,9 @@ const {
       <UiCard v-if="screenshotVisible" size="sm">
         <template #header>
           <div class="flex flex-row items-center justify-between gap-2">
-            <h3 class="text-label text-dimmed">Visual</h3>
+            <h3 class="text-label text-dimmed">
+              Visual
+            </h3>
             <div class="flex items-center gap-3">
               <button
                 type="button"
@@ -148,7 +168,9 @@ const {
           <Icon name="lucide:alert-triangle" class="size-4" />
           Runtime Error: {{ routeData.provenance.runtimeError.code }}
         </div>
-        <p class="text-xs text-muted mt-1">{{ routeData.provenance.runtimeError.message }}</p>
+        <p class="text-xs text-muted mt-1">
+          {{ routeData.provenance.runtimeError.message }}
+        </p>
       </div>
 
       <!-- Warnings -->
@@ -158,7 +180,9 @@ const {
           Warnings ({{ routeData.provenance.warnings.length }})
         </div>
         <ul class="text-xs text-muted space-y-1">
-          <li v-for="(w, i) in routeData.provenance.warnings" :key="i">{{ w }}</li>
+          <li v-for="(w, i) in routeData.provenance.warnings" :key="i">
+            {{ w }}
+          </li>
         </ul>
       </div>
 
@@ -167,7 +191,9 @@ const {
         <div v-for="s in scores" :key="s.id" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4">
           <ScoreRing :score="s.score" size="md" />
           <div>
-            <div class="text-sm font-medium">{{ s.label }}</div>
+            <div class="text-sm font-medium">
+              {{ s.label }}
+            </div>
             <div class="numerals-display text-2xl" :style="{ color: scoreToRingColor(s.score) }">
               {{ scoreToLabel(s.score) }}
             </div>
@@ -178,17 +204,23 @@ const {
       <!-- Core Web Vitals -->
       <UiCard size="sm">
         <template #header>
-          <h3 class="text-label text-dimmed">Core Web Vitals &amp; Metrics</h3>
+          <h3 class="text-label text-dimmed">
+            Core Web Vitals &amp; Metrics
+          </h3>
         </template>
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
-            <div v-for="m in metrics" :key="m.label" class="rounded-lg border p-4 text-center">
-              <div class="text-xs text-muted mb-1">{{ m.label }}</div>
-              <div class="numerals-display text-xl" :class="metricColor(m.label, m.value)">
-                {{ formatMetric(m.value, m.unit) }}
-              </div>
-              <div class="text-[10px] text-muted/60 mt-1">{{ m.description }}</div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
+          <div v-for="m in metrics" :key="m.label" class="rounded-lg border p-4 text-center">
+            <div class="text-xs text-muted mb-1">
+              {{ m.label }}
+            </div>
+            <div class="numerals-display text-xl" :class="metricColor(m.label, m.value)">
+              {{ formatMetric(m.value, m.unit) }}
+            </div>
+            <div class="text-[10px] text-muted/60 mt-1">
+              {{ m.description }}
             </div>
           </div>
+        </div>
       </UiCard>
 
       <!-- Category Sections -->
@@ -214,45 +246,55 @@ const {
             <!-- Failing audits -->
             <UAccordion v-if="cat.failing.length" :items="cat.failing.map((a: any) => ({ ...a, value: a.id }))" type="multiple" class="w-full">
               <template #default="{ item: audit }">
-                  <div class="flex items-center gap-2 text-left text-sm">
-                    <UBadge :color="severityColor(audit.severity)" variant="soft" class="text-[10px] w-10 justify-center shrink-0">
-                      {{ audit.severity }}
-                    </UBadge>
-                    <span>{{ audit.title || audit.id }}</span>
-                    <span v-if="audit.displayValue" class="text-muted text-xs ml-auto mr-4 shrink-0">
-                      {{ audit.displayValue }}
-                    </span>
-                  </div>
+                <div class="flex items-center gap-2 text-left text-sm">
+                  <UBadge :color="severityColor(audit.severity)" variant="soft" class="text-[10px] w-10 justify-center shrink-0">
+                    {{ audit.severity }}
+                  </UBadge>
+                  <span>{{ audit.title || audit.id }}</span>
+                  <span v-if="audit.displayValue" class="text-muted text-xs ml-auto mr-4 shrink-0">
+                    {{ audit.displayValue }}
+                  </span>
+                </div>
               </template>
               <template #content="{ item: audit }">
-                  <div class="space-y-3 pt-2 pb-2">
-                    <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
-                    <div v-if="audit.metricSavings && hasNonZeroSavings(audit.metricSavings)" class="flex gap-2 flex-wrap">
-                      <template v-for="(val, key) in audit.metricSavings" :key="key">
-                        <UBadge v-if="typeof val === 'number' ? val > 0 : !!val" color="neutral" variant="outline" class="text-[10px]">
-                          {{ key }}: {{ typeof val === 'number' ? `${Math.round(val)}ms` : val }}
-                        </UBadge>
-                      </template>
-                    </div>
-                    <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
-                      <template v-for="(item, idx) in audit.items.slice(0, 20)" :key="idx">
-                        <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
-                          <div v-if="item.url" class="font-mono break-all text-muted">{{ item.url }}</div>
-                          <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">{{ item.node.snippet }}</div>
-                          <div v-if="item.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">{{ item.snippet }}</div>
-                          <div v-if="item.node?.nodeLabel" class="text-muted mt-1">{{ item.node.nodeLabel }}</div>
-                          <div v-if="item.reason" class="text-muted mt-1">{{ item.reason }}</div>
-                          <div class="flex gap-2 mt-1 flex-wrap">
-                            <span v-if="item.wastedBytes" class="text-warning">{{ formatBytes(item.wastedBytes) }} wasted</span>
-                            <span v-if="item.wastedMs" class="text-warning">{{ Math.round(item.wastedMs) }}ms wasted</span>
-                            <span v-if="item.totalBytes" class="text-muted">{{ formatBytes(item.totalBytes) }} total</span>
-                            <span v-if="item.transferSize" class="text-muted">{{ formatBytes(item.transferSize) }} transferred</span>
-                            <span v-if="item.blockingTime" class="text-warning">{{ Math.round(item.blockingTime) }}ms blocking</span>
-                          </div>
-                        </div>
-                      </template>
-                    </div>
+                <div class="space-y-3 pt-2 pb-2">
+                  <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
+                  <div v-if="audit.metricSavings && hasNonZeroSavings(audit.metricSavings)" class="flex gap-2 flex-wrap">
+                    <template v-for="(val, key) in audit.metricSavings" :key="key">
+                      <UBadge v-if="typeof val === 'number' ? val > 0 : !!val" color="neutral" variant="outline" class="text-[10px]">
+                        {{ key }}: {{ typeof val === 'number' ? `${Math.round(val)}ms` : val }}
+                      </UBadge>
+                    </template>
                   </div>
+                  <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
+                    <template v-for="(item, idx) in audit.items.slice(0, 20)" :key="idx">
+                      <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
+                        <div v-if="item.url" class="font-mono break-all text-muted">
+                          {{ item.url }}
+                        </div>
+                        <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">
+                          {{ item.node.snippet }}
+                        </div>
+                        <div v-if="item.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">
+                          {{ item.snippet }}
+                        </div>
+                        <div v-if="item.node?.nodeLabel" class="text-muted mt-1">
+                          {{ item.node.nodeLabel }}
+                        </div>
+                        <div v-if="item.reason" class="text-muted mt-1">
+                          {{ item.reason }}
+                        </div>
+                        <div class="flex gap-2 mt-1 flex-wrap">
+                          <span v-if="item.wastedBytes" class="text-warning">{{ formatBytes(item.wastedBytes) }} wasted</span>
+                          <span v-if="item.wastedMs" class="text-warning">{{ Math.round(item.wastedMs) }}ms wasted</span>
+                          <span v-if="item.totalBytes" class="text-muted">{{ formatBytes(item.totalBytes) }} total</span>
+                          <span v-if="item.transferSize" class="text-muted">{{ formatBytes(item.transferSize) }} transferred</span>
+                          <span v-if="item.blockingTime" class="text-warning">{{ Math.round(item.blockingTime) }}ms blocking</span>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
               </template>
             </UAccordion>
 
@@ -264,35 +306,43 @@ const {
                 <Icon name="lucide:chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
                 <Icon name="lucide:check-circle" class="size-4 text-success" />
                 <span class="text-success font-medium">Passed Audits</span>
-                <UBadge color="neutral" variant="outline" class="text-[10px] text-success">{{ cat.passing.length }}</UBadge>
+                <UBadge color="neutral" variant="outline" class="text-[10px] text-success">
+                  {{ cat.passing.length }}
+                </UBadge>
               </summary>
               <UAccordion :items="cat.passing.map((a: any) => ({ ...a, value: a.id }))" type="multiple" class="w-full mt-2">
                 <template #default="{ item: audit }">
-                      <div class="flex items-center gap-2 text-left text-sm">
-                        <Icon name="lucide:check" class="size-3.5 text-success shrink-0" />
-                        <span class="text-muted">{{ audit.title || audit.id }}</span>
-                        <span v-if="audit.displayValue" class="text-muted/60 text-xs ml-auto mr-4 shrink-0">
-                          {{ audit.displayValue }}
-                        </span>
-                      </div>
+                  <div class="flex items-center gap-2 text-left text-sm">
+                    <Icon name="lucide:check" class="size-3.5 text-success shrink-0" />
+                    <span class="text-muted">{{ audit.title || audit.id }}</span>
+                    <span v-if="audit.displayValue" class="text-muted/60 text-xs ml-auto mr-4 shrink-0">
+                      {{ audit.displayValue }}
+                    </span>
+                  </div>
                 </template>
                 <template #content="{ item: audit }">
-                      <div class="space-y-2 pt-1 pl-6 pb-2">
-                        <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
-                        <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
-                          <template v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx">
-                            <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
-                              <div v-if="item.url" class="font-mono break-all text-muted">{{ item.url }}</div>
-                              <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">{{ item.node.snippet }}</div>
-                              <div v-if="item.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">{{ item.snippet }}</div>
-                              <div class="flex gap-2 mt-1 flex-wrap">
-                                <span v-if="item.totalBytes" class="text-muted">{{ formatBytes(item.totalBytes) }}</span>
-                                <span v-if="item.transferSize" class="text-muted">{{ formatBytes(item.transferSize) }} transferred</span>
-                              </div>
-                            </div>
-                          </template>
+                  <div class="space-y-2 pt-1 pl-6 pb-2">
+                    <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
+                    <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
+                      <template v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx">
+                        <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
+                          <div v-if="item.url" class="font-mono break-all text-muted">
+                            {{ item.url }}
+                          </div>
+                          <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">
+                            {{ item.node.snippet }}
+                          </div>
+                          <div v-if="item.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">
+                            {{ item.snippet }}
+                          </div>
+                          <div class="flex gap-2 mt-1 flex-wrap">
+                            <span v-if="item.totalBytes" class="text-muted">{{ formatBytes(item.totalBytes) }}</span>
+                            <span v-if="item.transferSize" class="text-muted">{{ formatBytes(item.transferSize) }} transferred</span>
+                          </div>
                         </div>
-                      </div>
+                      </template>
+                    </div>
+                  </div>
                 </template>
               </UAccordion>
             </details>
@@ -303,14 +353,16 @@ const {
                 <Icon name="lucide:chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
                 <Icon name="lucide:minus-circle" class="size-4 text-muted" />
                 <span class="text-muted">Not Applicable</span>
-                <UBadge color="neutral" variant="outline" class="text-[10px]">{{ cat.notApplicable.length }}</UBadge>
+                <UBadge color="neutral" variant="outline" class="text-[10px]">
+                  {{ cat.notApplicable.length }}
+                </UBadge>
               </summary>
-                <div class="space-y-0.5 pt-2 pl-6">
-                  <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted/60">
-                    <Icon name="lucide:minus" class="size-3 shrink-0" />
-                    <span>{{ audit.title || audit.id }}</span>
-                  </div>
+              <div class="space-y-0.5 pt-2 pl-6">
+                <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted/60">
+                  <Icon name="lucide:minus" class="size-3 shrink-0" />
+                  <span>{{ audit.title || audit.id }}</span>
                 </div>
+              </div>
             </details>
           </div>
         </UiCard>
@@ -319,26 +371,32 @@ const {
       <!-- Stack Packs -->
       <UiCard v-if="routeData.stackPacks?.length" size="sm">
         <template #header>
-          <h3 class="text-label text-dimmed">Framework Recommendations</h3>
+          <h3 class="text-label text-dimmed">
+            Framework Recommendations
+          </h3>
         </template>
-          <div v-for="pack in routeData.stackPacks" :key="pack.id" class="mb-4 last:mb-0">
-            <div class="text-sm font-medium mb-1">{{ pack.title }}</div>
-            <div v-for="(desc, auditId) in pack.descriptions" :key="auditId" class="text-xs text-muted ml-4 mb-1">
-              <span class="font-mono text-primary/80">{{ auditId }}</span>: {{ desc }}
-            </div>
+        <div v-for="pack in routeData.stackPacks" :key="pack.id" class="mb-4 last:mb-0">
+          <div class="text-sm font-medium mb-1">
+            {{ pack.title }}
           </div>
+          <div v-for="(desc, auditId) in pack.descriptions" :key="auditId" class="text-xs text-muted ml-4 mb-1">
+            <span class="font-mono text-primary/80">{{ auditId }}</span>: {{ desc }}
+          </div>
+        </div>
       </UiCard>
 
       <!-- Entities -->
       <UiCard v-if="routeData.entities?.length" size="sm">
         <template #header>
-          <h3 class="text-label text-dimmed">Third-Party Entities</h3>
+          <h3 class="text-label text-dimmed">
+            Third-Party Entities
+          </h3>
         </template>
-          <div class="flex flex-wrap gap-2">
-            <UBadge v-for="entity in routeData.entities" :key="entity.name" :color="entity.isFirstParty ? 'primary' : 'neutral'" :variant="entity.isFirstParty ? 'solid' : 'outline'" class="text-xs">
-              {{ entity.name }}
-            </UBadge>
-          </div>
+        <div class="flex flex-wrap gap-2">
+          <UBadge v-for="entity in routeData.entities" :key="entity.name" :color="entity.isFirstParty ? 'primary' : 'neutral'" :variant="entity.isFirstParty ? 'solid' : 'outline'" class="text-xs">
+            {{ entity.name }}
+          </UBadge>
+        </div>
       </UiCard>
     </template>
   </div>

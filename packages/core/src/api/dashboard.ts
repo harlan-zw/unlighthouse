@@ -14,13 +14,35 @@
 // typed command would do.
 
 import type { Storage } from '@unlighthouse/contracts'
+import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Router } from 'h3'
 import { Buffer } from 'node:buffer'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
 import { createTaggedLogger } from '../logger'
+import { loadRouteContract } from '../report/route-contracts'
 
 const log = createTaggedLogger('dashboard')
 log.debug('init')
+
+interface DashboardRouteMatch {
+  route: ScanRoute
+  availableDevices: string[]
+}
+
+async function findDashboardRoute(storage: Storage, scanId: string, path: string, device?: string): Promise<DashboardRouteMatch | null> {
+  const decodedPath = decodeURIComponent(path)
+  const normalisedPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
+  const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+  const matches = routes.filter(route => route.path === decodedPath || route.path === normalisedPath)
+  if (matches.length === 0)
+    return null
+
+  const route = (device && matches.find(route => route.device === device)) || matches[0]
+  return {
+    route,
+    availableDevices: Array.from(new Set(matches.map(route => route.device))).sort(),
+  }
+}
 
 export function createDashboardApi(storage: Storage): Router {
   const router = createRouter()
@@ -31,20 +53,15 @@ export function createDashboardApi(storage: Storage): Router {
   router.get('/screenshot/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
     const { device } = getQuery(event) as { device?: string }
-    const decodedPath = decodeURIComponent(path)
-    const norm = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
-
-    const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
-    const matchesPath = (r: typeof routes[number]) => r.path === decodedPath || r.path === norm
+    const match = await findDashboardRoute(storage, scanId, path, device)
     // In a multi-device scan the same path has a mobile and a desktop row; honour
     // an explicit `?device=` so the UI can show the screenshot for the device the
     // user picked, falling back to the first capture for that path.
-    const route = (device ? routes.find(r => matchesPath(r) && r.device === device) : undefined)
-      ?? routes.find(matchesPath)
-    if (!route) {
+    if (!match) {
       setResponseStatus(event, 404)
       return { error: 'Route not found' }
     }
+    const { route } = match
 
     if (route.screenshotBlobKey) {
       const blob = await storage.blobs.get(route.screenshotBlobKey)
@@ -85,27 +102,17 @@ export function createDashboardApi(storage: Storage): Router {
   router.get('/route/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
     const { device } = getQuery(event) as { device?: string }
-    const decodedPath = decodeURIComponent(path)
-    const norm = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
-
-    const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
-    const matches = routes.filter(r => r.path === decodedPath || r.path === norm)
-    if (matches.length === 0) {
+    const match = await findDashboardRoute(storage, scanId, path, device)
+    if (!match) {
       setResponseStatus(event, 404)
       return { error: 'Route not found' }
     }
-    const devices = Array.from(new Set(matches.map(r => r.device))).sort()
-    const route = (device && matches.find(r => r.device === device)) || matches[0]
+    const { route, availableDevices } = match
 
-    if (route.reportBlobKey) {
-      const reportKey = route.reportBlobKey.replace('.json', '.contract.json')
-      const blob = await storage.blobs.get(reportKey)
-      if (blob) {
-        const contract = JSON.parse(Buffer.from(blob).toString('utf-8'))
-        return { ...route, ...contract, availableDevices: devices }
-      }
-    }
-    return { ...route, availableDevices: devices }
+    const contract = await loadRouteContract(storage.blobs, route)
+    if (contract)
+      return { ...route, ...contract, availableDevices }
+    return { ...route, availableDevices }
   }))
 
   // Raw Lighthouse JSON — gunzipped, served as application/json with
@@ -115,12 +122,7 @@ export function createDashboardApi(storage: Storage): Router {
   router.get('/lhr/:scanId/:path', defineEventHandler(async (event) => {
     const { scanId, path } = getRouterParams(event) as { scanId: string, path: string }
     const { device } = getQuery(event) as { device?: string }
-    const decodedPath = decodeURIComponent(path)
-    const norm = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
-
-    const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
-    const matches = routes.filter(r => r.path === decodedPath || r.path === norm)
-    const route = (device && matches.find(r => r.device === device)) || matches[0]
+    const route = (await findDashboardRoute(storage, scanId, path, device))?.route
     if (!route || !route.lhrBlobKey) {
       setResponseStatus(event, 404)
       return { error: 'No LHR data for this route' }
@@ -191,16 +193,7 @@ export function createDashboardApi(storage: Storage): Router {
     }
 
     const hydratedRoutes = await Promise.all(routes.map(async (r) => {
-      let contract: unknown = null
-      if (r.reportBlobKey) {
-        const blob = await storage.blobs.get(r.reportBlobKey.replace('.json', '.contract.json'))
-        if (blob) {
-          try {
-            contract = JSON.parse(Buffer.from(blob).toString('utf-8'))
-          }
-          catch { /* leave null */ }
-        }
-      }
+      const contract = await loadRouteContract(storage.blobs, r)
       return { ...r, contract }
     }))
 

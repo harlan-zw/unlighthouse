@@ -17,7 +17,6 @@ const props = withDefaults(defineProps<{
 })
 
 const router = useRouter()
-const api = useApi()
 const store = useScanStore()
 
 const siteUrl = ref(props.initialUrl)
@@ -92,7 +91,7 @@ async function handleSubmit() {
 
   loading.value = true
   try {
-    const result = await store.startScan(api, url, {
+    const result = await store.startScan(url, {
       device: deviceValue,
       mode: scanMode.value,
       sampleSize: sampleSize.value > 1 ? sampleSize.value : undefined,
@@ -124,131 +123,141 @@ async function handleSubmit() {
 
 <template>
   <UiCard>
-      <form class="space-y-5" @submit.prevent="handleSubmit">
-        <UFormField label="Site URL">
-          <UInput
-            id="site-url"
-            v-model="siteUrl"
-            placeholder="https://example.com"
-            required
-            autofocus
-            class="w-full font-mono"
-          />
-          <template #help>
-            {{ scanMode === 'site' ? 'All pages will be discovered via sitemap and crawling.' : 'Only this single URL will be audited.' }}
-          </template>
-        </UFormField>
+    <form class="space-y-5" @submit.prevent="handleSubmit">
+      <UFormField label="Site URL">
+        <UInput
+          id="site-url"
+          v-model="siteUrl"
+          placeholder="https://example.com"
+          required
+          autofocus
+          class="w-full font-mono"
+        />
+        <template #help>
+          {{ scanMode === 'site' ? 'All pages will be discovered via sitemap and crawling.' : 'Only this single URL will be audited.' }}
+        </template>
+      </UFormField>
 
-        <div class="space-y-2">
-          <div class="text-sm font-medium">Scan Mode</div>
-          <div class="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              class="rounded-lg border p-3 text-left transition-all"
-              :class="scanMode === 'site' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50'"
-              @click="scanMode = 'site'"
-            >
-              <div class="flex items-center gap-2 text-sm font-medium">
-                <Icon name="lucide:globe" class="size-4" />
-                Full Site
-              </div>
-              <p class="text-[11px] text-muted mt-1">Crawl all pages</p>
-            </button>
-            <button
-              type="button"
-              class="rounded-lg border p-3 text-left transition-all"
-              :class="scanMode === 'page' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50'"
-              @click="scanMode = 'page'"
-            >
-              <div class="flex items-center gap-2 text-sm font-medium">
-                <Icon name="lucide:file" class="size-4" />
-                Single Page
-              </div>
-              <p class="text-[11px] text-muted mt-1">Audit one URL only</p>
-            </button>
-          </div>
+      <div class="space-y-2">
+        <div class="text-sm font-medium">
+          Scan Mode
         </div>
-
-        <UFormField label="Device">
-          <USelect
-            v-model="device"
-            :items="[
-              { label: 'Mobile', value: 'mobile', icon: 'i-lucide-smartphone' },
-              { label: 'Desktop', value: 'desktop', icon: 'i-lucide-monitor' },
-              { label: 'Both', value: 'both', icon: 'i-lucide-smartphone' },
-            ]"
-            class="w-full"
-          />
-        </UFormField>
-
-        <div>
+        <div class="grid grid-cols-2 gap-2">
           <button
             type="button"
-            class="flex items-center gap-2 text-sm font-medium text-muted hover:text-default group w-full"
-            @click="advancedOpen = !advancedOpen"
+            class="rounded-lg border p-3 text-left transition-all"
+            :class="scanMode === 'site' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50'"
+            @click="scanMode = 'site'"
           >
-            <Icon name="lucide:chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
-            Advanced
-            <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-label text-primary">customized</span>
+            <div class="flex items-center gap-2 text-sm font-medium">
+              <Icon name="lucide:globe" class="size-4" />
+              Full Site
+            </div>
+            <p class="text-[11px] text-muted mt-1">
+              Crawl all pages
+            </p>
           </button>
-          <div v-show="advancedOpen" class="space-y-5 pt-4 pl-6">
-            <UFormField label="Sample size">
-              <USelect
-                :model-value="String(sampleSize)"
-                :items="[
-                  { label: '1 run (fastest)', value: '1' },
-                  { label: '3 runs (median)', value: '3' },
-                  { label: '5 runs (most stable)', value: '5' },
-                ]"
-                class="w-full"
-                @update:model-value="(v) => sampleSize = Number(v)"
-              />
-              <template #help>
-                Lighthouse runs N times per URL and takes the median. Higher = more stable CWV but ~Nx slower.
-              </template>
-            </UFormField>
-
-            <div class="space-y-2">
-              <div class="text-sm font-medium">Categories</div>
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  v-for="cat in allCategories"
-                  :key="cat"
-                  type="button"
-                  class="rounded-md border px-3 py-2 text-xs text-left transition-all capitalize"
-                  :class="selectedCategories.includes(cat) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50 text-muted'"
-                  @click="toggleCategory(cat)"
-                >
-                  {{ cat.replace('-', ' ') }}
-                </button>
-              </div>
-              <p class="text-[11px] text-muted">
-                Skipping categories cuts audit time. At least one must stay selected.
-              </p>
+          <button
+            type="button"
+            class="rounded-lg border p-3 text-left transition-all"
+            :class="scanMode === 'page' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50'"
+            @click="scanMode = 'page'"
+          >
+            <div class="flex items-center gap-2 text-sm font-medium">
+              <Icon name="lucide:file" class="size-4" />
+              Single Page
             </div>
+            <p class="text-[11px] text-muted mt-1">
+              Audit one URL only
+            </p>
+          </button>
+        </div>
+      </div>
 
-            <div class="space-y-2">
-              <div class="text-sm font-medium">CI build metadata</div>
-              <div class="grid grid-cols-2 gap-2">
-                <UInput v-model="ciBranch" placeholder="branch" class="font-mono text-xs" />
-                <UInput v-model="ciHash" placeholder="commit hash" class="font-mono text-xs" />
-              </div>
-              <UInput v-model="ciMessage" placeholder="commit message (optional)" class="w-full text-xs" />
-              <p class="text-[11px] text-muted">
-                Pin this scan to a deploy. Compare against previous scans on the same branch via the compare page.
-              </p>
+      <UFormField label="Device">
+        <USelect
+          v-model="device"
+          :items="[
+            { label: 'Mobile', value: 'mobile', icon: 'i-lucide-smartphone' },
+            { label: 'Desktop', value: 'desktop', icon: 'i-lucide-monitor' },
+            { label: 'Both', value: 'both', icon: 'i-lucide-smartphone' },
+          ]"
+          class="w-full"
+        />
+      </UFormField>
+
+      <div>
+        <button
+          type="button"
+          class="flex items-center gap-2 text-sm font-medium text-muted hover:text-default group w-full"
+          @click="advancedOpen = !advancedOpen"
+        >
+          <Icon name="lucide:chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
+          Advanced
+          <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-label text-primary">customized</span>
+        </button>
+        <div v-show="advancedOpen" class="space-y-5 pt-4 pl-6">
+          <UFormField label="Sample size">
+            <USelect
+              :model-value="String(sampleSize)"
+              :items="[
+                { label: '1 run (fastest)', value: '1' },
+                { label: '3 runs (median)', value: '3' },
+                { label: '5 runs (most stable)', value: '5' },
+              ]"
+              class="w-full"
+              @update:model-value="(v) => sampleSize = Number(v)"
+            />
+            <template #help>
+              Lighthouse runs N times per URL and takes the median. Higher = more stable CWV but ~Nx slower.
+            </template>
+          </UFormField>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">
+              Categories
             </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-for="cat in allCategories"
+                :key="cat"
+                type="button"
+                class="rounded-md border px-3 py-2 text-xs text-left transition-all capitalize"
+                :class="selectedCategories.includes(cat) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50 text-muted'"
+                @click="toggleCategory(cat)"
+              >
+                {{ cat.replace('-', ' ') }}
+              </button>
+            </div>
+            <p class="text-[11px] text-muted">
+              Skipping categories cuts audit time. At least one must stay selected.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">
+              CI build metadata
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <UInput v-model="ciBranch" placeholder="branch" class="font-mono text-xs" />
+              <UInput v-model="ciHash" placeholder="commit hash" class="font-mono text-xs" />
+            </div>
+            <UInput v-model="ciMessage" placeholder="commit message (optional)" class="w-full text-xs" />
+            <p class="text-[11px] text-muted">
+              Pin this scan to a deploy. Compare against previous scans on the same branch via the compare page.
+            </p>
           </div>
         </div>
+      </div>
 
-        <div class="flex items-center gap-3 pt-2">
-          <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading || !siteUrl.trim()" icon="i-lucide-radar" class="flex-1 sm:flex-none">
-            Start Scan
-          </UiButton>
-          <UiButton v-if="!hideCancel" type="button" purpose="secondary" @click="router.push(cancelTo)">
-            Cancel
-          </UiButton>
-        </div>
-      </form>
+      <div class="flex items-center gap-3 pt-2">
+        <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading || !siteUrl.trim()" icon="i-lucide-radar" class="flex-1 sm:flex-none">
+          Start Scan
+        </UiButton>
+        <UiButton v-if="!hideCancel" type="button" purpose="secondary" @click="router.push(cancelTo)">
+          Cancel
+        </UiButton>
+      </div>
+    </form>
   </UiCard>
 </template>

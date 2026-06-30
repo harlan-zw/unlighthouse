@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import MetricStatCard from './MetricStatCard.vue'
 import type { RouteRow } from '~/features/scan/routes-table'
+import { useScreenshotUrl } from '~/features/scan/route-context'
 import {
   CWV_COLS,
-  QUICK_FILTERS,
-  SCORE_COLS,
   cwvColor,
   formatRouteMetric,
   overallRouteScore,
+  QUICK_FILTERS,
+  SCORE_COLS,
   useScanRoutesTable,
 } from '~/features/scan/routes-table'
-import { useScreenshotUrl } from '~/features/scan/route-context'
+import MetricStatCard from './MetricStatCard.vue'
 
 const { scoreToColor, scoreToLabel } = useScoreColor()
 const screenshotUrl = useScreenshotUrl()
@@ -170,13 +170,13 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     <!-- Core Web Vitals — professional metric header (p75 + distribution +
          percentiles across the visible routes). -->
     <div v-if="filtered.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="[2500, 4000]" :format="(v: number) => formatMetric(v, 'ms')" />
-      <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="[0.1, 0.25]" :format="(v: number) => v.toFixed(3)" />
-      <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="[200, 600]" :format="(v: number) => formatMetric(v, 'ms')" />
+      <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="CWV_THRESHOLDS.lcp" :format="(v: number) => formatMetric(v, 'ms')" />
+      <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="CWV_THRESHOLDS.cls" :format="(v: number) => v.toFixed(3)" />
+      <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="CWV_THRESHOLDS.tbt" :format="(v: number) => formatMetric(v, 'ms')" />
       <template v-if="showAllMetrics">
-        <MetricStatCard label="First Contentful Paint" :values="filtered.map(r => r.fcp)" :thresholds="[1800, 3000]" :format="(v: number) => formatMetric(v, 'ms')" />
-        <MetricStatCard label="Speed Index" :values="filtered.map(r => r.si)" :thresholds="[3400, 5800]" :format="(v: number) => formatMetric(v, 'ms')" />
-        <MetricStatCard label="Time to First Byte" :values="filtered.map(r => r.ttfb)" :thresholds="[800, 1800]" :format="(v: number) => formatMetric(v, 'ms')" />
+        <MetricStatCard label="First Contentful Paint" :values="filtered.map(r => r.fcp)" :thresholds="CWV_THRESHOLDS.fcp" :format="(v: number) => formatMetric(v, 'ms')" />
+        <MetricStatCard label="Speed Index" :values="filtered.map(r => r.si)" :thresholds="CWV_THRESHOLDS.si" :format="(v: number) => formatMetric(v, 'ms')" />
+        <MetricStatCard label="Time to First Byte" :values="filtered.map(r => r.ttfb)" :thresholds="CWV_THRESHOLDS.ttfb" :format="(v: number) => formatMetric(v, 'ms')" />
       </template>
     </div>
 
@@ -256,9 +256,15 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       </template>
 
       <template #empty>
-        <p v-if="store.isActive">Routes will appear as they are scanned...</p>
-        <p v-else-if="q || quick !== 'all'">No routes match the current filter.</p>
-        <p v-else>No routes found.</p>
+        <p v-if="store.isActive">
+          Routes will appear as they are scanned...
+        </p>
+        <p v-else-if="q || quick !== 'all'">
+          No routes match the current filter.
+        </p>
+        <p v-else>
+          No routes found.
+        </p>
       </template>
     </DataTable>
 

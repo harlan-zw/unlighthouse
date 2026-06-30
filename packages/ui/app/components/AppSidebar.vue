@@ -11,7 +11,6 @@ import type { ScanId } from '@unlighthouse/contracts'
 // mobile drawer). Navigation rows use the design-system `UiNavList`
 // primitive; the blue scan-mode wash lives on the <aside> in SidebarShell.
 const route = useRoute()
-const api = useApi()
 
 const siteId = computed(() => route.params.siteId as string | undefined)
 const scanId = computed(() => route.params.scanId as string | undefined)
@@ -35,11 +34,12 @@ const nav = [
 ]
 
 // ── Sites list (default mode) ────────────────────────────────────────────────
-// Let useAsyncData surface the error rather than swallowing it with .catch —
-// an unreachable host should read as "can't connect", not "no sites".
-const { data: sitesData, error: sitesError, status: sitesStatus, refresh: refreshSites } = useAsyncData(
-  'sidebar-sites',
-  () => api['sites.list']({}),
+// useApiQuery surfaces the error (as a normalized ApiError) rather than
+// swallowing it — an unreachable host should read as "can't connect", not
+// "no sites".
+const { data: sitesData, error: sitesError, status: sitesStatus, refresh: refreshSites } = useApiQuery(
+  'sites.list',
+  () => ({}),
 )
 const sites = computed(() => sitesData.value?.sites ?? [])
 const sitesUnreachable = computed(() => sitesStatus.value === 'error' || !!sitesError.value)
@@ -85,14 +85,10 @@ const scanLinks = computed(() => {
   ]
 })
 
-const { data: scanRoutesData } = useAsyncData(
-  'sidebar-scan-routes',
-  () => {
-    if (!scanId.value)
-      return Promise.resolve(null)
-    return api['scan.results']({ scanId: scanId.value as ScanId, page: 1, pageSize: 500 }).catch(() => null)
-  },
-  { watch: [scanId] },
+const { data: scanRoutesData } = useApiQuery(
+  'scan.results',
+  () => ({ scanId: scanId.value as ScanId, page: 1, pageSize: 500 }),
+  { enabled: () => !!scanId.value },
 )
 const uniqueRoutes = computed(() => {
   const seen = new Set<string>()
@@ -144,11 +140,15 @@ const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
     <!-- ───────── Scan mode ───────── -->
     <template v-if="inScan">
       <div>
-        <div class="text-label text-dimmed px-1 mb-1">Scan</div>
+        <div class="text-label text-dimmed px-1 mb-1">
+          Scan
+        </div>
         <UiNavList :links="scanLinks" />
       </div>
       <div v-if="routeLinks.length">
-        <div class="text-label text-dimmed px-1 mb-1">Routes · {{ routeLinks.length }}</div>
+        <div class="text-label text-dimmed px-1 mb-1">
+          Routes · {{ routeLinks.length }}
+        </div>
         <UiNavList :links="routeLinks" />
       </div>
     </template>
@@ -156,11 +156,15 @@ const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
     <!-- ───────── Default mode ───────── -->
     <template v-else>
       <div>
-        <div class="text-label text-dimmed px-1 mb-1">Navigation</div>
+        <div class="text-label text-dimmed px-1 mb-1">
+          Navigation
+        </div>
         <UiNavList :links="nav" />
       </div>
       <div>
-        <div class="text-label text-dimmed px-1 mb-1">Sites</div>
+        <div class="text-label text-dimmed px-1 mb-1">
+          Sites
+        </div>
         <!-- Connection failure must look different from "no sites yet", else an
              unreachable host silently reads as an empty registry. -->
         <div
@@ -169,7 +173,9 @@ const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
         >
           <Icon name="lucide:plug-zap" class="size-3.5 shrink-0 mt-0.5" />
           <div class="min-w-0">
-            <div class="font-medium">Can't reach the scan host</div>
+            <div class="font-medium">
+              Can't reach the scan host
+            </div>
             <button type="button" class="mt-1 inline-flex items-center gap-1 text-muted hover:text-default" @click="() => refreshSites()">
               <Icon name="lucide:rotate-cw" class="size-3" /> Retry
             </button>

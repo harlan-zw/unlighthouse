@@ -18,13 +18,10 @@ export function useFormat() {
   }
 
   // Millisecond metric. Switches to seconds at 1000ms so e.g. LCP
-  // reads "2.4s" rather than "2400ms" in tables.
+  // reads "2.4s" rather than "2400ms" in tables. Pure rule lives in
+  // ~/utils/format so the .ts feature tables share it without the composable.
   function fmtMs(v: number | null | undefined): string {
-    if (v == null)
-      return '—'
-    if (v >= 1000)
-      return `${(v / 1000).toFixed(1)}s`
-    return `${Math.round(v)}ms`
+    return formatMs(v)
   }
 
   // Delta of a score (-1..1) or a ms metric. `isScore` switches

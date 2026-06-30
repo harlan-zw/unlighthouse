@@ -3,11 +3,10 @@ import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
-const api = useApi()
 
 async function handleCancel() {
   try {
-    await store.cancelScan(api)
+    await store.cancelScan()
     toast.info('Scan cancelled')
   }
   catch (err: any) {
@@ -17,7 +16,7 @@ async function handleCancel() {
 
 async function handlePause() {
   try {
-    await store.pauseScan(api)
+    await store.pauseScan()
     toast.info('Scan paused')
   }
   catch (err: any) {
@@ -27,7 +26,7 @@ async function handlePause() {
 
 async function handleResume() {
   try {
-    await store.resumeScan(api)
+    await store.resumeScan()
     toast.info('Scan resumed')
   }
   catch (err: any) {

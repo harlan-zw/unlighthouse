@@ -10,7 +10,7 @@ const scanId = getScanId()
 
 try {
   const meta = await api['scan.meta']({ scanId })
-  const slug = new URL(meta.site).hostname
+  const slug = siteSlug(meta.site)
   const status = await api['scan.status']({ scanId }).then((r: any) => r?.status).catch(() => null)
   await navigateTo(scanLinkPath(slug, scanId, status), { replace: true })
 }

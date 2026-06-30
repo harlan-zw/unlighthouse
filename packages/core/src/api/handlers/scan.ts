@@ -1,12 +1,6 @@
 // scan.* handlers — wired to UnlighthouseCore session + Storage.
 
 import type {
-  Device,
-  ExtractedMetrics,
-  ScanRoute,
-} from '@unlighthouse/contracts/types/atoms'
-import type {
-  CommandInput,
   CommandOutput,
   ScanCancel,
   ScanCategories,
@@ -22,10 +16,16 @@ import type {
   ScanStatusCmd,
   ScanSummaryCmd,
 } from '@unlighthouse/contracts/commands'
+import type {
+  Device,
+  ExtractedMetrics,
+} from '@unlighthouse/contracts/types/atoms'
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { overviewPack } from '../../packs/overview'
+import { loadRouteContract } from '../../report/route-contracts'
 import { readGitMeta } from '../../util/git-meta'
+import { applyRouteRegexFallback, routeFilterForStorage } from './route-results'
 
 function notFound(scanId: string): never {
   throw new UnlighthouseError({
@@ -223,73 +223,6 @@ export const scanImport: Handler<typeof ScanImport> = {
   },
 }
 
-// Helpers shared with query.routes.
-export function applyRouteFilter(items: ScanRoute[], filter: CommandInput<typeof ScanResults>['filter']): ScanRoute[] {
-  if (!filter)
-    return items
-  return items.filter((r) => {
-    if (filter.urlPattern && !new RegExp(filter.urlPattern).test(r.url))
-      return false
-    if (filter.minScore) {
-      for (const [cat, min] of Object.entries(filter.minScore)) {
-        const key = ({
-          'performance': 'scorePerformance',
-          'accessibility': 'scoreAccessibility',
-          'seo': 'scoreSeo',
-          'best-practices': 'scoreBestPractices',
-          'agentic-browsing': 'scoreAgenticBrowsing',
-        } as const)[cat as keyof typeof filter.minScore]
-        const v = (r as unknown as Record<string, number | null>)[key as string]
-        if (v == null || v < (min as number))
-          return false
-      }
-    }
-    if (filter.maxMetric) {
-      for (const [metric, max] of Object.entries(filter.maxMetric)) {
-        const v = (r as unknown as Record<string, number | null>)[metric]
-        if (v != null && v > (max as number))
-          return false
-      }
-    }
-    return true
-  })
-}
-
-export function applyRouteSort(items: ScanRoute[], sort?: string): ScanRoute[] {
-  if (!sort)
-    return items
-  const copy = [...items]
-  const numSort = (key: keyof ScanRoute, asc: boolean) => (a: ScanRoute, b: ScanRoute) => {
-    const av = (a[key] as number | null) ?? (asc ? Infinity : -Infinity)
-    const bv = (b[key] as number | null) ?? (asc ? Infinity : -Infinity)
-    return asc ? av - bv : bv - av
-  }
-  const sortFn: Record<string, (a: ScanRoute, b: ScanRoute) => number> = {
-    'score-asc': numSort('scorePerformance', true),
-    'score-desc': numSort('scorePerformance', false),
-    'lcp-asc': numSort('lcp', true),
-    'lcp-desc': numSort('lcp', false),
-    'cls-asc': numSort('cls', true),
-    'cls-desc': numSort('cls', false),
-    'fcp-asc': numSort('fcp', true),
-    'fcp-desc': numSort('fcp', false),
-    'tbt-asc': numSort('tbt', true),
-    'tbt-desc': numSort('tbt', false),
-    'ttfb-asc': numSort('ttfb', true),
-    'ttfb-desc': numSort('ttfb', false),
-    'si-asc': numSort('si', true),
-    'si-desc': numSort('si', false),
-    'inp-asc': numSort('inp', true),
-    'inp-desc': numSort('inp', false),
-    'url-asc': (a, b) => a.url.localeCompare(b.url),
-    'capturedAt-desc': (a, b) => b.capturedAt.localeCompare(a.capturedAt),
-  }
-  const fn = sortFn[sort]
-  if (fn)
-    copy.sort(fn)
-  return copy
-}
-
 export const scanMeta: Handler<typeof ScanMetaCmd> = {
   command: {} as typeof ScanMetaCmd,
   async run(input, ctx) {
@@ -356,18 +289,7 @@ export const scanResults: Handler<typeof ScanResults> = {
     // We still apply the RegExp on the returned page for non-literal
     // patterns — see filterRouteRegex below. Same with sorts the adapter
     // doesn't recognise.
-    const filterForStorage = input.filter
-      ? {
-          minScore: input.filter.minScore,
-          maxMetric: input.filter.maxMetric,
-          // Only pass urlPattern through to storage when it looks like a
-          // plain substring (no regex meta-chars). Otherwise let the
-          // adapter return the unfiltered row set and we regex it below.
-          urlPattern: input.filter.urlPattern && /^[\w./\-:?#]+$/.test(input.filter.urlPattern)
-            ? input.filter.urlPattern
-            : undefined,
-        }
-      : undefined
+    const filterForStorage = routeFilterForStorage(input.filter)
 
     const page = await ctx.storage.routes.listForScan(input.scanId, {
       page: input.page,
@@ -380,11 +302,7 @@ export const scanResults: Handler<typeof ScanResults> = {
     // Apply the regex filter (if any) on the returned page. This still
     // pages correctly because the storage LIMIT/OFFSET respects the
     // substring filter that came with it.
-    let items = page.items
-    if (input.filter?.urlPattern && filterForStorage?.urlPattern == null) {
-      const re = new RegExp(input.filter.urlPattern)
-      items = items.filter(r => re.test(r.url))
-    }
+    const items = applyRouteRegexFallback(page.items, input.filter?.urlPattern, filterForStorage)
 
     return {
       items,
@@ -471,22 +389,9 @@ export const scanCategories: Handler<typeof ScanCategories> = {
     const agg = new Map<string, CategoryAgg>()
 
     for (const route of filtered) {
-      if (!route.reportBlobKey)
+      const contract = await loadRouteContract(ctx.storage.blobs, route)
+      if (!contract)
         continue
-      const key = route.reportBlobKey.replace('.json', '.contract.json')
-      const blob = await ctx.storage.blobs.get(key)
-      if (!blob)
-        continue
-      let contract: {
-        categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
-        audits: Record<string, { severity: 'pass' | 'warn' | 'fail' }>
-      }
-      try {
-        contract = JSON.parse(new TextDecoder().decode(blob))
-      }
-      catch {
-        continue
-      }
 
       for (const [id, cat] of Object.entries(contract.categories ?? {})) {
         let bucket = agg.get(id)

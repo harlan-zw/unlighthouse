@@ -29,16 +29,17 @@
 //   path is never hit; node:crypto sha1→a JS impl or seed rows so urlHash is
 //   never called). That refactor is the core-portability decision this client
 //   intentionally stops short of.
-import type {
-  Scan,
-  ScanRoute,
-} from '@unlighthouse/contracts/types/atoms'
 import type { CommandName } from '@unlighthouse/contracts/commands'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { PackRun } from '@unlighthouse/contracts/packs'
 import type { SiteRecord, Storage } from '@unlighthouse/contracts/ports'
+import type {
+  Scan,
+  ScanRoute,
+} from '@unlighthouse/contracts/types/atoms'
 import type { UnlighthouseClient } from './client'
 import { commands } from '@unlighthouse/contracts/commands'
+import { routeContractBlobKey } from '../report/route-contracts'
 import { memoryStorage } from '../storage/memory'
 import { createHandlers } from './handlers'
 
@@ -120,8 +121,9 @@ export async function buildStaticSnapshot(opts: {
   // plus any blob a pack-run cache row spilled to (large reports).
   const blobKeys = new Set<string>()
   for (const r of routes) {
-    if (r.reportBlobKey)
-      blobKeys.add(r.reportBlobKey.replace('.json', '.contract.json'))
+    const key = routeContractBlobKey(r)
+    if (key)
+      blobKeys.add(key)
   }
   for (const run of packRuns) {
     const key = (run as { blobKey?: string }).blobKey

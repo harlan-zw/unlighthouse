@@ -120,9 +120,10 @@ export function createScanProgressState() {
     if (typeof score === 'number') {
       scoreSum.value += score
       scoreCount.value++
-      if (score >= 0.9)
+      const band = scoreBand(score)
+      if (band === 'good')
         passCount.value++
-      else if (score >= 0.5)
+      else if (band === 'average')
         needsWorkCount.value++
       else poorCount.value++
     }

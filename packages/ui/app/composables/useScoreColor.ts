@@ -1,32 +1,24 @@
 export function useScoreColor() {
   function scoreToColor(score: number | null): string {
-    if (score === null)
-      return 'text-muted-foreground'
-    if (score >= 0.9)
-      return 'text-success'
-    if (score >= 0.5)
-      return 'text-warning'
-    return 'text-destructive'
+    switch (scoreBand(score)) {
+      case 'good': return 'text-success'
+      case 'average': return 'text-warning'
+      case 'poor': return 'text-destructive'
+      default: return 'text-muted-foreground'
+    }
   }
 
   function scoreToBg(score: number | null): string {
-    if (score === null)
-      return 'bg-muted'
-    if (score >= 0.9)
-      return 'bg-success/10'
-    if (score >= 0.5)
-      return 'bg-warning/10'
-    return 'bg-destructive/10'
+    switch (scoreBand(score)) {
+      case 'good': return 'bg-success/10'
+      case 'average': return 'bg-warning/10'
+      case 'poor': return 'bg-destructive/10'
+      default: return 'bg-muted'
+    }
   }
 
   function scoreToRingColor(score: number | null): string {
-    if (score === null)
-      return '#9ca3af'
-    if (score >= 0.9)
-      return '#22c55e'
-    if (score >= 0.5)
-      return '#f97316'
-    return '#ef4444'
+    return bandHex(scoreBand(score))
   }
 
   function scoreToLabel(score: number | null): string {
@@ -36,13 +28,12 @@ export function useScoreColor() {
   }
 
   function scoreToBadgeVariant(score: number | null): 'default' | 'secondary' | 'destructive' | 'outline' {
-    if (score === null)
-      return 'outline'
-    if (score >= 0.9)
-      return 'default'
-    if (score >= 0.5)
-      return 'secondary'
-    return 'destructive'
+    switch (scoreBand(score)) {
+      case 'good': return 'default'
+      case 'average': return 'secondary'
+      case 'poor': return 'destructive'
+      default: return 'outline'
+    }
   }
 
   return { scoreToColor, scoreToBg, scoreToRingColor, scoreToLabel, scoreToBadgeVariant }

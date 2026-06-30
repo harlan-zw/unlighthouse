@@ -22,20 +22,21 @@ function normalizeSiteUrl(value: string): string {
 }
 
 export function useSitesRegistry() {
-  const api = useApi()
   const router = useRouter()
 
-  const { data: sitesData, refresh } = useAsyncData(
-    'sites-list',
-    () => api['sites.list']({}).catch(() => ({ sites: [] as Site[] })),
-  )
+  const { data: sitesData, error: sitesError, refresh } = useApiQuery('sites.list', () => ({}))
+
+  // Both write paths invalidate the list, so it refetches automatically
+  // instead of the old manual `refresh()` after each call.
+  const createSite = useApiMutation('sites.create', { invalidates: ['sites.list'] })
+  const deleteSiteMutation = useApiMutation('sites.delete', { invalidates: ['sites.list'] })
 
   const editing = ref<Site | null>(null)
   const formOpen = ref(false)
   const formUrl = ref('')
   const formName = ref('')
   const formGroup = ref('')
-  const saving = ref(false)
+  const saving = createSite.isPending
 
   const sites = computed(() => (sitesData.value?.sites ?? []) as Site[])
   const isEmpty = computed(() => !sites.value.length)
@@ -64,34 +65,26 @@ export function useSitesRegistry() {
     if (!formUrl.value.trim())
       return
 
-    saving.value = true
-    try {
-      await api['sites.create']({
-        url: normalizeSiteUrl(formUrl.value),
-        name: formName.value.trim() || undefined,
-        group: formGroup.value.trim() || null,
-      })
-      toast.success(editing.value ? 'Site updated' : 'Site added')
-      formOpen.value = false
-      refresh()
+    const result = await createSite.mutateSafe({
+      url: normalizeSiteUrl(formUrl.value),
+      name: formName.value.trim() || undefined,
+      group: formGroup.value.trim() || null,
+    })
+    if (result._tag === 'err') {
+      toast.error(editing.value ? 'Failed to update' : 'Failed to add', { description: normalizeApiError(result.error).message })
+      return
     }
-    catch (err: any) {
-      toast.error(editing.value ? 'Failed to update' : 'Failed to add', { description: err.message })
-    }
-    finally {
-      saving.value = false
-    }
+    toast.success(editing.value ? 'Site updated' : 'Site added')
+    formOpen.value = false
   }
 
   async function deleteSite(id: string) {
-    try {
-      await api['sites.delete']({ id })
-      toast.success('Site removed')
-      refresh()
+    const result = await deleteSiteMutation.mutateSafe({ id })
+    if (result._tag === 'err') {
+      toast.error('Failed to delete', { description: normalizeApiError(result.error).message })
+      return
     }
-    catch (err: any) {
-      toast.error('Failed to delete', { description: err.message })
-    }
+    toast.success('Site removed')
   }
 
   function scanSite(url: string) {
@@ -128,6 +121,8 @@ export function useSitesRegistry() {
 
   return {
     sites,
+    sitesError,
+    refresh,
     isEmpty,
     editing,
     formOpen,

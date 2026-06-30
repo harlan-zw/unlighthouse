@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import { h } from 'vue'
 import type { DashboardSiteRow } from '~/features/dashboard/overview'
+import type { ScanRow } from '~/features/sites/scan-pairs'
+import { h } from 'vue'
 import { useDashboardOverview } from '~/features/dashboard/overview'
 import ScanStatusBadge from '~/features/scan/components/ScanStatusBadge.vue'
 import Sparkline from '~/features/sites/components/Sparkline.vue'
-import type { ScanRow } from '~/features/sites/scan-pairs'
 
 definePageMeta({ layout: 'root', middleware: 'onboarding' })
 
@@ -15,6 +15,8 @@ const { fmtRelTime } = useFormat()
 const FaviconC = resolveComponent('Favicon')
 const {
   historyStatus,
+  historyError,
+  refreshHistory,
   allScans,
   siteRows,
   kpis,
@@ -26,9 +28,9 @@ const {
   openScan,
 } = useDashboardOverview()
 
+const { scoreToRingColor } = useScoreColor()
 function score100Color(v: number | null): string {
-  if (v == null) return 'var(--muted-foreground)'
-  return v >= 90 ? '#22c55e' : v >= 50 ? '#f97316' : '#ef4444'
+  return scoreToRingColor(v == null ? null : v / 100)
 }
 
 // ── Sites table ──────────────────────────────────────────────────────────────
@@ -142,35 +144,45 @@ const recentColumns: ColumnDef<ScanRow>[] = [
   <div class="space-y-6">
     <PageHeader title="Dashboard" description="Your sites at a glance." flush>
       <template #actions>
-        <UiButton purpose="cta" to="/scan/new" icon="i-lucide-plus">New Scan</UiButton>
+        <UiButton purpose="cta" to="/scan/new" icon="i-lucide-plus">
+          New Scan
+        </UiButton>
       </template>
     </PageHeader>
 
     <!-- Active scan banner -->
     <div v-if="activeScan.isActive" class="rounded-xl border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="openActiveScan">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <span class="relative flex size-2">
-              <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-              <span class="relative inline-flex size-2 rounded-full bg-primary" />
-            </span>
-            <span class="text-sm font-medium">Scanning {{ activeScan.site }}</span>
-          </div>
-          <span class="text-sm tabular-nums text-muted">{{ activeScan.scanned }}/{{ activeScan.total }}</span>
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="relative flex size-2">
+            <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+            <span class="relative inline-flex size-2 rounded-full bg-primary" />
+          </span>
+          <span class="text-sm font-medium">Scanning {{ activeScan.site }}</span>
         </div>
-        <UProgress :model-value="activeScan.percent" size="sm" />
+        <span class="text-sm tabular-nums text-muted">{{ activeScan.scanned }}/{{ activeScan.total }}</span>
+      </div>
+      <UProgress :model-value="activeScan.percent" size="sm" />
     </div>
 
+    <!-- Failed to load scans — shown instead of the empty state so an
+         unreachable backend doesn't read as "no scans yet". -->
+    <QueryError v-if="historyError" :error="historyError" :on-retry="refreshHistory" />
+
     <!-- Empty state -->
-    <div v-if="isEmpty" class="flex flex-col items-center justify-center py-20 text-center">
+    <div v-else-if="isEmpty" class="flex flex-col items-center justify-center py-20 text-center">
       <div class="size-16 rounded-full bg-elevated flex items-center justify-center mb-6">
         <Icon name="lucide:radar" class="size-8 text-muted" />
       </div>
-      <h2 class="text-heading mb-2">No scans yet</h2>
+      <h2 class="text-heading mb-2">
+        No scans yet
+      </h2>
       <p class="text-muted mb-6 max-w-sm">
         Start your first scan to get SEO, performance, and accessibility insights for your website.
       </p>
-      <UiButton purpose="cta" size="lg" to="/scan/new" icon="i-lucide-plus">Start First Scan</UiButton>
+      <UiButton purpose="cta" size="lg" to="/scan/new" icon="i-lucide-plus">
+        Start First Scan
+      </UiButton>
     </div>
 
     <template v-else>

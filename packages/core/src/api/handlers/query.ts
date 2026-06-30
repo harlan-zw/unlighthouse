@@ -1,16 +1,15 @@
 // query.routes handler — cross-scan route query.
 
-import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { CommandOutput, QueryRoutes } from '@unlighthouse/contracts/commands'
+import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Handler } from './types'
-import { applyRouteFilter, applyRouteSort } from './scan'
-
-// Substring-or-literal check — same heuristic scanResults uses. Anything
-// that looks like a plain URL/path goes to SQL `LIKE`; richer regexes
-// stay in JS on the final page.
-function isLiteralSubstring(pattern: string): boolean {
-  return /^[\w./\-:?#]+$/.test(pattern)
-}
+import {
+  applyRouteFilter,
+  applyRouteRegexFallback,
+  applyRouteSort,
+  projectRoute,
+  routeFilterForStorage,
+} from './route-results'
 
 // INTERNAL: not used by the UI; kept for power users and test coverage (d029).
 export const queryRoutes: Handler<typeof QueryRoutes> = {
@@ -20,17 +19,7 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
     // storage. The drizzle adapter emits real SQL — a 10k-route scan
     // filtered to 50 reads 50 rows from disk, not 10k.
     if (input.scanId) {
-      const filterForStorage = input.filter
-        ? {
-            minScore: input.filter.minScore,
-            maxMetric: input.filter.maxMetric,
-            urlPattern: input.urlPattern && isLiteralSubstring(input.urlPattern)
-              ? input.urlPattern
-              : undefined,
-          }
-        : (input.urlPattern && isLiteralSubstring(input.urlPattern)
-            ? { urlPattern: input.urlPattern }
-            : undefined)
+      const filterForStorage = routeFilterForStorage(input.filter, input.urlPattern)
 
       const page = await ctx.storage.routes.listForScan(input.scanId, {
         page: input.page,
@@ -40,14 +29,9 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
         sort: input.sort,
       })
 
-      let items = page.items
-      // Fall through to JS for regex urlPatterns the SQL push-down skipped.
-      if (input.urlPattern && (!filterForStorage || filterForStorage.urlPattern == null)) {
-        const re = new RegExp(input.urlPattern)
-        items = items.filter(r => re.test(r.url))
-      }
+      let items = applyRouteRegexFallback(page.items, input.urlPattern, filterForStorage)
       if (input.projection?.length)
-        items = items.map(r => projectRow(r, input.projection!))
+        items = items.map(route => projectRoute(route, input.projection!))
       return {
         items,
         total: page.total,
@@ -69,17 +53,7 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
       branch: input.branch,
       pageSize: 500,
     })
-    const filterForStorage = input.filter
-      ? {
-          minScore: input.filter.minScore,
-          maxMetric: input.filter.maxMetric,
-          urlPattern: input.urlPattern && isLiteralSubstring(input.urlPattern)
-            ? input.urlPattern
-            : undefined,
-        }
-      : (input.urlPattern && isLiteralSubstring(input.urlPattern)
-          ? { urlPattern: input.urlPattern }
-          : undefined)
+    const filterForStorage = routeFilterForStorage(input.filter, input.urlPattern)
     for (const scan of scans.items) {
       const res = await ctx.storage.routes.listForScan(scan.scanId, {
         page: 1,
@@ -90,15 +64,12 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
       pool.push(...res.items)
     }
 
-    if (input.urlPattern && (!filterForStorage || filterForStorage.urlPattern == null)) {
-      const re = new RegExp(input.urlPattern)
-      pool = pool.filter(r => re.test(r.url))
-    }
+    pool = applyRouteRegexFallback(pool, input.urlPattern, filterForStorage)
 
     let filtered = applyRouteSort(applyRouteFilter(pool, input.filter), input.sort)
 
     if (input.projection?.length)
-      filtered = filtered.map(r => projectRow(r, input.projection!))
+      filtered = filtered.map(route => projectRoute(route, input.projection!))
 
     const start = (input.page - 1) * input.pageSize
     const items = filtered.slice(start, start + input.pageSize)
@@ -109,29 +80,4 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
       pageSize: input.pageSize,
     } as CommandOutput<typeof QueryRoutes>
   },
-}
-
-// Projection: limit metric columns to those the caller asked for; identity
-// columns (url, path, device, scanId, blob keys, capturedAt, version) stay
-// regardless because they identify the row. Scores stay too — they're cheap
-// and most projection use cases want them alongside metrics.
-function projectRow(r: ScanRoute, projection: string[]): ScanRoute {
-  const keep = new Set(projection)
-  const out: Record<string, unknown> = {
-    url: r.url,
-    path: r.path,
-    scanId: r.scanId,
-    device: r.device,
-    lhrBlobKey: r.lhrBlobKey,
-    capturedAt: r.capturedAt,
-    lighthouseVersion: r.lighthouseVersion,
-    routeName: r.routeName,
-  }
-  for (const m of ['lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si'])
-    out[m] = keep.has(m) ? (r as unknown as Record<string, number | null>)[m] : null
-  out.scorePerformance = r.scorePerformance
-  out.scoreAccessibility = r.scoreAccessibility
-  out.scoreSeo = r.scoreSeo
-  out.scoreBestPractices = r.scoreBestPractices
-  return out as unknown as ScanRoute
 }

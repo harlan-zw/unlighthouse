@@ -11,7 +11,6 @@ import { useMediaQuery } from '@vueuse/core'
 // context shift — the rail's content fully transforms (see AppSidebar) and
 // the surface washes blue here.
 const colorMode = useColorMode()
-const api = useApi()
 const route = useRoute()
 
 const inScan = computed(() => !!route.params.scanId && !!route.params.siteId)
@@ -42,26 +41,7 @@ const railTint = computed(() => (inScan.value
   ? '[--rail-bg:color-mix(in_srgb,#3b82f6_8%,var(--ui-bg))] border-info/25'
   : 'border-default'))
 
-const healthy = ref<boolean | null>(null)
-async function checkHealth() {
-  try {
-    await api['health']({})
-    healthy.value = true
-  }
-  catch {
-    healthy.value = false
-  }
-}
-
-let timer: ReturnType<typeof setInterval> | undefined
-onMounted(() => {
-  checkHealth()
-  timer = setInterval(checkHealth, 30000)
-})
-onBeforeUnmount(() => {
-  if (timer)
-    clearInterval(timer)
-})
+const { healthy } = useBackendHealth()
 </script>
 
 <template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ApiError } from '~/composables/useApiError'
 // Boilerplate shell for the per-category scan pages (Performance,
 // Accessibility, SEO, Best Practices, Agentic Browsing). Owns the
 // breadcrumb + title + 3-state (loading / empty / error / ready)
@@ -23,6 +24,11 @@ interface Props {
   status: 'idle' | 'pending' | 'success' | 'error'
   // The pack's `report` field. Null + settled status → empty state.
   report: unknown
+  // Normalized primary-fetch error. When set it renders a retryable banner
+  // INSTEAD of the empty state, so an unreachable backend doesn't read as
+  // "no data yet".
+  error?: ApiError | null
+  onRetry?: () => void
   // Customise the empty-state copy per category since "No SEO issues"
   // reads differently from "No accessibility data yet."
   emptyMessage?: string
@@ -31,6 +37,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   pack: '',
+  error: null,
   emptyMessage: 'No data available. Run a scan first.',
   loadingMessage: 'Loading...',
 })
@@ -42,11 +49,15 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
   <div class="space-y-6">
     <PageHeader :title="title" flush>
       <template v-if="pack" #actions>
-        <UBadge color="neutral" variant="outline" size="xs" class="font-mono">{{ pack }}</UBadge>
+        <UBadge color="neutral" variant="outline" size="xs" class="font-mono">
+          {{ pack }}
+        </UBadge>
       </template>
     </PageHeader>
 
-    <div v-if="status === 'pending'" class="text-center py-12 text-muted">
+    <QueryError v-if="error" :error="error" :on-retry="onRetry" />
+
+    <div v-else-if="status === 'pending'" class="text-center py-12 text-muted">
       {{ loadingMessage }}
     </div>
 

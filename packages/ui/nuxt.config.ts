@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   // via app.config). The legacy shadcn token utilities still live in
   // tailwind.css as a transitional compat layer (text-muted-foreground etc.).
   extends: ['./layers/design-system'],
-  modules: ['@pinia/nuxt', '@nuxt/ui', '@nuxtjs/color-mode', '@nuxt/icon'],
+  modules: ['@pinia/nuxt', '@nuxt/ui', '@nuxtjs/color-mode', '@nuxt/icon', 'nuxt-use-query'],
   css: ['~/assets/css/tailwind.css'],
   colorMode: {
     preference: 'system',

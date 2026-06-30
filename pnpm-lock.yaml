@@ -560,6 +560,9 @@ importers:
       nuxt:
         specifier: 4.4.6
         version: 4.4.6(3d6ec39ba7d639693c5f9c7aacca5ab7)
+      nuxt-use-query:
+        specifier: link:../../../nuxt-use-query
+        version: link:../../../nuxt-use-query
       pinia:
         specifier: 'catalog:'
         version: 3.0.4(typescript@6.0.3)(vue@3.5.39(typescript@6.0.3))

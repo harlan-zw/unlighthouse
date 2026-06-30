@@ -11,14 +11,12 @@
 // version is what invalidates a stale entry. Callers can force a re-run with
 // `refresh: true`.
 
-import type { Device } from '@unlighthouse/contracts/types/atoms'
 import type { CommandOutput, PackList, PackRunCmd } from '@unlighthouse/contracts/commands'
 import type { PackRun } from '@unlighthouse/contracts/packs'
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
-import { gunzipSync } from 'fflate'
 import { builtInPacks, getPack } from '../../packs/index'
-import { sha1Hex } from '../../util/sha1'
+import { createPackReconcileCtx } from '../../packs/reconcile-context'
 
 // Inline-vs-spill threshold for cached reports. SQLite handles big JSON
 // columns fine, but the wire format and the row-cache both benefit from
@@ -98,61 +96,11 @@ export const packRun: Handler<typeof PackRunCmd> = {
       device: input.device,
     })
 
-    // Lazy LHR fetcher. Each blob is ~50-200KB gzipped; packs that need raw
-    // audit details (images, cwv) call this per URL, packs that only need
-    // ExtractedMetrics rows (overview) ignore it. Cached per pack run since
-    // multiple reconcilers within one pack may want the same route.
-    const lhrCache = new Map<string, unknown>()
-    const getLhr = async (url: string, device: Device): Promise<unknown> => {
-      // D-029: per-(url, device) cache key. The ScanRoute rows carry a device
-      // column now, so the lookup is exact.
-      const cacheKey = `${url}|${device}`
-      if (lhrCache.has(cacheKey))
-        return lhrCache.get(cacheKey)
-      const row = routes.items.find(r => r.url === url && r.device === device)
-      if (!row?.lhrBlobKey)
-        return null
-      const gz = await ctx.storage.blobs.get(row.lhrBlobKey)
-      if (!gz)
-        return null
-      const lhr = JSON.parse(new TextDecoder().decode(gunzipSync(gz as Uint8Array)))
-      lhrCache.set(cacheKey, lhr)
-      return lhr
-    }
-
-    // D-030 reconciled report fetcher. Mirrors getLhr but pulls the
-    // contract-shape blob written at ingest. Packs that opt in survive
-    // Lighthouse version drift without re-parsing the raw LHR — the
-    // reconciler produced a stable AuditFinding shape they can read against.
-    // Returns `null` when the reconciled blob is missing (older scans, or
-    // ingest-time reconciliation failed) so packs can fall through to getLhr.
-    const reconciledCache = new Map<string, unknown>()
-    const getReconciled = async (url: string, device: Device): Promise<unknown> => {
-      const cacheKey = `${url}|${device}`
-      if (reconciledCache.has(cacheKey))
-        return reconciledCache.get(cacheKey)
-      const row = routes.items.find(r => r.url === url && r.device === device)
-      if (!row?.lhrBlobKey)
-        return null
-      // Derive the contract-blob key from the same scan / url / device the
-      // ingest path wrote. D-029: device segment is in the filename.
-      const hash = sha1Hex(url).slice(0, 16)
-      const contractKey = `scans/${input.scanId}/reports/${hash}-${device}.contract.json`
-      const buf = await ctx.storage.blobs.get(contractKey)
-      if (!buf)
-        return null
-      const parsed = JSON.parse(new TextDecoder().decode(buf))
-      reconciledCache.set(cacheKey, parsed)
-      return parsed
-    }
-
-    const report = await pack.reconciler({
+    const report = await pack.reconciler(createPackReconcileCtx({
       scanId: input.scanId,
       routes: routes.items,
-      getLhr,
-      getReconciled,
-      logger: undefined,
-    })
+      blobs: ctx.storage.blobs,
+    }))
 
     // Validate before serialisation. A pack misreporting its own schema is
     // a bug in the pack, not a runtime contract; surface it loudly.

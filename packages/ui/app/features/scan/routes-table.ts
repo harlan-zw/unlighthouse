@@ -1,8 +1,7 @@
-import type { ScanId } from '@unlighthouse/contracts'
 import type { SortingState } from '@tanstack/vue-table'
+import type { ScanId } from '@unlighthouse/contracts'
 import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
-import { useScanWebsocket } from '~/features/scan/live-events'
 import { useScanBase } from '~/features/scan/route-context'
 import { useScanStore } from '~/stores/scan'
 
@@ -55,12 +54,6 @@ export const QUICK_FILTERS = [
   { key: 'poor-cwv', label: 'Poor CWV' },
 ] as const
 
-const CWV_THRESHOLDS: Record<'lcp' | 'cls' | 'tbt', [number, number]> = {
-  lcp: [2500, 4000],
-  cls: [0.1, 0.25],
-  tbt: [200, 600],
-}
-
 export const SCORE_COLS: { key: keyof Pick<RouteRow, 'scorePerformance' | 'scoreAccessibility' | 'scoreSeo' | 'scoreBestPractices'>, label: string }[] = [
   { key: 'scorePerformance', label: 'Perf' },
   { key: 'scoreAccessibility', label: 'A11y' },
@@ -109,25 +102,23 @@ export function overallRouteScore(row: Pick<RouteRow, 'scorePerformance' | 'scor
   return Math.round((scores.reduce((total, score) => total + score, 0) / scores.length) * 100)
 }
 
-export function cwvColor(metric: keyof typeof CWV_THRESHOLDS, value: number | null): string {
-  if (value == null)
-    return 'text-muted'
-  const [good, poor] = CWV_THRESHOLDS[metric]
-  return value <= good ? 'text-success' : value <= poor ? 'text-warning' : 'text-error'
+export function cwvColor(metric: string, value: number | null): string {
+  switch (cwvBand(metric, value)) {
+    case 'good': return 'text-success'
+    case 'average': return 'text-warning'
+    case 'poor': return 'text-error'
+    default: return 'text-muted'
+  }
 }
 
 function routeScore100Color(value: number | null): string {
   if (value == null)
     return 'var(--muted-foreground)'
-  return value >= 90 ? '#22c55e' : value >= 50 ? '#f97316' : '#ef4444'
+  return bandHex(scoreBand(value / 100))
 }
 
 export function formatRouteMetric(value: number | null, unit: 'ms' | '' = 'ms'): string {
-  if (value === null)
-    return '—'
-  if (unit === 'ms')
-    return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`
-  return value.toFixed(3)
+  return formatMetricValue(value, unit)
 }
 
 function parseRouteSort(value?: string | null): SortingState {
@@ -138,10 +129,15 @@ function parseRouteSort(value?: string | null): SortingState {
 }
 
 function passesQuickFilter(row: RouteRow, quick: RouteQuickFilter): boolean {
-  if (quick === 'failing')
-    return [row.scorePerformance, row.scoreAccessibility, row.scoreSeo, row.scoreBestPractices].some(score => score != null && score < 0.9)
+  if (quick === 'failing') {
+    return [row.scorePerformance, row.scoreAccessibility, row.scoreSeo, row.scoreBestPractices]
+      .some((score) => {
+        const band = scoreBand(score)
+        return band != null && band !== 'good'
+      })
+  }
   if (quick === 'poor-cwv')
-    return (row.lcp != null && row.lcp > 4000) || (row.cls != null && row.cls > 0.25) || (row.tbt != null && row.tbt > 600)
+    return cwvBand('lcp', row.lcp) === 'poor' || cwvBand('cls', row.cls) === 'poor' || cwvBand('tbt', row.tbt) === 'poor'
   return true
 }
 
@@ -201,15 +197,15 @@ export function useScanRoutesTable() {
   const store = useScanStore()
   const { scanId, scanBase } = useScanBase()
 
-  const { data: scanResults, refresh } = useAsyncData(
-    `scan-routes-table-${scanId.value}`,
-    () => api['scan.results']({ scanId: scanId.value, page: 1, pageSize: ROUTES_PAGE_SIZE }).catch(() => null),
-    { watch: [scanId] },
+  const { data: scanResults, error: resultsError, refresh } = useApiQuery(
+    'scan.results',
+    () => ({ scanId: scanId.value, page: 1, pageSize: ROUTES_PAGE_SIZE }),
   )
-  useScanWebsocket({ 'scan:complete': refresh })
 
-  const { data: prevData } = useAsyncData(
-    `routes-prev-${scanId.value}`,
+  // Best-effort previous-scan diff (3 chained reads). The per-step `.catch`
+  // returns null on "no previous scan" — an expected, ignorable absence that
+  // just hides the delta column — so this stays a composite handler query.
+  const { data: prevData } = useNuxtAsyncQuery<Map<string, number> | null>(
     async () => {
       const meta = await api['scan.meta']({ scanId: scanId.value }).catch(() => null)
       if (!meta)
@@ -228,7 +224,7 @@ export function useScanRoutesTable() {
       }
       return map
     },
-    { watch: [scanId] },
+    { key: () => `routes-prev:${scanId.value}` },
   )
 
   const allRows = computed(() => (scanResults.value?.items ?? []) as RouteRow[])
@@ -275,14 +271,14 @@ export function useScanRoutesTable() {
     }
   }
 
+  const rescan = useApiMutation('route.rescan')
   async function rescanRoute(row: RouteRow) {
-    try {
-      await api['route.rescan']({ scanId: scanId.value, url: row.url })
-      toast.success('Route rescan started', { description: row.path || row.url })
+    const result = await rescan.mutateSafe({ scanId: scanId.value, url: row.url })
+    if (result._tag === 'err') {
+      toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+      return
     }
-    catch (err: any) {
-      toast.error('Rescan failed', { description: err?.message })
-    }
+    toast.success('Route rescan started', { description: row.path || row.url })
   }
 
   function openRoute(row: RouteRow) {
@@ -305,6 +301,8 @@ export function useScanRoutesTable() {
   return {
     store,
     scanId,
+    resultsError,
+    refresh,
     allRows,
     total,
     truncated,

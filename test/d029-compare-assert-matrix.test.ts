@@ -129,4 +129,21 @@ describe('assert.evaluate maxRegression respects (url, device) identity', () => 
     expect(out.passed).toBe(true)
     expect(out.results[0].actual).toBe(0)
   })
+
+  it('evaluates agentic-browsing scores through the shared category map', async () => {
+    const isolatedStorage = memoryStorage()
+    const scanId = await runMatrixScan(isolatedStorage)
+    await patchRouteMetric(isolatedStorage, scanId, 'http://example.com/', 'mobile', { scoreAgenticBrowsing: 0.42 })
+
+    const out = await assertEvaluate.run(
+      {
+        scanId: scanId as never,
+        assertions: [{ type: 'minScore', category: 'agentic-browsing', value: 0.5 }],
+      } as never,
+      makeCtx(isolatedStorage),
+    )
+
+    expect(out.passed).toBe(false)
+    expect(out.results[0].actual).toBe(0.42)
+  })
 })

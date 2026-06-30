@@ -4,6 +4,10 @@
 const route = useRoute()
 const siteId = computed(() => (route.params.siteId as string) ?? '')
 const scanId = computed(() => (route.params.scanId as string) ?? '')
+
+// Bridge live scan events into the query cache for every scan page at once, so
+// a scan completing refetches the mounted summary / results / meta queries.
+useScanSubscription()
 </script>
 
 <template>

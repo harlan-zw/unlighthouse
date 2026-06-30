@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { ScanId } from '@unlighthouse/contracts'
+import type { DevicePair, ScanRow } from '~/features/sites/scan-pairs'
 import { toast } from 'vue-sonner'
-import SiteHistoryTable from '~/features/sites/components/SiteHistoryTable.vue'
 import { scanLinkPath } from '~/features/scan/scan-links'
-import { pairScans, type DevicePair, type ScanRow } from '~/features/sites/scan-pairs'
+import SiteHistoryTable from '~/features/sites/components/SiteHistoryTable.vue'
+import { pairScans } from '~/features/sites/scan-pairs'
 
 definePageMeta({ layout: 'root' })
 
@@ -15,16 +16,19 @@ interface SiteGroup {
 }
 
 const router = useRouter()
-const api = useApi()
 
-const { data: scansResp, status, refresh } = useAsyncData(
-  'scan-history-grouped',
-  () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
+const { data: scansResp, status, error: historyError, refresh } = useApiQuery(
+  'history.list',
+  () => ({ page: 1, pageSize: 200 }),
 )
+
+const rescanMutation = useApiMutation('history.rescan')
+const deleteMutation = useApiMutation('scan.delete', { invalidates: ['history.list'] })
 
 const groups = computed<SiteGroup[]>(() => {
   const items = (scansResp.value?.items ?? []) as ScanRow[]
-  if (!items.length) return []
+  if (!items.length)
+    return []
 
   // Group by domain (origin) so every path scanned on a host lands in one
   // list — not a separate group per exact URL.
@@ -61,10 +65,13 @@ const searchQuery = ref('')
 
 const filteredGroups = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return groups.value
+  if (!q)
+    return groups.value
   return groups.value.filter((g) => {
-    if (g.site.toLowerCase().includes(q)) return true
-    if (siteHostname(g.site).toLowerCase().includes(q)) return true
+    if (g.site.toLowerCase().includes(q))
+      return true
+    if (siteHostname(g.site).toLowerCase().includes(q))
+      return true
     // Also match scanId / ciCommit so users can paste a build hash and find
     // its scan without remembering which site it ran against.
     return g.pairs.some(p =>
@@ -90,34 +97,31 @@ watch(groups, (gs) => {
 
 const { fmtRelTime: relTime } = useFormat()
 
-function siteHostname(url: string) {
-  try { return new URL(url).hostname } catch { return url }
-}
+const siteHostname = siteSlug
 function primaryScanId(pair: DevicePair) {
   return pair.mobile?.scanId ?? pair.desktop?.scanId ?? ''
 }
 
 async function rescanFromHistory(scanId: string) {
-  if (!scanId) return
-  try {
-    const result = await api['history.rescan']({ scanId: scanId as ScanId })
-    toast.success('Rescan started')
-    router.push(`/scan/${result.scanId}/overview`)
+  if (!scanId)
+    return
+  const result = await rescanMutation.mutateSafe({ scanId: scanId as ScanId })
+  if (result._tag === 'err') {
+    toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+    return
   }
-  catch (err: any) {
-    toast.error('Rescan failed', { description: err.message })
-  }
+  toast.success('Rescan started')
+  router.push(`/scan/${result.data.scanId}/overview`)
 }
 async function deleteScan(scanId: string) {
-  if (!scanId) return
-  try {
-    await api['scan.delete']({ scanId: scanId as ScanId })
-    toast.success('Scan deleted')
-    refresh()
+  if (!scanId)
+    return
+  const result = await deleteMutation.mutateSafe({ scanId: scanId as ScanId })
+  if (result._tag === 'err') {
+    toast.error('Failed to delete', { description: normalizeApiError(result.error).message })
+    return
   }
-  catch (err: any) {
-    toast.error('Failed to delete', { description: err.message })
-  }
+  toast.success('Scan deleted')
 }
 </script>
 
@@ -131,7 +135,9 @@ async function deleteScan(scanId: string) {
       flush
     >
       <template #actions>
-        <UiButton purpose="cta" to="/scan/new" icon="i-lucide-plus">New Scan</UiButton>
+        <UiButton purpose="cta" to="/scan/new" icon="i-lucide-plus">
+          New Scan
+        </UiButton>
       </template>
     </PageHeader>
 
@@ -148,7 +154,9 @@ async function deleteScan(scanId: string) {
       </template>
     </UInput>
 
-    <div v-if="status === 'pending'" class="space-y-3">
+    <QueryError v-if="historyError" :error="historyError" :on-retry="refresh" />
+
+    <div v-else-if="status === 'pending'" class="space-y-3">
       <USkeleton v-for="i in 3" :key="i" class="h-32 w-full" />
     </div>
 

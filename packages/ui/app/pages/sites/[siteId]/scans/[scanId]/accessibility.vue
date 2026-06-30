@@ -5,13 +5,9 @@ import { getScanId } from '~/features/scan/route-context'
 
 definePageMeta({ layout: 'scan' })
 
-const api = useApi()
 const scanId = getScanId()
 
-const { data: a11yPack, status } = useAsyncData(
-  `a11y-${scanId}`,
-  () => api['pack.run']({ scanId, pack: 'a11y-quick-wins' }).catch(() => null),
-)
+const { data: a11yPack, status, error: a11yError, refresh: refreshA11y } = useApiQuery('pack.run', () => ({ scanId, pack: 'a11y-quick-wins' }))
 
 const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)
 </script>
@@ -21,6 +17,8 @@ const a11yReport = computed(() => (a11yPack.value as any)?.report ?? null)
     title="Accessibility"
     pack="a11y-quick-wins"
     :status="status"
+    :error="a11yError"
+    :on-retry="refreshA11y"
     :report="a11yReport"
     empty-message="No accessibility data available. Run a scan first."
     loading-message="Loading accessibility data..."

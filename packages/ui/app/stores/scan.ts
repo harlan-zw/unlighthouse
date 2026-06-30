@@ -1,8 +1,9 @@
-import { defineStore } from 'pinia'
 import type { ScanId } from '@unlighthouse/contracts'
 import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
-import { createScanProgressState, type ActiveScanSnapshot } from '~/features/scan/progress-state'
+import type { ActiveScanSnapshot } from '~/features/scan/progress-state'
 import type { ScanEventBus } from '~/types/scan-events'
+import { defineStore } from 'pinia'
+import { createScanProgressState } from '~/features/scan/progress-state'
 
 type ScanStartOptions = Omit<Parameters<UnlighthouseClient['scan.start']>[0], 'site'>
 
@@ -34,6 +35,18 @@ export const useScanStore = defineStore('scan', () => {
     isFinished,
   } = progress
 
+  // The HTTP/static client is a singleton provided by the api.client plugin and
+  // handed to the store once, at init() (the scan-init plugin runs at boot,
+  // before any component can mount and fire an action). Capturing it here keeps
+  // it off every action's signature — callers invoke verbs (store.pauseScan()),
+  // not store.pauseScan(api).
+  let apiRef: UnlighthouseClient | null = null
+  function requireApi(): UnlighthouseClient {
+    if (!apiRef)
+      throw new Error('scan store: init() must run before any scan action')
+    return apiRef
+  }
+
   function setupWsListeners(ws: ScanEventBus) {
     ws.on('scan:created', progress.applyCreated)
     ws.on('scan:started', progress.applyStarted)
@@ -51,6 +64,7 @@ export const useScanStore = defineStore('scan', () => {
   }
 
   async function init(api: UnlighthouseClient, ws: ScanEventBus) {
+    apiRef = api
     setupWsListeners(ws)
     try {
       const res = await api['scan.current']({})
@@ -71,7 +85,8 @@ export const useScanStore = defineStore('scan', () => {
     catch {}
   }
 
-  async function startScan(api: UnlighthouseClient, siteUrl: string, options?: ScanStartOptions) {
+  async function startScan(siteUrl: string, options?: ScanStartOptions) {
+    const api = requireApi()
     const result = await api['scan.start']({
       site: siteUrl,
       device: options?.device,
@@ -92,7 +107,8 @@ export const useScanStore = defineStore('scan', () => {
   // paths cannot fight.
   let pollHandle: ReturnType<typeof setInterval> | null = null
 
-  async function pollTick(api: UnlighthouseClient) {
+  async function pollTick() {
+    const api = requireApi()
     const id = scanId.value
     if (!id)
       return
@@ -112,11 +128,11 @@ export const useScanStore = defineStore('scan', () => {
       stopPolling()
   }
 
-  function startPolling(api: UnlighthouseClient, intervalMs = 1500) {
+  function startPolling(intervalMs = 1500) {
     if (pollHandle)
       return
-    void pollTick(api)
-    pollHandle = setInterval(() => void pollTick(api), intervalMs)
+    void pollTick()
+    pollHandle = setInterval(() => void pollTick(), intervalMs)
   }
 
   function stopPolling() {
@@ -126,22 +142,22 @@ export const useScanStore = defineStore('scan', () => {
     }
   }
 
-  async function cancelScan(api: UnlighthouseClient) {
+  async function cancelScan() {
     if (!scanId.value)
       return
-    await api['scan.cancel']({ scanId: scanId.value })
+    await requireApi()['scan.cancel']({ scanId: scanId.value })
   }
 
-  async function pauseScan(api: UnlighthouseClient) {
+  async function pauseScan() {
     if (!scanId.value)
       return
-    await api['scan.pause']({ scanId: scanId.value })
+    await requireApi()['scan.pause']({ scanId: scanId.value })
   }
 
-  async function resumeScan(api: UnlighthouseClient) {
+  async function resumeScan() {
     if (!scanId.value)
       return
-    await api['scan.resume']({ scanId: scanId.value })
+    await requireApi()['scan.resume']({ scanId: scanId.value })
   }
 
   function hydrateActive(id: ScanId, snapshot: ActiveScanSnapshot | null) {

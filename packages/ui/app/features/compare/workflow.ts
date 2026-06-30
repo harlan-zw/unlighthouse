@@ -1,6 +1,7 @@
 import type { ScanId } from '@unlighthouse/contracts'
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
+import { compareRowKey } from '~/features/compare/presentation'
 
 export type CompareStatusFilter = 'all' | 'changed' | 'regressed' | 'improved' | 'added' | 'removed'
 export type CompareDeviceFilter = '' | 'mobile' | 'desktop'
@@ -43,31 +44,29 @@ export function useCompareWorkflow() {
     router.replace({ query: { ...route.query, base: v || undefined } })
   })
 
-  const { data: currentMeta } = useAsyncData(
-    `compare-current-meta-${currentScanId.value}`,
-    () => api['scan.meta']({ scanId: currentScanId.value }).catch(() => null),
-    { watch: [currentScanId] },
+  const { data: currentMeta, error: currentMetaError, refresh: refreshCurrentMeta } = useApiQuery(
+    'scan.meta',
+    () => ({ scanId: currentScanId.value }),
   )
 
-  const { data: baseMeta } = useAsyncData(
-    `compare-base-meta-${baseScanId.value}`,
-    () => baseScanId.value
-      ? api['scan.meta']({ scanId: baseScanId.value }).catch(() => null)
-      : Promise.resolve(null),
-    { watch: [baseScanId] },
+  const { data: baseMeta } = useApiQuery(
+    'scan.meta',
+    () => ({ scanId: baseScanId.value as ScanId }),
+    { enabled: () => !!baseScanId.value },
   )
 
   // History is loaded with a generous page size so users with many scans can
   // still pick anything from the dropdown without paging. 200 is the server cap;
   // for orgs that exceed it we'd need a search box.
-  const { data: history } = useAsyncData(
-    'compare-history',
-    () => api['history.list']({ page: 1, pageSize: 200 }).catch(() => null),
+  const { data: history, error: historyError } = useApiQuery(
+    'history.list',
+    () => ({ page: 1, pageSize: 200 }),
   )
 
   // Only scans of the same site can produce meaningful route overlap.
   const otherScans = computed(() => {
-    if (!history.value?.items || !currentMeta.value) return []
+    if (!history.value?.items || !currentMeta.value)
+      return []
     const site = currentMeta.value.site
     return history.value.items.filter(s =>
       s.scanId !== currentScanId.value
@@ -78,26 +77,25 @@ export function useCompareWorkflow() {
 
   // Auto-pick the most recent prior scan on the same site (+ branch if the
   // current scan has one). Doesn't override an explicit URL pick.
-  const { data: autoBase } = useAsyncData(
-    `compare-auto-${currentScanId.value}`,
-    async () => {
-      if (!currentMeta.value || baseScanId.value) return null
-      try {
-        const res = await api['compare.findPrevious']({
-          site: currentMeta.value.site,
-          device: currentMeta.value.device,
-          branch: currentMeta.value.ciBranch ?? undefined,
-          excludeScanId: currentScanId.value,
-        })
-        return res.scanId
-      }
-      catch { return null }
+  // Gated on currentMeta loading + no explicit base pick; when currentMeta
+  // arrives `enabled` flips and the query runs. `.catch(null)` keeps "no prior
+  // scan" an expected empty result rather than a surfaced error.
+  const { data: autoBase } = useNuxtAsyncQuery<ScanId | null>(
+    () => api['compare.findPrevious']({
+      site: currentMeta.value!.site,
+      device: currentMeta.value!.device,
+      branch: currentMeta.value!.ciBranch ?? undefined,
+      excludeScanId: currentScanId.value,
+    }).then(res => res.scanId ?? null).catch(() => null),
+    {
+      key: () => `compare-auto:${currentScanId.value}`,
+      enabled: () => !!currentMeta.value && !baseScanId.value,
     },
-    { watch: [currentMeta] },
   )
 
   watch(autoBase, (id) => {
-    if (id && !baseScanId.value) baseScanId.value = id
+    if (id && !baseScanId.value)
+      baseScanId.value = id
   })
 
   const comparing = ref(false)
@@ -111,13 +109,13 @@ export function useCompareWorkflow() {
   // Threshold UI bound to the same shape compare.detail accepts. Empty string
   // means omit, and the handler falls back to CI defaults.
   const thresholds = reactive<Record<string, string>>({
-    performance: '',
-    accessibility: '',
-    seo: '',
+    'performance': '',
+    'accessibility': '',
+    'seo': '',
     'best-practices': '',
-    lcp: '',
-    cls: '',
-    inp: '',
+    'lcp': '',
+    'cls': '',
+    'inp': '',
   })
 
   const report = ref<any>(null)
@@ -132,7 +130,8 @@ export function useCompareWorkflow() {
   const currentThresholdPayload = () => thresholdPayload(thresholds)
 
   async function copyAsMarkdown() {
-    if (!baseScanId.value) return
+    if (!baseScanId.value)
+      return
     copyingMarkdown.value = true
     try {
       const res = await api['compare.markdown']({
@@ -164,7 +163,8 @@ export function useCompareWorkflow() {
   }
 
   async function fetchPage() {
-    if (!baseScanId.value) return
+    if (!baseScanId.value)
+      return
     try {
       report.value = await (api as any)['compare.detail']({
         baseScanId: baseScanId.value,
@@ -186,7 +186,8 @@ export function useCompareWorkflow() {
   }
 
   async function fetchPacks() {
-    if (!baseScanId.value) return
+    if (!baseScanId.value)
+      return
     try {
       packReport.value = await (api as any)['compare.run']({
         baseScanId: baseScanId.value,
@@ -200,13 +201,15 @@ export function useCompareWorkflow() {
   }
 
   const cwvPackDiff = computed(() => {
-    if (!packReport.value?.packDiffs) return null
+    if (!packReport.value?.packDiffs)
+      return null
     return packReport.value.packDiffs.find((p: any) => p.packName === 'cwv') ?? null
   })
 
   const cwvP75Rows = computed<CwvP75Row[]>(() => {
     const diff = cwvPackDiff.value
-    if (!diff) return []
+    if (!diff)
+      return []
     const baseMetrics: any[] = (diff.base as any)?.metrics ?? []
     const currentMetrics: any[] = (diff.current as any)?.metrics ?? []
     const byMetric = new Map<string, { base?: any, current?: any }>()
@@ -232,12 +235,14 @@ export function useCompareWorkflow() {
   })
 
   const otherPackChanges = computed(() => {
-    if (!packReport.value?.packDiffs) return []
+    if (!packReport.value?.packDiffs)
+      return []
     return packReport.value.packDiffs.filter((p: any) => p.packName !== 'cwv' && p.hasChanges)
   })
 
   async function handleCompare() {
-    if (!baseScanId.value) return
+    if (!baseScanId.value)
+      return
     comparing.value = true
     selectedRowKey.value = null
     page.value = 1
@@ -250,7 +255,8 @@ export function useCompareWorkflow() {
   }
 
   function swapDirection() {
-    if (!baseScanId.value) return
+    if (!baseScanId.value)
+      return
     const oldBase = baseScanId.value
     router.push(`/compare/${oldBase}?base=${currentScanId.value}`)
   }
@@ -260,32 +266,43 @@ export function useCompareWorkflow() {
     if (filterTimeout)
       clearTimeout(filterTimeout)
     urlFilter.value = val
-    filterTimeout = setTimeout(() => { page.value = 1; void fetchPage() }, 300)
+    filterTimeout = setTimeout(() => {
+      page.value = 1
+      void fetchPage()
+    }, 300)
   }
 
-  watch(statusFilter, () => { page.value = 1; void fetchPage() })
-  watch(deviceFilter, () => { page.value = 1; void fetchPage() })
-  watch(sortKey, () => { page.value = 1; void fetchPage() })
+  function resetPageAndFetch() {
+    page.value = 1
+    void fetchPage()
+  }
+  watch(statusFilter, resetPageAndFetch)
+  watch(deviceFilter, resetPageAndFetch)
+  watch(sortKey, resetPageAndFetch)
   watch(page, () => void fetchPage())
 
   const hasMultipleDevices = computed(() => {
-    if (!report.value?.routes?.items) return false
+    if (!report.value?.routes?.items)
+      return false
     const devices = new Set(report.value.routes.items.map((r: any) => r.device))
     return devices.size > 1
   })
 
   const selectedRow = computed(() => {
-    if (!selectedRowKey.value || !report.value) return null
-    return report.value.routes.items.find((r: any) => `${r.url}|${r.device}` === selectedRowKey.value) ?? null
+    if (!selectedRowKey.value || !report.value)
+      return null
+    return report.value.routes.items.find((r: any) => compareRowKey(r) === selectedRowKey.value) ?? null
   })
 
   const totalPages = computed(() => {
-    if (!report.value) return 1
+    if (!report.value)
+      return 1
     return Math.ceil(report.value.routes.total / report.value.routes.pageSize)
   })
 
   const verdict = computed(() => {
-    if (!report.value) return null
+    if (!report.value)
+      return null
     const s = report.value.summary
     if (s.regressedRoutes > 0)
       return { tone: 'destructive', text: `${s.regressedRoutes} route${s.regressedRoutes === 1 ? '' : 's'} regressed` }
@@ -310,12 +327,14 @@ export function useCompareWorkflow() {
   })
 
   function shortId(id: string | null | undefined): string {
-    if (!id) return ''
+    if (!id)
+      return ''
     return id.slice(0, 8)
   }
 
   function gotoOverview(id: string | undefined) {
-    if (!id) return
+    if (!id)
+      return
     router.push(`/scan/${id}/routes`)
   }
 
@@ -323,6 +342,9 @@ export function useCompareWorkflow() {
     currentScanId,
     baseScanId,
     currentMeta,
+    currentMetaError,
+    historyError,
+    refreshCurrentMeta,
     baseMeta,
     otherScans,
     comparing,
