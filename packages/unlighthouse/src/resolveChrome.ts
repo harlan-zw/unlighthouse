@@ -1,8 +1,9 @@
 import type { InstallOptions } from '@puppeteer/browsers'
 import type { Logger } from '@unlighthouse/contracts'
+import type { LaunchOptions } from 'puppeteer-core'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { computeExecutablePath, detectBrowserPlatform, install } from '@puppeteer/browsers'
+import { Browser, computeExecutablePath, detectBrowserPlatform, install } from '@puppeteer/browsers'
 import { Launcher } from 'chrome-launcher'
 import { launch } from 'puppeteer-core'
 import { PUPPETEER_REVISIONS } from 'puppeteer-core/internal/revisions.js'
@@ -16,8 +17,13 @@ export interface ChromeConfig {
 
 export interface ResolveChromeDeps {
   chrome: ChromeConfig
-  puppeteerOptions: Record<string, any>
+  puppeteerOptions: LaunchOptions
   logger?: Logger
+}
+
+type InstallOptionsWithProgress = InstallOptions & {
+  unpack: true
+  downloadProgressCallback?: (downloadedBytes: number, toDownloadBytes: number) => void
 }
 
 export async function resolveChrome({ chrome, puppeteerOptions, logger }: ResolveChromeDeps): Promise<void> {
@@ -61,19 +67,20 @@ export async function resolveChrome({ chrome, puppeteerOptions, logger }: Resolv
   }
 
   if (chrome.useDownloadFallback && !foundChrome) {
+    const cacheDir = chrome.downloadFallbackCacheDir ?? path.join(process.cwd(), '.unlighthouse')
     const browserOptions = {
       installDeps: process.getuid?.() === 0,
-      cacheDir: chrome.downloadFallbackCacheDir,
+      cacheDir,
       buildId: String(chrome.downloadFallbackVersion || PUPPETEER_REVISIONS.chrome),
-      browser: 'chrome',
-    } as InstallOptions
+      browser: Browser.CHROME,
+      unpack: true,
+    } satisfies InstallOptions & { unpack: true }
 
     const chromePath = computeExecutablePath(browserOptions)
     if (!existsSync(chromePath)) {
       logger?.info?.(`Missing ${browserOptions.browser} binary, downloading v${browserOptions.buildId}...`)
       let lastPercent = 0
-      // @ts-expect-error untyped
-      await install({
+      const installOptions: InstallOptionsWithProgress = {
         ...browserOptions,
         downloadProgressCallback: (downloadedBytes: number, toDownloadBytes: number) => {
           const percent = Math.round(downloadedBytes / toDownloadBytes * 100)
@@ -82,7 +89,8 @@ export async function resolveChrome({ chrome, puppeteerOptions, logger }: Resolv
             lastPercent = percent
           }
         },
-      })
+      }
+      await install(installOptions)
     }
     logger?.info?.(`Using downloaded ${browserOptions.browser} v${browserOptions.buildId} located at: ${chromePath}`)
     puppeteerOptions.executablePath = chromePath

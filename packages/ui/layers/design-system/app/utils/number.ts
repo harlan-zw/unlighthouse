@@ -19,14 +19,13 @@ export function percentChange(current: number, prev: number): number {
  * @example clamp(-5, [1, 2, 3, 4, 5]) // 0
  * @example clamp(10, [1, 2, 3, 4, 5]) // 4
  */
-export function clamp(value: number, arr: any[]): number
+export function clamp(value: number, arr: readonly unknown[]): number
 export function clamp(value: number, min: number, max: number): number
-export function clamp(value: number, a: number | any[], b?: number): number {
-  const min = Array.isArray(a)
-    ? 0
-    : a
-  const max = Array.isArray(a)
-    ? a.length - 1
-    : b ?? min
+export function clamp(value: number, a: number | readonly unknown[], b?: number): number {
+  if (typeof a !== 'number')
+    return Math.min(Math.max(value, 0), a.length - 1)
+
+  const min = a
+  const max = b ?? min
   return Math.min(Math.max(value, min), max)
 }

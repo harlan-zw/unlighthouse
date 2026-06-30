@@ -1,4 +1,4 @@
-import type { CommandName, CommandRegistry } from '@unlighthouse/contracts/commands'
+import type { CommandInput, CommandName, CommandRegistry } from '@unlighthouse/contracts/commands'
 import type { Handler, HandlerCtx, HandlerMap } from './types'
 
 /**
@@ -56,8 +56,8 @@ export function wrapHandlers(map: HandlerMap, middlewares: HandlerMiddleware[]):
     return map
   const out = {} as HandlerMap
   for (const name of Object.keys(map) as CommandName[]) {
-    const handler = map[name] as Handler
-    const composed = compose(middlewares, (input, ctx) => handler.run(input as never, ctx), name)
+    const handler = map[name] as Handler<CommandRegistry[typeof name]>
+    const composed = compose(middlewares, (input, ctx) => handler.run(input as CommandInput<CommandRegistry[typeof name]>, ctx), name)
     ;(out as Record<CommandName, Handler>)[name] = {
       command: handler.command,
       run: composed as Handler<CommandRegistry[typeof name]>['run'],

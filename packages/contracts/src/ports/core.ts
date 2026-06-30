@@ -10,13 +10,13 @@ export type { HookEvent, UnlighthouseConfig }
 // Structural shape matching ConsolaInstance's used surface. Type-only so
 // the ports subpath has zero runtime deps. Presets pass a real ConsolaInstance.
 export interface Logger {
-  debug: (...args: any[]) => any
-  info: (...args: any[]) => any
-  warn: (...args: any[]) => any
-  error: (...args: any[]) => any
-  log: (...args: any[]) => any
-  success: (...args: any[]) => any
-  trace: (...args: any[]) => any
+  debug: (...args: unknown[]) => void
+  info: (...args: unknown[]) => void
+  warn: (...args: unknown[]) => void
+  error: (...args: unknown[]) => void
+  log: (...args: unknown[]) => void
+  success: (...args: unknown[]) => void
+  trace: (...args: unknown[]) => void
   withTag: (tag: string) => Logger
   level?: number
 }

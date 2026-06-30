@@ -29,7 +29,7 @@ function stub(name: string): NamedAuditor {
         categories: ['performance'],
       },
       async audit() {
-        return { source: name } as never
+        throw new Error(`audit() for ${name} is not exercised in picker tests`)
       },
     },
   }

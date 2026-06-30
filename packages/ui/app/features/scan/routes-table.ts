@@ -1,5 +1,6 @@
 import type { SortingState } from '@tanstack/vue-table'
-import type { ScanId } from '@unlighthouse/contracts'
+import type { Device, ScanId } from '@unlighthouse/contracts'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useScanBase } from '~/features/scan/route-context'
@@ -190,6 +191,13 @@ function routeFilterQuery(filters: { q: string, device: RouteDeviceFilter, quick
   return query
 }
 
+async function optionalApiRead<T>(command: string, promise: Promise<T>): Promise<T | null> {
+  return promise.catch((err) => {
+    logOperationalWarn('ui.optional_api_read_failed', err, { command, feature: 'routes-table' }, console)
+    return null
+  })
+}
+
 export function useScanRoutesTable() {
   const router = useRouter()
   const route = useRoute()
@@ -207,13 +215,13 @@ export function useScanRoutesTable() {
   // just hides the delta column — so this stays a composite handler query.
   const { data: prevData } = useNuxtAsyncQuery<Map<string, number> | null>(
     async () => {
-      const meta = await api['scan.meta']({ scanId: scanId.value }).catch(() => null)
+      const meta = await optionalApiRead('scan.meta', api['scan.meta']({ scanId: scanId.value }))
       if (!meta)
         return null
-      const prev = await api['compare.findPrevious']({ site: meta.site, device: meta.device as any, excludeScanId: scanId.value }).catch(() => null)
+      const prev = await optionalApiRead('compare.findPrevious', api['compare.findPrevious']({ site: meta.site, device: meta.device as Device, excludeScanId: scanId.value }))
       if (!prev?.scanId)
         return null
-      const res = await api['scan.results']({ scanId: prev.scanId as ScanId, page: 1, pageSize: ROUTES_PAGE_SIZE }).catch(() => null)
+      const res = await optionalApiRead('scan.results', api['scan.results']({ scanId: prev.scanId as ScanId, page: 1, pageSize: ROUTES_PAGE_SIZE }))
       if (!res)
         return null
       const map = new Map<string, number>()
@@ -266,7 +274,8 @@ export function useScanRoutesTable() {
       await navigator.clipboard.writeText(row.url)
       toast.success('URL copied')
     }
-    catch {
+    catch (_err) {
+      // Clipboard denial is already surfaced to the user through the toast.
       toast.error('Could not copy URL')
     }
   }

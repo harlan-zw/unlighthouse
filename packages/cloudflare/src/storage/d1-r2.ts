@@ -113,7 +113,8 @@ function originOf(site: string): string {
   try {
     return new URL(site).origin
   }
-  catch {
+  catch (_err) {
+    // Site identifiers may be bare hosts or labels; fall back to the stored value.
     return site
   }
 }

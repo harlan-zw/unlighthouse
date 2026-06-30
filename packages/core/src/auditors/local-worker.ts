@@ -10,6 +10,7 @@
  * NOT pre-launch puppeteer here.
  */
 import type { UnlighthouseOptions, UnlighthouseReport } from '@unlighthouse/contracts'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { launch } from 'chrome-launcher'
 import lighthouse from 'lighthouse'
 import puppeteer from 'puppeteer-core'
@@ -35,7 +36,9 @@ function killAllChrome() {
     try {
       process.kill(pid, 'SIGKILL')
     }
-    catch {}
+    catch (err) {
+      logOperationalWarn('auditor.cleanup_failed', err, { operation: 'process.kill', pid })
+    }
   }
   liveChromePids.clear()
 }
@@ -82,7 +85,7 @@ const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (
       localStorage: options.localStorage,
       sessionStorage: options.sessionStorage,
     }),
-    buildIndexedDbInjectionScript(options.indexedDb as never),
+    buildIndexedDbInjectionScript(options.indexedDb),
   ].filter(Boolean).join('\n')
 
   // Push the form-factor emulation into the flags too, not just `config`.
@@ -134,7 +137,9 @@ const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (
       const pid = chrome.pid
       // chrome-launcher's kill() isn't reliably a Promise across versions, so
       // wrap before awaiting to avoid a `.catch of undefined` crash.
-      await Promise.resolve(chrome.kill()).catch(() => {})
+      await Promise.resolve(chrome.kill()).catch((err) => {
+        logOperationalWarn('auditor.cleanup_failed', err, { operation: 'chrome.kill', pid })
+      })
       if (typeof pid === 'number')
         liveChromePids.delete(pid)
     }

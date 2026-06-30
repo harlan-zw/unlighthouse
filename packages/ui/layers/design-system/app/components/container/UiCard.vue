@@ -43,9 +43,9 @@ const {
 }>()
 
 const slots = defineSlots<{
-  default?: () => any
-  header?: () => any
-  actions?: () => any
+  default?: () => unknown
+  header?: () => unknown
+  actions?: () => unknown
 }>()
 
 const hasEject = computed(() => !!(chat || curl || mcp || schema))

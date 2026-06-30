@@ -16,7 +16,8 @@ function openRoute(url: string) {
     const path = new URL(url).pathname || '/'
     router.push(`${scanBase.value}/route/${encodeURIComponent(path)}`)
   }
-  catch {
+  catch (_err) {
+    // Malformed live-result URLs fall back to the routes index.
     router.push(`${scanBase.value}/routes`)
   }
 }
@@ -25,7 +26,8 @@ function pathFromUrl(url: string): string {
   try {
     return new URL(url).pathname || '/'
   }
-  catch {
+  catch (_err) {
+    // Non-URL values are displayed as-is.
     return url
   }
 }

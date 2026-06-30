@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import type { ColumnDef } from '@tanstack/vue-table'
 import type { SeoReport } from '@unlighthouse/contracts/packs'
+import { h } from 'vue'
 import CategoryPageShell from '~/features/scan/components/CategoryPageShell.vue'
 import PackFindings from '~/features/scan/components/PackFindings.vue'
 import { getScanId } from '~/features/scan/route-context'
@@ -11,6 +13,36 @@ const scanId = getScanId()
 const { data: seoPack, status, error: seoError, refresh: refreshSeo } = useApiQuery('pack.run', () => ({ scanId, pack: 'seo-basics' }))
 
 const report = computed(() => (seoPack.value?.report ?? null) as SeoReport | null)
+
+type RouteCheckRow = SeoReport['routeChecks'][number]
+const UiIconC = resolveComponent('UiIcon')
+const routeCheckColumns: ColumnDef<RouteCheckRow>[] = [
+  {
+    accessorKey: 'url',
+    header: 'URL',
+    cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-sm', title: row.original.url }, row.original.url),
+  },
+  {
+    accessorKey: 'passes',
+    header: 'Passes',
+    align: 'right',
+    headClass: 'w-20',
+    cell: ({ row }) => h('span', { class: 'tabular-nums text-success' }, String(row.original.passes)),
+  },
+  {
+    accessorKey: 'fails',
+    header: 'Fails',
+    align: 'right',
+    headClass: 'w-20',
+    cell: ({ row }) => h('span', { class: `tabular-nums ${row.original.fails > 0 ? 'text-error' : ''}` }, String(row.original.fails)),
+  },
+  {
+    accessorKey: 'indexable',
+    header: 'Indexable',
+    headClass: 'w-20',
+    cell: ({ row }) => h(UiIconC, { name: row.original.indexable ? 'success' : 'error', class: `size-4 ${row.original.indexable ? 'text-success' : 'text-error'}` }),
+  },
+]
 </script>
 
 <template>
@@ -43,40 +75,7 @@ const report = computed(() => (seoPack.value?.report ?? null) as SeoReport | nul
             Route Checks
           </h3>
         </template>
-        <table class="w-full">
-          <thead>
-            <tr class="h-9 border-b border-default">
-              <th class="text-label text-dimmed text-left px-3">
-                URL
-              </th>
-              <th class="text-label text-dimmed text-right px-3 w-20">
-                Passes
-              </th>
-              <th class="text-label text-dimmed text-right px-3 w-20">
-                Fails
-              </th>
-              <th class="text-label text-dimmed text-left px-3 w-20">
-                Indexable
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="rc in report.routeChecks" :key="rc.url" class="border-b border-default last:border-0">
-              <td class="font-mono text-xs truncate max-w-sm px-3 py-2" :title="rc.url">
-                {{ rc.url }}
-              </td>
-              <td class="text-right tabular-nums text-success px-3 py-2">
-                {{ rc.passes }}
-              </td>
-              <td class="text-right tabular-nums px-3 py-2" :class="rc.fails > 0 ? 'text-error' : ''">
-                {{ rc.fails }}
-              </td>
-              <td class="px-3 py-2">
-                <UiIcon :name="rc.indexable ? 'success' : 'error'" :class="rc.indexable ? 'text-success' : 'text-error'" class="size-4" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <UiTable :columns="routeCheckColumns" :data="report.routeChecks" disable-pagination />
       </UiCard>
 
       <div v-if="!report.findings.length && !report.routeChecks.length" class="text-center py-12 text-muted">

@@ -1,7 +1,19 @@
 import { iconAliasMap } from './layers/design-system/shared/icons'
+import { fileURLToPath } from 'node:url'
 
 export default defineNuxtConfig({
   ssr: false,
+  app: {
+    head: {
+      link: [
+        { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
+        { rel: 'icon', type: 'image/png', href: '/icon-16x16.png', sizes: '16x16' },
+        { rel: 'icon', type: 'image/png', href: '/icon-32x32.png', sizes: '32x32' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
+        { rel: 'manifest', href: '/site.webmanifest' },
+      ],
+    },
+  },
   // The UI is built on the canonical unlighthouse design-system layer: tokens,
   // fonts, motion, primitives, and @nuxt/ui theme all come from that layer.
   extends: ['./layers/design-system'],
@@ -18,6 +30,9 @@ export default defineNuxtConfig({
   },
   imports: {
     dirs: ['composables', 'lib'],
+  },
+  alias: {
+    '@unlighthouse/contracts/logging': fileURLToPath(new URL('../contracts/src/logging/index.ts', import.meta.url)),
   },
   devtools: {
     enabled: false,

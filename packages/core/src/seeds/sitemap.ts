@@ -1,6 +1,7 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
 import type { ConsolaInstance } from 'consola'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createConsola } from 'consola'
 import { isScanOrigin } from '../api/util'
 import { fetchUrlRaw } from '../util/fetch'
@@ -101,7 +102,7 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
           if (child.origin === deps.siteUrl.origin)
             await visit(child.toString(), depth + 1)
         }
-        catch {
+        catch (_err) {
           // skip malformed sitemap locs
         }
       }
@@ -149,7 +150,7 @@ export function sitemapSeeds(opts: SitemapSeedsOptions): SeedSource {
           yield { url, source: 'sitemap' }
       }
       catch (err) {
-        logger.debug?.('sitemap fetch failed', err)
+        logOperationalWarn('seeds.sitemap_fetch_failed', err, { site: opts.siteUrl.toString() }, logger)
       }
     },
   }

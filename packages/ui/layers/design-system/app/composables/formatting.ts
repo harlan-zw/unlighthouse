@@ -167,7 +167,8 @@ export function getSitemapName(path: string): string {
   try {
     return new URL(path).pathname || path
   }
-  catch {
+  catch (_err) {
+    // Non-URL sitemap labels are already displayable.
     return path
   }
 }

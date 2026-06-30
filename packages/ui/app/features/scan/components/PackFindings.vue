@@ -47,7 +47,7 @@ function severityVariant(severity: string): 'error' | 'warning' | 'neutral' {
 }
 
 // Map findings → UAccordion items (stable value for open-state tracking).
-// Spreading `Finding` here would otherwise drop its `[extra: string]: any`
+// Spreading `Finding` here would otherwise drop its `[extra: string]: unknown`
 // index signature from the inferred item type, so the per-pack extra fields
 // (a11y's `fixHint`/`elements`, images' `imageUrl`, etc.) would no longer be
 // visible on the slot's `item`. Annotate the result so the index signature —

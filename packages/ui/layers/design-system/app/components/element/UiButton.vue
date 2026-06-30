@@ -2,6 +2,7 @@
 import type { ButtonProps } from '@nuxt/ui'
 import type { UiIcon } from '../../shared/ui-icons'
 import type { SlotTextOptions } from '../../utils/slot-text'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { useMouseInElement } from '@vueuse/core'
 import { m, useReducedMotion } from 'motion-v'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useAttrs, useSlots, useTemplateRef, watch } from 'vue'
@@ -80,7 +81,11 @@ if (import.meta.dev) {
   const attrs = useAttrs()
   onMounted(() => {
     if (isIconOnly.value && !attrs['aria-label'] && !attrs['aria-labelledby'] && !attrs.title) {
-      console.warn('[UiButton] icon-only button has no accessible name — pass `aria-label` (or `title`).', { icon, leadingIcon, trailingIcon })
+      logOperationalWarn('ui.button_icon_accessible_name_missing', null, {
+        icon,
+        leadingIcon,
+        trailingIcon,
+      }, console)
     }
   })
 }

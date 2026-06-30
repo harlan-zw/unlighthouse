@@ -1,17 +1,11 @@
 // compare.* handlers operate on the v2 Storage port (ScanRoute rows).
 
 import type {
-  CommandOutput,
-  CompareDetail,
-  CompareFindPrevious,
-  CompareMarkdown,
-  CompareRun,
-} from '@unlighthouse/contracts/commands'
-import type {
   Category,
   ScanId,
 } from '@unlighthouse/contracts/types/atoms'
 import type { Handler, HandlerCtx } from '../types'
+import { CompareDetail, CompareFindPrevious, CompareMarkdown, CompareRun } from '@unlighthouse/contracts/commands'
 import { loadScanRoutes } from '../scan-routes'
 import { renderCompareMarkdown } from './markdown'
 import { computePackDiffs } from './pack-diffs'
@@ -42,7 +36,7 @@ async function runCompare(ctx: HandlerCtx, baseScanId: ScanId, currentScanId: Sc
 }
 
 export const compareRun: Handler<typeof CompareRun> = {
-  command: {} as typeof CompareRun,
+  command: CompareRun,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
 
@@ -71,12 +65,12 @@ export const compareRun: Handler<typeof CompareRun> = {
     }
 
     await emitCompareComplete(ctx, input.baseScanId, input.currentScanId, output.regressions.length, output.improvements.length)
-    return output as unknown as CommandOutput<typeof CompareRun>
+    return CompareRun.output.parse(output)
   },
 }
 
 export const compareDetail: Handler<typeof CompareDetail> = {
-  command: {} as typeof CompareDetail,
+  command: CompareDetail,
   async run(input, ctx) {
     const [baseRoutes, currentRoutes, baseScan, currentScan] = await Promise.all([
       loadScanRoutes(ctx.storage, input.baseScanId),
@@ -105,7 +99,7 @@ export const compareDetail: Handler<typeof CompareDetail> = {
       currentScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined,
     )
 
-    return {
+    return CompareDetail.output.parse({
       baseScanId: input.baseScanId,
       currentScanId: input.currentScanId,
       summary: {
@@ -119,12 +113,12 @@ export const compareDetail: Handler<typeof CompareDetail> = {
         categoryDeltas,
       },
       routes: { items, total, page, pageSize },
-    } as unknown as CommandOutput<typeof CompareDetail>
+    })
   },
 }
 
 export const compareMarkdown: Handler<typeof CompareMarkdown> = {
-  command: {} as typeof CompareMarkdown,
+  command: CompareMarkdown,
   async run(input, ctx) {
     const report = await runCompare(ctx, input.baseScanId, input.currentScanId, input.thresholds)
     const [baseScan, currentScan] = await Promise.all([
@@ -149,15 +143,15 @@ export const compareMarkdown: Handler<typeof CompareMarkdown> = {
       overallCurrent: currentScan?.summary?.scoreAverage ?? null,
     })
 
-    return {
+    return CompareMarkdown.output.parse({
       markdown,
       hasRegressions: report.regressions.length > 0,
-    } as CommandOutput<typeof CompareMarkdown>
+    })
   },
 }
 
 export const compareFindPrevious: Handler<typeof CompareFindPrevious> = {
-  command: {} as typeof CompareFindPrevious,
+  command: CompareFindPrevious,
   async run(input, ctx) {
     const previous = await ctx.storage.scans.findPrevious({
       site: input.site,
@@ -165,7 +159,7 @@ export const compareFindPrevious: Handler<typeof CompareFindPrevious> = {
       branch: input.branch,
       excludeScanId: input.excludeScanId,
     })
-    return { scanId: previous?.scanId ?? null } as CommandOutput<typeof CompareFindPrevious>
+    return CompareFindPrevious.output.parse({ scanId: previous?.scanId ?? null })
   },
 }
 

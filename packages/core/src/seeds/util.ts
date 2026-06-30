@@ -1,5 +1,6 @@
 import type { Logger, NormalisedRoute, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { ConsolaInstance } from 'consola'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createConsola } from 'consola'
 import { fetchRobotsTxt, mergeRobotsTxtConfig } from '../policies/robots'
 import { parseRobotsTxt } from '../policies/robots/parser'
@@ -12,6 +13,10 @@ export interface DiscoverInitialUrlsDeps {
 }
 
 let warnedAboutSampling = false
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
 
 function sampleRoutes(routes: NormalisedRoute[], size: number): NormalisedRoute[] {
   if (routes.length <= size)
@@ -28,9 +33,9 @@ function sampleRoutes(routes: NormalisedRoute[], size: number): NormalisedRoute[
 
 function getPathValue(source: unknown, path: string): unknown {
   return path.split('.').filter(Boolean).reduce<unknown>((current, part) => {
-    if (current == null || typeof current !== 'object')
+    if (!isRecord(current))
       return undefined
-    return (current as Record<string, unknown>)[part]
+    return current[part]
   }, source)
 }
 
@@ -95,12 +100,12 @@ export async function discoverInitialUrls(deps: DiscoverInitialUrlsDeps): Promis
   if (resolvedConfig.scanner.sitemap !== false) {
     const { paths: sitemapUrls, ignored, sitemaps } = await extractSitemapRoutes({ resolvedConfig, siteUrl: deps.siteUrl, logger: deps.logger }, resolvedConfig.site, resolvedConfig.scanner.sitemap)
     if (ignored > 0 && !sitemapUrls.length) {
-      logger.warn(`Sitemap${sitemaps.length > 1 ? 's' : ''} exists but is being ignored due to a different origin being present`)
+      logOperationalWarn('seeds.sitemap_origin_mismatch', null, { ignored, sitemaps }, logger)
     }
     else if (sitemapUrls.length) {
       logger.info(`Discovered ${sitemapUrls.length} routes from ${sitemaps.length} sitemap${sitemaps.length > 1 ? 's' : ''}.`)
       if (ignored > 0)
-        logger.warn(`Ignoring ${ignored} paths from sitemap as their origin differs from the site url.`)
+        logOperationalWarn('seeds.sitemap_origin_mismatch', null, { ignored, sitemaps }, logger)
       sitemapUrls.forEach(url => urls.add(url))
       // sitemap threshold for disabling crawler
       if (!resolvedConfig.site.includes('localhost') && sitemapUrls.length >= 50) {
@@ -143,7 +148,7 @@ export function applyDynamicSampling(deps: { resolvedConfig: ResolvedUserConfig,
         return group
 
       if (!warnedAboutSampling && group.length > dynamicSampling) {
-        logger.warn('Dynamic sampling is in effect, some of your routes will not be scanned. To disable this behavior, set `scanner.dynamicSampling` to `false`.')
+        logOperationalWarn('seeds.dynamic_sampling_applied', null, { routes: group.length, sampleSize: dynamicSampling }, logger)
         warnedAboutSampling = true
       }
 

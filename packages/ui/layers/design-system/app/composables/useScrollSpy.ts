@@ -9,7 +9,7 @@ interface Section {
   id: SectionId
   label?: string
 
-  [key: string]: any
+  [key: string]: unknown
 }
 
 type SectionInput = SectionId | Section

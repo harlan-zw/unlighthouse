@@ -140,6 +140,17 @@ function toSeries(
 
 const EMPTY_SERIES: CruxMetricSeries = { lcp: [], inp: [], cls: [] }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function cruxErrorMessage(body: unknown): string | undefined {
+  if (!isRecord(body) || !isRecord(body.error))
+    return undefined
+  const message = body.error.message
+  return typeof message === 'string' ? message : undefined
+}
+
 export async function fetchCruxHistory(opts: {
   apiKey: string
   origin: string
@@ -161,8 +172,14 @@ export async function fetchCruxHistory(opts: {
   if (res.status === 404 || res.status === 400)
     return EMPTY_SERIES
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as any
-    throw new Error(`CrUX API ${res.status}: ${body?.error?.message || res.statusText}`)
+    let body: unknown = {}
+    try {
+      body = await res.json()
+    }
+    catch (_err) {
+      // Non-JSON CrUX errors fall back to the HTTP status text.
+    }
+    throw new Error(`CrUX API ${res.status}: ${cruxErrorMessage(body) || res.statusText}`)
   }
 
   const data = await res.json() as { record?: CrUXHistoryResult }

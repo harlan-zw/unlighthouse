@@ -29,9 +29,11 @@
 //   path is never hit; node:crypto sha1→a JS impl or seed rows so urlHash is
 //   never called). That refactor is the core-portability decision this client
 //   intentionally stops short of.
-import type { CommandName } from '@unlighthouse/contracts/commands'
+import type { Auditor, Logger, UnlighthouseCore } from '@unlighthouse/contracts'
+import type { CommandInput, CommandName, CommandOutput, CommandRegistry } from '@unlighthouse/contracts/commands'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { PackRun } from '@unlighthouse/contracts/packs'
+import type { HandlerCtx, HandlerMap } from './handlers'
 import type { SiteRecord, Storage } from '@unlighthouse/contracts/ports'
 import type {
   Scan,
@@ -39,6 +41,8 @@ import type {
 } from '@unlighthouse/contracts/types/atoms'
 import type { UnlighthouseClient } from './client'
 import { commands } from '@unlighthouse/contracts/commands'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { routeContractBlobKey } from '../report/route-contracts'
 import { memoryStorage } from '../storage/memory'
 import { createHandlers } from './handlers'
@@ -91,12 +95,14 @@ export async function buildStaticSnapshot(opts: {
   scanId: string
   config: UnlighthouseConfig
   version?: string
+  logger?: Logger
   /** Pre-run these packs into the cache before collecting (default: the dashboard set). Pass [] to only collect already-cached runs. */
   packs?: readonly string[]
 }): Promise<StaticSnapshot> {
-  const { storage, scanId, config } = opts
-  const scan = await storage.scans.get(scanId as never)
-  const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+  const { storage, config } = opts
+  const scanId = parseScanId(opts.scanId)
+  const scan = await storage.scans.get(scanId)
+  const { items: routes } = await storage.routes.listForScan(scanId, { pageSize: 10_000 })
 
   // Pre-run the dashboard packs so pack.run hits the cache offline. Runs in
   // Node at build time where zlib/crypto are available; failures are non-fatal
@@ -104,18 +110,18 @@ export async function buildStaticSnapshot(opts: {
   const packs = opts.packs ?? STATIC_SNAPSHOT_PACKS
   if (packs.length) {
     const handlers = createHandlers()
-    const ctx = { core: { session: () => null } as never, auditor: undefined as never, storage, config, version: opts.version ?? 'static' }
+    const ctx = createStaticHandlerCtx(storage, config, opts.version)
     for (const pack of packs) {
       try {
         await (handlers['pack.run'] as { run: (i: unknown, c: unknown) => Promise<unknown> }).run({ scanId, pack }, ctx)
       }
-      catch {
-        // pack unavailable / no data for this scan — skip
+      catch (err) {
+        logOperationalWarn('host.static_snapshot_pack_failed', err, { scanId, pack }, opts.logger)
       }
     }
   }
 
-  const packRuns = await storage.packRuns.listForScan(scanId as never)
+  const packRuns = await storage.packRuns.listForScan(scanId)
 
   // Contract blobs the read handlers reconcile route/summary/categories from,
   // plus any blob a pack-run cache row spilled to (large reports).
@@ -172,7 +178,7 @@ function seedStorage(snapshot: StaticSnapshot): Storage {
     void storage.blobs.put(key, new TextEncoder().encode(json))
 
   for (const scan of snapshot.scans)
-    void storage.scans.create(scan as never)
+    void storage.scans.create(scan)
 
   // Group rows by (scanId, device) for putBatch; reportBlobKey/screenshotBlobKey
   // ride through unchanged (toRoute only recomputes lhrBlobKey).
@@ -185,7 +191,8 @@ function seedStorage(snapshot: StaticSnapshot): Storage {
   }
   for (const [k, rows] of byScanDevice) {
     const [scanId, device] = k.split('::')
-    void storage.routes.putBatch(scanId as never, device as never, rows as never)
+    if ((device === 'mobile' || device === 'desktop') && scanId)
+      void storage.routes.putBatch(parseScanId(scanId), device, rows)
   }
 
   for (const run of snapshot.packRuns)
@@ -197,6 +204,45 @@ function seedStorage(snapshot: StaticSnapshot): Storage {
   return storage
 }
 
+const staticCore: UnlighthouseCore = {
+  run: () => {
+    throw new Error(WRITE_REJECT_MESSAGE)
+  },
+  session: () => null,
+  hooks: undefined,
+}
+
+const staticAuditor: Auditor = {
+  capabilities: {
+    reliablePerfScores: false,
+    reliableFieldData: false,
+    supportsThrottling: false,
+    categories: ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'],
+  },
+  audit: async () => {
+    throw new Error(WRITE_REJECT_MESSAGE)
+  },
+}
+
+function createStaticHandlerCtx(storage: Storage, config: UnlighthouseConfig, version?: string): HandlerCtx {
+  return {
+    core: staticCore,
+    auditor: staticAuditor,
+    storage,
+    config,
+    version: version ?? 'static',
+  }
+}
+
+function runStaticHandler<K extends CommandName>(
+  handlers: HandlerMap,
+  name: K,
+  input: unknown,
+  ctx: HandlerCtx,
+): Promise<CommandOutput<CommandRegistry[K]>> | AsyncIterable<CommandOutput<CommandRegistry[K]>> {
+  return handlers[name].run(input as CommandInput<CommandRegistry[K]>, ctx)
+}
+
 /**
  * Build an `UnlighthouseClient` that answers from `snapshot` instead of HTTP.
  * Drop-in for the live client — same method shape — so the UI's `useApi()`
@@ -205,18 +251,11 @@ function seedStorage(snapshot: StaticSnapshot): Storage {
 export function createStaticClient(snapshot: StaticSnapshot): UnlighthouseClient {
   const storage = seedStorage(snapshot)
   const handlers = createHandlers()
-  const ctx = {
-    // No live session offline; scanMeta/scanCurrent tolerate a null session.
-    core: { session: () => null } as never,
-    auditor: undefined as never,
-    storage,
-    config: snapshot.config,
-    version: snapshot.version ?? 'static',
-  }
+  const ctx = createStaticHandlerCtx(storage, snapshot.config, snapshot.version)
 
   const client = {} as Record<string, unknown>
   for (const name of Object.keys(commands) as CommandName[]) {
-    const cmd = commands[name] as { streaming?: boolean, input?: { safeParse: (v: unknown) => { success: boolean, data?: unknown } } }
+    const cmd = commands[name]
     const handler = handlers[name]
 
     if (cmd.streaming) {
@@ -232,7 +271,8 @@ export function createStaticClient(snapshot: StaticSnapshot): UnlighthouseClient
         throw new Error(`${name}: not available in a static report`)
       const parsed = cmd.input?.safeParse(input)
       const value = parsed?.success ? parsed.data : (input ?? {})
-      return handler.run(value as never, ctx as never) as never
+      const output = await runStaticHandler(handlers, name, value, ctx)
+      return cmd.output.parse(output)
     }
   }
   return client as UnlighthouseClient

@@ -7,6 +7,7 @@ import type {
 import type { MaybeRefOrGetter } from 'vue'
 import type { ApiError } from './useApiError'
 import { commands } from '@unlighthouse/contracts/commands'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { useNuxtAsyncQuery } from 'nuxt-use-query/async-query'
 import { computed, toValue } from 'vue'
 import { normalizeApiError } from './useApiError'
@@ -25,7 +26,7 @@ function validateResponse<K extends ReadCommand>(command: K, data: unknown): voi
   const schema = (commands as Record<string, { output?: { safeParse?: (d: unknown) => { success: boolean, error?: { issues?: unknown } } } }>)[command]?.output
   const result = schema?.safeParse?.(data)
   if (result && !result.success)
-    console.warn(`[useApiQuery] response for "${command}" does not match its contract output schema`, result.error?.issues)
+    logOperationalWarn('ui.output_contract_mismatch', result.error, { command }, console)
 }
 
 // Non-streaming read commands — the ones useApiQuery can drive. Streaming
@@ -66,8 +67,8 @@ function stableInputKey(input: unknown): string {
 /**
  * Read a backend command as a query with real loading + error states.
  *
- * Replaces the `useAsyncData(key, () => api[cmd](input).catch(() => null))`
- * pattern: failures land in `error` (normalized to {@link ApiError}) instead
+ * Replaces the old query pattern that swallowed command failures: errors now
+ * land in `error` (normalized to {@link ApiError}) instead
  * of masquerading as empty data, and the result is SWR-cached + invalidatable
  * by command-name prefix.
  */
@@ -83,7 +84,7 @@ export function useApiQuery<K extends ReadCommand>(
 
   const query = useNuxtAsyncQuery<CommandOutput<CommandRegistry[K]>>(
     async () => {
-      const data = await (api[command](toValue(input) as never) as Promise<CommandOutput<CommandRegistry[K]>>)
+      const data = await (api[command](toValue(input) as CommandInput<CommandRegistry[K]>) as Promise<CommandOutput<CommandRegistry[K]>>)
       validateResponse(command, data)
       return data
     },

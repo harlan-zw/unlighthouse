@@ -4,17 +4,15 @@
 // Only CrUX (external field data, not derived from LHR) remains.
 
 import type { ScanCruxRow } from '@unlighthouse/contracts/drizzle'
+import type { DrizzleDatabase } from '../types'
 import { scanCrux } from '@unlighthouse/contracts/drizzle'
 import { eq } from 'drizzle-orm'
 
-type AnyDrizzle = any
-
-export function createReportRepositories(db: AnyDrizzle) {
+export function createReportRepositories(db: DrizzleDatabase) {
   return {
     crux: {
       async list(scanId: string): Promise<ScanCruxRow[]> {
-        const rows = await db.select().from(scanCrux).where(eq(scanCrux.scanId, scanId))
-        return rows as ScanCruxRow[]
+        return db.select<ScanCruxRow>().from(scanCrux).where(eq(scanCrux.scanId, scanId))
       },
     },
   }

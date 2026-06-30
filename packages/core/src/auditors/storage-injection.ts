@@ -1,3 +1,5 @@
+import type { IndexedDbSeedSpec } from '@unlighthouse/contracts'
+
 /**
  * Build a script that seeds `localStorage` / `sessionStorage` before the page's
  * own scripts run. Injected via puppeteer `page.evaluateOnNewDocument`, so it runs
@@ -22,21 +24,13 @@ export function buildStorageInjectionScript(opts: {
       // Strings pass through; everything else is JSON-encoded (web storage only
       // holds strings). JSON.stringify on both key and value escapes safely.
       const value = typeof raw === 'string' ? raw : JSON.stringify(raw)
-      lines.push(`try { window.${store}.setItem(${JSON.stringify(key)}, ${JSON.stringify(value)}) } catch (e) {}`)
+      lines.push(`try { window.${store}.setItem(${JSON.stringify(key)}, ${JSON.stringify(value)}) } catch (e) { /* best-effort storage seed */ }`)
     }
   }
   return lines.join('\n')
 }
 
-/** One IndexedDB database to seed before the page loads. */
-export interface IndexedDbSeedSpec {
-  version?: number
-  stores: Record<string, {
-    keyPath?: string | string[]
-    autoIncrement?: boolean
-    records: unknown[]
-  }>
-}
+export type { IndexedDbSeedSpec }
 
 /**
  * Build a script that seeds IndexedDB before the page's own scripts run (#216).
@@ -57,5 +51,5 @@ export function buildIndexedDbInjectionScript(seed: Record<string, IndexedDbSeed
     + `if(!db.objectStoreNames.contains(s)){var o=spec.stores[s];db.createObjectStore(s,o.keyPath?{keyPath:o.keyPath}:(o.autoIncrement?{autoIncrement:true}:undefined));}});};`
     + `open.onsuccess=function(e){var db=e.target.result;var names=Object.keys(spec.stores||{});if(!names.length)return;`
     + `try{var tx=db.transaction(names,'readwrite');names.forEach(function(s){var recs=(spec.stores[s].records)||[];var os=tx.objectStore(s);`
-    + `recs.forEach(function(r){try{os.put(r);}catch(_){}});});}catch(_){}};});}catch(_){}})();`
+    + `recs.forEach(function(r){try{os.put(r);}catch(_){/* best-effort record seed */}});});}catch(_){/* best-effort transaction seed */}};});}catch(_){/* best-effort indexedDB seed */}})();`
 }

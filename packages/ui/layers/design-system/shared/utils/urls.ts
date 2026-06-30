@@ -40,7 +40,8 @@ export function urlHostname(input: string | null | undefined): string {
   try {
     return new URL(withProto).hostname.replace(/^www\./i, '')
   }
-  catch {
+  catch (_err) {
+    // Fall back to the cleaned input when it is not parseable as a URL.
     return prettifyUrl(cleaned).split('/')[0] ?? ''
   }
 }

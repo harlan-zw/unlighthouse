@@ -10,10 +10,9 @@ import type {
   Scan,
   ScanId,
 } from '@unlighthouse/contracts/types/atoms'
+import type { DrizzleDatabase } from '../types'
 import { scans } from '@unlighthouse/contracts/drizzle'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
-
-type AnyDrizzle = any
 
 const DEFAULT_PAGE_SIZE = 50
 
@@ -38,15 +37,15 @@ function insertToRow(scan: ScanInsert): ScanRowInsert {
   }
 }
 
-export function createScanRepository(db: AnyDrizzle): ScanRepository {
+export function createScanRepository(db: DrizzleDatabase): ScanRepository {
   return {
     async create(scan: ScanInsert): Promise<Scan> {
-      const [row] = await db.insert(scans).values(insertToRow(scan)).returning()
+      const [row] = await db.insert<ScanRow>(scans).values(insertToRow(scan)).returning()
       return rowToScan(row)
     },
 
     async get(scanId: ScanId): Promise<Scan | null> {
-      const [row] = await db.select().from(scans).where(eq(scans.scanId, scanId)).limit(1)
+      const [row] = await db.select<ScanRow>().from(scans).where(eq(scans.scanId, scanId)).limit(1)
       return row ? rowToScan(row) : null
     },
 
@@ -57,7 +56,7 @@ export function createScanRepository(db: AnyDrizzle): ScanRepository {
           continue
         update[k] = v === undefined ? null : v
       }
-      const [row] = await db.update(scans).set(update).where(eq(scans.scanId, scanId)).returning()
+      const [row] = await db.update<ScanRow>(scans).set(update).where(eq(scans.scanId, scanId)).returning()
       if (!row)
         throw new Error(`Scan not found: ${scanId}`)
       return rowToScan(row)
@@ -75,7 +74,7 @@ export function createScanRepository(db: AnyDrizzle): ScanRepository {
         conditions.push(ne(scans.scanId, q.excludeScanId))
 
       const [row] = await db
-        .select()
+        .select<ScanRow>()
         .from(scans)
         .where(and(...conditions))
         .orderBy(desc(scans.startedAt), desc(scans.createdAtMs))
@@ -102,7 +101,7 @@ export function createScanRepository(db: AnyDrizzle): ScanRepository {
       const where = conditions.length ? and(...conditions) : undefined
 
       const rows = await db
-        .select()
+        .select<ScanRow>()
         .from(scans)
         .where(where)
         .orderBy(desc(scans.startedAt), desc(scans.createdAtMs))
@@ -110,7 +109,7 @@ export function createScanRepository(db: AnyDrizzle): ScanRepository {
         .offset(offset)
 
       const [{ count }] = await db
-        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .select<{ count: number }>({ count: sql<number>`count(*)`.mapWith(Number) })
         .from(scans)
         .where(where)
 

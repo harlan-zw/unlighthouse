@@ -1,9 +1,11 @@
 import type { Logger, ResolvedUserConfig, Storage } from '@unlighthouse/contracts'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { Hookable } from 'hookable'
+import { parseScanId } from '@unlighthouse/contracts'
 import { scanCrux } from '@unlighthouse/contracts/drizzle'
 import { fetchCruxHistory, getSiteOrigin } from '@unlighthouse/core/auditors/crux'
 import { processScanData } from '@unlighthouse/core/report'
+import { asDrizzleDatabase } from '@unlighthouse/core/storage/drizzle'
 import { and, eq } from 'drizzle-orm'
 
 export interface HistorySubscriberDeps {
@@ -14,8 +16,9 @@ export interface HistorySubscriberDeps {
 }
 
 async function writeScanManifest(storage: Storage, scanId: string): Promise<void> {
-  const scan = await storage.scans.get(scanId as never)
-  const list = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+  const parsedScanId = parseScanId(scanId)
+  const scan = await storage.scans.get(parsedScanId)
+  const list = await storage.routes.listForScan(parsedScanId, { pageSize: 10_000 })
   const manifest = {
     scanId,
     site: scan?.site ?? null,
@@ -60,7 +63,7 @@ export function historySubscriber(deps: HistorySubscriberDeps): void {
     logger?.debug?.(`Processing dashboard data for scan: ${scanId}`)
 
     const compareCfg = resolvedConfig.ci?.comparison
-    await processScanData(storage as Storage & { db?: any }, scanId, {
+    await processScanData(storage, scanId, {
       compare: compareCfg?.enabled !== false,
       thresholds: compareCfg?.thresholds,
     }).catch((err: unknown) => {
@@ -77,7 +80,7 @@ export function historySubscriber(deps: HistorySubscriberDeps): void {
     if (resolvedConfig.googleApiKey && resolvedConfig.site) {
       const origin = getSiteOrigin(resolvedConfig.site)
       const hostname = new URL(origin).host
-      const db = (storage as { db?: any }).db
+      const db = storage.db ? asDrizzleDatabase(storage.db) : null
       for (const formFactor of ['PHONE', 'DESKTOP'] as const) {
         fetchCruxHistory({ apiKey: resolvedConfig.googleApiKey, origin, formFactor })
           .then(async (series) => {

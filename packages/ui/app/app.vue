@@ -2,6 +2,8 @@
 import { Toaster } from 'vue-sonner'
 
 const colorMode = useColorMode()
+
+usePageTitle()
 </script>
 
 <template>

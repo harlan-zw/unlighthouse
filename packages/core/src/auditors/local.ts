@@ -16,8 +16,8 @@ import type { AuditPool } from './audit-pool'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { extractRouteData } from '../report/extract'
 import { createAuditPool, runTask } from './audit-pool'
+import { attachExtractedRouteData } from './lighthouse-report'
 
 export interface LocalAuditorOptions {
   /** Default UnlighthouseOptions applied to every audit call. */
@@ -77,39 +77,7 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
         ? { ...opts.defaults, emulatedFormFactor: _opts.device }
         : opts.defaults
       const report = await runTask<UnlighthouseReport>(pool, 'lighthouse', { url, options })
-      const lhr = report.raw
-      const extracted = extractRouteData(lhr as never)
-      const path = (() => {
-        try {
-          return new URL(url).pathname
-        }
-        catch {
-          return url
-        }
-      })()
-      const metrics = {
-        url,
-        path,
-        routeName: null,
-        scorePerformance: extracted.scores.performance,
-        scoreAccessibility: extracted.scores.accessibility,
-        scoreSeo: extracted.scores.seo,
-        scoreBestPractices: extracted.scores.bestPractices,
-        scoreAgenticBrowsing: extracted.scores.agenticBrowsing,
-        lcp: extracted.lcp,
-        cls: extracted.cls,
-        inp: extracted.inp,
-        fcp: extracted.fcp,
-        ttfb: extracted.ttfb,
-        tbt: extracted.tbt,
-        si: extracted.si,
-        lighthouseVersion: (lhr as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
-        capturedAt: new Date().toISOString(),
-      }
-      return Object.assign(
-        lhr as unknown as LighthouseReport,
-        { extracted: metrics, lhrGzip: extracted.lhrGzip },
-      )
+      return attachExtractedRouteData(report.raw, url)
     },
   }
 }

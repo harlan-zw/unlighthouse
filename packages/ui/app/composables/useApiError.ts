@@ -59,6 +59,26 @@ export function normalizeApiError(err: unknown): ApiError {
     }
   }
 
+  const typed = err as Error & {
+    code?: unknown
+    statusCode?: unknown
+    retryable?: unknown
+    suggestion?: unknown
+  }
+  if (typeof typed.code === 'string') {
+    const status = typeof typed.statusCode === 'number' ? typed.statusCode : undefined
+    return {
+      _tag: 'http',
+      status,
+      code: typed.code,
+      title: titleForStatus(status),
+      message: err.message,
+      retryable: typeof typed.retryable === 'boolean'
+        ? typed.retryable
+        : status != null && (status >= 500 || status === 429),
+    }
+  }
+
   if (err.name.startsWith('HTTP_')) {
     const status = Number(err.name.slice(5)) || undefined
     return {

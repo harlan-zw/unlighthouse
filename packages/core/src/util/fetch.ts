@@ -98,18 +98,31 @@ export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, ca
   return client
 }
 
-function errorCode(error: any): string | undefined {
-  return error?.code
-    ?? error?.cause?.code
-    ?? error?.cause?.cause?.code
-    ?? error?.name
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function stringProp(value: unknown, key: string): string | undefined {
+  if (!isRecord(value))
+    return undefined
+  const prop = value[key]
+  return typeof prop === 'string' ? prop : undefined
+}
+
+function errorCode(error: unknown): string | undefined {
+  const cause = isRecord(error) ? error.cause : undefined
+  const nestedCause = isRecord(cause) ? cause.cause : undefined
+  return stringProp(error, 'code')
+    ?? stringProp(cause, 'code')
+    ?? stringProp(nestedCause, 'code')
+    ?? stringProp(error, 'name')
 }
 
 export async function fetchUrlRaw(
   url: string,
   resolvedConfig: ResolvedUserConfig,
   opts: { logger?: Logger, cache?: FetchCache } = {},
-): Promise<{ error?: any, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: FetchUrlResponse }> {
+): Promise<{ error?: unknown, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: FetchUrlResponse }> {
   const logger = (opts.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
   const cache = opts.cache ?? _sharedContext
   const instance = cache._fetch || cache._axios || await createAxiosInstance(resolvedConfig, cache)
@@ -130,16 +143,17 @@ export async function fetchUrlRaw(
       }
       return { valid: true, redirected, response, redirectUrl }
     }
-    catch (e: any) {
-      if (e.errors)
+    catch (e: unknown) {
+      if (isRecord(e) && e.errors)
         logger.error('Fetch error:', e.errors)
       const code = errorCode(e)
-      logger.error('Fetch error message:', e.message)
+      logger.error('Fetch error message:', stringProp(e, 'message'))
       logger.error('Fetch error code:', code)
-      if (e.response) {
-        logger.error('Fetch error response data:', e.response._data)
-        logger.error('Fetch error response status:', e.response.status)
-        logger.error('Fetch error response headers:', e.response.headers)
+      const response = isRecord(e) ? e.response : undefined
+      if (isRecord(response)) {
+        logger.error('Fetch error response data:', response._data)
+        logger.error('Fetch error response status:', response.status)
+        logger.error('Fetch error response headers:', response.headers)
       }
       if (code === 'ETIMEDOUT' || code === 'ENETUNREACH' || code === 'TimeoutError' || code === 'AbortError') {
         attempt++

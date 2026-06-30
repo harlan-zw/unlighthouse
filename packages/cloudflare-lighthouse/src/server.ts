@@ -25,6 +25,7 @@ import type { Auditor } from '@unlighthouse/contracts/ports'
 import { Buffer } from 'node:buffer'
 import { createServer } from 'node:http'
 import process from 'node:process'
+import { logOperationalError, logOperationalWarn } from '@unlighthouse/contracts/logging'
 import {
   createApp,
   createRouter,
@@ -49,10 +50,10 @@ async function loadAuditor(): Promise<typeof import('@unlighthouse/core/auditors
 console.log('[cloudflare-lighthouse] boot starting; node', process.versions.node, 'arch', process.arch, 'platform', process.platform)
 
 process.on('uncaughtException', (err) => {
-  console.error('[cloudflare-lighthouse] uncaught:', err?.stack ?? err)
+  logOperationalError('cloudflare_lighthouse.uncaught_exception', err, {}, console)
 })
 process.on('unhandledRejection', (reason) => {
-  console.error('[cloudflare-lighthouse] unhandled:', reason)
+  logOperationalError('cloudflare_lighthouse.unhandled_rejection', reason, {}, console)
 })
 
 // Graceful shutdown — Cloudflare's launcher sends SIGTERM when the
@@ -78,7 +79,13 @@ const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID ?? ''
 const CF_BROWSER_RUN_TOKEN = process.env.CF_BROWSER_RUN_TOKEN ?? ''
 
 if (!SHARED_AUDIT_TOKEN || !CF_ACCOUNT_ID || !CF_BROWSER_RUN_TOKEN) {
-  console.warn('[cloudflare-lighthouse] missing one of SHARED_AUDIT_TOKEN/CF_ACCOUNT_ID/CF_BROWSER_RUN_TOKEN — /audit will 503')
+  logOperationalWarn('cloudflare_lighthouse.config_missing', null, {
+    missing: [
+      !SHARED_AUDIT_TOKEN ? 'SHARED_AUDIT_TOKEN' : null,
+      !CF_ACCOUNT_ID ? 'CF_ACCOUNT_ID' : null,
+      !CF_BROWSER_RUN_TOKEN ? 'CF_BROWSER_RUN_TOKEN' : null,
+    ].filter(Boolean),
+  }, console)
 }
 
 // Idle window before Browser Run reaps (and stops billing) a detached session.
@@ -163,7 +170,7 @@ router.post(
     catch (err) {
       event.node.res.statusCode = 502
 
-      console.error('[cloudflare-lighthouse] audit failed:', err)
+      logOperationalError('cloudflare_lighthouse.audit_failed', err, { url: body.url }, console)
       return {
         error: 'audit_failed',
         detail: err instanceof Error ? err.message : String(err),
@@ -185,7 +192,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`[cloudflare-lighthouse] listening on 0.0.0.0:${PORT}`)
 })
 server.on('error', (err) => {
-  console.error('[cloudflare-lighthouse] server error:', err)
+  logOperationalError('cloudflare_lighthouse.server_error', err, { port: PORT }, console)
 })
 
 installShutdown(() => new Promise<void>((resolve) => {

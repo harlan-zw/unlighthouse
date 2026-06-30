@@ -1,5 +1,6 @@
 import type Tinypool from 'tinypool'
 import type { AuditPool, AuditPoolStats } from './types'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { consola } from 'consola'
 
 const logger = consola.withTag('audit-pool')
@@ -117,6 +118,6 @@ export async function destroy(pool: AuditPool): Promise<void> {
   if (pool._internal.destroyed)
     return
   pool._internal.destroyed = true
-  await drain(pool).catch(err => logger.warn('drain failed during destroy', err))
+  await drain(pool).catch(err => logOperationalWarn('auditor.cleanup_failed', err, { operation: 'pool.drain' }, logger))
   await tp(pool).destroy()
 }

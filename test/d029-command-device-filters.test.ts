@@ -2,7 +2,7 @@
 // device) so commands that look up or list routes need to thread the
 // caller's device choice through to storage.
 
-import type { Storage } from '@unlighthouse/contracts'
+import type { ScanId, Storage } from '@unlighthouse/contracts'
 import { packRun } from '@unlighthouse/core/api/handlers'
 import { routeRescan } from '@unlighthouse/core/api/handlers'
 import { scanResults } from '@unlighthouse/core/api/handlers'
@@ -12,10 +12,11 @@ import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { testConfig, testHandlerCtx, testUrl } from './helpers/contracts'
 
-async function runMatrixScan(storage: Storage): Promise<string> {
+async function runMatrixScan(storage: Storage): Promise<ScanId> {
   const core = createUnlighthouseCore({
-    config: { site: 'http://example.com' } as never,
+    config: testConfig({ site: 'http://example.com' }),
     auditor: createMockAuditor(),
     seeds: manualSeeds({ urls: ['http://example.com/', 'http://example.com/about'] }),
     crawler: parallelMapCrawler({ concurrency: 1 }),
@@ -26,17 +27,11 @@ async function runMatrixScan(storage: Storage): Promise<string> {
   return session.scanId
 }
 
-const makeCtx = (storage: Storage) => ({
-  storage,
-  core: { hooks: undefined } as never,
-  auditor: createMockAuditor(),
-} as never)
-
 // ── scan.results ───────────────────────────────────────────────────────────
 
 describe('scan.results accepts device input', () => {
   let storage: Storage
-  let scanId: string
+  let scanId: ScanId
 
   beforeAll(async () => {
     storage = memoryStorage()
@@ -45,8 +40,8 @@ describe('scan.results accepts device input', () => {
 
   it('without device returns every (url, device) row', async () => {
     const out = await scanResults.run(
-      { scanId: scanId as never, page: 1, pageSize: 50 } as never,
-      makeCtx(storage),
+      { scanId, page: 1, pageSize: 50 },
+      testHandlerCtx(storage),
     )
     // 2 URLs × 2 devices.
     expect(out.total).toBe(4)
@@ -54,8 +49,8 @@ describe('scan.results accepts device input', () => {
 
   it('with device filter returns only matching rows', async () => {
     const out = await scanResults.run(
-      { scanId: scanId as never, device: 'desktop', page: 1, pageSize: 50 } as never,
-      makeCtx(storage),
+      { scanId, device: 'desktop', page: 1, pageSize: 50 },
+      testHandlerCtx(storage),
     )
     expect(out.total).toBe(2)
     expect(out.items.every(r => r.device === 'desktop')).toBe(true)
@@ -66,7 +61,7 @@ describe('scan.results accepts device input', () => {
 
 describe('pack.run accepts device input', () => {
   let storage: Storage
-  let scanId: string
+  let scanId: ScanId
 
   beforeAll(async () => {
     storage = memoryStorage()
@@ -75,34 +70,34 @@ describe('pack.run accepts device input', () => {
 
   it('device-specific run caches separately from the no-device aggregate run', async () => {
     const mobile = await packRun.run(
-      { scanId: scanId as never, pack: 'overview', device: 'mobile' } as never,
-      makeCtx(storage),
+      { scanId, pack: 'overview', device: 'mobile' },
+      testHandlerCtx(storage),
     )
     expect(mobile.cache).toBe('miss')
 
     const desktop = await packRun.run(
-      { scanId: scanId as never, pack: 'overview', device: 'desktop' } as never,
-      makeCtx(storage),
+      { scanId, pack: 'overview', device: 'desktop' },
+      testHandlerCtx(storage),
     )
     // Different device → different cache row → miss, not hit.
     expect(desktop.cache).toBe('miss')
 
     // Re-calling mobile hits cache.
     const mobile2 = await packRun.run(
-      { scanId: scanId as never, pack: 'overview', device: 'mobile' } as never,
-      makeCtx(storage),
+      { scanId, pack: 'overview', device: 'mobile' },
+      testHandlerCtx(storage),
     )
     expect(mobile2.cache).toBe('hit')
   })
 
   it('reports scores reflect the device the pack saw', async () => {
     const mobile = await packRun.run(
-      { scanId: scanId as never, pack: 'overview', device: 'mobile', refresh: true } as never,
-      makeCtx(storage),
+      { scanId, pack: 'overview', device: 'mobile', refresh: true },
+      testHandlerCtx(storage),
     )
     const desktop = await packRun.run(
-      { scanId: scanId as never, pack: 'overview', device: 'desktop', refresh: true } as never,
-      makeCtx(storage),
+      { scanId, pack: 'overview', device: 'desktop', refresh: true },
+      testHandlerCtx(storage),
     )
     // overview pack aggregates per-category averages. Mock desktop perf is
     // 0.98 vs mobile 0.9 — the gap should surface in the pack report too.
@@ -115,8 +110,8 @@ describe('pack.run accepts device input', () => {
 
   it('wire packName is the bare pack id even when device cache key is mangled', async () => {
     const out = await packRun.run(
-      { scanId: scanId as never, pack: 'overview', device: 'mobile' } as never,
-      makeCtx(storage),
+      { scanId, pack: 'overview', device: 'mobile' },
+      testHandlerCtx(storage),
     )
     // Internal cache key is 'overview@mobile' but the wire stays 'overview'.
     expect(out.packName).toBe('overview')
@@ -133,16 +128,16 @@ describe('route.rescan accepts device input', () => {
     // Re-audit only the desktop row. Verify by reading back — should still
     // be marked device='desktop' with the desktop-shaped perf numbers.
     const out = await routeRescan.run(
-      { scanId: scanId as never, url: 'http://example.com/' as never, device: 'desktop' },
-      makeCtx(storage),
+      { scanId, url: testUrl('http://example.com/'), device: 'desktop' },
+      testHandlerCtx(storage),
     )
     expect(out.url).toBe('http://example.com/')
     expect(out.metrics.scorePerformance).toBe(0.98)
 
-    const reread = await storage.routes.get(scanId as never, 'http://example.com/', 'desktop')
+    const reread = await storage.routes.get(scanId, 'http://example.com/', 'desktop')
     expect(reread?.device).toBe('desktop')
     // Mobile row is untouched.
-    const mobile = await storage.routes.get(scanId as never, 'http://example.com/', 'mobile')
+    const mobile = await storage.routes.get(scanId, 'http://example.com/', 'mobile')
     expect(mobile?.scorePerformance).toBe(0.9)
   })
 })

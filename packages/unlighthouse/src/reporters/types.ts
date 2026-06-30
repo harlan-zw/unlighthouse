@@ -4,12 +4,12 @@ export interface CategoryScore {
   key: string
   id: string
   title: string
-  score: number
+  score: number | null
 }
 
 export interface MetricScore {
   numericValue: number
-  displayValue: string
+  displayValue: string | number
 }
 
 export interface SimpleRouteReport {

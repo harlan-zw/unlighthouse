@@ -69,7 +69,7 @@ async function fetchText(url: string, timeoutMs: number): Promise<string | null>
       return null
     return await res.text()
   }
-  catch {
+  catch (_err) {
     return null
   }
   finally {
@@ -93,7 +93,7 @@ export function workerSitemapSeeds(opts: WorkerSitemapSeedsOptions): SeedSource 
       try {
         origin = new URL(site).origin
       }
-      catch {
+      catch (_err) {
         debug('[worker-sitemap] invalid site, skipping discovery', site)
         return
       }
@@ -131,7 +131,9 @@ export function workerSitemapSeeds(opts: WorkerSitemapSeedsOptions): SeedSource 
                 if (new URL(loc).origin === origin)
                   next.push(loc)
               }
-              catch { /* skip malformed */ }
+              catch (err) {
+                debug('[worker-sitemap] malformed child sitemap URL, skipping', loc, err)
+              }
             }
             continue
           }
@@ -145,7 +147,7 @@ export function workerSitemapSeeds(opts: WorkerSitemapSeedsOptions): SeedSource 
               if (new URL(url).origin !== origin)
                 continue
             }
-            catch {
+            catch (_err) {
               continue
             }
             if (emitted.has(url))

@@ -1,6 +1,8 @@
+import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { CliOptions } from './types'
 import { execFileSync } from 'node:child_process'
 import { setMaxListeners } from 'node:events'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createTaggedLogger, logger } from '@unlighthouse/core/logger'
 import open from 'better-opn'
 import { createApp, toNodeListener } from 'h3'
@@ -13,7 +15,7 @@ import { parseDevices, pickOptions, validateHost, validateOptions } from './util
 
 const log = createTaggedLogger('cli')
 
-async function createServer(resolvedConfig: { server: any }) {
+async function createServer(resolvedConfig: Pick<ResolvedUserConfig, 'server'>) {
   log.debug('Creating h3 app + listener...')
   const app = createApp()
   const server = await listen(toNodeListener(app), {
@@ -54,8 +56,11 @@ function killLighthouseChromes(): void {
     // unique to Lighthouse's headless Chrome.
     execFileSync('pkill', ['-9', '-f', 'user-data-dir=.*lighthouse\\.'], { stdio: 'ignore' })
   }
-  catch {
-    // pkill exits non-zero when nothing matched — that's the common, fine case.
+  catch (err) {
+    // pkill exits 1 when nothing matched — that's the common, fine case.
+    const status = (err as { status?: unknown }).status
+    if (status !== 1)
+      logOperationalWarn('cli.chrome_reap_failed', err, { status }, log)
   }
 }
 
@@ -95,12 +100,12 @@ function setupGracefulShutdown(
       try {
         server.server.close((err) => {
           if (err)
-            log.warn(`[shutdown] server.close error: ${err.message}`)
+            logOperationalWarn('cli.shutdown_server_close_failed', err, { phase: 'callback' }, log)
           resolve()
         })
       }
       catch (err) {
-        log.warn(`[shutdown] server.close threw: ${(err as Error).message}`)
+        logOperationalWarn('cli.shutdown_server_close_failed', err, { phase: 'throw' }, log)
         resolve()
       }
     })
@@ -116,7 +121,7 @@ function setupGracefulShutdown(
       }
     }
     catch (err) {
-      log.debug?.(`[shutdown] cancel skipped: ${(err as Error).message}`)
+      logOperationalWarn('cli.shutdown_scan_cancel_failed', err, {}, log)
     }
 
     // Best-effort DB close. drizzle adapters expose .close on the
@@ -128,7 +133,7 @@ function setupGracefulShutdown(
         await storage.db.close()
     }
     catch (err) {
-      log.debug?.(`[shutdown] db.close skipped: ${(err as Error).message}`)
+      logOperationalWarn('cli.shutdown_db_close_failed', err, {}, log)
     }
 
     // Reap leaked Lighthouse Chromes before we go — the worker threads that
@@ -175,7 +180,7 @@ async function runDashboardMode() {
   const { server, app } = await createServer(unlighthouse.resolvedConfig)
   log.debug('Setting server context...')
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  setupGracefulShutdown(server as any, unlighthouse)
+  setupGracefulShutdown(server, unlighthouse)
 
   log.success(`Unlighthouse UI available at: ${unlighthouse.runtimeSettings.clientUrl}`)
   log.debug(`API: ${server.url} | Output: ${unlighthouse.resolvedConfig.outputPath}`)
@@ -209,7 +214,7 @@ async function run() {
       ...pickOptions(options),
       hooks: {
         'resolved-config': async (config) => {
-          await validateHost(config, logger as any)
+          await validateHost(config, logger as unknown as Logger)
         },
       },
     },
@@ -222,7 +227,7 @@ async function run() {
   const { server, app } = await createServer(unlighthouse.resolvedConfig)
   log.debug('Setting server context...')
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  setupGracefulShutdown(server as any, unlighthouse)
+  setupGracefulShutdown(server, unlighthouse)
 
   const deviceOverride = parseDevices(options)
   log.debug(`Device override: ${JSON.stringify(deviceOverride)}`)
@@ -246,7 +251,10 @@ async function run() {
       url: parsedUrl.origin,
       group: null,
       createdAt: new Date().toISOString(),
-    }).catch(() => null)
+    }).catch((err) => {
+      log.debug?.('Site row create skipped before opening scan landing page', err)
+      return null
+    })
     scanLandingUrl = joinURL(unlighthouse.runtimeSettings.clientUrl, `/sites/${siteId}/scan/${scanId}`)
   }
 
@@ -258,7 +266,7 @@ async function run() {
 
     const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
     if (options.assert && assertionConfigs?.length) {
-      const db = (unlighthouse.handlerCtx.storage as { db?: any }).db
+      const db = unlighthouse.handlerCtx.storage.db
       if (db) {
         const { passed } = await runAssertions(db, scanId, assertionConfigs, log)
         if (!passed)

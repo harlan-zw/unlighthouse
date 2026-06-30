@@ -4,6 +4,7 @@ import NewScanForm from '~/features/scan/components/NewScanForm.vue'
 // First-run welcome. The `onboarding` middleware on `/` sends users here
 // when there are no sites and no scans yet; it's also reachable directly.
 definePageMeta({ layout: 'root' })
+usePageTitle('Welcome')
 </script>
 
 <template>

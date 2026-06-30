@@ -43,6 +43,10 @@
       "types": "./dist/hooks/index.d.mts",
       "import": "./dist/hooks/index.mjs"
     },
+    "./logging": {
+      "types": "./dist/logging/index.d.mts",
+      "import": "./dist/logging/index.mjs"
+    },
     "./errors": {
       "types": "./dist/errors/index.d.mts",
       "import": "./dist/errors/index.mjs"

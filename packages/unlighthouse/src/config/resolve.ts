@@ -3,7 +3,9 @@
 // defu owns merging (D-011); c12 layers the file/env/overrides, the Zod schema
 // validates the post-merge result.
 
+import type { UserConfig } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { ResolvableConfig } from 'c12'
 import { Buffer } from 'node:buffer'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
@@ -14,9 +16,11 @@ import { defu } from 'defu'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 import { defaultConfig } from '../constants'
 
+type ConfigOverrides = Partial<UnlighthouseConfig> | UserConfig
+
 export interface ResolveConfigOptions {
   /** Programmatic overrides (CLI flags). Highest priority. */
-  overrides?: Partial<UnlighthouseConfig>
+  overrides?: ConfigOverrides
   /** cwd for c12 lookup (defaults to process.cwd()). */
   cwd?: string
   /** Explicit config file path/name for c12 lookup. */
@@ -31,6 +35,37 @@ export interface ResolvedConfigResult {
 
 /** Ported defaults — verbatim copy of `defaultConfig` from `../constants`. */
 export const HOST_DEFAULTS: Partial<UnlighthouseConfig> = defaultConfig as Partial<UnlighthouseConfig>
+
+type ScannerConfig = NonNullable<UnlighthouseConfig['scanner']>
+type ChromeConfig = NonNullable<UnlighthouseConfig['chrome']>
+type ScreenEmulation = {
+  mobile: boolean
+  width: number
+  height: number
+  deviceScaleFactor: number
+  disabled: boolean
+}
+type LighthouseHostOptions = Record<string, unknown> & {
+  onlyCategories?: unknown[]
+  onlyAudits?: unknown[]
+  throttlingMethod?: 'provided' | 'simulate' | string
+  throttling?: Record<string, number>
+  extraHeaders?: Record<string, string>
+  formFactor?: 'mobile' | 'desktop' | string
+  screenEmulation?: ScreenEmulation
+  emulatedUserAgent?: string
+}
+type PuppeteerHostOptions = Record<string, unknown> & {
+  defaultViewport?: ScreenEmulation
+  args?: string[]
+}
+type MutableHostConfig = UnlighthouseConfig & {
+  mode?: 'ci'
+  scanner?: ScannerConfig
+  chrome?: ChromeConfig
+  lighthouseOptions: LighthouseHostOptions
+  puppeteerOptions: PuppeteerHostOptions
+}
 
 // Known CI providers (env names) — used in addition to the generic `CI` flag.
 const CI_PROVIDER_ENV_VARS = [
@@ -62,12 +97,31 @@ function normaliseSite(host: string): URL {
   return new URL(host)
 }
 
+function createMutableConfig(input: UnlighthouseConfig): MutableHostConfig {
+  return {
+    ...input,
+    lighthouseOptions: { ...(input.lighthouseOptions ?? {}) },
+    puppeteerOptions: { ...(input.puppeteerOptions ?? {}) },
+  }
+}
+
+function ensureScanner(config: MutableHostConfig): ScannerConfig {
+  config.scanner = config.scanner ?? {}
+  return config.scanner
+}
+
+function toC12Overrides(overrides: ConfigOverrides | undefined): ResolvableConfig<UnlighthouseConfig> | undefined {
+  // c12 types each layer as the final config shape, but host overrides are
+  // pre-merge user input. The merged value is validated by UnlighthouseConfigSchema below.
+  return overrides as ResolvableConfig<UnlighthouseConfig> | undefined
+}
+
 /**
  * Apply imperative host rules on the merged config. Pure function; no I/O
  * beyond reading `process.env` (CI detection) and `process.getuid` (sandbox).
  */
 function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseConfig {
-  const config: any = { ...input }
+  const config = createMutableConfig(input)
 
   // Rule: GOOGLE_API_KEY env fallback.
   if (!config.googleApiKey)
@@ -81,10 +135,10 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseCon
   if (config.site && typeof config.site === 'string') {
     const siteUrl = normaliseSite(config.site)
     if (siteUrl.pathname !== '/' && siteUrl.pathname !== '') {
-      config.scanner = config.scanner || {}
-      config.scanner.sitemap = false
-      config.scanner.robotsTxt = false
-      config.scanner.dynamicSampling = false
+      const scanner = ensureScanner(config)
+      scanner.sitemap = false
+      scanner.robotsTxt = false
+      scanner.dynamicSampling = false
       config.site = siteUrl.toString()
     }
     else {
@@ -94,30 +148,23 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseCon
 
   // Rule: CI detection → throttle off, mark CI mode.
   if (isCi()) {
-    config.scanner = config.scanner || {}
-    config.scanner.throttle = false
-    ;(config as any).mode = 'ci'
+    ensureScanner(config).throttle = false
+    config.mode = 'ci'
   }
 
   // Rule: localhost → throttle off as well.
   if (config.site && /localhost|127\.0\.0\.1/.test(config.site)) {
-    config.scanner = config.scanner || {}
-    if (config.scanner.throttle !== true)
-      config.scanner.throttle = false
+    const scanner = ensureScanner(config)
+    if (scanner.throttle !== true)
+      scanner.throttle = false
   }
 
   // Rule: lighthouseOptions presence + onlyCategories vs onlyAudits conflict.
-  if (config.lighthouseOptions) {
-    const lh = config.lighthouseOptions as any
-    if (lh.onlyCategories?.length && lh.onlyAudits?.length)
-      lh.onlyCategories = []
-  }
-  else {
-    config.lighthouseOptions = {}
-  }
+  if (config.lighthouseOptions.onlyCategories?.length && config.lighthouseOptions.onlyAudits?.length)
+    config.lighthouseOptions.onlyCategories = []
 
   // Rule: derive throttling profile if not provided.
-  const lh = config.lighthouseOptions as any
+  const lh = config.lighthouseOptions
   if (typeof lh.throttlingMethod === 'undefined' && typeof lh.throttling === 'undefined') {
     if (!config.site || /localhost|127\.0\.0\.1/.test(config.site) || config.scanner?.throttle === false) {
       lh.throttlingMethod = 'provided'
@@ -144,17 +191,17 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseCon
   }
 
   // Rule: always exclude cdn-cgi paths.
-  config.scanner = config.scanner || {}
-  config.scanner.exclude = config.scanner.exclude || []
-  if (!config.scanner.exclude.includes('/cdn-cgi/*'))
-    config.scanner.exclude.push('/cdn-cgi/*')
+  const scanner = ensureScanner(config)
+  scanner.exclude = scanner.exclude ?? []
+  if (!scanner.exclude.includes('/cdn-cgi/*'))
+    scanner.exclude.push('/cdn-cgi/*')
 
   // Rule: chrome defaults.
   config.chrome = defu(config.chrome || {}, {
     useSystem: true,
     useDownloadFallback: true,
     downloadFallbackCacheDir: join(homedir(), '.unlighthouse'),
-  })
+  }) as ChromeConfig
 
   // Rule: basic-auth → Authorization extraHeader.
   if (config.auth && typeof config.auth === 'object') {
@@ -204,12 +251,12 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseCon
     protocolTimeout: 0,
     headless: true,
     ignoreHTTPSErrors: true,
-  })
-  ;(config.puppeteerOptions as any).defaultViewport = lh.screenEmulation
+  }) as PuppeteerHostOptions
+  config.puppeteerOptions.defaultViewport = lh.screenEmulation
 
   // Rule: auto --no-sandbox when running as root.
   if (process.getuid?.() === 0) {
-    const args = ((config.puppeteerOptions as any).args ||= [])
+    const args = (config.puppeteerOptions.args ??= [])
     if (!args.includes('--no-sandbox'))
       args.push('--no-sandbox')
     if (!args.includes('--disable-setuid-sandbox'))
@@ -238,11 +285,11 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
     cwd,
     configFile: opts.configFile,
     defaults: HOST_DEFAULTS as UnlighthouseConfig,
-    overrides: opts.overrides as UnlighthouseConfig | undefined,
+    overrides: toC12Overrides(opts.overrides),
     dotenv: true,
   })
 
-  const merged = applyHostRules(config as UnlighthouseConfig, cwd)
+  const merged = applyHostRules(config, cwd)
 
   const parsed = UnlighthouseConfigSchema.safeParse(merged)
   if (!parsed.success) {
@@ -253,5 +300,5 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
     })
   }
 
-  return { config: parsed.data, configFile, layers: layers as unknown[] | undefined }
+  return { config: parsed.data, configFile, layers }
 }

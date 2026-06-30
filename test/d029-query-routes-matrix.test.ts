@@ -8,7 +8,7 @@
 //      lost the only thing distinguishing them on the wire — two rows
 //      with the same URL but different device, indistinguishable.
 
-import type { Storage } from '@unlighthouse/contracts'
+import type { ScanId, Storage } from '@unlighthouse/contracts'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { queryRoutes } from '@unlighthouse/core/api/handlers'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
@@ -16,10 +16,11 @@ import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { testConfig, testHandlerCtx } from './helpers/contracts'
 
-async function runMatrixScan(storage: Storage): Promise<string> {
+async function runMatrixScan(storage: Storage): Promise<ScanId> {
   const core = createUnlighthouseCore({
-    config: { site: 'http://example.com' } as never,
+    config: testConfig({ site: 'http://example.com' }),
     auditor: createMockAuditor(),
     seeds: manualSeeds({ urls: ['http://example.com/'] }),
     crawler: parallelMapCrawler({ concurrency: 1 }),
@@ -30,15 +31,9 @@ async function runMatrixScan(storage: Storage): Promise<string> {
   return session.scanId
 }
 
-const makeCtx = (storage: Storage) => ({
-  storage,
-  core: { hooks: undefined } as never,
-  auditor: createMockAuditor(),
-} as never)
-
 describe('query.routes honours input.device', () => {
   let storage: Storage
-  let scanId: string
+  let scanId: ScanId
 
   beforeAll(async () => {
     storage = memoryStorage()
@@ -47,8 +42,8 @@ describe('query.routes honours input.device', () => {
 
   it('scanId-scoped: no device → both rows', async () => {
     const out = await queryRoutes.run(
-      { scanId: scanId as never, page: 1, pageSize: 50 } as never,
-      makeCtx(storage),
+      { scanId, page: 1, pageSize: 50 },
+      testHandlerCtx(storage),
     )
     expect(out.total).toBe(2)
     expect(out.items.map(r => r.device).sort()).toEqual(['desktop', 'mobile'])
@@ -56,8 +51,8 @@ describe('query.routes honours input.device', () => {
 
   it('scanId-scoped: device filter narrows to one row', async () => {
     const out = await queryRoutes.run(
-      { scanId: scanId as never, device: 'desktop', page: 1, pageSize: 50 } as never,
-      makeCtx(storage),
+      { scanId, device: 'desktop', page: 1, pageSize: 50 },
+      testHandlerCtx(storage),
     )
     expect(out.total).toBe(1)
     expect(out.items[0].device).toBe('desktop')
@@ -67,12 +62,12 @@ describe('query.routes honours input.device', () => {
   it('projection preserves the device field so matrix rows stay distinguishable', async () => {
     const out = await queryRoutes.run(
       {
-        scanId: scanId as never,
+        scanId,
         projection: ['lcp'],
         page: 1,
         pageSize: 50,
-      } as never,
-      makeCtx(storage),
+      },
+      testHandlerCtx(storage),
     )
     expect(out.items).toHaveLength(2)
     // Both rows carry device; projection didn't strip it.

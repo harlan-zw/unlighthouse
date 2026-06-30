@@ -148,6 +148,6 @@ export type WorkerTask<TPayload = unknown, TResult = unknown> = (
 
 export interface WorkerDefinition {
 
-  tasks: Record<string, WorkerTask<any, any>>
+  tasks: Record<string, WorkerTask<never, unknown>>
   hooks?: Partial<WorkerHooks>
 }

@@ -106,7 +106,7 @@ describe('e2e: createUnlighthouseCore against fixture site', () => {
     })
 
     const session = core.run()
-    const doneSettled = session.done.catch(() => null)
+    const doneSettled = session.done.catch((_err) => null)
     let count = 0
     ;(async () => {
       for await (const _e of session.events as AsyncIterable<unknown>) {

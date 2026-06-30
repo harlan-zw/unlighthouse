@@ -63,6 +63,16 @@ export function createScanProgressState() {
       logs.value = logs.value.slice(-MAX_LOGS)
   }
 
+  function formatError(errorValue: string | { code?: string, message?: string, retryable?: boolean } | undefined): string {
+    if (!errorValue)
+      return 'Unknown error'
+    if (typeof errorValue === 'string')
+      return errorValue
+    const code = errorValue.code ? `[${errorValue.code}] ` : ''
+    const retry = errorValue.retryable ? ' Retryable.' : ''
+    return `${code}${errorValue.message || 'Unknown error'}${retry}`
+  }
+
   function resetProgress() {
     discovered.value = 0
     scanned.value = 0
@@ -131,7 +141,7 @@ export function createScanProgressState() {
   }
 
   function applyRouteFailed(data: ScanEventPayloads['scan:route-failed']) {
-    addLog('error', `Failed: ${data.url} — ${data.error || 'Unknown error'}`)
+    addLog('error', `Failed: ${data.url} — ${formatError(data.error)}`)
   }
 
   function applyPaused() {
@@ -157,7 +167,7 @@ export function createScanProgressState() {
 
   function applyError(data: ScanEventPayloads['scan:error']) {
     status.value = 'error'
-    error.value = data?.error || 'Unknown error'
+    error.value = formatError(data?.error)
     addLog('error', `Scan error: ${error.value}`)
   }
 

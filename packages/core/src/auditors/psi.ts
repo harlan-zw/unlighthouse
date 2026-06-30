@@ -1,8 +1,8 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
 import { ofetch } from 'ofetch'
-import { extractRouteData } from '../report/extract'
 import { extractInsights } from './extract'
+import { attachExtractedRouteData } from './lighthouse-report'
 
 export interface PsiOptions {
   apiKey?: string
@@ -15,6 +15,10 @@ const PSI_CAPABILITIES: AuditorCapabilities = {
   reliableFieldData: false,
   supportsThrottling: false,
   categories: ['performance', 'accessibility', 'seo', 'best-practices'],
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error'
 }
 
 export function createPsiProvider(providerOptions: PsiOptions = {}): UnlighthouseProvider {
@@ -43,8 +47,8 @@ export function createPsiProvider(providerOptions: PsiOptions = {}): Unlighthous
         artifacts: lhr.artifacts,
       }
     }
-    catch (e: any) {
-      throw new Error(`PSI scan failed: ${e.message || 'Unknown error'}`)
+    catch (e: unknown) {
+      throw new Error(`PSI scan failed: ${errorMessage(e)}`)
     }
   }
 }
@@ -62,38 +66,7 @@ export function createPsiAuditor(opts: PsiOptions = {}): Auditor {
       // `.extracted` (the scored metrics row) + `.lhrGzip`, exactly like the
       // local + remote-lighthouse auditors — without this the persist path
       // (auditRoute) finds no `.extracted` and writes all-null scores.
-      const extracted = extractRouteData(lhr as never)
-      const path = (() => {
-        try {
-          return new URL(url).pathname
-        }
-        catch {
-          return url
-        }
-      })()
-      const metrics = {
-        url,
-        path,
-        routeName: null,
-        scorePerformance: extracted.scores.performance,
-        scoreAccessibility: extracted.scores.accessibility,
-        scoreSeo: extracted.scores.seo,
-        scoreBestPractices: extracted.scores.bestPractices,
-        scoreAgenticBrowsing: extracted.scores.agenticBrowsing,
-        lcp: extracted.lcp,
-        cls: extracted.cls,
-        inp: extracted.inp,
-        fcp: extracted.fcp,
-        ttfb: extracted.ttfb,
-        tbt: extracted.tbt,
-        si: extracted.si,
-        lighthouseVersion: (lhr as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
-        capturedAt: new Date().toISOString(),
-      }
-      return Object.assign(
-        lhr as unknown as LighthouseReport,
-        { extracted: metrics, lhrGzip: extracted.lhrGzip },
-      )
+      return attachExtractedRouteData(lhr, url)
     },
   }
 }

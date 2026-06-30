@@ -107,7 +107,7 @@ export function createMockProvider(): UnlighthouseProvider {
       // Without this, the `if (lhrGzip)` branch never fires and downstream
       // pack tests can't read per-route audit data.
       lhrGzip: gzipSync(JSON.stringify(raw)),
-      raw: raw as any,
+      raw: raw as unknown as NonNullable<UnlighthouseReport['raw']>,
     }
   }
 }

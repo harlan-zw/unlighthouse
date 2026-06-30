@@ -5,6 +5,7 @@ import { useRouteDetail } from '~/features/scan/route-detail'
 definePageMeta({ layout: 'scan' })
 
 const {
+  routePath,
   status,
   scanMetaStatus,
   routeError,
@@ -37,6 +38,8 @@ const {
   backToRoutes,
   rescanRoute,
 } = useRouteDetail()
+
+useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
 </script>
 
 <template>
@@ -238,7 +241,7 @@ const {
           </template>
           <div class="space-y-4">
             <!-- Failing audits -->
-            <UAccordion v-if="cat.failing.length" :items="cat.failing.map((a: any) => ({ ...a, value: a.id }))" type="multiple" class="w-full">
+            <UAccordion v-if="cat.failing.length" :items="cat.failing.map(a => ({ ...a, value: a.id }))" type="multiple" class="w-full">
               <template #default="{ item: audit }">
                 <div class="flex items-center gap-2 text-left text-sm">
                   <UBadge :color="severityColor(audit.severity)" variant="soft" class="text-[10px] w-10 justify-center shrink-0">
@@ -304,7 +307,7 @@ const {
                   {{ cat.passing.length }}
                 </UBadge>
               </summary>
-              <UAccordion :items="cat.passing.map((a: any) => ({ ...a, value: a.id }))" type="multiple" class="w-full mt-2">
+              <UAccordion :items="cat.passing.map(a => ({ ...a, value: a.id }))" type="multiple" class="w-full mt-2">
                 <template #default="{ item: audit }">
                   <div class="flex items-center gap-2 text-left text-sm">
                     <UiIcon name="check" class="size-3.5 text-success shrink-0" />

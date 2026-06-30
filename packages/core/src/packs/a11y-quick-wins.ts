@@ -123,7 +123,10 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
   // Prefer reconciled. Returns null on miss so we drop through to the LHR
   // path — keeps older scans working without re-ingesting them.
   if (ctx.getReconciled) {
-    const reconciled = await ctx.getReconciled(url, 'mobile').catch(() => null) as
+    const reconciled = await ctx.getReconciled(url, 'mobile').catch((err) => {
+      ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load reconciled report for ${url} [mobile]`, err)
+      return null
+    }) as
       | {
         categories?: { accessibility?: { auditRefs?: Array<{ id: string, weight: number }> } }
         audits?: Record<string, {
@@ -170,7 +173,10 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
   }
   // LHR fallback.
   if (ctx.getLhr) {
-    const lhr = await ctx.getLhr(url, 'mobile').catch(() => null) as LhrLike | null
+    const lhr = await ctx.getLhr(url, 'mobile').catch((err) => {
+      ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load LHR for ${url} [mobile]`, err)
+      return null
+    }) as LhrLike | null
     if (!lhr?.audits || !lhr.categories?.accessibility?.auditRefs)
       return null
     const audits = new Map<string, RouteView['audits'] extends Map<string, infer V> ? V : never>()

@@ -2,12 +2,20 @@ import type { Logger } from '@unlighthouse/contracts'
 import type { Driver } from 'unstorage'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createStorage } from '@unlighthouse/core/storage'
 import { applyMigrations, drizzleStorage, ensureSchema, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
 import Database from 'better-sqlite3'
 import { drizzle as drizzleBetterSqlite } from 'drizzle-orm/better-sqlite3'
 import fsDriver from 'unstorage/drivers/fs'
+
+type StorageLogger = Logger | {
+  warn?: (...args: unknown[]) => void
+  info?: (...args: unknown[]) => void
+  debug?: (...args: unknown[]) => void
+  withTag?: (tag: string) => StorageLogger
+}
 
 export interface InitStorageOptions {
   /**
@@ -30,12 +38,16 @@ export interface InitStorageOptions {
    * supported" error.
    */
   dbUrl?: string
-  logger?: Logger | { warn?: (...args: any[]) => void, info?: (...args: any[]) => void, debug?: (...args: any[]) => void }
+  logger?: StorageLogger
 }
 
 type ParsedDbUrl
   = | { scheme: 'file', path: string }
     | { scheme: 'libsql', url: string, authToken?: string }
+
+function taggedLogger(logger: StorageLogger | undefined, tag: string): StorageLogger | undefined {
+  return logger?.withTag?.(tag) ?? logger
+}
 
 // Tiny parser instead of `new URL()` because file:/abs/path doesn't
 // round-trip cleanly through URL (it normalises double slashes, host vs
@@ -55,7 +67,7 @@ function parseDbUrl(raw: string): ParsedDbUrl {
       const u = new URL(raw)
       authToken = u.searchParams.get('authToken') ?? undefined
     }
-    catch {
+    catch (_err) {
       // Malformed URL — let the libsql client surface the real error
       // when it tries to connect.
     }
@@ -190,7 +202,7 @@ async function initLibsqlStorage(
     catch (err) {
       const msg = (err as Error).message
       if (!/already exists|duplicate column name/i.test(msg))
-        logger?.warn?.(`Migration stmt skipped: ${msg}`)
+        logOperationalWarn('storage.migration_statement_failed', err, { driver: 'libsql', statement: stmt }, logger as Logger | undefined)
     }
   }
 
@@ -199,7 +211,7 @@ async function initLibsqlStorage(
   const drizzleDb = drizzleLibsql(client)
   const drizzleAdapter = drizzleStorage({
     driver: drizzleDb,
-    logger: (logger as any)?.withTag?.('storage/drizzle') ?? logger,
+    logger: taggedLogger(logger, 'storage/drizzle') as Logger | undefined,
   })
 
   const storage = createStorage({
@@ -231,7 +243,7 @@ export async function initStorage({ outputPath, dbUrl, logger }: InitStorageOpti
       catch (err) {
         const msg = (err as Error).message
         if (!/duplicate column name/i.test(msg))
-          logger?.warn?.(`Migration stmt skipped: ${msg}`)
+          logOperationalWarn('storage.migration_statement_failed', err, { driver: 'sqlite', statement: stmt }, logger as Logger | undefined)
       }
     }
     applyMigrations(db, {
@@ -259,8 +271,8 @@ export async function initStorage({ outputPath, dbUrl, logger }: InitStorageOpti
       try {
         rmSync(`${parsed.path}${suffix}`, { force: true })
       }
-      catch {
-        // best-effort; reopen + re-init below recreates the schema regardless
+      catch (err) {
+        logOperationalWarn('storage.local_cache_delete_failed', err, { path: `${parsed.path}${suffix}` }, logger as Logger | undefined)
       }
     }
     sqliteDb = new Database(parsed.path)
@@ -270,7 +282,7 @@ export async function initStorage({ outputPath, dbUrl, logger }: InitStorageOpti
   const drizzleDb = drizzleBetterSqlite(sqliteDb)
   const drizzleAdapter = drizzleStorage({
     driver: drizzleDb,
-    logger: (logger as any)?.withTag?.('storage/drizzle') ?? logger,
+    logger: taggedLogger(logger, 'storage/drizzle') as Logger | undefined,
   })
 
   const storage = createStorage({

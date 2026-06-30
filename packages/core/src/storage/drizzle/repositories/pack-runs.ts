@@ -4,10 +4,9 @@ import type {
 } from '@unlighthouse/contracts'
 import type { PackRunRow } from '@unlighthouse/contracts/drizzle'
 import type { PackRun } from '@unlighthouse/contracts/packs'
+import type { DrizzleDatabase } from '../types'
 import { packRuns } from '@unlighthouse/contracts/drizzle'
 import { and, eq } from 'drizzle-orm'
-
-type AnyDrizzle = any
 
 function rowToPackRun(row: PackRunRow): PackRun {
   return {
@@ -21,11 +20,11 @@ function rowToPackRun(row: PackRunRow): PackRun {
   }
 }
 
-export function createPackRunRepository(db: AnyDrizzle): PackRunRepository {
+export function createPackRunRepository(db: DrizzleDatabase): PackRunRepository {
   return {
     async get(scanId, packName, packVersion) {
       const [row] = await db
-        .select()
+        .select<PackRunRow>()
         .from(packRuns)
         .where(and(
           eq(packRuns.scanId, scanId),
@@ -65,7 +64,7 @@ export function createPackRunRepository(db: AnyDrizzle): PackRunRepository {
 
     async listForScan(scanId) {
       const rows = await db
-        .select()
+        .select<PackRunRow>()
         .from(packRuns)
         .where(eq(packRuns.scanId, scanId))
       return rows.map(rowToPackRun)

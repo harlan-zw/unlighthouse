@@ -1,6 +1,7 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { ConsolaInstance } from 'consola'
 import type { RobotsGroupResolved } from './parser'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createConsola } from 'consola'
 import { $URL } from 'ufo'
 import { fetchUrlRaw } from '../../util/fetch'
@@ -29,7 +30,7 @@ export async function fetchRobotsTxt(deps: FetchRobotsDeps, site: string): Promi
     { logger: deps.logger },
   )
   if (!robotsTxt.valid || !robotsTxt.response) {
-    logger.warn('You seem to be missing a robots.txt.')
+    logOperationalWarn('robots.missing', robotsTxt.error ?? null, { site }, logger)
     return false
   }
   logger.debug('Found robots.txt')

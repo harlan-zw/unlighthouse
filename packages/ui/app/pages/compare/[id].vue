@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
+import type { CompareRouteRow } from '@unlighthouse/contracts'
 import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
 import {
   badgeProps,
@@ -54,6 +55,12 @@ const {
   shortId,
   gotoOverview,
 } = useCompareWorkflow()
+
+usePageTitle(computed(() => {
+  const siteTitle = formatTitleSite(currentMeta.value?.site)
+  return siteTitle ? `Compare Scans - ${siteTitle}` : 'Compare Scans'
+}))
+
 const { deltaClassWithThreshold, rowScoreCell } = createComparePresentation({
   thresholds,
   fmtScore,
@@ -61,11 +68,11 @@ const { deltaClassWithThreshold, rowScoreCell } = createComparePresentation({
 })
 
 // Route delta table columns. Server-sorted (via the sort Select), so
-// columns disable client sorting. Sticky headers + alignment ride on
-// `meta`; score cells reuse rowScoreCell() for threshold-aware colour.
+// columns disable client sorting. Alignment/widths ride on the column defs;
+// score cells reuse rowScoreCell() for threshold-aware colour. UiTable pins
+// its own header, so columns don't carry sticky classes.
 const IconCmp = resolveComponent('UiIcon')
 const UiStatusBadgeCmp = resolveComponent('UiStatusBadge')
-const STICKY_HEAD = 'sticky top-0 z-10 bg-default'
 
 function compareStatusSemantic(status: string) {
   switch (statusBadge(status)) {
@@ -76,20 +83,21 @@ function compareStatusSemantic(status: string) {
   }
 }
 
-const compareColumns = computed<ColumnDef<any, any>[]>(() => {
-  const cols: ColumnDef<any, any>[] = [
+const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
+  const cols: ColumnDef<CompareRouteRow>[] = [
     {
       id: 'path',
       header: 'Path',
       enableSorting: false,
-      meta: { headClass: `${STICKY_HEAD} min-w-[200px]`, cellClass: 'font-mono text-xs' },
+      headClass: 'min-w-[200px]',
+      cellClass: 'font-mono text-xs',
       cell: ({ row }) => h('span', { title: row.original.url, class: 'block truncate max-w-[400px]' }, row.original.path),
     },
     {
       id: 'status',
       header: 'Status',
       enableSorting: false,
-      meta: { headClass: `${STICKY_HEAD} w-20` },
+      headClass: 'w-20',
       cell: ({ row }) => h(UiStatusBadgeCmp, { status: compareStatusSemantic(row.original.status), label: row.original.status, class: 'capitalize' }),
     },
   ]
@@ -98,7 +106,8 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       id: 'device',
       header: 'Dev',
       enableSorting: false,
-      meta: { align: 'center', headClass: `${STICKY_HEAD} w-16` },
+      align: 'center',
+      headClass: 'w-16',
       cell: ({ row }) => h(IconCmp, {
         name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
         class: 'size-3.5 text-muted inline',
@@ -110,7 +119,8 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       id: m.key,
       header: SHORT_LABEL[m.key] ?? m.label,
       enableSorting: false,
-      meta: { align: 'right', headClass: `${STICKY_HEAD} w-16` },
+      align: 'right',
+      headClass: 'w-16',
       cell: ({ row }) => {
         const c = rowScoreCell(row.original, m.key, m.thresholdKey)
         return h('span', {
@@ -159,9 +169,9 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
         </div>
 
         <!-- Swap -->
-        <UTooltip text="Swap base ↔ current">
+        <UiTooltip text="Swap base ↔ current">
           <UiButton purpose="quiet" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" icon="compare" @click="swapDirection" />
-        </UTooltip>
+        </UiTooltip>
 
         <!-- Current scan -->
         <div class="flex items-center gap-2 min-w-0">
@@ -175,11 +185,11 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
 
         <div class="ml-auto flex items-center gap-1.5">
           <!-- Thresholds popover -->
-          <UPopover>
+          <UiPopover>
             <UiButton purpose="secondary" size="sm" icon="sliders">
               Thresholds
             </UiButton>
-            <template #content>
+            <template #panel>
               <div class="w-96 p-4 space-y-3">
                 <div>
                   <h4 class="text-sm font-semibold">
@@ -256,7 +266,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
                 </UiButton>
               </div>
             </template>
-          </UPopover>
+          </UiPopover>
 
           <UiButton purpose="secondary" size="sm" :loading="copyingMarkdown" :disabled="copyingMarkdown || !baseScanId || !report" icon="copy" @click="copyAsMarkdown">
             Copy MD
@@ -450,7 +460,7 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
           <UiIcon name="chevron-right" class="size-3.5 text-muted transition-transform" :class="{ 'rotate-90': showPackDetails }" />
           <span class="font-medium">{{ otherPackChanges.length }} pack{{ otherPackChanges.length === 1 ? '' : 's' }} changed</span>
           <span class="text-muted text-[10px]">
-            {{ otherPackChanges.map((p: any) => p.packName).join(', ') }}
+            {{ otherPackChanges.map(p => p.packName).join(', ') }}
           </span>
           <span class="ml-auto text-[10px] text-muted italic">click to expand</span>
         </button>
@@ -501,19 +511,19 @@ const compareColumns = computed<ColumnDef<any, any>[]>(() => {
       <SplitterGroup direction="horizontal" class="flex-1 min-h-0">
         <SplitterPanel :default-size="62" :min-size="35">
           <div class="h-full overflow-auto">
-            <DataTable
+            <UiTable
               :columns="compareColumns"
               :data="report.routes.items"
-              :get-row-id="(r: any) => rowKey(r)"
+              :row-id="(r) => rowKey(r)"
               row-clickable
-              container-class=""
-              :row-class="(r: any) => selectedRowKey === rowKey(r) ? 'bg-elevated' : ''"
-              @row-click="(r: any) => { selectedRowKey = rowKey(r) }"
+              disable-pagination
+              :row-class="(r) => selectedRowKey === rowKey(r) ? 'bg-elevated' : ''"
+              @row-click="(r) => { selectedRowKey = rowKey(r) }"
             >
-              <template #empty>
+              <template #empty-component>
                 No routes match the current filter.
               </template>
-            </DataTable>
+            </UiTable>
 
             <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-default">
               <span class="text-xs text-muted">Page {{ page }} of {{ totalPages }}</span>

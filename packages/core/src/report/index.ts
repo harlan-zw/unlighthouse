@@ -21,7 +21,7 @@ export interface ProcessScanDataOptions {
  * in core.ts. This function is a no-op retained for backward compatibility.
  */
 export async function processScanData(
-  _storage: Storage & { db?: unknown },
+  _storage: Storage,
   _scanId: string,
   _options: ProcessScanDataOptions = {},
 ): Promise<null> {

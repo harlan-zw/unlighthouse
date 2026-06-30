@@ -2,6 +2,7 @@
 // v1.md Phase 3: pure switch + factory call, no new abstraction.
 
 import type { AuditorConfig, AuditorProvider, AuditorRouterConfig, AuditorRouterStrategy, UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { Logger, UnlighthouseOptions } from '@unlighthouse/contracts'
 import type { Auditor, NamedAuditor } from '@unlighthouse/contracts/ports'
 import type { PickFn } from '@unlighthouse/core/auditors/route'
 import type { z } from 'zod'
@@ -28,36 +29,45 @@ type AuditorRouterConfigValue = z.infer<typeof AuditorRouterConfig>
 export interface ResolveAuditorOptions {
   config: UnlighthouseConfig
   /** Optional logger for tagged sub-auditors. */
-  logger?: unknown
+  logger?: Logger
 }
 
-// Tagged-logger shim — works with consola-like loggers without coupling to a concrete shape.
-function withTag(l: unknown, t: string): unknown {
-  return l && typeof (l as { withTag?: unknown }).withTag === 'function'
-    ? (l as { withTag: (t: string) => unknown }).withTag(t)
-    : l
+function withTag(logger: Logger | undefined, tag: string): Logger | undefined {
+  return logger?.withTag(tag) ?? logger
+}
+
+function resolveLighthouseFlags(value: unknown): UnlighthouseOptions['lighthouseFlags'] | undefined {
+  return value && typeof value === 'object'
+    ? value as UnlighthouseOptions['lighthouseFlags']
+    : undefined
+}
+
+function resolveIndexedDbSeed(value: unknown): UnlighthouseOptions['indexedDb'] | undefined {
+  return value && typeof value === 'object'
+    ? value as UnlighthouseOptions['indexedDb']
+    : undefined
 }
 
 function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Auditor {
-  const logger = withTag(opts.logger, `auditors/${p.name}`) as never
+  const logger = withTag(opts.logger, `auditors/${p.name}`)
   switch (p.name) {
     case 'local': {
       // `lighthouseOptions` are Lighthouse `Flags` (e.g. onlyCategories, throttling).
       // Pass as `lighthouseFlags`; `createLocalProvider` builds the config via
       // `resolveLighthouseConfig` (extends `lighthouse:default`, supplies artifacts).
-      const flags = p.lighthouseOptions ?? opts.config.lighthouseOptions
+      const flags = resolveLighthouseFlags(p.lighthouseOptions ?? opts.config.lighthouseOptions)
       // Web-storage seeding (#292): pre-authenticate token/session-gated pages by
       // injecting localStorage/sessionStorage before each audited page loads.
       const localStorage = opts.config.localStorage
       const sessionStorage = opts.config.sessionStorage
-      const indexedDb = opts.config.indexedDb
+      const indexedDb = resolveIndexedDbSeed(opts.config.indexedDb)
       const hasStorage = !!(localStorage && Object.keys(localStorage).length)
         || !!(sessionStorage && Object.keys(sessionStorage).length)
         || !!(indexedDb && Object.keys(indexedDb).length)
       return createLocalAuditor({
         defaults: (flags || hasStorage)
           ? {
-              ...(flags ? { lighthouseFlags: flags as never } : {}),
+              ...(flags ? { lighthouseFlags: flags } : {}),
               ...(localStorage ? { localStorage } : {}),
               ...(sessionStorage ? { sessionStorage } : {}),
               ...(indexedDb ? { indexedDb } : {}),

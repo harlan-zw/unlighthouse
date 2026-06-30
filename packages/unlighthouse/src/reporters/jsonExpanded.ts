@@ -8,67 +8,57 @@ const relevantMetrics = [
   'total-blocking-time',
   'max-potential-fid',
   'interactive',
-]
+] as const
+
+type RelevantMetric = typeof relevantMetrics[number]
+
+function isRelevantMetric(id: string): id is RelevantMetric {
+  return (relevantMetrics as readonly string[]).includes(id)
+}
 
 export function reportJsonExpanded(reports: UnlighthouseRouteReport[]): ReportJsonExpanded {
-  let metadata = {
+  const metadata: ReportJsonExpanded['metadata'] = {
     metrics: {},
     categories: {},
   }
   const routes = reports
     .map((report) => {
-      const categories = Object.values(report.report?.categories ?? {}).reduce(
-        (prev: { [key: string]: CategoryScore }, category: any): any => {
-          metadata = {
-            ...metadata,
-            categories: {
-              ...metadata.categories,
-              [category.key]: {
-                id: category.id,
-                title: category.title,
-              },
-            },
-          }
-          return {
-            ...prev,
-            [category.key]: {
-              score: category.score,
-            },
-          }
-        },
-        { },
-      )
+      const categories: ExpandedRouteReport['categories'] = {}
+      for (const category of Object.values(report.report?.categories ?? {})) {
+        metadata.categories[category.key] = {
+          id: category.id,
+          title: category.title,
+        }
+        categories[category.key] = {
+          key: category.key,
+          id: category.id,
+          title: category.title,
+          score: category.score,
+        }
+      }
 
-      const metrics = Object.values(report.report?.audits ?? {})
-        .filter((metric: any) => relevantMetrics.includes(metric.id))
-        .reduce((prev: { [key: string]: MetricScore }, metric: any): any => {
-          metadata = {
-            ...metadata,
-            metrics: {
-              ...metadata.metrics,
-              [metric.id]: {
-                id: metric.id,
-                title: metric.title,
-                description: metric.description,
-                numericUnit: metric.numericUnit,
-              },
-            },
-          }
-          return {
-            ...prev,
-            [metric.id]: {
-              numericValue: metric.numericValue,
-              displayValue: metric.displayValue,
-            },
-          }
-        }, {})
+      const metrics: ExpandedRouteReport['metrics'] = {}
+      for (const metric of Object.values(report.report?.audits ?? {})) {
+        if (!metric.id || !isRelevantMetric(metric.id))
+          continue
+        metadata.metrics[metric.id] = {
+          id: metric.id,
+          title: metric.title ?? metric.id,
+          description: metric.description ?? '',
+          numericUnit: metric.numericUnit ?? '',
+        }
+        metrics[metric.id] = {
+          numericValue: typeof metric.numericValue === 'number' ? metric.numericValue : 0,
+          displayValue: metric.displayValue ?? '',
+        }
+      }
       // D-029: device dimension carried through so the expanded JSON
       // surfaces matrix scans as one route entry per (path, device).
       // Field is only set when present on the input to keep legacy
       // single-device output unchanged.
       const row = <ExpandedRouteReport>{
         path: report.route.path,
-        score: report.report?.score,
+        score: report.report?.score ?? 0,
         categories,
         metrics,
       }
@@ -109,7 +99,7 @@ function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
         ...target,
         [categoryKey]: {
           ...strippedCategory,
-          scores: [...scores, curr.categories[categoryKey].score],
+          scores: [...scores, curr.categories[categoryKey].score ?? 0],
         },
       }
     }, prev)

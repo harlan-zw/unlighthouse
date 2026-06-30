@@ -25,8 +25,11 @@
 
 import type { D1Database, DurableObjectNamespace, DurableObjectState, Fetcher, R2Bucket } from '@cloudflare/workers-types'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
-import type { Device } from '@unlighthouse/contracts/types/atoms'
-import { deriveSiteId, deriveSiteName, finalizeScan, siteOrigin } from '@unlighthouse/core'
+import type { Device, ScanSummary } from '@unlighthouse/contracts/types/atoms'
+import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
+import { deriveSiteId, deriveSiteName, finalizeScan, siteOrigin, toStructuredError } from '@unlighthouse/core'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { createFilter } from '@unlighthouse/core/util/filter'
 import { scanEventsEmit } from '../scan-events-emit'
@@ -52,7 +55,8 @@ function buildAllows(config: UnlighthouseConfig): (u: string) => boolean {
     try {
       return filter(new URL(u).pathname)
     }
-    catch {
+    catch (_err) {
+      // Malformed discovered URLs still flow through the configured path filter.
       return filter(u)
     }
   }
@@ -79,9 +83,19 @@ function extractSameOriginLinks(html: string, pageUrl: string, origin: string): 
         continue
       out.push(u.toString())
     }
-    catch { /* skip malformed */ }
+    catch (err) {
+      logOperationalWarn('cloudflare.link_discovery_url_skipped', err, { raw, pageUrl })
+    }
   }
   return out
+}
+
+function errorResponse(err: unknown): Response {
+  const envelope = createErrorEnvelope(err)
+  return new Response(JSON.stringify(envelope), {
+    status: envelope.error.statusCode,
+    headers: { 'content-type': 'application/json' },
+  })
 }
 
 export interface ScanRunnerEnv {
@@ -142,21 +156,43 @@ export class ScanRunnerDO {
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url)
     if (req.method === 'POST' && url.pathname === '/start') {
-      const body = await req.json() as ScanRunnerStartBody
-      await this.start(body)
-      return new Response(JSON.stringify({ ok: true, scanId: body.scanId }), {
-        status: 201,
-        headers: { 'content-type': 'application/json' },
-      })
+      try {
+        const body = await req.json() as ScanRunnerStartBody
+        await this.start(body)
+        return new Response(JSON.stringify({ ok: true, scanId: body.scanId }), {
+          status: 201,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      catch (err) {
+        return errorResponse(err instanceof UnlighthouseError
+          ? err
+          : new UnlighthouseError({
+              code: ErrorCodes.INFRA_RETRYABLE,
+              message: 'Scan runner failed to start.',
+              cause: err,
+              retryable: true,
+            }))
+      }
     }
     if (req.method === 'POST' && url.pathname === '/cancel') {
-      const st = await this.state.storage.get<RunnerState>('state')
-      if (st) {
-        st.cancelled = true
-        await this.state.storage.put('state', st)
-        await this.state.storage.setAlarm(Date.now())
+      try {
+        const st = await this.state.storage.get<RunnerState>('state')
+        if (st) {
+          st.cancelled = true
+          await this.state.storage.put('state', st)
+          await this.state.storage.setAlarm(Date.now())
+        }
+        return new Response(null, { status: 202 })
       }
-      return new Response(null, { status: 202 })
+      catch (err) {
+        return errorResponse(new UnlighthouseError({
+          code: ErrorCodes.INFRA_RETRYABLE,
+          message: 'Failed to persist scan cancellation.',
+          cause: err,
+          retryable: true,
+        }))
+      }
     }
     if (req.method === 'POST' && url.pathname === '/pause') {
       const st = await this.state.storage.get<RunnerState>('state')
@@ -165,8 +201,20 @@ export class ScanRunnerDO {
         await this.state.storage.put('state', st)
         // Reflect the pause on the scan row so scan.status (and the polling UI)
         // shows 'paused'; the in-flight alarm bails on the paused guard.
-        await this.storage().scans.update(st.scanId as never, { status: 'paused' }).catch(() => {})
-        await scanEventsEmit(this.env, st.scanId)('scan:paused', { scanId: st.scanId as never })
+        const scanId = parseScanId(st.scanId)
+        try {
+          await this.storage().scans.update(scanId, { status: 'paused' })
+        }
+        catch (err) {
+          logOperationalWarn('cloudflare.scan_control_persist_failed', err, { scanId, status: 'paused' })
+          return errorResponse(new UnlighthouseError({
+            code: ErrorCodes.INFRA_RETRYABLE,
+            message: 'Failed to persist paused scan state.',
+            cause: err,
+            retryable: true,
+          }))
+        }
+        await scanEventsEmit(this.env, st.scanId)('scan:paused', { scanId })
       }
       return new Response(null, { status: 202 })
     }
@@ -175,8 +223,20 @@ export class ScanRunnerDO {
       if (st && st.paused && !st.cancelled) {
         st.paused = false
         await this.state.storage.put('state', st)
-        await this.storage().scans.update(st.scanId as never, { status: 'scanning' }).catch(() => {})
-        await scanEventsEmit(this.env, st.scanId)('scan:resumed', { scanId: st.scanId as never })
+        const scanId = parseScanId(st.scanId)
+        try {
+          await this.storage().scans.update(scanId, { status: 'scanning' })
+        }
+        catch (err) {
+          logOperationalWarn('cloudflare.scan_control_persist_failed', err, { scanId, status: 'scanning' })
+          return errorResponse(new UnlighthouseError({
+            code: ErrorCodes.INFRA_RETRYABLE,
+            message: 'Failed to persist resumed scan state.',
+            cause: err,
+            retryable: true,
+          }))
+        }
+        await scanEventsEmit(this.env, st.scanId)('scan:resumed', { scanId })
         await this.state.storage.setAlarm(Date.now())
       }
       return new Response(null, { status: 202 })
@@ -200,10 +260,51 @@ export class ScanRunnerDO {
     try {
       await ns.getByName('default').stop?.()
     }
-    catch {
+    catch (err) {
       // never fail a finished scan because the container couldn't be stopped;
       // the 2-min sleepAfter is the backstop.
+      logOperationalWarn('cloudflare.container_stop_failed', err)
     }
+  }
+
+  private async emitDelegationFailure(st: RunnerState, url: string, err: unknown): Promise<void> {
+    const scanId = parseScanId(st.scanId)
+    const failure = err instanceof UnlighthouseError
+      ? err
+      : new UnlighthouseError({
+          code: ErrorCodes.AUDIT_DELEGATION_FAILED,
+          message: 'Audit delegation failed.',
+          details: { devices: st.devices },
+          cause: err,
+          retryable: true,
+        })
+    await scanEventsEmit(this.env, st.scanId)('scan:route-failed', {
+      scanId,
+      url: parseUrl(url),
+      error: toStructuredError(failure),
+    })
+  }
+
+  private async failScan(st: RunnerState, err: unknown): Promise<void> {
+    const scanId = parseScanId(st.scanId)
+    const failure = err instanceof UnlighthouseError
+      ? err
+      : new UnlighthouseError({
+          code: ErrorCodes.INFRA_RETRYABLE,
+          message: 'Scan runner failed.',
+          cause: err,
+          retryable: true,
+        })
+    const structured = toStructuredError(failure)
+    await this.storage().scans.update(scanId, {
+      status: 'error',
+      completedAt: new Date().toISOString(),
+    }).catch((updateErr) => {
+      logOperationalWarn('cloudflare.scan_control_persist_failed', updateErr, { scanId, status: 'error' })
+    })
+    await scanEventsEmit(this.env, st.scanId)('scan:error', { scanId, error: structured })
+    await this.stopContainer()
+    await this.state.storage.delete('state')
   }
 
   // Discover the URL set, create the scan row, persist the queue, arm the alarm.
@@ -250,19 +351,24 @@ export class ScanRunnerDO {
           url: siteOrigin(site),
           group: null,
           createdAt: new Date().toISOString(),
-        }).catch(() => {})
+        }).catch((err) => {
+          logOperationalWarn('cloudflare.site_create_failed', err, { scanId, siteId, site })
+        })
       }
     }
-    catch {
+    catch (err) {
+      logOperationalWarn('cloudflare.site_association_failed', err, { scanId, site })
       siteId = null
     }
 
     const startedAt = new Date().toISOString()
     const startedAtMs = Date.now()
+    const parsedScanId = parseScanId(scanId)
+    const siteUrl = parseUrl(site)
     await storage.scans.create({
-      scanId: scanId as never,
+      scanId: parsedScanId,
       siteId,
-      site: site as never,
+      site: siteUrl,
       mode,
       device: devices[0],
       status: 'scanning',
@@ -274,9 +380,9 @@ export class ScanRunnerDO {
     })
 
     const emit = scanEventsEmit(this.env, scanId)
-    await emit('scan:created', { scanId: scanId as never, site: site as never, startedAt })
-    await emit('scan:started', { scanId: scanId as never })
-    await emit('scan:scanning', { scanId: scanId as never, discovered: urls.length })
+    await emit('scan:created', { scanId: parsedScanId, site: siteUrl, startedAt })
+    await emit('scan:started', { scanId: parsedScanId })
+    await emit('scan:scanning', { scanId: parsedScanId, discovered: urls.length })
 
     const next: RunnerState = {
       scanId,
@@ -300,13 +406,19 @@ export class ScanRunnerDO {
     if (!st)
       return
     const emit = scanEventsEmit(this.env, st.scanId)
+    const scanId = parseScanId(st.scanId)
 
     if (st.cancelled) {
-      await this.storage().scans.update(st.scanId as never, {
-        status: 'cancelled',
-        completedAt: new Date().toISOString(),
-      }).catch(() => {})
-      await emit('scan:cancelled', { scanId: st.scanId as never, reason: 'cancelled' })
+      try {
+        await this.storage().scans.update(scanId, {
+          status: 'cancelled',
+          completedAt: new Date().toISOString(),
+        })
+      }
+      catch (err) {
+        logOperationalWarn('cloudflare.scan_control_persist_failed', err, { scanId, status: 'cancelled' })
+      }
+      await emit('scan:cancelled', { scanId, reason: 'cancelled' })
       await this.state.storage.delete('state')
       return
     }
@@ -317,15 +429,21 @@ export class ScanRunnerDO {
 
     // Queue drained → finalize (summary + packs + complete row). Idempotent.
     if (st.index >= st.urls.length) {
-      await finalizeScan(
-        { storage: this.storage(), config: st.config, logger: undefined, emit },
-        {
-          scanId: st.scanId as never,
-          devices: st.devices,
-          startedAtMs: st.startedAtMs,
-          stats: { discovered: st.urls.length, scanned: st.scanned, failed: st.failed },
-        },
-      )
+      try {
+        await finalizeScan(
+          { storage: this.storage(), config: st.config, logger: undefined, emit },
+          {
+            scanId,
+            devices: st.devices,
+            startedAtMs: st.startedAtMs,
+            stats: { discovered: st.urls.length, scanned: st.scanned, failed: st.failed },
+          },
+        )
+      }
+      catch (err) {
+        await this.failScan(st, err)
+        return
+      }
       // Cost control: the scan is finished, so stop the (paid) Lighthouse
       // container NOW instead of waiting for its idle sleepAfter to fire — the
       // container then only bills for the duration of an active scan. No-op when
@@ -349,7 +467,7 @@ export class ScanRunnerDO {
           'x-audit-token': this.env.SHARED_AUDIT_TOKEN ?? '',
         },
         body: JSON.stringify({ scanId: st.scanId, url: targetUrl, devices: st.devices }),
-      } as never) as unknown as Response
+      } satisfies RequestInit)
       if (res.ok) {
         const j = await res.json() as { scanned?: number, failed?: number }
         st.scanned += j.scanned ?? 0
@@ -357,10 +475,17 @@ export class ScanRunnerDO {
         auditOk = (j.scanned ?? 0) > 0
       }
       else {
+        await this.emitDelegationFailure(st, targetUrl, new UnlighthouseError({
+          code: ErrorCodes.AUDIT_DELEGATION_FAILED,
+          message: `Audit delegation failed with HTTP ${res.status}.`,
+          details: { status: res.status },
+          retryable: res.status >= 500 || res.status === 429,
+        }))
         st.failed += st.devices.length
       }
     }
-    catch {
+    catch (err) {
+      await this.emitDelegationFailure(st, targetUrl, err)
       st.failed += st.devices.length
     }
 
@@ -385,7 +510,9 @@ export class ScanRunnerDO {
           }
         }
       }
-      catch { /* best-effort discovery */ }
+      catch (err) {
+        logOperationalWarn('cloudflare.link_discovery_failed', err, { scanId: st.scanId, url: targetUrl })
+      }
     }
 
     st.index += 1
@@ -406,11 +533,16 @@ export class ScanRunnerDO {
 
     // Cancel landed during the audit → finalize as cancelled now; don't re-arm.
     if (st.cancelled) {
-      await this.storage().scans.update(st.scanId as never, {
-        status: 'cancelled',
-        completedAt: new Date().toISOString(),
-      }).catch(() => {})
-      await emit('scan:cancelled', { scanId: st.scanId as never, reason: 'cancelled' })
+      try {
+        await this.storage().scans.update(scanId, {
+          status: 'cancelled',
+          completedAt: new Date().toISOString(),
+        })
+      }
+      catch (err) {
+        logOperationalWarn('cloudflare.scan_control_persist_failed', err, { scanId, status: 'cancelled' })
+      }
+      await emit('scan:cancelled', { scanId, reason: 'cancelled' })
       await this.stopContainer()
       await this.state.storage.delete('state')
       return
@@ -423,21 +555,24 @@ export class ScanRunnerDO {
     // mid-audit (so the row reflects it and we halt below), else 'scanning' (so
     // a prior pause's row status self-heals after /resume). finalize overwrites
     // this with the fully-scored summary.
-    await this.storage().scans.update(st.scanId as never, {
+    const summary: ScanSummary = {
+      routes: st.urls.length,
+      completed: st.scanned,
+      failed: st.failed,
+      scoreAverage: null,
+      scoresByCategory: {},
+      durationMs: Date.now() - st.startedAtMs,
+      devices: st.devices,
+    }
+    await this.storage().scans.update(scanId, {
       status: st.paused ? 'paused' : 'scanning',
-      summary: {
-        routes: st.urls.length,
-        completed: st.scanned,
-        failed: st.failed,
-        scoreAverage: null,
-        scoresByCategory: {},
-        durationMs: Date.now() - st.startedAtMs,
-        devices: st.devices,
-      },
-    } as never).catch(() => {})
+      summary,
+    }).catch((err) => {
+      logOperationalWarn('cloudflare.scan_progress_persist_failed', err, { scanId, status: st.paused ? 'paused' : 'scanning' })
+    })
 
     await emit('scan:progress', {
-      scanId: st.scanId as never,
+      scanId,
       discovered: st.urls.length,
       scanned: st.scanned,
       failed: st.failed,

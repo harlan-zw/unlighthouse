@@ -35,6 +35,7 @@ export const Manifest = defineCommand({
         description: z.string(),
       }),
     ),
+    errorEnvelopeSchema: z.unknown(),
     /** Full default config tree (literal `defaultConfig` const from contracts). */
     defaults: z.unknown(),
     /** Auditors known to the host preset; surfaces in lieu of `auditors.list`. */

@@ -20,6 +20,9 @@ import { join } from 'node:path'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { generateClient } from '../packages/unlighthouse/src/build'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { testScanId, testUrl } from './helpers/contracts'
+
+const SCAN_ID = testScanId('scan-1')
 
 interface Harness {
   tmp: string
@@ -30,7 +33,7 @@ interface Harness {
 
 function metric(url: string, score: number): ExtractedMetrics {
   return {
-    url,
+    url: testUrl(url),
     path: new URL(url).pathname,
     routeName: null,
     scorePerformance: score,
@@ -70,7 +73,7 @@ async function setup(): Promise<Harness> {
   const runtimeSettings = {
     resolvedClientPath: join(clientSrc, 'index.html'),
     generatedClientPath: join(tmp, 'generated'),
-    currentScanId: 'scan-1',
+    currentScanId: SCAN_ID,
     apiUrl: 'http://localhost:5678/api',
     websocketUrl: 'ws://localhost:5678/api/ws',
   } as unknown as RuntimeSettings
@@ -101,22 +104,22 @@ describe('static report — device matrix', () => {
     const { storage, resolvedConfig, runtimeSettings } = harness
     // Seed scan metadata so listForScan has something to read against.
     await storage.scans.create({
-      scanId: 'scan-1' as never,
-      site: 'https://example.com',
+      scanId: SCAN_ID,
+      site: testUrl('https://example.com'),
       device: 'desktop',
       status: 'complete',
       startedAt: '2025-01-01T00:00:00.000Z',
       ciBranch: null,
       ciCommit: null,
       ciCommitMessage: null,
-    } as never)
+    })
     // Two URLs × two devices → four rows; perf differs per device so we
     // can see each one survives.
-    await storage.routes.putBatch('scan-1' as never, 'mobile', [
+    await storage.routes.putBatch(SCAN_ID, 'mobile', [
       metric('https://example.com/', 0.85),
       metric('https://example.com/about', 0.78),
     ])
-    await storage.routes.putBatch('scan-1' as never, 'desktop', [
+    await storage.routes.putBatch(SCAN_ID, 'desktop', [
       metric('https://example.com/', 0.97),
       metric('https://example.com/about', 0.95),
     ])
@@ -141,16 +144,16 @@ describe('static report — device matrix', () => {
   it('single-device scan: payload retains device tag (backwards-compat shape)', async () => {
     const { storage, resolvedConfig, runtimeSettings } = harness
     await storage.scans.create({
-      scanId: 'scan-1' as never,
-      site: 'https://example.com',
+      scanId: SCAN_ID,
+      site: testUrl('https://example.com'),
       device: 'mobile',
       status: 'complete',
       startedAt: '2025-01-01T00:00:00.000Z',
       ciBranch: null,
       ciCommit: null,
       ciCommitMessage: null,
-    } as never)
-    await storage.routes.putBatch('scan-1' as never, 'mobile', [
+    })
+    await storage.routes.putBatch(SCAN_ID, 'mobile', [
       metric('https://example.com/', 0.9),
       metric('https://example.com/about', 0.88),
     ])

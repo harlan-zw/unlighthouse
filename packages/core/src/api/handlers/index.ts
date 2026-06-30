@@ -52,7 +52,7 @@ export {
 export { sitesCreate, sitesDelete, sitesList } from './sites'
 
 export function createHandlers(): HandlerMap {
-  return {
+  const handlers = {
     'scan.start': scanStart,
     'scan.status': scanStatus,
     'scan.cancel': scanCancel,
@@ -88,7 +88,8 @@ export function createHandlers(): HandlerMap {
     'sites.list': sitesList,
     'sites.create': sitesCreate,
     'sites.delete': sitesDelete,
-  } as unknown as HandlerMap
+  } satisfies HandlerMap
+  return handlers
 }
 
 export * from './types'

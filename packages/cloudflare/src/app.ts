@@ -13,7 +13,11 @@ import type {
 import type { Logger } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { Device } from '@unlighthouse/contracts/types/atoms'
+import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
+import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
+import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { auditRoute, createUnlighthouseCore } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
@@ -119,15 +123,17 @@ function createWorkersLogger(tag = 'unlighthouse'): Logger {
     error: fn('error'),
     debug: fn('debug'),
     log: fn('log'),
+    success: fn('success'),
+    trace: fn('trace'),
     withTag: (childTag: string) => createWorkersLogger(`${tag}/${childTag}`),
   }
-  return base as unknown as Logger
+  return base
 }
 
 function parseConfig(env: CloudflareEnv): UnlighthouseConfig {
   if (!env.UNLIGHTHOUSE_CONFIG)
-    return { site: 'https://example.com' } as unknown as UnlighthouseConfig
-  return JSON.parse(env.UNLIGHTHOUSE_CONFIG) as UnlighthouseConfig
+    return UnlighthouseConfigSchema.parse({ site: 'https://example.com' })
+  return UnlighthouseConfigSchema.parse(JSON.parse(env.UNLIGHTHOUSE_CONFIG) as unknown)
 }
 
 // Mutable reference to the site the next scan should seed against.
@@ -142,6 +148,29 @@ function parseConfig(env: CloudflareEnv): UnlighthouseConfig {
 // before its seeds() fires.
 interface PendingSeed {
   site: string | null
+}
+
+interface StaticAssetsBinding {
+  fetch: (request: Request) => Response | Promise<Response>
+}
+
+function fetchStaticAsset(assets: Fetcher, req: Request): Response | Promise<Response> {
+  return (assets as unknown as StaticAssetsBinding).fetch(req)
+}
+
+function errorResponse(err: unknown, status?: number): Response {
+  const envelope = createErrorEnvelope(err)
+  return new Response(JSON.stringify(envelope), {
+    status: status ?? envelope.error.statusCode,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+
+async function cloneResponse(res: { status: number, headers: Headers, text: () => Promise<string> }): Promise<Response> {
+  return new Response(await res.text(), {
+    status: res.status,
+    headers: Object.fromEntries(res.headers.entries()),
+  })
 }
 
 function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions, pendingSeed?: PendingSeed): HandlerCtx {
@@ -236,7 +265,12 @@ function buildHandlerCtx(env: CloudflareEnv, opts?: CreateCloudflareAppOptions, 
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ event: event.name, payload }),
-      }).catch(() => undefined)
+      }).catch((err) => {
+        logOperationalWarn('cloudflare.scan_event_fanout_failed', err, {
+          scanId,
+          event: event.name,
+        }, logger)
+      })
     })
   }
 
@@ -297,6 +331,7 @@ function resolveDevices(input: unknown): Device[] {
 }
 
 export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): CloudflareApp {
+  const logger = createWorkersLogger('unlighthouse/fetch')
   const pendingSeed: PendingSeed = { site: null }
   const ctx = buildHandlerCtx(env, opts, pendingSeed)
   const router = createHttpRouter({ handlers: createHandlers(), ctx })
@@ -329,9 +364,7 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
       // ASSETS binding, which does its own static lookup + SPA fallback to
       // index.html for client-side routes like `/sites/example.com`.
       if (runtimeEnv.ASSETS && req.method === 'GET' && !isApiPath(url.pathname)) {
-        // Cast across the workers-types ⇆ lib.dom Request/Response split (the
-        // same split the DO stub.fetch calls below work around).
-        return runtimeEnv.ASSETS.fetch(req as never) as unknown as Response
+        return fetchStaticAsset(runtimeEnv.ASSETS, req)
       }
 
       // Internal audit endpoint — ScanRunnerDO delegates each per-URL audit here
@@ -346,20 +379,28 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         try {
           body = await req.json() as typeof body
         }
-        catch {
-          return new Response('bad request', { status: 400 })
+        catch (err) {
+          return errorResponse(new UnlighthouseError({
+            code: ErrorCodes.INPUT_INVALID,
+            message: 'Invalid internal audit request body.',
+            cause: err,
+          }))
         }
         const scanId = body.scanId
         const targetUrl = body.url
         if (!scanId || !targetUrl)
-          return new Response('bad request', { status: 400 })
+          return errorResponse(new UnlighthouseError({
+            code: ErrorCodes.INPUT_INVALID,
+            message: 'scanId and url are required.',
+          }))
+        const parsedScanId = parseScanId(scanId)
         const emit = scanEventsEmit(runtimeEnv, scanId)
         let scanned = 0
         let failed = 0
         for (const device of resolveDevices(body.devices)) {
           const { ok } = await auditRoute(
             { auditor: ctx.auditor, storage: ctx.storage, logger: undefined, emit },
-            { scanId: scanId as never, url: targetUrl, device },
+            { scanId: parsedScanId, url: targetUrl, device },
           )
           if (ok)
             scanned++
@@ -379,8 +420,7 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         if (!scanId)
           return new Response('scanId required', { status: 400 })
         const id = runtimeEnv.SCAN_EVENTS_DO.idFromName(scanId)
-        const stub = runtimeEnv.SCAN_EVENTS_DO.get(id)
-        // @ts-expect-error - DO stub.fetch accepts Request; types fight Workers types.
+        const stub = runtimeEnv.SCAN_EVENTS_DO.get(id) as unknown as { fetch: (request: Request) => Response | Promise<Response> }
         return stub.fetch(req)
       }
 
@@ -405,6 +445,7 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
       // out from under the h3 handler (the `/api` rewrite above already moved
       // the body onto `apiReq`).
       let startBody: ScanStartBody | null = null
+      let startBodyParseError: unknown = null
       if (apiReq.method === 'POST' && url.pathname === '/scan/start') {
         try {
           startBody = await apiReq.clone().json() as ScanStartBody
@@ -412,8 +453,17 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
             ? startBody.site
             : null
         }
-        catch {
+        catch (err) {
+          startBodyParseError = err
+          logOperationalWarn('api.request_body_parse_failed', err, { path: url.pathname }, logger)
           pendingSeed.site = null
+        }
+        if (startBodyParseError) {
+          return errorResponse(new UnlighthouseError({
+            code: ErrorCodes.INPUT_INVALID,
+            message: 'Invalid scan.start request body.',
+            cause: startBodyParseError,
+          }))
         }
         const key = apiReq.headers.get('x-api-key')
           ?? apiReq.headers.get('cf-connecting-ip')
@@ -426,7 +476,12 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         if (!limiterBody.ok) {
           const retryAfter = Math.max(0, Math.ceil((limiterBody.resetAt - Date.now()) / 1000))
           return new Response(
-            JSON.stringify({ error: { code: 'RATE_LIMITED', message: 'Rate limit exceeded', resetAt: limiterBody.resetAt } }),
+            JSON.stringify(createErrorEnvelope(new UnlighthouseError({
+              code: ErrorCodes.RATE_LIMITED,
+              message: 'Rate limit exceeded',
+              details: { resetAt: limiterBody.resetAt },
+              retryable: true,
+            }))),
             {
               status: 429,
               headers: {
@@ -446,10 +501,10 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         if (runtimeEnv.SCAN_RUNNER_DO && runtimeEnv.SELF) {
           const site = pendingSeed.site ?? (ctx.config as { site?: string }).site ?? null
           if (!site) {
-            return new Response(
-              JSON.stringify({ error: { code: 'INVALID_INPUT', message: 'site is required' } }),
-              { status: 400, headers: { 'content-type': 'application/json' } },
-            )
+            return errorResponse(new UnlighthouseError({
+              code: ErrorCodes.INPUT_INVALID,
+              message: 'site is required',
+            }))
           }
           const devices = resolveDevices(startBody?.device)
           const mode = startBody?.mode === 'page' ? 'page' : 'site'
@@ -458,17 +513,21 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
           const runnerId = runtimeEnv.SCAN_RUNNER_DO.idFromName(scanId)
           const runner = runtimeEnv.SCAN_RUNNER_DO.get(runnerId)
           try {
-            await runner.fetch('https://scan-runner/start', {
+            const runnerRes = await runner.fetch('https://scan-runner/start', {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify({ scanId, site, devices, mode, config: ctx.config }),
-            } as never)
+            } satisfies RequestInit)
+            if (!runnerRes.ok)
+              return cloneResponse(runnerRes as unknown as Parameters<typeof cloneResponse>[0])
           }
-          catch {
-            return new Response(
-              JSON.stringify({ error: { code: 'INTERNAL', message: 'failed to start scan' } }),
-              { status: 500, headers: { 'content-type': 'application/json' } },
-            )
+          catch (err) {
+            return errorResponse(new UnlighthouseError({
+              code: ErrorCodes.INFRA_RETRYABLE,
+              message: 'failed to start scan runner',
+              cause: err,
+              retryable: true,
+            }))
           }
           return new Response(
             JSON.stringify({ scanId, site, mode, startedAt }),
@@ -487,13 +546,29 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         && apiReq.method === 'POST'
         && (url.pathname === '/scan/cancel' || url.pathname === '/scan/pause' || url.pathname === '/scan/resume')
       ) {
-        const body = await apiReq.clone().json().catch(() => null) as { scanId?: string } | null
+        const body = await apiReq.clone().json().catch((err) => {
+          logOperationalWarn('api.request_body_parse_failed', err, { path: url.pathname }, logger)
+          return null
+        }) as { scanId?: string } | null
         const scanId = body?.scanId
         if (scanId) {
           const action = url.pathname.slice('/scan/'.length) // cancel | pause | resume
           const runnerId = runtimeEnv.SCAN_RUNNER_DO.idFromName(scanId)
           const runner = runtimeEnv.SCAN_RUNNER_DO.get(runnerId)
-          await runner.fetch(`https://scan-runner/${action}`, { method: 'POST' } as never).catch(() => undefined)
+          let forwarded
+          try {
+            forwarded = await runner.fetch(`https://scan-runner/${action}`, { method: 'POST' } satisfies RequestInit)
+          }
+          catch (err) {
+            return errorResponse(new UnlighthouseError({
+              code: ErrorCodes.INFRA_RETRYABLE,
+              message: `failed to forward scan ${action} to runner`,
+              cause: err,
+              retryable: true,
+            }))
+          }
+          if (!forwarded.ok)
+            return cloneResponse(forwarded as unknown as Parameters<typeof cloneResponse>[0])
           const nextStatus = action === 'cancel' ? 'cancelled' : action === 'pause' ? 'paused' : 'scanning'
           return new Response(
             JSON.stringify({ scanId, status: nextStatus }),
@@ -514,7 +589,9 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
       if (apiReq.method === 'POST' && url.pathname === '/scan/start' && res.ok) {
         const session = ctx.core.session?.()
         if (session?.done)
-          execCtx.waitUntil(session.done.catch(() => undefined))
+          execCtx.waitUntil(session.done.catch((err) => {
+            logger.debug('background scan session rejected', err)
+          }))
       }
 
       return res

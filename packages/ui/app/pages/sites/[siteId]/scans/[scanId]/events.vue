@@ -3,6 +3,7 @@ import { eventColor, formatEventTime, useScanEventStream } from '~/features/scan
 import { getScanId, useScanBase } from '~/features/scan/route-context'
 
 definePageMeta({ layout: 'scan' })
+useScanPageTitle('Event Stream')
 
 const scanId = getScanId()
 const { scanBase } = useScanBase()

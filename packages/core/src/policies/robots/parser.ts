@@ -90,7 +90,7 @@ export function parseRobotsTxt(s: string) {
   }
 }
 
-function asArray(v: any) {
+function asArray<T>(v: T | T[] | undefined): T[] {
   return typeof v === 'undefined' ? [] : (Array.isArray(v) ? v : [v])
 }
 

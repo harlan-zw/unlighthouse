@@ -5,7 +5,8 @@ import type { Command, CommandName, HttpMethod } from '@unlighthouse/contracts/c
 import type { H3Event, Router } from 'h3'
 import type { Handler, HandlerCtx, HandlerMap } from './handlers/types'
 import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
-import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { logOperationalError, logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, readBody, setResponseHeader, setResponseStatus } from 'h3'
 import { createTaggedLogger } from '../logger'
 
@@ -40,19 +41,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value)
 }
 
-// Map UnlighthouseError.code → HTTP status.
-function statusForCode(code: string): number {
-  if (code === 'SCAN_NOT_FOUND' || code === 'ROUTE_NOT_FOUND')
-    return 404
-  if (code === 'ACTIVE_SCAN_CONFLICT')
-    return 409
-  if (code === 'NOT_SUPPORTED')
-    return 501
-  if (code === 'CONFIG_INVALID' || code === 'INPUT_INVALID')
-    return 400
-  return 500
-}
-
 function unflatten(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(obj)) {
@@ -75,7 +63,10 @@ async function readInput(event: H3Event, method: HttpMethod): Promise<unknown> {
     return unflatten(Object.assign({}, getQuery(event) as Record<string, unknown>, params))
   }
   // POST / PUT / DELETE → body, fall back to empty object.
-  const body = await readBody(event).catch(() => undefined)
+  const body = await readBody(event).catch((err) => {
+    logOperationalWarn('api.request_body_parse_failed', err, { method }, log)
+    return undefined
+  })
   if (isRecord(body))
     return Object.assign({}, body, params)
   return Object.assign({}, params)
@@ -97,8 +88,20 @@ function warnOnOutputMismatch(cmd: Command, value: unknown): void {
       .slice(0, 8)
       .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
       .join('; ')
-    log.warn(`${cmd.name} — response does not match its output contract: ${issues}`)
+    logOperationalWarn('api.output_contract_mismatch', result.error, {
+      command: cmd.name,
+      issues,
+    }, log)
   }
+}
+
+function errorResponse(event: H3Event, err: unknown, opts: { exposeInternal?: boolean, details?: Record<string, unknown> } = {}) {
+  const envelope = createErrorEnvelope(err, {
+    exposeInternal: opts.exposeInternal ?? process.env.NODE_ENV !== 'production',
+    details: opts.details,
+  })
+  setResponseStatus(event, envelope.error.statusCode)
+  return envelope
 }
 
 export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
@@ -122,15 +125,11 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
       const parsed = cmd.input.safeParse(raw)
       if (!parsed.success) {
         log.debug(`${method} ${path} — validation failed: ${parsed.error.issues.map(i => i.message).join(', ')}`)
-
-        setResponseStatus(event, 400)
-        return {
-          error: {
-            code: 'INPUT_INVALID',
-            message: 'Input validation failed',
-            issues: parsed.error.issues,
-          },
-        }
+        return errorResponse(event, new UnlighthouseError({
+          code: ErrorCodes.INPUT_INVALID,
+          message: 'Input validation failed',
+          details: { issues: parsed.error.issues },
+        }))
       }
 
       let ctx: HandlerCtx
@@ -138,17 +137,8 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
         ctx = await ctxFactory(event)
       }
       catch (err) {
-        if (err instanceof UnlighthouseError) {
-          setResponseStatus(event, statusForCode(err.code))
-          return { error: { code: err.code, message: err.message } }
-        }
-        setResponseStatus(event, 500)
-        return {
-          error: {
-            code: 'INTERNAL_ERROR',
-            message: err instanceof Error ? err.message : String(err),
-          },
-        }
+        logOperationalError('api.unhandled_error', err, { method, path, phase: 'ctx' }, log)
+        return errorResponse(event, err)
       }
 
       try {
@@ -189,19 +179,11 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
       }
       catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err)
-        const code = err instanceof UnlighthouseError ? err.code : 'INTERNAL_ERROR'
+        const code = err instanceof UnlighthouseError ? err.code : ErrorCodes.INTERNAL
         log.debug(`${method} ${path} — error ${code}: ${errMsg}`)
-        if (err instanceof UnlighthouseError) {
-          setResponseStatus(event, statusForCode(err.code))
-          return { error: { code: err.code, message: err.message } }
-        }
-        setResponseStatus(event, 500)
-        return {
-          error: {
-            code: 'INTERNAL_ERROR',
-            message: errMsg,
-          },
-        }
+        if (!(err instanceof UnlighthouseError))
+          logOperationalError('api.unhandled_error', err, { method, path, phase: 'handler' }, log)
+        return errorResponse(event, err)
       }
     })
 

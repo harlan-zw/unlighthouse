@@ -16,11 +16,15 @@ import type {
   ScanId,
   ScanSummary,
   Storage,
+  StructuredError,
 } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
+import type { LighthouseResult } from '../report/types'
 import { Buffer } from 'node:buffer'
-import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { ErrorCodes, toUnlighthouseError, UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { ExtractedMetricsSchema, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createPackReconcileCtx } from '../packs/reconcile-context'
 import { routeContractBlobKeyForReport } from '../report/route-contracts'
 
@@ -33,21 +37,28 @@ export type EmitFn = <K extends keyof HookMap>(
 ) => Promise<void>
 
 interface AuditorLike {
-  // page is `any` to stay assignable from the real `Auditor` (whose page is a
-  // concrete `Page`); we never pass one here anyway.
-  audit: (url: string, page?: any, opts?: { signal?: AbortSignal, device?: Device }) => Promise<unknown>
+  // We never pass a page from this path; keeping the second parameter at
+  // `undefined` stays assignable from real auditors without widening to any.
+  audit: (url: string, page?: undefined, opts?: { signal?: AbortSignal, device?: Device }) => Promise<unknown>
 }
 
 export function nowIso(): string {
   return new Date().toISOString()
 }
 
-export function toStructuredError(err: unknown): { code: string, message: string, cause?: unknown } {
-  if (err instanceof UnlighthouseError)
-    return { code: err.code, message: err.message, cause: err.cause }
-  if (err instanceof Error)
-    return { code: 'INTERNAL', message: err.message, cause: err }
-  return { code: 'INTERNAL', message: String(err) }
+export function toStructuredError(err: unknown): StructuredError {
+  const normalized = toUnlighthouseError(err, { exposeInternal: true })
+  return {
+    code: normalized.code,
+    message: normalized.message,
+    statusCode: normalized.statusCode,
+    category: normalized.category,
+    retryable: normalized.retryable || undefined,
+    suggestion: normalized.suggestion,
+    docsUrl: normalized.docsUrl,
+    details: normalized.details,
+    cause: normalized.cause,
+  }
 }
 
 async function urlHash(url: string): Promise<string> {
@@ -117,14 +128,15 @@ export interface RouteAuditArgs {
 export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Promise<{ ok: boolean, metrics?: unknown }> {
   const { auditor, storage, logger, emit } = deps
   const { scanId, url, device, signal } = args
+  const parsedUrl = parseUrl(url)
   const auditStart = Date.now()
   logger?.debug?.(`Auditing ${url} [${device}]`)
-  await emit('audit:before', { scanId, url: url as never, auditor: 'auditor' })
+  await emit('audit:before', { scanId, url: parsedUrl, auditor: 'auditor' })
   try {
     const report = await auditor.audit(url, undefined, { signal, device })
     const extracted = (report as { extracted?: unknown }).extracted
     const lhrGzip = (report as { lhrGzip?: Uint8Array }).lhrGzip
-    const metrics = (extracted ?? {
+    const metrics = ExtractedMetricsSchema.parse(extracted ?? {
       url,
       path: new URL(url).pathname,
       routeName: null,
@@ -142,9 +154,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       si: null,
       lighthouseVersion: (report as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
       capturedAt: nowIso(),
-    }) as never
-
-    await storage.routes.putBatch(scanId, device, [metrics])
+    })
 
     if (lhrGzip) {
       // Mirror `routes.ts:blobKeyFor` derivation so the blob lines up with the
@@ -155,7 +165,13 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       const lhrKey = `scans/${scanId}/lhr/${hash}-${device}.json.gz`
       const reportKey = `scans/${scanId}/reports/${hash}-${device}.json`
       const contractKey = routeContractBlobKeyForReport(reportKey)
-      await storage.blobs.put(lhrKey, lhrGzip).catch(() => {})
+      await storage.blobs.put(lhrKey, lhrGzip).catch((err) => {
+        throw new UnlighthouseError({
+          code: ErrorCodes.ROUTE_ARTIFACT_WRITE_FAILED,
+          message: `Failed to store Lighthouse result for ${url} [${device}].`,
+          cause: err,
+        })
+      })
 
       // Reconciled per-route report — UI-shaped, decoupled from LHR shape.
       // Uses the auditor's reconciled output if present (faster); otherwise
@@ -163,42 +179,64 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       const reconciled = (report as { reconciled?: unknown }).reconciled
       let payload: unknown = reconciled
       let lhrCache: unknown = null
+      const { gunzipSync } = await import('node:zlib')
       if (!payload) {
         try {
           const { reconcileRoute } = await import('../report/extract')
-          const { gunzipSync } = await import('node:zlib')
           lhrCache = JSON.parse(gunzipSync(lhrGzip).toString())
           payload = reconcileRoute({
             url,
             path: (metrics as { path?: string }).path ?? new URL(url).pathname,
             routeName: (metrics as { routeName?: string | null }).routeName ?? null,
             reportBlobKey: reportKey,
-            lhr: lhrCache as never,
+            lhr: lhrCache as LighthouseResult,
           })
         }
-        catch { /* best-effort; UI falls back to LHR blob */ }
+        catch (err) {
+          logOperationalWarn('scan.reconciled_report_write_failed', err, {
+            scanId,
+            url,
+            device,
+            phase: 'reconcile',
+          }, logger)
+        }
       }
       if (payload) {
         const bytes = new TextEncoder().encode(JSON.stringify(payload))
-        await storage.blobs.put(reportKey, bytes).catch(() => {})
+        await storage.blobs.put(reportKey, bytes).catch((err) => {
+          logOperationalWarn('scan.reconciled_report_write_failed', err, {
+            scanId,
+            url,
+            device,
+            reportKey,
+          }, logger)
+        })
       }
 
       // D-030 contract reconciled report. Reuse the LHR gunzip if we already
       // did one above. Packs that opt into `getReconciled` read this.
-      try {
-        const { reconcileToContract } = await import('../report/extract')
-        const { gunzipSync } = await import('node:zlib')
-        const lhr = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
-        const contract = reconcileToContract({ scanId, url, device, lhr: lhr as never })
-        const bytes = new TextEncoder().encode(JSON.stringify(contract))
-        if (contractKey)
-          await storage.blobs.put(contractKey, bytes).catch(() => {})
+      if (!contractKey) {
+        throw new UnlighthouseError({
+          code: 'INTERNAL',
+          message: `Failed to derive route contract key for ${url} [${device}].`,
+        })
       }
-      catch { /* best-effort; packs fall back to getLhr */ }
+      const { reconcileToContract } = await import('../report/extract')
+      const lhr = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
+      const contract = reconcileToContract({ scanId, url, device, lhr: lhr as LighthouseResult })
+      const contractBytes = new TextEncoder().encode(JSON.stringify(contract))
+      await storage.blobs.put(contractKey, contractBytes).catch((err) => {
+        throw new UnlighthouseError({
+          code: ErrorCodes.ROUTE_ARTIFACT_WRITE_FAILED,
+          message: `Failed to store route contract for ${url} [${device}].`,
+          cause: err,
+        })
+      })
+
+      await storage.routes.putBatch(scanId, device, [metrics])
 
       // Extract and store fullPageScreenshot as a separate blob.
       try {
-        const { gunzipSync } = await import('node:zlib')
         const lhrObj = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
         const fpScreenshot = (lhrObj as { fullPageScreenshot?: { screenshot?: { data?: string } } })
           .fullPageScreenshot
@@ -208,17 +246,29 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
           const base64Data = fpScreenshot.replace(/^data:image\/\w+;base64,/, '')
           const screenshotKey = `scans/${scanId}/screenshots/${hash}-${device}.webp`
           const buf = Buffer.from(base64Data, 'base64')
-          await storage.blobs.put(screenshotKey, new Uint8Array(buf)).catch(() => {})
+          await storage.blobs.put(screenshotKey, new Uint8Array(buf)).catch((err) => {
+            logOperationalWarn('scan.screenshot_write_failed', err, {
+              scanId,
+              url,
+              device,
+              screenshotKey,
+            }, logger)
+          })
         }
       }
-      catch { /* best-effort; screenshot is optional */ }
+      catch (err) {
+        logOperationalWarn('scan.screenshot_extract_failed', err, { scanId, url, device }, logger)
+      }
+    }
+    else {
+      await storage.routes.putBatch(scanId, device, [metrics])
     }
 
     logger?.debug?.(`Audited ${url} [${device}] in ${Date.now() - auditStart}ms`)
-    await emit('scan:route-complete', { scanId, url: url as never, metrics })
+    await emit('scan:route-complete', { scanId, url: parsedUrl, metrics })
     await emit('audit:after', {
       scanId,
-      url: url as never,
+      url: parsedUrl,
       auditor: 'auditor',
       durationMs: Date.now() - auditStart,
       ok: true,
@@ -228,10 +278,10 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
   catch (err) {
     const structured = toStructuredError(err)
     logger?.error?.(`Audit failed: ${url} [${device}] — ${structured.message || err}`)
-    await emit('scan:route-failed', { scanId, url: url as never, error: structured as never })
+    await emit('scan:route-failed', { scanId, url: parsedUrl, error: structured })
     await emit('audit:after', {
       scanId,
-      url: url as never,
+      url: parsedUrl,
       auditor: 'auditor',
       durationMs: Date.now() - auditStart,
       ok: false,
@@ -270,7 +320,10 @@ export async function finalizeScan(deps: FinalizeDeps, args: FinalizeArgs): Prom
   // Double-run guard — a retried finalize must not re-emit scan:complete or
   // re-run packs. (The local crawler path calls this exactly once with the row
   // still in a non-terminal state, so it always proceeds.)
-  const existing = await storage.scans.get(scanId).catch(() => null)
+  const existing = await storage.scans.get(scanId).catch((err) => {
+    logOperationalWarn('scan.finalize_probe_failed', err, { scanId }, logger)
+    return null
+  })
   if (existing?.status === 'complete' && existing.summary)
     return existing.summary
 
@@ -294,7 +347,7 @@ export async function finalizeScan(deps: FinalizeDeps, args: FinalizeArgs): Prom
         scanId,
         routes: scoredRoutes,
         blobs: storage.blobs,
-        logger: logger as never,
+        logger,
       })
       for (const [name, pack] of Object.entries(builtInPacks)) {
         try {
@@ -312,11 +365,13 @@ export async function finalizeScan(deps: FinalizeDeps, args: FinalizeArgs): Prom
           logger?.debug?.(`Pack "${name}" completed for scan ${scanId}`)
         }
         catch (packErr) {
-          logger?.warn?.(`Pack "${name}" failed for scan ${scanId}: ${packErr}`)
+          logOperationalWarn('scan.pack_failed', packErr, { scanId, packName: name }, logger)
         }
       }
     }
-    catch { /* pack system failure should not block scan completion */ }
+    catch (err) {
+      logOperationalWarn('scan.pack_system_failed', err, { scanId }, logger)
+    }
   }
 
   logger?.info?.(`Scan ${scanId} complete — ${summary.completed} routes, ${summary.failed} failed, avg score: ${summary.scoreAverage?.toFixed(2) ?? 'N/A'}, ${(summary.durationMs / 1000).toFixed(1)}s`)

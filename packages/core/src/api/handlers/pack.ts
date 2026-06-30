@@ -15,6 +15,7 @@ import type { CommandOutput, PackList, PackRunCmd } from '@unlighthouse/contract
 import type { PackRun } from '@unlighthouse/contracts/packs'
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { builtInPacks, getPack } from '../../packs/index'
 import { createPackReconcileCtx } from '../../packs/reconcile-context'
 
@@ -146,7 +147,13 @@ export const packRun: Handler<typeof PackRunCmd> = {
       // Old spill blob is orphaned (new run is inline, or — defensively — went
       // to a different key). Fire and don't surface failures: a stale blob is
       // wasted bytes, not corruption.
-      ctx.storage.blobs.delete(prior.reportBlobKey).catch(() => {})
+      ctx.storage.blobs.delete(prior.reportBlobKey).catch((err) => {
+        logOperationalWarn('storage.old_blob_delete_failed', err, {
+          scanId: input.scanId,
+          packName: cachePackName,
+          blobKey: prior.reportBlobKey,
+        })
+      })
     }
 
     return {

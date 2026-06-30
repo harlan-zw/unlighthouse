@@ -36,6 +36,8 @@ const {
   csvExportName,
   handleRescanAll,
 } = useScanOverview()
+
+useScanPageTitle(computed(() => scanIsComplete.value ? 'Scan Results' : 'Live Scan'))
 </script>
 
 <template>

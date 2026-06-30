@@ -3,6 +3,7 @@
 //   types/    — shared atoms + legacy interfaces (LighthouseReport, etc.)
 //   hooks/    — UnlighthouseHooks HookMap + HookEventUnion
 //   errors/   — UnlighthouseError + stable code constants
+//   logging/  — catalogued operational logs for best-effort failures
 //   commands/ — Command<I,O> + defineCommand + command registry
 //   config/   — UnlighthouseConfig validation schema (no defaults; D-011)
 //   ports/    — SeedSource / Crawler / Auditor / Storage (separate agent)
@@ -11,6 +12,7 @@ export * from './commands/index'
 export * from './config/index'
 export * from './errors/index'
 export * from './hooks/index'
+export * from './logging/index'
 export * from './packs/index'
 
 // Ports: re-export everything EXCEPT placeholders that are now superseded by
@@ -49,6 +51,7 @@ export type {
   GenerateClientOptions,
   HookResult,
   HTMLExtractPayload,
+  IndexedDbSeedSpec,
   LighthouseCategories,
   LighthouseReport,
   LighthouseReportAudit,

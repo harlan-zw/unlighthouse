@@ -7,6 +7,7 @@ import SiteHistoryTable from '~/features/sites/components/SiteHistoryTable.vue'
 import { pairScans } from '~/features/sites/scan-pairs'
 
 definePageMeta({ layout: 'root' })
+usePageTitle('Scan History')
 
 interface SiteGroup {
   site: string
@@ -38,7 +39,8 @@ const groups = computed<SiteGroup[]>(() => {
     try {
       key = new URL(s.site).origin
     }
-    catch {
+    catch (_err) {
+      // Keep malformed site labels grouped under their raw value.
       key = s.site
     }
     const arr = buckets.get(key) ?? []

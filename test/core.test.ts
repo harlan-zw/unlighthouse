@@ -12,6 +12,8 @@ import type {
 } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookEvent } from '@unlighthouse/contracts/hooks'
+import { gzipSync } from 'node:zlib'
+import { setOperationalLogSink } from '@unlighthouse/contracts/logging'
 import { describe, expect, it } from 'vitest'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
@@ -56,6 +58,29 @@ function stubReport(url: string) {
       lighthouseVersion: 'test',
       capturedAt: new Date().toISOString(),
     },
+  } as any
+}
+
+function stubLhrReport(url: string, opts: { screenshot?: boolean } = {}) {
+  const lhr = {
+    lighthouseVersion: 'test',
+    requestedUrl: url,
+    finalDisplayedUrl: url,
+    categories: {},
+    audits: {},
+    ...(opts.screenshot
+      ? {
+          fullPageScreenshot: {
+            screenshot: {
+              data: 'data:image/webp;base64,AA==',
+            },
+          },
+        }
+      : {}),
+  }
+  return {
+    ...stubReport(url),
+    lhrGzip: gzipSync(JSON.stringify(lhr)),
   } as any
 }
 
@@ -307,11 +332,15 @@ describe('createUnlighthouseCore orchestration', () => {
       storage,
     })
     const session = core.run()
-    session.done.catch(() => {})
+    session.done.catch((_err) => {
+      // Expected after the test cancels the hanging session.
+    })
     expect(session.capabilities.pausable).toBe(false)
     await expect(session.pause()).rejects.toMatchObject({ code: 'NOT_SUPPORTED' })
     await session.cancel()
-    await session.done.catch(() => {})
+    await session.done.catch((_err) => {
+      // Expected after cancellation.
+    })
   })
 
   it('pause/resume capability gating: present methods emit events', async () => {
@@ -414,7 +443,9 @@ describe('createUnlighthouseCore orchestration', () => {
       storage,
     })
     const session = core.run()
-    session.done.catch(() => {})
+    session.done.catch((_err) => {
+      // Expected after the test cancels the hanging session.
+    })
     expect(() => core.run()).toThrow(UnlighthouseError)
     try {
       core.run()
@@ -423,7 +454,9 @@ describe('createUnlighthouseCore orchestration', () => {
       expect((e as UnlighthouseError).code).toBe('ACTIVE_SCAN_CONFLICT')
     }
     await session.cancel()
-    await session.done.catch(() => {})
+    await session.done.catch((_err) => {
+      // Expected after cancellation.
+    })
   })
 
   it('run({ overrides }): site/device/ciBuild are persisted onto the scans row', async () => {
@@ -494,6 +527,70 @@ describe('createUnlighthouseCore orchestration', () => {
     expect(session.stats().failed).toBe(1)
     expect(session.stats().scanned).toBe(2)
     expect(events.some(e => e.event === 'scan:complete')).toBe(true)
+  })
+
+  it('route artifact write failure emits scan:route-failed with typed code', async () => {
+    const url = 'https://example.com/artifact'
+    const storage = memoryStorage()
+    const put = storage.blobs.put.bind(storage.blobs)
+    storage.blobs.put = async (key, data, opts) => {
+      if (key.includes('/lhr/'))
+        throw new Error('blob write failed')
+      return put(key, data, opts)
+    }
+    const auditor: Auditor = {
+      capabilities: passingAuditor().capabilities,
+      audit: async () => stubLhrReport(url),
+    }
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor,
+      seeds: emptySeeds,
+      crawler: discoveryCrawler([url]),
+      storage,
+    })
+    const session = core.run()
+    const events: HookEvent[] = []
+    session.subscribe(e => events.push(e))
+    await session.done
+
+    const failed = events.find(e => e.event === 'scan:route-failed')
+    expect((failed as any)?.payload.error.code).toBe('ROUTE_ARTIFACT_WRITE_FAILED')
+    expect((failed as any)?.payload.error.category).toBe('route-failed')
+    expect(session.stats()).toMatchObject({ scanned: 0, failed: 1 })
+  })
+
+  it('optional screenshot write failure is catalogued as operational log', async () => {
+    const url = 'https://example.com/screenshot'
+    const storage = memoryStorage()
+    const entries: string[] = []
+    setOperationalLogSink(entry => entries.push(entry.name))
+    try {
+      const put = storage.blobs.put.bind(storage.blobs)
+      storage.blobs.put = async (key, data, opts) => {
+        if (key.includes('/screenshots/'))
+          throw new Error('screenshot write failed')
+        return put(key, data, opts)
+      }
+      const auditor: Auditor = {
+        capabilities: passingAuditor().capabilities,
+        audit: async () => stubLhrReport(url, { screenshot: true }),
+      }
+      const core = createUnlighthouseCore({
+        config: baseConfig,
+        auditor,
+        seeds: emptySeeds,
+        crawler: discoveryCrawler([url]),
+        storage,
+      })
+      const session = core.run()
+      await session.done
+      expect(session.stats()).toMatchObject({ scanned: 1, failed: 0 })
+      expect(entries).toContain('scan.screenshot_write_failed')
+    }
+    finally {
+      setOperationalLogSink(null)
+    }
   })
 })
 

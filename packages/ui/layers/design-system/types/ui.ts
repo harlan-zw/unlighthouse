@@ -335,5 +335,5 @@ export type IconClass
 export interface SelectOption<T> {
   label: string
   value: T
-  [key: string]: any
+  [key: string]: unknown
 }

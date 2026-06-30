@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import UiLoadingState from './UiLoadingState.vue'
+
 defineOptions({ inheritAttrs: false })
-const props = defineProps<{ [key: string]: any }>()
+
+type Props = InstanceType<typeof UiLoadingState>['$props']
+
+const props = defineProps<Props>()
+const forwardedProps = useForwardedProps(props)
 </script>
 
 <template>
-  <UiLoadingState v-bind="{ ...props, ...$attrs } as any">
+  <UiLoadingState v-bind="forwardedProps">
     <template v-for="(_, name) in $slots" #[name]="slotProps">
       <slot :name="name" v-bind="slotProps || {}" />
     </template>

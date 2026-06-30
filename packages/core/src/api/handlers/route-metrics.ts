@@ -27,7 +27,9 @@ export function routeMetricColumn(metric: RouteMetric): keyof ScanRoute {
 }
 
 export function routeNumericValue(route: ScanRoute, column: keyof ScanRoute | string): number | null {
-  const value = (route as unknown as Record<string, unknown>)[column]
+  if (!(column in route))
+    return null
+  const value = route[column as keyof ScanRoute]
   return typeof value === 'number' ? value : null
 }
 

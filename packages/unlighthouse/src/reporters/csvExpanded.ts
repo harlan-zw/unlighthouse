@@ -17,15 +17,19 @@ function isCsvAuditValue(value: unknown): value is CsvAuditValue {
   return typeof value === 'object' && value !== null && 'scoreDisplayMode' in value
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
 function columnKeys(columns: ReporterConfig['columns']): UnlighthouseTabs[] {
   return columns ? Object.keys(columns) as UnlighthouseTabs[] : []
 }
 
 function getPathValue(source: unknown, path: string): unknown {
   return path.split('.').filter(Boolean).reduce<unknown>((current, part) => {
-    if (current == null || typeof current !== 'object')
+    if (!isRecord(current))
       return undefined
-    return (current as Record<string, unknown>)[part]
+    return current[part]
   }, source)
 }
 

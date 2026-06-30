@@ -35,7 +35,7 @@ export function useApiMutation<K extends CommandName, TContext = unknown>(
 ) {
   const api = useApi()
   return useNuxtMutation<Input<K>, Output<K>, TContext>({
-    mutation: input => api[command](input as never) as Promise<Output<K>>,
+    mutation: input => api[command](input as CommandInput<CommandRegistry[K]>) as Promise<Output<K>>,
     invalidates: opts.invalidates,
     onMutate: opts.onMutate,
     onSuccess: opts.onSuccess,

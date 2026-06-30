@@ -204,13 +204,15 @@ export const HookSchemas = {
 } as const
 
 export type HookName = keyof typeof HookSchemas
+export type HookPayload<K extends HookName> = z.infer<(typeof HookSchemas)[K]>
+export type HookEventFor<K extends HookName> = { event: K, payload: HookPayload<K> }
 
 /**
  * TS hook map compatible with `Hookable<HookMap>` from the `hookable` package.
  * Each handler receives the typed payload and returns void | Promise<void>.
  */
 export type HookMap = {
-  [K in HookName]: (payload: z.infer<(typeof HookSchemas)[K]>) => void | Promise<void>
+  [K in HookName]: (payload: HookPayload<K>) => void | Promise<void>
 }
 
 /** Type alias mirroring the legacy `UnlighthouseHooks` name. */
@@ -224,8 +226,12 @@ export type UnlighthouseHooks = HookMap
  * for runtime validation.
  */
 export type HookEvent = {
-  [K in HookName]: { event: K, payload: z.infer<(typeof HookSchemas)[K]> }
+  [K in HookName]: HookEventFor<K>
 }[HookName]
+
+export function createHookEvent<K extends HookName>(event: K, payload: HookPayload<K>): HookEvent {
+  return { event, payload } as HookEvent
+}
 
 /** Runtime-validating discriminated union over HookMap. */
 const hookEventVariants = Object.entries(HookSchemas).map(([name, payload]) =>
@@ -238,3 +244,7 @@ export const HookEventUnion = z.discriminatedUnion(
     ...(typeof hookEventVariants)[number][],
   ],
 )
+
+export function parseHookEvent(value: unknown): HookEvent {
+  return HookEventUnion.parse(value) as HookEvent
+}

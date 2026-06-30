@@ -1,5 +1,5 @@
 import type { VNode } from 'vue'
-import { getCurrentInstance, toValue } from 'vue'
+import { computed, getCurrentInstance, toValue, useAttrs } from 'vue'
 
 /**
  * Helper function to check if the current setup-script component has a named listener
@@ -45,7 +45,7 @@ export function deepUnref<T>(obj: T): T {
     return value.map(deepUnref) as T
   }
 
-  const result: Record<string, any> = {}
+  const result: Record<string, unknown> = {}
   for (const key in value) {
     // Skip Vue's internal ref properties
     if (key.startsWith('__v_') || key === '_rawValue' || key === '_value') {
@@ -54,4 +54,9 @@ export function deepUnref<T>(obj: T): T {
     result[key] = deepUnref(value[key])
   }
   return result as T
+}
+
+export function useForwardedProps<T extends object>(props: T) {
+  const attrs = useAttrs()
+  return computed(() => ({ ...props, ...attrs }) as T)
 }

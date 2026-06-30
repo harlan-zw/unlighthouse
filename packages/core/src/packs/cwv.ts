@@ -70,7 +70,7 @@ function p75(values: number[]): number | null {
 }
 
 function metricFromRow(row: ScanRoute, metric: MetricKey): number | null {
-  const v = (row as Record<string, unknown>)[metric]
+  const v = row[metric]
   return typeof v === 'number' ? v : null
 }
 
@@ -152,7 +152,10 @@ async function readInsightAudits(
   ctx: PackReconcileCtx,
 ): Promise<Map<string, SavingsMap> | null> {
   if (ctx.getReconciled) {
-    const reconciled = await ctx.getReconciled(url, 'mobile').catch(() => null) as ReconciledReport | null
+    const reconciled = await ctx.getReconciled(url, 'mobile').catch((err) => {
+      ctx.logger?.debug?.(`cwv pack: failed to load reconciled report for ${url} [mobile]`, err)
+      return null
+    })
     if (reconciled?.audits) {
       const out = new Map<string, SavingsMap>()
       for (const [id, finding] of Object.entries(reconciled.audits)) {
@@ -166,7 +169,10 @@ async function readInsightAudits(
     }
   }
   if (ctx.getLhr) {
-    const lhr = await ctx.getLhr(url, 'mobile').catch(() => null) as LhrLike | null
+    const lhr = await ctx.getLhr(url, 'mobile').catch((err) => {
+      ctx.logger?.debug?.(`cwv pack: failed to load LHR for ${url} [mobile]`, err)
+      return null
+    }) as LhrLike | null
     if (!lhr?.audits)
       return null
     const out = new Map<string, SavingsMap>()

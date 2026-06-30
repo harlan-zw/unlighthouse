@@ -12,9 +12,9 @@ export * from './atoms'
 // Opaque type for the WebSocket broadcaster; the concrete class lives in @unlighthouse/core.
 // Contracts must not import from core, so we use a structural placeholder here.
 export interface WS {
-  serve: (req: any) => any
-  broadcast: (data: any) => void
-  clients: Set<any>
+  serve: (req: Request) => unknown
+  broadcast: (data: unknown) => void
+  clients: Set<unknown>
 }
 
 /**
@@ -59,7 +59,7 @@ export interface NormalisedRoute {
 
 export interface ComputedLighthouseReportAudit {
   details?: {
-    items?: any[]
+    items?: unknown[]
   }
   displayValue: string | number
   score: number
@@ -177,7 +177,7 @@ export interface HTMLExtractPayload {
     site?: string
   }
   hreflang?: Array<{ lang: string, href: string }>
-  jsonLd?: any[]
+  jsonLd?: unknown[]
 }
 
 export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer'
@@ -339,13 +339,13 @@ export interface ResolvedUserConfig {
    *
    * @default {}
    */
-  localStorage: Record<string, any>
+  localStorage: Record<string, unknown>
   /**
    * Session storage to add to the browser context.
    *
    * @default {}
    */
-  sessionStorage: Record<string, any>
+  sessionStorage: Record<string, unknown>
   /**
    * IndexedDB databases to seed before each audited page loads (#216).
    * Shape: `{ [dbName]: { version?, stores: { [store]: { keyPath?, autoIncrement?, records } } } }`.
@@ -353,7 +353,7 @@ export interface ResolvedUserConfig {
    *
    * @default {}
    */
-  indexedDb: Record<string, any>
+  indexedDb: Record<string, unknown>
   /**
    * Extra headers to provide for any HTTP requests.
    *
@@ -590,7 +590,7 @@ export interface ResolvedUserConfig {
      * Resolved robots.txt groups.
      * @internal
      */
-    _robotsTxtRules?: any
+    _robotsTxtRules?: unknown
   }
   /**
    * Changes the default behaviour of lighthouse.
@@ -631,15 +631,13 @@ export interface ResolvedUserConfig {
 export type ClientOptionsPayload = Pick<ResolvedUserConfig, 'client' | 'site' | 'lighthouseOptions' | 'scanner' | 'routerPrefix'>
   & Pick<RuntimeSettings, 'websocketUrl' | 'apiUrl'>
 
-type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends (...args: any[]) => any
-    ? T[K]
-    : T[K] extends Array<infer U>
-      ? Array<DeepPartial<U>>
-      : T[K] extends object
-        ? DeepPartial<T[K]>
-        : T[K]
-}
+type DeepPartial<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends Array<infer U>
+    ? Array<DeepPartial<U>>
+    : T extends object
+      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      : T
 
 export type UserConfig = DeepPartial<ResolvedUserConfig>
 
@@ -761,7 +759,16 @@ export interface UnlighthouseOptions {
   /** Seed `sessionStorage` before each audited page loads (e.g. session-token auth). */
   sessionStorage?: Record<string, unknown>
   /** Seed IndexedDB before each audited page loads (best-effort; #216). */
-  indexedDb?: Record<string, unknown>
+  indexedDb?: Record<string, IndexedDbSeedSpec>
+}
+
+export interface IndexedDbSeedSpec {
+  version?: number
+  stores: Record<string, {
+    keyPath?: string | string[]
+    autoIncrement?: boolean
+    records: unknown[]
+  }>
 }
 
 export type UnlighthouseProvider = (url: string, options?: UnlighthouseOptions) => Promise<UnlighthouseReport>
@@ -786,7 +793,7 @@ export interface UnlighthouseReport {
   url: string
   fetchTime: string
   insights: UnlighthouseInsights
-  artifacts?: any
+  artifacts?: unknown
   raw?: Result
   // Gzipped LHCI-format LHR. Set by providers that produce a raw Lighthouse
   // run (local, mock, cdp-connect); core's ingest path persists it to the

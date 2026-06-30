@@ -2,6 +2,7 @@
 import { useSitesRegistry } from '~/features/sites/registry'
 
 definePageMeta({ layout: 'root' })
+usePageTitle('Sites')
 
 const {
   isEmpty,

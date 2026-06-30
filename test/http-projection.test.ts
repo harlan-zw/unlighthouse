@@ -9,7 +9,7 @@ import type { Auditor, Storage, UnlighthouseCore } from '@unlighthouse/contracts
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
 import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
-import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { UnlighthouseError, UnlighthouseErrorEnvelopeSchema } from '@unlighthouse/contracts/errors'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
@@ -58,7 +58,7 @@ describe('http projection — request handling', () => {
     expect(body).toEqual({ scanId: null })
   })
 
-  it('POST /scan/start surfaces a 500 INTERNAL_ERROR when core throws a non-Unlighthouse error', async () => {
+  it('POST /scan/start surfaces a 500 INTERNAL envelope when core throws a non-Unlighthouse error', async () => {
     const ctx = makeCtx() // core.run() throws plain Error
     const handler = makeWebHandler(ctx)
     const res = await handler(new Request('http://x/scan/start', {
@@ -68,7 +68,9 @@ describe('http projection — request handling', () => {
     }))
     expect(res.status).toBe(500)
     const body = await res.json()
-    expect(body.error?.code).toBe('INTERNAL_ERROR')
+    expect(UnlighthouseErrorEnvelopeSchema.safeParse(body).success).toBe(true)
+    expect(body.error?.code).toBe('INTERNAL')
+    expect(body.error?.statusCode).toBe(500)
   })
 
   it('POST /scan/cancel with invalid input returns 400 INPUT_INVALID', async () => {
@@ -81,7 +83,9 @@ describe('http projection — request handling', () => {
     }))
     expect(res.status).toBe(400)
     const body = await res.json()
+    expect(UnlighthouseErrorEnvelopeSchema.safeParse(body).success).toBe(true)
     expect(body.error?.code).toBe('INPUT_INVALID')
+    expect(body.error?.details?.issues).toEqual(body.error?.issues)
     expect(Array.isArray(body.error?.issues)).toBe(true)
   })
 
@@ -92,7 +96,9 @@ describe('http projection — request handling', () => {
     const res = await handler(new Request('http://x/scan/status?scanId=missing'))
     expect(res.status).toBe(404)
     const body = await res.json()
+    expect(UnlighthouseErrorEnvelopeSchema.safeParse(body).success).toBe(true)
     expect(body.error?.code).toBe('SCAN_NOT_FOUND')
+    expect(body.error?.statusCode).toBe(404)
   })
 
   it('UnlighthouseError code → HTTP status mapping (ACTIVE_SCAN_CONFLICT → 409)', async () => {
@@ -109,6 +115,7 @@ describe('http projection — request handling', () => {
     expect(res.status).toBe(409)
     const body = await res.json()
     expect(body.error?.code).toBe('ACTIVE_SCAN_CONFLICT')
+    expect(body.error?.statusCode).toBe(409)
   })
 
   it('NOT_SUPPORTED maps to 501 via a hand-injected handler', async () => {
@@ -118,7 +125,12 @@ describe('http projection — request handling', () => {
     ;(handlers as any).manifest = {
       command: {},
       run: async () => {
-        throw new UnlighthouseError({ code: 'NOT_SUPPORTED', message: 'nope' })
+        throw new UnlighthouseError({
+          code: 'NOT_SUPPORTED',
+          message: 'nope',
+          suggestion: 'Use a supported transport.',
+          docsUrl: 'https://unlighthouse.dev/',
+        })
       },
     }
     const handler = makeWebHandler(makeCtx(), handlers)
@@ -126,5 +138,7 @@ describe('http projection — request handling', () => {
     expect(res.status).toBe(501)
     const body = await res.json()
     expect(body.error?.code).toBe('NOT_SUPPORTED')
+    expect(body.error?.suggestion).toBe('Use a supported transport.')
+    expect(body.error?.docsUrl).toBe('https://unlighthouse.dev/')
   })
 })

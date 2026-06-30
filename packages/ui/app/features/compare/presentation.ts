@@ -1,5 +1,11 @@
+import type { CompareRouteRow } from '@unlighthouse/contracts'
+
+// Every CompareMetric.key is a real key of the per-route metrics object, so
+// reads (`row.current?.[key]`) index it directly without a cast.
+export type MetricKey = keyof CompareRouteRow['deltas']
+
 interface CompareMetric {
-  key: string
+  key: MetricKey
   label: string
   score: boolean
   thresholdKey: string
@@ -142,7 +148,7 @@ export function createComparePresentation(deps: {
     return { klass: deltaClass(value, isScore), mutedByThreshold: false }
   }
 
-  function rowScoreCell(row: any, key: string, thresholdKey: string): RowScoreCell {
+  function rowScoreCell(row: CompareRouteRow, key: MetricKey, thresholdKey: string): RowScoreCell {
     if (row.status === 'added')
       return { value: String(deps.fmtScore(row.current?.[key])), klass: 'text-info', mutedByThreshold: false }
     if (row.status === 'removed')

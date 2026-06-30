@@ -13,8 +13,23 @@ interface AuditEntry {
   score: number | null
   displayValue: string | null
   metricSavings: Record<string, number> | null
-  items: any[] | null
+  items: AuditItem[] | null
   scoreDisplayMode: string
+}
+
+// Lighthouse audit-detail items carry pack-specific shapes; this view only
+// probes a handful of fields to decide whether a row has drill-in content.
+interface AuditItem {
+  url?: string
+  node?: { snippet?: string, nodeLabel?: string }
+  reason?: string
+  wastedBytes?: number
+  wastedMs?: number
+  totalBytes?: number
+  transferSize?: number
+  blockingTime?: number
+  snippet?: string
+  [key: string]: unknown
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -45,7 +60,8 @@ function resolveRouteUrl(path: string, site?: string | null): string {
   try {
     return new URL(path, site).toString()
   }
-  catch {
+  catch (_err) {
+    // Preserve legacy path concatenation when URL construction fails.
     return `${site}${path}`
   }
 }
@@ -75,11 +91,11 @@ function renderMarkdownLinks(text: string): string {
   return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="underline text-primary hover:text-primary/80">$1</a>')
 }
 
-function hasVisibleAuditItem(item: any): boolean {
+function hasVisibleAuditItem(item: AuditItem): boolean {
   return !!(item.url || item.node?.snippet || item.reason || item.wastedBytes || item.wastedMs || item.snippet)
 }
 
-function hasNonZeroSavings(savings: Record<string, any>): boolean {
+function hasNonZeroSavings(savings: Record<string, unknown>): boolean {
   return Object.values(savings).some(value => typeof value === 'number' ? value > 0 : !!value)
 }
 

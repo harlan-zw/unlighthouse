@@ -19,6 +19,8 @@ const errorTitle = computed(() => {
   return 'Request failed'
 })
 
+usePageTitle(errorTitle)
+
 const errorMessage = computed(() => {
   if (props.error.statusCode === 404)
     return 'No route matches this path. Check the URL or open the dashboard.'

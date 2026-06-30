@@ -19,6 +19,8 @@
  */
 
 import type { Plugin, ResolvedConfig } from 'vite'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { logOperationalError } from '@unlighthouse/contracts/logging'
 
 export interface UnlighthouseViteOptions {
   /**
@@ -82,7 +84,7 @@ export function unlighthouseVite(options: UnlighthouseViteOptions = {}): Plugin 
         // Fire-and-forget. Surface failures via stderr but never reject
         // the build pipeline — the report is auxiliary, not a gate.
         run.catch((err) => {
-          console.error(`[${PLUGIN_NAME}] background scan failed:`, err)
+          logOperationalError('vite.background_scan_failed', err, {}, console)
         })
       }
     },
@@ -114,7 +116,10 @@ async function runScan(
       }) as typeof previewServer
       const url = previewServer?.resolvedUrls?.local?.[0]
       if (!url)
-        throw new Error('vite preview server did not resolve a local URL')
+        throw new UnlighthouseError({
+          code: 'INFRA_RETRYABLE',
+          message: 'vite preview server did not resolve a local URL',
+        })
       site = url
     }
 
@@ -132,7 +137,10 @@ async function runScan(
     const specifier = 'unlighthouse'
     const mod = (await import(specifier)) as UnlighthouseModule
     if (typeof mod.createUnlighthouseHost !== 'function')
-      throw new TypeError('unlighthouse: createUnlighthouseHost not exported (need v1)')
+      throw new UnlighthouseError({
+        code: 'CONFIG_INVALID',
+        message: 'unlighthouse: createUnlighthouseHost not exported (need v1)',
+      })
 
     const userConfig: Record<string, unknown> = {
       site,
@@ -155,8 +163,8 @@ async function runScan(
       try {
         await previewServer.close()
       }
-      catch {
-        // Best-effort — don't surface preview-close failures.
+      catch (_err) {
+        // Best-effort cleanup after the scan attempt; the scan result is already settled.
       }
     }
   }

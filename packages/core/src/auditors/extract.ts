@@ -2,7 +2,7 @@ import type { UnlighthouseInsights } from '@unlighthouse/contracts'
 import type { Result } from 'lighthouse'
 
 export function extractInsights(result: Result): UnlighthouseInsights {
-  const categories: Record<string, any> = {}
+  const categories: UnlighthouseInsights['categories'] = {}
   let totalScore = 0
   let categoryCount = 0
 

@@ -29,18 +29,38 @@ function getNumeric(lhr: LighthouseResult, auditId: string): number | null {
   return lhr.audits[auditId]?.numericValue ?? null
 }
 
+interface FullPageScreenshotNode {
+  left?: unknown
+  top?: unknown
+  width?: unknown
+  height?: unknown
+}
+
+interface LighthouseResultWithScreenshot extends LighthouseResult {
+  fullPageScreenshot?: {
+    nodes?: Record<string, FullPageScreenshotNode>
+  }
+}
+
 export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
   const version = lhr.lighthouseVersion.split('.')[0]
   const mapAudit = (id: string) => AUDIT_MAP[version]?.[id] ?? id
 
-  const fpNodes = (lhr as any).fullPageScreenshot?.nodes
+  const fpNodes = (lhr as LighthouseResultWithScreenshot).fullPageScreenshot?.nodes
   let screenshotNodes: Record<string, { left: number, top: number, width: number, height: number }> | undefined
   if (fpNodes && typeof fpNodes === 'object') {
     screenshotNodes = {}
     for (const [lhId, node] of Object.entries(fpNodes)) {
-      const n = node as any
-      if (n?.left != null && n?.top != null && n?.width > 0 && n?.height > 0) {
-        screenshotNodes[lhId] = { left: n.left, top: n.top, width: n.width, height: n.height }
+      const { left, top, width, height } = node
+      if (
+        typeof left === 'number'
+        && typeof top === 'number'
+        && typeof width === 'number'
+        && width > 0
+        && typeof height === 'number'
+        && height > 0
+      ) {
+        screenshotNodes[lhId] = { left, top, width, height }
       }
     }
     if (Object.keys(screenshotNodes).length === 0)

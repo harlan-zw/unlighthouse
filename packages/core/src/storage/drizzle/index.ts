@@ -1,4 +1,5 @@
 import type { Logger, PackRunRepository, ScanRepository, ScanRouteRepository, SiteRepository } from '@unlighthouse/contracts'
+import type { DrizzleDatabase } from './types'
 import { createComparisonRepository } from './repositories/comparisons'
 import { createPackRunRepository } from './repositories/pack-runs'
 import { createReportRepositories } from './repositories/reports'
@@ -17,7 +18,7 @@ export interface DrizzleStorage {
    * Raw drizzle handle. Escape hatch for `processScanData` writes; do NOT
    * use from dashboard handlers — go through `reports.*` / `comparisons.*`.
    */
-  db: any
+  db: DrizzleDatabase
 }
 
 export interface DrizzleStorageOptions {
@@ -28,7 +29,7 @@ export interface DrizzleStorageOptions {
    *   - `drizzle(createClient({ url, authToken }))` for libsql/Turso
    *   - `drizzle(new Database(path))` for the v1 local CLI `better-sqlite3` default
    */
-  driver: any
+  driver: unknown
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
   logger?: Logger
 }
@@ -42,7 +43,7 @@ export interface DrizzleStorageOptions {
  * at boot, OR exec the bundled SQL once on first run.
  */
 export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
-  const { driver } = opts
+  const driver = opts.driver as DrizzleDatabase
   return {
     sites: createSiteRepository(driver),
     scans: createScanRepository(driver),
@@ -56,6 +57,8 @@ export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
 
 export { INIT_SQL, INIT_SQL_STATEMENTS } from './init-sql'
 export { applyMigrations, ensureSchema } from './migrations'
+export { asDrizzleDatabase } from './types'
+export type { DrizzleDatabase } from './types'
 
 // Re-export schema/types from contracts for users that want raw access.
 export * from '@unlighthouse/contracts/drizzle'

@@ -9,7 +9,7 @@
  *     workerFile: new URL('./audit-worker.mjs', import.meta.url).pathname,
  *   })
  *
- *   pool.hooks.hook('task:error', (name, _, err) => log.warn(name, err))
+ *   pool.hooks.hook('task:error', (name, _, err) => logOperationalWarn('auditor.cleanup_failed', err, { name }))
  *   const result = await runTask(pool, 'lighthouse', { url, artifactPath })
  *   await drain(pool)
  *   await destroy(pool)

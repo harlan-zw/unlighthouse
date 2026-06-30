@@ -31,6 +31,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@unlighthouse/contracts": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "vitest": "catalog:"

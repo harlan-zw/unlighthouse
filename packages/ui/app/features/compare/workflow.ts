@@ -1,10 +1,45 @@
-import type { ScanId } from '@unlighthouse/contracts'
+import type { CompareReport, CompareRouteRow, ScanId } from '@unlighthouse/contracts'
+import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { compareRowKey } from '~/features/compare/presentation'
 
 export type CompareStatusFilter = 'all' | 'changed' | 'regressed' | 'improved' | 'added' | 'removed'
 export type CompareDeviceFilter = '' | 'mobile' | 'desktop'
+
+// compare.detail's output isn't exported as a named type, so derive it from the
+// typed client. compare.run reuses the exported CompareReport schema.
+export type CompareDetailReport = Awaited<ReturnType<UnlighthouseClient['compare.detail']>>
+export type { CompareRouteRow }
+type CompareThresholdPayload = NonNullable<Parameters<UnlighthouseClient['compare.run']>[0]['thresholds']>
+type CompareThresholdKey = keyof CompareThresholdPayload
+
+const COMPARE_THRESHOLD_KEYS = new Set<CompareThresholdKey>([
+  'performance',
+  'accessibility',
+  'seo',
+  'best-practices',
+  'agentic-browsing',
+  'lcp',
+  'cls',
+  'inp',
+  'fcp',
+  'ttfb',
+  'tbt',
+  'si',
+])
+
+// The cwv pack's base/current payloads are `unknown` in the contract (each pack
+// owns its shape); narrow to the fields this view reads.
+interface CwvPackMetric {
+  metric: string
+  p75: number | null
+  verdict: string | null
+}
+interface CwvPackData {
+  metrics?: CwvPackMetric[]
+}
 
 export interface CwvP75Row {
   metric: string
@@ -15,9 +50,15 @@ export interface CwvP75Row {
   verdict: string | null
 }
 
-export function thresholdPayload(thresholds: Record<string, string>): Record<string, number> | undefined {
-  const out: Record<string, number> = {}
+function isCompareThresholdKey(key: string): key is CompareThresholdKey {
+  return COMPARE_THRESHOLD_KEYS.has(key as CompareThresholdKey)
+}
+
+export function thresholdPayload(thresholds: Record<string, string>): CompareThresholdPayload | undefined {
+  const out: CompareThresholdPayload = {}
   for (const [k, v] of Object.entries(thresholds)) {
+    if (!isCompareThresholdKey(k))
+      continue
     const n = Number.parseFloat(v)
     if (!Number.isNaN(n) && v.trim() !== '')
       out[k] = n
@@ -78,15 +119,18 @@ export function useCompareWorkflow() {
   // Auto-pick the most recent prior scan on the same site (+ branch if the
   // current scan has one). Doesn't override an explicit URL pick.
   // Gated on currentMeta loading + no explicit base pick; when currentMeta
-  // arrives `enabled` flips and the query runs. `.catch(null)` keeps "no prior
-  // scan" an expected empty result rather than a surfaced error.
+  // arrives `enabled` flips and the query runs. A failed previous-scan lookup
+  // is an optional read and degrades to "no prior scan".
   const { data: autoBase } = useNuxtAsyncQuery<ScanId | null>(
     () => api['compare.findPrevious']({
       site: currentMeta.value!.site,
       device: currentMeta.value!.device,
       branch: currentMeta.value!.ciBranch ?? undefined,
       excludeScanId: currentScanId.value,
-    }).then(res => res.scanId ?? null).catch(() => null),
+    }).then(res => res.scanId ?? null).catch((err) => {
+      logOperationalWarn('ui.optional_api_read_failed', err, { command: 'compare.findPrevious', feature: 'compare-workflow' }, console)
+      return null
+    }),
     {
       key: () => `compare-auto:${currentScanId.value}`,
       enabled: () => !!currentMeta.value && !baseScanId.value,
@@ -118,11 +162,11 @@ export function useCompareWorkflow() {
     'inp': '',
   })
 
-  const report = ref<any>(null)
+  const report = ref<CompareDetailReport | null>(null)
   // Pack diffs come from compare.run (which is the threshold-based diff path);
   // compare.detail only carries route data. Keep it separate so filter/sort
   // changes do not refetch pack summaries.
-  const packReport = ref<any>(null)
+  const packReport = ref<CompareReport | null>(null)
   const copyingMarkdown = ref(false)
   const showLegacyMetrics = ref(false)
   const showPackDetails = ref(false)
@@ -137,7 +181,7 @@ export function useCompareWorkflow() {
       const res = await api['compare.markdown']({
         baseScanId: baseScanId.value,
         currentScanId: currentScanId.value,
-        thresholds: currentThresholdPayload() as any,
+        thresholds: currentThresholdPayload(),
       })
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(res.markdown)
@@ -154,8 +198,8 @@ export function useCompareWorkflow() {
       }
       toast.success(res.hasRegressions ? 'Copied — regressions present' : 'Copied to clipboard')
     }
-    catch (err: any) {
-      toast.error('Copy failed', { description: err.message })
+    catch (err) {
+      toast.error('Copy failed', { description: err instanceof Error ? err.message : String(err) })
     }
     finally {
       copyingMarkdown.value = false
@@ -167,9 +211,6 @@ export function useCompareWorkflow() {
     if (!base)
       return
     try {
-      // Typed command call (no `api as any`): only `thresholds` keeps a narrow
-      // cast — the UI builds a plain `Record<string, number>`, looser than the
-      // contract's `Partial<Record<ThresholdKey, number>>`.
       report.value = await api['compare.detail']({
         baseScanId: base,
         currentScanId: currentScanId.value,
@@ -181,11 +222,11 @@ export function useCompareWorkflow() {
           status: statusFilter.value,
           device: deviceFilter.value || undefined,
         },
-        thresholds: currentThresholdPayload() as never,
+        thresholds: currentThresholdPayload(),
       })
     }
-    catch (err: any) {
-      toast.error('Compare failed', { description: err.message })
+    catch (err) {
+      toast.error('Compare failed', { description: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -197,10 +238,11 @@ export function useCompareWorkflow() {
       packReport.value = await api['compare.run']({
         baseScanId: base,
         currentScanId: currentScanId.value,
-        thresholds: currentThresholdPayload() as never,
+        thresholds: currentThresholdPayload(),
       })
     }
-    catch {
+    catch (err) {
+      logOperationalWarn('ui.optional_api_read_failed', err, { command: 'compare.run', feature: 'compare-workflow-packs' }, console)
       packReport.value = null
     }
   }
@@ -208,16 +250,16 @@ export function useCompareWorkflow() {
   const cwvPackDiff = computed(() => {
     if (!packReport.value?.packDiffs)
       return null
-    return packReport.value.packDiffs.find((p: any) => p.packName === 'cwv') ?? null
+    return packReport.value.packDiffs.find(p => p.packName === 'cwv') ?? null
   })
 
   const cwvP75Rows = computed<CwvP75Row[]>(() => {
     const diff = cwvPackDiff.value
     if (!diff)
       return []
-    const baseMetrics: any[] = (diff.base as any)?.metrics ?? []
-    const currentMetrics: any[] = (diff.current as any)?.metrics ?? []
-    const byMetric = new Map<string, { base?: any, current?: any }>()
+    const baseMetrics = (diff.base as CwvPackData | null)?.metrics ?? []
+    const currentMetrics = (diff.current as CwvPackData | null)?.metrics ?? []
+    const byMetric = new Map<string, { base?: CwvPackMetric, current?: CwvPackMetric }>()
     for (const m of baseMetrics) byMetric.set(m.metric, { ...(byMetric.get(m.metric) || {}), base: m })
     for (const m of currentMetrics) byMetric.set(m.metric, { ...(byMetric.get(m.metric) || {}), current: m })
     const order = ['lcp', 'cls', 'inp']
@@ -242,7 +284,7 @@ export function useCompareWorkflow() {
   const otherPackChanges = computed(() => {
     if (!packReport.value?.packDiffs)
       return []
-    return packReport.value.packDiffs.filter((p: any) => p.packName !== 'cwv' && p.hasChanges)
+    return packReport.value.packDiffs.filter(p => p.packName !== 'cwv' && p.hasChanges)
   })
 
   async function handleCompare() {
@@ -289,14 +331,14 @@ export function useCompareWorkflow() {
   const hasMultipleDevices = computed(() => {
     if (!report.value?.routes?.items)
       return false
-    const devices = new Set(report.value.routes.items.map((r: any) => r.device))
+    const devices = new Set(report.value.routes.items.map(r => r.device))
     return devices.size > 1
   })
 
   const selectedRow = computed(() => {
     if (!selectedRowKey.value || !report.value)
       return null
-    return report.value.routes.items.find((r: any) => compareRowKey(r) === selectedRowKey.value) ?? null
+    return report.value.routes.items.find(r => compareRowKey(r) === selectedRowKey.value) ?? null
   })
 
   const totalPages = computed(() => {

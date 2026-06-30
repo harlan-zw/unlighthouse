@@ -5,14 +5,15 @@ import type { ScanRow } from '~/features/sites/scan-pairs'
 import { h } from 'vue'
 import { useDashboardOverview } from '~/features/dashboard/overview'
 import ScanStatusBadge from '~/features/scan/components/ScanStatusBadge.vue'
-import Sparkline from '~/features/sites/components/Sparkline.vue'
 
 definePageMeta({ layout: 'root', middleware: 'onboarding' })
+usePageTitle('Dashboard')
 
 const { scoreToColor, scoreToLabel } = useScoreColor()
 const { fmtRelTime } = useFormat()
 
 const FaviconC = resolveComponent('UiFavicon')
+const SparklineC = resolveComponent('UiSparkline')
 const {
   historyError,
   refreshHistory,
@@ -58,13 +59,13 @@ const siteColumns: ColumnDef<DashboardSiteRow>[] = [
     align: 'center',
     cell: ({ row }) => h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.avg)}` }, scoreToLabel(row.original.avg)),
   },
-  ...CAT_COLS.map(c => ({
+  ...CAT_COLS.map((c): ColumnDef<DashboardSiteRow> => ({
     id: c.key,
     accessorFn: (r: DashboardSiteRow) => r.cats[c.key] ?? undefined,
     header: c.label,
     sortUndefined: 'last' as const,
     align: 'center' as const,
-    cell: ({ row }: any) => {
+    cell: ({ row }) => {
       const v = row.original.cats[c.key] as number | undefined
       return h('span', { class: `text-xs font-semibold tabular-nums ${scoreToColor(v ?? null)}` }, scoreToLabel(v ?? null))
     },
@@ -74,7 +75,7 @@ const siteColumns: ColumnDef<DashboardSiteRow>[] = [
     header: 'Trend',
     enableSorting: false,
     align: 'left',
-    cell: ({ row }) => h(Sparkline, { values: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null) }),
+    cell: ({ row }) => h(SparklineC, { data: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null), width: '100%', height: 28, preserveAspectRatio: 'none' }),
   },
   {
     id: 'last',
@@ -95,7 +96,8 @@ const recentColumns: ColumnDef<ScanRow>[] = [
       try {
         return new URL(row.original.site).hostname + new URL(row.original.site).pathname.replace(/\/$/, '')
       }
-      catch {
+      catch (_err) {
+        // Recent scans can carry legacy site labels rather than absolute URLs.
         return row.original.site
       }
     })()),

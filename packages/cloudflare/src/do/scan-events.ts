@@ -16,6 +16,7 @@ import type {
   WebSocket as CFWebSocket,
   DurableObjectState,
 } from '@cloudflare/workers-types'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 
 interface SubscriberFilter {
   /** Event names to keep (`scan:created`, `scan:complete`, …). Omitted = all. */
@@ -27,7 +28,17 @@ interface SubscriberFilter {
 interface RawEvent {
   event: string
   payload?: { scanId?: string }
+  data?: { scanId?: string }
 }
+
+type WebSocketResponseInit = Omit<ResponseInit, 'webSocket'> & {
+  webSocket: CFWebSocket
+}
+
+type WebSocketResponseConstructor = new (
+  body?: BodyInit | null,
+  init?: WebSocketResponseInit,
+) => Response
 
 function parseFilter(raw: string | ArrayBuffer): SubscriberFilter | null {
   try {
@@ -42,7 +53,7 @@ function parseFilter(raw: string | ArrayBuffer): SubscriberFilter | null {
       out.scanId = parsed.scanId
     return out
   }
-  catch {
+  catch (_err) {
     return null
   }
 }
@@ -55,6 +66,15 @@ function matches(filter: SubscriberFilter | undefined, ev: RawEvent): boolean {
   if (filter.scanId && ev.payload?.scanId !== filter.scanId)
     return false
   return true
+}
+
+function closeWebSocket(ws: CFWebSocket, code: number, reason: string): void {
+  try {
+    ws.close(code, reason)
+  }
+  catch (err) {
+    logOperationalWarn('cloudflare.websocket_close_failed', err, { code, reason })
+  }
 }
 
 export class ScanEventsDO {
@@ -78,7 +98,16 @@ export class ScanEventsDO {
       // socket whose filter accepts it. Used by the Worker fetch handler
       // to forward events emitted by HandlerCtx hooks.
       if (request.method === 'POST') {
-        const event = await request.json().catch(() => null) as RawEvent | null
+        const event = await request.json().catch((err) => {
+          logOperationalWarn('cloudflare.scan_events_invalid_payload', err)
+          return null
+        }) as RawEvent | null
+        if (!event || typeof event.event !== 'string')
+          return new Response('invalid event payload', { status: 400 })
+        if (!event.data && event.payload)
+          event.data = event.payload
+        if (!event.payload && event.data)
+          event.payload = event.data
         if (event && typeof event.event === 'string')
           this.fanout(event)
         return new Response(null, { status: 204 })
@@ -97,9 +126,9 @@ export class ScanEventsDO {
     // the DO alive between events.
     this.state.acceptWebSocket(server)
 
-    return new Response(null, {
+    const WorkerResponse = Response as unknown as WebSocketResponseConstructor
+    return new WorkerResponse(null, {
       status: 101,
-      // @ts-expect-error - webSocket field is a Workers-specific Response option.
       webSocket: client,
     })
   }
@@ -114,8 +143,12 @@ export class ScanEventsDO {
       try {
         ws.send(payload)
       }
-      catch {
-        // Drop dead sockets silently; close handler will clean up.
+      catch (err) {
+        logOperationalWarn('cloudflare.websocket_send_failed', err, {
+          event: event.event,
+          scanId: event.payload?.scanId ?? event.data?.scanId,
+        })
+        closeWebSocket(ws, 1011, 'send failed')
       }
     }
   }
@@ -130,16 +163,10 @@ export class ScanEventsDO {
   }
 
   webSocketClose(ws: CFWebSocket, code: number, _reason: string, _wasClean: boolean): void {
-    try {
-      ws.close(code, 'closing')
-    }
-    catch {}
+    closeWebSocket(ws, code, 'closing')
   }
 
   webSocketError(ws: CFWebSocket, _err: unknown): void {
-    try {
-      ws.close(1011, 'error')
-    }
-    catch {}
+    closeWebSocket(ws, 1011, 'error')
   }
 }

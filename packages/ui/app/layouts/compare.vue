@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ScanId } from '@unlighthouse/contracts'
+
 // Dedicated full-bleed layout for the compare experience. No max-width
 // main, no global header — the page draws its own slim toolbar with
 // scan identity + actions so the entire viewport is usable for the
@@ -12,7 +14,7 @@ const colorMode = useColorMode()
 // returns to that scan's overview — that's where the user came from
 // (the compare button on the overview tools list). Previously the
 // link went to /history, which felt jarring as a "back" action.
-const currentScanId = computed(() => (route.params.id as string) || '')
+const currentScanId = computed(() => ((route.params.id as string) || '') as ScanId | '')
 
 // Resolve the scan's site so "Exit compare" lands directly on the new
 // /sites/{slug}/scans/{id} overview rather than bouncing through the
@@ -21,17 +23,13 @@ const currentScanId = computed(() => (route.params.id as string) || '')
 // falls back to the legacy /scan path — no error surface needed.
 const { data: exitMeta } = useApiQuery(
   'scan.meta',
-  () => ({ scanId: currentScanId.value as any }),
+  () => ({ scanId: currentScanId.value as ScanId }),
   { enabled: () => !!currentScanId.value },
 )
 const exitTo = computed(() => {
   const site = exitMeta.value?.site
-  if (currentScanId.value && site) {
-    try {
-      return `/sites/${siteSlug(site)}/scans/${currentScanId.value}/routes`
-    }
-    catch {}
-  }
+  if (currentScanId.value && site)
+    return `/sites/${siteSlug(site)}/scans/${currentScanId.value}/routes`
   return currentScanId.value ? `/scan/${currentScanId.value}/routes` : '/history'
 })
 

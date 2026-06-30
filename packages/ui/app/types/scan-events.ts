@@ -1,5 +1,16 @@
 import type { ScanId, ScanStatus } from '@unlighthouse/contracts'
 
+export interface UiStructuredError {
+  code: string
+  message: string
+  statusCode?: number
+  category?: 'fatal' | 'route-failed' | 'retryable' | 'validation'
+  retryable?: boolean
+  suggestion?: string
+  docsUrl?: string
+  details?: Record<string, unknown>
+}
+
 export interface ScanEventPayloads {
   'scan:created': {
     scanId: ScanId
@@ -25,7 +36,7 @@ export interface ScanEventPayloads {
   }
   'scan:route-failed': {
     url: string
-    error?: string
+    error?: string | UiStructuredError
   }
   'scan:paused': undefined
   'scan:resumed': undefined
@@ -38,7 +49,7 @@ export interface ScanEventPayloads {
     reason?: string
   } | undefined
   'scan:error': {
-    error?: string
+    error?: string | UiStructuredError
   } | undefined
   'log': {
     level?: 'info' | 'warn' | 'error' | string
@@ -68,7 +79,8 @@ export interface ScanEventBus {
 
 export interface WsEnvelope {
   event: string
-  data: unknown
+  data?: unknown
+  payload?: unknown
 }
 
 export type UiScanStatus = ScanStatus | 'idle'

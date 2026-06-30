@@ -2,6 +2,7 @@ import type { ScanId } from '@unlighthouse/contracts'
 import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
 import type { ActiveScanSnapshot } from '~/features/scan/progress-state'
 import type { ScanEventBus } from '~/types/scan-events'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { reactive } from 'vue'
 import { createScanProgressState } from '~/features/scan/progress-state'
 
@@ -47,6 +48,13 @@ function createScanStore() {
     return apiRef
   }
 
+  async function optionalApiRead<T>(command: string, promise: Promise<T>): Promise<T | null> {
+    return promise.catch((err) => {
+      logOperationalWarn('ui.optional_api_read_failed', err, { command }, console)
+      return null
+    })
+  }
+
   function setupWsListeners(ws: ScanEventBus) {
     ws.on('scan:created', progress.applyCreated)
     ws.on('scan:started', progress.applyStarted)
@@ -71,8 +79,8 @@ function createScanStore() {
       if (res.scanId) {
         scanId.value = res.scanId
         const [statusRes, metaRes] = await Promise.all([
-          api['scan.status']({ scanId: res.scanId }).catch(() => null),
-          api['scan.meta']({ scanId: res.scanId }).catch(() => null),
+          optionalApiRead('scan.status', api['scan.status']({ scanId: res.scanId })),
+          optionalApiRead('scan.meta', api['scan.meta']({ scanId: res.scanId })),
         ])
         if (metaRes) {
           site.value = metaRes.site
@@ -82,7 +90,9 @@ function createScanStore() {
         progress.applyStatusSnapshot(statusRes)
       }
     }
-    catch {}
+    catch (err) {
+      logOperationalWarn('ui.scan_hydrate_failed', err, undefined, console)
+    }
   }
 
   async function startScan(siteUrl: string, options?: ScanStartOptions) {
@@ -113,9 +123,9 @@ function createScanStore() {
     if (!id)
       return
     const [s, sum, routes] = await Promise.all([
-      api['scan.status']({ scanId: id }).catch(() => null),
-      api['scan.summary']({ scanId: id }).catch(() => null),
-      api['query.routes']({ scanId: id, page: 1, pageSize: 50 }).catch(() => null),
+      optionalApiRead('scan.status', api['scan.status']({ scanId: id })),
+      optionalApiRead('scan.summary', api['scan.summary']({ scanId: id })),
+      optionalApiRead('query.routes', api['query.routes']({ scanId: id, page: 1, pageSize: 50 })),
     ])
     // A tick that resolves after the user switched scans must not clobber the
     // new scan's state.

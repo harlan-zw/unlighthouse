@@ -4,6 +4,7 @@ import type {
   MetricName,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
+import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
 import { routeMetricValue, routeNumericValue } from './route-metrics'
 
 export interface RouteFilterInput {
@@ -124,5 +125,5 @@ export function projectRoute(route: ScanRoute, projection: readonly string[]): S
   for (const metric of ['lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si'])
     out[metric] = keep.has(metric) ? routeNumericValue(route, metric) : null
 
-  return out as unknown as ScanRoute
+  return ScanRouteSchema.parse(out)
 }

@@ -25,7 +25,8 @@ const display = computed(() => {
     const u = new URL(url)
     return u.pathname + u.search
   }
-  catch {
+  catch (_err) {
+    // Table cells may receive already-formatted paths.
     return url
   }
 })

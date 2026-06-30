@@ -9,6 +9,8 @@ const scanId = getScanId()
 const rest = route.params.rest
 const restPath = Array.isArray(rest) ? rest.join('/') : (rest as string)
 
+usePageTitle('Opening Scan')
+
 if (restPath.startsWith('compare')) {
   await navigateTo(`/compare/${scanId}`, { replace: true })
 }
@@ -18,7 +20,8 @@ else {
     const slug = siteSlug(meta.site)
     await navigateTo(`/sites/${slug}/scans/${scanId}/${restPath}`, { replace: true })
   }
-  catch {
+  catch (_err) {
+    // Legacy deep-link metadata lookup failed; fall back to the history page.
     await navigateTo('/history', { replace: true })
   }
 }

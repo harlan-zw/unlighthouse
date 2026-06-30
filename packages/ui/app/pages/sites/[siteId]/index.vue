@@ -29,6 +29,8 @@ const {
   histError,
   refreshHistory,
 } = useSiteOverview()
+
+usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`))
 </script>
 
 <template>

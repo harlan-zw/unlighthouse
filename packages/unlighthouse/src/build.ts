@@ -9,6 +9,9 @@ import type {
 import { Buffer } from 'node:buffer'
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
+import { parseScanId } from '@unlighthouse/contracts'
+import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { buildStaticSnapshot } from '@unlighthouse/core/api/static-client'
 import { withLeadingSlash, withTrailingSlash } from 'ufo'
 
@@ -72,11 +75,12 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
 
   // Resolve current scan via runtimeSettings; absent → empty payload.
   const scanId = runtimeSettings.currentScanId
+  const parsedScanId = scanId ? parseScanId(scanId) : null
   let routes: Awaited<ReturnType<Storage['routes']['listForScan']>>['items'] = []
   let scanMeta: ScanMeta = { favicon: undefined, routes: 0, score: 0 }
 
-  if (scanId) {
-    const list = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+  if (parsedScanId) {
+    const list = await storage.routes.listForScan(parsedScanId, { pageSize: 10_000 })
     routes = list.items
     const scoreValues = routes.map(r => r.scorePerformance).filter((s): s is number => s != null)
     const score = scoreValues.length ? scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length : 0
@@ -90,16 +94,17 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
   // Full offline snapshot (#290): embed every scan's rows + contract blobs so the
   // static client serves the dashboard (incl. the homepage/all routes) with no API.
   let snapshot: Awaited<ReturnType<typeof buildStaticSnapshot>> | undefined
-  if (options.static && scanId) {
+  if (options.static && parsedScanId) {
     try {
       snapshot = await buildStaticSnapshot({
         storage,
-        scanId: scanId as never,
-        config: resolvedConfig as never,
+        scanId: parsedScanId,
+        config: UnlighthouseConfigSchema.parse(resolvedConfig),
+        logger,
       })
     }
     catch (err) {
-      logger?.warn?.('Failed to build static snapshot; report will be data-less offline.', err)
+      logOperationalWarn('host.static_snapshot_build_failed', err, { scanId: parsedScanId }, logger)
     }
   }
 
@@ -157,8 +162,12 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
               ext = 'jpeg'
             }
           }
-          catch {
-            // unreadable LHR — skip this route's screenshot
+          catch (err) {
+            logOperationalWarn('host.static_screenshot_extract_failed', err, {
+              scanId: parsedScanId,
+              routePath: r.path,
+              lhrBlobKey: r.lhrBlobKey,
+            }, logger)
           }
         }
       }

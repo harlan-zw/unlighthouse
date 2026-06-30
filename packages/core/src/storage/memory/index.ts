@@ -14,14 +14,42 @@ import type {
   Storage,
 } from '@unlighthouse/contracts/ports'
 import type {
+  Category,
   Device,
   ExtractedMetrics,
+  MetricName,
   Paginated,
   Scan,
   ScanId,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
+import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
 import { sha1Hex } from '../../util/sha1'
+
+const SCORE_FILTER_KEYS = ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'] as const satisfies readonly Category[]
+const SCORE_FILTER_COLUMNS = {
+  'performance': 'scorePerformance',
+  'accessibility': 'scoreAccessibility',
+  'seo': 'scoreSeo',
+  'best-practices': 'scoreBestPractices',
+  'agentic-browsing': 'scoreAgenticBrowsing',
+} as const satisfies Record<Category, keyof ScanRoute>
+
+const METRIC_FILTER_KEYS = ['lcp', 'cls', 'inp', 'fcp', 'ttfb', 'tbt', 'si'] as const satisfies readonly MetricName[]
+const METRIC_FILTER_COLUMNS = {
+  lcp: 'lcp',
+  cls: 'cls',
+  inp: 'inp',
+  fcp: 'fcp',
+  ttfb: 'ttfb',
+  tbt: 'tbt',
+  si: 'si',
+} as const satisfies Record<MetricName, keyof ScanRoute>
+
+function numericRouteValue(route: ScanRoute, column: keyof ScanRoute): number | null {
+  const value = route[column]
+  return typeof value === 'number' ? value : null
+}
 
 /**
  * Pure in-memory `Storage`. Used by:
@@ -57,13 +85,13 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     return sha1Hex(url).slice(0, 16)
   }
 
-  function toRoute(scanId: string, device: Device, m: ExtractedMetrics): ScanRoute {
-    return {
+  function toRoute(scanId: ScanId, device: Device, m: ExtractedMetrics): ScanRoute {
+    return ScanRouteSchema.parse({
       ...clone(m),
-      scanId: scanId as ScanId,
+      scanId,
       device,
       lhrBlobKey: `scans/${scanId}/lhr/${urlHash(m.url)}-${device}.json.gz`,
-    } as ScanRoute
+    })
   }
 
   const routeKey = (url: string, device: Device) => `${url}|${device}`
@@ -154,26 +182,26 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
       // matches between hosts.
       if (q?.filter) {
         const f = q.filter
-        const scoreCol = {
-          'performance': 'scorePerformance',
-          'accessibility': 'scoreAccessibility',
-          'seo': 'scoreSeo',
-          'best-practices': 'scoreBestPractices',
-        } as const
         all = all.filter((r) => {
           if (f.urlPattern && !r.url.includes(f.urlPattern))
             return false
           if (f.minScore) {
-            for (const [cat, min] of Object.entries(f.minScore)) {
-              const v = (r as unknown as Record<string, number | null>)[scoreCol[cat as keyof typeof scoreCol]]
-              if (v == null || v < (min as number))
+            for (const category of SCORE_FILTER_KEYS) {
+              const min = f.minScore[category]
+              if (typeof min !== 'number')
+                continue
+              const v = numericRouteValue(r, SCORE_FILTER_COLUMNS[category])
+              if (v == null || v < min)
                 return false
             }
           }
           if (f.maxMetric) {
-            for (const [metric, max] of Object.entries(f.maxMetric)) {
-              const v = (r as unknown as Record<string, number | null>)[metric]
-              if (v != null && v > (max as number))
+            for (const metric of METRIC_FILTER_KEYS) {
+              const max = f.maxMetric[metric]
+              if (typeof max !== 'number')
+                continue
+              const v = numericRouteValue(r, METRIC_FILTER_COLUMNS[metric])
+              if (v != null && v > max)
                 return false
             }
           }

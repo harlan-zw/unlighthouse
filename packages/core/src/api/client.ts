@@ -4,12 +4,14 @@
 // projection and honours `http.*` overrides / `query.` prefix / PUT / DELETE.
 
 import type {
+  Command,
   CommandInput,
   CommandName,
   CommandOutput,
   CommandRegistry,
 } from '@unlighthouse/contracts/commands'
 import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
+import { ErrorCodes, errorFromEnvelope, isErrorEnvelope, UnlighthouseError } from '@unlighthouse/contracts/errors'
 
 export interface CreateClientOptions {
   /** Base URL of the HTTP projection (e.g. '/api', or 'https://host/api'). */
@@ -26,8 +28,12 @@ export type UnlighthouseClient = {
     : (input: CommandInput<CommandRegistry[K]>) => Promise<CommandOutput<CommandRegistry[K]>>
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function toSearchParams(input: unknown): string {
-  if (!input || typeof input !== 'object')
+  if (!isRecord(input))
     return ''
   const params = new URLSearchParams()
   function flatten(obj: Record<string, unknown>, prefix = '') {
@@ -39,12 +45,12 @@ function toSearchParams(input: unknown): string {
       if (t === 'string' || t === 'number' || t === 'boolean') {
         params.set(key, String(v))
       }
-      else if (t === 'object' && !Array.isArray(v)) {
-        flatten(v as Record<string, unknown>, key)
+      else if (isRecord(v)) {
+        flatten(v, key)
       }
     }
   }
-  flatten(input as Record<string, unknown>)
+  flatten(input)
   const s = params.toString()
   return s ? `?${s}` : ''
 }
@@ -52,19 +58,46 @@ function toSearchParams(input: unknown): string {
 async function parseErrorAndThrow(res: Response): Promise<never> {
   let code = `HTTP_${res.status}`
   let message = res.statusText || `Request failed with status ${res.status}`
-  await res.text().then((text) => {
-    if (!text)
-      return
-    return Promise.resolve().then(() => JSON.parse(text)).then((body) => {
-      if (body && typeof body === 'object' && body.error) {
-        code = body.error.code || code
-        message = body.error.message || message
+  let typedError: UnlighthouseError | null = null
+  const text = await res.text()
+  if (text) {
+    try {
+      const body = JSON.parse(text)
+      if (isErrorEnvelope(body)) {
+        typedError = errorFromEnvelope(body)
+        code = typedError.code || code
+        message = typedError.message || message
       }
-    }).catch(() => {})
+    }
+    catch (_err) {
+      // Non-JSON error bodies fall back to the HTTP status text.
+    }
+  }
+  const err = typedError ?? new UnlighthouseError({
+    code,
+    message,
+    statusCode: res.status,
+    retryable: res.status >= 500 || res.status === 429,
   })
-  const err = new Error(message)
+  // Back-compat with the previous client, which threw plain Error objects with
+  // `name` set to the machine code.
   err.name = code
   throw err
+}
+
+function parseCommandOutput<C extends Command>(
+  cmd: C,
+  value: unknown,
+): CommandOutput<C> {
+  const parsed = cmd.output.safeParse(value)
+  if (!parsed.success) {
+    throw new UnlighthouseError({
+      code: ErrorCodes.INTERNAL,
+      message: `${cmd.name}: response did not match its output contract.`,
+      cause: parsed.error,
+    })
+  }
+  return parsed.data as CommandOutput<C>
 }
 
 export function createClient(opts: CreateClientOptions = {}): UnlighthouseClient {
@@ -102,13 +135,13 @@ export function createClient(opts: CreateClientOptions = {}): UnlighthouseClient
               const line = buffer.slice(0, nl).trim()
               buffer = buffer.slice(nl + 1)
               if (line)
-                yield JSON.parse(line)
+                yield parseCommandOutput(cmd, JSON.parse(line))
               nl = buffer.indexOf('\n')
             }
           }
           const tail = buffer.trim()
           if (tail)
-            yield JSON.parse(tail)
+            yield parseCommandOutput(cmd, JSON.parse(tail))
         }
         return iterate()
       }
@@ -135,7 +168,7 @@ export function createClient(opts: CreateClientOptions = {}): UnlighthouseClient
         await parseErrorAndThrow(res)
       // Empty body → undefined; otherwise JSON.
       const text = await res.text()
-      return text ? JSON.parse(text) : undefined
+      return parseCommandOutput(cmd, text ? JSON.parse(text) : undefined)
     }
   }
 

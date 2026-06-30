@@ -3,12 +3,15 @@ import type { CruxData } from '@unlighthouse/contracts'
 import { getScanId } from '~/features/scan/route-context'
 
 definePageMeta({ layout: 'scan' })
+useScanPageTitle('CrUX Field Data')
 
 const scanId = getScanId()
 
 const { data: cruxPack, status, error: cruxError, refresh: refreshCrux } = useApiQuery('pack.run', () => ({ scanId, pack: 'crux' }))
 
-const data = computed<CruxData | null>(() => (cruxPack.value as any)?.report ?? null)
+// pack.run types `report` as the PackReport union, which doesn't include the
+// CruxData shape this pack actually returns at runtime — cast through unknown.
+const data = computed<CruxData | null>(() => (cruxPack.value?.report as unknown as CruxData | undefined) ?? null)
 
 const activeDevice = ref<'phone' | 'desktop'>('phone')
 

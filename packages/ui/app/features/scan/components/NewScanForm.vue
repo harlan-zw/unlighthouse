@@ -104,15 +104,15 @@ async function handleSubmit() {
     // (empty until done) results table, not the live progress.
     router.push(`/sites/${siteSlug(url)}/scans/${result.scanId}/overview`)
   }
-  catch (err: any) {
-    if (err.name === 'ACTIVE_SCAN_CONFLICT') {
+  catch (err) {
+    if (err instanceof Error && err.name === 'ACTIVE_SCAN_CONFLICT') {
       toast.error('A scan is already running')
       if (store.scanId) {
         router.push(`/sites/${siteSlug(store.site || url)}/scans/${store.scanId}/overview`)
       }
     }
     else {
-      toast.error('Failed to start scan', { description: err.message })
+      toast.error('Failed to start scan', { description: err instanceof Error ? err.message : String(err) })
     }
   }
   finally {

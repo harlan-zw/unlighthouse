@@ -42,6 +42,8 @@ const props = withDefaults(defineProps<Props>(), {
   loadingMessage: 'Loading...',
 })
 
+useScanPageTitle(() => props.title)
+
 const ready = computed(() => props.status !== 'pending' && !!props.report)
 </script>
 

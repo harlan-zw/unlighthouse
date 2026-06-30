@@ -62,7 +62,8 @@ function normaliseImageUrl(url: string): string {
     const u = new URL(url)
     return `${u.origin}${u.pathname}`
   }
-  catch {
+  catch (_err) {
+    // Non-URL image identifiers still group by their queryless label.
     return url.split('?')[0] ?? url
   }
 }
@@ -227,7 +228,10 @@ function extractMissingAlt(routeUrl: string, lhr: LhrLike, sink: Map<string, Raw
 // Returns null when neither substrate is available (caller skips the row).
 async function loadRouteAuditsAsLhrLike(url: string, ctx: PackReconcileCtx): Promise<LhrLike | null> {
   if (ctx.getReconciled) {
-    const reconciled = await ctx.getReconciled(url, 'mobile').catch(() => null) as
+    const reconciled = await ctx.getReconciled(url, 'mobile').catch((err) => {
+      ctx.logger?.debug?.(`images pack: failed to load reconciled report for ${url} [mobile]`, err)
+      return null
+    }) as
       | { audits?: Record<string, {
         score: number | null
         metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
@@ -276,7 +280,10 @@ async function loadRouteAuditsAsLhrLike(url: string, ctx: PackReconcileCtx): Pro
     }
   }
   if (ctx.getLhr) {
-    return (await ctx.getLhr(url, 'mobile').catch(() => null)) as LhrLike | null
+    return (await ctx.getLhr(url, 'mobile').catch((err) => {
+      ctx.logger?.debug?.(`images pack: failed to load LHR for ${url} [mobile]`, err)
+      return null
+    })) as LhrLike | null
   }
   return null
 }

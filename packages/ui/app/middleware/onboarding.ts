@@ -15,7 +15,7 @@ export default defineNuxtRouteMiddleware(async () => {
     if (sites.sites.length === 0 && history.total === 0)
       return navigateTo('/onboarding')
   }
-  catch {
+  catch (_err) {
     // Backend unreachable — let `/` render and surface its own error state
     // rather than bouncing to onboarding on a transient failure.
   }

@@ -65,8 +65,8 @@ const {
 } = defineProps<Props>()
 
 defineSlots<{
-  default?: () => any
-  text?: () => any
+  default?: () => unknown
+  text?: () => unknown
 }>()
 
 const slots = useSlots()

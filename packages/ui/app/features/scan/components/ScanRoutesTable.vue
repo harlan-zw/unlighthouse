@@ -38,6 +38,8 @@ const {
   copyRouteUrl,
   rescanRoute,
   openRoute,
+  resultsError,
+  refresh,
 } = useScanRoutesTable()
 
 const overallScore = overallRouteScore
@@ -49,7 +51,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       id: 'thumbnail',
       header: '',
       enableSorting: false,
-      meta: { headClass: 'w-[140px]' },
+      headClass: 'w-[140px]',
       cell: ({ row }) => {
         const path = row.original.path || row.original.url
         const src = screenshotUrl(scanId.value, path)
@@ -69,7 +71,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     {
       accessorKey: 'path',
       header: 'Path',
-      meta: { headClass: 'min-w-[200px]' },
+      headClass: 'min-w-[200px]',
       cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-xs' }, row.original.path || row.original.url),
     },
   ]
@@ -79,7 +81,8 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       accessorKey: 'device',
       header: 'Device',
       enableSorting: false,
-      meta: { align: 'center', headClass: 'w-16' },
+      align: 'center',
+      headClass: 'w-16',
       cell: ({ row }) => h(resolveComponent('UiIcon'), {
         name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
         class: 'size-3.5 text-muted',
@@ -93,7 +96,8 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       accessorFn: (row: RouteRow) => (row[s.key] as number | null) ?? undefined,
       header: s.label,
       sortUndefined: 'last',
-      meta: { align: 'center', headClass: 'w-16' },
+      align: 'center',
+      headClass: 'w-16',
       cell: ({ row }) => {
         const score = row.original[s.key] as number | null
         return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
@@ -111,7 +115,8 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       },
       header: 'Δ',
       sortUndefined: 'last',
-      meta: { align: 'right', headClass: 'w-16' },
+      align: 'right',
+      headClass: 'w-16',
       cell: ({ row }) => {
         const prev = prevMap.value?.get(row.original.path || row.original.url)
         const cur = overallScore(row.original)
@@ -134,7 +139,8 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       accessorFn: (row: RouteRow) => (row[m.key] as number | null) ?? undefined,
       header: m.label,
       sortUndefined: 'last',
-      meta: { align: 'right', headClass: 'w-20' },
+      align: 'right',
+      headClass: 'w-20',
       cell: ({ row }) => h('span', { class: `tabular-nums text-xs font-medium ${cwvColor(m.key, row.original[m.key] as number | null)}` }, formatMetric(row.original[m.key] as number | null, m.unit)),
     })
   }
@@ -236,44 +242,48 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       />
     </div>
 
-    <DataTable
-      ref="tableRef"
-      v-model:sorting="sorting"
-      :columns="columns"
-      :data="filtered"
-      :density="density"
-      sticky-header
-      container-class="border-y"
-      row-clickable
-      @row-click="openRoute"
-    >
-      <template #actions="{ row }">
-        <UDropdownMenu
-          :items="[
-            { label: 'View details', icon: 'chart-bar', onSelect: () => openRoute(row) },
-            { label: 'Open page', icon: 'external', to: row.url, target: '_blank' },
-            { label: 'Copy URL', icon: 'copy', onSelect: () => copyRouteUrl(row) },
-            { type: 'separator' },
-            { label: 'Rescan route', icon: 'refresh', onSelect: () => rescanRoute(row) },
-          ]"
-          :content="{ align: 'end' }"
-        >
-          <UiButton purpose="quiet" size="sm" icon="more-horizontal" class="size-7 p-0 justify-center" aria-label="Route actions" @click.stop />
-        </UDropdownMenu>
-      </template>
+    <QueryError :error="resultsError" :on-retry="refresh" />
 
-      <template #empty>
-        <p v-if="store.isActive">
-          Routes will appear as they are scanned...
-        </p>
-        <p v-else-if="q || quick !== 'all'">
-          No routes match the current filter.
-        </p>
-        <p v-else>
-          No routes found.
-        </p>
-      </template>
-    </DataTable>
+    <div class="border-y">
+      <UiTable
+        ref="tableRef"
+        v-model:sorting="sorting"
+        :columns="columns"
+        :data="filtered"
+        :size="density === 'compact' ? 'sm' : 'md'"
+        enable-sorting
+        :page-size="500"
+        row-clickable
+        @row-click="openRoute"
+      >
+        <template #actions="{ row }">
+          <UDropdownMenu
+            :items="[
+              { label: 'View details', icon: 'chart-bar', onSelect: () => openRoute(row) },
+              { label: 'Open page', icon: 'external', to: row.url, target: '_blank' },
+              { label: 'Copy URL', icon: 'copy', onSelect: () => copyRouteUrl(row) },
+              { type: 'separator' },
+              { label: 'Rescan route', icon: 'refresh', onSelect: () => rescanRoute(row) },
+            ]"
+            :content="{ align: 'end' }"
+          >
+            <UiButton purpose="quiet" size="sm" icon="more-horizontal" class="size-7 p-0 justify-center" aria-label="Route actions" @click.stop />
+          </UDropdownMenu>
+        </template>
+
+        <template #empty-component>
+          <p v-if="store.isActive">
+            Routes will appear as they are scanned...
+          </p>
+          <p v-else-if="q || quick !== 'all'">
+            No routes match the current filter.
+          </p>
+          <p v-else>
+            No routes found.
+          </p>
+        </template>
+      </UiTable>
+    </div>
 
     <p v-if="truncated" class="text-xs text-muted">
       Showing the first {{ allRows.length }} of {{ total }} routes.

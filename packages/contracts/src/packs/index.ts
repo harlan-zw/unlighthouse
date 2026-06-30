@@ -12,7 +12,7 @@
 //      a process; closures over storage / logger; not serialisable.
 
 import type { Logger } from '../ports/core'
-import type { Device, ScanId, ScanRoute } from '../types/atoms'
+import type { Device, ReconciledReport, ScanId, ScanRoute } from '../types/atoms'
 import { z } from 'zod'
 import { ScanIdSchema } from '../types/atoms'
 
@@ -48,7 +48,7 @@ export type PackRun = z.infer<typeof PackRunSchema>
 export interface PackReconcileCtx {
   scanId: ScanId
   routes: ScanRoute[]
-  getReconciled?: (url: string, device: Device) => Promise<unknown>
+  getReconciled?: (url: string, device: Device) => Promise<ReconciledReport | null>
   getLhr?: (url: string, device: Device) => Promise<unknown>
   logger?: Logger
 }

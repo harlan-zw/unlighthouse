@@ -1,31 +1,8 @@
 import type { BlobStore } from '@unlighthouse/contracts/ports'
-import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import { ReconciledReportSchema } from '@unlighthouse/contracts/types/atoms'
 
-export interface RouteContract {
-  categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
-  audits: Record<string, {
-    id: string
-    score: number | null
-    scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
-    displayValue: string | null
-    title: string | null
-    description: string | null
-    severity: 'pass' | 'warn' | 'fail'
-    metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
-    items: unknown[] | null
-  }>
-  provenance?: {
-    lighthouseVersion: string
-    userAgent: string | null
-    capturedAt: string
-    benchmarkIndex: number | null
-    timingTotal: number | null
-    warnings: string[]
-    runtimeError: { code: string, message: string } | null
-  }
-  stackPacks?: Array<{ id: string, title: string, iconDataURL: string | null, descriptions: Record<string, string> }> | null
-  entities?: Array<{ name: string, isFirstParty: boolean, origins: string[] }> | null
-}
+export type RouteContract = ReconciledReport
 
 export function routeContractBlobKeyForReport(reportBlobKey: string | null | undefined): string | null {
   if (!reportBlobKey)
@@ -39,9 +16,10 @@ export function routeContractBlobKey(route: Pick<ScanRoute, 'reportBlobKey'>): s
 
 export function parseRouteContract(blob: Uint8Array): RouteContract | null {
   try {
-    return JSON.parse(new TextDecoder().decode(blob)) as RouteContract
+    return ReconciledReportSchema.parse(JSON.parse(new TextDecoder().decode(blob)))
   }
-  catch {
+  catch (_err) {
+    // Corrupt or non-JSON contract blobs are treated as cache misses.
     return null
   }
 }

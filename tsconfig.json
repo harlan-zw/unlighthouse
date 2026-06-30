@@ -25,6 +25,7 @@
       "@unlighthouse/contracts/drizzle": ["./packages/contracts/src/drizzle/index.ts"],
       "@unlighthouse/contracts/errors": ["./packages/contracts/src/errors/index.ts"],
       "@unlighthouse/contracts/hooks": ["./packages/contracts/src/hooks/index.ts"],
+      "@unlighthouse/contracts/logging": ["./packages/contracts/src/logging/index.ts"],
       "@unlighthouse/contracts/packs": ["./packages/contracts/src/packs/index.ts"],
       "@unlighthouse/contracts/ports": ["./packages/contracts/src/ports/index.ts"],
       "@unlighthouse/contracts/types/atoms": ["./packages/contracts/src/types/atoms.ts"],

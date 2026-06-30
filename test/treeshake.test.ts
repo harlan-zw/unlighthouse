@@ -22,7 +22,7 @@ let rolldownMod: typeof import('rolldown')
 try {
   rolldownMod = req('rolldown')
 }
-catch {
+catch (_err) {
   // Fallback: pnpm content-addressed path.
   rolldownMod = req(
     resolve(__dirname, '../node_modules/.pnpm/rolldown@1.0.0/node_modules/rolldown/dist/index.mjs'),

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createAdapterHooks } from '../packages/contracts/src/hooks/adapter'
 
-interface Events extends Record<string, (...args: any[]) => unknown | Promise<unknown>> {
+interface Events extends Record<string, (...args: never[]) => unknown | Promise<unknown>> {
   foo: (payload: { n: number }) => void
   bar: (a: string, b: number) => Promise<void>
 }

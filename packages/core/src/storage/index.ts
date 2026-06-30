@@ -61,7 +61,7 @@ export function createStorage(opts: CreateStorageOptions): Storage {
     comparisons: opts.rows.comparisons ?? emptyComparisons,
     packRuns: opts.rows.packRuns,
     // Internal escape hatch for processScanData / assertions / compareScans.
-    // Not part of the contract; read-via-`as { db?: any }` at call sites.
+    // Exposed as `unknown` on the Storage contract; callers must narrow.
     ...(opts.rows.db !== undefined ? { db: opts.rows.db } : {}),
   } as Storage
 }

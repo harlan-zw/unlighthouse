@@ -66,7 +66,7 @@ export function parallelMapCrawler(opts: ParallelMapCrawlerOptions = {}): Crawle
     state = 'running'
 
     const signal = runOpts.signal
-    const scanId = (globalThis as any).crypto?.randomUUID?.() ?? `scan-${Date.now()}`
+    const scanId = globalThis.crypto?.randomUUID?.() ?? `scan-${Date.now()}`
     const ctx: CrawlCtx = { scanId, signal }
 
     const queue: CrawlEvent[] = []
@@ -186,7 +186,9 @@ export function parallelMapCrawler(opts: ParallelMapCrawlerOptions = {}): Crawle
     finally {
       if (signal)
         signal.removeEventListener('abort', onAbort)
-      await dispatch.catch(() => {})
+      await dispatch.catch((err) => {
+        opts.logger?.warn?.('parallel crawler dispatch failed during cleanup', err)
+      })
       state = 'idle'
     }
   }

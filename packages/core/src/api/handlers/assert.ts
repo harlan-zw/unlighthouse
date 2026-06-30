@@ -6,6 +6,7 @@ import type {
 } from '@unlighthouse/contracts/commands'
 import type { Assertion, AssertionResult, Category, MetricName, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Handler } from './types'
+import { parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { isRouteCategory, routeIdentityKey, routeMetricValue } from './route-metrics'
 import { loadScanRoutes } from './scan-routes'
 
@@ -47,7 +48,7 @@ function evalAssertion(assertion: Assertion, routes: ScanRoute[], baseByKey: Map
     assertion,
     passed: worstDelta <= assertion.value,
     actual: worstDelta,
-    url: worstUrl as never,
+    ...(worstUrl ? { url: parseUrl(worstUrl) } : {}),
   }
 }
 

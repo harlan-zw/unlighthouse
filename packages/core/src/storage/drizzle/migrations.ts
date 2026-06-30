@@ -143,7 +143,7 @@ export function ensureSchema(db: Database, opts: EnsureSchemaOptions = {}): stri
       db.exec(ddl)
       opts.onAdd?.(`${table}.${column}`)
     }
-    catch {
+    catch (_err) {
       // fall through to the post-check
     }
     if (!hasColumn(db, table, column)) {

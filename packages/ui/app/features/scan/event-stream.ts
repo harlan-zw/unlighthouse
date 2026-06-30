@@ -88,7 +88,8 @@ export function createScanEventStream(deps: {
       try {
         json = JSON.stringify(payload, null, 2)
       }
-      catch {
+      catch (_err) {
+        // Non-serializable payloads still render through String().
         json = String(payload)
       }
 

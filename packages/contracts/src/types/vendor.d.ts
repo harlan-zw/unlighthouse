@@ -1,4 +1,4 @@
 declare module 'third-party-web' {
-  const ThirdPartyWeb: any
+  const ThirdPartyWeb: unknown
   export default ThirdPartyWeb
 }

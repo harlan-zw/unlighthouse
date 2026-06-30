@@ -11,12 +11,22 @@ import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { buildCliArgs, buildNpxArgs, buildPrCommentRequest, extractPrNumber, parseBooleanInput } from './index'
+
+const actionOperationalLogger = {
+  warn(message: unknown, meta?: unknown) {
+    process.stderr.write(`::warning::${String(message)}${meta ? ` ${JSON.stringify(meta)}` : ''}\n`)
+  },
+  error(message: unknown, meta?: unknown) {
+    process.stderr.write(`::error::${String(message)}${meta ? ` ${JSON.stringify(meta)}` : ''}\n`)
+  },
+}
 
 function readInputs(): ActionInputs {
   const site = (process.env.UNLIGHTHOUSE_SITE ?? '').trim()
   if (!site) {
-    console.error('::error::Input `site` is required.')
+    process.stderr.write('::error::Input `site` is required.\n')
     process.exit(1)
   }
   return {
@@ -73,7 +83,7 @@ async function postPrComment(markdown: string): Promise<void> {
     payload = JSON.parse(await readFile(eventPath, 'utf8'))
   }
   catch (err) {
-    console.warn(`::warning::Failed to parse GITHUB_EVENT_PATH — skipping PR comment: ${(err as Error).message}`)
+    logOperationalWarn('github_action.pr_context_parse_failed', err, { eventPath }, actionOperationalLogger)
     return
   }
 
@@ -86,8 +96,14 @@ async function postPrComment(markdown: string): Promise<void> {
   const { url, init } = buildPrCommentRequest({ repository, prNumber, body: markdown, token })
   const res = await fetch(url, init)
   if (!res.ok) {
-    const text = await res.text().catch(() => '<no body>')
-    console.error(`::error::Failed to post PR comment (HTTP ${res.status}): ${text}`)
+    let text = '<no body>'
+    try {
+      text = await res.text()
+    }
+    catch (err) {
+      logOperationalWarn('github_action.response_body_read_failed', err, { status: res.status }, actionOperationalLogger)
+    }
+    process.stderr.write(`::error::Failed to post PR comment (HTTP ${res.status}): ${text}\n`)
     process.exit(1)
   }
   process.stdout.write(`Posted Unlighthouse comparison to PR #${prNumber}.\n`)
@@ -131,6 +147,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error(`::error::${(err as Error).stack ?? err}`)
+  process.stderr.write(`::error::${(err as Error).stack ?? err}\n`)
   process.exit(1)
 })

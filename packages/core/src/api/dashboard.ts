@@ -17,6 +17,8 @@ import type { Storage } from '@unlighthouse/contracts'
 import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Router } from 'h3'
 import { Buffer } from 'node:buffer'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
 import { createTaggedLogger } from '../logger'
 import { loadRouteContract } from '../report/route-contracts'
@@ -32,7 +34,7 @@ interface DashboardRouteMatch {
 async function findDashboardRoute(storage: Storage, scanId: string, path: string, device?: string): Promise<DashboardRouteMatch | null> {
   const decodedPath = decodeURIComponent(path)
   const normalisedPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
-  const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+  const { items: routes } = await storage.routes.listForScan(parseScanId(scanId), { pageSize: 10_000 })
   const matches = routes.filter(route => route.path === decodedPath || route.path === normalisedPath)
   if (matches.length === 0)
     return null
@@ -148,13 +150,14 @@ export function createDashboardApi(storage: Storage): Router {
   // each; downloadable individually via /lhr/...).
   router.get('/export/:scanId', defineEventHandler(async (event) => {
     const { scanId } = getRouterParams(event) as { scanId: string }
-    const scan = await storage.scans.get(scanId as never)
+    const parsedScanId = parseScanId(scanId)
+    const scan = await storage.scans.get(parsedScanId)
     if (!scan) {
       setResponseStatus(event, 404)
       return { error: 'Scan not found' }
     }
 
-    const { items: routes } = await storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+    const { items: routes } = await storage.routes.listForScan(parsedScanId, { pageSize: 10_000 })
 
     // CSV projection — flat per-route rows for spreadsheets / Sheets (#141,
     // #135). Scores as 0–100 integers, CWV metrics raw, blank for nulls.
@@ -197,7 +200,10 @@ export function createDashboardApi(storage: Storage): Router {
       return { ...r, contract }
     }))
 
-    const packRuns = await storage.packRuns.listForScan(scanId as never).catch(() => [])
+    const packRuns = await storage.packRuns.listForScan(parsedScanId).catch((err) => {
+      logOperationalWarn('dashboard.pack_runs_read_failed', err, { scanId: parsedScanId }, log)
+      return []
+    })
 
     const payload = {
       exportVersion: 1,

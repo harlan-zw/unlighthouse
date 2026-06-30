@@ -17,7 +17,8 @@ export function useBackendHealth() {
       await api.health({})
       healthy.value = true
     }
-    catch {
+    catch (_err) {
+      // Health failures are represented by the returned reactive state.
       healthy.value = false
     }
   }

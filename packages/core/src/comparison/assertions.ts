@@ -1,9 +1,8 @@
-import type { ScanRouteRow } from '@unlighthouse/contracts/drizzle'
+import type { ScanRouteRow, ScanRow } from '@unlighthouse/contracts/drizzle'
 import type { Assertion, AssertionResult } from '../report/types'
 import { assertions as assertionsTable, scanRoutes, scans } from '@unlighthouse/contracts/drizzle'
 import { and, desc, eq, ne } from 'drizzle-orm'
-
-type AnyDrizzle = any
+import { asDrizzleDatabase } from '../storage/drizzle/types'
 
 /** Score column name mapping from assertion category to v1 DB column */
 const SCORE_COLUMN_MAP: Record<string, keyof ScanRouteRow> = {
@@ -156,18 +155,19 @@ export function evaluateAssertions(
 
 /** Evaluate and persist assertion results to database */
 export async function evaluateAndStoreAssertions(
-  db: AnyDrizzle,
+  db: unknown,
   scanId: string,
   assertionConfigs: Assertion[],
 ): Promise<AssertionResult[]> {
-  const routes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, scanId))
+  const sqlDb = asDrizzleDatabase(db)
+  const routes = await sqlDb.select<ScanRouteRow>().from(scanRoutes).where(eq(scanRoutes.scanId, scanId))
 
   let baseRoutes: ScanRouteRow[] = []
   const needsBase = assertionConfigs.some(a => a.type === 'maxRegression')
   if (needsBase) {
-    const [currentScan] = await db.select().from(scans).where(eq(scans.scanId, scanId)).limit(1)
+    const [currentScan] = await sqlDb.select<ScanRow>().from(scans).where(eq(scans.scanId, scanId)).limit(1)
     if (currentScan) {
-      const [previousScan] = await db.select()
+      const [previousScan] = await sqlDb.select<ScanRow>()
         .from(scans)
         .where(and(
           eq(scans.site, currentScan.site),
@@ -178,14 +178,14 @@ export async function evaluateAndStoreAssertions(
         .limit(1)
 
       if (previousScan)
-        baseRoutes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, previousScan.scanId))
+        baseRoutes = await sqlDb.select<ScanRouteRow>().from(scanRoutes).where(eq(scanRoutes.scanId, previousScan.scanId))
     }
   }
 
   const results = evaluateAssertions(routes, assertionConfigs, baseRoutes)
 
   if (results.length > 0) {
-    await db.insert(assertionsTable).values(
+    await sqlDb.insert(assertionsTable).values(
       results.map(r => ({
         scanId,
         type: r.assertion.type,

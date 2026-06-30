@@ -3,6 +3,8 @@ import NewScanForm from '~/features/scan/components/NewScanForm.vue'
 
 const route = useRoute()
 const initialUrl = (route.query.url as string) || ''
+
+usePageTitle('New Scan')
 </script>
 
 <template>

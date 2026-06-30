@@ -19,7 +19,8 @@ function originOf(url: string): string {
   try {
     return new URL(url).origin
   }
-  catch {
+  catch (_err) {
+    // Dashboard rows can contain legacy non-URL site labels.
     return url
   }
 }

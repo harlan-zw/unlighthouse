@@ -1,4 +1,5 @@
 import type { ScanEventBus, ScanEventHandler, ScanEventName, WsEnvelope } from '~/types/scan-events'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 
 type RawScanEventHandler = (data: unknown) => void
 
@@ -33,16 +34,19 @@ function createBrowserWsBus(url: string): ScanEventBus {
       ws.onmessage = (e) => {
         try {
           const msg = JSON.parse(e.data) as WsEnvelope
+          const data = msg.data ?? msg.payload
           const handlers = listeners.get(msg.event)
           if (handlers) {
-            for (const fn of handlers) fn(msg.data)
+            for (const fn of handlers) fn(data)
           }
           const wildcardHandlers = listeners.get('*')
           if (wildcardHandlers) {
-            for (const fn of wildcardHandlers) fn(msg)
+            for (const fn of wildcardHandlers) fn({ ...msg, data })
           }
         }
-        catch {}
+        catch (err) {
+          logOperationalWarn('ui.websocket_message_failed', err, undefined, console)
+        }
       }
 
       ws.onclose = () => {
@@ -56,7 +60,8 @@ function createBrowserWsBus(url: string): ScanEventBus {
         ws?.close()
       }
     }
-    catch {
+    catch (err) {
+      logOperationalWarn('ui.websocket_connect_failed', err, undefined, console)
       setTimeout(connect, retryDelay)
       retryDelay = Math.min(retryDelay * 2, maxRetryDelay)
     }

@@ -159,7 +159,7 @@ describe('e2e: HTTP projection over the wire', () => {
         break
     }
     // Drain session so afterAll teardown is clean.
-    await session.done.catch(() => null)
+    await session.done.catch((_err) => null)
 
     expect(collected.length).toBe(3)
     for (const ev of collected) {

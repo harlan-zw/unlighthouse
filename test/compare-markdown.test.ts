@@ -6,24 +6,24 @@
 // footer. The fixture is intentionally small (3 routes × 1 device) but
 // includes both a regression and an improvement so neither table is empty.
 
-import type { Scan, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { Scan, ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import { compareMarkdown } from '@unlighthouse/core/api/handlers'
-import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { describe, expect, it } from 'vitest'
+import { testHandlerCtx, testScanId, testUrl } from './helpers/contracts'
 
-const BASE_ID = 'scan-fixture-base000'
-const CURRENT_ID = 'scan-fixture-curr000'
+const BASE_ID = testScanId('scan-fixture-base000')
+const CURRENT_ID = testScanId('scan-fixture-curr000')
 
 function makeScan(
-  scanId: string,
+  scanId: ScanId,
   scoresByCategory: { 'performance': number, 'accessibility': number, 'best-practices': number, 'seo': number },
   scoreAverage: number,
 ): Scan {
   return {
-    scanId: scanId as Scan['scanId'],
-    site: 'https://example.com',
+    scanId,
+    site: testUrl('https://example.com'),
     device: 'mobile',
     status: 'complete',
     startedAt: '2025-01-01T00:00:00.000Z',
@@ -50,9 +50,9 @@ interface RouteSpec {
   seo: number
 }
 
-function makeRoute(scanId: string, spec: RouteSpec): ScanRoute {
+function makeRoute(scanId: ScanId, spec: RouteSpec): ScanRoute {
   return {
-    url: spec.url,
+    url: testUrl(spec.url),
     path: new URL(spec.url).pathname,
     routeName: null,
     scorePerformance: spec.perf,
@@ -68,26 +68,19 @@ function makeRoute(scanId: string, spec: RouteSpec): ScanRoute {
     si: null,
     lighthouseVersion: '11.0.0',
     capturedAt: '2025-01-01T00:01:00.000Z',
-    scanId: scanId as ScanRoute['scanId'],
+    scanId,
+    device: 'mobile',
     lhrBlobKey: `scans/${scanId}/lhr/abc.json.gz`,
   }
 }
 
 function makeCtx(): HandlerCtx {
-  return {
-    core: {
-      run: () => { throw new Error('core.run not exercised') },
-      session: () => null,
-    } as never,
-    auditor: createMockAuditor(),
-    storage: memoryStorage(),
-    config: { site: 'https://example.com' } as never,
-    version: '0.0.0-test',
+  return testHandlerCtx(memoryStorage(), {
     auditors: {
       list: () => [{ name: 'mock', ok: true }],
       test: async (name: string) => ({ name, ok: true }),
-    } as never,
-  }
+    },
+  })
 }
 
 describe('compare.markdown PR-comment renderer', () => {
@@ -100,7 +93,7 @@ describe('compare.markdown PR-comment renderer', () => {
       { 'performance': 0.95, 'accessibility': 0.90, 'best-practices': 0.92, 'seo': 1.0 },
       0.94,
     ))
-    await ctx.storage.routes.putBatch(BASE_ID as never, 'mobile', [
+    await ctx.storage.routes.putBatch(BASE_ID, 'mobile', [
       makeRoute(BASE_ID, { url: 'https://example.com/', perf: 0.95, a11y: 0.90, bp: 0.92, seo: 1.0 }),
       makeRoute(BASE_ID, { url: 'https://example.com/about', perf: 0.80, a11y: 0.85, bp: 0.95, seo: 1.0 }),
       makeRoute(BASE_ID, { url: 'https://example.com/contact', perf: 0.70, a11y: 0.80, bp: 0.90, seo: 0.95 }),
@@ -113,14 +106,14 @@ describe('compare.markdown PR-comment renderer', () => {
       { 'performance': 0.70, 'accessibility': 0.93, 'best-practices': 0.92, 'seo': 1.0 },
       0.89,
     ))
-    await ctx.storage.routes.putBatch(CURRENT_ID as never, 'mobile', [
+    await ctx.storage.routes.putBatch(CURRENT_ID, 'mobile', [
       makeRoute(CURRENT_ID, { url: 'https://example.com/', perf: 0.60, a11y: 0.90, bp: 0.92, seo: 1.0 }),
       makeRoute(CURRENT_ID, { url: 'https://example.com/about', perf: 0.65, a11y: 0.85, bp: 0.95, seo: 1.0 }),
       makeRoute(CURRENT_ID, { url: 'https://example.com/contact', perf: 0.70, a11y: 0.95, bp: 0.90, seo: 0.95 }),
     ])
 
     const out = await compareMarkdown.run(
-      { baseScanId: BASE_ID as never, currentScanId: CURRENT_ID as never },
+      { baseScanId: BASE_ID, currentScanId: CURRENT_ID },
       ctx,
     )
 
@@ -133,14 +126,14 @@ describe('compare.markdown PR-comment renderer', () => {
     const stable = { 'performance': 0.90, 'accessibility': 0.90, 'best-practices': 0.90, 'seo': 0.90 }
     await ctx.storage.scans.create(makeScan(BASE_ID, stable, 0.90))
     await ctx.storage.scans.create(makeScan(CURRENT_ID, stable, 0.90))
-    await ctx.storage.routes.putBatch(BASE_ID as never, 'mobile', [
+    await ctx.storage.routes.putBatch(BASE_ID, 'mobile', [
       makeRoute(BASE_ID, { url: 'https://example.com/', perf: 0.9, a11y: 0.9, bp: 0.9, seo: 0.9 }),
     ])
-    await ctx.storage.routes.putBatch(CURRENT_ID as never, 'mobile', [
+    await ctx.storage.routes.putBatch(CURRENT_ID, 'mobile', [
       makeRoute(CURRENT_ID, { url: 'https://example.com/', perf: 0.9, a11y: 0.9, bp: 0.9, seo: 0.9 }),
     ])
     const out = await compareMarkdown.run(
-      { baseScanId: BASE_ID as never, currentScanId: CURRENT_ID as never, title: 'PR #123' },
+      { baseScanId: BASE_ID, currentScanId: CURRENT_ID, title: 'PR #123' },
       ctx,
     )
     expect(out.hasRegressions).toBe(false)

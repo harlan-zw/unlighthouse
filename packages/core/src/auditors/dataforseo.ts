@@ -3,6 +3,7 @@ import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } 
 import { Buffer } from 'node:buffer'
 import { ofetch } from 'ofetch'
 import { extractInsights } from './extract'
+import { attachExtractedRouteData } from './lighthouse-report'
 
 export interface DataForSeoOptions {
   username?: string
@@ -16,6 +17,10 @@ const DATAFORSEO_CAPABILITIES: AuditorCapabilities = {
   reliableFieldData: false,
   supportsThrottling: false,
   categories: ['performance', 'accessibility', 'seo', 'best-practices'],
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error'
 }
 
 export function createDataForSeoProvider(providerOptions: DataForSeoOptions): UnlighthouseProvider {
@@ -69,8 +74,8 @@ export function createDataForSeoProvider(providerOptions: DataForSeoOptions): Un
         artifacts: lhr.artifacts,
       }
     }
-    catch (e: any) {
-      throw new Error(`DataForSEO scan failed: ${e.message || 'Unknown error'}`)
+    catch (e: unknown) {
+      throw new Error(`DataForSEO scan failed: ${errorMessage(e)}`)
     }
   }
 }
@@ -81,7 +86,7 @@ export function createDataForSeoAuditor(opts: DataForSeoOptions): Auditor {
     capabilities: DATAFORSEO_CAPABILITIES,
     async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
       const report = await provider(url)
-      return report.raw as unknown as LighthouseReport
+      return attachExtractedRouteData(report.raw, url)
     },
   }
 }

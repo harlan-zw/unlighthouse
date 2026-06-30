@@ -82,7 +82,7 @@ const columns: ColumnDef<DevicePair>[] = [
   ...(['performance', 'accessibility', 'best-practices', 'seo'] as const).map(key => ({
     id: key,
     accessorFn: (row: DevicePair) => Math.max(categoryPct(row.mobile, key) ?? -1, categoryPct(row.desktop, key) ?? -1),
-    meta: { align: 'center' },
+    align: 'center',
     header: () => {
       const label = key === 'best-practices' ? 'Best' : key === 'performance' ? 'Perf' : key === 'accessibility' ? 'A11y' : 'SEO'
       return h('div', { class: 'text-center' }, [
@@ -90,7 +90,7 @@ const columns: ColumnDef<DevicePair>[] = [
         h('div', { class: 'text-micro text-muted font-normal mt-0.5' }, 'M | D'),
       ])
     },
-    cell: ({ row }: any) => {
+    cell: ({ row }) => {
       const m = categoryPct(row.original.mobile, key)
       const d = categoryPct(row.original.desktop, key)
       return h('div', { class: 'flex items-center justify-center gap-1.5 tabular-nums text-sm font-medium' }, [
@@ -99,7 +99,7 @@ const columns: ColumnDef<DevicePair>[] = [
         h('span', { class: d == null ? 'text-muted/50' : scoreToColor(d / 100) }, d ?? '—'),
       ])
     },
-    sortingFn: (a: any, b: any) => {
+    sortingFn: (a, b) => {
       const aMax = Math.max(categoryPct(a.original.mobile, key) ?? -1, categoryPct(a.original.desktop, key) ?? -1)
       const bMax = Math.max(categoryPct(b.original.mobile, key) ?? -1, categoryPct(b.original.desktop, key) ?? -1)
       return aMax - bMax
@@ -109,7 +109,8 @@ const columns: ColumnDef<DevicePair>[] = [
     id: 'status',
     header: 'Status',
     enableSorting: false,
-    meta: { align: 'center', headClass: 'w-24' },
+    align: 'center',
+    headClass: 'w-24',
     cell: ({ row }) => {
       const s = statusForPair(row.original)
       return h(UiStatusBadgeC, { status: s.status, label: s.label, class: 'capitalize' })
@@ -142,11 +143,12 @@ function statusForPair(pair: DevicePair): { label: string, status: 'success' | '
 </script>
 
 <template>
-  <DataTable
+  <UiTable
     v-model:sorting="sorting"
     :columns="columns"
     :data="pairs"
-    container-class=""
+    enable-sorting
+    disable-pagination
     row-clickable
     @row-click="(p: DevicePair) => emit('open', p)"
   >
@@ -169,5 +171,5 @@ function statusForPair(pair: DevicePair): { label: string, status: 'success' | '
         </UModal>
       </div>
     </template>
-  </DataTable>
+  </UiTable>
 </template>

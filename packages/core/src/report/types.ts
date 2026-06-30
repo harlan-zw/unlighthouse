@@ -1,7 +1,5 @@
 import type { Buffer } from 'node:buffer'
 
-type AnyDrizzle = any
-
 // Lighthouse Result types (simplified)
 export interface LighthouseAudit {
   score: number | null
@@ -10,8 +8,8 @@ export interface LighthouseAudit {
   title?: string
   description?: string
   details?: {
-    items?: any[]
-    [key: string]: any
+    items?: unknown[]
+    [key: string]: unknown
   }
 }
 
@@ -56,7 +54,7 @@ export type { HTMLExtractPayload } from '@unlighthouse/contracts'
 
 // Processor params
 export interface ProcessorParams {
-  db: AnyDrizzle
+  db: unknown
   scanId: string
   routes: Map<string, ExtractedRoute>
   htmlData?: Map<string, import('@unlighthouse/contracts').HTMLExtractPayload>

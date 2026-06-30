@@ -6,6 +6,7 @@
 
 import type { DurableObjectNamespace } from '@cloudflare/workers-types'
 import type { EmitFn } from '@unlighthouse/core'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 
 interface ScanEventsEnv {
   SCAN_EVENTS_DO: DurableObjectNamespace
@@ -27,8 +28,8 @@ export function scanEventsEmit(env: ScanEventsEnv, scanId: string): EmitFn {
         body: JSON.stringify({ event, payload }),
       })
     }
-    catch {
-      // best-effort; a dropped fan-out shouldn't fail the audit/finalize.
+    catch (err) {
+      logOperationalWarn('cloudflare.scan_event_fanout_failed', err, { scanId, event })
     }
   }) as EmitFn
 }

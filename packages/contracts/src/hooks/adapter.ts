@@ -1,14 +1,16 @@
 // Adapter-private hook bus. Scoped per adapter; does not pollute global HookMap.
 // See v1.md D-019.
 
-export interface AdapterHooks<T extends Record<string, (...args: any[]) => unknown | Promise<unknown>>> {
+type AdapterHookHandler = (...args: never[]) => unknown | Promise<unknown>
+
+export interface AdapterHooks<T extends Record<string, AdapterHookHandler>> {
   on: <K extends keyof T>(event: K, handler: T[K]) => () => void
   emit: <K extends keyof T>(event: K, ...args: Parameters<T[K]>) => Promise<void>
   /** Subscribe to all events (debug / tracing). */
   any: (handler: (event: keyof T, ...args: unknown[]) => void) => () => void
 }
 
-export function createAdapterHooks<T extends Record<string, (...args: any[]) => unknown | Promise<unknown>>>(): AdapterHooks<T> {
+export function createAdapterHooks<T extends Record<string, AdapterHookHandler>>(): AdapterHooks<T> {
   const handlers = new Map<keyof T, Set<(...args: unknown[]) => unknown | Promise<unknown>>>()
   const anyHandlers = new Set<(event: keyof T, ...args: unknown[]) => void>()
 

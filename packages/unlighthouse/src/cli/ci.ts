@@ -1,8 +1,11 @@
-import type { CiOptions } from './types'
+import type { Device, ScanId } from '@unlighthouse/contracts/types/atoms'
+import type { CiOptions, UnlighthouseRouteReport } from './types'
+import type { LighthouseReportAudit, LighthouseReportCategory } from '../index.ts'
 import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { gunzipSync } from 'node:zlib'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
 import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
@@ -22,6 +25,48 @@ cli
   .option('--compare-output <path>', 'When using --compare, write a Markdown summary of the diff to this path (suitable for PR comments).')
 
 const { options } = cli.parse() as unknown as { options: CiOptions }
+
+interface RawLighthouseCategory {
+  id?: string
+  title?: string
+  score?: number | null
+}
+
+interface RawLighthousePayload {
+  categories?: Record<string, RawLighthouseCategory>
+  audits?: Record<string, LighthouseReportAudit>
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function parseLighthousePayload(gzipped: Uint8Array): RawLighthousePayload {
+  const parsed = JSON.parse(gunzipSync(gzipped).toString()) as unknown
+  if (!isRecord(parsed))
+    return {}
+  return {
+    categories: isRecord(parsed.categories)
+      ? parsed.categories as Record<string, RawLighthouseCategory>
+      : undefined,
+    audits: isRecord(parsed.audits)
+      ? parsed.audits as Record<string, LighthouseReportAudit>
+      : undefined,
+  }
+}
+
+function reportRouteFor(row: { path: string, url: string }): UnlighthouseRouteReport['route'] {
+  return {
+    id: row.path,
+    path: row.path,
+    url: row.url,
+    $url: new URL(row.url),
+    definition: {
+      name: row.path,
+      path: row.path,
+    },
+  }
+}
 
 async function run() {
   if (options.help || options.version)
@@ -76,7 +121,8 @@ async function run() {
   if (reporter) {
     // Hydrate UnlighthouseRouteReport shape from `storage.routes` + LHR blobs;
     // hand off to the existing reporter pipeline (jsonSimple/jsonExpanded/csv).
-    const { items } = await unlighthouse.handlerCtx.storage.routes.listForScan(scanId as never, { pageSize: 10_000 })
+    const typedScanId = scanId as ScanId
+    const { items } = await unlighthouse.handlerCtx.storage.routes.listForScan(typedScanId, { pageSize: 10_000 })
     // D-029: when `--device` narrows the run to a subset, also narrow the
     // export so consumers only see the rows they asked for. Matrix scans
     // (no narrowing, or narrowing to multiple devices) export every (url,
@@ -85,24 +131,25 @@ async function run() {
       ? new Set(deviceOverride)
       : null
     const filtered = exportDeviceFilter
-      ? items.filter(r => exportDeviceFilter.has(r.device as never))
+      ? items.filter(r => exportDeviceFilter.has(r.device as Device))
       : items
     const hydrated = await Promise.all(filtered.map(async (r) => {
       const gz = r.lhrBlobKey ? await unlighthouse.handlerCtx.storage.blobs.get(r.lhrBlobKey) : null
       if (!gz)
         return null
-      const lhr = JSON.parse(gunzipSync(gz).toString())
-      const categoriesArr = Object.values(lhr.categories ?? {}).map((c: any) => ({
-        key: c.id,
-        id: c.id,
-        title: c.title,
-        score: c.score,
+      const lhr = parseLighthousePayload(gz)
+      const categoriesArr: LighthouseReportCategory[] = Object.entries(lhr.categories ?? {}).map(([key, c]) => ({
+        key,
+        id: c.id ?? key,
+        title: c.title ?? key,
+        score: c.score ?? null,
       }))
       const scoreAverage = categoriesArr.length
         ? categoriesArr.reduce((s, c) => s + (c.score ?? 0), 0) / categoriesArr.length
         : 0
-      return {
-        route: { path: r.path, url: r.url },
+      const emptyComputedAudit = { score: 0, displayValue: '', details: { items: [] } }
+      const report: UnlighthouseRouteReport = {
+        route: reportRouteFor(r),
         // D-029: each storage row is one (url, device) audit. Propagate the
         // device through to the reporters so multi-device matrix scans emit
         // distinct rows per form-factor instead of collapsing.
@@ -110,16 +157,24 @@ async function run() {
         report: {
           score: scoreAverage,
           categories: categoriesArr,
-          audits: lhr.audits,
+          audits: lhr.audits ?? {},
+          computed: {
+            imageIssues: emptyComputedAudit,
+            ariaIssues: emptyComputedAudit,
+          },
         },
-        tasks: {},
+        tasks: {
+          inspectHtmlTask: 'completed',
+          runLighthouseTask: 'completed',
+        },
         artifactPath: '',
         artifactUrl: '',
         reportId: r.path,
-      } as never
+      }
+      return report
     }))
     const reports = hydrated.filter((x): x is NonNullable<typeof x> => x != null)
-    const payload = generateReportPayload(reporter as never, reports as never)
+    const payload = generateReportPayload(reporter, reports)
     const path = await outputReport(reporter, unlighthouse.resolvedConfig, payload)
     if (path)
       logger.success(`Wrote ${reporter} report to ${path}`)
@@ -128,12 +183,12 @@ async function run() {
   // #290/#275/#120: build an offline static report embedding a full snapshot
   // (every route incl. the homepage + contract blobs), served by createStaticClient.
   if (options.buildStatic) {
-    unlighthouse.runtimeSettings.currentScanId = scanId as never
+    unlighthouse.runtimeSettings.currentScanId = scanId
     await unlighthouse.generateClient({ static: true })
     logger.success(`Built static report at ${unlighthouse.runtimeSettings.generatedClientPath}`)
   }
 
-  const db = (unlighthouse.handlerCtx.storage as { db?: any }).db
+  const db = unlighthouse.handlerCtx.storage.db
 
   const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
   const assertEnabled = options.assert !== false
@@ -145,26 +200,26 @@ async function run() {
 
   if (options.compare !== undefined && options.compare !== false && db) {
     const target = typeof options.compare === 'string' ? options.compare : 'latest'
+    const branch = target === 'latest' ? undefined : target
     let baseScanId: string | undefined
 
-    const asScan = await unlighthouse.handlerCtx.storage.scans.get(target as never)
+    const asScan = await unlighthouse.handlerCtx.storage.scans.get(target as ScanId)
     if (asScan) {
       baseScanId = asScan.scanId
     }
     else {
-      const branch = target === 'latest' ? undefined : target
       const device = unlighthouse.resolvedConfig.scanner?.device
       const previous = await unlighthouse.handlerCtx.storage.scans.findPrevious({
         site: unlighthouse.resolvedConfig.site,
-        device: typeof device === 'string' ? (device as never) : ('mobile' as never),
-        excludeScanId: scanId as never,
+        device: typeof device === 'string' ? device : 'mobile',
+        excludeScanId: scanId,
         branch,
       })
       baseScanId = previous?.scanId
     }
 
     if (!baseScanId) {
-      logger.warn(`--compare: no previous scan found for target "${target}", skipping.`)
+      logOperationalWarn('cli.compare_baseline_missing', null, { target, scanId, branch }, logger)
     }
     else {
       const comparison = await compareScans(db, baseScanId, scanId)

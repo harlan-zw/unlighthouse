@@ -42,6 +42,9 @@
       "optional": false
     }
   },
+  "dependencies": {
+    "@unlighthouse/contracts": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "vite": "catalog:dependencies",

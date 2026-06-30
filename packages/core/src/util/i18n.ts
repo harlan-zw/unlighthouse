@@ -14,7 +14,8 @@ export function normaliseUrl(href: string, base?: string): string | undefined {
     const path = url.pathname.replace(/\/+$/, '') || '/'
     return `${url.protocol}//${url.host}${path}${url.search}`
   }
-  catch {
+  catch (_err) {
+    // Unparseable URLs cannot participate in canonical equality.
     return undefined
   }
 }
@@ -52,7 +53,8 @@ export function sameHostCanonical(currentUrl: string, canonicalHref: string | un
     current = new URL(currentUrl)
     canonical = new URL(canonicalHref, currentUrl)
   }
-  catch {
+  catch (_err) {
+    // Fail open: malformed canonical data should not suppress a crawl.
     return undefined
   }
   if (canonical.host !== current.host)

@@ -32,7 +32,8 @@ function gitOutput(args: string[], cwd: string): string | null {
     }).trim()
     return out || null
   }
-  catch {
+  catch (_err) {
+    // Git metadata is optional; absence or timeout maps to an empty field.
     return null
   }
 }

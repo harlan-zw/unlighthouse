@@ -3,6 +3,7 @@
 import type { CommandOutput, EventsSubscribe, EventsTail } from '@unlighthouse/contracts/commands'
 import type { HookEvent } from '@unlighthouse/contracts/hooks'
 import type { Handler } from './types'
+import { parseHookEvent } from '@unlighthouse/contracts/hooks'
 import { gunzipSync } from 'fflate'
 
 function makeFilter(events?: string[]) {
@@ -51,7 +52,7 @@ export const eventsTail: Handler<typeof EventsTail> = {
         for (const line of text.split('\n')) {
           if (!line.trim())
             continue
-          const event = JSON.parse(line) as HookEvent
+          const event = parseHookEvent(JSON.parse(line))
           if (filter(event))
             yield event as CommandOutput<typeof EventsTail>
         }

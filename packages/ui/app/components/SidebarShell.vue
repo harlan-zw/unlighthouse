@@ -38,7 +38,7 @@ if (import.meta.client) {
 }
 
 const railTint = computed(() => (inScan.value
-  ? '[--rail-bg:color-mix(in_srgb,#3b82f6_8%,var(--ui-bg))] border-info/25'
+  ? '[--rail-bg:color-mix(in_srgb,var(--ui-info)_8%,var(--ui-bg))] border-info/25'
   : 'border-default'))
 
 const { healthy } = useBackendHealth()

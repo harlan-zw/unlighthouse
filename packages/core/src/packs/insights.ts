@@ -4,6 +4,7 @@
 // per metric, worst routes, and a prioritized fix order.
 
 import type { InsightsReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { ReconciledReport } from '@unlighthouse/contracts/types/atoms'
 import { InsightsReportSchema } from '@unlighthouse/contracts/packs'
 
 const INSIGHT_AUDIT_IDS = [
@@ -50,8 +51,8 @@ function maxSavings(
   }
 }
 
-function totalImpact(savings: Record<string, number>): number {
-  return Object.values(savings).reduce((a, b) => a + b, 0)
+function totalImpact(savings: Record<string, number | undefined>): number {
+  return Object.values(savings).reduce<number>((a, b) => a + (b ?? 0), 0)
 }
 
 export const insightsPack: Pack<InsightsReport> = {
@@ -83,12 +84,14 @@ export const insightsPack: Pack<InsightsReport> = {
     }
 
     for (const route of routes) {
-      let reconciled: any = null
+      let reconciled: ReconciledReport | null = null
       if (ctx.getReconciled) {
         try {
           reconciled = await ctx.getReconciled(route.url, device)
         }
-        catch {}
+        catch (err) {
+          ctx.logger?.debug?.(`insights pack: failed to load reconciled report for ${route.url} [${device}]`, err)
+        }
       }
       if (!reconciled?.audits)
         continue
@@ -114,7 +117,7 @@ export const insightsPack: Pack<InsightsReport> = {
     const insights = Array.from(insightMap.entries())
       .filter(([, v]) => v.routeCount > 0)
       .map(([id, v]) => {
-        v.worstRoutes.sort((a, b) => totalImpact(b.savings as Record<string, number>) - totalImpact(a.savings as Record<string, number>))
+        v.worstRoutes.sort((a, b) => totalImpact(b.savings) - totalImpact(a.savings))
         return {
           id,
           title: v.title,

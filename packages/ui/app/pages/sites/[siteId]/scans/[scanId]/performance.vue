@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import type { ColumnDef } from '@tanstack/vue-table'
 import type { CwvReport, ImagesReport, InsightsReport } from '@unlighthouse/contracts/packs'
+import { h } from 'vue'
 import CategoryPageShell from '~/features/scan/components/CategoryPageShell.vue'
 import { getScanId, useScanBase } from '~/features/scan/route-context'
 
@@ -15,6 +17,27 @@ const { data: imagesData } = useApiQuery('pack.run', () => ({ scanId, pack: 'ima
 const { data: routeScores } = useApiQuery('scan.results', () => ({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }))
 
 const { fmtMs: formatMs, fmtBytes: formatBytes } = useFormat()
+
+type RouteScoreRow = NonNullable<typeof routeScores['value']>['items'][number]
+const numCell = (v: string) => h('span', { class: 'tabular-nums text-xs' }, v)
+const routeScoreColumns: ColumnDef<RouteScoreRow>[] = [
+  {
+    accessorKey: 'path',
+    header: 'Path',
+    cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-sm' }, row.original.path),
+  },
+  {
+    accessorKey: 'scorePerformance',
+    header: 'Score',
+    align: 'right',
+    headClass: 'w-20',
+    cell: ({ row }) => h('span', { class: `tabular-nums font-bold ${scoreToColor(row.original.scorePerformance)}` }, scoreToLabel(row.original.scorePerformance)),
+  },
+  { accessorKey: 'lcp', header: 'LCP', align: 'right', headClass: 'w-24', cell: ({ row }) => numCell(row.original.lcp != null ? formatMs(row.original.lcp) : '—') },
+  { accessorKey: 'cls', header: 'CLS', align: 'right', headClass: 'w-20', cell: ({ row }) => numCell(row.original.cls?.toFixed(3) ?? '—') },
+  { accessorKey: 'tbt', header: 'TBT', align: 'right', headClass: 'w-24', cell: ({ row }) => numCell(row.original.tbt != null ? formatMs(row.original.tbt) : '—') },
+  { accessorKey: 'inp', header: 'INP', align: 'right', headClass: 'w-24', cell: ({ row }) => numCell(row.original.inp != null ? formatMs(row.original.inp) : '—') },
+]
 
 function verdictColor(verdict: string | null) {
   if (verdict === 'good')
@@ -250,57 +273,13 @@ const hasData = computed(() => cwvReport.value || insightsReport.value || images
           Route Scores
         </h3>
       </template>
-      <table class="w-full">
-        <thead>
-          <tr class="h-9 border-b border-default">
-            <th class="text-label text-dimmed text-left px-3">
-              Path
-            </th>
-            <th class="text-label text-dimmed text-right px-3 w-20">
-              Score
-            </th>
-            <th class="text-label text-dimmed text-right px-3 w-24">
-              LCP
-            </th>
-            <th class="text-label text-dimmed text-right px-3 w-20">
-              CLS
-            </th>
-            <th class="text-label text-dimmed text-right px-3 w-24">
-              TBT
-            </th>
-            <th class="text-label text-dimmed text-right px-3 w-24">
-              INP
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="r in routeScores.items.slice(0, 50)"
-            :key="r.url"
-            class="border-b border-default last:border-0 cursor-pointer hover:bg-elevated/50"
-            @click="openRoute(r.path)"
-          >
-            <td class="font-mono text-xs truncate max-w-sm px-3 py-2">
-              {{ r.path }}
-            </td>
-            <td class="text-right tabular-nums font-bold px-3 py-2" :class="scoreToColor(r.scorePerformance)">
-              {{ scoreToLabel(r.scorePerformance) }}
-            </td>
-            <td class="text-right tabular-nums text-xs px-3 py-2">
-              {{ r.lcp != null ? formatMs(r.lcp) : '—' }}
-            </td>
-            <td class="text-right tabular-nums text-xs px-3 py-2">
-              {{ r.cls?.toFixed(3) ?? '—' }}
-            </td>
-            <td class="text-right tabular-nums text-xs px-3 py-2">
-              {{ r.tbt != null ? formatMs(r.tbt) : '—' }}
-            </td>
-            <td class="text-right tabular-nums text-xs px-3 py-2">
-              {{ r.inp != null ? formatMs(r.inp) : '—' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <UiTable
+        :columns="routeScoreColumns"
+        :data="routeScores.items.slice(0, 50)"
+        row-clickable
+        disable-pagination
+        @row-click="(r) => openRoute(r.path)"
+      />
     </UiCard>
   </CategoryPageShell>
 </template>

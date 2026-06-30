@@ -10,7 +10,7 @@ import type {
 import type { Handler } from './types'
 import { commands } from '@unlighthouse/contracts/commands'
 import { defaultConfig } from '@unlighthouse/contracts/config'
-import { ErrorCodeDescriptions, ErrorCodes } from '@unlighthouse/contracts/errors'
+import { ErrorCodeDescriptions, ErrorCodes, UnlighthouseErrorEnvelopeSchema } from '@unlighthouse/contracts/errors'
 import { HookSchemas } from '@unlighthouse/contracts/hooks'
 import { z } from 'zod'
 
@@ -54,6 +54,7 @@ export const manifest: Handler<typeof Manifest> = {
       commands: commandList,
       hooks,
       errors,
+      errorEnvelopeSchema: toJsonSchema(UnlighthouseErrorEnvelopeSchema),
       defaults: defaultConfig,
       auditors,
     } as CommandOutput<typeof Manifest>
@@ -65,10 +66,10 @@ export const health: Handler<typeof Health> = {
   async run(_input, ctx) {
     const rows = await ctx.storage.scans.list({ page: 1, pageSize: 1 })
       .then(() => 'ok' as const)
-      .catch(() => 'down' as const)
+      .catch((_err) => 'down' as const)
     const blobs = await ctx.storage.blobs.has('__probe__')
       .then(() => 'ok' as const)
-      .catch(() => 'down' as const)
+      .catch((_err) => 'down' as const)
     return {
       ok: rows === 'ok' && blobs === 'ok',
       version: ctx.version,

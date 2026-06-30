@@ -18,8 +18,8 @@
 // all three at startup. If any are missing the Container crashes early and
 // `fallbackAuditor` in the Worker takes over (CrUX or mock).
 
-import type { DurableObjectState } from '@cloudflare/workers-types'
 import { Container } from '@cloudflare/containers'
+import { logOperationalError } from '@unlighthouse/contracts/logging'
 
 interface LighthouseContainerEnv {
   SHARED_AUDIT_TOKEN?: string
@@ -27,12 +27,14 @@ interface LighthouseContainerEnv {
   CF_BROWSER_RUN_TOKEN?: string
 }
 
+type ContainerContext = ConstructorParameters<typeof Container>[0]
+
 export class LighthouseContainer extends Container<LighthouseContainerEnv> {
   override defaultPort = 8080
   override sleepAfter = '2m'
 
-  constructor(ctx: DurableObjectState, env: LighthouseContainerEnv) {
-    super(ctx as never, env)
+  constructor(ctx: ContainerContext, env: LighthouseContainerEnv) {
+    super(ctx, env)
     // Hand Worker secrets to the container process. envVars is consulted by
     // the base Container class on every `start()`; we set it from the
     // synchronous Worker env so the container has everything it needs by
@@ -55,6 +57,6 @@ export class LighthouseContainer extends Container<LighthouseContainerEnv> {
   }
 
   override onError(error: unknown): void {
-    console.error('[LighthouseContainer] error:', error)
+    logOperationalError('cloudflare.lighthouse_container_error', error, {}, console)
   }
 }

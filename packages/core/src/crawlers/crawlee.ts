@@ -116,7 +116,7 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       try {
         originHost ??= new URL(seed.url).host
       }
-      catch {
+      catch (_err) {
         // ignore malformed seed
       }
     }
@@ -164,7 +164,7 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
               return false
             reqHost = parsed.host
           }
-          catch {
+          catch (_err) {
             return false
           }
           if (originHost && reqHost !== originHost)
@@ -285,7 +285,9 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       state = 'idle'
       // Drop the per-run queue so it doesn't accumulate on disk or leak into
       // the next run's dedup set.
-      await requestQueue.drop().catch(() => {})
+      await requestQueue.drop().catch((err) => {
+        opts.logger?.warn?.(`failed to drop crawlee request queue for scan ${scanId}`, err)
+      })
       // Prevent unused-var warning
       void originHost
     }

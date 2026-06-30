@@ -1,6 +1,8 @@
 import type { ScanId } from '@unlighthouse/contracts'
+import type { CwvReport } from '@unlighthouse/contracts/packs'
 import type { TrendMarker, TrendSeries } from '~/features/sites/components/TrendChart.vue'
 import type { DevicePair, ScanRow } from '~/features/sites/scan-pairs'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { scanLinkPath } from '~/features/scan/scan-links'
@@ -30,14 +32,15 @@ interface SiteEntry {
 
 interface CwvReportEntry {
   t: number
-  report: any
+  report: CwvReport | null
 }
 
 function originOf(url: string): string | null {
   try {
     return new URL(url).origin
   }
-  catch {
+  catch (_err) {
+    // Malformed site labels cannot be grouped by origin.
     return null
   }
 }
@@ -125,8 +128,16 @@ export function useSiteOverview() {
         return [] as CwvReportEntry[]
       const results = await Promise.all(scans.map(scan =>
         api['pack.run']({ scanId: scan.scanId, pack: 'cwv' })
-          .then((result: any) => ({ t: new Date(scan.startedAt).getTime(), report: result?.report }))
-          .catch(() => null),
+          .then(result => ({ t: new Date(scan.startedAt).getTime(), report: result.report as CwvReport }))
+          .catch((err) => {
+            logOperationalWarn('ui.optional_api_read_failed', err, {
+              command: 'pack.run',
+              feature: 'sites-overview',
+              scanId: scan.scanId,
+              pack: 'cwv',
+            }, console)
+            return null
+          }),
       ))
       return results.filter(Boolean) as CwvReportEntry[]
     },

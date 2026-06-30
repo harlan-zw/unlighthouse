@@ -17,6 +17,9 @@ import type { HookEvent, HookMap } from '@unlighthouse/contracts/hooks'
 import type { Hookable } from 'hookable'
 import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { createHookEvent } from '@unlighthouse/contracts/hooks'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createHooks } from 'hookable'
 import { createTaggedLogger } from './logger'
 import { persistStableEvents } from './persist-events'
@@ -42,8 +45,7 @@ function tagLogger(logger: LoggerLike | undefined, tag: string): LoggerLike | un
 }
 
 function generateScanId(): ScanId {
-  // Cast through unknown: ScanId is a branded string; runtime is plain UUID.
-  return globalThis.crypto.randomUUID() as unknown as ScanId
+  return parseScanId(globalThis.crypto.randomUUID())
 }
 
 /**
@@ -132,11 +134,16 @@ export async function reapStaleScans(storage: Storage, logger?: Logger): Promise
   for (const status of NON_TERMINAL) {
     const { items } = await storage.scans.list({ status, page: 1, pageSize: 1000 })
     for (const scan of items) {
-      await storage.scans.update(scan.scanId, {
-        status: 'error',
-        completedAt: nowIso(),
-      }).catch(() => {})
-      reaped++
+      try {
+        await storage.scans.update(scan.scanId, {
+          status: 'error',
+          completedAt: nowIso(),
+        })
+        reaped++
+      }
+      catch (err) {
+        logOperationalWarn('core.stale_scan_reap_failed', err, { scanId: scan.scanId, status }, logger)
+      }
     }
   }
   if (reaped > 0)
@@ -167,7 +174,6 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
 
   function run(runOpts?: UnlighthouseCoreRunOptions): CrawlSession {
     if (currentSession) {
-      log.warn('ACTIVE_SCAN_CONFLICT — a scan is already running')
       throw new UnlighthouseError({
         code: 'ACTIVE_SCAN_CONFLICT',
         message: 'A scan is already in flight on this Core instance.',
@@ -194,7 +200,9 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
     session.done.finally(() => {
       if (currentSession === session)
         currentSession = null
-    }).catch(() => {})
+    }).catch((err) => {
+      logOperationalWarn('core.session_cleanup_rejection', err, { scanId: session.scanId }, logger)
+    })
 
     return session
   }
@@ -254,8 +262,8 @@ function createSession(deps: SessionDeps): CrawlSession {
       try {
         h(event)
       }
-      catch {
-        // subscriber errors must not break orchestration
+      catch (err) {
+        logOperationalWarn('core.scan_event_subscriber_failed', err, { scanId }, deps.logger)
       }
     }
     if (iterDone)
@@ -275,7 +283,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     if (resolveNext) {
       const r = resolveNext
       resolveNext = null
-      r({ value: undefined as unknown as HookEvent, done: true })
+      r({ value: undefined, done: true })
     }
   }
 
@@ -286,7 +294,7 @@ function createSession(deps: SessionDeps): CrawlSession {
           if (queue.length)
             return Promise.resolve({ value: queue.shift()!, done: false })
           if (iterDone)
-            return Promise.resolve({ value: undefined as unknown as HookEvent, done: true })
+            return Promise.resolve({ value: undefined, done: true })
           return new Promise((r) => {
             resolveNext = r
           })
@@ -324,13 +332,15 @@ function createSession(deps: SessionDeps): CrawlSession {
     event: K,
     payload: Parameters<HookMap[K]>[0],
   ): Promise<void> {
-    const wire = { event, payload } as unknown as HookEvent
+    const wire = createHookEvent(event, payload)
     persister.push(wire)
     pushIter(wire)
     try {
       await (hooks.callHook as (e: K, p: Parameters<HookMap[K]>[0]) => unknown)(event, payload)
     }
-    catch {}
+    catch (err) {
+      logOperationalWarn('core.hook_failed', err, { scanId, event: String(event) }, deps.logger)
+    }
   }
 
   // ── done deferred ──────────────────────────────────────────────────────
@@ -341,6 +351,7 @@ function createSession(deps: SessionDeps): CrawlSession {
   async function orchestrate(): Promise<void> {
     log.info(`Orchestrating scan ${scanId}`)
     const site = (deps.config.site ?? '') as string
+    const siteUrl = parseUrl(site)
     const scannerDevice = deps.config.scanner?.device
     const validScannerDevice
       = scannerDevice === 'mobile' || scannerDevice === 'desktop' ? scannerDevice : undefined
@@ -376,18 +387,21 @@ function createSession(deps: SessionDeps): CrawlSession {
           url: siteOrigin(site),
           group: null,
           createdAt: new Date().toISOString(),
-        }).catch(() => {})
+        }).catch((err) => {
+          logOperationalWarn('scan.site_create_failed', err, { scanId, siteId, site }, deps.logger)
+        })
       }
     }
-    catch {
+    catch (err) {
       // Malformed/placeholder site URL — leave the scan unassociated.
+      logOperationalWarn('scan.site_association_failed', err, { scanId, site }, deps.logger)
       siteId = null
     }
 
     await storage.scans.create({
       scanId,
       siteId,
-      site: site as never,
+      site: siteUrl,
       mode: scanMode,
       device: primaryDevice,
       status: 'starting',
@@ -399,7 +413,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     })
 
     log.debug(`Scan ${scanId} created — site: ${site}, device: ${devices.join(',')}`)
-    await emit('scan:created', { scanId, site: site as never, startedAt })
+    await emit('scan:created', { scanId, site: siteUrl, startedAt })
     await emit('scan:started', { scanId })
 
     setStatus('discovering')
@@ -413,7 +427,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     // the in-memory stats the crawl loop reports.
     async function auditOnDevice(url: string, device: 'mobile' | 'desktop'): Promise<void> {
       const { ok } = await auditRoute(
-        { auditor, storage, logger: log as never, emit },
+        { auditor, storage, logger: log, emit },
         { scanId, url, device, signal },
       )
       if (ok)
@@ -434,7 +448,8 @@ function createSession(deps: SessionDeps): CrawlSession {
       try {
         return routeFilter(new URL(url).pathname)
       }
-      catch {
+      catch (_err) {
+        // Non-absolute route strings fall back to direct path matching.
         return routeFilter(url)
       }
     }
@@ -532,7 +547,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     // and emit scan:complete — all via the shared `finalizeScan` (same code the
     // Cloudflare ScanRunnerDO calls when its queue drains).
     const summary = await finalizeScan(
-      { storage, config: deps.config, logger: log as never, emit },
+      { storage, config: deps.config, logger: log, emit },
       { scanId, devices, startedAtMs, stats },
     )
     setStatus('complete')
@@ -554,16 +569,20 @@ function createSession(deps: SessionDeps): CrawlSession {
       }
       else {
         setStatus('error')
-        await emit('scan:error', { scanId, error: structured as never })
+        await emit('scan:error', { scanId, error: structured })
         await storage.scans
           .update(scanId, { status: 'error', completedAt: nowIso() })
-          .catch(() => {})
+          .catch((updateErr) => {
+            logOperationalWarn('core.scan_error_persist_failed', updateErr, { scanId, status: 'error' }, log)
+          })
         log.error(`Scan ${scanId} errored: ${structured.message || structured.code}`)
         rejectDone(err)
       }
     }
     finally {
-      await persister.flush().catch(() => {})
+      await persister.flush().catch((err) => {
+        logOperationalWarn('core.event_persist_flush_failed', err, { scanId }, log)
+      })
       closeIter()
     }
   })()
@@ -598,10 +617,6 @@ function createSession(deps: SessionDeps): CrawlSession {
     internal.abort(reason)
   }
 
-  // The placeholder `HookEvent` shape on `ports/core` (TODO: tighten) differs
-  // structurally from the real `HookEvent` union in `contracts/hooks`. Cast
-  // through unknown at the boundary; once ports/core consumes the real type
-  // (separate agent owns that file), this cast disappears.
   return {
     scanId,
     events,
@@ -614,5 +629,5 @@ function createSession(deps: SessionDeps): CrawlSession {
     state: () => status,
     stats: () => ({ ...stats }),
     done: donePromise,
-  } as unknown as CrawlSession
+  }
 }

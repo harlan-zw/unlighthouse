@@ -5,6 +5,7 @@ import type { BrowserWorker } from '@cloudflare/puppeteer'
 import type { Crawler, CrawlerRunOptions, CrawlEvent } from '@unlighthouse/contracts'
 import puppeteer from '@cloudflare/puppeteer'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 
 export interface CloudflareCrawlerOptions {
   /** Browser Rendering binding (env.BROWSER). */
@@ -113,7 +114,9 @@ export function cloudflareCrawler(opts: CloudflareCrawlerOptions): Crawler {
       await producer
     }
     finally {
-      await browser.close().catch(() => undefined)
+      await browser.close().catch((err) => {
+        logOperationalWarn('auditor.cleanup_failed', err, { operation: 'cloudflare.browser.close' })
+      })
     }
   }
 

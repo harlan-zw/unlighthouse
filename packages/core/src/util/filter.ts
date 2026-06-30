@@ -41,17 +41,15 @@ export function createFilter(options: CreateFilterOptions = {}): (path: string) 
 
       const stringRules = v.rules.filter(r => typeof r === 'string') as string[]
       if (stringRules.length > 0) {
-        const routes = {}
+        const routes: Record<string, true> = {}
         for (const r of stringRules) {
           // quick scan of literal string matches
           if (r === path)
             return v.result
 
           // need to flip the array data for radix3 format, true value is arbitrary
-          for (const pattern of expandPattern(r)) {
-            // @ts-expect-error untyped
+          for (const pattern of expandPattern(r))
             routes[pattern] = true
-          }
         }
         const routeRulesMatcher = toRouteMatcher(createRouter({ routes, strictTrailingSlash: false }))
         if (routeRulesMatcher.matchAll(path).length > 0)

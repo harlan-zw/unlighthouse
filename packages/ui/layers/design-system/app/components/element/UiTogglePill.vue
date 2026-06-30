@@ -9,11 +9,13 @@ export interface TogglePillOption<T extends string | number = string> {
   tooltip?: string
 }
 
-const { options, label } = defineProps<{
+export interface UiTogglePillProps<T extends string | number = string> {
   options: TogglePillOption<T>[]
   /** Accessible name for the segmented control (screen-reader only). */
   label?: string
-}>()
+}
+
+const { options, label } = defineProps<UiTogglePillProps<T>>()
 
 const modelValue = defineModel<T>({ required: true })
 

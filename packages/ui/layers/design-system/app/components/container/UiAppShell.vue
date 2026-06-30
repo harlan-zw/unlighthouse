@@ -15,16 +15,16 @@ const { sidebarWidth = 64, flushContent = false, contentClass } = defineProps<{
 }>()
 
 const slots = defineSlots<{
-  brand?: () => any
-  sidebar?: () => any
-  footer?: () => any
-  topBanners?: () => any
-  mobile?: (props: { closeNav: () => void }) => any
+  brand?: () => unknown
+  sidebar?: () => unknown
+  footer?: () => unknown
+  topBanners?: () => unknown
+  mobile?: (props: { closeNav: () => void }) => unknown
   /** Inline content next to the mobile hamburger (e.g. the site/group switcher). */
-  mobileNav?: () => any
-  default?: () => any
-  bottom?: () => any
-  extras?: () => any
+  mobileNav?: () => unknown
+  default?: () => unknown
+  bottom?: () => unknown
+  extras?: () => unknown
 }>()
 
 const navOpen = ref(false)

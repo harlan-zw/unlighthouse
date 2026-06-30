@@ -3,19 +3,20 @@
 // This pins the data layer behind `--build-static`.
 
 import type { Scan, ScanRoute } from '@unlighthouse/contracts/types/atoms'
-import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { PackRun } from '@unlighthouse/contracts/packs'
 import { buildStaticSnapshot, createStaticClient } from '@unlighthouse/core/api/static-client'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { describe, expect, it } from 'vitest'
+import { testConfig, testScanId, testUrl } from './helpers/contracts'
 
-const SCAN_ID = 'scan-static-0001'
+const SCAN_ID = testScanId('scan-static-0001')
+const SITE_URL = testUrl('https://example.com')
 
 function makeScan(): Scan {
   return {
-    scanId: SCAN_ID as Scan['scanId'],
+    scanId: SCAN_ID,
     siteId: 'https://example.com',
-    site: 'https://example.com',
+    site: SITE_URL,
     mode: 'site',
     device: 'mobile',
     status: 'complete',
@@ -32,12 +33,12 @@ function makeScan(): Scan {
       scoresByCategory: { performance: 0.9 },
       durationMs: 1234,
     },
-  } as Scan
+  }
 }
 
 function makeRoute(path: string, perf: number): ScanRoute {
   return {
-    url: `https://example.com${path}`,
+    url: testUrl(`https://example.com${path}`),
     path,
     routeName: null,
     scorePerformance: perf,
@@ -54,11 +55,11 @@ function makeRoute(path: string, perf: number): ScanRoute {
     si: 1500,
     lighthouseVersion: '13.0.0',
     capturedAt: '2025-01-01T00:01:00.000Z',
-    scanId: SCAN_ID as ScanRoute['scanId'],
+    scanId: SCAN_ID,
     device: 'mobile',
     lhrBlobKey: `scans/${SCAN_ID}/lhr/abc-mobile.json.gz`,
     reportBlobKey: `scans/${SCAN_ID}/reports/abc-mobile.json`,
-  } as ScanRoute
+  }
 }
 
 function makePackRun(): PackRun {
@@ -68,11 +69,24 @@ function makePackRun(): PackRun {
     packVersion: '1.0.0',
     startedAt: '2025-01-01T00:02:00.000Z',
     completedAt: '2025-01-01T00:02:01.000Z',
-    report: { metrics: [{ metric: 'lcp', p75: 1200, verdict: 'good' }] },
-  } as unknown as PackRun
+    report: {
+      scanId: SCAN_ID,
+      routesAnalysed: 2,
+      metrics: [{
+        metric: 'lcp',
+        p75: 1200,
+        verdict: 'good',
+        distribution: { good: 2, needsImprovement: 0, poor: 0, unknown: 0 },
+        worstRoutes: [{ url: 'https://example.com/about', value: 1200 }],
+      }],
+      passesCoreWebVitals: true,
+      topFixes: [],
+    },
+    reportBlobKey: null,
+  }
 }
 
-const config = { site: 'https://example.com', scanner: {}, routerPrefix: '/' } as unknown as UnlighthouseConfig
+const config = testConfig()
 
 function makeClient() {
   return createStaticClient({
@@ -88,20 +102,20 @@ function makeClient() {
 describe('createStaticClient — offline read commands', () => {
   it('scan.results returns the seeded routes (with filter/sort/paging in-browser)', async () => {
     const api = makeClient()
-    const all = await api['scan.results']({ scanId: SCAN_ID as never, page: 1, pageSize: 50 })
+    const all = await api['scan.results']({ scanId: SCAN_ID, page: 1, pageSize: 50 })
     expect(all.total).toBe(2)
     expect(all.items.map(r => r.path).sort()).toEqual(['/', '/about'])
 
     // Sort + filter run through the same handler/storage logic as the live API.
-    const sorted = await api['scan.results']({ scanId: SCAN_ID as never, page: 1, pageSize: 50, sort: 'score-asc' as never })
+    const sorted = await api['scan.results']({ scanId: SCAN_ID, page: 1, pageSize: 50, sort: 'score-asc' })
     expect(sorted.items[0].path).toBe('/about') // perf 0.4 first
-    const filtered = await api['scan.results']({ scanId: SCAN_ID as never, page: 1, pageSize: 50, filter: { urlPattern: '/about' } as never })
+    const filtered = await api['scan.results']({ scanId: SCAN_ID, page: 1, pageSize: 50, filter: { urlPattern: '/about' } })
     expect(filtered.items.map(r => r.path)).toEqual(['/about'])
   })
 
   it('scan.meta returns scan metadata offline', async () => {
     const api = makeClient()
-    const meta = await api['scan.meta']({ scanId: SCAN_ID as never })
+    const meta = await api['scan.meta']({ scanId: SCAN_ID })
     expect(meta.site).toBe('https://example.com')
     expect(meta.device).toBe('mobile')
   })
@@ -111,21 +125,21 @@ describe('createStaticClient — offline read commands', () => {
     const sites = await api['sites.list']({})
     expect(sites.sites.map(s => s.url)).toContain('https://example.com')
 
-    const history = await api['history.list']({ site: 'https://example.com', page: 1, pageSize: 50 } as never)
+    const history = await api['history.list']({ site: 'https://example.com', page: 1, pageSize: 50 })
     expect(history.items.map(s => s.scanId)).toContain(SCAN_ID)
   })
 
   it('pack.run returns the pre-seeded report as a cache hit (no API, no inflate)', async () => {
     const api = makeClient()
-    const res = await api['pack.run']({ scanId: SCAN_ID as never, pack: 'cwv' } as never)
+    const res = await api['pack.run']({ scanId: SCAN_ID, pack: 'cwv' })
     expect(res.cache).toBe('hit')
     expect((res.report as { metrics: unknown[] }).metrics).toHaveLength(1)
   })
 
   it('write commands reject — a static report is frozen', async () => {
     const api = makeClient()
-    await expect(api['scan.rescanAll']({ scanId: SCAN_ID as never })).rejects.toThrow(/static report/i)
-    await expect(api['route.rescan']({ scanId: SCAN_ID as never, url: 'https://example.com/' } as never)).rejects.toThrow(/static report/i)
+    await expect(api['scan.rescanAll']({ scanId: SCAN_ID })).rejects.toThrow(/static report/i)
+    await expect(api['route.rescan']({ scanId: SCAN_ID, url: testUrl('https://example.com/') })).rejects.toThrow(/static report/i)
   })
 })
 
@@ -133,8 +147,8 @@ describe('buildStaticSnapshot → createStaticClient round-trip', () => {
   it('collects a scan from storage and serves it back offline', async () => {
     // Seed a live-shaped storage the way a real scan leaves it.
     const storage = memoryStorage()
-    await storage.scans.create(makeScan() as never)
-    await storage.routes.putBatch(SCAN_ID as never, 'mobile' as never, [makeRoute('/', 1), makeRoute('/about', 0.4)] as never)
+    await storage.scans.create(makeScan())
+    await storage.routes.putBatch(SCAN_ID, 'mobile', [makeRoute('/', 1), makeRoute('/about', 0.4)])
     await storage.packRuns.put(makePackRun())
     await storage.sites.create({ id: 'https://example.com', name: 'example.com', url: 'https://example.com', group: null, createdAt: '2025-01-01T00:00:00.000Z' })
 
@@ -147,9 +161,9 @@ describe('buildStaticSnapshot → createStaticClient round-trip', () => {
 
     // Feed the collected snapshot to the offline client — full producer→consumer.
     const api = createStaticClient(snapshot)
-    const results = await api['scan.results']({ scanId: SCAN_ID as never, page: 1, pageSize: 50 })
+    const results = await api['scan.results']({ scanId: SCAN_ID, page: 1, pageSize: 50 })
     expect(results.total).toBe(2)
-    const pack = await api['pack.run']({ scanId: SCAN_ID as never, pack: 'cwv' } as never)
+    const pack = await api['pack.run']({ scanId: SCAN_ID, pack: 'cwv' })
     expect(pack.cache).toBe('hit')
   })
 })

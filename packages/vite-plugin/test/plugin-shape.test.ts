@@ -32,7 +32,7 @@ describe('@unlighthouse/vite — plugin shape', () => {
     // return without touching vite/unlighthouse — so no error, no async
     // dynamic-import attempts.
     const close = plugin.closeBundle as () => Promise<void>
-    await expect(close.call({} as never)).resolves.toBeUndefined()
+    await expect(close()).resolves.toBeUndefined()
   })
 
   it('default export matches the named export', async () => {

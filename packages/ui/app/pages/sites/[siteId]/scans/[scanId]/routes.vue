@@ -5,6 +5,7 @@ import ScanRoutesTable from '~/features/scan/components/ScanRoutesTable.vue'
 // its centered max-w-7xl column) so the data-dense table + bigger thumbnails
 // have room and scroll comfortably.
 definePageMeta({ layout: 'scan', fluid: true })
+useScanPageTitle('Routes')
 </script>
 
 <template>

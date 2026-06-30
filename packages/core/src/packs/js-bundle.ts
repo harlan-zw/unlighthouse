@@ -62,7 +62,8 @@ function normaliseUrl(u: string): string {
     const p = new URL(u)
     return `${p.origin}${p.pathname}`
   }
-  catch {
+  catch (_err) {
+    // Non-URL resource identifiers still group by their queryless label.
     return u.split('?')[0] ?? u
   }
 }
@@ -300,7 +301,10 @@ async function reconcile(ctx: PackReconcileCtx): Promise<BundleReport> {
   let routesAnalysed = 0
 
   for (const row of ctx.routes) {
-    const lhr = await ctx.getLhr(row.url, 'mobile').catch(() => null) as LhrLike | null
+    const lhr = await ctx.getLhr(row.url, 'mobile').catch((err) => {
+      ctx.logger?.debug?.(`js-bundle pack: failed to load LHR for ${row.url} [mobile]`, err)
+      return null
+    }) as LhrLike | null
     if (!lhr)
       continue
     routesAnalysed++

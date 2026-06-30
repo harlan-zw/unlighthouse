@@ -24,7 +24,7 @@ export function createPackReconcileCtx(opts: CreatePackReconcileCtxOptions): Pac
   }
 
   const lhrCache = new Map<string, unknown | null>()
-  const reconciledCache = new Map<string, unknown | null>()
+  const reconciledCache = new Map<string, Awaited<ReturnType<NonNullable<PackReconcileCtx['getReconciled']>>>>()
 
   return {
     scanId: opts.scanId,

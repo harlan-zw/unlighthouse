@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import type { ColumnDef } from '@tanstack/vue-table'
 import type { BundleReport } from '@unlighthouse/contracts/packs'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { h } from 'vue'
 import CategoryPageShell from '~/features/scan/components/CategoryPageShell.vue'
 import PackFindings from '~/features/scan/components/PackFindings.vue'
 import { getScanId } from '~/features/scan/route-context'
@@ -14,6 +17,34 @@ const { fmtBytes } = useFormat()
 const { data: bundlePack, status, error: bundleError, refresh: refreshBundle } = useApiQuery('pack.run', () => ({ scanId, pack: 'js-bundle' }))
 const { data: routeScores } = useApiQuery('scan.results', () => ({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }))
 
+type RouteScoreRow = NonNullable<typeof routeScores['value']>['items'][number]
+const routeScoreColumns: ColumnDef<RouteScoreRow>[] = [
+  {
+    accessorKey: 'path',
+    header: 'Path',
+    cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-sm', title: row.original.url }, row.original.path),
+  },
+  {
+    accessorKey: 'scoreBestPractices',
+    header: 'Best Practices',
+    align: 'right',
+    headClass: 'w-28',
+    cell: ({ row }) => h('span', { class: `tabular-nums font-bold ${scoreToColor(row.original.scoreBestPractices)}` }, scoreToLabel(row.original.scoreBestPractices)),
+  },
+]
+
+// Aggregated audit grouped by id, shaped for PackFindings.
+interface BpFinding {
+  auditId: string
+  title: string | null
+  description: string | null
+  severity: string
+  routes: string[]
+  // PackFindings' Finding carries an open index signature; match it so the
+  // aggregated findings are assignable to its prop type.
+  [extra: string]: unknown
+}
+
 // There is no dedicated "best-practices" pack, so the actual failing
 // audits (image-aspect-ratio, errors-in-console, inspector-issues, the
 // CSP/HSTS security checks, …) never surfaced — the page only showed JS
@@ -24,7 +55,7 @@ const { data: routeScores } = useApiQuery('scan.results', () => ({ scanId, page:
 // Composite fan-out (one `route.audits` per route); per-route `.catch`
 // degrades a failed audit to empty rather than failing the page. Keyed on
 // the route set so it refetches when the scores load / change.
-const { data: bpFindings } = useNuxtAsyncQuery<any[]>(
+const { data: bpFindings } = useNuxtAsyncQuery<Array<BpFinding & { routeCount: number }>>(
   async () => {
     const list = routeScores.value?.items ?? []
     if (!list.length)
@@ -32,8 +63,15 @@ const { data: bpFindings } = useNuxtAsyncQuery<any[]>(
     const perRoute = await Promise.all(
       list.map(r =>
         api['route.audits']({ scanId, url: r.url, category: 'best-practices' })
-          .then(res => ({ path: r.path, audits: (res as any)?.audits ?? [] }))
-          .catch(() => ({ path: r.path, audits: [] as any[] })),
+          .then(res => ({ path: r.path, audits: res.audits }))
+          .catch((err) => {
+            logOperationalWarn('ui.optional_api_read_failed', err, {
+              command: 'route.audits',
+              feature: 'best-practices',
+              path: r.path,
+            }, console)
+            return { path: r.path, audits: [] }
+          }),
       ),
     )
 
@@ -41,7 +79,7 @@ const { data: bpFindings } = useNuxtAsyncQuery<any[]>(
     const severityFromWeight = (w: number) =>
       w >= 3 ? 'critical' : w >= 1 ? 'serious' : w > 0 ? 'moderate' : 'minor'
 
-    const byAudit = new Map<string, any>()
+    const byAudit = new Map<string, BpFinding>()
     for (const { path, audits } of perRoute) {
       for (const a of audits) {
         // Only actionable audits: a real failure (score < 1). Skip
@@ -97,7 +135,8 @@ function shortResource(url: string): string {
     const u = new URL(url)
     return `${u.hostname}${u.pathname}`
   }
-  catch {
+  catch (_err) {
+    // Non-URL resource labels are already displayable.
     return url
   }
 }
@@ -172,28 +211,7 @@ const hasData = computed(() =>
           Route Scores
         </h3>
       </template>
-      <table class="w-full">
-        <thead>
-          <tr class="h-9 border-b border-default">
-            <th class="text-label text-dimmed text-left px-3">
-              Path
-            </th>
-            <th class="text-label text-dimmed text-right px-3 w-28">
-              Best Practices
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in routeScores.items.slice(0, 50)" :key="r.url" class="border-b border-default last:border-0">
-            <td class="font-mono text-xs truncate max-w-sm px-3 py-2" :title="r.url">
-              {{ r.path }}
-            </td>
-            <td class="text-right tabular-nums font-bold px-3 py-2" :class="scoreToColor(r.scoreBestPractices)">
-              {{ scoreToLabel(r.scoreBestPractices) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <UiTable :columns="routeScoreColumns" :data="routeScores.items.slice(0, 50)" disable-pagination />
     </UiCard>
   </CategoryPageShell>
 </template>

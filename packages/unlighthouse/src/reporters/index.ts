@@ -20,7 +20,12 @@ export function generateReportPayload(reporter: 'jsonExpanded', reports: Unlight
 export function generateReportPayload(reporter: 'jsonSimple' | 'json', reports: UnlighthouseRouteReport[]): ReportJsonSimple
 export function generateReportPayload(reporter: 'csvSimple' | 'csv', reports: UnlighthouseRouteReport[]): string
 export function generateReportPayload(reporter: 'csvExpanded', reports: UnlighthouseRouteReport[], config?: ReporterConfig): string
-export function generateReportPayload(reporter: string, _reports: UnlighthouseRouteReport[], config?: ReporterConfig): any {
+export function generateReportPayload(reporter: string, reports: UnlighthouseRouteReport[], config?: ReporterConfig): Promise<void> | ReportJsonExpanded | ReportJsonSimple | string
+export function generateReportPayload(
+  reporter: string,
+  _reports: UnlighthouseRouteReport[],
+  config?: ReporterConfig,
+): Promise<void> | ReportJsonExpanded | ReportJsonSimple | string {
   const reports = _reports
     // D-029: matrix scans emit two rows per path; secondary sort by device
     // keeps `desktop` ahead of `mobile` for the same path so the CSV / JSON
@@ -48,7 +53,7 @@ export function generateReportPayload(reporter: string, _reports: UnlighthouseRo
   throw new Error(`Unsupported reporter: ${reporter}.`)
 }
 
-export async function outputReport(reporter: string, config: Partial<ResolvedUserConfig>, payload: any) {
+export async function outputReport(reporter: string, config: Partial<ResolvedUserConfig>, payload: unknown) {
   if (!config.outputPath)
     throw new Error('Cannot output report without an outputPath.')
 
@@ -58,6 +63,8 @@ export async function outputReport(reporter: string, config: Partial<ResolvedUse
     return path
   }
   if (reporter.startsWith('csv')) {
+    if (typeof payload !== 'string')
+      throw new TypeError(`CSV reporter "${reporter}" returned a non-string payload.`)
     const path = join(config.outputPath, 'ci-result.csv')
     await writeFile(path, payload)
     return path

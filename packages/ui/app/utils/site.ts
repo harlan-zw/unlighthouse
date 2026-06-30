@@ -6,7 +6,8 @@ export function siteSlug(url: string): string {
   try {
     return new URL(url).hostname
   }
-  catch {
+  catch (_err) {
+    // Non-URL site labels are already slug-safe enough for legacy routes.
     return url
   }
 }

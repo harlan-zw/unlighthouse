@@ -2,9 +2,10 @@
 // (memory storage + mock auditor + stub core). We verify output shape via
 // the command's Zod `output.safeParse` rather than strict equality.
 
-import type { CrawlSession, UnlighthouseCore } from '@unlighthouse/contracts'
+import type { CrawlSession, UnlighthouseCore, UnlighthouseCoreRunOptions } from '@unlighthouse/contracts'
+import type { CommandInput, CommandName, CommandRegistry } from '@unlighthouse/contracts/commands'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
-import type { Scan, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { Scan, ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import { gzipSync } from 'node:zlib'
 import { commands } from '@unlighthouse/contracts/commands'
@@ -13,18 +14,22 @@ import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { describe, expect, it } from 'vitest'
+import { testConfig, testScanId, testUrl } from './helpers/contracts'
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
-const SCAN_ID = 'scan-fixture-0001'
-const OTHER_SCAN_ID = 'scan-fixture-0002'
-const FIXTURE_URL = 'https://example.com/'
+const SCAN_ID = testScanId('scan-fixture-0001')
+const OTHER_SCAN_ID = testScanId('scan-fixture-0002')
+const NEW_SCAN_ID = testScanId('newscan')
+const CLONED_SCAN_ID = testScanId('cloned')
+const MISSING_SCAN_ID = testScanId('missing')
+const FIXTURE_URL = testUrl('https://example.com/')
 
-function makeScan(id: string = SCAN_ID): Scan {
+function makeScan(id: ScanId = SCAN_ID): Scan {
   return {
-    scanId: id as Scan['scanId'],
+    scanId: id,
     siteId: 'https://example.com',
-    site: 'https://example.com',
+    site: testUrl('https://example.com'),
     mode: 'site',
     device: 'mobile',
     status: 'complete',
@@ -62,30 +67,37 @@ function makeRoute(): ScanRoute {
     si: 1500,
     lighthouseVersion: '11.0.0',
     capturedAt: '2025-01-01T00:01:00.000Z',
-    scanId: SCAN_ID as ScanRoute['scanId'],
+    scanId: SCAN_ID,
+    device: 'mobile',
     lhrBlobKey: `scans/${SCAN_ID}/lhr/abc.json.gz`,
+  }
+}
+
+function makeCore(overrides: Partial<UnlighthouseCore> = {}): UnlighthouseCore {
+  return {
+    run: () => { throw new Error('core.run not exercised in this test') },
+    session: () => null,
+    hooks: undefined,
+    ...overrides,
   }
 }
 
 function makeStubCore(): UnlighthouseCore {
   // The handlers we exercise here never call `core.run()`; if any does, throw.
-  return {
-    run: () => { throw new Error('core.run not exercised in this test') },
-    session: () => null,
-  } as unknown as UnlighthouseCore
+  return makeCore()
 }
 
 function makeConfig(): UnlighthouseConfig {
-  return {
+  return testConfig({
     site: 'https://example.com',
     scanner: { device: 'mobile', throttle: true, samples: 1, maxRoutes: 200 },
     auditor: { name: 'mock' },
-  }
+  })
 }
 
 async function seed(ctx: HandlerCtx): Promise<void> {
   await ctx.storage.scans.create(makeScan())
-  await ctx.storage.routes.putBatch(SCAN_ID as never, 'mobile', [makeRoute()])
+  await ctx.storage.routes.putBatch(SCAN_ID, 'mobile', [makeRoute()])
 }
 
 function makeCtx(): HandlerCtx {
@@ -105,7 +117,7 @@ function makeCtx(): HandlerCtx {
 // Stub session for handlers that need an in-flight session.
 function stubSession(overrides: Partial<CrawlSession> = {}): CrawlSession {
   return {
-    scanId: SCAN_ID as CrawlSession['scanId'],
+    scanId: SCAN_ID,
     events: (async function* () {})(),
     replay: () => [],
     capabilities: { pausable: true },
@@ -114,7 +126,7 @@ function stubSession(overrides: Partial<CrawlSession> = {}): CrawlSession {
     cancel: async () => {},
     state: () => 'scanning',
     stats: () => ({ discovered: 1, scanned: 1, failed: 0, total: 1 }),
-    done: Promise.resolve({ scanId: SCAN_ID as CrawlSession['scanId'], summary: makeScan().summary! }),
+    done: Promise.resolve({ scanId: SCAN_ID, summary: makeScan().summary! }),
     ...overrides,
   } as CrawlSession
 }
@@ -124,17 +136,17 @@ function stubSession(overrides: Partial<CrawlSession> = {}): CrawlSession {
 // against an empty store so we can assert the SCAN_NOT_FOUND throw separately.
 
 interface Case {
-  input: unknown
+  input: CommandInput<CommandRegistry[CommandName]>
   /** When true (default), seed storage with the fixture scan + route. */
   preseed?: boolean
   /** When set, override ctx.core.session() to return this stub. */
-  session?: CrawlSession | null
+  session?: CrawlSession
   /** Skip the smoke test for this command (handled elsewhere). */
   smokeSkip?: boolean
 }
 
-const cases: Record<string, Case> = {
-  'scan.start': { input: { site: 'https://example.com' }, preseed: false, smokeSkip: true },
+const cases: Partial<Record<CommandName, Case>> = {
+  'scan.start': { input: { site: FIXTURE_URL }, preseed: false, smokeSkip: true },
   'scan.status': { input: { scanId: SCAN_ID } },
   'scan.cancel': { input: { scanId: SCAN_ID, reason: 'test' }, session: stubSession() },
   'scan.pause': { input: { scanId: SCAN_ID }, session: stubSession() },
@@ -169,7 +181,7 @@ describe('handlers — smoke', () => {
 
   // Streaming + run-spawning commands are covered by dedicated tests in
   // core.test.ts / e2e-scan.test.ts / e2e-http.test.ts; no smoke variant.
-  const smokeCases = Object.entries(cases).filter(([, c]) => !c.smokeSkip)
+  const smokeCases = Object.entries(cases).filter(([, c]) => !c.smokeSkip) as Array<[CommandName, Case]>
   describe.each(smokeCases)('%s', (name, c) => {
 
     it('returns output matching the command output schema', async () => {
@@ -177,15 +189,14 @@ describe('handlers — smoke', () => {
       if (c.preseed !== false)
         await seed(ctx)
       if (c.session !== undefined) {
-        ;(ctx as any).core = {
-          ...ctx.core,
+        ctx.core = makeCore({
           session: () => c.session,
           run: () => { throw new Error('not exercised') },
-        }
+        })
       }
-      const cmd = (commands as any)[name]
-      const handler = (handlers as any)[name]
-      const result = await handler.run(c.input, ctx)
+      const cmd = commands[name]
+      const handler = handlers[name]
+      const result = await handler.run(c.input as CommandInput<CommandRegistry[typeof name]>, ctx)
       const parsed = cmd.output.safeParse(result)
       if (!parsed.success) {
         // surface the failure for debugging
@@ -201,27 +212,27 @@ describe('handlers — SCAN_NOT_FOUND', () => {
 
   // Commands that should throw SCAN_NOT_FOUND when invoked against an empty
   // store with an unknown scanId.
-  const notFoundCmds: { name: string, input: any }[] = [
-    { name: 'scan.status', input: { scanId: 'missing' } },
-    { name: 'scan.delete', input: { scanId: 'missing' } },
-    { name: 'scan.results', input: { scanId: 'missing', page: 1, pageSize: 50 } },
-    { name: 'scan.meta', input: { scanId: 'missing' } },
-    { name: 'scan.rescanAll', input: { scanId: 'missing' } },
-    { name: 'route.rescan', input: { scanId: 'missing', url: FIXTURE_URL } },
-    { name: 'history.rescan', input: { scanId: 'missing' } },
-    { name: 'compare.run', input: { baseScanId: 'missing', currentScanId: 'missing' } },
-    { name: 'assert.evaluate', input: { scanId: 'missing', assertions: [{ type: 'minScore', category: 'performance', value: 0.5 }] } },
+  const notFoundCmds: Array<{ name: CommandName, input: unknown }> = [
+    { name: 'scan.status', input: { scanId: MISSING_SCAN_ID } },
+    { name: 'scan.delete', input: { scanId: MISSING_SCAN_ID } },
+    { name: 'scan.results', input: { scanId: MISSING_SCAN_ID, page: 1, pageSize: 50 } },
+    { name: 'scan.meta', input: { scanId: MISSING_SCAN_ID } },
+    { name: 'scan.rescanAll', input: { scanId: MISSING_SCAN_ID } },
+    { name: 'route.rescan', input: { scanId: MISSING_SCAN_ID, url: FIXTURE_URL } },
+    { name: 'history.rescan', input: { scanId: MISSING_SCAN_ID } },
+    { name: 'compare.run', input: { baseScanId: MISSING_SCAN_ID, currentScanId: MISSING_SCAN_ID } },
+    { name: 'assert.evaluate', input: { scanId: MISSING_SCAN_ID, assertions: [{ type: 'minScore', category: 'performance', value: 0.5 }] } },
   ]
 
   it.each(notFoundCmds)('$name throws SCAN_NOT_FOUND', async ({ name, input }) => {
     const ctx = makeCtx() // empty store
-    const handler = (createHandlers() as any)[name]
+    const handler = createHandlers()[name]
     void handlers // satisfy linter
-    await expect(handler.run(input, ctx)).rejects.toMatchObject({
+    await expect(handler.run(input as CommandInput<CommandRegistry[typeof name]>, ctx)).rejects.toMatchObject({
       code: 'SCAN_NOT_FOUND',
     })
     // Also assert it's an UnlighthouseError instance.
-    await handler.run(input, ctx).catch((err: unknown) => {
+    await handler.run(input as CommandInput<CommandRegistry[typeof name]>, ctx).catch((err: unknown) => {
       expect(err).toBeInstanceOf(UnlighthouseError)
     })
   })
@@ -232,8 +243,8 @@ describe('handlers — streaming', () => {
 
   it('events.subscribe returns an AsyncIterable that closes cleanly with no session', async () => {
     const ctx = makeCtx()
-    const result = handlers['events.subscribe'].run({} as never, ctx) as AsyncIterable<unknown>
-    expect(typeof (result as any)[Symbol.asyncIterator]).toBe('function')
+    const result = handlers['events.subscribe'].run({}, ctx) as AsyncIterable<unknown>
+    expect(typeof result[Symbol.asyncIterator]).toBe('function')
     const collected: unknown[] = []
     for await (const item of result)
       collected.push(item)
@@ -242,8 +253,8 @@ describe('handlers — streaming', () => {
 
   it('events.tail with no persisted blob iterates empty cleanly', async () => {
     const ctx = makeCtx()
-    const result = handlers['events.tail'].run({ scanId: SCAN_ID as never }, ctx) as AsyncIterable<unknown>
-    expect(typeof (result as any)[Symbol.asyncIterator]).toBe('function')
+    const result = handlers['events.tail'].run({ scanId: SCAN_ID }, ctx) as AsyncIterable<unknown>
+    expect(typeof result[Symbol.asyncIterator]).toBe('function')
     const collected: unknown[] = []
     for await (const item of result)
       collected.push(item)
@@ -253,17 +264,17 @@ describe('handlers — streaming', () => {
   it('events.tail yields persisted events from a gzipped blob', async () => {
     const ctx = makeCtx()
     const lines = [
-      JSON.stringify({ event: 'route:complete', scanId: SCAN_ID, payload: { url: FIXTURE_URL } }),
-      JSON.stringify({ event: 'scan:complete', scanId: SCAN_ID, payload: {} }),
+      JSON.stringify({ event: 'scan:started', payload: { scanId: SCAN_ID } }),
+      JSON.stringify({ event: 'scan:complete', payload: { scanId: SCAN_ID, summary: makeScan().summary } }),
     ].join('\n')
     const gz = gzipSync(Buffer.from(lines, 'utf-8'))
     await ctx.storage.blobs.put(`scans/${SCAN_ID}/events.jsonl.gz`, new Uint8Array(gz))
-    const iter = handlers['events.tail'].run({ scanId: SCAN_ID as never }, ctx) as AsyncIterable<any>
-    const out: any[] = []
+    const iter = handlers['events.tail'].run({ scanId: SCAN_ID }, ctx) as AsyncIterable<{ event: string }>
+    const out: Array<{ event: string }> = []
     for await (const item of iter)
       out.push(item)
     expect(out.length).toBe(2)
-    expect(out[0].event).toBe('route:complete')
+    expect(out[0].event).toBe('scan:started')
   })
 })
 
@@ -271,8 +282,8 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
   it('scan.start throws ACTIVE_SCAN_CONFLICT when a session is in flight', async () => {
     const handlers = createHandlers()
     const ctx = makeCtx()
-    ;(ctx as any).core.session = () => stubSession()
-    await expect(handlers['scan.start'].run({ site: 'https://example.com' } as never, ctx))
+    ctx.core = makeCore({ session: () => stubSession() })
+    await expect(handlers['scan.start'].run({ site: FIXTURE_URL }, ctx))
       .rejects.toMatchObject({ code: 'ACTIVE_SCAN_CONFLICT' })
   })
 
@@ -280,41 +291,41 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
     const handlers = createHandlers()
     const ctx = makeCtx()
     let runCalled = 0
-    ;(ctx as any).core = {
+    ctx.core = makeCore({
       session: () => null,
       run: () => {
         runCalled++
-        return stubSession({ scanId: 'newscan' as CrawlSession['scanId'] })
+        return stubSession({ scanId: NEW_SCAN_ID })
       },
-    }
-    const result = await handlers['scan.start'].run({ site: 'https://example.com' } as never, ctx) as any
+    })
+    const result = await handlers['scan.start'].run({ site: FIXTURE_URL }, ctx)
     expect(runCalled).toBe(1)
     const parsed = commands['scan.start'].output.safeParse(result)
     expect(parsed.success).toBe(true)
-    expect(result.scanId).toBe('newscan')
+    expect(commands['scan.start'].output.parse(result).scanId).toBe('newscan')
   })
 
   it('scan.start threads input (site/device/categories/sampleSize/auditor/ciBuild) into core.run(overrides)', async () => {
     const handlers = createHandlers()
     const ctx = makeCtx()
-    let receivedOpts: any = null
-    ;(ctx as any).core = {
+    let receivedOpts: UnlighthouseCoreRunOptions | undefined
+    ctx.core = makeCore({
       session: () => null,
-      run: (opts?: any) => {
+      run: (opts?: UnlighthouseCoreRunOptions) => {
         receivedOpts = opts
-        return stubSession({ scanId: 'newscan' as CrawlSession['scanId'] })
+        return stubSession({ scanId: NEW_SCAN_ID })
       },
-    }
+    })
     await handlers['scan.start'].run({
-      site: 'https://example.com',
+      site: FIXTURE_URL,
       device: 'desktop',
       sampleSize: 3,
       categories: ['performance', 'seo'],
       auditor: 'psi',
       ciBuild: { branch: 'main', hash: 'abc123', message: 'release' },
-    } as never, ctx)
+    }, ctx)
     expect(receivedOpts?.overrides).toEqual({
-      site: 'https://example.com',
+      site: FIXTURE_URL,
       device: 'desktop',
       sampleSize: 3,
       categories: ['performance', 'seo'],
@@ -327,8 +338,8 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
     const handlers = createHandlers()
     const ctx = makeCtx()
     await seed(ctx)
-    ;(ctx as any).core.session = () => stubSession()
-    await expect(handlers['scan.rescanAll'].run({ scanId: SCAN_ID as never }, ctx))
+    ctx.core = makeCore({ session: () => stubSession() })
+    await expect(handlers['scan.rescanAll'].run({ scanId: SCAN_ID }, ctx))
       .rejects.toMatchObject({ code: 'ACTIVE_SCAN_CONFLICT' })
   })
 
@@ -337,15 +348,15 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
     const ctx = makeCtx()
     await seed(ctx)
     let runCalled = 0
-    ;(ctx as any).core = {
+    ctx.core = makeCore({
       session: () => null,
       run: () => { runCalled++; return stubSession() },
-    }
-    const result = await handlers['scan.rescanAll'].run({ scanId: SCAN_ID as never }, ctx) as any
+    })
+    const result = await handlers['scan.rescanAll'].run({ scanId: SCAN_ID }, ctx)
     expect(runCalled).toBe(1)
     const parsed = commands['scan.rescanAll'].output.safeParse(result)
     expect(parsed.success).toBe(true)
-    const remaining = await ctx.storage.routes.listForScan(SCAN_ID as never, { page: 1, pageSize: 10 })
+    const remaining = await ctx.storage.routes.listForScan(SCAN_ID, { page: 1, pageSize: 10 })
     expect(remaining.items.length).toBe(0)
   })
 
@@ -354,13 +365,13 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
     const ctx = makeCtx()
     await seed(ctx)
     let runCalled = 0
-    ;(ctx as any).core = {
+    ctx.core = makeCore({
       session: () => null,
-      run: () => { runCalled++; return stubSession({ scanId: 'cloned' as CrawlSession['scanId'] }) },
-    }
-    const result = await handlers['history.rescan'].run({ scanId: SCAN_ID as never }, ctx) as any
+      run: () => { runCalled++; return stubSession({ scanId: CLONED_SCAN_ID }) },
+    })
+    const result = await handlers['history.rescan'].run({ scanId: SCAN_ID }, ctx)
     expect(runCalled).toBe(1)
-    expect(result.sourceScanId).toBe(SCAN_ID)
+    expect(commands['history.rescan'].output.parse(result).sourceScanId).toBe(SCAN_ID)
     const parsed = commands['history.rescan'].output.safeParse(result)
     expect(parsed.success).toBe(true)
   })

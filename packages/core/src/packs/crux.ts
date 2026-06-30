@@ -41,6 +41,7 @@
 
 import type { CruxFinding, CruxFormFactor, CruxReport, CruxSource, GapAnalysis, GapEntry, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { Device, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { CruxReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────
@@ -128,7 +129,10 @@ async function postCrux(
     // Treat as a soft miss so the pack continues with origin fallback / none.
     if (res.status === 400)
       return { ok: false, status: 400 }
-    const body = await res.text().catch(() => '')
+    const body = await res.text().catch((err) => {
+      logOperationalWarn('api.error_body_read_failed', err, { endpoint: CRUX_ENDPOINT, status: res.status })
+      return ''
+    })
     throw new Error(`CrUX API ${res.status}: ${body.slice(0, 200)}`)
   }
   const json = (await res.json()) as CruxApiEnvelope
@@ -270,7 +274,7 @@ export function analyzeLabVsField(
 
     for (const { metric, field, lab } of COMPARABLE_METRICS) {
       const fieldValue = finding[field]
-      const labValueRaw = (route as Record<string, unknown>)[lab]
+      const labValueRaw = route[lab]
       const labValue = typeof labValueRaw === 'number' ? labValueRaw : null
       if (fieldValue == null || labValue == null)
         continue
@@ -315,7 +319,7 @@ export interface CruxPackOptions {
 // Pulled out so tests can override the key resolution path without
 // fiddling with `process.env`.
 function resolveApiKey(opts: CruxPackOptions, ctx: PackReconcileCtx): string | null {
-  // `(ctx as any).config?.auditor?.cruxApiKey` would be the long-term path
+  // `ctx.config?.auditor?.cruxApiKey` would be the long-term path
   // once the reconcile ctx carries the full UnlighthouseOptions blob. For
   // now the auditor config drops into the pack via the explicit `apiKey`
   // option (host wiring sets it from `auditor.cruxApiKey` / the `crux`

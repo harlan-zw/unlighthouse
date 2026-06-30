@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends Record<string, any>">
+<script setup lang="ts" generic="T extends object">
 import type { RowData } from '@tanstack/table-core'
 import type {
   ColumnDef,
@@ -19,6 +19,7 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { useIntersectionObserver } from '@vueuse/core'
 
 const {
@@ -40,6 +41,7 @@ const {
   manualPagination = false,
   disablePagination = false,
   total,
+  rowClass,
 } = defineProps<UiTableProps<T>>()
 
 const emit = defineEmits<{
@@ -102,11 +104,15 @@ function getTextAlignClass(align?: 'left' | 'center' | 'right'): string {
 }
 
 function resolveRowId(row: T): string {
-  if (!rowId)
-    return row.id
+  const rowRecord = row as Record<string, unknown>
+  if (!rowId) {
+    const id = rowRecord.id
+    return typeof id === 'string' ? id : String(id ?? '')
+  }
   if (typeof rowId === 'function')
     return rowId(row)
-  return row[rowId]
+  const id = rowRecord[rowId]
+  return typeof id === 'string' ? id : String(id ?? '')
 }
 
 function handleRowClick(row: T, tanstackRow: Row<T>) {
@@ -130,9 +136,15 @@ function onRowKeydown(e: KeyboardEvent, row: T, tanstackRow: Row<T>) {
 
 const slots = useSlots()
 
+// Optional trailing actions column (row buttons/menus). Rendered outside the
+// TanStack column model so callers express rich actions as a slot, not a cell
+// render fn. `colSpan` accounts for it in the empty/skeleton rows.
+const hasActions = computed(() => !!slots.actions)
+const colSpan = computed(() => columns.length + (hasActions.value ? 1 : 0))
+
 const table = useVueTable<T>({
   data: toRef(() => data),
-  columns: columns as ColumnDef<T, any>[],
+  columns: columns as ColumnDef<T, unknown>[],
   getCoreRowModel: getCoreRowModel(),
   enableSorting,
   manualSorting,
@@ -163,6 +175,10 @@ const table = useVueTable<T>({
   sortingFns,
 })
 
+// Exposed so callers can reach the TanStack instance (e.g. a column-visibility
+// menu via `getAllLeafColumns()`).
+defineExpose({ table })
+
 // Sticky-header shadow: a zero-height sentinel sits at the top of the wrapper;
 // once it scrolls out through the top the sticky thead has reached the edge, so
 // we lift it. IntersectionObserver fires only on crossing — no per-scroll
@@ -185,7 +201,10 @@ if (import.meta.dev) {
   watch(() => disablePagination && data.length, () => {
     if (disablePagination && data.length > ROW_WARN_THRESHOLD && !warned) {
       warned = true
-      console.warn(`[UiTable] rendering ${data.length} rows with disablePagination — every row mounts to the DOM. Paginate, cap the list, or split it to keep rendering performant.`)
+      logOperationalWarn('ui.table_unpaginated_large_render', null, {
+        rows: data.length,
+        threshold: ROW_WARN_THRESHOLD,
+      }, console)
     }
   }, { immediate: true })
 }
@@ -201,6 +220,10 @@ declare module '@tanstack/table-core' {
     noPadding?: boolean
     stableData?: boolean
     tooltip?: string
+    /** Extra classes for this column's header cell (e.g. width constraints). */
+    headClass?: string
+    /** Extra classes for this column's body cells. */
+    cellClass?: string
     ui?: { td?: { base?: string } }
     /**
      * @internal Phantom member — exists only to bind the `TData`/`TValue` type
@@ -216,6 +239,8 @@ export interface UiTableColumnProps<_T> {
   accessorKey?: string
   stableData?: boolean
   tooltip?: string
+  headClass?: string
+  cellClass?: string
   ui?: { td?: { base?: string } }
 }
 
@@ -227,7 +252,7 @@ const sizes = {
 
 export interface UiTableProps<T> {
   data: T[]
-  columns: (Omit<ColumnDef<T, any>, 'accessorKey'> & UiTableColumnProps<T>)[]
+  columns: (Omit<ColumnDef<T, unknown>, 'accessorKey'> & UiTableColumnProps<T>)[]
   selected?: Record<string, boolean>
   controlledSelection?: boolean
   rowHover?: boolean
@@ -236,7 +261,7 @@ export interface UiTableProps<T> {
   /** Caller owns sort state; UiTable emits @sortColumn and does not run getSortedRowModel. */
   manualSorting?: boolean
   pageSize?: number
-  sortingFns?: Record<string, SortingFn<any>>
+  sortingFns?: Record<string, SortingFn<T>>
   ignoreHeader?: boolean
   size?: keyof typeof sizes
   loading?: boolean
@@ -247,6 +272,8 @@ export interface UiTableProps<T> {
   total?: number
   /** Accessible name for the table. Rendered as a visually-hidden <caption>. */
   label?: string
+  /** Extra classes applied per data row — e.g. a selection highlight. */
+  rowClass?: (row: T) => string
 }
 </script>
 
@@ -263,7 +290,10 @@ export interface UiTableProps<T> {
             v-for="header in headerGroup.headers"
             :key="header.id"
             class="text-label text-dimmed text-left whitespace-nowrap border-b border-default bg-default"
-            :class="header.column.columnDef.noPadding ? '' : header.column.getCanSort() ? 'px-2' : 'px-3'"
+            :class="[
+              header.column.columnDef.noPadding ? '' : header.column.getCanSort() ? 'px-2' : 'px-3',
+              header.column.columnDef.headClass,
+            ]"
             :aria-sort="header.column.getCanSort() ? getAriaSort(header.column.id) : undefined"
             scope="col"
           >
@@ -272,6 +302,9 @@ export interface UiTableProps<T> {
               :sort-direction="getSortDirection(header.column.id)"
               @sort="toggleSort"
             />
+          </th>
+          <th v-if="hasActions" class="w-px border-b border-default bg-default" scope="col">
+            <span class="sr-only">Actions</span>
           </th>
         </tr>
       </thead>
@@ -289,6 +322,7 @@ export interface UiTableProps<T> {
               class="border-b border-default"
               :class="[
                 rowClickable && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                rowClass?.(row.original),
               ]"
               @click="handleRowClick(row.original, row)"
               @keydown="rowClickable && onRowKeydown($event, row.original, row)"
@@ -301,6 +335,7 @@ export interface UiTableProps<T> {
                   sizes[size].td,
                   cell.column.columnDef.noPadding ? '' : cell.column.getCanSort() ? 'px-2' : 'px-3',
                   getTextAlignClass(cell.column.columnDef.align),
+                  cell.column.columnDef.cellClass,
                   cell.column.columnDef.ui?.td?.base || '',
                 ]"
               >
@@ -313,9 +348,12 @@ export interface UiTableProps<T> {
                 />
                 <FlexRender v-else :render="cell.column.columnDef.cell" :props="cell.getContext()" />
               </td>
+              <td v-if="hasActions" class="text-right whitespace-nowrap px-3" :class="sizes[size].td" @click.stop>
+                <slot name="actions" :row="row.original" />
+              </td>
             </tr>
             <tr v-if="row.getIsExpanded()" class="expanded-row">
-              <td :colspan="row.getAllCells().length" class="px-2 pb-2">
+              <td :colspan="colSpan" class="px-2 pb-2">
                 <div class="rounded-lg bg-accented">
                   <slot name="expanded-component" :row="row.original" />
                 </div>
@@ -339,7 +377,7 @@ export interface UiTableProps<T> {
         </template>
 
         <tr v-else>
-          <td :colspan="columns.length" class="h-24 text-center" role="status">
+          <td :colspan="colSpan" class="h-24 text-center" role="status">
             <slot name="empty-component">
               <span class="text-xs font-mono text-dimmed">0 rows · adjust filters</span>
             </slot>

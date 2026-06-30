@@ -218,7 +218,7 @@ function getRegionDisplay(): Intl.DisplayNames | null {
   try {
     regionDisplay = new Intl.DisplayNames(undefined, { type: 'region' })
   }
-  catch {
+  catch (_err) {
     regionDisplay = null // runtime without region display data
   }
   return regionDisplay

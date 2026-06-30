@@ -36,10 +36,10 @@ const { links, activeMode = 'exact', label } = defineProps<{
 
 defineSlots<{
   /** Custom leading visual per item (e.g. a favicon). Replaces `UiNavIcon`. */
-  icon?: (props: { link: T, active: boolean }) => any
+  icon?: (props: { link: T, active: boolean }) => unknown
   /** Trailing per-row action (e.g. a hover menu). Rendered as a sibling of the
    *  link, not nested inside the anchor, so interactive triggers stay valid. */
-  action?: (props: { link: T }) => any
+  action?: (props: { link: T }) => unknown
 }>()
 
 const route = useRoute()

@@ -16,12 +16,12 @@ interface Props {
   closeDelay?: number
   arrow?: boolean
   /** Positioning options forwarded to UPopover's `content` prop */
-  content?: Record<string, any>
+  content?: Record<string, unknown>
   /** @deprecated Use `content` with `side`/`align` instead */
-  popper?: Record<string, any>
+  popper?: Record<string, unknown>
   /** Custom role attribute applied to the content wrapper */
   role?: string
-  ui?: Record<string, any>
+  ui?: Record<string, unknown>
 }
 
 const { mode = 'click', openDelay = 0, closeDelay = 0, content, popper, arrow, disabled, role, ui } = defineProps<Props>()
@@ -51,7 +51,7 @@ const contentProps = computed(() => {
   if (!popper)
     return undefined
 
-  const placement: string | undefined = popper.placement
+  const placement = typeof popper.placement === 'string' ? popper.placement : undefined
   if (!placement)
     return undefined
 

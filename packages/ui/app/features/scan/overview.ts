@@ -1,3 +1,4 @@
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useScanBase } from '~/features/scan/route-context'
@@ -17,6 +18,13 @@ function scoreColorFromRing(scoreToRingColor: (score: number | null) => string, 
   if (score == null)
     return 'var(--ui-text-muted)'
   return scoreToRingColor(score)
+}
+
+async function optionalApiRead<T>(command: string, promise: Promise<T>): Promise<T | null> {
+  return promise.catch((err) => {
+    logOperationalWarn('ui.optional_api_read_failed', err, { command, feature: 'scan-overview' }, console)
+    return null
+  })
 }
 
 export function useScanOverview() {
@@ -52,7 +60,7 @@ export function useScanOverview() {
   async function startPollingIfActive() {
     if (wsEnabled)
       return
-    const status = await api['scan.status']({ scanId: scanId.value }).catch(() => null)
+    const status = await optionalApiRead('scan.status', api['scan.status']({ scanId: scanId.value }))
     if (status && ['starting', 'discovering', 'scanning', 'paused'].includes(status.status)) {
       store.hydrateActive(scanId.value, { ...status, site: scanMeta.value?.site })
       store.startPolling()
@@ -83,10 +91,10 @@ export function useScanOverview() {
   const { data: deviceProbe } = useNuxtAsyncQuery<{ mobile: boolean, desktop: boolean }>(
     async () => {
       const [mobile, desktop] = await Promise.all([
-        api['scan.results']({ scanId: scanId.value, device: 'mobile', page: 1, pageSize: 1 }).catch(() => ({ total: 0 } as any)),
-        api['scan.results']({ scanId: scanId.value, device: 'desktop', page: 1, pageSize: 1 }).catch(() => ({ total: 0 } as any)),
+        optionalApiRead('scan.results', api['scan.results']({ scanId: scanId.value, device: 'mobile', page: 1, pageSize: 1 })),
+        optionalApiRead('scan.results', api['scan.results']({ scanId: scanId.value, device: 'desktop', page: 1, pageSize: 1 })),
       ])
-      return { mobile: (mobile.total ?? 0) > 0, desktop: (desktop.total ?? 0) > 0 }
+      return { mobile: (mobile?.total ?? 0) > 0, desktop: (desktop?.total ?? 0) > 0 }
     },
     {
       key: () => `scan-devices:${scanId.value}`,

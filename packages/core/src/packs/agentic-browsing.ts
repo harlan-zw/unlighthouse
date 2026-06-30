@@ -4,6 +4,7 @@
 // agent accessibility tree, and llms.txt across all routes.
 
 import type { AgenticBrowsingReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { ReconciledReport } from '@unlighthouse/contracts/types/atoms'
 import { AgenticBrowsingReportSchema } from '@unlighthouse/contracts/packs'
 
 const AGENTIC_AUDIT_IDS = [
@@ -44,12 +45,14 @@ export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
     let schemaValidAll: boolean | null = null
 
     for (const route of routes) {
-      let reconciled: any = null
+      let reconciled: ReconciledReport | null = null
       if (ctx.getReconciled) {
         try {
           reconciled = await ctx.getReconciled(route.url, device)
         }
-        catch {}
+        catch (err) {
+          ctx.logger?.debug?.(`agentic-browsing pack: failed to load reconciled report for ${route.url} [${device}]`, err)
+        }
       }
       if (!reconciled)
         continue

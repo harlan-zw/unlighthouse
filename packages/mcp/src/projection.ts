@@ -11,7 +11,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js'
 import { commands } from '@unlighthouse/contracts/commands'
-import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { z } from 'zod'
 
 /**
@@ -36,6 +36,18 @@ function mcpErrorCodeForCode(code: string): number {
   if (code === 'INPUT_INVALID' || code === 'CONFIG_INVALID')
     return ErrorCode.InvalidParams
   return ErrorCode.InternalError
+}
+
+function toMcpError(err: unknown): McpError {
+  const envelope = createErrorEnvelope(err, {
+    exposeInternal: process.env.NODE_ENV !== 'production',
+  })
+  const e = envelope.error
+  return new McpError(
+    mcpErrorCodeForCode(e.code),
+    `[${e.code}] ${e.message}`,
+    envelope,
+  )
 }
 
 function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
@@ -105,10 +117,11 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
 
     const parsed = cmd.input.safeParse(req.params.arguments ?? {})
     if (!parsed.success) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Input validation failed: ${parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
-      )
+      throw toMcpError(new UnlighthouseError({
+        code: ErrorCodes.INPUT_INVALID,
+        message: 'Input validation failed',
+        details: { issues: parsed.error.issues },
+      }))
     }
 
     let ctx: HandlerCtx
@@ -116,9 +129,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
       ctx = await ctxFactory({ name: req.params.name, arguments: req.params.arguments }, extra)
     }
     catch (err) {
-      if (err instanceof UnlighthouseError)
-        throw new McpError(mcpErrorCodeForCode(err.code), err.message)
-      throw new McpError(ErrorCode.InternalError, err instanceof Error ? err.message : String(err))
+      throw toMcpError(err)
     }
 
     try {
@@ -160,16 +171,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
       }
     }
     catch (err) {
-      if (err instanceof UnlighthouseError) {
-        throw new McpError(
-          mcpErrorCodeForCode(err.code),
-          `[${err.code}] ${err.message}`,
-        )
-      }
-      throw new McpError(
-        ErrorCode.InternalError,
-        err instanceof Error ? err.message : String(err),
-      )
+      throw toMcpError(err)
     }
   })
 

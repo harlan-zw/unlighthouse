@@ -1,6 +1,7 @@
 import type { PackDiff } from '@unlighthouse/contracts/commands'
 import type { ScanId } from '@unlighthouse/contracts/types/atoms'
 import type { HandlerCtx } from '../types'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 
 type PackSummary = NonNullable<PackDiff['baseSummary']>
 
@@ -37,15 +38,22 @@ function deepEqual(a: unknown, b: unknown): boolean {
   try {
     return JSON.stringify(a) === JSON.stringify(b)
   }
-  catch {
+  catch (_err) {
+    // Non-serializable pack values are considered different.
     return false
   }
 }
 
 export async function computePackDiffs(ctx: HandlerCtx, baseScanId: ScanId, currentScanId: ScanId): Promise<PackDiff[]> {
   const [baseRuns, currentRuns] = await Promise.all([
-    ctx.storage.packRuns.listForScan(baseScanId).catch(() => [] as Array<{ packName: string, report?: unknown }>),
-    ctx.storage.packRuns.listForScan(currentScanId).catch(() => [] as Array<{ packName: string, report?: unknown }>),
+    ctx.storage.packRuns.listForScan(baseScanId).catch((err) => {
+      logOperationalWarn('compare.pack_cache_read_failed', err, { scanId: baseScanId, side: 'base' })
+      return [] as Array<{ packName: string, report?: unknown }>
+    }),
+    ctx.storage.packRuns.listForScan(currentScanId).catch((err) => {
+      logOperationalWarn('compare.pack_cache_read_failed', err, { scanId: currentScanId, side: 'current' })
+      return [] as Array<{ packName: string, report?: unknown }>
+    }),
   ])
 
   const baseByName = new Map(baseRuns.map(run => [run.packName, run.report]))

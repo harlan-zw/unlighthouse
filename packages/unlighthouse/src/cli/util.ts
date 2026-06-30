@@ -2,6 +2,7 @@ import type { Logger } from '@unlighthouse/contracts'
 import type { ResolvedUserConfig, UserConfig } from '../index.ts'
 import type { CiOptions, CliOptions } from './types'
 import { URL } from 'node:url'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { defu } from 'defu'
 import { fetchUrlRaw, normaliseHost } from '../index.ts'
 import { handleError } from './errors'
@@ -62,10 +63,10 @@ export async function validateHost(resolvedConfig: ResolvedUserConfig, logger?: 
     const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(site, resolvedConfig)
     if (!valid) {
       // something is wrong with the site, bail
-      if (response?.status)
-        logger?.warn(`Request to site \`${site}\` returned an invalid http status code \`${response.status}\`. lease check the URL is valid and not blocking crawlers.`)
-      else
-        logger?.warn(`Request to site \`${site}\` threw an unhandled exception. Please check the URL is valid and not blocking crawlers.`, error)
+      logOperationalWarn('host.site_validation_failed', error ?? null, {
+        site,
+        status: response?.status ?? null,
+      }, logger)
       logger?.error('Site check failed. will attempt to proceed but may fail.')
     }
     else if (response) {
@@ -86,7 +87,8 @@ export function isValidUrl(s: string) {
     const url = new URL(s)
     return !!url
   }
-  catch {
+  catch (_err) {
+    // CLI validation treats malformed URLs as invalid input.
     return false
   }
 }

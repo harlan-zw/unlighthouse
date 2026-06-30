@@ -44,7 +44,9 @@ export class WS {
         client.send(jsonData)
         sent++
       }
-      catch {}
+      catch (err) {
+        log.debug(`broadcast ${data.event} failed for one client`, err)
+      }
     }
     log.debug(`broadcast ${data.event} → ${sent}/${clientCount} clients`)
   }

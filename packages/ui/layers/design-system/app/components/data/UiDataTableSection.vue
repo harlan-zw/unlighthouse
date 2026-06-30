@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends Record<string, any>">
+<script setup lang="ts" generic="T extends object">
 import type { SortingState } from '@tanstack/vue-table'
 import type { UiIcon } from '../../shared/ui-icons'
 import type { UiTableProps } from './UiTable.vue'
@@ -29,7 +29,7 @@ const {
   rows: T[]
   total: number
   columns: UiTableProps<T>['columns']
-  error?: any
+  error?: unknown
   pageSize?: number
   searchable?: boolean
   searchPlaceholder?: string
@@ -67,6 +67,14 @@ const rowSelectionEnabled = computed(() => rowSelection.value !== undefined)
 const showEmpty = computed(() => !pending && !error && rows.length === 0)
 const showTable = computed(() => !error && (pending || rows.length > 0))
 const showPagination = computed(() => !pending && rows.length > 0 && total > pageSize)
+
+function errorMessage(error: unknown): string {
+  if (typeof error === 'string')
+    return error
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string')
+    return error.message
+  return 'Failed to load'
+}
 </script>
 
 <template>
@@ -114,7 +122,7 @@ const showPagination = computed(() => !pending && rows.length > 0 && total > pag
       <slot name="error" :error="error">
         <div class="py-10 text-center">
           <p class="text-sm text-error mb-3">
-            {{ typeof error === 'string' ? error : (error.message || 'Failed to load') }}
+            {{ errorMessage(error) }}
           </p>
           <UiButton size="sm" purpose="secondary" @click="emit('retry')">
             Retry

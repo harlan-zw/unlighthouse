@@ -103,10 +103,16 @@ interface RouteView {
 
 async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteView | null> {
   const reconciled = ctx.getReconciled
-    ? await ctx.getReconciled(url, 'mobile').catch(() => null) as ReconciledReport | null
+    ? await ctx.getReconciled(url, 'mobile').catch((err) => {
+        ctx.logger?.debug?.(`seo-basics pack: failed to load reconciled report for ${url} [mobile]`, err)
+        return null
+      })
     : null
   const lhr = ctx.getLhr
-    ? await ctx.getLhr(url, 'mobile').catch(() => null) as LhrLike | null
+    ? await ctx.getLhr(url, 'mobile').catch((err) => {
+        ctx.logger?.debug?.(`seo-basics pack: failed to load LHR for ${url} [mobile]`, err)
+        return null
+      }) as LhrLike | null
     : null
 
   if (!reconciled && !lhr)

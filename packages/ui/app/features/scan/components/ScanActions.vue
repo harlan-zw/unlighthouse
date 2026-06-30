@@ -9,8 +9,8 @@ async function handleCancel() {
     await store.cancelScan()
     toast.info('Scan cancelled')
   }
-  catch (err: any) {
-    toast.error('Failed to cancel', { description: err.message })
+  catch (err) {
+    toast.error('Failed to cancel', { description: err instanceof Error ? err.message : String(err) })
   }
 }
 
@@ -19,8 +19,8 @@ async function handlePause() {
     await store.pauseScan()
     toast.info('Scan paused')
   }
-  catch (err: any) {
-    toast.error('Failed to pause', { description: err.message })
+  catch (err) {
+    toast.error('Failed to pause', { description: err instanceof Error ? err.message : String(err) })
   }
 }
 
@@ -29,8 +29,8 @@ async function handleResume() {
     await store.resumeScan()
     toast.info('Scan resumed')
   }
-  catch (err: any) {
-    toast.error('Failed to resume', { description: err.message })
+  catch (err) {
+    toast.error('Failed to resume', { description: err instanceof Error ? err.message : String(err) })
   }
 }
 </script>

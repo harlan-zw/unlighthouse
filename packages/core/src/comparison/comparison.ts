@@ -1,9 +1,8 @@
-import type { ScanRouteRow as ScanRoute } from '@unlighthouse/contracts/drizzle'
+import type { ComparisonDiffRow, ComparisonRow, ScanRouteRow as ScanRoute } from '@unlighthouse/contracts/drizzle'
 import type { ComparisonDiff, MetricDiff } from '../report/types'
 import { comparisonDiffs, comparisons, scanRoutes } from '@unlighthouse/contracts/drizzle'
 import { eq } from 'drizzle-orm'
-
-type AnyDrizzle = any
+import { asDrizzleDatabase } from '../storage/drizzle/types'
 
 export const DEFAULT_THRESHOLDS: Record<string, number> = {
   lcp: 500, // 500ms
@@ -23,24 +22,26 @@ type ScanRouteRecord = Pick<ScanRoute, | 'path' | 'url'
   | 'lcp' | 'cls' | 'tbt' | 'fcp' | 'si' | 'ttfb' | 'inp'
   | 'scorePerformance' | 'scoreAccessibility' | 'scoreBestPractices' | 'scoreSeo'>
 
-function compareRouteMetrics(base: ScanRouteRecord, current: ScanRouteRecord, thresholds: Record<string, number> = DEFAULT_THRESHOLDS): MetricDiff[] {
-  const metrics = [
-    'lcp',
-    'cls',
-    'tbt',
-    'fcp',
-    'si',
-    'ttfb',
-    'inp',
-    'scorePerformance',
-    'scoreAccessibility',
-    'scoreBestPractices',
-    'scoreSeo',
-  ] as const
+type RouteMetricKey = Exclude<keyof ScanRouteRecord, 'path' | 'url'>
 
-  return metrics.map((name) => {
-    const baseVal = (base as any)[name] ?? 0
-    const currentVal = (current as any)[name] ?? 0
+const ROUTE_METRICS: readonly RouteMetricKey[] = [
+  'lcp',
+  'cls',
+  'tbt',
+  'fcp',
+  'si',
+  'ttfb',
+  'inp',
+  'scorePerformance',
+  'scoreAccessibility',
+  'scoreBestPractices',
+  'scoreSeo',
+]
+
+function compareRouteMetrics(base: ScanRouteRecord, current: ScanRouteRecord, thresholds: Record<string, number> = DEFAULT_THRESHOLDS): MetricDiff[] {
+  return ROUTE_METRICS.map((name) => {
+    const baseVal = base[name] ?? 0
+    const currentVal = current[name] ?? 0
     const delta = currentVal - baseVal
     const thresholdKey = name.startsWith('score') ? name.slice(5).toLowerCase() : name
     const threshold = thresholds[thresholdKey] ?? DEFAULT_THRESHOLDS[thresholdKey] ?? 5
@@ -61,9 +62,10 @@ function compareRouteMetrics(base: ScanRouteRecord, current: ScanRouteRecord, th
   }).filter(m => m.severity !== 'neutral')
 }
 
-export async function compareScans(db: AnyDrizzle, baseScanId: string, currentScanId: string, thresholds?: Record<string, number>) {
-  const baseRoutes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, baseScanId))
-  const currentRoutes = await db.select().from(scanRoutes).where(eq(scanRoutes.scanId, currentScanId))
+export async function compareScans(db: unknown, baseScanId: string, currentScanId: string, thresholds?: Record<string, number>) {
+  const sqlDb = asDrizzleDatabase(db)
+  const baseRoutes = await sqlDb.select<ScanRouteRecord>().from(scanRoutes).where(eq(scanRoutes.scanId, baseScanId))
+  const currentRoutes = await sqlDb.select<ScanRouteRecord>().from(scanRoutes).where(eq(scanRoutes.scanId, currentScanId))
   const resolvedThresholds = { ...DEFAULT_THRESHOLDS, ...(thresholds ?? {}) }
 
   const baseByPath = new Map((baseRoutes as ScanRouteRecord[]).map(r => [r.path, r]))
@@ -99,7 +101,7 @@ export async function compareScans(db: AnyDrizzle, baseScanId: string, currentSc
     }
   }
 
-  const [comparison] = await db.insert(comparisons).values({
+  const [comparison] = await sqlDb.insert<ComparisonRow>(comparisons).values({
     baseScanId,
     currentScanId,
     improved,
@@ -110,7 +112,7 @@ export async function compareScans(db: AnyDrizzle, baseScanId: string, currentSc
   }).returning()
 
   if (diffs.length > 0) {
-    await db.insert(comparisonDiffs).values(
+    await sqlDb.insert(comparisonDiffs).values(
       diffs.map(diff => ({
         comparisonId: comparison.id,
         path: diff.path,
@@ -124,18 +126,24 @@ export async function compareScans(db: AnyDrizzle, baseScanId: string, currentSc
   return comparison
 }
 
-export async function getComparisonSummary(db: AnyDrizzle, comparisonId: number) {
-  const [comparison] = await db.select().from(comparisons).where(eq(comparisons.id, comparisonId)).limit(1)
+function parseMetricDiffs(raw: string): MetricDiff[] {
+  const parsed = JSON.parse(raw) as unknown
+  return Array.isArray(parsed) ? parsed as MetricDiff[] : []
+}
+
+export async function getComparisonSummary(db: unknown, comparisonId: number) {
+  const sqlDb = asDrizzleDatabase(db)
+  const [comparison] = await sqlDb.select<ComparisonRow>().from(comparisons).where(eq(comparisons.id, comparisonId)).limit(1)
   if (!comparison)
     return null
 
-  const diffs = await db.select().from(comparisonDiffs).where(eq(comparisonDiffs.comparisonId, comparisonId))
+  const diffs = await sqlDb.select<ComparisonDiffRow>().from(comparisonDiffs).where(eq(comparisonDiffs.comparisonId, comparisonId))
 
   return {
     ...comparison,
-    diffs: diffs.map((d: any) => ({
+    diffs: diffs.map(d => ({
       ...d,
-      metricDiffs: JSON.parse(d.metricDiffs),
+      metricDiffs: parseMetricDiffs(d.metricDiffs),
     })),
   }
 }

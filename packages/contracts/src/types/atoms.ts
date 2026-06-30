@@ -16,6 +16,14 @@ export type Url = z.infer<typeof UrlSchema>
 const DeviceSchema = z.enum(['mobile', 'desktop'])
 export type Device = z.infer<typeof DeviceSchema>
 
+export function parseScanId(value: string): ScanId {
+  return ScanIdSchema.parse(value)
+}
+
+export function parseUrl(value: string): Url {
+  return UrlSchema.parse(value)
+}
+
 // Lighthouse audit categories. Includes agentic-browsing added in LH 13.
 const CategorySchema = z.enum(['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'])
 export type Category = z.infer<typeof CategorySchema>
@@ -46,8 +54,12 @@ export type ScanStatus = z.infer<typeof ScanStatusSchema>
 const StructuredErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
+  statusCode: z.number().int().min(100).max(599).optional(),
+  category: z.enum(['fatal', 'route-failed', 'retryable', 'validation']).optional(),
+  retryable: z.boolean().optional(),
   suggestion: z.string().optional(),
   docsUrl: z.url().optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
   cause: z.unknown().optional(),
 })
 export type StructuredError = z.infer<typeof StructuredErrorSchema>

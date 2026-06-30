@@ -17,6 +17,7 @@
 // import Workers types separately.
 
 import type { Auditor } from '@unlighthouse/contracts/ports'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createRemoteLighthouseAuditor } from '@unlighthouse/core/auditors/remote-lighthouse'
 
 /**
@@ -26,10 +27,8 @@ import { createRemoteLighthouseAuditor } from '@unlighthouse/core/auditors/remot
  * collision rationale). Consumers pass their `env.LIGHTHOUSE_CONTAINER`
  * binding and TypeScript checks structural compatibility.
  *
- * `fetch` is typed loosely as `(...args: any[]) => Promise<Response>` so
- * we sidestep the DOM-vs-Workers Request/RequestInit type war — the
- * Workers `DurableObjectStub.fetch` signature is wider than DOM's and the
- * two never quite align without one side being `any`.
+ * `fetch` is typed to the request shape this helper sends. That avoids
+ * importing Workers globals here while keeping callers structurally checked.
  */
 /**
  * Minimal `Response` surface this helper consumes. Matches what both DOM
@@ -43,8 +42,15 @@ export interface ResponseLike {
   json: () => Promise<unknown>
 }
 
+interface ContainerFetchInit {
+  method: 'POST'
+  headers: Record<string, string>
+  body: string
+  signal?: AbortSignal
+}
+
 export interface ContainerStubLike {
-  fetch: (...args: any[]) => Promise<ResponseLike>
+  fetch: (input: string, init?: ContainerFetchInit) => Promise<ResponseLike>
 }
 export interface ContainerNamespaceLike {
   /** Newer Workers types — direct name → stub. Optional. */
@@ -97,12 +103,25 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
         signal: req.signal,
       })
       if (!res.ok) {
-        const text = await res.text().catch(() => '<unreadable>')
-        throw new Error(`LighthouseContainer audit failed: ${res.status} ${text}`)
+        let text = '<unreadable>'
+        try {
+          text = await res.text()
+        }
+        catch (_err) {
+          // Diagnostic body read failed; preserve the HTTP status as the primary error.
+        }
+        throw new UnlighthouseError({
+          code: 'INFRA_RETRYABLE',
+          message: `LighthouseContainer audit failed: ${res.status} ${text}`,
+          details: { status: res.status, body: text },
+        })
       }
       const lhr = await res.json()
       if (!lhr || typeof lhr !== 'object' || !('categories' in (lhr as object)))
-        throw new Error('LighthouseContainer returned an invalid LHR')
+        throw new UnlighthouseError({
+          code: 'INFRA_RETRYABLE',
+          message: 'LighthouseContainer returned an invalid LHR',
+        })
       return lhr as Awaited<ReturnType<Auditor['audit']>>
     },
   })

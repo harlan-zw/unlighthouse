@@ -6,21 +6,22 @@
 // This test exercises the memory adapter (no native deps in CI) and
 // asserts the same shape the SQL path produces.
 
-import type { Storage } from '@unlighthouse/contracts'
+import type { ExtractedMetrics, Storage } from '@unlighthouse/contracts'
 import { scanResults } from '@unlighthouse/core/api/handlers'
 import { queryRoutes } from '@unlighthouse/core/api/handlers'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { testHandlerCtx, testScanId, testUrl } from './helpers/contracts'
 
-const SCAN = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+const SCAN = testScanId('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')
 
 function makeMetric(url: string, partial: Partial<{
   scorePerformance: number
   lcp: number
   cls: number
-}> = {}) {
+}> = {}): ExtractedMetrics {
   return {
-    url,
+    url: testUrl(url),
     path: new URL(url).pathname,
     routeName: null,
     scorePerformance: partial.scorePerformance ?? 0.5,
@@ -41,8 +42,8 @@ function makeMetric(url: string, partial: Partial<{
 
 async function seedStorage(storage: Storage): Promise<void> {
   await storage.scans.create({
-    scanId: SCAN as never,
-    site: 'http://example.com',
+    scanId: SCAN,
+    site: testUrl('http://example.com'),
     device: 'mobile',
     status: 'complete',
     startedAt: new Date().toISOString(),
@@ -51,21 +52,13 @@ async function seedStorage(storage: Storage): Promise<void> {
     ciCommit: null,
     ciCommitMessage: null,
   })
-  await storage.routes.putBatch(SCAN as never, 'mobile', [
+  await storage.routes.putBatch(SCAN, 'mobile', [
     makeMetric('http://example.com/fast', { scorePerformance: 0.95, lcp: 800 }),
     makeMetric('http://example.com/medium', { scorePerformance: 0.6, lcp: 2200 }),
     makeMetric('http://example.com/slow', { scorePerformance: 0.3, lcp: 4500 }),
     makeMetric('http://example.com/about', { scorePerformance: 0.9, lcp: 1100 }),
   ])
 }
-
-const ctx = (s: Storage) => ({
-  storage: s,
-  core: { hooks: undefined } as never,
-  auditor: undefined as never,
-  config: {} as never,
-  version: 'test',
-} as never)
 
 describe('storage filter push-down', () => {
   let storage: Storage
@@ -77,12 +70,12 @@ describe('storage filter push-down', () => {
   it('scan.results minScore narrows the row set + counts the filtered total', async () => {
     const out = await scanResults.run(
       {
-        scanId: SCAN as never,
+        scanId: SCAN,
         filter: { minScore: { performance: 0.9 } },
         page: 1,
         pageSize: 50,
-      } as never,
-      ctx(storage),
+      },
+      testHandlerCtx(storage),
     )
     expect(out.items.map(r => r.url).sort()).toEqual([
       'http://example.com/about',
@@ -95,12 +88,12 @@ describe('storage filter push-down', () => {
   it('scan.results maxMetric filters + ignores null columns', async () => {
     const out = await scanResults.run(
       {
-        scanId: SCAN as never,
+        scanId: SCAN,
         filter: { maxMetric: { lcp: 1500 } },
         page: 1,
         pageSize: 50,
-      } as never,
-      ctx(storage),
+      },
+      testHandlerCtx(storage),
     )
     expect(out.items.map(r => r.url).sort()).toEqual([
       'http://example.com/about',
@@ -111,12 +104,12 @@ describe('storage filter push-down', () => {
   it('scan.results sort is applied at the storage layer', async () => {
     const out = await scanResults.run(
       {
-        scanId: SCAN as never,
+        scanId: SCAN,
         sort: 'lcp-asc',
         page: 1,
         pageSize: 50,
-      } as never,
-      ctx(storage),
+      },
+      testHandlerCtx(storage),
     )
     expect(out.items.map(r => r.url)).toEqual([
       'http://example.com/fast', // 800
@@ -132,12 +125,12 @@ describe('storage filter push-down', () => {
     // top of the ordered set.
     const out = await scanResults.run(
       {
-        scanId: SCAN as never,
+        scanId: SCAN,
         sort: 'lcp-asc',
         page: 2,
         pageSize: 1,
-      } as never,
-      ctx(storage),
+      },
+      testHandlerCtx(storage),
     )
     expect(out.total).toBe(4)
     expect(out.items).toHaveLength(1)
@@ -147,12 +140,12 @@ describe('storage filter push-down', () => {
   it('scan.results urlPattern (literal) pushes to storage', async () => {
     const out = await scanResults.run(
       {
-        scanId: SCAN as never,
+        scanId: SCAN,
         filter: { urlPattern: '/medium' },
         page: 1,
         pageSize: 50,
-      } as never,
-      ctx(storage),
+      },
+      testHandlerCtx(storage),
     )
     expect(out.items.map(r => r.url)).toEqual(['http://example.com/medium'])
   })
@@ -163,12 +156,12 @@ describe('storage filter push-down', () => {
     // on the returned page.
     const out = await scanResults.run(
       {
-        scanId: SCAN as never,
+        scanId: SCAN,
         filter: { urlPattern: '^http://example\\.com/(fast|slow)$' },
         page: 1,
         pageSize: 50,
-      } as never,
-      ctx(storage),
+      },
+      testHandlerCtx(storage),
     )
     expect(out.items.map(r => r.url).sort()).toEqual([
       'http://example.com/fast',
@@ -179,13 +172,13 @@ describe('storage filter push-down', () => {
   it('query.routes single-scan path uses storage push-down', async () => {
     const out = await queryRoutes.run(
       {
-        scanId: SCAN as never,
+        scanId: SCAN,
         filter: { minScore: { performance: 0.8 } },
         sort: 'score-desc',
         page: 1,
         pageSize: 50,
-      } as never,
-      ctx(storage),
+      },
+      testHandlerCtx(storage),
     )
     expect(out.items.map(r => r.url)).toEqual([
       'http://example.com/fast', // 0.95

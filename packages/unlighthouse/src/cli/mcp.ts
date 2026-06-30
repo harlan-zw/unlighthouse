@@ -10,6 +10,7 @@
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
@@ -112,7 +113,8 @@ function countScans(dbPath: string): number {
     db = new Database(dbPath, { readonly: true })
     return (db.prepare('SELECT count(*) AS c FROM scans').get() as { c: number }).c
   }
-  catch {
+  catch (_err) {
+    // Missing, locked, or legacy DBs simply rank as having no scans.
     return 0
   }
   finally {
@@ -230,12 +232,14 @@ export async function runMcp(): Promise<void> {
   // Sweep zombies left by a prior process. MCP often opens an existing DB
   // written by the CLI; "starting" rows from a Ctrl+C'd CLI run would
   // otherwise stay forever in agent's history_list output.
-  reapStaleScans(storage, logger).catch(() => {})
+  reapStaleScans(storage, logger).catch((err) => {
+    logOperationalWarn('core.stale_scan_reap_failed', err, { phase: 'mcp-boot' }, logger)
+  })
 
   const auditor = resolveAuditor({ config, logger })
-  const crawler = crawleeCrawler({ logger: logger.withTag('crawler/crawlee') as never })
+  const crawler = crawleeCrawler({ logger: logger.withTag('crawler/crawlee') })
   const seeds = fuseSeeds([
-    manualSeeds({ urls: resolveManualUrls(config.urls), logger: logger.withTag('seeds/manual') as never }),
+    manualSeeds({ urls: resolveManualUrls(config.urls), logger: logger.withTag('seeds/manual') }),
   ])
   const core = createUnlighthouseCore({
     config,

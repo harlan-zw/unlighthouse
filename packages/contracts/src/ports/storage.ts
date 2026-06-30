@@ -229,4 +229,9 @@ export interface Storage {
   reports: ReportRepositories
   comparisons: ComparisonRepository
   packRuns: PackRunRepository
+  /**
+   * Optional raw adapter handle for legacy SQL-only flows such as assertions
+   * and comparison reports. Consumers must narrow this before use.
+   */
+  db?: unknown
 }

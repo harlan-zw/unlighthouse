@@ -1,5 +1,6 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import lighthouse from 'lighthouse'
 import puppeteer from 'puppeteer-core'
 
@@ -34,6 +35,13 @@ function withAbort<T>(p: Promise<T>, signal?: AbortSignal): Promise<T> {
   })
 }
 
+type LighthouseWithPage = (
+  url: string,
+  flags?: unknown,
+  config?: unknown,
+  page?: unknown,
+) => ReturnType<typeof lighthouse>
+
 export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
   return {
     capabilities: CDP_CONNECT_CAPABILITIES,
@@ -48,7 +56,8 @@ export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
         await withAbort(page.goto(url, { waitUntil: 'networkidle0' }), signal)
 
         // Lighthouse v11+ accepts a connected puppeteer Page as the 4th arg; port is omitted.
-        const result = await lighthouse(url, { output: 'json' }, undefined, page as any)
+        const runLighthouse = lighthouse as unknown as LighthouseWithPage
+        const result = await runLighthouse(url, { output: 'json' }, undefined, page)
         if (!result || !result.lhr)
           throw new Error('Lighthouse failed to run against connected CDP page')
         return result.lhr as unknown as LighthouseReport
@@ -62,7 +71,12 @@ export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
         // NEW session per audit (no reuse), so those idle windows stacked up to
         // ~87 Browser-Run hours. close() bills ~the audit duration instead.
         // Fall back to disconnect() only if close() throws.
-        await browser.close().catch(() => browser.disconnect().catch(() => {}))
+        await browser.close().catch(async (err) => {
+          logOperationalWarn('auditor.cleanup_failed', err, { operation: 'remote-cdp browser.close' }, opts.logger)
+          await Promise.resolve(browser.disconnect()).catch((disconnectErr) => {
+            logOperationalWarn('auditor.cleanup_failed', disconnectErr, { operation: 'remote-cdp browser.disconnect' }, opts.logger)
+          })
+        })
       }
     },
   }

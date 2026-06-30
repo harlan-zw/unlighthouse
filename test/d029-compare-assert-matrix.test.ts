@@ -7,7 +7,8 @@
 // These tests exercise the matrix path end-to-end via memoryStorage so
 // the (url, device) key is verified at the row-store layer too.
 
-import type { Storage } from '@unlighthouse/contracts'
+import type { ScanId, Storage } from '@unlighthouse/contracts'
+import type { ExtractedMetrics } from '@unlighthouse/contracts/types/atoms'
 import { compareRun } from '@unlighthouse/core/api/handlers'
 import { assertEvaluate } from '@unlighthouse/core/api/handlers'
 import { createUnlighthouseCore } from '@unlighthouse/core'
@@ -16,12 +17,13 @@ import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { testConfig, testHandlerCtx } from './helpers/contracts'
 
 // ── Fixture: matrix scan + a second matrix scan with patched rows ───────────
 
-async function runMatrixScan(storage: Storage): Promise<string> {
+async function runMatrixScan(storage: Storage): Promise<ScanId> {
   const core = createUnlighthouseCore({
-    config: { site: 'http://example.com' } as never,
+    config: testConfig({ site: 'http://example.com' }),
     auditor: createMockAuditor(),
     seeds: manualSeeds({ urls: ['http://example.com/'] }),
     crawler: parallelMapCrawler({ concurrency: 1 }),
@@ -36,32 +38,26 @@ async function runMatrixScan(storage: Storage): Promise<string> {
 // so this just rewrites the row in place under its (scanId, url, device) PK.
 async function patchRouteMetric(
   storage: Storage,
-  scanId: string,
+  scanId: ScanId,
   url: string,
   device: 'mobile' | 'desktop',
-  patch: Record<string, number | null>,
+  patch: Partial<ExtractedMetrics>,
 ) {
-  const row = await storage.routes.get(scanId as never, url, device)
+  const row = await storage.routes.get(scanId, url, device)
   if (!row)
     throw new Error(`row not found: ${url}@${device}`)
-  await storage.routes.upsert(scanId as never, device, {
+  await storage.routes.upsert(scanId, device, {
     ...row,
     ...patch,
-  } as never)
+  })
 }
-
-const makeCtx = (storage: Storage) => ({
-  storage,
-  core: { hooks: undefined } as never,
-  auditor: createMockAuditor(),
-} as never)
 
 // ── compare ────────────────────────────────────────────────────────────────
 
 describe('compare.run respects (url, device) identity', () => {
   let storage: Storage
-  let baseScanId: string
-  let currentScanId: string
+  let baseScanId: ScanId
+  let currentScanId: ScanId
 
   beforeAll(async () => {
     storage = memoryStorage()
@@ -74,8 +70,8 @@ describe('compare.run respects (url, device) identity', () => {
 
   it('mobile regression is reported with device dimension; desktop stays clean', async () => {
     const out = await compareRun.run(
-      { baseScanId: baseScanId as never, currentScanId: currentScanId as never },
-      makeCtx(storage),
+      { baseScanId, currentScanId },
+      testHandlerCtx(storage),
     )
 
     const mobileLcp = out.regressions.filter(r => r.metric === 'lcp' && r.device === 'mobile')
@@ -90,8 +86,8 @@ describe('compare.run respects (url, device) identity', () => {
 
   it('every diff carries a device — schema is honored', async () => {
     const out = await compareRun.run(
-      { baseScanId: baseScanId as never, currentScanId: currentScanId as never },
-      makeCtx(storage),
+      { baseScanId, currentScanId },
+      testHandlerCtx(storage),
     )
     for (const diff of [...out.regressions, ...out.improvements])
       expect(diff.device).toMatch(/^(mobile|desktop)$/)
@@ -102,8 +98,8 @@ describe('compare.run respects (url, device) identity', () => {
 
 describe('assert.evaluate maxRegression respects (url, device) identity', () => {
   let storage: Storage
-  let baseScanId: string
-  let currentScanId: string
+  let baseScanId: ScanId
+  let currentScanId: ScanId
 
   beforeAll(async () => {
     storage = memoryStorage()
@@ -118,11 +114,11 @@ describe('assert.evaluate maxRegression respects (url, device) identity', () => 
     // mobile didn't move at all.
     const out = await assertEvaluate.run(
       {
-        scanId: currentScanId as never,
-        baselineScanId: baseScanId as never,
+        scanId: currentScanId,
+        baselineScanId: baseScanId,
         assertions: [{ type: 'maxRegression', metric: 'lcp', value: 100 }],
-      } as never,
-      makeCtx(storage),
+      },
+      testHandlerCtx(storage),
     )
     // Both scans use the same mock — mobile=1200, desktop=600. Per (url,
     // device) join: 0 regression. Pre-fix bug would have surfaced one.
@@ -137,10 +133,10 @@ describe('assert.evaluate maxRegression respects (url, device) identity', () => 
 
     const out = await assertEvaluate.run(
       {
-        scanId: scanId as never,
+        scanId,
         assertions: [{ type: 'minScore', category: 'agentic-browsing', value: 0.5 }],
-      } as never,
-      makeCtx(isolatedStorage),
+      },
+      testHandlerCtx(isolatedStorage),
     )
 
     expect(out.passed).toBe(false)

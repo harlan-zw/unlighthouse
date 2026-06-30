@@ -7,11 +7,11 @@ import type {
   ScanId,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
+import type { DrizzleDatabase } from '../types'
 import { hash } from 'node:crypto'
 import { scanRoutes } from '@unlighthouse/contracts/drizzle'
+import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
 import { and, asc, desc, eq, gte, isNotNull, like, sql } from 'drizzle-orm'
-
-type AnyDrizzle = any
 
 const DEFAULT_PAGE_SIZE = 100
 
@@ -57,10 +57,10 @@ function metricsToRow(scanId: string, device: Device, m: ExtractedMetrics) {
 }
 
 function rowToRoute(row: ScanRouteRow): ScanRoute {
-  return row as unknown as ScanRoute
+  return ScanRouteSchema.parse(row)
 }
 
-export function createScanRouteRepository(db: AnyDrizzle): ScanRouteRepository {
+export function createScanRouteRepository(db: DrizzleDatabase): ScanRouteRepository {
   return {
     async putBatch(scanId: ScanId, device: Device, rows: ExtractedMetrics[]): Promise<void> {
       if (rows.length === 0)
@@ -171,13 +171,13 @@ export function createScanRouteRepository(db: AnyDrizzle): ScanRouteRepository {
         default: orderBy = undefined
       }
 
-      const baseSelect = db.select().from(scanRoutes).where(where)
+      const baseSelect = db.select<ScanRouteRow>().from(scanRoutes).where(where)
       const rows = await (orderBy ? baseSelect.orderBy(orderBy) : baseSelect)
         .limit(pageSize)
         .offset(offset)
 
       const [{ count }] = await db
-        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .select<{ count: number }>({ count: sql<number>`count(*)`.mapWith(Number) })
         .from(scanRoutes)
         .where(where)
 
@@ -191,7 +191,7 @@ export function createScanRouteRepository(db: AnyDrizzle): ScanRouteRepository {
 
     async get(scanId: ScanId, url: string, device: Device): Promise<ScanRoute | null> {
       const [row] = await db
-        .select()
+        .select<ScanRouteRow>()
         .from(scanRoutes)
         .where(and(
           eq(scanRoutes.scanId, scanId),

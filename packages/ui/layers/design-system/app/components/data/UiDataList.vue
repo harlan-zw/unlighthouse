@@ -1,8 +1,33 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TItem extends object = Record<string, unknown>">
 import type { UiIcon } from '../../shared/ui-icons'
 import { computed, onMounted, ref } from 'vue'
 import { NuxtLink } from '#components'
 import { getIconColor } from '../../utils/icon-color'
+
+export interface UiDataListProps<TItem extends object = Record<string, unknown>> {
+  title?: string
+  icon?: UiIcon
+  iconColor?: string
+  /** Render the title as a quieter sub-tier (smaller + muted) for nested lists. */
+  subtle?: boolean
+  tooltip?: string
+  metricLabel?: string
+  items?: TItem[]
+  loading?: boolean
+  loadingCount?: number
+  viewMoreTo?: string | Record<string, unknown>
+  viewMoreLabel?: string
+  emptyIcon?: UiIcon
+  emptyText?: string
+  /** Accessor fn to get bar value from item. When set, renders a % fill bar behind each row. */
+  barValue?: (item: TItem) => number
+  /** Total for bar percentage calculation. If omitted, auto-sums barValue across all items. */
+  barTotal?: number
+  /** Bar color class (default: 'bg-pro') */
+  barColor?: string
+  /** Accessor fn for row link target. When set, each row becomes a NuxtLink with a trailing chevron. */
+  itemTo?: (item: TItem) => string | Record<string, unknown> | undefined | null
+}
 
 const {
   title,
@@ -22,36 +47,13 @@ const {
   barColor = 'bg-pro',
   itemTo,
   subtle = false,
-} = defineProps<{
-  title?: string
-  icon?: UiIcon
-  iconColor?: string
-  /** Render the title as a quieter sub-tier (smaller + muted) for nested lists. */
-  subtle?: boolean
-  tooltip?: string
-  metricLabel?: string
-  items?: any[]
-  loading?: boolean
-  loadingCount?: number
-  viewMoreTo?: string | Record<string, any>
-  viewMoreLabel?: string
-  emptyIcon?: UiIcon
-  emptyText?: string
-  /** Accessor fn to get bar value from item. When set, renders a % fill bar behind each row. */
-  barValue?: (item: any) => number
-  /** Total for bar percentage calculation. If omitted, auto-sums barValue across all items. */
-  barTotal?: number
-  /** Bar color class (default: 'bg-pro') */
-  barColor?: string
-  /** Accessor fn for row link target. When set, each row becomes a NuxtLink with a trailing chevron. */
-  itemTo?: (item: any) => string | Record<string, any> | undefined | null
-}>()
+} = defineProps<UiDataListProps<TItem>>()
 
 defineSlots<{
-  'default'?: (props: { item: any, index: number }) => any
-  'header-trailing'?: () => any
-  'empty'?: () => any
-  'footer'?: () => any
+  'default'?: (props: { item: TItem, index: number }) => unknown
+  'header-trailing'?: () => unknown
+  'empty'?: () => unknown
+  'footer'?: () => unknown
 }>()
 
 // Treat SSR as loading to avoid hydration mismatch when data arrives client-side
@@ -69,11 +71,17 @@ const computedBarTotal = computed(() => {
   return items.reduce((sum, item) => sum + barValue!(item), 0)
 })
 
-function barPct(item: any): number {
+function barPct(item: TItem): number {
   if (!barValue)
     return 0
   const total = computedBarTotal.value
   return total > 0 ? (barValue(item) / total) * 100 : 0
+}
+
+function itemKey(item: TItem, index: number): string | number {
+  const record = item as Record<string, unknown>
+  const key = record.id ?? record.key ?? record.path ?? record.url
+  return typeof key === 'string' || typeof key === 'number' ? key : index
 }
 
 const hasSemanticColor = computed(() => !!iconColor)
@@ -134,7 +142,7 @@ const titleClass = computed(() => subtle ? 'text-xs font-medium text-muted' : 't
         <component
           :is="itemTo && itemTo(item) ? NuxtLink : 'div'"
           v-for="(item, index) in items"
-          :key="item?.id ?? item?.key ?? item?.path ?? item?.url ?? index"
+          :key="itemKey(item, index)"
           :to="itemTo ? itemTo(item) || undefined : undefined"
           class="relative flex items-center gap-2 py-1 px-2.5 rounded-lg group hover:bg-accented transition-colors"
         >

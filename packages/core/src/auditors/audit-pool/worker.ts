@@ -16,8 +16,9 @@
  *   })
  */
 import type { Browser, BrowserContext, Page } from 'puppeteer-core'
-import type { WorkerDefinition, WorkerHooks, WorkerTaskContext } from './types'
+import type { WorkerDefinition, WorkerHooks, WorkerTask, WorkerTaskContext } from './types'
 import { threadId } from 'node:worker_threads'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { consola } from 'consola'
 import { createHooks } from 'hookable'
 import puppeteer from 'puppeteer-core'
@@ -64,13 +65,13 @@ export function createWorkerHandler(definition: WorkerDefinition): (input: { tas
     if (!browser)
       return
     await Promise.resolve(hooks.callHook('browser:closing', browser))
-      .catch(err => logger.warn('browser:closing hook failed', err))
+      .catch(err => logOperationalWarn('auditor.cleanup_failed', err, { operation: 'browser:closing hook' }, logger))
     if (sharedPage) {
       await Promise.resolve(hooks.callHook('page:closing', sharedPage))
-        .catch(err => logger.warn('page:closing hook failed', err))
+        .catch(err => logOperationalWarn('auditor.cleanup_failed', err, { operation: 'page:closing hook' }, logger))
       sharedPage = undefined
     }
-    await browser.close().catch(err => logger.warn('browser.close failed', err))
+    await browser.close().catch(err => logOperationalWarn('auditor.cleanup_failed', err, { operation: 'browser.close' }, logger))
     browser = undefined
     tasksRun = 0
   }
@@ -81,6 +82,7 @@ export function createWorkerHandler(definition: WorkerDefinition): (input: { tas
     const task = definition.tasks[taskName]
     if (!task)
       throw new Error(`[unlighthouse:core/audit-pool/worker] unknown task "${taskName}"`)
+    const runTask = task as WorkerTask<unknown, unknown>
 
     if (opts.bare) {
       const ctx: WorkerTaskContext = {
@@ -88,7 +90,7 @@ export function createWorkerHandler(definition: WorkerDefinition): (input: { tas
         threadId,
       }
       try {
-        return await withTimeout(task(ctx, payload), opts.taskTimeout)
+        return await withTimeout(runTask(ctx, payload), opts.taskTimeout)
       }
       finally {
         tasksRun++
@@ -132,16 +134,16 @@ export function createWorkerHandler(definition: WorkerDefinition): (input: { tas
     }
 
     try {
-      return await withTimeout(task(ctx, payload), opts.taskTimeout)
+      return await withTimeout(runTask(ctx, payload), opts.taskTimeout)
     }
     finally {
       if (opts.concurrency !== 'page') {
         await Promise.resolve(hooks.callHook('page:closing', page))
-          .catch(err => logger.warn('page:closing hook failed', err))
-        await page.close().catch(err => logger.warn('page.close failed', err))
+          .catch(err => logOperationalWarn('auditor.cleanup_failed', err, { operation: 'page:closing hook' }, logger))
+        await page.close().catch(err => logOperationalWarn('auditor.cleanup_failed', err, { operation: 'page.close' }, logger))
       }
       if (ephemeralContext)
-        await ephemeralContext.close().catch(err => logger.warn('context.close failed', err))
+        await ephemeralContext.close().catch(err => logOperationalWarn('auditor.cleanup_failed', err, { operation: 'context.close' }, logger))
 
       tasksRun++
       if (opts.recycleAfter > 0 && tasksRun >= opts.recycleAfter)

@@ -42,7 +42,7 @@ export function useScanSubscription() {
       // A scan finishing (or being cancelled) makes its persisted results
       // available — refetch summary, per-route results, and meta (which now
       // carries the summary).
-      if (envelope?.event === 'scan:complete' || envelope?.event === 'scan:cancelled')
+      if (envelope?.event === 'scan:complete' || envelope?.event === 'scan:cancelled' || envelope?.event === 'scan:error')
         invalidateScanReads()
     },
     // After a socket drop, conservatively refetch — a `scan:complete` that

@@ -5,9 +5,9 @@ export async function runAssertions(
   db: unknown,
   scanId: string,
   assertionConfigs: Assertion[],
-  logger: { error: (...args: any[]) => void, success: (...args: any[]) => void },
+  logger: { error: (...args: unknown[]) => void, success: (...args: unknown[]) => void },
 ): Promise<{ passed: boolean, results: AssertionResult[] }> {
-  const results = await evaluateAndStoreAssertions(db as never, scanId, assertionConfigs)
+  const results = await evaluateAndStoreAssertions(db, scanId, assertionConfigs)
   const failures = results.filter(r => !r.passed)
 
   if (failures.length > 0) {

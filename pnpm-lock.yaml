@@ -442,6 +442,10 @@ importers:
         version: 1.17.5(db0@0.3.4(@libsql/client@0.17.4)(better-sqlite3@12.11.1)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260629.1)(@libsql/client@0.17.4)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.6.1)(better-sqlite3@12.11.1)))(ioredis@5.11.1)
 
   packages/github-action:
+    dependencies:
+      '@unlighthouse/contracts':
+        specifier: workspace:*
+        version: link:../contracts
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -604,6 +608,9 @@ importers:
 
   packages/vite-plugin:
     dependencies:
+      '@unlighthouse/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       unlighthouse:
         specifier: workspace:*
         version: link:../unlighthouse

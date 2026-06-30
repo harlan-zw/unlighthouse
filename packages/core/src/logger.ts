@@ -1,4 +1,5 @@
 import type { ConsolaInstance } from 'consola'
+import type { Logger } from '@unlighthouse/contracts'
 import { createConsola } from 'consola'
 
 function isDebugEnv(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -36,12 +37,12 @@ function lazyLogger(resolve: () => ConsolaInstance): ConsolaInstance {
   })
 }
 
-export const logger = lazyLogger(getRootLogger)
+export const logger = lazyLogger(getRootLogger) as Logger
 
-export function createTaggedLogger(tag: string) {
+export function createTaggedLogger(tag: string): Logger {
   let tagged: ConsolaInstance | undefined
   return lazyLogger(() => {
     tagged ??= getRootLogger().withTag(tag)
     return tagged
-  })
+  }) as Logger
 }
