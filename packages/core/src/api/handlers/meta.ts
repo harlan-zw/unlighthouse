@@ -66,10 +66,10 @@ export const health: Handler<typeof Health> = {
   async run(_input, ctx) {
     const rows = await ctx.storage.scans.list({ page: 1, pageSize: 1 })
       .then(() => 'ok' as const)
-      .catch((_err) => 'down' as const)
+      .catch(_err => 'down' as const)
     const blobs = await ctx.storage.blobs.has('__probe__')
       .then(() => 'ok' as const)
-      .catch((_err) => 'down' as const)
+      .catch(_err => 'down' as const)
     return {
       ok: rows === 'ok' && blobs === 'ok',
       version: ctx.version,

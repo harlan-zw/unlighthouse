@@ -3,9 +3,10 @@ import UiLoadingState from './UiLoadingState.vue'
 
 defineOptions({ inheritAttrs: false })
 
+const props = defineProps<Props>()
+
 type Props = InstanceType<typeof UiLoadingState>['$props']
 
-const props = defineProps<Props>()
 const forwardedProps = useForwardedProps(props)
 </script>
 

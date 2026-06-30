@@ -1,5 +1,5 @@
-import { iconAliasMap } from './layers/design-system/shared/icons'
 import { fileURLToPath } from 'node:url'
+import { iconAliasMap } from './layers/design-system/shared/icons'
 
 export default defineNuxtConfig({
   ssr: false,

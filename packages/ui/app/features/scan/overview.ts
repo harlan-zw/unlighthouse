@@ -34,7 +34,7 @@ export function useScanOverview() {
   const store = useScanStore()
   const { scanId, scanBase } = useScanBase()
   const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
-  const { scoreToColor, scoreToLabel, scoreToRingColor } = useScoreColor()
+  const { scoreToColor, scoreToLabel, scoreToRingColor } = createScoreColorHelpers()
 
   const { data: scanMeta, error: scanMetaError, refresh: refreshScanMeta } = useApiQuery(
     'scan.meta',

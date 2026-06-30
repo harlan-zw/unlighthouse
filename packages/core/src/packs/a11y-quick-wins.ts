@@ -127,16 +127,16 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
       ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load reconciled report for ${url} [mobile]`, err)
       return null
     }) as
-      | {
-        categories?: { accessibility?: { auditRefs?: Array<{ id: string, weight: number }> } }
-        audits?: Record<string, {
-          score: number | null
-          title: string | null
-          description: string | null
-          items: Array<{ node?: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null }> | null
-        }>
-      }
-      | null
+    | {
+      categories?: { accessibility?: { auditRefs?: Array<{ id: string, weight: number }> } }
+      audits?: Record<string, {
+        score: number | null
+        title: string | null
+        description: string | null
+        items: Array<{ node?: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null }> | null
+      }>
+    }
+    | null
     if (reconciled?.audits && reconciled.categories?.accessibility?.auditRefs?.length) {
       const audits = new Map<string, RouteViewAudit>()
       const weights = new Map<string, number>()

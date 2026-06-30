@@ -1,7 +1,7 @@
 import type { ScanId } from '@unlighthouse/contracts'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
-import { getScanId, useScreenshotUrl } from '~/features/scan/route-context'
+import { createScreenshotUrl, getScanId } from '~/features/scan/route-context'
 
 type DeviceFilter = '' | 'mobile' | 'desktop'
 
@@ -103,9 +103,9 @@ export function useRouteDetail() {
   const route = useRoute()
   const router = useRouter()
   const config = useRuntimeConfig()
-  const screenshotUrl = useScreenshotUrl()
-  const { scoreToLabel, scoreToRingColor } = useScoreColor()
-  const { fmtBytes: formatBytes } = useFormat()
+  const screenshotUrl = createScreenshotUrl()
+  const { scoreToLabel, scoreToRingColor } = createScoreColorHelpers()
+  const { fmtBytes: formatBytes } = createFormatters()
 
   const scanId = getScanId()
   const routePath = routeParamPath(route.params.path)

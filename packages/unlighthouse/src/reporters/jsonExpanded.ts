@@ -1,5 +1,5 @@
 import type { UnlighthouseRouteReport } from '../index.ts'
-import type { CategoryAverageScore, CategoryScore, ExpandedRouteReport, MetricAverageScore, MetricScore, ReportJsonExpanded } from './types'
+import type { CategoryAverageScore, ExpandedRouteReport, MetricAverageScore, MetricScore, ReportJsonExpanded } from './types'
 
 const relevantMetrics = [
   'largest-contentful-paint',

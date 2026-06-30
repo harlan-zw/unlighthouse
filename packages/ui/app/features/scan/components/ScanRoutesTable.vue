@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { RouteRow } from '~/features/scan/routes-table'
-import { useScreenshotUrl } from '~/features/scan/route-context'
+import { createScreenshotUrl } from '~/features/scan/route-context'
 import {
   CWV_COLS,
   cwvColor,
@@ -13,8 +13,8 @@ import {
 } from '~/features/scan/routes-table'
 import MetricStatCard from './MetricStatCard.vue'
 
-const { scoreToColor, scoreToLabel } = useScoreColor()
-const screenshotUrl = useScreenshotUrl()
+const { scoreToColor, scoreToLabel } = createScoreColorHelpers()
+const screenshotUrl = createScreenshotUrl()
 const {
   store,
   scanId,
@@ -44,6 +44,7 @@ const {
 
 const overallScore = overallRouteScore
 const formatMetric = formatRouteMetric
+const UiIconC = resolveComponent('UiIcon')
 
 const columns = computed<ColumnDef<RouteRow>[]>(() => {
   const cols: ColumnDef<RouteRow>[] = [
@@ -83,7 +84,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       enableSorting: false,
       align: 'center',
       headClass: 'w-16',
-      cell: ({ row }) => h(resolveComponent('UiIcon'), {
+      cell: ({ row }) => h(UiIconC, {
         name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
         class: 'size-3.5 text-muted',
       }),

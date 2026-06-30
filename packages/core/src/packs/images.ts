@@ -232,20 +232,20 @@ async function loadRouteAuditsAsLhrLike(url: string, ctx: PackReconcileCtx): Pro
       ctx.logger?.debug?.(`images pack: failed to load reconciled report for ${url} [mobile]`, err)
       return null
     }) as
-      | { audits?: Record<string, {
-        score: number | null
-        metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
-        items: Array<{
-          url: string | null
-          type: string | null
-          totalBytes: number | null
-          wastedBytes: number | null
-          node: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null
-          snippet: string | null
-          reason: string | null
-        }> | null
-      }> }
-      | null
+    | { audits?: Record<string, {
+      score: number | null
+      metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
+      items: Array<{
+        url: string | null
+        type: string | null
+        totalBytes: number | null
+        wastedBytes: number | null
+        node: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null
+        snippet: string | null
+        reason: string | null
+      }> | null
+    }> }
+    | null
     if (reconciled?.audits) {
       const audits: NonNullable<LhrLike['audits']> = {}
       for (const [id, a] of Object.entries(reconciled.audits)) {

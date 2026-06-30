@@ -1,5 +1,5 @@
-import type { ConsolaInstance } from 'consola'
 import type { Logger } from '@unlighthouse/contracts'
+import type { ConsolaInstance } from 'consola'
 import { createConsola } from 'consola'
 
 function isDebugEnv(env: NodeJS.ProcessEnv = process.env): boolean {

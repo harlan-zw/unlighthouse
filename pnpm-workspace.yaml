@@ -8,6 +8,7 @@ trustPolicyExclude:
   - chokidar@4.0.3
   - semver@5.7.2
   - semver@6.3.1
+trustPolicyIgnoreAfter: 262800
 
 packages:
   - packages/*
@@ -36,6 +37,8 @@ catalog:
   bumpp: ^11.1.0
   drizzle-kit: ^0.31.10
   eslint: ^10.6.0
+  eslint-plugin-harlanzw: ^0.17.0
+  eslint-typegen: ^2.3.1
   jiti: ^2.7.0
   motion-v: ^2.3.0
   nuxt: ^4.4.8

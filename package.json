@@ -40,6 +40,8 @@
     "bumpp": "catalog:",
     "drizzle-orm": "catalog:dependencies",
     "eslint": "catalog:",
+    "eslint-plugin-harlanzw": "catalog:",
+    "eslint-typegen": "catalog:",
     "h3": "catalog:dependencies",
     "jiti": "catalog:",
     "obuild": "catalog:",

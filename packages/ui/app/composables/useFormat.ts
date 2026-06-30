@@ -1,14 +1,14 @@
 // Formatting helpers — single source of truth across the dashboard.
 //
-// Before this composable, five-ish near-identical implementations of
+// Before this helper, five-ish near-identical implementations of
 // fmtScore / fmtMs / fmtDelta / formatBytes lived in compare/[id].vue,
 // overview.vue, routes.vue, route/[path].vue, performance.vue. They
 // drifted in subtle ways (some returned `—`, some returned `-`, some
-// rounded at 2 decimals, others at 1). The shared composable
+// rounded at 2 decimals, others at 1). The shared helper
 // homogenises the dashboard's number rendering and gives a single
 // place to bump (e.g. swap to Intl.NumberFormat for i18n later).
 
-export function useFormat() {
+export function createFormatters() {
   // Lighthouse score (0..1) → integer percentage. Null when the audit
   // couldn't produce a score (notApplicable / manual / error path).
   function fmtScore(v: number | null | undefined): string {

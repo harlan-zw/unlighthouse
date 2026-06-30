@@ -115,11 +115,12 @@ async function runScan(
         preview: { open: false },
       }) as typeof previewServer
       const url = previewServer?.resolvedUrls?.local?.[0]
-      if (!url)
+      if (!url) {
         throw new UnlighthouseError({
           code: 'INFRA_RETRYABLE',
           message: 'vite preview server did not resolve a local URL',
         })
+      }
       site = url
     }
 
@@ -136,11 +137,12 @@ async function runScan(
     }
     const specifier = 'unlighthouse'
     const mod = (await import(specifier)) as UnlighthouseModule
-    if (typeof mod.createUnlighthouseHost !== 'function')
+    if (typeof mod.createUnlighthouseHost !== 'function') {
       throw new UnlighthouseError({
         code: 'CONFIG_INVALID',
         message: 'unlighthouse: createUnlighthouseHost not exported (need v1)',
       })
+    }
 
     const userConfig: Record<string, unknown> = {
       site,

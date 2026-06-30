@@ -1,6 +1,6 @@
 import type { Device, ScanId } from '@unlighthouse/contracts/types/atoms'
-import type { CiOptions, UnlighthouseRouteReport } from './types'
 import type { LighthouseReportAudit, LighthouseReportCategory } from '../index.ts'
+import type { CiOptions, UnlighthouseRouteReport } from './types'
 import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

@@ -9,10 +9,11 @@ import ScanStatusBadge from '~/features/scan/components/ScanStatusBadge.vue'
 definePageMeta({ layout: 'root', middleware: 'onboarding' })
 usePageTitle('Dashboard')
 
-const { scoreToColor, scoreToLabel } = useScoreColor()
-const { fmtRelTime } = useFormat()
+const { scoreToColor, scoreToLabel } = createScoreColorHelpers()
+const { fmtRelTime } = createFormatters()
 
 const FaviconC = resolveComponent('UiFavicon')
+const UiIconC = resolveComponent('UiIcon')
 const SparklineC = resolveComponent('UiSparkline')
 const {
   historyError,
@@ -27,7 +28,7 @@ const {
   openScan,
 } = useDashboardOverview()
 
-const { scoreToRingColor } = useScoreColor()
+const { scoreToRingColor } = createScoreColorHelpers()
 function score100Color(v: number | null): string {
   return scoreToRingColor(v == null ? null : v / 100)
 }
@@ -107,7 +108,7 @@ const recentColumns: ColumnDef<ScanRow>[] = [
     header: 'Device',
     enableSorting: false,
     align: 'center',
-    cell: ({ row }) => h(resolveComponent('UiIcon'), { name: row.original.device === 'mobile' ? 'smartphone' : 'monitor', class: 'size-3.5 text-muted' }),
+    cell: ({ row }) => h(UiIconC, { name: row.original.device === 'mobile' ? 'smartphone' : 'monitor', class: 'size-3.5 text-muted' }),
   },
   {
     id: 'avg',

@@ -14,7 +14,7 @@ export function getScanId(): ScanId {
  * the payload (#275); use that so thumbnails resolve without the dead API. Live
  * mode falls back to the `/dashboard/screenshot` endpoint.
  */
-export function useScreenshotUrl() {
+export function createScreenshotUrl() {
   const baseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
   return (scanId: string, path: string, device?: string): string => {
     if (import.meta.client) {

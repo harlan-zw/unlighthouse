@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 interface RateLimitInfo {
   isRateLimited?: boolean
@@ -22,6 +22,11 @@ const props = defineProps<{
 // Generic next-step for ordinary errors, which otherwise surfaced only the raw
 // message with no guidance. Rate-limit errors carry their own `resetInfo`.
 const NEXT_STEP = 'Try again in a moment. If it keeps happening, contact support.'
+const now = ref<number | null>(null)
+
+onMounted(() => {
+  now.value = Date.now()
+})
 
 const isRateLimited = computed(() => {
   if (!props.error || typeof props.error === 'string')
@@ -48,8 +53,8 @@ const resetInfo = computed(() => {
   if (info.retryAfter)
     return `Try again in ${info.retryAfter} seconds`
 
-  if (info.resetAt) {
-    const diff = info.resetAt.getTime() - Date.now()
+  if (info.resetAt && now.value != null) {
+    const diff = info.resetAt.getTime() - now.value
     if (diff > 0) {
       if (diff < 60000)
         return `Resets in ${Math.ceil(diff / 1000)} seconds`

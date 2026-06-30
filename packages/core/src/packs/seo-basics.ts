@@ -12,7 +12,6 @@
 // will actually rank.
 
 import type { Pack, PackReconcileCtx, SeoFinding, SeoReport, SeoRouteCheck } from '@unlighthouse/contracts/packs'
-import type { ReconciledReport } from '@unlighthouse/contracts/types/atoms'
 import { SeoReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -110,9 +109,9 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
     : null
   const lhr = ctx.getLhr
     ? await ctx.getLhr(url, 'mobile').catch((err) => {
-        ctx.logger?.debug?.(`seo-basics pack: failed to load LHR for ${url} [mobile]`, err)
-        return null
-      }) as LhrLike | null
+      ctx.logger?.debug?.(`seo-basics pack: failed to load LHR for ${url} [mobile]`, err)
+      return null
+    }) as LhrLike | null
     : null
 
   if (!reconciled && !lhr)

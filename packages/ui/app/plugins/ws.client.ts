@@ -100,9 +100,7 @@ export default defineNuxtPlugin({ name: 'ws', setup() {
   const config = useRuntimeConfig()
   const bus = createBrowserWsBus(config.public.unlighthouseWsUrl as string)
 
-  if (import.meta.client) {
-    window.addEventListener('beforeunload', () => bus.dispose())
-  }
+  window.addEventListener('beforeunload', () => bus.dispose())
 
   return { provide: { ws: bus } }
 } })

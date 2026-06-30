@@ -9,14 +9,14 @@ definePageMeta({ layout: 'scan' })
 
 const scanId = getScanId()
 const { scanBase } = useScanBase()
-const { scoreToColor, scoreToLabel } = useScoreColor()
+const { scoreToColor, scoreToLabel } = createScoreColorHelpers()
 
 const { data: cwvData, status: cwvStatus, error: cwvError, refresh: refreshCwv } = useApiQuery('pack.run', () => ({ scanId, pack: 'cwv' }))
 const { data: insightsData } = useApiQuery('pack.run', () => ({ scanId, pack: 'insights' }))
 const { data: imagesData } = useApiQuery('pack.run', () => ({ scanId, pack: 'images' }))
 const { data: routeScores } = useApiQuery('scan.results', () => ({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }))
 
-const { fmtMs: formatMs, fmtBytes: formatBytes } = useFormat()
+const { fmtMs: formatMs, fmtBytes: formatBytes } = createFormatters()
 
 type RouteScoreRow = NonNullable<typeof routeScores['value']>['items'][number]
 const numCell = (v: string) => h('span', { class: 'tabular-nums text-xs' }, v)

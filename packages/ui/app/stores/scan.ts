@@ -1,5 +1,6 @@
 import type { ScanId } from '@unlighthouse/contracts'
 import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
+import type { UnwrapNestedRefs } from 'vue'
 import type { ActiveScanSnapshot } from '~/features/scan/progress-state'
 import type { ScanEventBus } from '~/types/scan-events'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
@@ -174,7 +175,7 @@ function createScanStore() {
     progress.hydrateActive(id, snapshot)
   }
 
-  return reactive({
+  return {
     scanId,
     status,
     site,
@@ -207,14 +208,14 @@ function createScanStore() {
     hydrateActive,
     startPolling,
     stopPolling,
-  })
+  }
 }
 
-type ScanStore = ReturnType<typeof createScanStore>
+type ScanStore = UnwrapNestedRefs<ReturnType<typeof createScanStore>>
 
 let scanStore: ScanStore | null = null
 
 export function useScanStore() {
-  scanStore ??= createScanStore()
+  scanStore ??= reactive(createScanStore())
   return scanStore
 }

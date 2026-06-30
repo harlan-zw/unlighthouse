@@ -7,7 +7,7 @@ const props = withDefaults(defineProps<{
   size: 'md',
 })
 
-const { scoreToRingColor, scoreToLabel } = useScoreColor()
+const { scoreToRingColor, scoreToLabel } = createScoreColorHelpers()
 
 const dimensions = computed(() => {
   const map = { sm: 40, md: 64, lg: 96 }

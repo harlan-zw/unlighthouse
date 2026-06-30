@@ -11,12 +11,12 @@ defineProps<{
   pairs: DevicePair[]
 }>()
 const emit = defineEmits<{
-  (e: 'rescan', scanId: string): void
-  (e: 'delete', scanId: string): void
-  (e: 'open', pair: DevicePair): void
+  rescan: [scanId: string]
+  delete: [scanId: string]
+  open: [pair: DevicePair]
 }>()
 
-const { scoreToColor } = useScoreColor()
+const { scoreToColor } = createScoreColorHelpers()
 const UiStatusBadgeC = resolveComponent('UiStatusBadge')
 
 function categoryPct(scan: ScanRow | null, key: string): number | null {

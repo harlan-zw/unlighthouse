@@ -3,7 +3,7 @@ import { useScanBase } from '~/features/scan/route-context'
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
-const { scoreToLabel, scoreToColor, scoreToRingColor } = useScoreColor()
+const { scoreToLabel, scoreToColor, scoreToRingColor } = createScoreColorHelpers()
 
 const router = useRouter()
 const { scanBase } = useScanBase()
@@ -32,7 +32,7 @@ function pathFromUrl(url: string): string {
   }
 }
 
-const { fmtRelTime: ageLabel } = useFormat()
+const { fmtRelTime: ageLabel } = createFormatters()
 </script>
 
 <template>

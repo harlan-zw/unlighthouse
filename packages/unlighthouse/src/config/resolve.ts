@@ -38,7 +38,7 @@ export const HOST_DEFAULTS: Partial<UnlighthouseConfig> = defaultConfig as Parti
 
 type ScannerConfig = NonNullable<UnlighthouseConfig['scanner']>
 type ChromeConfig = NonNullable<UnlighthouseConfig['chrome']>
-type ScreenEmulation = {
+interface ScreenEmulation {
   mobile: boolean
   width: number
   height: number

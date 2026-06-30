@@ -13,11 +13,11 @@ import type {
 import type { Logger } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { Device } from '@unlighthouse/contracts/types/atoms'
-import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
-import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
+import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { auditRoute, createUnlighthouseCore } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
@@ -388,11 +388,12 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         }
         const scanId = body.scanId
         const targetUrl = body.url
-        if (!scanId || !targetUrl)
+        if (!scanId || !targetUrl) {
           return errorResponse(new UnlighthouseError({
             code: ErrorCodes.INPUT_INVALID,
             message: 'scanId and url are required.',
           }))
+        }
         const parsedScanId = parseScanId(scanId)
         const emit = scanEventsEmit(runtimeEnv, scanId)
         let scanned = 0
@@ -588,10 +589,11 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
       // match is robust whether the caller hit `/scan/start` or `/api/scan/start`.
       if (apiReq.method === 'POST' && url.pathname === '/scan/start' && res.ok) {
         const session = ctx.core.session?.()
-        if (session?.done)
+        if (session?.done) {
           execCtx.waitUntil(session.done.catch((err) => {
             logger.debug('background scan session rejected', err)
           }))
+        }
       }
 
       return res

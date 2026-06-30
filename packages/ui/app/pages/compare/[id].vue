@@ -20,8 +20,8 @@ import { useCompareWorkflow } from '~/features/compare/workflow'
 
 definePageMeta({ layout: 'compare' })
 
-const { scoreToRingColor } = useScoreColor()
-const { fmtScore, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = useFormat()
+const { scoreToRingColor } = createScoreColorHelpers()
+const { fmtScore, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = createFormatters()
 const {
   currentScanId,
   baseScanId,

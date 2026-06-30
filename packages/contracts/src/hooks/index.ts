@@ -205,7 +205,7 @@ export const HookSchemas = {
 
 export type HookName = keyof typeof HookSchemas
 export type HookPayload<K extends HookName> = z.infer<(typeof HookSchemas)[K]>
-export type HookEventFor<K extends HookName> = { event: K, payload: HookPayload<K> }
+export interface HookEventFor<K extends HookName> { event: K, payload: HookPayload<K> }
 
 /**
  * TS hook map compatible with `Hookable<HookMap>` from the `hookable` package.

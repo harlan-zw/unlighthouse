@@ -97,7 +97,7 @@ watch(groups, (gs) => {
   }
 }, { immediate: true })
 
-const { fmtRelTime: relTime } = useFormat()
+const { fmtRelTime: relTime } = createFormatters()
 
 const siteHostname = siteSlug
 function primaryScanId(pair: DevicePair) {

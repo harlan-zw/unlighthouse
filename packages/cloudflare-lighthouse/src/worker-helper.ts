@@ -117,11 +117,12 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
         })
       }
       const lhr = await res.json()
-      if (!lhr || typeof lhr !== 'object' || !('categories' in (lhr as object)))
+      if (!lhr || typeof lhr !== 'object' || !('categories' in (lhr as object))) {
         throw new UnlighthouseError({
           code: 'INFRA_RETRYABLE',
           message: 'LighthouseContainer returned an invalid LHR',
         })
+      }
       return lhr as Awaited<ReturnType<Auditor['audit']>>
     },
   })

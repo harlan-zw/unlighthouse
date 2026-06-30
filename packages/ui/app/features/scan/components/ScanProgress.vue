@@ -3,16 +3,17 @@ import { useScanStore } from '~/stores/scan'
 import ScanTerminal from './ScanTerminal.vue'
 
 const store = useScanStore()
-const { scoreToLabel, scoreToColor } = useScoreColor()
+const { scoreToLabel, scoreToColor } = createScoreColorHelpers()
 const expanded = ref(true)
 
 // Re-render the ETA + elapsed labels every second while the scan is
 // active. ETA in the store derives from Date.now() and is otherwise
 // only recomputed when scanned/total change — without this tick the
 // numbers freeze between route completions on slow scans.
-const now = ref(Date.now())
+const now = ref<number | null>(null)
 let tickHandle: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
+  now.value = Date.now()
   tickHandle = setInterval(() => {
     now.value = Date.now()
   }, 1000)
@@ -23,7 +24,7 @@ onUnmounted(() => {
 })
 
 const elapsedLabel = computed(() => {
-  if (!store.startedAt)
+  if (!store.startedAt || now.value == null)
     return '—'
   const ms = now.value - new Date(store.startedAt).getTime()
   return formatDuration(ms)
@@ -32,7 +33,8 @@ const elapsedLabel = computed(() => {
 const etaLabel = computed(() => {
   // Touch `now` so the ETA recomputes each tick even when store.etaMs
   // returned a value but `scanned`/`total` haven't changed yet.
-  void now.value
+  if (now.value == null)
+    return '—'
   const ms = store.etaMs
   if (ms == null)
     return '—'
@@ -41,10 +43,10 @@ const etaLabel = computed(() => {
   return formatDuration(ms)
 })
 
-const { fmtDuration: formatDurationHelper } = useFormat()
+const { fmtDuration: formatDurationHelper } = createFormatters()
 function formatDuration(ms: number): string {
   // Local wrapper preserves the "<1s" sentinel and the never-null
-  // contract this component relied on before useFormat was extracted.
+  // contract this component relied on before createFormatters was extracted.
   // fmtDuration returns '—' for null; ScanProgress always has a real
   // number by the time it calls this.
   return formatDurationHelper(ms)

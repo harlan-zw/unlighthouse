@@ -1,8 +1,8 @@
 // Auditor resolver — maps UnlighthouseConfig to a single Auditor port.
 // v1.md Phase 3: pure switch + factory call, no new abstraction.
 
-import type { AuditorConfig, AuditorProvider, AuditorRouterConfig, AuditorRouterStrategy, UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { Logger, UnlighthouseOptions } from '@unlighthouse/contracts'
+import type { AuditorConfig, AuditorProvider, AuditorRouterConfig, AuditorRouterStrategy, UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { Auditor, NamedAuditor } from '@unlighthouse/contracts/ports'
 import type { PickFn } from '@unlighthouse/core/auditors/route'
 import type { z } from 'zod'

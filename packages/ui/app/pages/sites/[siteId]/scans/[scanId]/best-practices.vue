@@ -11,8 +11,8 @@ definePageMeta({ layout: 'scan' })
 
 const api = useApi()
 const scanId = getScanId()
-const { scoreToColor, scoreToLabel } = useScoreColor()
-const { fmtBytes } = useFormat()
+const { scoreToColor, scoreToLabel } = createScoreColorHelpers()
+const { fmtBytes } = createFormatters()
 
 const { data: bundlePack, status, error: bundleError, refresh: refreshBundle } = useApiQuery('pack.run', () => ({ scanId, pack: 'js-bundle' }))
 const { data: routeScores } = useApiQuery('scan.results', () => ({ scanId, page: 1, pageSize: 200, sort: 'score-asc' }))

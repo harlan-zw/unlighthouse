@@ -1,4 +1,4 @@
-export function useScoreColor() {
+export function createScoreColorHelpers() {
   function scoreToColor(score: number | null): string {
     switch (scoreBand(score)) {
       case 'good': return 'text-success'
