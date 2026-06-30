@@ -75,7 +75,10 @@ async function findRoute(ctx: HandlerCtx, scanId: ScanId, url: string, device?: 
   // we found first. Same softer behaviour as the legacy dashboard
   // endpoint so existing deep links keep working.
   if (!route) {
-    route = await ctx.storage.routes.get(scanId, url, available[0])
+    const fallbackDevice = available[0]
+    if (!fallbackDevice)
+      throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${url} in scan ${scanId}` })
+    route = await ctx.storage.routes.get(scanId, url, fallbackDevice)
     if (!route)
       throw new UnlighthouseError({ code: 'ROUTE_NOT_FOUND', message: `${url} in scan ${scanId}` })
   }

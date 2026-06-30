@@ -47,21 +47,24 @@ function matches(pattern: string, path: string): boolean {
 
   let p = 0
   while (p < patternLength) {
-    if (pattern[p] === '$' && p + 1 === patternLength) {
+    const char = pattern[p]
+    if (char === undefined)
+      return false
+    if (char === '$' && p + 1 === patternLength) {
       return matchingLengths[numMatchingLengths - 1] === pathLength
     }
 
-    if (pattern[p] === '*') {
-      numMatchingLengths = pathLength - matchingLengths[0] + 1
+    if (char === '*') {
+      numMatchingLengths = pathLength - (matchingLengths[0] ?? 0) + 1
       for (let i = 1; i < numMatchingLengths; i++) {
-        matchingLengths[i] = matchingLengths[i - 1] + 1
+        matchingLengths[i] = (matchingLengths[i - 1] ?? 0) + 1
       }
     }
     else {
       let numMatches = 0
       for (let i = 0; i < numMatchingLengths; i++) {
         const matchLength = matchingLengths[i]
-        if (matchLength < pathLength && path[matchLength] === pattern[p]) {
+        if (matchLength !== undefined && matchLength < pathLength && path[matchLength] === char) {
           matchingLengths[numMatches++] = matchLength + 1
         }
       }
@@ -83,6 +86,10 @@ export function matchPathToRule(path: string, _rules: RobotsTxtRule[]): RobotsTx
   let i = 0
   while (i < rulesLength) {
     const rule = rules[i]
+    if (!rule) {
+      i++
+      continue
+    }
     if (!matches(rule.pattern, path)) {
       i++
       continue

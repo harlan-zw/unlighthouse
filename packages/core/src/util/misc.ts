@@ -45,7 +45,9 @@ export function createTaskReportFromRoute(deps: CreateTaskReportDeps, route: Nor
 }
 
 export function base64ToBuffer(dataURI: string) {
-  return Buffer.from(dataURI.split(',')[1], 'base64')
+  const commaIndex = dataURI.indexOf(',')
+  const base64 = commaIndex === -1 ? dataURI : dataURI.slice(commaIndex + 1)
+  return Buffer.from(base64, 'base64')
 }
 
 export function formatBytes(bytes: number, decimals = 2) {
@@ -56,7 +58,8 @@ export function formatBytes(bytes: number, decimals = 2) {
   const dm = decimals < 0 ? 0 : decimals
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1)
+  const unit = sizes[i] ?? 'Bytes'
 
-  return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
+  return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${unit}`
 }

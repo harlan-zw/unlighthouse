@@ -1,6 +1,7 @@
 import type { PackRun } from '../packs'
 import type {
   Device,
+  DeviceMatrix,
   ExtractedMetrics,
   Paginated,
   Scan,
@@ -12,6 +13,7 @@ import type {
 
 export type {
   Device,
+  DeviceMatrix,
   ExtractedMetrics,
   PackRun,
   Paginated,

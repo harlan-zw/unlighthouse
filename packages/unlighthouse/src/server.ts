@@ -370,7 +370,7 @@ function parseBearer(event: H3Event): string | null {
   if (!header)
     return null
   const m = /^Bearer\s+(\S+)\s*$/i.exec(header)
-  return m ? m[1] : null
+  return m?.[1] ?? null
 }
 
 // Resolve the client IP for auth-bypass and rate-limiting bucketing.

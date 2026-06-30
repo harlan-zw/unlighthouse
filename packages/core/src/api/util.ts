@@ -50,6 +50,8 @@ export function normaliseRoute(deps: NormaliseRouteDeps, url: string): Normalise
       continue
 
     const definition = resolvedConfig.scanner.customSampling[matcher]
+    if (!definition)
+      continue
     normalised = {
       ...normalised,
       definition: {

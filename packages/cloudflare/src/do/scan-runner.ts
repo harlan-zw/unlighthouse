@@ -25,7 +25,7 @@
 
 import type { D1Database, DurableObjectNamespace, DurableObjectState, Fetcher, R2Bucket } from '@cloudflare/workers-types'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
-import type { Device, ScanSummary } from '@unlighthouse/contracts/types/atoms'
+import type { DeviceMatrix, ScanSummary } from '@unlighthouse/contracts/types/atoms'
 import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
@@ -73,7 +73,7 @@ function extractSameOriginLinks(html: string, pageUrl: string, origin: string): 
   let m: RegExpExecArray | null
   // eslint-disable-next-line no-cond-assign
   while ((m = HREF_RE.exec(html)) !== null) {
-    const raw = m[1].trim()
+    const raw = m[1]?.trim()
     if (!raw || raw.startsWith('mailto:') || raw.startsWith('tel:') || raw.startsWith('javascript:') || raw.startsWith('#'))
       continue
     try {
@@ -119,7 +119,7 @@ export interface ScanRunnerEnv {
 export interface ScanRunnerStartBody {
   scanId: string
   site: string
-  devices: Device[]
+  devices: DeviceMatrix
   mode: 'site' | 'page'
   config: UnlighthouseConfig
 }
@@ -365,12 +365,13 @@ export class ScanRunnerDO {
     const startedAtMs = Date.now()
     const parsedScanId = parseScanId(scanId)
     const siteUrl = parseUrl(site)
+    const primaryDevice = devices[0]
     await storage.scans.create({
       scanId: parsedScanId,
       siteId,
       site: siteUrl,
       mode,
-      device: devices[0],
+      device: primaryDevice,
       status: 'scanning',
       startedAt,
       completedAt: null,
@@ -458,6 +459,8 @@ export class ScanRunnerDO {
     // consumer's auditor lives. Each delegate call is a fresh invocation with
     // its own budget — the whole point.
     const targetUrl = st.urls[st.index]
+    if (!targetUrl)
+      return
     let auditOk = false
     try {
       const res = await this.env.SELF.fetch('https://scan-runner.internal/__scan/audit', {

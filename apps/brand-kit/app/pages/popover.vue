@@ -1,11 +1,13 @@
 <script lang="ts" setup>
-const menuItems: any = [
+import type { DropdownMenuItem } from '@nuxt/ui'
+
+const menuItems: DropdownMenuItem[][] = [
   [{ label: 'Edit', icon: 'i-lucide-pencil', kbds: ['⌘', 'E'] }, { label: 'Duplicate', icon: 'i-lucide-copy', kbds: ['⌘', 'D'] }],
   [{ label: 'Move to…', icon: 'i-lucide-folder' }, { label: 'Archive', icon: 'i-lucide-archive' }],
   [{ label: 'Delete', icon: 'i-lucide-trash-2', color: 'error', kbds: ['⌫'] }],
 ]
 
-const filterItems: any = [
+const filterItems: DropdownMenuItem[][] = [
   [{ label: 'All sites', checked: true }, { label: 'Indexed only' }, { label: 'With issues' }, { label: 'Pending sync' }],
 ]
 </script>

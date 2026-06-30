@@ -15,6 +15,26 @@ export type Url = z.infer<typeof UrlSchema>
 // Lighthouse-supported form factors. (D: 'mobile' is default; see D-020.)
 const DeviceSchema = z.enum(['mobile', 'desktop'])
 export type Device = z.infer<typeof DeviceSchema>
+export type NonEmptyArray<T> = [T, ...T[]]
+export type DeviceMatrix = NonEmptyArray<Device>
+const DeviceMatrixSchema = z.array(DeviceSchema).min(1) as unknown as z.ZodType<DeviceMatrix>
+
+export function isDevice(value: unknown): value is Device {
+  return value === 'mobile' || value === 'desktop'
+}
+
+export function normaliseDeviceMatrix(input: Device | readonly Device[] | null | undefined, fallback: Device = 'mobile'): DeviceMatrix {
+  const raw = Array.isArray(input) ? input : input ? [input] : [fallback]
+  const seen = new Set<Device>()
+  const out: Device[] = []
+  for (const device of raw) {
+    if (!seen.has(device)) {
+      seen.add(device)
+      out.push(device)
+    }
+  }
+  return (out.length ? out : [fallback]) as DeviceMatrix
+}
 
 export function parseScanId(value: string): ScanId {
   return ScanIdSchema.parse(value)
@@ -92,7 +112,7 @@ const ScanSummarySchema = z.object({
   // Device matrix this scan covered. Lets the UI show "both" instead of just
   // the primary device for a mobile+desktop scan. Optional — older summaries
   // (and the scan row's primary `device`) predate it.
-  devices: z.array(DeviceSchema).optional(),
+  devices: DeviceMatrixSchema.optional(),
 })
 export type ScanSummary = z.infer<typeof ScanSummarySchema>
 
@@ -337,6 +357,7 @@ export {
   AssertionSchema,
   AuditFindingSchema,
   CategorySchema,
+  DeviceMatrixSchema,
   DeviceSchema,
   EntitySchema,
   ExtractedMetricsSchema,

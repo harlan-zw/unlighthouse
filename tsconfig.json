@@ -76,7 +76,7 @@
     "strict": true,
     "noImplicitOverride": true,
     "noImplicitThis": true,
-    "noUncheckedIndexedAccess": false,
+    "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { PackRunSchema } from '../packs'
 import {
   CategorySchema,
+  DeviceMatrixSchema,
   DeviceSchema,
   ExtractedMetricsSchema,
   MetricNameSchema,
@@ -29,7 +30,7 @@ export const ScanStart = defineCommand({
   input: z.object({
     site: UrlSchema,
     mode: z.enum(['site', 'page']).default('site').optional(),
-    device: z.union([DeviceSchema, z.array(DeviceSchema).min(1)]).optional(),
+    device: z.union([DeviceSchema, DeviceMatrixSchema]).optional(),
     sampleSize: z.number().int().min(1).max(10).optional(),
     categories: z.array(CategorySchema).optional(),
     auditor: z.string().optional(),

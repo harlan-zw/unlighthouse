@@ -71,6 +71,8 @@ export function roundRobinPick(): PickFn {
     if (!auditors.length)
       throw new Error('routeAuditors: no auditors configured')
     const picked = auditors[i % auditors.length]
+    if (!picked)
+      throw new Error('routeAuditors: no auditor selected')
     i++
     return picked.auditor
   }
@@ -89,15 +91,22 @@ export function weightedPick(weights: Record<string, number>): PickFn {
     const weightOf = (name: string) =>
       Object.hasOwn(weights, name) ? weights[name]! : 1
     const total = auditors.reduce((sum, a) => sum + weightOf(a.name), 0)
-    if (total <= 0)
-      return auditors[0].auditor
+    if (total <= 0) {
+      const fallback = auditors[0]
+      if (!fallback)
+        throw new Error('routeAuditors: no auditors configured')
+      return fallback.auditor
+    }
     let target = Math.random() * total
     for (const a of auditors) {
       target -= weightOf(a.name)
       if (target <= 0)
         return a.auditor
     }
-    return auditors[auditors.length - 1].auditor
+    const fallback = auditors[auditors.length - 1]
+    if (!fallback)
+      throw new Error('routeAuditors: no auditor selected')
+    return fallback.auditor
   }
 }
 

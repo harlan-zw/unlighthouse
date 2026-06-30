@@ -40,6 +40,8 @@ function compose(
       if (i === middlewares.length)
         return terminal(currentInput, currentCtx)
       const mw = middlewares[i]
+      if (!mw)
+        throw new Error(`wrapHandlers: middleware ${i} not found`)
       return mw({
         command,
         input: currentInput,

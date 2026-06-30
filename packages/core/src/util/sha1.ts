@@ -15,10 +15,13 @@ export function sha1Hex(input: string): string {
   const byteLen = bytes.length
   const totalWords = (((byteLen + 8) >> 6) + 1) * 16
   const words = new Uint32Array(totalWords)
-  for (let i = 0; i < byteLen; i++)
-    words[i >> 2] |= bytes[i]! << ((3 - (i & 3)) * 8)
+  for (let i = 0; i < byteLen; i++) {
+    const wordIndex = i >> 2
+    words[wordIndex] = (words[wordIndex] ?? 0) | (bytes[i]! << ((3 - (i & 3)) * 8))
+  }
   // append the '1' bit (0x80) after the message
-  words[byteLen >> 2] |= 0x80 << ((3 - (byteLen & 3)) * 8)
+  const paddingWordIndex = byteLen >> 2
+  words[paddingWordIndex] = (words[paddingWordIndex] ?? 0) | (0x80 << ((3 - (byteLen & 3)) * 8))
   // 64-bit big-endian bit length in the final two words
   words[totalWords - 2] = Math.floor((byteLen * 8) / 0x1_0000_0000)
   words[totalWords - 1] = (byteLen * 8) >>> 0

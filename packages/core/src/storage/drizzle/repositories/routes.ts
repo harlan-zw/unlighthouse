@@ -176,14 +176,14 @@ export function createScanRouteRepository(db: DrizzleDatabase): ScanRouteReposit
         .limit(pageSize)
         .offset(offset)
 
-      const [{ count }] = await db
+      const [countRow] = await db
         .select<{ count: number }>({ count: sql<number>`count(*)`.mapWith(Number) })
         .from(scanRoutes)
         .where(where)
 
       return {
         items: rows.map(rowToRoute),
-        total: count,
+        total: countRow?.count ?? 0,
         page,
         pageSize,
       }

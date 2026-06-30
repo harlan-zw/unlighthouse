@@ -19,7 +19,7 @@ import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createHookEvent } from '@unlighthouse/contracts/hooks'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
+import { normaliseDeviceMatrix, parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createHooks } from 'hookable'
 import { createTaggedLogger } from './logger'
 import { persistStableEvents } from './persist-events'
@@ -63,11 +63,11 @@ function mergeOverrides(
   const next: UnlighthouseConfig = { ...base }
   if (overrides.site)
     next.site = overrides.site
-  // D-029: device may be Device | Device[]. `scanner.device` carries the
+  // D-029: device may be Device | DeviceMatrix. `scanner.device` carries the
   // primary device (first element of the matrix) for back-compat with
   // adapters/UI reading config.scanner.device directly. The full matrix is
-  // surfaced separately to orchestrate() via `resolveDeviceMatrix` below.
-  const primaryDevice = Array.isArray(overrides.device) ? overrides.device[0] : overrides.device
+  // surfaced separately to orchestrate() via `normaliseDeviceMatrix`.
+  const primaryDevice = overrides.device ? normaliseDeviceMatrix(overrides.device)[0] : undefined
   if (primaryDevice || overrides.sampleSize != null || overrides.mode) {
     next.scanner = {
       ...(base.scanner ?? {}),
@@ -83,33 +83,6 @@ function mergeOverrides(
     }
   }
   return next
-}
-
-// D-029: normalises the override's device field into a deduped, ordered list.
-// Single-device input collapses to a one-element array; missing input falls
-// back to the resolved scanner device, then to 'mobile'. Order is preserved
-// because it determines `Scan.device` (the row's primary device).
-function resolveDeviceMatrix(
-  scannerDevice: 'mobile' | 'desktop' | undefined,
-  overrideDevice: UnlighthouseCoreRunOverrides['device'],
-): ['mobile' | 'desktop', ...Array<'mobile' | 'desktop'>] {
-  const raw: Array<'mobile' | 'desktop'> = Array.isArray(overrideDevice)
-    ? overrideDevice
-    : overrideDevice
-      ? [overrideDevice]
-      : scannerDevice
-        ? [scannerDevice]
-        : ['mobile']
-  // Dedup while preserving order.
-  const seen = new Set<'mobile' | 'desktop'>()
-  const out: Array<'mobile' | 'desktop'> = []
-  for (const d of raw) {
-    if (!seen.has(d)) {
-      seen.add(d)
-      out.push(d)
-    }
-  }
-  return out as ['mobile' | 'desktop', ...Array<'mobile' | 'desktop'>]
 }
 
 /**
@@ -359,7 +332,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     // `primaryDevice` keeps the scans row's `device` column meaningful for
     // back-compat (UIs that only render a single column still see a sane
     // value); the full list drives the per-URL fan-out below.
-    const devices = resolveDeviceMatrix(validScannerDevice, overrides?.device)
+    const devices = normaliseDeviceMatrix(overrides?.device ?? validScannerDevice)
     const primaryDevice = devices[0]
 
     // Per-scan `mode` override (dashboard's single-page toggle) wins over the

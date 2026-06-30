@@ -43,7 +43,7 @@ const WORKER_FILE = (() => {
     fileURLToPath(new URL('./auditors/local-worker.mjs', import.meta.url)),
     // Stub/source layout: src/auditors/local.ts -> dist/auditors/local-worker.mjs.
     join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', 'dist', 'auditors', 'local-worker.mjs'),
-  ]
+  ] as const
   return candidates.find(candidate => existsSync(candidate)) ?? candidates[0]
 })()
 

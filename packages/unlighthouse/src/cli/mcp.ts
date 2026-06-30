@@ -52,6 +52,8 @@ function parseFlags(argv: string[]): { site?: string, root?: string, debug?: boo
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
+    if (!a)
+      continue
     if (a === '--site' || a === '-s') {
       out.site = needsValue(a, argv[++i])
     }
@@ -139,14 +141,16 @@ function pickScanDir(parent: string, hostname: string, config: unknown, version:
     .filter((e): e is { name: string, mtime: number, count: number } => e !== null)
     .sort((a, b) => (b.count - a.count) || (b.mtime - a.mtime))
   const withScans = candidates.filter(c => c.count > 0)
-  if (withScans.length > 1) {
+  const topScanned = withScans[0]
+  if (withScans.length > 1 && topScanned) {
     diag(
-      `[unlighthouse-mcp] ${withScans.length} scan dirs found for ${hostname}; picking ${withScans[0].name} `
-      + `(${withScans[0].count} scans). Others: ${withScans.slice(1).map(c => `${c.name}=${c.count}`).join(', ')}\n`,
+      `[unlighthouse-mcp] ${withScans.length} scan dirs found for ${hostname}; picking ${topScanned.name} `
+      + `(${topScanned.count} scans). Others: ${withScans.slice(1).map(c => `${c.name}=${c.count}`).join(', ')}\n`,
     )
   }
-  if (candidates[0] && candidates[0].count > 0)
-    return join(siteDir, candidates[0].name)
+  const topCandidate = candidates[0]
+  if (topCandidate && topCandidate.count > 0)
+    return join(siteDir, topCandidate.name)
   return join(siteDir, computeConfigCacheKey(config, version))
 }
 
@@ -207,6 +211,8 @@ export async function runMcp(): Promise<void> {
         .sort((a, b) => (b.total - a.total) || (b.mtime - a.mtime))
       if (hostDirs.length > 0) {
         const pick = hostDirs[0]
+        if (!pick)
+          return
         if (hostDirs.length > 1) {
           diag(
             `[unlighthouse-mcp] no --site provided; ${hostDirs.length} sites have scans on disk; picking ${pick.hostname} `

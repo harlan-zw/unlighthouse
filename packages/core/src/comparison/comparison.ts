@@ -110,6 +110,8 @@ export async function compareScans(db: unknown, baseScanId: string, currentScanI
     newUrls: [...currentByPath.keys()].filter(p => !baseByPath.has(p)).length,
     removedUrls: [...baseByPath.keys()].filter(p => !currentByPath.has(p)).length,
   }).returning()
+  if (!comparison)
+    throw new Error('compareScans: comparison insert returned no row')
 
   if (diffs.length > 0) {
     await sqlDb.insert(comparisonDiffs).values(

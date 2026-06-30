@@ -39,7 +39,10 @@ async function findDashboardRoute(storage: Storage, scanId: string, path: string
   if (matches.length === 0)
     return null
 
-  const route = (device && matches.find(route => route.device === device)) || matches[0]
+  const fallbackRoute = matches[0]
+  if (!fallbackRoute)
+    return null
+  const route = (device && matches.find(route => route.device === device)) || fallbackRoute
   return {
     route,
     availableDevices: Array.from(new Set(matches.map(route => route.device))).sort(),

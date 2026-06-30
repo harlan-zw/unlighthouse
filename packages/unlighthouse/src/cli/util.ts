@@ -1,13 +1,12 @@
-import type { Logger } from '@unlighthouse/contracts'
+import type { Device, DeviceMatrix, Logger } from '@unlighthouse/contracts'
 import type { ResolvedUserConfig, UserConfig } from '../index.ts'
 import type { CiOptions, CliOptions } from './types'
 import { URL } from 'node:url'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { isDevice, normaliseDeviceMatrix } from '@unlighthouse/contracts/types/atoms'
 import { defu } from 'defu'
 import { fetchUrlRaw, normaliseHost } from '../index.ts'
 import { handleError } from './errors'
-
-type Device = 'mobile' | 'desktop'
 
 const VALID_DEVICES: readonly Device[] = ['mobile', 'desktop']
 
@@ -30,7 +29,7 @@ function pickKeys<K extends string>(source: object, keys: readonly K[]): Partial
  * `--device` wins. When `--device` is absent the legacy `--mobile`/`--desktop`
  * booleans drive `scanner.device` exactly as before.
  */
-export function parseDevices(options: CiOptions | CliOptions): Device[] | undefined {
+export function parseDevices(options: CiOptions | CliOptions): DeviceMatrix | undefined {
   if (typeof options.device !== 'string' || options.device.trim() === '')
     return undefined
   const parts = options.device.split(',').map(s => s.trim()).filter(Boolean)
@@ -39,19 +38,18 @@ export function parseDevices(options: CiOptions | CliOptions): Device[] | undefi
   const seen = new Set<Device>()
   const out: Device[] = []
   for (const part of parts) {
-    if (!(VALID_DEVICES as readonly string[]).includes(part)) {
+    if (!isDevice(part)) {
       handleError(
         `Invalid --device value "${part}". Expected one of: ${VALID_DEVICES.join(', ')}, or a comma-separated list (e.g. "mobile,desktop").`,
       )
       return undefined
     }
-    const d = part as Device
-    if (!seen.has(d)) {
-      seen.add(d)
-      out.push(d)
+    if (!seen.has(part)) {
+      seen.add(part)
+      out.push(part)
     }
   }
-  return out
+  return normaliseDeviceMatrix(out)
 }
 
 export async function validateHost(resolvedConfig: ResolvedUserConfig, logger?: Logger) {

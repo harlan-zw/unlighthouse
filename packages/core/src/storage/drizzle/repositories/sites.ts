@@ -31,6 +31,8 @@ export function createSiteRepository(db: DrizzleDatabase): SiteRepository {
         group: site.group ?? null,
         createdAt: site.createdAt,
       }).returning()
+      if (!row)
+        throw new Error(`Site insert returned no row: ${site.id}`)
       return row
     },
 

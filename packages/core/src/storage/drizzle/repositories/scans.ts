@@ -41,6 +41,8 @@ export function createScanRepository(db: DrizzleDatabase): ScanRepository {
   return {
     async create(scan: ScanInsert): Promise<Scan> {
       const [row] = await db.insert<ScanRow>(scans).values(insertToRow(scan)).returning()
+      if (!row)
+        throw new Error(`Scan insert returned no row: ${scan.scanId}`)
       return rowToScan(row)
     },
 
@@ -108,14 +110,14 @@ export function createScanRepository(db: DrizzleDatabase): ScanRepository {
         .limit(pageSize)
         .offset(offset)
 
-      const [{ count }] = await db
+      const [countRow] = await db
         .select<{ count: number }>({ count: sql<number>`count(*)`.mapWith(Number) })
         .from(scans)
         .where(where)
 
       return {
         items: rows.map(rowToScan),
-        total: count,
+        total: countRow?.count ?? 0,
         page,
         pageSize,
       }

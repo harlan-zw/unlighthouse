@@ -39,7 +39,7 @@ function extractLocs(xml: string): string[] {
   // eslint-disable-next-line no-cond-assign
   while ((m = LOC_RE.exec(xml)) !== null) {
     // Sitemap <loc> values are XML-escaped; decode the common entities.
-    const raw = m[1]
+    const raw = (m[1] ?? '')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')

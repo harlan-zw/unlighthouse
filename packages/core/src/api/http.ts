@@ -46,13 +46,15 @@ function unflatten(obj: Record<string, unknown>): Record<string, unknown> {
   for (const [key, value] of Object.entries(obj)) {
     const parts = key.split('.')
     let target = result
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (!(parts[i] in target) || typeof target[parts[i]] !== 'object') {
-        target[parts[i]] = {}
+    for (const part of parts.slice(0, -1)) {
+      if (!isRecord(target[part])) {
+        target[part] = {}
       }
-      target = target[parts[i]] as Record<string, unknown>
+      target = target[part] as Record<string, unknown>
     }
-    target[parts[parts.length - 1]] = value
+    const leaf = parts[parts.length - 1]
+    if (leaf !== undefined)
+      target[leaf] = value
   }
   return result
 }

@@ -12,12 +12,12 @@ import type {
 } from '@cloudflare/workers-types'
 import type { Logger } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
-import type { Device } from '@unlighthouse/contracts/types/atoms'
+import type { DeviceMatrix } from '@unlighthouse/contracts/types/atoms'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { parseScanId } from '@unlighthouse/contracts/types/atoms'
+import { isDevice, normaliseDeviceMatrix, parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { auditRoute, createUnlighthouseCore } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
@@ -318,16 +318,10 @@ interface ScanStartBody {
 }
 
 // Normalise a scan.start `device` input (single | array | absent) into a
-// deduped device matrix, defaulting to ['mobile'] — mirrors core's
-// resolveDeviceMatrix so the DO path honours `device: ["mobile","desktop"]`.
-function resolveDevices(input: unknown): Device[] {
+// deduped device matrix, defaulting to ['mobile'].
+function resolveDevices(input: unknown): DeviceMatrix {
   const raw = Array.isArray(input) ? input : input != null ? [input] : []
-  const out: Device[] = []
-  for (const d of raw) {
-    if ((d === 'mobile' || d === 'desktop') && !out.includes(d))
-      out.push(d)
-  }
-  return out.length ? out : ['mobile']
+  return normaliseDeviceMatrix(raw.filter(isDevice))
 }
 
 export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareAppOptions): CloudflareApp {

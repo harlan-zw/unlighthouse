@@ -12,6 +12,8 @@
 // on the idempotent routes/blobs upserts, not on the counters).
 
 import type {
+  Device,
+  DeviceMatrix,
   Logger,
   ScanId,
   ScanSummary,
@@ -27,8 +29,6 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { ExtractedMetricsSchema, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createPackReconcileCtx } from '../packs/reconcile-context'
 import { routeContractBlobKeyForReport } from '../report/route-contracts'
-
-export type Device = 'mobile' | 'desktop'
 
 /** Emit on whatever bus the caller owns (core's hook/iter queue, or the DO's ScanEventsDO forward). */
 export type EmitFn = <K extends keyof HookMap>(
@@ -299,7 +299,7 @@ export interface FinalizeDeps {
 
 export interface FinalizeArgs {
   scanId: ScanId
-  devices: Device[]
+  devices: DeviceMatrix
   startedAtMs: number
   /** Progress counters. `scanned`/`failed` are advisory; `routes` (unique URLs discovered) drives the summary's route count. */
   stats: { discovered: number, scanned: number, failed: number }

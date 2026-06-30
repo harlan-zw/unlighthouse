@@ -127,7 +127,7 @@ function parseVersion(v: string): number[] {
     .slice(0, 4)
     .map((seg) => {
       const match = seg.match(/^(\d+)/)
-      return match ? Number.parseInt(match[1], 10) : 0
+      return match?.[1] ? Number.parseInt(match[1], 10) : 0
     })
 }
 

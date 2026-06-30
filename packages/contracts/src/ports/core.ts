@@ -4,7 +4,7 @@ import type { HookEvent, UnlighthouseHooks } from '../hooks/index'
 import type { Auditor } from './auditor'
 import type { Crawler } from './crawler'
 import type { SeedSource } from './seed-source'
-import type { ScanId, ScanStatus, ScanSummary, Storage } from './storage'
+import type { Device, DeviceMatrix, ScanId, ScanStatus, ScanSummary, Storage } from './storage'
 
 export type { HookEvent, UnlighthouseConfig }
 // Structural shape matching ConsolaInstance's used surface. Type-only so
@@ -76,7 +76,7 @@ export interface UnlighthouseCoreRunOverrides {
    * an array runs the matrix — one audit per URL per device, all under one
    * scan id. Defaults to the host config's device when omitted.
    */
-  device?: 'mobile' | 'desktop' | Array<'mobile' | 'desktop'>
+  device?: Device | DeviceMatrix
   /**
    * Scan mode. `page` audits only the seeded URL(s) (no link-following);
    * `site` crawls. Defaults to the host config's `scanner.mode` when omitted.

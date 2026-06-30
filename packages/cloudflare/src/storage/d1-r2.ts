@@ -152,7 +152,7 @@ async function urlHash(url: string): Promise<string> {
   const bytes = new Uint8Array(digest)
   let hex = ''
   for (let i = 0; i < bytes.length; i++)
-    hex += bytes[i].toString(16).padStart(2, '0')
+    hex += (bytes[i] ?? 0).toString(16).padStart(2, '0')
   return hex.slice(0, 16)
 }
 

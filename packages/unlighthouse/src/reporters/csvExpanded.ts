@@ -44,6 +44,9 @@ export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: 
   }
 
   for (const k of columnKeys(columns)) {
+    const columnsForKey = columns[k]
+    if (!columnsForKey)
+      continue
     // already have overview
     if (k === 'overview')
       continue
@@ -53,7 +56,7 @@ export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: 
 
     // add to headers
     headers.push(
-      ...columns[k]
+      ...columnsForKey
         .map(column => ({
           column,
           val: column.key ? getPathValue(firstReport, column.key) : undefined,
@@ -64,7 +67,13 @@ export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: 
   }
 
   reports.forEach(({ report }, i) => {
+    const row = body[i]
+    if (!row)
+      return
     for (const k of columnKeys(columns)) {
+      const columnsForKey = columns[k]
+      if (!columnsForKey)
+        continue
       // already have overview
       if (k === 'overview')
         continue
@@ -73,8 +82,8 @@ export function reportCSVExpanded(reports: ReportWithLighthouse[], { columns }: 
         continue
 
       // headers are good, now add body
-      body[i].push(
-        ...columns[k]
+      row.push(
+        ...columnsForKey
           .map(column => column.key ? getPathValue(report, column.key.replace('report.', '')) : undefined)
           .filter(isCsvAuditValue)
           .filter(val => val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')

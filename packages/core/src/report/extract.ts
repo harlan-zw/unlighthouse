@@ -43,7 +43,7 @@ interface LighthouseResultWithScreenshot extends LighthouseResult {
 }
 
 export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
-  const version = lhr.lighthouseVersion.split('.')[0]
+  const version = lhr.lighthouseVersion.split('.')[0] ?? ''
   const mapAudit = (id: string) => AUDIT_MAP[version]?.[id] ?? id
 
   const fpNodes = (lhr as LighthouseResultWithScreenshot).fullPageScreenshot?.nodes
