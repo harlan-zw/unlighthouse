@@ -17,6 +17,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAuditPool, runTask } from './audit-pool'
+import { LIGHTHOUSE_DEFAULT_CATEGORIES } from './categories'
 import { attachExtractedRouteData } from './lighthouse-report'
 
 export interface LocalAuditorOptions {
@@ -32,7 +33,7 @@ const LOCAL_CAPABILITIES: AuditorCapabilities = {
   reliablePerfScores: true,
   reliableFieldData: false,
   supportsThrottling: true,
-  categories: ['performance', 'accessibility', 'seo', 'best-practices'],
+  categories: [...LIGHTHOUSE_DEFAULT_CATEGORIES],
 }
 
 const WORKER_FILE = (() => {
@@ -73,9 +74,16 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
       // Map the per-route device onto Lighthouse's emulatedFormFactor. Without
       // this every audit (mobile AND desktop) silently ran with the default
       // mobile emulation, so desktop scores/screenshots were really mobile.
-      const options = _opts?.device
-        ? { ...opts.defaults, emulatedFormFactor: _opts.device }
-        : opts.defaults
+      const lighthouseFlags = {
+        ...(opts.defaults?.lighthouseFlags ?? {}),
+        ...(_opts?.lighthouseFlags ?? {}),
+      }
+      const options = {
+        ...opts.defaults,
+        ...(Object.keys(lighthouseFlags).length ? { lighthouseFlags } : {}),
+        ...(_opts?.lighthouseConfig ? { lighthouseConfig: _opts.lighthouseConfig } : {}),
+        ...(_opts?.device ? { emulatedFormFactor: _opts.device } : {}),
+      }
       const report = await runTask<UnlighthouseReport>(pool, 'lighthouse', { url, options })
       return attachExtractedRouteData(report.raw, url)
     },

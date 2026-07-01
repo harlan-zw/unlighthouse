@@ -21,6 +21,7 @@ const aliasEntries = [
   ['unlighthouse/ci', './packages/unlighthouse/src/cli/ci.ts'],
   ['unlighthouse/config', './packages/unlighthouse/config.mjs'],
   ['@unlighthouse/ui', './packages/ui/'],
+  ['@unlighthouse/pack-nuxt', './packages/pack-nuxt/src/index.ts'],
   ['@unlighthouse/contracts', './packages/contracts/src/index.ts'],
   ['@unlighthouse/contracts/commands', './packages/contracts/src/commands/index.ts'],
   ['@unlighthouse/contracts/config', './packages/contracts/src/config/index.ts'],

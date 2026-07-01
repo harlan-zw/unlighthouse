@@ -13,17 +13,25 @@ export interface LighthouseAudit {
   }
 }
 
+export interface LighthouseCategory {
+  score: number | null
+  title?: string
+  id?: string
+  categoryScoreDisplayMode?: 'gauge' | 'fraction'
+  auditRefs?: Array<{ id: string, weight?: number }>
+}
+
 export interface LighthouseResult {
   lighthouseVersion: string
   requestedUrl: string
   finalUrl: string
   categories: {
-    'performance'?: { score: number | null }
-    'accessibility'?: { score: number | null }
-    'best-practices'?: { score: number | null }
-    'seo'?: { score: number | null }
-    'agentic-browsing'?: { score: number | null }
-    [key: string]: { score: number | null } | undefined
+    'performance'?: LighthouseCategory
+    'accessibility'?: LighthouseCategory
+    'best-practices'?: LighthouseCategory
+    'seo'?: LighthouseCategory
+    'agentic-browsing'?: LighthouseCategory
+    [key: string]: LighthouseCategory | undefined
   }
   audits: Record<string, LighthouseAudit>
 }

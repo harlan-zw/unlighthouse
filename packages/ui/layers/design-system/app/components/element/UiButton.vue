@@ -7,6 +7,7 @@ import { useMouseInElement } from '@vueuse/core'
 import { m, useReducedMotion } from 'motion-v'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useAttrs, useSlots, useTemplateRef, watch } from 'vue'
 import { liftPresets } from '../../shared/motion'
+import { resolveUiIcon } from '../../shared/ui-icons'
 
 /**
  * UiButton — the single button primitive. UButton + motion-v lift/press
@@ -68,8 +69,6 @@ interface MotionExtras {
 // MotionExtras re-types to the curated `UiIcon` union.
 type MotionButtonProps = Omit<ButtonProps, 'color' | 'variant' | 'icon' | 'leadingIcon' | 'trailingIcon'> & MotionExtras
 
-// Semantic icon role names pass straight to UButton; @nuxt/icon's global aliases
-// resolve them to the active set's id (raw `i-*` ids pass through unchanged).
 const slots = useSlots()
 
 // Icon-only when there is no label content (no default slot, no `label` prop).
@@ -186,6 +185,7 @@ const clipMotion = computed(() => {
   return { width: measuredWidth.value }
 })
 const leadingIconName = computed(() => loading ? 'loading' : (leadingIcon || icon))
+const trailingIconName = computed(() => resolveUiIcon(trailingIcon))
 const hasLeading = computed(() => !!slots.leading || !!leadingIconName.value)
 const hasTrailing = computed(() => !!slots.trailing)
 const buttonLabel = computed(() => typeof buttonProps.label === 'string' ? buttonProps.label : undefined)
@@ -305,7 +305,7 @@ watch(
           :block="block"
           :icon="undefined"
           :leading-icon="undefined"
-          :trailing-icon="trailingIcon"
+          :trailing-icon="trailingIconName"
           class="ui-motion-button__btn relative z-10 whitespace-nowrap"
           :class="[hitTargetClass, { 'hover:underline underline-offset-2': purpose === 'link' }]"
         >

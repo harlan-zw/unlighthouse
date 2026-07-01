@@ -37,6 +37,12 @@ export interface AuditOpts {
    * lighthouse-free.
    */
   lighthouseConfig?: Record<string, unknown>
+  /**
+   * Lighthouse flags/settings passthrough (`onlyCategories`, throttling, etc.).
+   * Kept separate from `lighthouseConfig` because Lighthouse's JS API accepts
+   * flags as the second argument and config as the third.
+   */
+  lighthouseFlags?: Record<string, unknown>
 }
 
 export interface Auditor {
@@ -56,6 +62,6 @@ export interface AuditorRouterOptions {
   auditors: NamedAuditor[]
   pick: (
     auditors: NamedAuditor[],
-    ctx: { url: string },
+    ctx: { url: string, auditOpts?: AuditOpts, requestedCategories?: string[] },
   ) => Auditor | Promise<Auditor>
 }

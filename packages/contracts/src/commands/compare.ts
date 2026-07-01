@@ -129,6 +129,7 @@ const CompareRouteMetricsSchema = z.object({
   scoreAccessibility: z.number().nullable(),
   scoreSeo: z.number().nullable(),
   scoreBestPractices: z.number().nullable(),
+  scoreAgenticBrowsing: z.number().nullable(),
   lcp: z.number().nullable(),
   cls: z.number().nullable(),
   inp: z.number().nullable(),

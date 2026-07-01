@@ -91,6 +91,7 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
       scanId,
       device,
       lhrBlobKey: `scans/${scanId}/lhr/${urlHash(m.url)}-${device}.json.gz`,
+      reportBlobKey: `scans/${scanId}/reports/${urlHash(m.url)}-${device}.json`,
     })
   }
 

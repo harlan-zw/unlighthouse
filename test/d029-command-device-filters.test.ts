@@ -6,6 +6,7 @@ import type { ScanId, Storage } from '@unlighthouse/contracts'
 import { packRun } from '@unlighthouse/core/api/handlers'
 import { routeRescan } from '@unlighthouse/core/api/handlers'
 import { scanResults } from '@unlighthouse/core/api/handlers'
+import { scanSummary } from '@unlighthouse/core/api/handlers'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
@@ -115,6 +116,31 @@ describe('pack.run accepts device input', () => {
     )
     // Internal cache key is 'overview@mobile' but the wire stays 'overview'.
     expect(out.packName).toBe('overview')
+  })
+})
+
+// ── scan.summary ────────────────────────────────────────────────────────────
+
+describe('scan.summary category display metadata', () => {
+  let storage: Storage
+  let scanId: ScanId
+
+  beforeAll(async () => {
+    storage = memoryStorage()
+    scanId = await runMatrixScan(storage)
+  })
+
+  it('returns category display modes and route-wide fractions without a scan.categories round trip', async () => {
+    const out = await scanSummary.run(
+      { scanId, device: 'mobile' },
+      testHandlerCtx(storage),
+    )
+
+    expect(out.categoryScoreDisplayModes['agentic-browsing']).toBe('fraction')
+    expect(out.categoryFractions['agentic-browsing']?.total).toBeGreaterThan(0)
+    expect(out.categoryFractions['agentic-browsing']?.passing).toBeLessThanOrEqual(
+      out.categoryFractions['agentic-browsing']!.total,
+    )
   })
 })
 

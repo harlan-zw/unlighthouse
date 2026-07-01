@@ -34,6 +34,7 @@ export const RouteGet = defineCommand({
       id: z.string(),
       title: z.string(),
       score: z.number().nullable(),
+      categoryScoreDisplayMode: z.enum(['gauge', 'fraction']).nullable(),
       auditCount: z.number().int(),
       passingCount: z.number().int(),
       failingCount: z.number().int(),

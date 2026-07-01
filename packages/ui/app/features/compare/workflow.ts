@@ -157,6 +157,7 @@ export function useCompareWorkflow() {
     'accessibility': '',
     'seo': '',
     'best-practices': '',
+    'agentic-browsing': '',
     'lcp': '',
     'cls': '',
     'inp': '',

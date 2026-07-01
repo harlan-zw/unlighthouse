@@ -73,6 +73,7 @@ export interface LighthouseReportCategory {
   id: string
   title: string
   score: number | null
+  categoryScoreDisplayMode?: 'gauge' | 'fraction'
 }
 
 export type LighthouseReportAudit = Result['audits'][string]
@@ -779,6 +780,7 @@ export interface UnlighthouseInsights {
     id: string
     title: string
     score: number
+    categoryScoreDisplayMode?: 'gauge' | 'fraction'
   }>
   coreWebVitals: {
     lcp: number

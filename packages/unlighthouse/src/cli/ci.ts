@@ -30,6 +30,7 @@ interface RawLighthouseCategory {
   id?: string
   title?: string
   score?: number | null
+  categoryScoreDisplayMode?: 'gauge' | 'fraction'
 }
 
 interface RawLighthousePayload {
@@ -143,9 +144,11 @@ async function run() {
         id: c.id ?? key,
         title: c.title ?? key,
         score: c.score ?? null,
+        categoryScoreDisplayMode: c.categoryScoreDisplayMode ?? 'gauge',
       }))
-      const scoreAverage = categoriesArr.length
-        ? categoriesArr.reduce((s, c) => s + (c.score ?? 0), 0) / categoriesArr.length
+      const gaugeCategories = categoriesArr.filter(c => c.categoryScoreDisplayMode !== 'fraction')
+      const scoreAverage = gaugeCategories.length
+        ? gaugeCategories.reduce((s, c) => s + (c.score ?? 0), 0) / gaugeCategories.length
         : 0
       const emptyComputedAudit = { score: 0, displayValue: '', details: { items: [] } }
       const report: UnlighthouseRouteReport = {

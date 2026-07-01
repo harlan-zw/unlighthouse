@@ -25,6 +25,7 @@ const DEFAULT_THRESHOLDS: Record<string, number> = {
   'accessibility': 0.05,
   'seo': 0.05,
   'best-practices': 0.05,
+  'agentic-browsing': 0.05,
   'lcp': 500,
   'cls': 0.1,
   'inp': 200,
@@ -39,6 +40,7 @@ export const SHORT_LABEL: Record<string, string> = {
   scoreAccessibility: 'A11y',
   scoreSeo: 'SEO',
   scoreBestPractices: 'BP',
+  scoreAgenticBrowsing: 'Agentic',
 }
 
 export const CATEGORY_METRICS: CompareMetric[] = [
@@ -46,6 +48,7 @@ export const CATEGORY_METRICS: CompareMetric[] = [
   { key: 'scoreAccessibility', label: 'Accessibility', score: true, thresholdKey: 'accessibility' },
   { key: 'scoreSeo', label: 'SEO', score: true, thresholdKey: 'seo' },
   { key: 'scoreBestPractices', label: 'Best Practices', score: true, thresholdKey: 'best-practices' },
+  { key: 'scoreAgenticBrowsing', label: 'Agentic', score: true, thresholdKey: 'agentic-browsing', hint: 'Agentic Browsing is displayed as a Lighthouse fraction; deltas use the raw 0-1 score.' },
 ]
 
 export const CWV_METRICS: CompareMetric[] = [
@@ -67,6 +70,7 @@ export const SORT_OPTIONS = [
   { value: 'delta-a11y-desc', label: 'A11y Δ (worst first)' },
   { value: 'delta-seo-desc', label: 'SEO Δ (worst first)' },
   { value: 'delta-bp-desc', label: 'BP Δ (worst first)' },
+  { value: 'delta-agentic-desc', label: 'Agentic Δ (worst first)' },
   { value: 'delta-lcp-desc', label: 'LCP Δ (slowest)' },
   { value: 'delta-cls-desc', label: 'CLS Δ (worst)' },
   { value: 'url-asc', label: 'URL (A-Z)' },

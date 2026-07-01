@@ -197,7 +197,5 @@ export const defaultConfig: UserConfig = {
   debug: false,
 
   puppeteerOptions: {},
-  lighthouseOptions: {
-    onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
-  },
+  lighthouseOptions: {},
 }

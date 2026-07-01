@@ -79,6 +79,13 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
     'best-practices': avg(routes.map(r => r.scoreBestPractices)),
     'agentic-browsing': avg(routes.map(r => r.scoreAgenticBrowsing)),
   }
+  const categoryScoreDisplayModes: Partial<Record<Category, 'gauge' | 'fraction'>> = {
+    'performance': 'gauge',
+    'accessibility': 'gauge',
+    'seo': 'gauge',
+    'best-practices': 'gauge',
+    'agentic-browsing': 'fraction',
+  }
 
   // Lighthouse threshold buckets (≥ 0.9 passing, ≥ 0.5 needs-work, < 0.5 poor).
   // Rows with no score at all fall out — they aren't a passing/failing signal.
@@ -142,6 +149,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
     routesScanned: routes.length,
     avgScore: overallAvg,
     categoryAverages,
+    categoryScoreDisplayModes,
     distribution,
     worstRoutes,
     templateGroups,

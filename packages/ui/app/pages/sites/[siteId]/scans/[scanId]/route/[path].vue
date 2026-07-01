@@ -26,8 +26,8 @@ const {
   scores,
   metrics,
   categoryAudits,
-  scoreToLabel,
   scoreToRingColor,
+  categoryScoreLabel,
   formatBytes,
   formatMetric,
   metricColor,
@@ -192,7 +192,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
               {{ s.label }}
             </div>
             <div class="numerals-display text-2xl" :style="{ color: scoreToRingColor(s.score) }">
-              {{ scoreToLabel(s.score) }}
+              {{ categoryScoreLabel(s) }}
             </div>
           </div>
         </div>

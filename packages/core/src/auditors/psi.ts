@@ -1,6 +1,7 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
 import { ofetch } from 'ofetch'
+import { PSI_SUPPORTED_CATEGORIES, unsupportedCategories } from './categories'
 import { extractInsights } from './extract'
 import { attachExtractedRouteData } from './lighthouse-report'
 
@@ -14,7 +15,7 @@ const PSI_CAPABILITIES: AuditorCapabilities = {
   reliablePerfScores: true,
   reliableFieldData: false,
   supportsThrottling: false,
-  categories: ['performance', 'accessibility', 'seo', 'best-practices'],
+  categories: [...PSI_SUPPORTED_CATEGORIES],
 }
 
 function errorMessage(error: unknown): string {
@@ -25,7 +26,16 @@ export function createPsiProvider(providerOptions: PsiOptions = {}): Unlighthous
   return async (url: string, options: UnlighthouseOptions = {}): Promise<UnlighthouseReport> => {
     const apiKey = providerOptions.apiKey
     const strategy = options.emulatedFormFactor === 'desktop' ? 'desktop' : 'mobile'
-    const categories = options.lighthouseConfig?.settings?.onlyCategories || ['performance', 'accessibility', 'best-practices', 'seo', 'pwa']
+    const requestedCategories = options.lighthouseFlags?.onlyCategories
+      ?? options.lighthouseConfig?.settings?.onlyCategories
+      ?? PSI_SUPPORTED_CATEGORIES
+    const categories = Array.isArray(requestedCategories)
+      ? requestedCategories.map(String)
+      : [...PSI_SUPPORTED_CATEGORIES]
+    const unsupported = unsupportedCategories(categories, PSI_SUPPORTED_CATEGORIES)
+    if (unsupported.length) {
+      throw new Error(`PSI does not support Lighthouse categories: ${unsupported.join(', ')}`)
+    }
 
     try {
       const response = await ofetch('https://www.googleapis.com/pagespeedonline/v5/runPagespeed', {
@@ -60,7 +70,11 @@ export function createPsiAuditor(opts: PsiOptions = {}): Auditor {
     async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<LighthouseReport> {
       // Pass the per-route device through so PSI runs the mobile vs desktop
       // strategy (otherwise every audit ran PSI's default mobile emulation).
-      const report = await provider(url, { emulatedFormFactor: auditOpts.device })
+      const report = await provider(url, {
+        emulatedFormFactor: auditOpts.device,
+        lighthouseFlags: auditOpts.lighthouseFlags,
+        lighthouseConfig: auditOpts.lighthouseConfig as UnlighthouseOptions['lighthouseConfig'],
+      })
       const lhr = report.raw
       // PSI returns a raw LHR. Run the canonical extraction and attach
       // `.extracted` (the scored metrics row) + `.lhrGzip`, exactly like the

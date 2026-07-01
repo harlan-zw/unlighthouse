@@ -17,10 +17,12 @@ import type {
   ScanSummaryCmd,
 } from '@unlighthouse/contracts/commands'
 import type {
+  Category,
   Device,
   ExtractedMetrics,
+  ScanId,
 } from '@unlighthouse/contracts/types/atoms'
-import type { Handler } from './types'
+import type { Handler, HandlerCtx } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { overviewPack } from '../../packs/overview'
 import { loadRouteContract } from '../../report/route-contracts'
@@ -338,12 +340,26 @@ export const scanSummary: Handler<typeof ScanSummaryCmd> = {
       routes: items,
       logger: undefined,
     })
+    const categories = await collectCategorySummaries(ctx, input.scanId, input.device)
+    const categoryScoreDisplayModes = { ...report.categoryScoreDisplayModes }
+    const categoryFractions: CommandOutput<typeof ScanSummaryCmd>['categoryFractions'] = {}
+    for (const category of categories) {
+      if (!isSummaryCategory(category.id))
+        continue
+      categoryScoreDisplayModes[category.id] = category.categoryScoreDisplayMode ?? 'gauge'
+      categoryFractions[category.id] = {
+        passing: category.passingCount,
+        total: category.passingCount + category.failingCount,
+      }
+    }
 
     // The wire schema in commands/scan.ts intentionally mirrors OverviewReport
     // plus the scan's site (which isn't on the pack output — packs don't
     // reach into scan metadata). Add it here.
     return {
       ...report,
+      categoryScoreDisplayModes,
+      categoryFractions,
       site: scan.site,
       device: input.device ?? scan.device,
     } as CommandOutput<typeof ScanSummaryCmd>
@@ -368,12 +384,73 @@ function titleForCategory(id: string): string {
   return CATEGORY_TITLES[id] ?? id.split('-').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')
 }
 
+const SUMMARY_CATEGORIES = ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'] as const satisfies readonly Category[]
+
+function isSummaryCategory(id: string): id is Category {
+  return (SUMMARY_CATEGORIES as readonly string[]).includes(id)
+}
+
 interface CategoryAgg {
   scoreSum: number
   scoreCount: number
+  categoryScoreDisplayMode: 'gauge' | 'fraction' | null
   passingCount: number
   failingCount: number
   auditIds: Set<string>
+}
+
+async function collectCategorySummaries(
+  ctx: HandlerCtx,
+  scanId: ScanId,
+  device?: Device,
+): Promise<CommandOutput<typeof ScanCategories>['categories']> {
+  const { items: routes } = await ctx.storage.routes.listForScan(scanId, { page: 1, pageSize: 10_000 })
+  const filtered = device ? routes.filter(r => r.device === device) : routes
+
+  const agg = new Map<string, CategoryAgg>()
+
+  for (const route of filtered) {
+    const contract = await loadRouteContract(ctx.storage.blobs, route)
+    if (!contract)
+      continue
+
+    for (const [id, cat] of Object.entries(contract.categories ?? {})) {
+      let bucket = agg.get(id)
+      if (!bucket) {
+        bucket = { scoreSum: 0, scoreCount: 0, categoryScoreDisplayMode: cat.categoryScoreDisplayMode ?? 'gauge', passingCount: 0, failingCount: 0, auditIds: new Set<string>() }
+        agg.set(id, bucket)
+      }
+      if (cat.categoryScoreDisplayMode)
+        bucket.categoryScoreDisplayMode = cat.categoryScoreDisplayMode
+      if (typeof cat.score === 'number') {
+        bucket.scoreSum += cat.score
+        bucket.scoreCount++
+      }
+      for (const ref of cat.auditRefs ?? []) {
+        // Dedupe by audit id within a category — total auditCount is the
+        // unique set of audits in the category (matches LHR's notion),
+        // not the cumulative across routes.
+        bucket.auditIds.add(ref.id)
+        const a = contract.audits?.[ref.id]
+        if (!a)
+          continue
+        if (a.severity === 'pass' && a.scoreDisplayMode !== 'notApplicable' && a.scoreDisplayMode !== 'manual')
+          bucket.passingCount++
+        else if (a.scoreDisplayMode !== 'notApplicable' && a.scoreDisplayMode !== 'manual')
+          bucket.failingCount++
+      }
+    }
+  }
+
+  return Array.from(agg.entries()).map(([id, b]) => ({
+    id,
+    title: titleForCategory(id),
+    avgScore: b.scoreCount > 0 ? b.scoreSum / b.scoreCount : null,
+    categoryScoreDisplayMode: b.categoryScoreDisplayMode ?? 'gauge',
+    auditCount: b.auditIds.size,
+    passingCount: b.passingCount,
+    failingCount: b.failingCount,
+  }))
 }
 
 export const scanCategories: Handler<typeof ScanCategories> = {
@@ -383,51 +460,7 @@ export const scanCategories: Handler<typeof ScanCategories> = {
     if (!scan)
       notFound(input.scanId)
 
-    const { items: routes } = await ctx.storage.routes.listForScan(input.scanId, { page: 1, pageSize: 10_000 })
-    const filtered = input.device ? routes.filter(r => r.device === input.device) : routes
-
-    const agg = new Map<string, CategoryAgg>()
-
-    for (const route of filtered) {
-      const contract = await loadRouteContract(ctx.storage.blobs, route)
-      if (!contract)
-        continue
-
-      for (const [id, cat] of Object.entries(contract.categories ?? {})) {
-        let bucket = agg.get(id)
-        if (!bucket) {
-          bucket = { scoreSum: 0, scoreCount: 0, passingCount: 0, failingCount: 0, auditIds: new Set<string>() }
-          agg.set(id, bucket)
-        }
-        if (typeof cat.score === 'number') {
-          bucket.scoreSum += cat.score
-          bucket.scoreCount++
-        }
-        for (const ref of cat.auditRefs ?? []) {
-          // Dedupe by audit id within a category — total auditCount is the
-          // unique set of audits in the category (matches LHR's notion),
-          // not the cumulative across routes.
-          bucket.auditIds.add(ref.id)
-          const a = contract.audits?.[ref.id]
-          if (!a)
-            continue
-          if (a.severity === 'pass')
-            bucket.passingCount++
-          else
-            bucket.failingCount++
-        }
-      }
-    }
-
-    const categories = Array.from(agg.entries()).map(([id, b]) => ({
-      id,
-      title: titleForCategory(id),
-      avgScore: b.scoreCount > 0 ? b.scoreSum / b.scoreCount : null,
-      auditCount: b.auditIds.size,
-      passingCount: b.passingCount,
-      failingCount: b.failingCount,
-    }))
-
+    const categories = await collectCategorySummaries(ctx, input.scanId, input.device)
     return { categories } as CommandOutput<typeof ScanCategories>
   },
 }

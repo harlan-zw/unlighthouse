@@ -37,7 +37,7 @@ const CAPABILITIES: AuditorCapabilities = {
   reliablePerfScores: false,
   reliableFieldData: false,
   supportsThrottling: false,
-  categories: ['performance', 'accessibility', 'seo', 'best-practices'],
+  categories: ['accessibility', 'seo', 'best-practices'],
 }
 
 export function createCloudflareBrowserAuditor(
@@ -57,6 +57,7 @@ export function createCloudflareBrowserAuditor(
       const browserWSEndpoint = browser.wsEndpoint()
       inner = createCdpConnectAuditor({
         browserWSEndpoint,
+        capabilities: CAPABILITIES,
         logger: opts.logger,
       })
       return inner

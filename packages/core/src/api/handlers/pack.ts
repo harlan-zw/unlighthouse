@@ -41,7 +41,7 @@ function packKeyFor(packName: string, device?: string): string {
 export const packRun: Handler<typeof PackRunCmd> = {
   command: {} as typeof PackRunCmd,
   async run(input, ctx) {
-    const pack = getPack(input.pack)
+    const pack = ctx.packs?.get(input.pack) ?? getPack(input.pack)
     if (!pack) {
       throw new UnlighthouseError({
         code: 'PACK_NOT_FOUND',
@@ -188,8 +188,8 @@ async function loadCachedReport(
 
 export const packList: Handler<typeof PackList> = {
   command: {} as typeof PackList,
-  async run(_input, _ctx) {
-    const packs = Object.values(builtInPacks).map(p => ({
+  async run(_input, ctx) {
+    const packs = (ctx.packs?.list() ?? Object.values(builtInPacks)).map(p => ({
       name: p.name,
       description: p.description,
       version: p.version,

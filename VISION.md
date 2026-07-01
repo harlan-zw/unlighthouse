@@ -8,7 +8,7 @@
 - 📊 **Built-in dashboard**: scan history, side-by-side compare, per-pack analysis.
 - 📱 **One scan, both devices**: mobile + desktop side-by-side, no double runs.
 - 🌍 **Runs anywhere modern JS runs**: engine in Node or Workers, browser is BYO (local Chrome, browserless, or CF Browser Rendering at ~10× lower cost).
-- 🧩 **Audit packs**: targeted fixes for perf, a11y, SEO; GEO next; ship your own.
+- 🧩 **Audit packs**: targeted fixes for perf, a11y, SEO, and agentic-browsing (Lighthouse 13: WebMCP, `llms.txt`, agent accessibility); ship your own.
 - 🔁 **Wire into CI**: track every release, assert budgets, fail builds on regression.
 - 🧱 **Drop into your product**: embed the scan engine in your SaaS, agency tool, or platform.
 

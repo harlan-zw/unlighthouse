@@ -28,12 +28,14 @@ export function reportJsonExpanded(reports: UnlighthouseRouteReport[]): ReportJs
         metadata.categories[category.key] = {
           id: category.id,
           title: category.title,
+          categoryScoreDisplayMode: category.categoryScoreDisplayMode,
         }
         categories[category.key] = {
           key: category.key,
           id: category.id,
           title: category.title,
           score: category.score,
+          categoryScoreDisplayMode: category.categoryScoreDisplayMode,
         }
       }
 

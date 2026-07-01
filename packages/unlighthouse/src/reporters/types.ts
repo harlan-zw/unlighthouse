@@ -5,6 +5,7 @@ export interface CategoryScore {
   id: string
   title: string
   score: number | null
+  categoryScoreDisplayMode?: 'gauge' | 'fraction'
 }
 
 export interface MetricScore {
@@ -57,6 +58,7 @@ export interface MetricMetadata {
 export interface CategoryMetadata {
   id: string
   title: string
+  categoryScoreDisplayMode?: 'gauge' | 'fraction'
 }
 
 export interface ReportJsonExpanded {

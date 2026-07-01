@@ -48,6 +48,9 @@ export function parseUrl(value: string): Url {
 const CategorySchema = z.enum(['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'])
 export type Category = z.infer<typeof CategorySchema>
 
+const CategoryScoreDisplayModeSchema = z.enum(['gauge', 'fraction'])
+export type CategoryScoreDisplayMode = z.infer<typeof CategoryScoreDisplayModeSchema>
+
 // Scan mode: 'site' crawls all pages, 'page' audits a single URL.
 const ScanModeSchema = z.enum(['site', 'page'])
 export type ScanMode = z.infer<typeof ScanModeSchema>
@@ -108,6 +111,9 @@ const ScanSummarySchema = z.object({
   // Aggregate score 0..1 — `null` until at least one route has scored.
   scoreAverage: z.number().min(0).max(1).nullable(),
   scoresByCategory: z.partialRecord(CategorySchema, z.number().min(0).max(1)),
+  // How each category score should be presented. Optional for summaries
+  // written before LH13 display modes were persisted.
+  categoryScoreDisplayModes: z.partialRecord(CategorySchema, CategoryScoreDisplayModeSchema).optional(),
   durationMs: z.number().nonnegative(),
   // Device matrix this scan covered. Lets the UI show "both" instead of just
   // the primary device for a mobile+desktop scan. Optional — older summaries
@@ -286,6 +292,7 @@ const ReconciledReportSchema = z.object({
   // pass through without schema rejection.
   categories: z.record(z.string(), z.object({
     score: z.number().nullable(),
+    categoryScoreDisplayMode: CategoryScoreDisplayModeSchema.nullish(),
     auditRefs: z.array(z.object({
       id: z.string(),
       weight: z.number().nonnegative(),
@@ -357,6 +364,7 @@ export {
   AssertionSchema,
   AuditFindingSchema,
   CategorySchema,
+  CategoryScoreDisplayModeSchema,
   DeviceMatrixSchema,
   DeviceSchema,
   EntitySchema,

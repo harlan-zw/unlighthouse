@@ -4,6 +4,7 @@ import {
   fallbackAuditor,
   predicatePick,
   rateLimitedPick,
+  routeAuditors,
   roundRobinPick,
   weightedPick,
 } from '@unlighthouse/core/auditors/route'
@@ -15,17 +16,17 @@ const caps: AuditorCapabilities = {
   categories: ['performance'],
 }
 
-function stubAuditor(label: string): Auditor {
+function stubAuditor(label: string, categories: AuditorCapabilities['categories'] = ['performance']): Auditor {
   return {
-    capabilities: caps,
+    capabilities: { ...caps, categories },
     async audit() {
       return { label } as unknown as LighthouseReport
     },
   }
 }
 
-function named(name: string): NamedAuditor {
-  return { name, auditor: stubAuditor(name) }
+function named(name: string, categories?: AuditorCapabilities['categories']): NamedAuditor {
+  return { name, auditor: stubAuditor(name, categories) }
 }
 
 describe('roundRobinPick', () => {
@@ -72,6 +73,46 @@ describe('fallbackAuditor', () => {
       { name: 'b', auditor: fail('two') },
     ])
     await expect(composed.audit('https://x')).rejects.toBeInstanceOf(AggregateError)
+  })
+
+  it('skips fallback candidates that do not support the requested category', async () => {
+    const composed = fallbackAuditor([
+      named('psi', ['performance']),
+      named('local', ['performance', 'agentic-browsing']),
+    ])
+    const r = await composed.audit('https://x', undefined, {
+      lighthouseFlags: { onlyCategories: ['agentic-browsing'] },
+    }) as unknown as { label: string }
+    expect(r.label).toBe('local')
+  })
+})
+
+describe('routeAuditors', () => {
+  it('filters candidates by requested Lighthouse categories before picking', async () => {
+    const composed = routeAuditors({
+      auditors: [
+        named('psi', ['performance']),
+        named('local', ['performance', 'agentic-browsing']),
+      ],
+      pick: roundRobinPick(),
+    })
+
+    const r = await composed.audit('https://x', undefined, {
+      lighthouseFlags: { onlyCategories: ['agentic-browsing'] },
+    }) as unknown as { label: string }
+
+    expect(r.label).toBe('local')
+  })
+
+  it('throws before picking when no auditor supports the requested category', async () => {
+    const composed = routeAuditors({
+      auditors: [named('psi', ['performance'])],
+      pick: roundRobinPick(),
+    })
+
+    await expect(composed.audit('https://x', undefined, {
+      lighthouseFlags: { onlyCategories: ['agentic-browsing'] },
+    })).rejects.toThrow(/no auditor supports Lighthouse categories: agentic-browsing/)
   })
 })
 

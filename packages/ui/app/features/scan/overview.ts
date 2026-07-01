@@ -5,6 +5,7 @@ import { useScanBase } from '~/features/scan/route-context'
 import { useScanStore } from '~/stores/scan'
 
 type DeviceFilter = '' | 'mobile' | 'desktop'
+type CategoryScoreDisplayMode = 'gauge' | 'fraction'
 
 const CATEGORY_DEFS = [
   { key: 'performance', label: 'Performance', icon: 'gauge', path: 'performance' },
@@ -124,9 +125,13 @@ export function useScanOverview() {
 
   const categories = computed(() => {
     const averages = (scanSummary.value?.categoryAverages ?? {}) as Record<string, number | null>
+    const displayModes = (scanSummary.value?.categoryScoreDisplayModes ?? {}) as Record<string, CategoryScoreDisplayMode | undefined>
+    const fractions = (scanSummary.value?.categoryFractions ?? {}) as Record<string, { passing: number, total: number } | undefined>
     return CATEGORY_DEFS.map(category => ({
       ...category,
       score: averages[category.key] ?? null,
+      categoryScoreDisplayMode: displayModes[category.key] ?? (category.key === 'agentic-browsing' ? 'fraction' : 'gauge'),
+      fraction: fractions[category.key] ?? null,
     }))
   })
 
@@ -169,6 +174,12 @@ export function useScanOverview() {
     return scoreColorFromRing(scoreToRingColor, score)
   }
 
+  function categoryScoreLabel(category: { score: number | null, categoryScoreDisplayMode: CategoryScoreDisplayMode, fraction: { passing: number, total: number } | null }): string | number {
+    if (category.categoryScoreDisplayMode === 'fraction' && category.fraction && category.fraction.total > 0)
+      return `${category.fraction.passing}/${category.fraction.total}`
+    return scoreToLabel(category.score)
+  }
+
   const siteTitle = computed(() => scanMeta.value?.site || store.site || 'Scan')
   const jsonExportUrl = computed(() => `${exportBaseUrl}/dashboard/export/${scanId.value}`)
   const csvExportUrl = computed(() => `${exportBaseUrl}/dashboard/export/${scanId.value}?format=csv`)
@@ -198,6 +209,7 @@ export function useScanOverview() {
     scoreToColor,
     scoreToLabel,
     scoreColor,
+    categoryScoreLabel,
     jsonExportUrl,
     csvExportUrl,
     jsonExportName,

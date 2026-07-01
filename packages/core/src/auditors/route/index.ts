@@ -12,7 +12,7 @@ export { createTokenBucket, type RateRule, type TokenBucket } from './token-buck
 
 export type PickFn = (
   auditors: NamedAuditor[],
-  ctx: { url: string },
+  ctx: { url: string, auditOpts?: AuditOpts, requestedCategories?: string[] },
 ) => Auditor | Promise<Auditor>
 
 export interface RouteAuditorsOptions {
@@ -44,6 +44,38 @@ function deriveCapabilities(auditors: NamedAuditor[]): AuditorCapabilities {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function categoriesFromAuditOpts(auditOpts?: AuditOpts): string[] {
+  const fromFlags = auditOpts?.lighthouseFlags?.onlyCategories
+  const settings = isRecord(auditOpts?.lighthouseConfig?.settings)
+    ? auditOpts.lighthouseConfig.settings
+    : undefined
+  const fromConfig = settings?.onlyCategories
+  const categories = Array.isArray(fromFlags)
+    ? fromFlags
+    : Array.isArray(fromConfig)
+      ? fromConfig
+      : []
+  return categories.map(String).filter(Boolean)
+}
+
+function filterAuditorsByCategories(auditors: NamedAuditor[], categories: readonly string[]): NamedAuditor[] {
+  if (!categories.length)
+    return auditors
+
+  const filtered = auditors.filter((a) => {
+    const supported = new Set<string>(a.auditor.capabilities.categories)
+    return categories.every(category => supported.has(category))
+  })
+  if (filtered.length)
+    return filtered
+
+  throw new Error(`routeAuditors: no auditor supports Lighthouse categories: ${categories.join(', ')}`)
+}
+
 /**
  * Composes multiple named auditors into a single Auditor whose `audit(url)` is
  * dispatched through `pick(auditors, { url })`. The composed Auditor *is* an
@@ -56,7 +88,9 @@ export function routeAuditors(opts: RouteAuditorsOptions): Auditor {
   return {
     capabilities,
     async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<LighthouseReport> {
-      const picked = await opts.pick(opts.auditors, { url })
+      const requestedCategories = categoriesFromAuditOpts(auditOpts)
+      const candidates = filterAuditorsByCategories(opts.auditors, requestedCategories)
+      const picked = await opts.pick(candidates, { url, auditOpts, requestedCategories })
       return picked.audit(url, page, auditOpts)
     },
   }
@@ -137,8 +171,10 @@ export function fallbackAuditor(auditors: NamedAuditor[]): Auditor {
   return {
     capabilities,
     async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<LighthouseReport> {
+      const requestedCategories = categoriesFromAuditOpts(auditOpts)
+      const candidates = filterAuditorsByCategories(auditors, requestedCategories)
       const errors: unknown[] = []
-      for (const a of auditors) {
+      for (const a of candidates) {
         try {
           return await a.auditor.audit(url, page, auditOpts)
         }
@@ -146,7 +182,7 @@ export function fallbackAuditor(auditors: NamedAuditor[]): Auditor {
           errors.push(err)
         }
       }
-      throw new AggregateError(errors, `fallbackAuditor: all ${auditors.length} auditors failed for ${url}`)
+      throw new AggregateError(errors, `fallbackAuditor: all ${candidates.length} auditors failed for ${url}`)
     },
   }
 }

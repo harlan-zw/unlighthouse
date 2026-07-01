@@ -14,6 +14,7 @@ import type {
   CommandRegistry,
 } from '@unlighthouse/contracts/commands'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { PackRegistry } from '../../packs/index'
 
 export interface AuditorInfo {
   name: string
@@ -36,6 +37,11 @@ export interface HandlerCtx {
     list: () => AuditorInfo[]
     test?: (name: string) => Promise<AuditorInfo>
   }
+  /**
+   * Pack registry (built-ins + host-supplied third-party packs) for `pack.*`.
+   * When absent, handlers fall back to the built-in packs.
+   */
+  packs?: PackRegistry
   /**
    * Per-request tenant identity. Set by multi-tenant hosts (cloud, SaaS deployments).
    * Hosts MUST construct a tenant-scoped `storage` for this ctx — handlers do not

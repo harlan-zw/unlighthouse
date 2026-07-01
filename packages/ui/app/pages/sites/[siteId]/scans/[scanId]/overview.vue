@@ -30,6 +30,7 @@ const {
   scoreToColor,
   scoreToLabel,
   scoreColor,
+  categoryScoreLabel,
   jsonExportUrl,
   csvExportUrl,
   jsonExportName,
@@ -138,8 +139,11 @@ useScanPageTitle(computed(() => scanIsComplete.value ? 'Scan Results' : 'Live Sc
             :style="{ width: `${seg.pct}%`, backgroundColor: seg.color }"
           />
         </div>
-        <div class="flex gap-3 mt-1.5 text-[11px] text-muted">
-          <span v-for="seg in distribution?.segments" :key="seg.label">{{ seg.count }} {{ seg.label }}</span>
+        <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[11px] text-muted">
+          <span v-for="seg in distribution?.segments" :key="seg.label" class="inline-flex items-baseline gap-1">
+            <span class="tabular-nums">{{ seg.count }}</span>
+            <span>{{ seg.label }}</span>
+          </span>
         </div>
       </div>
     </div>
@@ -161,7 +165,7 @@ useScanPageTitle(computed(() => scanIsComplete.value ? 'Scan Results' : 'Live Sc
               />
             </div>
             <span class="text-sm font-bold tabular-nums w-8 text-right" :style="{ color: scoreColor(cat.score) }">
-              {{ scoreToLabel(cat.score) }}
+              {{ categoryScoreLabel(cat) }}
             </span>
           </div>
           <div v-if="categories.every(c => c.score == null)" class="text-sm text-muted text-center py-4">
@@ -232,7 +236,7 @@ useScanPageTitle(computed(() => scanIsComplete.value ? 'Scan Results' : 'Live Sc
               />
             </div>
             <span class="text-sm font-bold tabular-nums w-8 text-right" :style="{ color: scoreColor(cat.score) }">
-              {{ scoreToLabel(cat.score) }}
+              {{ categoryScoreLabel(cat) }}
             </span>
           </template>
           <span v-else class="text-sm text-muted/40">—</span>

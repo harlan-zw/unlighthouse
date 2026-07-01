@@ -15,6 +15,7 @@ import { launch } from 'chrome-launcher'
 import lighthouse from 'lighthouse'
 import puppeteer from 'puppeteer-core'
 import { createWorkerHandler, defineTask } from './audit-pool/worker'
+import { withWebMcpChromeFlag } from './categories'
 import { extractInsights } from './extract'
 import { getScreenEmulation, getUserAgent, resolveLighthouseConfig } from './lighthouse-config'
 import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from './storage-injection'
@@ -64,9 +65,10 @@ const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (
     // without running as root (Ubuntu 23.10+ AppArmor blocks unprivileged
     // user namespaces, Chrome dies on launch otherwise).
     const envFlags = (process.env.CHROME_FLAGS || '').split(/\s+/).filter(Boolean)
+    const chromeFlags = withWebMcpChromeFlag(['--headless', ...envFlags, ...(options.launchOptions?.chromeFlags || [])])
     chrome = await launch({
-      chromeFlags: ['--headless', ...envFlags, ...(options.launchOptions?.chromeFlags || [])],
       ...options.launchOptions,
+      chromeFlags,
     })
     port = chrome.port
     // Register for the worker-death cleanup before doing any (long) audit work.

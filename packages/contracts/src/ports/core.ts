@@ -1,6 +1,7 @@
 import type { UnlighthouseConfig } from '../config/index'
 import type { HookEvent, UnlighthouseHooks } from '../hooks/index'
 // (UnlighthouseHooks now sourced from contracts/hooks, not the legacy types/index shim.)
+import type { Pack } from '../packs'
 import type { Auditor } from './auditor'
 import type { Crawler } from './crawler'
 import type { SeedSource } from './seed-source'
@@ -31,6 +32,13 @@ export interface UnlighthouseCoreOptions {
   /** Single; parallel-map / crawlee / cloudflare-crawl / user-supplied. */
   crawler: Crawler
   storage: Storage
+  /**
+   * Third-party packs to register alongside the built-ins. Runtime objects
+   * (their reconcilers are closures), so they live here on the factory opts,
+   * not in the Zod-validated `config`. Merged over the built-in registry by
+   * name — a user pack that reuses a built-in name overrides it.
+   */
+  packs?: Pack[]
   /** Additive subscribers; merged into the hook bus. */
   hooks?: Partial<UnlighthouseHooks>
   /** Tagged loggers per adapter derived via logger.withTag(name). */

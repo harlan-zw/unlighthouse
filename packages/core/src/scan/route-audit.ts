@@ -22,6 +22,7 @@ import type {
 } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
+import type { PackRegistry } from '../packs/index'
 import type { LighthouseResult } from '../report/types'
 import { Buffer } from 'node:buffer'
 import { ErrorCodes, toUnlighthouseError, UnlighthouseError } from '@unlighthouse/contracts/errors'
@@ -29,6 +30,7 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { ExtractedMetricsSchema, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createPackReconcileCtx } from '../packs/reconcile-context'
 import { routeContractBlobKeyForReport } from '../report/route-contracts'
+import { computeMedianRun } from '../util/median'
 
 /** Emit on whatever bus the caller owns (core's hook/iter queue, or the DO's ScanEventsDO forward). */
 export type EmitFn = <K extends keyof HookMap>(
@@ -39,7 +41,51 @@ export type EmitFn = <K extends keyof HookMap>(
 interface AuditorLike {
   // We never pass a page from this path; keeping the second parameter at
   // `undefined` stays assignable from real auditors without widening to any.
-  audit: (url: string, page?: undefined, opts?: { signal?: AbortSignal, device?: Device }) => Promise<unknown>
+  audit: (url: string, page?: undefined, opts?: { signal?: AbortSignal, device?: Device, lighthouseFlags?: Record<string, unknown> }) => Promise<unknown>
+}
+
+/** Clamp `scanner.samples` to the schema range (1..10); default 1. */
+function samplesFor(config: UnlighthouseConfig): number {
+  const n = config.scanner?.samples ?? 1
+  return Math.max(1, Math.min(10, Math.trunc(n)))
+}
+
+/** A run's performance score (0..1) for median ranking; null when absent. */
+function perfScoreOf(report: unknown): number | null {
+  const extracted = (report as { extracted?: { scorePerformance?: number | null } }).extracted
+  return extracted?.scorePerformance ?? null
+}
+
+/**
+ * Audit one URL/device `samples` times and return the median run (by
+ * performance score). `samples <= 1` is a single audit — the common path, zero
+ * overhead. Re-checks the abort signal between runs so a cancel stops spending
+ * further audits.
+ */
+async function auditSampled(
+  auditor: AuditorLike,
+  url: string,
+  opts: { signal?: AbortSignal, device?: Device, lighthouseFlags?: Record<string, unknown> },
+  samples: number,
+  logger?: Logger,
+): Promise<unknown> {
+  if (samples <= 1)
+    return auditor.audit(url, undefined, opts)
+  const runs: unknown[] = []
+  for (let i = 0; i < samples; i++) {
+    if (opts.signal?.aborted)
+      break
+    runs.push(await auditor.audit(url, undefined, opts))
+  }
+  if (runs.length === 0) {
+    throw new UnlighthouseError({
+      code: 'SCAN_CANCELLED',
+      message: 'Scan cancelled before any sample completed.',
+    })
+  }
+  const median = computeMedianRun(runs, perfScoreOf)
+  logger?.debug?.(`Sampled ${url} [${opts.device}] ${runs.length}x — median perf ${perfScoreOf(median) ?? 'n/a'}`)
+  return median
 }
 
 export function nowIso(): string {
@@ -75,7 +121,7 @@ export function aggregateScores(routes: Array<{
   scoreSeo: number | null
   scoreBestPractices: number | null
   scoreAgenticBrowsing?: number | null
-}>): Pick<ScanSummary, 'scoreAverage' | 'scoresByCategory'> {
+}>): Pick<ScanSummary, 'scoreAverage' | 'scoresByCategory' | 'categoryScoreDisplayModes'> {
   const cols = {
     'performance': 'scorePerformance',
     'accessibility': 'scoreAccessibility',
@@ -84,6 +130,7 @@ export function aggregateScores(routes: Array<{
     'agentic-browsing': 'scoreAgenticBrowsing',
   } as const
   const byCategory: ScanSummary['scoresByCategory'] = {}
+  const displayModes: NonNullable<ScanSummary['categoryScoreDisplayModes']> = {}
   const overall: number[] = []
   for (const [category, key] of Object.entries(cols) as Array<[keyof typeof cols, (typeof cols)[keyof typeof cols]]>) {
     const values = routes.map(r => r[key]).filter((v): v is number => v != null)
@@ -91,17 +138,21 @@ export function aggregateScores(routes: Array<{
       continue
     const avg = values.reduce((a, b) => a + b, 0) / values.length
     byCategory[category] = avg
-    overall.push(avg)
+    displayModes[category] = category === 'agentic-browsing' ? 'fraction' : 'gauge'
+    if (category !== 'agentic-browsing')
+      overall.push(avg)
   }
   return {
     scoreAverage: overall.length === 0 ? null : overall.reduce((a, b) => a + b, 0) / overall.length,
     scoresByCategory: byCategory,
+    categoryScoreDisplayModes: displayModes,
   }
 }
 
 export interface RouteAuditDeps {
   auditor: AuditorLike
   storage: Storage
+  config: UnlighthouseConfig
   logger?: Logger
   /** Emit hook events (must carry scanId in the payload). */
   emit: EmitFn
@@ -133,7 +184,13 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
   logger?.debug?.(`Auditing ${url} [${device}]`)
   await emit('audit:before', { scanId, url: parsedUrl, auditor: 'auditor' })
   try {
-    const report = await auditor.audit(url, undefined, { signal, device })
+    const report = await auditSampled(
+      auditor,
+      url,
+      { signal, device, lighthouseFlags: deps.config.lighthouseOptions },
+      samplesFor(deps.config),
+      logger,
+    )
     const extracted = (report as { extracted?: unknown }).extracted
     const lhrGzip = (report as { lhrGzip?: Uint8Array }).lhrGzip
     const metrics = ExtractedMetricsSchema.parse(extracted ?? {
@@ -295,6 +352,12 @@ export interface FinalizeDeps {
   config: UnlighthouseConfig
   logger?: Logger
   emit: EmitFn
+  /**
+   * Pack registry to auto-run at scan completion. When omitted, falls back to
+   * the built-in packs — keeps direct callers (e.g. the Cloudflare ScanRunnerDO)
+   * working until they thread a registry through.
+   */
+  packs?: PackRegistry
 }
 
 export interface FinalizeArgs {
@@ -339,17 +402,17 @@ export async function finalizeScan(deps: FinalizeDeps, args: FinalizeArgs): Prom
     devices,
   }
 
-  // Run all built-in packs automatically so reports are ready immediately.
+  // Run all registered packs automatically so reports are ready immediately.
   if (scoredRoutes.length > 0) {
     try {
-      const { builtInPacks } = await import('../packs/index')
+      const packs = deps.packs?.all() ?? (await import('../packs/index')).builtInPacks
       const packCtx = createPackReconcileCtx({
         scanId,
         routes: scoredRoutes,
         blobs: storage.blobs,
         logger,
       })
-      for (const [name, pack] of Object.entries(builtInPacks)) {
+      for (const [name, pack] of Object.entries(packs)) {
         try {
           const packStart = nowIso()
           const report = await pack.reconciler(packCtx)

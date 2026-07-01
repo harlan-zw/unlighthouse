@@ -34,8 +34,9 @@ const loading = ref(false)
 //   contract max (we cap the UI lower than the contract's 10 because
 //   the dashboard is for ad-hoc audits, not benchmark suites).
 //
-//   categories: subset of `performance | accessibility | seo |
-//   best-practices`. Empty = run all four. Selecting a subset cuts audit
+  //   categories: subset of `performance | accessibility | seo |
+  //   best-practices | agentic-browsing`. Empty = run all default
+  //   Lighthouse categories. Selecting a subset cuts audit
 //   time roughly proportional to the omitted categories.
 //
 //   ciBuild: the only reason to fill this from the dashboard is when
@@ -43,7 +44,7 @@ const loading = ref(false)
 //   commit. Branch alone is enough for compare.findPrevious to work.
 const advancedOpen = ref(false)
 const sampleSize = ref<number>(1)
-const allCategories = ['performance', 'accessibility', 'seo', 'best-practices'] as const satisfies readonly Category[]
+const allCategories = ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'] as const satisfies readonly Category[]
 const selectedCategories = ref<Category[]>([...allCategories])
 const ciBranch = ref('')
 const ciHash = ref('')
@@ -69,7 +70,7 @@ async function handleSubmit() {
     url = `https://${url}`
   }
 
-  const deviceValue: Device | Device[] = device.value === 'both' ? ['mobile', 'desktop'] : device.value
+  const deviceValue: Device | [Device, ...Device[]] = device.value === 'both' ? ['mobile', 'desktop'] : device.value
 
   // Only forward ciBuild when at least one field is set — otherwise an
   // empty object pins ciBranch=null on the scan row and breaks the
@@ -83,7 +84,7 @@ async function handleSubmit() {
     : undefined
 
   // Only send `categories` when the user actually narrowed the set —
-  // sending all four is equivalent to omitting but adds noise to the
+  // sending all defaults is equivalent to omitting but adds noise to the
   // scan record's options column.
   const categories = selectedCategories.value.length === allCategories.length
     ? undefined

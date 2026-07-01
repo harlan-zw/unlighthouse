@@ -17,6 +17,26 @@ interface AuditEntry {
   scoreDisplayMode: string
 }
 
+interface RouteCategorySummary {
+  id: string
+  title: string
+  score: number | null
+  categoryScoreDisplayMode?: 'gauge' | 'fraction' | null
+  auditCount: number
+  passingCount: number
+  failingCount: number
+  auditRefs: Array<{ id: string, weight: number }>
+}
+
+interface RouteScoreSummary {
+  id: string
+  label: string
+  score: number | null
+  categoryScoreDisplayMode: 'gauge' | 'fraction'
+  auditCount: number
+  passingCount: number
+}
+
 // Lighthouse audit-detail items carry pack-specific shapes; this view only
 // probes a handful of fields to decide whether a row has drill-in content.
 interface AuditItem {
@@ -171,19 +191,39 @@ export function useRouteDetail() {
   ))
 
   const scores = computed(() => {
+    const categorySummaries = routeData.value?.categories as RouteCategorySummary[] | undefined
+    if (categorySummaries?.length) {
+      return categorySummaries
+        .filter(category => category.score != null)
+        .map<RouteScoreSummary>(category => ({
+          id: category.id,
+          label: CATEGORY_LABELS[category.id] || category.title,
+          score: category.score,
+          categoryScoreDisplayMode: category.categoryScoreDisplayMode ?? 'gauge',
+          auditCount: category.auditCount,
+          passingCount: category.passingCount,
+        }))
+    }
+
     const routeRow = routeData.value?.route
     if (!routeRow)
       return []
-    const categories = [
-      { id: 'performance', label: 'Performance', score: routeRow.scorePerformance },
-      { id: 'accessibility', label: 'Accessibility', score: routeRow.scoreAccessibility },
-      { id: 'seo', label: 'SEO', score: routeRow.scoreSeo },
-      { id: 'best-practices', label: 'Best Practices', score: routeRow.scoreBestPractices },
+    const categories: RouteScoreSummary[] = [
+      { id: 'performance', label: 'Performance', score: routeRow.scorePerformance, categoryScoreDisplayMode: 'gauge' as const, auditCount: 0, passingCount: 0 },
+      { id: 'accessibility', label: 'Accessibility', score: routeRow.scoreAccessibility, categoryScoreDisplayMode: 'gauge' as const, auditCount: 0, passingCount: 0 },
+      { id: 'seo', label: 'SEO', score: routeRow.scoreSeo, categoryScoreDisplayMode: 'gauge' as const, auditCount: 0, passingCount: 0 },
+      { id: 'best-practices', label: 'Best Practices', score: routeRow.scoreBestPractices, categoryScoreDisplayMode: 'gauge' as const, auditCount: 0, passingCount: 0 },
     ]
     if (routeRow.scoreAgenticBrowsing != null)
-      categories.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: routeRow.scoreAgenticBrowsing })
+      categories.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: routeRow.scoreAgenticBrowsing, categoryScoreDisplayMode: 'fraction' as const, auditCount: 0, passingCount: 0 })
     return categories.filter(category => category.score != null)
   })
+
+  function categoryScoreLabel(category: RouteScoreSummary): string | number {
+    if (category.categoryScoreDisplayMode === 'fraction' && category.auditCount > 0)
+      return `${category.passingCount}/${category.auditCount}`
+    return scoreToLabel(category.score)
+  }
 
   const metrics = computed(() => {
     const routeRow = routeData.value?.route
@@ -201,12 +241,7 @@ export function useRouteDetail() {
   })
 
   const categoryAudits = computed(() => {
-    const categories = routeData.value?.categories as Array<{
-      id: string
-      title: string
-      score: number | null
-      auditRefs: Array<{ id: string, weight: number }>
-    }> | undefined
+    const categories = routeData.value?.categories as RouteCategorySummary[] | undefined
     const audits = routeData.value?.audits as Record<string, AuditEntry> | undefined
     if (!categories || !audits)
       return []
@@ -237,6 +272,7 @@ export function useRouteDetail() {
         label: CATEGORY_LABELS[category.id] || category.title,
         icon: CATEGORY_ICONS[category.id] || 'folder',
         score: category.score,
+        categoryScoreDisplayMode: category.categoryScoreDisplayMode ?? 'gauge',
         failing,
         passing,
         notApplicable,
@@ -269,6 +305,7 @@ export function useRouteDetail() {
     categoryAudits,
     scoreToLabel,
     scoreToRingColor,
+    categoryScoreLabel,
     formatBytes,
     formatMetric: formatRouteDetailMetric,
     metricColor: routeMetricColor,

@@ -27,6 +27,7 @@ catalog:
   '@cloudflare/containers': ^0.3.7
   '@cloudflare/puppeteer': ^1.1.0
   '@cloudflare/workers-types': ^4.20260629.1
+  '@iconify-json/lucide': ^1.2.115
   '@lhci/utils': ^0.15.1
   '@libsql/client': ^0.17.4
   '@modelcontextprotocol/sdk': ^1.29.0

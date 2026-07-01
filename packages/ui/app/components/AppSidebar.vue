@@ -118,9 +118,9 @@ const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
       class="group/brand flex items-center gap-2 px-1 py-1 rounded-md hover:bg-elevated/60 transition-colors"
       :title="inScan ? `Back to ${scanSiteName}` : undefined"
     >
-      <div class="relative flex aspect-square size-8 items-center justify-center rounded-md shrink-0" :class="inScan ? 'bg-elevated' : 'bg-primary text-inverted'">
+      <div class="relative flex aspect-square size-8 items-center justify-center rounded-md shrink-0 overflow-hidden" :class="inScan ? 'bg-elevated' : ''">
         <UiFavicon v-if="inScan && siteId" :domain="siteId" :size="20" :alt="`${scanSiteName} favicon`" />
-        <UiIcon v-else name="radar" class="size-4" />
+        <img v-else src="/logo.png" alt="Unlighthouse" class="size-8 object-contain">
         <!-- Back affordance overlays the favicon on hover in scan mode -->
         <span
           v-if="inScan"

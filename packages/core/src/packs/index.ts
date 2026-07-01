@@ -61,3 +61,31 @@ export const builtInPacks: Record<string, Pack<unknown>> = {
 export function getPack(name: string): Pack<unknown> | undefined {
   return builtInPacks[name]
 }
+
+/**
+ * A resolved pack registry: the built-ins plus any host-supplied third-party
+ * packs, addressable by name. Built once per host (or per `createUnlighthouseCore`
+ * call) and threaded to both the scan-finalize step and the `pack.*` handlers so
+ * they see the same set.
+ */
+export interface PackRegistry {
+  get: (name: string) => Pack<unknown> | undefined
+  list: () => Pack<unknown>[]
+  all: () => Record<string, Pack<unknown>>
+}
+
+/**
+ * Merge user packs over the built-in registry (by name — a user pack reusing a
+ * built-in name replaces it). Passing no packs yields a registry over the
+ * built-ins alone, so callers can always rely on a registry being present.
+ */
+export function createPackRegistry(userPacks?: Pack<unknown>[]): PackRegistry {
+  const merged: Record<string, Pack<unknown>> = { ...builtInPacks }
+  for (const pack of userPacks ?? [])
+    merged[pack.name] = pack
+  return {
+    get: name => merged[name],
+    list: () => Object.values(merged),
+    all: () => merged,
+  }
+}

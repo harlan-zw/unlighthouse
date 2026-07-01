@@ -198,6 +198,11 @@ export const ScanSummaryCmd = defineCommand({
     // Site-wide scoring snapshot. `categories` keys are Lighthouse category ids.
     avgScore: z.number().nullable(),
     categoryAverages: z.partialRecord(CategorySchema, z.number().nullable()),
+    categoryScoreDisplayModes: z.partialRecord(CategorySchema, z.enum(['gauge', 'fraction'])),
+    categoryFractions: z.partialRecord(CategorySchema, z.object({
+      passing: z.number().int().nonnegative(),
+      total: z.number().int().nonnegative(),
+    })),
     // Bucketed by Lighthouse thresholds: passing ≥ 90, needs-work ≥ 50, poor < 50.
     distribution: z.object({
       passing: z.number().int().nonnegative(),
@@ -285,6 +290,7 @@ export const ScanCategories = defineCommand({
       id: z.string(),
       title: z.string(),
       avgScore: z.number().nullable(),
+      categoryScoreDisplayMode: z.enum(['gauge', 'fraction']).nullable(),
       auditCount: z.number().int().nonnegative(),
       passingCount: z.number().int().nonnegative(),
       failingCount: z.number().int().nonnegative(),

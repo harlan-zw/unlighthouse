@@ -3,12 +3,24 @@ import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } 
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import lighthouse from 'lighthouse'
 import puppeteer from 'puppeteer-core'
+import { CDP_CONNECT_CATEGORIES } from './categories'
+import { getScreenEmulation, getUserAgent } from './lighthouse-config'
+import { attachExtractedRouteData } from './lighthouse-report'
 
 export interface CdpConnectOptions {
   /** WebSocket endpoint of the remote Chrome (browserless, CF Browser Rendering, self-hosted, etc.) */
   browserWSEndpoint: string
   /** Optional auth headers (e.g. CF API token). */
   headers?: Record<string, string>
+  /**
+   * Override advertised capabilities when the remote browser does not expose
+   * every Lighthouse 13 category or CDP domain that the generic adapter can run.
+   */
+  capabilities?: Partial<AuditorCapabilities>
+  /** Test seam / advanced embedding: override the Puppeteer connector. */
+  connect?: typeof puppeteer.connect
+  /** Test seam / advanced embedding: override the Lighthouse runner. */
+  runLighthouse?: LighthouseWithPage
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
   logger?: Logger
 }
@@ -19,7 +31,15 @@ const CDP_CONNECT_CAPABILITIES: AuditorCapabilities = {
   reliablePerfScores: false,
   reliableFieldData: false,
   supportsThrottling: false,
-  categories: ['accessibility', 'seo', 'best-practices'],
+  categories: [...CDP_CONNECT_CATEGORIES],
+}
+
+function resolveCapabilities(overrides?: Partial<AuditorCapabilities>): AuditorCapabilities {
+  return {
+    ...CDP_CONNECT_CAPABILITIES,
+    ...overrides,
+    categories: overrides?.categories ? [...overrides.categories] : [...CDP_CONNECT_CAPABILITIES.categories],
+  }
 }
 
 // Race a puppeteer promise against an AbortSignal; puppeteer goto doesn't natively accept one.
@@ -44,10 +64,11 @@ type LighthouseWithPage = (
 
 export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
   return {
-    capabilities: CDP_CONNECT_CAPABILITIES,
+    capabilities: resolveCapabilities(opts.capabilities),
     async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<LighthouseReport> {
       const { signal } = auditOpts
-      const browser = await puppeteer.connect({
+      const connect = opts.connect ?? puppeteer.connect
+      const browser = await connect({
         browserWSEndpoint: opts.browserWSEndpoint,
         headers: opts.headers,
       })
@@ -56,11 +77,20 @@ export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
         await withAbort(page.goto(url, { waitUntil: 'networkidle0' }), signal)
 
         // Lighthouse v11+ accepts a connected puppeteer Page as the 4th arg; port is omitted.
-        const runLighthouse = lighthouse as unknown as LighthouseWithPage
-        const result = await runLighthouse(url, { output: 'json' }, undefined, page)
+        const runLighthouse = opts.runLighthouse ?? lighthouse as unknown as LighthouseWithPage
+        const formFactor = auditOpts.device ?? 'mobile'
+        const flags = {
+          output: 'json' as const,
+          logLevel: 'error' as const,
+          ...(auditOpts.lighthouseFlags ?? {}),
+          formFactor,
+          screenEmulation: getScreenEmulation(formFactor),
+          emulatedUserAgent: getUserAgent(formFactor),
+        }
+        const result = await runLighthouse(url, flags, auditOpts.lighthouseConfig, page)
         if (!result || !result.lhr)
           throw new Error('Lighthouse failed to run against connected CDP page')
-        return result.lhr as unknown as LighthouseReport
+        return attachExtractedRouteData(result.lhr, url)
       }
       finally {
         // CLOSE (not disconnect) so the remote Browser Run session is

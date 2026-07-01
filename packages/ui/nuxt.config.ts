@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { iconAliasMap } from './layers/design-system/shared/icons'
+import { iconAliasMap, iconBundleList } from './layers/design-system/shared/icons'
 
 export default defineNuxtConfig({
   ssr: false,
@@ -25,7 +25,14 @@ export default defineNuxtConfig({
   },
   icon: {
     aliases: iconAliasMap(),
-    serverBundle: 'local',
+    // packages/ui is a generated SPA. Pre-bundle known icons so reports render
+    // without depending on runtime Iconify API requests; keep the remote provider
+    // as a fallback for genuinely dynamic icon names such as country flags.
+    clientBundle: {
+      icons: iconBundleList(),
+    },
+    provider: 'iconify',
+    serverBundle: false,
     collections: ['heroicons', 'lucide'],
   },
   imports: {

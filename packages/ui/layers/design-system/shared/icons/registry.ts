@@ -81,7 +81,7 @@ export const ICON_ROLES = {
   'caution': { lucide: 'circle-alert', carbon: 'warning-alt', solar: 'danger-circle-linear', hugeicons: 'alert-circle' },
   'success': { lucide: 'circle-check', carbon: 'checkmark-filled', solar: 'check-circle-linear', hugeicons: 'checkmark-circle-02' },
   'error': { lucide: 'circle-x', carbon: 'close-filled', solar: 'close-circle-linear', hugeicons: 'cancel-circle' },
-  'help': { lucide: 'circle-help', carbon: 'help', solar: 'question-circle-linear', hugeicons: 'help-circle' },
+  'help': { lucide: 'circle-question-mark', carbon: 'help', solar: 'question-circle-linear', hugeicons: 'help-circle' },
   'lock': { lucide: 'lock', carbon: 'locked', solar: 'lock-keyhole-linear', hugeicons: 'square-lock-02' },
   'view': { lucide: 'eye', carbon: 'view', solar: 'eye-linear', hugeicons: 'view' },
   'hide': { lucide: 'eye-off', carbon: 'view-off', solar: 'eye-closed-linear', hugeicons: 'view-off' },

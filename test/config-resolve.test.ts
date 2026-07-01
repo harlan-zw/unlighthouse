@@ -41,6 +41,7 @@ describe('resolveConfig', () => {
     expect(config.routerPrefix).toBe('/')
     // chrome defaults applied
     expect(config.chrome).toBeDefined()
+    expect(config.lighthouseOptions?.onlyCategories).toBeUndefined()
   })
 
   it('site = "example.com" → normalised to https://example.com', async () => {

@@ -101,7 +101,7 @@ export interface ReconciledRouteReport {
   route: { path: string, url: string, routeName: string | null }
   scores: { performance: number | null, accessibility: number | null, seo: number | null, bestPractices: number | null, agenticBrowsing: number | null }
   metrics: { lcp: number | null, cls: number | null, tbt: number | null, fcp: number | null, si: number | null, ttfb: number | null, inp: number | null }
-  categories: Array<{ key: string, id: string, title: string, score: number | null }>
+  categories: Array<{ key: string, id: string, title: string, score: number | null, categoryScoreDisplayMode: 'gauge' | 'fraction' | null }>
   audits: Record<string, { score: number | null, numericValue?: number, displayValue?: string, title?: string, description?: string }>
   capturedAt: string
   lighthouseVersion: string
@@ -126,12 +126,16 @@ export function reconcileRoute(args: {
   const { url, path, routeName, reportBlobKey, lhr } = args
   const ext = extractRouteData(lhr)
 
-  const categories = Object.entries(lhr.categories ?? {}).map(([key, c]) => ({
-    key,
-    id: (c as { id?: string })?.id ?? key,
-    title: (c as { title?: string })?.title ?? key,
-    score: (c as { score?: number | null })?.score ?? null,
-  }))
+  const categories = Object.entries(lhr.categories ?? {}).map(([key, c]) => {
+    const categoryScoreDisplayMode: 'gauge' | 'fraction' = (c as { categoryScoreDisplayMode?: string })?.categoryScoreDisplayMode === 'fraction' ? 'fraction' : 'gauge'
+    return {
+      key,
+      id: (c as { id?: string })?.id ?? key,
+      title: (c as { title?: string })?.title ?? key,
+      score: (c as { score?: number | null })?.score ?? null,
+      categoryScoreDisplayMode,
+    }
+  })
 
   const audits: ReconciledRouteReport['audits'] = {}
   for (const [id, a] of Object.entries(lhr.audits ?? {})) {
@@ -413,7 +417,7 @@ export function reconcileToContract(args: {
     tbt: number | null
     si: number | null
   }
-  categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }>
+  categories: Record<string, { score: number | null, categoryScoreDisplayMode: 'gauge' | 'fraction' | null, auditRefs: Array<{ id: string, weight: number }> }>
   audits: Record<string, ContractAuditFinding>
   provenance: {
     lighthouseVersion: string
@@ -432,11 +436,12 @@ export function reconcileToContract(args: {
   const { scanId, url, device, lhr } = args
   const ext = extractRouteData(lhr)
 
-  const categories: Record<string, { score: number | null, auditRefs: Array<{ id: string, weight: number }> }> = {}
+  const categories: Record<string, { score: number | null, categoryScoreDisplayMode: 'gauge' | 'fraction' | null, auditRefs: Array<{ id: string, weight: number }> }> = {}
   for (const [key, c] of Object.entries(lhr.categories ?? {})) {
-    const cat = c as { score?: number | null, auditRefs?: Array<{ id: string, weight?: number }> }
+    const cat = c as { score?: number | null, categoryScoreDisplayMode?: string, auditRefs?: Array<{ id: string, weight?: number }> }
     categories[key] = {
       score: cat?.score ?? null,
+      categoryScoreDisplayMode: cat?.categoryScoreDisplayMode === 'fraction' ? 'fraction' : 'gauge',
       auditRefs: (cat?.auditRefs ?? []).map(r => ({
         id: r.id,
         // LHR usually carries a weight on every auditRef. Defensive default of

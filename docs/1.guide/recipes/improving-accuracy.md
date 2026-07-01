@@ -35,14 +35,14 @@ For reliable performance monitoring, use multiple samples.
 
 ## Multiple Samples Per URL
 
-Run Lighthouse multiple times and average the results for better accuracy:
+Run Lighthouse multiple times per URL to smooth run-to-run variance. Unlighthouse keeps the **median run** (by performance score), not an average, so the stored report, metrics, and screenshot all come from one consistent audit:
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
 export default defineUnlighthouseConfig({
   scanner: {
-    samples: 3, // Run 3 scans per URL and average results
+    samples: 3, // Audit each URL 3× and keep the median run (max 10)
   },
 })
 ```

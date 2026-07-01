@@ -42,13 +42,39 @@ const findingItems = computed(() =>
   (report.value?.findings ?? []).map(f => ({ ...f, value: f.auditId })),
 )
 
-// Keeps this page's text-error poor token while sourcing the 0.9/0.5
-// boundaries from the shared scoreBand rule.
-function avgScoreClass(score: number | null | undefined): string {
-  switch (scoreBand(score)) {
+function fractionClass(passed: number | undefined, total: number | undefined): string {
+  if (!total)
+    return 'text-muted'
+  switch (scoreBand(passed != null ? passed / total : null)) {
     case 'good': return 'text-success'
     case 'average': return 'text-warning'
     default: return 'text-error'
+  }
+}
+
+function llmsIcon(status: string | undefined): string {
+  if (status === 'present')
+    return 'success'
+  if (status === 'missing' || status === 'unknown')
+    return 'minus'
+  return 'error'
+}
+
+function llmsColor(status: string | undefined): string {
+  if (status === 'present')
+    return 'text-success'
+  if (status === 'missing' || status === 'unknown')
+    return 'text-muted'
+  return 'text-error'
+}
+
+function llmsLabel(status: string | undefined): string {
+  switch (status) {
+    case 'present': return 'Present'
+    case 'missing': return 'Optional'
+    case 'invalid': return 'Invalid'
+    case 'fetch-failed': return 'Fetch failed'
+    default: return 'Unknown'
   }
 }
 </script>
@@ -75,25 +101,25 @@ function avgScoreClass(score: number | null | undefined): string {
           </div>
         </div>
         <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
-          <div class="numerals-display text-2xl" :class="avgScoreClass(report.avgScore)">
-            {{ report.avgScore != null ? Math.round(report.avgScore * 100) : '—' }}
+          <div class="numerals-display text-2xl" :class="fractionClass(report.passedChecks, report.totalChecks)">
+            {{ report.totalChecks ? `${report.passedChecks ?? 0}/${report.totalChecks}` : '—' }}
           </div>
           <div class="text-xs text-muted">
-            Avg Score
+            Passed Checks
           </div>
         </div>
         <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
-          <UiIcon :name="report.hasLlmsTxt ? 'success' : 'error'" :class="report.hasLlmsTxt ? 'text-success' : 'text-error'" class="size-6 mx-auto mb-1" />
+          <UiIcon :name="llmsIcon(report.llmsTxt?.status)" :class="llmsColor(report.llmsTxt?.status)" class="size-6 mx-auto mb-1" />
           <div class="text-xs text-muted">
-            llms.txt
+            llms.txt {{ llmsLabel(report.llmsTxt?.status) }}
           </div>
         </div>
         <div class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 text-center">
           <div class="numerals-display text-2xl">
-            {{ report.webmcp?.routesWithTools ?? 0 }}
+            {{ report.webmcp?.registeredToolCount ?? report.webmcp?.routesWithTools ?? 0 }}
           </div>
           <div class="text-xs text-muted">
-            Routes with Tools
+            Registered Tools
           </div>
         </div>
       </div>
@@ -107,20 +133,20 @@ function avgScoreClass(score: number | null | undefined): string {
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="p-3 border rounded-lg text-center">
             <UiIcon
-              :name="report.webmcp.hasRegisteredTools ? 'success' : 'error'"
-              :class="report.webmcp.hasRegisteredTools ? 'text-success' : 'text-muted'"
+              :name="report.webmcp.supported === false ? 'minus' : report.webmcp.hasRegisteredTools ? 'success' : 'error'"
+              :class="report.webmcp.supported === false ? 'text-muted' : report.webmcp.hasRegisteredTools ? 'text-success' : 'text-muted'"
               class="size-5 mx-auto mb-1"
             />
             <div class="text-xs text-muted">
-              Registered Tools
+              {{ report.webmcp.supported === false ? 'WebMCP Unsupported' : 'Registered Tools' }}
             </div>
           </div>
           <div class="p-3 border rounded-lg text-center">
             <div class="text-lg font-bold tabular-nums">
-              {{ report.webmcp.formCoverage != null ? `${Math.round(report.webmcp.formCoverage * 100)}%` : '—' }}
+              {{ report.webmcp.routesMissingFormAnnotations ?? 0 }}
             </div>
             <div class="text-xs text-muted">
-              Form Coverage
+              Routes Missing Form Annotations
             </div>
           </div>
           <div class="p-3 border rounded-lg text-center">
@@ -135,10 +161,10 @@ function avgScoreClass(score: number | null | undefined): string {
           </div>
           <div class="p-3 border rounded-lg text-center">
             <div class="text-lg font-bold tabular-nums">
-              {{ report.agentA11yTree?.passingCount ?? 0 }}/{{ report.agentA11yTree?.routeCount ?? 0 }}
+              {{ report.stability?.passingCount ?? 0 }}/{{ report.stability?.routeCount ?? 0 }}
             </div>
             <div class="text-xs text-muted">
-              A11y Tree Pass
+              CLS Stable
             </div>
           </div>
         </div>

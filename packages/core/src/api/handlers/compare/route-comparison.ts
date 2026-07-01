@@ -20,6 +20,7 @@ export const DEFAULT_THRESHOLDS: CompareThresholds = {
   'accessibility': 0.05,
   'best-practices': 0.05,
   'seo': 0.05,
+  'agentic-browsing': 0.05,
 }
 
 export const CATEGORY_ORDER: Category[] = ['performance', 'accessibility', 'best-practices', 'seo', 'agentic-browsing']
@@ -44,6 +45,7 @@ const DIFF_METRICS: Array<MetricName | Category> = [
   'accessibility',
   'seo',
   'best-practices',
+  'agentic-browsing',
 ]
 
 const DETAIL_METRIC_KEYS = [
@@ -51,6 +53,7 @@ const DETAIL_METRIC_KEYS = [
   'scoreAccessibility',
   'scoreSeo',
   'scoreBestPractices',
+  'scoreAgenticBrowsing',
   'lcp',
   'cls',
   'inp',
@@ -69,6 +72,7 @@ const SCORE_KEYS = new Set<DetailMetricKey>([
   'scoreAccessibility',
   'scoreSeo',
   'scoreBestPractices',
+  'scoreAgenticBrowsing',
 ])
 
 const THRESHOLD_KEY: Record<DetailMetricKey, string> = {
@@ -76,6 +80,7 @@ const THRESHOLD_KEY: Record<DetailMetricKey, string> = {
   scoreAccessibility: 'accessibility',
   scoreSeo: 'seo',
   scoreBestPractices: 'best-practices',
+  scoreAgenticBrowsing: 'agentic-browsing',
   lcp: 'lcp',
   cls: 'cls',
   inp: 'inp',
@@ -281,6 +286,8 @@ function detailSortMetricKey(sortKey: string | undefined): DetailMetricKey {
       return 'scoreSeo'
     case 'bp':
       return 'scoreBestPractices'
+    case 'agentic':
+      return 'scoreAgenticBrowsing'
     case 'lcp':
       return 'lcp'
     case 'cls':

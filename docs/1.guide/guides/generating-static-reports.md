@@ -291,6 +291,8 @@ This will generate a report like the following (`json` sample):
 ]
 ```
 
+Since Lighthouse 13, each row also carries an `agentic-browsing` score alongside `performance`, `accessibility`, `best-practices`, and `seo` (omitted from the sample above for brevity). Drop the category via `lighthouseOptions.onlyCategories` if you don't want it.
+
 ## LHCI Reports
 
 You can upload your reports to a Lighthouse CI server using the `lighthouseServer` reporter.

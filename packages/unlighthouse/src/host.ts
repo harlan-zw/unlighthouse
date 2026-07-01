@@ -7,6 +7,7 @@
 import type { Logger, ResolvedUserConfig, RuntimeSettings, UserConfig } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
+import type { Pack } from '@unlighthouse/contracts/packs'
 import type { UnlighthouseCore, UnlighthouseCoreRunOverrides } from '@unlighthouse/contracts/ports'
 import type { WS } from '@unlighthouse/core/api'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
@@ -26,6 +27,7 @@ import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { createTaggedLogger } from '@unlighthouse/core/logger'
+import { createPackRegistry } from '@unlighthouse/core/packs'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
 import { joinURL } from 'ufo'
 import { version } from '../package.json'
@@ -75,6 +77,12 @@ export interface UnlighthouseHost {
 export interface CreateUnlighthouseHostOptions {
   userConfig: UserConfig
   behavior?: UnlighthouseBehavior
+  /**
+   * Third-party packs to register alongside the built-ins. Threaded to both the
+   * scan-finalize step (via the core factory) and the `pack.*` handlers (via the
+   * handler ctx) so they resolve the same set.
+   */
+  packs?: Pack[]
 }
 
 function resolveSeeds(resolvedConfig: ResolvedUserConfig, logger: Logger) {
@@ -316,6 +324,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         seeds,
         crawler,
         storage,
+        packs: opts.packs,
         logger,
       })
 
@@ -334,6 +343,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         storage,
         config: coreConfig,
         version,
+        packs: createPackRegistry(opts.packs),
       }
 
       portsRef = { core, storage, auditor, handlerCtx }

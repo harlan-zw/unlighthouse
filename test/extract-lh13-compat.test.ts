@@ -38,6 +38,18 @@ function lh13Lhr(overrides: Record<string, unknown> = {}) {
           { id: 'meta-description', weight: 1 },
         ],
       },
+      'agentic-browsing': {
+        score: 0.83,
+        categoryScoreDisplayMode: 'fraction',
+        auditRefs: [
+          { id: 'agent-accessibility-tree', weight: 1 },
+          { id: 'webmcp-registered-tools', weight: 1 },
+          { id: 'webmcp-form-coverage', weight: 1 },
+          { id: 'webmcp-schema-validity', weight: 1 },
+          { id: 'cumulative-layout-shift', weight: 1 },
+          { id: 'llms-txt', weight: 1 },
+        ],
+      },
     },
     audits: {
       'largest-contentful-paint': { score: 0.85, scoreDisplayMode: 'numeric', numericValue: 1450, displayValue: '1.5 s' },
@@ -72,6 +84,11 @@ function lh13Lhr(overrides: Record<string, unknown> = {}) {
       'is-crawlable': { score: 1, scoreDisplayMode: 'binary', title: 'Page is crawlable' },
       'document-title': { score: 1, scoreDisplayMode: 'binary', title: 'Document has a `<title>` element' },
       'meta-description': { score: 0, scoreDisplayMode: 'binary', title: 'Document does not have a meta description' },
+      'agent-accessibility-tree': { score: 1, scoreDisplayMode: 'binary', title: 'Accessibility tree is usable by agents' },
+      'webmcp-registered-tools': { score: 1, scoreDisplayMode: 'informative', title: 'WebMCP tools registered' },
+      'webmcp-form-coverage': { score: 1, scoreDisplayMode: 'notApplicable', title: 'WebMCP form coverage' },
+      'webmcp-schema-validity': { score: 1, scoreDisplayMode: 'notApplicable', title: 'WebMCP schemas are valid' },
+      'llms-txt': { score: 1, scoreDisplayMode: 'notApplicable', title: 'llms.txt follows recommendations' },
     },
     ...overrides,
   } as never
@@ -89,6 +106,7 @@ describe('extract.ts against a Lighthouse 13 LHR', () => {
     expect(out.inp).toBe(90)
     expect(out.scores.performance).toBe(0.92)
     expect(out.scores.seo).toBe(0.95)
+    expect(out.scores.agenticBrowsing).toBe(0.83)
   })
 
   it('reconcileToContract round-trips a v13 LHR including insight audits', () => {
@@ -114,6 +132,8 @@ describe('extract.ts against a Lighthouse 13 LHR', () => {
     ])
     // is-crawlable weight preserved for seo-basics severity derivation.
     expect(out.categories.seo?.auditRefs[0]).toEqual({ id: 'is-crawlable', weight: 4 })
+    expect(out.categories['agentic-browsing']?.categoryScoreDisplayMode).toBe('fraction')
+    expect(out.categories['agentic-browsing']?.auditRefs.map(r => r.id)).toContain('llms-txt')
 
     // metricSavings collapses to null on audits that don't carry it.
     expect(out.audits['largest-contentful-paint'].metricSavings).toBeNull()

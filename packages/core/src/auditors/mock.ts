@@ -1,6 +1,7 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
 import { gzipSync } from 'node:zlib'
+import { LIGHTHOUSE_DEFAULT_CATEGORIES } from './categories'
 
 export interface MockAuditorOptions {
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
@@ -11,7 +12,7 @@ const MOCK_CAPABILITIES: AuditorCapabilities = {
   reliablePerfScores: false,
   reliableFieldData: false,
   supportsThrottling: false,
-  categories: ['performance', 'accessibility', 'seo', 'best-practices'],
+  categories: [...LIGHTHOUSE_DEFAULT_CATEGORIES],
 }
 
 export function createMockProvider(): UnlighthouseProvider {
@@ -19,7 +20,7 @@ export function createMockProvider(): UnlighthouseProvider {
     // Simulate delay
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    // Mock LHR shaped close enough to a real Lighthouse 12 result that the
+    // Mock LHR shaped close enough to a real Lighthouse 13 result that the
     // downstream extract / reconcileToContract pipeline produces realistic
     // output during tests. Audits include `score` + `scoreDisplayMode` so
     // severity bucketing in reconcileToContract exercises every branch.
@@ -27,7 +28,7 @@ export function createMockProvider(): UnlighthouseProvider {
       requestedUrl: url,
       finalUrl: url,
       fetchTime: new Date().toISOString(),
-      lighthouseVersion: '12.0.0',
+      lighthouseVersion: '13.4.0',
       userAgent: 'mock-auditor/1.0',
       categories: {
         'performance': {
@@ -66,6 +67,20 @@ export function createMockProvider(): UnlighthouseProvider {
             { id: 'document-title', weight: 1 },
           ],
         },
+        'agentic-browsing': {
+          id: 'agentic-browsing',
+          title: 'Agentic Browsing',
+          score: 0.83,
+          categoryScoreDisplayMode: 'fraction',
+          auditRefs: [
+            { id: 'agent-accessibility-tree', weight: 1 },
+            { id: 'webmcp-registered-tools', weight: 1 },
+            { id: 'webmcp-form-coverage', weight: 1 },
+            { id: 'webmcp-schema-validity', weight: 1 },
+            { id: 'cumulative-layout-shift', weight: 1 },
+            { id: 'llms-txt', weight: 1 },
+          ],
+        },
       },
       audits: {
         'largest-contentful-paint': { id: 'largest-contentful-paint', title: 'Largest Contentful Paint', description: 'LCP marks the time at which the largest text or image is painted.', score: 0.9, scoreDisplayMode: 'numeric', numericValue: 1200, displayValue: '1.2 s' },
@@ -81,6 +96,27 @@ export function createMockProvider(): UnlighthouseProvider {
         'document-title': { id: 'document-title', title: 'Document has a `<title>` element', description: 'The title gives screen reader users an overview of the page.', score: 0, scoreDisplayMode: 'binary' },
         // Accessibility audit — exercises a11y pass branch in mock.
         'image-alt': { id: 'image-alt', title: 'Image elements have `[alt]` attributes', description: 'Informative elements should aim for short, descriptive alt text.', score: null, scoreDisplayMode: 'notApplicable' },
+        'agent-accessibility-tree': { id: 'agent-accessibility-tree', title: 'Accessibility tree is usable by agents', description: 'Interactive controls are discoverable in the accessibility tree.', score: 1, scoreDisplayMode: 'binary' },
+        'webmcp-registered-tools': {
+          id: 'webmcp-registered-tools',
+          title: 'WebMCP tools registered',
+          description: 'Lists the WebMCP tools registered at the time of analysis.',
+          score: 1,
+          scoreDisplayMode: 'informative',
+          details: {
+            type: 'list',
+            items: [
+              {
+                type: 'table',
+                title: 'Declarative Tools',
+                items: [{ tool: 'contact', description: 'Send a contact request', inputSchema: '{}' }],
+              },
+            ],
+          },
+        },
+        'webmcp-form-coverage': { id: 'webmcp-form-coverage', title: 'WebMCP form coverage', description: 'Forms have WebMCP annotations.', score: 1, scoreDisplayMode: 'notApplicable' },
+        'webmcp-schema-validity': { id: 'webmcp-schema-validity', title: 'WebMCP schemas are valid', description: 'WebMCP schemas are valid.', score: 1, scoreDisplayMode: 'binary' },
+        'llms-txt': { id: 'llms-txt', title: 'llms.txt follows recommendations', description: 'The llms.txt file follows recommendations.', score: 1, scoreDisplayMode: 'binary' },
       },
     }
 
@@ -94,6 +130,7 @@ export function createMockProvider(): UnlighthouseProvider {
           'accessibility': { id: 'accessibility', title: 'Accessibility', score: 0.8 },
           'best-practices': { id: 'best-practices', title: 'Best Practices', score: 0.95 },
           'seo': { id: 'seo', title: 'SEO', score: 1 },
+          'agentic-browsing': { id: 'agentic-browsing', title: 'Agentic Browsing', score: 0.83, categoryScoreDisplayMode: 'fraction' },
         },
         coreWebVitals: {
           lcp: 1200,
@@ -156,6 +193,7 @@ export function createMockAuditor(_opts: MockAuditorOptions = {}): Auditor {
         scoreAccessibility: 0.8,
         scoreSeo: 1,
         scoreBestPractices: 0.95,
+        scoreAgenticBrowsing: 0.83,
         lcp: isDesktop ? 600 : 1200,
         cls: 0.01,
         inp: null,
@@ -163,7 +201,7 @@ export function createMockAuditor(_opts: MockAuditorOptions = {}): Auditor {
         ttfb: null,
         tbt: 100,
         si: 1500,
-        lighthouseVersion: lhr.lighthouseVersion ?? '12.0.0',
+        lighthouseVersion: lhr.lighthouseVersion ?? '13.4.0',
         capturedAt: new Date().toISOString(),
       }
       return out as unknown as LighthouseReport

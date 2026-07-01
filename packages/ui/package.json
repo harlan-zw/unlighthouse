@@ -38,6 +38,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "catalog:",
     "tailwindcss": "catalog:dependencies",
     "vue-tsc": "catalog:"
   }

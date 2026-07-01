@@ -228,6 +228,10 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                         <span class="text-muted">Best Practices</span>
                         <UInput v-model="thresholds['best-practices']" placeholder="0.05" size="xs" class="w-full" />
                       </label>
+                      <label class="space-y-1">
+                        <span class="text-muted">Agentic</span>
+                        <UInput v-model="thresholds['agentic-browsing']" placeholder="0.05" size="xs" class="w-full" />
+                      </label>
                     </div>
                   </div>
 

@@ -9,7 +9,7 @@
 
 import type { ScanId, Storage } from '@unlighthouse/contracts'
 import type { ExtractedMetrics } from '@unlighthouse/contracts/types/atoms'
-import { compareRun } from '@unlighthouse/core/api/handlers'
+import { compareDetail, compareRun } from '@unlighthouse/core/api/handlers'
 import { assertEvaluate } from '@unlighthouse/core/api/handlers'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
@@ -141,5 +141,28 @@ describe('assert.evaluate maxRegression respects (url, device) identity', () => 
 
     expect(out.passed).toBe(false)
     expect(out.results[0].actual).toBe(0.42)
+  })
+
+  it('includes agentic-browsing in compare.detail route deltas', async () => {
+    const isolatedStorage = memoryStorage()
+    const baseScanId = await runMatrixScan(isolatedStorage)
+    const currentScanId = await runMatrixScan(isolatedStorage)
+    await patchRouteMetric(isolatedStorage, baseScanId, 'http://example.com/', 'mobile', { scoreAgenticBrowsing: 0.9 })
+    await patchRouteMetric(isolatedStorage, currentScanId, 'http://example.com/', 'mobile', { scoreAgenticBrowsing: 0.6 })
+
+    const out = await compareDetail.run(
+      {
+        baseScanId,
+        currentScanId,
+        sort: 'delta-agentic-asc',
+        filter: { status: 'all' },
+      },
+      testHandlerCtx(isolatedStorage),
+    )
+
+    const row = out.routes.items.find(r => r.url === 'http://example.com/' && r.device === 'mobile')
+    expect(row?.base?.scoreAgenticBrowsing).toBe(0.9)
+    expect(row?.current?.scoreAgenticBrowsing).toBe(0.6)
+    expect(row?.deltas.scoreAgenticBrowsing).toBeCloseTo(-0.3)
   })
 })

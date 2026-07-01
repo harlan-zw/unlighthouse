@@ -8,10 +8,8 @@
  * - `resolveUiIcon(role)` — role → iconify id for the active set, with fallback.
  * - Raw `i-*` ids pass straight through, so adoption can be incremental.
  *
- * TODO(tree-shaking): every set's literal ids live in `registry.ts`, so @nuxt/icon's
- * bundle scanner currently pulls all 4 sets into the client bundle. Acceptable while
- * we're comparing sets; before locking a winner, rework so only ACTIVE_ICON_SET's
- * literals are reachable (e.g. codegen the active map at build, drop the rest).
+ * `iconBundleList()` is intentionally derived from the active set so @nuxt/icon's
+ * client bundle ships the icons we render, without scanning all candidate sets.
  */
 import type { IconRole, IconSet, RoleMap } from './registry'
 import { ICON_ALIASES, ICON_ROLES, ICON_SETS } from './registry'
@@ -75,13 +73,27 @@ function toPrefixName(id: string): string {
   return coll ? `${coll}:${body.slice(coll.length + 1)}` : body.replace('-', ':')
 }
 
+// Nuxt UI injects a few raw Lucide defaults that do not map through our role aliases.
+// Keep them in the client bundle so generated SPA reports do not depend on Iconify API.
+const NUXT_UI_ICON_BUNDLE = [
+  'lucide:copy-check',
+  'lucide:file',
+  'lucide:folder-open',
+  'lucide:panel-left-close',
+  'lucide:panel-left-open',
+  'lucide:rotate-ccw',
+] as const
+
 /**
  * The exact `prefix:name` ids for every role under `set` — feed to @nuxt/icon's
  * `clientBundle.icons` so the build ships only the active set's resolved icons
  * (plus the fixed brand/loading marks), never all four candidate sets.
  */
 export function iconBundleList(set: IconSet = ACTIVE_ICON_SET): string[] {
-  return [...new Set(Object.values(iconMapFor(set)).map(toPrefixName))]
+  return [...new Set([
+    ...Object.values(iconMapFor(set)).map(toPrefixName),
+    ...NUXT_UI_ICON_BUNDLE,
+  ])]
 }
 
 /**

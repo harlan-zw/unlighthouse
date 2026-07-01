@@ -12,9 +12,12 @@ export function extractInsights(result: Result): UnlighthouseInsights {
         id: key,
         title: category.title,
         score: category.score,
+        categoryScoreDisplayMode: category.categoryScoreDisplayMode ?? 'gauge',
       }
-      totalScore += category.score
-      categoryCount++
+      if (category.categoryScoreDisplayMode !== 'fraction') {
+        totalScore += category.score
+        categoryCount++
+      }
     }
   }
 

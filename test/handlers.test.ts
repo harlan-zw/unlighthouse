@@ -153,6 +153,7 @@ const cases: Partial<Record<CommandName, Case>> = {
   'scan.resume': { input: { scanId: SCAN_ID }, session: stubSession() },
   'scan.delete': { input: { scanId: SCAN_ID } },
   'scan.results': { input: { scanId: SCAN_ID, page: 1, pageSize: 50 } },
+  'scan.summary': { input: { scanId: SCAN_ID } },
   'scan.meta': { input: { scanId: SCAN_ID } },
   'scan.current': { input: {} },
   'scan.rescanAll': { input: { scanId: SCAN_ID }, smokeSkip: true },

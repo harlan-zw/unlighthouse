@@ -285,6 +285,12 @@ describe('createUnlighthouseCore orchestration', () => {
       'seo': 0.9,
       'best-practices': 0.9,
     })
+    expect(persisted?.summary?.categoryScoreDisplayModes).toEqual({
+      'performance': 'gauge',
+      'accessibility': 'gauge',
+      'seo': 'gauge',
+      'best-practices': 'gauge',
+    })
   })
 
   it('cancel: emits scan:cancelled and rejects done', async () => {

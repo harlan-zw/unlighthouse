@@ -394,7 +394,7 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
         let failed = 0
         for (const device of resolveDevices(body.devices)) {
           const { ok } = await auditRoute(
-            { auditor: ctx.auditor, storage: ctx.storage, logger: undefined, emit },
+            { auditor: ctx.auditor, storage: ctx.storage, config: ctx.config, logger: undefined, emit },
             { scanId: parsedScanId, url: targetUrl, device },
           )
           if (ok)

@@ -99,6 +99,8 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
         body: JSON.stringify({
           url: req.url,
           config: req.lighthouseConfig,
+          flags: req.lighthouseFlags,
+          device: req.device,
         }),
         signal: req.signal,
       })

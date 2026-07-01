@@ -15,6 +15,7 @@ import type {
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookEvent, HookMap } from '@unlighthouse/contracts/hooks'
 import type { Hookable } from 'hookable'
+import type { PackRegistry } from './packs/index'
 import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createHookEvent } from '@unlighthouse/contracts/hooks'
@@ -22,6 +23,7 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { normaliseDeviceMatrix, parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createHooks } from 'hookable'
 import { createTaggedLogger } from './logger'
+import { createPackRegistry } from './packs/index'
 import { persistStableEvents } from './persist-events'
 import { auditRoute, finalizeScan, nowIso, toStructuredError } from './scan/route-audit'
 import { createFilter } from './util/filter'
@@ -143,6 +145,9 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
 
   const logger = tagLogger(opts.logger as LoggerLike | undefined, 'core')
 
+  // Built-in packs plus any host-supplied third-party packs, resolved once.
+  const packs = createPackRegistry(opts.packs)
+
   let currentSession: CrawlSession | null = null
 
   function run(runOpts?: UnlighthouseCoreRunOptions): CrawlSession {
@@ -161,6 +166,7 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
       auditor: opts.auditor,
       seeds: opts.seeds,
       crawler: opts.crawler,
+      packs,
       hooks,
       logger,
       userSignal: runOpts?.signal,
@@ -197,6 +203,7 @@ interface SessionDeps {
   logger: LoggerLike | undefined
   userSignal?: AbortSignal
   overrides?: UnlighthouseCoreRunOverrides
+  packs: PackRegistry
 }
 
 function createSession(deps: SessionDeps): CrawlSession {
@@ -400,7 +407,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     // the in-memory stats the crawl loop reports.
     async function auditOnDevice(url: string, device: 'mobile' | 'desktop'): Promise<void> {
       const { ok } = await auditRoute(
-        { auditor, storage, logger: log, emit },
+        { auditor, storage, config: deps.config, logger: log, emit },
         { scanId, url, device, signal },
       )
       if (ok)
@@ -520,7 +527,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     // and emit scan:complete — all via the shared `finalizeScan` (same code the
     // Cloudflare ScanRunnerDO calls when its queue drains).
     const summary = await finalizeScan(
-      { storage, config: deps.config, logger: log, emit },
+      { storage, config: deps.config, logger: log, emit, packs: deps.packs },
       { scanId, devices, startedAtMs, stats },
     )
     setStatus('complete')

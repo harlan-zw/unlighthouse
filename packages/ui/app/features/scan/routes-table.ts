@@ -18,6 +18,7 @@ export interface RouteRow {
   scoreAccessibility: number | null
   scoreSeo: number | null
   scoreBestPractices: number | null
+  scoreAgenticBrowsing: number | null
   lcp: number | null
   cls: number | null
   tbt: number | null
@@ -55,11 +56,12 @@ export const QUICK_FILTERS = [
   { key: 'poor-cwv', label: 'Poor CWV' },
 ] as const
 
-export const SCORE_COLS: { key: keyof Pick<RouteRow, 'scorePerformance' | 'scoreAccessibility' | 'scoreSeo' | 'scoreBestPractices'>, label: string }[] = [
+export const SCORE_COLS: { key: keyof Pick<RouteRow, 'scorePerformance' | 'scoreAccessibility' | 'scoreSeo' | 'scoreBestPractices' | 'scoreAgenticBrowsing'>, label: string }[] = [
   { key: 'scorePerformance', label: 'Perf' },
   { key: 'scoreAccessibility', label: 'A11y' },
   { key: 'scoreSeo', label: 'SEO' },
   { key: 'scoreBestPractices', label: 'BP' },
+  { key: 'scoreAgenticBrowsing', label: 'Agentic' },
 ]
 
 export const CWV_COLS: { key: keyof Pick<RouteRow, 'lcp' | 'cls' | 'tbt'>, label: string, unit: 'ms' | '' }[] = [
@@ -76,6 +78,7 @@ const COLUMN_LABELS: Record<string, string> = {
   scoreAccessibility: 'Accessibility',
   scoreSeo: 'SEO',
   scoreBestPractices: 'Best Practices',
+  scoreAgenticBrowsing: 'Agentic Browsing',
   delta: 'Delta vs prev',
   lcp: 'LCP',
   cls: 'CLS',

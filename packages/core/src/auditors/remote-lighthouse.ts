@@ -1,6 +1,7 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
 import { ofetch } from 'ofetch'
+import { LIGHTHOUSE_DEFAULT_CATEGORIES } from './categories'
 import { attachExtractedRouteData } from './lighthouse-report'
 
 // Generic remote-Lighthouse adapter. The remote service runs Lighthouse on its own
@@ -21,11 +22,16 @@ export interface RemoteLighthouseOptions {
   /** Per-request timeout in ms. Default 120_000. */
   timeoutMs?: number
   /**
-   * Replace the default request/response mapping. Receives the URL + lighthouseConfig
-   * the caller wants applied and must return a parsed LHR. Use this for vendors whose
+   * Replace the default request/response mapping. Receives the URL, Lighthouse config,
+   * flags, and device the caller wants applied and must return a parsed LHR. Use this for vendors whose
    * request body shape diverges from `{ url, config }`.
    */
   transport?: (req: RemoteLighthouseRequest) => Promise<LighthouseReport>
+  /**
+   * Override advertised capabilities when a vendor runs an older Lighthouse or
+   * ignores categories/features such as LH13 agentic browsing.
+   */
+  capabilities?: Partial<AuditorCapabilities>
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
   logger?: Logger
 }
@@ -34,6 +40,8 @@ export interface RemoteLighthouseRequest {
   endpoint: string
   url: string
   lighthouseConfig: Record<string, unknown>
+  lighthouseFlags: Record<string, unknown>
+  device?: AuditOpts['device']
   token?: string
   headers?: Record<string, string>
   timeoutMs: number
@@ -44,7 +52,15 @@ const REMOTE_LIGHTHOUSE_CAPABILITIES: AuditorCapabilities = {
   reliablePerfScores: true,
   reliableFieldData: false,
   supportsThrottling: true,
-  categories: ['performance', 'accessibility', 'seo', 'best-practices'],
+  categories: [...LIGHTHOUSE_DEFAULT_CATEGORIES],
+}
+
+function resolveCapabilities(overrides?: Partial<AuditorCapabilities>): AuditorCapabilities {
+  return {
+    ...REMOTE_LIGHTHOUSE_CAPABILITIES,
+    ...overrides,
+    categories: overrides?.categories ? [...overrides.categories] : [...REMOTE_LIGHTHOUSE_CAPABILITIES.categories],
+  }
 }
 
 async function defaultTransport(req: RemoteLighthouseRequest): Promise<LighthouseReport> {
@@ -52,7 +68,10 @@ async function defaultTransport(req: RemoteLighthouseRequest): Promise<Lighthous
     method: 'POST',
     headers: { 'content-type': 'application/json', ...req.headers },
     query: req.token ? { token: req.token } : undefined,
-    body: { url: req.url, config: req.lighthouseConfig },
+    body: {
+      url: req.url,
+      config: req.lighthouseConfig,
+    },
     timeout: req.timeoutMs,
     signal: req.signal,
   })
@@ -65,13 +84,16 @@ export function createRemoteLighthouseAuditor(opts: RemoteLighthouseOptions): Au
   const transport = opts.transport ?? defaultTransport
   const timeoutMs = opts.timeoutMs ?? 120_000
   return {
-    capabilities: REMOTE_LIGHTHOUSE_CAPABILITIES,
+    capabilities: resolveCapabilities(opts.capabilities),
     async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<LighthouseReport> {
       const lighthouseConfig = auditOpts.lighthouseConfig ?? {}
+      const lighthouseFlags = auditOpts.lighthouseFlags ?? {}
       const lhr = await transport({
         endpoint: opts.endpoint,
         url,
         lighthouseConfig,
+        lighthouseFlags,
+        device: auditOpts.device,
         token: opts.token,
         headers: opts.headers,
         timeoutMs,

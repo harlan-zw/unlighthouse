@@ -48,7 +48,9 @@ const ComparisonThresholdKey = z.enum([
   'performance',
   'accessibility',
   'bestPractices',
+  'best-practices',
   'seo',
+  'agentic-browsing',
 ])
 
 const ComparisonConfig = z.object({

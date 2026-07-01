@@ -103,15 +103,16 @@ export const routeGet: Handler<typeof RouteGet> = {
           // Severity buckets the contract reconciler already computed.
           // "warn" counts as a fail for the dashboard's pass/fail badge so
           // users see anything below 0.9 as actionable.
-          if (audit.severity === 'pass')
+          if (audit.severity === 'pass' && audit.scoreDisplayMode !== 'notApplicable' && audit.scoreDisplayMode !== 'manual')
             passing++
-          else
+          else if (audit.scoreDisplayMode !== 'notApplicable' && audit.scoreDisplayMode !== 'manual')
             failing++
         }
         categories.push({
           id,
           title: titleForCategory(id),
           score: cat.score,
+          categoryScoreDisplayMode: cat.categoryScoreDisplayMode ?? 'gauge',
           auditCount: (cat.auditRefs ?? []).length,
           passingCount: passing,
           failingCount: failing,
@@ -210,7 +211,7 @@ export const routeRescan: Handler<typeof RouteRescan> = {
     // is threaded through opts.device so the re-audit produces numbers
     // consistent with the original device's row.
     const device = input.device ?? scan.device
-    const report = await ctx.auditor.audit(input.url, undefined, { device })
+    const report = await ctx.auditor.audit(input.url, undefined, { device, lighthouseFlags: ctx.config.lighthouseOptions })
     const extracted = (report as unknown as { extracted?: ExtractedMetrics }).extracted
     const metrics: ExtractedMetrics = extracted ?? {
       url: input.url,

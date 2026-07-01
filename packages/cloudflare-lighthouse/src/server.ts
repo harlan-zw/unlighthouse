@@ -152,6 +152,7 @@ router.post(
     const body = await readBody<{
       url?: string
       config?: Record<string, unknown>
+      flags?: Record<string, unknown>
       device?: 'mobile' | 'desktop'
     }>(event)
 
@@ -165,6 +166,7 @@ router.post(
       return await auditor.audit(body.url, undefined, {
         device: body.device,
         lighthouseConfig: body.config,
+        lighthouseFlags: body.flags,
       })
     }
     catch (err) {
