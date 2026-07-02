@@ -1,7 +1,7 @@
 // Unit tests for the typed client. The client is dependency-light; we drive
 // it with a mock fetch and assert URL / method / body / streaming behaviour.
 
-import { createClient } from '@unlighthouse/core/api/client'
+import { createClient } from '@unlighthouse/contracts/client'
 import { describe, expect, it, vi } from 'vitest'
 import { testScanId, testUrl } from './helpers/contracts'
 

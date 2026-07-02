@@ -99,6 +99,24 @@ export default typegen(antfu({
   rules: {
     'vue/no-restricted-syntax': ['error', ...dsComponentBanSelectors],
   },
+}, {
+  // D-032: the UI's live path imports the typed client from
+  // @unlighthouse/contracts/client and nothing from core. The only permitted
+  // core import is the static (offline) read slice, which is deliberately
+  // browser-portable (test/treeshake.test.ts `browser-static`). Everything
+  // else in core drags node:*/db/server deps into the ssr:false bundle.
+  name: 'unlighthouse/ui-core-import-boundary',
+  files: ['packages/ui/**/*.{ts,vue}'],
+  rules: {
+    'no-restricted-imports': ['error', {
+      patterns: [{
+        // Any @unlighthouse/core specifier EXCEPT the browser-portable
+        // api/static-client read slice.
+        regex: '^@unlighthouse/core(?!/api/static-client$)',
+        message: 'The UI may only import @unlighthouse/core via api/static-client (D-032). Use @unlighthouse/contracts/* for everything else.',
+      }],
+    }],
+  },
 }), {
   dtsPath: fileURLToPath(new URL('eslint-typegen.d.ts', import.meta.url)),
 })

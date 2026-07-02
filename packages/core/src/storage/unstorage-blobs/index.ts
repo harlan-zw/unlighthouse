@@ -1,6 +1,5 @@
 import type { BlobPutOptions, BlobStore } from '@unlighthouse/contracts'
 import type { Driver, Storage as UnstorageInstance } from 'unstorage'
-import { Buffer } from 'node:buffer'
 import { createStorage as createUnstorage } from 'unstorage'
 
 export interface UnstorageBlobsOptions {
@@ -25,10 +24,9 @@ export function unstorageBlobs(opts: UnstorageBlobsOptions): BlobStore {
       const raw = await store.getItemRaw(key)
       if (raw == null)
         return null
+      // A Node Buffer is a Uint8Array subclass, so this branch also handles it.
       if (raw instanceof Uint8Array)
         return raw
-      if (typeof Buffer !== 'undefined' && Buffer.isBuffer(raw))
-        return new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength)
       if (typeof raw === 'string')
         return new TextEncoder().encode(raw)
       // Last resort: serialise.

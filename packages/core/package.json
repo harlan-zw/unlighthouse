@@ -107,10 +107,6 @@
       "types": "./dist/api/index.d.mts",
       "import": "./dist/api/index.mjs"
     },
-    "./api/client": {
-      "types": "./dist/api/client.d.mts",
-      "import": "./dist/api/client.mjs"
-    },
     "./api/static-client": {
       "types": "./dist/api/static-client.d.mts",
       "import": "./dist/api/static-client.mjs"

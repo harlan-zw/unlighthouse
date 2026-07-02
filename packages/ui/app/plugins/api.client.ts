@@ -1,4 +1,4 @@
-import { createClient } from '@unlighthouse/core/api/client'
+import { createClient } from '@unlighthouse/contracts/client'
 import { createStaticClient } from '@unlighthouse/core/api/static-client'
 
 export default defineNuxtPlugin(() => {

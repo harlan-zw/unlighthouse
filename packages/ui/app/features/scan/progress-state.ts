@@ -1,5 +1,5 @@
 import type { Device, ScanId } from '@unlighthouse/contracts'
-import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
+import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
 import type { ScanEventPayloads, UiScanStatus } from '~/types/scan-events'
 import { computed, ref } from 'vue'
 

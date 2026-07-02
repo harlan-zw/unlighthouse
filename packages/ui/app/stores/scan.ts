@@ -1,5 +1,5 @@
 import type { ScanId } from '@unlighthouse/contracts'
-import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
+import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
 import type { UnwrapNestedRefs } from 'vue'
 import type { ActiveScanSnapshot } from '~/features/scan/progress-state'
 import type { ScanEventBus } from '~/types/scan-events'

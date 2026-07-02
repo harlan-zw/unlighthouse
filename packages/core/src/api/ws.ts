@@ -1,7 +1,6 @@
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import type { WebSocket } from 'ws'
-import { Buffer } from 'node:buffer'
 import { WebSocketServer } from 'ws'
 import { createTaggedLogger } from '../logger'
 
@@ -23,6 +22,8 @@ export class WS {
 
   handleUpgrade(request: IncomingMessage, socket: Socket) {
     const wss = this.wss
+    // ws.handleUpgrade requires a Buffer for the head; use the Node global
+    // (this module is Node-only — node:http/node:net — and never browser-bundled).
     return wss.handleUpgrade(request, socket, Buffer.alloc(0), (client: WebSocket) => {
       wss.emit('connection', client, request)
       client.on('close', () => {

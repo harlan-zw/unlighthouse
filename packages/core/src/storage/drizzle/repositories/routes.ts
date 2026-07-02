@@ -8,15 +8,15 @@ import type {
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
 import type { DrizzleDatabase } from '../types'
-import { hash } from 'node:crypto'
 import { scanRoutes } from '@unlighthouse/contracts/drizzle'
 import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
 import { and, asc, desc, eq, gte, isNotNull, like, sql } from 'drizzle-orm'
+import { sha1Hex } from '../../../util/sha1'
 
 const DEFAULT_PAGE_SIZE = 100
 
 function urlHash(url: string): string {
-  return hash('sha1', url, 'hex').slice(0, 16)
+  return sha1Hex(url).slice(0, 16)
 }
 
 // D-029: blob keys are per (scanId, url, device). The device segment is

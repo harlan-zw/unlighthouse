@@ -225,4 +225,20 @@ describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
       ],
     })
   })
+
+  scenario('browser-static (D-032): contracts/client + core/static-client carry no node:* or server/db deps', async () => {
+    await assertGraph('browser-static', {
+      mustExclude: [
+        'node:zlib',
+        'node:crypto',
+        'node:buffer',
+        'better-sqlite3',
+        'drizzle-orm',
+        'h3',
+        'listhen',
+        'lighthouse',
+        'crawlee',
+      ],
+    })
+  })
 })

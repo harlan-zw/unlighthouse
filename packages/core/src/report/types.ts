@@ -1,5 +1,3 @@
-import type { Buffer } from 'node:buffer'
-
 // Lighthouse Result types (simplified)
 export interface LighthouseAudit {
   score: number | null
@@ -53,7 +51,7 @@ export interface ExtractedRoute {
     agenticBrowsing: number | null
   }
   audits: Record<string, LighthouseAudit>
-  lhrGzip: Buffer
+  lhrGzip: Uint8Array
   screenshotNodes?: Record<string, { left: number, top: number, width: number, height: number }>
 }
 

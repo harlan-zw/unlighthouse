@@ -1,8 +1,8 @@
 import type { NormalisedRoute, ResolvedUserConfig, UnlighthouseRouteReport } from '@unlighthouse/contracts'
-import { Buffer } from 'node:buffer'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { joinURL } from 'ufo'
+import { base64ToBytes } from './base64'
 import { hashPathName, sanitiseUrlForFilePath } from './path'
 
 export interface CreateTaskReportDeps {
@@ -44,10 +44,10 @@ export function createTaskReportFromRoute(deps: CreateTaskReportDeps, route: Nor
   }
 }
 
-export function base64ToBuffer(dataURI: string) {
+export function base64ToBuffer(dataURI: string): Uint8Array {
   const commaIndex = dataURI.indexOf(',')
   const base64 = commaIndex === -1 ? dataURI : dataURI.slice(commaIndex + 1)
-  return Buffer.from(base64, 'base64')
+  return base64ToBytes(base64)
 }
 
 export function formatBytes(bytes: number, decimals = 2) {

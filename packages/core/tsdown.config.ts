@@ -26,7 +26,6 @@ export default defineConfig({
     './src/storage/memory/index.ts',
     './src/storage/unstorage-blobs/index.ts',
     './src/api/index.ts',
-    './src/api/client.ts',
     './src/api/static-client.ts',
     './src/api/http.ts',
     './src/api/handlers/index.ts',

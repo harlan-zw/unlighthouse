@@ -16,12 +16,13 @@
 import type { Storage } from '@unlighthouse/contracts'
 import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Router } from 'h3'
-import { Buffer } from 'node:buffer'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
 import { createTaggedLogger } from '../logger'
 import { loadRouteContract } from '../report/route-contracts'
+import { base64ToBytes } from '../util/base64'
+import { gunzipToString } from '../util/gzip'
 
 const log = createTaggedLogger('dashboard')
 log.debug('init')
@@ -73,7 +74,7 @@ export function createDashboardApi(storage: Storage): Router {
       if (blob) {
         setResponseHeader(event, 'Content-Type', 'image/webp')
         setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
-        return Buffer.from(blob)
+        return blob
       }
     }
 
@@ -82,15 +83,14 @@ export function createDashboardApi(storage: Storage): Router {
       setResponseStatus(event, 404)
       return { error: 'No screenshot data' }
     }
-    const { gunzipSync } = await import('node:zlib')
-    const lhr = JSON.parse(gunzipSync(gz).toString())
+    const lhr = JSON.parse(gunzipToString(gz))
     const screenshotData = lhr.fullPageScreenshot?.screenshot?.data
     if (!screenshotData) {
       setResponseStatus(event, 404)
       return { error: 'No screenshot data in LHR' }
     }
     const base64 = screenshotData.replace(/^data:image\/\w+;base64,/, '')
-    const buffer = Buffer.from(base64, 'base64')
+    const buffer = base64ToBytes(base64)
     setResponseHeader(event, 'Content-Type', 'image/jpeg')
     setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
     return buffer
@@ -137,8 +137,7 @@ export function createDashboardApi(storage: Storage): Router {
       setResponseStatus(event, 404)
       return { error: 'LHR blob missing from storage' }
     }
-    const { gunzipSync } = await import('node:zlib')
-    const json = gunzipSync(gz).toString('utf-8')
+    const json = gunzipToString(gz)
     setResponseHeader(event, 'Content-Type', 'application/json; charset=utf-8')
     setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
     const safeName = `${scanId}-${route.device}-${route.path.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'root'}.lhr.json`

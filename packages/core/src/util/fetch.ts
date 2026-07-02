@@ -1,9 +1,9 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { ConsolaInstance } from 'consola'
 import type { FetchOptions } from 'ofetch'
-import { Buffer } from 'node:buffer'
 import { createConsola } from 'consola'
 import { ofetch } from 'ofetch'
+import { utf8ToBase64 } from './base64'
 
 export interface FetchUrlResponse {
   status: number
@@ -55,7 +55,7 @@ export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, ca
   })
 
   if (resolvedConfig.auth) {
-    const token = Buffer.from(`${resolvedConfig.auth.username}:${resolvedConfig.auth.password}`).toString('base64')
+    const token = utf8ToBase64(`${resolvedConfig.auth.username}:${resolvedConfig.auth.password}`)
     headers.Authorization = `Basic ${token}`
   }
 

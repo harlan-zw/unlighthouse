@@ -1,6 +1,5 @@
-import type { Buffer } from 'node:buffer'
 import type { ExtractedRoute, LighthouseResult } from './types'
-import { gunzipSync, gzipSync } from 'node:zlib'
+import { gunzipToString, gzipSync } from '../util/gzip'
 
 // Per-LH-major-version audit id remap. Lookup is `AUDIT_MAP[version][canonical]`
 // — when the canonical metric audit id has moved or been replaced in a given
@@ -93,8 +92,8 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
   }
 }
 
-export function decompressLhr(gzipped: Buffer): LighthouseResult {
-  return JSON.parse(gunzipSync(gzipped).toString())
+export function decompressLhr(gzipped: Uint8Array): LighthouseResult {
+  return JSON.parse(gunzipToString(gzipped))
 }
 
 export interface ReconciledRouteReport {

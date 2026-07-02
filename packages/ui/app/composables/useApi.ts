@@ -1,4 +1,4 @@
-import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
+import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
 
 export function useApi(): UnlighthouseClient {
   return useNuxtApp().$api

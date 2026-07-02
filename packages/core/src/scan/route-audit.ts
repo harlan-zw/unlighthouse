@@ -24,13 +24,15 @@ import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { PackRegistry } from '../packs/index'
 import type { LighthouseResult } from '../report/types'
-import { Buffer } from 'node:buffer'
 import { ErrorCodes, toUnlighthouseError, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { ExtractedMetricsSchema, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createPackReconcileCtx } from '../packs/reconcile-context'
 import { routeContractBlobKeyForReport } from '../report/route-contracts'
+import { base64ToBytes } from '../util/base64'
+import { gunzipToString } from '../util/gzip'
 import { computeMedianRun } from '../util/median'
+import { sha1Hex } from '../util/sha1'
 
 /** Emit on whatever bus the caller owns (core's hook/iter queue, or the DO's ScanEventsDO forward). */
 export type EmitFn = <K extends keyof HookMap>(
@@ -108,7 +110,7 @@ export function toStructuredError(err: unknown): StructuredError {
 }
 
 async function urlHash(url: string): Promise<string> {
-  return (await import('node:crypto')).hash('sha1', url, 'hex').slice(0, 16)
+  return sha1Hex(url).slice(0, 16)
 }
 
 // Compute (scoreAverage, scoresByCategory) over a set of completed routes.
@@ -236,11 +238,10 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       const reconciled = (report as { reconciled?: unknown }).reconciled
       let payload: unknown = reconciled
       let lhrCache: unknown = null
-      const { gunzipSync } = await import('node:zlib')
       if (!payload) {
         try {
           const { reconcileRoute } = await import('../report/extract')
-          lhrCache = JSON.parse(gunzipSync(lhrGzip).toString())
+          lhrCache = JSON.parse(gunzipToString(lhrGzip))
           payload = reconcileRoute({
             url,
             path: (metrics as { path?: string }).path ?? new URL(url).pathname,
@@ -279,7 +280,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
         })
       }
       const { reconcileToContract } = await import('../report/extract')
-      const lhr = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
+      const lhr = lhrCache ?? JSON.parse(gunzipToString(lhrGzip))
       const contract = reconcileToContract({ scanId, url, device, lhr: lhr as LighthouseResult })
       const contractBytes = new TextEncoder().encode(JSON.stringify(contract))
       await storage.blobs.put(contractKey, contractBytes).catch((err) => {
@@ -294,7 +295,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
 
       // Extract and store fullPageScreenshot as a separate blob.
       try {
-        const lhrObj = lhrCache ?? JSON.parse(gunzipSync(lhrGzip).toString())
+        const lhrObj = lhrCache ?? JSON.parse(gunzipToString(lhrGzip))
         const fpScreenshot = (lhrObj as { fullPageScreenshot?: { screenshot?: { data?: string } } })
           .fullPageScreenshot
           ?.screenshot
@@ -302,8 +303,8 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
         if (fpScreenshot && typeof fpScreenshot === 'string') {
           const base64Data = fpScreenshot.replace(/^data:image\/\w+;base64,/, '')
           const screenshotKey = `scans/${scanId}/screenshots/${hash}-${device}.webp`
-          const buf = Buffer.from(base64Data, 'base64')
-          await storage.blobs.put(screenshotKey, new Uint8Array(buf)).catch((err) => {
+          const buf = base64ToBytes(base64Data)
+          await storage.blobs.put(screenshotKey, buf).catch((err) => {
             logOperationalWarn('scan.screenshot_write_failed', err, {
               scanId,
               url,

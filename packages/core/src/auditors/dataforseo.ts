@@ -1,7 +1,7 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
-import { Buffer } from 'node:buffer'
 import { ofetch } from 'ofetch'
+import { utf8ToBase64 } from '../util/base64'
 import { extractInsights } from './extract'
 import { attachExtractedRouteData } from './lighthouse-report'
 
@@ -37,7 +37,7 @@ export function createDataForSeoProvider(providerOptions: DataForSeoOptions): Un
       const response = await ofetch('https://api.dataforseo.com/v3/on_page/pagespeed/live', {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+          'Authorization': `Basic ${utf8ToBase64(`${username}:${password}`)}`,
           'Content-Type': 'application/json',
         },
         body: [

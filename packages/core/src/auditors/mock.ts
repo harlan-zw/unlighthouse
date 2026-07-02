@@ -1,6 +1,6 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
-import { gzipSync } from 'node:zlib'
+import { gzipSync } from '../util/gzip'
 import { LIGHTHOUSE_DEFAULT_CATEGORIES } from './categories'
 
 export interface MockAuditorOptions {

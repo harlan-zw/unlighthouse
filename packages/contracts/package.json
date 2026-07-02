@@ -35,6 +35,10 @@
       "types": "./dist/commands/index.d.mts",
       "import": "./dist/commands/index.mjs"
     },
+    "./client": {
+      "types": "./dist/client/index.d.mts",
+      "import": "./dist/client/index.mjs"
+    },
     "./packs": {
       "types": "./dist/packs/index.d.mts",
       "import": "./dist/packs/index.mjs"

@@ -24,6 +24,7 @@ const aliasEntries = [
   ['@unlighthouse/pack-nuxt', './packages/pack-nuxt/src/index.ts'],
   ['@unlighthouse/contracts', './packages/contracts/src/index.ts'],
   ['@unlighthouse/contracts/commands', './packages/contracts/src/commands/index.ts'],
+  ['@unlighthouse/contracts/client', './packages/contracts/src/client/index.ts'],
   ['@unlighthouse/contracts/config', './packages/contracts/src/config/index.ts'],
   ['@unlighthouse/contracts/drizzle', './packages/contracts/src/drizzle/index.ts'],
   ['@unlighthouse/contracts/errors', './packages/contracts/src/errors/index.ts'],

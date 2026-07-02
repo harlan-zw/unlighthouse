@@ -6,30 +6,18 @@
 //
 // Only read commands are meaningful offline. Write/streaming commands
 // (scan.start, route.rescan, events.*, …) reject — a static report is a
-// frozen artefact; the UI gates those controls on `__unlighthouse_static`.
+// frozen artefact; the UI hides those controls via `useIsStatic()`.
 //
-// ── Remaining integration for `--build-static` (maintainer-owned) ────────────
-// The data layer below is done + tested (test/static-client.test.ts). What's
-// left is wiring it into the build + UI, which touches core's browser
-// portability — an architecture call:
-//   1. build.ts (static:true): call `buildStaticSnapshot()` and embed the
-//      result as `window.__unlighthouse_payload.snapshot`; export screenshot +
-//      LHR blobs to assets/ files and rewrite their URLs with routerPrefix
-//      (this also resolves #275's static-context broken thumbnails).
-//   2. ci.ts: consume `--build-static` → `generateClient({ static: true })`.
-//   3. UI api.client.ts: when `window.__unlighthouse_static`, provide
-//      `createStaticClient(payload.snapshot)` instead of the HTTP client
-//      (single dynamic-import guard; live path untouched). Add a useIsStatic()
-//      composable to hide write buttons / live polling.
-//   BROWSER-COMPAT BLOCKER: importing createStaticClient into the Nuxt
-//   (ssr:false) bundle pulls in createHandlers → route.ts/scan.ts/pack.ts and
-//   memory storage, which carry module-level node:crypto / node:zlib /
-//   node:buffer imports. These must be made browser-safe first (Buffer→
-//   TextDecoder; node:zlib→fflate or rely on pre-run pack cache so the inflate
-//   path is never hit; node:crypto sha1→a JS impl or seed rows so urlHash is
-//   never called). That refactor is the core-portability decision this client
-//   intentionally stops short of.
+// D-032 landed the browser-portability this file used to stop short of: the
+// read slice reachable from here (report/*, memory storage, handlers) carries
+// no node:zlib / node:crypto / node:buffer, so this module bundles cleanly into
+// the Nuxt (ssr:false) build. Enforced by test/treeshake.test.ts's
+// `browser-static` scenario. The build wiring is live: `build.ts` embeds
+// `buildStaticSnapshot()` as `window.__unlighthouse_payload.snapshot`, `ci.ts`
+// consumes `--build-static`, and `api.client.ts` swaps in `createStaticClient`
+// when `window.__unlighthouse_static`.
 import type { Auditor, Logger, UnlighthouseCore } from '@unlighthouse/contracts'
+import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
 import type { CommandInput, CommandName, CommandOutput, CommandRegistry } from '@unlighthouse/contracts/commands'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { PackRun } from '@unlighthouse/contracts/packs'
@@ -38,7 +26,6 @@ import type {
   Scan,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
-import type { UnlighthouseClient } from './client'
 import type { HandlerCtx, HandlerMap } from './handlers'
 import { commands } from '@unlighthouse/contracts/commands'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'

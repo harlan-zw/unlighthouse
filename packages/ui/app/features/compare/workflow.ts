@@ -1,5 +1,5 @@
 import type { CompareReport, CompareRouteRow, ScanId } from '@unlighthouse/contracts'
-import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
+import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'

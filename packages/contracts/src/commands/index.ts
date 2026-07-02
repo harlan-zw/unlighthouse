@@ -78,7 +78,7 @@ export { commandToRoute, type HttpMethod } from './projection'
  *   - `@unlighthouse/core/api/http`  — h3 route projection
  *   - `@unlighthouse/mcp`            — MCP tool registry
  *   - `unlighthouse` CLI             — citty subcommand generator
- *   - `@unlighthouse/core/api/client`— typed UI client
+ *   - `@unlighthouse/contracts/client` — typed UI client
  *
  * CI parity tests iterate this map and assert that every command appears
  * on each enabled transport (modulo `mcp.hidden` / `cli.hidden`).

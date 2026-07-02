@@ -4,6 +4,7 @@ export default defineConfig({
   entry: [
     './src/index.ts',
     './src/commands/index.ts',
+    './src/client/index.ts',
     './src/config/index.ts',
     './src/drizzle/index.ts',
     './src/errors/index.ts',

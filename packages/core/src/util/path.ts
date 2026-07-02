@@ -1,5 +1,5 @@
-import { hash } from 'node:crypto'
 import { withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import { sha1Hex } from './sha1'
 
 /** Strip leading + trailing slashes. */
 export const trimSlashes = (s: string) => withoutLeadingSlash(withoutTrailingSlash(s))
@@ -39,5 +39,5 @@ export function sanitiseUrlForFilePath(url: string) {
 
 /** Turn a web path into a 6-char hash for stable identification. */
 export function hashPathName(path: string) {
-  return hash('md5', sanitiseUrlForFilePath(path), 'hex').substring(0, 6)
+  return sha1Hex(sanitiseUrlForFilePath(path)).substring(0, 6)
 }

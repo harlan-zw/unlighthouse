@@ -2,6 +2,11 @@
 // Method/path come from the SAME `commandToRoute` the server uses (in
 // `@unlighthouse/contracts/commands`), so the client can't drift from the
 // projection and honours `http.*` overrides / `query.` prefix / PUT / DELETE.
+//
+// Lives in contracts (not core) because it is derived entirely from the command
+// registry — its only imports are `../commands` and `../errors`. The UI's live
+// path imports this and nothing from core; the static path lives in core
+// (`core/api/static-client`) because it needs the real handlers + memory storage.
 
 import type {
   Command,
@@ -9,9 +14,9 @@ import type {
   CommandName,
   CommandOutput,
   CommandRegistry,
-} from '@unlighthouse/contracts/commands'
-import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
-import { ErrorCodes, errorFromEnvelope, isErrorEnvelope, UnlighthouseError } from '@unlighthouse/contracts/errors'
+} from '../commands'
+import { commands, commandToRoute } from '../commands'
+import { ErrorCodes, errorFromEnvelope, isErrorEnvelope, UnlighthouseError } from '../errors'
 
 export interface CreateClientOptions {
   /** Base URL of the HTTP projection (e.g. '/api', or 'https://host/api'). */

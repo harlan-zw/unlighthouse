@@ -1,7 +1,6 @@
 import type { HookEvent } from '@unlighthouse/contracts/hooks'
 import type { ScanId, Storage } from '@unlighthouse/contracts/ports'
-import { Buffer } from 'node:buffer'
-import { gzipSync } from 'node:zlib'
+import { gzipSync } from './util/gzip'
 
 /**
  * Buffers HookEvents in-memory and flushes a gzipped JSONL blob to
@@ -24,7 +23,7 @@ export function persistStableEvents(storage: Storage, scanId: ScanId): {
     if (buffer.length === 0)
       return
     const jsonl = buffer.map(e => JSON.stringify(e)).join('\n')
-    const gz = gzipSync(Buffer.from(jsonl, 'utf8'))
+    const gz = gzipSync(jsonl)
     const bytes = new Uint8Array(gz.buffer, gz.byteOffset, gz.byteLength)
     await storage.blobs.put(`scans/${scanId}/events.jsonl.gz`, bytes, {
       contentType: 'application/gzip',

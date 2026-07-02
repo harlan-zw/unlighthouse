@@ -1,6 +1,6 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
-import { gzipSync } from 'node:zlib'
+import { gzipSync } from '../util/gzip'
 
 export type FormFactor = 'PHONE' | 'DESKTOP' | 'TABLET' | 'ALL_FORM_FACTORS'
 

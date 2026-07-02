@@ -1,4 +1,4 @@
-import type { UnlighthouseClient } from '@unlighthouse/core/api/client'
+import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
 import type { ScanEventBus } from './scan-events'
 
 declare module '#app' {
