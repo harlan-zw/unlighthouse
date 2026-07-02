@@ -14,6 +14,7 @@ export interface RouteRow {
   url: string
   path: string
   device: string
+  auditor: string | null
   scorePerformance: number | null
   scoreAccessibility: number | null
   scoreSeo: number | null
@@ -74,6 +75,7 @@ const COLUMN_LABELS: Record<string, string> = {
   thumbnail: 'Thumbnail',
   path: 'Path',
   device: 'Device',
+  auditor: 'Auditor',
   scorePerformance: 'Performance',
   scoreAccessibility: 'Accessibility',
   scoreSeo: 'SEO',
@@ -244,6 +246,9 @@ export function useScanRoutesTable() {
   const prevMap = computed(() => prevData.value ?? null)
   const hasPrev = computed(() => (prevMap.value?.size ?? 0) > 0)
   const hasMultipleDevices = computed(() => new Set(allRows.value.map(row => row.device)).size > 1)
+  // D-040: only surface the auditor backend when a scan actually mixed more than
+  // one (e.g. local + psi = 'split'). Single-backend scans show nothing.
+  const hasMultipleAuditors = computed(() => new Set(allRows.value.map(row => row.auditor).filter((a): a is string => a != null)).size > 1)
 
   const q = ref(queryString(route.query.q))
   const rawDevice = queryString(route.query.device)
@@ -321,6 +326,7 @@ export function useScanRoutesTable() {
     prevMap,
     hasPrev,
     hasMultipleDevices,
+    hasMultipleAuditors,
     q,
     deviceFilter,
     quick,

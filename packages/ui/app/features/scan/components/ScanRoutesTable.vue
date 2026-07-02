@@ -24,6 +24,7 @@ const {
   prevMap,
   hasPrev,
   hasMultipleDevices,
+  hasMultipleAuditors,
   q,
   deviceFilter,
   quick,
@@ -45,6 +46,7 @@ const {
 const overallScore = overallRouteScore
 const formatMetric = formatRouteMetric
 const UiIconC = resolveComponent('UiIcon')
+const UiChipC = resolveComponent('UiChip')
 
 const columns = computed<ColumnDef<RouteRow>[]>(() => {
   const cols: ColumnDef<RouteRow>[] = [
@@ -88,6 +90,24 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
         class: 'size-3.5 text-muted',
       }),
+    })
+  }
+
+  // D-040: auditor backend column — only when the scan mixed >1 distinct
+  // backend (single-backend scans stay clean, no visual noise).
+  if (hasMultipleAuditors.value) {
+    cols.push({
+      accessorKey: 'auditor',
+      header: 'Auditor',
+      enableSorting: false,
+      align: 'center',
+      headClass: 'w-20',
+      cell: ({ row }) => {
+        const auditor = row.original.auditor
+        if (!auditor)
+          return h('span', { class: 'text-muted' }, '—')
+        return h(UiChipC, { purpose: 'tag', size: 'xs', mono: true }, () => auditor)
+      },
     })
   }
 
