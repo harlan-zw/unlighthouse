@@ -142,6 +142,9 @@ catalogs:
     chrome-launcher:
       specifier: ^1.2.1
       version: 1.2.1
+    citty:
+      specifier: ^0.1.6
+      version: 0.1.6
     consola:
       specifier: ^3.4.2
       version: 3.4.2
@@ -589,6 +592,9 @@ importers:
       chrome-launcher:
         specifier: catalog:dependencies
         version: 1.2.1
+      citty:
+        specifier: catalog:dependencies
+        version: 0.1.6
       consola:
         specifier: catalog:dependencies
         version: 3.4.2

@@ -11,6 +11,8 @@ import { z } from 'zod'
 export const ErrorCodes = {
   /** Adapter does not implement the requested capability (e.g. pause on cloudflare-crawl). */
   NOT_SUPPORTED: 'NOT_SUPPORTED',
+  /** An auditor router / chain could not select any auditor for the request. */
+  NO_AUDITOR_AVAILABLE: 'NO_AUDITOR_AVAILABLE',
   /** Host quota counter denied the audit. Payload includes `bucket`. */
   QUOTA_EXCEEDED: 'QUOTA_EXCEEDED',
   /** `core.run()` called while a session is already in flight. */
@@ -57,6 +59,7 @@ export interface ErrorCodeDefaults {
  */
 export const ErrorCodeDescriptions: Record<ErrorCode, string> = {
   NOT_SUPPORTED: 'The active adapter does not support this capability.',
+  NO_AUDITOR_AVAILABLE: 'No auditor could be selected for the request (empty router, unmet categories, or rate-limit exhaustion).',
   QUOTA_EXCEEDED: 'A configured rate-limit bucket denied the operation.',
   ACTIVE_SCAN_CONFLICT: 'A scan is already in flight on this Core instance.',
   CONFIG_INVALID: 'The supplied UnlighthouseConfig failed schema validation.',
@@ -75,6 +78,7 @@ export const ErrorCodeDescriptions: Record<ErrorCode, string> = {
 
 const DEFAULTS = new Map<string, ErrorCodeDefaults>([
   [ErrorCodes.NOT_SUPPORTED, { statusCode: 501, message: ErrorCodeDescriptions.NOT_SUPPORTED, category: 'fatal' }],
+  [ErrorCodes.NO_AUDITOR_AVAILABLE, { statusCode: 501, message: ErrorCodeDescriptions.NO_AUDITOR_AVAILABLE, category: 'fatal' }],
   [ErrorCodes.QUOTA_EXCEEDED, { statusCode: 429, message: ErrorCodeDescriptions.QUOTA_EXCEEDED, category: 'retryable', retryable: true }],
   [ErrorCodes.ACTIVE_SCAN_CONFLICT, { statusCode: 409, message: ErrorCodeDescriptions.ACTIVE_SCAN_CONFLICT, category: 'fatal' }],
   [ErrorCodes.CONFIG_INVALID, { statusCode: 400, message: ErrorCodeDescriptions.CONFIG_INVALID, category: 'validation' }],

@@ -181,7 +181,7 @@ export interface HTMLExtractPayload {
   jsonLd?: unknown[]
 }
 
-export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer'
+export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer' | 'ndjson' | 'agentSummary'
 
 export type AssertionType = 'minScore' | 'maxNumericValue' | 'maxRegression'
 

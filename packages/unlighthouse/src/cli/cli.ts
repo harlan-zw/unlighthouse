@@ -1,16 +1,22 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { Command } from '@unlighthouse/contracts/commands'
 import type { CliOptions } from './types'
 import { execFileSync } from 'node:child_process'
 import { setMaxListeners } from 'node:events'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createTaggedLogger, logger } from '@unlighthouse/core/logger'
 import open from 'better-opn'
+import { runMain } from 'citty'
 import { createApp, toNodeListener } from 'h3'
 import { listen } from 'listhen'
 import { joinURL } from 'ufo'
+import { version } from '../../package.json'
 import { createUnlighthouseHost } from '../index.ts'
+import { emitError, exitCodeForError, isAgentMode, stampSchema, writeNdjson } from './agent-mode'
 import { runAssertions } from './assertions'
-import createCli from './createCli'
+import { buildCli } from './createCli'
+import { buildCliContext } from './ctx'
 import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
 const log = createTaggedLogger('cli')
@@ -157,11 +163,7 @@ function setupGracefulShutdown(
   })
 }
 
-const cli = createCli()
-
-const { options } = cli.parse() as unknown as { options: CliOptions }
-
-async function runDashboardMode() {
+async function runDashboardMode(options: CliOptions) {
   setMaxListeners(0)
 
   log.debug('Dashboard-only mode (no --site)')
@@ -189,18 +191,18 @@ async function runDashboardMode() {
     await open(unlighthouse.runtimeSettings.clientUrl)
 }
 
-async function run() {
+// Root command runtime: the v0 ergonomic entry. No --site/--urls → dashboard;
+// --history → dashboard; otherwise scan + serve. citty owns --help / --version.
+async function runRoot(options: CliOptions) {
   const start = new Date()
-  if (options.help || options.version)
-    return
 
   if (!options.site && !options.urls) {
-    await runDashboardMode()
+    await runDashboardMode(options)
     return
   }
 
   if (options.history) {
-    await runDashboardMode()
+    await runDashboardMode(options)
     return
   }
 
@@ -279,4 +281,56 @@ async function run() {
     await open(scanLandingUrl)
 }
 
-run()
+// D-033: the CLI is the third registry projection. Subcommands
+// (`unlighthouse scan start`, `query routes`, `manifest`, …) are generated from
+// the command registry; the root command is the v0 scan-and-serve entry above.
+const agent = isAgentMode()
+
+async function emit(cmd: Command, result: unknown): Promise<void> {
+  if (agent) {
+    writeNdjson(stampSchema(cmd.name, result))
+    return
+  }
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+}
+
+function onError(cmd: Command, err: unknown): never {
+  emitError(err, agent)
+  process.exit(exitCodeForError(err, cmd))
+}
+
+// Projected subcommands are one-shot; the ctx holds a DB handle that keeps the
+// loop alive, so flush stdout and exit once the command has emitted.
+async function onComplete(): Promise<void> {
+  await new Promise<void>(resolve => process.stdout.write('', () => resolve()))
+  process.exit(0)
+}
+
+// Subcommands point storage at the same --site/--root the scan ran under.
+function argFromArgv(name: string): string | undefined {
+  const flag = `--${name}`
+  const idx = process.argv.indexOf(flag)
+  const next = idx !== -1 ? process.argv[idx + 1] : undefined
+  if (next && !next.startsWith('-'))
+    return next
+  const eq = process.argv.find(a => a.startsWith(`${flag}=`))
+  return eq ? eq.slice(flag.length + 1) : undefined
+}
+
+const main = buildCli({
+  version,
+  runRoot,
+  projection: {
+    handlers: createHandlers(),
+    createCtx: () => buildCliContext({
+      site: argFromArgv('site'),
+      root: argFromArgv('root'),
+      debug: process.argv.includes('--debug') || process.argv.includes('-d'),
+    }),
+    emit,
+    onError,
+    onComplete,
+  },
+})
+
+runMain(main)

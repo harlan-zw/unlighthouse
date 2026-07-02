@@ -2,10 +2,12 @@ import type { ResolvedUserConfig, UnlighthouseRouteReport } from '../index.ts'
 import type { ReporterConfig, ReportJsonExpanded, ReportJsonSimple } from './types'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { reportAgentSummary } from './agentSummary'
 import { reportCSVExpanded } from './csvExpanded'
 import { reportCSVSimple } from './csvSimple'
 import { reportJsonExpanded } from './jsonExpanded'
 import { reportJsonSimple } from './jsonSimple'
+import { reportNdjson } from './ndjson'
 
 type ReportWithLighthouse = UnlighthouseRouteReport & {
   report: NonNullable<UnlighthouseRouteReport['report']>
@@ -20,6 +22,7 @@ export function generateReportPayload(reporter: 'jsonExpanded', reports: Unlight
 export function generateReportPayload(reporter: 'jsonSimple' | 'json', reports: UnlighthouseRouteReport[]): ReportJsonSimple
 export function generateReportPayload(reporter: 'csvSimple' | 'csv', reports: UnlighthouseRouteReport[]): string
 export function generateReportPayload(reporter: 'csvExpanded', reports: UnlighthouseRouteReport[], config?: ReporterConfig): string
+export function generateReportPayload(reporter: 'ndjson' | 'agentSummary', reports: UnlighthouseRouteReport[]): string
 export function generateReportPayload(reporter: string, reports: UnlighthouseRouteReport[], config?: ReporterConfig): Promise<void> | ReportJsonExpanded | ReportJsonSimple | string
 export function generateReportPayload(
   reporter: string,
@@ -45,6 +48,10 @@ export function generateReportPayload(
     if (reporter === 'csvExpanded')
       return reportCSVExpanded(reports, config ?? {})
   }
+  if (reporter === 'ndjson')
+    return reportNdjson(reports)
+  if (reporter === 'agentSummary')
+    return reportAgentSummary(reports)
   if (reporter === 'lighthouseServer') {
     // Lazy: @lhci/utils is an optional peer; only load when this reporter is chosen.
     return import('./lighthouseServer').then(m => m.reportLighthouseServer(reports, config ?? {}))
@@ -66,6 +73,13 @@ export async function outputReport(reporter: string, config: Partial<ResolvedUse
     if (typeof payload !== 'string')
       throw new TypeError(`CSV reporter "${reporter}" returned a non-string payload.`)
     const path = join(config.outputPath, 'ci-result.csv')
+    await writeFile(path, payload)
+    return path
+  }
+  if (reporter === 'ndjson' || reporter === 'agentSummary') {
+    if (typeof payload !== 'string')
+      throw new TypeError(`Reporter "${reporter}" returned a non-string payload.`)
+    const path = join(config.outputPath, reporter === 'ndjson' ? 'ci-result.ndjson' : 'ci-result.md')
     await writeFile(path, payload)
     return path
   }

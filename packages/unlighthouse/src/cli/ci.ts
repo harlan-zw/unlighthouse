@@ -11,10 +11,10 @@ import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
 import { runAssertions } from './assertions'
-import createCli from './createCli'
+import { createCiBaseCli } from './cac-base'
 import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
-const cli = createCli()
+const cli = createCiBaseCli()
 
 cli
   .option('--budget <budget>', 'Budget (1-100), the minimum score required for each page to pass.')

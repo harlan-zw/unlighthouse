@@ -26,7 +26,24 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   treeshake 7/7 incl browser-static; `nuxi generate` OK (8 routes); tests back to 589 after fixing
   test client imports + adding vitest alias for contracts/client. NOTE: full write-control gating via
   useIsStatic across components deferred (static client already rejects writes at runtime; safe).
-- D-033 (CLI = registry projection via citty): NOT STARTED — before-snapshot captured
+- D-033 (CLI = registry projection via citty): done — rewrote `cli/createCli.ts` on citty
+  (`buildCli` = root scan/dashboard entry + `subCommands` from the registry). New `cli/project.ts`
+  (`cittyFlagsFor` derives flags from Zod input; `projectCliCommands` nests dot-names →
+  `unlighthouse scan start`; respects `cli.hidden`; one-shot `onComplete`/`onError` exit hooks). New
+  `cli/ctx.ts` (`buildCliContext` mirrors mcp.ts storage wiring). New `cli/agent-mode.ts` (NDJSON +
+  `$schema` stamping + `exitCodeForError` from `cmd.exitCodes`). New reporters `src/reporters/{ndjson,
+  agentSummary}.ts` registered in the reporter index + `ValidReportTypes`. GUARDRAIL folded in:
+  `auditors/route/index.ts` plain Errors → `UnlighthouseError` (`NO_AUDITOR_AVAILABLE` new code +
+  `CONFIG_INVALID`). `ci.ts` keeps its own cac program via new `cli/cac-base.ts` (it is a CI runner,
+  not a registry projection). Added `citty` dep (catalog). Verified: `--version`/`--help` render;
+  full registry projects (scan/route/history/compare/assert/pack/query/events/manifest/health/ready/
+  sites); `manifest` emits NDJSON w/ $schema, 35 commands, exits cleanly; root parse byte-identical to
+  cac (cache:false from --no-cache, samples→number, comma-lists). New `test/cli-parity.test.ts` (41
+  tests: third-leg parity + per-command flags + root-parse tripwires). Retargeted `test/cli.test.ts`
+  to `parseRootArgs`. Gate: typecheck green; cli-parity 41/41. NOTE: undocumented cac camelCase flag
+  aliases (`--extraHeaders`) dropped for the documented kebab (`--extra-headers`); citty `--help`
+  format differs from cac (parse-result equivalence, not help-text bytes, per the tripwire). cac dep
+  retained (used by cac-base for ci.ts). Before-snapshot at `.snapshots/cli-help-BEFORE.txt`.
   (`.snapshots/cli-help-BEFORE.txt`, required by ground rule 5). Scoped: rewrite `cli/createCli.ts`
   on citty (root command byte-identical to the cac flags above); new `cli/project.ts`
   (`projectCliCommands` + `cittyFlagsFor(zodSchema)`); new `cli/agent-mode.ts` (NDJSON, `$schema`,

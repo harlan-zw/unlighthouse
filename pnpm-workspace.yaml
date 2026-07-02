@@ -70,6 +70,7 @@ catalogs:
     c12: ^3.3.4
     cac: ^7.0.0
     chrome-launcher: ^1.2.1
+    citty: ^0.1.6
     consola: ^3.4.2
     crawlee: ^3.17.0
     defu: ^6.1.7

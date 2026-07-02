@@ -88,6 +88,7 @@
     "c12": "catalog:dependencies",
     "cac": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
+    "citty": "catalog:dependencies",
     "consola": "catalog:dependencies",
     "defu": "catalog:dependencies",
     "drizzle-orm": "catalog:dependencies",
