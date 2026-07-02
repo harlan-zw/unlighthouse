@@ -13,6 +13,12 @@ export const Manifest = defineCommand({
   output: z.object({
     name: z.literal('unlighthouse'),
     version: z.string(),
+    /**
+     * Base URL the published JSON Schema files (D-037) are served from, e.g.
+     * `https://unlighthouse.dev/schema/v1`. Kept in lockstep with the CLI's
+     * `SCHEMA_BASE_URL` and the contracts `emit-schemas` script.
+     */
+    schemaBaseUrl: z.string(),
     commands: z.array(
       z.object({
         name: z.string(),
@@ -20,7 +26,24 @@ export const Manifest = defineCommand({
         streaming: z.boolean(),
         inputSchema: z.unknown(), // JSON Schema, from z.toJSONSchema()
         outputSchema: z.unknown(),
+        /** Published input JSON Schema URL: `<schemaBaseUrl>/<name>.input.json`. */
+        inputSchemaUrl: z.string(),
+        /** Published output JSON Schema URL: `<schemaBaseUrl>/<name>.output.json`. */
+        outputSchemaUrl: z.string(),
         exitCodes: z.record(z.string(), z.number()).optional(),
+      }),
+    ),
+    /**
+     * Raw-binary dashboard endpoints (screenshots, route detail, raw LHR, scan
+     * export) that live outside the typed command surface. Self-described here
+     * so the escape hatch is discoverable rather than folklore (D-037 / D-005).
+     */
+    binaryEndpoints: z.array(
+      z.object({
+        method: z.string(),
+        path: z.string(),
+        description: z.string(),
+        binary: z.literal(true),
       }),
     ),
     hooks: z.array(

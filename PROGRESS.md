@@ -106,7 +106,17 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   `RateLimiterDO` gains `createRateLimiterClient` implementing the port. ARCHITECTURE.md ports table +
   deferred-seams updated (broadcasting stays un-promoted). Tests updated + new port test.
   Gate: full typecheck green; suite 648 pass/1 skip.
-- D-037 (published JSON Schemas + $schema stamping): pending
+- D-037 (published JSON Schemas + $schema stamping): done (subagent, gated by me) — new
+  `contracts/scripts/emit-schemas.ts` (`buildSchemas()`/`emitSchemas()`; guarded main) wired into the
+  contracts build (`tsdown && tsx scripts/emit-schemas.ts`) → emits 71 files to `dist/schemas/v1/`
+  (per-command input/output + atoms bundle); `dist/schemas` added to `files`. `manifest` output extended
+  (`.default()`-free) with `schemaBaseUrl`, per-command `inputSchemaUrl`/`outputSchemaUrl`, and
+  `binaryEndpoints` (the 4 dashboard raw-binary escape hatches, `binary:true`). ($schema stamping seam
+  was already in agent-mode.ts from D-033.) Test `test/emit-schemas.test.ts`. Gate: full typecheck
+  green; targeted tests 293 pass; contracts build emits schemas (verified).
+  MAINTAINER-FLAG: `tsx` is used by the contracts build but not declared as a dep (resolves from the
+  workspace store; matches the repo's existing undeclared `dev:cli` tsx usage). Declaring it a contracts
+  devDep would make the publish build fully reproducible.
 - D-039 (seeds/route-definitions): pending
 - D-042 (perf-score honesty under concurrency): pending
 - D-043 (local API hardening: Origin/Host, bind, /__launch, token): pending

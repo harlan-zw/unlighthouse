@@ -20,6 +20,23 @@ function toJsonSchema(schema: z.ZodType): unknown {
   return toJSON ? toJSON(schema) : { $todo: 'zod-toJSONSchema-unavailable' }
 }
 
+// D-037: base URL the published JSON Schema files are served from. Kept in
+// lockstep with `SCHEMA_BASE_URL` in packages/unlighthouse/src/cli/agent-mode.ts
+// and packages/contracts/scripts/emit-schemas.ts (all three describe the same
+// files). Hardcoded rather than imported to avoid core depending on the CLI
+// package; if it drifts, the contracts parity/manifest tests catch it.
+const SCHEMA_BASE_URL = 'https://unlighthouse.dev/schema/v1'
+
+// D-037: the raw-binary dashboard endpoints (see core/src/api/dashboard.ts).
+// Paths are relative to the dashboard router's own mount base (`/dashboard`);
+// the CLI host serves them under `/api/dashboard`, Cloudflare under `/dashboard`.
+const BINARY_ENDPOINTS = [
+  { method: 'GET', path: '/dashboard/screenshot/{scanId}/{path}', description: 'Route screenshot (image/webp, falls back to the LHR full-page JPEG).', binary: true },
+  { method: 'GET', path: '/dashboard/route/{scanId}/{path}', description: 'Reconciled route detail contract for one (scanId, path[, device]).', binary: true },
+  { method: 'GET', path: '/dashboard/lhr/{scanId}/{path}', description: 'Raw gunzipped Lighthouse JSON for one route (the receipts escape hatch).', binary: true },
+  { method: 'GET', path: '/dashboard/export/{scanId}', description: 'Full-scan export bundle (JSON or ?format=csv) of every route + pack run.', binary: true },
+] as const
+
 // INTERNAL: not used by the UI; kept for API discovery and tooling integration.
 export const manifest: Handler<typeof Manifest> = {
   command: {} as typeof Manifest,
@@ -30,6 +47,8 @@ export const manifest: Handler<typeof Manifest> = {
       streaming: !!cmd.streaming,
       inputSchema: toJsonSchema(cmd.input),
       outputSchema: toJsonSchema(cmd.output),
+      inputSchemaUrl: `${SCHEMA_BASE_URL}/${cmd.name}.input.json`,
+      outputSchemaUrl: `${SCHEMA_BASE_URL}/${cmd.name}.output.json`,
       exitCodes: cmd.exitCodes,
     }))
 
@@ -51,7 +70,9 @@ export const manifest: Handler<typeof Manifest> = {
     return {
       name: 'unlighthouse',
       version: ctx.version,
+      schemaBaseUrl: SCHEMA_BASE_URL,
       commands: commandList,
+      binaryEndpoints: BINARY_ENDPOINTS.map(e => ({ ...e })),
       hooks,
       errors,
       errorEnvelopeSchema: toJsonSchema(UnlighthouseErrorEnvelopeSchema),

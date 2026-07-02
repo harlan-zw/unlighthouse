@@ -61,13 +61,14 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "files": [
-    "dist"
+    "dist",
+    "dist/schemas"
   ],
   "engines": {
     "node": ">=24.13.1"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && tsx scripts/emit-schemas.ts",
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
     "test:attw": "attw --pack --profile esm-only",
