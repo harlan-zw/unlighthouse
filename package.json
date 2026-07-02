@@ -49,6 +49,7 @@
     "publint": "catalog:",
     "rolldown": "catalog:",
     "tsdown": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:dependencies",
     "vitest": "catalog:",

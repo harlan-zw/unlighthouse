@@ -49,6 +49,7 @@ catalog:
   rolldown: ^1.1.3
   tinypool: ^2.1.0
   tsdown: ^0.22.3
+  tsx: ^4.22.4
   typescript: ^6.0.3
   unstorage: ^1.17.5
   vitest: ^4.1.9
