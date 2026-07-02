@@ -181,7 +181,17 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   auto-prunes non-fatally after scan:complete when retention configured. R2 lifecycle recipe in
   cloudflare examples README. Tests: prune.test.ts + storage-port BlobStore.list case. Gate: full
   typecheck green; suite 708 pass/1 skip; attw green; publint green modulo ui link.
-- Docs follow-through (ARCHITECTURE.md, v1.md log, GAPS.md closures): pending
+- Docs follow-through (ARCHITECTURE.md, v1.md log, GAPS.md closures): done — ARCHITECTURE.md updated
+  (client location + invariant, 36 commands + 3-leg parity, D1 real repos, legacy rows removed, new
+  conventions); v1.md decisions log appended D-032..D-044 + D-022 recipe corrected + reader-cutover
+  item closed; GAPS.md rows 1/2/5 + drift closed (untracked working doc). Committed 4dcd21aa
+  (ARCHITECTURE.md + v1.md; GAPS.md left untracked with the other planning artifacts).
+
+## FINAL STATUS: all 13 decisions (D-032..D-044) landed, each gated + committed. Final full gate:
+typecheck green (11 pkgs), suite 708 pass / 1 skip, attw green, publint green modulo the known ui
+`link:` (maintainer-owned). Commits: D-038 f775dc10, D-032 d6bb3ceb, D-033 a16aac22, D-040+D-041
+bc2154b0, D-034 784c810c, D-035 d5882a00, D-036 2a121624, D-037 a1e0f92e, D-039 830fa965, D-042
+d1f3b0d9, D-043 a95d8b3f, D-044 3faf9a5a, docs 4dcd21aa (+ checkpoint 10a396df).
 
 ## Maintainer-flagged (never attempted by agent)
 - Real Cloudflare deploy verification (D-035): runbook only.
