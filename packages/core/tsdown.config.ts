@@ -8,6 +8,7 @@ export default defineConfig({
     './src/report/index.ts',
     './src/comparison/index.ts',
     './src/seeds/index.ts',
+    './src/seeds/route-definitions.ts',
     './src/policies/index.ts',
     './src/crawlers/index.ts',
     './src/auditors/index.ts',

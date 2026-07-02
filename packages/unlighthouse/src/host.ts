@@ -29,6 +29,7 @@ import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { createTaggedLogger } from '@unlighthouse/core/logger'
 import { createPackRegistry } from '@unlighthouse/core/packs'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
+import { routeDefinitionSeeds } from '@unlighthouse/core/seeds/route-definitions'
 import { joinURL } from 'ufo'
 import { version } from '../package.json'
 import { resolveAuditor } from './auditor'
@@ -85,7 +86,10 @@ export interface CreateUnlighthouseHostOptions {
   packs?: Pack[]
 }
 
-function resolveSeeds(resolvedConfig: ResolvedUserConfig, logger: Logger) {
+function resolveSeeds(resolvedConfig: ResolvedUserConfig, logger: Logger): {
+  seeds: ReturnType<typeof fuseSeeds>
+  routeMatcher?: (url: string) => string | null
+} {
   const site = resolvedConfig.site || ''
   const rawUrls = resolvedConfig.urls
   const isDashboardPlaceholder = site === 'http://localhost'
@@ -101,6 +105,31 @@ function resolveSeeds(resolvedConfig: ResolvedUserConfig, logger: Logger) {
       logger: logger.withTag('seeds/manual'),
     }),
   ]
+
+  // D-039: framework page files → static seeds + a routeName matcher. Wired
+  // only when `routeDefinitions` is configured (pagesDir resolved to absolute
+  // in config/resolve.ts). The matcher is threaded to core so ingest fills the
+  // `routeName` column; the seeds are fused alongside sitemap/manual.
+  let routeMatcher: ((url: string) => string | null) | undefined
+  if (resolvedConfig.routeDefinitions) {
+    try {
+      const source = routeDefinitionSeeds({
+        pagesDir: resolvedConfig.routeDefinitions.pagesDir,
+        framework: resolvedConfig.routeDefinitions.framework,
+        extensions: resolvedConfig.routeDefinitions.extensions,
+        site: site || undefined,
+        logger: logger.withTag('seeds/route-definitions'),
+      })
+      routeMatcher = source.matcher
+      sources.push(source)
+    }
+    catch (err) {
+      logOperationalWarn('seeds.route_definitions_wire_failed', err, {
+        pagesDir: resolvedConfig.routeDefinitions.pagesDir,
+      }, logger)
+    }
+  }
+
   const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false
     && !(Array.isArray(rawUrls) && rawUrls.length > 0)
     && !isDashboardPlaceholder
@@ -119,7 +148,7 @@ function resolveSeeds(resolvedConfig: ResolvedUserConfig, logger: Logger) {
       logOperationalWarn('seeds.sitemap_wire_failed', err, { site }, logger)
     }
   }
-  return fuseSeeds(sources)
+  return { seeds: fuseSeeds(sources), routeMatcher }
 }
 
 function toCoreConfig(resolvedConfig: ResolvedUserConfig): UnlighthouseConfig {
@@ -310,7 +339,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       const coreConfig = toCoreConfig(resolvedConfig)
       const auditor = resolveAuditor({ config: coreConfig, logger })
 
-      const seeds = resolveSeeds(resolvedConfig, logger)
+      const { seeds, routeMatcher } = resolveSeeds(resolvedConfig, logger)
 
       // noFollow (page mode / explicit urls) is decided per-scan in core's
       // orchestrate() and passed via CrawlerRunOptions — it's override-aware
@@ -322,6 +351,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         config: coreConfig,
         auditor,
         seeds,
+        routeMatcher,
         crawler,
         storage,
         packs: opts.packs,

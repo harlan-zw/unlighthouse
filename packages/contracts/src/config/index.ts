@@ -81,6 +81,20 @@ const DiscoveryOptions = z.union([
   }),
 ])
 
+// D-039: framework page-file scan → seeds + a routeName matcher. Node-only at
+// runtime (the adapter lives behind `@unlighthouse/core/seeds/route-definitions`),
+// but the config shape is contract-level so hosts can accept it. `.default()`-free
+// per D-011; imperative resolution (absolute pagesDir, framework default
+// extensions) lives in the host's `config/resolve.ts`.
+const RouteDefinitionsConfig = z.object({
+  // Directory of framework page files to scan, relative to `root` or absolute.
+  pagesDir: z.string(),
+  // File-convention framework. Determines how file paths map to route templates.
+  framework: z.enum(['nuxt', 'next']).optional(),
+  // Page file extensions (no leading dot). Defaults per framework when omitted.
+  extensions: z.array(z.string()).optional(),
+})
+
 const ScannerConfig = z.object({
   mode: z.enum(['site', 'page']).optional(),
   customSampling: z.record(z.string(), z.unknown()).optional(),
@@ -211,6 +225,7 @@ const UnlighthouseConfigSchema = z.object({
   ci: CiConfig.optional(),
   client: ClientConfig.optional(),
   discovery: DiscoveryOptions.optional(),
+  routeDefinitions: RouteDefinitionsConfig.optional(),
   scanner: ScannerConfig.optional(),
   // Lighthouse + puppeteer options pass-through; opaque to validation.
   lighthouseOptions: z.record(z.string(), z.unknown()).optional(),
@@ -263,5 +278,6 @@ export {
   ComparisonConfig,
   ComparisonThresholdKey,
   DiscoveryOptions,
+  RouteDefinitionsConfig,
   ScannerConfig,
 }

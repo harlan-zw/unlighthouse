@@ -29,6 +29,14 @@ export interface UnlighthouseCoreOptions {
   auditor: Auditor
   /** Single; may be fuseSeeds([sitemap, manual, ...]). */
   seeds: SeedSource
+  /**
+   * D-039: resolve a URL to its route template's `routeName` (template
+   * grouping). Applied at ingest to fill the `routeName` column when the
+   * auditor did not already stamp one. Supplied by the host from
+   * `seeds/route-definitions` (Node-only); absent = every row's `routeName`
+   * stays null. Must be synchronous — called once per audited route.
+   */
+  routeMatcher?: (url: string) => string | null
   /** Single; parallel-map / crawlee / cloudflare-crawl / user-supplied. */
   crawler: Crawler
   storage: Storage

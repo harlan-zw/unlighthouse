@@ -284,6 +284,24 @@ export interface DiscoveryOptions {
   supportedExtensions: string[]
 }
 
+export interface RouteDefinitionsConfig {
+  /**
+   * Directory of framework page files to scan, relative to `root` or absolute.
+   * D-039: fed to `seeds/route-definitions` (Node-only) for static seeds + a
+   * `routeName` matcher.
+   */
+  pagesDir: string
+  /**
+   * File-convention framework. Determines how file paths map to route templates.
+   * @default 'nuxt'
+   */
+  framework?: 'nuxt' | 'next'
+  /**
+   * Page file extensions (no leading dot). Defaults per framework when omitted.
+   */
+  extensions?: string[]
+}
+
 export interface ClientOptions {
   /**
    * The columns to show for each lighthouse category.
@@ -494,6 +512,12 @@ export interface ResolvedUserConfig {
    * See https://unlighthouse.dev/guide/route-definitions.html
    */
   discovery: false | DiscoveryOptions
+  /**
+   * D-039: framework page-file scan → static seeds + a `routeName` matcher.
+   * Optional; absent means no route-definition-driven seeding.
+   * @see https://unlighthouse.dev/guide/route-definitions.html
+   */
+  routeDefinitions?: RouteDefinitionsConfig
   scanner: {
     /**
      * Setup custom mappings for a regex string to a route definition.

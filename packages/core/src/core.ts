@@ -165,6 +165,7 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
       storage: opts.storage,
       auditor: opts.auditor,
       seeds: opts.seeds,
+      routeMatcher: opts.routeMatcher,
       crawler: opts.crawler,
       packs,
       hooks,
@@ -198,6 +199,7 @@ interface SessionDeps {
   storage: Storage
   auditor: UnlighthouseCoreOptions['auditor']
   seeds: UnlighthouseCoreOptions['seeds']
+  routeMatcher?: UnlighthouseCoreOptions['routeMatcher']
   crawler: UnlighthouseCoreOptions['crawler']
   hooks: Hookable<HookMap>
   logger: LoggerLike | undefined
@@ -207,7 +209,7 @@ interface SessionDeps {
 }
 
 function createSession(deps: SessionDeps): CrawlSession {
-  const { storage, auditor, seeds, crawler, hooks, userSignal, overrides } = deps
+  const { storage, auditor, seeds, routeMatcher, crawler, hooks, userSignal, overrides } = deps
 
   const scanId = generateScanId()
   const startedAt = nowIso()
@@ -407,7 +409,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     // the in-memory stats the crawl loop reports.
     async function auditOnDevice(url: string, device: 'mobile' | 'desktop'): Promise<void> {
       const { ok } = await auditRoute(
-        { auditor, storage, config: deps.config, logger: log, emit },
+        { auditor, storage, config: deps.config, logger: log, emit, routeMatcher },
         { scanId, url, device, signal },
       )
       if (ok)

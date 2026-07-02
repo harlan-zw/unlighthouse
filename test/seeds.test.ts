@@ -1,8 +1,12 @@
 import type { SeedSource } from '@unlighthouse/contracts/ports'
+import { fileURLToPath } from 'node:url'
 import { defaultConfig } from '@unlighthouse/contracts/config'
 import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
+import { routeDefinitionSeeds } from '@unlighthouse/core/seeds/route-definitions'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { extractSitemapRoutes } from '../packages/core/src/seeds/sitemap'
+
+const fixture = (p: string) => fileURLToPath(new URL(`./fixtures/route-definitions/${p}`, import.meta.url))
 
 async function collect(src: SeedSource): Promise<string[]> {
   const out: string[] = []
@@ -109,5 +113,75 @@ describe('extractSitemapRoutes', () => {
 
     expect(out.paths).toEqual(['/relative', 'https://example.com/absolute'])
     expect(out.ignored).toBe(0)
+  })
+})
+
+describe('routeDefinitionSeeds (D-039)', () => {
+  async function collectSeeds(src: SeedSource): Promise<Array<{ url: string, routeName?: string | null }>> {
+    const out: Array<{ url: string, routeName?: string | null }> = []
+    for await (const s of src.seeds())
+      out.push({ url: s.url, routeName: s.routeName })
+    return out
+  }
+
+  it('parses a Nuxt pages tree into route templates + names', async () => {
+    const src = routeDefinitionSeeds({ pagesDir: fixture('nuxt/pages'), framework: 'nuxt' })
+    const names = src.definitions.map(d => d.routeName).sort()
+    expect(names).toEqual(['about', 'blog-slug', 'index', 'users', 'users-id', 'users-id-edit'])
+  })
+
+  it('matcher resolves URLs to the right routeName (static, dynamic, nested, catch-all)', async () => {
+    const src = routeDefinitionSeeds({ pagesDir: fixture('nuxt/pages'), framework: 'nuxt' })
+    expect(src.matcher('/')).toBe('index')
+    expect(src.matcher('/about')).toBe('about')
+    expect(src.matcher('/users')).toBe('users')
+    // dynamic — a concrete id groups under the template name
+    expect(src.matcher('/users/123')).toBe('users-id')
+    expect(src.matcher('/users/abc')).toBe('users-id')
+    // nested dynamic
+    expect(src.matcher('/users/42/edit')).toBe('users-id-edit')
+    // catch-all
+    expect(src.matcher('/blog/2026/07/hello')).toBe('blog-slug')
+    // absolute URL input is normalised to its pathname
+    expect(src.matcher('https://example.com/users/7?ref=x')).toBe('users-id')
+    // unmatched
+    expect(src.matcher('/nope/nowhere')).toBeNull()
+  })
+
+  it('prefers a static route over a dynamic one of equal depth', async () => {
+    const src = routeDefinitionSeeds({ pagesDir: fixture('nuxt/pages'), framework: 'nuxt' })
+    // `/users` is static and must win over any dynamic sibling.
+    expect(src.matcher('/users')).toBe('users')
+  })
+
+  it('emits seeds only for static routes, carrying the routeName hint + site origin', async () => {
+    const src = routeDefinitionSeeds({ pagesDir: fixture('nuxt/pages'), framework: 'nuxt', site: 'https://example.com' })
+    const seeds = await collectSeeds(src)
+    // dynamic + catch-all routes are template-only (no enumerable URL)
+    expect(seeds.map(s => s.url).sort()).toEqual([
+      'https://example.com/',
+      'https://example.com/about',
+      'https://example.com/users',
+    ])
+    const about = seeds.find(s => s.url === 'https://example.com/about')
+    expect(about?.routeName).toBe('about')
+  })
+
+  it('parses a Next app-router tree, stripping route groups and layout files', async () => {
+    const src = routeDefinitionSeeds({ pagesDir: fixture('next/app'), framework: 'next' })
+    const names = src.definitions.map(d => d.routeName).sort()
+    // layout.tsx is not a page; `(marketing)` group contributes no segment.
+    expect(names).toEqual(['dashboard', 'index', 'posts-slug', 'pricing'])
+    expect(src.matcher('/')).toBe('index')
+    expect(src.matcher('/dashboard')).toBe('dashboard')
+    expect(src.matcher('/posts/my-first-post')).toBe('posts-slug')
+    expect(src.matcher('/pricing')).toBe('pricing')
+  })
+
+  it('is graceful when the pages dir is missing (yields nothing, matcher returns null)', async () => {
+    const src = routeDefinitionSeeds({ pagesDir: fixture('does-not-exist'), framework: 'nuxt' })
+    expect(src.definitions).toEqual([])
+    expect(await collectSeeds(src)).toEqual([])
+    expect(src.matcher('/anything')).toBeNull()
   })
 })

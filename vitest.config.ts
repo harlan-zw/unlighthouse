@@ -38,6 +38,7 @@ const aliasEntries = [
   ['@unlighthouse/core/report', './packages/core/src/report/index.ts'],
   ['@unlighthouse/core/comparison', './packages/core/src/comparison/index.ts'],
   ['@unlighthouse/core/seeds', './packages/core/src/seeds/index.ts'],
+  ['@unlighthouse/core/seeds/route-definitions', './packages/core/src/seeds/route-definitions.ts'],
   ['@unlighthouse/core/policies', './packages/core/src/policies/index.ts'],
   ['@unlighthouse/core/crawlers', './packages/core/src/crawlers/index.ts'],
   ['@unlighthouse/core/auditors', './packages/core/src/auditors/index.ts'],

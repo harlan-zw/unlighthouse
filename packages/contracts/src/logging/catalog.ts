@@ -36,6 +36,8 @@ export const OPERATIONAL_LOG_CATALOG = {
   'seeds.sitemap_fetch_failed': 'Sitemap seed source failed to fetch or parse sitemap routes',
   'seeds.sitemap_origin_mismatch': 'Sitemap routes were ignored because their origin differs from the configured site',
   'seeds.dynamic_sampling_applied': 'Dynamic route sampling reduced the routes that will be scanned',
+  'seeds.route_definitions_scan_failed': 'Route-definitions seed source could not scan the configured pages directory',
+  'seeds.route_definitions_wire_failed': 'Host failed to wire the route-definitions seed source during startup',
   'robots.missing': 'robots.txt could not be found or fetched for the configured site',
   'scan.reconciled_report_write_failed': 'Legacy per-route reconciled report blob write failed; required route artifacts continued',
   'scan.screenshot_extract_failed': 'Optional full-page screenshot extraction failed',

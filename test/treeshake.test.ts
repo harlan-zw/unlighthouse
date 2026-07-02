@@ -241,4 +241,19 @@ describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
       ],
     })
   })
+
+  scenario('seeds-barrel (D-039): the seeds barrel quarantines the node-only route-definitions adapter — no node:fs', async () => {
+    // The shared barrel (imported by hosts + Worker seed paths) must not drag
+    // node:fs in via the route-definitions adapter.
+    await assertGraph('seeds-barrel', {
+      mustExclude: ['node:fs'],
+    })
+    // Control: the adapter really is node-only, so the quarantine matters. If
+    // this stops including node:fs the barrel assertion above becomes vacuous.
+    const control = await analyse(fixture('seeds-route-definitions'))
+    expect(
+      contains(control, 'node:fs'),
+      'expected seeds-route-definitions bundle to include "node:fs" (node-only adapter)',
+    ).toBe(true)
+  })
 })

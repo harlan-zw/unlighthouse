@@ -23,6 +23,10 @@
       "types": "./dist/seeds/index.d.mts",
       "import": "./dist/seeds/index.mjs"
     },
+    "./seeds/route-definitions": {
+      "types": "./dist/seeds/route-definitions.d.mts",
+      "import": "./dist/seeds/route-definitions.mjs"
+    },
     "./policies": {
       "types": "./dist/policies/index.d.mts",
       "import": "./dist/policies/index.mjs"

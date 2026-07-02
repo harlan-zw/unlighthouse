@@ -117,7 +117,19 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   MAINTAINER-FLAG: `tsx` is used by the contracts build but not declared as a dep (resolves from the
   workspace store; matches the repo's existing undeclared `dev:cli` tsx usage). Declaring it a contracts
   devDep would make the publish build fully reproducible.
-- D-039 (seeds/route-definitions): pending
+- D-039 (seeds/route-definitions): done (subagent, gated by me) — new
+  `core/src/seeds/route-definitions.ts` (`routeDefinitionSeeds`): scans Nuxt/Next page files, returns
+  `{ seeds, matcher, definitions }`; static routes seeded, `matcher(url)` → routeName via
+  most-specific-first compiled regexes. Node-only, own subpath export
+  `@unlighthouse/core/seeds/route-definitions` (+ tsdown entry + vitest alias); NOT in the `./seeds`
+  barrel. Threaded a small additive `routeMatcher` seam: `UnlighthouseCoreOptions` → `RouteAuditDeps`
+  → `auditRoute` fills the EXISTING `routeName` column at ingest when the auditor left it null
+  (Cloudflare omits it → Worker rows keep null). Config: `.default()`-free `RouteDefinitionsConfig`
+  (pagesDir/framework/extensions) in contracts + mirrored on ResolvedUserConfig; host `resolveSeeds`
+  fuses it via fuseSeeds, imperative pagesDir-absolute rule in `config/resolve.ts` (D-020). New
+  treeshake scenario `seeds-barrel` (asserts the `./seeds` barrel excludes node:fs; control asserts the
+  route-definitions bundle DOES include node:fs). Tests: seeds.test.ts (+6), treeshake (+1). Gate: full
+  typecheck green.
 - D-042 (perf-score honesty under concurrency): pending
 - D-043 (local API hardening: Origin/Host, bind, /__launch, token): pending
 - D-044 (retention + history.prune + BlobStore.list): pending

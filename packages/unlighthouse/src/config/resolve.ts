@@ -268,6 +268,16 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseCon
   if (config.outputPath && !isAbsolute(config.outputPath))
     config.outputPath = resolve(root, config.outputPath)
 
+  // Rule (D-039): routeDefinitions.pagesDir → absolute under root/cwd, so the
+  // Node-only scan in `seeds/route-definitions` reads a stable path regardless
+  // of the process cwd. Core never resolves paths (D-020); the host does it here.
+  if (config.routeDefinitions?.pagesDir && !isAbsolute(config.routeDefinitions.pagesDir)) {
+    config.routeDefinitions = {
+      ...config.routeDefinitions,
+      pagesDir: resolve(root, config.routeDefinitions.pagesDir),
+    }
+  }
+
   return config as UnlighthouseConfig
 }
 

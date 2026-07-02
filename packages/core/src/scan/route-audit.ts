@@ -160,6 +160,12 @@ export interface RouteAuditDeps {
   logger?: Logger
   /** Emit hook events (must carry scanId in the payload). */
   emit: EmitFn
+  /**
+   * D-039: resolve a URL to its route template's `routeName`. Applied at ingest
+   * to fill the `routeName` column when the auditor did not already stamp one
+   * (all current adapters leave it null). Absent = `routeName` stays null.
+   */
+  routeMatcher?: (url: string) => string | null
 }
 
 export interface RouteAuditArgs {
@@ -225,6 +231,14 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
     const reportAuditors = (report as { auditors?: Record<string, string> }).auditors
     if (reportAuditor)
       metrics.auditor = reportAuditor
+
+    // D-039: resolve the route template grouping (`routeName`) from framework
+    // page definitions when the auditor did not already stamp one. This is the
+    // single ingest point that feeds the `routeName` column — the reconciled
+    // report below reads `metrics.routeName`, so setting it here propagates to
+    // the routes row and the reconciled blob alike.
+    if (deps.routeMatcher && metrics.routeName == null)
+      metrics.routeName = deps.routeMatcher(url)
 
     if (lhrGzip) {
       // Mirror `routes.ts:blobKeyFor` derivation so the blob lines up with the
