@@ -61,7 +61,7 @@ const DEFAULT_PAGE_SIZE = 50
 const DEFAULT_ROUTE_PAGE_SIZE = 100
 
 const SCAN_COLS = 'scan_id, site, device, status, started_at, completed_at, ci_branch, ci_commit, ci_commit_message, summary'
-const ROUTE_COLS = 'scan_id, url, device, path, route_name, score_performance, score_accessibility, score_seo, score_best_practices, lcp, cls, inp, fcp, ttfb, tbt, si, lighthouse_version, captured_at, lhr_blob_key'
+const ROUTE_COLS = 'scan_id, url, device, path, route_name, score_performance, score_accessibility, score_seo, score_best_practices, score_agentic_browsing, lcp, cls, inp, fcp, ttfb, tbt, si, lighthouse_version, auditor, captured_at, lhr_blob_key, report_blob_key'
 
 // Raw row shapes returned by D1.
 interface ScanRawRow {
@@ -143,6 +143,7 @@ function rowToRoute(r: RouteRawRow): ScanRoute {
     scoreAccessibility: r.score_accessibility,
     scoreSeo: r.score_seo,
     scoreBestPractices: r.score_best_practices,
+    scoreAgenticBrowsing: (r as { score_agentic_browsing?: number | null }).score_agentic_browsing ?? null,
     lcp: r.lcp,
     cls: r.cls,
     inp: r.inp,
@@ -151,6 +152,7 @@ function rowToRoute(r: RouteRawRow): ScanRoute {
     tbt: r.tbt,
     si: r.si,
     lighthouseVersion: r.lighthouse_version,
+    auditor: (r as { auditor?: string | null }).auditor ?? null,
     capturedAt: r.captured_at,
     lhrBlobKey: r.lhr_blob_key,
     reportBlobKey: (r as { report_blob_key?: string | null }).report_blob_key ?? null,
@@ -173,6 +175,12 @@ async function blobKeyFor(scanId: string, url: string, device: Device): Promise<
   // D-029: per-device blob key. Device segment is appended to the filename
   // so the same URL on mobile + desktop coexist under their own keys.
   return `scans/${scanId}/lhr/${await urlHash(url)}-${device}.json.gz`
+}
+
+// D-035/D-034: reconciled report blob key — mirrors the drizzle route repo's
+// `reportBlobKeyFor` so route.get's reconciled deep-dive resolves it on D1.
+async function reportBlobKeyFor(scanId: string, url: string, device: Device): Promise<string> {
+  return `scans/${scanId}/reports/${await urlHash(url)}-${device}.json`
 }
 
 // Translate a partial ScanInsert into (set-clause-fragment, bind-values).
@@ -391,7 +399,7 @@ function d1ScanRepository(db: D1Database): ScanRepository {
   }
 }
 
-function metricsBindings(scanId: string, device: Device, m: ExtractedMetrics, lhrBlobKey: string): unknown[] {
+function metricsBindings(scanId: string, device: Device, m: ExtractedMetrics, lhrBlobKey: string, reportBlobKey: string): unknown[] {
   return [
     scanId,
     m.url,
@@ -402,6 +410,7 @@ function metricsBindings(scanId: string, device: Device, m: ExtractedMetrics, lh
     m.scoreAccessibility,
     m.scoreSeo,
     m.scoreBestPractices,
+    m.scoreAgenticBrowsing ?? null,
     m.lcp,
     m.cls,
     m.inp,
@@ -410,12 +419,14 @@ function metricsBindings(scanId: string, device: Device, m: ExtractedMetrics, lh
     m.tbt,
     m.si,
     m.lighthouseVersion,
+    m.auditor ?? null,
     m.capturedAt,
     lhrBlobKey,
+    reportBlobKey,
   ]
 }
 
-const ROUTE_UPSERT_SQL = `INSERT INTO scan_routes (${ROUTE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+const ROUTE_UPSERT_SQL = `INSERT INTO scan_routes (${ROUTE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(scan_id, url, device) DO UPDATE SET
   path = excluded.path,
   route_name = excluded.route_name,
@@ -423,6 +434,7 @@ ON CONFLICT(scan_id, url, device) DO UPDATE SET
   score_accessibility = excluded.score_accessibility,
   score_seo = excluded.score_seo,
   score_best_practices = excluded.score_best_practices,
+  score_agentic_browsing = excluded.score_agentic_browsing,
   lcp = excluded.lcp,
   cls = excluded.cls,
   inp = excluded.inp,
@@ -431,8 +443,10 @@ ON CONFLICT(scan_id, url, device) DO UPDATE SET
   tbt = excluded.tbt,
   si = excluded.si,
   lighthouse_version = excluded.lighthouse_version,
+  auditor = excluded.auditor,
   captured_at = excluded.captured_at,
-  lhr_blob_key = excluded.lhr_blob_key`
+  lhr_blob_key = excluded.lhr_blob_key,
+  report_blob_key = excluded.report_blob_key`
 
 function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
   return {
@@ -442,7 +456,8 @@ function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
       const stmts: D1PreparedStatement[] = []
       for (const m of rows) {
         const key = await blobKeyFor(scanId, m.url, device)
-        stmts.push(db.prepare(ROUTE_UPSERT_SQL).bind(...metricsBindings(scanId, device, m, key)))
+        const reportKey = await reportBlobKeyFor(scanId, m.url, device)
+        stmts.push(db.prepare(ROUTE_UPSERT_SQL).bind(...metricsBindings(scanId, device, m, key, reportKey)))
       }
       // D1.batch is atomic (auto-wrapped in a transaction).
       await db.batch(stmts)
@@ -450,9 +465,10 @@ function d1ScanRouteRepository(db: D1Database): ScanRouteRepository {
 
     async upsert(scanId: ScanId, device: Device, row: ExtractedMetrics): Promise<void> {
       const key = await blobKeyFor(scanId, row.url, device)
+      const reportKey = await reportBlobKeyFor(scanId, row.url, device)
       await db
         .prepare(ROUTE_UPSERT_SQL)
-        .bind(...metricsBindings(scanId, device, row, key))
+        .bind(...metricsBindings(scanId, device, row, key, reportKey))
         .run()
     },
 

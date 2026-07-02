@@ -138,6 +138,17 @@ describe('d1R2Storage — Worker host command-surface parity (D-035)', () => {
     expect(out.items.map(r => r.path).sort()).toEqual(['/', '/about'])
   })
 
+  // The D1 raw-SQL route writer persists D-040 provenance + the D-034 reconciled
+  // report_blob_key, so route.get's reconciled deep-dive resolves on the Worker
+  // host (parity with the drizzle better-sqlite3 writer).
+  it('d1 route writer persists auditor + report_blob_key (D-040/D-034 parity)', async () => {
+    const out = await scanResults.run({ scanId: currentScanId, page: 1, pageSize: 100 }, ctx)
+    for (const row of out.items) {
+      expect(row.auditor).toBe('mock')
+      expect(row.reportBlobKey).toMatch(/^scans\/.+\/reports\/.+\.json$/)
+    }
+  })
+
   it('pack.run drill-in returns a cached pack report from the D1 pack_runs repo', async () => {
     const report = { schemaVersion: 1, findings: [{ id: 'x', title: 'demo' }] }
     await storage.packRuns.put({
