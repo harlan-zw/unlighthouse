@@ -26,7 +26,15 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   treeshake 7/7 incl browser-static; `nuxi generate` OK (8 routes); tests back to 589 after fixing
   test client imports + adding vitest alias for contracts/client. NOTE: full write-control gating via
   useIsStatic across components deferred (static client already rejects writes at runtime; safe).
-- D-033 (CLI = registry projection via citty): pending
+- D-033 (CLI = registry projection via citty): NOT STARTED — before-snapshot captured
+  (`.snapshots/cli-help-BEFORE.txt`, required by ground rule 5). Scoped: rewrite `cli/createCli.ts`
+  on citty (root command byte-identical to the cac flags above); new `cli/project.ts`
+  (`projectCliCommands` + `cittyFlagsFor(zodSchema)`); new `cli/agent-mode.ts` (NDJSON, `$schema`,
+  exit codes from `cmd.exitCodes`); `cli/reporters/{ndjson,agent-summary}.ts`; three-leg parity test.
+  GUARDRAIL to fold in: convert plain `Error` throws in `core/src/auditors/route/index.ts` (~lines
+  76,106,157) to `UnlighthouseError` (`NOT_SUPPORTED` / new `NO_AUDITOR_AVAILABLE`) so exit-code
+  mapping has typed codes. Tripwire: cac→citty parsing parity for `--no-cache`, comma-list flags
+  (`--device`, `--urls`), dot-notation. Left for a fresh session per the handoff's per-decision note.
 - D-040 (per-row auditor provenance + sample pinning): pending
 - D-041 (splitCategoriesAuditor): pending
 - D-034 (reconciled-report reader cutover): pending

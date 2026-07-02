@@ -1,0 +1,44 @@
+unlighthouse/0.17.7
+
+Usage:
+  $ unlighthouse <command> [options]
+
+Options:
+  -h, --help                                     Display this message 
+  -v, --version                                  Display version number 
+  --root <root>                                  Define the project root. Useful for changing where the config is read from or setting up sampling. 
+  --config-file <config-file>                    Path to config file. 
+  --output-path <output-path>                    Path to save the contents of the client and reports to. 
+  --no-cache                                     Disable the caching. (default: true)
+  --cache                                        Enable the caching. 
+  --desktop                                      Simulate device as desktop. 
+  --mobile                                       Simulate device as mobile. 
+  --device <devices>                             Devices to audit (comma-separated): `mobile`, `desktop`, or `mobile,desktop`. 
+  --site <site>                                  Host URL to scan. 
+  --user-agent <user-agent>                      Specify a top-level user agent all requests will use. 
+  --router-prefix <site>                         The URL path prefix for the client and API to run from. 
+  --sitemaps <sitemaps>                          Comma separated list of sitemaps to use for scanning. Providing these will override any in robots.txt. 
+  --samples <samples>                            Specify the amount of samples to run. 
+  --throttle                                     Enable the throttling 
+  --enable-javascript                            When inspecting the HTML wait for the javascript to execute. Useful for SPAs. 
+  --disable-javascript                           When inspecting the HTML, don't wait for the javascript to execute. 
+  --enable-i18n-pages                            Scan localized (i18n) duplicate pages too, instead of skipping them. 
+  --disable-i18n-pages                           Skip localized duplicates: pages whose x-default alternate link points to a different URL (default). 
+  --urls <urls>                                  Specify explicit relative paths to scan as a comma-separated list, disabling the link crawler. 
+  --exclude-urls <urls>                          Relative paths (string or regex) to exclude as a comma-separated list. 
+  --include-urls <urls>                          Relative paths (string or regex) to include as a comma-separated list. 
+  --disable-robots-txt                           Disables the robots.txt crawling. 
+  --disable-sitemap                              Disables the sitemap.xml crawling. 
+  --disable-dynamic-sampling                     Disables the sampling of paths. 
+  --extra-headers <extra-headers>                Extra headers to send with the request. Example: --extra-headers foo=bar,bar=foo 
+  --cookies <cookies>                            Cookies to send with the request. Example: --cookies foo=bar;bar=foo 
+  --auth <auth>                                  Basic auth to send with the request. Example: --auth username:password 
+  --default-query-params <default-query-params>  Default query params to send with the request. Example: --default-query-params foo=bar,bar=foo 
+  -d, --debug                                    Debug. Enable debugging in the logger. 
+  --history                                      Start the UI in history-only mode without running a scan. 
+  --assert                                       Evaluate CI assertions after scan. Exit with code 1 on failure. 
+
+Examples:
+unlighthouse --site unlighthouse.dev
+unlighthouse --site unlighthouse.dev --urls /guide,/api,/glossary --desktop
+unlighthouse --site unlighthouse.dev --device mobile,desktop
