@@ -16,9 +16,12 @@
  *
  * Worker files import from `./audit-pool/worker`.
  */
+export { resolveMaxThreads } from './defaults'
 export { defineTask } from './define'
 export { clearQueue, destroy, drain, getStats, resetStats, runTask } from './operations'
 export { createAuditPool } from './pool'
+export { createSerialLane } from './serial-lane'
+export type { SerialLane } from './serial-lane'
 export type {
   AuditPool,
   AuditPoolHooks,

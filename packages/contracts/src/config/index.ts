@@ -105,6 +105,17 @@ const ScannerConfig = z.object({
   skipJavascript: z.boolean().optional(),
   samples: z.number().int().min(1).max(10).optional(),
   throttle: z.boolean().optional(),
+  /**
+   * D-042: how perf-category audits share the local audit pool.
+   * - `serial` (imperative default): perf audits run one-at-a-time even when the
+   *   pool has >1 worker, so CPU contention never contaminates TBT/LCP/SI.
+   *   Non-perf categories still sweep in parallel (via the split auditor).
+   * - `parallel`: keep perf audits parallel for throughput; the local auditor
+   *   then reports `reliablePerfScores: false` (contended scores are not
+   *   trustworthy). It is impossible to have parallel perf AND reliable scores.
+   * Default lives in the local auditor (D-020: no schema `.default()`).
+   */
+  perfConcurrency: z.enum(['serial', 'parallel']).optional(),
   crawler: z.boolean().optional(),
   dynamicSampling: z.union([z.number().int().positive(), z.literal(false)]).optional(),
   sitemap: z.union([z.boolean(), z.array(z.string())]).optional(),

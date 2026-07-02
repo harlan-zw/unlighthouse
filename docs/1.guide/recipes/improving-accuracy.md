@@ -51,19 +51,38 @@ export default defineUnlighthouseConfig({
 Use `samples: 3` for development, `samples: 5` for CI/production audits.
 ::
 
-## Reduce Parallel Scans
+::warning
+Samples do not fix CPU contention. Running many audits in parallel contends for CPU, so every sample of a contended run is contaminated the same way, and the median converges on a contended median. See [Concurrency and perf scores](#concurrency-and-perf-scores) below.
+::
 
-Limit concurrent workers to reduce CPU contention and improve score consistency:
+## Concurrency and Perf Scores
+
+Unlighthouse runs several audits in parallel (up to about half your CPU cores) to finish scans faster. Concurrent audits compete for CPU, which inflates timing-sensitive metrics (Total Blocking Time, Largest Contentful Paint, Speed Index). This is why lighthouse-ci runs serially.
+
+By default, Unlighthouse protects perf scores from this: **performance audits run one at a time (a serial lane), while non-performance categories keep sweeping in parallel.** You get trustworthy perf scores without serializing the whole scan.
+
+The behaviour is controlled by `scanner.perfConcurrency`:
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
 export default defineUnlighthouseConfig({
-  puppeteerClusterOptions: {
-    maxConcurrency: 1, // Single worker for maximum accuracy
+  scanner: {
+    // 'serial' (default): perf audits run one-at-a-time; scores stay trustworthy.
+    // 'parallel': perf audits run concurrently for speed; scores are no longer
+    //             reliable, and the report is flagged as such.
+    perfConcurrency: 'serial',
   },
 })
 ```
+
+When you set `perfConcurrency: 'parallel'`, the local auditor reports `reliablePerfScores: false`: it will never claim contended perf scores are trustworthy. Use `parallel` only when you care about accessibility/SEO/best-practices coverage and treat perf numbers as indicative.
+
+::tip
+Pair `perfConcurrency: 'serial'` with the category-split auditor to run accessibility, SEO, and best-practices in parallel while performance sweeps serially, getting a fast scan and trustworthy perf scores at once.
+::
+
+Each stored report records the effective concurrency it ran under (`provenance.concurrency`), so historical rows stay interpretable: a value of `1` means the audit ran uncontended.
 
 ## Enable Throttling
 

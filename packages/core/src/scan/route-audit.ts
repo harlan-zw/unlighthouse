@@ -229,6 +229,10 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
     // splitCategoriesAuditor (D-041) when categories diverged.
     const reportAuditor = (report as { auditor?: string }).auditor
     const reportAuditors = (report as { auditors?: Record<string, string> }).auditors
+    // D-042: effective pool concurrency the audit ran under (1 when the perf
+    // serial lane was active). Stamped into the reconciled report's provenance
+    // so historical rows record whether the perf score was contended.
+    const reportConcurrency = (report as { concurrency?: number }).concurrency
     if (reportAuditor)
       metrics.auditor = reportAuditor
 
@@ -306,7 +310,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       }
       const { reconcileToContract } = await import('../report/extract')
       const lhr = lhrCache ?? JSON.parse(gunzipToString(lhrGzip))
-      const contract = reconcileToContract({ scanId, url, device, lhr: lhr as LighthouseResult, auditor: reportAuditor, auditors: reportAuditors })
+      const contract = reconcileToContract({ scanId, url, device, lhr: lhr as LighthouseResult, auditor: reportAuditor, auditors: reportAuditors, concurrency: reportConcurrency })
       const contractBytes = new TextEncoder().encode(JSON.stringify(contract))
       await storage.blobs.put(contractKey, contractBytes).catch((err) => {
         throw new UnlighthouseError({

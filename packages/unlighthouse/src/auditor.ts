@@ -75,6 +75,9 @@ function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Aud
             }
           : undefined,
         logger,
+        // D-042: serial perf lane by default; `parallel` opts into contended
+        // perf and flips `reliablePerfScores` false inside the auditor.
+        perfConcurrency: opts.config.scanner?.perfConcurrency,
       })
     }
     case 'psi':

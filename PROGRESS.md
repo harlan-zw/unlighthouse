@@ -130,7 +130,28 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   treeshake scenario `seeds-barrel` (asserts the `./seeds` barrel excludes node:fs; control asserts the
   route-definitions bundle DOES include node:fs). Tests: seeds.test.ts (+6), treeshake (+1). Gate: full
   typecheck green.
-- D-042 (perf-score honesty under concurrency): pending
+- D-042 (perf-score honesty under concurrency): done — serial perf lane (option a),
+  implemented as a driver-side gate over pool dispatch. New `audit-pool/serial-lane.ts`
+  (`createSerialLane`, pure tail-chaining mutex) + exported `resolveMaxThreads` from
+  `audit-pool/defaults.ts`. `createLocalAuditor` computes capabilities + effective
+  concurrency at construction: `reliablePerfScores = !(parallelPerf && maxThreads>1)` so
+  parallel-perf + reliable can NEVER co-occur. Per audit: perf-including calls
+  (onlyCategories absent/empty OR contains 'performance') route through `perfLane` when
+  `maxThreads>1` and mode is serial; non-perf dispatch direct → parallel. Under a combined
+  (non-split) scan every call includes perf so the whole scan serializes; with the D-041
+  split auditor perf serializes while a11y/seo sweep parallel. Effective concurrency
+  (1 when serial-laned, else maxThreads) stamped onto `report.concurrency`; route-audit
+  threads it into `reconcileToContract({ concurrency })` → provenance. Config knob
+  `scanner.perfConcurrency: 'serial'|'parallel'` (contracts, `.default()`-free; imperative
+  serial default lives in the auditor per D-020); wired via host `auditor.ts`. Docs:
+  concurrency section + samples cross-ref note in `recipes/improving-accuracy.md`. Test
+  `test/audit-pool-perf-lane.test.ts` (6, injected pool runner, no Chrome): serialize by
+  default, all-categories treated as perf, non-perf parallel, parallel-mode flips
+  reliablePerfScores false + overlaps, 1-thread stays reliable, concurrency stamp.
+  Gate: typecheck green (contracts/core/unlighthouse); targeted tests 51/51 (+treeshake/
+  core/handlers/errors 65/65). NOTE: the doc's older "Reduce Parallel Scans" section still
+  references the v0 `puppeteerClusterOptions.maxConcurrency` shape — left untouched (out of
+  D-042 scope), flag for a v0-residue cleanup pass.
 - D-043 (local API hardening: Origin/Host, bind, /__launch, token): pending
 - D-044 (retention + history.prune + BlobStore.list): pending
 - Docs follow-through (ARCHITECTURE.md, v1.md log, GAPS.md closures): pending
