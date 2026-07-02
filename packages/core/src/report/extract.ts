@@ -206,6 +206,7 @@ interface ContractAuditFinding {
   id: string
   score: number | null
   scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
+  numericValue: number | null
   displayValue: string | null
   title: string | null
   description: string | null
@@ -465,6 +466,7 @@ export function reconcileToContract(args: {
     const aa = a as {
       score?: number | null
       scoreDisplayMode?: string
+      numericValue?: number
       displayValue?: string
       title?: string
       description?: string
@@ -500,6 +502,7 @@ export function reconcileToContract(args: {
       id,
       score: aa?.score ?? null,
       scoreDisplayMode: mode,
+      numericValue: typeof aa?.numericValue === 'number' ? aa.numericValue : null,
       displayValue: aa?.displayValue ?? null,
       title: typeof aa?.title === 'string' ? aa.title : null,
       description: typeof aa?.description === 'string' ? aa.description : null,

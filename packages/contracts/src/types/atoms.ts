@@ -231,6 +231,12 @@ const AuditFindingSchema = z.object({
   // 0..1 score. `null` for manual / notApplicable audits.
   score: z.number().nullable(),
   scoreDisplayMode: z.enum(['numeric', 'binary', 'informative', 'manual', 'notApplicable']),
+  // D-034: raw numeric value for `numeric` audits (ms for timing audits, bytes,
+  // etc.). Version-stable — it is the measurement, not a derived score — so it
+  // does not compromise the reconciled report's LH-version resilience. Lets the
+  // CI reporters read metric columns from the reconciled report instead of the
+  // raw LHR. Absent/nullish for non-numeric audits.
+  numericValue: z.number().nullish(),
   displayValue: z.string().nullable(),
   // Human-facing label from the LHR ("Document has a `<title>` element").
   title: z.string().nullable(),

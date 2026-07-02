@@ -4,9 +4,9 @@ import type { CiOptions, UnlighthouseRouteReport } from './types'
 import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { gunzipSync } from 'node:zlib'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
+import { parseRouteContract, routeContractBlobKey } from '@unlighthouse/core/report'
 import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
@@ -25,36 +25,6 @@ cli
   .option('--compare-output <path>', 'When using --compare, write a Markdown summary of the diff to this path (suitable for PR comments).')
 
 const { options } = cli.parse() as unknown as { options: CiOptions }
-
-interface RawLighthouseCategory {
-  id?: string
-  title?: string
-  score?: number | null
-  categoryScoreDisplayMode?: 'gauge' | 'fraction'
-}
-
-interface RawLighthousePayload {
-  categories?: Record<string, RawLighthouseCategory>
-  audits?: Record<string, LighthouseReportAudit>
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-function parseLighthousePayload(gzipped: Uint8Array): RawLighthousePayload {
-  const parsed = JSON.parse(gunzipSync(gzipped).toString()) as unknown
-  if (!isRecord(parsed))
-    return {}
-  return {
-    categories: isRecord(parsed.categories)
-      ? parsed.categories as Record<string, RawLighthouseCategory>
-      : undefined,
-    audits: isRecord(parsed.audits)
-      ? parsed.audits as Record<string, LighthouseReportAudit>
-      : undefined,
-  }
-}
 
 function reportRouteFor(row: { path: string, url: string }): UnlighthouseRouteReport['route'] {
   return {
@@ -135,14 +105,20 @@ async function run() {
       ? items.filter(r => exportDeviceFilter.has(r.device as Device))
       : items
     const hydrated = await Promise.all(filtered.map(async (r) => {
-      const gz = r.lhrBlobKey ? await unlighthouse.handlerCtx.storage.blobs.get(r.lhrBlobKey) : null
-      if (!gz)
+      // D-034: read the reconciled report (the LH-version-isolated projection),
+      // not the raw LHR. `categories` (score + display mode) and `audits`
+      // (score / scoreDisplayMode / numericValue / displayValue) are all the
+      // reporters need; category `id`/`title` fall back to the key and audit
+      // `numericUnit` is dropped (the expected lossy fields — Step G).
+      const contractKey = routeContractBlobKey(r)
+      const blob = contractKey ? await unlighthouse.handlerCtx.storage.blobs.get(contractKey) : null
+      const contract = blob ? parseRouteContract(blob) : null
+      if (!contract)
         return null
-      const lhr = parseLighthousePayload(gz)
-      const categoriesArr: LighthouseReportCategory[] = Object.entries(lhr.categories ?? {}).map(([key, c]) => ({
+      const categoriesArr: LighthouseReportCategory[] = Object.entries(contract.categories).map(([key, c]) => ({
         key,
-        id: c.id ?? key,
-        title: c.title ?? key,
+        id: key,
+        title: key,
         score: c.score ?? null,
         categoryScoreDisplayMode: c.categoryScoreDisplayMode ?? 'gauge',
       }))
@@ -160,7 +136,7 @@ async function run() {
         report: {
           score: scoreAverage,
           categories: categoriesArr,
-          audits: lhr.audits ?? {},
+          audits: contract.audits as unknown as Record<string, LighthouseReportAudit>,
           computed: {
             imageIssues: emptyComputedAudit,
             ariaIssues: emptyComputedAudit,

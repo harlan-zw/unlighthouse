@@ -8,6 +8,7 @@
 import type { Storage } from '@unlighthouse/contracts'
 
 export { decompressLhr, extractRouteData, reconcileRoute, reconcileToContract } from './extract'
+export { parseRouteContract, type RouteContract, routeContractBlobKey, routeContractBlobKeyForReport } from './route-contracts'
 export * from './types'
 
 export interface ProcessScanDataOptions {

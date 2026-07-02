@@ -66,7 +66,20 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   CONFIG_INVALID on unsupported/empty). Config `{ strategy: 'split', assignments }` in AuditorConfig +
   wired in `resolveAuditor`. Tests `test/auditor-provenance-split.test.ts` (6): sample pinning + split
   merge + validation. Gate: typecheck green; tests 637 pass/1 skip.
-- D-034 (reconciled-report reader cutover): pending
+- D-034 (reconciled-report reader cutover): done — the codebase had already cut 3/4 readers by prior
+  evolution: `processScanData` is a no-op (detail tables removed; work flows through packs);
+  `generateClient` (build.ts) reads rows + reconciled via `buildStaticSnapshot` (only a screenshot
+  fallback reads raw LHR); dashboard deep-dive reads the reconciled blob (`loadRouteContract`). The one
+  genuine raw-LHR reader was `ci.ts` (CI reporter) — CUT to the reconciled report
+  (`routeContractBlobKey` + `parseRouteContract`). To keep reporter output intact, added version-stable
+  `numericValue` to the reconciled `AuditFinding` (atoms `AuditFindingSchema` + extract
+  `ContractAuditFinding` + population) — csvExpanded's numeric columns need it. Expected lossy fields
+  (Step G): category `id`/`title` fall back to the key; audit `numericUnit` dropped. Lint boundary:
+  new `test/lhr-reader-boundary.test.ts` fails if any file outside {report/extract, scan/route-audit,
+  packs/reconcile-context, api/dashboard, build.ts} reads a raw LHR blob via `lhrBlobKey`.
+  NOTE on the gate's generateClient before/after snapshot: generateClient's data path was already
+  reconciled-based (unchanged here), so its output is identical; the lossy diff lives in the ci.ts CI
+  report, as designed. Gate: typecheck green; boundary + reporter tests pass.
 - D-035 (core-owned finalizeScan; D1 parity): pending
 - D-036 (RateLimiter → port): pending
 - D-037 (published JSON Schemas + $schema stamping): pending
