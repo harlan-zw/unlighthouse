@@ -66,6 +66,7 @@ export const STATIC_SNAPSHOT_PACKS = [
   'seo-basics',
   'a11y-quick-wins',
   'js-bundle',
+  'best-practices',
   'agentic-browsing',
   'crux',
   'overview',

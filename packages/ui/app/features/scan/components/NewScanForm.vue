@@ -34,9 +34,9 @@ const loading = ref(false)
 //   contract max (we cap the UI lower than the contract's 10 because
 //   the dashboard is for ad-hoc audits, not benchmark suites).
 //
-  //   categories: subset of `performance | accessibility | seo |
-  //   best-practices | agentic-browsing`. Empty = run all default
-  //   Lighthouse categories. Selecting a subset cuts audit
+//   categories: subset of `performance | accessibility | seo |
+//   best-practices | agentic-browsing`. Empty = run all default
+//   Lighthouse categories. Selecting a subset cuts audit
 //   time roughly proportional to the omitted categories.
 //
 //   ciBuild: the only reason to fill this from the dashboard is when
@@ -257,7 +257,7 @@ async function handleSubmit() {
 
       <div class="flex items-center gap-3 pt-2">
         <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading || !siteUrl.trim()" icon="radar" class="flex-1 sm:flex-none">
-          Start Scan
+          Start scan
         </UiButton>
         <UiButton v-if="!hideCancel" type="button" purpose="secondary" @click="router.push(cancelTo)">
           Cancel

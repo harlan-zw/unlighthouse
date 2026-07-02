@@ -18,59 +18,113 @@ import { describe, expect, it } from 'vitest'
 const LOCAL = 'http://localhost:5678'
 const SITE = 'https://example.com'
 
+// Default the local posture to trusting loopback origins (the CLI default);
+// individual tests override trustLoopbackOrigin to exercise the locked-down path.
+function chk(input: Partial<Parameters<typeof checkApiOrigin>[0]> & Pick<Parameters<typeof checkApiOrigin>[0], 'host' | 'origin' | 'referer'>) {
+  return checkApiOrigin({ siteOrigin: null, exposed: false, trustLoopbackOrigin: true, ...input })
+}
+
 describe('checkApiOrigin — enumerated allow/reject rules', () => {
   it('allows no Origin + no Referer (non-browser client: curl / CI)', () => {
-    const d = checkApiOrigin({ host: 'localhost:5678', origin: null, referer: null, siteOrigin: SITE, exposed: false })
+    const d = chk({ host: 'localhost:5678', origin: null, referer: null, siteOrigin: SITE, exposed: false })
     expect(d._tag).toBe('allow')
   })
 
   it('allows same-origin (Origin host === Host)', () => {
-    const d = checkApiOrigin({ host: 'localhost:5678', origin: LOCAL, referer: null, siteOrigin: null, exposed: false })
+    const d = chk({ host: 'localhost:5678', origin: LOCAL, referer: null, siteOrigin: null, exposed: false })
     expect(d._tag).toBe('allow')
     expect(d.reason).toBe('same-origin')
   })
 
   it('allows the configured site origin (embedding)', () => {
-    const d = checkApiOrigin({ host: 'localhost:5678', origin: SITE, referer: null, siteOrigin: SITE, exposed: false })
+    const d = chk({ host: 'localhost:5678', origin: SITE, referer: null, siteOrigin: SITE, exposed: false })
     expect(d._tag).toBe('allow')
     expect(d.reason).toBe('configured site origin')
   })
 
   it('rejects a cross-origin request (CSRF)', () => {
-    const d = checkApiOrigin({ host: 'localhost:5678', origin: 'http://evil.com', referer: null, siteOrigin: SITE, exposed: false })
+    const d = chk({ host: 'localhost:5678', origin: 'http://evil.com', referer: null, siteOrigin: SITE, exposed: false })
+    expect(d._tag).toBe('reject')
+  })
+
+  it('allows a loopback origin on a different port (UI dev server)', () => {
+    const d = chk({ host: 'localhost:5678', origin: 'http://localhost:3002', referer: null, siteOrigin: null, exposed: false })
+    expect(d).toEqual({ _tag: 'allow', reason: 'loopback origin' })
+  })
+
+  it('allows a 127.0.0.1 alias origin of a localhost-hosted dashboard', () => {
+    const d = chk({ host: 'localhost:5678', origin: 'http://127.0.0.1:5678', referer: null, siteOrigin: null, exposed: false })
+    expect(d._tag).toBe('allow')
+  })
+
+  it('rejects a loopback origin when the deployment is locked down (token / pinned CORS)', () => {
+    // A cross-port local page passes in the default posture but must NOT once
+    // the operator sets a token or pins CORS origins.
+    const locked = chk({ host: 'localhost:5678', origin: 'http://localhost:3002', trustLoopbackOrigin: false })
+    expect(locked._tag).toBe('reject')
+    // Same-origin and the configured site origin still pass when locked down.
+    expect(chk({ host: 'localhost:5678', origin: LOCAL, trustLoopbackOrigin: false })._tag).toBe('allow')
+    expect(chk({ host: 'localhost:5678', origin: SITE, siteOrigin: SITE, trustLoopbackOrigin: false }).reason).toBe('configured site origin')
+  })
+
+  it('still rejects a rebinding page Origin (attacker hostname is never loopback)', () => {
+    // Host header carries the loopback value, but the page's Origin keeps the
+    // attacker hostname the browser loaded it from.
+    const d = chk({ host: 'localhost:5678', origin: 'http://attacker.example', referer: null, siteOrigin: null, exposed: false })
+    expect(d._tag).toBe('reject')
+  })
+
+  it('rejects a registrable domain that merely starts with `127.` (not a loopback literal)', () => {
+    // `127.example.com` textually starts with `127.` but is an attacker-owned
+    // domain; the loopback allowance must not accept it as an Origin.
+    expect(isLoopbackHostname('127.example.com')).toBe(false)
+    const d = chk({ host: 'localhost:5678', origin: 'http://127.example.com', referer: null, siteOrigin: null, exposed: false })
+    expect(d._tag).toBe('reject')
+  })
+
+  it('accepts a full 127.0.0.0/8 literal but rejects out-of-range octets', () => {
+    expect(isLoopbackHostname('127.3.2.1')).toBe(true)
+    expect(isLoopbackHostname('127.0.0.999')).toBe(false)
+    expect(isLoopbackHostname('1270.0.0.1')).toBe(false)
+  })
+
+  it('rejects an opaque `null` Origin (sandboxed iframe / file: CSRF vector)', () => {
+    // A sandboxed iframe or file: page sends the literal string `null`; that is
+    // a browser hiding its origin, not an absent-Origin non-browser client.
+    const d = chk({ host: 'localhost:5678', origin: 'null', referer: null, siteOrigin: null, exposed: false })
     expect(d._tag).toBe('reject')
   })
 
   it('rejects an untrusted Host on a loopback bind (DNS-rebinding)', () => {
     // attacker.example resolved to 127.0.0.1; Origin === Host would read as
     // same-origin, but the Host itself is untrusted → reject.
-    const d = checkApiOrigin({ host: 'attacker.example', origin: 'http://attacker.example', referer: null, siteOrigin: SITE, exposed: false })
+    const d = chk({ host: 'attacker.example', origin: 'http://attacker.example', referer: null, siteOrigin: SITE, exposed: false })
     expect(d._tag).toBe('reject')
     expect(d.reason).toContain('untrusted Host')
   })
 
   it('falls back to the Referer when Origin is absent (cross-origin → reject)', () => {
-    const d = checkApiOrigin({ host: 'localhost:5678', origin: null, referer: 'http://evil.com/page', siteOrigin: null, exposed: false })
+    const d = chk({ host: 'localhost:5678', origin: null, referer: 'http://evil.com/page', siteOrigin: null, exposed: false })
     expect(d._tag).toBe('reject')
   })
 
   it('falls back to the Referer when Origin is absent (same-origin → allow)', () => {
-    const d = checkApiOrigin({ host: 'localhost:5678', origin: null, referer: `${LOCAL}/dashboard`, siteOrigin: null, exposed: false })
+    const d = chk({ host: 'localhost:5678', origin: null, referer: `${LOCAL}/dashboard`, siteOrigin: null, exposed: false })
     expect(d._tag).toBe('allow')
   })
 
   it('relaxes the Host check when explicitly exposed, but still rejects cross-origin', () => {
     // exposed=true (--host 0.0.0.0): a LAN/tunnel Host is accepted...
-    const lan = checkApiOrigin({ host: '192.168.1.20:5678', origin: 'http://192.168.1.20:5678', referer: null, siteOrigin: null, exposed: true })
+    const lan = chk({ host: '192.168.1.20:5678', origin: 'http://192.168.1.20:5678', referer: null, siteOrigin: null, exposed: true })
     expect(lan._tag).toBe('allow')
     // ...but a genuinely cross-origin request is still rejected.
-    const xo = checkApiOrigin({ host: '192.168.1.20:5678', origin: 'http://evil.com', referer: null, siteOrigin: null, exposed: true })
+    const xo = chk({ host: '192.168.1.20:5678', origin: 'http://evil.com', referer: null, siteOrigin: null, exposed: true })
     expect(xo._tag).toBe('reject')
   })
 
   it('accepts 127.0.0.1 and ::1 loopback Hosts', () => {
-    expect(checkApiOrigin({ host: '127.0.0.1:5678', origin: 'http://127.0.0.1:5678', referer: null, siteOrigin: null, exposed: false })._tag).toBe('allow')
-    expect(checkApiOrigin({ host: '[::1]:5678', origin: 'http://[::1]:5678', referer: null, siteOrigin: null, exposed: false })._tag).toBe('allow')
+    expect(chk({ host: '127.0.0.1:5678', origin: 'http://127.0.0.1:5678', referer: null, siteOrigin: null, exposed: false })._tag).toBe('allow')
+    expect(chk({ host: '[::1]:5678', origin: 'http://[::1]:5678', referer: null, siteOrigin: null, exposed: false })._tag).toBe('allow')
   })
 })
 

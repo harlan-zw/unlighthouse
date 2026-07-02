@@ -17,7 +17,9 @@
 // audits are kept but bucketed minor.
 
 import type { A11yFinding, A11yReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { A11yReportSchema } from '@unlighthouse/contracts/packs'
+import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -119,12 +121,12 @@ interface RouteView {
   audits: Map<string, RouteViewAudit>
 }
 
-async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteView | null> {
+async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx): Promise<RouteView | null> {
   // Prefer reconciled. Returns null on miss so we drop through to the LHR
   // path — keeps older scans working without re-ingesting them.
   if (ctx.getReconciled) {
-    const reconciled = await ctx.getReconciled(url, 'mobile').catch((err) => {
-      ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load reconciled report for ${url} [mobile]`, err)
+    const reconciled = await ctx.getReconciled(url, device).catch((err) => {
+      ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load reconciled report for ${url} [${device}]`, err)
       return null
     }) as
     | {
@@ -173,8 +175,8 @@ async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteV
   }
   // LHR fallback.
   if (ctx.getLhr) {
-    const lhr = await ctx.getLhr(url, 'mobile').catch((err) => {
-      ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load LHR for ${url} [mobile]`, err)
+    const lhr = await ctx.getLhr(url, device).catch((err) => {
+      ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load LHR for ${url} [${device}]`, err)
       return null
     }) as LhrLike | null
     if (!lhr?.audits || !lhr.categories?.accessibility?.auditRefs)
@@ -219,8 +221,8 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
   const findings = new Map<string, RawFinding>()
   let routesAnalysed = 0
 
-  for (const row of ctx.routes) {
-    const view = await loadRouteView(row.url, ctx)
+  for (const { url, device } of resolveDistinctPackRoutes(ctx.routes)) {
+    const view = await loadRouteView(url, device, ctx)
     if (!view)
       continue
     routesAnalysed++
@@ -245,15 +247,15 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
         const selector = it.selector ?? '(no selector)'
         const existing = finding.elements.get(selector)
         if (existing) {
-          existing.routes.add(row.url)
+          existing.routes.add(url)
         }
         else {
           finding.elements.set(selector, {
             selector,
             snippet: it.snippet,
             nodeLabel: it.nodeLabel,
-            firstSeenOn: row.url,
-            routes: new Set([row.url]),
+            firstSeenOn: url,
+            routes: new Set([url]),
           })
         }
       }
@@ -332,4 +334,5 @@ export const a11yQuickWinsPack: Pack<A11yReport> = {
   ],
   reconciler: reconcile,
   reportSchema: A11yReportSchema,
+  ui: { tab: 'Accessibility', icon: 'accessibility' },
 }

@@ -1,6 +1,6 @@
 import type { PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { BlobStore } from '@unlighthouse/contracts/ports'
-import type { ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { Device, ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import { gunzipSync } from 'fflate'
 import { loadRouteContract } from '../report/route-contracts'
 
@@ -62,4 +62,48 @@ export function createPackReconcileCtx(opts: CreatePackReconcileCtxOptions): Pac
     },
     logger: opts.logger,
   }
+}
+
+export interface ResolvedPackRoute {
+  url: string
+  device: Device
+}
+
+// `ctx.routes` carries one row per (url, device) — a `--device
+// mobile,desktop` scan produces a mobile row AND a desktop row per URL. Pack
+// reports are site-wide summaries over distinct URLs, not per-device rows,
+// so every reconciler needs to fold multi-device rows down to one row per
+// URL before it fetches/accumulates anything. Looping `ctx.routes` directly
+// and reading a hardcoded device double-counts routes and mis-reads (or
+// drops) URLs that don't have that device.
+//
+// Device selection: prefer 'mobile' when the URL has a mobile row (mobile is
+// the default emulation and matches historical single-device behaviour, so
+// mobile-only scans see no change), otherwise fall back to whichever device
+// the URL actually has data for (so desktop-only URLs get read correctly
+// instead of dropped or misread against a mobile-only fetch).
+export function resolveDistinctPackRoutes(routes: ScanRoute[]): ResolvedPackRoute[] {
+  return resolveDistinctPackRows(routes).map(({ url, device }) => ({ url, device }))
+}
+
+// Same fold as `resolveDistinctPackRoutes`, but returns the picked `ScanRoute`
+// itself (mobile-preferred) so a reconciler that reads the row's metric columns
+// (e.g. the CWV p75 distribution) computes over one row per URL instead of
+// doubling every metric across the mobile+desktop rows.
+export function resolveDistinctPackRows(routes: ScanRoute[]): ScanRoute[] {
+  const rowsByUrl = new Map<string, Map<Device, ScanRoute>>()
+  const urlOrder: string[] = []
+  for (const route of routes) {
+    let byDevice = rowsByUrl.get(route.url)
+    if (!byDevice) {
+      byDevice = new Map()
+      rowsByUrl.set(route.url, byDevice)
+      urlOrder.push(route.url)
+    }
+    byDevice.set(route.device, route)
+  }
+  return urlOrder.map((url) => {
+    const byDevice = rowsByUrl.get(url)!
+    return byDevice.get('mobile') ?? [...byDevice.values()][0]!
+  })
 }

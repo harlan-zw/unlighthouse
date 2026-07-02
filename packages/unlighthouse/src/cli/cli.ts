@@ -257,7 +257,12 @@ async function runRoot(options: CliOptions) {
       log.debug?.('Site row create skipped before opening scan landing page', err)
       return null
     })
-    scanLandingUrl = joinURL(unlighthouse.runtimeSettings.clientUrl, `/sites/${siteId}/scan/${scanId}`)
+    // The UI's `[siteId]` route param is a hostname slug (see
+    // packages/ui/app/utils/site.ts `siteSlug`), not the encoded-origin id
+    // used as the storage primary key above: use the hostname here so the
+    // opened URL actually resolves. Landing route is plural `/scans/{id}`;
+    // that page redirects by scan status.
+    scanLandingUrl = joinURL(unlighthouse.runtimeSettings.clientUrl, `/sites/${parsedUrl.hostname}/scans/${scanId}`)
   }
 
   unlighthouse.hooks.hook('scan:complete', async (payload) => {

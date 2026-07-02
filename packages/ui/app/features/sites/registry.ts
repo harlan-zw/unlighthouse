@@ -9,11 +9,6 @@ export interface Site {
   createdAt: string
 }
 
-interface SiteBucket {
-  name: string
-  items: Site[]
-}
-
 function normalizeSiteUrl(value: string): string {
   const url = value.trim()
   if (url.startsWith('http://') || url.startsWith('https://'))
@@ -24,7 +19,10 @@ function normalizeSiteUrl(value: string): string {
 export function useSitesRegistry() {
   const router = useRouter()
 
-  const { data: sitesData, error: sitesError, refresh } = useApiQuery('sites.list', () => ({}))
+  // Site-list read for `groupSuggestions` only. The merged Sites home page
+  // (features/sites/home.ts) owns the row-level `sites.list` read; nuxt-use-query
+  // dedupes both against the same cache key.
+  const { data: sitesData } = useApiQuery('sites.list', () => ({}))
 
   // Both write paths invalidate the list, so it refetches automatically
   // instead of the old manual `refresh()` after each call.
@@ -39,7 +37,6 @@ export function useSitesRegistry() {
   const saving = createSite.isPending
 
   const sites = computed(() => (sitesData.value?.sites ?? []) as Site[])
-  const isEmpty = computed(() => !sites.value.length)
 
   function resetForm() {
     editing.value = null
@@ -58,6 +55,15 @@ export function useSitesRegistry() {
     formUrl.value = site.url
     formName.value = site.name
     formGroup.value = site.group ?? ''
+    formOpen.value = true
+  }
+
+  // Prefills the add form with an origin discovered via scan history rather
+  // than typed by hand. Used to register an unregistered origin from the
+  // Sites home table.
+  function openRegister(url: string) {
+    resetForm()
+    formUrl.value = url
     formOpen.value = true
   }
 
@@ -91,25 +97,6 @@ export function useSitesRegistry() {
     router.push({ path: '/scan/new', query: { url } })
   }
 
-  const grouped = computed<SiteBucket[]>(() => {
-    const buckets = new Map<string, Site[]>()
-    for (const site of sites.value) {
-      const key = site.group?.trim() || ''
-      const bucket = buckets.get(key) ?? []
-      bucket.push(site)
-      buckets.set(key, bucket)
-    }
-
-    const named = Array.from(buckets.entries())
-      .filter(([key]) => key !== '')
-      .sort((a, b) => a[0].localeCompare(b[0]))
-    const ungrouped = buckets.get('') ?? []
-    const ordered = named.map(([name, items]) => ({ name, items }))
-    if (ungrouped.length)
-      ordered.push({ name: '', items: ungrouped })
-    return ordered
-  })
-
   const groupSuggestions = computed(() => {
     const groups = new Set<string>()
     for (const site of sites.value) {
@@ -120,20 +107,16 @@ export function useSitesRegistry() {
   })
 
   return {
-    sites,
-    sitesError,
-    refresh,
-    isEmpty,
     editing,
     formOpen,
     formUrl,
     formName,
     formGroup,
     saving,
-    grouped,
     groupSuggestions,
     openAdd,
     openEdit,
+    openRegister,
     saveSite,
     deleteSite,
     scanSite,

@@ -431,6 +431,7 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
     auditors: [],
     reconciler: reconcile,
     reportSchema: CruxReportSchema,
+    ui: { tab: 'CrUX', icon: 'globe' },
   }
 }
 

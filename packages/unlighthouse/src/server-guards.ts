@@ -29,6 +29,19 @@ function hostnameOf(hostHeader: string): string {
   return h
 }
 
+/**
+ * True for a dotted-quad IPv4 literal in 127.0.0.0/8. NOT a hostname that
+ *  merely starts with `127.` — `127.example.com` is a registrable domain an
+ *  attacker controls, and this gate reads an attacker-supplied Origin.
+ */
+function isLoopbackIpv4(s: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s)
+  if (!m)
+    return false
+  const octets = m.slice(1, 5).map(Number)
+  return octets[0] === 127 && octets.every(o => o <= 255)
+}
+
 /** True for loopback hostnames (`localhost`, `127.0.0.0/8`, `::1`). */
 export function isLoopbackHostname(host: string | null | undefined): boolean {
   if (!host)
@@ -37,7 +50,7 @@ export function isLoopbackHostname(host: string | null | undefined): boolean {
   return s === 'localhost'
     || s === '::1'
     || s === '::ffff:127.0.0.1'
-    || s.startsWith('127.')
+    || isLoopbackIpv4(s)
 }
 
 /**
@@ -86,6 +99,14 @@ export interface ApiOriginCheckInput {
   siteOrigin: string | null
   /** Server bound to a non-loopback host (explicit `--host` / `host` config). */
   exposed: boolean
+  /**
+   * Trust any loopback-served page's Origin (UI dev server on another port, a
+   * 127.0.0.1 alias). True only in the default local CLI posture (no token, no
+   * pinned CORS origins). A token- or CORS-pinned deployment is "locked down"
+   * and must not accept an arbitrary local page's cross-port XHR, so callers
+   * set this false there and only same-origin / the site origin pass.
+   */
+  trustLoopbackOrigin: boolean
 }
 
 export type GuardDecision
@@ -98,6 +119,10 @@ export type GuardDecision
  * ALLOW:
  *   - no Origin AND no Referer (non-browser clients: curl / CI / server fetch);
  *   - same-origin (the request's Origin host matches its own Host header);
+ *   - a loopback origin (a page served from the user's own machine: the UI
+ *     dev server on :3000, a localhost/127.0.0.1 alias of this dashboard). A
+ *     rebinding page's Origin carries the attacker's hostname, never a
+ *     loopback one, and a malicious local process needs no CSRF vector;
  *   - the configured `site` origin (CORS-enabled dashboard embedding).
  * REJECT (403):
  *   - an untrusted `Host` header while bound to loopback (DNS-rebinding: the
@@ -108,7 +133,7 @@ export type GuardDecision
  *   - any other cross-origin browser request.
  */
 export function checkApiOrigin(input: ApiOriginCheckInput): GuardDecision {
-  const { host, origin, referer, siteOrigin, exposed } = input
+  const { host, origin, referer, siteOrigin, exposed, trustLoopbackOrigin } = input
 
   // 1. Host-header validation — the real DNS-rebinding guard. A rebinding
   //    attack arrives with Host === Origin === attacker.example (both pointing
@@ -119,6 +144,13 @@ export function checkApiOrigin(input: ApiOriginCheckInput): GuardDecision {
     return { _tag: 'reject', reason: `untrusted Host header: ${host ?? '(none)'}` }
 
   // 2. Origin/Referer validation — the CSRF guard.
+  // A present-but-opaque Origin (the literal string `null` a sandboxed iframe
+  // or a file: page sends) is a browser deliberately hiding its origin, NOT a
+  // non-browser client. Treat it as untrusted; only a genuinely absent Origin
+  // AND Referer is the curl/CI/server-fetch case that may pass.
+  if (origin != null && origin !== '' && normaliseOrigin(origin) == null)
+    return { _tag: 'reject', reason: `opaque Origin: ${origin}` }
+
   const requestOrigin = normaliseOrigin(origin) ?? normaliseOrigin(referer)
   if (!requestOrigin)
     return { _tag: 'allow', reason: 'no Origin/Referer (non-browser client)' }
@@ -126,6 +158,13 @@ export function checkApiOrigin(input: ApiOriginCheckInput): GuardDecision {
   // Same-origin: the browser page IS this dashboard, served on this Host.
   if (host != null && originHost(requestOrigin) === host)
     return { _tag: 'allow', reason: 'same-origin' }
+
+  // Loopback origin: a page served from this machine (UI dev server, a
+  // 127.0.0.1 alias). Allowed only in the default local posture — a token- or
+  // CORS-pinned deployment is locked down and must not accept an arbitrary
+  // local page's cross-port XHR.
+  if (trustLoopbackOrigin && isLoopbackHostname(hostnameOf(originHost(requestOrigin) ?? '')))
+    return { _tag: 'allow', reason: 'loopback origin' }
 
   // Configured site origin: CORS-enabled embedding of the dashboard in the site.
   if (siteOrigin != null && requestOrigin === normaliseOrigin(siteOrigin))

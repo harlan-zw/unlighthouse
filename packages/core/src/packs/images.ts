@@ -13,7 +13,9 @@
 // image (not per route).
 
 import type { ImageFinding, ImagesReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { ImagesReportSchema } from '@unlighthouse/contracts/packs'
+import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -226,10 +228,10 @@ function extractMissingAlt(routeUrl: string, lhr: LhrLike, sink: Map<string, Raw
 // the source is reconciled instead of raw LHR.
 //
 // Returns null when neither substrate is available (caller skips the row).
-async function loadRouteAuditsAsLhrLike(url: string, ctx: PackReconcileCtx): Promise<LhrLike | null> {
+async function loadRouteAuditsAsLhrLike(url: string, device: Device, ctx: PackReconcileCtx): Promise<LhrLike | null> {
   if (ctx.getReconciled) {
-    const reconciled = await ctx.getReconciled(url, 'mobile').catch((err) => {
-      ctx.logger?.debug?.(`images pack: failed to load reconciled report for ${url} [mobile]`, err)
+    const reconciled = await ctx.getReconciled(url, device).catch((err) => {
+      ctx.logger?.debug?.(`images pack: failed to load reconciled report for ${url} [${device}]`, err)
       return null
     }) as
     | { audits?: Record<string, {
@@ -280,8 +282,8 @@ async function loadRouteAuditsAsLhrLike(url: string, ctx: PackReconcileCtx): Pro
     }
   }
   if (ctx.getLhr) {
-    return (await ctx.getLhr(url, 'mobile').catch((err) => {
-      ctx.logger?.debug?.(`images pack: failed to load LHR for ${url} [mobile]`, err)
+    return (await ctx.getLhr(url, device).catch((err) => {
+      ctx.logger?.debug?.(`images pack: failed to load LHR for ${url} [${device}]`, err)
       return null
     })) as LhrLike | null
   }
@@ -296,15 +298,15 @@ async function reconcile(ctx: PackReconcileCtx): Promise<ImagesReport> {
   const sink = new Map<string, RawFinding>()
   let routesAnalysed = 0
 
-  for (const row of ctx.routes) {
-    const lhr = await loadRouteAuditsAsLhrLike(row.url, ctx)
+  for (const { url, device } of resolveDistinctPackRoutes(ctx.routes)) {
+    const lhr = await loadRouteAuditsAsLhrLike(url, device, ctx)
     if (!lhr)
       continue
     routesAnalysed++
-    extractImageDelivery(row.url, lhr, sink)
-    extractLcpDiscovery(row.url, lhr, sink)
-    extractUnsized(row.url, lhr, sink)
-    extractMissingAlt(row.url, lhr, sink)
+    extractImageDelivery(url, lhr, sink)
+    extractLcpDiscovery(url, lhr, sink)
+    extractUnsized(url, lhr, sink)
+    extractMissingAlt(url, lhr, sink)
   }
 
   // Materialise + prioritise. Severity-then-byte-savings ordering surfaces
@@ -368,4 +370,5 @@ export const imagesPack: Pack<ImagesReport> = {
   ],
   reconciler: reconcile,
   reportSchema: ImagesReportSchema,
+  ui: { tab: 'Images', icon: 'image' },
 }

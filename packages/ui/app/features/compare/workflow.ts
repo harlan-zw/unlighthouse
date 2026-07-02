@@ -4,6 +4,8 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { compareRowKey } from '~/features/compare/presentation'
+import { originOf } from '~/features/sites/site-url'
+import { siteSlug } from '~/utils/site'
 
 export type CompareStatusFilter = 'all' | 'changed' | 'regressed' | 'improved' | 'added' | 'removed'
 export type CompareDeviceFilter = '' | 'mobile' | 'desktop'
@@ -71,23 +73,44 @@ export function useCompareWorkflow() {
   const router = useRouter()
   const api = useApi()
 
-  // `currentScanId` comes from /compare/:id; `baseScanId` rides the
-  // query string so a compare can be deep-linked and refresh-survives.
-  const currentScanId = computed(() => route.params.id as string as ScanId)
+  // Site comes off the route param (/sites/:siteId/compare); both scan ids
+  // ride the query string (`?current=&base=`) so the whole compare is
+  // deep-linkable and refresh-survives.
+  const siteId = computed(() => route.params.siteId as string)
+
   // `undefined` is the "nothing picked" sentinel; once chosen it's a real
   // ScanId, matching both the `value: s.scanId` items the USelect renders and
   // the v-model type the select infers from those items.
+  const currentScanId = ref<ScanId | undefined>((route.query.current as string) ? (route.query.current as string as ScanId) : undefined)
   const baseScanId = ref<ScanId | undefined>((route.query.base as string) ? (route.query.base as string as ScanId) : undefined)
 
-  watch(baseScanId, (v) => {
-    // Sync the picked base back into the URL — preserves on refresh,
-    // makes the compare shareable as a single link.
-    router.replace({ query: { ...route.query, base: v || undefined } })
+  // Sync both picks back into the URL in one navigation — updating them
+  // separately would race (each `router.replace` reads the still-stale
+  // `route.query` before the previous one resolves) and could drop one of
+  // the two writes.
+  watch([currentScanId, baseScanId], ([c, b]) => {
+    router.replace({ query: { ...route.query, current: c || undefined, base: b || undefined } })
+  })
+
+  // Inbound: Vue Router reuses this component across query-only navigations
+  // (e.g. swapDirection, base picks), so browser Back/Forward changes
+  // `route.query` without remounting — without this watch the refs (and
+  // everything derived from them) go stale vs the address bar. Guarded to
+  // only assign on an actual diff so it doesn't fight the outbound sync
+  // above (assigning back would just re-replace with the same query).
+  watch(() => [route.query.current, route.query.base] as const, ([c, b]) => {
+    const nextCurrent = (c as string) ? (c as string as ScanId) : undefined
+    const nextBase = (b as string) ? (b as string as ScanId) : undefined
+    if (nextCurrent !== currentScanId.value)
+      currentScanId.value = nextCurrent
+    if (nextBase !== baseScanId.value)
+      baseScanId.value = nextBase
   })
 
   const { data: currentMeta, error: currentMetaError, refresh: refreshCurrentMeta } = useApiQuery(
     'scan.meta',
-    () => ({ scanId: currentScanId.value }),
+    () => ({ scanId: currentScanId.value as ScanId }),
+    { enabled: () => !!currentScanId.value },
   )
 
   const { data: baseMeta } = useApiQuery(
@@ -104,17 +127,51 @@ export function useCompareWorkflow() {
     () => ({ page: 1, pageSize: 200 }),
   )
 
-  // Only scans of the same site can produce meaningful route overlap.
-  const otherScans = computed(() => {
-    if (!history.value?.items || !currentMeta.value)
+  // Bootstrap-only origin for a bare `/sites/{slug}/compare` with no
+  // `?current` (see the pool-default watch below): the slug can't
+  // disambiguate scheme/port, so match it against an actual history row's
+  // `site` string instead of reconstructing a URL from it — reconstruction
+  // (`resolveSiteUrl` + its `https://{slug}` fallback) is exactly what
+  // produces a mismatched origin for http / non-default-port / unregistered
+  // sites, which is the bug this derivation exists to avoid.
+  const slugOrigin = computed(() => {
+    const fromHistory = history.value?.items?.find(s => siteSlug(s.site) === siteId.value)
+    return fromHistory ? (originOf(fromHistory.site) ?? fromHistory.site) : null
+  })
+
+  // The pool's real origin is the *current* scan's own `site` string once it
+  // resolves — the ground truth, unaffected by slug ambiguity. Falls back to
+  // slugOrigin only until a `currentScanId` exists to resolve.
+  const currentOrigin = computed(() => {
+    const site = currentMeta.value?.site
+    return site ? (originOf(site) ?? site) : slugOrigin.value
+  })
+
+  // Every complete scan of this site — the base pool for both the default
+  // "current" pick and the base picker.
+  const poolScans = computed(() => {
+    if (!history.value?.items || !currentOrigin.value)
       return []
-    const site = currentMeta.value.site
     return history.value.items.filter(s =>
-      s.scanId !== currentScanId.value
-      && s.status === 'complete'
-      && s.site === site,
+      s.status === 'complete'
+      && originOf(s.site) === currentOrigin.value,
     )
   })
+
+  // No `?current` in the URL: default to the site's latest completed scan
+  // and write it back so `/sites/{slug}/compare` with no params just works.
+  // Doesn't override an explicit URL pick.
+  watch(poolScans, (pool) => {
+    if (currentScanId.value || !pool.length)
+      return
+    const latest = [...pool].sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0]
+    if (latest)
+      currentScanId.value = latest.scanId as ScanId
+  }, { immediate: true })
+
+  // Only scans of the same site (excluding current) can produce meaningful
+  // route overlap.
+  const otherScans = computed(() => poolScans.value.filter(s => s.scanId !== currentScanId.value))
 
   // Auto-pick the most recent prior scan on the same site (+ branch if the
   // current scan has one). Doesn't override an explicit URL pick.
@@ -126,7 +183,7 @@ export function useCompareWorkflow() {
       site: currentMeta.value!.site,
       device: currentMeta.value!.device,
       branch: currentMeta.value!.ciBranch ?? undefined,
-      excludeScanId: currentScanId.value,
+      excludeScanId: currentScanId.value as ScanId,
     }).then(res => res.scanId ?? null).catch((err) => {
       logOperationalWarn('ui.optional_api_read_failed', err, { command: 'compare.findPrevious', feature: 'compare-workflow' }, console)
       return null
@@ -181,7 +238,7 @@ export function useCompareWorkflow() {
     try {
       const res = await api['compare.markdown']({
         baseScanId: baseScanId.value,
-        currentScanId: currentScanId.value,
+        currentScanId: currentScanId.value as ScanId,
         thresholds: currentThresholdPayload(),
       })
       if (navigator.clipboard?.writeText) {
@@ -214,7 +271,7 @@ export function useCompareWorkflow() {
     try {
       report.value = await api['compare.detail']({
         baseScanId: base,
-        currentScanId: currentScanId.value,
+        currentScanId: currentScanId.value as ScanId,
         page: page.value,
         pageSize: 100,
         sort: sortKey.value,
@@ -238,7 +295,7 @@ export function useCompareWorkflow() {
     try {
       packReport.value = await api['compare.run']({
         baseScanId: base,
-        currentScanId: currentScanId.value,
+        currentScanId: currentScanId.value as ScanId,
         thresholds: currentThresholdPayload(),
       })
     }
@@ -305,8 +362,9 @@ export function useCompareWorkflow() {
   function swapDirection() {
     if (!baseScanId.value)
       return
-    const oldBase = baseScanId.value
-    router.push(`/compare/${oldBase}?base=${currentScanId.value}`)
+    const oldCurrent = currentScanId.value
+    currentScanId.value = baseScanId.value
+    baseScanId.value = oldCurrent
   }
 
   let filterTimeout: ReturnType<typeof setTimeout> | null = null
@@ -383,10 +441,11 @@ export function useCompareWorkflow() {
   function gotoOverview(id: string | undefined) {
     if (!id)
       return
-    router.push(`/scan/${id}/routes`)
+    router.push(`/sites/${siteId.value}/scans/${id}/routes`)
   }
 
   return {
+    siteId,
     currentScanId,
     baseScanId,
     currentMeta,

@@ -71,7 +71,7 @@ The DS layer ships opinionated wrappers around Nuxt UI primitives so chrome (sha
 | `USkeleton` | `UiSkeleton` |
 | `UChip` | `UiChip` |
 
-`UDrawer`, `USelect`, `UInput`, `UTabs`, `UModal` have no wrapper yet; use them raw, themed via `app.config.ts`.
+`UDrawer`, `USelect`, `UInput`, `UTabs`, `UModal`, `UAccordion`, `USwitch`, reka `Splitter*` have no wrapper yet; use them raw, themed via `app.config.ts`.
 
 ---
 
@@ -284,6 +284,20 @@ Rules not enforced by components:
 - **`UiButton` is purpose-driven.** `cta / secondary / quiet / danger / link` map to fixed color+variant pairs; there is no raw `color`/`variant` knob. Brand violet requires dropping to a raw `UButton color="pro"`.
 - **Hubot Sans is the only family.** One variable font (wght 200–900, wdth 75–125%) drives body and display via axis tokens; Fira Code for mono. No separate display family.
 - **Two-tier elevation in CSS vars.** Components reference `--elevation-*` presets only; `.dashboard-theme` remaps `raised → flat` so dense data surfaces sit on a hairline ring.
+- **`.dashboard-theme` must wrap the app root.** It was applied nowhere, so every card rendered at editorial elevation/type scale; `packages/ui/app/app.vue` now wraps `NuxtLayout`/`NuxtPage` in it, inside `UApp`.
+- **`.ui-disclosure` has CSS but no component.** The class exists in the DS layer's `global.css` with no matching Vue component; flag it upstream for the canonical design system rather than building a local duplicate.
 - **Sparkline consolidated onto `UiSparkline`.** The feature-local `features/sites/components/Sparkline.vue` was a hand-rolled duplicate of the DS primitive and was removed; the dashboard sites table renders the score trend through `UiSparkline` (resolved via `resolveComponent` for the TanStack cell).
-- **One table: `UiTable`.** The app's parallel `DataTable` (a second TanStack implementation) was deleted; every table — route lists, scan history, the compare delta table, and the per-category route-score tables — now renders through the canonical `UiTable`. Column meta moved from TanStack's `meta: { align, headClass, cellClass }` to top-level column props that `UiTable` reads directly. `UiTable` gained three additive capabilities to absorb `DataTable`'s API: a `#actions` trailing-column slot, a `rowClass(row)` prop (selection highlight), and `defineExpose({ table })` (column-visibility menus). **These additions must be upstreamed to the canonical design system at nuxtseo.com** — the DS layer is a one-way mirror, so a resync would otherwise drop them.
+- **One table: `UiTable`.** The app's parallel `DataTable` (a second TanStack implementation) was deleted; every table — route lists, scan history, the compare delta table, and the per-category route-score tables — now renders through the canonical `UiTable`/`UiTableShell`. Column meta moved from TanStack's `meta: { align, headClass, cellClass }` to top-level column props that `UiTable` reads directly. `UiTable` gained three additive capabilities to absorb `DataTable`'s API: a `#actions` trailing-column slot, a `rowClass(row)` prop (selection highlight), and `defineExpose({ table })` (column-visibility menus) — upstream candidate, see below.
 - **Compare feature is fully typed.** `report`/`packReport` derive from the typed API client (`compare.detail` / `compare.run` → `CompareReport`); route rows use the contract's `CompareRouteRow`, and metric lookups key off `MetricKey = keyof CompareRouteRow['deltas']` rather than `any`-indexing.
+- **D-051 DS alignment pass.** `TrendChart` re-platformed onto `UiChartFrame` + `useChartHover` + `useChartTickPlan` + `UiChartAnnotations` (release/CI markers are now a `ChartAnnotation`, replacing the ad-hoc always-visible pill with the DS hover-dot marker — an intentional visual simplification). `ScoreRing` composes `UiProgressCircle` (score color rides in via a locally-scoped `--ui-color-primary-300` override, since the primitive has no per-instance color prop; the arc cap changes from `round` to the primitive's `butt`). Severity/status chips (`PackFindings`, compare verdict, `EventStreamPanel`) moved off raw `UBadge` onto `UiChip purpose="status"`. `ScanRoutesTable`'s delta column and quick filters moved onto `UiTrend`/`UiPillSelect`. Compare's three metric tables moved onto `UiTableShell`/`UiTableTd`/`UiTableTh`; compare's own threshold-muted delta cells stay hand-rolled (no DS equivalent — see upstream queue). `ScanProgress`'s two stat grids and `AgenticBrowsingWidget`'s summary tiles moved onto `UiStats`/`UiStat`. New app-global `DistributionBar` (segmented threshold-band bar) replaces three independent implementations (`MetricStatCard`'s per-bin histogram, the scan overview distribution strip); new app-global `LogStream` consolidates the terminal chrome shared by `ScanTerminal` and `EventStreamPanel` (row markup stays per-consumer — icon+message vs severity-chip+JSON diverge too much to force one shape).
+
+### Upstream queue (nuxtseo.com DS)
+
+Local workarounds/additions that belong in the canonical design system at the next resync — action there, not here (the layer is a one-way mirror):
+
+- `UiTable`'s `#actions` slot, `rowClass(row)` prop, and `defineExpose({ table })` — already shipped locally, needs upstreaming.
+- A threshold-aware muted variant of `UiTableTrendCell` (compare's noise-threshold pattern — currently hand-rolled in `features/compare/presentation.ts`).
+- `UiDistributionBar` — the segmented threshold-band bar exists locally as app-global `DistributionBar`; `dataVizColors` already ships the palette with no component.
+- A labelled variant of `UiProgressCircle` that accepts a per-instance stroke color (today only `stroke-primary-300`, fixed) and/or a centered label slot, so consumers like `ScoreRing` don't need a CSS-var override trick.
+- The findings-accordion pattern (severity + count + expandable route list) — used by `PackFindings`, `AgenticBrowsingWidget`, and others; stabilize here first, then promote.
+- `UiDisclosure` — CSS contract exists in `global.css` with no component.

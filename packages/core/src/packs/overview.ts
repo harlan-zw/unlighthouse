@@ -167,4 +167,5 @@ export const overviewPack: Pack<OverviewReport> = {
   auditors: [],
   reconciler: reconcile,
   reportSchema: OverviewReportSchema,
+  ui: { tab: 'Overview', icon: 'layout' },
 }

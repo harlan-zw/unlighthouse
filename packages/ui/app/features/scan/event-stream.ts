@@ -228,15 +228,15 @@ export function useScanEventStream(scanId: ScanId) {
   return stream
 }
 
-export function eventColor(event: string) {
+export function eventColor(event: string): SemanticStatus {
   const name = event.toLowerCase()
   if (name.includes('error') || name.includes('failed'))
-    return 'error' as const
+    return 'error'
   if (name.includes('complete') || name.includes('passed'))
-    return 'primary' as const
+    return 'success'
   if (name.includes('progress') || name.includes('scanning'))
-    return 'info' as const
-  return 'neutral' as const
+    return 'info'
+  return 'neutral'
 }
 
 export function formatEventTime(ts: number) {

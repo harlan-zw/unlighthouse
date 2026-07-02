@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { UiStatProps } from '#layers/design-system/app/components/data/UiStat.vue'
 import { useScanStore } from '~/stores/scan'
 import ScanTerminal from './ScanTerminal.vue'
 
@@ -51,6 +52,26 @@ function formatDuration(ms: number): string {
   // number by the time it calls this.
   return formatDurationHelper(ms)
 }
+
+// D-051: the two hand-rolled count grids re-platform onto UiStats (inline,
+// compact) — one shared primitive instead of two ad-hoc `grid-cols-N` blocks.
+const countStats = computed<UiStatProps[]>(() => [
+  { title: 'Routes found', value: store.total },
+  { title: 'Audited', value: store.scanned },
+  { title: 'Failed', value: store.failed, valueClass: store.failed > 0 ? 'text-error' : undefined },
+  { title: 'Remaining', value: Math.max(0, store.total - store.scanned - store.failed) },
+])
+
+const scoringStats = computed<UiStatProps[]>(() => [
+  { title: 'Avg Perf', value: store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—', valueClass: scoreToColor(store.avgPerfScore) },
+  { title: 'Pass', value: store.passCount, valueClass: 'text-success' },
+  { title: 'Needs Work', value: store.needsWorkCount, valueClass: 'text-warning' },
+  { title: 'Poor', value: store.poorCount, valueClass: 'text-error' },
+  // Stable title (used as the v-for key) — elapsed rides the trendLabel slot
+  // instead of being interpolated into the title, so the tick doesn't remount
+  // (and re-trigger UiStat's value roll-up animation) every second.
+  { title: 'ETA', value: etaLabel.value, trendLabel: `· ${elapsedLabel.value}` },
+])
 </script>
 
 <template>
@@ -79,88 +100,14 @@ function formatDuration(ms: number): string {
     <UProgress :model-value="store.percent" size="sm" />
 
     <!-- Counts row — crawler-side numbers. `discovered`/`total` track the same
-           thing (same-host pages found so far), so we show Pages once and use
+           thing (same-host routes found so far), so we show Routes once and use
            the fourth slot for the live remaining count rather than duplicating. -->
-    <div class="grid grid-cols-4 gap-3 text-center text-xs">
-      <div>
-        <div class="numerals-display text-base">
-          {{ store.total }}
-        </div>
-        <div class="text-muted">
-          Pages found
-        </div>
-      </div>
-      <div>
-        <div class="numerals-display text-base">
-          {{ store.scanned }}
-        </div>
-        <div class="text-muted">
-          Audited
-        </div>
-      </div>
-      <div>
-        <div class="numerals-display text-base" :class="store.failed > 0 ? 'text-error' : ''">
-          {{ store.failed }}
-        </div>
-        <div class="text-muted">
-          Failed
-        </div>
-      </div>
-      <div>
-        <div class="numerals-display text-base">
-          {{ Math.max(0, store.total - store.scanned - store.failed) }}
-        </div>
-        <div class="text-muted">
-          Remaining
-        </div>
-      </div>
-    </div>
+    <UiStats variant="inline" size="sm" :data="countStats" />
 
     <!-- Scoring row — appears once at least one audit produced a perf
            score. Avg + bucket counts + ETA give the user "is this going
            well + how long to wait" at a glance. -->
-    <div v-if="store.scoreCount > 0 || store.etaMs != null" class="grid grid-cols-5 gap-3 text-center text-xs border-t pt-3">
-      <div>
-        <div class="numerals-display text-base" :class="scoreToColor(store.avgPerfScore)">
-          {{ store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—' }}
-        </div>
-        <div class="text-muted">
-          Avg Perf
-        </div>
-      </div>
-      <div>
-        <div class="numerals-display text-base text-success">
-          {{ store.passCount }}
-        </div>
-        <div class="text-muted">
-          Pass
-        </div>
-      </div>
-      <div>
-        <div class="numerals-display text-base text-warning">
-          {{ store.needsWorkCount }}
-        </div>
-        <div class="text-muted">
-          Needs Work
-        </div>
-      </div>
-      <div>
-        <div class="numerals-display text-base text-error">
-          {{ store.poorCount }}
-        </div>
-        <div class="text-muted">
-          Poor
-        </div>
-      </div>
-      <div>
-        <div class="numerals-display text-base">
-          {{ etaLabel }}
-        </div>
-        <div class="text-muted">
-          ETA · {{ elapsedLabel }}
-        </div>
-      </div>
-    </div>
+    <UiStats v-if="store.scoreCount > 0 || store.etaMs != null" variant="inline" size="sm" :data="scoringStats" class="border-t pt-3" />
 
     <!-- Terminal -->
     <ScanTerminal v-if="expanded" />

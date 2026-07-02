@@ -6,6 +6,7 @@ import type http from 'node:http'
 import type https from 'node:https'
 import type { Page, LaunchOptions as PuppeteerLaunchOptions } from 'puppeteer-core'
 import type { QueryObject } from 'ufo'
+import type { Pack } from '../packs'
 
 export * from './atoms'
 
@@ -431,6 +432,17 @@ export interface ResolvedUserConfig {
    */
   hooks?: NestedHooks<UnlighthouseHooks>
   /**
+   * D-046: third-party/custom packs to register alongside the built-ins.
+   * Packs are code (a reconciler closure + a Zod schema), not JSON — this is
+   * why `packs` lives here (the TS-typed config surface) rather than in
+   * `UnlighthouseConfigSchema` (the Zod-validated, JSON-shaped config; D-011).
+   * `resolve.ts` strips this key before Zod validation and surfaces it
+   * separately for the host to merge into the pack registry. A pack reusing a
+   * built-in's name replaces it (same override rule as the `packs` option on
+   * `createUnlighthouseHost`).
+   */
+  packs?: Pack[]
+  /**
    * The URL path prefix for the client and API to run from.
    * Useful when you want to serve the application from an existing integrations server, you could use /__unlighthouse
    *
@@ -682,7 +694,11 @@ type DeepPartial<T> = T extends (...args: never[]) => unknown
       ? { [K in keyof T]?: DeepPartial<T[K]> }
       : T
 
-export type UserConfig = DeepPartial<ResolvedUserConfig>
+// `packs` is code, not config data: a pack must arrive fully formed
+// (`reconciler`, `reportSchema`, `ui`, …). DeepPartial would make each of those
+// optional, letting an incomplete pack typecheck and fail only at runtime, so
+// it is excluded from the partial and kept whole.
+export type UserConfig = DeepPartial<Omit<ResolvedUserConfig, 'packs'>> & { packs?: Pack[] }
 
 export interface RuntimeSettings {
   /**

@@ -12,10 +12,11 @@
 // `refresh: true`.
 
 import type { CommandOutput, PackList, PackRunCmd } from '@unlighthouse/contracts/commands'
-import type { PackRun } from '@unlighthouse/contracts/packs'
+import type { Pack, PackRun } from '@unlighthouse/contracts/packs'
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { z } from 'zod'
 import { builtInPacks, getPack } from '../../packs/index'
 import { createPackReconcileCtx } from '../../packs/reconcile-context'
 
@@ -186,6 +187,20 @@ async function loadCachedReport(
   return JSON.parse(new TextDecoder().decode(buf))
 }
 
+// A pack's reportSchema is author-supplied — a custom/third-party pack can
+// hand us a Zod type `z.toJSONSchema` chokes on (unsupported node, custom
+// refinement, etc). Degrade that one pack's `reportSchema` to `null` rather
+// than failing `pack.list` for every pack.
+function safeReportJsonSchema(pack: Pack<unknown>): unknown | null {
+  try {
+    return z.toJSONSchema(pack.reportSchema)
+  }
+  catch (err) {
+    logOperationalWarn('pack.report_schema_to_json_schema_failed', err, { pack: pack.name })
+    return null
+  }
+}
+
 export const packList: Handler<typeof PackList> = {
   command: {} as typeof PackList,
   async run(_input, ctx) {
@@ -194,6 +209,8 @@ export const packList: Handler<typeof PackList> = {
       description: p.description,
       version: p.version,
       auditorCount: p.auditors?.length ?? 0,
+      ui: p.ui,
+      reportSchema: safeReportJsonSchema(p),
     }))
     return { packs } as CommandOutput<typeof PackList>
   },

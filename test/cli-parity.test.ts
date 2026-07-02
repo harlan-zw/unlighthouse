@@ -6,7 +6,7 @@
 import type { HandlerMap } from '@unlighthouse/core/api/handlers'
 import { describe, expect, it } from 'vitest'
 import { commands } from '@unlighthouse/contracts/commands'
-import { parseRootArgs } from '../packages/unlighthouse/src/cli/createCli'
+import { isSubcommandInvocation, parseRootArgs } from '../packages/unlighthouse/src/cli/createCli'
 import { cittyFlagsFor, projectCliCommands } from '../packages/unlighthouse/src/cli/project'
 
 // The projector only invokes these inside a subcommand's run(); the parity test
@@ -89,5 +89,50 @@ describe('cli root parse parity (cac -> citty)', () => {
   it('leaves cache undefined when neither --cache nor --no-cache is passed', () => {
     const bare = parseRootArgs(['--site', 'https://x.com'])
     expect(bare.cache).toBeUndefined()
+  })
+})
+
+describe('cli root vs subcommand dispatch', () => {
+  it('treats a flags-only invocation as the root scan entry (v0 shape)', () => {
+    // citty would otherwise read `example.com` (the --site VALUE) as a
+    // subcommand name and die with "Unknown command example.com".
+    expect(isSubcommandInvocation(['--site', 'example.com'])).toBe(false)
+    expect(isSubcommandInvocation(['--site', 'example.com', '--device', 'mobile,desktop'])).toBe(false)
+    expect(isSubcommandInvocation(['--root', '.', '--site', 'https://x.com'])).toBe(false)
+  })
+
+  it('dispatches when the first token is positional', () => {
+    expect(isSubcommandInvocation(['scan', 'start', '--site', 'x.com'])).toBe(true)
+    expect(isSubcommandInvocation(['manifest', '--json'])).toBe(true)
+  })
+
+  it('keeps subcommands attached for pure-flag help/version invocations', () => {
+    expect(isSubcommandInvocation([])).toBe(true)
+    expect(isSubcommandInvocation(['--help'])).toBe(true)
+    expect(isSubcommandInvocation(['--version'])).toBe(true)
+  })
+
+  it('dispatches a subcommand that follows a value flag (fails loud, not a silent root scan)', () => {
+    // `--site x manifest`: the `manifest` positional survives the value-aware
+    // walk, so subCommands attach and citty errors instead of silently running
+    // a scan and leaving a dashboard server listening.
+    expect(isSubcommandInvocation(['--site', 'x.com', 'manifest'])).toBe(true)
+    expect(isSubcommandInvocation(['--root', '.', 'query', 'routes'])).toBe(true)
+  })
+
+  it('dispatches a subcommand after a boolean flag', () => {
+    // `--debug` takes no value, so `manifest` is the first non-dash token citty
+    // itself resolves correctly.
+    expect(isSubcommandInvocation(['--debug', 'manifest'])).toBe(true)
+    expect(isSubcommandInvocation(['--no-cache', 'scan', 'start'])).toBe(true)
+  })
+
+  it('treats a token after an inline-value flag as a real positional', () => {
+    // `--site=x.com` carries its value inline (no separate value token), so a
+    // following `manifest` is a genuine positional → subcommand-shaped.
+    expect(isSubcommandInvocation(['--site=x.com', 'manifest'])).toBe(true)
+    // The space form `--site x.com` consumes `x.com` as the value, so a
+    // flags-only scan invocation stays on the root command.
+    expect(isSubcommandInvocation(['--site', 'x.com'])).toBe(false)
   })
 })

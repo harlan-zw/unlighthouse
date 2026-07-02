@@ -1,6 +1,6 @@
 # Architecture
 
-How the Unlighthouse v1 monorepo is structured, for people (and agents) working *in* the repo. For the user-facing version see [`docs/4.architecture.md`](docs/4.architecture.md); for the full design rationale and decisions log (D-001…D-044) see [`v1.md`](v1.md). Shared vocabulary lives in [`CONTEXT.md`](CONTEXT.md).
+How the Unlighthouse v1 monorepo is structured, for people (and agents) working *in* the repo. For the user-facing version see [`docs/4.architecture.md`](docs/4.architecture.md); for the full design rationale and decisions log (D-001…D-051) see [`v1.md`](v1.md). Shared vocabulary lives in [`CONTEXT.md`](CONTEXT.md).
 
 ## One-line model
 
@@ -128,7 +128,9 @@ Nuxt SPA, three homes for a component (see `DESIGN.md` for the full rules):
 
 1. **DS layer** — `packages/ui/layers/design-system/`: generic `Ui*` primitives, one-way mirror of `nuxtseo.com`. Read-only; domain UI here is wiped on resync.
 2. **App-global** — `packages/ui/app/components/`: Unlighthouse-wide (`AppSidebar`, `QueryError`, `SidebarShell`). Auto-imported.
-3. **Feature-local** — `packages/ui/app/features/{scan,sites,compare,dashboard}/`: single-feature logic modules + colocated components, explicit imports.
+3. **Feature-local** — `packages/ui/app/features/{scan,sites,compare}/`: single-feature logic modules + colocated components, explicit imports. The old `dashboard` feature folded into `sites` (D-047).
+
+**Page tree (post D-045..D-050 pivot, full rationale `packages/ui/ROADMAP.md`):** `/` is the only site list (sites-home, registry ∪ unregistered origins found in history); `/sites/[siteId]` is the site overview (trend charts, scan history table, compare launcher); `/sites/[siteId]/compare` is the compare workspace; `/sites/[siteId]/scans/[scanId]/{overview,routes,route/[path]}` plus `/sites/[siteId]/scans/[scanId]/packs/[pack]` for scan detail. Pack tabs are generated, not hand-built: the sidebar and the `packs/[pack]` page both read `pack.list`'s `ui: { tab, icon? }` metadata to build the tab strip, so a custom pack registered via `unlighthouse.config.ts`'s `packs` channel (D-046) appears automatically. Each tab renders through a shared `PackPageShell` with a bespoke widget per built-in pack and a generic findings/severity/raw-JSON renderer as the fallback for packs with no dedicated widget. Overview is the single scan landing regardless of status (D-049); live scan events live in a drawer opened from Overview rather than a separate `/events` page.
 
 Data flow: `app/plugins/api.client.ts` provides `$api` — `createClient` from `@unlighthouse/contracts/client` on the live path, or `createStaticClient` from `@unlighthouse/core/api/static-client` for embedded snapshots (gated by `useIsStatic()`). `useApiQuery`/`useApiMutation` wrap `nuxt-use-query`, calling `api[command](input)`; a dev-only check validates each response against the command's output schema (parse, don't validate). The scan store (`app/stores/scan.ts`) feeds live `scan:*` WebSocket events into a progress reducer, with a polling fallback for no-WS deploys (Cloudflare). The dashboard is built via `nuxi generate` and embedded into the runtime by the CLI host (`unlighthouse/src/build.ts` `generateClient` → `server.ts` serves it with SPA fallback + `/api/**`).
 
@@ -147,4 +149,4 @@ Data flow: `app/plugins/api.client.ts` provides `$api` — `createClient` from `
 - CLI host wiring (default adapters, config, server): `packages/unlighthouse/src/host.ts` + `src/config/resolve.ts`.
 - Add a command: `packages/contracts/src/commands/` (contract) → `packages/core/src/api/handlers/` (handler). It reaches CLI/HTTP/MCP/UI automatically.
 - Add an adapter: pick the port dir under `packages/core/src/` (or `packages/cloudflare/src/`), implement the interface in `packages/contracts/src/ports/`.
-- Full rationale + decisions log (D-001…D-044): `v1.md`.
+- Full rationale + decisions log (D-001…D-051): `v1.md`.

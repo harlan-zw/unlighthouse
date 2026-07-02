@@ -13,3 +13,14 @@ export function resolveSiteUrl(slug: string, sites: SiteLike[]): string {
   }
   return `https://${slug}`
 }
+
+/** A history/scan `site` value's origin, or null when it isn't a parseable URL. */
+export function originOf(url: string): string | null {
+  try {
+    return new URL(url).origin
+  }
+  catch (_err) {
+    // Malformed site labels cannot be grouped by origin.
+    return null
+  }
+}

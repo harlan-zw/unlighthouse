@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EventStreamPanel from '~/features/scan/components/EventStreamPanel.vue'
 import LiveResults from '~/features/scan/components/LiveResults.vue'
 import ScanActions from '~/features/scan/components/ScanActions.vue'
 import ScanProgress from '~/features/scan/components/ScanProgress.vue'
@@ -8,6 +9,7 @@ import { useScanOverview } from '~/features/scan/overview'
 definePageMeta({ layout: 'scan' })
 
 const {
+  scanId,
   scanBase,
   scanMeta,
   siteTitle,
@@ -38,7 +40,9 @@ const {
   handleRescanAll,
 } = useScanOverview()
 
-useScanPageTitle(computed(() => scanIsComplete.value ? 'Scan Results' : 'Live Scan'))
+useScanPageTitle('Overview')
+
+const eventsOpen = ref(false)
 </script>
 
 <template>
@@ -69,6 +73,21 @@ useScanPageTitle(computed(() => scanIsComplete.value ? 'Scan Results' : 'Live Sc
       </div>
       <div class="flex items-center gap-2">
         <ScanActions v-if="showScanActions" />
+        <UDrawer
+          v-model:open="eventsOpen"
+          direction="right"
+          title="Events"
+          description="Live activity from the scan host: route lifecycle, progress and completion events."
+          :ui="{ content: 'w-full sm:max-w-2xl' }"
+        >
+          <UiButton purpose="quiet" size="sm" icon="activity">
+            View events
+          </UiButton>
+
+          <template #body>
+            <EventStreamPanel v-if="eventsOpen" :scan-id="scanId" :scan-base="scanBase" />
+          </template>
+        </UDrawer>
         <a
           v-if="scanIsComplete && !currentScanIsActive"
           :href="jsonExportUrl"
@@ -90,7 +109,7 @@ useScanPageTitle(computed(() => scanIsComplete.value ? 'Scan Results' : 'Live Sc
           CSV
         </a>
         <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="refresh" @click="handleRescanAll">
-          Rescan All
+          Rescan all
         </UiButton>
       </div>
     </div>
@@ -131,21 +150,7 @@ useScanPageTitle(computed(() => scanIsComplete.value ? 'Scan Results' : 'Live Sc
           Avg Score
         </div>
       </div>
-      <div class="flex-1 max-w-xs">
-        <div class="flex h-3 rounded-full overflow-hidden">
-          <div
-            v-for="seg in distribution?.segments"
-            :key="seg.label"
-            :style="{ width: `${seg.pct}%`, backgroundColor: seg.color }"
-          />
-        </div>
-        <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[11px] text-muted">
-          <span v-for="seg in distribution?.segments" :key="seg.label" class="inline-flex items-baseline gap-1">
-            <span class="tabular-nums">{{ seg.count }}</span>
-            <span>{{ seg.label }}</span>
-          </span>
-        </div>
-      </div>
+      <DistributionBar v-if="distribution" :segments="distribution.segments" class="flex-1 max-w-xs" />
     </div>
 
     <!-- Charts row -->

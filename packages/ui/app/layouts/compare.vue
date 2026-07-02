@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { ScanId } from '@unlighthouse/contracts'
-
 // Dedicated full-bleed layout for the compare experience. No max-width
 // main, no global header — the page draws its own slim toolbar with
 // scan identity + actions so the entire viewport is usable for the
@@ -10,27 +8,17 @@ import type { ScanId } from '@unlighthouse/contracts'
 const route = useRoute()
 const colorMode = useColorMode()
 
-// Pick up the current scan id from the route param so "Exit compare"
-// returns to that scan's overview — that's where the user came from
-// (the compare button on the overview tools list). Previously the
-// link went to /history, which felt jarring as a "back" action.
-const currentScanId = computed(() => ((route.params.id as string) || '') as ScanId | '')
+// Site comes straight off the route param (/sites/{siteId}/compare) — no
+// scan-meta lookup needed, unlike the old /compare/{scanId} shim which had
+// to resolve the site indirectly.
+const siteId = computed(() => (route.params.siteId as string) || '')
 
-// Resolve the scan's site so "Exit compare" lands directly on the new
-// /sites/{slug}/scans/{id} overview rather than bouncing through the
-// legacy /scan/{id} redirect shim.
-// Best-effort: only feeds the "Exit compare" link target, so a failure just
-// falls back to the legacy /scan path — no error surface needed.
-const { data: exitMeta } = useApiQuery(
-  'scan.meta',
-  () => ({ scanId: currentScanId.value as ScanId }),
-  { enabled: () => !!currentScanId.value },
-)
-const exitTo = computed(() => {
-  const site = exitMeta.value?.site
-  if (currentScanId.value && site)
-    return `/sites/${siteSlug(site)}/scans/${currentScanId.value}/routes`
-  return currentScanId.value ? `/scan/${currentScanId.value}/routes` : '/history'
+const { data: sitesData } = useApiQuery('sites.list', () => ({}))
+const siteName = computed(() => {
+  const slug = siteId.value
+  if (!slug)
+    return ''
+  return (sitesData.value?.sites ?? []).find(s => siteSlug(s.url) === slug)?.name || slug
 })
 
 function toggleColorMode() {
@@ -46,10 +34,17 @@ const { healthy } = useBackendHealth()
          underneath (scan picker / swap / threshold etc). Keep this
          strip absolutely minimal so we don't burn vertical space. -->
     <div class="flex items-center gap-2 px-3 h-9 border-b text-xs">
-      <NuxtLink :to="exitTo" class="inline-flex min-h-11 min-w-11 items-center gap-1 text-muted hover:text-default transition-colors lg:min-h-0 lg:min-w-0">
-        <UiIcon name="back" class="size-3.5" />
-        <span>Exit compare</span>
-      </NuxtLink>
+      <nav class="flex items-center gap-1.5 min-w-0">
+        <NuxtLink to="/" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors shrink-0 lg:min-h-0 lg:min-w-0">
+          Sites
+        </NuxtLink>
+        <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />
+        <NuxtLink :to="`/sites/${siteId}`" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors truncate lg:min-h-0 lg:min-w-0">
+          {{ siteName }}
+        </NuxtLink>
+        <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />
+        <span class="font-medium truncate">Compare</span>
+      </nav>
 
       <div
         v-if="healthy !== null"

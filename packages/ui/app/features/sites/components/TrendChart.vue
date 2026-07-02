@@ -6,6 +6,13 @@ import { useElementSize } from '@vueuse/core'
 // chart) and render separate instances for unlike scales (LCP vs CLS).
 // Measured in real pixels via useElementSize so axis text stays crisp (a
 // viewBox-scaled SVG would distort labels horizontally).
+//
+// D-051: re-platformed onto the DS chart-frame stack — UiChartFrame owns the
+// hover tooltip + annotation-marker overlay, useChartHover owns the
+// spring-tracked cursor position, useChartTickPlan owns x-axis tick
+// selection/formatting. The multi-series polylines, y-gridlines and hover
+// crosshair stay hand-drawn SVG (UiSparkline is single-series; the frame
+// doesn't draw a plot itself, only its overlays) — see DESIGN.md D-051.
 
 export interface TrendPoint {
   t: number // timestamp (ms)
@@ -31,8 +38,11 @@ const props = withDefaults(defineProps<{
   format?: (v: number) => string
   showLegend?: boolean
   markers?: TrendMarker[]
-  // Draw the marker pill labels (true) or just the dashed guide lines (false,
-  // for compact charts that sit under a chart already showing the pills).
+  /**
+   * @deprecated no longer changes rendering — release/CI markers now always
+   * render through UiChartAnnotations (thin line + hover dot), replacing the
+   * old always-visible pill. Kept so existing call sites don't need to change.
+   */
   markerPills?: boolean
 }>(), {
   height: 200,
@@ -110,7 +120,8 @@ function dotsFor(s: TrendSeries): Array<{ x: number, y: number, title: string }>
     }))
 }
 
-// 4 horizontal gridlines / y labels.
+// 4 horizontal gridlines / y labels. Y-axis stays hand-rolled — the DS tick
+// helpers are x-axis (calendar) only.
 const yTicks = computed(() => {
   const n = 4
   const out: Array<{ y: number, label: string }> = []
@@ -121,23 +132,11 @@ const yTicks = computed(() => {
   return out
 })
 
-const xLabels = computed(() => {
-  if (!allPoints.value.length)
-    return []
-  const first = new Date(tMin.value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  const last = new Date(tMax.value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  return tMin.value === tMax.value ? [{ x: xFor(tMin.value), label: first }] : [{ x: PAD.left, label: first }, { x: width.value - PAD.right, label: last }]
-})
-
 const hasData = computed(() => valid.value.length > 0)
 
-const markerPositions = computed(() =>
-  (props.markers ?? [])
-    .filter(m => m.t >= tMin.value && m.t <= tMax.value)
-    .map(m => ({ x: xFor(m.t), label: m.label, title: m.title ?? m.label })),
-)
-
-// ── Hover crosshair + tooltip ─────────────────────────────────────────────────
+// ── x-axis ticks (useChartTickPlan) ────────────────────────────────────────
+// Distinct timestamps that carry at least one value, sorted — the columns the
+// hover crosshair snaps to and the domain the tick plan is built over.
 const columns = computed(() => {
   const ts = new Set<number>()
   for (const s of props.series) {
@@ -148,10 +147,63 @@ const columns = computed(() => {
   }
   return [...ts].sort((a, b) => a - b)
 })
-const hoverT = ref<number | null>(null)
+
+// Positions stay time-proportional (xFor), not index-evenly-spaced — scan
+// timestamps are irregular, so index spacing would misrepresent the gaps.
+// useChartTickPlan only picks WHICH columns get a label + how to format them.
+const { tickPlan, firstTickYear } = useChartTickPlan({
+  dates: () => columns.value.map(t => new Date(t).toISOString()),
+})
+const xTicks = computed(() => {
+  const cols = columns.value
+  const indices = tickPlan.value.indices
+  return indices
+    .map((idx, i) => {
+      const t = cols[idx]
+      if (t == null)
+        return null
+      return {
+        x: xFor(t),
+        label: tickPlan.value.format(new Date(t), i, firstTickYear.value),
+        anchor: i === 0 ? 'start' as const : i === indices.length - 1 ? 'end' as const : 'middle' as const,
+      }
+    })
+    .filter((t): t is { x: number, label: string, anchor: 'start' | 'end' | 'middle' } => t != null)
+})
+
+// ── Annotations (release/CI markers) — UiChartAnnotations/ChartAnnotation ──
+const annotations = computed<ChartAnnotation[]>(() =>
+  (props.markers ?? []).map(m => ({ x: m.t, label: m.title ?? m.label, tone: 'neutral' as const })),
+)
+const xDomain = computed<[number, number]>(() => [tMin.value, tMax.value])
+
+// ── Hover crosshair + tooltip (useChartHover) ──────────────────────────────
+interface HoverDatum {
+  t: number
+  dateLabel: string
+  points: Array<{ label: string, color: string, text: string, y: number }>
+}
+
+const {
+  tooltipData,
+  cardSpring,
+  cursorYSpring,
+  placement,
+  onTooltip,
+  onChartMove,
+  clear,
+} = useChartHover<HoverDatum>({ wrapRef: wrap, chartWidth: width })
+
+const tooltipVisible = computed(() => tooltipData.value != null)
+const hoverPoints = computed(() => tooltipData.value?.points ?? [])
+const hoverDate = computed(() => tooltipData.value?.dateLabel ?? '')
+const hoverT = computed(() => tooltipData.value?.t ?? null)
+const hoverX = computed(() => (hoverT.value == null ? null : xFor(hoverT.value)))
+
 function onMove(e: PointerEvent) {
   if (!wrap.value || !columns.value.length)
     return
+  onChartMove(e)
   const mx = e.clientX - wrap.value.getBoundingClientRect().left
   let best = columns.value[0]!
   let bd = Infinity
@@ -162,28 +214,17 @@ function onMove(e: PointerEvent) {
       best = t
     }
   }
-  hoverT.value = best
-}
-function onLeave() {
-  hoverT.value = null
-}
-const hoverX = computed(() => (hoverT.value == null ? null : xFor(hoverT.value)))
-const hoverPoints = computed(() => {
-  if (hoverT.value == null)
-    return []
-  return props.series
+  const points = props.series
     .map((s) => {
-      const p = s.points.find(pp => pp.t === hoverT.value && pp.v != null)
+      const p = s.points.find(pp => pp.t === best && pp.v != null)
       return p ? { label: s.label, color: s.color, text: fmt(p.v as number), y: yFor(p.v as number) } : null
     })
     .filter((x): x is { label: string, color: string, text: string, y: number } => !!x)
-})
-const hoverDate = computed(() => (hoverT.value == null ? '' : new Date(hoverT.value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })))
-const tooltipLeft = computed(() => {
-  if (hoverX.value == null)
-    return 0
-  return Math.min(Math.max(hoverX.value, 70), width.value - 70)
-})
+  onTooltip({ t: best, dateLabel: new Date(best).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), points }, null)
+}
+function onLeave() {
+  clear()
+}
 </script>
 
 <template>
@@ -195,36 +236,6 @@ const tooltipLeft = computed(() => {
       </div>
     </div>
     <div ref="wrap" class="w-full relative" @pointermove="onMove" @pointerleave="onLeave">
-      <!-- release marker pills, overlaid in HTML for crisp text -->
-      <template v-if="markerPills">
-        <div
-          v-for="(m, i) in markerPositions"
-          :key="`mp${i}`"
-          class="absolute top-0 -translate-x-1/2 z-10"
-          :style="{ left: `${m.x}px` }"
-        >
-          <span :title="m.title" class="inline-block rounded bg-primary px-1 py-0.5 text-[9px] font-mono leading-none text-inverted whitespace-nowrap">
-            {{ m.label }}
-          </span>
-        </div>
-      </template>
-
-      <!-- hover tooltip -->
-      <div
-        v-if="hoverPoints.length"
-        class="absolute top-0 z-20 -translate-x-1/2 pointer-events-none rounded-md border bg-default px-2 py-1.5 shadow-md"
-        :style="{ left: `${tooltipLeft}px` }"
-      >
-        <div class="text-[10px] text-muted mb-1">
-          {{ hoverDate }}
-        </div>
-        <div v-for="row in hoverPoints" :key="row.label" class="flex items-center gap-1.5 text-[11px] whitespace-nowrap">
-          <span class="size-2 rounded-full shrink-0" :style="{ backgroundColor: row.color }" />
-          <span class="text-muted">{{ row.label }}</span>
-          <span class="ml-auto pl-3 font-semibold tabular-nums">{{ row.text }}</span>
-        </div>
-      </div>
-
       <svg v-if="width > 0 && hasData" :width="width" :height="height" class="overflow-visible">
         <!-- y gridlines + labels -->
         <g>
@@ -247,19 +258,6 @@ const tooltipLeft = computed(() => {
             class="fill-[var(--ui-text-muted)] text-[10px] tabular-nums"
           >{{ tick.label }}</text>
         </g>
-
-        <!-- release markers (vertical guides) -->
-        <line
-          v-for="(m, i) in markerPositions"
-          :key="`m${i}`"
-          :x1="m.x"
-          :x2="m.x"
-          :y1="PAD.top"
-          :y2="height - PAD.bottom"
-          class="stroke-primary/40"
-          stroke-width="1"
-          stroke-dasharray="3 3"
-        />
 
         <!-- hover crosshair -->
         <line
@@ -297,19 +295,41 @@ const tooltipLeft = computed(() => {
           </circle>
         </g>
 
-        <!-- x labels -->
+        <!-- x labels — DS useChartTickPlan (calendar-aware cadence + format) -->
         <text
-          v-for="(xl, i) in xLabels"
+          v-for="(xt, i) in xTicks"
           :key="`xl${i}`"
-          :x="xl.x"
+          :x="xt.x"
           :y="height - 6"
-          :text-anchor="i === 0 && xLabels.length > 1 ? 'start' : (i === xLabels.length - 1 && xLabels.length > 1 ? 'end' : 'middle')"
+          :text-anchor="xt.anchor"
           class="fill-[var(--ui-text-muted)] text-[10px]"
-        >{{ xl.label }}</text>
+        >{{ xt.label }}</text>
       </svg>
       <div v-else-if="width > 0" class="flex items-center justify-center text-xs text-muted" :style="{ height: `${height}px` }">
         No trend data yet.
       </div>
+
+      <UiChartFrame
+        :drag-range="null"
+        :selection-left="0"
+        :selection-width="0"
+        :tooltip-visible="tooltipVisible"
+        :card-spring="cardSpring"
+        :cursor-y-spring="cursorYSpring"
+        :placement="placement"
+        :hover-label="hoverDate"
+        :annotations="annotations"
+        :x-domain="xDomain"
+        :hover-x="hoverT"
+      >
+        <template #tooltip-rows>
+          <div v-for="row in hoverPoints" :key="row.label" class="flex items-center gap-1.5 whitespace-nowrap">
+            <span class="size-2 rounded-full shrink-0" :style="{ backgroundColor: row.color }" />
+            <span class="text-muted">{{ row.label }}</span>
+            <span class="ml-auto pl-3 font-semibold tabular-nums">{{ row.text }}</span>
+          </div>
+        </template>
+      </UiChartFrame>
     </div>
   </div>
 </template>

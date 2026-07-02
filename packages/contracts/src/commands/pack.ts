@@ -22,14 +22,22 @@ export const PackRunCmd = defineCommand({
     // on the second visit; UI exposes this as a "Refresh" button.
     refresh: z.boolean().optional(),
   }),
-  // Report is the union of all 9 pack report schemas (PackReportSchema).
+  // Report is the union of all built-in pack report schemas (PackReportSchema),
+  // widened to accept any JSON-shaped object so a third-party/custom pack's
+  // report (whose shape PackReportSchema knows nothing about) still validates.
+  // `PackReportSchema` itself stays the strict built-in union — it's exported
+  // separately for typed consumption (UI code that imports e.g. `SeoReport`).
+  // Server-side output validation isn't a dev-only nicety here: the static/CI
+  // client (`api/static-client.ts`) calls `cmd.output.parse()` and THROWS on
+  // mismatch, so a strict union would hard-fail any custom pack in a static
+  // report build, not just warn in the live server.
   output: z.object({
     scanId: ScanIdSchema,
     packName: z.string(),
     packVersion: z.string(),
     startedAt: z.iso.datetime(),
     completedAt: z.iso.datetime(),
-    report: PackReportSchema,
+    report: PackReportSchema.or(z.record(z.string(), z.unknown())),
     // `cache: 'hit'` means the report came from packRuns storage; `'miss'`
     // means it was just reconciled. Useful for "Last computed at …" UI hints
     // and for asserting cache behaviour in tests.
@@ -41,7 +49,7 @@ export const PackRunCmd = defineCommand({
 // ── pack.list ───────────────────────────────────────────────────────────────
 export const PackList = defineCommand({
   name: 'pack.list',
-  description: 'List packs available for pack.run. Built-ins include "overview" (top-level scores), "cwv" (Core Web Vitals), "images" (lazy-load + sizing + alt), "js-bundle" (unused JS/CSS, third parties), "a11y-quick-wins" (top accessibility wins), "seo-basics" (indexability + meta). Returns name, description, version, and auditor count for each.',
+  description: 'List packs available for pack.run. Built-ins include "overview" (top-level scores), "cwv" (Core Web Vitals), "images" (lazy-load + sizing + alt), "js-bundle" (unused JS/CSS, third parties), "a11y-quick-wins" (top accessibility wins), "seo-basics" (indexability + meta), "best-practices" (security headers, console errors, deprecated APIs). Returns name, description, version, auditor count, UI hint, and the pack\'s report JSON Schema for each.',
   input: z.object({}),
   output: z.object({
     packs: z.array(z.object({
@@ -49,6 +57,16 @@ export const PackList = defineCommand({
       description: z.string(),
       version: z.string(),
       auditorCount: z.number().int().nonnegative(),
+      // D-045: every pack self-describes the tab it projects to.
+      ui: z.object({
+        tab: z.string(),
+        icon: z.string().optional(),
+      }),
+      // D-045: `z.toJSONSchema(pack.reportSchema)` so the UI can decode a
+      // pack's report (built-in or custom) without a hardcoded import. `null`
+      // when a pack's reportSchema can't be converted (degrades gracefully
+      // instead of failing the whole command over one bad custom pack).
+      reportSchema: z.unknown().nullable(),
     })),
   }),
 })

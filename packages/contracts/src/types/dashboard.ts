@@ -1,27 +1,13 @@
 // Wire shapes for dashboard endpoints. Shared between server and frontend
 // so both sides agree on the contract. v2: dashboard endpoints read from
 // pack reports, so these types reflect the pack-based output.
-
-// CrUX data (field data from Chrome User Experience Report)
-export interface CruxHistoryEntry {
-  value: number
-  time: number
-  good?: number
-  ni?: number
-  poor?: number
-}
-
-export interface CruxSeries {
-  lcp: CruxHistoryEntry[]
-  inp: CruxHistoryEntry[]
-  cls: CruxHistoryEntry[]
-}
-
-export interface CruxData {
-  hostname: string | null
-  phone: CruxSeries
-  desktop: CruxSeries
-}
+//
+// CrUX field data used to have a bespoke wire shape here (`CruxData` /
+// `CruxSeries` / `CruxHistoryEntry`), but the UI never actually received that
+// shape at runtime — it was cast through `unknown` over the real `crux` pack
+// output (`CruxReportSchema` in `packs/reports.ts`). Deleted with the D-045
+// pack-tab rebuild (packages/ui ROADMAP.md); `CruxReportSchema` is the single
+// source of truth for CrUX data now.
 
 // Route detail (returned by route.get command and /dashboard/route endpoint)
 export interface RouteDetail {

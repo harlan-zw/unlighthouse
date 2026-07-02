@@ -253,12 +253,18 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   if (userConfig.configFile && !isAbsolute(userConfig.configFile))
     userConfig.configFile = join(process.cwd(), userConfig.configFile)
 
-  const { configFile, config } = await resolveConfig({
+  const { configFile, config, packs: configPacks } = await resolveConfig({
     cwd: userConfig.root,
     configFile: userConfig.configFile || 'unlighthouse.config',
     overrides: userConfig,
   })
   const resolvedConfig = config as ResolvedUserConfig
+
+  // D-046: merge config-sourced packs (unlighthouse.config.ts `packs: Pack[]`)
+  // with the explicit `packs` option on createUnlighthouseHost — the caller's
+  // explicit option wins on a name collision (config-sourced packs are listed
+  // first; createPackRegistry's last-write-wins merge lets the option override).
+  const packs: Pack[] = [...(configPacks ?? []), ...(opts.packs ?? [])]
 
   // ── RuntimeSettings ──────────────────────────────────────────────────────
 
@@ -354,7 +360,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         routeMatcher,
         crawler,
         storage,
-        packs: opts.packs,
+        packs,
         logger,
       })
 
@@ -373,7 +379,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         storage,
         config: coreConfig,
         version,
-        packs: createPackRegistry(opts.packs),
+        packs: createPackRegistry(packs),
       }
 
       portsRef = { core, storage, auditor, handlerCtx }

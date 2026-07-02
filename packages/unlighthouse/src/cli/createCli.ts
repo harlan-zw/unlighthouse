@@ -116,11 +116,56 @@ export interface BuildCliDeps {
   runRoot: (options: CliOptions, rawArgs: string[]) => Promise<void>
   /** Registry projection wiring (handlers + per-invocation ctx + output). */
   projection: CliProjectionOptions
+  /** Raw argv (without node/script). Defaults to `process.argv.slice(2)`. */
+  argv?: string[]
+}
+
+/** Long/short flag key from a raw token: `--site` → `site`, `--device=x` → `device`, `-d` → `d`. */
+function flagKey(token: string): string {
+  return token.replace(/^--?/, '').split('=')[0] ?? ''
+}
+
+/**
+ * Whether this invocation is subcommand-shaped. citty (0.1.6) resolves a
+ * subcommand from the FIRST non-dash token in rawArgs without accounting for
+ * flag values, so `unlighthouse --site example.com` would read `example.com`
+ * (the `--site` value) as a command name and die with "Unknown command".
+ *
+ * We walk the args value-aware: a string/number flag consumes the following
+ * token, so it is not a positional. The first token that is neither a flag nor
+ * a consumed flag-value is a real positional — a subcommand. Attach subCommands
+ * then (the canonical `unlighthouse scan start ...`, and pure-flag `--help` /
+ * `--version` which have no positional so still list commands). A flags-only
+ * scan invocation (`--site example.com`) resolves to the root command.
+ *
+ * A misplaced subcommand after a value flag (`--site x manifest`) still counts
+ * as subcommand-shaped, so citty errors loudly instead of silently running a
+ * root scan and leaving a dashboard server listening.
+ */
+export function isSubcommandInvocation(argv: string[], argSpec: ArgsDef = ROOT_ARGS): boolean {
+  for (let i = 0; i < argv.length; i++) {
+    const token = argv[i]
+    if (token == null)
+      continue
+    if (!token.startsWith('-'))
+      return true // a real positional survived the value-aware walk → subcommand-shaped
+    const spec = argSpec[flagKey(token)]
+    const takesValue = spec != null && spec.type !== 'boolean'
+    const next = argv[i + 1]
+    if (takesValue && !token.includes('=') && next != null && !next.startsWith('-'))
+      i++ // skip the flag's value so it is not mistaken for a positional
+  }
+  // No real positional. Attach subCommands only when there is no non-dash token
+  // at all (`--help` / `--version` / empty still list commands); a flags-only
+  // scan invocation (`--site example.com`, whose value is the only non-dash
+  // token) must detach so citty does not read the value as a command name.
+  return !argv.some(a => !a.startsWith('-'))
 }
 
 /** Build the citty main command: root scan entry + projected subcommands. */
 export function buildCli(deps: BuildCliDeps): CommandDef {
   const { subCommands } = projectCliCommands(deps.projection)
+  const argv = deps.argv ?? process.argv.slice(2)
   return defineCommand({
     meta: {
       name: 'unlighthouse',
@@ -128,7 +173,7 @@ export function buildCli(deps: BuildCliDeps): CommandDef {
       description: 'Scan your entire website with Google Lighthouse.',
     },
     args: ROOT_ARGS,
-    subCommands,
+    subCommands: isSubcommandInvocation(argv) ? subCommands : undefined,
     async run({ args, rawArgs }) {
       await deps.runRoot(rootArgsToOptions(args as Record<string, unknown>, rawArgs), rawArgs)
     },

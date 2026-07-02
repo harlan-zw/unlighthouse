@@ -60,6 +60,7 @@ export const insightsPack: Pack<InsightsReport> = {
   description: 'Lighthouse 13 performance insights: cross-route savings analysis with prioritized fix order.',
   version: '1.0.0',
   reportSchema: InsightsReportSchema,
+  ui: { tab: 'Insights', icon: 'ai' },
 
   async reconciler(ctx: PackReconcileCtx): Promise<InsightsReport> {
     const { scanId, routes } = ctx

@@ -47,6 +47,7 @@ const overallScore = overallRouteScore
 const formatMetric = formatRouteMetric
 const UiIconC = resolveComponent('UiIcon')
 const UiChipC = resolveComponent('UiChip')
+const UiTrendC = resolveComponent('UiTrend')
 
 const columns = computed<ColumnDef<RouteRow>[]>(() => {
   const cols: ColumnDef<RouteRow>[] = [
@@ -145,11 +146,9 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           return h('span', { class: 'text-[10px] text-muted border rounded px-1 py-0.5' }, 'new')
         if (cur == null)
           return h('span', { class: 'text-muted' }, '—')
-        const d = cur - prev
-        if (d === 0)
-          return h('span', { class: 'text-xs text-muted tabular-nums' }, '0')
-        const up = d > 0
-        return h('span', { class: `text-xs font-medium tabular-nums ${up ? 'text-success' : 'text-error'}` }, `${up ? '▲ +' : '▼ '}${d}`)
+        // Raw point delta (not a ratio), so UiTrend renders in 'number' mode —
+        // 'percent' would divide by the previous score, which is the wrong signal here.
+        return h(UiTrendC, { value: cur - prev, format: 'number', showSign: true, colored: true, size: 'xs' })
       },
     })
   }
@@ -195,11 +194,13 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     </div>
 
     <!-- Core Web Vitals — professional metric header (p75 + distribution +
-         percentiles across the visible routes). -->
-    <div v-if="filtered.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+         percentiles across the visible routes). LCP/CLS/TBT/INP mirrors the
+         CWV_COLS column set below; FCP/SI/TTFB stay behind "More metrics". -->
+    <div v-if="filtered.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="CWV_THRESHOLDS.lcp" :format="(v: number) => formatMetric(v, 'ms')" />
       <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="CWV_THRESHOLDS.cls" :format="(v: number) => v.toFixed(3)" />
       <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="CWV_THRESHOLDS.tbt" :format="(v: number) => formatMetric(v, 'ms')" />
+      <MetricStatCard label="Interaction to Next Paint" :values="filtered.map(r => r.inp)" :thresholds="CWV_THRESHOLDS.inp" :format="(v: number) => formatMetric(v, 'ms')" />
       <template v-if="showAllMetrics">
         <MetricStatCard label="First Contentful Paint" :values="filtered.map(r => r.fcp)" :thresholds="CWV_THRESHOLDS.fcp" :format="(v: number) => formatMetric(v, 'ms')" />
         <MetricStatCard label="Speed Index" :values="filtered.map(r => r.si)" :thresholds="CWV_THRESHOLDS.si" :format="(v: number) => formatMetric(v, 'ms')" />
@@ -219,18 +220,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       />
 
       <!-- Quick filters -->
-      <div class="flex items-center rounded-md border p-0.5">
-        <button
-          v-for="f in QUICK_FILTERS"
-          :key="f.key"
-          type="button"
-          class="min-h-11 min-w-11 px-2.5 py-1 text-xs rounded transition-colors lg:min-h-0 lg:min-w-0"
-          :class="quick === f.key ? 'bg-elevated font-medium text-default' : 'text-muted hover:text-default'"
-          @click="quick = f.key"
-        >
-          {{ f.label }}
-        </button>
-      </div>
+      <UiPillSelect v-model="quick" :options="QUICK_FILTERS.map(f => ({ label: f.label, value: f.key }))" />
 
       <UiChip purpose="count" size="sm" tabular>
         {{ filtered.length }}<span v-if="filtered.length !== total" class="text-muted/70"> / {{ total }}</span>
@@ -238,15 +228,16 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
 
       <div class="flex-1" />
 
-      <USelect
+      <UTabs
         v-if="hasMultipleDevices"
         v-model="deviceFilter"
+        :content="false"
+        size="sm"
         :items="[
-          { label: 'All Devices', value: 'all' },
-          { label: 'Mobile', value: 'mobile', icon: 'smartphone' },
-          { label: 'Desktop', value: 'desktop', icon: 'monitor' },
+          { value: 'all', label: 'All' },
+          { value: 'mobile', label: 'Mobile', icon: 'smartphone' },
+          { value: 'desktop', label: 'Desktop', icon: 'monitor' },
         ]"
-        class="w-36"
       />
 
       <UDropdownMenu :items="columnToggleItems" :content="{ align: 'end' }" :ui="{ content: 'w-44' }">

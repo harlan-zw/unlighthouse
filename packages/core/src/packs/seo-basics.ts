@@ -12,7 +12,9 @@
 // will actually rank.
 
 import type { Pack, PackReconcileCtx, SeoFinding, SeoReport, SeoRouteCheck } from '@unlighthouse/contracts/packs'
+import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { SeoReportSchema } from '@unlighthouse/contracts/packs'
+import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -100,16 +102,16 @@ interface RouteView {
   rawLhr: LhrLike | null
 }
 
-async function loadRouteView(url: string, ctx: PackReconcileCtx): Promise<RouteView | null> {
+async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx): Promise<RouteView | null> {
   const reconciled = ctx.getReconciled
-    ? await ctx.getReconciled(url, 'mobile').catch((err) => {
-        ctx.logger?.debug?.(`seo-basics pack: failed to load reconciled report for ${url} [mobile]`, err)
+    ? await ctx.getReconciled(url, device).catch((err) => {
+        ctx.logger?.debug?.(`seo-basics pack: failed to load reconciled report for ${url} [${device}]`, err)
         return null
       })
     : null
   const lhr = ctx.getLhr
-    ? await ctx.getLhr(url, 'mobile').catch((err) => {
-      ctx.logger?.debug?.(`seo-basics pack: failed to load LHR for ${url} [mobile]`, err)
+    ? await ctx.getLhr(url, device).catch((err) => {
+      ctx.logger?.debug?.(`seo-basics pack: failed to load LHR for ${url} [${device}]`, err)
       return null
     }) as LhrLike | null
     : null
@@ -154,8 +156,8 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
   let routesAnalysed = 0
   let indexableRoutes = 0
 
-  for (const row of ctx.routes) {
-    const view = await loadRouteView(row.url, ctx)
+  for (const { url, device } of resolveDistinctPackRoutes(ctx.routes)) {
+    const view = await loadRouteView(url, device, ctx)
     if (!view || view.auditWeights.size === 0)
       continue
     routesAnalysed++
@@ -193,7 +195,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
         }
         findings.set(auditId, finding)
       }
-      finding.routes.add(row.url)
+      finding.routes.add(url)
 
       // Element samples can only come from the raw LHR (reconciled blob
       // intentionally drops details.items to stay lean). When the LHR is
@@ -218,7 +220,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
     if (indexable)
       indexableRoutes++
 
-    routeChecks.push({ url: row.url, passes, fails, indexable })
+    routeChecks.push({ url, passes, fails, indexable })
   }
 
   // Sort route checks: unindexable first (so the UI leads with them), then
@@ -287,4 +289,5 @@ export const seoBasicsPack: Pack<SeoReport> = {
   ],
   reconciler: reconcile,
   reportSchema: SeoReportSchema,
+  ui: { tab: 'SEO', icon: 'search' },
 }

@@ -54,7 +54,7 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
           Compare latest two
         </UiButton>
         <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`" icon="add">
-          New Scan
+          New scan
         </UiButton>
       </div>
     </div>
@@ -132,10 +132,10 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
         </div>
       </UiCard>
 
-      <!-- Scan history -->
+      <!-- Scans -->
       <div>
         <h2 class="text-sm font-medium text-muted mb-3">
-          Scan history
+          Scans
         </h2>
         <SiteHistoryTable
           :pairs="pairs"

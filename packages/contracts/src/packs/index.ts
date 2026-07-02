@@ -55,8 +55,13 @@ export interface PackReconcileCtx {
 
 /**
  * A Pack. Generic over its report shape; consumers infer `T` from
- * `reportSchema`. UI hint is optional — a host (UI) MAY render a tab/page
- * for the pack but the pack itself doesn't depend on a UI.
+ * `reportSchema`. `ui` is REQUIRED (D-045): every pack self-describes the tab
+ * it projects to, built-in or third-party — a custom pack with no `ui` has no
+ * way to appear in the dashboard, contradicting "custom audit packs for the
+ * UI". `ui.component` is intentionally NOT part of this shape: the dashboard
+ * ships as a prebuilt SPA, so loading a third-party Vue component at runtime
+ * has no shipping story in this repo. The UI renders a generic findings view
+ * from `reportSchema` instead (see packages/ui/ROADMAP.md D-045).
  */
 export interface Pack<TReport = unknown> {
   name: string
@@ -65,10 +70,9 @@ export interface Pack<TReport = unknown> {
   auditors?: AuditorRequirement[]
   reconciler: (ctx: PackReconcileCtx) => Promise<TReport>
   reportSchema: z.ZodType<TReport>
-  ui?: {
+  ui: {
     tab: string
     icon?: string
-    component?: string
   }
 }
 

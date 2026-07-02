@@ -18,8 +18,9 @@
 //     on 18 routes" is one finding, not 18.
 
 import type { CwvFix, CwvReport, MetricSnapshot, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import type { ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { Device, ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import { CwvReportSchema } from '@unlighthouse/contracts/packs'
+import { resolveDistinctPackRows } from './reconcile-context'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────
 // web.dev/articles/vitals — last updated when this file was written.
@@ -149,11 +150,12 @@ const SAVINGS_TO_METRIC: Record<string, MetricKey> = {
 type SavingsMap = NonNullable<ReconciledReport['audits'][string]['metricSavings']>
 async function readInsightAudits(
   url: string,
+  device: Device,
   ctx: PackReconcileCtx,
 ): Promise<Map<string, SavingsMap> | null> {
   if (ctx.getReconciled) {
-    const reconciled = await ctx.getReconciled(url, 'mobile').catch((err) => {
-      ctx.logger?.debug?.(`cwv pack: failed to load reconciled report for ${url} [mobile]`, err)
+    const reconciled = await ctx.getReconciled(url, device).catch((err) => {
+      ctx.logger?.debug?.(`cwv pack: failed to load reconciled report for ${url} [${device}]`, err)
       return null
     })
     if (reconciled?.audits) {
@@ -169,8 +171,8 @@ async function readInsightAudits(
     }
   }
   if (ctx.getLhr) {
-    const lhr = await ctx.getLhr(url, 'mobile').catch((err) => {
-      ctx.logger?.debug?.(`cwv pack: failed to load LHR for ${url} [mobile]`, err)
+    const lhr = await ctx.getLhr(url, device).catch((err) => {
+      ctx.logger?.debug?.(`cwv pack: failed to load LHR for ${url} [${device}]`, err)
       return null
     }) as LhrLike | null
     if (!lhr?.audits)
@@ -189,7 +191,10 @@ async function readInsightAudits(
 // ── Reconciler ──────────────────────────────────────────────────────────────
 
 async function reconcile(ctx: PackReconcileCtx): Promise<CwvReport> {
-  const routes = ctx.routes
+  // Fold multi-device rows to one row per URL (mobile-preferred) so p75
+  // distributions and route counts are over distinct URLs, not doubled across
+  // the mobile + desktop rows of a device-matrix scan.
+  const routes = resolveDistinctPackRows(ctx.routes)
   const metrics = METRIC_KEYS.map(k => metricSnapshot(k, routes))
 
   // Site passes CWV iff all three core metrics' p75 lands in `good`.
@@ -206,7 +211,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<CwvReport> {
   if (ctx.getReconciled || ctx.getLhr) {
     const accum = new Map<string, InsightAccum>()
     for (const row of routes) {
-      const audits = await readInsightAudits(row.url, ctx)
+      const audits = await readInsightAudits(row.url, row.device, ctx)
       if (!audits)
         continue
       for (const [id, savings] of audits) {
@@ -272,4 +277,5 @@ export const cwvPack: Pack<CwvReport> = {
   ],
   reconciler: reconcile,
   reportSchema: CwvReportSchema,
+  ui: { tab: 'Core Web Vitals', icon: 'gauge' },
 }

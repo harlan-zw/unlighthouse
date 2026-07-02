@@ -38,7 +38,7 @@ const props = withDefaults(defineProps<Props>(), {
   maxRoutesPerFinding: 10,
 })
 
-function severityVariant(severity: string): 'error' | 'warning' | 'neutral' {
+function severityVariant(severity: string): SemanticStatus {
   if (severity === 'critical' || severity === 'serious')
     return 'error'
   if (severity === 'moderate')
@@ -63,17 +63,17 @@ const accordionItems = computed<AccordionItem[]>(() =>
     <template #header>
       <h3 class="text-label text-dimmed flex items-center gap-2">
         {{ title }}
-        <UBadge color="neutral" variant="soft" class="text-xs">
+        <UiChip purpose="count">
           {{ findings.length }}
-        </UBadge>
+        </UiChip>
       </h3>
     </template>
     <UAccordion :items="accordionItems" type="multiple" class="w-full">
       <template #default="{ item: finding }">
         <div class="flex items-center gap-3 text-left flex-1 min-w-0 text-sm">
-          <UBadge :color="severityVariant(finding.severity)" variant="soft" class="text-[10px] shrink-0 capitalize">
+          <UiChip purpose="status" :status="severityVariant(finding.severity)" class="shrink-0 capitalize">
             {{ finding.severity }}
-          </UBadge>
+          </UiChip>
           <span class="truncate">{{ finding.title || finding.auditId }}</span>
           <span v-if="finding.routeCount != null" class="text-xs text-muted shrink-0 ml-auto">
             {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}

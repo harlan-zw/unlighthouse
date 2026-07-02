@@ -157,6 +157,7 @@ export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
   description: 'Lighthouse 13 agentic browsing: WebMCP coverage, llms.txt, agent accessibility, and stability across all routes.',
   version: '1.1.0',
   reportSchema: AgenticBrowsingReportSchema,
+  ui: { tab: 'Agentic Browsing', icon: 'bot' },
 
   async reconciler(ctx: PackReconcileCtx): Promise<AgenticBrowsingReport> {
     const findings = new Map<string, FindingBucket>()

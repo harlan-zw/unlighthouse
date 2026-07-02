@@ -1,36 +1,68 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import type { DashboardSiteRow } from '~/features/dashboard/overview'
-import type { ScanRow } from '~/features/sites/scan-pairs'
+import type { SiteHomeRow } from '~/features/sites/home'
 import { h } from 'vue'
-import { useDashboardOverview } from '~/features/dashboard/overview'
-import ScanStatusBadge from '~/features/scan/components/ScanStatusBadge.vue'
+import { useSitesHome } from '~/features/sites/home'
+import { useSitesRegistry } from '~/features/sites/registry'
 
-definePageMeta({ layout: 'root', middleware: 'onboarding' })
-usePageTitle('Dashboard')
+definePageMeta({ middleware: 'onboarding' })
+usePageTitle('Sites')
 
 const { scoreToColor, scoreToLabel } = createScoreColorHelpers()
 const { fmtRelTime } = createFormatters()
 
 const FaviconC = resolveComponent('UiFavicon')
-const UiIconC = resolveComponent('UiIcon')
 const SparklineC = resolveComponent('UiSparkline')
+const ChipC = resolveComponent('UiChip')
+const TooltipC = resolveComponent('UiTooltip')
+
 const {
+  historyStatus,
   historyError,
+  sitesError,
   refreshHistory,
-  siteRows,
-  kpis,
-  recentScans,
+  refreshSites,
+  rows,
   isEmpty,
   activeScan,
   openActiveScan,
   openSite,
-  openScan,
-} = useDashboardOverview()
+} = useSitesHome()
+
+const {
+  editing,
+  formOpen,
+  formUrl,
+  formName,
+  formGroup,
+  saving,
+  groupSuggestions,
+  openAdd,
+  openEdit,
+  openRegister,
+  saveSite,
+  deleteSite,
+  scanSite,
+} = useSitesRegistry()
+
+const loadError = computed(() => historyError.value || sitesError.value)
+function retryLoad() {
+  refreshHistory()
+  refreshSites()
+}
 
 const { scoreToRingColor } = createScoreColorHelpers()
 function score100Color(v: number | null): string {
   return scoreToRingColor(v == null ? null : v / 100)
+}
+
+function statusWord(score: number | null): string {
+  switch (scoreBand(score)) {
+    case 'good': return 'passing'
+    case 'average': return 'needs work'
+    case 'poor': return 'poor'
+    default: return 'no data'
+  }
 }
 
 // ── Sites table ──────────────────────────────────────────────────────────────
@@ -39,30 +71,55 @@ const CAT_COLS: { key: string, label: string }[] = [
   { key: 'accessibility', label: 'A11y' },
   { key: 'seo', label: 'SEO' },
   { key: 'best-practices', label: 'BP' },
+  { key: 'agentic-browsing', label: 'Agentic' },
 ]
-const siteColumns: ColumnDef<DashboardSiteRow>[] = [
+
+const columns: ColumnDef<SiteHomeRow>[] = [
   {
     accessorKey: 'name',
     header: 'Site',
     cell: ({ row }) => h('div', { class: 'flex items-center gap-2.5 min-w-0' }, [
       h(FaviconC, { domain: row.original.slug, size: 24, alt: `${row.original.name} favicon` }),
       h('div', { class: 'min-w-0' }, [
-        h('div', { class: 'text-sm font-medium truncate' }, row.original.name),
+        h('div', { class: 'flex items-center gap-1.5 min-w-0' }, [
+          h('span', { class: 'text-sm font-medium truncate' }, row.original.name),
+          !row.original.registered && h(TooltipC, {
+            title: 'Unregistered',
+            description: 'Scan history exists for this origin, but it isn\'t in the registry.',
+          }, {
+            default: () => h(ChipC, { purpose: 'tag', size: 'xs' }, { default: () => 'Unregistered' }),
+          }),
+        ]),
         h('div', { class: 'text-[11px] text-muted font-mono truncate' }, row.original.url),
       ]),
     ]),
   },
   {
+    id: 'group',
+    accessorFn: (r: SiteHomeRow) => r.group ?? '',
+    header: 'Group',
+    align: 'left',
+    cell: ({ row }) => {
+      const group = row.original.group
+      return group
+        ? h(ChipC, { purpose: 'count' }, { default: () => group })
+        : h('span', { class: 'text-xs text-dimmed' }, '—')
+    },
+  },
+  {
     id: 'avg',
-    accessorFn: (r: DashboardSiteRow) => r.avg ?? undefined,
+    accessorFn: (r: SiteHomeRow) => r.avg ?? undefined,
     header: 'Score',
     sortUndefined: 'last',
     align: 'center',
-    cell: ({ row }) => h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.avg)}` }, scoreToLabel(row.original.avg)),
+    cell: ({ row }) => h('span', { class: 'inline-flex items-baseline gap-1.5' }, [
+      h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.avg)}` }, scoreToLabel(row.original.avg)),
+      h('span', { class: 'text-xs text-muted' }, statusWord(row.original.avg)),
+    ]),
   },
-  ...CAT_COLS.map((c): ColumnDef<DashboardSiteRow> => ({
+  ...CAT_COLS.map((c): ColumnDef<SiteHomeRow> => ({
     id: c.key,
-    accessorFn: (r: DashboardSiteRow) => r.cats[c.key] ?? undefined,
+    accessorFn: (r: SiteHomeRow) => r.cats[c.key] ?? undefined,
     header: c.label,
     sortUndefined: 'last' as const,
     align: 'center' as const,
@@ -80,79 +137,53 @@ const siteColumns: ColumnDef<DashboardSiteRow>[] = [
   },
   {
     id: 'last',
-    accessorFn: (r: DashboardSiteRow) => r.lastAt ?? '',
+    accessorFn: (r: SiteHomeRow) => r.lastAt ?? '',
     header: 'Last scan',
     align: 'right',
     cell: ({ row }) => h('span', { class: 'text-xs text-muted tabular-nums' }, row.original.lastAt ? fmtRelTime(row.original.lastAt) : '—'),
-  },
-]
-
-// ── Recent scans table ───────────────────────────────────────────────────────
-const recentColumns: ColumnDef<ScanRow>[] = [
-  {
-    accessorKey: 'site',
-    header: 'Site',
-    enableSorting: false,
-    cell: ({ row }) => h('span', { class: 'text-sm font-mono truncate block max-w-xs' }, (() => {
-      try {
-        return new URL(row.original.site).hostname + new URL(row.original.site).pathname.replace(/\/$/, '')
-      }
-      catch (_err) {
-        // Recent scans can carry legacy site labels rather than absolute URLs.
-        return row.original.site
-      }
-    })()),
-  },
-  {
-    id: 'device',
-    header: 'Device',
-    enableSorting: false,
-    align: 'center',
-    cell: ({ row }) => h(UiIconC, { name: row.original.device === 'mobile' ? 'smartphone' : 'monitor', class: 'size-3.5 text-muted' }),
-  },
-  {
-    id: 'avg',
-    header: 'Score',
-    enableSorting: false,
-    align: 'center',
-    cell: ({ row }) => h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.summary?.scoreAverage ?? null)}` }, scoreToLabel(row.original.summary?.scoreAverage ?? null)),
-  },
-  {
-    id: 'routes',
-    header: 'Routes',
-    enableSorting: false,
-    align: 'right',
-    cell: ({ row }) => h('span', { class: 'text-xs tabular-nums text-muted' }, String(row.original.summary?.completed ?? 0)),
-  },
-  {
-    id: 'status',
-    header: 'Status',
-    enableSorting: false,
-    align: 'center',
-    cell: ({ row }) => h(ScanStatusBadge, { status: row.original.status }),
-  },
-  {
-    id: 'when',
-    header: 'When',
-    enableSorting: false,
-    align: 'right',
-    cell: ({ row }) => h('span', { class: 'text-xs text-muted tabular-nums' }, fmtRelTime(row.original.startedAt)),
   },
 ]
 </script>
 
 <template>
   <div class="space-y-6">
-    <UiPageHeader title="Dashboard" description="Your sites at a glance." flush>
+    <UiPageHeader title="Sites" description="Every site you scan, registered or not." flush>
       <template #actions>
+        <UModal v-model:open="formOpen" :title="editing ? 'Edit Site' : 'Add Site'" :ui="{ content: 'sm:max-w-md' }">
+          <UiButton purpose="secondary" icon="add" label="Add site" @click="openAdd" />
+          <template #body>
+            <form id="site-form" class="space-y-4" @submit.prevent="saveSite">
+              <UFormField label="URL">
+                <UInput v-model="formUrl" placeholder="https://example.com" aria-label="Site URL" required class="w-full font-mono" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              </UFormField>
+              <p v-if="editing && formUrl !== editing.url" class="text-[11px] text-warning">
+                Changing the URL creates a new site. The old one will remain.
+              </p>
+              <UFormField label="Display name" hint="optional">
+                <UInput v-model="formName" :placeholder="editing?.name || 'example.com'" aria-label="Display name" class="w-full" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              </UFormField>
+              <UFormField label="Group" hint="optional">
+                <UInput v-model="formGroup" list="site-group-suggestions" placeholder="e.g. Production, Staging" aria-label="Group" class="w-full" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+                <datalist id="site-group-suggestions">
+                  <option v-for="g in groupSuggestions" :key="g" :value="g" />
+                </datalist>
+              </UFormField>
+            </form>
+          </template>
+          <template #footer>
+            <UiButton purpose="cta" type="submit" form="site-form" :loading="saving" :disabled="saving || !formUrl.trim()">
+              {{ editing ? 'Save' : 'Add' }}
+            </UiButton>
+          </template>
+        </UModal>
         <UiButton purpose="cta" to="/scan/new" icon="add">
-          New Scan
+          New scan
         </UiButton>
       </template>
     </UiPageHeader>
 
     <!-- Active scan banner -->
-    <div v-if="activeScan.isActive" class="rounded-xl border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="openActiveScan">
+    <div v-if="activeScan.isActive" class="rounded-lg border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="openActiveScan">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="relative flex size-2">
@@ -166,58 +197,57 @@ const recentColumns: ColumnDef<ScanRow>[] = [
       <UProgress :model-value="activeScan.percent" size="sm" />
     </div>
 
-    <!-- Failed to load scans — shown instead of the empty state so an
-         unreachable backend doesn't read as "no scans yet". -->
-    <QueryError v-if="historyError" :error="historyError" :on-retry="refreshHistory" />
+    <!-- Failed to load sites or scans. Shown instead of the empty state so an
+         unreachable backend doesn't read as "nothing registered yet". -->
+    <QueryError v-if="loadError" :error="loadError" :on-retry="retryLoad" />
 
     <!-- Empty state -->
-    <div v-else-if="isEmpty" class="flex flex-col items-center justify-center py-20 text-center">
-      <div class="size-16 rounded-full bg-elevated flex items-center justify-center mb-6">
-        <UiIcon name="radar" class="size-8 text-muted" />
+    <UiEmptyState
+      v-else-if="isEmpty"
+      icon="radar"
+      title="Connect a site to run your first audit"
+      description="Add a site to the registry, or run a scan. Either one starts this list."
+    >
+      <div class="flex items-center gap-2">
+        <UiButton purpose="secondary" icon="add" @click="openAdd">
+          Add site
+        </UiButton>
+        <UiButton purpose="cta" to="/scan/new" icon="radar">
+          New scan
+        </UiButton>
       </div>
-      <h2 class="text-heading mb-2">
-        No scans yet
-      </h2>
-      <p class="text-muted mb-6 max-w-sm">
-        Start your first scan to get SEO, performance, and accessibility insights for your website.
-      </p>
-      <UiButton purpose="cta" size="lg" to="/scan/new" icon="add">
-        Start First Scan
-      </UiButton>
-    </div>
+    </UiEmptyState>
 
-    <template v-else>
-      <!-- KPI cards -->
-      <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <UiStat card title="Sites" :value="kpis.sites" />
-        <UiStat card title="Total scans" :value="kpis.scans" />
-        <UiStat card title="Avg score" :value="kpis.avg" :value-class="kpis.avg != null ? scoreToColor(kpis.avg / 100) : ''" />
-        <UiStat card title="Needs attention" :value="kpis.needs" :value-class="kpis.needs ? 'text-warning' : ''" />
-      </div>
-
-      <!-- Sites -->
-      <div v-if="siteRows.length" class="space-y-3">
-        <UiSectionHeader title="Sites">
-          <template #actions>
-            <NuxtLink to="/sites" class="text-xs text-dimmed hover:text-default transition-colors">
-              Manage <UiIcon name="next" class="size-3 inline" />
-            </NuxtLink>
+    <UiTable v-else :columns="columns" :data="rows" :loading="historyStatus === 'pending'" enable-sorting row-clickable row-hover row-id="key" @row-click="openSite">
+      <template #actions="{ row }">
+        <div class="flex items-center justify-end gap-1">
+          <template v-if="row.registered">
+            <UiButton purpose="quiet" size="xs" icon="radar" aria-label="Run new scan" @click.stop="scanSite(row.url)" />
+            <UiButton purpose="quiet" size="xs" icon="edit" aria-label="Edit site" @click.stop="openEdit(row.site!)" />
+            <UModal
+              title="Remove site?"
+              :description="`This removes ${row.name} from the registry. Scan history will be preserved.`"
+            >
+              <UiButton purpose="quiet" size="xs" icon="delete" aria-label="Delete site" @click.stop />
+              <template #footer="{ close }">
+                <UiButton purpose="quiet" @click="close">
+                  Cancel
+                </UiButton>
+                <UiButton purpose="danger" @click="() => { deleteSite(row.site!.id); close() }">
+                  Remove
+                </UiButton>
+              </template>
+            </UModal>
           </template>
-        </UiSectionHeader>
-        <UiTable :columns="siteColumns" :data="siteRows" enable-sorting row-clickable row-hover @row-click="openSite" />
-      </div>
-
-      <!-- Recent scans -->
-      <div v-if="recentScans.length" class="space-y-3">
-        <UiSectionHeader title="Recent scans">
-          <template #actions>
-            <NuxtLink to="/history" class="text-xs text-dimmed hover:text-default transition-colors">
-              View all <UiIcon name="next" class="size-3 inline" />
-            </NuxtLink>
+          <template v-else>
+            <UiButton purpose="quiet" size="xs" icon="external" aria-label="Open site" @click.stop="openSite(row)" />
+            <UiButton purpose="quiet" size="xs" icon="radar" aria-label="Run new scan" @click.stop="scanSite(row.url)" />
+            <UiButton purpose="secondary" size="xs" icon="add" @click.stop="openRegister(row.url)">
+              Register
+            </UiButton>
           </template>
-        </UiSectionHeader>
-        <UiTable :columns="recentColumns" :data="recentScans" row-clickable row-hover @row-click="openScan" />
-      </div>
-    </template>
+        </div>
+      </template>
+    </UiTable>
   </div>
 </template>

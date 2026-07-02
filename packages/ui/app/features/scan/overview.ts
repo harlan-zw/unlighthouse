@@ -7,12 +7,17 @@ import { useScanStore } from '~/stores/scan'
 type DeviceFilter = '' | 'mobile' | 'desktop'
 type CategoryScoreDisplayMode = 'gauge' | 'fraction'
 
+// D-045: category score cards link to the pack tab that projects that
+// category, not a bespoke category page (deleted). These five stay a
+// hand-maintained list — unlike the sidebar's pack tabs, they're score
+// AGGREGATES (per CONTEXT.md), not a 1:1 mirror of pack.list, so there's no
+// generated source to collapse onto here.
 const CATEGORY_DEFS = [
-  { key: 'performance', label: 'Performance', icon: 'gauge', path: 'performance' },
-  { key: 'seo', label: 'SEO', icon: 'search', path: 'seo' },
-  { key: 'accessibility', label: 'Accessibility', icon: 'accessibility', path: 'accessibility' },
-  { key: 'best-practices', label: 'Best Practices', icon: 'shield-check', path: 'best-practices' },
-  { key: 'agentic-browsing', label: 'Agentic', icon: 'bot', path: 'agentic-browsing' },
+  { key: 'performance', label: 'Performance', icon: 'gauge', path: 'packs/cwv' },
+  { key: 'seo', label: 'SEO', icon: 'search', path: 'packs/seo-basics' },
+  { key: 'accessibility', label: 'Accessibility', icon: 'accessibility', path: 'packs/a11y-quick-wins' },
+  { key: 'best-practices', label: 'Best Practices', icon: 'shield-check', path: 'packs/best-practices' },
+  { key: 'agentic-browsing', label: 'Agentic', icon: 'bot', path: 'packs/agentic-browsing' },
 ] as const
 
 function scoreColorFromRing(scoreToRingColor: (score: number | null) => string, score: number | null): string {
@@ -47,15 +52,15 @@ export function useScanOverview() {
   const showLiveView = computed(() => currentScanIsActive.value || (isCurrentScan.value && store.status === 'paused'))
   const showScanActions = computed(() => currentScanIsActive.value || store.status === 'paused')
 
-  watch(
-    () => store.status,
-    (status, prev) => {
-      const becameComplete = status === 'complete' && prev && prev !== 'complete'
-      if (becameComplete && isCurrentScan.value)
-        router.replace(`${scanBase.value}/routes`)
-    },
-  )
-
+  // D-049: Overview is the single landing tab — a live scan transitions to the
+  // completed view in place instead of being redirected to `/routes`.
+  // `resolvedStatus`/`scanIsComplete` below flip off `store.status` (set by the
+  // `scan:complete` WS event, or the polling fallback), which flips
+  // `scanSummary`'s `enabled` from false to true; nuxt-use-query's lifecycle
+  // refetches on that transition on its own (no manual refresh needed here).
+  // `useScanSubscription` (mounted in `layouts/scan.vue`) also invalidates
+  // `scan.summary`/`scan.results`/`scan.meta` on the same event, covering
+  // scan-detail views mounted elsewhere (e.g. the routes table).
   const wsEnabled = Boolean(useRuntimeConfig().public.unlighthouseWsUrl)
 
   async function startPollingIfActive() {
@@ -75,12 +80,34 @@ export function useScanOverview() {
   })
   onBeforeUnmount(() => store.stopPolling())
 
+  // A scan the store doesn't own (shared link, second tab, hard refresh) with
+  // no `summary` yet isn't necessarily finished — `summary` only appears on
+  // completion, so absence just means "unknown". Probe the cheap `scan.status`
+  // lookup instead of assuming complete; on WS deployments nothing else would
+  // ever check this (the WS subscription only starts once the store already
+  // owns the scan), so without this the page would render 'complete' until an
+  // eventual `scan:complete` event happened to arrive.
+  const needsStatusProbe = computed(() => !isCurrentScan.value && !!scanMeta.value && !scanMeta.value.summary)
+  const { data: remoteStatus } = useApiQuery(
+    'scan.status',
+    () => ({ scanId: scanId.value }),
+    { enabled: needsStatusProbe },
+  )
+
+  // If the probe finds the scan genuinely active, hand ownership to the store
+  // so the live view + WS/poll subscription engage in place, same as a scan
+  // started from this tab.
+  watch(remoteStatus, (status) => {
+    if (status && ['starting', 'discovering', 'scanning', 'paused'].includes(status.status))
+      store.hydrateActive(scanId.value, { ...status, site: scanMeta.value?.site })
+  })
+
   const resolvedStatus = computed(() => {
     if (scanMeta.value?.summary)
       return 'complete'
     if (isCurrentScan.value)
       return store.status
-    return 'complete'
+    return remoteStatus.value?.status ?? 'pending'
   })
 
   const scanIsComplete = computed(() => resolvedStatus.value === 'complete')
@@ -143,9 +170,9 @@ export function useScanOverview() {
     return {
       total,
       segments: [
-        { label: 'Pass', count: distribution.passing, pct: (distribution.passing / total) * 100, color: BAND_HEX.good },
-        { label: 'Needs Work', count: distribution.needsWork, pct: (distribution.needsWork / total) * 100, color: BAND_HEX.average },
-        { label: 'Poor', count: distribution.poor, pct: (distribution.poor / total) * 100, color: BAND_HEX.poor },
+        { label: 'Pass', count: distribution.passing, pct: (distribution.passing / total) * 100, color: BAND_HEX.good, status: 'success' as const },
+        { label: 'Needs Work', count: distribution.needsWork, pct: (distribution.needsWork / total) * 100, color: BAND_HEX.average, status: 'warning' as const },
+        { label: 'Poor', count: distribution.poor, pct: (distribution.poor / total) * 100, color: BAND_HEX.poor, status: 'error' as const },
       ].filter(segment => segment.count > 0),
     }
   })
@@ -187,6 +214,7 @@ export function useScanOverview() {
   const csvExportName = computed(() => `${scanId.value}-export.csv`)
 
   return {
+    scanId,
     scanBase,
     scanMeta,
     siteTitle,

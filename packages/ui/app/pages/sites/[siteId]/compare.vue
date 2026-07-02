@@ -3,7 +3,6 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import type { CompareRouteRow } from '@unlighthouse/contracts'
 import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
 import {
-  badgeProps,
   CATEGORY_METRICS,
   createComparePresentation,
   CWV_METRICS,
@@ -23,6 +22,7 @@ definePageMeta({ layout: 'compare' })
 const { scoreToRingColor } = createScoreColorHelpers()
 const { fmtScore, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = createFormatters()
 const {
+  siteId,
   currentScanId,
   baseScanId,
   currentMeta,
@@ -74,13 +74,20 @@ const { deltaClassWithThreshold, rowScoreCell } = createComparePresentation({
 const IconCmp = resolveComponent('UiIcon')
 const UiStatusBadgeCmp = resolveComponent('UiStatusBadge')
 
-function compareStatusSemantic(status: string) {
-  switch (statusBadge(status)) {
+// Shared tone→semantic translation: route-status badges (via statusBadge)
+// and the summary verdict chip (workflow's own tone literal) both speak the
+// legacy shadcn tone vocabulary, so one mapping covers both.
+function toneSemantic(tone: string): SemanticStatus {
+  switch (tone) {
     case 'destructive': return 'error'
     case 'default': return 'success'
     case 'secondary': return 'info'
     default: return 'neutral'
   }
+}
+
+function compareStatusSemantic(status: string): SemanticStatus {
+  return toneSemantic(statusBadge(status))
 }
 
 const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
@@ -170,7 +177,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
 
         <!-- Swap -->
         <UiTooltip text="Swap base ↔ current">
-          <UiButton purpose="quiet" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" icon="compare" @click="swapDirection" />
+          <UiButton purpose="quiet" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" icon="compare" aria-label="Swap base and current" @click="swapDirection" />
         </UiTooltip>
 
         <!-- Current scan -->
@@ -339,9 +346,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
     <template v-else-if="report">
       <!-- Summary band -->
       <div class="px-4 py-3 border-b flex items-center gap-6 flex-wrap">
-        <UBadge v-if="verdict" v-bind="badgeProps(verdict.tone)" class="text-sm px-3 py-1">
+        <UiChip v-if="verdict" purpose="status" :status="toneSemantic(verdict.tone)" size="sm">
           {{ verdict.text }}
-        </UBadge>
+        </UiChip>
         <div class="flex items-center gap-5 text-xs">
           <div class="flex items-center gap-1.5">
             <span class="text-muted">Total</span>
@@ -532,8 +539,8 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-default">
               <span class="text-xs text-muted">Page {{ page }} of {{ totalPages }}</span>
               <div class="flex gap-1">
-                <UiButton purpose="secondary" size="sm" :disabled="page <= 1" icon="chevron-left" @click="page--" />
-                <UiButton purpose="secondary" size="sm" :disabled="page >= totalPages" icon="chevron-right" @click="page++" />
+                <UiButton purpose="secondary" size="sm" :disabled="page <= 1" icon="chevron-left" aria-label="Previous page" @click="page--" />
+                <UiButton purpose="secondary" size="sm" :disabled="page >= totalPages" icon="chevron-right" aria-label="Next page" @click="page++" />
               </div>
             </div>
           </div>
@@ -553,7 +560,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                 </UiChip>
                 <UiStatusBadge :status="compareStatusSemantic(selectedRow.status)" :label="selectedRow.status" class="capitalize" />
                 <NuxtLink
-                  :to="`/scan/${currentScanId}/route/${encodeURIComponent(selectedRow.path)}`"
+                  :to="`/sites/${siteId}/scans/${currentScanId}/route/${encodeURIComponent(selectedRow.path)}`"
                   class="text-[10px] text-muted hover:text-default inline-flex items-center gap-1"
                 >
                   <UiIcon name="external" class="size-2.5" />
@@ -568,46 +575,39 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
               <h4 class="text-label text-muted mb-2">
                 Categories
               </h4>
-              <div class="rounded-lg border overflow-hidden">
-                <table class="w-full text-sm">
-                  <thead>
-                    <tr class="border-b border-default last:border-0">
-                      <th class="text-label text-dimmed px-3 py-2 text-left font-normal">
-                        Metric
-                      </th>
-                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">
-                        Base
-                      </th>
-                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">
-                        Current
-                      </th>
-                      <th class="text-label text-dimmed px-3 py-2 font-normal w-20 text-right">
-                        Delta
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="m in CATEGORY_METRICS" :key="m.key" class="border-b border-default last:border-0">
-                      <td class="px-3 py-2 text-sm font-medium">
-                        {{ m.label }}
-                      </td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm">
-                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
-                      </td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm">
-                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
-                      </td>
-                      <td
-                        class="px-3 py-2 text-right tabular-nums text-sm font-medium"
-                        :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
-                        :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
-                      >
-                        {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <UiTableShell bordered label="Category metric comparison">
+                <template #head>
+                  <UiTableTh>Metric</UiTableTh>
+                  <UiTableTh align="right">
+                    Base
+                  </UiTableTh>
+                  <UiTableTh align="right">
+                    Current
+                  </UiTableTh>
+                  <UiTableTh align="right">
+                    Delta
+                  </UiTableTh>
+                </template>
+                <tr v-for="m in CATEGORY_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                  <UiTableTd class="font-medium">
+                    {{ m.label }}
+                  </UiTableTd>
+                  <UiTableTd align="right" class="tabular-nums">
+                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                  </UiTableTd>
+                  <UiTableTd align="right" class="tabular-nums">
+                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                  </UiTableTd>
+                  <UiTableTd
+                    align="right"
+                    class="tabular-nums font-medium"
+                    :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
+                    :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
+                  >
+                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                  </UiTableTd>
+                </tr>
+              </UiTableShell>
             </section>
 
             <!-- Core Web Vitals — Google's stable real-user metrics. -->
@@ -616,30 +616,27 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                 Core Web Vitals
                 <UiIcon name="info" class="size-2.5 opacity-60" title="Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability." />
               </h4>
-              <div class="rounded-lg border overflow-hidden">
-                <table class="w-full text-sm">
-                  <tbody>
-                    <tr v-for="m in CWV_METRICS" :key="m.key" class="border-b border-default last:border-0">
-                      <td class="px-3 py-2 text-sm font-medium" :title="m.hint">
-                        {{ m.label }}
-                      </td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">
-                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
-                      </td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">
-                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
-                      </td>
-                      <td
-                        class="px-3 py-2 text-right tabular-nums text-sm font-medium w-20"
-                        :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
-                        :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
-                      >
-                        {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <UiTableShell bordered label="Core Web Vitals comparison">
+                <tr v-for="m in CWV_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                  <UiTableTd class="font-medium" :title="m.hint">
+                    {{ m.label }}
+                  </UiTableTd>
+                  <UiTableTd align="right" class="tabular-nums">
+                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                  </UiTableTd>
+                  <UiTableTd align="right" class="tabular-nums">
+                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                  </UiTableTd>
+                  <UiTableTd
+                    align="right"
+                    class="tabular-nums font-medium"
+                    :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
+                    :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
+                  >
+                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                  </UiTableTd>
+                </tr>
+              </UiTableShell>
             </section>
 
             <!-- Diagnostics: FCP/TBT/TTFB/SI — triage signals, not headlines. Collapsed. -->
@@ -651,30 +648,27 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                 <UiIcon name="chevron-right" class="size-3 transition-transform" :class="{ 'rotate-90': showLegacyMetrics }" />
                 Diagnostics ({{ DIAGNOSTIC_METRICS.length }})
               </button>
-              <div v-if="showLegacyMetrics" class="rounded-lg border overflow-hidden">
-                <table class="w-full text-sm">
-                  <tbody>
-                    <tr v-for="m in DIAGNOSTIC_METRICS" :key="m.key" class="border-b border-default last:border-0">
-                      <td class="px-3 py-2 text-sm font-medium text-muted" :title="m.hint">
-                        {{ m.label }}
-                      </td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">
-                        {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
-                      </td>
-                      <td class="px-3 py-2 text-right tabular-nums text-sm w-20">
-                        {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
-                      </td>
-                      <td
-                        class="px-3 py-2 text-right tabular-nums text-sm font-medium w-20"
-                        :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
-                        :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
-                      >
-                        {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <UiTableShell v-if="showLegacyMetrics" bordered label="Diagnostic metric comparison">
+                <tr v-for="m in DIAGNOSTIC_METRICS" :key="m.key" class="border-b border-default last:border-0">
+                  <UiTableTd class="font-medium text-muted" :title="m.hint">
+                    {{ m.label }}
+                  </UiTableTd>
+                  <UiTableTd align="right" class="tabular-nums">
+                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                  </UiTableTd>
+                  <UiTableTd align="right" class="tabular-nums">
+                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                  </UiTableTd>
+                  <UiTableTd
+                    align="right"
+                    class="tabular-nums font-medium"
+                    :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
+                    :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
+                  >
+                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                  </UiTableTd>
+                </tr>
+              </UiTableShell>
             </section>
           </div>
 

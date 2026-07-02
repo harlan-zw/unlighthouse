@@ -1,26 +1,22 @@
 <script setup lang="ts">
 import type { ApiError } from '~/composables/useApiError'
-// Boilerplate shell for the per-category scan pages (Performance,
-// Accessibility, SEO, Best Practices, Agentic Browsing). Owns the
-// breadcrumb + title + 3-state (loading / empty / error / ready)
-// branch that each page was hand-rolling identically. Reduces ~30
-// lines of identical wrapper per page to:
+// Shell for a generated pack tab (D-045). Evolved from the old
+// CategoryPageShell (which every hand-built category page duplicated): same
+// loading / empty / error / ready branching, plus a pack identity badge (name
+// + version) since a tab is now a projection of `pack.list`, not a
+// hand-labelled category.
 //
-//   <CategoryPageShell title="SEO" :status="status" :report="report">
-//     ... page-specific blocks ...
-//   </CategoryPageShell>
-//
-// `status` is the useAsyncData status string. `report` is the pack
-// report payload; when null + status is settled we render the "no
-// data yet" empty state. The default slot only renders when there's
-// a report to show, so consumers can write straight-line markup
-// without re-doing the null checks.
+//   <PackPageShell title="Core Web Vitals" pack="cwv" version="1" :status :report>
+//     ... widget markup ...
+//   </PackPageShell>
 
 interface Props {
   title: string
-  // Pack-name optional — surfaced as a small badge so power users can
-  // quickly trace "which pack drove this page". Hidden when omitted.
+  // Pack name — surfaced as a small badge so power users can trace "which
+  // pack drove this page". Hidden when omitted.
   pack?: string
+  // Pack version — shown alongside the name badge when known.
+  version?: string
   status: 'idle' | 'pending' | 'success' | 'error'
   // The pack's `report` field. Null + settled status → empty state.
   report: unknown
@@ -29,14 +25,15 @@ interface Props {
   // "no data yet".
   error?: ApiError | null
   onRetry?: () => void
-  // Customise the empty-state copy per category since "No SEO issues"
-  // reads differently from "No accessibility data yet."
+  // Customise the empty-state copy per pack since "No SEO issues" reads
+  // differently from "No accessibility data yet."
   emptyMessage?: string
   loadingMessage?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   pack: '',
+  version: '',
   error: null,
   emptyMessage: 'No data available. Run a scan first.',
   loadingMessage: 'Loading...',
@@ -53,6 +50,9 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
       <template v-if="pack" #actions>
         <UiChip purpose="count" mono>
           {{ pack }}
+        </UiChip>
+        <UiChip v-if="version" purpose="count" mono>
+          v{{ version }}
         </UiChip>
       </template>
     </UiPageHeader>

@@ -394,6 +394,46 @@ export type SeoFinding = z.infer<typeof SeoFindingSchema>
 export type SeoRouteCheck = z.infer<typeof RouteCheckSchema>
 export type SeoReport = z.infer<typeof SeoReportSchema>
 
+// ── best-practices ───────────────────────────────────────────────────────────
+// SeveritySchema renamed BestPracticesSeveritySchema (collision with images/a11y/js-bundle/seo)
+
+const BestPracticesSeveritySchema = z.enum(['critical', 'serious', 'moderate', 'minor'])
+
+const BestPracticesFindingSchema = z.object({
+  auditId: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  severity: BestPracticesSeveritySchema,
+  weight: z.number().nonnegative(),
+  // Route count where this audit failed.
+  routeCount: z.number().int().nonnegative(),
+  routes: z.array(z.string()).max(5),
+  // Sample affected elements, when the audit carries element-level detail
+  // (e.g. `image-aspect-ratio`). Empty for audits with no node-level detail
+  // (e.g. `has-hsts`, `errors-in-console`).
+  sampleElements: z.array(z.object({
+    selector: z.string().nullable(),
+    snippet: z.string().nullable(),
+    nodeLabel: z.string().nullable(),
+  })).max(3),
+  fixHint: z.string(),
+})
+
+export const BestPracticesReportSchema = z.object({
+  scanId: z.string(),
+  routesAnalysed: z.number().int().nonnegative(),
+  severityCounts: z.object({
+    critical: z.number().int().nonnegative(),
+    serious: z.number().int().nonnegative(),
+    moderate: z.number().int().nonnegative(),
+    minor: z.number().int().nonnegative(),
+  }),
+  findings: z.array(BestPracticesFindingSchema),
+})
+
+export type BestPracticesFinding = z.infer<typeof BestPracticesFindingSchema>
+export type BestPracticesReport = z.infer<typeof BestPracticesReportSchema>
+
 // ── insights ─────────────────────────────────────────────────────────────────
 
 const SavingsSchema = z.object({
@@ -483,6 +523,7 @@ export const packReportSchemas = {
   'a11y-quick-wins': A11yReportSchema,
   'js-bundle': BundleReportSchema,
   'seo-basics': SeoReportSchema,
+  'best-practices': BestPracticesReportSchema,
   'insights': InsightsReportSchema,
   'agentic-browsing': AgenticBrowsingReportSchema,
 } as const
@@ -495,6 +536,7 @@ export const PackReportSchema = z.union([
   A11yReportSchema,
   BundleReportSchema,
   SeoReportSchema,
+  BestPracticesReportSchema,
   InsightsReportSchema,
   AgenticBrowsingReportSchema,
 ])

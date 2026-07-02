@@ -1,15 +1,21 @@
 <script setup lang="ts">
+import type { DistributionSegment } from '~/components/DistributionBar.vue'
 import { metricStats } from '~/features/scan/metric-stats'
 
 // Expo-Observe-style metric card: a headline p75, a threshold-coloured
-// distribution histogram across the scan's routes, and a Median/Avg/Min/Max/
-// P75/P95 stat row. Pure presentational — pass the raw per-route values.
+// distribution bar across the scan's routes, and a Median/Avg/Min/Max/P75/P95
+// stat row. Pure presentational — pass the raw per-route values.
+//
+// D-051: the per-bin histogram (18 continuous bins) re-platforms onto the
+// shared DistributionBar — a coarser 3-band good/needs-improvement/poor
+// summary instead of a fine-grained bar chart, consolidating with the scan
+// overview strip's identical band-bar pattern.
 
 const props = defineProps<{
   label: string
   hint?: string
   values: Array<number | null | undefined>
-  // [good, poor] thresholds — colours the headline + histogram bars.
+  // [good, poor] thresholds — colours the headline + distribution bands.
   // Readonly so callers can pass the shared CWV_THRESHOLDS tuples directly.
   thresholds: readonly [number, number]
   format: (v: number) => string
@@ -17,28 +23,20 @@ const props = defineProps<{
 
 const stats = computed(() => metricStats(props.values))
 
-const BINS = 18
-const histogram = computed(() => {
-  const s = stats.value
-  if (!s)
-    return [] as Array<{ h: number, color: string, count: number, center: number }>
-  const span = (s.max - s.min) || 1
-  const bins = Array.from({ length: BINS }, (_, i) => ({ count: 0, center: s.min + ((i + 0.5) / BINS) * span }))
-  for (const v of s.sorted) {
-    let idx = Math.floor(((v - s.min) / span) * BINS)
-    if (idx >= BINS)
-      idx = BINS - 1
-    if (idx < 0)
-      idx = 0
-    bins[idx]!.count++
+const distributionSegments = computed<DistributionSegment[]>(() => {
+  const counts = { good: 0, average: 0, poor: 0 }
+  for (const v of props.values) {
+    const band = bandFromBounds(v ?? null, props.thresholds[0], props.thresholds[1])
+    if (band)
+      counts[band]++
   }
-  const maxCount = Math.max(...bins.map(b => b.count), 1)
-  return bins.map(b => ({ h: b.count / maxCount, count: b.count, center: b.center, color: zoneColor(b.center) }))
+  return [
+    { label: 'Good', count: counts.good, status: 'success' },
+    { label: 'Needs improvement', count: counts.average, status: 'warning' },
+    { label: 'Poor', count: counts.poor, status: 'error' },
+  ]
 })
 
-function zoneColor(v: number): string {
-  return bandHex(bandFromBounds(v, props.thresholds[0], props.thresholds[1]))
-}
 function zoneText(v: number | null): string {
   switch (bandFromBounds(v, props.thresholds[0], props.thresholds[1])) {
     case 'good': return 'text-success'
@@ -76,16 +74,8 @@ const statCols = computed(() => {
         <span class="text-label text-muted">p75</span>
       </div>
 
-      <!-- Distribution histogram -->
-      <div class="mt-3 flex items-end gap-px h-12">
-        <div
-          v-for="(b, i) in histogram"
-          :key="i"
-          class="flex-1 rounded-t-sm transition-all"
-          :style="{ height: `${Math.max(3, b.h * 100)}%`, backgroundColor: b.color, opacity: b.count ? 1 : 0.25 }"
-          :title="`${format(b.center)} — ${b.count} route${b.count === 1 ? '' : 's'}`"
-        />
-      </div>
+      <!-- Distribution — good/needs-improvement/poor bands -->
+      <DistributionBar class="mt-3" :segments="distributionSegments" />
 
       <!-- Percentile stat row -->
       <div class="mt-3 grid grid-cols-6 gap-1 border-t pt-2">

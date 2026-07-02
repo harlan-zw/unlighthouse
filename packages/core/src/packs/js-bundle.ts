@@ -16,6 +16,7 @@
 
 import type { BundleFinding, BundleReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import { BundleReportSchema } from '@unlighthouse/contracts/packs'
+import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -300,20 +301,20 @@ async function reconcile(ctx: PackReconcileCtx): Promise<BundleReport> {
   const sink = new Map<string, RawFinding>()
   let routesAnalysed = 0
 
-  for (const row of ctx.routes) {
-    const lhr = await ctx.getLhr(row.url, 'mobile').catch((err) => {
-      ctx.logger?.debug?.(`js-bundle pack: failed to load LHR for ${row.url} [mobile]`, err)
+  for (const { url, device } of resolveDistinctPackRoutes(ctx.routes)) {
+    const lhr = await ctx.getLhr(url, device).catch((err) => {
+      ctx.logger?.debug?.(`js-bundle pack: failed to load LHR for ${url} [${device}]`, err)
       return null
     }) as LhrLike | null
     if (!lhr)
       continue
     routesAnalysed++
-    extractUnusedJs(row.url, lhr, sink)
-    extractUnusedCss(row.url, lhr, sink)
-    extractRenderBlocking(row.url, lhr, sink)
-    extractThirdParty(row.url, lhr, sink)
-    extractLegacyOrDup(row.url, lhr, sink, 'legacy-javascript-insight', 'legacy-js')
-    extractLegacyOrDup(row.url, lhr, sink, 'duplicated-javascript-insight', 'duplicated-js')
+    extractUnusedJs(url, lhr, sink)
+    extractUnusedCss(url, lhr, sink)
+    extractRenderBlocking(url, lhr, sink)
+    extractThirdParty(url, lhr, sink)
+    extractLegacyOrDup(url, lhr, sink, 'legacy-javascript-insight', 'legacy-js')
+    extractLegacyOrDup(url, lhr, sink, 'duplicated-javascript-insight', 'duplicated-js')
   }
 
   // Materialise + prioritise.
@@ -389,4 +390,5 @@ export const jsBundlePack: Pack<BundleReport> = {
   ],
   reconciler: reconcile,
   reportSchema: BundleReportSchema,
+  ui: { tab: 'JS Bundle', icon: 'archive' },
 }

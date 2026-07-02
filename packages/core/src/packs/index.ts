@@ -4,6 +4,7 @@
 import type { Pack } from '@unlighthouse/contracts/packs'
 import { a11yQuickWinsPack } from './a11y-quick-wins'
 import { agenticBrowsingPack } from './agentic-browsing'
+import { bestPracticesPack } from './best-practices'
 import { cruxPack } from './crux'
 import { cwvPack } from './cwv'
 import { imagesPack } from './images'
@@ -14,18 +15,23 @@ import { seoBasicsPack } from './seo-basics'
 
 export { a11yQuickWinsPack } from './a11y-quick-wins'
 export { agenticBrowsingPack } from './agentic-browsing'
+export { bestPracticesPack } from './best-practices'
 export { analyzeLabVsField, createCruxPack, cruxPack, queryCrux } from './crux'
 export { cwvPack } from './cwv'
 export { imagesPack } from './images'
 export { insightsPack } from './insights'
 export { jsBundlePack } from './js-bundle'
 export { overviewPack } from './overview'
+export type { ResolvedPackRoute } from './reconcile-context'
+export { resolveDistinctPackRoutes, resolveDistinctPackRows } from './reconcile-context'
 export { seoBasicsPack } from './seo-basics'
 // Report types are now canonical in @unlighthouse/contracts/packs.
 export type {
   A11yFinding,
   A11yReport,
   AgenticBrowsingReport,
+  BestPracticesFinding,
+  BestPracticesReport,
   BundleFinding,
   BundleReport,
   CruxFinding,
@@ -54,6 +60,7 @@ export const builtInPacks: Record<string, Pack<unknown>> = {
   [a11yQuickWinsPack.name]: a11yQuickWinsPack as Pack<unknown>,
   [jsBundlePack.name]: jsBundlePack as Pack<unknown>,
   [seoBasicsPack.name]: seoBasicsPack as Pack<unknown>,
+  [bestPracticesPack.name]: bestPracticesPack as Pack<unknown>,
   [insightsPack.name]: insightsPack as Pack<unknown>,
   [agenticBrowsingPack.name]: agenticBrowsingPack as Pack<unknown>,
 }

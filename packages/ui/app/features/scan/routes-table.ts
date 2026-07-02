@@ -23,6 +23,7 @@ export interface RouteRow {
   lcp: number | null
   cls: number | null
   tbt: number | null
+  inp: number | null
   fcp: number | null
   si: number | null
   ttfb: number | null
@@ -65,10 +66,11 @@ export const SCORE_COLS: { key: keyof Pick<RouteRow, 'scorePerformance' | 'score
   { key: 'scoreAgenticBrowsing', label: 'Agentic' },
 ]
 
-export const CWV_COLS: { key: keyof Pick<RouteRow, 'lcp' | 'cls' | 'tbt'>, label: string, unit: 'ms' | '' }[] = [
+export const CWV_COLS: { key: keyof Pick<RouteRow, 'lcp' | 'cls' | 'tbt' | 'inp'>, label: string, unit: 'ms' | '' }[] = [
   { key: 'lcp', label: 'LCP', unit: 'ms' },
   { key: 'cls', label: 'CLS', unit: '' },
   { key: 'tbt', label: 'TBT', unit: 'ms' },
+  { key: 'inp', label: 'INP', unit: 'ms' },
 ]
 
 const COLUMN_LABELS: Record<string, string> = {
@@ -85,6 +87,7 @@ const COLUMN_LABELS: Record<string, string> = {
   lcp: 'LCP',
   cls: 'CLS',
   tbt: 'TBT',
+  inp: 'INP',
 }
 
 function queryString(value: unknown): string {
@@ -142,8 +145,10 @@ function passesQuickFilter(row: RouteRow, quick: RouteQuickFilter): boolean {
         return band != null && band !== 'good'
       })
   }
-  if (quick === 'poor-cwv')
-    return cwvBand('lcp', row.lcp) === 'poor' || cwvBand('cls', row.cls) === 'poor' || cwvBand('tbt', row.tbt) === 'poor'
+  if (quick === 'poor-cwv') {
+    return cwvBand('lcp', row.lcp) === 'poor' || cwvBand('cls', row.cls) === 'poor'
+      || cwvBand('tbt', row.tbt) === 'poor' || cwvBand('inp', row.inp) === 'poor'
+  }
   return true
 }
 

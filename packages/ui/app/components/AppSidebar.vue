@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { ScanId } from '@unlighthouse/contracts'
+import { ICON_ROLES } from '#layers/design-system/shared/icons'
+
 // The rail has two completely different modes:
 //  - default: brand header, top-level Navigation, the registered Sites list.
 //  - scan: when viewing a scan it transforms into a scan-focused, primary-
@@ -28,9 +29,7 @@ const scanSiteName = computed(() => {
 
 const nav = [
   { label: 'Home', to: '/', icon: 'layout', active: (p: string) => p === '/' },
-  { label: 'Sites', to: '/sites', icon: 'globe', active: (p: string) => p === '/sites' },
-  { label: 'History', to: '/history', icon: 'history', active: (p: string) => p.startsWith('/history') },
-  { label: 'New Scan', to: '/scan/new', icon: 'add', active: (p: string) => p === '/scan/new' },
+  { label: 'New scan', to: '/scan/new', icon: 'add', active: (p: string) => p === '/scan/new' },
 ]
 
 // ── Sites list (default mode) ────────────────────────────────────────────────
@@ -53,16 +52,24 @@ const siteLinks = computed(() => sites.value.map(site => ({
 })))
 
 // ── Scan context (scan mode) ─────────────────────────────────────────────────
-const SCAN_MENUS = [
+// D-045/D-049: the scan sidebar collapsed from a hand-maintained menu list
+// (which had already drifted — it omitted agentic-browsing) to Overview +
+// Routes, then a generated "Packs" section sourced from pack.list. Events
+// demoted off the sidebar entirely — it's now a drawer on Overview (`UDrawer`,
+// `EventStreamPanel`), the `/events` page is deleted, there's no standalone
+// route left to link to.
+// The route list (a second, always-live 500-row scan.results fetch) is gone;
+// Routes is one click away.
+const TOP_SCAN_LINKS = [
+  { key: 'overview', label: 'Overview', icon: 'layout' },
   { key: 'routes', label: 'Routes', icon: 'list' },
-  { key: 'overview', label: 'Summary', icon: 'layout' },
-  { key: 'performance', label: 'Performance', icon: 'gauge' },
-  { key: 'seo', label: 'SEO', icon: 'search' },
-  { key: 'accessibility', label: 'Accessibility', icon: 'accessibility' },
-  { key: 'best-practices', label: 'Best Practices', icon: 'shield-check' },
-  { key: 'crux', label: 'CrUX', icon: 'globe' },
-  { key: 'events', label: 'Events', icon: 'activity' },
 ]
+
+// Curated display order for built-in packs; anything else (custom packs
+// installed via unlighthouse.config.ts's `packs` channel, D-046) sorts
+// alphabetically after these. `overview` never appears — it powers the
+// Overview page's category scores, not a tab of its own.
+const PACK_ORDER = ['cwv', 'insights', 'images', 'js-bundle', 'a11y-quick-wins', 'seo-basics', 'best-practices', 'crux', 'agentic-browsing']
 
 const scanBase = computed(() => `/sites/${siteId.value}/scans/${scanId.value}`)
 const scanSeg = computed(() => {
@@ -74,40 +81,52 @@ const scanSeg = computed(() => {
   const seg = route.path.slice(prefix.length).split('/')[0] || 'routes'
   return seg === 'route' ? 'routes' : seg
 })
+const activePackName = computed(() => scanSeg.value === 'packs' ? (route.params.pack as string | undefined) : undefined)
 
-const scanLinks = computed(() => {
+// Pack authors can name any icon role on `ui.icon`, including a raw `i-*`
+// iconify id (e.g. pack-nuxt's `i-logos-nuxt-icon`). Roles resolve to the
+// bundled client icon set; raw ids that aren't a known role need a live
+// Iconify fetch, which renders blank in offline static snapshots. Fall back
+// to the bundled 'archive' role for anything not a known registry role.
+function safePackIcon(icon: string | undefined): string {
+  if (icon && icon in ICON_ROLES)
+    return icon
+  return 'archive'
+}
+
+const topScanLinks = computed(() => {
   if (!inScan.value)
     return []
   const base = scanBase.value
-  return [
-    ...SCAN_MENUS.map(m => ({ label: m.label, to: `${base}/${m.key}`, icon: m.icon, active: () => scanSeg.value === m.key })),
-    { label: 'Compare', to: `/compare/${scanId.value}`, icon: 'compare', active: () => false },
-  ]
+  return TOP_SCAN_LINKS.map(m => ({ label: m.label, to: `${base}/${m.key}`, icon: m.icon, active: () => scanSeg.value === m.key }))
 })
 
-const { data: scanRoutesData } = useApiQuery(
-  'scan.results',
-  () => ({ scanId: scanId.value as ScanId, page: 1, pageSize: 500 }),
-  { enabled: () => !!scanId.value },
-)
-const uniqueRoutes = computed(() => {
-  const seen = new Set<string>()
-  const out: Array<{ path: string }> = []
-  for (const r of (scanRoutesData.value?.items ?? []) as Array<{ url: string, path: string }>) {
-    const p = r.path || r.url
-    if (seen.has(p))
-      continue
-    seen.add(p)
-    out.push({ path: p })
-  }
-  return out
+const { data: packListData } = useApiQuery('pack.list', () => ({}), { enabled: inScan })
+const packLinks = computed(() => {
+  if (!inScan.value)
+    return []
+  const base = scanBase.value
+  const packs = (packListData.value?.packs ?? []).filter(p => p.name !== 'overview')
+  const sorted = [...packs].sort((a, b) => {
+    const ai = PACK_ORDER.indexOf(a.name)
+    const bi = PACK_ORDER.indexOf(b.name)
+    if (ai !== -1 || bi !== -1)
+      return (ai === -1 ? PACK_ORDER.length : ai) - (bi === -1 ? PACK_ORDER.length : bi)
+    return a.name.localeCompare(b.name)
+  })
+  return sorted.map(p => ({
+    label: p.ui.tab,
+    to: `${base}/packs/${p.name}`,
+    icon: safePackIcon(p.ui.icon),
+    active: () => activePackName.value === p.name,
+  }))
 })
-const activeRoutePath = computed(() => (route.params.path ? decodeURIComponent(route.params.path as string) : null))
-const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
-  label: r.path,
-  to: `${scanBase.value}/route/${encodeURIComponent(r.path)}`,
-  active: () => activeRoutePath.value === r.path,
-})))
+
+const compareLinks = computed(() => {
+  if (!inScan.value)
+    return []
+  return [{ label: 'Compare', to: `/sites/${siteId.value}/compare?current=${scanId.value}`, icon: 'compare', active: () => false }]
+})
 </script>
 
 <template>
@@ -143,13 +162,16 @@ const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
         <div class="text-label text-dimmed px-1 mb-1">
           Scan
         </div>
-        <UiNavList :links="scanLinks" />
+        <UiNavList :links="topScanLinks" />
       </div>
-      <div v-if="routeLinks.length">
+      <div v-if="packLinks.length">
         <div class="text-label text-dimmed px-1 mb-1">
-          Routes · {{ routeLinks.length }}
+          Packs
         </div>
-        <UiNavList :links="routeLinks" />
+        <UiNavList :links="packLinks" />
+      </div>
+      <div>
+        <UiNavList :links="compareLinks" />
       </div>
     </template>
 
@@ -188,10 +210,10 @@ const routeLinks = computed(() => uniqueRoutes.value.map(r => ({
         </UiNavList>
         <NuxtLink
           v-else
-          to="/sites"
+          to="/"
           class="block px-1.5 py-2 rounded-md text-xs text-muted hover:text-default hover:bg-elevated transition-colors"
         >
-          No sites yet — add one
+          No sites yet. Add one
         </NuxtLink>
       </div>
     </template>

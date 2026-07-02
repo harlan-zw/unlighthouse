@@ -7,7 +7,7 @@ import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { scanLinkPath } from '~/features/scan/scan-links'
 import { pairScans } from '~/features/sites/scan-pairs'
-import { resolveSiteUrl } from '~/features/sites/site-url'
+import { originOf, resolveSiteUrl } from '~/features/sites/site-url'
 import { siteSlug } from '~/utils/site'
 
 type SiteDevice = 'mobile' | 'desktop'
@@ -17,6 +17,7 @@ const SCORE_SERIES = [
   { key: 'accessibility', label: 'Accessibility', color: semanticColors.info.hex },
   { key: 'seo', label: 'SEO', color: presetVizColors.purple.hex },
   { key: 'best-practices', label: 'Best Practices', color: semanticColors.success.hex },
+  { key: 'agentic-browsing', label: 'Agentic', color: presetVizColors.cyan.hex },
 ] as const
 
 const VITALS = [
@@ -33,16 +34,6 @@ interface SiteEntry {
 interface CwvReportEntry {
   t: number
   report: CwvReport | null
-}
-
-function originOf(url: string): string | null {
-  try {
-    return new URL(url).origin
-  }
-  catch (_err) {
-    // Malformed site labels cannot be grouped by origin.
-    return null
-  }
 }
 
 function completedScoredScans(scans: ScanRow[], device: SiteDevice): ScanRow[] {
@@ -70,7 +61,17 @@ export function useSiteOverview() {
     () => ({ page: 1, pageSize: 200 }),
   )
 
-  const siteOrigin = computed(() => originOf(siteUrl.value) ?? siteUrl.value)
+  // `siteUrl` (registry lookup) is best-effort and falls back to a lossy
+  // `https://{slug}` guess when unregistered — fine for display/rescan
+  // prefill, but too lossy to gate scan filtering (drops port/scheme for
+  // http / non-default-port / unregistered sites). Prefer the origin off an
+  // actual history row sharing this slug — it carries the real scanned URL.
+  const siteOrigin = computed(() => {
+    const fromHistory = (histData.value?.items ?? []).find(scan => siteSlug(scan.site) === slug)
+    if (fromHistory)
+      return originOf(fromHistory.site) ?? fromHistory.site
+    return originOf(siteUrl.value) ?? siteUrl.value
+  })
   const allScans = computed(() => ((histData.value?.items ?? []) as ScanRow[]).filter(scan => originOf(scan.site) === siteOrigin.value))
   const presentDevices = computed(() => new Set(allScans.value.map(scan => scan.device)))
   const hasBoth = computed(() => presentDevices.value.has('mobile') && presentDevices.value.has('desktop'))
@@ -160,7 +161,7 @@ export function useSiteOverview() {
   function openPair(pair: DevicePair) {
     const id = primaryScanId(pair)
     if (id)
-      router.push(scanLinkPath(slug, id, pair.mobile?.status ?? pair.desktop?.status))
+      router.push(scanLinkPath(slug, id))
   }
 
   const rescanMutation = useApiMutation('history.rescan')
@@ -197,7 +198,7 @@ export function useSiteOverview() {
   function compareLatest() {
     const [current, base] = recentForDevice.value
     if (current && base)
-      router.push(`/compare/${current.scanId}?base=${base.scanId}`)
+      router.push(`/sites/${slug}/compare?current=${current.scanId}&base=${base.scanId}`)
   }
 
   const loading = computed(() => histStatus.value === 'pending')

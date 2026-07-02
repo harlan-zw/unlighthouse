@@ -5,6 +5,7 @@
 
 import type { UserConfig } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { Pack } from '@unlighthouse/contracts/packs'
 import type { ResolvableConfig } from 'c12'
 import { Buffer } from 'node:buffer'
 import { homedir } from 'node:os'
@@ -31,6 +32,15 @@ export interface ResolvedConfigResult {
   config: UnlighthouseConfig
   configFile?: string
   layers?: unknown[]
+  /**
+   * D-046: custom packs exported as `packs: Pack[]` from `unlighthouse.config.ts`
+   * (or passed via `overrides`). Packs are code — a reconciler closure + a Zod
+   * schema — not JSON, so they never go through `UnlighthouseConfigSchema`
+   * (D-011: schema stays `.default()`-free / JSON-shaped). Stripped from the
+   * merged config before validation and surfaced here for the caller
+   * (`createUnlighthouseHost`) to merge into the pack registry.
+   */
+  packs?: Pack[]
 }
 
 /** Ported defaults — verbatim copy of `defaultConfig` from `../constants`. */
@@ -301,7 +311,19 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
 
   const merged = applyHostRules(config, cwd)
 
-  const parsed = UnlighthouseConfigSchema.safeParse(merged)
+  // D-046: pull `packs` out before validation — it's code, not JSON, and the
+  // Zod schema has no field for it (would silently strip it on parse either
+  // way, since `z.object()` defaults to stripping unknown keys).
+  const { packs: mergedPacks, ...configForValidation } = merged as UnlighthouseConfig & { packs?: Pack[] }
+  // defu concatenates arrays across c12 layers, so a pack could appear twice
+  // (e.g. defined in both an rc file and the project config). Dedupe by name,
+  // last occurrence winning, to match the override semantics of every other
+  // config key and of `createPackRegistry`.
+  const packs = mergedPacks == null
+    ? undefined
+    : [...new Map(mergedPacks.map(p => [p.name, p])).values()]
+
+  const parsed = UnlighthouseConfigSchema.safeParse(configForValidation)
   if (!parsed.success) {
     throw new UnlighthouseError({
       code: 'CONFIG_INVALID',
@@ -310,5 +332,5 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
     })
   }
 
-  return { config: parsed.data, configFile, layers }
+  return { config: parsed.data, configFile, layers, packs }
 }

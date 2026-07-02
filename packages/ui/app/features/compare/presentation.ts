@@ -109,17 +109,6 @@ export function statusBadge(status: string): BadgeTone {
   return 'outline'
 }
 
-// Map the legacy shadcn badge tone vocabulary onto Nuxt UI's color+variant
-// pair, so status rows and verdict summaries share one translation point.
-export function badgeProps(tone: string) {
-  switch (tone) {
-    case 'destructive': return { color: 'error' as const, variant: 'soft' as const }
-    case 'default': return { color: 'primary' as const, variant: 'soft' as const }
-    case 'secondary': return { color: 'neutral' as const, variant: 'soft' as const }
-    default: return { color: 'neutral' as const, variant: 'outline' as const }
-  }
-}
-
 export function deltaClass(value: number | null | undefined, isScore: boolean): string {
   if (value == null || value === 0)
     return 'text-muted'

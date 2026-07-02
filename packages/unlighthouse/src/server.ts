@@ -213,10 +213,15 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   if (exposed)
     log.warn('network: bound to a non-loopback host — DNS-rebinding Host check relaxed; set UNLIGHTHOUSE_API_TOKEN to gate the exposed surface.')
 
+  // Trust loopback-served page Origins only in the default local posture. A
+  // pinned CORS allowlist or a configured token signals a locked-down
+  // deployment where an arbitrary local page must not pass the origin gate.
+  const trustLoopbackOrigin = !process.env.UNLIGHTHOUSE_CORS_ORIGINS && !process.env.UNLIGHTHOUSE_API_TOKEN
   app.use(createApiOriginGate({
     apiBase: joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix),
     siteOrigin,
     exposed,
+    trustLoopbackOrigin,
   }))
 
   // Bearer-token auth for the /api/* surface. Engaged only when
@@ -361,6 +366,8 @@ export interface ApiOriginGateOptions {
   siteOrigin: string | null
   /** Server bound to a non-loopback host (Host check relaxed). */
   exposed: boolean
+  /** Trust loopback-served page Origins (default local posture only). */
+  trustLoopbackOrigin: boolean
 }
 
 export function createApiOriginGate(opts: ApiOriginGateOptions) {
@@ -379,6 +386,7 @@ export function createApiOriginGate(opts: ApiOriginGateOptions) {
       referer: getHeader(event, 'referer') ?? null,
       siteOrigin: opts.siteOrigin,
       exposed: opts.exposed,
+      trustLoopbackOrigin: opts.trustLoopbackOrigin,
     })
     if (decision._tag === 'reject') {
       log.warn(`origin: rejected ${path} — ${decision.reason}`)
