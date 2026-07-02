@@ -30,7 +30,7 @@
     "@vueuse/core": "catalog:dependencies",
     "motion-v": "catalog:",
     "nuxt": "catalog:",
-    "nuxt-use-query": "link:../../../nuxt-use-query",
+    "nuxt-use-query": "catalog:",
     "reka-ui": "catalog:",
     "vue": "catalog:dependencies",
     "vue-router": "catalog:",

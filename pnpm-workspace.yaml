@@ -43,6 +43,7 @@ catalog:
   jiti: ^2.7.0
   motion-v: ^2.3.0
   nuxt: ^4.4.8
+  nuxt-use-query: ^0.7.2
   obuild: ^0.4.37
   publint: ^0.3.21
   reka-ui: ^2.10.1
