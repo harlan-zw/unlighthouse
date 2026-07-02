@@ -11,6 +11,7 @@
 import type { NamedAuditor } from '@unlighthouse/contracts/ports'
 import {
   createTokenBucket,
+  createUnstorageRateLimiter,
   rateLimitedPick,
   weightedPick,
 } from '@unlighthouse/core/auditors/route'
@@ -124,13 +125,16 @@ describe('weightedPick', () => {
 })
 
 describe('rateLimitedPick', () => {
-  it('routes to a provider that passes the check; falls through to the next when one fails', async () => {
+  it('routes to a provider with capacity; falls through to the next when one is drained', async () => {
     let t = 0
-    const bucket = createTokenBucket({
-      psi: { capacity: 1, refillPerSec: 0.001 }, // basically empty after first use
-      local: { capacity: 100, refillPerSec: 1 },
-    }, () => t)
-    const pick = rateLimitedPick(async name => bucket.try(name))
+    const limiter = createUnstorageRateLimiter({
+      rules: {
+        psi: { capacity: 1, refillPerSec: 0.001 }, // basically empty after first use
+        local: { capacity: 100, refillPerSec: 1 },
+      },
+      now: () => t,
+    })
+    const pick = rateLimitedPick(limiter)
     const auditors = [stub('psi'), stub('local')]
 
     // First call drains psi (1 token).
@@ -141,8 +145,11 @@ describe('rateLimitedPick', () => {
     expect(second).toBe(auditors[1].auditor)
   })
 
-  it('throws when every provider fails the check', async () => {
-    const pick = rateLimitedPick(async () => false) // nobody passes
+  it('throws when every provider is exhausted', async () => {
+    const limiter = createUnstorageRateLimiter({
+      rules: { a: { capacity: 0, refillPerSec: 0 }, b: { capacity: 0, refillPerSec: 0 } },
+    })
+    const pick = rateLimitedPick(limiter)
     const auditors = [stub('a'), stub('b')]
     await expect(pick(auditors, { url: '/' })).rejects.toThrow(/no auditor passed/i)
   })

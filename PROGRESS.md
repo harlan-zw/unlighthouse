@@ -98,7 +98,14 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   until the D-034/D-040 row-writer cutover reaches the D1 ingest path. Separate follow-up.
   MAINTAINER-FLAGGED: real Cloudflare (miniflare/workerd) deploy verification — runbook only, not
   attempted; a real miniflare/vitest-pool-workers test is the documented follow-up.
-- D-036 (RateLimiter → port): pending
+- D-036 (RateLimiter → port): done (subagent, gated by me) — new `contracts/ports/rate-limiter.ts`
+  (`check`/`consume`/`remaining` per v1.md spec), exported via existing `./ports`. New
+  `core/rate-limiters/unstorage.ts` (`createUnstorageRateLimiter`; there was no existing unstorage
+  counter — only the in-memory `createTokenBucket`, kept). `rateLimitedPick(limiter)` check-then-consume
+  (fine for the single-writer scan flow); `resolveAuditor` rate-limited strategy uses it.
+  `RateLimiterDO` gains `createRateLimiterClient` implementing the port. ARCHITECTURE.md ports table +
+  deferred-seams updated (broadcasting stays un-promoted). Tests updated + new port test.
+  Gate: full typecheck green; suite 648 pass/1 skip.
 - D-037 (published JSON Schemas + $schema stamping): pending
 - D-039 (seeds/route-definitions): pending
 - D-042 (perf-score honesty under concurrency): pending

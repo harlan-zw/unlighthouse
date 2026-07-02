@@ -1,7 +1,13 @@
 // Token-bucket rate limiter Durable Object, keyed per (API key | IP).
 // Class form is a Cloudflare Workers platform constraint.
+//
+// The DO is the server; `createRateLimiterClient` is the `RateLimiter` port
+// adapter (D-036) the Worker's `rateLimitedPick` consumes. One DO per quota
+// bucket (`idFromName(bucket)`); `check` peeks, `consume` decrements,
+// `remaining` reads — dispatched over `fetch` via the `op` query param.
 
-import type { DurableObjectState } from '@cloudflare/workers-types'
+import type { DurableObjectNamespace, DurableObjectState } from '@cloudflare/workers-types'
+import type { RateLimiter } from '@unlighthouse/contracts/ports'
 
 interface BucketState {
   tokens: number
@@ -44,6 +50,7 @@ function resolveConfig(env: unknown): RateLimiterConfig {
 export interface RateLimiterCheckResult {
   ok: boolean
   remaining: number
+  limit: number
   resetAt: number
 }
 
@@ -66,36 +73,84 @@ export class RateLimiterDO {
     const url = new URL(request.url)
     const key = url.searchParams.get('key') ?? 'anon'
     const cost = Number(url.searchParams.get('cost') ?? '1')
-    const result = await this.check(key, cost)
+    const op = url.searchParams.get('op') ?? 'consume'
+    const result = op === 'check'
+      ? await this.peek(key, cost)
+      : op === 'remaining'
+        ? await this.readRemaining(key)
+        : await this.consume(key, cost)
     return new Response(JSON.stringify(result), {
       status: result.ok ? 200 : 429,
       headers: { 'content-type': 'application/json' },
     })
   }
 
-  async check(key: string, cost = 1): Promise<RateLimiterCheckResult> {
-    const now = Date.now()
+  private async refilled(key: string, now: number): Promise<number> {
     const stored = (await this.state.storage.get<BucketState>(`b:${key}`)) ?? {
       tokens: this.config.capacity,
       updatedAt: now,
     }
-
     const elapsedSec = (now - stored.updatedAt) / 1000
-    const refilled = Math.min(
-      this.config.capacity,
-      stored.tokens + elapsedSec * this.config.refillPerSec,
-    )
+    return Math.min(this.config.capacity, stored.tokens + elapsedSec * this.config.refillPerSec)
+  }
 
-    if (refilled < cost) {
-      const deficit = cost - refilled
-      const resetAt = now + Math.ceil((deficit / this.config.refillPerSec) * 1000)
-      await this.state.storage.put(`b:${key}`, { tokens: refilled, updatedAt: now })
-      return { ok: false, remaining: Math.floor(refilled), resetAt }
-    }
+  private resetAt(tokens: number, now: number): number {
+    const deficit = this.config.capacity - tokens
+    return now + Math.ceil((deficit / this.config.refillPerSec) * 1000)
+  }
 
-    const next: BucketState = { tokens: refilled - cost, updatedAt: now }
-    await this.state.storage.put(`b:${key}`, next)
-    const resetAt = now + Math.ceil(((this.config.capacity - next.tokens) / this.config.refillPerSec) * 1000)
-    return { ok: true, remaining: Math.floor(next.tokens), resetAt }
+  /** Peek at a bucket without consuming; persists the refill only. */
+  async peek(key: string, cost = 1): Promise<RateLimiterCheckResult> {
+    const now = Date.now()
+    const tokens = await this.refilled(key, now)
+    await this.state.storage.put(`b:${key}`, { tokens, updatedAt: now })
+    return { ok: tokens >= cost, remaining: Math.floor(tokens), limit: this.config.capacity, resetAt: this.resetAt(tokens, now) }
+  }
+
+  /** Consume `cost` tokens (clamped at zero) and report the outcome. */
+  async consume(key: string, cost = 1): Promise<RateLimiterCheckResult> {
+    const now = Date.now()
+    const tokens = await this.refilled(key, now)
+    const next = Math.max(0, tokens - cost)
+    await this.state.storage.put(`b:${key}`, { tokens: next, updatedAt: now })
+    return { ok: tokens >= cost, remaining: Math.floor(next), limit: this.config.capacity, resetAt: this.resetAt(next, now) }
+  }
+
+  /** Read the current bucket state without consuming or persisting. */
+  async readRemaining(key: string): Promise<RateLimiterCheckResult> {
+    const now = Date.now()
+    const tokens = await this.refilled(key, now)
+    return { ok: tokens >= 1, remaining: Math.floor(tokens), limit: this.config.capacity, resetAt: this.resetAt(tokens, now) }
+  }
+}
+
+/**
+ * `RateLimiter` port adapter over a `RateLimiterDO` namespace binding. Each
+ * bucket name maps to its own DO (`idFromName(bucket)`); the port methods are
+ * RPC calls dispatched via the DO's `fetch` `op` param.
+ */
+export function createRateLimiterClient(namespace: DurableObjectNamespace): RateLimiter {
+  const stubFor = (bucket: string) => namespace.get(namespace.idFromName(bucket))
+
+  async function call(bucket: string, op: string, cost?: number): Promise<RateLimiterCheckResult> {
+    const params = new URLSearchParams({ key: bucket, op })
+    if (cost != null)
+      params.set('cost', String(cost))
+    const res = await stubFor(bucket).fetch(`https://rate-limiter/?${params.toString()}`)
+    return await res.json() as RateLimiterCheckResult
+  }
+
+  return {
+    async check(bucket) {
+      const r = await call(bucket, 'check')
+      return { allowed: r.ok, resetAt: r.resetAt }
+    },
+    async consume(bucket, n = 1) {
+      await call(bucket, 'consume', n)
+    },
+    async remaining(bucket) {
+      const r = await call(bucket, 'remaining')
+      return { remaining: r.remaining, limit: r.limit, resetAt: r.resetAt }
+    },
   }
 }

@@ -1,5 +1,6 @@
 export * from './auditor'
 export * from './core'
 export * from './crawler'
+export * from './rate-limiter'
 export * from './seed-source'
 export * from './storage'

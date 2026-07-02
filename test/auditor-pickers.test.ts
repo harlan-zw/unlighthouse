@@ -1,4 +1,4 @@
-import type { Auditor, AuditorCapabilities, LighthouseReport, NamedAuditor } from '@unlighthouse/contracts/ports'
+import type { Auditor, AuditorCapabilities, LighthouseReport, NamedAuditor, RateLimiter } from '@unlighthouse/contracts/ports'
 import { describe, expect, it } from 'vitest'
 import {
   fallbackAuditor,
@@ -27,6 +27,15 @@ function stubAuditor(label: string, categories: AuditorCapabilities['categories'
 
 function named(name: string, categories?: AuditorCapabilities['categories']): NamedAuditor {
   return { name, auditor: stubAuditor(name, categories) }
+}
+
+// Minimal RateLimiter stub whose verdict is fixed for every bucket.
+function limiterAlways(allowed: boolean): RateLimiter {
+  return {
+    check: async () => ({ allowed }),
+    consume: async () => {},
+    remaining: async () => null,
+  }
 }
 
 describe('roundRobinPick', () => {
@@ -139,8 +148,8 @@ describe('weightedPick', () => {
 })
 
 describe('rateLimitedPick', () => {
-  it("doesn't throw under permissive predicate", async () => {
-    const pick = rateLimitedPick(async () => true)
+  it("doesn't throw under permissive limiter", async () => {
+    const pick = rateLimitedPick(limiterAlways(true))
     const list = [named('a'), named('b')]
     const got = await pick(list, { url: 'https://x' })
     const r = await got.audit('https://x') as unknown as { label: string }
@@ -148,7 +157,7 @@ describe('rateLimitedPick', () => {
   })
 
   it('throws when no auditor passes check', async () => {
-    const pick = rateLimitedPick(async () => false)
+    const pick = rateLimitedPick(limiterAlways(false))
     await expect(pick([named('a')], { url: 'https://x' })).rejects.toThrow(/no auditor passed/)
   })
 })

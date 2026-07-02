@@ -13,7 +13,7 @@ import { createLocalAuditor } from '@unlighthouse/core/auditors/local'
 import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { createPsiAuditor } from '@unlighthouse/core/auditors/psi'
 import {
-  createTokenBucket,
+  createUnstorageRateLimiter,
   fallbackAuditor,
   rateLimitedPick,
   roundRobinPick,
@@ -110,11 +110,11 @@ function pickerFor(
       // collapsing to a single provider.
       return weightedPick(router?.weights ?? {})
     case 'rate-limited': {
-      // One token bucket per resolver (shared across all audit calls in the
+      // One RateLimiter per resolver (shared across all audit calls in the
       // process). Providers without a `rates` entry stay permissive — the
-      // bucket helper returns true for unknown names.
-      const bucket = createTokenBucket(router?.rates ?? {})
-      return rateLimitedPick(async name => bucket.try(name))
+      // limiter allows unknown bucket names.
+      const limiter = createUnstorageRateLimiter({ rules: router?.rates ?? {} })
+      return rateLimitedPick(limiter)
     }
   }
 }

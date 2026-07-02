@@ -6,9 +6,11 @@ import type {
   LighthouseReport,
   NamedAuditor,
   Page,
+  RateLimiter,
 } from '@unlighthouse/contracts/ports'
 import { ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 
+export { createUnstorageRateLimiter, type UnstorageRateLimiterOptions } from '../../rate-limiters/unstorage'
 export { type CategoryAssignments, splitCategoriesAuditor, type SplitCategoriesOptions } from './split'
 export { createTokenBucket, type RateRule, type TokenBucket } from './token-bucket'
 
@@ -168,14 +170,19 @@ export function weightedPick(weights: Record<string, number>): PickFn {
 }
 
 /**
- * Returns the first auditor whose `check(name)` resolves true. Use with a token
- * bucket / quota tracker. Throws if none pass — wrap with a fallback policy.
+ * Returns the first auditor whose bucket (keyed by auditor name) has capacity,
+ * consuming one token from it. Backed by a {@link RateLimiter} port so any
+ * adapter (unstorage counter, Cloudflare `RateLimiterDO`) works unchanged.
+ * Throws if none pass — wrap with a fallback policy.
  */
-export function rateLimitedPick(check: (name: string) => Promise<boolean>): PickFn {
+export function rateLimitedPick(limiter: RateLimiter): PickFn {
   return async (auditors) => {
     for (const a of auditors) {
-      if (await check(a.name))
+      const { allowed } = await limiter.check(a.name)
+      if (allowed) {
+        await limiter.consume(a.name)
         return a.auditor
+      }
     }
     throw new UnlighthouseError({ code: ErrorCodes.NO_AUDITOR_AVAILABLE, message: 'rateLimitedPick: no auditor passed rate-limit check' })
   }

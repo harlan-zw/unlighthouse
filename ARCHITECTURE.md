@@ -28,14 +28,16 @@ The engine knows nothing about *where* it runs. Every runtime-specific concern i
 | `Crawler` | Drive the seed→audit loop (`run(): AsyncIterable<CrawlEvent>`) | `core/crawlers/`: `crawlee`, `parallel-map`. CF: `cloudflare-crawl` |
 | `Auditor` | Produce a Lighthouse report for one URL (`audit(url, page?, opts?)`) + advertise `capabilities` | `core/auditors/`: `local`, `cdp-connect`, `remote-lighthouse`, `psi`, `crux`, `dataforseo`, `mock`; `route/` (AuditorRouter). CF: `browser-rendering` (wraps `cdp-connect`) |
 | `Storage` | Persist a scan's data | `core/storage/`: `drizzle` (rows), `unstorage-blobs`, `memory`. CF: `d1-r2` |
+| `RateLimiter` | Gate audits against a quota bucket (`check` / `consume` / `remaining`) | `core/rate-limiters/`: `unstorage` (token bucket over any unstorage backend). CF: `createRateLimiterClient` over `RateLimiterDO` |
 
 **Auditor capabilities** drive routing: `reliablePerfScores` (false for remote-CDP — network RTT contaminates LCP/TBT/SI), `reliableFieldData` (true for CrUX), `supportsThrottling` (false for fetch-based PSI/CrUX/dataforseo), and `categories`. `AuditorRouter` is itself an `Auditor` that takes a `pick(auditors, ctx)` function; composable pick helpers ship as `round-robin` / `weighted` / `rate-limited` / `fallback` / `predicate` picks so new strategies need no PR to `core`.
 
 **Deferred seams** — a capability kept as an inline shape until a second adapter earns a real port:
 - `Policy` — robots only (`core/policies/robots/`); exposed as `allows(url)` + `crawlDelayMs` on the crawler run options.
 - `BrowserPool` — puppeteer-cluster only (`core/auditors/audit-pool/`), passed into `auditors/local`.
-- **Fan-out / broadcasting** — host-owned, not a core port. `core.run()` exposes `events` + `subscribe` + a 10k-event replay ring; the host decides fan-out. Two real implementations today: the CLI's WebSocket broadcast (`unlighthouse/src/host.ts` `wireWsBroadcast`) and Cloudflare's `ScanEventsDO` (WebSocket hibernation + filtered broadcast).
-- `RateLimiter` — two real adapters now: unstorage-counter (CLI) and Cloudflare's `RateLimiterDO` (token bucket per key/IP).
+- **Fan-out / broadcasting** — host-owned, deliberately NOT promoted to a port even with two implementations (the CLI's `wireWsBroadcast` in `unlighthouse/src/host.ts` and Cloudflare's `ScanEventsDO`): its consumer is always the host itself, failing the promotion rule's polymorphic-consumer clause. `core.run()` exposes `events` + `subscribe` + a 10k-event replay ring and lets the host decide fan-out.
+
+`RateLimiter` graduated to a port (D-036) once it had two real adapters and a polymorphic consumer (`rateLimitedPick`); see the ports table above.
 
 The `Hookable` bus is the cross-cutting event spine. Stable, schema-versioned events are typed in `packages/contracts/src/hooks/`: `scan:{created,started,discovering,scanning,progress,route-complete,route-failed,paused,resumed,cancelled,complete,error}`, `route:{queued,html-extracted}`, `assert:{passed,failed}`, `compare:complete`, `quota:{exceeded,depleted}`, `log`. Adapter-internal `CrawlEvent`s (`url-discovered/started/completed/failed/idle`) are ephemeral and get translated into stable `scan:*` events by the factory.
 
