@@ -90,7 +90,7 @@ interface Storage {
 }
 ```
 
-Rows are backed by **Drizzle** (sqlite dialect → `better-sqlite3` today, libsql/Turso, D1); blobs by **unstorage** (fs locally, R2 on Cloudflare). A `memory` adapter backs tests and the Worker default. Route identity is `(scanId, url, device)` so mobile and desktop results never collapse (D-029). `better-sqlite3` is the v1.0 default driver; `node:sqlite` is parked for v2. Migrations ship as SQL files read by drizzle-kit, not as a subpath export. On D1, `reports`/`comparisons` are real shared drizzle repositories (D-035 replaced the former stubs), so `compare.*` and pack drill-ins return data on the Worker host.
+Rows are backed by **Drizzle** (sqlite dialect → `better-sqlite3` today, libsql/Turso, D1); blobs by **unstorage** (fs locally, R2 on Cloudflare). A `memory` adapter backs tests and the Worker default. Route identity is `(scanId, url, device)` so mobile and desktop results never collapse (D-029). `better-sqlite3` is the v1.0 default driver; `node:sqlite` is parked for v2. Migrations ship as SQL files read by drizzle-kit, not as a subpath export. On D1, `reports`/`comparisons` are real shared drizzle repositories (D-035 replaced the former stubs), and the D1 raw-SQL route writer populates the provenance + reconciled `report_blob_key` columns, so `compare.*`, pack drill-ins, and `route.get`'s reconciled deep-dive all return data on the Worker host.
 
 ## Packages
 

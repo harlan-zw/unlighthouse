@@ -92,12 +92,13 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   real d1R2Storage over a better-sqlite3 D1 shim: compare.run/detail, scan.results, pack.run,
   compareScans persist-read). Maintainer runbook in cloudflare/examples/basic/README.md.
   Gate: typecheck green; full suite 644 pass/1 skip.
-  KNOWN GAP (flagged, out of D-035 scope): the D1 raw-SQL route WRITER does not yet populate
-  `report_blob_key`/`auditor`/`score_agentic_browsing`/`screenshot_blob_key` (columns added, values
-  null on a real CF scan) — so route.get's reconciled deep-dive can't resolve report_blob_key on D1
-  until the D-034/D-040 row-writer cutover reaches the D1 ingest path. Separate follow-up.
-  MAINTAINER-FLAGGED: real Cloudflare (miniflare/workerd) deploy verification — runbook only, not
-  attempted; a real miniflare/vitest-pool-workers test is the documented follow-up.
+  KNOWN GAP — RESOLVED (commit 7bd15faf, D-035 follow-up): the D1 raw-SQL route WRITER now populates
+  `score_agentic_browsing`, `auditor` (D-040), and `report_blob_key` (D-034, via `reportBlobKeyFor`),
+  so route.get's reconciled deep-dive resolves on the Worker host at parity with the drizzle writer.
+  (`screenshot_blob_key` intentionally left unset — matches the drizzle `metricsToRow`, set post-
+  screenshot elsewhere.) d1-storage test asserts the read-back row carries auditor + report_blob_key.
+  MAINTAINER-FLAGGED (still open): real Cloudflare (miniflare/workerd) deploy verification — runbook
+  only, not attempted; a real miniflare/vitest-pool-workers test is the documented follow-up.
 - D-036 (RateLimiter → port): done (subagent, gated by me) — new `contracts/ports/rate-limiter.ts`
   (`check`/`consume`/`remaining` per v1.md spec), exported via existing `./ports`. New
   `core/rate-limiters/unstorage.ts` (`createUnstorageRateLimiter`; there was no existing unstorage
@@ -192,6 +193,20 @@ typecheck green (11 pkgs), suite 708 pass / 1 skip, attw green, publint green mo
 `link:` (maintainer-owned). Commits: D-038 f775dc10, D-032 d6bb3ceb, D-033 a16aac22, D-040+D-041
 bc2154b0, D-034 784c810c, D-035 d5882a00, D-036 2a121624, D-037 a1e0f92e, D-039 830fa965, D-042
 d1f3b0d9, D-043 a95d8b3f, D-044 3faf9a5a, docs 4dcd21aa (+ checkpoint 10a396df).
+
+## Post-pivot follow-ups (addressed after the final report)
+- FLAG 3 (D1 row-writer parity): DONE — commit 7bd15faf (see D-035 line above).
+- FLAG 5 (suite ~2× slower): NO CODE CHANGE — confirmed environmental, not a regression. Every test
+  file + small batches run fast in isolation (core/e2e/perf-lane all sub-3s); the only test touching
+  D-042's changed path (audit-pool-perf-lane) is 0.3s; no other test uses the audit-pool/local path.
+  The per-unit test time doubled between an early-session run (172s) and late-session runs (368s) under
+  hours of sustained subagent/build load — CPU contention/throttling across the 66-file parallel run,
+  not code. The serial-perf DEFAULT (D-042) is intentional product behaviour (real scans serialize
+  perf for accuracy; opt out via `scanner.perfConcurrency: 'parallel'`), not a test-suite issue.
+- FLAG 6 (mixed-backend UI badge): DONE — commit 369bb6ae. RouteRow gains `auditor`; routes table
+  shows an 'Auditor' column (UiChip DS wrapper) only when `hasMultipleAuditors` (>1 distinct backend).
+  ui typecheck green, eslint clean. Root docs (ARCHITECTURE.md D1 line, v1.md D-035/D-040 entries)
+  updated to reflect flags 3 + 6.
 
 ## Maintainer-flagged (never attempted by agent)
 - Real Cloudflare deploy verification (D-035): runbook only.
