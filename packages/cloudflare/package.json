@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.0-v1",
   "private": true,
-  "description": "Cloudflare Workers preset for Unlighthouse (populated in v5).",
+  "description": "Cloudflare Workers preset for Unlighthouse: Browser Rendering auditor, D1/R2 storage, Durable Objects.",
   "license": "MIT",
   "sideEffects": false,
   "exports": {

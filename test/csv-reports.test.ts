@@ -1,7 +1,7 @@
 import type { UnlighthouseRouteReport } from '../packages/unlighthouse/src/cli/types'
 import { describe, expect, it } from 'vitest'
 import { DefaultColumns } from '../packages/unlighthouse/src/constants'
-import { generateReportPayload } from '../packages/unlighthouse/src/cli/reporters'
+import { generateReportPayload } from '../packages/unlighthouse/src/reporters'
 import _lighthouseReport from './fixtures/lighthouseReport.mjs'
 
 const lighthouseReport = _lighthouseReport as any as UnlighthouseRouteReport[]

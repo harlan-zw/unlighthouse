@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.0-v1",
   "private": true,
-  "description": "MCP preset for Unlighthouse (populated in v4).",
+  "description": "MCP server preset for Unlighthouse: projects the command registry as MCP tools.",
   "license": "MIT",
   "sideEffects": false,
   "exports": {

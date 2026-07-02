@@ -8,6 +8,7 @@ export default defineConfig({
     './src/drizzle/index.ts',
     './src/errors/index.ts',
     './src/hooks/index.ts',
+    './src/logging/index.ts',
     './src/packs/index.ts',
     './src/ports/index.ts',
     './src/types/atoms.ts',
