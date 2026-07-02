@@ -1,6 +1,6 @@
 # Architecture
 
-How the Unlighthouse v1 monorepo is structured, for people (and agents) working *in* the repo. For the user-facing version see [`docs/4.architecture.md`](docs/4.architecture.md); for the full design rationale and decisions log (D-001…D-030) see [`v1.md`](v1.md). Shared vocabulary lives in [`CONTEXT.md`](CONTEXT.md).
+How the Unlighthouse v1 monorepo is structured, for people (and agents) working *in* the repo. For the user-facing version see [`docs/4.architecture.md`](docs/4.architecture.md); for the full design rationale and decisions log (D-001…D-044) see [`v1.md`](v1.md). Shared vocabulary lives in [`CONTEXT.md`](CONTEXT.md).
 
 ## One-line model
 
@@ -63,18 +63,19 @@ createUnlighthouseCore({
 
 ## The command registry
 
-`@unlighthouse/contracts/commands` is **the source of truth** — ~34 typed `{ name, input, output, run }` commands (`define.ts`). Hosts project the registry into their transport and get every command for free; a client derives its routes from the same `commandToRoute` the server uses, so they can't drift (a CI parity test enforces coverage).
+`@unlighthouse/contracts/commands` is **the source of truth** — 36 typed `{ name, input, output, run }` commands (`define.ts`). Hosts project the registry into their transport and get every command for free; a client derives its routes from the same `commandToRoute` the server uses, so they can't drift (a CI parity test enforces coverage, now three-legged: HTTP, MCP, and the citty CLI — D-033).
 
-Namespaces (`packages/contracts/src/commands/`): `scan.*` (start, status, cancel, pause, resume, delete, import, results, summary, meta, current, rescanAll, categories), `route.*` (get, audits, rescan), `history.*` (list, rescan), `compare.*` (run, detail, markdown, findPrevious), `assert.evaluate`, `pack.*` (run, list), `query.routes`, `events.*` (subscribe, tail — streaming), `sites.*` (list, create, delete), and top-level `meta` (`manifest`, `health`, `ready`, `auditors.list`). Handlers live in `packages/core/src/api/handlers/`.
+Namespaces (`packages/contracts/src/commands/`): `scan.*` (start, status, cancel, pause, resume, delete, import, results, summary, meta, current, rescanAll, categories), `route.*` (get, audits, rescan), `history.*` (list, rescan, prune), `compare.*` (run, detail, markdown, findPrevious), `assert.evaluate`, `pack.*` (run, list), `query.routes`, `events.*` (subscribe, tail — streaming), `sites.*` (list, create, delete), and top-level `meta` (`manifest`, `health`, `ready`, `auditors.list`). Handlers live in `packages/core/src/api/handlers/`.
 
 ## The API layer
 
-`packages/core/src/api/` projects the registry over the wire:
+The typed client lives with the registry it is derived from: `@unlighthouse/contracts/client` (`createClient({ baseUrl })`: a typed proxy where `api['scan.start'](input)` maps to the derived HTTP route). It is a contracts artifact — its imports are already contracts-only — so it moved out of core (D-032); no re-export remains in core. `packages/core/src/api/` projects the registry over the wire:
 
-- **`client.ts`** — `createClient({ baseUrl })`: a typed proxy where `api['scan.start'](input)` maps to the derived HTTP route. This is what the UI uses.
 - **`static-client.ts`** — `createStaticClient(snapshot)`: same client shape, served from an embedded snapshot for offline/static builds.
 - **`http.ts`** — the h3 command router. **`ws.ts`** — the WebSocket event stream. **`mcp` projection** mirrors `http.ts` but emits MCP tools.
-- **`dashboard.ts`** — `createDashboardApi(storage)`: a small raw-binary escape hatch (screenshot, route HTML, raw LHR, export) reached by URL, not the typed client. Domain reads all go through commands.
+- **`dashboard.ts`** — `createDashboardApi(storage)`: a small raw-binary escape hatch (screenshot, route HTML, raw LHR, export) reached by URL, not the typed client. Domain reads all go through commands. `manifest` output lists these four endpoints as `binary: true` entries so the escape hatch is self-described (D-037).
+
+**Client-import invariant (D-032).** The UI's live path imports `@unlighthouse/contracts/client` only; the static path additionally imports core's `api/static-client` read slice, which must be browser-portable — no `node:*` on the reachable path (`fflate` for gzip, the pure `util/sha1`, `Uint8Array`/`TextEncoder` in place of `Buffer`). CI-enforced by the `browser-static` treeshake scenario (`test/treeshake.test.ts`), which asserts the `contracts/client` + `core/api/static-client` bundle contains no `node:zlib`/`node:crypto`/`node:buffer`, `better-sqlite3`, `drizzle-orm`, `h3`, or `listhen`.
 
 ## Storage
 
@@ -89,7 +90,7 @@ interface Storage {
 }
 ```
 
-Rows are backed by **Drizzle** (sqlite dialect → `better-sqlite3` today, libsql/Turso, D1); blobs by **unstorage** (fs locally, R2 on Cloudflare). A `memory` adapter backs tests and the Worker default. Route identity is `(scanId, url, device)` so mobile and desktop results never collapse (D-029). `better-sqlite3` is the v1.0 default driver; `node:sqlite` is parked for v2. Migrations ship as SQL files read by drizzle-kit, not as a subpath export. On D1, `reports`/`comparisons` are intentionally stubbed (no `processScanData` there yet).
+Rows are backed by **Drizzle** (sqlite dialect → `better-sqlite3` today, libsql/Turso, D1); blobs by **unstorage** (fs locally, R2 on Cloudflare). A `memory` adapter backs tests and the Worker default. Route identity is `(scanId, url, device)` so mobile and desktop results never collapse (D-029). `better-sqlite3` is the v1.0 default driver; `node:sqlite` is parked for v2. Migrations ship as SQL files read by drizzle-kit, not as a subpath export. On D1, `reports`/`comparisons` are real shared drizzle repositories (D-035 replaced the former stubs), so `compare.*` and pack drill-ins return data on the Worker host.
 
 ## Packages
 
@@ -100,14 +101,12 @@ Dependency graph (no cycles): `contracts` ← `core` ← { `ui`, `mcp`, `cloudfl
 | `contracts` | `@unlighthouse/contracts` | Types, ports, command registry, hooks, config schema, errors, packs contract, drizzle schema. Peer: zod, drizzle-orm. | Full |
 | `core` | `@unlighthouse/core` | The engine: seeds, crawlers, auditors, policies, storage, report, comparison, packs, api (client/http/ws/dashboard/handlers). Peer: better-sqlite3, drizzle-orm, unstorage. | Full |
 | `unlighthouse` | `unlighthouse` | CLI + host + public npm name. `createUnlighthouseHost`, config resolution (c12 + defu + Zod in `src/config/resolve.ts`), reporters, history subscriber. Owns bins `unlighthouse` / `unlighthouse-ci` / `unlighthouse-mcp`. Exports `.`, `./cli`, `./ci`, `./config`. | Full |
-| `ui` | `@unlighthouse/ui` | Nuxt **SPA** dashboard (`ssr: false`). Consumes `@unlighthouse/core/api/client` via `nuxt-use-query`. Builds to a static bundle (`dist/index.html`) embedded by the CLI host. | Full |
-| `mcp` | `@unlighthouse/mcp` | `createMcpServer` / `startStdioServer`: projects the command registry as MCP tools (Zod→JSON-schema), with progress-token streaming and `UnlighthouseError`→MCP error mapping. (package.json "populated in v4" note is stale.) | Full |
-| `cloudflare` | `@unlighthouse/cloudflare` | Workers preset: `browser-rendering` auditor, `cloudflare-crawl`, `workerSitemapSeeds`, `d1-r2` storage, four Durable Objects, `createCloudflareApp`. ("populated in v5" note is stale.) | Full |
+| `ui` | `@unlighthouse/ui` | Nuxt **SPA** dashboard (`ssr: false`). Consumes `@unlighthouse/contracts/client` via `nuxt-use-query` (live path); the static path also imports `@unlighthouse/core/api/static-client`. Builds to a static bundle (`dist/index.html`) embedded by the CLI host. | Full |
+| `mcp` | `@unlighthouse/mcp` | `createMcpServer` / `startStdioServer`: projects the command registry as MCP tools (Zod→JSON-schema), with progress-token streaming and `UnlighthouseError`→MCP error mapping. | Full |
+| `cloudflare` | `@unlighthouse/cloudflare` | Workers preset: `browser-rendering` auditor, `cloudflare-crawl`, `workerSitemapSeeds`, `d1-r2` storage, four Durable Objects, `createCloudflareApp`. | Full |
 | `cloudflare-lighthouse` | `@unlighthouse/cloudflare-lighthouse` | Container-backed real-Lighthouse server (`./server`, runs in a CF Container against Browser Run CDP) + Worker bridge (`./worker`, `createContainerLighthouseAuditor`). | Full |
 | `vite-plugin` | `@unlighthouse/vite` | Framework-agnostic Vite plugin; scans build output. Peer: unlighthouse, vite. | — |
 | `github-action` | `@unlighthouse/github-action` | Composite Action wrapping `unlighthouse-ci`; posts `compare.markdown` to the PR. | — |
-| `client` | — | Legacy v0 dashboard bundle (dist only). | Legacy |
-| `cli` | — | Collapsed into `unlighthouse` (D-015); dist only. | Legacy |
 
 ## Adapters per host
 
@@ -131,13 +130,15 @@ Nuxt SPA, three homes for a component (see `DESIGN.md` for the full rules):
 2. **App-global** — `packages/ui/app/components/`: Unlighthouse-wide (`AppSidebar`, `QueryError`, `SidebarShell`). Auto-imported.
 3. **Feature-local** — `packages/ui/app/features/{scan,sites,compare,dashboard}/`: single-feature logic modules + colocated components, explicit imports.
 
-Data flow: `app/plugins/api.client.ts` provides `$api` (`createClient`, or `createStaticClient` for embedded snapshots). `useApiQuery`/`useApiMutation` wrap `nuxt-use-query`, calling `api[command](input)`; a dev-only check validates each response against the command's output schema (parse, don't validate). The scan store (`app/stores/scan.ts`) feeds live `scan:*` WebSocket events into a progress reducer, with a polling fallback for no-WS deploys (Cloudflare). The dashboard is built via `nuxi generate` and embedded into the runtime by the CLI host (`unlighthouse/src/build.ts` `generateClient` → `server.ts` serves it with SPA fallback + `/api/**`).
+Data flow: `app/plugins/api.client.ts` provides `$api` — `createClient` from `@unlighthouse/contracts/client` on the live path, or `createStaticClient` from `@unlighthouse/core/api/static-client` for embedded snapshots (gated by `useIsStatic()`). `useApiQuery`/`useApiMutation` wrap `nuxt-use-query`, calling `api[command](input)`; a dev-only check validates each response against the command's output schema (parse, don't validate). The scan store (`app/stores/scan.ts`) feeds live `scan:*` WebSocket events into a progress reducer, with a polling fallback for no-WS deploys (Cloudflare). The dashboard is built via `nuxi generate` and embedded into the runtime by the CLI host (`unlighthouse/src/build.ts` `generateClient` → `server.ts` serves it with SPA fallback + `/api/**`).
 
 ## Key conventions
 
 - **Errors as values** for expected domain failures; a single `UnlighthouseError` with a `.code` discriminant and a `category` (`fatal` / `route-failed` / `retryable` / `validation`). Codes include `NOT_SUPPORTED`, `ACTIVE_SCAN_CONFLICT`, `QUOTA_EXCEEDED`, `CONFIG_INVALID`, `SCAN_NOT_FOUND`, `ROUTE_NOT_FOUND`, `INPUT_INVALID`, `ASSERTION_FAILED`, `COMPARE_BASELINE_MISSING`, `SCAN_ALREADY_EXISTS`. Infra errors propagate.
-- **No backwards compat with v0** — clean break, no shims (a few explicitly-labelled `// v0 re-export shim` files remain in `unlighthouse/src/process/*` and `src/cli/reporters/` as removal candidates).
-- **Treeshake invariants** — the import boundary keeps heavy deps out of the wrong bundle (crawlee out of Workers, cloudflare-crawl out of the CLI). Enforced by `test/treeshake.test.ts`.
+- **No backwards compat with v0** — clean break, no shims. D-038 deleted the legacy `packages/client` / `packages/cli` bundles and the `// v0 re-export shim` files under `unlighthouse/src/process/*` + `src/cli/reporters/`; only `unlighthouse/src/types.ts` remains as a public re-export via `index.ts` (flagged, not a shim).
+- **CLI is the third registry projection** — `unlighthouse/src/cli/` is generated from `contracts/commands` via citty (D-033), alongside the HTTP and MCP projectors; dot-names nest as subcommands (`scan.start` → `unlighthouse scan start`), flags derive from each command's Zod input, and `--agent`/non-TTY emits `$schema`-stamped NDJSON. The v0 ergonomic entry (`unlighthouse --site x.com`) survives as the root command. `ci.ts` keeps its own cac program (it is a CI runner, not a registry projection).
+- **Treeshake invariants** — the import boundary keeps heavy deps out of the wrong bundle (crawlee out of Workers, cloudflare-crawl out of the CLI, plus the `browser-static` scenario for the UI static path and `seeds-barrel` keeping `node:fs` out of the `./seeds` barrel — D-032/D-039). Enforced by `test/treeshake.test.ts`.
+- **Reconciled-reader boundary (D-034)** — raw-LHR (`lhrBlobKey`) access is confined to the translation layer + dashboard export handler; `test/lhr-reader-boundary.test.ts` fails if any file outside {`report/extract`, `scan/route-audit`, `packs/reconcile-context`, `api/dashboard`, `build.ts`} gunzips a raw LHR blob.
 - Runtime baseline: **Node ≥ 24.13.1** on every published package; **Lighthouse 13** is the pinned engine (`agentic-browsing` category + insight audits). Lighthouse's version is isolated in the report-translation layer (`core/report/*` + `auditors/lighthouse-report.ts`) and translated into our stable report shape.
 
 ## Where to start reading
@@ -146,4 +147,4 @@ Data flow: `app/plugins/api.client.ts` provides `$api` (`createClient`, or `crea
 - CLI host wiring (default adapters, config, server): `packages/unlighthouse/src/host.ts` + `src/config/resolve.ts`.
 - Add a command: `packages/contracts/src/commands/` (contract) → `packages/core/src/api/handlers/` (handler). It reaches CLI/HTTP/MCP/UI automatically.
 - Add an adapter: pick the port dir under `packages/core/src/` (or `packages/cloudflare/src/`), implement the interface in `packages/contracts/src/ports/`.
-- Full rationale + decisions log (D-001…D-030): `v1.md`.
+- Full rationale + decisions log (D-001…D-044): `v1.md`.
