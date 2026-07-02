@@ -159,6 +159,13 @@ export interface BlobStore {
   get: (key: string) => Promise<Uint8Array | null>
   has: (key: string) => Promise<boolean>
   delete: (key: string) => Promise<void>
+  /**
+   * List every key under `prefix` (D-044). Backends map this to their native
+   * prefix listing (unstorage `getKeys`, R2 `list({ prefix })`). Retention
+   * pruning uses it to enumerate a scan's namespaced blobs (`scans/<id>/**`)
+   * rather than re-deriving keys, so it stays correct as the key layout evolves.
+   */
+  list: (prefix: string) => Promise<string[]>
 }
 
 // ============================================================================

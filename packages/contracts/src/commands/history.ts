@@ -44,3 +44,47 @@ export const HistoryRescan = defineCommand({
   // "rescan from history" is a UI convenience that conflicts with active scans.
   mcp: { hidden: true },
 })
+
+// ── history.prune ─────────────────────────────────────────────────────────
+// D-044: enforce retention on demand. Agents / CI invoke it; the CLI host also
+// runs it automatically after every scan when `retention` is configured. Reads
+// `ctx.config.retention` merged with the (optional) per-call overrides below.
+const PruneReasonSchema = z.enum(['count', 'age'])
+
+const PruneScanDeletionSchema = z.object({
+  scanId: ScanIdSchema,
+  site: UrlSchema,
+  startedAt: z.iso.datetime(),
+  reasons: z.array(PruneReasonSchema),
+  blobKeys: z.array(z.string()),
+})
+
+const PruneSiteResultSchema = z.object({
+  site: UrlSchema,
+  considered: z.number().int().nonnegative(),
+  deleted: z.number().int().nonnegative(),
+  protectedBaselines: z.number().int().nonnegative(),
+  scanIds: z.array(ScanIdSchema),
+})
+
+export const HistoryPrune = defineCommand({
+  name: 'history.prune',
+  description: 'Prune old scans per the retention policy (oldest-first, per site). Supports dry-run.',
+  input: z.object({
+    /** Report what would be deleted without mutating storage. */
+    dryRun: z.boolean().optional(),
+    /** Override `config.retention.maxScansPerSite` for this call. */
+    maxScansPerSite: z.coerce.number().int().positive().optional(),
+    /** Override `config.retention.maxAgeDays` for this call. */
+    maxAgeDays: z.coerce.number().int().positive().optional(),
+    /** Override `config.retention.keepCiBaselines` for this call. */
+    keepCiBaselines: z.boolean().optional(),
+  }),
+  output: z.object({
+    dryRun: z.boolean(),
+    totalScansDeleted: z.number().int().nonnegative(),
+    totalBlobsDeleted: z.number().int().nonnegative(),
+    deletions: z.array(PruneScanDeletionSchema),
+    perSite: z.array(PruneSiteResultSchema),
+  }),
+})

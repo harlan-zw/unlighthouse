@@ -4,7 +4,7 @@ import type { HandlerMap } from './types'
 import { assertEvaluate } from './assert'
 import { compareDetail, compareFindPrevious, compareMarkdown, compareRun } from './compare'
 import { eventsSubscribe, eventsTail } from './events'
-import { historyList, historyRescan } from './history'
+import { historyList, historyPrune, historyRescan } from './history'
 import { auditorsList, health, manifest, ready } from './meta'
 import { packList, packRun } from './pack'
 import { queryRoutes } from './query'
@@ -29,7 +29,7 @@ import { sitesCreate, sitesDelete, sitesList } from './sites'
 export { assertEvaluate } from './assert'
 export { compareDetail, compareFindPrevious, compareMarkdown, compareRun } from './compare'
 export { eventsSubscribe, eventsTail } from './events'
-export { historyList, historyRescan } from './history'
+export { historyList, historyPrune, historyRescan } from './history'
 export { auditorsList, health, manifest } from './meta'
 export { packList, packRun } from './pack'
 export { queryRoutes } from './query'
@@ -71,6 +71,7 @@ export function createHandlers(): HandlerMap {
     'route.rescan': routeRescan,
     'history.list': historyList,
     'history.rescan': historyRescan,
+    'history.prune': historyPrune,
     'compare.run': compareRun,
     'compare.detail': compareDetail,
     'compare.markdown': compareMarkdown,

@@ -664,6 +664,19 @@ function r2BlobStore(bucket: R2Bucket): BlobStore {
     async delete(key: string) {
       await bucket.delete(key)
     },
+    async list(prefix: string): Promise<string[]> {
+      // R2 list is paginated (1000 objects/page). Walk the cursor so retention
+      // pruning enumerates every namespaced blob, not just the first page.
+      const keys: string[] = []
+      let cursor: string | undefined
+      do {
+        const listing = await bucket.list({ prefix, cursor })
+        for (const obj of listing.objects)
+          keys.push(obj.key)
+        cursor = listing.truncated ? listing.cursor : undefined
+      } while (cursor)
+      return keys
+    },
   }
 }
 

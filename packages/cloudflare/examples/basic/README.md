@@ -174,6 +174,48 @@ scan in **History**, and the per-route report under the scan's pages.
 - `[[containers]] max_instances` — caps concurrency/blast radius (5 is fine).
 - `[triggers] crons` — R2 TTL sweeper schedule (default hourly).
 
+## Retention (D-044)
+
+Scan history grows without bound by default: every scan writes raw LHR + a
+reconciled report + screenshots per route per device. Two complementary controls
+keep R2 (and D1) from filling up:
+
+1. **Application retention (authoritative).** Set a `retention` policy in
+   `UNLIGHTHOUSE_CONFIG` (same schema as the CLI). `pruneScans` runs over the
+   Storage port, so it deletes both the D1 scan rows and the namespaced R2 blobs
+   (`scans/<id>/**`) oldest-first per site:
+
+   ```jsonc
+   {
+     "site": "https://example.com",
+     "retention": {
+       "maxScansPerSite": 30,   // keep the 30 newest scans per site
+       "maxAgeDays": 90,        // and drop anything older than 90 days
+       "keepCiBaselines": true  // never prune a scan used as a comparison baseline
+     }
+   }
+   ```
+
+   Agents / CI invoke it explicitly with `history.prune` (POST `/api/history/prune`,
+   `{ "dryRun": true }` to preview). The CLI host also runs it automatically after
+   each scan; on the Worker, call `history.prune` from your cron or after a scan.
+
+2. **R2 lifecycle rule (belt-and-braces).** As a backstop against orphaned blobs
+   (e.g. a scan row deleted out-of-band), add an R2 object-lifecycle rule so R2
+   expires objects even if application pruning never runs:
+
+   ```sh
+   # Expire every object under scans/ 90 days after creation.
+   wrangler r2 bucket lifecycle add unlighthouse \
+     --prefix "scans/" --expire-days 90
+   # Inspect / remove:
+   wrangler r2 bucket lifecycle list unlighthouse
+   ```
+
+   Or in the dashboard: **R2 → your bucket → Settings → Object lifecycle rules →
+   Add rule**, prefix `scans/`, "Delete objects" after N days. Keep the lifecycle
+   window ≥ your `maxAgeDays` so R2 never deletes blobs the app still tracks.
+
 ## Cost (rough, ~100 audits/day)
 
 - Workers Paid: $5/mo flat

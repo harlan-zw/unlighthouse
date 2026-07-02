@@ -13,8 +13,8 @@ describe('api parity', () => {
   const handlers = createHandlers()
   const commandList = Object.entries(commands)
 
-  it('registry has 35 commands', () => {
-    expect(commandList.length).toBe(35)
+  it('registry has 36 commands', () => {
+    expect(commandList.length).toBe(36)
   })
 
   it.each(commandList)('%s has a handler', (name) => {

@@ -3,6 +3,7 @@ import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { Hookable } from 'hookable'
 import { parseScanId } from '@unlighthouse/contracts'
 import { scanCrux } from '@unlighthouse/contracts/drizzle'
+import { pruneScans } from '@unlighthouse/core'
 import { fetchCruxHistory, getSiteOrigin } from '@unlighthouse/core/auditors/crux'
 import { asDrizzleDatabase } from '@unlighthouse/core/storage/drizzle'
 import { and, eq } from 'drizzle-orm'
@@ -72,6 +73,22 @@ export function historySubscriber(deps: HistorySubscriberDeps): void {
     await writeScanManifest(storage, scanId).catch((err: unknown) => {
       logger?.warn?.(`Failed to write manifest: ${err}`)
     })
+
+    // D-044: auto-prune scan history when a retention policy is configured.
+    // Non-fatal — retention is best-effort housekeeping, never a reason to fail
+    // a completed scan. `pruneScans` is pure over the Storage port, so the CLI
+    // host gets the same behaviour agents reach via `history.prune`.
+    const retention = resolvedConfig.retention
+    if (retention && (retention.maxScansPerSite != null || retention.maxAgeDays != null)) {
+      await pruneScans(storage, retention)
+        .then((res) => {
+          if (res.totalScansDeleted > 0)
+            logger?.info?.(`Retention: pruned ${res.totalScansDeleted} scan(s), ${res.totalBlobsDeleted} blob(s)`)
+        })
+        .catch((err: unknown) => {
+          logger?.warn?.(`Retention prune failed: ${err}`)
+        })
+    }
 
     if (resolvedConfig.googleApiKey && resolvedConfig.site) {
       const origin = getSiteOrigin(resolvedConfig.site)

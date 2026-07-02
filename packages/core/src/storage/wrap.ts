@@ -103,6 +103,7 @@ export function wrapStorage(base: Storage, opts: WrapStorageOptions): Storage {
     get: (key: string) => intercept('blobs.get', { key }, a => base.blobs.get(a.key)),
     has: (key: string) => intercept('blobs.has', { key }, a => base.blobs.has(a.key)),
     delete: (key: string) => intercept('blobs.delete', { key }, a => base.blobs.delete(a.key)),
+    list: (prefix: string) => intercept('blobs.list', { prefix }, a => base.blobs.list(a.prefix)),
   }
 
   // Report + comparison repos are read-only & dashboard-private; pass through

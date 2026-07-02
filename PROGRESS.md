@@ -170,7 +170,17 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   `packages/cloudflare/test/allowed-targets.test.ts` (3: reject/allow/default). Gate: unlighthouse +
   cloudflare typecheck green; targeted suites 108/108 (server-guards/auth-gate/cli/cli-parity/d1-storage/
   allowed-targets); config-resolve + e2e-http unaffected. Did NOT run full suite/attw/publint per scope.
-- D-044 (retention + history.prune + BlobStore.list): pending
+- D-044 (retention + history.prune + BlobStore.list): done (subagent, gated by me) — `.default()`-free
+  `RetentionConfig` (maxScansPerSite/maxAgeDays/keepCiBaselines; unlimited by omission) in contracts +
+  ResolvedUserConfig. `BlobStore.list(prefix)` added to the port + implemented in unstorage-blobs
+  (getKeys), memory (prefix filter), cloudflare R2 (paginated), and the wrap.ts proxy. New
+  `core/scan/prune.ts` `pruneScans` — pure over the Storage port, oldest-first per site, dry-run mode,
+  `keepCiBaselines` protects comparison-baseline scans (checked via comparisons.list); blob deletion
+  enumerates `scans/<id>/` via list (no hardcoded keys). New `history.prune` command + handler
+  (registry 35→36; parity assertions bumped in api-parity + e2e-http; cli-parity dynamic). Host
+  auto-prunes non-fatally after scan:complete when retention configured. R2 lifecycle recipe in
+  cloudflare examples README. Tests: prune.test.ts + storage-port BlobStore.list case. Gate: full
+  typecheck green; suite 708 pass/1 skip; attw green; publint green modulo ui link.
 - Docs follow-through (ARCHITECTURE.md, v1.md log, GAPS.md closures): pending
 
 ## Maintainer-flagged (never attempted by agent)

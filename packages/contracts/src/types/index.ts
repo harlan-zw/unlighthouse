@@ -302,6 +302,20 @@ export interface RouteDefinitionsConfig {
   extensions?: string[]
 }
 
+/**
+ * D-044: scan-history retention policy. All fields optional; absent means the
+ * dimension is unbounded. Enforced by `pruneScans` (core) over the Storage port,
+ * invoked by `history.prune` and by the CLI host automatically after each scan.
+ */
+export interface RetentionConfig {
+  /** Keep at most this many scans per site; oldest beyond the cap are pruned. Unlimited when omitted. */
+  maxScansPerSite?: number
+  /** Prune scans whose `startedAt` is older than this many days. Unlimited when omitted. */
+  maxAgeDays?: number
+  /** When true, scans referenced as a comparison baseline are protected from pruning. */
+  keepCiBaselines?: boolean
+}
+
 export interface ClientOptions {
   /**
    * The columns to show for each lighthouse category.
@@ -518,6 +532,10 @@ export interface ResolvedUserConfig {
    * @see https://unlighthouse.dev/guide/route-definitions.html
    */
   routeDefinitions?: RouteDefinitionsConfig
+  /**
+   * D-044: scan-history retention policy. Absent means unbounded retention.
+   */
+  retention?: RetentionConfig
   scanner: {
     /**
      * Setup custom mappings for a regex string to a route definition.

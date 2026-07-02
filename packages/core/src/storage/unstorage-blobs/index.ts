@@ -38,5 +38,10 @@ export function unstorageBlobs(opts: UnstorageBlobsOptions): BlobStore {
     async delete(key: string): Promise<void> {
       await store.removeItem(key)
     },
+    async list(prefix: string): Promise<string[]> {
+      // getKeys returns keys under the base; pass the prefix so drivers that
+      // support it (fs, r2) scope the walk natively.
+      return store.getKeys(prefix)
+    },
   }
 }

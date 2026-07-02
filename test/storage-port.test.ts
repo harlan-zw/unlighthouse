@@ -239,6 +239,20 @@ describe.each(backends)('storage port — %s', (_name, createStorage) => {
     expect(await s.blobs.get(key)).toBeNull()
   })
 
+  it('blobs.list(prefix) returns keys under the prefix (D-044)', async () => {
+    const s = createStorage()
+    const bytes = new Uint8Array([9])
+    await s.blobs.put('scans/abc/lhr/x.json.gz', bytes)
+    await s.blobs.put('scans/abc/reports/x.json', bytes)
+    await s.blobs.put('scans/def/lhr/y.json.gz', bytes)
+
+    const abc = await s.blobs.list('scans/abc/')
+    expect(abc.length).toBe(2)
+    expect(abc.every(k => k.includes('abc'))).toBe(true)
+    // Sibling namespace is not included.
+    expect(abc.some(k => k.includes('def'))).toBe(false)
+  })
+
   // satisfy unused-import lint
   void ({} as Scan)
 })

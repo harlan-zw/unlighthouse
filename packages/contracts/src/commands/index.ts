@@ -5,7 +5,7 @@ import type { Site } from './sites'
 import { AssertEvaluate } from './assert'
 import { CompareDetail, CompareFindPrevious, CompareMarkdown, CompareRun } from './compare'
 import { EventsSubscribe, EventsTail } from './events'
-import { HistoryList, HistoryRescan } from './history'
+import { HistoryList, HistoryPrune, HistoryRescan } from './history'
 import { AuditorsList, Health, Manifest, Ready } from './meta'
 import { PackList, PackRunCmd } from './pack'
 import { QueryRoutes } from './query'
@@ -41,6 +41,7 @@ export {
   EventsTail,
   Health,
   HistoryList,
+  HistoryPrune,
   HistoryRescan,
   Manifest,
   PackList,
@@ -105,6 +106,7 @@ export const commands = {
 
   'history.list': HistoryList,
   'history.rescan': HistoryRescan,
+  'history.prune': HistoryPrune,
 
   'compare.run': CompareRun,
   'compare.detail': CompareDetail,

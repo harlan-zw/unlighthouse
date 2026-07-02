@@ -3,10 +3,12 @@
 import type {
   CommandOutput,
   HistoryList,
+  HistoryPrune,
   HistoryRescan,
 } from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { pruneScans } from '../../scan/prune'
 
 export const historyList: Handler<typeof HistoryList> = {
   command: {} as typeof HistoryList,
@@ -43,5 +45,22 @@ export const historyRescan: Handler<typeof HistoryRescan> = {
       startedAt: new Date().toISOString(),
       sourceScanId: input.scanId,
     } as CommandOutput<typeof HistoryRescan>
+  },
+}
+
+// D-044: enforce retention. Merges `ctx.config.retention` with per-call
+// overrides (input wins where present) and runs `pruneScans` over the Storage
+// port. Dry-run reports what would be deleted without mutating.
+export const historyPrune: Handler<typeof HistoryPrune> = {
+  command: {} as typeof HistoryPrune,
+  async run(input, ctx) {
+    const base = ctx.config.retention ?? {}
+    const retention = {
+      maxScansPerSite: input.maxScansPerSite ?? base.maxScansPerSite,
+      maxAgeDays: input.maxAgeDays ?? base.maxAgeDays,
+      keepCiBaselines: input.keepCiBaselines ?? base.keepCiBaselines,
+    }
+    const result = await pruneScans(ctx.storage, retention, { dryRun: input.dryRun })
+    return result as CommandOutput<typeof HistoryPrune>
   },
 }

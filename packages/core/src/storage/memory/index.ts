@@ -266,6 +266,9 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     async delete(key) {
       blobsMap.delete(key)
     },
+    async list(prefix) {
+      return Array.from(blobsMap.keys()).filter(k => k.startsWith(prefix))
+    },
   }
 
   // Report-side aggregations have no in-memory implementation — they're

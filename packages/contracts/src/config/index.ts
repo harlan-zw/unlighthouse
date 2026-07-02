@@ -95,6 +95,19 @@ const RouteDefinitionsConfig = z.object({
   extensions: z.array(z.string()).optional(),
 })
 
+// D-044: scan-history retention. All fields optional; absent means the
+// dimension is unbounded ("keep everything"). Imperative defaults live in the
+// host, not here (D-011/D-020 keep the Zod schema `.default()`-free). Retention
+// is a typed decision, not accumulation-by-omission.
+const RetentionConfig = z.object({
+  /** Keep at most this many scans per site; oldest beyond the cap are pruned. Unlimited when omitted. */
+  maxScansPerSite: z.number().int().positive().optional(),
+  /** Prune scans whose `startedAt` is older than this many days. Unlimited when omitted. */
+  maxAgeDays: z.number().int().positive().optional(),
+  /** When true, scans referenced as a comparison baseline are never pruned. */
+  keepCiBaselines: z.boolean().optional(),
+})
+
 const ScannerConfig = z.object({
   mode: z.enum(['site', 'page']).optional(),
   customSampling: z.record(z.string(), z.unknown()).optional(),
@@ -243,6 +256,9 @@ const UnlighthouseConfigSchema = z.object({
   puppeteerOptions: z.record(z.string(), z.unknown()).optional(),
   chrome: ChromeConfig.optional(),
   auditor: AuditorConfig.optional(),
+  // D-044: retention policy. Defaults are unlimited (by omission) — see the host
+  // for the imperative default; the schema stays `.default()`-free.
+  retention: RetentionConfig.optional(),
 })
 
 export type UnlighthouseConfig = z.infer<typeof UnlighthouseConfigSchema>
@@ -289,6 +305,7 @@ export {
   ComparisonConfig,
   ComparisonThresholdKey,
   DiscoveryOptions,
+  RetentionConfig,
   RouteDefinitionsConfig,
   ScannerConfig,
 }
