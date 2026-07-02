@@ -223,13 +223,15 @@ function createSession(deps: SessionDeps): CrawlSession {
 
   // ── HookEvent fan-out ──────────────────────────────────────────────────
   //
-  // Internal queue + iterator that resolves either a buffered event or the
-  // next emit. Keeping a single queue means hook subscribers and iter
-  // consumers stay in sync: every stable event is pushed exactly once.
-  const queue: HookEvent[] = []
-  let resolveNext: ((v: IteratorResult<HookEvent>) => void) | null = null
-  let iterDone = false
+  // Every stable event fans out to all registered `handlers` (multicast). Both
+  // WS broadcast and each `events` async-iterator consumer register here, so a
+  // second consumer (a second dashboard tab, a CLI tail) sees the full stream
+  // instead of stealing events from the first — the iterator is per-consumer,
+  // not a single shared queue.
   const handlers = new Set<(event: HookEvent) => void>()
+  // Live `events` iterators, closed when the scan ends so their `for await`
+  // loops terminate.
+  const iterClosers = new Set<() => void>()
 
   // In-memory ring buffer (cap 10k) for `events.subscribe.replay`.
   const RING_CAP = 10_000
@@ -248,38 +250,63 @@ function createSession(deps: SessionDeps): CrawlSession {
         logOperationalWarn('core.scan_event_subscriber_failed', err, { scanId }, deps.logger)
       }
     }
-    if (iterDone)
-      return
-    if (resolveNext) {
-      const r = resolveNext
-      resolveNext = null
-      r({ value: event, done: false })
-    }
-    else {
-      queue.push(event)
-    }
   }
 
   function closeIter(): void {
-    iterDone = true
-    if (resolveNext) {
-      const r = resolveNext
-      resolveNext = null
-      r({ value: undefined, done: true })
-    }
+    for (const close of [...iterClosers])
+      close()
   }
 
   const events: AsyncIterable<HookEvent> = {
-    [Symbol.asyncIterator]() {
+    [Symbol.asyncIterator](): AsyncIterator<HookEvent> {
+      // Per-consumer buffer + waiter, fed by its own subscription. Cleaned up
+      // on scan end (iterClosers) or when the consumer stops (`return()` — the
+      // HTTP layer calls it on client disconnect so an abandoned tail unsubs
+      // and stops holding a slot).
+      const localQueue: HookEvent[] = []
+      let localResolve: ((v: IteratorResult<HookEvent>) => void) | null = null
+      let done = false
+
+      const unsub = subscribe((event) => {
+        if (done)
+          return
+        if (localResolve) {
+          const r = localResolve
+          localResolve = null
+          r({ value: event, done: false })
+        }
+        else {
+          localQueue.push(event)
+        }
+      })
+
+      function finish(): void {
+        if (done)
+          return
+        done = true
+        unsub()
+        iterClosers.delete(finish)
+        if (localResolve) {
+          const r = localResolve
+          localResolve = null
+          r({ value: undefined, done: true })
+        }
+      }
+      iterClosers.add(finish)
+
       return {
         next(): Promise<IteratorResult<HookEvent>> {
-          if (queue.length)
-            return Promise.resolve({ value: queue.shift()!, done: false })
-          if (iterDone)
+          if (localQueue.length)
+            return Promise.resolve({ value: localQueue.shift()!, done: false })
+          if (done)
             return Promise.resolve({ value: undefined, done: true })
           return new Promise((r) => {
-            resolveNext = r
+            localResolve = r
           })
+        },
+        return(): Promise<IteratorResult<HookEvent>> {
+          finish()
+          return Promise.resolve({ value: undefined, done: true })
         },
       }
     },

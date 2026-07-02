@@ -6,6 +6,7 @@
 
 import {
   checkApiOrigin,
+  checkWsUpgrade,
   isExposedHost,
   isLoopbackHostname,
   normaliseOrigin,
@@ -153,6 +154,36 @@ describe('host / origin classification helpers', () => {
     expect(normaliseOrigin('http://localhost:5678/x?y=1')).toBe('http://localhost:5678')
     expect(normaliseOrigin('not a url')).toBe(null)
     expect(normaliseOrigin(null)).toBe(null)
+  })
+})
+
+describe('checkWsUpgrade — WS handshake gate', () => {
+  const base = { wsPath: '/api/ws', siteOrigin: null, exposed: false, trustLoopbackOrigin: true }
+
+  it('allows the WS path with a same-origin handshake', () => {
+    const d = checkWsUpgrade({ ...base, reqPath: '/api/ws', host: 'localhost:5678', origin: LOCAL, referer: null })
+    expect(d._tag).toBe('allow')
+  })
+
+  it('allows the loopback UI dev server in the default posture', () => {
+    const d = checkWsUpgrade({ ...base, reqPath: '/api/ws', host: 'localhost:5678', origin: 'http://localhost:3002', referer: null })
+    expect(d._tag).toBe('allow')
+  })
+
+  it('rejects an upgrade on any other path', () => {
+    const d = checkWsUpgrade({ ...base, reqPath: '/api/scan/start', host: 'localhost:5678', origin: LOCAL, referer: null })
+    expect(d._tag).toBe('reject')
+    expect(d.reason).toContain('path')
+  })
+
+  it('rejects a cross-origin handshake (a remote page opening the event stream)', () => {
+    const d = checkWsUpgrade({ ...base, reqPath: '/api/ws', host: 'localhost:5678', origin: 'http://evil.com', referer: null })
+    expect(d._tag).toBe('reject')
+  })
+
+  it('rejects a loopback handshake once the deployment is locked down', () => {
+    const d = checkWsUpgrade({ ...base, trustLoopbackOrigin: false, reqPath: '/api/ws', host: 'localhost:5678', origin: 'http://localhost:3002', referer: null })
+    expect(d._tag).toBe('reject')
   })
 })
 

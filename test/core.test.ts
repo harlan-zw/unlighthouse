@@ -189,6 +189,60 @@ describe('createUnlighthouseCore orchestration', () => {
     expect(session.state()).toBe('complete')
   })
 
+  it('session.events is per-consumer multicast: two concurrent tails both see the full stream', async () => {
+    const urls = ['https://example.com/a', 'https://example.com/b', 'https://example.com/c']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+
+    const session = core.run()
+    const collect = async () => {
+      const names: string[] = []
+      for await (const e of session.events as AsyncIterable<HookEvent>)
+        names.push(e.event)
+      return names
+    }
+    // Two consumers started before the scan finishes. Previously they shared a
+    // single queue and stole events from each other; now each gets its own.
+    const [a, b] = await Promise.all([collect(), collect()])
+
+    // Both terminate (the scan-end close fans out to every live iterator)...
+    expect(a.at(-1)).toBe('scan:complete')
+    expect(b.at(-1)).toBe('scan:complete')
+    // ...and both see every route-complete, none stolen by the other.
+    expect(a.filter(n => n === 'scan:route-complete')).toHaveLength(3)
+    expect(b.filter(n => n === 'scan:route-complete')).toHaveLength(3)
+    expect(a).toEqual(b)
+  })
+
+  it('abandoning a session.events iterator (return) unsubscribes it', async () => {
+    const urls = ['https://example.com/a', 'https://example.com/b']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    const it = (session.events as AsyncIterable<HookEvent>)[Symbol.asyncIterator]()
+    const first = await it.next()
+    expect(first.done).toBe(false)
+    // Simulate a client disconnect: the HTTP layer calls return() on close.
+    const closed = await it.return!()
+    expect(closed.done).toBe(true)
+    // A subsequent next() stays done and the scan still completes cleanly.
+    expect((await it.next()).done).toBe(true)
+    await session.done
+    expect(session.state()).toBe('complete')
+  })
+
   it('scanner.include scopes the audited routes (config was previously ignored)', async () => {
     const urls = [
       'https://example.com/',

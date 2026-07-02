@@ -173,6 +173,27 @@ export function checkApiOrigin(input: ApiOriginCheckInput): GuardDecision {
   return { _tag: 'reject', reason: `cross-origin request from ${requestOrigin}` }
 }
 
+export interface WsUpgradeCheckInput extends ApiOriginCheckInput {
+  /** Request path (no query), e.g. `/api/ws`. */
+  reqPath: string
+  /** The only path the WS server accepts an upgrade on. */
+  wsPath: string
+}
+
+/**
+ * Decide whether a WebSocket upgrade may proceed. The handshake arrives as a
+ * Node `'upgrade'` event on the raw server, bypassing the h3 pipeline and its
+ * origin gate, so this applies the same D-043 protection to the WS surface:
+ * the upgrade must target the WS path exactly, and its Origin/Host must pass
+ * `checkApiOrigin`. Closes a cross-origin page opening the scan-event stream
+ * and a rebinding Host reaching it.
+ */
+export function checkWsUpgrade(input: WsUpgradeCheckInput): GuardDecision {
+  if (input.reqPath !== input.wsPath)
+    return { _tag: 'reject', reason: `path ${input.reqPath}` }
+  return checkApiOrigin(input)
+}
+
 // ── /__launch path constraint ────────────────────────────────────────────────
 
 export type LaunchPathResult

@@ -37,6 +37,7 @@ import { initStorage } from './cli/storage-init'
 import { resolveConfig } from './config/resolve'
 import { historySubscriber } from './data/history/tracking'
 import { mountServer } from './server'
+import { checkWsUpgrade, isExposedHost, normaliseOrigin } from './server-guards'
 import { createServerHooks } from './server-hooks'
 import { computeConfigCacheKey, normaliseHost } from './util'
 
@@ -470,7 +471,33 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     await mountServer(mountDeps, app, { handlerCtx })
 
     if (ws) {
+      // The WS handshake arrives as a Node `'upgrade'` event on the raw server,
+      // so it bypasses the h3 pipeline and its origin gate entirely. Apply the
+      // same D-043 gate here: restrict to the `/api/ws` path and run the
+      // Origin/Host check, so a cross-origin page cannot open the scan-event
+      // stream and a rebinding Host cannot reach it. Same posture inputs as the
+      // HTTP gate (server.ts).
+      const wsPath = joinURL(apiPath, 'ws')
+      const wsSiteOrigin = normaliseOrigin(typeof resolvedConfig.site === 'string' ? resolvedConfig.site : null)
+      const wsExposed = isExposedHost((resolvedConfig.server as { hostname?: string } | undefined)?.hostname)
+      const wsTrustLoopbackOrigin = !process.env.UNLIGHTHOUSE_CORS_ORIGINS && !process.env.UNLIGHTHOUSE_API_TOKEN
       server.on('upgrade', (request: IncomingMessage, socket: Socket) => {
+        const decision = checkWsUpgrade({
+          reqPath: (request.url ?? '').split('?')[0] ?? '',
+          wsPath,
+          host: request.headers.host ?? null,
+          origin: request.headers.origin ?? null,
+          referer: request.headers.referer ?? null,
+          siteOrigin: wsSiteOrigin,
+          exposed: wsExposed,
+          trustLoopbackOrigin: wsTrustLoopbackOrigin,
+        })
+        if (decision._tag === 'reject') {
+          logger.warn?.(`ws: upgrade rejected — ${decision.reason}`)
+          socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
+          socket.destroy()
+          return
+        }
         ws.handleUpgrade(request, socket)
       })
     }

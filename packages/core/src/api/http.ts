@@ -151,18 +151,37 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
           const iterable = isAsyncIterable(result) ? result : await result
           setResponseHeader(event, 'Content-Type', 'application/x-ndjson')
           const res = event.node.res
-          try {
-            if (isAsyncIterable(iterable)) {
-              for await (const chunk of iterable)
-                res.write(`${JSON.stringify(chunk)}\n`)
+          const req = event.node.req
+          if (isAsyncIterable(iterable)) {
+            // Manual iteration so a client disconnect closes the iterator (its
+            // `return()` unsubscribes and unblocks a pending next()) — a `for
+            // await` alone would keep pulling live events and hold the slot open
+            // for the whole scan after the client is gone.
+            const iterator = iterable[Symbol.asyncIterator]()
+            const onClose = () => { void iterator.return?.() }
+            req.on('close', onClose)
+            try {
+              while (true) {
+                const { value, done } = await iterator.next()
+                if (done)
+                  break
+                res.write(`${JSON.stringify(value)}\n`)
+              }
             }
-            else {
-              // Handler resolved a single value instead of an iterable — emit one line.
-              res.write(`${JSON.stringify(iterable)}\n`)
+            finally {
+              req.off('close', onClose)
+              await iterator.return?.()
+              res.end()
             }
           }
-          finally {
-            res.end()
+          else {
+            // Handler resolved a single value instead of an iterable — emit one line.
+            try {
+              res.write(`${JSON.stringify(iterable)}\n`)
+            }
+            finally {
+              res.end()
+            }
           }
           return
         }
