@@ -53,8 +53,8 @@ const report = computed(() => props.report as InsightsReport)
     <UiEmptyState
       v-else
       icon="zap"
-      title="0 performance insights · nothing to fix"
-      description="Lighthouse didn't surface any insight-based opportunities for this scan."
+      title="0 performance insights across audited routes"
+      description="Lighthouse surfaced no insight-based opportunities for this scan."
       compact
     />
   </div>

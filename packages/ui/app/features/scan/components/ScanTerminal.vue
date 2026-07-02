@@ -2,6 +2,7 @@
 import { useScanStore } from '~/stores/scan'
 
 const store = useScanStore()
+const { fmtClockTime } = createFormatters()
 
 function levelColor(level: string) {
   switch (level) {
@@ -21,10 +22,6 @@ function levelIcon(level: string) {
   }
 }
 
-function formatTime(ts: number) {
-  const d = new Date(ts)
-  return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-}
 </script>
 
 <template>
@@ -37,7 +34,7 @@ function formatTime(ts: number) {
       :key="log.id"
       class="flex items-start gap-2 py-0.5 px-1 rounded hover:bg-muted/60"
     >
-      <span class="text-dimmed shrink-0 pt-px">{{ formatTime(log.timestamp) }}</span>
+      <span class="text-dimmed shrink-0 pt-px">{{ fmtClockTime(log.timestamp) }}</span>
       <UiIcon :name="levelIcon(log.level)" :class="levelColor(log.level)" class="size-3 shrink-0 mt-0.5" />
       <span class="text-default break-all leading-relaxed">{{ log.message }}</span>
     </div>

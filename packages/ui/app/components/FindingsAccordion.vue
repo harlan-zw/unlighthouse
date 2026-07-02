@@ -1,14 +1,10 @@
 <script setup lang="ts">
-// The "findings accordion" used by a11y-quick-wins, seo-basics,
-// agentic-browsing, and most of the other pack pages. Each finding is
-// an audit-grouped finding with severity, title, description, an
-// affected-routes list. Five pages were rendering the same block
-// with slight copy variation; co-locate it here.
+// App-global findings accordion: severity/count heading plus expandable finding
+// rows. Consumers own report-specific body details through the finding-body slot.
 
-// Index signature so pack-specific fields (a11y's `fixHint` +
-// `elements`, images' `imageUrl`, etc.) flow through the slot without
-// the consumer needing to cast. The shared layer only relies on the
-// named fields above.
+// Index signature so report-specific fields (a11y's `fixHint` + `elements`,
+// images' `imageUrl`, etc.) flow through the slot without the consumer needing
+// to cast. The shared layer only relies on the named fields below.
 interface Finding {
   auditId: string
   severity: 'critical' | 'serious' | 'moderate' | 'minor' | 'info' | string
@@ -16,20 +12,14 @@ interface Finding {
   description?: string | null
   routeCount?: number
   routes?: string[]
-  fixHint?: string | null
-  topElements?: Array<{
-    selector?: string | null
-    snippet?: string | null
-    nodeLabel?: string | null
-  }>
   [extra: string]: unknown
 }
 
 interface Props {
   findings: Finding[]
   title?: string
-  // Cap on the routes-list rendered under each finding; the rest
-  // collapses to "+N more". Keep small for table-of-contents feel.
+  // Cap on the routes-list rendered under each finding; the rest collapses to
+  // "+N more". Keep small for table-of-contents feel.
   maxRoutesPerFinding?: number
 }
 
@@ -43,15 +33,12 @@ function severityVariant(severity: string): SemanticStatus {
     return 'error'
   if (severity === 'moderate')
     return 'warning'
+  if (severity === 'info')
+    return 'info'
   return 'neutral'
 }
 
-// Map findings → UAccordion items (stable value for open-state tracking).
-// Spreading `Finding` here would otherwise drop its `[extra: string]: unknown`
-// index signature from the inferred item type, so the per-pack extra fields
-// (a11y's `fixHint`/`elements`, images' `imageUrl`, etc.) would no longer be
-// visible on the slot's `item`. Annotate the result so the index signature —
-// and therefore those fields — survives through to the `finding-body` slot.
+// Preserve the index signature through the UAccordion item slot.
 type AccordionItem = Finding & { value: string, label: string }
 const accordionItems = computed<AccordionItem[]>(() =>
   props.findings.map(f => ({ ...f, value: f.auditId, label: f.title || f.auditId })),
@@ -82,9 +69,6 @@ const accordionItems = computed<AccordionItem[]>(() =>
       </template>
       <template #content="{ item: finding }">
         <div class="text-sm space-y-2 pb-2">
-          <!-- Slot for the per-pack extra body (image preview, code snippet,
-               etc.). Receives the finding so the consumer can decide what to
-               render. -->
           <slot name="finding-body" :finding="finding">
             <p v-if="finding.description" class="text-muted text-xs">
               {{ finding.description }}

@@ -77,7 +77,7 @@ export function useSitesRegistry() {
       group: formGroup.value.trim() || null,
     })
     if (result._tag === 'err') {
-      toast.error(editing.value ? 'Failed to update' : 'Failed to add', { description: normalizeApiError(result.error).message })
+      toast.error(editing.value ? 'Site update failed' : 'Site add failed', { description: `${normalizeApiError(result.error).message}. Check the URL and retry.` })
       return
     }
     toast.success(editing.value ? 'Site updated' : 'Site added')
@@ -87,7 +87,7 @@ export function useSitesRegistry() {
   async function deleteSite(id: string) {
     const result = await deleteSiteMutation.mutateSafe({ id })
     if (result._tag === 'err') {
-      toast.error('Failed to delete', { description: normalizeApiError(result.error).message })
+      toast.error('Site delete failed', { description: `${normalizeApiError(result.error).message}. Check the scan host and retry.` })
       return
     }
     toast.success('Site removed')

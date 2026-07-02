@@ -20,7 +20,7 @@ import { useCompareWorkflow } from '~/features/compare/workflow'
 definePageMeta({ layout: 'compare' })
 
 const { scoreToRingColor } = createScoreColorHelpers()
-const { fmtScore, fmtDelta, fmtMetric, fmtTimestamp: fmtDate } = createFormatters()
+const { fmtScore, fmtDelta, fmtMetric, fmtTimestamp: fmtDate, fmtBytes } = createFormatters()
 const {
   siteId,
   currentScanId,
@@ -73,6 +73,7 @@ const { deltaClassWithThreshold, rowScoreCell } = createComparePresentation({
 // its own header, so columns don't carry sticky classes.
 const IconCmp = resolveComponent('UiIcon')
 const UiStatusBadgeCmp = resolveComponent('UiStatusBadge')
+const UiTooltipCmp = resolveComponent('UiTooltip')
 
 // Shared tone→semantic translation: route-status badges (via statusBadge)
 // and the summary verdict chip (workflow's own tone literal) both speak the
@@ -98,7 +99,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       enableSorting: false,
       headClass: 'min-w-[200px]',
       cellClass: 'font-mono text-xs',
-      cell: ({ row }) => h('span', { title: row.original.url, class: 'block truncate max-w-[400px]' }, row.original.path),
+      cell: ({ row }) => h(UiTooltipCmp, { text: row.original.url, side: 'top', size: 'lg' }, {
+        default: () => h('span', { class: 'block truncate max-w-[400px]' }, row.original.path),
+      }),
     },
     {
       id: 'status',
@@ -158,7 +161,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
           <USelect
             v-model="baseScanId"
             :items="otherScans.map(s => ({ value: s.scanId, label: `${shortId(s.scanId)} · ${s.device}`, scan: s }))"
-            placeholder="Pick a previous scan..."
+            placeholder="Select previous scan"
             size="sm"
             class="min-w-[220px] max-w-[320px]"
           >
@@ -169,7 +172,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                   {{ item.scan.device }}
                 </UiChip>
                 <span class="text-muted">{{ fmtDate(item.scan.completedAt || item.scan.startedAt) }}</span>
-                <span v-if="item.scan.ciCommit" class="font-mono text-[10px] text-muted">{{ item.scan.ciCommit.slice(0, 7) }}</span>
+                <span v-if="item.scan.ciCommit" class="font-mono text-xs text-muted">{{ item.scan.ciCommit.slice(0, 7) }}</span>
               </div>
             </template>
           </USelect>
@@ -194,7 +197,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
           <!-- Thresholds popover -->
           <UiPopover>
             <UiButton purpose="secondary" size="sm" icon="sliders">
-              Thresholds
+              Edit thresholds
             </UiButton>
             <template #panel>
               <div class="w-96 p-4 space-y-3">
@@ -210,7 +213,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                 <!-- Single inline note about sampling — explained once,
                      not as a banner the user has to dismiss. -->
                 <UiAlert status="warning" icon="info">
-                  CWV is noisy on parallel single-sample runs. Run with <code class="code-inline text-[10px]">--samples 3</code> for stability, or widen these thresholds.
+                  CWV is noisy on parallel single-sample runs. Run with <code class="code-inline text-xs">--samples 3</code> for stability, or widen these thresholds.
                 </UiAlert>
 
                 <div class="space-y-3 text-xs">
@@ -250,21 +253,21 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                       <label class="space-y-1">
                         <span class="text-muted flex justify-between">
                           LCP (ms)
-                          <span class="text-[9px] italic text-muted/70" title="Typical jitter on parallel single-run audits">≈ 300ms noise</span>
+                          <span class="text-xs italic text-muted/70" title="Typical jitter on parallel single-run audits">≈ 300ms noise</span>
                         </span>
                         <UInput v-model="thresholds.lcp" placeholder="500" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted flex justify-between">
                           CLS
-                          <span class="text-[9px] italic text-muted/70">≈ 0.02 noise</span>
+                          <span class="text-xs italic text-muted/70">≈ 0.02 noise</span>
                         </span>
                         <UInput v-model="thresholds.cls" placeholder="0.1" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted flex justify-between">
                           INP (ms)
-                          <span class="text-[9px] italic text-muted/70">≈ 100ms noise</span>
+                          <span class="text-xs italic text-muted/70">≈ 100ms noise</span>
                         </span>
                         <UInput v-model="thresholds.inp" placeholder="200" size="xs" class="w-full" />
                       </label>
@@ -273,36 +276,36 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                 </div>
 
                 <UiButton purpose="cta" size="sm" class="w-full justify-center" @click="handleCompare">
-                  Apply
+                  Apply thresholds
                 </UiButton>
               </div>
             </template>
           </UiPopover>
 
           <UiButton purpose="secondary" size="sm" :loading="copyingMarkdown" :disabled="copyingMarkdown || !baseScanId || !report" icon="copy" @click="copyAsMarkdown">
-            Copy MD
+            Copy markdown
           </UiButton>
 
           <UiButton purpose="cta" size="sm" :loading="comparing" :disabled="!baseScanId || comparing" icon="refresh" @click="handleCompare">
-            Compare
+            Compare scans
           </UiButton>
         </div>
       </div>
 
       <!-- Scan-metadata strip — visible only when both scans are loaded -->
       <div v-if="baseMeta && currentMeta" class="px-4 py-2 text-xs flex items-center gap-4 flex-wrap border-t bg-default/40">
-        <button class="hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
+        <button type="button" class="hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
           <UiIcon name="external" class="size-3" />
           Base: {{ fmtDate(baseMeta.completedAt || baseMeta.startedAt) }}
-          <span v-if="baseMeta.ciCommit" class="font-mono text-[10px]">· {{ baseMeta.ciCommit.slice(0, 7) }}</span>
-          <span v-if="baseMeta.ciBranch" class="text-[10px]">· {{ baseMeta.ciBranch }}</span>
+          <span v-if="baseMeta.ciCommit" class="font-mono text-xs">· {{ baseMeta.ciCommit.slice(0, 7) }}</span>
+          <span v-if="baseMeta.ciBranch" class="text-xs">· {{ baseMeta.ciBranch }}</span>
         </button>
         <UiIcon name="next" class="size-3 text-muted" />
-        <button class="hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
+        <button type="button" class="hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
           <UiIcon name="external" class="size-3" />
           Current: {{ fmtDate(currentMeta.completedAt || currentMeta.startedAt) }}
-          <span v-if="currentMeta.ciCommit" class="font-mono text-[10px]">· {{ currentMeta.ciCommit.slice(0, 7) }}</span>
-          <span v-if="currentMeta.ciBranch" class="text-[10px]">· {{ currentMeta.ciBranch }}</span>
+          <span v-if="currentMeta.ciCommit" class="font-mono text-xs">· {{ currentMeta.ciCommit.slice(0, 7) }}</span>
+          <span v-if="currentMeta.ciBranch" class="text-xs">· {{ currentMeta.ciBranch }}</span>
         </button>
       </div>
     </div>
@@ -316,10 +319,10 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             Pick a scan to compare against
           </h3>
           <p class="text-sm text-muted">
-            Use the <strong>Base</strong> dropdown above to pick a prior scan of <span class="font-mono text-xs">{{ currentMeta?.site || 'this site' }}</span>. The most recent scan on the same device + branch is auto-selected when available.
+            Select a base scan for <span class="font-mono text-xs">{{ currentMeta?.site || 'this site' }}</span>. The most recent scan on the same device + branch is auto-selected when available.
           </p>
           <p v-if="!otherScans.length" class="text-xs text-muted/70">
-            No other scans of this site exist yet — run another scan first.
+            Run another scan of this site to create a comparison baseline.
           </p>
         </div>
       </UiCard>
@@ -331,7 +334,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
         <div class="text-center space-y-3">
           <UiIcon name="play" class="size-10 text-muted/40 mx-auto" />
           <p class="text-sm text-muted">
-            Press <strong>Compare</strong> to run the diff.
+            Diff pending for the selected base and current scans.
           </p>
         </div>
       </UiCard>
@@ -349,7 +352,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
         <UiChip v-if="verdict" purpose="status" :status="toneSemantic(verdict.tone)" size="sm">
           {{ verdict.text }}
         </UiChip>
-        <div class="flex items-center gap-5 text-xs">
+        <div class="flex items-center gap-4 text-xs">
           <div class="flex items-center gap-1.5">
             <span class="text-muted">Total</span>
             <span class="numerals-display">{{ report.summary.totalRoutes }}</span>
@@ -370,10 +373,10 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             <span class="text-muted">Removed</span>
             <span class="numerals-display text-warning">{{ report.summary.removedRoutes }}</span>
           </div>
-          <div class="flex items-center gap-1.5 border-l pl-5">
+          <div class="flex items-center gap-1.5 border-l pl-4">
             <span class="text-muted">Avg Score Δ</span>
             <span class="numerals-display" :class="(report.summary.avgScoreDelta ?? 0) >= 0 ? 'text-success' : 'text-error'">
-              {{ report.summary.avgScoreDelta != null ? (report.summary.avgScoreDelta * 100).toFixed(1) : '—' }}
+              {{ fmtDelta(report.summary.avgScoreDelta, true) }}
             </span>
           </div>
         </div>
@@ -399,20 +402,20 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
           Web Vitals p75
         </span>
         <div v-for="row in cwvP75Rows" :key="row.metric" class="flex items-center gap-1.5">
-          <span class="font-medium uppercase text-[10px]">{{ row.label }}</span>
+          <span class="font-medium uppercase text-xs">{{ row.label }}</span>
           <span class="tabular-nums">{{ fmtCwvP75(row.metric, row.baseP75) }}</span>
           <UiIcon name="next" class="size-2.5 text-muted/40" />
           <span class="tabular-nums font-medium" :class="cwvVerdictColor(row.verdict)">{{ fmtCwvP75(row.metric, row.currentP75) }}</span>
           <span
             v-if="row.delta != null"
-            class="text-[10px] tabular-nums"
+            class="text-xs tabular-nums"
             :class="deltaClassWithThreshold(row.delta, false, row.metric).klass"
             :title="deltaClassWithThreshold(row.delta, false, row.metric).mutedByThreshold ? 'Inside the noise threshold' : ''"
           >
             ({{ fmtDelta(row.delta, false) }})
           </span>
         </div>
-        <span class="ml-auto text-[10px] text-muted italic" title="CWV pack aggregates across routes — smoother than the per-route columns below, which can be noisy on single-sample runs.">
+        <span class="ml-auto text-xs text-muted italic" title="CWV pack aggregates across routes — smoother than the per-route columns below, which can be noisy on single-sample runs.">
           smoothed across routes
         </span>
       </div>
@@ -465,21 +468,22 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
            table the primary surface. -->
       <div v-if="otherPackChanges.length" class="border-b">
         <button
+          type="button"
           class="px-4 py-2 w-full flex items-center gap-2 hover:bg-elevated/30 transition-colors text-xs"
           @click="showPackDetails = !showPackDetails"
         >
           <UiIcon name="chevron-right" class="size-3.5 text-muted transition-transform" :class="{ 'rotate-90': showPackDetails }" />
           <span class="font-medium">{{ otherPackChanges.length }} pack{{ otherPackChanges.length === 1 ? '' : 's' }} changed</span>
-          <span class="text-muted text-[10px]">
+          <span class="text-muted text-xs">
             {{ otherPackChanges.map(p => p.packName).join(', ') }}
           </span>
-          <span class="ml-auto text-[10px] text-muted italic">click to expand</span>
+          <span class="ml-auto text-xs text-muted italic">{{ showPackDetails ? 'expanded' : 'collapsed' }}</span>
         </button>
         <div v-if="showPackDetails" class="px-4 py-3 bg-default/20 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="pack in otherPackChanges" :key="pack.packName" class="rounded-lg border bg-default p-3 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium capitalize">{{ pack.packName.replace(/-/g, ' ') }}</span>
-              <span class="text-[10px] text-muted">{{ pack.base ? 'changed' : 'new' }}</span>
+              <span class="text-xs text-muted">{{ pack.base ? 'changed' : 'new' }}</span>
             </div>
             <!-- Render whatever summary fields the pack-agnostic
                  summariser surfaced. Nullable so packs that don't
@@ -506,10 +510,10 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
               <div v-if="(pack.baseSummary?.totalBytesSavable ?? 0) || (pack.currentSummary?.totalBytesSavable ?? 0)" class="flex justify-between">
                 <span class="text-muted">Wasted bytes</span>
                 <span class="tabular-nums">
-                  {{ Math.round((pack.baseSummary?.totalBytesSavable ?? 0) / 1024) }}KB
+                  {{ fmtBytes(pack.baseSummary?.totalBytesSavable ?? 0) }}
                   <UiIcon name="next" class="size-2.5 inline mx-0.5 text-muted/40" />
                   <span :class="(pack.currentSummary?.totalBytesSavable ?? 0) > (pack.baseSummary?.totalBytesSavable ?? 0) ? 'text-error' : 'text-success'">
-                    {{ Math.round((pack.currentSummary?.totalBytesSavable ?? 0) / 1024) }}KB
+                    {{ fmtBytes(pack.currentSummary?.totalBytesSavable ?? 0) }}
                   </span>
                 </span>
               </div>
@@ -539,14 +543,14 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-default">
               <span class="text-xs text-muted">Page {{ page }} of {{ totalPages }}</span>
               <div class="flex gap-1">
-                <UiButton purpose="secondary" size="sm" :disabled="page <= 1" icon="chevron-left" aria-label="Previous page" @click="page--" />
-                <UiButton purpose="secondary" size="sm" :disabled="page >= totalPages" icon="chevron-right" aria-label="Next page" @click="page++" />
+                <UiButton purpose="secondary" size="sm" :disabled="page <= 1" icon="chevron-left" aria-label="Go to previous page" @click="page--" />
+                <UiButton purpose="secondary" size="sm" :disabled="page >= totalPages" icon="chevron-right" aria-label="Go to next page" @click="page++" />
               </div>
             </div>
           </div>
         </SplitterPanel>
 
-        <SplitterResizeHandle class="w-1.5 bg-[var(--ui-border)]/40 hover:bg-primary/50 transition-colors data-[state=drag]:bg-primary/60" />
+        <SplitterResizeHandle class="w-1.5 bg-[var(--ui-border)]/40 hover:bg-accented transition-colors data-[state=drag]:bg-inverted/60" />
 
         <SplitterPanel :default-size="38" :min-size="25">
           <div v-if="selectedRow" class="h-full overflow-auto p-4 space-y-4">
@@ -561,7 +565,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                 <UiStatusBadge :status="compareStatusSemantic(selectedRow.status)" :label="selectedRow.status" class="capitalize" />
                 <NuxtLink
                   :to="`/sites/${siteId}/scans/${currentScanId}/route/${encodeURIComponent(selectedRow.path)}`"
-                  class="text-[10px] text-muted hover:text-default inline-flex items-center gap-1"
+                  class="text-xs text-muted hover:text-default inline-flex items-center gap-1"
                 >
                   <UiIcon name="external" class="size-2.5" />
                   Open route detail
@@ -642,6 +646,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             <!-- Diagnostics: FCP/TBT/TTFB/SI — triage signals, not headlines. Collapsed. -->
             <section>
               <button
+                type="button"
                 class="text-label text-muted hover:text-default transition-colors flex items-center gap-1.5 mb-2"
                 @click="showLegacyMetrics = !showLegacyMetrics"
               >

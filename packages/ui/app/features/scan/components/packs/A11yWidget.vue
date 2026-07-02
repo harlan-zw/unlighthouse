@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import type { A11yReport } from '@unlighthouse/contracts/packs'
-import PackFindings from '~/features/scan/components/PackFindings.vue'
 // See CwvWidget.vue for why `report` arrives untyped and gets cast here.
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
 const report = computed(() => props.report as A11yReport)
+
+// FindingsAccordion exposes the cross-pack finding fields; `topElements` is
+// a11y-specific, so narrow it in script before the template iterates it.
+type TopElement = A11yReport['findings'][number]['topElements'][number]
+function topElementsOf(finding: Record<string, unknown>): TopElement[] {
+  return Array.isArray(finding.topElements) ? finding.topElements as TopElement[] : []
+}
 </script>
 
 <template>
@@ -27,7 +33,7 @@ const report = computed(() => props.report as A11yReport)
 
     <!-- Findings: shared accordion + a11y-specific element preview body slot
          for fix-hint + element snippets. -->
-    <PackFindings :findings="report.findings" title="Accessibility Issues">
+    <FindingsAccordion :findings="report.findings" title="Accessibility Issues">
       <template #finding-body="{ finding }">
         <p v-if="finding.description" class="text-muted text-xs">
           {{ finding.description }}
@@ -35,16 +41,16 @@ const report = computed(() => props.report as A11yReport)
         <p v-if="finding.fixHint" class="text-xs bg-elevated p-2 rounded">
           {{ finding.fixHint }}
         </p>
-        <div v-if="finding.topElements?.length" class="space-y-2">
-          <div v-for="(el, i) in finding.topElements" :key="i" class="rounded border p-2">
-            <code class="text-xs bg-elevated px-1.5 py-0.5 rounded">{{ el.selector || el.snippet }}</code>
+        <div v-if="topElementsOf(finding).length" class="space-y-2">
+          <div v-for="(el, i) in topElementsOf(finding)" :key="i" class="rounded border p-2">
+            <CodeBlock inline :code="el.selector || el.snippet || ''" />
             <div v-if="el.nodeLabel" class="text-xs text-muted mt-1">
               {{ el.nodeLabel }}
             </div>
           </div>
         </div>
       </template>
-    </PackFindings>
+    </FindingsAccordion>
 
     <UiEmptyState
       v-if="!report.findings.length"

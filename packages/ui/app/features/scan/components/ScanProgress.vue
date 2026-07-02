@@ -75,13 +75,13 @@ const scoringStats = computed<UiStatProps[]>(() => [
 </script>
 
 <template>
-  <div class="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-4">
+  <div class="rounded-lg border border-info/30 bg-info/5 p-4 space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <span class="relative flex size-2">
-          <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-          <span class="relative inline-flex size-2 rounded-full bg-primary" />
+          <span class="absolute inline-flex size-full animate-ping rounded-full bg-info opacity-75" />
+          <span class="relative inline-flex size-2 rounded-full bg-info" />
         </span>
         <span class="text-sm font-medium capitalize">{{ store.status }}</span>
         <span class="text-sm text-muted truncate max-w-xs">{{ store.site }}</span>
@@ -89,7 +89,9 @@ const scoringStats = computed<UiStatProps[]>(() => [
       <div class="flex items-center gap-3">
         <span class="text-sm font-medium tabular-nums">{{ store.percent }}%</span>
         <button
+          type="button"
           class="text-muted hover:text-default transition-colors"
+          :aria-label="expanded ? 'Collapse scan progress' : 'Expand scan progress'"
           @click="expanded = !expanded"
         >
           <UiIcon :name="expanded ? 'chevron-up' : 'chevron-down'" class="size-4" />

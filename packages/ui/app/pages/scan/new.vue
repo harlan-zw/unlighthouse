@@ -4,17 +4,17 @@ import NewScanForm from '~/features/scan/components/NewScanForm.vue'
 const route = useRoute()
 const initialUrl = (route.query.url as string) || ''
 
-usePageTitle('New Scan')
+usePageTitle('Run Scan')
 </script>
 
 <template>
   <div class="mx-auto max-w-lg space-y-6">
     <div>
       <h1 class="text-title">
-        New Scan
+        Run scan
       </h1>
       <p class="text-sm text-muted">
-        Enter a website URL to start a Lighthouse audit.
+        Enter a URL to audit routes with Lighthouse.
       </p>
     </div>
 

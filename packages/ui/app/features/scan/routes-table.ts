@@ -289,7 +289,7 @@ export function useScanRoutesTable() {
     }
     catch (_err) {
       // Clipboard denial is already surfaced to the user through the toast.
-      toast.error('Could not copy URL')
+      toast.error('Copy URL failed', { description: 'Allow clipboard access and retry.' })
     }
   }
 
@@ -297,7 +297,7 @@ export function useScanRoutesTable() {
   async function rescanRoute(row: RouteRow) {
     const result = await rescan.mutateSafe({ scanId: scanId.value, url: row.url })
     if (result._tag === 'err') {
-      toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+      toast.error('Route rescan failed', { description: `${normalizeApiError(result.error).message}. Check the route URL and retry.` })
       return
     }
     toast.success('Route rescan started', { description: row.path || row.url })

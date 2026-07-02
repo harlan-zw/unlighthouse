@@ -2,7 +2,6 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { SeoReport } from '@unlighthouse/contracts/packs'
 import { h } from 'vue'
-import PackFindings from '~/features/scan/components/PackFindings.vue'
 // See CwvWidget.vue for why `report` arrives untyped and gets cast here.
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
@@ -10,11 +9,14 @@ const report = computed(() => props.report as SeoReport)
 
 type RouteCheckRow = SeoReport['routeChecks'][number]
 const UiIconC = resolveComponent('UiIcon')
+const UiTooltipC = resolveComponent('UiTooltip')
 const routeCheckColumns: ColumnDef<RouteCheckRow>[] = [
   {
     accessorKey: 'url',
     header: 'URL',
-    cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-sm', title: row.original.url }, row.original.url),
+    cell: ({ row }) => h(UiTooltipC, { text: row.original.url, side: 'top', size: 'lg' }, {
+      default: () => h('span', { class: 'font-mono text-xs truncate block max-w-sm' }, row.original.url),
+    }),
   },
   {
     accessorKey: 'passes',
@@ -59,7 +61,7 @@ const routeCheckColumns: ColumnDef<RouteCheckRow>[] = [
     </div>
 
     <!-- Findings via the shared accordion. -->
-    <PackFindings :findings="report.findings" title="SEO Issues" />
+    <FindingsAccordion :findings="report.findings" title="SEO Issues" />
 
     <!-- Per-route checks table (SEO-specific again). -->
     <UiCard v-if="report.routeChecks.length" size="sm">

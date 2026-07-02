@@ -143,7 +143,7 @@ export function useScanOverview() {
   async function handleRescanAll() {
     const result = await rescan.mutateSafe({ scanId: scanId.value })
     if (result._tag === 'err') {
-      toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+      toast.error('Rescan all failed', { description: `${normalizeApiError(result.error).message}. Check the scan host and retry.` })
       return
     }
     toast.success('Rescan started')

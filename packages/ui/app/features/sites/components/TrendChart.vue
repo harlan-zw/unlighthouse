@@ -51,6 +51,7 @@ const props = withDefaults(defineProps<{
 })
 
 const fmt = (v: number) => (props.format ? props.format(v) : String(Math.round(v)))
+const { fmtTimestamp } = createFormatters()
 
 const wrap = ref<HTMLElement | null>(null)
 const { width } = useElementSize(wrap)
@@ -116,7 +117,7 @@ function dotsFor(s: TrendSeries): Array<{ x: number, y: number, title: string }>
     .map(p => ({
       x: xFor(p.t),
       y: yFor(p.v as number),
-      title: `${s.label}: ${p.label ?? fmt(p.v as number)} — ${new Date(p.t).toLocaleDateString()}`,
+      title: `${s.label}: ${p.label ?? fmt(p.v as number)} - ${fmtTimestamp(p.t, 'short')}`,
     }))
 }
 
@@ -220,7 +221,7 @@ function onMove(e: PointerEvent) {
       return p ? { label: s.label, color: s.color, text: fmt(p.v as number), y: yFor(p.v as number) } : null
     })
     .filter((x): x is { label: string, color: string, text: string, y: number } => !!x)
-  onTooltip({ t: best, dateLabel: new Date(best).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), points }, null)
+  onTooltip({ t: best, dateLabel: fmtTimestamp(best, 'short'), points }, null)
 }
 function onLeave() {
   clear()
@@ -306,7 +307,7 @@ function onLeave() {
         >{{ xt.label }}</text>
       </svg>
       <div v-else-if="width > 0" class="flex items-center justify-center text-xs text-muted" :style="{ height: `${height}px` }">
-        No trend data yet.
+        Run another scan to draw the trend.
       </div>
 
       <UiChartFrame

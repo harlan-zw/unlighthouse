@@ -43,7 +43,7 @@ const { healthy } = useBackendHealth()
           {{ siteName }}
         </NuxtLink>
         <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />
-        <span class="font-medium truncate">Compare</span>
+        <span class="font-medium truncate">Compare scans</span>
       </nav>
 
       <div

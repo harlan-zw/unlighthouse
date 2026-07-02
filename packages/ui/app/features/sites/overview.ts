@@ -22,8 +22,8 @@ const SCORE_SERIES = [
 
 const VITALS = [
   { key: 'lcp', label: 'LCP', color: cwvMetricColors.lcp.hex, fmt: (value: number) => formatMs(value) },
-  { key: 'cls', label: 'CLS', color: cwvMetricColors.cls.hex, fmt: (value: number) => value.toFixed(3) },
-  { key: 'tbt', label: 'TBT', color: cwvMetricColors.tbt.hex, fmt: (value: number) => `${Math.round(value)}ms` },
+  { key: 'cls', label: 'CLS', color: cwvMetricColors.cls.hex, fmt: (value: number) => formatMetricValue(value, '') },
+  { key: 'tbt', label: 'TBT', color: cwvMetricColors.tbt.hex, fmt: (value: number) => formatMs(value) },
 ] as const
 
 interface SiteEntry {
@@ -170,7 +170,7 @@ export function useSiteOverview() {
       return
     const result = await rescanMutation.mutateSafe({ scanId: scanId as ScanId })
     if (result._tag === 'err') {
-      toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+      toast.error('Site rescan failed', { description: `${normalizeApiError(result.error).message}. Check the scan host and retry.` })
       return
     }
     toast.success('Rescan started')
@@ -183,7 +183,7 @@ export function useSiteOverview() {
       return
     const result = await deleteMutation.mutateSafe({ scanId: scanId as ScanId })
     if (result._tag === 'err') {
-      toast.error('Failed to delete', { description: normalizeApiError(result.error).message })
+      toast.error('Scan delete failed', { description: `${normalizeApiError(result.error).message}. Check the scan host and retry.` })
       return
     }
     toast.success('Scan deleted')

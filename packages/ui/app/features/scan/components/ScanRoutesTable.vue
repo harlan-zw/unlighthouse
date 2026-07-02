@@ -48,6 +48,7 @@ const formatMetric = formatRouteMetric
 const UiIconC = resolveComponent('UiIcon')
 const UiChipC = resolveComponent('UiChip')
 const UiTrendC = resolveComponent('UiTrend')
+const UiTooltipC = resolveComponent('UiTooltip')
 
 const columns = computed<ColumnDef<RouteRow>[]>(() => {
   const cols: ColumnDef<RouteRow>[] = [
@@ -76,7 +77,12 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       accessorKey: 'path',
       header: 'Path',
       headClass: 'min-w-[200px]',
-      cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-xs' }, row.original.path || row.original.url),
+      cell: ({ row }) => {
+        const label = row.original.path || row.original.url
+        return h(UiTooltipC, { text: row.original.url, side: 'top', size: 'lg' }, {
+          default: () => h('span', { class: 'font-mono text-xs truncate block max-w-xs' }, label),
+        })
+      },
     },
   ]
 
@@ -143,7 +149,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         const prev = prevMap.value?.get(row.original.path || row.original.url)
         const cur = overallScore(row.original)
         if (prev == null)
-          return h('span', { class: 'text-[10px] text-muted border rounded px-1 py-0.5' }, 'new')
+          return h('span', { class: 'text-xs text-muted border rounded px-1 py-0.5' }, 'new')
         if (cur == null)
           return h('span', { class: 'text-muted' }, '—')
         // Raw point delta (not a ratio), so UiTrend renders in 'number' mode —
@@ -188,8 +194,8 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           <UiIcon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'smartphone' : 'monitor'" class="size-3.5" />
         </span>
       </div>
-      <button class="min-h-11 px-2 -mx-2 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:px-0 lg:mx-0" @click="showAllMetrics = !showAllMetrics">
-        {{ showAllMetrics ? 'Fewer metrics' : 'More metrics' }}
+      <button type="button" class="min-h-11 px-2 -mx-2 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:px-0 lg:mx-0" @click="showAllMetrics = !showAllMetrics">
+        {{ showAllMetrics ? 'Hide metrics' : 'Show metrics' }}
       </button>
     </div>
 
@@ -198,7 +204,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
          CWV_COLS column set below; FCP/SI/TTFB stay behind "More metrics". -->
     <div v-if="filtered.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="CWV_THRESHOLDS.lcp" :format="(v: number) => formatMetric(v, 'ms')" />
-      <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="CWV_THRESHOLDS.cls" :format="(v: number) => v.toFixed(3)" />
+      <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="CWV_THRESHOLDS.cls" :format="(v: number) => formatMetric(v, '')" />
       <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="CWV_THRESHOLDS.tbt" :format="(v: number) => formatMetric(v, 'ms')" />
       <MetricStatCard label="Interaction to Next Paint" :values="filtered.map(r => r.inp)" :thresholds="CWV_THRESHOLDS.inp" :format="(v: number) => formatMetric(v, 'ms')" />
       <template v-if="showAllMetrics">
@@ -241,15 +247,15 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       />
 
       <UDropdownMenu :items="columnToggleItems" :content="{ align: 'end' }" :ui="{ content: 'w-44' }">
-        <UiButton purpose="secondary" size="sm" icon="table" label="Columns" />
+        <UiButton purpose="secondary" size="sm" icon="table" label="Select columns" />
       </UDropdownMenu>
 
       <UiButton
         purpose="secondary"
         size="sm"
-        :title="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
+        :title="density === 'compact' ? 'Use comfortable rows' : 'Use compact rows'"
         :icon="density === 'compact' ? 'list' : 'table'"
-        aria-label="Toggle row density"
+        :aria-label="density === 'compact' ? 'Use comfortable rows' : 'Use compact rows'"
         @click="density = density === 'compact' ? 'comfortable' : 'compact'"
       />
     </div>
@@ -279,7 +285,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
             ]"
             :content="{ align: 'end' }"
           >
-            <UiButton purpose="quiet" size="sm" icon="more-horizontal" class="size-7 p-0 justify-center" aria-label="Route actions" @click.stop />
+            <UiButton purpose="quiet" size="sm" icon="more-horizontal" class="size-7 p-0 justify-center" aria-label="Open route actions" @click.stop />
           </UDropdownMenu>
         </template>
 

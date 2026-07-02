@@ -6,8 +6,8 @@ const props = defineProps<{ report: unknown, scanBase?: string }>()
 const report = computed(() => props.report as AgenticBrowsingReport)
 
 // Agentic Browsing has its own pass/fail-based severity (vs the
-// critical/serious/moderate scheme PackFindings handles) so findings render
-// inline rather than via the shared component.
+// critical/serious/moderate scheme FindingsAccordion handles) so findings
+// render inline rather than via the shared component.
 function severityStatus(severity: string): 'error' | 'warning' | 'neutral' {
   if (severity === 'fail')
     return 'error'
@@ -220,7 +220,7 @@ function llmsLabel(status: string | undefined): string {
             </ul>
           </div>
           <div v-else class="text-xs text-success pb-2">
-            All routes passing.
+            0 failing routes.
           </div>
         </template>
       </UAccordion>

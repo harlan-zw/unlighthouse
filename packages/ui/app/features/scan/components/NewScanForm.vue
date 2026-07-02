@@ -107,13 +107,13 @@ async function handleSubmit() {
   }
   catch (err) {
     if (err instanceof Error && err.name === 'ACTIVE_SCAN_CONFLICT') {
-      toast.error('A scan is already running')
+      toast.error('Scan already running', { description: 'Open the active scan or cancel it before starting another.' })
       if (store.scanId) {
         router.push(`/sites/${siteSlug(store.site || url)}/scans/${store.scanId}/overview`)
       }
     }
     else {
-      toast.error('Failed to start scan', { description: err instanceof Error ? err.message : String(err) })
+      toast.error('Scan failed to start', { description: `${err instanceof Error ? err.message : String(err)}. Check the URL and retry.` })
     }
   }
   finally {
@@ -124,7 +124,7 @@ async function handleSubmit() {
 
 <template>
   <UiCard>
-    <form class="space-y-5" @submit.prevent="handleSubmit">
+    <form class="space-y-6" @submit.prevent="handleSubmit">
       <UFormField label="Site URL">
         <UInput
           id="site-url"
@@ -148,29 +148,29 @@ async function handleSubmit() {
         <div class="grid grid-cols-2 gap-2">
           <button
             type="button"
-            class="rounded-lg border p-3 text-left transition-all"
-            :class="scanMode === 'site' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50'"
+            class="rounded-lg border p-3 text-left transition-colors"
+            :class="scanMode === 'site' ? 'border-accented bg-elevated ring-1 ring-default text-highlighted' : 'hover:bg-elevated/50'"
             @click="scanMode = 'site'"
           >
             <div class="flex items-center gap-2 text-sm font-medium">
               <UiIcon name="globe" class="size-4" />
               Full Site
             </div>
-            <p class="text-[11px] text-muted mt-1">
+            <p class="text-sm text-muted mt-1">
               Crawl all pages
             </p>
           </button>
           <button
             type="button"
-            class="rounded-lg border p-3 text-left transition-all"
-            :class="scanMode === 'page' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50'"
+            class="rounded-lg border p-3 text-left transition-colors"
+            :class="scanMode === 'page' ? 'border-accented bg-elevated ring-1 ring-default text-highlighted' : 'hover:bg-elevated/50'"
             @click="scanMode = 'page'"
           >
             <div class="flex items-center gap-2 text-sm font-medium">
               <UiIcon name="file" class="size-4" />
               Single Page
             </div>
-            <p class="text-[11px] text-muted mt-1">
+            <p class="text-sm text-muted mt-1">
               Audit one URL only
             </p>
           </button>
@@ -198,9 +198,9 @@ async function handleSubmit() {
         >
           <UiIcon name="chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
           Advanced
-          <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-label text-primary">customized</span>
+          <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-label text-highlighted">customized</span>
         </button>
-        <div v-show="advancedOpen" class="space-y-5 pt-4 pl-6">
+        <div v-show="advancedOpen" class="space-y-6 pt-4 pl-6">
           <UFormField label="Sample size">
             <USelect
               :model-value="String(sampleSize)"
@@ -227,14 +227,14 @@ async function handleSubmit() {
                 v-for="cat in allCategories"
                 :key="cat"
                 type="button"
-                class="rounded-md border px-3 py-2 text-xs text-left transition-all capitalize"
-                :class="selectedCategories.includes(cat) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-elevated/50 text-muted'"
+                class="rounded-md border px-3 py-2 text-xs text-left transition-colors capitalize"
+                :class="selectedCategories.includes(cat) ? 'border-accented bg-elevated ring-1 ring-default text-highlighted' : 'hover:bg-elevated/50 text-muted'"
                 @click="toggleCategory(cat)"
               >
                 {{ cat.replace('-', ' ') }}
               </button>
             </div>
-            <p class="text-[11px] text-muted">
+            <p class="text-sm text-muted">
               Skipping categories cuts audit time. At least one must stay selected.
             </p>
           </div>
@@ -248,7 +248,7 @@ async function handleSubmit() {
               <UInput v-model="ciHash" placeholder="commit hash" aria-label="CI commit hash" class="font-mono text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
             </div>
             <UInput v-model="ciMessage" placeholder="commit message (optional)" aria-label="CI commit message" class="w-full text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
-            <p class="text-[11px] text-muted">
+            <p class="text-sm text-muted">
               Pin this scan to a deploy. Compare against previous scans on the same branch via the compare page.
             </p>
           </div>
@@ -257,10 +257,10 @@ async function handleSubmit() {
 
       <div class="flex items-center gap-3 pt-2">
         <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading || !siteUrl.trim()" icon="radar" class="flex-1 sm:flex-none">
-          Start scan
+          Run scan
         </UiButton>
         <UiButton v-if="!hideCancel" type="button" purpose="secondary" @click="router.push(cancelTo)">
-          Cancel
+          Cancel setup
         </UiButton>
       </div>
     </form>

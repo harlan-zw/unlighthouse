@@ -90,7 +90,13 @@ const columns: ColumnDef<SiteHomeRow>[] = [
             default: () => h(ChipC, { purpose: 'tag', size: 'xs' }, { default: () => 'Unregistered' }),
           }),
         ]),
-        h('div', { class: 'text-[11px] text-muted font-mono truncate' }, row.original.url),
+        h(TooltipC, {
+          text: row.original.url,
+          side: 'top',
+          size: 'lg',
+        }, {
+          default: () => h('div', { class: 'text-sm text-muted font-mono truncate' }, row.original.url),
+        }),
       ]),
     ]),
   },
@@ -149,14 +155,14 @@ const columns: ColumnDef<SiteHomeRow>[] = [
   <div class="space-y-6">
     <UiPageHeader title="Sites" description="Every site you scan, registered or not." flush>
       <template #actions>
-        <UModal v-model:open="formOpen" :title="editing ? 'Edit Site' : 'Add Site'" :ui="{ content: 'sm:max-w-md' }">
+        <UModal v-model:open="formOpen" :title="editing ? 'Edit site' : 'Add site'" :ui="{ content: 'sm:max-w-md' }">
           <UiButton purpose="secondary" icon="add" label="Add site" @click="openAdd" />
           <template #body>
             <form id="site-form" class="space-y-4" @submit.prevent="saveSite">
               <UFormField label="URL">
                 <UInput v-model="formUrl" placeholder="https://example.com" aria-label="Site URL" required class="w-full font-mono" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
               </UFormField>
-              <p v-if="editing && formUrl !== editing.url" class="text-[11px] text-warning">
+              <p v-if="editing && formUrl !== editing.url" class="text-sm text-warning">
                 Changing the URL creates a new site. The old one will remain.
               </p>
               <UFormField label="Display name" hint="optional">
@@ -172,23 +178,23 @@ const columns: ColumnDef<SiteHomeRow>[] = [
           </template>
           <template #footer>
             <UiButton purpose="cta" type="submit" form="site-form" :loading="saving" :disabled="saving || !formUrl.trim()">
-              {{ editing ? 'Save' : 'Add' }}
+              {{ editing ? 'Save site' : 'Add site' }}
             </UiButton>
           </template>
         </UModal>
         <UiButton purpose="cta" to="/scan/new" icon="add">
-          New scan
+          Run scan
         </UiButton>
       </template>
     </UiPageHeader>
 
     <!-- Active scan banner -->
-    <div v-if="activeScan.isActive" class="rounded-lg border border-primary/50 bg-primary/5 cursor-pointer p-4" @click="openActiveScan">
+    <div v-if="activeScan.isActive" class="rounded-lg border border-info/30 bg-info/5 cursor-pointer p-4" @click="openActiveScan">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="relative flex size-2">
-            <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-            <span class="relative inline-flex size-2 rounded-full bg-primary" />
+            <span class="absolute inline-flex size-full animate-ping rounded-full bg-info opacity-75" />
+            <span class="relative inline-flex size-2 rounded-full bg-info" />
           </span>
           <span class="text-sm font-medium">Scanning {{ activeScan.site }}</span>
         </div>
@@ -213,7 +219,7 @@ const columns: ColumnDef<SiteHomeRow>[] = [
           Add site
         </UiButton>
         <UiButton purpose="cta" to="/scan/new" icon="radar">
-          New scan
+          Run scan
         </UiButton>
       </div>
     </UiEmptyState>
@@ -222,7 +228,7 @@ const columns: ColumnDef<SiteHomeRow>[] = [
       <template #actions="{ row }">
         <div class="flex items-center justify-end gap-1">
           <template v-if="row.registered">
-            <UiButton purpose="quiet" size="xs" icon="radar" aria-label="Run new scan" @click.stop="scanSite(row.url)" />
+            <UiButton purpose="quiet" size="xs" icon="radar" aria-label="Run scan" @click.stop="scanSite(row.url)" />
             <UiButton purpose="quiet" size="xs" icon="edit" aria-label="Edit site" @click.stop="openEdit(row.site!)" />
             <UModal
               title="Remove site?"
@@ -231,19 +237,19 @@ const columns: ColumnDef<SiteHomeRow>[] = [
               <UiButton purpose="quiet" size="xs" icon="delete" aria-label="Delete site" @click.stop />
               <template #footer="{ close }">
                 <UiButton purpose="quiet" @click="close">
-                  Cancel
+                  Keep site
                 </UiButton>
                 <UiButton purpose="danger" @click="() => { deleteSite(row.site!.id); close() }">
-                  Remove
+                  Remove site
                 </UiButton>
               </template>
             </UModal>
           </template>
           <template v-else>
             <UiButton purpose="quiet" size="xs" icon="external" aria-label="Open site" @click.stop="openSite(row)" />
-            <UiButton purpose="quiet" size="xs" icon="radar" aria-label="Run new scan" @click.stop="scanSite(row.url)" />
+            <UiButton purpose="quiet" size="xs" icon="radar" aria-label="Run scan" @click.stop="scanSite(row.url)" />
             <UiButton purpose="secondary" size="xs" icon="add" @click.stop="openRegister(row.url)">
-              Register
+              Register site
             </UiButton>
           </template>
         </div>

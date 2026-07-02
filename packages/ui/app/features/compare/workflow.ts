@@ -254,10 +254,10 @@ export function useCompareWorkflow() {
         document.execCommand('copy')
         document.body.removeChild(ta)
       }
-      toast.success(res.hasRegressions ? 'Copied — regressions present' : 'Copied to clipboard')
+      toast.success(res.hasRegressions ? 'Copied: regressions present' : 'Copied to clipboard')
     }
     catch (err) {
-      toast.error('Copy failed', { description: err instanceof Error ? err.message : String(err) })
+      toast.error('Copy markdown failed', { description: `${err instanceof Error ? err.message : String(err)}. Allow clipboard access and retry.` })
     }
     finally {
       copyingMarkdown.value = false
@@ -284,7 +284,7 @@ export function useCompareWorkflow() {
       })
     }
     catch (err) {
-      toast.error('Compare failed', { description: err instanceof Error ? err.message : String(err) })
+      toast.error('Compare scans failed', { description: `${err instanceof Error ? err.message : String(err)}. Check both scans are available and retry.` })
     }
   }
 

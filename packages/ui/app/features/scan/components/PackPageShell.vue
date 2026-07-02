@@ -25,8 +25,8 @@ interface Props {
   // "no data yet".
   error?: ApiError | null
   onRetry?: () => void
-  // Customise the empty-state copy per pack since "No SEO issues" reads
-  // differently from "No accessibility data yet."
+  // Customise the empty-state copy per pack since "0 SEO issues" reads
+  // differently from "run the accessibility pack first."
   emptyMessage?: string
   loadingMessage?: string
 }
@@ -35,8 +35,8 @@ const props = withDefaults(defineProps<Props>(), {
   pack: '',
   version: '',
   error: null,
-  emptyMessage: 'No data available. Run a scan first.',
-  loadingMessage: 'Loading...',
+  emptyMessage: 'Run a scan to populate this pack.',
+  loadingMessage: 'Loading pack report...',
 })
 
 useScanPageTitle(() => props.title)

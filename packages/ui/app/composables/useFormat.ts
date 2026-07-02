@@ -115,6 +115,21 @@ export function createFormatters() {
     return d.toLocaleString()
   }
 
+  function fmtClockTime(value: string | number | null | undefined, fractional = false): string {
+    if (value == null)
+      return '—'
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime()))
+      return '—'
+    return d.toLocaleTimeString(undefined, {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      fractionalSecondDigits: fractional ? 3 : undefined,
+    })
+  }
+
   return {
     fmtScore,
     fmtMs,
@@ -124,5 +139,6 @@ export function createFormatters() {
     fmtRelTime,
     fmtDuration,
     fmtTimestamp,
+    fmtClockTime,
   }
 }

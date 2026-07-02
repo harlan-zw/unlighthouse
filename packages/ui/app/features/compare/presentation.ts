@@ -80,11 +80,9 @@ export function fmtCwvP75(metric: string, value: number | null): string {
   if (value == null)
     return '—'
   if (metric === 'cls')
-    return value.toFixed(3)
+    return formatMetricValue(value, '')
   if (metric === 'lcp' || metric === 'inp' || metric === 'fcp' || metric === 'ttfb') {
-    if (value >= 1000)
-      return `${(value / 1000).toFixed(2)}s`
-    return `${Math.round(value)}ms`
+    return formatMs(value)
   }
   return String(Math.round(value))
 }

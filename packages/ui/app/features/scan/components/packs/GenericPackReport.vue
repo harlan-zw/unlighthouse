@@ -7,14 +7,12 @@
 //   1. severityCounts badge row, when the report has one (any string-keyed
 //      record of non-negative counts — not just the built-in critical/
 //      serious/moderate/minor vocabulary).
-//   2. findings[] through the shared PackFindings accordion, when items look
+//   2. findings[] through the shared FindingsAccordion, when items look
 //      convention-shaped (an id/auditId + a severity).
 //   3. A raw, collapsible JSON block — always available as an escape hatch,
 //      expanded by default only when neither tier above found anything to
 //      render (i.e. it's the ONLY content, not a redundant dump next to a
 //      well-rendered report).
-import PackFindings from '~/features/scan/components/PackFindings.vue'
-
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
 interface GenericFinding {
@@ -81,7 +79,7 @@ function severityStatus(key: string): 'success' | 'warning' | 'error' | 'info' |
 
 <template>
   <div class="space-y-6">
-    <UiEmptyState v-if="!reportObj" icon="inbox" title="This pack returned no report data." compact />
+    <UiEmptyState v-if="!reportObj" icon="inbox" title="Run this pack to render report data." compact />
 
     <template v-else>
       <div v-if="severityCounts" class="flex flex-wrap gap-2">
@@ -90,16 +88,12 @@ function severityStatus(key: string): 'success' | 'warning' | 'error' | 'info' |
         </UiChip>
       </div>
 
-      <PackFindings v-if="findings" :findings="findings" title="Findings" />
+      <FindingsAccordion v-if="findings" :findings="findings" title="Findings" />
 
       <UiCard size="sm">
-        <template #header>
-          <button type="button" class="flex items-center gap-2 text-label text-dimmed w-full text-left" @click="rawOpen = !rawOpen">
-            <UiIcon :name="rawOpen ? 'chevron-up' : 'chevron-down'" class="size-3.5" />
-            Raw report JSON
-          </button>
-        </template>
-        <pre v-if="rawOpen" class="font-mono text-xs whitespace-pre-wrap break-all overflow-auto max-h-[32rem] bg-elevated rounded p-3">{{ rawJson }}</pre>
+        <Disclosure v-model:open="rawOpen" label="Raw report JSON">
+          <CodeBlock v-if="rawOpen" :code="rawJson" class="mt-2" />
+        </Disclosure>
       </UiCard>
     </template>
   </div>

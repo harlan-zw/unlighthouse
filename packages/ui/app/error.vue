@@ -49,12 +49,9 @@ const errorMessage = computed(() => {
         Open dashboard
       </UiButton>
 
-      <details v-if="error.stack" class="mt-8 text-left">
-        <summary class="text-sm text-muted cursor-pointer hover:text-default">
-          Technical details
-        </summary>
-        <pre class="mt-2 p-4 bg-elevated rounded-lg text-xs text-muted overflow-auto max-h-48 font-mono">{{ error.stack }}</pre>
-      </details>
+      <Disclosure v-if="error.stack" label="Technical details" class="mt-8 text-left text-muted hover:text-default">
+        <CodeBlock :code="error.stack" class="mt-2" max-height="12rem" />
+      </Disclosure>
     </div>
   </div>
 </template>

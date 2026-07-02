@@ -54,7 +54,7 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
           Compare latest two
         </UiButton>
         <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`" icon="add">
-          New scan
+          Run scan
         </UiButton>
       </div>
     </div>
@@ -63,9 +63,9 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
 
     <UiLoadingState v-else-if="loading" :rows="3" />
 
-    <UiEmptyState v-else-if="isEmpty" icon="radar" title="No scans yet for this site.">
+    <UiEmptyState v-else-if="isEmpty" icon="radar" title="Run a scan to build this site's history.">
       <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
-        Start the first scan
+        Run first scan
       </UiButton>
     </UiEmptyState>
 

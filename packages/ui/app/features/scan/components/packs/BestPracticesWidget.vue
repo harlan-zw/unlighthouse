@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { BestPracticesReport } from '@unlighthouse/contracts/packs'
-import PackFindings from '~/features/scan/components/PackFindings.vue'
 // See CwvWidget.vue for why `report` arrives untyped and gets cast here.
 const props = defineProps<{ report: unknown, scanBase: string }>()
 
 const report = computed(() => props.report as BestPracticesReport)
 
-// PackFindings' shared `Finding` interface only names the fields common to
+// FindingsAccordion's shared finding shape only names the fields common to
 // every pack (auditId/severity/title/…); `sampleElements` is best-practices-
 // specific, so it flows through the finding-body slot via Finding's index
 // signature as `unknown`. Narrow it here rather than in the template.
@@ -36,7 +35,7 @@ function sampleElementsOf(finding: Record<string, unknown>): SampleElement[] {
 
     <!-- Findings via the shared accordion — sampleElements gets the same
          element-preview body slot a11y/seo use. -->
-    <PackFindings :findings="report.findings" title="Best Practices Issues">
+    <FindingsAccordion :findings="report.findings" title="Best Practices Issues">
       <template #finding-body="{ finding }">
         <p v-if="finding.description" class="text-muted text-xs">
           {{ finding.description }}
@@ -46,14 +45,14 @@ function sampleElementsOf(finding: Record<string, unknown>): SampleElement[] {
         </p>
         <div v-if="sampleElementsOf(finding).length" class="space-y-2">
           <div v-for="(el, i) in sampleElementsOf(finding)" :key="i" class="rounded border p-2">
-            <code class="text-xs bg-elevated px-1.5 py-0.5 rounded">{{ el.selector || el.snippet }}</code>
+            <CodeBlock inline :code="el.selector || el.snippet || ''" />
             <div v-if="el.nodeLabel" class="text-xs text-muted mt-1">
               {{ el.nodeLabel }}
             </div>
           </div>
         </div>
       </template>
-    </PackFindings>
+    </FindingsAccordion>
 
     <UiEmptyState
       v-if="!report.findings.length"

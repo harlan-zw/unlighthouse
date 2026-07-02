@@ -38,9 +38,9 @@ function verdictColor(verdict: string | null) {
           {{ m.metric?.toUpperCase() }}
         </div>
         <div class="numerals-display text-2xl" :class="verdictColor(m.verdict)">
-          {{ m.p75 != null ? (m.metric === 'cls' ? m.p75.toFixed(3) : fmtMs(m.p75)) : '—' }}
+          {{ m.metric === 'cls' ? formatMetricValue(m.p75, '') : fmtMs(m.p75) }}
         </div>
-        <div class="text-[10px] text-muted mt-1">
+        <div class="text-xs text-muted mt-1">
           p75 across {{ (m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0) }} routes
         </div>
         <div class="flex justify-center gap-1 mt-2">
@@ -85,7 +85,7 @@ function verdictColor(verdict: string | null) {
     <UiEmptyState
       v-if="!report.metrics?.length && !report.topFixes?.length"
       icon="gauge"
-      title="No Core Web Vitals data for this scan"
+      title="0 Core Web Vitals metrics captured"
       description="Metrics are captured automatically during a scan — rerun the scan if this looks wrong."
       compact
     />

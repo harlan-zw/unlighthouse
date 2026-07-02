@@ -36,12 +36,12 @@ const { fmtRelTime: ageLabel } = createFormatters()
 </script>
 
 <template>
-  <div v-if="store.recentRoutes.length" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 overflow-hidden">
+  <div v-if="store.recentRoutes.length" class="rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3 border-b border-default">
       <h3 class="text-label text-dimmed">
         Live results
       </h3>
-      <span class="text-[10px] text-muted tabular-nums">
+      <span class="text-xs text-muted tabular-nums">
         last {{ store.recentRoutes.length }}
       </span>
     </div>
@@ -57,11 +57,13 @@ const { fmtRelTime: ageLabel } = createFormatters()
           class="size-1.5 rounded-full shrink-0"
           :style="{ backgroundColor: scoreToRingColor(r.score) }"
         />
-        <span class="font-mono text-xs truncate flex-1">{{ pathFromUrl(r.url) }}</span>
+        <UiTooltip :text="r.url" side="top" size="lg" class="min-w-0 flex-1">
+          <span class="font-mono text-xs truncate block">{{ pathFromUrl(r.url) }}</span>
+        </UiTooltip>
         <span class="text-xs tabular-nums shrink-0 w-10 text-right font-bold" :class="scoreToColor(r.score)">
           {{ scoreToLabel(r.score) }}
         </span>
-        <span class="text-[10px] text-muted tabular-nums shrink-0 w-14 text-right">
+        <span class="text-xs text-muted tabular-nums shrink-0 w-14 text-right">
           {{ ageLabel(r.timestamp) }}
         </span>
       </button>

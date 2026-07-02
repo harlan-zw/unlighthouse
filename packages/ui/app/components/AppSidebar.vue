@@ -29,7 +29,7 @@ const scanSiteName = computed(() => {
 
 const nav = [
   { label: 'Home', to: '/', icon: 'layout', active: (p: string) => p === '/' },
-  { label: 'New scan', to: '/scan/new', icon: 'add', active: (p: string) => p === '/scan/new' },
+  { label: 'Run scan', to: '/scan/new', icon: 'add', active: (p: string) => p === '/scan/new' },
 ]
 
 // ── Sites list (default mode) ────────────────────────────────────────────────
@@ -125,12 +125,12 @@ const packLinks = computed(() => {
 const compareLinks = computed(() => {
   if (!inScan.value)
     return []
-  return [{ label: 'Compare', to: `/sites/${siteId.value}/compare?current=${scanId.value}`, icon: 'compare', active: () => false }]
+  return [{ label: 'Compare scans', to: `/sites/${siteId.value}/compare?current=${scanId.value}`, icon: 'compare', active: () => false }]
 })
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-4">
     <!-- Brand / scan-context header -->
     <NuxtLink
       :to="inScan ? `/sites/${siteId}` : '/'"
@@ -199,7 +199,7 @@ const compareLinks = computed(() => {
               Can't reach the scan host
             </div>
             <button type="button" class="mt-1 inline-flex items-center gap-1 text-muted hover:text-default" @click="() => refreshSites()">
-              <UiIcon name="refresh" class="size-3" /> Retry
+              <UiIcon name="refresh" class="size-3" /> Retry sites
             </button>
           </div>
         </div>
@@ -213,7 +213,7 @@ const compareLinks = computed(() => {
           to="/"
           class="block px-1.5 py-2 rounded-md text-xs text-muted hover:text-default hover:bg-elevated transition-colors"
         >
-          No sites yet. Add one
+          Add site
         </NuxtLink>
       </div>
     </template>

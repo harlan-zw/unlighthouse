@@ -55,7 +55,7 @@ const { healthy } = useBackendHealth()
     </aside>
 
     <div class="flex-1 min-w-0 lg:ml-64 flex flex-col h-screen">
-      <header class="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-2 border-b border-default bg-default/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-default/60">
+      <header class="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-2 border-b border-default bg-default px-4">
         <UiButton
           purpose="quiet"
           class="lg:hidden -ml-2 size-8 justify-center"

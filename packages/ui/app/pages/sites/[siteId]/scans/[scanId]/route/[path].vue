@@ -39,6 +39,8 @@ const {
   rescanRoute,
 } = useRouteDetail()
 
+const { fmtMs } = createFormatters()
+
 useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
 </script>
 
@@ -50,7 +52,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
            pagination) and falls back to the bare routes URL when the
            page was opened directly (deep link, share). -->
       <UiButton purpose="quiet" size="sm" icon="back" @click="backToRoutes">
-        Routes
+        Back to routes
       </UiButton>
     </div>
 
@@ -67,17 +69,24 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             {{ routeData.route?.path }}
           </h1>
           <div class="flex items-center gap-2 mt-1 text-sm text-muted">
-            <UBadge color="neutral" variant="outline" size="xs">
+            <UiChip purpose="count">
               {{ routeData.route?.device }}
-            </UBadge>
-            <a :href="routeData.route?.url" target="_blank" class="flex min-h-11 items-center gap-1 hover:underline lg:min-h-0">
-              {{ routeData.route?.url }}
-              <UiIcon name="external" class="size-3" />
-            </a>
+            </UiChip>
+            <UiTooltip v-if="routeData.route?.url" :text="routeData.route.url" side="top" size="lg">
+              <a
+                :href="routeData.route.url"
+                target="_blank"
+                rel="noopener"
+                class="flex min-h-11 min-w-0 items-center gap-1 font-mono hover:underline lg:min-h-0"
+              >
+                <span class="truncate">{{ routeData.route.url }}</span>
+                <UiIcon name="external" class="size-3 shrink-0" />
+              </a>
+            </UiTooltip>
           </div>
           <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted/60">
             <span>LH {{ routeData.provenance.lighthouseVersion }}</span>
-            <span v-if="routeData.provenance.timingTotal">{{ (routeData.provenance.timingTotal / 1000).toFixed(1) }}s audit</span>
+            <span v-if="routeData.provenance.timingTotal">{{ fmtMs(routeData.provenance.timingTotal) }} audit</span>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -88,10 +97,10 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             class="inline-flex min-h-11 min-w-11 items-center gap-1 rounded-md px-2.5 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors lg:h-8 lg:min-h-0 lg:min-w-0"
           >
             <UiIcon name="download" class="size-4" />
-            Raw LHR
+            Download LHR
           </a>
           <UiButton purpose="secondary" size="sm" :loading="rescanning" icon="refresh" @click="rescanRoute">
-            Rescan
+            Rescan route
           </UiButton>
         </div>
       </div>
@@ -126,14 +135,14 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                 @click="screenshotExpanded = !screenshotExpanded"
               >
                 <UiIcon :name="screenshotExpanded ? 'chevrons-up' : 'sort'" class="size-3" />
-                {{ screenshotExpanded ? 'Collapse' : 'Expand' }}
+                {{ screenshotExpanded ? 'Collapse screenshot' : 'Expand screenshot' }}
               </button>
               <a
                 :href="screenshotFullUrl"
                 target="_blank"
                 rel="noopener"
                 class="inline-flex min-h-11 min-w-11 items-center gap-1 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:min-w-0"
-              >Open full size <UiIcon name="external" class="size-3" /></a>
+              >Open screenshot <UiIcon name="external" class="size-3" /></a>
             </div>
           </div>
         </template>
@@ -185,7 +194,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
 
       <!-- Category Scores -->
       <div class="grid grid-cols-2 gap-4" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
-        <div v-for="s in scores" :key="s.id" class="rounded-xl border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4">
+        <div v-for="s in scores" :key="s.id" class="rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4">
           <ScoreRing :score="s.score" size="md" />
           <div>
             <div class="text-sm font-medium">
@@ -213,7 +222,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             <div class="numerals-display text-xl" :class="metricColor(m.label, m.value)">
               {{ formatMetric(m.value, m.unit) }}
             </div>
-            <div class="text-[10px] text-muted/60 mt-1">
+            <div class="text-xs text-muted/60 mt-1">
               {{ m.description }}
             </div>
           </div>
@@ -230,12 +239,12 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                 {{ cat.label }}
               </h3>
               <div class="flex items-center gap-2">
-                <UBadge v-if="cat.failing.length" color="error" variant="soft" class="text-xs">
+                <UiChip v-if="cat.failing.length" purpose="status" status="error" size="sm">
                   {{ cat.failing.length }} failing
-                </UBadge>
-                <UBadge v-if="cat.passing.length" color="neutral" variant="outline" class="text-xs text-success">
+                </UiChip>
+                <UiChip v-if="cat.passing.length" purpose="status" status="success" size="sm">
                   {{ cat.passing.length }} passed
-                </UBadge>
+                </UiChip>
               </div>
             </div>
           </template>
@@ -244,9 +253,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             <UAccordion v-if="cat.failing.length" :items="cat.failing.map(a => ({ ...a, value: a.id }))" type="multiple" class="w-full">
               <template #default="{ item: audit }">
                 <div class="flex items-center gap-2 text-left text-sm">
-                  <UBadge :color="severityColor(audit.severity)" variant="soft" class="text-[10px] w-10 justify-center shrink-0">
+                  <UiChip purpose="status" :status="severityColor(audit.severity)" class="w-12 justify-center shrink-0">
                     {{ audit.severity }}
-                  </UBadge>
+                  </UiChip>
                   <span>{{ audit.title || audit.id }}</span>
                   <span v-if="audit.displayValue" class="text-muted text-xs ml-auto mr-4 shrink-0">
                     {{ audit.displayValue }}
@@ -258,9 +267,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                   <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
                   <div v-if="audit.metricSavings && hasNonZeroSavings(audit.metricSavings)" class="flex gap-2 flex-wrap">
                     <template v-for="(val, key) in audit.metricSavings" :key="key">
-                      <UBadge v-if="typeof val === 'number' ? val > 0 : !!val" color="neutral" variant="outline" class="text-[10px]">
-                        {{ key }}: {{ typeof val === 'number' ? `${Math.round(val)}ms` : val }}
-                      </UBadge>
+                      <UiChip v-if="typeof val === 'number' ? val > 0 : !!val" purpose="count">
+                        {{ key }}: {{ typeof val === 'number' ? fmtMs(val) : val }}
+                      </UiChip>
                     </template>
                   </div>
                   <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
@@ -269,12 +278,8 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                         <div v-if="item.url" class="font-mono break-all text-muted">
                           {{ item.url }}
                         </div>
-                        <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">
-                          {{ item.node.snippet }}
-                        </div>
-                        <div v-if="item.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">
-                          {{ item.snippet }}
-                        </div>
+                        <CodeBlock v-if="item.node?.snippet" :code="item.node.snippet" dense class="mt-1" />
+                        <CodeBlock v-if="item.snippet" :code="item.snippet" dense class="mt-1" />
                         <div v-if="item.node?.nodeLabel" class="text-muted mt-1">
                           {{ item.node.nodeLabel }}
                         </div>
@@ -283,10 +288,10 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                         </div>
                         <div class="flex gap-2 mt-1 flex-wrap">
                           <span v-if="item.wastedBytes" class="text-warning">{{ formatBytes(item.wastedBytes) }} wasted</span>
-                          <span v-if="item.wastedMs" class="text-warning">{{ Math.round(item.wastedMs) }}ms wasted</span>
+                          <span v-if="item.wastedMs" class="text-warning">{{ fmtMs(item.wastedMs) }} wasted</span>
                           <span v-if="item.totalBytes" class="text-muted">{{ formatBytes(item.totalBytes) }} total</span>
                           <span v-if="item.transferSize" class="text-muted">{{ formatBytes(item.transferSize) }} transferred</span>
-                          <span v-if="item.blockingTime" class="text-warning">{{ Math.round(item.blockingTime) }}ms blocking</span>
+                          <span v-if="item.blockingTime" class="text-warning">{{ fmtMs(item.blockingTime) }} blocking</span>
                         </div>
                       </div>
                     </template>
@@ -298,15 +303,14 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             <USeparator v-if="cat.failing.length && (cat.passing.length || cat.notApplicable.length)" />
 
             <!-- Passed audits (collapsible) -->
-            <details v-if="cat.passing.length" class="group">
-              <summary class="flex items-center gap-2 w-full text-sm py-1 cursor-pointer list-none">
-                <UiIcon name="chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
+            <Disclosure v-if="cat.passing.length">
+              <template #summary>
                 <UiIcon name="success" class="size-4 text-success" />
                 <span class="text-success font-medium">Passed Audits</span>
-                <UBadge color="neutral" variant="outline" class="text-[10px] text-success">
+                <UiChip purpose="status" status="success">
                   {{ cat.passing.length }}
-                </UBadge>
-              </summary>
+                </UiChip>
+              </template>
               <UAccordion :items="cat.passing.map(a => ({ ...a, value: a.id }))" type="multiple" class="w-full mt-2">
                 <template #default="{ item: audit }">
                   <div class="flex items-center gap-2 text-left text-sm">
@@ -326,12 +330,8 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                           <div v-if="item.url" class="font-mono break-all text-muted">
                             {{ item.url }}
                           </div>
-                          <div v-if="item.node?.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">
-                            {{ item.node.snippet }}
-                          </div>
-                          <div v-if="item.snippet" class="font-mono text-[10px] bg-elevated p-1 rounded mt-1">
-                            {{ item.snippet }}
-                          </div>
+                          <CodeBlock v-if="item.node?.snippet" :code="item.node.snippet" dense class="mt-1" />
+                          <CodeBlock v-if="item.snippet" :code="item.snippet" dense class="mt-1" />
                           <div class="flex gap-2 mt-1 flex-wrap">
                             <span v-if="item.totalBytes" class="text-muted">{{ formatBytes(item.totalBytes) }}</span>
                             <span v-if="item.transferSize" class="text-muted">{{ formatBytes(item.transferSize) }} transferred</span>
@@ -342,25 +342,24 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                   </div>
                 </template>
               </UAccordion>
-            </details>
+            </Disclosure>
 
             <!-- Not Applicable (collapsible) -->
-            <details v-if="cat.notApplicable.length" class="group">
-              <summary class="flex items-center gap-2 w-full text-sm py-1 cursor-pointer list-none">
-                <UiIcon name="chevron-right" class="size-4 text-muted transition-transform group-open:rotate-90" />
+            <Disclosure v-if="cat.notApplicable.length">
+              <template #summary>
                 <UiIcon name="minus" class="size-4 text-muted" />
                 <span class="text-muted">Not Applicable</span>
-                <UBadge color="neutral" variant="outline" class="text-[10px]">
+                <UiChip purpose="count">
                   {{ cat.notApplicable.length }}
-                </UBadge>
-              </summary>
+                </UiChip>
+              </template>
               <div class="space-y-0.5 pt-2 pl-6">
                 <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted/60">
                   <UiIcon name="minus" class="size-3 shrink-0" />
                   <span>{{ audit.title || audit.id }}</span>
                 </div>
               </div>
-            </details>
+            </Disclosure>
           </div>
         </UiCard>
       </template>
@@ -377,7 +376,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             {{ pack.title }}
           </div>
           <div v-for="(desc, auditId) in pack.descriptions" :key="auditId" class="text-xs text-muted ml-4 mb-1">
-            <span class="font-mono text-primary/80">{{ auditId }}</span>: {{ desc }}
+            <span class="font-mono text-highlighted">{{ auditId }}</span>: {{ desc }}
           </div>
         </div>
       </UiCard>
@@ -390,9 +389,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
           </h3>
         </template>
         <div class="flex flex-wrap gap-2">
-          <UBadge v-for="entity in routeData.entities" :key="entity.name" :color="entity.isFirstParty ? 'primary' : 'neutral'" :variant="entity.isFirstParty ? 'solid' : 'outline'" class="text-xs">
+          <UiChip v-for="entity in routeData.entities" :key="entity.name" :purpose="entity.isFirstParty ? 'status' : 'count'" :status="entity.isFirstParty ? 'info' : 'neutral'">
             {{ entity.name }}
-          </UBadge>
+          </UiChip>
         </div>
       </UiCard>
     </template>

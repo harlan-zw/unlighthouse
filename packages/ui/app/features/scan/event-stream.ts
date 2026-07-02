@@ -240,5 +240,6 @@ export function eventColor(event: string): SemanticStatus {
 }
 
 export function formatEventTime(ts: number) {
-  return new Date(ts).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })
+  const { fmtClockTime } = createFormatters()
+  return fmtClockTime(ts, true)
 }

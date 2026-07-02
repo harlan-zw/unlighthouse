@@ -44,14 +44,14 @@ watch(() => props.count, () => {
           <div class="size-2.5 rounded-full bg-warning/60" />
           <div class="size-2.5 rounded-full bg-success/60" />
         </div>
-        <span class="text-dimmed text-[11px]">{{ title }}</span>
+        <span class="text-dimmed text-xs">{{ title }}</span>
       </div>
       <div class="flex items-center gap-3">
-        <label class="flex items-center gap-1.5 text-dimmed text-[11px] cursor-pointer select-none">
+        <label class="flex items-center gap-1.5 text-dimmed text-xs cursor-pointer select-none">
           <input v-model="autoScroll" type="checkbox" class="size-3 accent-primary rounded">
           Auto-scroll
         </label>
-        <span class="text-muted tabular-nums text-[11px]">
+        <span class="text-muted tabular-nums text-xs">
           {{ count }}<template v-if="droppedNote"> · {{ droppedNote }}</template>
         </span>
       </div>

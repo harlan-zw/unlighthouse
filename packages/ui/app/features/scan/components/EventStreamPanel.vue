@@ -50,8 +50,8 @@ onMounted(startStream)
       <!-- Connected + receiving -->
       <UiChip v-if="listening && connected" purpose="status" status="success" class="animate-pulse">
         <span class="relative flex size-2 mr-1.5">
-          <span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-          <span class="relative inline-flex size-2 rounded-full bg-primary" />
+          <span class="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />
+          <span class="relative inline-flex size-2 rounded-full bg-success" />
         </span>
         Live
       </UiChip>
@@ -140,7 +140,7 @@ onMounted(startStream)
         <UiChip purpose="status" :status="eventColor(e.event)" class="shrink-0">
           {{ e.event }}
         </UiChip>
-        <pre class="text-muted whitespace-pre-wrap break-all flex-1">{{ e.json }}</pre>
+        <CodeBlock :code="e.json" dense class="flex-1" max-height="none" />
       </div>
     </LogStream>
   </div>

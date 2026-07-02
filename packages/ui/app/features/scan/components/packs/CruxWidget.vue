@@ -16,8 +16,14 @@ const report = computed(() => props.report as CruxReport)
 
 const GAP_CAP = 20
 
+const ratingDistribution = computed(() => [
+  { label: 'Good', count: report.value.severityCounts.good, status: 'success' as const },
+  { label: 'Needs improvement', count: report.value.severityCounts.needsImprovement, status: 'warning' as const },
+  { label: 'Poor', count: report.value.severityCounts.poor, status: 'error' as const },
+])
+
 function fmtCls(value: number | null): string {
-  return value == null ? '—' : value.toFixed(3)
+  return formatMetricValue(value, '')
 }
 
 function severityToStatus(severity: string): 'success' | 'warning' | 'error' | 'neutral' {
@@ -38,6 +44,7 @@ function sourceLabel(source: string): string {
 }
 
 const UiStatusBadgeC = resolveComponent('UiStatusBadge')
+const UiTooltipC = resolveComponent('UiTooltip')
 
 const findingColumns: ColumnDef<CruxFinding>[] = [
   {
@@ -52,7 +59,9 @@ const findingColumns: ColumnDef<CruxFinding>[] = [
   {
     accessorKey: 'url',
     header: 'URL',
-    cell: ({ row }) => h('span', { class: 'font-mono text-xs truncate block max-w-sm', title: row.original.url }, row.original.url),
+    cell: ({ row }) => h(UiTooltipC, { text: row.original.url, side: 'top', size: 'lg' }, {
+      default: () => h('span', { class: 'font-mono text-xs truncate block max-w-sm' }, row.original.url),
+    }),
   },
   {
     accessorKey: 'formFactor',
@@ -136,6 +145,15 @@ const gapSections = computed(() => [
       <UiStat card title="Unknown" :value="report.severityCounts.unknown" />
     </div>
 
+    <UiCard v-if="report.findings.length" size="sm">
+      <template #header>
+        <h3 class="text-label text-dimmed">
+          Field rating distribution
+        </h3>
+      </template>
+      <DistributionBar :segments="ratingDistribution" />
+    </UiCard>
+
     <p v-if="report.hasOriginFallback" class="text-xs text-muted">
       Some routes lacked enough URL-level traffic for a CrUX record and fell back to origin-level field data.
     </p>
@@ -154,7 +172,7 @@ const gapSections = computed(() => [
     <UiEmptyState
       v-else
       icon="globe"
-      title="No CrUX field data available for this site."
+      title="0 CrUX field records for this site"
       description="Field data requires the site to have enough traffic in the Chrome User Experience Report."
       compact
     />
@@ -174,9 +192,11 @@ const gapSections = computed(() => [
         </p>
         <div v-if="section.entries.length" class="space-y-1.5">
           <div v-for="g in section.entries.slice(0, GAP_CAP)" :key="`${g.url}-${g.formFactor}-${g.metric}`" class="text-xs">
-            <div class="font-mono truncate" :title="g.url">
-              {{ g.url }}
-            </div>
+            <UiTooltip :text="g.url" side="top" size="lg">
+              <div class="font-mono truncate">
+                {{ g.url }}
+              </div>
+            </UiTooltip>
             <div class="flex items-center justify-between text-muted mt-0.5">
               <span class="uppercase">{{ g.metric }}</span>
               <span class="tabular-nums">{{ gapValue(g.metric, g.labValue) }} lab · {{ gapValue(g.metric, g.fieldValue) }} field</span>

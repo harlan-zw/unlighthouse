@@ -43,6 +43,7 @@ const {
 useScanPageTitle('Overview')
 
 const eventsOpen = ref(false)
+const { fmtTimestamp } = createFormatters()
 </script>
 
 <template>
@@ -68,7 +69,7 @@ const eventsOpen = ref(false)
             <UiIcon :name="scanMeta.device === 'mobile' ? 'smartphone' : 'monitor'" class="size-2.5 mr-0.5" />
             {{ scanMeta.device }}
           </UiChip>
-          <span v-if="scanMeta?.startedAt" class="text-xs">{{ new Date(scanMeta.startedAt).toLocaleString() }}</span>
+          <span v-if="scanMeta?.startedAt" class="text-xs">{{ fmtTimestamp(scanMeta.startedAt) }}</span>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -96,7 +97,7 @@ const eventsOpen = ref(false)
           class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
           <UiIcon name="download" class="size-4" />
-          JSON
+          Export JSON
         </a>
         <a
           v-if="scanIsComplete && !currentScanIsActive"
@@ -106,7 +107,7 @@ const eventsOpen = ref(false)
           class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
           <UiIcon name="table" class="size-4" />
-          CSV
+          Export CSV
         </a>
         <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="refresh" @click="handleRescanAll">
           Rescan all
@@ -160,12 +161,12 @@ const eventsOpen = ref(false)
         <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
           Category Scores
         </h2>
-        <div class="rounded-lg border px-5 py-4 space-y-4">
+        <div class="rounded-lg border px-4 py-4 space-y-4">
           <div v-for="cat in categories.filter(c => c.score != null)" :key="cat.key" class="flex items-center gap-3">
             <span class="text-xs text-muted w-24 shrink-0 truncate">{{ cat.label }}</span>
             <div class="flex-1 h-5 bg-elevated rounded overflow-hidden">
               <div
-                class="h-full rounded transition-all duration-500"
+                class="h-full rounded transition-[width,background-color] duration-200"
                 :style="{ width: `${(cat.score ?? 0) * 100}%`, backgroundColor: scoreColor(cat.score) }"
               />
             </div>
@@ -174,7 +175,7 @@ const eventsOpen = ref(false)
             </span>
           </div>
           <div v-if="categories.every(c => c.score == null)" class="text-sm text-muted text-center py-4">
-            No score data yet
+            Run routes to calculate category scores.
           </div>
         </div>
       </div>
@@ -184,7 +185,7 @@ const eventsOpen = ref(false)
         <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
           Score Distribution
         </h2>
-        <div class="rounded-lg border px-5 py-4 flex items-center gap-6 justify-center">
+        <div class="rounded-lg border px-4 py-4 flex items-center gap-6 justify-center">
           <div class="relative shrink-0">
             <svg viewBox="0 0 100 100" class="size-32">
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ui-border)" stroke-width="10" />
@@ -198,12 +199,12 @@ const eventsOpen = ref(false)
                 stroke-linecap="round"
                 :stroke-dasharray="`${arc.dashLen} ${arc.gapLen}`"
                 :transform="`rotate(${arc.rotation} 50 50)`"
-                class="transition-all duration-500"
+                class="transition-[stroke-dasharray,stroke] duration-200"
               />
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
               <span class="numerals-display text-2xl">{{ distribution.total }}</span>
-              <span class="text-[10px] text-muted">routes</span>
+              <span class="text-xs text-muted">routes</span>
             </div>
           </div>
           <div class="flex flex-col gap-3">
@@ -236,7 +237,7 @@ const eventsOpen = ref(false)
           <template v-if="cat.score != null">
             <div class="w-28 h-1.5 rounded-full bg-elevated overflow-hidden hidden sm:block">
               <div
-                class="h-full rounded-full transition-all duration-500"
+                class="h-full rounded-full transition-[width,background-color] duration-200"
                 :style="{ width: `${cat.score * 100}%`, backgroundColor: scoreColor(cat.score) }"
               />
             </div>

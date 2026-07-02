@@ -35,7 +35,7 @@ function pct(count: number): number {
         :title="`${seg.label}: ${seg.count} (${Math.round(pct(seg.count))}%)`"
       />
     </div>
-    <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+    <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
       <span v-for="seg in visible" :key="seg.label" class="inline-flex items-baseline gap-1">
         <span class="tabular-nums">{{ seg.count }}</span>
         <span>{{ seg.label }}</span>

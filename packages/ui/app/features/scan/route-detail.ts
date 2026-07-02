@@ -108,7 +108,7 @@ function routeSeverityColor(severity: string): 'error' | 'warning' | 'neutral' {
 }
 
 function renderMarkdownLinks(text: string): string {
-  return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="underline text-primary hover:text-primary/80">$1</a>')
+  return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="underline text-highlighted hover:text-default">$1</a>')
 }
 
 function hasVisibleAuditItem(item: AuditItem): boolean {
@@ -164,7 +164,7 @@ export function useRouteDetail() {
   async function rescanRoute() {
     const result = await rescan.mutateSafe({ scanId, url: routeData.value?.route?.url || fullUrl.value })
     if (result._tag === 'err') {
-      toast.error('Rescan failed', { description: normalizeApiError(result.error).message })
+      toast.error('Route rescan failed', { description: `${normalizeApiError(result.error).message}. Check the route URL and retry.` })
       return
     }
     toast.success('Route rescan started')

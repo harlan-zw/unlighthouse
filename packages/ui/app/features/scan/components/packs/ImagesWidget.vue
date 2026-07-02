@@ -72,7 +72,9 @@ const imageItems = computed(() =>
             <UiChip purpose="status" :status="severityStatus(finding.severity)">
               {{ finding.severity }}
             </UiChip>
-            <span class="truncate font-mono text-xs">{{ finding.imageUrl }}</span>
+            <UiTooltip :text="finding.imageUrl" side="top" size="lg">
+              <span class="truncate font-mono text-xs">{{ finding.imageUrl }}</span>
+            </UiTooltip>
             <span class="text-xs text-muted shrink-0">{{ finding.routeCount }} routes</span>
           </div>
         </template>

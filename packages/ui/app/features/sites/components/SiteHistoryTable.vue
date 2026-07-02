@@ -17,6 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const { scoreToColor } = createScoreColorHelpers()
+const { fmtRelTime, fmtTimestamp } = createFormatters()
 const UiStatusBadgeC = resolveComponent('UiStatusBadge')
 
 function categoryPct(scan: ScanRow | null, key: string): number | null {
@@ -28,22 +29,6 @@ function categoryPct(scan: ScanRow | null, key: string): number | null {
   return raw == null ? null : Math.round(raw * 100)
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-function relTime(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.round(diff / 60_000)
-  if (m < 1)
-    return 'just now'
-  if (m < 60)
-    return `${m}m ago`
-  const h = Math.round(m / 60)
-  if (h < 24)
-    return `${h}h ago`
-  return `${Math.round(h / 24)}d ago`
-}
-
 const sorting = ref<SortingState>([{ id: 'startedAt', desc: true }])
 
 const columns: ColumnDef<DevicePair>[] = [
@@ -52,8 +37,8 @@ const columns: ColumnDef<DevicePair>[] = [
     accessorFn: row => row.startedAt,
     header: 'Date',
     cell: ({ row }) => h('div', { class: 'flex flex-col' }, [
-      h('span', { class: 'text-sm' }, formatDate(row.original.startedAt)),
-      h('span', { class: 'text-[10px] text-muted' }, relTime(row.original.startedAt)),
+      h('span', { class: 'text-sm' }, fmtTimestamp(row.original.startedAt, 'short')),
+      h('span', { class: 'text-xs text-muted' }, fmtRelTime(row.original.startedAt)),
     ]),
     sortingFn: (a, b) => a.original.startedAt.localeCompare(b.original.startedAt),
   },
@@ -87,7 +72,7 @@ const columns: ColumnDef<DevicePair>[] = [
       const label = key === 'best-practices' ? 'Best' : key === 'performance' ? 'Perf' : key === 'accessibility' ? 'A11y' : 'SEO'
       return h('div', { class: 'text-center' }, [
         h('div', { class: 'text-xs font-semibold' }, label),
-        h('div', { class: 'text-micro text-muted font-normal mt-0.5' }, 'M | D'),
+        h('div', { class: 'text-xs text-muted font-normal mt-0.5' }, 'M | D'),
       ])
     },
     cell: ({ row }) => {
@@ -154,7 +139,7 @@ function statusForPair(pair: DevicePair): { label: string, status: 'success' | '
   >
     <template #actions="{ row }">
       <div class="flex items-center justify-end gap-0.5">
-        <UiButton purpose="quiet" size="sm" icon="refresh" title="Rescan" @click="emit('rescan', primaryScanId(row))" />
+        <UiButton purpose="quiet" size="sm" icon="refresh" title="Rescan site" @click="emit('rescan', primaryScanId(row))" />
         <UModal
           title="Delete scan?"
           description="This will permanently delete this scan and all its data. This cannot be undone."
@@ -162,10 +147,10 @@ function statusForPair(pair: DevicePair): { label: string, status: 'success' | '
           <UiButton purpose="quiet" size="sm" icon="delete" aria-label="Delete scan" />
           <template #footer="{ close }">
             <UiButton purpose="quiet" @click="close">
-              Cancel
+              Keep scan
             </UiButton>
             <UiButton purpose="danger" @click="() => { emit('delete', primaryScanId(row)); close() }">
-              Delete
+              Delete scan
             </UiButton>
           </template>
         </UModal>

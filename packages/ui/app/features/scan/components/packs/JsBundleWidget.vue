@@ -8,7 +8,7 @@ const { fmtBytes } = createFormatters()
 const report = computed(() => props.report as BundleReport)
 
 // js-bundle findings are keyed by `kind` + `resource`, not a title/auditId
-// convention, so they don't go through PackFindings.
+// convention, so they don't go through FindingsAccordion.
 const BUNDLE_KIND_LABELS: Record<string, string> = {
   'unused-js': 'Unused JavaScript',
   'unused-css': 'Unused CSS',
@@ -32,7 +32,7 @@ function shortResource(url: string): string {
 }
 
 // Same critical/serious/moderate/minor/info → status mapping the other
-// findings-based widgets use (see PackFindings' severityVariant), so JS
+// findings-based widgets use (see FindingsAccordion's severityVariant), so JS
 // Bundle severity renders colored instead of a raw uncolored label.
 function severityStatus(severity: string): SemanticStatus {
   if (severity === 'critical' || severity === 'serious')
@@ -76,9 +76,11 @@ function severityStatus(severity: string): SemanticStatus {
                 </UiChip>
                 {{ bundleKindLabel(finding.kind) }}
               </div>
-              <div v-if="finding.resource" class="text-xs text-muted font-mono truncate mt-1" :title="finding.resource">
-                {{ shortResource(finding.resource) }}
-              </div>
+              <UiTooltip v-if="finding.resource" :text="finding.resource" side="top" size="lg">
+                <div class="text-xs text-muted font-mono truncate mt-1">
+                  {{ shortResource(finding.resource) }}
+                </div>
+              </UiTooltip>
             </div>
             <UiChip purpose="count">
               {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}
