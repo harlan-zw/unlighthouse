@@ -109,6 +109,16 @@ export interface CloudflareApp {
  */
 export interface CreateCloudflareAppOptions {
   auditorFactory?: (env: CloudflareEnv) => import('@unlighthouse/contracts/ports').Auditor
+  /**
+   * SSRF policy hook (D-043). A multi-tenant deploy accepts `scan.start` with a
+   * caller-supplied `site`; without a policy that target could be an internal
+   * address (`http://169.254.169.254/…`, `http://10.0.0.5/…`), turning the
+   * Worker into an SSRF proxy. When provided, this is called with the resolved
+   * target URL before a scan starts; returning `false` rejects the request with
+   * 403. Defaults to allow-all (single-tenant / trusted deploys); multi-tenant
+   * deploys MUST supply it. Core stays policy-free — this is a host option.
+   */
+  allowedTargets?: (url: string) => boolean | Promise<boolean>
 }
 
 // Minimal Workers-safe logger; consola is too heavy here.
@@ -460,6 +470,21 @@ export function createCloudflareApp(env: CloudflareEnv, opts?: CreateCloudflareA
             cause: startBodyParseError,
           }))
         }
+
+        // SSRF policy gate (D-043). Vet the resolved target before any scan
+        // work starts. Host concern — the rejection is a plain 403, not a core
+        // UnlighthouseError. Default (no hook) allows all targets.
+        if (opts?.allowedTargets) {
+          const target = pendingSeed.site ?? (ctx.config as { site?: string }).site ?? null
+          if (target && !(await opts.allowedTargets(target))) {
+            logOperationalWarn('cloudflare.scan_target_rejected', null, { target }, logger)
+            return new Response(
+              JSON.stringify({ error: 'forbidden', message: 'Scan target not allowed by host policy.' }),
+              { status: 403, headers: { 'content-type': 'application/json' } },
+            )
+          }
+        }
+
         const key = apiReq.headers.get('x-api-key')
           ?? apiReq.headers.get('cf-connecting-ip')
           ?? 'global'

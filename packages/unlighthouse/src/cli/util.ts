@@ -122,6 +122,13 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   const scanner: NonNullable<UserConfig['scanner']> = {}
   picked.scanner = scanner
   picked.urls = []
+
+  // D-043: `--host` / UNLIGHTHOUSE_HOST override the loopback bind default.
+  // defu deep-merges this over `server` defaults so port/open survive.
+  const host = options.host ?? process.env.UNLIGHTHOUSE_HOST
+  if (host)
+    picked.server = { ...(picked.server ?? {}), hostname: host }
+
   if (options.noCache)
     picked.cache = true
   if (options.throttle)

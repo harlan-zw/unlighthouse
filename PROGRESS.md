@@ -152,7 +152,24 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   core/handlers/errors 65/65). NOTE: the doc's older "Reduce Parallel Scans" section still
   references the v0 `puppeteerClusterOptions.maxConcurrency` shape — left untouched (out of
   D-042 scope), flag for a v0-residue cleanup pass.
-- D-043 (local API hardening: Origin/Host, bind, /__launch, token): pending
+- D-043 (local API hardening: Origin/Host, bind, /__launch, token): done — new pure guard module
+  `packages/unlighthouse/src/server-guards.ts` (`checkApiOrigin`, `resolveLaunchPath`,
+  `isLoopbackHostname`/`isExposedHost`/`normaliseOrigin`). server.ts: new exported `createApiOriginGate`
+  (h3 middleware over `checkApiOrigin`) mounted after CORS, guarding `/api/**` incl. `/__launch` + the
+  WS upgrade at `/api/ws` — cross-origin/untrusted-Host → 403. `/__launch` now runs `resolveLaunchPath`
+  (root-constrained, traversal → 403) instead of the broken `replace`+`join`. Bind default → loopback:
+  `constants.ts` server gains `hostname:'127.0.0.1'`; `--host` flag added to ROOT_ARGS + mapped to
+  `server.hostname` in `pickOptions` (also honours `UNLIGHTHOUSE_HOST`); `--host 0.0.0.0` exposes (Host
+  check relaxes, token becomes the barrier + a warn logs). Bearer token (item 4) was ALREADY present
+  (`createBearerAuthGate` engaged by `UNLIGHTHOUSE_API_TOKEN`) — left intact. Cloudflare SSRF (item 6):
+  `CreateCloudflareAppOptions.allowedTargets?: (url) => boolean|Promise<boolean>`, checked in
+  `createCloudflareApp` scan.start path before the rate limiter/runner (default allow-all; multi-tenant
+  MUST supply). Added 2 catalog keys (`host.launch_path_rejected`, `cloudflare.scan_target_rejected`).
+  Tests: `test/server-guards.test.ts` (26: enumerated allow/reject rules + DNS-rebinding cross-origin →
+  403 + /__launch traversal → 403, pure + h3-app-level via toWebHandler) and
+  `packages/cloudflare/test/allowed-targets.test.ts` (3: reject/allow/default). Gate: unlighthouse +
+  cloudflare typecheck green; targeted suites 108/108 (server-guards/auth-gate/cli/cli-parity/d1-storage/
+  allowed-targets); config-resolve + e2e-http unaffected. Did NOT run full suite/attw/publint per scope.
 - D-044 (retention + history.prune + BlobStore.list): pending
 - Docs follow-through (ARCHITECTURE.md, v1.md log, GAPS.md closures): pending
 

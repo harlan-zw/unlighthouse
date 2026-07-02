@@ -20,6 +20,7 @@ export const OPERATIONAL_LOG_CATALOG = {
   'host.client_resolve_failed': 'Host failed to resolve the bundled UI client package',
   'host.static_asset_probe_failed': 'Host static file probe failed for a reason other than file absence',
   'host.site_validation_failed': 'Host preflight request could not validate the configured site before scanning',
+  'host.launch_path_rejected': 'Editor launch request was rejected because the resolved file path escaped the project root',
   'host.static_snapshot_build_failed': 'Static dashboard snapshot build failed and the offline report will degrade',
   'host.static_snapshot_pack_failed': 'Static dashboard pack pre-run failed and the offline pack cache will omit that pack',
   'host.static_screenshot_extract_failed': 'Static dashboard screenshot extraction from an LHR blob failed',
@@ -55,6 +56,7 @@ export const OPERATIONAL_LOG_CATALOG = {
   'auditor.cleanup_failed': 'Auditor/browser cleanup failed after an audit or worker task settled',
 
   'cloudflare.scan_event_fanout_failed': 'Live scan event fan-out to ScanEventsDO failed',
+  'cloudflare.scan_target_rejected': 'A scan.start target URL was rejected by the host-supplied allowedTargets SSRF policy',
   'cloudflare.scan_events_invalid_payload': 'ScanEventsDO producer sent an invalid JSON event payload',
   'cloudflare.websocket_send_failed': 'ScanEventsDO websocket send failed; socket was closed',
   'cloudflare.websocket_close_failed': 'ScanEventsDO websocket close failed',

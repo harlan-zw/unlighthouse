@@ -185,6 +185,10 @@ export const defaultConfig: UserConfig = {
   },
   server: {
     port: 5678,
+    // D-043: bind to loopback by default so a website open in the operator's
+    // browser can't reach the local API from another origin. Expose explicitly
+    // with `--host 0.0.0.0` / `server.hostname` / UNLIGHTHOUSE_HOST.
+    hostname: '127.0.0.1',
     showURL: false,
     open: true,
   },

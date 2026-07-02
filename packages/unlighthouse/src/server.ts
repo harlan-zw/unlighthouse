@@ -15,6 +15,7 @@ import { createTaggedLogger } from '@unlighthouse/core/logger'
 import { createRouter, defineEventHandler, getHeader, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
 import launch from 'launch-editor'
 import { joinURL } from 'ufo'
+import { checkApiOrigin, isExposedHost, normaliseOrigin, resolveLaunchPath } from './server-guards'
 
 const log = createTaggedLogger('server')
 
@@ -77,17 +78,24 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   const apiRouter = createHttpRouter({ handlers: createHandlers(), ctx: opts.handlerCtx })
   log.debug('API router created with command handlers')
 
-  // Editor launch endpoint.
+  // Editor launch endpoint. The Origin/Host check (below) already guards this
+  // path (it lives under /api/**); here we additionally constrain the resolved
+  // file to `resolvedConfig.root` so a crafted `file` can't traverse out
+  // (`../../etc/passwd`) and open an arbitrary file in the operator's editor.
   apiRouter.get('/__launch', defineEventHandler((event) => {
     const { file } = getQuery(event) as { file: string }
     if (!file) {
       setResponseStatus(event, 400)
       return false
     }
-    const path = file.replace(resolvedConfig.root, '')
-    const resolved = join(resolvedConfig.root, path)
-    logger?.info(`Launching file in editor: \`${path}\``)
-    launch(resolved)
+    const resolved = resolveLaunchPath(resolvedConfig.root, file)
+    if (resolved._tag === 'reject') {
+      logOperationalWarn('host.launch_path_rejected', null, { file }, log)
+      setResponseStatus(event, 403)
+      return false
+    }
+    logger?.info(`Launching file in editor: \`${resolved.target}\``)
+    launch(resolved.target)
     return true
   }))
 
@@ -190,6 +198,25 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
       setResponseStatus(event, 204)
       return ''
     }
+  }))
+
+  // D-043: Origin/Host gate for the /api/** surface (incl. /__launch + the WS
+  // upgrade at /api/ws). Rejects cross-origin browser requests (CSRF) and
+  // untrusted-Host requests (DNS-rebinding) with 403, while leaving the happy
+  // path intact: same-origin dashboard XHR, curl/CI (no Origin), and the
+  // configured `site` origin (embedding). When the server is bound to a
+  // non-loopback host the operator explicitly exposed it, so the Host check is
+  // relaxed (its legitimate Host set — LAN IP / tunnel name — can't be
+  // enumerated) and the token becomes the barrier.
+  const siteOrigin = normaliseOrigin(typeof resolvedConfig.site === 'string' ? resolvedConfig.site : null)
+  const exposed = isExposedHost((resolvedConfig.server as { hostname?: string } | undefined)?.hostname)
+  if (exposed)
+    log.warn('network: bound to a non-loopback host — DNS-rebinding Host check relaxed; set UNLIGHTHOUSE_API_TOKEN to gate the exposed surface.')
+
+  app.use(createApiOriginGate({
+    apiBase: joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix),
+    siteOrigin,
+    exposed,
   }))
 
   // Bearer-token auth for the /api/* surface. Engaged only when
@@ -321,6 +348,47 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
 // Returns an h3 event handler that 401s when the request hits the API
 // surface without a valid token. Pass-through (return undefined) on
 // everything that should bypass auth.
+// D-043: Origin/Host gate for the /api/** surface. Extracted so it can be
+// unit-tested via toWebHandler without booting the full host. All decision
+// logic lives in the pure `checkApiOrigin` (server-guards.ts); this wraps it in
+// an h3 handler that 403s cross-origin / untrusted-Host requests and passes
+// everything else through. Guards /__launch and the WS upgrade too (both under
+// the /api base).
+export interface ApiOriginGateOptions {
+  /** joinURL(routerPrefix, apiPrefix), e.g. `/api`. */
+  apiBase: string
+  /** Configured site origin (allowed for embedding), or null. */
+  siteOrigin: string | null
+  /** Server bound to a non-loopback host (Host check relaxed). */
+  exposed: boolean
+}
+
+export function createApiOriginGate(opts: ApiOriginGateOptions) {
+  const apiPathPrefix = opts.apiBase.endsWith('/') ? opts.apiBase : `${opts.apiBase}/`
+
+  return defineEventHandler((event) => {
+    const url = event.node.req.url ?? ''
+    const path = url.split('?')[0]
+    if (!url.startsWith(apiPathPrefix) && path !== opts.apiBase)
+      return
+    if (event.node.req.method === 'OPTIONS')
+      return
+    const decision = checkApiOrigin({
+      host: getHeader(event, 'host') ?? null,
+      origin: getHeader(event, 'origin') ?? null,
+      referer: getHeader(event, 'referer') ?? null,
+      siteOrigin: opts.siteOrigin,
+      exposed: opts.exposed,
+    })
+    if (decision._tag === 'reject') {
+      log.warn(`origin: rejected ${path} — ${decision.reason}`)
+      setResponseStatus(event, 403)
+      setResponseHeader(event, 'Content-Type', 'application/json')
+      return { error: 'forbidden', message: 'Cross-origin or untrusted-host request rejected.' }
+    }
+  })
+}
+
 export interface BearerAuthGateOptions {
   apiToken: string
   apiBase: string
