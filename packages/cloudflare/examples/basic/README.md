@@ -197,3 +197,36 @@ wrangler delete                          # removes the Worker + Container
 wrangler d1 delete unlighthouse          # removes the D1 database
 wrangler r2 bucket delete unlighthouse   # removes the R2 bucket
 ```
+
+## Maintainer runbook — verifying command-surface parity on a real deploy (D-035)
+
+Automated coverage: `packages/cloudflare/test/d1-storage.test.ts` exercises the
+real `d1R2Storage` (raw-SQL scan/route/pack repos + the shared drizzle-orm/d1
+reports/comparisons repos) against better-sqlite3 wearing the D1 interface. That
+proves the SQL and the drizzle code path, but not the workerd runtime. A real
+miniflare/workerd integration test is the tracked follow-up; until it lands, a
+maintainer confirms parity on an actual deploy once per release:
+
+1. Deploy (`wrangler deploy`) and apply the D1 schema. Fresh databases are
+   bootstrapped by `migrate(env.DB)` (idempotent `CREATE TABLE IF NOT EXISTS`);
+   for a managed migration history run
+   `wrangler d1 migrations apply <db> --remote` against
+   `packages/core/migrations/sqlite`.
+2. Run a scan end-to-end and confirm it reaches `complete` with a populated
+   `summary` and pack rows:
+   - `curl -sX POST $WORKER/api/scan.start -d '{"site":"https://example.com"}'`
+   - poll `curl -s "$WORKER/api/scan.status?scanId=<id>"` until `complete`.
+3. Dashboard detail: `curl -s "$WORKER/api/scan.results?scanId=<id>"` returns
+   route rows.
+4. pack.run drill-in: `curl -s "$WORKER/api/pack.run" -d '{"scanId":"<id>","pack":"overview"}'`
+   returns a report (`cache: "miss"` first, `"hit"` on the second call).
+5. compare.*: run a second scan, then
+   `curl -s "$WORKER/api/compare.run" -d '{"baseScanId":"<id1>","currentScanId":"<id2>"}'`
+   returns regressions/improvements.
+6. Optional persist path: the comparison + CrUX tables (`comparisons`,
+   `comparison_diffs`, `scan_crux`) are created by `migrate` and read through the
+   shared drizzle repositories; they populate on demand (CI comparison writes,
+   CrUX enrichment) and are otherwise empty by design.
+
+This deploy verification is maintainer-owned: the implementing agent does not
+run a live Cloudflare deploy.

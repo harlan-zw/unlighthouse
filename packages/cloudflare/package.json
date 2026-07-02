@@ -38,6 +38,7 @@
     "@cloudflare/puppeteer": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
+    "drizzle-orm": "catalog:dependencies",
     "h3": "catalog:dependencies"
   },
   "devDependencies": {

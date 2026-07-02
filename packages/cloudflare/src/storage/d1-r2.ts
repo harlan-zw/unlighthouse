@@ -13,9 +13,11 @@ import type { PackRun } from '@unlighthouse/contracts/packs'
 import type {
   BlobPutOptions,
   BlobStore,
+  ComparisonRepository,
   FindPreviousQuery,
   ListQuery,
   PackRunRepository,
+  ReportRepositories,
   RouteListQuery,
   ScanInsert,
   ScanRepository,
@@ -34,6 +36,17 @@ import type {
   ScanStatus,
   ScanSummary,
 } from '@unlighthouse/contracts/types/atoms'
+// Reports (CrUX) + comparisons are REAL drizzle repositories: D1 speaks the
+// same sqlite dialect the shared `@unlighthouse/contracts/drizzle` schema
+// targets, so the Cloudflare host reuses the exact query code the better-sqlite3
+// host runs instead of re-implementing it. `db` is exposed so the on-demand
+// comparison writer (`compareScans`) and CrUX enrichment operate over D1 too.
+import {
+  asDrizzleDatabase,
+  createComparisonRepository,
+  createReportRepositories,
+} from '@unlighthouse/core/storage/drizzle'
+import { drizzle } from 'drizzle-orm/d1'
 
 // Re-export the contract type to keep the surface narrow.
 export type { BlobStore }
@@ -681,6 +694,11 @@ const INIT_SQL: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_scans_status ON scans (status)`,
   `CREATE INDEX IF NOT EXISTS idx_scans_started_at ON scans (started_at)`,
   `CREATE INDEX IF NOT EXISTS idx_scans_find_previous ON scans (site, device, ci_branch, started_at)`,
+  // Full column set from the shared `@unlighthouse/contracts/drizzle` schema so
+  // any drizzle read over `scan_routes` (e.g. `compareScans`) runs on D1. The
+  // raw-SQL route writer here populates the core metric columns; the additive
+  // provenance/blob-key columns default null until the D-034/D-040 row writer
+  // reaches the D1 path.
   `CREATE TABLE IF NOT EXISTS scan_routes (
     scan_id text NOT NULL,
     url text NOT NULL,
@@ -691,6 +709,7 @@ const INIT_SQL: string[] = [
     score_accessibility real,
     score_seo real,
     score_best_practices real,
+    score_agentic_browsing real,
     lcp real,
     cls real,
     inp real,
@@ -699,8 +718,11 @@ const INIT_SQL: string[] = [
     tbt real,
     si real,
     lighthouse_version text NOT NULL,
+    auditor text,
     captured_at text NOT NULL,
     lhr_blob_key text NOT NULL,
+    report_blob_key text,
+    screenshot_blob_key text,
     PRIMARY KEY (scan_id, url, device),
     FOREIGN KEY (scan_id) REFERENCES scans(scan_id) ON DELETE CASCADE
   )`,
@@ -717,6 +739,41 @@ const INIT_SQL: string[] = [
     FOREIGN KEY (scan_id) REFERENCES scans(scan_id) ON DELETE CASCADE
   )`,
   `CREATE INDEX IF NOT EXISTS idx_pack_runs_scan_id ON pack_runs (scan_id)`,
+  // Comparison tables — mirrors `@unlighthouse/contracts/drizzle` so the shared
+  // drizzle comparison repository reads/writes them verbatim on D1. Populated
+  // on demand by `compareScans` (the CI/agent comparison persist path).
+  `CREATE TABLE IF NOT EXISTS comparisons (
+    id integer PRIMARY KEY AUTOINCREMENT,
+    base_scan_id text REFERENCES scans(scan_id) ON DELETE CASCADE,
+    current_scan_id text REFERENCES scans(scan_id) ON DELETE CASCADE,
+    improved integer NOT NULL DEFAULT 0,
+    regressed integer NOT NULL DEFAULT 0,
+    unchanged integer NOT NULL DEFAULT 0,
+    new_urls integer NOT NULL DEFAULT 0,
+    removed_urls integer NOT NULL DEFAULT 0,
+    created_at integer DEFAULT (unixepoch())
+  )`,
+  `CREATE TABLE IF NOT EXISTS comparison_diffs (
+    id integer PRIMARY KEY AUTOINCREMENT,
+    comparison_id integer REFERENCES comparisons(id) ON DELETE CASCADE,
+    path text NOT NULL,
+    url text NOT NULL,
+    metric_diffs text NOT NULL,
+    severity text NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_comparisons_scans ON comparisons (base_scan_id, current_scan_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_diffs_comparison ON comparison_diffs (comparison_id)`,
+  // CrUX field data (external source, not derived from LHR) — the only surviving
+  // ReportRepositories member after the dashboard aggregation tables were removed.
+  `CREATE TABLE IF NOT EXISTS scan_crux (
+    id integer PRIMARY KEY AUTOINCREMENT,
+    scan_id text NOT NULL REFERENCES scans(scan_id) ON DELETE CASCADE,
+    hostname text NOT NULL,
+    form_factor text NOT NULL,
+    series_json text NOT NULL,
+    fetched_at integer NOT NULL DEFAULT (unixepoch())
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_scan_crux_scan ON scan_crux (scan_id, form_factor)`,
 ]
 
 export async function migrate(db: D1Database): Promise<void> {
@@ -724,29 +781,22 @@ export async function migrate(db: D1Database): Promise<void> {
 }
 
 export function d1R2Storage(opts: D1R2StorageOptions): Storage {
-  // Report + comparison repos: D1 deployment doesn't run `processScanData`
-  // (that lives in core/report and currently requires a sync drizzle handle).
-  // Stub empty until a D1-native processor lands. Dashboards degrade to "no
-  // detail data" on cloudflare; the contract atoms (`scans` + `scanRoutes`
-  // + `summary` JSON) still serve.
-  const emptyList = { list: async () => [] }
+  // Reports (CrUX) + comparisons are real drizzle repositories over the D1
+  // handle — D1 is sqlite, so the shared `@unlighthouse/contracts/drizzle`
+  // schema and the better-sqlite3 host's query code apply verbatim. `db` is the
+  // raw drizzle handle the on-demand comparison writer (`compareScans`) and CrUX
+  // enrichment use; going through it keeps the Worker host at full parity with
+  // the CLI host rather than degrading to "no detail data".
+  const ddb = drizzle(opts.db as unknown as Parameters<typeof drizzle>[0])
+  const drizzleDb = asDrizzleDatabase(ddb)
   return {
     sites: d1SiteRepository(opts.db),
     scans: d1ScanRepository(opts.db),
     routes: d1ScanRouteRepository(opts.db),
     blobs: r2BlobStore(opts.bucket),
-    // v2: the per-category dashboard aggregation tables were removed; all
-    // cross-route analysis now flows through the pack system. Only CrUX
-    // (external field data) remains in ReportRepositories.
-    reports: {
-      crux: emptyList,
-    },
-    comparisons: {
-      async list() { return [] },
-      async get() { return null },
-      async latestForCurrent() { return null },
-      async diffs() { return [] },
-    },
+    reports: createReportRepositories(drizzleDb) as ReportRepositories,
+    comparisons: createComparisonRepository(drizzleDb) as unknown as ComparisonRepository,
     packRuns: d1PackRunRepository(opts.db),
+    db: ddb,
   }
 }

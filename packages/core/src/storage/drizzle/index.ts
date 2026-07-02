@@ -57,6 +57,12 @@ export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
 
 export { INIT_SQL, INIT_SQL_STATEMENTS } from './init-sql'
 export { applyMigrations, ensureSchema } from './migrations'
+// Repository factories, exported so any host with a drizzle-compatible driver
+// (D1, libsql, better-sqlite3) reuses the exact same query code — see the
+// Cloudflare d1-r2 storage, which builds a `drizzle-orm/d1` handle and calls
+// these directly rather than re-implementing the SQL.
+export { createComparisonRepository } from './repositories/comparisons'
+export { createReportRepositories } from './repositories/reports'
 export { asDrizzleDatabase } from './types'
 export type { DrizzleDatabase } from './types'
 

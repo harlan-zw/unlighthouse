@@ -4,7 +4,6 @@ import type { Hookable } from 'hookable'
 import { parseScanId } from '@unlighthouse/contracts'
 import { scanCrux } from '@unlighthouse/contracts/drizzle'
 import { fetchCruxHistory, getSiteOrigin } from '@unlighthouse/core/auditors/crux'
-import { processScanData } from '@unlighthouse/core/report'
 import { asDrizzleDatabase } from '@unlighthouse/core/storage/drizzle'
 import { and, eq } from 'drizzle-orm'
 
@@ -41,16 +40,21 @@ async function writeScanManifest(storage: Storage, scanId: string): Promise<void
 }
 
 /**
- * Post-scan history orchestration subscriber.
+ * Post-scan history subscriber — CLI-host-only enrichment.
  *
- * Core (`createUnlighthouseCore`) handles the per-route writes: `storage.scans.*`,
- * `storage.routes.putBatch`, and LHR blob persistence. This subscriber adds the
- * dashboard-private aggregations on terminal events:
+ * Scan finalization proper (aggregating `scan.summary` from the persisted
+ * routes and writing the pack auto-runs) is core-owned: `finalizeScan`
+ * (`@unlighthouse/core` `scan/route-audit.ts`) runs it before it emits
+ * `scan:complete`, so every host — CLI, Cloudflare `ScanRunnerDO`, custom —
+ * gets identical summary + pack rows (D-035). This subscriber only adds the
+ * two enrichments that are genuinely CLI/Node-bound and that no host but the
+ * local dashboard needs:
  *
- *  - on `scan:complete`: run `processScanData` (populates 17 detail tables +
- *    1 summary row from the LHR blobs), fetch CrUX phone/desktop snapshots.
- *  - cancelled/error: no-op (storage already set the row to cancelled/error
- *    in `createUnlighthouseCore`'s terminal handler).
+ *  - a per-scan `manifest.json` blob (LHCI-compatible directory descriptor);
+ *  - CrUX phone/desktop field-data snapshots (needs a raw drizzle handle;
+ *    memory / D1 hosts skip persistence).
+ *
+ * cancelled/error are no-ops (core's terminal handler already set the row).
  *
  * Idempotent under repeated registration: hosts construct one subscriber per
  * host instance; the host's hookable bus is per-host so no module-level guard
@@ -60,15 +64,7 @@ export function historySubscriber(deps: HistorySubscriberDeps): void {
   const { hooks, resolvedConfig, storage, logger } = deps
 
   hooks.hook('scan:complete', async ({ scanId }) => {
-    logger?.debug?.(`Processing dashboard data for scan: ${scanId}`)
-
-    const compareCfg = resolvedConfig.ci?.comparison
-    await processScanData(storage, scanId, {
-      compare: compareCfg?.enabled !== false,
-      thresholds: compareCfg?.thresholds,
-    }).catch((err: unknown) => {
-      logger?.error?.(`Failed to process scan data: ${err}`)
-    })
+    logger?.debug?.(`Writing history enrichment for scan: ${scanId}`)
 
     // Per-scan manifest.json — LHCI-compatible directory descriptor. Lists
     // every route + the scan summary so external tooling can ingest a folder

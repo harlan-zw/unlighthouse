@@ -80,7 +80,24 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   NOTE on the gate's generateClient before/after snapshot: generateClient's data path was already
   reconciled-based (unchanged here), so its output is identical; the lossy diff lives in the ci.ts CI
   report, as designed. Gate: typecheck green; boundary + reporter tests pass.
-- D-035 (core-owned finalizeScan; D1 parity): pending
+- D-035 (core-owned finalizeScan; D1 parity): done (via subagent, gated by me) — items 1/2/4 were
+  ALREADY core-owned by prior evolution: `finalizeScan` (core/scan/route-audit.ts) already computes
+  scan.summary from routes.listForScan, writes pack auto-runs + the terminal `complete` row + emits
+  `scan:complete`, and is already called by core.ts (CLI) AND ScanRunnerDO (Cloudflare). tracking.ts
+  only called the no-op `processScanData` → removed that dead call (subscriber now does CLI-only
+  manifest + CrUX). Substantive work: D1 `reports`/`comparisons` stubs replaced with REAL shared
+  drizzle repos (`createReportRepositories`/`createComparisonRepository` exported from core drizzle;
+  d1-r2 builds a `drizzle-orm/d1` handle + exposes `db`); added comparison/comparison_diffs/scan_crux
+  + full scan_routes columns to D1 INIT_SQL. New `packages/cloudflare/test/d1-storage.test.ts` (6,
+  real d1R2Storage over a better-sqlite3 D1 shim: compare.run/detail, scan.results, pack.run,
+  compareScans persist-read). Maintainer runbook in cloudflare/examples/basic/README.md.
+  Gate: typecheck green; full suite 644 pass/1 skip.
+  KNOWN GAP (flagged, out of D-035 scope): the D1 raw-SQL route WRITER does not yet populate
+  `report_blob_key`/`auditor`/`score_agentic_browsing`/`screenshot_blob_key` (columns added, values
+  null on a real CF scan) — so route.get's reconciled deep-dive can't resolve report_blob_key on D1
+  until the D-034/D-040 row-writer cutover reaches the D1 ingest path. Separate follow-up.
+  MAINTAINER-FLAGGED: real Cloudflare (miniflare/workerd) deploy verification — runbook only, not
+  attempted; a real miniflare/vitest-pool-workers test is the documented follow-up.
 - D-036 (RateLimiter → port): pending
 - D-037 (published JSON Schemas + $schema stamping): pending
 - D-039 (seeds/route-definitions): pending
