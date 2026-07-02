@@ -104,7 +104,7 @@ export function createRemoteLighthouseAuditor(opts: RemoteLighthouseOptions): Au
       // like the local auditor — without this, the persist path (auditRoute)
       // finds no `.extracted` and writes a row with all scores null, so the
       // dashboard shows the routes with no numbers. Mirrors local.ts.
-      return attachExtractedRouteData(lhr, url)
+      return attachExtractedRouteData(lhr, url, 'remote-lighthouse')
     },
   }
 }

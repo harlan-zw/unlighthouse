@@ -152,7 +152,18 @@ const AuditorRouterConfig = z.object({
   })).optional(),
 })
 
-// Single provider, or a router across many.
+// D-041: category-split distribution. Each Lighthouse category is assigned to a
+// provider; `splitCategoriesAuditor` fans the categories out and merges the
+// disjoint results (e.g. perf from `local`, everything else from `psi`).
+const AuditorSplitConfig = z.object({
+  strategy: z.literal('split'),
+  assignments: z.record(
+    z.enum(['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing']),
+    AuditorProvider,
+  ),
+})
+
+// Single provider, a router across many, or a category split.
 const AuditorConfig = z.union([
   AuditorProvider,
   z.object({
@@ -161,6 +172,7 @@ const AuditorConfig = z.union([
     /** Per-strategy knobs. Optional; defaults to permissive behaviour. */
     router: AuditorRouterConfig.optional(),
   }),
+  AuditorSplitConfig,
 ])
 
 /**

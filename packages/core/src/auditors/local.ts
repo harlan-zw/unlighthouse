@@ -85,7 +85,7 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
         ...(_opts?.device ? { emulatedFormFactor: _opts.device } : {}),
       }
       const report = await runTask<UnlighthouseReport>(pool, 'lighthouse', { url, options })
-      return attachExtractedRouteData(report.raw, url)
+      return attachExtractedRouteData(report.raw, url, 'local')
     },
   }
 }

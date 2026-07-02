@@ -52,8 +52,20 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   76,106,157) to `UnlighthouseError` (`NOT_SUPPORTED` / new `NO_AUDITOR_AVAILABLE`) so exit-code
   mapping has typed codes. Tripwire: cac→citty parsing parity for `--no-cache`, comma-list flags
   (`--device`, `--urls`), dot-notation. Left for a fresh session per the handoff's per-decision note.
-- D-040 (per-row auditor provenance + sample pinning): pending
-- D-041 (splitCategoriesAuditor): pending
+- D-040 (per-row auditor provenance + sample pinning): done — `ExtractedMetricsSchema.auditor` +
+  drizzle `auditor text` column (INIT_SQL + new migration `0003_add_auditor_column.sql` + additive
+  ALTER); each adapter stamps its name via `attachExtractedRouteData(…, name)` (local/psi/cdp-connect/
+  remote-lighthouse/dataforseo) or directly (mock/crux); route-audit copies `report.auditor` → row +
+  `reconcileToContract`. `ReconciledReport.provenance` gains `auditor`/`auditors`/`concurrency` (all
+  nullish — shape changed ONCE for D-040/D-041/D-042). Sample pinning: `AuditOpts.sample`, threaded
+  by `auditSampled`; `routeAuditors` memoizes the pick per (url,device) for the sample group.
+  NOTE: UI mixed-backend badge deferred (data flows via query.routes/scan.results already; pure
+  display addition to routes-table).
+- D-041 (splitCategoriesAuditor): done — `core/auditors/route/split.ts` (disjoint-category merge,
+  per-category provenance, `split` row auditor when categories diverge, single-backend collapse,
+  CONFIG_INVALID on unsupported/empty). Config `{ strategy: 'split', assignments }` in AuditorConfig +
+  wired in `resolveAuditor`. Tests `test/auditor-provenance-split.test.ts` (6): sample pinning + split
+  merge + validation. Gate: typecheck green; tests 637 pass/1 skip.
 - D-034 (reconciled-report reader cutover): pending
 - D-035 (core-owned finalizeScan; D1 parity): pending
 - D-036 (RateLimiter → port): pending

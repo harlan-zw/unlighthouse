@@ -4,7 +4,7 @@
 import type { Logger, UnlighthouseOptions } from '@unlighthouse/contracts'
 import type { AuditorConfig, AuditorProvider, AuditorRouterConfig, AuditorRouterStrategy, UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { Auditor, NamedAuditor } from '@unlighthouse/contracts/ports'
-import type { PickFn } from '@unlighthouse/core/auditors/route'
+import type { CategoryAssignments, PickFn } from '@unlighthouse/core/auditors/route'
 import type { z } from 'zod'
 import { createCdpConnectAuditor } from '@unlighthouse/core/auditors/cdp-connect'
 import { createCruxAuditor } from '@unlighthouse/core/auditors/crux'
@@ -18,6 +18,7 @@ import {
   rateLimitedPick,
   roundRobinPick,
   routeAuditors,
+  splitCategoriesAuditor,
   weightedPick,
 } from '@unlighthouse/core/auditors/route'
 
@@ -126,8 +127,19 @@ function pickerFor(
 export function resolveAuditor(opts: ResolveAuditorOptions): Auditor {
   const cfg: AuditorConfigValue = opts.config.auditor ?? { name: 'local' }
 
-  // Router form — discriminated by presence of `strategy`.
+  // Router / split forms — discriminated by presence of `strategy`.
   if ('strategy' in cfg) {
+    // D-041: category-split distribution — assignments map, not a provider list.
+    if (cfg.strategy === 'split') {
+      const assignments: CategoryAssignments = {}
+      for (const [category, provider] of Object.entries(cfg.assignments)) {
+        assignments[category as keyof CategoryAssignments] = {
+          name: provider.name,
+          auditor: buildSingle(provider, opts),
+        }
+      }
+      return splitCategoriesAuditor({ assignments })
+    }
     const auditors: NamedAuditor[] = cfg.providers.map((p: AuditorProviderConfig) => ({
       name: p.name,
       auditor: buildSingle(p, opts),

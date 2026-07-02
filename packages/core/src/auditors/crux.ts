@@ -382,8 +382,10 @@ export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
         tbt: null,
         si: null,
         lighthouseVersion: '12.0.0',
+        auditor: 'crux',
         capturedAt: new Date().toISOString(),
       }
+      ;(lhr as Record<string, unknown>).auditor = 'crux'
       // Keep the raw series accessible for dashboards / debug — packs
       // don't read it but the UI shows the time-series chart from it.
       ;(lhr as Record<string, unknown>)['crux-history'] = series

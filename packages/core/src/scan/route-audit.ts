@@ -43,7 +43,7 @@ export type EmitFn = <K extends keyof HookMap>(
 interface AuditorLike {
   // We never pass a page from this path; keeping the second parameter at
   // `undefined` stays assignable from real auditors without widening to any.
-  audit: (url: string, page?: undefined, opts?: { signal?: AbortSignal, device?: Device, lighthouseFlags?: Record<string, unknown> }) => Promise<unknown>
+  audit: (url: string, page?: undefined, opts?: { signal?: AbortSignal, device?: Device, lighthouseFlags?: Record<string, unknown>, sample?: { index: number, total: number } }) => Promise<unknown>
 }
 
 /** Clamp `scanner.samples` to the schema range (1..10); default 1. */
@@ -77,7 +77,9 @@ async function auditSampled(
   for (let i = 0; i < samples; i++) {
     if (opts.signal?.aborted)
       break
-    runs.push(await auditor.audit(url, undefined, opts))
+    // D-040: tag each run with its sample-group position so a router pins the
+    // picked backend across the group (single-backend median).
+    runs.push(await auditor.audit(url, undefined, { ...opts, sample: { index: i, total: samples } }))
   }
   if (runs.length === 0) {
     throw new UnlighthouseError({
@@ -215,6 +217,15 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       capturedAt: nowIso(),
     })
 
+    // D-040: stamp the backend that actually ran onto the row. The concrete
+    // adapter sets `report.auditor`; a router/fallback passes it through, so this
+    // is the real backend, not the composer. `split` arrives here already set by
+    // splitCategoriesAuditor (D-041) when categories diverged.
+    const reportAuditor = (report as { auditor?: string }).auditor
+    const reportAuditors = (report as { auditors?: Record<string, string> }).auditors
+    if (reportAuditor)
+      metrics.auditor = reportAuditor
+
     if (lhrGzip) {
       // Mirror `routes.ts:blobKeyFor` derivation so the blob lines up with the
       // `lhrBlobKey` + `reportBlobKey` columns the row got. Device segment is
@@ -281,7 +292,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       }
       const { reconcileToContract } = await import('../report/extract')
       const lhr = lhrCache ?? JSON.parse(gunzipToString(lhrGzip))
-      const contract = reconcileToContract({ scanId, url, device, lhr: lhr as LighthouseResult })
+      const contract = reconcileToContract({ scanId, url, device, lhr: lhr as LighthouseResult, auditor: reportAuditor, auditors: reportAuditors })
       const contractBytes = new TextEncoder().encode(JSON.stringify(contract))
       await storage.blobs.put(contractKey, contractBytes).catch((err) => {
         throw new UnlighthouseError({

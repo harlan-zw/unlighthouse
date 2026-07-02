@@ -84,6 +84,10 @@ export const scanRoutes = sqliteTable(
     si: real('si'),
 
     lighthouseVersion: text('lighthouse_version').notNull(),
+    // D-040: backend that produced this row (`local` / `psi` / `split` / …).
+    // Additive + nullable so old rows (and libsql, which skips runtime
+    // migrations) heal via the idempotent ALTER in the init-SQL path.
+    auditor: text('auditor'),
     capturedAt: text('captured_at').notNull(),
 
     // Blob store keys

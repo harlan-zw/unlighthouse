@@ -43,6 +43,13 @@ export interface AuditOpts {
    * flags as the second argument and config as the third.
    */
   lighthouseFlags?: Record<string, unknown>
+  /**
+   * D-040: sample-group position when `samples > 1`. A router (`routeAuditors`)
+   * uses it to pin the picked backend for a whole sample group — index 0 picks,
+   * later indexes reuse — so `computeMedianRun` never mixes measurement
+   * conditions (local hardware vs PSI datacenter). Absent for single audits.
+   */
+  sample?: { index: number, total: number }
 }
 
 export interface Auditor {

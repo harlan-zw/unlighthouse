@@ -9,7 +9,7 @@ function assertLighthouseResult(value: unknown): LighthouseResult {
   return value as LighthouseResult
 }
 
-export function attachExtractedRouteData(value: unknown, url: string): LighthouseReport {
+export function attachExtractedRouteData(value: unknown, url: string, auditor?: string): LighthouseReport {
   const lhr = assertLighthouseResult(value)
   const extracted = extractRouteData(lhr)
   const path = (() => {
@@ -38,7 +38,10 @@ export function attachExtractedRouteData(value: unknown, url: string): Lighthous
     tbt: extracted.tbt,
     si: extracted.si,
     lighthouseVersion: lhr.lighthouseVersion ?? 'unknown',
+    // D-040: the backend that produced this report. Stamped by the concrete
+    // adapter (each passes its own name); routers/fallbacks pass it through.
+    auditor: auditor ?? null,
     capturedAt: new Date().toISOString(),
   })
-  return Object.assign(lhr, { extracted: metrics, lhrGzip: extracted.lhrGzip }) as unknown as LighthouseReport
+  return Object.assign(lhr, { extracted: metrics, lhrGzip: extracted.lhrGzip, auditor }) as unknown as LighthouseReport
 }

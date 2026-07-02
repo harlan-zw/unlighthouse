@@ -50,6 +50,7 @@ function metricsToRow(scanId: string, device: Device, m: ExtractedMetrics) {
     tbt: m.tbt,
     si: m.si,
     lighthouseVersion: m.lighthouseVersion,
+    auditor: m.auditor ?? null,
     capturedAt: m.capturedAt,
     lhrBlobKey: blobKeyFor(scanId, m.url, device),
     reportBlobKey: reportBlobKeyFor(scanId, m.url, device),

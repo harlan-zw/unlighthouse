@@ -80,7 +80,7 @@ export function createPsiAuditor(opts: PsiOptions = {}): Auditor {
       // `.extracted` (the scored metrics row) + `.lhrGzip`, exactly like the
       // local + remote-lighthouse auditors — without this the persist path
       // (auditRoute) finds no `.extracted` and writes all-null scores.
-      return attachExtractedRouteData(lhr, url)
+      return attachExtractedRouteData(lhr, url, 'psi')
     },
   }
 }

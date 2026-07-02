@@ -90,7 +90,7 @@ export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
         const result = await runLighthouse(url, flags, auditOpts.lighthouseConfig, page)
         if (!result || !result.lhr)
           throw new Error('Lighthouse failed to run against connected CDP page')
-        return attachExtractedRouteData(result.lhr, url)
+        return attachExtractedRouteData(result.lhr, url, 'cdp-connect')
       }
       finally {
         // CLOSE (not disconnect) so the remote Browser Run session is

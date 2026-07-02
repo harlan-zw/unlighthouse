@@ -12,7 +12,7 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
   'CREATE INDEX IF NOT EXISTS `idx_scans_started_at` ON `scans` (`started_at`);',
   'CREATE INDEX IF NOT EXISTS `idx_scans_find_previous` ON `scans` (`site`, `device`, `ci_branch`, `started_at`);',
 
-  'CREATE TABLE IF NOT EXISTS `scan_routes` (\n  `scan_id` text NOT NULL,\n  `url` text NOT NULL,\n  `device` text NOT NULL DEFAULT \'mobile\',\n  `path` text NOT NULL,\n  `route_name` text,\n  `score_performance` real,\n  `score_accessibility` real,\n  `score_seo` real,\n  `score_best_practices` real,\n  `score_agentic_browsing` real,\n  `lcp` real,\n  `cls` real,\n  `inp` real,\n  `fcp` real,\n  `ttfb` real,\n  `tbt` real,\n  `si` real,\n  `lighthouse_version` text NOT NULL,\n  `captured_at` text NOT NULL,\n  `lhr_blob_key` text NOT NULL,\n  `report_blob_key` text,\n  `screenshot_blob_key` text,\n  PRIMARY KEY (`scan_id`, `url`, `device`),\n  FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade\n);',
+  'CREATE TABLE IF NOT EXISTS `scan_routes` (\n  `scan_id` text NOT NULL,\n  `url` text NOT NULL,\n  `device` text NOT NULL DEFAULT \'mobile\',\n  `path` text NOT NULL,\n  `route_name` text,\n  `score_performance` real,\n  `score_accessibility` real,\n  `score_seo` real,\n  `score_best_practices` real,\n  `score_agentic_browsing` real,\n  `lcp` real,\n  `cls` real,\n  `inp` real,\n  `fcp` real,\n  `ttfb` real,\n  `tbt` real,\n  `si` real,\n  `lighthouse_version` text NOT NULL,\n  `auditor` text,\n  `captured_at` text NOT NULL,\n  `lhr_blob_key` text NOT NULL,\n  `report_blob_key` text,\n  `screenshot_blob_key` text,\n  PRIMARY KEY (`scan_id`, `url`, `device`),\n  FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade\n);',
   'CREATE INDEX IF NOT EXISTS `idx_scan_routes_scan_id` ON `scan_routes` (`scan_id`);',
 
   'CREATE TABLE IF NOT EXISTS `pack_runs` (\n  `scan_id` text NOT NULL,\n  `pack_name` text NOT NULL,\n  `pack_version` text NOT NULL,\n  `started_at` text NOT NULL,\n  `completed_at` text NOT NULL,\n  `report` text,\n  `report_blob_key` text,\n  PRIMARY KEY (`scan_id`, `pack_name`, `pack_version`),\n  FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade\n);',
@@ -34,6 +34,8 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
   'ALTER TABLE `scan_routes` ADD COLUMN `score_agentic_browsing` real;',
   'ALTER TABLE `scan_routes` ADD COLUMN `screenshot_blob_key` text;',
   'ALTER TABLE `scan_routes` ADD COLUMN `report_blob_key` text;',
+  // D-040: per-row auditor provenance.
+  'ALTER TABLE `scan_routes` ADD COLUMN `auditor` text;',
   'ALTER TABLE `scans` ADD COLUMN `site_id` text REFERENCES `sites`(`id`) ON DELETE SET NULL;',
   'CREATE INDEX IF NOT EXISTS `idx_scans_site_id` ON `scans` (`site_id`);',
 ]

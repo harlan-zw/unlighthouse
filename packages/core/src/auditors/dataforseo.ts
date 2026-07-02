@@ -86,7 +86,7 @@ export function createDataForSeoAuditor(opts: DataForSeoOptions): Auditor {
     capabilities: DATAFORSEO_CAPABILITIES,
     async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
       const report = await provider(url)
-      return attachExtractedRouteData(report.raw, url)
+      return attachExtractedRouteData(report.raw, url, 'dataforseo')
     },
   }
 }

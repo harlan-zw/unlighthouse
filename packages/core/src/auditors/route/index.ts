@@ -9,6 +9,7 @@ import type {
 } from '@unlighthouse/contracts/ports'
 import { ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 
+export { type CategoryAssignments, splitCategoriesAuditor, type SplitCategoriesOptions } from './split'
 export { createTokenBucket, type RateRule, type TokenBucket } from './token-bucket'
 
 export type PickFn = (
@@ -86,12 +87,33 @@ function filterAuditorsByCategories(auditors: NamedAuditor[], categories: readon
  */
 export function routeAuditors(opts: RouteAuditorsOptions): Auditor {
   const capabilities = deriveCapabilities(opts.auditors)
+  // D-040: pin the picked backend for the duration of a sample group so N runs
+  // of one route all hit the same adapter (computeMedianRun stays single-backend).
+  // Keyed by (url, device); freed after the group's last sample.
+  const sampleMemo = new Map<string, Auditor>()
   return {
     capabilities,
     async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<LighthouseReport> {
       const requestedCategories = categoriesFromAuditOpts(auditOpts)
       const candidates = filterAuditorsByCategories(opts.auditors, requestedCategories)
-      const picked = await opts.pick(candidates, { url, auditOpts, requestedCategories })
+      const sample = auditOpts?.sample
+      let picked: Auditor
+      if (sample && sample.total > 1) {
+        const key = `${url}|${auditOpts?.device ?? 'mobile'}`
+        const cached = sampleMemo.get(key)
+        if (cached && sample.index > 0) {
+          picked = cached
+        }
+        else {
+          picked = await opts.pick(candidates, { url, auditOpts, requestedCategories })
+          sampleMemo.set(key, picked)
+        }
+        if (sample.index >= sample.total - 1)
+          sampleMemo.delete(key)
+      }
+      else {
+        picked = await opts.pick(candidates, { url, auditOpts, requestedCategories })
+      }
       return picked.audit(url, page, auditOpts)
     },
   }

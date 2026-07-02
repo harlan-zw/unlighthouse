@@ -161,6 +161,11 @@ const ExtractedMetricsSchema = z.object({
   tbt: z.number().nullable(),
   si: z.number().nullable(),
   lighthouseVersion: z.string(),
+  // D-040: which auditor backend produced this row (`local` / `psi` /
+  // `dataforseo` / …, or `split` when categories diverge). Additive + nullish —
+  // pre-existing rows never had a choice, same treatment as scoreAgenticBrowsing.
+  // Set by the adapter that actually ran, not the router.
+  auditor: z.string().nullish(),
   capturedAt: z.iso.datetime(),
 })
 export type ExtractedMetrics = z.infer<typeof ExtractedMetricsSchema>
@@ -307,6 +312,14 @@ const ReconciledReportSchema = z.object({
     timingTotal: z.number().nullable(),
     warnings: z.array(z.string()),
     runtimeError: z.object({ code: z.string(), message: z.string() }).nullable(),
+    // D-040: the single backend that produced this report (or `split`).
+    auditor: z.string().nullish(),
+    // D-041: per-category backend when a split composer fanned categories to
+    // different auditors ({ performance: 'local', seo: 'psi', … }).
+    auditors: z.record(z.string(), z.string()).nullish(),
+    // D-042: effective pool concurrency at capture time, so historical rows are
+    // interpretable (a perf score from a contended run reads differently).
+    concurrency: z.number().nullish(),
   }),
   stackPacks: z.array(StackPackSchema).nullable(),
   entities: z.array(EntitySchema).nullable(),

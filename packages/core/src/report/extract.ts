@@ -398,6 +398,12 @@ export function reconcileToContract(args: {
   url: string
   device: 'mobile' | 'desktop'
   lhr: LighthouseResult
+  /** D-040: backend that produced the report (`local` / `psi` / `split` / …). */
+  auditor?: string | null
+  /** D-041: per-category backend map when a split composer fanned categories. */
+  auditors?: Record<string, string> | null
+  /** D-042: effective pool concurrency at capture time. */
+  concurrency?: number | null
 }): {
   scanId: string
   url: string
@@ -426,6 +432,9 @@ export function reconcileToContract(args: {
     timingTotal: number | null
     warnings: string[]
     runtimeError: { code: string, message: string } | null
+    auditor?: string | null
+    auditors?: Record<string, string> | null
+    concurrency?: number | null
   }
   stackPacks: Array<{ id: string, title: string, iconDataURL: string | null, descriptions: Record<string, string> }> | null
   entities: Array<{ name: string, isFirstParty: boolean, origins: string[] }> | null
@@ -553,6 +562,9 @@ export function reconcileToContract(args: {
       timingTotal: timing?.total ?? null,
       warnings: Array.isArray(runWarnings) ? runWarnings : [],
       runtimeError: runtimeError?.code ? { code: runtimeError.code, message: runtimeError.message ?? '' } : null,
+      auditor: args.auditor ?? null,
+      auditors: args.auditors ?? null,
+      concurrency: args.concurrency ?? null,
     },
     stackPacks,
     entities,

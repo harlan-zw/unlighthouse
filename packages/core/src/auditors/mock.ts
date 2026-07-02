@@ -202,8 +202,10 @@ export function createMockAuditor(_opts: MockAuditorOptions = {}): Auditor {
         tbt: 100,
         si: 1500,
         lighthouseVersion: lhr.lighthouseVersion ?? '13.4.0',
+        auditor: 'mock',
         capturedAt: new Date().toISOString(),
       }
+      out.auditor = 'mock'
       return out as unknown as LighthouseReport
     },
   }
