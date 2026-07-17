@@ -64,7 +64,7 @@ function isActive(link: T) {
         :to="link.disabled ? undefined : link.to"
         :aria-disabled="link.disabled || undefined"
         :tabindex="link.disabled ? -1 : undefined"
-        class="flex items-center gap-1.5 px-1 py-1 min-h-11 lg:min-h-0 rounded text-sm transition-colors"
+        class="flex items-center gap-1.5 px-1 py-1 min-h-11 lg:min-h-6 rounded text-sm transition-colors"
         :class="[
           link.disabled
             ? 'text-dimmed cursor-not-allowed'
@@ -73,7 +73,7 @@ function isActive(link: T) {
               : 'text-muted hover:text-default hover:bg-elevated',
         ]"
         :style="isActive(link) && !link.disabled ? { boxShadow: 'var(--elevation-raised)', backgroundImage: 'var(--surface-raised)' } : undefined"
-        :title="link.title"
+        :aria-description="link.title"
       >
         <slot v-if="$slots.icon" name="icon" :link="link" :active="isActive(link)" />
         <UiNavIcon
@@ -91,30 +91,22 @@ function isActive(link: T) {
         >
           {{ link.badge }}
         </span>
-        <UiTooltip
+        <span
           v-else-if="link.pending"
-          :text="link.pendingTooltip || 'Waiting for data'"
+          class="ml-auto flex items-center"
         >
           <span
-            class="ml-auto flex items-center"
-            role="img"
-            :aria-label="link.pendingTooltip || 'Waiting for data'"
-          >
-            <span class="size-1.5 rounded-full bg-current text-warning motion-safe:animate-pulse" aria-hidden="true" />
-          </span>
-        </UiTooltip>
-        <UiTooltip
-          v-else-if="link.stability"
-          :text="link.stability.tooltip"
-        >
-          <div
-            class="ml-auto opacity-45 group-hover/navitem:opacity-100 transition-opacity"
-            role="img"
-            :aria-label="link.stability.tooltip"
-          >
+            class="size-1.5 rounded-full bg-current text-warning motion-safe:animate-pulse"
+            aria-hidden="true"
+          />
+          <span class="sr-only">{{ link.pendingTooltip || 'Waiting for data' }}</span>
+        </span>
+        <span v-else-if="link.stability" class="ml-auto opacity-45 group-hover/navitem:opacity-100 transition-opacity">
+          <span aria-hidden="true">
             <UiNavIcon :icon="link.stability.icon" variant="experimental" />
-          </div>
-        </UiTooltip>
+          </span>
+          <span class="sr-only">{{ link.stability.tooltip }}</span>
+        </span>
       </NuxtLink>
       <div
         v-if="$slots.action"

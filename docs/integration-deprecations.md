@@ -1,7 +1,7 @@
 ---
-title: "Integration Deprecations"
+title: "Removed Build Tool Integrations"
 icon: carbon:warning-alt
-description: "Build tool integrations are deprecated in v1.0. Learn about migration paths and alternatives."
+description: "Build tool integrations were removed in v1. Learn how to migrate to the CLI or CI runner."
 keywords:
   - unlighthouse migration
   - unlighthouse upgrade
@@ -17,33 +17,28 @@ relatedPages:
     title: Configuration
 ---
 
-# Integration Deprecations
+# Removed Build Tool Integrations
 
-The following build tool integrations are deprecated and will be removed in v1.0:
+The following build tool integrations were removed in v1:
 
 - `@unlighthouse/nuxt`
 - `@unlighthouse/vite`
 - `@unlighthouse/webpack`
 
 ::warning
-Start migrating to [CLI](/integrations/cli) or [CI](/integrations/ci) integrations for continued support.
+Use the [CLI](/integrations/cli) or [CI](/integrations/ci) runner for continued support.
 ::
 
 ## Background
 
-When Unlighthouse was being developed, the goal was to make it as simple as possible to use with your development site.
-
-To allow for this,
-integrations
-where added that set up Unlighthouse automatically for you.
-
-This provided the site URL, automatic rescans on page updates and route discovery, which allowed for smarter sampling of dynamic routes.
+The original integrations embedded Unlighthouse in development servers to
+provide a site URL, automatic rescans, and framework-specific route discovery.
 
 ## Why Deprecate?
 
-Simply, the integrations are too difficult to maintain, error-prone and provide low-value.
-
-In nearly all raised issues related to integration, they weren't needed and the CLI could be used instead.
+They coupled Unlighthouse releases to several build-tool lifecycles while
+duplicating behavior already available through the CLI. That maintenance cost
+was not justified by the small convenience layer.
 
 ## Upgrading
 
@@ -53,13 +48,19 @@ You should remove any of the following packages from your project.
 - `@unlighthouse/vite`
 - `@unlighthouse/webpack`
 
-Instead, you should simply use the CLI.
+Run the interactive CLI against an already-running local server:
 
 ```bash
-npx unlighthouse --site localhost:3000
+npx unlighthouse --site http://localhost:3000
 ```
 
-The HMR integration be solved by manually rescanning routes using the UI.
+For automation, run the CI command against a deployed preview URL or a preview
+server started by an earlier job step:
 
-The route discovery
-will still work when scanned in the root directory or an app with `pages`.
+```bash
+npx unlighthouse-ci --site https://preview.example.com
+```
+
+Use the dashboard to rescan routes during development. For file-based route
+discovery, configure [route definitions](/guide/guides/route-definitions) in
+`unlighthouse.config.ts`.

@@ -80,7 +80,7 @@ const scoringStats = computed<UiStatProps[]>(() => [
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <span class="relative flex size-2">
-          <span class="absolute inline-flex size-full animate-ping rounded-full bg-info opacity-75" />
+          <span class="absolute inline-flex size-full motion-safe:animate-ping rounded-full bg-info opacity-75" />
           <span class="relative inline-flex size-2 rounded-full bg-info" />
         </span>
         <span class="text-sm font-medium capitalize">{{ store.status }}</span>
@@ -90,8 +90,10 @@ const scoringStats = computed<UiStatProps[]>(() => [
         <span class="text-sm font-medium tabular-nums">{{ store.percent }}%</span>
         <button
           type="button"
-          class="text-muted hover:text-default transition-colors"
+          class="inline-flex size-11 items-center justify-center rounded text-muted hover:text-default transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:size-8"
           :aria-label="expanded ? 'Collapse scan progress' : 'Expand scan progress'"
+          :aria-expanded="expanded"
+          aria-controls="scan-progress-terminal"
           @click="expanded = !expanded"
         >
           <UiIcon :name="expanded ? 'chevron-up' : 'chevron-down'" class="size-4" />
@@ -99,7 +101,7 @@ const scoringStats = computed<UiStatProps[]>(() => [
       </div>
     </div>
 
-    <UProgress :model-value="store.percent" size="sm" />
+    <UProgress :model-value="store.percent" size="sm" aria-label="Scan progress" />
 
     <!-- Counts row — crawler-side numbers. `discovered`/`total` track the same
            thing (same-host routes found so far), so we show Routes once and use
@@ -112,6 +114,8 @@ const scoringStats = computed<UiStatProps[]>(() => [
     <UiStats v-if="store.scoreCount > 0 || store.etaMs != null" variant="inline" size="sm" :data="scoringStats" class="border-t pt-3" />
 
     <!-- Terminal -->
-    <ScanTerminal v-if="expanded" />
+    <div v-if="expanded" id="scan-progress-terminal">
+      <ScanTerminal />
+    </div>
   </div>
 </template>

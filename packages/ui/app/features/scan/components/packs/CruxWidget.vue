@@ -44,7 +44,6 @@ function sourceLabel(source: string): string {
 }
 
 const UiStatusBadgeC = resolveComponent('UiStatusBadge')
-const UiTooltipC = resolveComponent('UiTooltip')
 
 const findingColumns: ColumnDef<CruxFinding>[] = [
   {
@@ -59,9 +58,7 @@ const findingColumns: ColumnDef<CruxFinding>[] = [
   {
     accessorKey: 'url',
     header: 'URL',
-    cell: ({ row }) => h(UiTooltipC, { text: row.original.url, side: 'top', size: 'lg' }, {
-      default: () => h('span', { class: 'font-mono text-xs truncate block max-w-sm' }, row.original.url),
-    }),
+    cell: ({ row }) => h('span', { class: 'font-mono text-xs break-all' }, row.original.url),
   },
   {
     accessorKey: 'formFactor',
@@ -192,11 +189,9 @@ const gapSections = computed(() => [
         </p>
         <div v-if="section.entries.length" class="space-y-1.5">
           <div v-for="g in section.entries.slice(0, GAP_CAP)" :key="`${g.url}-${g.formFactor}-${g.metric}`" class="text-xs">
-            <UiTooltip :text="g.url" side="top" size="lg">
-              <div class="font-mono truncate">
-                {{ g.url }}
-              </div>
-            </UiTooltip>
+            <div class="font-mono break-all">
+              {{ g.url }}
+            </div>
             <div class="flex items-center justify-between text-muted mt-0.5">
               <span class="uppercase">{{ g.metric }}</span>
               <span class="tabular-nums">{{ gapValue(g.metric, g.labValue) }} lab · {{ gapValue(g.metric, g.fieldValue) }} field</span>

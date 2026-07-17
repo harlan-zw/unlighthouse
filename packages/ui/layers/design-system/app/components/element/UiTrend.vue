@@ -141,15 +141,18 @@ const classes = computed(() => {
   <!-- Zero trend — show dash -->
   <span v-else-if="trend === 0" data-ui="UiTrend" class="text-dimmed" :class="sizes[size as keyof typeof sizes]" role="img" aria-label="No change">—</span>
   <!-- Clamped trend — fun tag with tooltip for real value -->
-  <span
-    v-else-if="isClamped"
-    data-ui="UiTrend"
-    class="inline-flex items-center whitespace-nowrap leading-none font-semibold tracking-tight px-1.5 py-0.5 ml-1 rounded cursor-default"
-    :class="[classes, colored ? (trend === 1 ? 'bg-success/10' : 'bg-error/10') : 'bg-muted']"
-    :title="fullValue"
-  >
-    {{ trend === 1 ? '10x+' : 'oof' }}
-  </span>
+  <UiTooltip v-else-if="isClamped" :text="fullValue" trigger-as="child">
+    <span
+      data-ui="UiTrend"
+      class="inline-flex items-center whitespace-nowrap leading-none font-semibold tracking-tight px-1.5 py-0.5 ml-1 rounded cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      :class="[classes, colored ? (trend === 1 ? 'bg-success/10' : 'bg-error/10') : 'bg-muted']"
+      role="img"
+      :aria-label="fullValue"
+      tabindex="0"
+    >
+      {{ trend === 1 ? '10x+' : 'oof' }}
+    </span>
+  </UiTooltip>
   <!-- Standard trend mode -->
   <span
     v-else

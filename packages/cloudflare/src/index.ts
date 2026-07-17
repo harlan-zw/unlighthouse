@@ -1,23 +1,8 @@
-// Cloudflare Workers preset — public surface.
+// Reusable Cloudflare Workers adapters — intentionally narrow public surface.
 //
-// `createCloudflareBrowserAuditor` lives on a separate subpath
-// (`@unlighthouse/cloudflare/auditors/browser-rendering`) so its
-// transitive lighthouse dependency only enters the Worker bundle
-// when the operator actually opts in. The default `createCloudflareApp`
-// path uses the mock auditor unless the caller wires a factory via
-// `opts.auditorFactory`.
-
-export type { CloudflareApp, CloudflareEnv, CreateCloudflareAppOptions } from './app'
-export { createCloudflareApp } from './app'
-export { cloudflareCrawler } from './crawlers/cloudflare-crawl'
-export type { CloudflareCrawlerOptions } from './crawlers/cloudflare-crawl'
-export { LighthouseContainer } from './do/lighthouse-container'
-export { createRateLimiterClient, RateLimiterDO } from './do/rate-limiter'
-export type { RateLimiterCheckResult, RateLimiterConfig, RateLimiterEnv } from './do/rate-limiter'
-export { ScanEventsDO } from './do/scan-events'
-export { ScanRunnerDO } from './do/scan-runner'
-export type { ScanRunnerEnv, ScanRunnerStartBody } from './do/scan-runner'
+// Concrete Worker request orchestration belongs to apps/cloudflare. This
+// package root exposes only the primary storage adapter. Auditors, runtime
+// classes, seeds, events, and Workflows live on explicit subpaths so consumers
+// do not acquire unrelated platform code by importing one adapter.
 export { d1R2Storage } from './storage/d1-r2'
-export type { D1R2StorageOptions } from './storage/d1-r2'
-export { default as sweeperWorker, sweepExpiredBlobs } from './sweeper'
-export type { SweeperEnv } from './sweeper'
+export type { D1R2StorageOptions, D1RetryOptions } from './storage/d1-r2'

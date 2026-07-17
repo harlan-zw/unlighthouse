@@ -665,6 +665,28 @@ describe('createUnlighthouseCore orchestration', () => {
     await session.done
     expect(session.stats()).toMatchObject({ scanned: 1, failed: 0 })
     expect(entries).toContain('scan.screenshot_write_failed')
+    const route = (await storage.routes.listForScan(session.scanId)).items[0]
+    expect(route?.screenshotBlobKey).toBeNull()
+  })
+
+  it('persists the exact screenshot blob key on the route row', async () => {
+    const url = 'https://example.com/screenshot-row'
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: {
+        capabilities: passingAuditor().capabilities,
+        audit: async () => stubLhrReport(url, { screenshot: true }),
+      },
+      seeds: emptySeeds,
+      crawler: discoveryCrawler([url]),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+    const route = (await storage.routes.listForScan(session.scanId)).items[0]
+    expect(route?.screenshotBlobKey).toMatch(new RegExp(`^scans/${session.scanId}/screenshots/.+-mobile\\.webp$`))
+    expect(await storage.blobs.has(route!.screenshotBlobKey!)).toBe(true)
   })
 })
 

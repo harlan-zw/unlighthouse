@@ -50,17 +50,6 @@ const ciBranch = ref('')
 const ciHash = ref('')
 const ciMessage = ref('')
 
-function toggleCategory(cat: Category) {
-  const i = selectedCategories.value.indexOf(cat)
-  if (i >= 0) {
-    if (selectedCategories.value.length > 1)
-      selectedCategories.value.splice(i, 1)
-  }
-  else {
-    selectedCategories.value.push(cat)
-  }
-}
-
 async function handleSubmit() {
   if (!siteUrl.value.trim())
     return
@@ -125,14 +114,19 @@ async function handleSubmit() {
 <template>
   <UiCard>
     <form class="space-y-6" @submit.prevent="handleSubmit">
-      <UFormField label="Site URL">
+      <UFormField name="site-url" label="Site URL" required>
         <UInput
           id="site-url"
           v-model="siteUrl"
+          name="site-url"
+          type="url"
           placeholder="https://example.com"
-          aria-label="Site URL"
+          autocomplete="url"
+          inputmode="url"
+          enterkeyhint="go"
+          autocapitalize="none"
+          :spellcheck="false"
           required
-          autofocus
           class="w-full font-mono"
           :ui="{ base: 'min-h-11 lg:min-h-8' }"
         />
@@ -141,45 +135,32 @@ async function handleSubmit() {
         </template>
       </UFormField>
 
-      <div class="space-y-2">
-        <div class="text-sm font-medium">
-          Scan Mode
-        </div>
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-medium">
+          Scan mode
+        </legend>
         <div class="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            class="rounded-lg border p-3 text-left transition-colors"
-            :class="scanMode === 'site' ? 'border-accented bg-elevated ring-1 ring-default text-highlighted' : 'hover:bg-elevated/50'"
-            @click="scanMode = 'site'"
-          >
-            <div class="flex items-center gap-2 text-sm font-medium">
-              <UiIcon name="globe" class="size-4" />
-              Full Site
-            </div>
-            <p class="text-sm text-muted mt-1">
-              Crawl all pages
-            </p>
-          </button>
-          <button
-            type="button"
-            class="rounded-lg border p-3 text-left transition-colors"
-            :class="scanMode === 'page' ? 'border-accented bg-elevated ring-1 ring-default text-highlighted' : 'hover:bg-elevated/50'"
-            @click="scanMode = 'page'"
-          >
-            <div class="flex items-center gap-2 text-sm font-medium">
-              <UiIcon name="file" class="size-4" />
-              Single Page
-            </div>
-            <p class="text-sm text-muted mt-1">
-              Audit one URL only
-            </p>
-          </button>
+          <label v-for="option in [{ value: 'site', label: 'Full site', description: 'Crawl all pages', icon: 'globe' }, { value: 'page', label: 'Single page', description: 'Audit one URL only', icon: 'file' }] as const" :key="option.value" class="cursor-pointer">
+            <input v-model="scanMode" class="peer sr-only" type="radio" name="scan-mode" :value="option.value">
+            <span
+              class="block rounded-lg border p-3 text-left transition-colors hover:bg-elevated/50 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary"
+              :class="scanMode === option.value ? 'border-accented bg-elevated ring-1 ring-default text-highlighted' : ''"
+            >
+              <span class="flex items-center gap-2 text-sm font-medium">
+                <UiIcon :name="option.icon" class="size-4" />
+                {{ option.label }}
+              </span>
+              <span class="mt-1 block text-sm text-muted">{{ option.description }}</span>
+            </span>
+          </label>
         </div>
-      </div>
+      </fieldset>
 
-      <UFormField label="Device">
+      <UFormField name="device" label="Device">
         <USelect
           v-model="device"
+          name="device"
+          aria-label="Device"
           :items="[
             { label: 'Mobile', value: 'mobile', icon: 'smartphone' },
             { label: 'Desktop', value: 'desktop', icon: 'monitor' },
@@ -193,17 +174,21 @@ async function handleSubmit() {
       <div>
         <button
           type="button"
-          class="flex min-h-11 items-center gap-2 text-sm font-medium text-muted hover:text-default group w-full lg:min-h-0"
+          class="flex min-h-11 items-center gap-2 text-sm font-medium text-muted hover:text-default group w-full lg:min-h-6"
+          :aria-expanded="advancedOpen"
+          aria-controls="scan-advanced-options"
           @click="advancedOpen = !advancedOpen"
         >
           <UiIcon name="chevron-right" class="size-4 transition-transform" :class="{ 'rotate-90': advancedOpen }" />
           Advanced
           <span v-if="sampleSize > 1 || selectedCategories.length < allCategories.length || ciBranch || ciHash" class="ml-auto text-label text-highlighted">customized</span>
         </button>
-        <div v-show="advancedOpen" class="space-y-6 pt-4 pl-6">
-          <UFormField label="Sample size">
+        <div v-show="advancedOpen" id="scan-advanced-options" class="space-y-6 pt-4 pl-6">
+          <UFormField name="sample-size" label="Sample size">
             <USelect
               :model-value="String(sampleSize)"
+              name="sample-size"
+              aria-label="Sample size"
               :items="[
                 { label: '1 run (fastest)', value: '1' },
                 { label: '3 runs (median)', value: '3' },
@@ -218,36 +203,51 @@ async function handleSubmit() {
             </template>
           </UFormField>
 
-          <div class="space-y-2">
-            <div class="text-sm font-medium">
+          <fieldset class="space-y-2">
+            <legend class="text-sm font-medium">
               Categories
-            </div>
+            </legend>
             <div class="grid grid-cols-2 gap-2">
-              <button
+              <label
                 v-for="cat in allCategories"
                 :key="cat"
-                type="button"
-                class="rounded-md border px-3 py-2 text-xs text-left transition-colors capitalize"
-                :class="selectedCategories.includes(cat) ? 'border-accented bg-elevated ring-1 ring-default text-highlighted' : 'hover:bg-elevated/50 text-muted'"
-                @click="toggleCategory(cat)"
+                class="cursor-pointer"
+                :class="selectedCategories.length === 1 && selectedCategories.includes(cat) ? 'cursor-not-allowed opacity-70' : ''"
               >
-                {{ cat.replace('-', ' ') }}
-              </button>
+                <input
+                  v-model="selectedCategories"
+                  class="peer sr-only"
+                  type="checkbox"
+                  name="categories"
+                  :value="cat"
+                  :disabled="selectedCategories.length === 1 && selectedCategories.includes(cat)"
+                >
+                <span
+                  class="block min-h-11 rounded-md border px-3 py-2 text-left text-xs capitalize transition-colors hover:bg-elevated/50 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary"
+                  :class="selectedCategories.includes(cat) ? 'border-accented bg-elevated ring-1 ring-default text-highlighted' : 'text-muted'"
+                >{{ cat.replace('-', ' ') }}</span>
+              </label>
             </div>
             <p class="text-sm text-muted">
               Skipping categories cuts audit time. At least one must stay selected.
             </p>
-          </div>
+          </fieldset>
 
           <div class="space-y-2">
             <div class="text-sm font-medium">
               CI build metadata
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <UInput v-model="ciBranch" placeholder="branch" aria-label="CI branch" class="font-mono text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
-              <UInput v-model="ciHash" placeholder="commit hash" aria-label="CI commit hash" class="font-mono text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              <UFormField name="ci-branch" label="Branch">
+                <UInput id="ci-branch" v-model="ciBranch" name="ci-branch" placeholder="main" autocomplete="off" autocapitalize="none" :spellcheck="false" class="font-mono text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              </UFormField>
+              <UFormField name="ci-hash" label="Commit hash">
+                <UInput id="ci-hash" v-model="ciHash" name="ci-hash" placeholder="a1b2c3d" autocomplete="off" autocapitalize="none" :spellcheck="false" class="font-mono text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              </UFormField>
             </div>
-            <UInput v-model="ciMessage" placeholder="commit message (optional)" aria-label="CI commit message" class="w-full text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+            <UFormField name="ci-message" label="Commit message" hint="optional">
+              <UInput id="ci-message" v-model="ciMessage" name="ci-message" placeholder="Improve scan reporting" autocomplete="off" class="w-full text-xs" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+            </UFormField>
             <p class="text-sm text-muted">
               Pin this scan to a deploy. Compare against previous scans on the same branch via the compare page.
             </p>
@@ -256,7 +256,7 @@ async function handleSubmit() {
       </div>
 
       <div class="flex items-center gap-3 pt-2">
-        <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading || !siteUrl.trim()" icon="radar" class="flex-1 sm:flex-none">
+        <UiButton type="submit" purpose="cta" :loading="loading" :disabled="loading" icon="radar" class="flex-1 sm:flex-none">
           Run scan
         </UiButton>
         <UiButton v-if="!hideCancel" type="button" purpose="secondary" @click="router.push(cancelTo)">

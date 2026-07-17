@@ -25,8 +25,8 @@ The engine knows nothing about *where* it runs. Every runtime-specific concern i
 | Port | Job | In-repo adapters |
 |---|---|---|
 | `SeedSource` | Produce URLs to scan (`seeds(): AsyncIterable<Seed>`) | `core/seeds/`: `sitemap`, `manual`, `fuse` (compose/dedup). CF: `workerSitemapSeeds` |
-| `Crawler` | Drive the seed→audit loop (`run(): AsyncIterable<CrawlEvent>`) | `core/crawlers/`: `crawlee`, `parallel-map`. CF: `cloudflare-crawl` |
-| `Auditor` | Produce a Lighthouse report for one URL (`audit(url, page?, opts?)`) + advertise `capabilities` | `core/auditors/`: `local`, `cdp-connect`, `remote-lighthouse`, `psi`, `crux`, `dataforseo`, `mock`; `route/` (AuditorRouter). CF: `browser-rendering` (wraps `cdp-connect`) |
+| `Crawler` | Drive the seed→audit loop (`run(): AsyncIterable<CrawlEvent>`) | `core/crawlers/`: `crawlee`, `parallel-map`. The CF app owns durable Workflow orchestration instead of implementing this port. |
+| `Auditor` | Produce a Lighthouse report for one URL (`audit(url, page?, opts?)`) + advertise `capabilities` | `core/auditors/`: `local`, `cdp-connect`, `remote-lighthouse`, `psi`, `crux`, `dataforseo`, `mock`; `route/` (AuditorRouter). CF: Worker-safe Container transport over `remote-lighthouse` |
 | `Storage` | Persist a scan's data | `core/storage/`: `drizzle` (rows), `unstorage-blobs`, `memory`. CF: `d1-r2` |
 | `RateLimiter` | Gate audits against a quota bucket (`check` / `consume` / `remaining`) | `core/rate-limiters/`: `unstorage` (token bucket over any unstorage backend). CF: `createRateLimiterClient` over `RateLimiterDO` |
 
@@ -35,7 +35,7 @@ The engine knows nothing about *where* it runs. Every runtime-specific concern i
 **Deferred seams** — a capability kept as an inline shape until a second adapter earns a real port:
 - `Policy` — robots only (`core/policies/robots/`); exposed as `allows(url)` + `crawlDelayMs` on the crawler run options.
 - `BrowserPool` — puppeteer-cluster only (`core/auditors/audit-pool/`), passed into `auditors/local`.
-- **Fan-out / broadcasting** — host-owned, deliberately NOT promoted to a port even with two implementations (the CLI's `wireWsBroadcast` in `unlighthouse/src/host.ts` and Cloudflare's `ScanEventsDO`): its consumer is always the host itself, failing the promotion rule's polymorphic-consumer clause. `core.run()` exposes `events` + `subscribe` + a 10k-event replay ring and lets the host decide fan-out.
+- **Fan-out / broadcasting** — host-owned and deliberately NOT promoted to a port. The CLI uses `wireWsBroadcast`; an optional `ScanEventsDO` adapter exists for custom Cloudflare hosts, while the maintained app polls D1. `core.run()` exposes `events` + `subscribe` + a 10k-event replay ring and lets each host decide fan-out.
 
 `RateLimiter` graduated to a port (D-036) once it had two real adapters and a polymorphic consumer (`rateLimitedPick`); see the ports table above.
 
@@ -50,14 +50,14 @@ createUnlighthouseCore({
   config,   // already resolved by the host (c12 + env + rules); Zod-validated inside
   auditor,  // single, may be an AuditorRouter
   seeds,    // single, may be fuseSeeds([...])
-  crawler,  // single: crawlee / parallel-map / cloudflare-crawl / custom
+  crawler,  // single: crawlee / parallel-map / custom
   storage,
   hooks?,   // additive subscribers merged into the bus
   logger?,  // ConsolaInstance; tagged per adapter via logger.withTag(name)
 }): UnlighthouseCore
 ```
 
-`core.run({ overrides? })` returns a `CrawlSession` (single-session: a second `run()` throws `ACTIVE_SCAN_CONFLICT`). Per-run `overrides` (site, device/device-matrix, mode, categories, sampleSize, auditor, ciBuild) merge on top of `config` for one session without mutating shared state. The factory hides scanId minting, the AbortController, `CrawlEvent`→`scan:*` bridging, pause/resume delegation, tagged loggers, and storage writes. `reapStaleScans` marks non-terminal scans from a crashed process as `error` at boot. The per-URL audit + finalize logic (`core/scan/route-audit.ts`: `auditRoute`, `finalizeScan`, `aggregateScores`) is exported standalone so the Cloudflare `ScanRunnerDO` can drive it one URL per alarm tick, outside the crawler loop.
+`core.run({ overrides? })` returns a `CrawlSession` (single-session: a second `run()` throws `ACTIVE_SCAN_CONFLICT`). Per-run `overrides` (site, device/device-matrix, mode, categories, sampleSize, auditor, ciBuild) merge on top of `config` for one session without mutating shared state. The factory hides scanId minting, the AbortController, `CrawlEvent`→`scan:*` bridging, pause/resume delegation, tagged loggers, and storage writes. `reapStaleScans` marks non-terminal scans from a crashed process as `error` at boot. The shared scan lifecycle (`core/scan/lifecycle.ts`) owns site/scan creation, status and progress persistence, terminal transitions, and lifecycle hook emissions. Per-route auditing and aggregation remain in `core/scan/route-audit.ts`. Both modules are runtime-neutral, so Cloudflare Workflows can reuse them outside the local crawler loop.
 
 **`createUnlighthouseHost`** (`packages/unlighthouse/src/host.ts`) is the CLI/server-side wrapper around the factory. It lazily wires the default adapters behind Proxies (`ensurePorts()`), resolves config, mounts WS broadcast + the history subscriber, builds the `HandlerCtx`, and owns the h3 server lifecycle. Multi-tenant hosts (a CF Worker per request) skip the host and spawn one core per scan directly.
 
@@ -90,7 +90,7 @@ interface Storage {
 }
 ```
 
-Rows are backed by **Drizzle** (sqlite dialect → `better-sqlite3` today, libsql/Turso, D1); blobs by **unstorage** (fs locally, R2 on Cloudflare). A `memory` adapter backs tests and the Worker default. Route identity is `(scanId, url, device)` so mobile and desktop results never collapse (D-029). `better-sqlite3` is the v1.0 default driver; `node:sqlite` is parked for v2. Migrations ship as SQL files read by drizzle-kit, not as a subpath export. On D1, `reports`/`comparisons` are real shared drizzle repositories (D-035 replaced the former stubs), and the D1 raw-SQL route writer populates the provenance + reconciled `report_blob_key` columns, so `compare.*`, pack drill-ins, and `route.get`'s reconciled deep-dive all return data on the Worker host.
+Rows are backed by **Drizzle** (sqlite dialect → `better-sqlite3` today, libsql/Turso, D1); blobs by **unstorage** (fs locally, R2 on Cloudflare). A `memory` adapter backs tests and lightweight custom hosts. Route identity is `(scanId, url, device)` so mobile and desktop results never collapse (D-029). `better-sqlite3` is the v1.0 default driver; `node:sqlite` is parked for v2. Migrations ship as SQL files read by drizzle-kit, not as a subpath export. On D1, `reports`/`comparisons` are real shared drizzle repositories (D-035 replaced the former stubs), and the D1 raw-SQL route writer populates the provenance + reconciled `report_blob_key` columns, so `compare.*`, pack drill-ins, and `route.get`'s reconciled deep-dive all return data on the Worker host.
 
 ## Packages
 
@@ -103,10 +103,11 @@ Dependency graph (no cycles): `contracts` ← `core` ← { `ui`, `mcp`, `cloudfl
 | `unlighthouse` | `unlighthouse` | CLI + host + public npm name. `createUnlighthouseHost`, config resolution (c12 + defu + Zod in `src/config/resolve.ts`), reporters, history subscriber. Owns bins `unlighthouse` / `unlighthouse-ci` / `unlighthouse-mcp`. Exports `.`, `./cli`, `./ci`, `./config`. | Full |
 | `ui` | `@unlighthouse/ui` | Nuxt **SPA** dashboard (`ssr: false`). Consumes `@unlighthouse/contracts/client` via `nuxt-use-query` (live path); the static path also imports `@unlighthouse/core/api/static-client`. Builds to a static bundle (`dist/index.html`) embedded by the CLI host. | Full |
 | `mcp` | `@unlighthouse/mcp` | `createMcpServer` / `startStdioServer`: projects the command registry as MCP tools (Zod→JSON-schema), with progress-token streaming and `UnlighthouseError`→MCP error mapping. | Full |
-| `cloudflare` | `@unlighthouse/cloudflare` | Workers preset: `browser-rendering` auditor, `cloudflare-crawl`, `workerSitemapSeeds`, `d1-r2` storage, four Durable Objects, `createCloudflareApp`. | Full |
-| `cloudflare-lighthouse` | `@unlighthouse/cloudflare-lighthouse` | Container-backed real-Lighthouse server (`./server`, runs in a CF Container against Browser Run CDP) + Worker bridge (`./worker`, `createContainerLighthouseAuditor`). | Full |
-| `vite-plugin` | `@unlighthouse/vite` | Framework-agnostic Vite plugin; scans build output. Peer: unlighthouse, vite. | — |
+| `cloudflare` | `@unlighthouse/cloudflare` | Reusable Workers adapters on explicit subpaths: Container audit transport, sitemap discovery, D1/R2 storage, rate-limit/container DOs, and the scan Workflow. The root export is storage-only. | Full |
+| `lighthouse-container` | `@unlighthouse/lighthouse-container` | Generic OCI image + import-safe `./server` module for running real Lighthouse against an externally managed Chrome CDP endpoint. | Full |
 | `github-action` | `@unlighthouse/github-action` | Composite Action wrapping `unlighthouse-ci`; posts `compare.markdown` to the PR. | — |
+
+Deployment composition is not a package. `apps/cloudflare/` owns the maintained Worker runtime and entrypoint, Wrangler bindings and migrations, auditor tier policy, authentication and target policy, static assets, secrets contract, and deploy runbook. `packages/cloudflare/` contains only reusable Cloudflare adapters and runtime classes; it does not import from or own a deployable environment.
 
 ## Adapters per host
 
@@ -114,13 +115,15 @@ Dependency graph (no cycles): `contracts` ← `core` ← { `ui`, `mcp`, `cloudfl
 |---|---|---|---|---|---|
 | Local CLI (`unlighthouse`) | `crawlee` | `local` (chrome-launcher + Puppeteer) | `drizzle` + `better-sqlite3` | `unstorage` + fs | WS broadcast |
 | MCP (`unlighthouse-mcp`) | inherits CLI | inherits CLI | inherits CLI storage | inherits CLI storage | — (request/response + progress) |
-| CF Worker (`@unlighthouse/cloudflare`) | `cloudflare-crawl` / `ScanRunnerDO` | `browser-rendering` (Browser Run) or Container Lighthouse | `drizzle` + D1 | `unstorage` + R2 | `ScanEventsDO` (hibernation) |
+| CF app (`apps/cloudflare`) | bounded Workflow discovery | PSI or Container Lighthouse, optional CrUX | shared `drizzle` repositories + D1 | `BlobStore` + R2 | polling; optional event adapter remains package-local |
 
 The CLI's `resolveAuditor` also supports `psi`, `crux`, `dataforseo`, `cdp-connect`, `mock`, and router strategies via config.
 
-## Cloudflare Durable Objects
+## Cloudflare Workflows and Durable Objects
 
-`packages/cloudflare/src/do/`: **`ScanRunnerDO`** — alarm-driven durable scan orchestration; owns a persisted URL queue, processes one URL per alarm tick (survives the `waitUntil` budget), delegates each audit back to the Worker via the `SELF` binding, stops the Lighthouse container when done. **`ScanEventsDO`** — per-scan WebSocket fan-out with hibernation and per-socket filters. **`RateLimiterDO`** — token-bucket limiter. **`LighthouseContainer`** — `@cloudflare/containers` wrapper with `sleepAfter` hibernation, backing the `cloudflare-lighthouse` container server.
+`packages/cloudflare/src/workflows/scan.ts` owns durable scan orchestration: stable indexed steps, bounded same-origin discovery, retryable audit RPC, progress persistence, and lifecycle rollback. The app pre-creates the D1 scan row, starts `ScanWorkflow`, and maps pause/resume/terminate onto native Workflow controls while mirroring status to D1. The former alarm-driven `ScanRunnerDO` is deleted.
+
+`packages/cloudflare/src/do/` contains stateful platform adapters only: **`RateLimiterDO`** is a per-principal token bucket reached through typed RPC; **`LighthouseContainer`** is the `@cloudflare/containers` wrapper with idle sleep and shared lifecycle. **`ScanEventsDO`** remains an optional hibernating WebSocket fan-out adapter, but the maintained polling app does not bind it.
 
 ## UI
 
@@ -139,7 +142,7 @@ Data flow: `app/plugins/api.client.ts` provides `$api` — `createClient` from `
 - **Errors as values** for expected domain failures; a single `UnlighthouseError` with a `.code` discriminant and a `category` (`fatal` / `route-failed` / `retryable` / `validation`). Codes include `NOT_SUPPORTED`, `ACTIVE_SCAN_CONFLICT`, `QUOTA_EXCEEDED`, `CONFIG_INVALID`, `SCAN_NOT_FOUND`, `ROUTE_NOT_FOUND`, `INPUT_INVALID`, `ASSERTION_FAILED`, `COMPARE_BASELINE_MISSING`, `SCAN_ALREADY_EXISTS`. Infra errors propagate.
 - **No backwards compat with v0** — clean break, no shims. D-038 deleted the legacy `packages/client` / `packages/cli` bundles and the `// v0 re-export shim` files under `unlighthouse/src/process/*` + `src/cli/reporters/`; only `unlighthouse/src/types.ts` remains as a public re-export via `index.ts` (flagged, not a shim).
 - **CLI is the third registry projection** — `unlighthouse/src/cli/` is generated from `contracts/commands` via citty (D-033), alongside the HTTP and MCP projectors; dot-names nest as subcommands (`scan.start` → `unlighthouse scan start`), flags derive from each command's Zod input, and `--agent`/non-TTY emits `$schema`-stamped NDJSON. The v0 ergonomic entry (`unlighthouse --site x.com`) survives as the root command. `ci.ts` keeps its own cac program (it is a CI runner, not a registry projection).
-- **Treeshake invariants** — the import boundary keeps heavy deps out of the wrong bundle (crawlee out of Workers, cloudflare-crawl out of the CLI, plus the `browser-static` scenario for the UI static path and `seeds-barrel` keeping `node:fs` out of the `./seeds` barrel — D-032/D-039). Enforced by `test/treeshake.test.ts`.
+- **Treeshake invariants** — explicit subpaths keep heavy deps out of the wrong bundle (Crawlee and Node Lighthouse out of Workers, plus the `browser-static` scenario for the UI static path and `seeds-barrel` keeping `node:fs` out of the `./seeds` barrel — D-032/D-039). Enforced by `test/treeshake.test.ts`.
 - **Reconciled-reader boundary (D-034)** — raw-LHR (`lhrBlobKey`) access is confined to the translation layer + dashboard export handler; `test/lhr-reader-boundary.test.ts` fails if any file outside {`report/extract`, `scan/route-audit`, `packs/reconcile-context`, `api/dashboard`, `build.ts`} gunzips a raw LHR blob.
 - Runtime baseline: **Node ≥ 24.13.1** on every published package; **Lighthouse 13** is the pinned engine (`agentic-browsing` category + insight audits). Lighthouse's version is isolated in the report-translation layer (`core/report/*` + `auditors/lighthouse-report.ts`) and translated into our stable report shape.
 

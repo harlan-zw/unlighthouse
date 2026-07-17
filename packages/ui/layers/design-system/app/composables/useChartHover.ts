@@ -45,8 +45,14 @@ export interface UseChartHover<T, E = void> {
   /** Which side of the cursor the tooltip sits on. Reactive. */
   placement: Ref<'above' | 'below'>
   onTooltip: (data: T | null, prev: T | null, extra?: E) => void
-  onChartMove: (e: MouseEvent) => void
+  onChartMove: (e: MouseEvent, onPosition?: (position: ChartPointerPosition) => void) => void
   clear: () => void
+}
+
+export interface ChartPointerPosition {
+  cursorX: number
+  cursorY: number
+  rect: DOMRect
 }
 
 const DEFAULT_SPRING = { stiffness: 380, damping: 38, mass: 0.5 }
@@ -64,8 +70,15 @@ export function useChartHover<T, E = void>(opts: UseChartHoverOptions): UseChart
   const tooltipData = shallowRef<T | null>(null)
   const tooltipPrev = shallowRef<T | null>(null)
   const tooltipExtra = shallowRef<E | null>(null)
+  let rafId: number | null = null
+  let pendingPositionCallback: ((position: ChartPointerPosition) => void) | undefined
 
   function clear() {
+    if (rafId != null) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
+    pendingPositionCallback = undefined
     tooltipData.value = null
     tooltipPrev.value = null
     tooltipExtra.value = null
@@ -94,12 +107,12 @@ export function useChartHover<T, E = void>(opts: UseChartHoverOptions): UseChart
   const placement = ref<'above' | 'below'>('above')
 
   // rAF-batch the mousemove handler so we do at most one motion update per frame.
-  let rafId: number | null = null
   let pendingClientX = 0
   let pendingClientY = 0
-  function onChartMove(e: MouseEvent) {
+  function onChartMove(e: MouseEvent, onPosition?: (position: ChartPointerPosition) => void) {
     pendingClientX = e.clientX
     pendingClientY = e.clientY
+    pendingPositionCallback = onPosition
     if (rafId != null)
       return
     rafId = requestAnimationFrame(() => {
@@ -108,8 +121,10 @@ export function useChartHover<T, E = void>(opts: UseChartHoverOptions): UseChart
       if (width <= 0)
         return
       const rect = opts.wrapRef.value?.getBoundingClientRect()
-      const cursorXpx = pendingClientX - (rect?.left ?? 0)
-      const cursorYpx = pendingClientY - (rect?.top ?? 0)
+      if (!rect)
+        return
+      const cursorXpx = pendingClientX - rect.left
+      const cursorYpx = pendingClientY - rect.top
       // Clamp x so the tooltip's left/right edges stay within the chart.
       const halfW = tooltipWidth / 2
       const clampedX = Math.max(halfW + edgePad, Math.min(width - halfW - edgePad, cursorXpx))
@@ -120,7 +135,7 @@ export function useChartHover<T, E = void>(opts: UseChartHoverOptions): UseChart
       // to below when too close to the top edge to fit the full tooltip.
       // Also flip back to above when cursor would push the tooltip into the
       // axis-tick row at the bottom.
-      const height = rect?.height ?? 0
+      const height = rect.height
       const fitsAbove = cursorYpx - cursorGap - tooltipHeightEst >= edgePad
       const fitsBelow = cursorYpx + cursorGap + tooltipHeightEst <= height - AXIS_ROW
       if (placement.value === 'above' && !fitsAbove && fitsBelow)
@@ -129,6 +144,8 @@ export function useChartHover<T, E = void>(opts: UseChartHoverOptions): UseChart
         placement.value = 'above'
       else if (placement.value === 'below' && fitsAbove)
         placement.value = 'above'
+
+      pendingPositionCallback?.({ cursorX: cursorXpx, cursorY: cursorYpx, rect })
     })
   }
 

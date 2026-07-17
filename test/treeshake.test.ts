@@ -1,7 +1,7 @@
 /**
  * Treeshake invariants (v1.md §"Treeshake invariants").
  *
- * Six bundle scenarios assert which dependencies end up in the resolved
+ * Bundle scenarios assert which dependencies end up in the resolved
  * import graph for a given entry surface. We bundle each fixture with
  * rolldown (no write) and inspect chunk module IDs + resolved imports.
  *
@@ -171,14 +171,14 @@ describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
     })
   })
 
-  scenario('worker-cf: includes @cloudflare/puppeteer + cdp-connect, excludes crawlee/launcher', async () => {
-    await assertGraph('worker-cf', {
-      mustInclude: ['@cloudflare/puppeteer'],
+  scenario('worker-container: uses the remote transport without Node Lighthouse', async () => {
+    await assertGraph('worker-container', {
+      mustInclude: ['ofetch'],
       mustExclude: [
-        'crawlee',
-        'chrome-launcher',
         'lighthouse',
-        'better-sqlite3',
+        'puppeteer-core',
+        'chrome-launcher',
+        'crawlee',
       ],
     })
   })

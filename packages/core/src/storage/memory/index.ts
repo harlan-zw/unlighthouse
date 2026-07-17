@@ -9,6 +9,7 @@ import type {
   ScanInsert,
   ScanRepository,
   ScanRouteRepository,
+  ScanRouteWrite,
   SiteRecord,
   SiteRepository,
   Storage,
@@ -16,7 +17,6 @@ import type {
 import type {
   Category,
   Device,
-  ExtractedMetrics,
   MetricName,
   Paginated,
   Scan,
@@ -24,7 +24,7 @@ import type {
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
 import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
-import { sha1Hex } from '../../util/sha1'
+import { routeArtifactKeys } from '../artifact-keys'
 
 const SCORE_FILTER_KEYS = ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'] as const satisfies readonly Category[]
 const SCORE_FILTER_COLUMNS = {
@@ -54,7 +54,7 @@ function numericRouteValue(route: ScanRoute, column: keyof ScanRoute): number | 
 /**
  * Pure in-memory `Storage`. Used by:
  *  - tests (no fs, no native deps),
- *  - Worker default before user wires real adapters,
+ *  - lightweight custom hosts before they wire persistent adapters,
  *  - REPL / scratch.
  *
  * Not persistent. Not concurrent-safe across realms.
@@ -79,19 +79,15 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
 
   const clone = <T>(v: T): T => (v == null ? v : JSON.parse(JSON.stringify(v)) as T)
 
-  function urlHash(url: string): string {
-    // Pure-JS sha1 (not node:crypto) so memory storage stays bundleable into the
-    // static, offline dashboard. Same output as the previous createHash path.
-    return sha1Hex(url).slice(0, 16)
-  }
-
-  function toRoute(scanId: ScanId, device: Device, m: ExtractedMetrics): ScanRoute {
+  function toRoute(scanId: ScanId, device: Device, m: ScanRouteWrite): ScanRoute {
+    const keys = routeArtifactKeys(scanId, m.url, device)
     return ScanRouteSchema.parse({
       ...clone(m),
       scanId,
       device,
-      lhrBlobKey: `scans/${scanId}/lhr/${urlHash(m.url)}-${device}.json.gz`,
-      reportBlobKey: `scans/${scanId}/reports/${urlHash(m.url)}-${device}.json`,
+      lhrBlobKey: m.lhrBlobKey ?? keys.lhr,
+      reportBlobKey: m.reportBlobKey === undefined ? keys.report : m.reportBlobKey,
+      screenshotBlobKey: m.screenshotBlobKey ?? null,
     })
   }
 
@@ -157,11 +153,16 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     async delete(scanId) {
       scansMap.delete(scanId)
       routesMap.delete(scanId)
+      const prefix = `${scanId}::`
+      for (const key of packRunsMap.keys()) {
+        if (key.startsWith(prefix))
+          packRunsMap.delete(key)
+      }
     },
   }
 
   const routeRepo: ScanRouteRepository = {
-    async putBatch(scanId, device, rows: ExtractedMetrics[]) {
+    async putBatch(scanId, device, rows: ScanRouteWrite[]) {
       const map = routesMap.get(scanId) ?? new Map<string, ScanRoute>()
       for (const m of rows)
         map.set(routeKey(m.url, device), toRoute(scanId, device, m))
@@ -228,6 +229,12 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
       const items = all.slice((page - 1) * pageSize, page * pageSize).map(clone)
       return { items, total, page, pageSize }
     },
+    async findByPath(scanId, path) {
+      return Array.from(routesMap.get(scanId)?.values() ?? [])
+        .filter(route => route.path === path)
+        .sort((a, b) => a.device.localeCompare(b.device))
+        .map(clone)
+    },
     async get(scanId, url, device) {
       const r = routesMap.get(scanId)?.get(routeKey(url, device))
       return r ? clone(r) : null
@@ -259,6 +266,18 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     async get(key) {
       const v = blobsMap.get(key)
       return v ? new Uint8Array(v) : null
+    },
+    async getStream(key) {
+      const v = blobsMap.get(key)
+      if (!v)
+        return null
+      const bytes = new Uint8Array(v)
+      return new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(bytes)
+          controller.close()
+        },
+      })
     },
     async has(key) {
       return blobsMap.has(key)

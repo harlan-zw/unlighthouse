@@ -93,6 +93,7 @@ export function wrapStorage(base: Storage, opts: WrapStorageOptions): Storage {
     upsert: (scanId, device, row) => intercept('routes.upsert', { scanId, device, row }, a => base.routes.upsert(a.scanId, a.device, a.row)),
     listForScan: (scanId: ScanId, q?: RouteListQuery): Promise<Paginated<ScanRoute>> =>
       intercept('routes.listForScan', { scanId, q }, a => base.routes.listForScan(a.scanId, a.q)),
+    findByPath: (scanId, path) => intercept('routes.findByPath', { scanId, path }, a => base.routes.findByPath(a.scanId, a.path)),
     get: (scanId, url, device) => intercept('routes.get', { scanId, url, device }, a => base.routes.get(a.scanId, a.url, a.device)),
     delete: (scanId, url, device) => intercept('routes.delete', { scanId, url, device }, a => base.routes.delete(a.scanId, a.url, a.device)),
   }
@@ -101,6 +102,9 @@ export function wrapStorage(base: Storage, opts: WrapStorageOptions): Storage {
     put: (key: string, data: Uint8Array, options?: BlobPutOptions) =>
       intercept('blobs.put', { key, data, options }, a => base.blobs.put(a.key, a.data, a.options)),
     get: (key: string) => intercept('blobs.get', { key }, a => base.blobs.get(a.key)),
+    ...(base.blobs.getStream
+      ? { getStream: (key: string) => intercept('blobs.getStream', { key }, a => base.blobs.getStream!(a.key)) }
+      : {}),
     has: (key: string) => intercept('blobs.has', { key }, a => base.blobs.has(a.key)),
     delete: (key: string) => intercept('blobs.delete', { key }, a => base.blobs.delete(a.key)),
     list: (prefix: string) => intercept('blobs.list', { prefix }, a => base.blobs.list(a.prefix)),

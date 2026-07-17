@@ -12,11 +12,8 @@
 // Class form is a Cloudflare Workers platform constraint (DO runtime
 // expects classes).
 
-import type {
-  WebSocket as CFWebSocket,
-  DurableObjectState,
-} from '@cloudflare/workers-types'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { DurableObject } from 'cloudflare:workers'
 
 interface SubscriberFilter {
   /** Event names to keep (`scan:created`, `scan:complete`, …). Omitted = all. */
@@ -32,7 +29,7 @@ interface RawEvent {
 }
 
 type WebSocketResponseInit = Omit<ResponseInit, 'webSocket'> & {
-  webSocket: CFWebSocket
+  webSocket: WebSocket
 }
 
 type WebSocketResponseConstructor = new (
@@ -68,7 +65,7 @@ function matches(filter: SubscriberFilter | undefined, ev: RawEvent): boolean {
   return true
 }
 
-function closeWebSocket(ws: CFWebSocket, code: number, reason: string): void {
+function closeWebSocket(ws: WebSocket, code: number, reason: string): void {
   try {
     ws.close(code, reason)
   }
@@ -77,20 +74,19 @@ function closeWebSocket(ws: CFWebSocket, code: number, reason: string): void {
   }
 }
 
-export class ScanEventsDO {
+export class ScanEventsDO extends DurableObject<unknown> {
   private state: DurableObjectState
-  private env: unknown
   // Filters survive hibernation via attached websocket serializable attachment.
   // We don't persist to DO storage — sockets reconnect on resume, and a
   // dropped filter just means "no filter" (subscriber sees everything until
   // it re-sends the filter frame).
 
   constructor(state: DurableObjectState, env: unknown) {
+    super(state, env)
     this.state = state
-    this.env = env
   }
 
-  async fetch(request: Request): Promise<Response> {
+  override async fetch(request: Request): Promise<Response> {
     const upgrade = request.headers.get('Upgrade')
 
     if (upgrade !== 'websocket') {
@@ -115,12 +111,11 @@ export class ScanEventsDO {
       return new Response('expected websocket upgrade', { status: 426 })
     }
 
-    // WebSocketPair is a Workers-runtime global. @cloudflare/workers-types
-    // only exposes it via /// <reference />, which our tsconfig doesn't
-    // pull in. Cast via globalThis to keep the call site type-safe.
-    const pair = new (globalThis as unknown as { WebSocketPair: new () => [CFWebSocket, CFWebSocket] }).WebSocketPair()
-    const client = pair[0] as CFWebSocket
-    const server = pair[1] as CFWebSocket
+    // WebSocketPair is a Workers-runtime global. Hibernation keeps these
+    // sockets attached without pinning the object in memory.
+    const pair = new WebSocketPair()
+    const client = pair[0]
+    const server = pair[1]
 
     // Hibernation-friendly accept: server stays attached without keeping
     // the DO alive between events.
@@ -156,17 +151,17 @@ export class ScanEventsDO {
   // First inbound frame is a filter JSON; later frames re-set the filter.
   // Anything that doesn't parse stays as the prior filter (no filter on a
   // brand-new socket = receive everything).
-  webSocketMessage(ws: CFWebSocket, message: ArrayBuffer | string): void {
+  override webSocketMessage(ws: WebSocket, message: ArrayBuffer | string): void {
     const filter = parseFilter(message)
     if (filter)
       ws.serializeAttachment?.(filter)
   }
 
-  webSocketClose(ws: CFWebSocket, code: number, _reason: string, _wasClean: boolean): void {
+  override webSocketClose(ws: WebSocket, code: number, _reason: string, _wasClean: boolean): void {
     closeWebSocket(ws, code, 'closing')
   }
 
-  webSocketError(ws: CFWebSocket, _err: unknown): void {
+  override webSocketError(ws: WebSocket, _err: unknown): void {
     closeWebSocket(ws, 1011, 'error')
   }
 }

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false })
 
-const open = defineModel<boolean>('open', { default: false })
-
 const { label } = defineProps<{
   label?: string
 }>()
+
+const open = defineModel<boolean>('open', { default: false })
 
 function onToggle(event: Event) {
   open.value = (event.currentTarget as HTMLDetailsElement).open

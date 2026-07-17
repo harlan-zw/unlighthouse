@@ -29,17 +29,21 @@ const { healthy } = useBackendHealth()
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-default text-default overflow-hidden">
+  <div class="flex h-dvh flex-col overflow-hidden bg-default text-default">
+    <a
+      href="#main-content"
+      class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-default focus-visible:px-3 focus-visible:py-2 focus-visible:text-sm focus-visible:font-medium focus-visible:ring-2 focus-visible:ring-primary"
+    >Skip to content</a>
     <!-- Slim top strip; the page itself owns the in-flow toolbar
          underneath (scan picker / swap / threshold etc). Keep this
          strip absolutely minimal so we don't burn vertical space. -->
     <div class="flex items-center gap-2 px-3 h-9 border-b text-xs">
-      <nav class="flex items-center gap-1.5 min-w-0">
-        <NuxtLink to="/" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors shrink-0 lg:min-h-0 lg:min-w-0">
+      <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 min-w-0">
+        <NuxtLink to="/" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors shrink-0 lg:min-h-6 lg:min-w-6">
           Sites
         </NuxtLink>
         <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />
-        <NuxtLink :to="`/sites/${siteId}`" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors truncate lg:min-h-0 lg:min-w-0">
+        <NuxtLink :to="`/sites/${siteId}`" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors truncate lg:min-h-6 lg:min-w-6">
           {{ siteName }}
         </NuxtLink>
         <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />
@@ -50,9 +54,11 @@ const { healthy } = useBackendHealth()
         v-if="healthy !== null"
         class="flex items-center gap-1 ml-2"
         :class="healthy ? 'text-success' : 'text-error'"
-        :title="healthy ? 'Backend connected' : 'Backend unreachable'"
+        role="status"
+        aria-live="polite"
       >
-        <span class="size-1.5 rounded-full" :class="healthy ? 'bg-success' : 'bg-error animate-pulse'" />
+        <span class="size-1.5 rounded-full" :class="healthy ? 'bg-success' : 'bg-error motion-safe:animate-pulse'" aria-hidden="true" />
+        <span>{{ healthy ? 'Connected' : 'Disconnected' }}</span>
       </div>
 
       <div class="ml-auto flex items-center gap-1">
@@ -60,14 +66,14 @@ const { healthy } = useBackendHealth()
           purpose="quiet"
           size="xs"
           class="size-7 justify-center"
-          :title="`Switch to ${colorMode.value === 'dark' ? 'light' : 'dark'} mode`"
+          :aria-label="`Switch to ${colorMode.value === 'dark' ? 'light' : 'dark'} mode`"
           :icon="colorMode.value === 'dark' ? 'light' : 'dark'"
           @click="toggleColorMode"
         />
       </div>
     </div>
 
-    <main class="flex-1 overflow-hidden">
+    <main id="main-content" tabindex="-1" class="flex-1 overflow-hidden">
       <slot />
     </main>
   </div>

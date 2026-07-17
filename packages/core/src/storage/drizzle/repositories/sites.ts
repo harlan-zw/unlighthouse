@@ -3,11 +3,12 @@
 // Storage port stays adapter-agnostic.
 
 import type { SiteRecord, SiteRepository } from '@unlighthouse/contracts'
-import type { DrizzleDatabase } from '../types'
+import type { DrizzleDatabase, IdempotentWriteExecutor } from '../types'
 import { sites } from '@unlighthouse/contracts/drizzle'
 import { eq } from 'drizzle-orm'
 
-export function createSiteRepository(db: DrizzleDatabase): SiteRepository {
+export function createSiteRepository(db: DrizzleDatabase, retryIdempotentWrite?: IdempotentWriteExecutor): SiteRepository {
+  const write = retryIdempotentWrite ?? (async <T>(operation: () => Promise<T>) => operation())
   return {
     async list(): Promise<SiteRecord[]> {
       return db.select<SiteRecord>().from(sites)
@@ -48,12 +49,12 @@ export function createSiteRepository(db: DrizzleDatabase): SiteRepository {
         updates.createdAt = patch.createdAt
       if (Object.keys(updates).length === 0)
         return this.get(id)
-      const [row] = await db.update<SiteRecord>(sites).set(updates).where(eq(sites.id, id)).returning()
+      const [row] = await write(async () => db.update<SiteRecord>(sites).set(updates).where(eq(sites.id, id)).returning())
       return row ?? null
     },
 
     async delete(id: string): Promise<boolean> {
-      const result = await db.delete(sites).where(eq(sites.id, id)).returning({ id: sites.id })
+      const result = await write(async () => db.delete(sites).where(eq(sites.id, id)).returning({ id: sites.id }))
       return Array.isArray(result) && result.length > 0
     },
   }

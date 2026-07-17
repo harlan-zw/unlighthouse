@@ -378,5 +378,28 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
   })
 })
 
+describe('handlers — scan.import recovery', () => {
+  it('removes the scan and partial rows when a later import write fails', async () => {
+    const handlers = createHandlers()
+    const ctx = makeCtx()
+    const putBatch = ctx.storage.routes.putBatch.bind(ctx.storage.routes)
+    ctx.storage.routes.putBatch = async (scanId, device, rows) => {
+      await putBatch(scanId, device, rows.slice(0, 1))
+      throw new Error('simulated route batch failure')
+    }
+    const importedScan = makeScan(NEW_SCAN_ID)
+    const { scanId: _scanId, lhrBlobKey: _lhrBlobKey, reportBlobKey: _reportBlobKey, screenshotBlobKey: _screenshotBlobKey, ...route } = makeRoute()
+
+    await expect(handlers['scan.import'].run({
+      scan: importedScan,
+      routes: [{ ...route, device: 'mobile' }],
+    }, ctx)).rejects.toThrow('simulated route batch failure')
+
+    expect(await ctx.storage.scans.get(NEW_SCAN_ID)).toBeNull()
+    expect((await ctx.storage.routes.listForScan(NEW_SCAN_ID)).items).toEqual([])
+    expect(await ctx.storage.packRuns.listForScan(NEW_SCAN_ID)).toEqual([])
+  })
+})
+
 // quiet unused-import warnings if any path drops the import
 void OTHER_SCAN_ID

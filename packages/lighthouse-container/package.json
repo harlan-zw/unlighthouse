@@ -1,0 +1,48 @@
+{
+  "name": "@unlighthouse/lighthouse-container",
+  "type": "module",
+  "version": "0.0.0-v1",
+  "private": true,
+  "description": "OCI container runtime that serves real Lighthouse audits against an externally managed Chrome CDP endpoint.",
+  "license": "MIT",
+  "sideEffects": [
+    "./dist/entry.mjs"
+  ],
+  "exports": {
+    "./server": {
+      "types": "./dist/server.d.mts",
+      "import": "./dist/server.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    ".dockerignore",
+    "Dockerfile",
+    "dist",
+    "package.runtime.json",
+    "scripts",
+    "vendor"
+  ],
+  "engines": {
+    "node": ">=24.13.1"
+  },
+  "scripts": {
+    "build": "obuild",
+    "build:image": "obuild && node ./scripts/prepare-image.mjs",
+    "prepare:image": "node ./scripts/prepare-image.mjs",
+    "stub": "obuild --stub",
+    "typecheck": "tsc --noEmit",
+    "test:attw": "attw --pack --profile esm-only",
+    "test:publint": "publint"
+  },
+  "dependencies": {
+    "@unlighthouse/contracts": "workspace:*",
+    "@unlighthouse/core": "workspace:*",
+    "h3": "catalog:dependencies",
+    "lighthouse": "catalog:dependencies",
+    "puppeteer-core": "catalog:dependencies"
+  },
+  "devDependencies": {
+    "yaml": "catalog:"
+  }
+}

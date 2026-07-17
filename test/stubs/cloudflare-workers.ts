@@ -15,3 +15,8 @@ export class WorkerEntrypoint {
   // eslint-disable-next-line ts/no-explicit-any
   constructor(_ctx?: any, _env?: any) {}
 }
+
+export class WorkflowEntrypoint {
+  // eslint-disable-next-line ts/no-explicit-any
+  constructor(_ctx?: any, _env?: any) {}
+}

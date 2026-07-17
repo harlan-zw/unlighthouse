@@ -48,13 +48,12 @@ const formatMetric = formatRouteMetric
 const UiIconC = resolveComponent('UiIcon')
 const UiChipC = resolveComponent('UiChip')
 const UiTrendC = resolveComponent('UiTrend')
-const UiTooltipC = resolveComponent('UiTooltip')
 
 const columns = computed<ColumnDef<RouteRow>[]>(() => {
   const cols: ColumnDef<RouteRow>[] = [
     {
       id: 'thumbnail',
-      header: '',
+      header: 'Screenshot',
       enableSorting: false,
       headClass: 'w-[140px]',
       cell: ({ row }) => {
@@ -62,6 +61,8 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         const src = screenshotUrl(scanId.value, path)
         return h('img', {
           src,
+          width: 128,
+          height: 80,
           loading: 'lazy',
           alt: '',
           // Inline sizing (not just w-/h- classes) so the table's auto layout
@@ -79,9 +80,10 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       headClass: 'min-w-[200px]',
       cell: ({ row }) => {
         const label = row.original.path || row.original.url
-        return h(UiTooltipC, { text: row.original.url, side: 'top', size: 'lg' }, {
-          default: () => h('span', { class: 'font-mono text-xs truncate block max-w-xs' }, label),
-        })
+        return h('span', {
+          'class': 'font-mono text-xs truncate block max-w-xs',
+          'aria-label': `Route ${row.original.url}`,
+        }, label)
       },
     },
   ]
@@ -194,7 +196,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
           <UiIcon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'smartphone' : 'monitor'" class="size-3.5" />
         </span>
       </div>
-      <button type="button" class="min-h-11 px-2 -mx-2 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:px-0 lg:mx-0" @click="showAllMetrics = !showAllMetrics">
+      <button type="button" class="min-h-11 px-2 -mx-2 text-xs text-muted hover:text-default transition-colors lg:min-h-6 lg:px-0 lg:mx-0" :aria-expanded="showAllMetrics" aria-controls="route-extra-metrics" @click="showAllMetrics = !showAllMetrics">
         {{ showAllMetrics ? 'Hide metrics' : 'Show metrics' }}
       </button>
     </div>
@@ -202,7 +204,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     <!-- Core Web Vitals — professional metric header (p75 + distribution +
          percentiles across the visible routes). LCP/CLS/TBT/INP mirrors the
          CWV_COLS column set below; FCP/SI/TTFB stay behind "More metrics". -->
-    <div v-if="filtered.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div v-if="filtered.length" id="route-extra-metrics" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="CWV_THRESHOLDS.lcp" :format="(v: number) => formatMetric(v, 'ms')" />
       <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="CWV_THRESHOLDS.cls" :format="(v: number) => formatMetric(v, '')" />
       <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="CWV_THRESHOLDS.tbt" :format="(v: number) => formatMetric(v, 'ms')" />
@@ -219,7 +221,10 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       <UInput
         v-model="q"
         icon="search"
-        placeholder="Filter by URL..."
+        name="route-filter"
+        type="search"
+        placeholder="Filter by URL…"
+        autocomplete="off"
         aria-label="Filter routes by URL"
         class="flex-1 max-w-xs min-w-[180px]"
         :ui="{ base: 'min-h-11 lg:min-h-8' }"
@@ -253,7 +258,6 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       <UiButton
         purpose="secondary"
         size="sm"
-        :title="density === 'compact' ? 'Use comfortable rows' : 'Use compact rows'"
         :icon="density === 'compact' ? 'list' : 'table'"
         :aria-label="density === 'compact' ? 'Use comfortable rows' : 'Use compact rows'"
         @click="density = density === 'compact' ? 'comfortable' : 'compact'"

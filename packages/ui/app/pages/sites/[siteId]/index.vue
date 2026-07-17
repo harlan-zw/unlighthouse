@@ -43,7 +43,7 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
           <h1 class="text-title truncate">
             {{ siteName }}
           </h1>
-          <a :href="siteUrl" target="_blank" rel="noopener" class="text-sm text-muted hover:text-default inline-flex items-center gap-1">
+          <a :href="siteUrl" target="_blank" rel="noopener noreferrer" class="text-sm text-muted hover:text-default inline-flex items-center gap-1">
             {{ siteUrl }}
             <UiIcon name="external" class="size-3" />
           </a>
@@ -96,20 +96,20 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
       <!-- Score trend -->
       <UiCard size="sm">
         <template #header>
-          <h3 class="text-label text-dimmed">
+          <h2 class="text-label text-dimmed">
             Category scores over time
-          </h3>
+          </h2>
         </template>
-        <TrendChart :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
+        <TrendChart label="Category scores over time" :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
       </UiCard>
 
       <!-- Web vitals trend -->
       <UiCard size="sm">
         <template #header>
           <div class="flex flex-row items-center justify-between">
-            <h3 class="text-label text-dimmed">
+            <h2 class="text-label text-dimmed">
               Core Web Vitals (p75) over time
-            </h3>
+            </h2>
             <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted inline-flex items-center gap-1">
               <UiIcon name="loading" class="size-3.5 animate-spin" /> loading vitals…
             </span>
@@ -122,6 +122,7 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
             </div>
             <TrendChart
               :series="vitalsSeries(m.key, m.label, m.color)"
+              :label="`${m.label} over time`"
               :format="m.fmt"
               :show-legend="false"
               :height="140"

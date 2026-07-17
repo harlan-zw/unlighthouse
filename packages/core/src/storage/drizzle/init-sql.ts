@@ -14,6 +14,7 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
 
   'CREATE TABLE IF NOT EXISTS `scan_routes` (\n  `scan_id` text NOT NULL,\n  `url` text NOT NULL,\n  `device` text NOT NULL DEFAULT \'mobile\',\n  `path` text NOT NULL,\n  `route_name` text,\n  `score_performance` real,\n  `score_accessibility` real,\n  `score_seo` real,\n  `score_best_practices` real,\n  `score_agentic_browsing` real,\n  `lcp` real,\n  `cls` real,\n  `inp` real,\n  `fcp` real,\n  `ttfb` real,\n  `tbt` real,\n  `si` real,\n  `lighthouse_version` text NOT NULL,\n  `auditor` text,\n  `captured_at` text NOT NULL,\n  `lhr_blob_key` text NOT NULL,\n  `report_blob_key` text,\n  `screenshot_blob_key` text,\n  PRIMARY KEY (`scan_id`, `url`, `device`),\n  FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade\n);',
   'CREATE INDEX IF NOT EXISTS `idx_scan_routes_scan_id` ON `scan_routes` (`scan_id`);',
+  'CREATE INDEX IF NOT EXISTS `idx_scan_routes_scan_path_device` ON `scan_routes` (`scan_id`, `path`, `device`);',
 
   'CREATE TABLE IF NOT EXISTS `pack_runs` (\n  `scan_id` text NOT NULL,\n  `pack_name` text NOT NULL,\n  `pack_version` text NOT NULL,\n  `started_at` text NOT NULL,\n  `completed_at` text NOT NULL,\n  `report` text,\n  `report_blob_key` text,\n  PRIMARY KEY (`scan_id`, `pack_name`, `pack_version`),\n  FOREIGN KEY (`scan_id`) REFERENCES `scans`(`scan_id`) ON UPDATE no action ON DELETE cascade\n);',
   'CREATE INDEX IF NOT EXISTS `idx_pack_runs_scan_id` ON `pack_runs` (`scan_id`);',
@@ -26,6 +27,7 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
   // CrUX field data
   'CREATE TABLE IF NOT EXISTS `scan_crux` (\n  `id` integer PRIMARY KEY AUTOINCREMENT,\n  `scan_id` text NOT NULL REFERENCES `scans`(`scan_id`) ON DELETE cascade,\n  `hostname` text NOT NULL,\n  `form_factor` text NOT NULL,\n  `series_json` text NOT NULL,\n  `fetched_at` integer NOT NULL DEFAULT (unixepoch())\n);',
   'CREATE INDEX IF NOT EXISTS `idx_comparisons_scans` ON `comparisons` (`base_scan_id`, `current_scan_id`);',
+  'CREATE INDEX IF NOT EXISTS `idx_comparisons_current_created` ON `comparisons` (`current_scan_id`, `created_at`);',
   'CREATE INDEX IF NOT EXISTS `idx_diffs_comparison` ON `comparison_diffs` (`comparison_id`);',
   'CREATE INDEX IF NOT EXISTS `idx_scan_crux_scan` ON `scan_crux` (`scan_id`, `form_factor`);',
 

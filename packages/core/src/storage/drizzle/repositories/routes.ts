@@ -1,36 +1,21 @@
 import type { ScanRouteRow } from '@unlighthouse/contracts/drizzle'
-import type { RouteListQuery, ScanRouteRepository } from '@unlighthouse/contracts/ports'
+import type { RouteListQuery, ScanRouteRepository, ScanRouteWrite } from '@unlighthouse/contracts/ports'
 import type {
   Device,
-  ExtractedMetrics,
   Paginated,
   ScanId,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
-import type { DrizzleBatchExecutor, DrizzleDatabase } from '../types'
+import type { DrizzleBatchExecutor, DrizzleDatabase, IdempotentWriteExecutor } from '../types'
 import { scanRoutes } from '@unlighthouse/contracts/drizzle'
 import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
 import { and, asc, desc, eq, gte, isNotNull, like, sql } from 'drizzle-orm'
-import { sha1Hex } from '../../../util/sha1'
+import { routeArtifactKeys } from '../../artifact-keys'
 
 const DEFAULT_PAGE_SIZE = 100
 
-function urlHash(url: string): string {
-  return sha1Hex(url).slice(0, 16)
-}
-
-// D-029: blob keys are per (scanId, url, device). The device segment is
-// appended to the filename so mobile + desktop rows for the same URL each
-// own their own blob under a deterministic key.
-function blobKeyFor(scanId: string, url: string, device: Device): string {
-  return `scans/${scanId}/lhr/${urlHash(url)}-${device}.json.gz`
-}
-
-export function reportBlobKeyFor(scanId: string, url: string, device: Device = 'mobile'): string {
-  return `scans/${scanId}/reports/${urlHash(url)}-${device}.json`
-}
-
-function metricsToRow(scanId: string, device: Device, m: ExtractedMetrics) {
+function metricsToRow(scanId: string, device: Device, m: ScanRouteWrite) {
+  const keys = routeArtifactKeys(scanId, m.url, device)
   return {
     scanId,
     url: m.url,
@@ -52,8 +37,9 @@ function metricsToRow(scanId: string, device: Device, m: ExtractedMetrics) {
     lighthouseVersion: m.lighthouseVersion,
     auditor: m.auditor ?? null,
     capturedAt: m.capturedAt,
-    lhrBlobKey: blobKeyFor(scanId, m.url, device),
-    reportBlobKey: reportBlobKeyFor(scanId, m.url, device),
+    lhrBlobKey: m.lhrBlobKey ?? keys.lhr,
+    reportBlobKey: m.reportBlobKey === undefined ? keys.report : m.reportBlobKey,
+    screenshotBlobKey: m.screenshotBlobKey ?? null,
   }
 }
 
@@ -72,16 +58,21 @@ function createUpsertStatement(db: DrizzleDatabase, value: ReturnType<typeof met
     })
 }
 
-export function createScanRouteRepository(db: DrizzleDatabase, executeBatch?: DrizzleBatchExecutor): ScanRouteRepository {
+export function createScanRouteRepository(
+  db: DrizzleDatabase,
+  executeBatch?: DrizzleBatchExecutor,
+  retryIdempotentWrite?: IdempotentWriteExecutor,
+): ScanRouteRepository {
+  const write = retryIdempotentWrite ?? (async <T>(operation: () => Promise<T>) => operation())
   return {
-    async putBatch(scanId: ScanId, device: Device, rows: ExtractedMetrics[]): Promise<void> {
+    async putBatch(scanId: ScanId, device: Device, rows: ScanRouteWrite[]): Promise<void> {
       if (rows.length === 0)
         return
       const values = rows.map(m => metricsToRow(scanId, device, m))
       if (executeBatch) {
         const [first, ...rest] = values.map(value => createUpsertStatement(db, value))
         if (first)
-          await executeBatch([first, ...rest])
+          await write(() => executeBatch([first, ...rest]))
         return
       }
       // Iterate per-row upsert. better-sqlite3's drizzle binding requires sync
@@ -90,13 +81,13 @@ export function createScanRouteRepository(db: DrizzleDatabase, executeBatch?: Dr
       // upsert is atomic at the row level; partial failure within a batch is
       // acceptable for the single-writer scan workflow.
       for (const v of values) {
-        await createUpsertStatement(db, v)
+        await write(async () => { await createUpsertStatement(db, v) })
       }
     },
 
-    async upsert(scanId: ScanId, device: Device, row: ExtractedMetrics): Promise<void> {
+    async upsert(scanId: ScanId, device: Device, row: ScanRouteWrite): Promise<void> {
       const v = metricsToRow(scanId, device, row)
-      await createUpsertStatement(db, v)
+      await write(async () => { await createUpsertStatement(db, v) })
     },
 
     async listForScan(scanId: ScanId, q?: RouteListQuery): Promise<Paginated<ScanRoute>> {
@@ -193,6 +184,15 @@ export function createScanRouteRepository(db: DrizzleDatabase, executeBatch?: Dr
       }
     },
 
+    async findByPath(scanId: ScanId, path: string): Promise<ScanRoute[]> {
+      const rows = await db
+        .select<ScanRouteRow>()
+        .from(scanRoutes)
+        .where(and(eq(scanRoutes.scanId, scanId), eq(scanRoutes.path, path)))
+        .orderBy(asc(scanRoutes.device))
+      return rows.map(rowToRoute)
+    },
+
     async get(scanId: ScanId, url: string, device: Device): Promise<ScanRoute | null> {
       const [row] = await db
         .select<ScanRouteRow>()
@@ -221,7 +221,7 @@ export function createScanRouteRepository(db: DrizzleDatabase, executeBatch?: Dr
       else {
         where = eq(scanRoutes.scanId, scanId)
       }
-      await db.delete(scanRoutes).where(where)
+      await write(async () => { await db.delete(scanRoutes).where(where) })
     },
   }
 }

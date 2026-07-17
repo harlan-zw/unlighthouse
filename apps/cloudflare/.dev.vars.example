@@ -1,0 +1,8 @@
+# Copy to .dev.vars. Wrangler loads this file for local development only.
+UNLIGHTHOUSE_API_TOKEN="replace-with-at-least-32-random-characters"
+SHARED_AUDIT_TOKEN="replace-with-an-independent-32-byte-random-token"
+CF_BROWSER_RUN_TOKEN="replace-with-a-browser-rendering-api-token"
+
+# Optional provider quota/fallback keys. Remove lines you do not use.
+PSI_API_KEY=""
+CRUX_API_KEY=""

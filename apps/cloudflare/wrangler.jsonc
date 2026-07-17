@@ -1,0 +1,120 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "unlighthouse",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-07-17",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Secure by default: no workers.dev or preview URL. Add an explicit custom
+  // domain route before production deployment (see README.md).
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [],
+
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "../../packages/ui/.output/public",
+    "not_found_handling": "single-page-application",
+    // Authentication must run before both API and dashboard asset responses.
+    "run_worker_first": true
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "unlighthouse",
+      "database_id": "3554d93a-6bd5-4578-af41-2593e2aea3b2",
+      "migrations_dir": "../../packages/core/migrations/sqlite"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BLOBS",
+      "bucket_name": "unlighthouse"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "RATE_LIMITER_DO", "class_name": "RateLimiterDO" },
+      { "name": "LIGHTHOUSE_CONTAINER", "class_name": "LighthouseContainer" }
+    ]
+  },
+  "workflows": [
+    {
+      "name": "unlighthouse-scan",
+      "binding": "SCAN_WORKFLOW",
+      "class_name": "ScanWorkflow",
+      // Discovery + 200 routes stays below the Free-plan ceiling.
+      "limits": { "steps": 1024 }
+    }
+  ],
+  "services": [
+    {
+      "binding": "AUDIT",
+      "service": "unlighthouse",
+      "entrypoint": "AuditEntrypoint"
+    }
+  ],
+  "containers": [
+    {
+      "name": "unlighthouse-lighthouse",
+      "class_name": "LighthouseContainer",
+      "image": "../../packages/lighthouse-container/Dockerfile",
+      "instance_type": "standard-1",
+      "max_instances": 1
+    }
+  ],
+
+  // Durable Object migrations are append-only. v6 removes the now-unused
+  // WebSocket fanout object; v7 removes the alarm runner superseded by the
+  // Workflow while preserving deployed migration history.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["ScanEventsDO", "RateLimiterDO"] },
+    { "tag": "v2", "new_sqlite_classes": ["LighthouseContainer"] },
+    { "tag": "v3", "new_sqlite_classes": ["ScanRunnerDO"] },
+    { "tag": "v4", "deleted_classes": ["LighthouseContainer"] },
+    { "tag": "v5", "new_sqlite_classes": ["LighthouseContainer"] },
+    { "tag": "v6", "deleted_classes": ["ScanEventsDO"] },
+    { "tag": "v7", "deleted_classes": ["ScanRunnerDO"] }
+  ],
+
+  "vars": {
+    "ENVIRONMENT": "production",
+    "CF_ACCOUNT_ID": "replace-with-your-cloudflare-account-id",
+    "UNLIGHTHOUSE_ALLOWED_ORIGINS": "https://example.com",
+    "UNLIGHTHOUSE_CONFIG": "{\"site\":\"https://example.com\",\"retention\":{\"maxScansPerSite\":30,\"maxAgeDays\":90,\"keepCiBaselines\":true}}",
+    // Expensive Lighthouse scans: allow a two-scan burst, then one new scan/min.
+    "RATE_LIMITER_CAPACITY": "2",
+    "RATE_LIMITER_REFILL_PER_SEC": "0.0166667"
+  },
+  "secrets": {
+    "required": [
+      "UNLIGHTHOUSE_API_TOKEN",
+      "SHARED_AUDIT_TOKEN",
+      "CF_BROWSER_RUN_TOKEN"
+    ]
+  },
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  },
+
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+      "persist": true
+    }
+  },
+
+  // Core retention (D1 rows + namespaced R2 blobs), not a bucket-only sweeper.
+  "triggers": {
+    "crons": ["0 3 * * *"]
+  }
+}

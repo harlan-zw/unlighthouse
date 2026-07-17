@@ -250,6 +250,7 @@ export default {
     select: {
       slots: {
         base: 'w-full rounded-md',
+        placeholder: 'text-muted',
       },
       variants: {
         variant: {
@@ -296,7 +297,7 @@ export default {
     contentSurround: {
       slots: {
         root: 'grid grid-cols-2 gap-4',
-        link: 'flex items-center gap-3 p-4 rounded-lg border border-default hover:border-accented hover:bg-muted/50 transition-all group',
+        link: 'flex items-center gap-3 p-4 rounded-lg border border-default hover:border-accented hover:bg-muted/50 transition-[background-color,border-color] group',
         linkLeading: 'shrink-0',
         linkLeadingIcon: 'size-5 text-dimmed group-hover:text-primary-500 transition-colors',
         linkTitle: 'font-medium text-highlighted group-hover:text-primary-400 transition-colors',
@@ -494,9 +495,9 @@ export default {
       },
       a: {
         base: [
-          'relative border-none underline underline-offset-4 text-default decoration-transition-all decoration-opacity-70 decoration-[0.1rem] decoration-[var(--ui-text-dimmed)]',
+          'relative border-none underline underline-offset-4 text-default decoration-opacity-70 decoration-[0.1rem] decoration-[var(--ui-text-dimmed)]',
           // set a :after border under the link
-          'transition-all',
+          'transition-[color,text-decoration-color,text-underline-offset]',
           'hover:text-dimmed decoration-opacity-100 hover:underline-offset-1 hover:decoration-[0.1rem]',
         ],
       },

@@ -128,10 +128,36 @@ function handleRowClick(row: T, tanstackRow: Row<T>) {
 }
 
 function onRowKeydown(e: KeyboardEvent, row: T, tanstackRow: Row<T>) {
-  if (e.key === 'Enter' || e.key === ' ') {
+  if (e.target !== e.currentTarget)
+    return
+  if (e.key === 'Enter') {
     e.preventDefault()
     handleRowClick(row, tanstackRow)
   }
+  else if (e.key === ' ') {
+    // Prevent Space from scrolling; activate on keyup to match native buttons.
+    e.preventDefault()
+  }
+}
+
+function onRowKeyup(e: KeyboardEvent, row: T, tanstackRow: Row<T>) {
+  if (e.target !== e.currentTarget)
+    return
+  if (e.key === ' ') {
+    e.preventDefault()
+    handleRowClick(row, tanstackRow)
+  }
+}
+
+function onRowClick(e: MouseEvent, row: T, tanstackRow: Row<T>) {
+  const target = e.target
+  const currentTarget = e.currentTarget
+  if (target instanceof Element && target !== currentTarget) {
+    const interactive = target.closest('a, button, input, select, textarea, summary, [role="button"], [role="link"], [contenteditable="true"]')
+    if (interactive)
+      return
+  }
+  handleRowClick(row, tanstackRow)
 }
 
 const slots = useSlots()
@@ -289,7 +315,7 @@ export interface UiTableProps<T> {
           <th
             v-for="header in headerGroup.headers"
             :key="header.id"
-            class="text-label text-dimmed text-left whitespace-nowrap border-b border-default bg-default"
+            class="text-label text-muted text-left whitespace-nowrap border-b border-default bg-default"
             :class="[
               header.column.columnDef.noPadding ? '' : header.column.getCanSort() ? 'px-2' : 'px-3',
               header.column.columnDef.headClass,
@@ -324,8 +350,9 @@ export interface UiTableProps<T> {
                 rowClickable && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 rowClass?.(row.original),
               ]"
-              @click="handleRowClick(row.original, row)"
+              @click="onRowClick($event, row.original, row)"
               @keydown="rowClickable && onRowKeydown($event, row.original, row)"
+              @keyup="rowClickable && onRowKeyup($event, row.original, row)"
             >
               <td
                 v-for="cell in row.getVisibleCells()"

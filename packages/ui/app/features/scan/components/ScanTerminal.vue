@@ -21,13 +21,12 @@ function levelIcon(level: string) {
     default: return 'info'
   }
 }
-
 </script>
 
 <template>
   <LogStream title="Terminal" :count="store.logs.length">
     <template #empty>
-      Waiting for scan events...
+      Waiting for scan events…
     </template>
     <div
       v-for="log in store.logs"

@@ -44,30 +44,35 @@ function isActive(key: string) {
     :class="iconOnly ? 'flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--ui-bg-elevated)]/60 border border-default' : 'flex gap-1'"
     @update:model-value="onUpdate"
   >
-    <ToggleGroupItem
+    <UiTooltip
       v-for="opt in options"
       :key="opt.key"
-      :value="opt.key"
-      :title="iconOnly ? opt.label : undefined"
-      class="cursor-pointer inline-flex items-center font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      :class="[
-        iconOnly ? 'justify-center size-11 sm:size-7 rounded-md' : 'gap-1.5 px-2 py-1 min-h-11 sm:min-h-0 text-mini rounded-md border',
-        isActive(opt.key)
-          ? (iconOnly ? 'bg-default text-default' : 'border-accented bg-elevated text-default')
-          : (iconOnly ? 'text-dimmed hover:text-default' : 'border-transparent text-dimmed hover:text-muted hover:bg-accented'),
-        opt.special && !isActive(opt.key) && 'ring-1 ring-[var(--ui-primary)]/50',
-      ]"
-      :aria-label="`Toggle ${opt.label}`"
+      :text="iconOnly ? (opt.tooltip || opt.label) : undefined"
+      trigger-as="child"
+      :disabled="!iconOnly"
     >
-      <UiIcon v-if="opt.icon" :name="opt.icon" class="size-3.5" />
-      <span
-        v-else
-        class="size-1.5 rounded-full shrink-0 transition-colors duration-150"
-        :class="isActive(opt.key) ? vizBgColor(opt.color) : 'bg-muted'"
-      />
-      <template v-if="!iconOnly">
-        {{ opt.label }}
-      </template>
-    </ToggleGroupItem>
+      <ToggleGroupItem
+        :value="opt.key"
+        class="cursor-pointer inline-flex items-center font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        :class="[
+          iconOnly ? 'justify-center size-11 sm:size-7 rounded-md' : 'gap-1.5 px-2 py-1 min-h-11 sm:min-h-6 text-mini rounded-md border',
+          isActive(opt.key)
+            ? (iconOnly ? 'bg-default text-default' : 'border-accented bg-elevated text-default')
+            : (iconOnly ? 'text-dimmed hover:text-default' : 'border-transparent text-dimmed hover:text-muted hover:bg-accented'),
+          opt.special && !isActive(opt.key) && 'ring-1 ring-[var(--ui-primary)]/50',
+        ]"
+        :aria-label="`Toggle ${opt.label}`"
+      >
+        <UiIcon v-if="opt.icon" :name="opt.icon" class="size-3.5" />
+        <span
+          v-else
+          class="size-1.5 rounded-full shrink-0 transition-colors duration-150"
+          :class="isActive(opt.key) ? vizBgColor(opt.color) : 'bg-muted'"
+        />
+        <template v-if="!iconOnly">
+          {{ opt.label }}
+        </template>
+      </ToggleGroupItem>
+    </UiTooltip>
   </ToggleGroupRoot>
 </template>

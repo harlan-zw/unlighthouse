@@ -38,35 +38,42 @@ const { fmtRelTime: ageLabel } = createFormatters()
 <template>
   <div v-if="store.recentRoutes.length" class="rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3 border-b border-default">
-      <h3 class="text-label text-dimmed">
+      <h2 class="text-label text-dimmed">
         Live results
-      </h3>
+      </h2>
       <span class="text-xs text-muted tabular-nums">
         last {{ store.recentRoutes.length }}
       </span>
     </div>
     <div class="divide-y max-h-80 overflow-y-auto">
-      <button
+      <UiTooltip
         v-for="r in store.recentRoutes"
         :key="r.url + r.timestamp"
-        type="button"
-        class="flex items-center gap-3 px-4 py-2 text-left w-full hover:bg-elevated/50 transition-colors"
-        @click="openRoute(r.url)"
+        :text="r.url"
+        side="top"
+        size="lg"
+        trigger-as="child"
       >
-        <span
-          class="size-1.5 rounded-full shrink-0"
-          :style="{ backgroundColor: scoreToRingColor(r.score) }"
-        />
-        <UiTooltip :text="r.url" side="top" size="lg" class="min-w-0 flex-1">
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-elevated/50"
+          :aria-label="`Open ${r.url}`"
+          @click="openRoute(r.url)"
+        >
+          <span
+            class="size-1.5 rounded-full shrink-0"
+            :style="{ backgroundColor: scoreToRingColor(r.score) }"
+            aria-hidden="true"
+          />
           <span class="font-mono text-xs truncate block">{{ pathFromUrl(r.url) }}</span>
-        </UiTooltip>
-        <span class="text-xs tabular-nums shrink-0 w-10 text-right font-bold" :class="scoreToColor(r.score)">
-          {{ scoreToLabel(r.score) }}
-        </span>
-        <span class="text-xs text-muted tabular-nums shrink-0 w-14 text-right">
-          {{ ageLabel(r.timestamp) }}
-        </span>
-      </button>
+          <span class="text-xs tabular-nums shrink-0 w-10 text-right font-bold" :class="scoreToColor(r.score)">
+            {{ scoreToLabel(r.score) }}
+          </span>
+          <span class="text-xs text-muted tabular-nums shrink-0 w-14 text-right">
+            {{ ageLabel(r.timestamp) }}
+          </span>
+        </button>
+      </UiTooltip>
     </div>
   </div>
 </template>

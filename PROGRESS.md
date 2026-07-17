@@ -90,7 +90,7 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   d1-r2 builds a `drizzle-orm/d1` handle + exposes `db`); added comparison/comparison_diffs/scan_crux
   + full scan_routes columns to D1 INIT_SQL. New `packages/cloudflare/test/d1-storage.test.ts` (6,
   real d1R2Storage over a better-sqlite3 D1 shim: compare.run/detail, scan.results, pack.run,
-  compareScans persist-read). Maintainer runbook in cloudflare/examples/basic/README.md.
+  compareScans persist-read). Maintainer runbook in apps/cloudflare/README.md.
   Gate: typecheck green; full suite 644 pass/1 skip.
   KNOWN GAP — RESOLVED (commit 7bd15faf, D-035 follow-up): the D1 raw-SQL route WRITER now populates
   `score_agentic_browsing`, `auditor` (D-040), and `report_blob_key` (D-034, via `reportBlobKeyFor`),

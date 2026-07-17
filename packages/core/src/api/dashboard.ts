@@ -13,8 +13,8 @@
 // instead. If you're tempted to add a new endpoint here, ask whether a
 // typed command would do.
 
-import type { Logger, Storage } from '@unlighthouse/contracts'
-import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { BlobStore, Logger, Storage } from '@unlighthouse/contracts'
+import type { ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Router } from 'h3'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
@@ -31,8 +31,10 @@ interface DashboardRouteMatch {
 async function findDashboardRoute(storage: Storage, scanId: string, path: string, device?: string): Promise<DashboardRouteMatch | null> {
   const decodedPath = decodeURIComponent(path)
   const normalisedPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`
-  const { items: routes } = await storage.routes.listForScan(parseScanId(scanId), { pageSize: 10_000 })
-  const matches = routes.filter(route => route.path === decodedPath || route.path === normalisedPath)
+  const parsedScanId = parseScanId(scanId)
+  let matches = await storage.routes.findByPath(parsedScanId, normalisedPath)
+  if (matches.length === 0 && decodedPath !== normalisedPath)
+    matches = await storage.routes.findByPath(parsedScanId, decodedPath)
   if (matches.length === 0)
     return null
 
@@ -44,6 +46,60 @@ async function findDashboardRoute(storage: Storage, scanId: string, path: string
     route,
     availableDevices: Array.from(new Set(matches.map(route => route.device))).sort(),
   }
+}
+
+const EXPORT_PAGE_SIZE = 50
+const EXPORT_HYDRATION_CONCURRENCY = 8
+const textEncoder = new TextEncoder()
+
+async function* routePages(storage: Storage, scanId: ScanId): AsyncGenerator<ScanRoute[]> {
+  let page = 1
+  while (true) {
+    const result = await storage.routes.listForScan(scanId, { page, pageSize: EXPORT_PAGE_SIZE })
+    if (result.items.length === 0)
+      return
+    yield result.items
+    if (page * EXPORT_PAGE_SIZE >= result.total)
+      return
+    page++
+  }
+}
+
+async function mapConcurrent<T, R>(items: readonly T[], concurrency: number, map: (item: T) => Promise<R>): Promise<R[]> {
+  const output = Array.from<R>({ length: items.length })
+  let cursor = 0
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor++
+      const item = items[index]
+      if (item !== undefined)
+        output[index] = await map(item)
+    }
+  })
+  await Promise.all(workers)
+  return output
+}
+
+function textStream(chunks: AsyncIterable<string>): ReadableStream<Uint8Array> {
+  const iterator = chunks[Symbol.asyncIterator]()
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const next = await iterator.next()
+      if (next.done) {
+        controller.close()
+        return
+      }
+      controller.enqueue(textEncoder.encode(next.value))
+    },
+    async cancel(reason) {
+      await iterator.return?.(reason)
+    },
+  })
+}
+
+async function blobDownload(blobs: BlobStore, key: string): Promise<Uint8Array | ReadableStream<Uint8Array> | null> {
+  const stream = await blobs.getStream?.(key)
+  return stream ?? blobs.get(key)
 }
 
 export function createDashboardApi(storage: Storage, logger?: Logger): Router {
@@ -67,7 +123,7 @@ export function createDashboardApi(storage: Storage, logger?: Logger): Router {
     const { route } = match
 
     if (route.screenshotBlobKey) {
-      const blob = await storage.blobs.get(route.screenshotBlobKey)
+      const blob = await blobDownload(storage.blobs, route.screenshotBlobKey)
       if (blob) {
         setResponseHeader(event, 'Content-Type', 'image/webp')
         setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
@@ -129,6 +185,18 @@ export function createDashboardApi(storage: Storage, logger?: Logger): Router {
       setResponseStatus(event, 404)
       return { error: 'No LHR data for this route' }
     }
+    const gzStream = await storage.blobs.getStream?.(route.lhrBlobKey)
+    if (gzStream) {
+      setResponseHeader(event, 'Content-Type', 'application/json; charset=utf-8')
+      setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
+      const safeName = `${scanId}-${route.device}-${route.path.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'root'}.lhr.json`
+      setResponseHeader(event, 'Content-Disposition', `attachment; filename="${safeName}"`)
+      // lib.dom currently types DecompressionStream.writable as BufferSource,
+      // while ReadableStream.pipeThrough expects the narrower Uint8Array shape.
+      // Runtime streams are byte-compatible; keep the cast at this platform seam.
+      const decompressor = new DecompressionStream('gzip') as unknown as ReadableWritablePair<Uint8Array, Uint8Array>
+      return gzStream.pipeThrough(decompressor)
+    }
     const gz = await storage.blobs.get(route.lhrBlobKey)
     if (!gz) {
       setResponseStatus(event, 404)
@@ -156,8 +224,6 @@ export function createDashboardApi(storage: Storage, logger?: Logger): Router {
       return { error: 'Scan not found' }
     }
 
-    const { items: routes } = await storage.routes.listForScan(parsedScanId, { pageSize: 10_000 })
-
     // CSV projection — flat per-route rows for spreadsheets / Sheets (#141,
     // #135). Scores as 0–100 integers, CWV metrics raw, blank for nulls.
     // Skips the expensive contract/LHR hydration the JSON export does.
@@ -170,52 +236,59 @@ export function createDashboardApi(storage: Storage, logger?: Logger): Router {
         const s = String(v ?? '')
         return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
       }
-      const lines = routes.map(r => [
-        r.path,
-        r.url,
-        r.device,
-        pct(r.scorePerformance),
-        pct(r.scoreAccessibility),
-        pct(r.scoreSeo),
-        pct(r.scoreBestPractices),
-        pct(r.scoreAgenticBrowsing),
-        num(r.lcp),
-        num(r.cls),
-        num(r.inp),
-        num(r.fcp),
-        num(r.ttfb),
-        num(r.tbt),
-        num(r.si),
-        r.capturedAt,
-      ].map(esc).join(','))
-      const csv = `${[cols.join(','), ...lines].join('\n')}\n`
       setResponseHeader(event, 'Content-Type', 'text/csv; charset=utf-8')
       setResponseHeader(event, 'Content-Disposition', `attachment; filename="${scanId}-export.csv"`)
-      return csv
-    }
-
-    const hydratedRoutes = await Promise.all(routes.map(async (r) => {
-      const contract = await loadRouteContract(storage.blobs, r)
-      return { ...r, contract }
-    }))
-
-    const packRuns = await storage.packRuns.listForScan(parsedScanId).catch((err) => {
-      logOperationalWarn('dashboard.pack_runs_read_failed', err, { scanId: parsedScanId }, log)
-      return []
-    })
-
-    const payload = {
-      exportVersion: 1,
-      exportedAt: new Date().toISOString(),
-      scan,
-      routes: hydratedRoutes,
-      packRuns,
+      async function* csvChunks() {
+        yield `${cols.join(',')}\n`
+        for await (const routes of routePages(storage, parsedScanId)) {
+          for (const r of routes) {
+            yield `${[
+              r.path,
+              r.url,
+              r.device,
+              pct(r.scorePerformance),
+              pct(r.scoreAccessibility),
+              pct(r.scoreSeo),
+              pct(r.scoreBestPractices),
+              pct(r.scoreAgenticBrowsing),
+              num(r.lcp),
+              num(r.cls),
+              num(r.inp),
+              num(r.fcp),
+              num(r.ttfb),
+              num(r.tbt),
+              num(r.si),
+              r.capturedAt,
+            ].map(esc).join(',')}\n`
+          }
+        }
+      }
+      return textStream(csvChunks())
     }
 
     setResponseHeader(event, 'Content-Type', 'application/json; charset=utf-8')
     const safeName = `${scanId}-export.json`
     setResponseHeader(event, 'Content-Disposition', `attachment; filename="${safeName}"`)
-    return payload
+    async function* jsonChunks() {
+      yield `{"exportVersion":1,"exportedAt":${JSON.stringify(new Date().toISOString())},"scan":${JSON.stringify(scan)},"routes":[`
+      let first = true
+      for await (const routes of routePages(storage, parsedScanId)) {
+        const hydrated = await mapConcurrent(routes, EXPORT_HYDRATION_CONCURRENCY, async route => ({
+          ...route,
+          contract: await loadRouteContract(storage.blobs, route),
+        }))
+        for (const route of hydrated) {
+          yield `${first ? '' : ','}${JSON.stringify(route)}`
+          first = false
+        }
+      }
+      const packRuns = await storage.packRuns.listForScan(parsedScanId).catch((err) => {
+        logOperationalWarn('dashboard.pack_runs_read_failed', err, { scanId: parsedScanId }, log)
+        return []
+      })
+      yield `],"packRuns":${JSON.stringify(packRuns)}}`
+    }
+    return textStream(jsonChunks())
   }))
 
   return router

@@ -1,7 +1,7 @@
 import { defineBuildConfig } from 'obuild/config'
 
 // The action shells out through `npx --package unlighthouse@<version>` at
-// runtime. Node builtins stay external for the same reason as `@unlighthouse/vite`.
+// runtime, so Node builtins must remain external to the action bundle.
 const externals = [
   'node:child_process',
   'node:fs',

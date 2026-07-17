@@ -2,6 +2,7 @@ import type { ScanRouteRow, ScanRow } from '@unlighthouse/contracts/drizzle'
 import type { Assertion, AssertionResult } from '../report/types'
 import { assertions as assertionsTable, scanRoutes, scans } from '@unlighthouse/contracts/drizzle'
 import { and, desc, eq, ne } from 'drizzle-orm'
+import { chunkRowsByBindLimit } from '../storage/drizzle/bind-chunks'
 import { asDrizzleDatabase } from '../storage/drizzle/types'
 
 /** Score column name mapping from assertion category to v1 DB column */
@@ -185,18 +186,31 @@ export async function evaluateAndStoreAssertions(
   const results = evaluateAssertions(routes, assertionConfigs, baseRoutes)
 
   if (results.length > 0) {
-    await sqlDb.insert(assertionsTable).values(
-      results.map(r => ({
-        scanId,
-        type: r.assertion.type,
-        category: r.assertion.category ?? null,
-        metric: r.assertion.metric ?? null,
-        value: r.assertion.value,
-        passed: r.passed,
-        actual: r.actual,
-        failingRoutes: r.failingRoutes ? JSON.stringify(r.failingRoutes) : null,
-      })),
-    )
+    const rows = results.map(r => ({
+      scanId,
+      type: r.assertion.type,
+      category: r.assertion.category ?? null,
+      metric: r.assertion.metric ?? null,
+      value: r.assertion.value,
+      passed: r.passed,
+      actual: r.actual,
+      failingRoutes: r.failingRoutes ? JSON.stringify(r.failingRoutes) : null,
+    }))
+    // Assertion evaluation is a materialised result for a scan, not an append
+    // log. Replace it so retries are idempotent, and never leave a partial set.
+    await sqlDb.delete(assertionsTable).where(eq(assertionsTable.scanId, scanId))
+    try {
+      // Eight bound values per row; cap each INSERT at 12 rows / 96 binds.
+      for (const chunk of chunkRowsByBindLimit(rows, 8))
+        await sqlDb.insert(assertionsTable).values(chunk)
+    }
+    catch (error) {
+      let cleanupError: unknown
+      await Promise.resolve(sqlDb.delete(assertionsTable).where(eq(assertionsTable.scanId, scanId))).catch((cause) => { cleanupError = cause })
+      if (cleanupError !== undefined)
+        throw new AggregateError([error, cleanupError], 'Assertion write and rollback both failed')
+      throw error
+    }
   }
 
   return results

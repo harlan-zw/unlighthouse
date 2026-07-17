@@ -98,6 +98,7 @@ export const scanRoutes = sqliteTable(
   table => [
     primaryKey({ columns: [table.scanId, table.url, table.device] }),
     index('idx_scan_routes_scan_id').on(table.scanId),
+    index('idx_scan_routes_scan_path_device').on(table.scanId, table.path, table.device),
   ],
 )
 
@@ -139,6 +140,7 @@ export const comparisons = sqliteTable(
   },
   table => [
     index('idx_comparisons_scans').on(table.baseScanId, table.currentScanId),
+    index('idx_comparisons_current_created').on(table.currentScanId, table.createdAt),
   ],
 )
 

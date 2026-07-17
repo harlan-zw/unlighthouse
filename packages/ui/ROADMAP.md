@@ -118,7 +118,7 @@ One phase per commit (or small stack), each independently green (`pnpm typecheck
 | Phase | Work | Depends on |
 |---|---|---|
 | 0 | Mechanical cleanup + live bug fixes: delete `layouts/root.vue` dup (+ page metas), empty `app/components/{dashboard,site,category,scan}/` dirs, `img.png`, `true/`; apply `.dashboard-theme`; fix CLI opened URL; DESIGN.md doc fixes | — |
-| 1 | Pack surface in contracts/core: best-practices pack, `Pack.ui` on all packs (+`pack-nuxt`), `ui.component` dropped, `pack.list` ui + JSON schema, `pack.run` report widening, config `packs` channel | — (parallel with 0) |
+| 1 | Pack surface in contracts/core: best-practices pack, `Pack.ui` on all packs (+`core/packs/nuxt`), `ui.component` dropped, `pack.list` ui + JSON schema, `pack.run` report widening, config `packs` channel | — (parallel with 0) |
 | 2 | Sites home consolidation (D-047): merge `/` + `/sites` + `/history`, orphan origins, nav, fallbacks | 0 |
 | 3 | Compare re-home (D-048): URL + workflow params + six links + breadcrumb strip, delete shims | 2 (fallback targets) |
 | 4 | Pack tabs (D-045 UI half): `/packs/[pack]` + generated sidebar + per-pack widgets, delete category pages, crux fix | 1, 3 (sidebar) |

@@ -76,11 +76,9 @@ function severityStatus(severity: string): SemanticStatus {
                 </UiChip>
                 {{ bundleKindLabel(finding.kind) }}
               </div>
-              <UiTooltip v-if="finding.resource" :text="finding.resource" side="top" size="lg">
-                <div class="text-xs text-muted font-mono truncate mt-1">
-                  {{ shortResource(finding.resource) }}
-                </div>
-              </UiTooltip>
+              <div v-if="finding.resource" class="text-xs text-muted font-mono break-all mt-1">
+                {{ shortResource(finding.resource) }}
+              </div>
             </div>
             <UiChip purpose="count">
               {{ finding.routeCount }} route{{ finding.routeCount === 1 ? '' : 's' }}

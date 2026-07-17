@@ -9,14 +9,11 @@ const report = computed(() => props.report as SeoReport)
 
 type RouteCheckRow = SeoReport['routeChecks'][number]
 const UiIconC = resolveComponent('UiIcon')
-const UiTooltipC = resolveComponent('UiTooltip')
 const routeCheckColumns: ColumnDef<RouteCheckRow>[] = [
   {
     accessorKey: 'url',
     header: 'URL',
-    cell: ({ row }) => h(UiTooltipC, { text: row.original.url, side: 'top', size: 'lg' }, {
-      default: () => h('span', { class: 'font-mono text-xs truncate block max-w-sm' }, row.original.url),
-    }),
+    cell: ({ row }) => h('span', { class: 'font-mono text-xs break-all' }, row.original.url),
   },
   {
     accessorKey: 'passes',

@@ -699,14 +699,15 @@ textarea {
 
 .page-enter-active,
 .page-leave-active {
-  transition: all 0.2s var(--ease-standard);
+  transition:
+    opacity 0.2s var(--ease-standard),
+    transform 0.2s var(--ease-standard);
 }
 
 .page-enter-from,
 .page-leave-to {
   opacity: 0;
   transform: translateY(1rem);
-  filter: blur(0.2rem);
 }
 
 /* Auth card content entrance (login / onboarding). These pages set
@@ -738,9 +739,9 @@ textarea {
    change. `contain: paint` isolates it from the rest of the page. */
 .gradient {
   position: fixed;
-  top: 10vh;
+  top: 10dvh;
   width: 100%;
-  height: 60vh;
+  height: 60dvh;
   z-index: -1;
   background: radial-gradient(60% 60% at 50% 40%, var(--ui-color-primary-200) 0%, color-mix(in oklab, var(--ui-color-primary-300) 60%, transparent) 35%, transparent 70%);
   opacity: 0.5;
@@ -784,7 +785,9 @@ textarea {
 }
 
 .slide-up-enter-active, .slide-up-leave-active {
-  transition: all 0.2s var(--ease-standard);
+  transition:
+    opacity 0.2s var(--ease-standard),
+    transform 0.2s var(--ease-standard);
 }
 .slide-up-enter-from, .slide-up-leave-to {
   opacity: 0;
@@ -961,7 +964,7 @@ textarea {
 
 /* Marketing links/cards — shared landing-page surfaces built on semantic tokens. */
 .surface-link {
-  @apply relative block h-full rounded-lg ring-1 ring-default bg-default transition-all hover:ring-accented hover:bg-muted/50;
+  @apply relative block h-full rounded-lg ring-1 ring-default bg-default transition-[background-color,box-shadow] hover:ring-accented hover:bg-muted/50;
 }
 
 .surface-stat {
@@ -982,7 +985,7 @@ textarea {
 }
 
 .marketing-pill {
-  @apply inline-flex items-center gap-2 rounded-full bg-default text-highlighted ring-1 ring-default shadow-sm transition-all;
+  @apply inline-flex items-center gap-2 rounded-full bg-default text-highlighted ring-1 ring-default shadow-sm transition-[background-color,color,box-shadow];
 }
 
 .marketing-pill-label {
@@ -1195,6 +1198,25 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dashboard-theme *,
+  .dashboard-theme *::before,
+  .dashboard-theme *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .animate-ping,
+  .animate-pulse,
+  .animate-spin {
+    animation: none !important;
+  }
+
+  .transition-transform {
+    transition: none !important;
+  }
+
   .ui-dropdown-item,
   .ui-disclosure::details-content {
     transition: none !important;
@@ -1221,6 +1243,13 @@ textarea {
   .mega-column,
   .mega-item {
     animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(a:any-link, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
   }
 }
 

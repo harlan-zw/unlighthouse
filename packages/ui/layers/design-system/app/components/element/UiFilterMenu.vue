@@ -120,7 +120,7 @@ watch(open, (v) => {
       type="button"
       :aria-label="activeCount ? `Filter (${activeCount} active)` : 'Filter'"
       :aria-expanded="open"
-      class="cursor-pointer inline-flex items-center gap-1.5 px-2 py-1.5 min-h-11 sm:min-h-0 rounded-lg text-xs font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-primary outline-none"
+      class="cursor-pointer inline-flex items-center gap-1.5 px-2 py-1.5 min-h-11 sm:min-h-6 rounded-lg text-xs font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-primary outline-none"
       :class="open || activeCount ? 'bg-elevated text-default' : 'text-muted hover:text-default hover:bg-[var(--ui-bg-elevated)]/50'"
     >
       <UiIcon name="filter" class="size-3.5" aria-hidden="true" />
@@ -161,7 +161,7 @@ watch(open, (v) => {
             <button
               type="button"
               aria-label="Clear all filters"
-              class="cursor-pointer text-mini text-muted hover:text-default outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+              class="cursor-pointer inline-flex min-h-6 items-center text-mini text-muted hover:text-default outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
               @click="emit('clear')"
             >
               Clear all
@@ -172,6 +172,7 @@ watch(open, (v) => {
           <div v-if="searchable" class="px-2 pb-1.5">
             <UInput
               v-model="search"
+              name="filter-menu-search"
               type="search"
               :placeholder="searchPlaceholder"
               :aria-label="searchPlaceholder"
@@ -246,7 +247,7 @@ watch(open, (v) => {
               </UiMetricLabel>
               <button
                 type="button"
-                class="cursor-pointer text-mini text-primary hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                class="cursor-pointer inline-flex min-h-6 items-center text-mini text-primary hover:underline outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                 @click="emit('save')"
               >
                 Save current
@@ -260,7 +261,7 @@ watch(open, (v) => {
               >
                 <button
                   type="button"
-                  class="cursor-pointer flex-1 flex items-center gap-2 text-left hover:text-default outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset rounded"
+                  class="cursor-pointer min-h-6 flex-1 flex items-center gap-2 text-left hover:text-default outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset rounded"
                   @click="emit('applySaved', s.id)"
                 >
                   <UiIcon name="bookmark" class="size-3.5 shrink-0 text-dimmed" aria-hidden="true" />
@@ -269,7 +270,7 @@ watch(open, (v) => {
                 <button
                   type="button"
                   :aria-label="`Remove saved filter ${s.label}`"
-                  class="cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-dimmed hover:text-error transition-[color,opacity] outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                  class="cursor-pointer inline-flex size-6 items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-dimmed hover:text-error transition-[color,opacity] outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                   @click="emit('removeSaved', s.id)"
                 >
                   <UiIcon name="close" class="size-3" aria-hidden="true" />

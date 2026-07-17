@@ -14,13 +14,5 @@ const { text, tooltip, tooltipTitle } = defineProps<{
 </script>
 
 <template>
-  <UiTooltip :title="tooltipTitle || text" :description="tooltip">
-    <span class="inline-flex items-center gap-1">
-      {{ text }}
-      <UiIcon name="help" class="size-3 opacity-50 shrink-0" aria-hidden="true" />
-      <!-- The tooltip primitive only opens on hover, so mirror the help text
-           into the accessibility tree for keyboard / screen-reader users. -->
-      <span class="sr-only">{{ tooltip }}</span>
-    </span>
-  </UiTooltip>
+  <UiTooltip :label="text" :title="tooltipTitle || text" :description="tooltip" />
 </template>

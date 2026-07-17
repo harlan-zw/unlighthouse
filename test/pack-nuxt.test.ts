@@ -1,10 +1,10 @@
-// Tests for the @unlighthouse/pack-nuxt reference pack: it maps failing
+// Tests for the @unlighthouse/core/packs/nuxt reference pack: it maps failing
 // Lighthouse audits to Nuxt-idiomatic fixes, aggregates across routes, detects
 // Nuxt via stack packs, and emits a report that validates against its schema.
 
 import type { PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { AuditFinding, ReconciledReport, ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
-import { NuxtReportSchema, nuxtPack } from '@unlighthouse/pack-nuxt'
+import { NuxtReportSchema, nuxtPack } from '@unlighthouse/core/packs/nuxt'
 import { describe, expect, it } from 'vitest'
 
 const SCAN_ID = 'nuxt-pack-scan' as ScanId
@@ -88,7 +88,7 @@ function ctxFor(reports: Record<string, ReconciledReport>): PackReconcileCtx {
   }
 }
 
-describe('@unlighthouse/pack-nuxt', () => {
+describe('@unlighthouse/core/packs/nuxt', () => {
   it('maps a failing image audit to the @nuxt/image fix', async () => {
     const report = await nuxtPack.reconciler(ctxFor({
       'https://a.com/': makeReport('https://a.com/', {

@@ -1,14 +1,14 @@
 // Per-URL audit/persist and scan finalize, extracted from core.ts's
 // orchestrate() closure so they can be driven two ways:
 //   1. The local crawler loop (core.ts) — one process audits every URL.
-//   2. The Cloudflare ScanRunnerDO alarm loop — one audit per fresh worker
+//   2. Cloudflare Workflows — one audit per durable, retried step
 //      invocation, persisted incrementally, so a multi-URL scan survives past
 //      a single invocation's waitUntil/CPU budget.
 //
 // Both call the SAME code here, so reconcile/blob/screenshot/pack logic never
 // drifts between runtimes. These functions are dependency-injected and DO NOT
 // mutate shared counters — `auditRoute` returns a result and the caller owns
-// progress accounting (the DO tracks it in durable storage; correctness rests
+// progress accounting (the Workflow tracks it in durable steps; correctness rests
 // on the idempotent routes/blobs upserts, not on the counters).
 
 import type {
@@ -28,13 +28,12 @@ import { ErrorCodes, toUnlighthouseError, UnlighthouseError } from '@unlighthous
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { ExtractedMetricsSchema, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createPackReconcileCtx } from '../packs/reconcile-context'
-import { routeContractBlobKeyForReport } from '../report/route-contracts'
+import { routeArtifactKeys } from '../storage/artifact-keys'
 import { base64ToBytes } from '../util/base64'
 import { gunzipToString } from '../util/gzip'
 import { computeMedianRun } from '../util/median'
-import { sha1Hex } from '../util/sha1'
 
-/** Emit on whatever bus the caller owns (core's hook/iter queue, or the DO's ScanEventsDO forward). */
+/** Emit on whatever hook/event bus the caller owns. */
 export type EmitFn = <K extends keyof HookMap>(
   event: K,
   payload: Parameters<HookMap[K]>[0],
@@ -109,10 +108,6 @@ export function toStructuredError(err: unknown): StructuredError {
     details: normalized.details,
     cause: normalized.cause,
   }
-}
-
-async function urlHash(url: string): Promise<string> {
-  return sha1Hex(url).slice(0, 16)
 }
 
 // Compute (scoreAverage, scoresByCategory) over a set of completed routes.
@@ -245,14 +240,8 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       metrics.routeName = deps.routeMatcher(url)
 
     if (lhrGzip) {
-      // Mirror `routes.ts:blobKeyFor` derivation so the blob lines up with the
-      // `lhrBlobKey` + `reportBlobKey` columns the row got. Device segment is
-      // part of the filename so mobile + desktop results for the same URL don't
-      // collide on the blob store.
-      const hash = await urlHash(url)
-      const lhrKey = `scans/${scanId}/lhr/${hash}-${device}.json.gz`
-      const reportKey = `scans/${scanId}/reports/${hash}-${device}.json`
-      const contractKey = routeContractBlobKeyForReport(reportKey)
+      const artifactKeys = routeArtifactKeys(scanId, url, device)
+      const { lhr: lhrKey, report: reportKey, contract: contractKey } = artifactKeys
       await storage.blobs.put(lhrKey, lhrGzip).catch((err) => {
         throw new UnlighthouseError({
           code: ErrorCodes.ROUTE_ARTIFACT_WRITE_FAILED,
@@ -302,12 +291,6 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
 
       // D-030 contract reconciled report. Reuse the LHR gunzip if we already
       // did one above. Packs that opt into `getReconciled` read this.
-      if (!contractKey) {
-        throw new UnlighthouseError({
-          code: 'INTERNAL',
-          message: `Failed to derive route contract key for ${url} [${device}].`,
-        })
-      }
       const { reconcileToContract } = await import('../report/extract')
       const lhr = lhrCache ?? JSON.parse(gunzipToString(lhrGzip))
       const contract = reconcileToContract({ scanId, url, device, lhr: lhr as LighthouseResult, auditor: reportAuditor, auditors: reportAuditors, concurrency: reportConcurrency })
@@ -320,9 +303,8 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
         })
       })
 
-      await storage.routes.putBatch(scanId, device, [metrics])
-
       // Extract and store fullPageScreenshot as a separate blob.
+      let screenshotBlobKey: string | null = null
       try {
         const lhrObj = lhrCache ?? JSON.parse(gunzipToString(lhrGzip))
         const fpScreenshot = (lhrObj as { fullPageScreenshot?: { screenshot?: { data?: string } } })
@@ -331,14 +313,15 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
           ?.data
         if (fpScreenshot && typeof fpScreenshot === 'string') {
           const base64Data = fpScreenshot.replace(/^data:image\/\w+;base64,/, '')
-          const screenshotKey = `scans/${scanId}/screenshots/${hash}-${device}.webp`
           const buf = base64ToBytes(base64Data)
-          await storage.blobs.put(screenshotKey, buf).catch((err) => {
+          await storage.blobs.put(artifactKeys.screenshot, buf).then(() => {
+            screenshotBlobKey = artifactKeys.screenshot
+          }).catch((err) => {
             logOperationalWarn('scan.screenshot_write_failed', err, {
               scanId,
               url,
               device,
-              screenshotKey,
+              screenshotKey: artifactKeys.screenshot,
             }, logger)
           })
         }
@@ -346,9 +329,19 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       catch (err) {
         logOperationalWarn('scan.screenshot_extract_failed', err, { scanId, url, device }, logger)
       }
+
+      // Publish the row only after required artifacts have committed, carrying
+      // the exact keys that were written. Optional screenshot failures remain
+      // null instead of leaving a dangling row pointer.
+      await storage.routes.putBatch(scanId, device, [{
+        ...metrics,
+        lhrBlobKey: lhrKey,
+        reportBlobKey: reportKey,
+        screenshotBlobKey,
+      }])
     }
     else {
-      await storage.routes.putBatch(scanId, device, [metrics])
+      await storage.routes.putBatch(scanId, device, [{ ...metrics, reportBlobKey: null }])
     }
 
     logger?.debug?.(`Audited ${url} [${device}] in ${Date.now() - auditStart}ms`)
@@ -384,7 +377,7 @@ export interface FinalizeDeps {
   emit: EmitFn
   /**
    * Pack registry to auto-run at scan completion. When omitted, falls back to
-   * the built-in packs — keeps direct callers (e.g. the Cloudflare ScanRunnerDO)
+   * the built-in packs — keeps durable-scheduler callers
    * working until they thread a registry through.
    */
   packs?: PackRegistry

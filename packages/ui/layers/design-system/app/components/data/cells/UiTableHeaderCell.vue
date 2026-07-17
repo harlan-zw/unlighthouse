@@ -35,11 +35,11 @@ const sortIcon = computed(() => {
 // Chevron rotates 180° between asc/desc — a single icon animates rather than swapping.
 const sortIconRotate = computed(() => sortDirection === 'desc' ? 'rotate-180' : '')
 
-const buttonClass = 'flex items-center gap-1 w-full text-label cursor-pointer select-none transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+const buttonClass = 'flex min-h-6 items-center gap-1 w-full text-label cursor-pointer select-none transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
 </script>
 
 <template>
-  <UiTooltip v-if="def.tooltip" :text="def.tooltip">
+  <UiTooltip v-if="def.tooltip" :text="def.tooltip" trigger-as="child">
     <button
       v-if="sortable"
       type="button"

@@ -30,7 +30,7 @@ function onUpdate(value: unknown) {
     modelValue.value = match.value
 }
 
-const itemClass = 'px-2.5 py-1 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-mini font-medium rounded-md transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary'
+const itemClass = 'px-2.5 py-1 min-h-11 min-w-11 sm:min-h-6 sm:min-w-6 inline-flex items-center justify-center text-mini font-medium rounded-md transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary'
 </script>
 
 <template>
@@ -42,7 +42,7 @@ const itemClass = 'px-2.5 py-1 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-fl
     @update:model-value="onUpdate"
   >
     <template v-for="opt in options" :key="String(opt.value)">
-      <UiTooltip v-if="opt.tooltip" :text="opt.tooltip" :delay-duration="200">
+      <UiTooltip v-if="opt.tooltip" :text="opt.tooltip" :delay-duration="200" trigger-as="child">
         <ToggleGroupItem
           :value="String(opt.value)"
           :disabled="opt.disabled"

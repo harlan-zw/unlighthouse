@@ -16,5 +16,5 @@ const resolvedName = computed(() => resolveUiIcon(props.name))
 </script>
 
 <template>
-  <UIcon :name="resolvedName" />
+  <UIcon :name="resolvedName" aria-hidden="true" focusable="false" />
 </template>

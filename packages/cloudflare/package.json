@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.0-v1",
   "private": true,
-  "description": "Cloudflare Workers preset for Unlighthouse: Browser Rendering auditor, D1/R2 storage, Durable Objects.",
+  "description": "Reusable Cloudflare Workers adapters for Unlighthouse: auditors, D1/R2 storage, Durable Objects, and Workflows.",
   "license": "MIT",
   "sideEffects": false,
   "exports": {
@@ -11,9 +11,29 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
-    "./auditors/browser-rendering": {
-      "types": "./dist/auditors/browser-rendering.d.mts",
-      "import": "./dist/auditors/browser-rendering.mjs"
+    "./auditors/container": {
+      "types": "./dist/auditors/container.d.mts",
+      "import": "./dist/auditors/container.mjs"
+    },
+    "./durable-objects": {
+      "types": "./dist/do/index.d.mts",
+      "import": "./dist/do/index.mjs"
+    },
+    "./events": {
+      "types": "./dist/scan-events-emit.d.mts",
+      "import": "./dist/scan-events-emit.mjs"
+    },
+    "./seeds": {
+      "types": "./dist/seeds/index.d.mts",
+      "import": "./dist/seeds/index.mjs"
+    },
+    "./storage": {
+      "types": "./dist/storage/d1-r2.d.mts",
+      "import": "./dist/storage/d1-r2.mjs"
+    },
+    "./workflows/scan": {
+      "types": "./dist/workflows/scan.d.mts",
+      "import": "./dist/workflows/scan.mjs"
     },
     "./package.json": "./package.json"
   },
@@ -35,7 +55,6 @@
   },
   "dependencies": {
     "@cloudflare/containers": "catalog:",
-    "@cloudflare/puppeteer": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "drizzle-orm": "catalog:dependencies",

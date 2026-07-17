@@ -126,7 +126,7 @@ const hasAny = computed(() => actionItems.value.length > 0 || ejectItems.value.l
       :size="size"
       icon="more-horizontal"
       aria-label="Eject this view to code"
-      class="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+      class="min-h-11 min-w-11 sm:min-h-6 sm:min-w-6"
     />
   </UDropdownMenu>
 </template>

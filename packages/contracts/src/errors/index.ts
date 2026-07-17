@@ -9,7 +9,7 @@ import { z } from 'zod'
  * Adding a code is SemVer-minor; renaming or removing one is SemVer-major.
  */
 export const ErrorCodes = {
-  /** Adapter does not implement the requested capability (e.g. pause on cloudflare-crawl). */
+  /** Adapter does not implement the requested optional capability. */
   NOT_SUPPORTED: 'NOT_SUPPORTED',
   /** An auditor router / chain could not select any auditor for the request. */
   NO_AUDITOR_AVAILABLE: 'NO_AUDITOR_AVAILABLE',

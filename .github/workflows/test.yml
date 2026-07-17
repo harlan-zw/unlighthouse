@@ -27,7 +27,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm run lint
@@ -37,6 +37,18 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
+
+      - name: Check Cloudflare app generated types
+        run: pnpm --filter @unlighthouse/app-cloudflare run types:check
+
+      - name: Typecheck Cloudflare app
+        run: pnpm --filter @unlighthouse/app-cloudflare run typecheck
+
+      - name: Test Cloudflare app in workerd
+        run: pnpm --filter @unlighthouse/app-cloudflare run test
+
+      - name: Dry-run Cloudflare Worker bundle
+        run: pnpm --filter @unlighthouse/app-cloudflare run deploy:dry-run
 
       - name: Test
         run: pnpm run test

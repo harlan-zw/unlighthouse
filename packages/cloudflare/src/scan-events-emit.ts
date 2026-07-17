@@ -1,11 +1,9 @@
 // Shared event forwarder: builds an `EmitFn` that POSTs each hook event to the
 // matching ScanEventsDO (keyed by scanId), exactly like the hooks.afterEach
-// bridge in app.ts. Used by ScanRunnerDO (init/progress/finalize events) and by
-// the worker's internal /__scan/audit route (per-route audit events) so both
-// the durable scheduler and the delegated audit feed the same live WS stream.
+// bridge in app hosts. Used by ScanWorkflow lifecycle steps and delegated route
+// audits so durable orchestration and audit results feed the same live stream.
 
-import type { DurableObjectNamespace } from '@cloudflare/workers-types'
-import type { EmitFn } from '@unlighthouse/core'
+import type { EmitFn } from '@unlighthouse/core/runtime'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 
 interface ScanEventsEnv {

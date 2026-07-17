@@ -7,7 +7,7 @@
 //
 // The D1 handle here is better-sqlite3 wearing the D1Database interface (D1 is
 // sqlite, so the exact same SQL runs). A real miniflare/workerd test is the
-// documented follow-up — see packages/cloudflare/examples/basic/README.md.
+// documented follow-up — see apps/cloudflare/README.md.
 
 import type { ScanInsert } from '@unlighthouse/contracts/ports'
 import type { ExtractedMetrics, ScanId, Storage } from '@unlighthouse/contracts/types/atoms'
@@ -138,6 +138,15 @@ describe('d1R2Storage — Worker host command-surface parity (D-035)', () => {
     const out = await scanResults.run({ scanId: currentScanId, page: 1, pageSize: 100 }, ctx)
     expect(out.total).toBe(2)
     expect(out.items.map(r => r.path).sort()).toEqual(['/', '/about'])
+  })
+
+  it('streams R2 artifacts without buffering them into Worker memory', async () => {
+    const payload = new TextEncoder().encode('streamed artifact')
+    await storage.blobs.put('scans/stream/report.json', payload)
+
+    const stream = await storage.blobs.getStream?.('scans/stream/report.json')
+    expect(stream).not.toBeNull()
+    await expect(new Response(stream).text()).resolves.toBe('streamed artifact')
   })
 
   it('round-trips persisted siteId and page mode through shared repositories', async () => {

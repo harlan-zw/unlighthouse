@@ -6,8 +6,8 @@
 // bucket (`idFromName(bucket)`); `check` peeks, `consume` decrements,
 // `remaining` reads — dispatched over `fetch` via the `op` query param.
 
-import type { DurableObjectNamespace, DurableObjectState } from '@cloudflare/workers-types'
 import type { RateLimiter } from '@unlighthouse/contracts/ports'
+import { DurableObject } from 'cloudflare:workers'
 
 interface BucketState {
   tokens: number
@@ -54,14 +54,13 @@ export interface RateLimiterCheckResult {
   resetAt: number
 }
 
-export class RateLimiterDO {
+export class RateLimiterDO extends DurableObject<RateLimiterEnv> {
   private state: DurableObjectState
-  private env: unknown
   private config: RateLimiterConfig
 
-  constructor(state: DurableObjectState, env: unknown) {
+  constructor(state: DurableObjectState, env: RateLimiterEnv) {
+    super(state, env)
     this.state = state
-    this.env = env
     // Read RATE_LIMITER_CAPACITY / RATE_LIMITER_REFILL_PER_SEC from the
     // Worker's `vars` block. Unset values fall back to 10 tokens / 1 per
     // sec — same as the prior hardcoded behaviour, just no longer hostile
@@ -69,11 +68,17 @@ export class RateLimiterDO {
     this.config = resolveConfig(env)
   }
 
-  async fetch(request: Request): Promise<Response> {
+  override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
     const key = url.searchParams.get('key') ?? 'anon'
     const cost = Number(url.searchParams.get('cost') ?? '1')
     const op = url.searchParams.get('op') ?? 'consume'
+    if (!Number.isFinite(cost) || cost <= 0) {
+      return new Response(JSON.stringify({ error: 'cost must be a positive finite number' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
     const result = op === 'check'
       ? await this.peek(key, cost)
       : op === 'remaining'
@@ -94,33 +99,43 @@ export class RateLimiterDO {
     return Math.min(this.config.capacity, stored.tokens + elapsedSec * this.config.refillPerSec)
   }
 
-  private resetAt(tokens: number, now: number): number {
-    const deficit = this.config.capacity - tokens
+  private resetAt(tokens: number, now: number, target: number): number {
+    const deficit = Math.max(0, target - tokens)
     return now + Math.ceil((deficit / this.config.refillPerSec) * 1000)
+  }
+
+  private assertCost(cost: number): void {
+    if (!Number.isFinite(cost) || cost <= 0)
+      throw new RangeError('cost must be a positive finite number')
   }
 
   /** Peek at a bucket without consuming; persists the refill only. */
   async peek(key: string, cost = 1): Promise<RateLimiterCheckResult> {
+    this.assertCost(cost)
     const now = Date.now()
     const tokens = await this.refilled(key, now)
     await this.state.storage.put(`b:${key}`, { tokens, updatedAt: now })
-    return { ok: tokens >= cost, remaining: Math.floor(tokens), limit: this.config.capacity, resetAt: this.resetAt(tokens, now) }
+    return { ok: tokens >= cost, remaining: Math.floor(tokens), limit: this.config.capacity, resetAt: this.resetAt(tokens, now, cost) }
   }
 
-  /** Consume `cost` tokens (clamped at zero) and report the outcome. */
+  /** Consume `cost` tokens when available and report the outcome. */
   async consume(key: string, cost = 1): Promise<RateLimiterCheckResult> {
+    this.assertCost(cost)
     const now = Date.now()
     const tokens = await this.refilled(key, now)
-    const next = Math.max(0, tokens - cost)
+    const ok = tokens >= cost
+    // A denied request must not erase a partial refill. Otherwise a caller
+    // polling faster than the refill rate can keep the bucket empty forever.
+    const next = ok ? tokens - cost : tokens
     await this.state.storage.put(`b:${key}`, { tokens: next, updatedAt: now })
-    return { ok: tokens >= cost, remaining: Math.floor(next), limit: this.config.capacity, resetAt: this.resetAt(next, now) }
+    return { ok, remaining: Math.floor(next), limit: this.config.capacity, resetAt: this.resetAt(next, now, cost) }
   }
 
   /** Read the current bucket state without consuming or persisting. */
   async readRemaining(key: string): Promise<RateLimiterCheckResult> {
     const now = Date.now()
     const tokens = await this.refilled(key, now)
-    return { ok: tokens >= 1, remaining: Math.floor(tokens), limit: this.config.capacity, resetAt: this.resetAt(tokens, now) }
+    return { ok: tokens >= 1, remaining: Math.floor(tokens), limit: this.config.capacity, resetAt: this.resetAt(tokens, now, this.config.capacity) }
   }
 }
 

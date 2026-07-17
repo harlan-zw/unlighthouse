@@ -15,6 +15,10 @@
       "types": "./dist/report/index.d.mts",
       "import": "./dist/report/index.mjs"
     },
+    "./runtime": {
+      "types": "./dist/runtime.d.mts",
+      "import": "./dist/runtime.mjs"
+    },
     "./comparison": {
       "types": "./dist/comparison/index.d.mts",
       "import": "./dist/comparison/index.mjs"
@@ -23,6 +27,10 @@
       "types": "./dist/seeds/index.d.mts",
       "import": "./dist/seeds/index.mjs"
     },
+    "./seeds/sitemap-parser": {
+      "types": "./dist/seeds/sitemap-parser.d.mts",
+      "import": "./dist/seeds/sitemap-parser.mjs"
+    },
     "./seeds/route-definitions": {
       "types": "./dist/seeds/route-definitions.d.mts",
       "import": "./dist/seeds/route-definitions.mjs"
@@ -30,6 +38,10 @@
     "./crawlers": {
       "types": "./dist/crawlers/index.d.mts",
       "import": "./dist/crawlers/index.mjs"
+    },
+    "./crawlers/parallel-map": {
+      "types": "./dist/crawlers/parallel-map/index.d.mts",
+      "import": "./dist/crawlers/parallel-map/index.mjs"
     },
     "./auditors": {
       "types": "./dist/auditors/index.d.mts",
@@ -123,6 +135,10 @@
     "./packs": {
       "types": "./dist/packs/index.d.mts",
       "import": "./dist/packs/index.mjs"
+    },
+    "./packs/nuxt": {
+      "types": "./dist/packs/nuxt.d.mts",
+      "import": "./dist/packs/nuxt.mjs"
     },
     "./package.json": "./package.json"
   },

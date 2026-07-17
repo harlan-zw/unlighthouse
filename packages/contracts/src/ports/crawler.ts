@@ -41,9 +41,8 @@ export interface CrawlerRunOptions {
 export interface Crawler {
   run: (opts: CrawlerRunOptions) => AsyncIterable<CrawlEvent>
 
-  // Pause/resume is an optional capability, not a contract: adapters like
-  // cloudflare-crawl genuinely cannot pause. CrawlSession surfaces this via
-  // `capabilities.pausable` so the UI can gate affordances.
+  // Pause/resume is an optional capability, not a contract. CrawlSession
+  // surfaces this via `capabilities.pausable` so the UI can gate affordances.
   pause?: () => Promise<void>
   resume?: () => Promise<void>
   state?: () => CrawlerState

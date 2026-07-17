@@ -1,7 +1,8 @@
 import type { ComparisonDiffRow, ComparisonRow, ScanRouteRow as ScanRoute } from '@unlighthouse/contracts/drizzle'
 import type { ComparisonDiff, MetricDiff } from '../report/types'
 import { comparisonDiffs, comparisons, scanRoutes } from '@unlighthouse/contracts/drizzle'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
+import { chunkRowsByBindLimit } from '../storage/drizzle/bind-chunks'
 import { asDrizzleDatabase } from '../storage/drizzle/types'
 
 export const DEFAULT_THRESHOLDS: Record<string, number> = {
@@ -101,7 +102,7 @@ export async function compareScans(db: unknown, baseScanId: string, currentScanI
     }
   }
 
-  const [comparison] = await sqlDb.insert<ComparisonRow>(comparisons).values({
+  const values = {
     baseScanId,
     currentScanId,
     improved,
@@ -109,20 +110,44 @@ export async function compareScans(db: unknown, baseScanId: string, currentScanI
     unchanged,
     newUrls: [...currentByPath.keys()].filter(p => !baseByPath.has(p)).length,
     removedUrls: [...baseByPath.keys()].filter(p => !currentByPath.has(p)).length,
-  }).returning()
+  }
+  const priorRows = await sqlDb
+    .select<ComparisonRow>()
+    .from(comparisons)
+    .where(and(eq(comparisons.baseScanId, baseScanId), eq(comparisons.currentScanId, currentScanId)))
+  const [prior, ...duplicatePriors] = priorRows
+  for (const duplicate of duplicatePriors)
+    await sqlDb.delete(comparisons).where(eq(comparisons.id, duplicate.id))
+  const [comparison] = prior
+    ? await sqlDb.update<ComparisonRow>(comparisons).set(values).where(eq(comparisons.id, prior.id)).returning()
+    : await sqlDb.insert<ComparisonRow>(comparisons).values(values).returning()
   if (!comparison)
     throw new Error('compareScans: comparison insert returned no row')
 
-  if (diffs.length > 0) {
-    await sqlDb.insert(comparisonDiffs).values(
-      diffs.map(diff => ({
-        comparisonId: comparison.id,
-        path: diff.path,
-        url: diff.url,
-        metricDiffs: JSON.stringify(diff.metricDiffs),
-        severity: diff.severity,
-      })),
-    )
+  try {
+    // A repeated comparison of the same scan pair replaces the previous
+    // materialisation. Thresholds were never persisted, so retaining duplicate
+    // headers for one pair only made retries observable as duplicate history.
+    await sqlDb.delete(comparisonDiffs).where(eq(comparisonDiffs.comparisonId, comparison.id))
+    const rows = diffs.map(diff => ({
+      comparisonId: comparison.id,
+      path: diff.path,
+      url: diff.url,
+      metricDiffs: JSON.stringify(diff.metricDiffs),
+      severity: diff.severity,
+    }))
+    // Five bound values per row; cap each INSERT at 20 rows / 100 binds.
+    for (const chunk of chunkRowsByBindLimit(rows, 5))
+      await sqlDb.insert(comparisonDiffs).values(chunk)
+  }
+  catch (error) {
+    // Do not expose a header with a partial diff set. Deleting the header also
+    // cascades any chunks that committed before the failure.
+    let cleanupError: unknown
+    await Promise.resolve(sqlDb.delete(comparisons).where(eq(comparisons.id, comparison.id))).catch((cause) => { cleanupError = cause })
+    if (cleanupError !== undefined)
+      throw new AggregateError([error, cleanupError], 'Comparison write and rollback both failed')
+    throw error
   }
 
   return comparison

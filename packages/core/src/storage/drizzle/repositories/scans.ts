@@ -10,7 +10,7 @@ import type {
   Scan,
   ScanId,
 } from '@unlighthouse/contracts/types/atoms'
-import type { DrizzleDatabase } from '../types'
+import type { DrizzleDatabase, IdempotentWriteExecutor } from '../types'
 import { scans } from '@unlighthouse/contracts/drizzle'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
 
@@ -38,7 +38,8 @@ function insertToRow(scan: ScanInsert): ScanRowInsert {
   }
 }
 
-export function createScanRepository(db: DrizzleDatabase): ScanRepository {
+export function createScanRepository(db: DrizzleDatabase, retryIdempotentWrite?: IdempotentWriteExecutor): ScanRepository {
+  const write = retryIdempotentWrite ?? (async <T>(operation: () => Promise<T>) => operation())
   return {
     async create(scan: ScanInsert): Promise<Scan> {
       const [row] = await db.insert<ScanRow>(scans).values(insertToRow(scan)).returning()
@@ -59,7 +60,7 @@ export function createScanRepository(db: DrizzleDatabase): ScanRepository {
           continue
         update[k] = v === undefined ? null : v
       }
-      const [row] = await db.update<ScanRow>(scans).set(update).where(eq(scans.scanId, scanId)).returning()
+      const [row] = await write(async () => db.update<ScanRow>(scans).set(update).where(eq(scans.scanId, scanId)).returning())
       if (!row)
         throw new Error(`Scan not found: ${scanId}`)
       return rowToScan(row)
@@ -125,7 +126,7 @@ export function createScanRepository(db: DrizzleDatabase): ScanRepository {
     },
 
     async delete(scanId: ScanId): Promise<void> {
-      await db.delete(scans).where(eq(scans.scanId, scanId))
+      await write(async () => { await db.delete(scans).where(eq(scans.scanId, scanId)) })
     },
   }
 }

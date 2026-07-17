@@ -190,6 +190,22 @@ describe.each(backends)('storage port — %s', (_name, createStorage) => {
     expect(row?.device).toBe('mobile')
   })
 
+  it('routes.findByPath returns only matching device rows and preserves artifact keys', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    const url = 'https://example.com/target'
+    const screenshotBlobKey = `scans/${insert.scanId}/screenshots/custom.webp`
+    await s.routes.upsert(insert.scanId, 'mobile', { ...makeMetrics(url), screenshotBlobKey })
+    await s.routes.upsert(insert.scanId, 'desktop', makeMetrics(url))
+    await s.routes.upsert(insert.scanId, 'mobile', makeMetrics('https://example.com/other'))
+
+    const rows = await s.routes.findByPath(insert.scanId, '/target')
+    expect(rows.map(row => row.device)).toEqual(['desktop', 'mobile'])
+    expect(rows.every(row => row.path === '/target')).toBe(true)
+    expect(rows.find(row => row.device === 'mobile')?.screenshotBlobKey).toBe(screenshotBlobKey)
+  })
+
   it('routes.delete(scanId) clears all rows for that scan', async () => {
     const s = createStorage()
     const insert = makeScanInsert()

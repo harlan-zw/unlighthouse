@@ -93,7 +93,7 @@ const { fmtTimestamp } = createFormatters()
           v-if="scanIsComplete && !currentScanIsActive"
           :href="jsonExportUrl"
           :download="jsonExportName"
-          title="Download a self-contained JSON of this scan (data only, no raw LHR blobs)"
+          aria-description="Self-contained scan data without raw Lighthouse result blobs"
           class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
           <UiIcon name="download" class="size-4" />
@@ -103,7 +103,7 @@ const { fmtTimestamp } = createFormatters()
           v-if="scanIsComplete && !currentScanIsActive"
           :href="csvExportUrl"
           :download="csvExportName"
-          title="Download per-route scores + Core Web Vitals as CSV (for spreadsheets / Google Sheets)"
+          aria-description="Per-route scores and Core Web Vitals for spreadsheet tools"
           class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
           <UiIcon name="table" class="size-4" />
@@ -166,7 +166,7 @@ const { fmtTimestamp } = createFormatters()
             <span class="text-xs text-muted w-24 shrink-0 truncate">{{ cat.label }}</span>
             <div class="flex-1 h-5 bg-elevated rounded overflow-hidden">
               <div
-                class="h-full rounded transition-[width,background-color] duration-200"
+                class="h-full rounded"
                 :style="{ width: `${(cat.score ?? 0) * 100}%`, backgroundColor: scoreColor(cat.score) }"
               />
             </div>
@@ -187,7 +187,7 @@ const { fmtTimestamp } = createFormatters()
         </h2>
         <div class="rounded-lg border px-4 py-4 flex items-center gap-6 justify-center">
           <div class="relative shrink-0">
-            <svg viewBox="0 0 100 100" class="size-32">
+            <svg viewBox="0 0 100 100" class="size-32" aria-hidden="true" focusable="false">
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ui-border)" stroke-width="10" />
               <circle
                 v-for="(arc, i) in donutArcs"
@@ -199,7 +199,6 @@ const { fmtTimestamp } = createFormatters()
                 stroke-linecap="round"
                 :stroke-dasharray="`${arc.dashLen} ${arc.gapLen}`"
                 :transform="`rotate(${arc.rotation} 50 50)`"
-                class="transition-[stroke-dasharray,stroke] duration-200"
               />
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
@@ -237,7 +236,7 @@ const { fmtTimestamp } = createFormatters()
           <template v-if="cat.score != null">
             <div class="w-28 h-1.5 rounded-full bg-elevated overflow-hidden hidden sm:block">
               <div
-                class="h-full rounded-full transition-[width,background-color] duration-200"
+                class="h-full rounded-full"
                 :style="{ width: `${cat.score * 100}%`, backgroundColor: scoreColor(cat.score) }"
               />
             </div>

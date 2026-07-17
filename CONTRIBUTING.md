@@ -40,6 +40,8 @@ packages/
   ui/           Nuxt 3 dashboard (dark-only, Stone palette — see DESIGN.md)
   mcp/          MCP server preset for AI agents
   cloudflare/   Cloudflare Workers preset (D1, R2, Durable Objects)
+apps/
+  cloudflare/   maintained Worker deployment composition (entrypoint + Wrangler config)
 docs/           Nuxt-powered docs site (unlighthouse.dev)
 test/           cross-package integration tests
 ```
@@ -59,9 +61,9 @@ Runtime code that crosses packages goes through `contracts`. Don't reach into a 
 
 ## Packs
 
-Packs are the v1 unit of opinionated, multi-audit output (see `v1.md §D-028`). A pack picks a problem class, declares which Lighthouse audits it needs, and ships a reconciler that joins their output into a typed report. Built-ins live in `core/packs/*`; the contract is in `contracts/packs`.
+Packs are the v1 unit of opinionated, multi-audit output (see `v1.md §D-028`). A pack picks a problem class, declares which Lighthouse audits it needs, and ships a reconciler that joins their output into a typed report. Built-ins live in `core/packs/*`; the contract is in `contracts/packs`. The opt-in `@unlighthouse/core/packs/nuxt` subpath is the reference implementation for first- and third-party packs.
 
-When adding a new pack:
+When adding a built-in pack:
 - One `core/packs/<name>.ts` file with the reconciler + Zod report schema + `Pack` definition.
 - Register it in `core/packs/index.ts` under `builtInPacks`.
 - One `ui/pages/results/[scanId]/packs/<name>.vue` page consuming `usePackRun`.
@@ -69,6 +71,7 @@ When adding a new pack:
 - Verify with `curl -X POST :5678/api/pack/run -d '{"scanId":"…","pack":"<name>"}'` against a live scan.
 
 Third-party packs ship as `@unlighthouse-pack/<name>` and are merged in at host wiring time.
+First-party packs that should remain opt-in can use a dedicated `@unlighthouse/core/packs/<name>` subpath without being added to `builtInPacks`.
 
 ## Workflow
 

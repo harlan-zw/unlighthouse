@@ -52,6 +52,11 @@ interface AuditItem {
   [key: string]: unknown
 }
 
+interface RichTextPart {
+  text: string
+  href?: string
+}
+
 const CATEGORY_ICONS: Record<string, string> = {
   'performance': 'gauge',
   'accessibility': 'accessibility',
@@ -107,8 +112,32 @@ function routeSeverityColor(severity: string): 'error' | 'warning' | 'neutral' {
   return 'neutral'
 }
 
-function renderMarkdownLinks(text: string): string {
-  return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="underline text-highlighted hover:text-default">$1</a>')
+function parseMarkdownLinks(text: string): RichTextPart[] {
+  const parts: RichTextPart[] = []
+  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g
+  let cursor = 0
+  for (const match of text.matchAll(linkPattern)) {
+    const index = match.index ?? 0
+    if (index > cursor)
+      parts.push({ text: text.slice(cursor, index) })
+
+    const label = match[1] ?? ''
+    const rawHref = match[2] ?? ''
+    try {
+      const url = new URL(rawHref)
+      if (url.protocol === 'http:' || url.protocol === 'https:')
+        parts.push({ text: label, href: url.toString() })
+      else
+        parts.push({ text: match[0] })
+    }
+    catch {
+      parts.push({ text: match[0] })
+    }
+    cursor = index + match[0].length
+  }
+  if (cursor < text.length)
+    parts.push({ text: text.slice(cursor) })
+  return parts
 }
 
 function hasVisibleAuditItem(item: AuditItem): boolean {
@@ -310,7 +339,7 @@ export function useRouteDetail() {
     formatMetric: formatRouteDetailMetric,
     metricColor: routeMetricColor,
     severityColor: routeSeverityColor,
-    renderMarkdownLinks,
+    parseMarkdownLinks,
     hasVisibleContent: hasVisibleAuditItem,
     hasNonZeroSavings,
     backToRoutes,

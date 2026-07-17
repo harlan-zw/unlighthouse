@@ -89,7 +89,7 @@ const colorClass = computed(() => {
     <button
       v-if="removable"
       type="button"
-      class="-mr-0.5 inline-flex items-center justify-center rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      class="-mr-1 inline-flex size-6 items-center justify-center rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       :aria-label="label ? `Remove ${label}` : 'Remove'"
       @click.stop="emit('remove')"
     >

@@ -91,13 +91,14 @@ function errorMessage(error: unknown): string {
         <UInput
           v-if="searchable"
           v-model="search"
+          name="table-filter"
           type="search"
           class="w-full sm:w-56"
           :placeholder="searchPlaceholder"
           icon="search"
           autocomplete="off"
           size="sm"
-          :ui="{ base: 'transition-[width] duration-200 focus-within:w-72' }"
+          :ui="{ base: 'focus-within:w-72' }"
           aria-label="Filter rows"
         >
           <template #trailing>

@@ -168,8 +168,8 @@ function seedStorage(snapshot: StaticSnapshot): Storage {
   for (const scan of snapshot.scans)
     void storage.scans.create(scan)
 
-  // Group rows by (scanId, device) for putBatch; reportBlobKey/screenshotBlobKey
-  // ride through unchanged (toRoute only recomputes lhrBlobKey).
+  // Group rows by (scanId, device) for putBatch; all artifact keys ride through
+  // unchanged so an offline snapshot points at the blobs it actually contains.
   const byScanDevice = new Map<string, ScanRoute[]>()
   for (const r of snapshot.routes) {
     const k = `${r.scanId}::${r.device}`

@@ -72,9 +72,7 @@ const imageItems = computed(() =>
             <UiChip purpose="status" :status="severityStatus(finding.severity)">
               {{ finding.severity }}
             </UiChip>
-            <UiTooltip :text="finding.imageUrl" side="top" size="lg">
-              <span class="truncate font-mono text-xs">{{ finding.imageUrl }}</span>
-            </UiTooltip>
+            <span class="min-w-0 break-all font-mono text-xs line-clamp-2">{{ finding.imageUrl }}</span>
             <span class="text-xs text-muted shrink-0">{{ finding.routeCount }} routes</span>
           </div>
         </template>
@@ -84,9 +82,11 @@ const imageItems = computed(() =>
               <!-- The actual offending image — referrerpolicy=no-referrer
                          so origin servers that block hotlinking still render
                          (we're loading their public asset, not stealing it). -->
-              <a :href="finding.imageUrl" target="_blank" rel="noopener" class="shrink-0">
+              <a :href="finding.imageUrl" target="_blank" rel="noopener noreferrer" class="shrink-0" :aria-label="`Open image: ${finding.imageUrl}`">
                 <img
                   :src="finding.imageUrl"
+                  width="128"
+                  height="80"
                   loading="lazy"
                   referrerpolicy="no-referrer"
                   alt=""

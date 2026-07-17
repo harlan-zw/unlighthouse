@@ -20,7 +20,9 @@ relatedPages:
 
 # Route Definitions
 
-Map URLs to source files for intelligent [dynamic sampling](/guide/guides/dynamic-sampling). Framework integrations discover routes automatically; CLI users may need manual configuration for optimal sampling.
+Map URLs to source files for intelligent
+[dynamic sampling](/guide/guides/dynamic-sampling). Configure route definitions
+when your project layout cannot be inferred from the default pages directory.
 
 ## Pages directory
 

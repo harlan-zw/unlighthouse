@@ -45,7 +45,6 @@ const percent = computed(() => (props.score === null ? 0 : Math.round(props.scor
       :size="dimensions"
       :stroke-size="strokeWidth"
       :label="label"
-      class="transition-[stroke-dashoffset] duration-300 ease-[var(--ease-standard)]"
     />
     <span
       class="absolute font-bold tabular-nums"

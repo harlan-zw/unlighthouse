@@ -26,13 +26,12 @@ function pct(count: number): number {
 
 <template>
   <div class="flex flex-col gap-1.5">
-    <div class="flex h-3 rounded-full overflow-hidden bg-muted">
+    <div class="flex h-3 rounded-full overflow-hidden bg-muted" aria-hidden="true">
       <div
         v-for="seg in visible"
         :key="seg.label"
         :style="{ width: `${pct(seg.count)}%` }"
         :class="semanticColors[seg.status].dot"
-        :title="`${seg.label}: ${seg.count} (${Math.round(pct(seg.count))}%)`"
       />
     </div>
     <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">

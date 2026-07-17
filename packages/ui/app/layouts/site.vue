@@ -8,8 +8,8 @@ const slug = computed(() => route.params.siteId as string)
 <template>
   <SidebarShell>
     <template #subnav>
-      <nav class="flex items-center gap-1.5 text-sm min-w-0">
-        <NuxtLink to="/" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors shrink-0 lg:min-h-0 lg:min-w-0">
+      <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-sm min-w-0">
+        <NuxtLink to="/" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors shrink-0 lg:min-h-6 lg:min-w-6">
           Sites
         </NuxtLink>
         <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />

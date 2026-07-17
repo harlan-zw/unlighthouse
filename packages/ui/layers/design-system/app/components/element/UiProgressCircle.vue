@@ -61,6 +61,8 @@ const bg = computed(() => {
   >
     <svg
       v-bind="svg"
+      aria-hidden="true"
+      focusable="false"
       :class="bg"
       class="absolute inset-0 w-full h-full"
     >
@@ -68,6 +70,8 @@ const bg = computed(() => {
     </svg>
     <svg
       v-bind="svg"
+      aria-hidden="true"
+      focusable="false"
       :stroke-dashoffset="offset"
       :stroke-dasharray="100"
       stroke-linecap="butt"

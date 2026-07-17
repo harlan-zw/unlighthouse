@@ -1,0 +1,36 @@
+{
+  "name": "@unlighthouse/app-cloudflare",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.13.1"
+  },
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.jsonc",
+    "build:panel": "cd ../.. && NUXT_PUBLIC_UNLIGHTHOUSE_API_URL=/api NUXT_PUBLIC_UNLIGHTHOUSE_WS_URL= pnpm --filter @unlighthouse/ui build",
+    "build:container": "pnpm --filter @unlighthouse/lighthouse-container build:image",
+    "db:migrate:local": "wrangler d1 migrations apply unlighthouse --local --config wrangler.jsonc",
+    "db:migrate:remote": "wrangler d1 migrations apply unlighthouse --remote --config wrangler.jsonc",
+    "deploy": "pnpm run build:container && pnpm run build:panel && pnpm run db:migrate:remote && wrangler deploy --config wrangler.jsonc",
+    "deploy:worker-only": "pnpm run db:migrate:remote && wrangler deploy --config wrangler.jsonc --containers-rollout=none",
+    "deploy:dry-run": "wrangler deploy --config wrangler.jsonc --dry-run --containers-rollout=none",
+    "tail": "wrangler tail --config wrangler.jsonc",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "types": "wrangler types src/worker-configuration.d.ts --config wrangler.jsonc",
+    "types:check": "wrangler types src/worker-configuration.d.ts --config wrangler.jsonc --check",
+    "typecheck": "pnpm run types:check && tsc --noEmit"
+  },
+  "dependencies": {
+    "@unlighthouse/cloudflare": "workspace:*",
+    "@unlighthouse/contracts": "workspace:*",
+    "@unlighthouse/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
+  }
+}

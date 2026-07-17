@@ -38,6 +38,8 @@ const props = withDefaults(defineProps<{
   format?: (v: number) => string
   showLegend?: boolean
   markers?: TrendMarker[]
+  /** Accessible caption for the non-visual data table. */
+  label?: string
   /**
    * @deprecated no longer changes rendering — release/CI markers now always
    * render through UiChartAnnotations (thin line + hover dot), replacing the
@@ -48,6 +50,7 @@ const props = withDefaults(defineProps<{
   height: 200,
   showLegend: true,
   markerPills: true,
+  label: 'Trend data',
 })
 
 const fmt = (v: number) => (props.format ? props.format(v) : String(Math.round(v)))
@@ -111,13 +114,12 @@ function pathFor(s: TrendSeries): string {
   return d.trim()
 }
 
-function dotsFor(s: TrendSeries): Array<{ x: number, y: number, title: string }> {
+function dotsFor(s: TrendSeries): Array<{ x: number, y: number }> {
   return s.points
     .filter(p => p.v != null)
     .map(p => ({
       x: xFor(p.t),
       y: yFor(p.v as number),
-      title: `${s.label}: ${p.label ?? fmt(p.v as number)} - ${fmtTimestamp(p.t, 'short')}`,
     }))
 }
 
@@ -176,7 +178,7 @@ const xTicks = computed(() => {
 const annotations = computed<ChartAnnotation[]>(() =>
   (props.markers ?? []).map(m => ({ x: m.t, label: m.title ?? m.label, tone: 'neutral' as const })),
 )
-const xDomain = computed<[number, number]>(() => [tMin.value, tMax.value])
+const xDomain = computed<[number, number]>(() => hasData.value ? [tMin.value, tMax.value] : [0, 1])
 
 // ── Hover crosshair + tooltip (useChartHover) ──────────────────────────────
 interface HoverDatum {
@@ -204,27 +206,34 @@ const hoverX = computed(() => (hoverT.value == null ? null : xFor(hoverT.value))
 function onMove(e: PointerEvent) {
   if (!wrap.value || !columns.value.length)
     return
-  onChartMove(e)
-  const mx = e.clientX - wrap.value.getBoundingClientRect().left
-  let best = columns.value[0]!
-  let bd = Infinity
-  for (const t of columns.value) {
-    const d = Math.abs(xFor(t) - mx)
-    if (d < bd) {
-      bd = d
-      best = t
+  onChartMove(e, ({ cursorX }) => {
+    let best = columns.value[0]!
+    let bd = Infinity
+    for (const t of columns.value) {
+      const d = Math.abs(xFor(t) - cursorX)
+      if (d < bd) {
+        bd = d
+        best = t
+      }
     }
-  }
-  const points = props.series
-    .map((s) => {
-      const p = s.points.find(pp => pp.t === best && pp.v != null)
-      return p ? { label: s.label, color: s.color, text: fmt(p.v as number), y: yFor(p.v as number) } : null
-    })
-    .filter((x): x is { label: string, color: string, text: string, y: number } => !!x)
-  onTooltip({ t: best, dateLabel: fmtTimestamp(best, 'short'), points }, null)
+    const points = props.series
+      .map((s) => {
+        const p = s.points.find(pp => pp.t === best && pp.v != null)
+        return p ? { label: s.label, color: s.color, text: fmt(p.v as number), y: yFor(p.v as number) } : null
+      })
+      .filter((x): x is { label: string, color: string, text: string, y: number } => !!x)
+    onTooltip({ t: best, dateLabel: fmtTimestamp(best, 'short'), points }, null)
+  })
 }
 function onLeave() {
   clear()
+}
+
+function tableValue(s: TrendSeries, t: number): string {
+  const point = s.points.find(candidate => candidate.t === t && candidate.v != null)
+  if (!point || point.v == null)
+    return 'No data'
+  return point.label ?? fmt(point.v)
 }
 </script>
 
@@ -232,12 +241,12 @@ function onLeave() {
   <div>
     <div v-if="showLegend" class="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2">
       <div v-for="s in series" :key="s.label" class="flex items-center gap-1.5 text-xs text-muted">
-        <span class="inline-block size-2 rounded-full" :style="{ backgroundColor: s.color }" />
+        <span class="inline-block size-2 rounded-full" :style="{ backgroundColor: s.color }" aria-hidden="true" />
         {{ s.label }}
       </div>
     </div>
     <div ref="wrap" class="w-full relative" @pointermove="onMove" @pointerleave="onLeave">
-      <svg v-if="width > 0 && hasData" :width="width" :height="height" class="overflow-visible">
+      <svg v-if="width > 0 && hasData" :width="width" :height="height" class="overflow-visible" aria-hidden="true" focusable="false">
         <!-- y gridlines + labels -->
         <g>
           <line
@@ -291,9 +300,7 @@ function onLeave() {
             :cy="dot.y"
             r="2.5"
             :fill="s.color"
-          >
-            <title>{{ dot.title }}</title>
-          </circle>
+          />
         </g>
 
         <!-- x labels — DS useChartTickPlan (calendar-aware cadence + format) -->
@@ -332,5 +339,28 @@ function onLeave() {
         </template>
       </UiChartFrame>
     </div>
+    <table v-if="hasData" class="sr-only">
+      <caption>{{ label }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">
+            Series
+          </th>
+          <th v-for="t in columns" :key="t" scope="col">
+            {{ fmtTimestamp(t, 'short') }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="s in series" :key="s.label">
+          <th scope="row">
+            {{ s.label }}
+          </th>
+          <td v-for="t in columns" :key="t">
+            {{ tableValue(s, t) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>

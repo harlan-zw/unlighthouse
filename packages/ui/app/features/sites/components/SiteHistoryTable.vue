@@ -139,12 +139,12 @@ function statusForPair(pair: DevicePair): { label: string, status: 'success' | '
   >
     <template #actions="{ row }">
       <div class="flex items-center justify-end gap-0.5">
-        <UiButton purpose="quiet" size="sm" icon="refresh" title="Rescan site" @click="emit('rescan', primaryScanId(row))" />
+        <UiButton purpose="quiet" size="sm" icon="refresh" :aria-label="`Rescan from ${fmtTimestamp(row.startedAt, 'short')}`" @click="emit('rescan', primaryScanId(row))" />
         <UModal
           title="Delete scan?"
           description="This will permanently delete this scan and all its data. This cannot be undone."
         >
-          <UiButton purpose="quiet" size="sm" icon="delete" aria-label="Delete scan" />
+          <UiButton purpose="quiet" size="sm" icon="delete" :aria-label="`Delete scan from ${fmtTimestamp(row.startedAt, 'short')}`" />
           <template #footer="{ close }">
             <UiButton purpose="quiet" @click="close">
               Keep scan

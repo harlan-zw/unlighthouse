@@ -21,6 +21,9 @@ export type DrizzleBatchExecutor = (
   statements: readonly [DrizzleQuery<unknown[]>, ...DrizzleQuery<unknown[]>[]],
 ) => Promise<void>
 
+/** Host-owned retry policy, called only around writes that are safe to repeat. */
+export type IdempotentWriteExecutor = <T>(operation: () => Promise<T>) => Promise<T>
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }

@@ -29,7 +29,7 @@ const errorMessage = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-default text-default flex flex-col items-center justify-center p-6">
+  <main class="flex min-h-dvh flex-col items-center justify-center bg-default p-6 text-default">
     <div class="max-w-md text-center">
       <div class="size-16 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-8">
         <UiIcon name="warning" class="size-8 text-error" />
@@ -53,5 +53,5 @@ const errorMessage = computed(() => {
         <CodeBlock :code="error.stack" class="mt-2" max-height="12rem" />
       </Disclosure>
     </div>
-  </div>
+  </main>
 </template>

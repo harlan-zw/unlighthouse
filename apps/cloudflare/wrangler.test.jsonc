@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "unlighthouse-test",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-07-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "unlighthouse-test",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BLOBS",
+      "bucket_name": "unlighthouse-test"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "RATE_LIMITER_DO", "class_name": "RateLimiterDO" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RateLimiterDO"] }
+  ],
+  "vars": {
+    "UNLIGHTHOUSE_API_TOKEN": "test-token-with-at-least-32-characters-long",
+    "SHARED_AUDIT_TOKEN": "test-shared-token-with-32-characters",
+    "CF_BROWSER_RUN_TOKEN": "test-browser-token",
+    "CF_ACCOUNT_ID": "test-account",
+    "ENVIRONMENT": "test",
+    "UNLIGHTHOUSE_ALLOWED_ORIGINS": "https://example.com",
+    "UNLIGHTHOUSE_CONFIG": "{\"site\":\"https://example.com\"}",
+    "RATE_LIMITER_CAPACITY": "10",
+    "RATE_LIMITER_REFILL_PER_SEC": "1"
+  },
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  }
+}

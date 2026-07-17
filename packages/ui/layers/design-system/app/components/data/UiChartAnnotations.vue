@@ -30,16 +30,17 @@ const markers = computed(() => resolveAnnotationMarkers(annotations, xDomain))
     :key="m.id"
     class="absolute top-0 bottom-9 z-[5] pointer-events-none w-0"
     :style="{ left: m.leftPct }"
-    aria-hidden="true"
   >
     <!-- Thin 1px vertical marker line centred on the anchor point. -->
-    <div class="absolute inset-y-0 w-px -translate-x-1/2 opacity-50" :class="m.toneClass" />
-    <!-- 6px anchor dot at the bottom edge; pointer-events-auto restores hover so
-         the native title shows the label on the zero-width overlay. -->
-    <div
-      class="absolute bottom-0 size-1.5 rounded-full -translate-x-1/2 pointer-events-auto cursor-default"
-      :class="m.toneClass"
-      :title="m.label"
-    />
+    <div class="absolute inset-y-0 w-px -translate-x-1/2 opacity-50" :class="m.toneClass" aria-hidden="true" />
+    <UiTooltip :text="m.label" trigger-as="child">
+      <button
+        type="button"
+        class="absolute -bottom-2.5 size-6 -translate-x-1/2 rounded-full pointer-events-auto cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        :aria-label="`Chart annotation: ${m.label}`"
+      >
+        <span class="absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full" :class="m.toneClass" aria-hidden="true" />
+      </button>
+    </UiTooltip>
   </div>
 </template>

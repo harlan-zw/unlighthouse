@@ -73,7 +73,6 @@ const { deltaClassWithThreshold, rowScoreCell } = createComparePresentation({
 // its own header, so columns don't carry sticky classes.
 const IconCmp = resolveComponent('UiIcon')
 const UiStatusBadgeCmp = resolveComponent('UiStatusBadge')
-const UiTooltipCmp = resolveComponent('UiTooltip')
 
 // Shared tone→semantic translation: route-status badges (via statusBadge)
 // and the summary verdict chip (workflow's own tone literal) both speak the
@@ -99,9 +98,10 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       enableSorting: false,
       headClass: 'min-w-[200px]',
       cellClass: 'font-mono text-xs',
-      cell: ({ row }) => h(UiTooltipCmp, { text: row.original.url, side: 'top', size: 'lg' }, {
-        default: () => h('span', { class: 'block truncate max-w-[400px]' }, row.original.path),
-      }),
+      cell: ({ row }) => h('span', {
+        'class': 'block truncate max-w-[400px]',
+        'aria-label': `Route ${row.original.url}`,
+      }, row.original.path),
     },
     {
       id: 'status',
@@ -133,10 +133,10 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       headClass: 'w-16',
       cell: ({ row }) => {
         const c = rowScoreCell(row.original, m.key, m.thresholdKey)
-        return h('span', {
-          class: ['tabular-nums text-xs', c.klass],
-          title: c.mutedByThreshold ? 'Inside the noise threshold' : undefined,
-        }, c.value)
+        return h('span', { class: ['tabular-nums text-xs', c.klass] }, [
+          c.value,
+          c.mutedByThreshold ? h('span', { class: 'sr-only' }, ' (inside the noise threshold)') : null,
+        ])
       },
     })
   }
@@ -146,6 +146,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
 
 <template>
   <div class="h-full flex flex-col">
+    <h1 class="sr-only">
+      Compare scans
+    </h1>
     <!-- Couldn't load the current scan — the compare can't proceed, so
          surface it above the toolbar with a retry. -->
     <QueryError v-if="currentMetaError" :error="currentMetaError" :on-retry="refreshCurrentMeta" class="m-4" />
@@ -160,6 +163,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
           <span class="text-label text-muted shrink-0">Base</span>
           <USelect
             v-model="baseScanId"
+            aria-label="Base scan"
             :items="otherScans.map(s => ({ value: s.scanId, label: `${shortId(s.scanId)} · ${s.device}`, scan: s }))"
             placeholder="Select previous scan"
             size="sm"
@@ -179,7 +183,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
         </div>
 
         <!-- Swap -->
-        <UiTooltip text="Swap base ↔ current">
+        <UiTooltip text="Swap base ↔ current" trigger-as="child">
           <UiButton purpose="quiet" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" icon="compare" aria-label="Swap base and current" @click="swapDirection" />
         </UiTooltip>
 
@@ -202,9 +206,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             <template #panel>
               <div class="w-96 p-4 space-y-3">
                 <div>
-                  <h4 class="text-sm font-semibold">
+                  <h2 class="text-sm font-semibold">
                     Regression thresholds
-                  </h4>
+                  </h2>
                   <p class="text-xs text-muted">
                     Empty = CI defaults. Deltas within threshold render muted (treated as noise).
                   </p>
@@ -224,23 +228,23 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                     <div class="grid grid-cols-2 gap-2">
                       <label class="space-y-1">
                         <span class="text-muted">Performance</span>
-                        <UInput v-model="thresholds.performance" placeholder="0.05" size="xs" class="w-full" />
+                        <UInput v-model="thresholds.performance" name="threshold-performance" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted">Accessibility</span>
-                        <UInput v-model="thresholds.accessibility" placeholder="0.05" size="xs" class="w-full" />
+                        <UInput v-model="thresholds.accessibility" name="threshold-accessibility" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted">SEO</span>
-                        <UInput v-model="thresholds.seo" placeholder="0.05" size="xs" class="w-full" />
+                        <UInput v-model="thresholds.seo" name="threshold-seo" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted">Best Practices</span>
-                        <UInput v-model="thresholds['best-practices']" placeholder="0.05" size="xs" class="w-full" />
+                        <UInput v-model="thresholds['best-practices']" name="threshold-best-practices" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted">Agentic</span>
-                        <UInput v-model="thresholds['agentic-browsing']" placeholder="0.05" size="xs" class="w-full" />
+                        <UInput v-model="thresholds['agentic-browsing']" name="threshold-agentic-browsing" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
                       </label>
                     </div>
                   </div>
@@ -253,23 +257,23 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                       <label class="space-y-1">
                         <span class="text-muted flex justify-between">
                           LCP (ms)
-                          <span class="text-xs italic text-muted/70" title="Typical jitter on parallel single-run audits">≈ 300ms noise</span>
+                          <span class="text-xs italic text-muted/70">≈ 300ms noise</span>
                         </span>
-                        <UInput v-model="thresholds.lcp" placeholder="500" size="xs" class="w-full" />
+                        <UInput v-model="thresholds.lcp" name="threshold-lcp" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="500" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted flex justify-between">
                           CLS
                           <span class="text-xs italic text-muted/70">≈ 0.02 noise</span>
                         </span>
-                        <UInput v-model="thresholds.cls" placeholder="0.1" size="xs" class="w-full" />
+                        <UInput v-model="thresholds.cls" name="threshold-cls" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.1" size="xs" class="w-full" />
                       </label>
                       <label class="space-y-1">
                         <span class="text-muted flex justify-between">
                           INP (ms)
                           <span class="text-xs italic text-muted/70">≈ 100ms noise</span>
                         </span>
-                        <UInput v-model="thresholds.inp" placeholder="200" size="xs" class="w-full" />
+                        <UInput v-model="thresholds.inp" name="threshold-inp" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="200" size="xs" class="w-full" />
                       </label>
                     </div>
                   </div>
@@ -294,14 +298,14 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
 
       <!-- Scan-metadata strip — visible only when both scans are loaded -->
       <div v-if="baseMeta && currentMeta" class="px-4 py-2 text-xs flex items-center gap-4 flex-wrap border-t bg-default/40">
-        <button type="button" class="hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
+        <button type="button" class="min-h-6 hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
           <UiIcon name="external" class="size-3" />
           Base: {{ fmtDate(baseMeta.completedAt || baseMeta.startedAt) }}
           <span v-if="baseMeta.ciCommit" class="font-mono text-xs">· {{ baseMeta.ciCommit.slice(0, 7) }}</span>
           <span v-if="baseMeta.ciBranch" class="text-xs">· {{ baseMeta.ciBranch }}</span>
         </button>
         <UiIcon name="next" class="size-3 text-muted" />
-        <button type="button" class="hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
+        <button type="button" class="min-h-6 hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
           <UiIcon name="external" class="size-3" />
           Current: {{ fmtDate(currentMeta.completedAt || currentMeta.startedAt) }}
           <span v-if="currentMeta.ciCommit" class="font-mono text-xs">· {{ currentMeta.ciCommit.slice(0, 7) }}</span>
@@ -315,13 +319,13 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       <UiCard class="max-w-md">
         <div class="text-center space-y-3">
           <UiIcon name="compare" class="size-12 text-muted/40 mx-auto" />
-          <h3 class="font-semibold">
+          <h2 class="font-semibold">
             Pick a scan to compare against
-          </h3>
+          </h2>
           <p class="text-sm text-muted">
             Select a base scan for <span class="font-mono text-xs">{{ currentMeta?.site || 'this site' }}</span>. The most recent scan on the same device + branch is auto-selected when available.
           </p>
-          <p v-if="!otherScans.length" class="text-xs text-muted/70">
+          <p v-if="!otherScans.length" class="text-xs text-muted">
             Run another scan of this site to create a comparison baseline.
           </p>
         </div>
@@ -410,13 +414,14 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             v-if="row.delta != null"
             class="text-xs tabular-nums"
             :class="deltaClassWithThreshold(row.delta, false, row.metric).klass"
-            :title="deltaClassWithThreshold(row.delta, false, row.metric).mutedByThreshold ? 'Inside the noise threshold' : ''"
           >
             ({{ fmtDelta(row.delta, false) }})
+            <span v-if="deltaClassWithThreshold(row.delta, false, row.metric).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
           </span>
         </div>
-        <span class="ml-auto text-xs text-muted italic" title="CWV pack aggregates across routes — smoother than the per-route columns below, which can be noisy on single-sample runs.">
+        <span class="ml-auto text-xs text-muted italic">
           smoothed across routes
+          <span class="sr-only">; this aggregate is less noisy than per-route single-sample values</span>
         </span>
       </div>
 
@@ -424,7 +429,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       <div class="px-4 py-2 border-b flex items-center gap-3 flex-wrap">
         <div class="relative w-64">
           <UiIcon name="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
-          <UInput placeholder="Filter by URL or path..." size="sm" class="w-full" :model-value="urlFilter" :ui="{ base: 'pl-8' }" @update:model-value="onFilterInput" />
+          <UInput name="compare-route-filter" type="search" autocomplete="off" aria-label="Filter routes by URL or path" placeholder="Filter by URL or path…" size="sm" class="w-full" :model-value="urlFilter" :ui="{ base: 'pl-8' }" @update:model-value="onFilterInput" />
         </div>
 
         <UTabs
@@ -453,7 +458,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
           ]"
         />
 
-        <USelect v-model="sortKey" :items="sortOptions" size="sm" class="w-44" />
+        <USelect v-model="sortKey" :items="sortOptions" aria-label="Sort routes" size="sm" class="w-44" />
 
         <span class="ml-auto text-xs text-muted tabular-nums">
           {{ report.routes.total }} route{{ report.routes.total === 1 ? '' : 's' }}
@@ -470,6 +475,8 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
         <button
           type="button"
           class="px-4 py-2 w-full flex items-center gap-2 hover:bg-elevated/30 transition-colors text-xs"
+          :aria-expanded="showPackDetails"
+          aria-controls="compare-pack-details"
           @click="showPackDetails = !showPackDetails"
         >
           <UiIcon name="chevron-right" class="size-3.5 text-muted transition-transform" :class="{ 'rotate-90': showPackDetails }" />
@@ -479,7 +486,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
           </span>
           <span class="ml-auto text-xs text-muted italic">{{ showPackDetails ? 'expanded' : 'collapsed' }}</span>
         </button>
-        <div v-if="showPackDetails" class="px-4 py-3 bg-default/20 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-if="showPackDetails" id="compare-pack-details" class="px-4 py-3 bg-default/20 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="pack in otherPackChanges" :key="pack.packName" class="rounded-lg border bg-default p-3 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium capitalize">{{ pack.packName.replace(/-/g, ' ') }}</span>
@@ -555,9 +562,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
         <SplitterPanel :default-size="38" :min-size="25">
           <div v-if="selectedRow" class="h-full overflow-auto p-4 space-y-4">
             <div>
-              <div class="font-mono text-sm font-medium break-all">
+              <h2 class="font-mono text-sm font-medium break-all">
                 {{ selectedRow.url }}
-              </div>
+              </h2>
               <div class="flex items-center gap-2 mt-1">
                 <UiChip purpose="count">
                   {{ selectedRow.device }}
@@ -576,9 +583,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             <!-- Categories: the headline. Aggregate of dozens of audits,
                  noise-resistant. -->
             <section>
-              <h4 class="text-label text-muted mb-2">
+              <h3 class="text-label text-muted mb-2">
                 Categories
-              </h4>
+              </h3>
               <UiTableShell bordered label="Category metric comparison">
                 <template #head>
                   <UiTableTh>Metric</UiTableTh>
@@ -606,9 +613,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                     align="right"
                     class="tabular-nums font-medium"
                     :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
-                    :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                   >
                     {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                    <span v-if="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
                   </UiTableTd>
                 </tr>
               </UiTableShell>
@@ -616,14 +623,18 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
 
             <!-- Core Web Vitals — Google's stable real-user metrics. -->
             <section>
-              <h4 class="text-label text-muted mb-2 flex items-center gap-1.5">
+              <h3 class="text-label text-muted mb-2 flex items-center gap-1.5">
                 Core Web Vitals
-                <UiIcon name="info" class="size-2.5 opacity-60" title="Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability." />
-              </h4>
+                <UiTooltip text="Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability." trigger-as="button">
+                  <UiIcon name="info" class="size-2.5 opacity-60" />
+                </UiTooltip>
+              </h3>
               <UiTableShell bordered label="Core Web Vitals comparison">
                 <tr v-for="m in CWV_METRICS" :key="m.key" class="border-b border-default last:border-0">
-                  <UiTableTd class="font-medium" :title="m.hint">
-                    {{ m.label }}
+                  <UiTableTd class="font-medium">
+                    <UiTooltip :text="m.hint" trigger-as="button">
+                      <span>{{ m.label }}</span>
+                    </UiTooltip>
                   </UiTableTd>
                   <UiTableTd align="right" class="tabular-nums">
                     {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
@@ -635,9 +646,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                     align="right"
                     class="tabular-nums font-medium"
                     :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
-                    :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                   >
                     {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                    <span v-if="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
                   </UiTableTd>
                 </tr>
               </UiTableShell>
@@ -647,16 +658,20 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
             <section>
               <button
                 type="button"
-                class="text-label text-muted hover:text-default transition-colors flex items-center gap-1.5 mb-2"
+                class="min-h-6 text-label text-muted hover:text-default transition-colors flex items-center gap-1.5 mb-2"
+                :aria-expanded="showLegacyMetrics"
+                aria-controls="compare-diagnostic-metrics"
                 @click="showLegacyMetrics = !showLegacyMetrics"
               >
                 <UiIcon name="chevron-right" class="size-3 transition-transform" :class="{ 'rotate-90': showLegacyMetrics }" />
                 Diagnostics ({{ DIAGNOSTIC_METRICS.length }})
               </button>
-              <UiTableShell v-if="showLegacyMetrics" bordered label="Diagnostic metric comparison">
+              <UiTableShell v-if="showLegacyMetrics" id="compare-diagnostic-metrics" bordered label="Diagnostic metric comparison">
                 <tr v-for="m in DIAGNOSTIC_METRICS" :key="m.key" class="border-b border-default last:border-0">
-                  <UiTableTd class="font-medium text-muted" :title="m.hint">
-                    {{ m.label }}
+                  <UiTableTd class="font-medium text-muted">
+                    <UiTooltip :text="m.hint" trigger-as="button">
+                      <span>{{ m.label }}</span>
+                    </UiTooltip>
                   </UiTableTd>
                   <UiTableTd align="right" class="tabular-nums">
                     {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
@@ -668,9 +683,9 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
                     align="right"
                     class="tabular-nums font-medium"
                     :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
-                    :title="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold ? 'Inside the noise threshold' : ''"
                   >
                     {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                    <span v-if="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
                   </UiTableTd>
                 </tr>
               </UiTableShell>

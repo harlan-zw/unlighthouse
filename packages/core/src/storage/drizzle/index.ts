@@ -1,5 +1,5 @@
 import type { Logger, PackRunRepository, ScanRepository, ScanRouteRepository, SiteRepository } from '@unlighthouse/contracts'
-import type { DrizzleBatchExecutor, DrizzleDatabase } from './types'
+import type { DrizzleBatchExecutor, DrizzleDatabase, IdempotentWriteExecutor } from './types'
 import { createComparisonRepository } from './repositories/comparisons'
 import { createPackRunRepository } from './repositories/pack-runs'
 import { createReportRepositories } from './repositories/reports'
@@ -30,6 +30,12 @@ export interface DrizzleStorageOptions {
   driver: unknown
   /** Runtime adapter for atomic statement batches (for example D1 `db.batch`). */
   executeBatch?: DrizzleBatchExecutor
+  /**
+   * Runtime-specific transient retry policy. Core invokes it only for
+   * deterministic upserts, updates, and deletes; inserts with generated
+   * identity deliberately bypass it.
+   */
+  retryIdempotentWrite?: IdempotentWriteExecutor
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
   logger?: Logger
 }
@@ -45,12 +51,12 @@ export interface DrizzleStorageOptions {
 export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
   const driver = asDrizzleDatabase(opts.driver)
   return {
-    sites: createSiteRepository(driver),
-    scans: createScanRepository(driver),
-    routes: createScanRouteRepository(driver, opts.executeBatch),
+    sites: createSiteRepository(driver, opts.retryIdempotentWrite),
+    scans: createScanRepository(driver, opts.retryIdempotentWrite),
+    routes: createScanRouteRepository(driver, opts.executeBatch, opts.retryIdempotentWrite),
     reports: createReportRepositories(driver),
     comparisons: createComparisonRepository(driver),
-    packRuns: createPackRunRepository(driver),
+    packRuns: createPackRunRepository(driver, opts.retryIdempotentWrite),
     db: driver,
   }
 }
@@ -64,8 +70,7 @@ export { applyMigrations, ensureSchema } from './migrations'
 export { createComparisonRepository } from './repositories/comparisons'
 export { createReportRepositories } from './repositories/reports'
 export { asDrizzleDatabase } from './types'
-export type { DrizzleDatabase } from './types'
-export type { DrizzleBatchExecutor } from './types'
+export type { DrizzleBatchExecutor, DrizzleDatabase, IdempotentWriteExecutor } from './types'
 
 // Re-export schema/types from contracts for users that want raw access.
 export * from '@unlighthouse/contracts/drizzle'

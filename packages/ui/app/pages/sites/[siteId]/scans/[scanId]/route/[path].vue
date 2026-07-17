@@ -32,7 +32,7 @@ const {
   formatMetric,
   metricColor,
   severityColor,
-  renderMarkdownLinks,
+  parseMarkdownLinks,
   hasVisibleContent,
   hasNonZeroSavings,
   backToRoutes,
@@ -46,6 +46,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
 
 <template>
   <div class="space-y-6">
+    <h1 v-if="!routeData" class="sr-only">
+      Route {{ formatTitleRoutePath(routePath) }}
+    </h1>
     <div class="flex items-center gap-3">
       <!-- Back to the routes list. Uses router.back() when the user
            navigated here from /routes (preserving their filter state /
@@ -72,12 +75,12 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             <UiChip purpose="count">
               {{ routeData.route?.device }}
             </UiChip>
-            <UiTooltip v-if="routeData.route?.url" :text="routeData.route.url" side="top" size="lg">
+            <UiTooltip v-if="routeData.route?.url" :text="routeData.route.url" side="top" size="lg" trigger-as="child">
               <a
                 :href="routeData.route.url"
                 target="_blank"
-                rel="noopener"
-                class="flex min-h-11 min-w-0 items-center gap-1 font-mono hover:underline lg:min-h-0"
+                rel="noopener noreferrer"
+                class="flex min-h-11 min-w-0 items-center gap-1 font-mono hover:underline lg:min-h-6"
               >
                 <span class="truncate">{{ routeData.route.url }}</span>
                 <UiIcon name="external" class="size-3 shrink-0" />
@@ -94,7 +97,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             v-if="routeData.route?.lhrBlobKey"
             :href="rawLhrUrl"
             :download="lhrDownloadName"
-            class="inline-flex min-h-11 min-w-11 items-center gap-1 rounded-md px-2.5 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors lg:h-8 lg:min-h-0 lg:min-w-0"
+            class="inline-flex min-h-11 min-w-11 items-center gap-1 rounded-md px-2.5 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors lg:h-8 lg:min-h-6 lg:min-w-6"
           >
             <UiIcon name="download" class="size-4" />
             Download LHR
@@ -125,13 +128,15 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
       <UiCard v-if="screenshotVisible" size="sm">
         <template #header>
           <div class="flex flex-row items-center justify-between gap-2">
-            <h3 class="text-label text-dimmed">
+            <h2 class="text-label text-dimmed">
               Visual
-            </h3>
+            </h2>
             <div class="flex items-center gap-3">
               <button
                 type="button"
-                class="inline-flex min-h-11 min-w-11 items-center gap-1 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:min-w-0"
+                class="inline-flex min-h-11 min-w-11 items-center gap-1 text-xs text-muted hover:text-default transition-colors lg:min-h-6 lg:min-w-6"
+                :aria-expanded="screenshotExpanded"
+                aria-controls="route-screenshot"
                 @click="screenshotExpanded = !screenshotExpanded"
               >
                 <UiIcon :name="screenshotExpanded ? 'chevrons-up' : 'sort'" class="size-3" />
@@ -140,8 +145,8 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
               <a
                 :href="screenshotFullUrl"
                 target="_blank"
-                rel="noopener"
-                class="inline-flex min-h-11 min-w-11 items-center gap-1 text-xs text-muted hover:text-default transition-colors lg:min-h-0 lg:min-w-0"
+                rel="noopener noreferrer"
+                class="inline-flex min-h-11 min-w-11 items-center gap-1 text-xs text-muted hover:text-default transition-colors lg:min-h-6 lg:min-w-6"
               >Open screenshot <UiIcon name="external" class="size-3" /></a>
             </div>
           </div>
@@ -152,16 +157,19 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
              tracks the device — a phone column for mobile, full width for
              desktop — so neither form factor looks distorted. -->
         <div
+          id="route-screenshot"
           class="mx-auto w-full overflow-y-auto rounded border bg-elevated"
           :class="[
-            screenshotExpanded ? 'max-h-[80vh]' : 'max-h-[420px]',
+            screenshotExpanded ? 'max-h-[80dvh]' : 'max-h-[420px]',
             routeData.route?.device === 'desktop' ? 'max-w-4xl' : 'max-w-sm',
           ]"
         >
           <img
             :src="screenshotImageUrl"
+            :width="routeData.route?.device === 'desktop' ? 1440 : 390"
+            :height="routeData.route?.device === 'desktop' ? 900 : 844"
             loading="lazy"
-            alt="Page screenshot"
+            :alt="`Screenshot of ${routeData.route?.path} on ${routeData.route?.device}`"
             class="block w-full h-auto object-top"
             @error="screenshotVisible = false"
           >
@@ -210,9 +218,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
       <!-- Core Web Vitals -->
       <UiCard size="sm">
         <template #header>
-          <h3 class="text-label text-dimmed">
+          <h2 class="text-label text-dimmed">
             Core Web Vitals &amp; Metrics
-          </h3>
+          </h2>
         </template>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
           <div v-for="m in metrics" :key="m.label" class="rounded-lg border p-4 text-center">
@@ -234,10 +242,10 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
         <UiCard size="sm">
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-heading text-default flex items-center gap-2">
+              <h2 class="text-heading text-default flex items-center gap-2">
                 <UiIcon :name="cat.icon" class="size-4" />
                 {{ cat.label }}
-              </h3>
+              </h2>
               <div class="flex items-center gap-2">
                 <UiChip v-if="cat.failing.length" purpose="status" status="error" size="sm">
                   {{ cat.failing.length }} failing
@@ -264,7 +272,12 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
               </template>
               <template #content="{ item: audit }">
                 <div class="space-y-3 pt-2 pb-2">
-                  <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
+                  <p v-if="audit.description" class="text-xs text-muted">
+                    <template v-for="(part, partIndex) in parseMarkdownLinks(audit.description)" :key="partIndex">
+                      <a v-if="part.href" :href="part.href" target="_blank" rel="noopener noreferrer" class="underline text-highlighted hover:text-default">{{ part.text }}</a>
+                      <span v-else>{{ part.text }}</span>
+                    </template>
+                  </p>
                   <div v-if="audit.metricSavings && hasNonZeroSavings(audit.metricSavings)" class="flex gap-2 flex-wrap">
                     <template v-for="(val, key) in audit.metricSavings" :key="key">
                       <UiChip v-if="typeof val === 'number' ? val > 0 : !!val" purpose="count">
@@ -323,7 +336,12 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                 </template>
                 <template #content="{ item: audit }">
                   <div class="space-y-2 pt-1 pl-6 pb-2">
-                    <p v-if="audit.description" class="text-xs text-muted" v-html="renderMarkdownLinks(audit.description)" />
+                    <p v-if="audit.description" class="text-xs text-muted">
+                      <template v-for="(part, partIndex) in parseMarkdownLinks(audit.description)" :key="partIndex">
+                        <a v-if="part.href" :href="part.href" target="_blank" rel="noopener noreferrer" class="underline text-highlighted hover:text-default">{{ part.text }}</a>
+                        <span v-else>{{ part.text }}</span>
+                      </template>
+                    </p>
                     <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
                       <template v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx">
                         <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
@@ -367,9 +385,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
       <!-- Stack Packs -->
       <UiCard v-if="routeData.stackPacks?.length" size="sm">
         <template #header>
-          <h3 class="text-label text-dimmed">
+          <h2 class="text-label text-dimmed">
             Framework Recommendations
-          </h3>
+          </h2>
         </template>
         <div v-for="pack in routeData.stackPacks" :key="pack.id" class="mb-4 last:mb-0">
           <div class="text-sm font-medium mb-1">
@@ -384,9 +402,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
       <!-- Entities -->
       <UiCard v-if="routeData.entities?.length" size="sm">
         <template #header>
-          <h3 class="text-label text-dimmed">
+          <h2 class="text-label text-dimmed">
             Third-Party Entities
-          </h3>
+          </h2>
         </template>
         <div class="flex flex-wrap gap-2">
           <UiChip v-for="entity in routeData.entities" :key="entity.name" :purpose="entity.isFirstParty ? 'status' : 'count'" :status="entity.isFirstParty ? 'info' : 'neutral'">

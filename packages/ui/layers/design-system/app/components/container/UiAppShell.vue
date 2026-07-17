@@ -48,7 +48,7 @@ function closeNav() {
 </script>
 
 <template>
-  <div class="flex min-h-screen" data-allow-mismatch="children">
+  <div class="flex min-h-dvh" data-allow-mismatch="children">
     <a
       href="#main-content"
       class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-default focus-visible:px-3 focus-visible:py-2 focus-visible:text-sm focus-visible:font-medium focus-visible:ring-2 focus-visible:ring-primary"
@@ -72,7 +72,7 @@ function closeNav() {
       class="flex-1 min-w-0"
       :class="[
         sidebarWidth === 56 ? 'lg:ml-56' : 'lg:ml-64',
-        flushContent ? 'h-screen flex flex-col' : '',
+        flushContent ? 'h-dvh flex flex-col' : '',
       ]"
     >
       <slot name="topBanners" />
@@ -86,7 +86,7 @@ function closeNav() {
         </div>
       </div>
 
-      <div class="flex flex-col" :class="flushContent ? 'flex-1 min-h-0' : 'min-h-screen'">
+      <div class="flex flex-col" :class="flushContent ? 'flex-1 min-h-0' : 'min-h-dvh'">
         <main id="main-content" class="flex-1" :class="flushContent ? 'min-h-0' : (contentClass ?? 'p-4 sm:p-6 lg:p-8')">
           <slot />
         </main>

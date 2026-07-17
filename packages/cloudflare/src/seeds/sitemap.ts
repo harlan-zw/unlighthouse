@@ -1,12 +1,13 @@
 // Workers-native sitemap discovery.
 //
-// This adapter reproduces the core "discover the whole site from its sitemap"
-// behaviour using only the global `fetch` and a regex XML scan — no Node deps —
-// so a Cloudflare scan crawls every URL in the sitemap instead of just the seed.
+// This adapter combines the shared, runtime-portable sitemap parser with the
+// global `fetch`, so a Cloudflare scan discovers every sitemap URL without
+// pulling Node-specific fetch behavior into the Worker.
 
 import type { Logger } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
 import type { Seed } from '@unlighthouse/contracts/types/atoms'
+import { extractSitemapMetaRefreshUrl, parseSitemapDocument, resolveSitemapLocation } from '@unlighthouse/core/seeds/sitemap-parser'
 
 export interface WorkerSitemapSeedsOptions {
   /**
@@ -29,45 +30,71 @@ export interface WorkerSitemapSeedsOptions {
   maxDepth?: number
   /** Per-fetch timeout in ms. Default 15000. */
   timeoutMs?: number
+  /** Maximum decompressed sitemap body size in bytes. Default 2 MiB. */
+  maxBytes?: number
 }
 
-const LOC_RE = /<loc>([^<]*)<\/loc>/gi
-
-function extractLocs(xml: string): string[] {
-  const out: string[] = []
-  let m: RegExpExecArray | null
-  // eslint-disable-next-line no-cond-assign
-  while ((m = LOC_RE.exec(xml)) !== null) {
-    // Sitemap <loc> values are XML-escaped; decode the common entities.
-    const raw = (m[1] ?? '')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, '\'')
-      .trim()
-    if (raw)
-      out.push(raw)
-  }
-  return out
+interface FetchedSitemapText {
+  contentType: string | null
+  text: string
+  url: string
 }
 
-function isSitemapIndex(xml: string): boolean {
-  return /<sitemapindex[\s>]/i.test(xml)
-}
-
-async function fetchText(url: string, timeoutMs: number): Promise<string | null> {
+async function fetchText(url: string, origin: string, timeoutMs: number, maxBytes: number): Promise<FetchedSitemapText | null> {
   const controller = new AbortController()
   const t = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { accept: 'application/xml,text/xml,text/plain,*/*' },
-      redirect: 'follow',
-    })
+    let current = url
+    let res: Response | null = null
+    for (let redirects = 0; redirects <= 3; redirects++) {
+      res = await fetch(current, {
+        signal: controller.signal,
+        headers: { accept: 'application/xml,text/xml,text/plain,*/*' },
+        redirect: 'manual',
+      })
+      if (res.status < 300 || res.status >= 400)
+        break
+      const location = res.headers.get('location')
+      if (!location)
+        return null
+      const next = new URL(location, current)
+      if (next.origin !== origin)
+        return null
+      current = next.toString()
+      res = null
+    }
+    if (!res)
+      return null
     if (!res.ok)
       return null
-    return await res.text()
+    const contentLength = Number(res.headers.get('content-length'))
+    if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+      await res.body?.cancel()
+      return null
+    }
+    if (!res.body)
+      return { contentType: res.headers.get('content-type'), text: '', url: current }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let bytes = 0
+    let text = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done)
+        break
+      bytes += value.byteLength
+      if (bytes > maxBytes) {
+        await reader.cancel()
+        return null
+      }
+      text += decoder.decode(value, { stream: true })
+    }
+    return {
+      contentType: res.headers.get('content-type'),
+      text: text + decoder.decode(),
+      url: current,
+    }
   }
   catch (_err) {
     return null
@@ -79,8 +106,9 @@ async function fetchText(url: string, timeoutMs: number): Promise<string | null>
 
 export function workerSitemapSeeds(opts: WorkerSitemapSeedsOptions): SeedSource {
   const limit = Math.max(1, opts.limit ?? 5000)
-  const maxDepth = Math.max(1, opts.maxDepth ?? 3)
+  const maxDepth = Math.max(0, opts.maxDepth ?? 3)
   const timeoutMs = Math.max(1000, opts.timeoutMs ?? 15000)
+  const maxBytes = Math.max(1024, opts.maxBytes ?? 2 * 1024 * 1024)
   const debug = (...a: unknown[]) => opts.logger?.debug?.(...a)
 
   return {
@@ -98,9 +126,18 @@ export function workerSitemapSeeds(opts: WorkerSitemapSeedsOptions): SeedSource 
         return
       }
 
-      const initial = opts.sitemaps && opts.sitemaps !== true && opts.sitemaps.length > 0
-        ? opts.sitemaps.map(s => (s.startsWith('http') ? s : new URL(s, origin).toString()))
-        : [`${origin}/sitemap.xml`]
+      const configured = opts.sitemaps && opts.sitemaps !== true && opts.sitemaps.length > 0
+        ? opts.sitemaps
+        : ['/sitemap.xml']
+      const initial: string[] = []
+      for (const value of configured) {
+        const url = resolveSitemapLocation(value, origin)
+        if (!url || new URL(url).origin !== origin) {
+          debug('[worker-sitemap] invalid or off-origin sitemap URL, skipping', value)
+          continue
+        }
+        initial.push(url)
+      }
 
       const seenSitemaps = new Set<string>()
       const emitted = new Set<string>()
@@ -109,47 +146,49 @@ export function workerSitemapSeeds(opts: WorkerSitemapSeedsOptions): SeedSource 
       let depth = 0
       let count = 0
 
-      while (frontier.length > 0 && depth < maxDepth && count < limit) {
+      while (frontier.length > 0 && depth <= maxDepth && count < limit) {
         const next: string[] = []
         for (const sm of frontier) {
           if (seenSitemaps.has(sm))
             continue
           seenSitemaps.add(sm)
 
-          const xml = await fetchText(sm, timeoutMs)
-          if (xml == null) {
+          const fetched = await fetchText(sm, origin, timeoutMs, maxBytes)
+          if (fetched == null) {
             debug('[worker-sitemap] fetch failed', sm)
             continue
           }
-          const locs = extractLocs(xml)
-          debug(`[worker-sitemap] ${sm} → ${locs.length} <loc> entries`)
+          const document = parseSitemapDocument(fetched.text, {
+            contentType: fetched.contentType,
+            url: fetched.url,
+          })
+          debug(`[worker-sitemap] ${sm} → ${document.locations.length} sitemap entries`)
 
-          if (isSitemapIndex(xml)) {
+          if (document.kind === 'unknown') {
+            const redirect = extractSitemapMetaRefreshUrl(fetched.text, fetched.url)
+            if (redirect && new URL(redirect).origin === origin)
+              next.push(redirect)
+            continue
+          }
+
+          if (document.kind === 'index') {
             // Child sitemaps — keep same-origin only to stay on-site.
-            for (const loc of locs) {
-              try {
-                if (new URL(loc).origin === origin)
-                  next.push(loc)
-              }
-              catch (err) {
-                debug('[worker-sitemap] malformed child sitemap URL, skipping', loc, err)
-              }
+            for (const loc of document.locations) {
+              const child = resolveSitemapLocation(loc, fetched.url)
+              if (child && new URL(child).origin === origin)
+                next.push(child)
+              else
+                debug('[worker-sitemap] malformed or off-origin child sitemap URL, skipping', loc)
             }
             continue
           }
 
-          for (const loc of locs) {
+          for (const loc of document.locations) {
             if (count >= limit)
               break
-            let url: string
-            try {
-              url = new URL(loc, origin).toString()
-              if (new URL(url).origin !== origin)
-                continue
-            }
-            catch (_err) {
+            const url = resolveSitemapLocation(loc, fetched.url)
+            if (!url || new URL(url).origin !== origin)
               continue
-            }
             if (emitted.has(url))
               continue
             emitted.add(url)

@@ -86,17 +86,15 @@ const columns: ColumnDef<SiteHomeRow>[] = [
           !row.original.registered && h(TooltipC, {
             title: 'Unregistered',
             description: 'Scan history exists for this origin, but it isn\'t in the registry.',
+            triggerAs: 'button',
           }, {
             default: () => h(ChipC, { purpose: 'tag', size: 'xs' }, { default: () => 'Unregistered' }),
           }),
         ]),
-        h(TooltipC, {
-          text: row.original.url,
-          side: 'top',
-          size: 'lg',
-        }, {
-          default: () => h('div', { class: 'text-sm text-muted font-mono truncate' }, row.original.url),
-        }),
+        h('span', {
+          'class': 'text-sm text-muted font-mono truncate',
+          'aria-label': `Site ${row.original.url}`,
+        }, row.original.url),
       ]),
     ]),
   },
@@ -159,17 +157,17 @@ const columns: ColumnDef<SiteHomeRow>[] = [
           <UiButton purpose="secondary" icon="add" label="Add site" @click="openAdd" />
           <template #body>
             <form id="site-form" class="space-y-4" @submit.prevent="saveSite">
-              <UFormField label="URL">
-                <UInput v-model="formUrl" placeholder="https://example.com" aria-label="Site URL" required class="w-full font-mono" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              <UFormField name="site-url" label="URL" required>
+                <UInput id="site-url" v-model="formUrl" name="site-url" type="url" placeholder="https://example.com" autocomplete="url" inputmode="url" enterkeyhint="done" autocapitalize="none" :spellcheck="false" required class="w-full font-mono" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
               </UFormField>
               <p v-if="editing && formUrl !== editing.url" class="text-sm text-warning">
                 Changing the URL creates a new site. The old one will remain.
               </p>
-              <UFormField label="Display name" hint="optional">
-                <UInput v-model="formName" :placeholder="editing?.name || 'example.com'" aria-label="Display name" class="w-full" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              <UFormField name="display-name" label="Display name" hint="optional">
+                <UInput id="display-name" v-model="formName" name="display-name" :placeholder="editing?.name || 'example.com'" autocomplete="organization" class="w-full" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
               </UFormField>
-              <UFormField label="Group" hint="optional">
-                <UInput v-model="formGroup" list="site-group-suggestions" placeholder="e.g. Production, Staging" aria-label="Group" class="w-full" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              <UFormField name="site-group" label="Group" hint="optional">
+                <UInput id="site-group" v-model="formGroup" name="site-group" list="site-group-suggestions" placeholder="Production or staging" autocomplete="off" class="w-full" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
                 <datalist id="site-group-suggestions">
                   <option v-for="g in groupSuggestions" :key="g" :value="g" />
                 </datalist>
@@ -177,7 +175,7 @@ const columns: ColumnDef<SiteHomeRow>[] = [
             </form>
           </template>
           <template #footer>
-            <UiButton purpose="cta" type="submit" form="site-form" :loading="saving" :disabled="saving || !formUrl.trim()">
+            <UiButton purpose="cta" type="submit" form="site-form" :loading="saving" :disabled="saving">
               {{ editing ? 'Save site' : 'Add site' }}
             </UiButton>
           </template>
@@ -189,11 +187,11 @@ const columns: ColumnDef<SiteHomeRow>[] = [
     </UiPageHeader>
 
     <!-- Active scan banner -->
-    <div v-if="activeScan.isActive" class="rounded-lg border border-info/30 bg-info/5 cursor-pointer p-4" @click="openActiveScan">
+    <button v-if="activeScan.isActive" type="button" class="w-full rounded-lg border border-info/30 bg-info/5 p-4 text-left transition-colors hover:bg-info/10" @click="openActiveScan">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="relative flex size-2">
-            <span class="absolute inline-flex size-full animate-ping rounded-full bg-info opacity-75" />
+            <span class="absolute inline-flex size-full motion-safe:animate-ping rounded-full bg-info opacity-75" />
             <span class="relative inline-flex size-2 rounded-full bg-info" />
           </span>
           <span class="text-sm font-medium">Scanning {{ activeScan.site }}</span>
@@ -201,7 +199,7 @@ const columns: ColumnDef<SiteHomeRow>[] = [
         <span class="text-sm tabular-nums text-muted">{{ activeScan.scanned }}/{{ activeScan.total }}</span>
       </div>
       <UProgress :model-value="activeScan.percent" size="sm" />
-    </div>
+    </button>
 
     <!-- Failed to load sites or scans. Shown instead of the empty state so an
          unreachable backend doesn't read as "nothing registered yet". -->
@@ -228,13 +226,13 @@ const columns: ColumnDef<SiteHomeRow>[] = [
       <template #actions="{ row }">
         <div class="flex items-center justify-end gap-1">
           <template v-if="row.registered">
-            <UiButton purpose="quiet" size="xs" icon="radar" aria-label="Run scan" @click.stop="scanSite(row.url)" />
-            <UiButton purpose="quiet" size="xs" icon="edit" aria-label="Edit site" @click.stop="openEdit(row.site!)" />
+            <UiButton purpose="quiet" size="xs" icon="radar" :aria-label="`Run scan for ${row.name}`" @click.stop="scanSite(row.url)" />
+            <UiButton purpose="quiet" size="xs" icon="edit" :aria-label="`Edit ${row.name}`" @click.stop="openEdit(row.site!)" />
             <UModal
               title="Remove site?"
               :description="`This removes ${row.name} from the registry. Scan history will be preserved.`"
             >
-              <UiButton purpose="quiet" size="xs" icon="delete" aria-label="Delete site" @click.stop />
+              <UiButton purpose="quiet" size="xs" icon="delete" :aria-label="`Delete ${row.name}`" @click.stop />
               <template #footer="{ close }">
                 <UiButton purpose="quiet" @click="close">
                   Keep site
@@ -246,8 +244,8 @@ const columns: ColumnDef<SiteHomeRow>[] = [
             </UModal>
           </template>
           <template v-else>
-            <UiButton purpose="quiet" size="xs" icon="external" aria-label="Open site" @click.stop="openSite(row)" />
-            <UiButton purpose="quiet" size="xs" icon="radar" aria-label="Run scan" @click.stop="scanSite(row.url)" />
+            <UiButton purpose="quiet" size="xs" icon="external" :aria-label="`Open ${row.name}`" @click.stop="openSite(row)" />
+            <UiButton purpose="quiet" size="xs" icon="radar" :aria-label="`Run scan for ${row.name}`" @click.stop="scanSite(row.url)" />
             <UiButton purpose="secondary" size="xs" icon="add" @click.stop="openRegister(row.url)">
               Register site
             </UiButton>

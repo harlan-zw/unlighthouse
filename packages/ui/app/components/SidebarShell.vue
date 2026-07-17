@@ -45,7 +45,11 @@ const { healthy } = useBackendHealth()
 </script>
 
 <template>
-  <div class="flex min-h-screen">
+  <div class="flex min-h-dvh">
+    <a
+      href="#main-content"
+      class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-default focus-visible:px-3 focus-visible:py-2 focus-visible:text-sm focus-visible:font-medium focus-visible:ring-2 focus-visible:ring-primary"
+    >Skip to content</a>
     <!-- Desktop fixed rail -->
     <aside
       class="hidden lg:flex flex-col shrink-0 fixed top-0 bottom-0 left-0 w-64 border-r overflow-y-auto px-3 py-3 transition-colors bg-[var(--rail-bg,var(--ui-bg))]"
@@ -54,7 +58,7 @@ const { healthy } = useBackendHealth()
       <AppSidebar />
     </aside>
 
-    <div class="flex-1 min-w-0 lg:ml-64 flex flex-col h-screen">
+    <div class="flex-1 min-w-0 lg:ml-64 flex h-dvh flex-col">
       <header class="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-2 border-b border-default bg-default px-4">
         <UiButton
           purpose="quiet"
@@ -73,31 +77,32 @@ const { healthy } = useBackendHealth()
             v-if="healthy !== null"
             class="flex items-center gap-1.5 text-xs"
             :class="healthy ? 'text-success' : 'text-error'"
-            :title="healthy ? 'Backend connected' : 'Backend unreachable'"
+            role="status"
+            aria-live="polite"
           >
             <span class="relative flex size-1.5">
               <span
                 class="relative inline-flex size-1.5 rounded-full"
-                :class="healthy ? 'bg-success' : 'bg-error animate-pulse'"
+                :class="healthy ? 'bg-success' : 'bg-error motion-safe:animate-pulse'"
               />
             </span>
-            <span class="hidden sm:inline">{{ healthy ? 'Connected' : 'Disconnected' }}</span>
+            <span>{{ healthy ? 'Connected' : 'Disconnected' }}</span>
           </div>
           <UiButton
             purpose="quiet"
             class="size-8 justify-center"
-            :title="colorMode.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            :aria-label="colorMode.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
             :icon="colorMode.value === 'dark' ? 'light' : 'dark'"
             @click="toggleColorMode"
           />
         </div>
       </header>
 
-      <div class="flex-1 overflow-auto">
+      <main id="main-content" tabindex="-1" class="flex-1 overflow-auto">
         <div class="px-4 py-6" :class="fluid ? 'w-full' : 'mx-auto max-w-7xl'">
           <slot />
         </div>
-      </div>
+      </main>
     </div>
 
     <!-- Mobile drawer -->

@@ -182,46 +182,59 @@ export const scanImport: Handler<typeof ScanImport> = {
       })
     }
 
-    await ctx.storage.scans.create({
-      scanId: scan.scanId,
-      siteId: scan.siteId,
-      site: scan.site,
-      mode: scan.mode,
-      device: scan.device,
-      status: scan.status,
-      startedAt: scan.startedAt,
-      completedAt: scan.completedAt,
-      ciBranch: scan.ciBranch,
-      ciCommit: scan.ciCommit,
-      ciCommitMessage: scan.ciCommitMessage,
-      summary: scan.summary,
-    })
+    let created = false
+    try {
+      await ctx.storage.scans.create({
+        scanId: scan.scanId,
+        siteId: scan.siteId,
+        site: scan.site,
+        mode: scan.mode,
+        device: scan.device,
+        status: scan.status,
+        startedAt: scan.startedAt,
+        completedAt: scan.completedAt,
+        ciBranch: scan.ciBranch,
+        ciCommit: scan.ciCommit,
+        ciCommitMessage: scan.ciCommitMessage,
+        summary: scan.summary,
+      })
+      created = true
 
-    // routes.putBatch is keyed on (scanId, device) — fan out per-device.
-    const byDevice = new Map<Device, ExtractedMetrics[]>()
-    for (const row of routes) {
-      const { device, ...metrics } = row
-      const arr = byDevice.get(device) ?? []
-      arr.push(metrics)
-      byDevice.set(device, arr)
-    }
-    for (const [device, rows] of byDevice)
-      await ctx.storage.routes.putBatch(scan.scanId, device, rows)
-
-    let importedPackRuns = 0
-    if (packRuns?.length) {
-      for (const run of packRuns) {
-        await ctx.storage.packRuns.put(run)
-        importedPackRuns++
+      // routes.putBatch is keyed on (scanId, device) — fan out per-device.
+      const byDevice = new Map<Device, ExtractedMetrics[]>()
+      for (const row of routes) {
+        const { device, ...metrics } = row
+        const arr = byDevice.get(device) ?? []
+        arr.push(metrics)
+        byDevice.set(device, arr)
       }
-    }
+      for (const [device, rows] of byDevice)
+        await ctx.storage.routes.putBatch(scan.scanId, device, rows)
 
-    return {
-      scanId: scan.scanId,
-      imported: true,
-      routes: routes.length,
-      packRuns: importedPackRuns,
-    } as CommandOutput<typeof ScanImport>
+      let importedPackRuns = 0
+      if (packRuns?.length) {
+        for (const run of packRuns) {
+          await ctx.storage.packRuns.put(run)
+          importedPackRuns++
+        }
+      }
+
+      return {
+        scanId: scan.scanId,
+        imported: true,
+        routes: routes.length,
+        packRuns: importedPackRuns,
+      } as CommandOutput<typeof ScanImport>
+    }
+    catch (error) {
+      if (!created)
+        throw error
+      let cleanupError: unknown
+      await ctx.storage.scans.delete(scan.scanId).catch((cause) => { cleanupError = cause })
+      if (cleanupError !== undefined)
+        throw new AggregateError([error, cleanupError], `Import ${scan.scanId} and rollback both failed`)
+      throw error
+    }
   },
 }
 

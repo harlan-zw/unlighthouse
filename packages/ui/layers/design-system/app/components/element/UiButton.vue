@@ -202,12 +202,17 @@ const animatedLabelOptions = computed(() => {
 })
 const hasAnimatedLabel = computed(() => !!animatedLabelOptions.value && !!buttonLabel.value)
 const resolvedButtonProps = computed(() => {
-  if (!hasAnimatedLabel.value)
-    return buttonProps
-  const { label: _label, ...rest } = buttonProps
-  return rest
+  const { label, prefetch, noPrefetch, ...rest } = buttonProps
+  return {
+    ...rest,
+    ...(!hasAnimatedLabel.value && { label }),
+    // Vue gives Boolean props a false default. Forwarding both false values to
+    // NuxtLink still counts as specifying both flags and triggers its conflict
+    // warning, so only forward the explicit true intent (noPrefetch wins).
+    ...(noPrefetch ? { noPrefetch: true } : prefetch ? { prefetch: true } : {}),
+  }
 })
-const hitTargetClass = 'min-h-11 min-w-11 lg:min-h-0 lg:min-w-0'
+const hitTargetClass = 'min-h-11 min-w-11 lg:min-h-6 lg:min-w-6'
 
 function buttonEl() {
   return domNode(clipEl.value)?.querySelector<HTMLElement>('.ui-motion-button__btn') ?? null

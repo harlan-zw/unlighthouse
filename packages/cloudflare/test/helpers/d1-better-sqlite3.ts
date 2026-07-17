@@ -137,6 +137,12 @@ export function createTestR2(): R2Bucket {
         return null
       return {
         key,
+        body: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(data)
+            controller.close()
+          },
+        }),
         async arrayBuffer() {
           return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
         },
@@ -147,6 +153,12 @@ export function createTestR2(): R2Bucket {
     },
     async delete(key: string) {
       store.delete(key)
+    },
+    async list(options?: { prefix?: string }) {
+      const objects = [...store.keys()]
+        .filter(key => key.startsWith(options?.prefix ?? ''))
+        .map(key => ({ key }))
+      return { objects, truncated: false }
     },
   }
   return bucket as unknown as R2Bucket

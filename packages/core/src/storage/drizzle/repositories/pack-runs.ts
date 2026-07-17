@@ -4,7 +4,7 @@ import type {
 } from '@unlighthouse/contracts'
 import type { PackRunRow } from '@unlighthouse/contracts/drizzle'
 import type { PackRun } from '@unlighthouse/contracts/packs'
-import type { DrizzleDatabase } from '../types'
+import type { DrizzleDatabase, IdempotentWriteExecutor } from '../types'
 import { packRuns } from '@unlighthouse/contracts/drizzle'
 import { and, eq } from 'drizzle-orm'
 
@@ -20,7 +20,8 @@ function rowToPackRun(row: PackRunRow): PackRun {
   }
 }
 
-export function createPackRunRepository(db: DrizzleDatabase): PackRunRepository {
+export function createPackRunRepository(db: DrizzleDatabase, retryIdempotentWrite?: IdempotentWriteExecutor): PackRunRepository {
+  const write = retryIdempotentWrite ?? (async <T>(operation: () => Promise<T>) => operation())
   return {
     async get(scanId, packName, packVersion) {
       const [row] = await db
@@ -40,26 +41,28 @@ export function createPackRunRepository(db: DrizzleDatabase): PackRunRepository 
     // we include it so re-running after a `delete` (or a crash mid-write)
     // is idempotent.
     async put(run) {
-      await db
-        .insert(packRuns)
-        .values({
-          scanId: run.scanId,
-          packName: run.packName,
-          packVersion: run.packVersion,
-          startedAt: run.startedAt,
-          completedAt: run.completedAt,
-          report: run.report ?? null,
-          reportBlobKey: run.reportBlobKey ?? null,
-        })
-        .onConflictDoUpdate({
-          target: [packRuns.scanId, packRuns.packName, packRuns.packVersion],
-          set: {
+      await write(async () => {
+        await db
+          .insert(packRuns)
+          .values({
+            scanId: run.scanId,
+            packName: run.packName,
+            packVersion: run.packVersion,
             startedAt: run.startedAt,
             completedAt: run.completedAt,
             report: run.report ?? null,
             reportBlobKey: run.reportBlobKey ?? null,
-          },
-        })
+          })
+          .onConflictDoUpdate({
+            target: [packRuns.scanId, packRuns.packName, packRuns.packVersion],
+            set: {
+              startedAt: run.startedAt,
+              completedAt: run.completedAt,
+              report: run.report ?? null,
+              reportBlobKey: run.reportBlobKey ?? null,
+            },
+          })
+      })
     },
 
     async listForScan(scanId) {
@@ -74,7 +77,7 @@ export function createPackRunRepository(db: DrizzleDatabase): PackRunRepository 
       const cond = packName
         ? and(eq(packRuns.scanId, scanId), eq(packRuns.packName, packName))
         : eq(packRuns.scanId, scanId)
-      await db.delete(packRuns).where(cond)
+      await write(async () => { await db.delete(packRuns).where(cond) })
     },
   }
 }

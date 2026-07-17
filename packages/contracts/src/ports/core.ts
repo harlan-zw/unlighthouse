@@ -37,7 +37,7 @@ export interface UnlighthouseCoreOptions {
    * stays null. Must be synchronous — called once per audited route.
    */
   routeMatcher?: (url: string) => string | null
-  /** Single; parallel-map / crawlee / cloudflare-crawl / user-supplied. */
+  /** Single; parallel-map / crawlee / user-supplied. */
   crawler: Crawler
   storage: Storage
   /**

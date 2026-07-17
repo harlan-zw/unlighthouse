@@ -1,0 +1,15 @@
+# Build context is this package directory; keep only what the image needs.
+node_modules
+src
+build.config.ts
+tsconfig.json
+package.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+*.test.ts
+*.spec.ts
+.DS_Store
+.vscode
+coverage
+README.md

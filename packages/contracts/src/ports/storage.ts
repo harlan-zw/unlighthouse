@@ -132,6 +132,14 @@ export interface ScanRepository {
   delete: (scanId: ScanId) => Promise<void>
 }
 
+/**
+ * Route metrics plus the exact artifact keys written by the ingest module.
+ * Adapters derive deterministic LHR/report defaults for callers that only have
+ * metrics (for example imports), while ingest passes the concrete keys so row
+ * pointers cannot drift from blob writes.
+ */
+export type ScanRouteWrite = ExtractedMetrics & Partial<Pick<ScanRoute, 'lhrBlobKey' | 'reportBlobKey' | 'screenshotBlobKey'>>
+
 export interface ScanRouteRepository {
   /**
    * Hot path; must be transactional.
@@ -139,10 +147,12 @@ export interface ScanRouteRepository {
    * the scan's only device; matrix callers fan out per-device. Default of
    * 'mobile' keeps signatures non-breaking for legacy single-device flows.
    */
-  putBatch: (scanId: ScanId, device: Device, rows: ExtractedMetrics[]) => Promise<void>
+  putBatch: (scanId: ScanId, device: Device, rows: ScanRouteWrite[]) => Promise<void>
   /** route.rescan path. */
-  upsert: (scanId: ScanId, device: Device, row: ExtractedMetrics) => Promise<void>
+  upsert: (scanId: ScanId, device: Device, row: ScanRouteWrite) => Promise<void>
   listForScan: (scanId: ScanId, q?: RouteListQuery) => Promise<Paginated<ScanRoute>>
+  /** Indexed dashboard lookup. Returns every device row for one route path. */
+  findByPath: (scanId: ScanId, path: string) => Promise<ScanRoute[]>
   /** Returns one row. Device is required: rows are PK'd on (scanId, url, device). */
   get: (scanId: ScanId, url: string, device: Device) => Promise<ScanRoute | null>
   /** Selective delete. Omit `url` to drop every row for the scan. Omit `device` (but provide url) to drop every device row for that URL. */
@@ -157,6 +167,12 @@ export interface BlobPutOptions {
 export interface BlobStore {
   put: (key: string, data: Uint8Array, opts?: BlobPutOptions) => Promise<void>
   get: (key: string) => Promise<Uint8Array | null>
+  /**
+   * Optional zero-copy read for HTTP downloads. Parsers continue to use
+   * `get`; hosts with native streaming bodies (R2, filesystem) expose this so
+   * large artifacts are not buffered in Worker memory.
+   */
+  getStream?: (key: string) => Promise<ReadableStream<Uint8Array> | null>
   has: (key: string) => Promise<boolean>
   delete: (key: string) => Promise<void>
   /**

@@ -1,4 +1,4 @@
-# Manual deploy of the Cloudflare example Worker (panel + API + Lighthouse
+# Manual deploy of the maintained Cloudflare app (panel + API + Lighthouse
 # container) to your own Cloudflare account — runs the Docker container-image
 # build on the GitHub runner so you never need Docker locally.
 #
@@ -8,8 +8,11 @@
 #                             #        Browser Rendering:Edit, Containers
 #     CLOUDFLARE_ACCOUNT_ID   # your account id
 #   And the Worker's own secrets must already be set once via:
-#     wrangler secret put SHARED_AUDIT_TOKEN / CF_BROWSER_RUN_TOKEN /
-#     CF_ACCOUNT_ID / PSI_API_KEY   (these persist across deploys)
+#     wrangler secret put UNLIGHTHOUSE_API_TOKEN / SHARED_AUDIT_TOKEN /
+#     CF_BROWSER_RUN_TOKEN          (these persist across deploys)
+#     PSI_API_KEY and CRUX_API_KEY are optional.
+#   Configure CF_ACCOUNT_ID, allowed origins, a custom-domain route, D1 id,
+#   and R2 bucket in apps/cloudflare/wrangler.jsonc before running this job.
 #
 # Then: Actions → "Deploy Cloudflare" → Run workflow.
 
@@ -40,22 +43,44 @@ jobs:
           node-version: v24
           cache: pnpm
 
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
 
-      # Build the workspace packages the Worker bundle + container image need
-      # (core, cloudflare, cloudflare-lighthouse — the last vendors core into
-      # the image).
+      # Build the workspace packages used by the Worker and container runtime.
       - name: Build packages
         run: pnpm run build
+
+      - name: Verify Cloudflare app types and workerd tests
+        run: |
+          pnpm --filter @unlighthouse/app-cloudflare run typecheck
+          pnpm --filter @unlighthouse/app-cloudflare run test
+
+      # Image preparation vendors the built workspace dependencies into the
+      # Docker context. Keep it out of ordinary package builds.
+      - name: Prepare Lighthouse container image
+        if: inputs.containers
+        run: pnpm --filter @unlighthouse/lighthouse-container prepare:image
 
       # Build the dashboard SPA with the same-origin API base (and no global
       # WS) so the bundled panel talks to the Worker, not localhost.
       - name: Build panel
-        working-directory: packages/cloudflare/examples/basic
+        working-directory: apps/cloudflare
         run: pnpm run build:panel
 
+      - name: Dry-run Worker bundle
+        working-directory: apps/cloudflare
+        run: pnpm run deploy:dry-run
+
+      # Apply versioned D1 migrations before the Worker starts depending on
+      # the new schema. The app never runs DDL in a request path.
+      - name: Apply D1 migrations
+        working-directory: apps/cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm run db:migrate:remote
+
       - name: Deploy
-        working-directory: packages/cloudflare/examples/basic
+        working-directory: apps/cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

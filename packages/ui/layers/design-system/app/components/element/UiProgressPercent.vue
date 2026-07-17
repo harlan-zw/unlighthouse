@@ -19,15 +19,22 @@ const percentage = computed(() => {
 </script>
 
 <template>
-  <UiTooltip :text="tooltip || `${percentage.toFixed(1)}% of clicks`" class="block w-full">
-    <slot />
-    <UProgress
-      :model-value="percentage || 0"
-      :color="color"
+  <UiTooltip :text="tooltip || `${percentage.toFixed(1)}% of clicks`" trigger-as="child">
+    <div
+      class="block w-full rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      role="img"
+      tabindex="0"
       :aria-label="tooltip || `${percentage.toFixed(1)}% of clicks`"
-      class="opacity-90"
-      size="xs"
-      v-bind="$attrs"
-    />
+    >
+      <slot />
+      <UProgress
+        :model-value="percentage || 0"
+        :color="color"
+        aria-hidden="true"
+        class="opacity-90"
+        size="xs"
+        v-bind="$attrs"
+      />
+    </div>
   </UiTooltip>
 </template>

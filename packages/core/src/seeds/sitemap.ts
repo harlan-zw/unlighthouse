@@ -3,39 +3,7 @@ import type { SeedSource } from '@unlighthouse/contracts/ports'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { isScanOrigin } from '../api/util'
 import { fetchUrlRaw } from '../util/fetch'
-
-const LOC_RE = /<loc\b[^>]*>([\s\S]*?)<\/loc>/gi
-
-function validSitemapEntry(url: string) {
-  return url && (url.startsWith('http') || url.startsWith('/'))
-}
-
-function decodeXmlValue(value: string): string {
-  return value
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, '\'')
-    .trim()
-}
-
-function extractLocs(xml: string): string[] {
-  const out: string[] = []
-  let match: RegExpExecArray | null
-  LOC_RE.lastIndex = 0
-  // eslint-disable-next-line no-cond-assign
-  while ((match = LOC_RE.exec(xml)) !== null) {
-    const loc = decodeXmlValue(match[1] || '')
-    if (loc)
-      out.push(loc)
-  }
-  return out
-}
-
-function isSitemapIndex(xml: string): boolean {
-  return /<sitemapindex[\s>]/i.test(xml)
-}
+import { extractSitemapMetaRefreshUrl, parseSitemapDocument, resolveSitemapLocation } from './sitemap-parser'
 
 export interface ExtractSitemapDeps {
   resolvedConfig: ResolvedUserConfig
@@ -43,13 +11,25 @@ export interface ExtractSitemapDeps {
   logger?: Logger
 }
 
-async function fetchSitemapText(deps: ExtractSitemapDeps, sitemapUrl: string): Promise<string | null> {
+interface FetchedSitemapText {
+  contentType: string | null
+  text: string
+  url: string
+}
+
+async function fetchSitemapText(deps: ExtractSitemapDeps, sitemapUrl: string): Promise<FetchedSitemapText | null> {
   const fetched = await fetchUrlRaw(
     sitemapUrl,
     deps.resolvedConfig,
     { logger: deps.logger },
   )
-  return fetched.valid && fetched.response ? fetched.response.data : null
+  if (!fetched.valid || !fetched.response)
+    return null
+  return {
+    contentType: fetched.response.headers.get('content-type'),
+    text: fetched.response.data,
+    url: fetched.response.url || sitemapUrl,
+  }
 }
 
 /**
@@ -62,62 +42,76 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
   if (sitemaps === true || sitemaps.length === 0)
     sitemaps = [`${site}/sitemap.xml`]
   const seenSitemaps = new Set<string>()
+  const seenPages = new Set<string>()
   const fetchedSitemaps: string[] = []
-  let paths: string[] = []
+  const paths: string[] = []
+  let ignored = 0
 
-  async function visit(rawUrl: string, depth: number): Promise<void> {
+  const isExpectedOrigin = (url: string) => new URL(url).origin === deps.siteUrl.origin
+
+  async function visit(rawUrl: string, depth: number, parentUrl = site): Promise<void> {
     if (depth > 3)
       return
-    const sitemapUrl = rawUrl.startsWith('http')
-      ? rawUrl
-      : new URL(rawUrl, site).toString()
+    const sitemapUrl = resolveSitemapLocation(rawUrl, parentUrl)
+    if (!sitemapUrl || !isExpectedOrigin(sitemapUrl))
+      return
     if (seenSitemaps.has(sitemapUrl))
       return
     seenSitemaps.add(sitemapUrl)
     fetchedSitemaps.push(sitemapUrl)
 
     logger?.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
-    const text = await fetchSitemapText(deps, sitemapUrl)
-    if (text == null) {
+    const fetched = await fetchSitemapText(deps, sitemapUrl)
+    if (fetched == null) {
       logger?.debug(`Failed to fetch ${sitemapUrl}.`)
       return
     }
+    const effectiveUrl = resolveSitemapLocation(fetched.url, sitemapUrl)
+    if (!effectiveUrl || !isExpectedOrigin(effectiveUrl)) {
+      logger?.debug(`Rejected cross-origin sitemap redirect from ${sitemapUrl}.`)
+      return
+    }
+    if (effectiveUrl !== sitemapUrl && seenSitemaps.has(effectiveUrl))
+      return
+    seenSitemaps.add(effectiveUrl)
 
-    if (sitemapUrl.endsWith('.txt')) {
-      const sites = text.trim().split('\n').map(s => s.trim()).filter(validSitemapEntry)
-      if (sites.length)
-        paths = [...paths, ...sites]
-
-      logger?.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
+    const document = parseSitemapDocument(fetched.text, {
+      contentType: fetched.contentType,
+      url: effectiveUrl,
+    })
+    if (document.kind === 'unknown') {
+      const redirect = extractSitemapMetaRefreshUrl(fetched.text, effectiveUrl)
+      if (redirect && isExpectedOrigin(redirect))
+        await visit(redirect, depth + 1, effectiveUrl)
+      else
+        logger?.debug(`Fetched ${sitemapUrl}, but it was not a supported sitemap document.`)
       return
     }
 
-    const locs = extractLocs(text)
-    if (isSitemapIndex(text)) {
-      for (const loc of locs) {
-        try {
-          const child = new URL(loc, site)
-          if (child.origin === deps.siteUrl.origin)
-            await visit(child.toString(), depth + 1)
-        }
-        catch (_err) {
-          // skip malformed sitemap locs
-        }
-      }
+    if (document.kind === 'index') {
+      for (const loc of document.locations)
+        await visit(loc, depth + 1, effectiveUrl)
     }
     else {
-      if (locs.length)
-        paths = [...paths, ...locs]
-      logger?.debug(`Fetched ${sitemapUrl} with ${locs.length} URLs.`)
+      for (const loc of document.locations) {
+        const url = resolveSitemapLocation(loc, effectiveUrl)
+        if (!url || !isScanOrigin({ siteUrl: deps.siteUrl }, url)) {
+          ignored++
+          continue
+        }
+        if (seenPages.has(url))
+          continue
+        seenPages.add(url)
+        paths.push(url)
+      }
+      logger?.debug(`Fetched ${sitemapUrl} with ${document.locations.length} URLs.`)
     }
   }
 
   for (const sitemapUrl of new Set(sitemaps))
     await visit(sitemapUrl, 0)
 
-  const filtered = paths.filter(url => isScanOrigin({ siteUrl: deps.siteUrl }, url))
-  // for the paths we need to validate that they will be scanned
-  return { paths: filtered, ignored: paths.length - filtered.length, sitemaps: fetchedSitemaps.length ? fetchedSitemaps : sitemaps }
+  return { paths, ignored, sitemaps: fetchedSitemaps.length ? fetchedSitemaps : sitemaps }
 }
 
 export interface SitemapSeedsOptions {

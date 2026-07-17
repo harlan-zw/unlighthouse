@@ -111,8 +111,42 @@ describe('extractSitemapRoutes', () => {
       ['/plain.txt'],
     )
 
-    expect(out.paths).toEqual(['/relative', 'https://example.com/absolute'])
+    expect(out.paths).toEqual(['https://example.com/relative', 'https://example.com/absolute'])
     expect(out.ignored).toBe(0)
+  })
+
+  it('follows same-origin meta refreshes and resolves relative prefixed sitemap entries', async () => {
+    mockFetch({
+      'https://example.com/sitemap.xml': '<html><meta content="0; url=/sitemaps/index.xml" http-equiv="refresh"></html>',
+      'https://example.com/sitemaps/index.xml': `
+        <sm:sitemapindex xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9">
+          <sm:sitemap><sm:loc>pages.xml</sm:loc></sm:sitemap>
+        </sm:sitemapindex>
+      `,
+      'https://example.com/sitemaps/pages.xml': `
+        <sm:urlset xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+          <sm:url><sm:loc><![CDATA[/one?a=1&b=2]]></sm:loc></sm:url>
+          <sm:url><sm:loc>/one?a=1&amp;b=2</sm:loc></sm:url>
+          <sm:url><sm:loc>two</sm:loc><image:image><image:loc>https://example.com/image.jpg</image:loc></image:image></sm:url>
+        </sm:urlset>
+      `,
+    })
+
+    const out = await extractSitemapRoutes(
+      { resolvedConfig: config(), siteUrl: new URL('https://example.com') },
+      'https://example.com',
+      true,
+    )
+
+    expect(out.paths).toEqual([
+      'https://example.com/one?a=1&b=2',
+      'https://example.com/sitemaps/two',
+    ])
+    expect(out.sitemaps).toEqual([
+      'https://example.com/sitemap.xml',
+      'https://example.com/sitemaps/index.xml',
+      'https://example.com/sitemaps/pages.xml',
+    ])
   })
 })
 

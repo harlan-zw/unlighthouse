@@ -84,7 +84,7 @@ const scanSeg = computed(() => {
 const activePackName = computed(() => scanSeg.value === 'packs' ? (route.params.pack as string | undefined) : undefined)
 
 // Pack authors can name any icon role on `ui.icon`, including a raw `i-*`
-// iconify id (e.g. pack-nuxt's `i-logos-nuxt-icon`). Roles resolve to the
+// iconify id (e.g. the Nuxt pack's `i-logos-nuxt-icon`). Roles resolve to the
 // bundled client icon set; raw ids that aren't a known role need a live
 // Iconify fetch, which renders blank in offline static snapshots. Fall back
 // to the bundled 'archive' role for anything not a known registry role.
@@ -135,11 +135,11 @@ const compareLinks = computed(() => {
     <NuxtLink
       :to="inScan ? `/sites/${siteId}` : '/'"
       class="group/brand flex items-center gap-2 px-1 py-1 rounded-md hover:bg-elevated/60 transition-colors"
-      :title="inScan ? `Back to ${scanSiteName}` : undefined"
+      :aria-label="inScan ? `Back to ${scanSiteName}` : 'Unlighthouse home'"
     >
       <div class="relative flex aspect-square size-8 items-center justify-center rounded-md shrink-0 overflow-hidden" :class="inScan ? 'bg-elevated' : ''">
         <UiFavicon v-if="inScan && siteId" :domain="siteId" :size="20" :alt="`${scanSiteName} favicon`" />
-        <img v-else src="/logo.png" alt="Unlighthouse" class="size-8 object-contain">
+        <img v-else src="/logo.png" alt="" width="32" height="32" class="size-8 object-contain">
         <!-- Back affordance overlays the favicon on hover in scan mode -->
         <span
           v-if="inScan"
@@ -159,32 +159,32 @@ const compareLinks = computed(() => {
     <!-- ───────── Scan mode ───────── -->
     <template v-if="inScan">
       <div>
-        <div class="text-label text-dimmed px-1 mb-1">
+        <div class="text-label text-muted font-semibold px-1 mb-1">
           Scan
         </div>
-        <UiNavList :links="topScanLinks" />
+        <UiNavList :links="topScanLinks" label="Scan navigation" />
       </div>
       <div v-if="packLinks.length">
-        <div class="text-label text-dimmed px-1 mb-1">
+        <div class="text-label text-muted font-semibold px-1 mb-1">
           Packs
         </div>
-        <UiNavList :links="packLinks" />
+        <UiNavList :links="packLinks" label="Scan packs" />
       </div>
       <div>
-        <UiNavList :links="compareLinks" />
+        <UiNavList :links="compareLinks" label="Scan comparison" />
       </div>
     </template>
 
     <!-- ───────── Default mode ───────── -->
     <template v-else>
       <div>
-        <div class="text-label text-dimmed px-1 mb-1">
+        <div class="text-label text-muted font-semibold px-1 mb-1">
           Navigation
         </div>
-        <UiNavList :links="nav" />
+        <UiNavList :links="nav" label="Primary navigation" />
       </div>
       <div>
-        <div class="text-label text-dimmed px-1 mb-1">
+        <div class="text-label text-muted font-semibold px-1 mb-1">
           Sites
         </div>
         <!-- Connection failure must look different from "no sites yet", else an
@@ -198,12 +198,12 @@ const compareLinks = computed(() => {
             <div class="font-medium">
               Can't reach the scan host
             </div>
-            <button type="button" class="mt-1 inline-flex items-center gap-1 text-muted hover:text-default" @click="() => refreshSites()">
+            <button type="button" class="mt-1 inline-flex min-h-6 items-center gap-1 text-muted hover:text-default" @click="() => refreshSites()">
               <UiIcon name="refresh" class="size-3" /> Retry sites
             </button>
           </div>
         </div>
-        <UiNavList v-else-if="siteLinks.length" :links="siteLinks">
+        <UiNavList v-else-if="siteLinks.length" :links="siteLinks" label="Sites">
           <template #icon="{ link }">
             <UiFavicon :domain="link.domain" :size="18" :alt="`${link.label} favicon`" />
           </template>

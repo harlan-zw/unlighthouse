@@ -13,11 +13,8 @@ import { computed, useSlots } from 'vue'
  * via `skipDelayDuration` automatically.
  *
  * Defaults match tooltip semantics:
- * - `disableHoverableContent: true` — the content layer cannot be hovered,
- *   eliminating the "safe-polygon" cursor traversal flicker between
- *   tightly-packed triggers.
- * - `pointer-events: none` on the content node — defence in depth so the
- *   tooltip never steals events from underlying interactive content.
+ * - `disableHoverableContent: false` — users can move the pointer into the
+ *   tooltip without dismissing it, as required by WCAG 1.4.13.
  */
 
 interface Props {
@@ -27,8 +24,6 @@ interface Props {
   title?: string
   /** Secondary body text. */
   description?: string
-  /** Raw HTML body — only rendered when title/description/text/#text are all absent. */
-  html?: string
   /** Renders a label with a (?) trigger icon; tooltip mounts on the icon only. */
   label?: string
   size?: keyof typeof sizes
@@ -42,23 +37,22 @@ interface Props {
   disableHoverableContent?: boolean
   disabled?: boolean
   /**
-   * Default-variant trigger element. `'span'` (default) wraps the slot in a
-   * non-focusable span — correct when the slot content is itself focusable.
-   * `'button'` wraps it in a focusable button so a non-interactive trigger
-   * (e.g. a bare info icon) stays keyboard- and screen-reader-reachable.
+   * Default-variant trigger element. `'child'` forwards tooltip behavior to
+   * the single slotted interactive element. `'button'` wraps non-interactive
+   * content in a keyboard-reachable button. `'span'` remains for visual-only
+   * hover hints whose information is already exposed another way.
    */
-  triggerAs?: 'span' | 'button'
+  triggerAs?: 'child' | 'span' | 'button'
 }
 
 const {
   text,
   title,
   description,
-  html,
   side = 'top',
   align = 'center',
   sideOffset = 6,
-  disableHoverableContent = true,
+  disableHoverableContent = false,
   disabled = false,
   size = 'md',
   triggerAs = 'span',
@@ -72,7 +66,7 @@ defineSlots<{
 const slots = useSlots()
 
 const hasContent = computed(() =>
-  !!(text || title || description || html || slots.text),
+  !!(text || title || description || slots.text),
 )
 </script>
 
@@ -97,8 +91,9 @@ export const sizes = {
         :disabled="disabled || !hasContent"
       >
         <TooltipTrigger
+          type="button"
           :aria-label="`More information: ${label}`"
-          class="inline-flex items-center rounded-full text-dimmed hover:text-muted transition-colors cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          class="inline-flex size-6 items-center justify-center rounded-full text-dimmed hover:text-muted transition-colors cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <UiIcon name="life-buoy" class="size-3" aria-hidden="true" />
         </TooltipTrigger>
@@ -109,7 +104,6 @@ export const sizes = {
             :side-offset="sideOffset"
             :collision-padding="8"
             class="ui-tooltip-content"
-            role="tooltip"
           >
             <div :class="`text-xs text-left font-normal leading-normal space-y-2 w-max ${sizes[size]}`" data-ui="UiTooltip">
               <template v-if="title">
@@ -142,7 +136,10 @@ export const sizes = {
       :disable-hoverable-content="disableHoverableContent"
       :disabled="disabled || !hasContent"
     >
-      <TooltipTrigger as-child>
+      <TooltipTrigger v-if="$slots.default && triggerAs === 'child'" as-child>
+        <slot />
+      </TooltipTrigger>
+      <TooltipTrigger v-else as-child>
         <span v-if="$slots.default && triggerAs === 'span'" class="inline-block">
           <slot />
         </span>
@@ -150,7 +147,7 @@ export const sizes = {
           v-else-if="$slots.default"
           type="button"
           :aria-label="text || title || description"
-          class="inline-flex cursor-help rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          class="inline-flex min-h-6 min-w-6 cursor-help items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <slot />
         </button>
@@ -158,7 +155,7 @@ export const sizes = {
           v-else
           type="button"
           aria-label="More information"
-          class="inline-flex cursor-help rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          class="inline-flex size-6 cursor-help items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <UiIcon name="life-buoy" color="primary" :size="iconSize || 'md'" aria-hidden="true" />
         </button>
@@ -170,7 +167,6 @@ export const sizes = {
           :side-offset="sideOffset"
           :collision-padding="8"
           class="ui-tooltip-content"
-          role="tooltip"
         >
           <div :class="`text-xs text-left font-normal leading-normal space-y-2 w-max ${sizes[size]}`" data-ui="UiTooltip">
             <slot v-if="$slots.text" name="text" />
@@ -185,7 +181,6 @@ export const sizes = {
             <div v-else-if="text">
               {{ text }}
             </div>
-            <div v-else-if="html" v-html="html" />
           </div>
         </TooltipContent>
       </TooltipPortal>
@@ -204,7 +199,7 @@ export const sizes = {
   border: 1px solid var(--ui-border);
   border-radius: 0.5rem;
   padding: 0.625rem 0.75rem;
-  pointer-events: none;
+  pointer-events: auto;
   z-index: 50;
   will-change: transform, opacity;
   transform-origin: var(--reka-tooltip-content-transform-origin, center);

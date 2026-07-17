@@ -48,9 +48,9 @@ onMounted(startStream)
       </UiButton>
 
       <!-- Connected + receiving -->
-      <UiChip v-if="listening && connected" purpose="status" status="success" class="animate-pulse">
+      <UiChip v-if="listening && connected" purpose="status" status="success" class="motion-safe:animate-pulse">
         <span class="relative flex size-2 mr-1.5">
-          <span class="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />
+          <span class="absolute inline-flex size-full motion-safe:animate-ping rounded-full bg-success opacity-75" />
           <span class="relative inline-flex size-2 rounded-full bg-success" />
         </span>
         Live
@@ -64,7 +64,7 @@ onMounted(startStream)
       <span class="text-sm text-muted ml-auto tabular-nums">
         <template v-if="textFilter || severityFilter !== 'all'">{{ filteredEvents.length }} of {{ events.length }}</template>
         <template v-else>{{ events.length }} events</template>
-        <span v-if="dropped > 0" class="text-dimmed" :title="`Showing the most recent ${MAX_EVENTS}; ${dropped} older events were trimmed`"> · {{ dropped }} trimmed</span>
+        <span v-if="dropped > 0" class="text-dimmed"> · {{ dropped }} older event{{ dropped === 1 ? '' : 's' }} trimmed; showing the most recent {{ MAX_EVENTS }}</span>
       </span>
     </div>
 
@@ -74,8 +74,11 @@ onMounted(startStream)
     <div class="flex items-center gap-3 flex-wrap">
       <UInput
         v-model="textFilter"
+        name="event-filter"
+        type="search"
         icon="search"
-        placeholder="Filter events..."
+        placeholder="Filter events…"
+        autocomplete="off"
         aria-label="Filter events"
         size="sm"
         class="flex-1 max-w-sm"
@@ -88,7 +91,7 @@ onMounted(startStream)
       v-model:auto-scroll="follow"
       title="Events"
       :count="filteredEvents.length"
-      height="65vh"
+      height="65dvh"
       :dropped-note="dropped > 0 ? `${dropped} trimmed` : undefined"
     >
       <template #empty>

@@ -20,13 +20,13 @@ import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createHookEvent } from '@unlighthouse/contracts/hooks'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { normaliseDeviceMatrix, parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
+import { normaliseDeviceMatrix, parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { createHooks } from 'hookable'
 import { createPackRegistry } from './packs/index'
 import { persistStableEvents } from './persist-events'
-import { auditRoute, finalizeScan, nowIso, toStructuredError } from './scan/route-audit'
+import { createScanLifecycle } from './scan/lifecycle'
+import { auditRoute, nowIso, toStructuredError } from './scan/route-audit'
 import { createFilter } from './util/filter'
-import { deriveSiteId, deriveSiteName, siteOrigin } from './util/site'
 
 /** Map from CrawlEvent.type → counter side-effect on CrawlStats. */
 type LoggerLike = Logger & {
@@ -212,6 +212,14 @@ function createSession(deps: SessionDeps): CrawlSession {
   const scanId = generateScanId()
   const startedAt = nowIso()
   const startedAtMs = Date.now()
+  const site = (deps.config.site ?? '') as string
+  const scannerDevice = deps.config.scanner?.device
+  const validScannerDevice
+    = scannerDevice === 'mobile' || scannerDevice === 'desktop' ? scannerDevice : undefined
+  const devices = normaliseDeviceMatrix(overrides?.device ?? validScannerDevice)
+  const scanMode = (overrides?.mode ?? deps.config.scanner?.mode) === 'page' ? 'page' as const : 'site' as const
+  const noFollow = scanMode === 'page'
+    || (Array.isArray((deps.config as { urls?: unknown[] }).urls) && ((deps.config as { urls?: unknown[] }).urls?.length ?? 0) > 0)
 
   // AbortController + fan-in with user signal.
   const internal = new AbortController()
@@ -350,6 +358,23 @@ function createSession(deps: SessionDeps): CrawlSession {
     }
   }
 
+  const lifecycle = createScanLifecycle({
+    storage,
+    config: deps.config,
+    emit,
+    logger: deps.logger,
+    packs: deps.packs,
+    scan: {
+      scanId,
+      site,
+      devices,
+      mode: scanMode,
+      startedAt,
+      startedAtMs,
+      ciBuild: overrides?.ciBuild,
+    },
+  })
+
   // ── done deferred ──────────────────────────────────────────────────────
   const { promise: donePromise, resolve: resolveDone, reject: rejectDone }
     = Promise.withResolvers<{ scanId: ScanId, summary: ScanSummary }>()
@@ -357,80 +382,16 @@ function createSession(deps: SessionDeps): CrawlSession {
   // ── Orchestration ──────────────────────────────────────────────────────
   async function orchestrate(): Promise<void> {
     log?.info(`Orchestrating scan ${scanId}`)
-    const site = (deps.config.site ?? '') as string
-    const siteUrl = parseUrl(site)
-    const scannerDevice = deps.config.scanner?.device
-    const validScannerDevice
-      = scannerDevice === 'mobile' || scannerDevice === 'desktop' ? scannerDevice : undefined
-    // D-029: resolve the per-scan device matrix once at orchestrate time.
-    // `primaryDevice` keeps the scans row's `device` column meaningful for
-    // back-compat (UIs that only render a single column still see a sane
-    // value); the full list drives the per-URL fan-out below.
-    const devices = normaliseDeviceMatrix(overrides?.device ?? validScannerDevice)
-    const primaryDevice = devices[0]
-
-    // Per-scan `mode` override (dashboard's single-page toggle) wins over the
-    // host config default; falls back to config when omitted.
-    const scanMode = (overrides?.mode ?? deps.config.scanner?.mode) === 'page' ? 'page' as const : 'site' as const
-    // Page mode — and an explicit `urls` list, which the CLI documents as
-    // disabling the crawler — audit only the seeded URLs; don't follow links.
-    const noFollow = scanMode === 'page'
-      || (Array.isArray((deps.config as { urls?: unknown[] }).urls) && ((deps.config as { urls?: unknown[] }).urls?.length ?? 0) > 0)
-
-    // Associate every scan with a domain-level site (keyed by origin),
-    // creating it on first scan of that origin. This is what groups all scans
-    // of a domain together in history/sites — dashboard scans previously got
-    // siteId=null (the old getByUrl matched the full path, never the origin),
-    // while CLI scans created an origin site. Now both behave the same. Upsert
-    // before scans.create — siteId is a set-null FK to the sites row.
-    let siteId: string | null = null
-    try {
-      siteId = deriveSiteId(site)
-      const existingSite = await storage.sites.get(siteId)
-      if (!existingSite) {
-        await storage.sites.create({
-          id: siteId,
-          name: deriveSiteName(site),
-          url: siteOrigin(site),
-          group: null,
-          createdAt: new Date().toISOString(),
-        }).catch((err) => {
-          logOperationalWarn('scan.site_create_failed', err, { scanId, siteId, site }, deps.logger)
-        })
-      }
-    }
-    catch (err) {
-      // Malformed/placeholder site URL — leave the scan unassociated.
-      logOperationalWarn('scan.site_association_failed', err, { scanId, site }, deps.logger)
-      siteId = null
-    }
-
-    await storage.scans.create({
-      scanId,
-      siteId,
-      site: siteUrl,
-      mode: scanMode,
-      device: primaryDevice,
-      status: 'starting',
-      startedAt,
-      completedAt: null,
-      ciBranch: overrides?.ciBuild?.branch ?? null,
-      ciCommit: overrides?.ciBuild?.hash ?? null,
-      ciCommitMessage: overrides?.ciBuild?.message ?? null,
-    })
-
+    await lifecycle.create()
     log?.debug(`Scan ${scanId} created — site: ${site}, device: ${devices.join(',')}`)
-    await emit('scan:created', { scanId, site: siteUrl, startedAt })
-    await emit('scan:started', { scanId })
-
     setStatus('discovering')
     log?.debug('Status: discovering')
-    await emit('scan:discovering', { scanId })
+    await lifecycle.discovering()
 
     let firstUrlSeen = false
 
     // Audit one URL on one device via the shared `auditRoute` (same code the
-    // Cloudflare ScanRunnerDO drives per alarm tick), then fold the result into
+    // Cloudflare Workflows drive per durable step), then fold the result into
     // the in-memory stats the crawl loop reports.
     async function auditOnDevice(url: string, device: 'mobile' | 'desktop'): Promise<void> {
       const { ok } = await auditRoute(
@@ -517,16 +478,10 @@ function createSession(deps: SessionDeps): CrawlSession {
             if (!firstUrlSeen) {
               firstUrlSeen = true
               setStatus('scanning')
-              await emit('scan:scanning', { scanId, discovered: stats.discovered })
+              await lifecycle.scanning(stats.discovered)
             }
             else {
-              await emit('scan:progress', {
-                scanId,
-                discovered: stats.discovered,
-                scanned: stats.scanned,
-                failed: stats.failed,
-                total: stats.total,
-              })
+              await lifecycle.progress(stats)
             }
           }
           break
@@ -545,18 +500,14 @@ function createSession(deps: SessionDeps): CrawlSession {
       const reason = internal.signal.aborted
         ? (internal.signal.reason as string | undefined)
         : 'aborted'
-      await emit('scan:cancelled', { scanId, reason: typeof reason === 'string' ? reason : undefined })
-      await storage.scans.update(scanId, { status: 'cancelled', completedAt: nowIso() })
+      await lifecycle.cancel(typeof reason === 'string' ? reason : undefined)
       throw new UnlighthouseError({ code: 'SCAN_CANCELLED', message: 'Scan cancelled.' })
     }
 
     // Aggregate scores, run built-in packs, write the terminal `complete` row,
     // and emit scan:complete — all via the shared `finalizeScan` (same code the
-    // Cloudflare ScanRunnerDO calls when its queue drains).
-    const summary = await finalizeScan(
-      { storage, config: deps.config, logger: deps.logger, emit, packs: deps.packs },
-      { scanId, devices, startedAtMs, stats },
-    )
+    // Cloudflare Workflows call when their queue drains).
+    const summary = await lifecycle.complete(stats)
     setStatus('complete')
     resolveDone({ scanId, summary })
   }
@@ -576,12 +527,7 @@ function createSession(deps: SessionDeps): CrawlSession {
       }
       else {
         setStatus('error')
-        await emit('scan:error', { scanId, error: structured })
-        await storage.scans
-          .update(scanId, { status: 'error', completedAt: nowIso() })
-          .catch((updateErr) => {
-            logOperationalWarn('core.scan_error_persist_failed', updateErr, { scanId, status: 'error' }, deps.logger)
-          })
+        await lifecycle.fail(err)
         log?.error(`Scan ${scanId} errored: ${structured.message || structured.code}`)
         rejectDone(err)
       }
@@ -605,7 +551,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     }
     await crawler.pause()
     setStatus('paused')
-    await emit('scan:paused', { scanId })
+    await lifecycle.pause()
   }
 
   async function resume(): Promise<void> {
@@ -617,7 +563,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     }
     await crawler.resume()
     setStatus('scanning')
-    await emit('scan:resumed', { scanId })
+    await lifecycle.resume()
   }
 
   async function cancel(reason?: string): Promise<void> {

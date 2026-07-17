@@ -12,7 +12,6 @@ trustPolicyIgnoreAfter: 262800
 
 packages:
   - packages/*
-  - packages/cloudflare/examples/*
   - apps/*
   - '!docs'
 
@@ -25,8 +24,8 @@ catalog:
   '@antfu/eslint-config': ^9.1.0
   '@arethetypeswrong/cli': 0.18.4
   '@cloudflare/containers': ^0.3.7
-  '@cloudflare/puppeteer': ^1.1.0
-  '@cloudflare/workers-types': ^4.20260629.1
+  '@cloudflare/vitest-pool-workers': ^0.18.5
+  '@cloudflare/workers-types': ^5.20260717.1
   '@iconify-json/lucide': ^1.2.115
   '@lhci/utils': ^0.15.1
   '@libsql/client': ^0.17.4
@@ -57,7 +56,7 @@ catalog:
   vue-router: ^5.1.0
   vue-sonner: ^2.0.9
   vue-tsc: ^3.3.5
-  wrangler: ^4.105.0
+  wrangler: ^4.111.0
   yaml: ^2.9.0
   zod: ^4.4.3
 catalogs:
@@ -114,3 +113,5 @@ allowBuilds:
   unrs-resolver: true
   vue-demi: true
   workerd: true
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@5.20260717.1'
