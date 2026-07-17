@@ -1,11 +1,12 @@
 import type { Logger, PackRunRepository, ScanRepository, ScanRouteRepository, SiteRepository } from '@unlighthouse/contracts'
-import type { DrizzleDatabase } from './types'
+import type { DrizzleBatchExecutor, DrizzleDatabase } from './types'
 import { createComparisonRepository } from './repositories/comparisons'
 import { createPackRunRepository } from './repositories/pack-runs'
 import { createReportRepositories } from './repositories/reports'
 import { createScanRouteRepository } from './repositories/routes'
 import { createScanRepository } from './repositories/scans'
 import { createSiteRepository } from './repositories/sites'
+import { asDrizzleDatabase } from './types'
 
 export interface DrizzleStorage {
   sites: SiteRepository
@@ -14,10 +15,7 @@ export interface DrizzleStorage {
   reports: ReturnType<typeof createReportRepositories>
   comparisons: ReturnType<typeof createComparisonRepository>
   packRuns: PackRunRepository
-  /**
-   * Raw drizzle handle. Escape hatch for `processScanData` writes; do NOT
-   * use from dashboard handlers — go through `reports.*` / `comparisons.*`.
-   */
+  /** Raw drizzle handle for advanced queries outside the repository surface. */
   db: DrizzleDatabase
 }
 
@@ -30,6 +28,8 @@ export interface DrizzleStorageOptions {
    *   - `drizzle(new Database(path))` for the v1 local CLI `better-sqlite3` default
    */
   driver: unknown
+  /** Runtime adapter for atomic statement batches (for example D1 `db.batch`). */
+  executeBatch?: DrizzleBatchExecutor
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
   logger?: Logger
 }
@@ -43,11 +43,11 @@ export interface DrizzleStorageOptions {
  * at boot, OR exec the bundled SQL once on first run.
  */
 export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
-  const driver = opts.driver as DrizzleDatabase
+  const driver = asDrizzleDatabase(opts.driver)
   return {
     sites: createSiteRepository(driver),
     scans: createScanRepository(driver),
-    routes: createScanRouteRepository(driver),
+    routes: createScanRouteRepository(driver, opts.executeBatch),
     reports: createReportRepositories(driver),
     comparisons: createComparisonRepository(driver),
     packRuns: createPackRunRepository(driver),
@@ -65,6 +65,7 @@ export { createComparisonRepository } from './repositories/comparisons'
 export { createReportRepositories } from './repositories/reports'
 export { asDrizzleDatabase } from './types'
 export type { DrizzleDatabase } from './types'
+export type { DrizzleBatchExecutor } from './types'
 
 // Re-export schema/types from contracts for users that want raw access.
 export * from '@unlighthouse/contracts/drizzle'

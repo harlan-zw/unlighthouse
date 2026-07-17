@@ -1,6 +1,7 @@
 // HTTP projection: derives an h3 Router from the command registry + handler set.
 // Each command → one route. Streaming commands → NDJSON GETs.
 
+import type { Logger } from '@unlighthouse/contracts'
 import type { Command, CommandName, HttpMethod } from '@unlighthouse/contracts/commands'
 import type { H3Event, Router } from 'h3'
 import type { Handler, HandlerCtx, HandlerMap } from './handlers/types'
@@ -8,9 +9,6 @@ import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
 import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalError, logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, readBody, setResponseHeader, setResponseStatus } from 'h3'
-import { createTaggedLogger } from '../logger'
-
-const log = createTaggedLogger('api')
 
 /**
  * Per-request ctx factory. Hosts use this to construct a request-scoped
@@ -32,9 +30,13 @@ export interface CreateHttpRouterOptions {
    * log a warning on mismatch (the response is still sent — this is a
    * contract-drift detector, not an enforcer, so a stricter schema can't break
    * a working client). Inputs are always validated; outputs are not enforced
-   * anywhere by default. Defaults to on outside production.
+   * anywhere by default. Defaults to false; hosts opt in explicitly.
    */
   validateOutput?: boolean
+  /** Include plain internal error messages in responses. Defaults to false. */
+  exposeInternal?: boolean
+  /** Host-owned logger; tagged to `api` for this router instance. */
+  logger?: Logger
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -59,14 +61,14 @@ function unflatten(obj: Record<string, unknown>): Record<string, unknown> {
   return result
 }
 
-async function readInput(event: H3Event, method: HttpMethod): Promise<unknown> {
+async function readInput(event: H3Event, method: HttpMethod, logger?: Logger): Promise<unknown> {
   const params = getRouterParams(event) as Record<string, unknown>
   if (method === 'GET') {
     return unflatten(Object.assign({}, getQuery(event) as Record<string, unknown>, params))
   }
   // POST / PUT / DELETE → body, fall back to empty object.
   const body = await readBody(event).catch((err) => {
-    logOperationalWarn('api.request_body_parse_failed', err, { method }, log)
+    logOperationalWarn('api.request_body_parse_failed', err, { method }, logger)
     return undefined
   })
   if (isRecord(body))
@@ -83,7 +85,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
 // This re-checks the result against `cmd.output` and warns on mismatch — it
 // never throws or rewrites the response, so a stricter schema can't break a
 // working client; it just surfaces the drift in the log.
-function warnOnOutputMismatch(cmd: Command, value: unknown): void {
+function warnOnOutputMismatch(cmd: Command, value: unknown, logger?: Logger): void {
   const result = cmd.output.safeParse(value)
   if (!result.success) {
     const issues = result.error.issues
@@ -93,13 +95,13 @@ function warnOnOutputMismatch(cmd: Command, value: unknown): void {
     logOperationalWarn('api.output_contract_mismatch', result.error, {
       command: cmd.name,
       issues,
-    }, log)
+    }, logger)
   }
 }
 
 function errorResponse(event: H3Event, err: unknown, opts: { exposeInternal?: boolean, details?: Record<string, unknown> } = {}) {
   const envelope = createErrorEnvelope(err, {
-    exposeInternal: opts.exposeInternal ?? process.env.NODE_ENV !== 'production',
+    exposeInternal: opts.exposeInternal ?? false,
     details: opts.details,
   })
   setResponseStatus(event, envelope.error.statusCode)
@@ -108,9 +110,11 @@ function errorResponse(event: H3Event, err: unknown, opts: { exposeInternal?: bo
 
 export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
   const { handlers, ctx: ctxOpt } = opts
+  const log = opts.logger?.withTag('api')
   const ctxFactory: HandlerCtxFactory
     = typeof ctxOpt === 'function' ? ctxOpt : () => ctxOpt
-  const validateOutput = opts.validateOutput ?? (process.env.NODE_ENV !== 'production')
+  const validateOutput = opts.validateOutput ?? false
+  const exposeInternal = opts.exposeInternal ?? false
   const router = createRouter()
 
   for (const name of Object.keys(commands) as CommandName[]) {
@@ -121,17 +125,17 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
     const { method, path } = commandToRoute(cmd)
 
     const eventHandler = defineEventHandler(async (event) => {
-      const raw = await readInput(event, method)
-      log.debug(`${method} ${path} — input: ${JSON.stringify(raw)}`)
+      const raw = await readInput(event, method, log)
+      log?.debug(`${method} ${path} — input: ${JSON.stringify(raw)}`)
 
       const parsed = cmd.input.safeParse(raw)
       if (!parsed.success) {
-        log.debug(`${method} ${path} — validation failed: ${parsed.error.issues.map(i => i.message).join(', ')}`)
+        log?.debug(`${method} ${path} — validation failed: ${parsed.error.issues.map(i => i.message).join(', ')}`)
         return errorResponse(event, new UnlighthouseError({
           code: ErrorCodes.INPUT_INVALID,
           message: 'Input validation failed',
           details: { issues: parsed.error.issues },
-        }))
+        }), { exposeInternal })
       }
 
       let ctx: HandlerCtx
@@ -140,7 +144,7 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
       }
       catch (err) {
         logOperationalError('api.unhandled_error', err, { method, path, phase: 'ctx' }, log)
-        return errorResponse(event, err)
+        return errorResponse(event, err, { exposeInternal })
       }
 
       try {
@@ -195,16 +199,16 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
           return out
         }
         if (validateOutput)
-          warnOnOutputMismatch(cmd, awaited)
+          warnOnOutputMismatch(cmd, awaited, log)
         return awaited
       }
       catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err)
         const code = err instanceof UnlighthouseError ? err.code : ErrorCodes.INTERNAL
-        log.debug(`${method} ${path} — error ${code}: ${errMsg}`)
+        log?.debug(`${method} ${path} — error ${code}: ${errMsg}`)
         if (!(err instanceof UnlighthouseError))
           logOperationalError('api.unhandled_error', err, { method, path, phase: 'handler' }, log)
-        return errorResponse(event, err)
+        return errorResponse(event, err, { exposeInternal })
       }
     })
 

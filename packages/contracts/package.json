@@ -11,10 +11,6 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
-    "./types/puppeteer": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
-    },
     "./types/atoms": {
       "types": "./dist/types/atoms.d.mts",
       "import": "./dist/types/atoms.mjs"

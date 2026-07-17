@@ -1,7 +1,5 @@
 import type { Logger, NormalisedRoute, ResolvedUserConfig } from '@unlighthouse/contracts'
-import type { ConsolaInstance } from 'consola'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { createConsola } from 'consola'
 import { fetchRobotsTxt, mergeRobotsTxtConfig } from '../policies/robots'
 import { parseRobotsTxt } from '../policies/robots/parser'
 import { extractSitemapRoutes } from './sitemap'
@@ -11,8 +9,6 @@ export interface DiscoverInitialUrlsDeps {
   siteUrl: URL
   logger?: Logger
 }
-
-let warnedAboutSampling = false
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -54,7 +50,7 @@ function groupRoutesBy(routes: NormalisedRoute[], getKey: (route: NormalisedRout
  * Returns raw URLs before filtering (for use with Crawlee two-phase architecture).
  */
 export async function discoverInitialUrls(deps: DiscoverInitialUrlsDeps): Promise<Set<string>> {
-  const logger = (deps.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
+  const logger = deps.logger
   const { resolvedConfig } = deps
 
   const urls = new Set<string>([])
@@ -79,7 +75,7 @@ export async function discoverInitialUrls(deps: DiscoverInitialUrlsDeps): Promis
       resolvedConfig.scanner.robotsTxt = false
       resolvedConfig.scanner.crawler = false
       resolvedConfig.scanner.dynamicSampling = false
-      logger.info(`The \`url\` config has been provided with ${urlsToAdd.length} paths for scanning. Disabling sitemap, robots, sampling and crawler.`)
+      logger?.info(`The \`url\` config has been provided with ${urlsToAdd.length} paths for scanning. Disabling sitemap, robots, sampling and crawler.`)
     }
   }
   else {
@@ -91,7 +87,7 @@ export async function discoverInitialUrls(deps: DiscoverInitialUrlsDeps): Promis
     const robotsTxt = await fetchRobotsTxt({ resolvedConfig, logger: deps.logger }, resolvedConfig.site)
     if (robotsTxt) {
       const robotsTxtParsed = parseRobotsTxt(robotsTxt)
-      logger.info(`Found /robots.txt, using entries. Sitemaps: ${robotsTxtParsed.sitemaps.length}, Groups: ${robotsTxtParsed.groups.length}.`)
+      logger?.info(`Found /robots.txt, using entries. Sitemaps: ${robotsTxtParsed.sitemaps.length}, Groups: ${robotsTxtParsed.groups.length}.`)
       mergeRobotsTxtConfig(resolvedConfig, robotsTxtParsed)
     }
   }
@@ -103,23 +99,23 @@ export async function discoverInitialUrls(deps: DiscoverInitialUrlsDeps): Promis
       logOperationalWarn('seeds.sitemap_origin_mismatch', null, { ignored, sitemaps }, logger)
     }
     else if (sitemapUrls.length) {
-      logger.info(`Discovered ${sitemapUrls.length} routes from ${sitemaps.length} sitemap${sitemaps.length > 1 ? 's' : ''}.`)
+      logger?.info(`Discovered ${sitemapUrls.length} routes from ${sitemaps.length} sitemap${sitemaps.length > 1 ? 's' : ''}.`)
       if (ignored > 0)
         logOperationalWarn('seeds.sitemap_origin_mismatch', null, { ignored, sitemaps }, logger)
       sitemapUrls.forEach(url => urls.add(url))
       // sitemap threshold for disabling crawler
       if (!resolvedConfig.site.includes('localhost') && sitemapUrls.length >= 50) {
         resolvedConfig.scanner.crawler = false
-        logger.info('Disabling crawler mode as sitemap has been provided.')
+        logger?.info('Disabling crawler mode as sitemap has been provided.')
       }
     }
     else if (resolvedConfig.scanner.crawler) {
       resolvedConfig.scanner.sitemap = false
-      logger.info('Sitemap appears to be missing, falling back to crawler mode.')
+      logger?.info('Sitemap appears to be missing, falling back to crawler mode.')
     }
     else {
       resolvedConfig.scanner.sitemap = false
-      logger.error('Failed to find sitemap.xml and \`routes.crawler\` has been disabled. Please enable the crawler to continue scan.')
+      logger?.error('Failed to find sitemap.xml and \`routes.crawler\` has been disabled. Please enable the crawler to continue scan.')
     }
   }
 
@@ -130,8 +126,9 @@ export async function discoverInitialUrls(deps: DiscoverInitialUrlsDeps): Promis
  * Apply dynamic sampling to routes.
  */
 export function applyDynamicSampling(deps: { resolvedConfig: ResolvedUserConfig, logger?: Logger }, routes: NormalisedRoute[]): NormalisedRoute[] {
-  const logger = (deps.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
+  const logger = deps.logger
   const { resolvedConfig } = deps
+  let warnedAboutSampling = false
 
   if (!resolvedConfig.scanner.dynamicSampling)
     return routes

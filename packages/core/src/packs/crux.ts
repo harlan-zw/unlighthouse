@@ -33,8 +33,7 @@
 // `packages/contracts/src/config/index.ts` AuditorProvider discriminator
 // where `crux` already declares `apiKey?: string`):
 //   1. Explicit config: `auditor.cruxApiKey` (zod-validated string)
-//   2. Fallback: `process.env.CRUX_API_KEY`
-// If neither is set, the pack short-circuits — the report is still
+// If absent, the pack short-circuits — the report is still
 // emitted but every finding has `source: 'none'`. This means the pack
 // is safe to register globally; users without a key just see "no
 // field data" instead of a hard failure.
@@ -316,19 +315,14 @@ export interface CruxPackOptions {
   formFactor?: CruxFormFactor
 }
 
-// Pulled out so tests can override the key resolution path without
-// fiddling with `process.env`.
 function resolveApiKey(opts: CruxPackOptions, ctx: PackReconcileCtx): string | null {
   // `ctx.config?.auditor?.cruxApiKey` would be the long-term path
   // once the reconcile ctx carries the full UnlighthouseOptions blob. For
   // now the auditor config drops into the pack via the explicit `apiKey`
   // option (host wiring sets it from `auditor.cruxApiKey` / the `crux`
-  // provider). Environment is the user-facing escape hatch.
+  // provider). Hosts translate environment variables at creation time.
   void ctx
-  if (opts.apiKey)
-    return opts.apiKey
-  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
-  return env?.CRUX_API_KEY ?? null
+  return opts.apiKey ?? null
 }
 
 // ── Reconciler ──────────────────────────────────────────────────────────────

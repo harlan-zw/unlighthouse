@@ -1,11 +1,11 @@
-import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { Command } from '@unlighthouse/contracts/commands'
 import type { CliOptions } from './types'
 import { execFileSync } from 'node:child_process'
 import { setMaxListeners } from 'node:events'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
-import { createTaggedLogger, logger } from '@unlighthouse/core/logger'
+import { createLogger } from '@unlighthouse/core/logger'
 import open from 'better-opn'
 import { runMain } from 'citty'
 import { createApp, toNodeListener } from 'h3'
@@ -19,7 +19,9 @@ import { buildCli } from './createCli'
 import { buildCliContext } from './ctx'
 import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
-const log = createTaggedLogger('cli')
+const debugEnv = process.env.DEBUG
+const rootLogger = createLogger({ level: debugEnv === '1' || debugEnv === 'true' || debugEnv === '*' ? 4 : 3 })
+const log = rootLogger.withTag('cli')
 
 async function createServer(resolvedConfig: Pick<ResolvedUserConfig, 'server'>) {
   log.debug('Creating h3 app + listener...')
@@ -175,6 +177,7 @@ async function runDashboardMode(options: CliOptions) {
       site: options.site || 'http://localhost',
     },
     behavior: { generateClient: true, showBanner: true, label: 'cli' },
+    logger: rootLogger,
   })
 
   log.info('Starting Unlighthouse dashboard...')
@@ -216,11 +219,12 @@ async function runRoot(options: CliOptions) {
       ...pickOptions(options),
       hooks: {
         'resolved-config': async (config) => {
-          await validateHost(config, logger as unknown as Logger)
+          await validateHost(config, rootLogger)
         },
       },
     },
     behavior: { generateClient: true, showBanner: true, label: 'cli' },
+    logger: rootLogger,
   })
 
   log.debug(`Config resolved — site: ${unlighthouse.resolvedConfig.site}`)

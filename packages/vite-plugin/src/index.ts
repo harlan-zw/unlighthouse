@@ -171,5 +171,3 @@ async function runScan(
     }
   }
 }
-
-export default unlighthouseVite

@@ -26,8 +26,8 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createWS } from '@unlighthouse/core/api'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
-import { createTaggedLogger } from '@unlighthouse/core/logger'
-import { createPackRegistry } from '@unlighthouse/core/packs'
+import { createLogger } from '@unlighthouse/core/logger'
+import { createCruxPack, createPackRegistry } from '@unlighthouse/core/packs'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
 import { routeDefinitionSeeds } from '@unlighthouse/core/seeds/route-definitions'
 import { joinURL } from 'ufo'
@@ -79,6 +79,10 @@ export interface UnlighthouseHost {
 export interface CreateUnlighthouseHostOptions {
   userConfig: UserConfig
   behavior?: UnlighthouseBehavior
+  /** Root logger owned by the preset; a fresh default is created when absent. */
+  logger?: Logger
+  /** Host environment read once at the creation boundary. */
+  env?: NodeJS.ProcessEnv
   /**
    * Third-party packs to register alongside the built-ins. Threaded to both the
    * scan-finalize step (via the core factory) and the `pack.*` handlers (via the
@@ -243,8 +247,9 @@ function wireWsBroadcast(core: UnlighthouseCore, ws: WS | null, logger: Logger) 
 export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions): Promise<UnlighthouseHost> {
   const { behavior = {} } = opts
   const { userConfig } = opts
+  const env = opts.env ?? process.env
 
-  const logger = createTaggedLogger('host')
+  const logger = (opts.logger ?? createLogger()).withTag('host')
 
   if (userConfig.root && !isAbsolute(userConfig.root))
     userConfig.root = join(process.cwd(), userConfig.root)
@@ -258,14 +263,17 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     cwd: userConfig.root,
     configFile: userConfig.configFile || 'unlighthouse.config',
     overrides: userConfig,
+    env,
   })
   const resolvedConfig = config as ResolvedUserConfig
 
-  // D-046: merge config-sourced packs (unlighthouse.config.ts `packs: Pack[]`)
-  // with the explicit `packs` option on createUnlighthouseHost — the caller's
-  // explicit option wins on a name collision (config-sourced packs are listed
-  // first; createPackRegistry's last-write-wins merge lets the option override).
-  const packs: Pack[] = [...(configPacks ?? []), ...(opts.packs ?? [])]
+  // D-046: merge environment, config-sourced, and explicitly supplied packs.
+  // Later sources win by name, matching normal precedence: explicit option >
+  // config file > environment > built-in.
+  const environmentPacks: Pack[] = env.CRUX_API_KEY
+    ? [createCruxPack({ apiKey: env.CRUX_API_KEY })]
+    : []
+  const packs: Pack[] = [...environmentPacks, ...(configPacks ?? []), ...(opts.packs ?? [])]
 
   // ── RuntimeSettings ──────────────────────────────────────────────────────
 
@@ -294,7 +302,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   // [[Construct]] from re-exported classes in stub mode (unjs/jiti#437), so
   // callers go through the factory; a plain function call doesn't trip the
   // missing-construct slot.
-  const ws = behavior.ws !== undefined ? behavior.ws : createWS()
+  const ws = behavior.ws !== undefined ? behavior.ws : createWS(logger)
 
   // ── Ports (lazy: Storage + Core built after outputPath is known) ──────────
   // Init is async (libsql adapter needs await for the dynamic import +
@@ -333,7 +341,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         mkdirSync(outputPath, { recursive: true })
       }
 
-      const { storage } = await initStorage({ outputPath, logger })
+      const { storage } = await initStorage({ outputPath, logger, env })
 
       // Sweep zombies left by a prior process before we wire core — see
       // reapStaleScans for D-019c rationale. Fire-and-forget so boot doesn't
@@ -344,7 +352,8 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       })
 
       const coreConfig = toCoreConfig(resolvedConfig)
-      const auditor = resolveAuditor({ config: coreConfig, logger })
+      const chromeFlags = (env.CHROME_FLAGS ?? '').split(/\s+/).filter(Boolean)
+      const auditor = resolveAuditor({ config: coreConfig, logger, chromeFlags })
 
       const { seeds, routeMatcher } = resolveSeeds(resolvedConfig, logger)
 
@@ -466,6 +475,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       hooks: serverHooks,
       ws,
       logger,
+      env,
     }
     logger.debug?.(`Mounting server — apiPath: ${(rs as RuntimeSettings).apiPath}, clientUrl: ${(rs as RuntimeSettings).clientUrl}`)
     await mountServer(mountDeps, app, { handlerCtx })
@@ -480,7 +490,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       const wsPath = joinURL(apiPath, 'ws')
       const wsSiteOrigin = normaliseOrigin(typeof resolvedConfig.site === 'string' ? resolvedConfig.site : null)
       const wsExposed = isExposedHost((resolvedConfig.server as { hostname?: string } | undefined)?.hostname)
-      const wsTrustLoopbackOrigin = !process.env.UNLIGHTHOUSE_CORS_ORIGINS && !process.env.UNLIGHTHOUSE_API_TOKEN
+      const wsTrustLoopbackOrigin = !env.UNLIGHTHOUSE_CORS_ORIGINS && !env.UNLIGHTHOUSE_API_TOKEN
       server.on('upgrade', (request: IncomingMessage, socket: Socket) => {
         const decision = checkWsUpgrade({
           reqPath: (request.url ?? '').split('?')[0] ?? '',

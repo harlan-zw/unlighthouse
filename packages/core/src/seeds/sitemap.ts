@@ -1,8 +1,6 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
-import type { ConsolaInstance } from 'consola'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { createConsola } from 'consola'
 import { isScanOrigin } from '../api/util'
 import { fetchUrlRaw } from '../util/fetch'
 
@@ -60,7 +58,7 @@ async function fetchSitemapText(deps: ExtractSitemapDeps, sitemapUrl: string): P
 export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: string, sitemaps: true | (string[])) {
   // make sure we're working from the host name
   site = new URL(site).origin
-  const logger = (deps.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
+  const logger = deps.logger
   if (sitemaps === true || sitemaps.length === 0)
     sitemaps = [`${site}/sitemap.xml`]
   const seenSitemaps = new Set<string>()
@@ -78,10 +76,10 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
     seenSitemaps.add(sitemapUrl)
     fetchedSitemaps.push(sitemapUrl)
 
-    logger.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
+    logger?.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
     const text = await fetchSitemapText(deps, sitemapUrl)
     if (text == null) {
-      logger.debug(`Failed to fetch ${sitemapUrl}.`)
+      logger?.debug(`Failed to fetch ${sitemapUrl}.`)
       return
     }
 
@@ -90,7 +88,7 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
       if (sites.length)
         paths = [...paths, ...sites]
 
-      logger.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
+      logger?.debug(`Fetched ${sitemapUrl} with ${sites.length} URLs.`)
       return
     }
 
@@ -110,7 +108,7 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
     else {
       if (locs.length)
         paths = [...paths, ...locs]
-      logger.debug(`Fetched ${sitemapUrl} with ${locs.length} URLs.`)
+      logger?.debug(`Fetched ${sitemapUrl} with ${locs.length} URLs.`)
     }
   }
 
@@ -139,7 +137,7 @@ export interface SitemapSeedsOptions {
 export function sitemapSeeds(opts: SitemapSeedsOptions): SeedSource {
   return {
     async* seeds() {
-      const logger = (opts.logger as ConsolaInstance | undefined) ?? createConsola().withTag('seeds/sitemap')
+      const logger = opts.logger
       try {
         const { paths } = await extractSitemapRoutes(
           { resolvedConfig: opts.resolvedConfig, siteUrl: opts.siteUrl, logger: opts.logger },

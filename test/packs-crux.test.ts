@@ -186,13 +186,26 @@ describe('cruxPack reconciler', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  it('reads CRUX_API_KEY from process.env as a fallback', async () => {
+  it('does not read CRUX_API_KEY from the ambient environment', async () => {
     process.env.CRUX_API_KEY = 'env-key'
+    const fetchSpy = vi.fn(async () =>
+      jsonResponse(cruxRecord({ lcp: 1500, cls: 0.05, inp: 120 }, { url: 'https://example.com/' })),
+    )
+    globalThis.fetch = fetchSpy as never
+
+    const report = await cruxPack.reconciler(ctxFor([buildRoute('https://example.com/')]))
+    expect(report.totalRoutesQueried).toBe(0)
+    expect(report.findings[0]?.source).toBe('none')
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('uses a key supplied explicitly at pack creation', async () => {
     globalThis.fetch = vi.fn(async () =>
       jsonResponse(cruxRecord({ lcp: 1500, cls: 0.05, inp: 120 }, { url: 'https://example.com/' })),
     ) as never
 
-    const report = await cruxPack.reconciler(ctxFor([buildRoute('https://example.com/')]))
+    const pack = createCruxPack({ apiKey: 'host-key' })
+    const report = await pack.reconciler(ctxFor([buildRoute('https://example.com/')]))
     expect(report.totalRoutesQueried).toBe(1)
     expect(report.findings[0]?.source).toBe('url')
   })

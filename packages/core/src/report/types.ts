@@ -58,62 +58,6 @@ export interface ExtractedRoute {
 // HTML data from page inspection (uses HTMLExtractPayload from types.ts)
 export type { HTMLExtractPayload } from '@unlighthouse/contracts'
 
-// Processor params
-export interface ProcessorParams {
-  db: unknown
-  scanId: string
-  routes: Map<string, ExtractedRoute>
-  htmlData?: Map<string, import('@unlighthouse/contracts').HTMLExtractPayload>
-  siteHost?: string
-}
-
-// Summary types for dashboard
-export interface PerformanceSummary {
-  avgLcp: number | null
-  avgCls: number | null
-  avgTbt: number | null
-  avgFcp: number | null
-  avgSi: number | null
-  avgTtfb: number | null
-  imageIssueCount: number
-  thirdPartyCount: number
-  totalWastedBytes: number
-  totalWastedMs: number
-}
-
-export interface AccessibilitySummary {
-  criticalCount: number
-  seriousCount: number
-  moderateCount: number
-  minorCount: number
-  totalIssues: number
-  totalInstances: number
-  wcagLevelA: number
-  wcagLevelAA: number
-  missingAltCount: number
-  contrastIssueCount: number
-}
-
-export interface BestPracticesSummary {
-  consoleErrorCount: number
-  deprecatedApiCount: number
-  vulnerableLibCount: number
-  securityIssueCount: number
-  outdatedLibCount: number
-}
-
-export interface SeoSummary {
-  pagesWithTitle: number
-  pagesWithDescription: number
-  pagesWithCanonical: number
-  pagesIndexable: number
-  duplicateTitles: number
-  duplicateDescriptions: number
-  missingOgTags: number
-  missingStructuredData: number
-  genericLinkTextCount: number
-}
-
 // Comparison types
 export interface MetricDiff {
   name: string

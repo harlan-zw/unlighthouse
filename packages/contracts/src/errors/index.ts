@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// UnlighthouseError + stable code/default/envelope registry.
+// UnlighthouseError + immutable stable code/default/envelope catalog.
 // See v1.md §"Cross-cutting concerns" → Errors row, and D-019c.
 // One class, `.code: string` discriminant. No class hierarchy.
 
@@ -23,6 +23,16 @@ export const ErrorCodes = {
   SCAN_NOT_FOUND: 'SCAN_NOT_FOUND',
   /** No route row found for the (scanId, url) pair. */
   ROUTE_NOT_FOUND: 'ROUTE_NOT_FOUND',
+  /** No registered pack matched the requested name. */
+  PACK_NOT_FOUND: 'PACK_NOT_FOUND',
+  /** A pack cannot run because its declared requirements are unavailable. */
+  PACK_REQUIREMENTS_UNMET: 'PACK_REQUIREMENTS_UNMET',
+  /** A pack returned a report that does not match its own schema. */
+  PACK_REPORT_INVALID: 'PACK_REPORT_INVALID',
+  /** An imported scan conflicts with an existing scan id. */
+  SCAN_ALREADY_EXISTS: 'SCAN_ALREADY_EXISTS',
+  /** No site row found for the supplied id. */
+  SITE_NOT_FOUND: 'SITE_NOT_FOUND',
   /** Command input failed schema validation. */
   INPUT_INVALID: 'INPUT_INVALID',
   /** Assertion(s) evaluated to false; CI / `audit` exits non-zero. */
@@ -65,6 +75,11 @@ export const ErrorCodeDescriptions: Record<ErrorCode, string> = {
   CONFIG_INVALID: 'The supplied UnlighthouseConfig failed schema validation.',
   SCAN_NOT_FOUND: 'No scan was found for the supplied scanId.',
   ROUTE_NOT_FOUND: 'No route was found for the supplied scanId + url.',
+  PACK_NOT_FOUND: 'No registered pack matched the requested name.',
+  PACK_REQUIREMENTS_UNMET: 'The pack requirements are unavailable on this host.',
+  PACK_REPORT_INVALID: 'The pack report does not match its declared schema.',
+  SCAN_ALREADY_EXISTS: 'A scan with this id already exists.',
+  SITE_NOT_FOUND: 'No site was found for the supplied id.',
   INPUT_INVALID: 'Command input failed schema validation.',
   ASSERTION_FAILED: 'One or more assertions evaluated to false.',
   COMPARE_BASELINE_MISSING: 'No previous scan was available to compare against.',
@@ -76,31 +91,32 @@ export const ErrorCodeDescriptions: Record<ErrorCode, string> = {
   INTERNAL: 'An unrecoverable internal error occurred.',
 }
 
-const DEFAULTS = new Map<string, ErrorCodeDefaults>([
-  [ErrorCodes.NOT_SUPPORTED, { statusCode: 501, message: ErrorCodeDescriptions.NOT_SUPPORTED, category: 'fatal' }],
-  [ErrorCodes.NO_AUDITOR_AVAILABLE, { statusCode: 501, message: ErrorCodeDescriptions.NO_AUDITOR_AVAILABLE, category: 'fatal' }],
-  [ErrorCodes.QUOTA_EXCEEDED, { statusCode: 429, message: ErrorCodeDescriptions.QUOTA_EXCEEDED, category: 'retryable', retryable: true }],
-  [ErrorCodes.ACTIVE_SCAN_CONFLICT, { statusCode: 409, message: ErrorCodeDescriptions.ACTIVE_SCAN_CONFLICT, category: 'fatal' }],
-  [ErrorCodes.CONFIG_INVALID, { statusCode: 400, message: ErrorCodeDescriptions.CONFIG_INVALID, category: 'validation' }],
-  [ErrorCodes.SCAN_NOT_FOUND, { statusCode: 404, message: ErrorCodeDescriptions.SCAN_NOT_FOUND, category: 'fatal' }],
-  [ErrorCodes.ROUTE_NOT_FOUND, { statusCode: 404, message: ErrorCodeDescriptions.ROUTE_NOT_FOUND, category: 'fatal' }],
-  [ErrorCodes.INPUT_INVALID, { statusCode: 400, message: ErrorCodeDescriptions.INPUT_INVALID, category: 'validation' }],
-  [ErrorCodes.ASSERTION_FAILED, { statusCode: 422, message: ErrorCodeDescriptions.ASSERTION_FAILED, category: 'fatal' }],
-  [ErrorCodes.COMPARE_BASELINE_MISSING, { statusCode: 404, message: ErrorCodeDescriptions.COMPARE_BASELINE_MISSING, category: 'fatal' }],
-  [ErrorCodes.SCAN_CANCELLED, { statusCode: 409, message: ErrorCodeDescriptions.SCAN_CANCELLED, category: 'fatal' }],
-  [ErrorCodes.RATE_LIMITED, { statusCode: 429, message: ErrorCodeDescriptions.RATE_LIMITED, category: 'retryable', retryable: true }],
-  [ErrorCodes.INFRA_RETRYABLE, { statusCode: 503, message: ErrorCodeDescriptions.INFRA_RETRYABLE, category: 'retryable', retryable: true }],
-  [ErrorCodes.AUDIT_DELEGATION_FAILED, { statusCode: 502, message: ErrorCodeDescriptions.AUDIT_DELEGATION_FAILED, category: 'route-failed', retryable: true }],
-  [ErrorCodes.ROUTE_ARTIFACT_WRITE_FAILED, { statusCode: 500, message: ErrorCodeDescriptions.ROUTE_ARTIFACT_WRITE_FAILED, category: 'route-failed' }],
-  [ErrorCodes.INTERNAL, { statusCode: 500, message: ErrorCodeDescriptions.INTERNAL, category: 'fatal' }],
-])
-
-export function registerErrorCodeDefaults(code: ErrorCode | (string & {}), defaults: ErrorCodeDefaults): void {
-  DEFAULTS.set(code, defaults)
+const DEFAULTS: Record<ErrorCode, ErrorCodeDefaults> = {
+  [ErrorCodes.NOT_SUPPORTED]: { statusCode: 501, message: ErrorCodeDescriptions.NOT_SUPPORTED, category: 'fatal' },
+  [ErrorCodes.NO_AUDITOR_AVAILABLE]: { statusCode: 501, message: ErrorCodeDescriptions.NO_AUDITOR_AVAILABLE, category: 'fatal' },
+  [ErrorCodes.QUOTA_EXCEEDED]: { statusCode: 429, message: ErrorCodeDescriptions.QUOTA_EXCEEDED, category: 'retryable', retryable: true },
+  [ErrorCodes.ACTIVE_SCAN_CONFLICT]: { statusCode: 409, message: ErrorCodeDescriptions.ACTIVE_SCAN_CONFLICT, category: 'fatal' },
+  [ErrorCodes.CONFIG_INVALID]: { statusCode: 400, message: ErrorCodeDescriptions.CONFIG_INVALID, category: 'validation' },
+  [ErrorCodes.SCAN_NOT_FOUND]: { statusCode: 404, message: ErrorCodeDescriptions.SCAN_NOT_FOUND, category: 'fatal' },
+  [ErrorCodes.ROUTE_NOT_FOUND]: { statusCode: 404, message: ErrorCodeDescriptions.ROUTE_NOT_FOUND, category: 'fatal' },
+  [ErrorCodes.PACK_NOT_FOUND]: { statusCode: 404, message: ErrorCodeDescriptions.PACK_NOT_FOUND, category: 'fatal' },
+  [ErrorCodes.PACK_REQUIREMENTS_UNMET]: { statusCode: 422, message: ErrorCodeDescriptions.PACK_REQUIREMENTS_UNMET, category: 'fatal' },
+  [ErrorCodes.PACK_REPORT_INVALID]: { statusCode: 500, message: ErrorCodeDescriptions.PACK_REPORT_INVALID, category: 'fatal' },
+  [ErrorCodes.SCAN_ALREADY_EXISTS]: { statusCode: 409, message: ErrorCodeDescriptions.SCAN_ALREADY_EXISTS, category: 'fatal' },
+  [ErrorCodes.SITE_NOT_FOUND]: { statusCode: 404, message: ErrorCodeDescriptions.SITE_NOT_FOUND, category: 'fatal' },
+  [ErrorCodes.INPUT_INVALID]: { statusCode: 400, message: ErrorCodeDescriptions.INPUT_INVALID, category: 'validation' },
+  [ErrorCodes.ASSERTION_FAILED]: { statusCode: 422, message: ErrorCodeDescriptions.ASSERTION_FAILED, category: 'fatal' },
+  [ErrorCodes.COMPARE_BASELINE_MISSING]: { statusCode: 404, message: ErrorCodeDescriptions.COMPARE_BASELINE_MISSING, category: 'fatal' },
+  [ErrorCodes.SCAN_CANCELLED]: { statusCode: 409, message: ErrorCodeDescriptions.SCAN_CANCELLED, category: 'fatal' },
+  [ErrorCodes.RATE_LIMITED]: { statusCode: 429, message: ErrorCodeDescriptions.RATE_LIMITED, category: 'retryable', retryable: true },
+  [ErrorCodes.INFRA_RETRYABLE]: { statusCode: 503, message: ErrorCodeDescriptions.INFRA_RETRYABLE, category: 'retryable', retryable: true },
+  [ErrorCodes.AUDIT_DELEGATION_FAILED]: { statusCode: 502, message: ErrorCodeDescriptions.AUDIT_DELEGATION_FAILED, category: 'route-failed', retryable: true },
+  [ErrorCodes.ROUTE_ARTIFACT_WRITE_FAILED]: { statusCode: 500, message: ErrorCodeDescriptions.ROUTE_ARTIFACT_WRITE_FAILED, category: 'route-failed' },
+  [ErrorCodes.INTERNAL]: { statusCode: 500, message: ErrorCodeDescriptions.INTERNAL, category: 'fatal' },
 }
 
 export function getErrorCodeDefaults(code: string): ErrorCodeDefaults {
-  return DEFAULTS.get(code) ?? DEFAULTS.get(ErrorCodes.INTERNAL)!
+  return DEFAULTS[code as ErrorCode] ?? DEFAULTS[ErrorCodes.INTERNAL]
 }
 
 export function statusForErrorCode(code: string): number {
@@ -111,6 +127,7 @@ export interface UnlighthouseErrorInit {
   code: ErrorCode | (string & {})
   message?: string
   statusCode?: number
+  category?: ErrorCategory
   suggestion?: string
   docsUrl?: string
   details?: Record<string, unknown>
@@ -139,7 +156,7 @@ export class UnlighthouseError extends Error {
     this.name = 'UnlighthouseError'
     this.code = init.code
     this.statusCode = init.statusCode ?? defaults.statusCode
-    this.category = defaults.category
+    this.category = init.category ?? defaults.category
     this.suggestion = init.suggestion
     this.docsUrl = init.docsUrl
     this.details = init.details
@@ -273,6 +290,7 @@ export function errorFromEnvelope(envelope: UnlighthouseErrorEnvelope): Unlighth
     code: error.code,
     message: error.message,
     statusCode: error.statusCode,
+    category: error.category,
     retryable: error.retryable,
     suggestion: error.suggestion,
     docsUrl: error.docsUrl,

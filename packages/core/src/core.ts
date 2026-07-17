@@ -22,14 +22,11 @@ import { createHookEvent } from '@unlighthouse/contracts/hooks'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { normaliseDeviceMatrix, parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createHooks } from 'hookable'
-import { createTaggedLogger } from './logger'
 import { createPackRegistry } from './packs/index'
 import { persistStableEvents } from './persist-events'
 import { auditRoute, finalizeScan, nowIso, toStructuredError } from './scan/route-audit'
 import { createFilter } from './util/filter'
 import { deriveSiteId, deriveSiteName, siteOrigin } from './util/site'
-
-const log = createTaggedLogger('core')
 
 /** Map from CrawlEvent.type → counter side-effect on CrawlStats. */
 type LoggerLike = Logger & {
@@ -159,7 +156,7 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
     }
 
     const mergedConfig = mergeOverrides(config, runOpts?.overrides)
-    log.debug(`core.run() — site: ${mergedConfig.site}, overrides: ${JSON.stringify(runOpts?.overrides ?? {})}`)
+    logger?.debug(`core.run() — site: ${mergedConfig.site}, overrides: ${JSON.stringify(runOpts?.overrides ?? {})}`)
     const session = createSession({
       config: mergedConfig,
       storage: opts.storage,
@@ -210,6 +207,7 @@ interface SessionDeps {
 
 function createSession(deps: SessionDeps): CrawlSession {
   const { storage, auditor, seeds, routeMatcher, crawler, hooks, userSignal, overrides } = deps
+  const log = deps.logger
 
   const scanId = generateScanId()
   const startedAt = nowIso()
@@ -358,7 +356,7 @@ function createSession(deps: SessionDeps): CrawlSession {
 
   // ── Orchestration ──────────────────────────────────────────────────────
   async function orchestrate(): Promise<void> {
-    log.info(`Orchestrating scan ${scanId}`)
+    log?.info(`Orchestrating scan ${scanId}`)
     const site = (deps.config.site ?? '') as string
     const siteUrl = parseUrl(site)
     const scannerDevice = deps.config.scanner?.device
@@ -421,12 +419,12 @@ function createSession(deps: SessionDeps): CrawlSession {
       ciCommitMessage: overrides?.ciBuild?.message ?? null,
     })
 
-    log.debug(`Scan ${scanId} created — site: ${site}, device: ${devices.join(',')}`)
+    log?.debug(`Scan ${scanId} created — site: ${site}, device: ${devices.join(',')}`)
     await emit('scan:created', { scanId, site: siteUrl, startedAt })
     await emit('scan:started', { scanId })
 
     setStatus('discovering')
-    log.debug('Status: discovering')
+    log?.debug('Status: discovering')
     await emit('scan:discovering', { scanId })
 
     let firstUrlSeen = false
@@ -436,7 +434,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     // the in-memory stats the crawl loop reports.
     async function auditOnDevice(url: string, device: 'mobile' | 'desktop'): Promise<void> {
       const { ok } = await auditRoute(
-        { auditor, storage, config: deps.config, logger: log, emit, routeMatcher },
+        { auditor, storage, config: deps.config, logger: deps.logger, emit, routeMatcher },
         { scanId, url, device, signal },
       )
       if (ok)
@@ -556,7 +554,7 @@ function createSession(deps: SessionDeps): CrawlSession {
     // and emit scan:complete — all via the shared `finalizeScan` (same code the
     // Cloudflare ScanRunnerDO calls when its queue drains).
     const summary = await finalizeScan(
-      { storage, config: deps.config, logger: log, emit, packs: deps.packs },
+      { storage, config: deps.config, logger: deps.logger, emit, packs: deps.packs },
       { scanId, devices, startedAtMs, stats },
     )
     setStatus('complete')
@@ -582,15 +580,15 @@ function createSession(deps: SessionDeps): CrawlSession {
         await storage.scans
           .update(scanId, { status: 'error', completedAt: nowIso() })
           .catch((updateErr) => {
-            logOperationalWarn('core.scan_error_persist_failed', updateErr, { scanId, status: 'error' }, log)
+            logOperationalWarn('core.scan_error_persist_failed', updateErr, { scanId, status: 'error' }, deps.logger)
           })
-        log.error(`Scan ${scanId} errored: ${structured.message || structured.code}`)
+        log?.error(`Scan ${scanId} errored: ${structured.message || structured.code}`)
         rejectDone(err)
       }
     }
     finally {
       await persister.flush().catch((err) => {
-        logOperationalWarn('core.event_persist_flush_failed', err, { scanId }, log)
+        logOperationalWarn('core.event_persist_flush_failed', err, { scanId }, deps.logger)
       })
       closeIter()
     }

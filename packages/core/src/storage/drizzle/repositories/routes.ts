@@ -7,7 +7,7 @@ import type {
   ScanId,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
-import type { DrizzleDatabase } from '../types'
+import type { DrizzleBatchExecutor, DrizzleDatabase } from '../types'
 import { scanRoutes } from '@unlighthouse/contracts/drizzle'
 import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
 import { and, asc, desc, eq, gte, isNotNull, like, sql } from 'drizzle-orm'
@@ -61,39 +61,42 @@ function rowToRoute(row: ScanRouteRow): ScanRoute {
   return ScanRouteSchema.parse(row)
 }
 
-export function createScanRouteRepository(db: DrizzleDatabase): ScanRouteRepository {
+function createUpsertStatement(db: DrizzleDatabase, value: ReturnType<typeof metricsToRow>) {
+  const { scanId: _s, url: _u, device: _d, ...patch } = value
+  return db
+    .insert(scanRoutes)
+    .values(value)
+    .onConflictDoUpdate({
+      target: [scanRoutes.scanId, scanRoutes.url, scanRoutes.device],
+      set: patch,
+    })
+}
+
+export function createScanRouteRepository(db: DrizzleDatabase, executeBatch?: DrizzleBatchExecutor): ScanRouteRepository {
   return {
     async putBatch(scanId: ScanId, device: Device, rows: ExtractedMetrics[]): Promise<void> {
       if (rows.length === 0)
         return
       const values = rows.map(m => metricsToRow(scanId, device, m))
+      if (executeBatch) {
+        const [first, ...rest] = values.map(value => createUpsertStatement(db, value))
+        if (first)
+          await executeBatch([first, ...rest])
+        return
+      }
       // Iterate per-row upsert. better-sqlite3's drizzle binding requires sync
       // transaction callbacks (no Promise return), so portability across the
       // async drivers (libsql/D1) precludes a transactional wrapper here. Each
       // upsert is atomic at the row level; partial failure within a batch is
       // acceptable for the single-writer scan workflow.
       for (const v of values) {
-        const { scanId: _s, url: _u, device: _d, ...patch } = v
-        await db
-          .insert(scanRoutes)
-          .values(v)
-          .onConflictDoUpdate({
-            target: [scanRoutes.scanId, scanRoutes.url, scanRoutes.device],
-            set: patch,
-          })
+        await createUpsertStatement(db, v)
       }
     },
 
     async upsert(scanId: ScanId, device: Device, row: ExtractedMetrics): Promise<void> {
       const v = metricsToRow(scanId, device, row)
-      const { scanId: _s, url: _u, device: _d, ...patch } = v
-      await db
-        .insert(scanRoutes)
-        .values(v)
-        .onConflictDoUpdate({
-          target: [scanRoutes.scanId, scanRoutes.url, scanRoutes.device],
-          set: patch,
-        })
+      await createUpsertStatement(db, v)
     },
 
     async listForScan(scanId: ScanId, q?: RouteListQuery): Promise<Paginated<ScanRoute>> {

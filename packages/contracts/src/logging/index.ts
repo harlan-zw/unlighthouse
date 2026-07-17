@@ -20,14 +20,6 @@ export interface OperationalLogEntry {
   ctx: Record<string, unknown> | null
 }
 
-export type OperationalLogSink = (entry: OperationalLogEntry) => void
-
-let installedSink: OperationalLogSink | null = null
-
-export function setOperationalLogSink(sink: OperationalLogSink | null): void {
-  installedSink = sink
-}
-
 export function parseOperationalError(error: unknown): ParsedOperationalError | null {
   if (error == null)
     return null
@@ -81,20 +73,6 @@ function emit(
     ctx: ctx ?? null,
   }
   writeLogger(level, logger, entry)
-  if (installedSink) {
-    try {
-      installedSink(entry)
-    }
-    catch (sinkErr) {
-      writeLogger('error', logger, {
-        level: 'error',
-        name,
-        description: 'Operational log sink threw while handling an entry',
-        error: parseOperationalError(sinkErr),
-        ctx: { sourceName: name },
-      })
-    }
-  }
   return entry
 }
 

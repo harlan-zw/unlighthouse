@@ -17,6 +17,10 @@ export interface DrizzleDatabase {
   delete: <T = unknown>(table: unknown) => DrizzleQuery<T[]>
 }
 
+export type DrizzleBatchExecutor = (
+  statements: readonly [DrizzleQuery<unknown[]>, ...DrizzleQuery<unknown[]>[]],
+) => Promise<void>
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }

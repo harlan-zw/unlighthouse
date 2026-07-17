@@ -6,7 +6,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { readGitMeta } from '@unlighthouse/core/util/git-meta'
+import { readGitMeta } from '../packages/core/src/util/git-meta'
 import { describe, expect, it } from 'vitest'
 
 describe('readGitMeta', () => {

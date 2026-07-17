@@ -26,6 +26,8 @@ export interface ResolveConfigOptions {
   cwd?: string
   /** Explicit config file path/name for c12 lookup. */
   configFile?: string
+  /** Host environment used by imperative rules. Defaults to process.env. */
+  env?: NodeJS.ProcessEnv
 }
 
 export interface ResolvedConfigResult {
@@ -92,7 +94,7 @@ const CI_PROVIDER_ENV_VARS = [
   'APPVEYOR',
 ]
 
-function isCi(env: NodeJS.ProcessEnv = process.env): boolean {
+function isCi(env: NodeJS.ProcessEnv): boolean {
   return CI_PROVIDER_ENV_VARS.some(k => !!env[k])
 }
 
@@ -128,14 +130,14 @@ function toC12Overrides(overrides: ConfigOverrides | undefined): ResolvableConfi
 
 /**
  * Apply imperative host rules on the merged config. Pure function; no I/O
- * beyond reading `process.env` (CI detection) and `process.getuid` (sandbox).
+ * beyond reading the supplied host environment and `process.getuid` (sandbox).
  */
-function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseConfig {
+function applyHostRules(input: UnlighthouseConfig, cwd: string, env: NodeJS.ProcessEnv): UnlighthouseConfig {
   const config = createMutableConfig(input)
 
   // Rule: GOOGLE_API_KEY env fallback.
   if (!config.googleApiKey)
-    config.googleApiKey = process.env.UNLIGHTHOUSE_GOOGLE_API_KEY || process.env.GOOGLE_API_KEY
+    config.googleApiKey = env.UNLIGHTHOUSE_GOOGLE_API_KEY || env.GOOGLE_API_KEY
 
   // Rule: derive `site` from first `urls` entry if absent.
   if (!config.site && Array.isArray(config.urls) && config.urls[0])
@@ -157,7 +159,7 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseCon
   }
 
   // Rule: CI detection → throttle off, mark CI mode.
-  if (isCi()) {
+  if (isCi(env)) {
     ensureScanner(config).throttle = false
     config.mode = 'ci'
   }
@@ -299,6 +301,7 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string): UnlighthouseCon
  */
 export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<ResolvedConfigResult> {
   const cwd = opts.cwd ?? process.cwd()
+  const env = opts.env ?? process.env
 
   const { config, configFile, layers } = await loadConfig<UnlighthouseConfig>({
     name: 'unlighthouse',
@@ -309,7 +312,7 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
     dotenv: true,
   })
 
-  const merged = applyHostRules(config, cwd)
+  const merged = applyHostRules(config, cwd, env)
 
   // D-046: pull `packs` out before validation — it's code, not JSON, and the
   // Zod schema has no field for it (would silently strip it on parse either

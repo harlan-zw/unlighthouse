@@ -11,22 +11,19 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createDashboardApi } from '@unlighthouse/core/api/dashboard'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
-import { createTaggedLogger } from '@unlighthouse/core/logger'
 import { createRouter, defineEventHandler, getHeader, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
 import launch from 'launch-editor'
 import { joinURL } from 'ufo'
 import { checkApiOrigin, isExposedHost, normaliseOrigin, resolveLaunchPath } from './server-guards'
 
-const log = createTaggedLogger('server')
-
-async function statFileOrNull(path: string) {
+async function statFileOrNull(path: string, logger?: Logger) {
   try {
     return await stat(path)
   }
   catch (err) {
     const code = (err as { code?: unknown }).code
     if (code !== 'ENOENT' && code !== 'ENOTDIR')
-      logOperationalWarn('host.static_asset_probe_failed', err, { path }, log)
+      logOperationalWarn('host.static_asset_probe_failed', err, { path }, logger)
     return null
   }
 }
@@ -52,6 +49,7 @@ const mimeTypes: Record<string, string> = {
 export interface MountServerDeps {
   resolvedConfig: ResolvedUserConfig
   runtimeSettings: RuntimeSettings
+  env: NodeJS.ProcessEnv
   hooks: Hookable<ServerHookMap>
   ws: WS | null
   logger?: Logger
@@ -67,16 +65,23 @@ interface MountServerOptions {
  * WebSocket upgrade endpoint, editor launch, typo redirect, and static SPA.
  */
 export async function mountServer(deps: MountServerDeps, app: App, opts: MountServerOptions): Promise<void> {
-  const { ws, resolvedConfig, runtimeSettings, hooks, logger } = deps
+  const { ws, resolvedConfig, runtimeSettings, env, hooks, logger } = deps
+  const log = logger?.withTag('server')
 
   const root = createRouter()
 
-  log.debug(`Mounting — prefix: ${resolvedConfig.routerPrefix}, client: ${runtimeSettings.generatedClientPath}`)
+  log?.debug(`Mounting — prefix: ${resolvedConfig.routerPrefix}, client: ${runtimeSettings.generatedClientPath}`)
 
   root.get('/__lighthouse/', defineEventHandler(event => sendRedirect(event, resolvedConfig.routerPrefix)))
 
-  const apiRouter = createHttpRouter({ handlers: createHandlers(), ctx: opts.handlerCtx })
-  log.debug('API router created with command handlers')
+  const apiRouter = createHttpRouter({
+    handlers: createHandlers(),
+    ctx: opts.handlerCtx,
+    exposeInternal: resolvedConfig.debug,
+    logger,
+    validateOutput: resolvedConfig.debug,
+  })
+  log?.debug('API router created with command handlers')
 
   // Editor launch endpoint. The Origin/Host check (below) already guards this
   // path (it lives under /api/**); here we additionally constrain the resolved
@@ -101,14 +106,14 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
 
   // WebSocket upgrade (only when ws is enabled).
   if (ws) {
-    log.debug('WS upgrade endpoint registered at /api/ws')
+    log?.debug('WS upgrade endpoint registered at /api/ws')
     apiRouter.get('/ws', defineEventHandler(event => ws.serve(event.node.req)))
   }
 
   // Dashboard sub-router.
   // Host always passes a resolved HandlerCtx (not a factory); narrow here.
   const storage = (opts.handlerCtx as { storage: Parameters<typeof createDashboardApi>[0] }).storage
-  const dashboardRouter = createDashboardApi(storage)
+  const dashboardRouter = createDashboardApi(storage, logger)
   apiRouter.use('/dashboard/**', useBase('/dashboard', dashboardRouter.handler))
 
   root.use('/api/**', useBase('/api', apiRouter.handler))
@@ -121,7 +126,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     const mimeType = mimeTypes[ext]
 
     const filePath = join(runtimeSettings.generatedClientPath, path)
-    const stats = await statFileOrNull(filePath)
+    const stats = await statFileOrNull(filePath, log)
 
     if (stats?.isFile()) {
       if (mimeType)
@@ -130,7 +135,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
         getContents: id => readFile(join(runtimeSettings.generatedClientPath, id)),
         getMeta: async (id) => {
           const fp = join(runtimeSettings.generatedClientPath, id)
-          const s = await statFileOrNull(fp)
+          const s = await statFileOrNull(fp, log)
           if (!s?.isFile())
             return
           return { size: s.size, mtime: s.mtimeMs }
@@ -141,7 +146,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     // SPA fallback: 200.html if present, else index.html.
     const fallbackPath = join(runtimeSettings.generatedClientPath, '200.html')
     const indexPath = join(runtimeSettings.generatedClientPath, 'index.html')
-    const htmlPath = await statFileOrNull(fallbackPath).then(s => s ? fallbackPath : indexPath)
+    const htmlPath = await statFileOrNull(fallbackPath, log).then(s => s ? fallbackPath : indexPath)
 
     setResponseHeader(event, 'Content-Type', 'text/html')
     return readFile(htmlPath, 'utf-8')
@@ -164,8 +169,8 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   //     there's nothing meaningful for CORS to protect, and a strict
   //     localhost allowlist breaks the tailnet / tunnel paths users
   //     rely on for "show this dashboard on my phone".
-  const corsOriginsEnv = process.env.UNLIGHTHOUSE_CORS_ORIGINS
-  const apiTokenForCors = process.env.UNLIGHTHOUSE_API_TOKEN
+  const corsOriginsEnv = env.UNLIGHTHOUSE_CORS_ORIGINS
+  const apiTokenForCors = env.UNLIGHTHOUSE_API_TOKEN
   let corsAllowlist: string[]
   if (corsOriginsEnv)
     corsAllowlist = corsOriginsEnv.split(',').map(s => s.trim()).filter(Boolean)
@@ -174,7 +179,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   else
     corsAllowlist = ['*']
   const corsAllowAny = corsAllowlist.includes('*')
-  log.info(`cors: ${corsAllowAny ? 'open (*)' : `allowlist [${corsAllowlist.join(', ')}]`}`)
+  log?.info(`cors: ${corsAllowAny ? 'open (*)' : `allowlist [${corsAllowlist.join(', ')}]`}`)
 
   app.use(defineEventHandler((event) => {
     const origin = getHeader(event, 'origin')
@@ -211,17 +216,18 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   const siteOrigin = normaliseOrigin(typeof resolvedConfig.site === 'string' ? resolvedConfig.site : null)
   const exposed = isExposedHost((resolvedConfig.server as { hostname?: string } | undefined)?.hostname)
   if (exposed)
-    log.warn('network: bound to a non-loopback host — DNS-rebinding Host check relaxed; set UNLIGHTHOUSE_API_TOKEN to gate the exposed surface.')
+    log?.warn('network: bound to a non-loopback host — DNS-rebinding Host check relaxed; set UNLIGHTHOUSE_API_TOKEN to gate the exposed surface.')
 
   // Trust loopback-served page Origins only in the default local posture. A
   // pinned CORS allowlist or a configured token signals a locked-down
   // deployment where an arbitrary local page must not pass the origin gate.
-  const trustLoopbackOrigin = !process.env.UNLIGHTHOUSE_CORS_ORIGINS && !process.env.UNLIGHTHOUSE_API_TOKEN
+  const trustLoopbackOrigin = !env.UNLIGHTHOUSE_CORS_ORIGINS && !env.UNLIGHTHOUSE_API_TOKEN
   app.use(createApiOriginGate({
     apiBase: joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix),
     siteOrigin,
     exposed,
     trustLoopbackOrigin,
+    logger: log,
   }))
 
   // Bearer-token auth for the /api/* surface. Engaged only when
@@ -237,13 +243,13 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   //   - Connections from 127.0.0.1 / ::1 when UNLIGHTHOUSE_LOCAL_BYPASS=1
   //     so an operator can shell in and curl without exporting the token
   //     into every shell.
-  const apiToken = process.env.UNLIGHTHOUSE_API_TOKEN
-  const localBypass = process.env.UNLIGHTHOUSE_LOCAL_BYPASS === '1'
+  const apiToken = env.UNLIGHTHOUSE_API_TOKEN
+  const localBypass = env.UNLIGHTHOUSE_LOCAL_BYPASS === '1'
   // Trust-proxy turns on X-Forwarded-* awareness for downstream client
   // identity (auth bypass + rate-limit bucketing). Only enable when the
   // app actually sits behind a proxy you control — without that, any
   // client can spoof the header and become "127.0.0.1".
-  const trustProxy = process.env.UNLIGHTHOUSE_TRUST_PROXY === '1'
+  const trustProxy = env.UNLIGHTHOUSE_TRUST_PROXY === '1'
   if (trustProxy && localBypass) {
     // Behind a real proxy the socket.remoteAddress is always the
     // proxy's IP, which often is 127.0.0.1 — combined with LOCAL_BYPASS
@@ -252,19 +258,19 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     logger?.warn?.('[auth] UNLIGHTHOUSE_TRUST_PROXY=1 + UNLIGHTHOUSE_LOCAL_BYPASS=1 disables auth for all requests via the proxy. Drop LOCAL_BYPASS in hosted setups.')
   }
   if (trustProxy)
-    log.info(`network: trust-proxy enabled (X-Forwarded-For honoured)`)
+    log?.info(`network: trust-proxy enabled (X-Forwarded-For honoured)`)
 
   // Rate limit on the /api/* surface. 0 disables; default 120 req/min
   // per bucket keeps a chatty dashboard happy (avg ~2 req/sec) while
   // blocking abusive loops. In-memory token bucket — single-process
   // only, so behind a horizontal-scale deployment you'd want to swap
   // this for redis-backed; document.
-  const rateLimitRpm = Number.parseInt(process.env.UNLIGHTHOUSE_RATE_LIMIT ?? '120', 10)
+  const rateLimitRpm = Number.parseInt(env.UNLIGHTHOUSE_RATE_LIMIT ?? '120', 10)
   if (rateLimitRpm > 0) {
     const buckets = new Map<string, { tokens: number, last: number }>()
     const refillPerMs = rateLimitRpm / 60_000
     const capacity = rateLimitRpm
-    log.info(`rate-limit: ${rateLimitRpm} req/min per bucket (token+IP fallback)`)
+    log?.info(`rate-limit: ${rateLimitRpm} req/min per bucket (token+IP fallback)`)
 
     app.use(defineEventHandler((event) => {
       const url = event.node.req.url ?? ''
@@ -332,7 +338,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
       // refuse to start.
       logger?.warn?.('[cors] UNLIGHTHOUSE_CORS_ORIGINS=* while UNLIGHTHOUSE_API_TOKEN is set. Pin specific origins instead.')
     }
-    log.info(`auth: Bearer-token gate enabled on ${joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)}/* (local-bypass=${localBypass})`)
+    log?.info(`auth: Bearer-token gate enabled on ${joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)}/* (local-bypass=${localBypass})`)
     app.use(createBearerAuthGate({
       apiToken,
       apiBase: joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix),
@@ -368,6 +374,7 @@ export interface ApiOriginGateOptions {
   exposed: boolean
   /** Trust loopback-served page Origins (default local posture only). */
   trustLoopbackOrigin: boolean
+  logger?: Logger
 }
 
 export function createApiOriginGate(opts: ApiOriginGateOptions) {
@@ -389,7 +396,7 @@ export function createApiOriginGate(opts: ApiOriginGateOptions) {
       trustLoopbackOrigin: opts.trustLoopbackOrigin,
     })
     if (decision._tag === 'reject') {
-      log.warn(`origin: rejected ${path} — ${decision.reason}`)
+      opts.logger?.warn(`origin: rejected ${path} — ${decision.reason}`)
       setResponseStatus(event, 403)
       setResponseHeader(event, 'Content-Type', 'application/json')
       return { error: 'forbidden', message: 'Cross-origin or untrusted-host request rejected.' }

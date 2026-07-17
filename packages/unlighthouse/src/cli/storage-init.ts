@@ -38,6 +38,8 @@ export interface InitStorageOptions {
    * supported" error.
    */
   dbUrl?: string
+  /** Host environment translated by this creation-layer adapter. */
+  env?: NodeJS.ProcessEnv
   logger?: StorageLogger
 }
 
@@ -53,7 +55,7 @@ function taggedLogger(logger: StorageLogger | undefined, tag: string): StorageLo
 // round-trip cleanly through URL (it normalises double slashes, host vs
 // path edge cases differ across runtimes). For just the schemes we
 // support today, a manual prefix check is clearer.
-function parseDbUrl(raw: string): ParsedDbUrl {
+function parseDbUrl(raw: string, env: NodeJS.ProcessEnv): ParsedDbUrl {
   if (raw.startsWith('file:'))
     return { scheme: 'file', path: raw.slice('file:'.length) }
 
@@ -74,7 +76,7 @@ function parseDbUrl(raw: string): ParsedDbUrl {
     return {
       scheme: 'libsql',
       url: raw,
-      authToken: authToken ?? process.env.UNLIGHTHOUSE_DB_AUTH_TOKEN,
+      authToken: authToken ?? env.UNLIGHTHOUSE_DB_AUTH_TOKEN,
     }
   }
 
@@ -103,11 +105,11 @@ function parseDbUrl(raw: string): ParsedDbUrl {
 //   - s3:           any S3-compatible (AWS, Cloudflare R2, MinIO,
 //                   Backblaze B2). Endpoint + creds via env.
 //   - memory:       in-process only; tests + ephemeral CI use.
-async function buildBlobDriver(outputPath: string, logger: InitStorageOptions['logger']): Promise<Driver> {
-  const driverName = (process.env.UNLIGHTHOUSE_BLOBS_DRIVER ?? 'fs').toLowerCase()
+async function buildBlobDriver(outputPath: string, logger: InitStorageOptions['logger'], env: NodeJS.ProcessEnv): Promise<Driver> {
+  const driverName = (env.UNLIGHTHOUSE_BLOBS_DRIVER ?? 'fs').toLowerCase()
 
   if (driverName === 'fs') {
-    const base = process.env.UNLIGHTHOUSE_BLOBS_BASE ?? join(outputPath, 'blobs')
+    const base = env.UNLIGHTHOUSE_BLOBS_BASE ?? join(outputPath, 'blobs')
     logger?.debug?.(`[blobs] fs driver — base=${base}`)
     return fsDriver({ base })
   }
@@ -123,7 +125,7 @@ async function buildBlobDriver(outputPath: string, logger: InitStorageOptions['l
     // defaults to the SDK default, endpoint stays empty for real AWS,
     // creds fall through to the SDK's standard chain (env, ~/.aws,
     // instance profile) when explicit ones aren't set.
-    const bucket = process.env.UNLIGHTHOUSE_BLOBS_S3_BUCKET
+    const bucket = env.UNLIGHTHOUSE_BLOBS_S3_BUCKET
     if (!bucket) {
       throw new Error(
         'UNLIGHTHOUSE_BLOBS_DRIVER=s3 requires UNLIGHTHOUSE_BLOBS_S3_BUCKET. '
@@ -132,11 +134,11 @@ async function buildBlobDriver(outputPath: string, logger: InitStorageOptions['l
       )
     }
     const { default: s3Driver } = await import('unstorage/drivers/s3')
-    const region = process.env.UNLIGHTHOUSE_BLOBS_S3_REGION ?? 'auto'
+    const region = env.UNLIGHTHOUSE_BLOBS_S3_REGION ?? 'auto'
     // The unstorage S3 driver requires an explicit endpoint URL. For
     // real AWS we derive the standard regional endpoint when one wasn't
     // provided; R2 / MinIO / Backblaze users always set this explicitly.
-    const endpoint = process.env.UNLIGHTHOUSE_BLOBS_S3_ENDPOINT
+    const endpoint = env.UNLIGHTHOUSE_BLOBS_S3_ENDPOINT
       ?? (region !== 'auto' ? `https://s3.${region}.amazonaws.com` : '')
     if (!endpoint) {
       throw new Error(
@@ -146,8 +148,8 @@ async function buildBlobDriver(outputPath: string, logger: InitStorageOptions['l
       )
     }
     const s3Opts: Parameters<typeof s3Driver>[0] = {
-      accessKeyId: process.env.UNLIGHTHOUSE_BLOBS_S3_ACCESS_KEY_ID ?? '',
-      secretAccessKey: process.env.UNLIGHTHOUSE_BLOBS_S3_SECRET_ACCESS_KEY ?? '',
+      accessKeyId: env.UNLIGHTHOUSE_BLOBS_S3_ACCESS_KEY_ID ?? '',
+      secretAccessKey: env.UNLIGHTHOUSE_BLOBS_S3_SECRET_ACCESS_KEY ?? '',
       bucket,
       region,
       endpoint,
@@ -179,6 +181,7 @@ async function initLibsqlStorage(
   parsed: Extract<ParsedDbUrl, { scheme: 'libsql' }>,
   outputPath: string,
   logger: InitStorageOptions['logger'],
+  env: NodeJS.ProcessEnv,
 ) {
   // Dynamic imports so users on the file: path don't pay the load cost
   // for libsql, and so a missing peer dep surfaces with a useful error
@@ -216,7 +219,7 @@ async function initLibsqlStorage(
 
   const storage = createStorage({
     rows: { ...drizzleAdapter, db: drizzleAdapter.db },
-    blobs: unstorageBlobs({ driver: await buildBlobDriver(outputPath, logger) }),
+    blobs: unstorageBlobs({ driver: await buildBlobDriver(outputPath, logger, env) }),
   })
 
   // `sqliteDb` is the libsql Client for libsql-backed setups. Shape is
@@ -225,12 +228,12 @@ async function initLibsqlStorage(
   return { sqliteDb: client, drizzleDb, drizzleAdapter, storage }
 }
 
-export async function initStorage({ outputPath, dbUrl, logger }: InitStorageOptions) {
-  const url = dbUrl ?? process.env.UNLIGHTHOUSE_DB_URL ?? `file:${join(outputPath, 'db.sqlite')}`
-  const parsed = parseDbUrl(url)
+export async function initStorage({ outputPath, dbUrl, env = {}, logger }: InitStorageOptions) {
+  const url = dbUrl ?? env.UNLIGHTHOUSE_DB_URL ?? `file:${join(outputPath, 'db.sqlite')}`
+  const parsed = parseDbUrl(url, env)
 
   if (parsed.scheme === 'libsql')
-    return initLibsqlStorage(parsed, outputPath, logger)
+    return initLibsqlStorage(parsed, outputPath, logger, env)
 
   // file: scheme (default) — better-sqlite3, sync API, runtime migrations.
   logger?.debug?.(`Opening SQLite (file): ${parsed.path}`)
@@ -287,7 +290,7 @@ export async function initStorage({ outputPath, dbUrl, logger }: InitStorageOpti
 
   const storage = createStorage({
     rows: { ...drizzleAdapter, db: drizzleAdapter.db },
-    blobs: unstorageBlobs({ driver: await buildBlobDriver(outputPath, logger) }),
+    blobs: unstorageBlobs({ driver: await buildBlobDriver(outputPath, logger, env) }),
   })
 
   return { sqliteDb, drizzleDb, drizzleAdapter, storage }

@@ -1,7 +1,5 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
-import type { ConsolaInstance } from 'consola'
 import type { FetchOptions } from 'ofetch'
-import { createConsola } from 'consola'
 import { ofetch } from 'ofetch'
 import { utf8ToBase64 } from './base64'
 
@@ -21,14 +19,6 @@ export interface FetchUrlClient {
   get: (url: string, opts?: FetchOptions<'text'>) => Promise<FetchUrlResponse>
 }
 
-interface FetchCache {
-  _fetch?: FetchUrlClient
-  /** Back-compat with callers that used to pass the Axios cache shape. */
-  _axios?: FetchUrlClient
-}
-
-const _sharedContext: FetchCache = {}
-
 function headersToRecord(headers?: HeadersInit): Record<string, string> {
   if (!headers)
     return {}
@@ -39,7 +29,7 @@ function headersToRecord(headers?: HeadersInit): Record<string, string> {
   return { ...headers }
 }
 
-export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, cache: FetchCache = _sharedContext): Promise<FetchUrlClient> {
+export function createFetchClient(resolvedConfig: ResolvedUserConfig): FetchUrlClient {
   const headers: Record<string, string> = {}
 
   if (resolvedConfig.cookies) {
@@ -93,8 +83,6 @@ export async function createAxiosInstance(resolvedConfig: ResolvedUserConfig, ca
     },
   }
 
-  cache._fetch = client
-  cache._axios = client
   return client
 }
 
@@ -121,17 +109,16 @@ function errorCode(error: unknown): string | undefined {
 export async function fetchUrlRaw(
   url: string,
   resolvedConfig: ResolvedUserConfig,
-  opts: { logger?: Logger, cache?: FetchCache } = {},
+  opts: { logger?: Logger, client?: FetchUrlClient } = {},
 ): Promise<{ error?: unknown, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: FetchUrlResponse }> {
-  const logger = (opts.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
-  const cache = opts.cache ?? _sharedContext
-  const instance = cache._fetch || cache._axios || await createAxiosInstance(resolvedConfig, cache)
+  const logger = opts.logger
+  const client = opts.client ?? createFetchClient(resolvedConfig)
   const maxRetries = 3
   let attempt = 0
 
   while (attempt < maxRetries) {
     try {
-      const response = await instance.get(url, { timeout: 30_000 })
+      const response = await client.get(url, { timeout: 30_000 })
       let responseUrl = response.request.res.responseUrl
       if (responseUrl && resolvedConfig.auth) {
         responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
@@ -145,19 +132,19 @@ export async function fetchUrlRaw(
     }
     catch (e: unknown) {
       if (isRecord(e) && e.errors)
-        logger.error('Fetch error:', e.errors)
+        logger?.error('Fetch error:', e.errors)
       const code = errorCode(e)
-      logger.error('Fetch error message:', stringProp(e, 'message'))
-      logger.error('Fetch error code:', code)
+      logger?.error('Fetch error message:', stringProp(e, 'message'))
+      logger?.error('Fetch error code:', code)
       const response = isRecord(e) ? e.response : undefined
       if (isRecord(response)) {
-        logger.error('Fetch error response data:', response._data)
-        logger.error('Fetch error response status:', response.status)
-        logger.error('Fetch error response headers:', response.headers)
+        logger?.error('Fetch error response data:', response._data)
+        logger?.error('Fetch error response status:', response.status)
+        logger?.error('Fetch error response headers:', response.headers)
       }
       if (code === 'ETIMEDOUT' || code === 'ENETUNREACH' || code === 'TimeoutError' || code === 'AbortError') {
         attempt++
-        logger.info(`Retrying request... (${attempt}/${maxRetries})`)
+        logger?.info(`Retrying request... (${attempt}/${maxRetries})`)
         continue
       }
       return { error: e, valid: false }

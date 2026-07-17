@@ -14,6 +14,7 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
+import { createCruxPack, createPackRegistry } from '@unlighthouse/core/packs'
 import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { startStdioServer } from '@unlighthouse/mcp'
 import Database from 'better-sqlite3'
@@ -155,12 +156,14 @@ function pickScanDir(parent: string, hostname: string, config: unknown, version:
 }
 
 export async function runMcp(): Promise<void> {
+  const env = process.env
   const flags = parseFlags(process.argv.slice(2))
   debugMode = flags.debug === true
   const rootDir = flags.root ? sanitiseRoot(flags.root) : undefined
-  const { config } = await resolveConfig({
+  const { config, packs: configPacks } = await resolveConfig({
     overrides: flags.site ? { site: flags.site } : undefined,
     cwd: rootDir,
+    env,
   })
 
   // D-018: host owns the concrete consola; tagged children pass into each
@@ -233,7 +236,7 @@ export async function runMcp(): Promise<void> {
   // Gated by --debug so production agents don't see internal paths by default.
   diag(`[unlighthouse-mcp] outputPath=${outputPath}\n`)
 
-  const { storage } = await initStorage({ outputPath, logger })
+  const { storage } = await initStorage({ outputPath, logger, env })
 
   // Sweep zombies left by a prior process. MCP often opens an existing DB
   // written by the CLI; "starting" rows from a Ctrl+C'd CLI run would
@@ -242,7 +245,10 @@ export async function runMcp(): Promise<void> {
     logOperationalWarn('core.stale_scan_reap_failed', err, { phase: 'mcp-boot' }, logger)
   })
 
-  const auditor = resolveAuditor({ config, logger })
+  const chromeFlags = (env.CHROME_FLAGS ?? '').split(/\s+/).filter(Boolean)
+  const auditor = resolveAuditor({ config, logger, chromeFlags })
+  const environmentPacks = env.CRUX_API_KEY ? [createCruxPack({ apiKey: env.CRUX_API_KEY })] : []
+  const packs = [...environmentPacks, ...(configPacks ?? [])]
   const crawler = crawleeCrawler({ logger: logger.withTag('crawler/crawlee') })
   const seeds = fuseSeeds([
     manualSeeds({ urls: resolveManualUrls(config.urls), logger: logger.withTag('seeds/manual') }),
@@ -254,6 +260,7 @@ export async function runMcp(): Promise<void> {
     crawler,
     storage,
     logger,
+    packs,
   })
 
   await startStdioServer({
@@ -264,8 +271,10 @@ export async function runMcp(): Promise<void> {
       storage,
       config,
       version,
+      packs: createPackRegistry(packs),
     },
     identity: { name: 'unlighthouse', version },
+    exposeInternal: debugMode,
   })
 }
 

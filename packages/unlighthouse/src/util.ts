@@ -4,7 +4,7 @@ import { joinURL, withLeadingSlash, withTrailingSlash } from 'ufo'
 
 export { hashPathName, sanitiseUrlForFilePath, trimSlashes }
 export { computeConfigCacheKey } from './util/config-key'
-export { createAxiosInstance, fetchUrlRaw, ReportArtifacts } from '@unlighthouse/core/util/fetch'
+export { createFetchClient, fetchUrlRaw, ReportArtifacts } from '@unlighthouse/core/util/fetch'
 
 /** Ensures slashes on both sides of a string. */
 export const withSlashes = (s: string) => withLeadingSlash(withTrailingSlash(s)) || '/'

@@ -271,10 +271,9 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
     },
   }
 
-  // Report-side aggregations have no in-memory implementation — they're
-  // produced by `core/report/processScanData` against a SQL adapter. Stub
-  // empty so cloudflare/test environments using memory storage degrade to
-  // "no dashboard data" rather than crashing handlers.
+  // Report-side aggregations have no in-memory implementation. Stub empty so
+  // cloudflare/test environments degrade to "no dashboard data" instead of
+  // crashing handlers.
   const emptyList = { list: async () => [] }
   const reportRepos = {
     accessibility: emptyList,

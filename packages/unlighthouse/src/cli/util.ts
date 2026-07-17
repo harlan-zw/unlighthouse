@@ -58,7 +58,7 @@ export async function validateHost(resolvedConfig: ResolvedUserConfig, logger?: 
   if (site) {
     // test HTTP response from site
     logger?.debug(`Testing Site \`${site}\` is valid.`)
-    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(site, resolvedConfig)
+    const { valid, response, error, redirected, redirectUrl } = await fetchUrlRaw(site, resolvedConfig, { logger })
     if (!valid) {
       // something is wrong with the site, bail
       logOperationalWarn('host.site_validation_failed', error ?? null, {

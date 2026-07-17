@@ -27,10 +27,6 @@
       "types": "./dist/seeds/route-definitions.d.mts",
       "import": "./dist/seeds/route-definitions.mjs"
     },
-    "./policies": {
-      "types": "./dist/policies/index.d.mts",
-      "import": "./dist/policies/index.mjs"
-    },
     "./crawlers": {
       "types": "./dist/crawlers/index.d.mts",
       "import": "./dist/crawlers/index.mjs"
@@ -82,14 +78,6 @@
     "./util/filter": {
       "types": "./dist/util/filter.d.mts",
       "import": "./dist/util/filter.mjs"
-    },
-    "./util/progressBox": {
-      "types": "./dist/util/progressBox.d.mts",
-      "import": "./dist/util/progressBox.mjs"
-    },
-    "./util/git-meta": {
-      "types": "./dist/util/git-meta.d.mts",
-      "import": "./dist/util/git-meta.mjs"
     },
     "./storage": {
       "types": "./dist/storage/index.d.mts",

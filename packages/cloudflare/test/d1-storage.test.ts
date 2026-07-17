@@ -1,7 +1,7 @@
 // D-035 — Cloudflare Worker host reaches command-surface parity on D1/R2.
 //
-// Proves that with the REAL `d1R2Storage` (raw-SQL scan/route/pack repos + the
-// shared drizzle-orm/d1 reports/comparisons repos) the Worker host returns data
+// Proves that with the real `d1R2Storage` (shared Drizzle repositories + R2
+// blobs) the Worker host returns data
 // for: compare.* , pack.run drill-ins, dashboard detail views, the on-demand
 // comparison persist/read path, and CrUX reads.
 //
@@ -18,7 +18,6 @@ import { parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import {
   compareDetail,
   compareRun,
-  packRun,
   scanResults,
 } from '@unlighthouse/core/api/handlers'
 import { compareScans } from '@unlighthouse/core/comparison'
@@ -93,9 +92,12 @@ describe('d1R2Storage — Worker host command-surface parity (D-035)', () => {
   const currentId = 'scan_curr00000000000000000000000'
   let baseScanId: ScanId
   let currentScanId: ScanId
+  let raw: ReturnType<typeof createTestD1>['raw']
 
   beforeAll(async () => {
-    const { db } = createTestD1()
+    const testD1 = createTestD1()
+    const { db } = testD1
+    raw = testD1.raw
     const bucket = createTestR2()
     await migrate(db)
     storage = d1R2Storage({ db, bucket })
@@ -138,7 +140,41 @@ describe('d1R2Storage — Worker host command-surface parity (D-035)', () => {
     expect(out.items.map(r => r.path).sort()).toEqual(['/', '/about'])
   })
 
-  // The D1 raw-SQL route writer persists D-040 provenance + the D-034 reconciled
+  it('round-trips persisted siteId and page mode through shared repositories', async () => {
+    const siteId = 'https://example.com'
+    await storage.sites.create({
+      id: siteId,
+      name: 'Example',
+      url: siteId,
+      group: null,
+      createdAt: '2026-07-03T00:00:00.000Z',
+    })
+    const pageScanId = parseScanId('scan_page00000000000000000000000')
+    await storage.scans.create({
+      ...scanInsert(pageScanId, '2026-07-03T00:00:00.000Z'),
+      siteId,
+      mode: 'page',
+    })
+
+    expect(await storage.scans.get(pageScanId)).toMatchObject({ siteId, mode: 'page' })
+  })
+
+  it('rolls back the entire D1 route batch when one statement fails', async () => {
+    const scanId = parseScanId('scan_batch0000000000000000000000')
+    await storage.scans.create(scanInsert(scanId, '2026-07-04T00:00:00.000Z'))
+    raw.exec(`CREATE TRIGGER reject_route BEFORE INSERT ON scan_routes
+      WHEN NEW.path = '/reject' BEGIN SELECT RAISE(ABORT, 'rejected route'); END`)
+
+    await expect(storage.routes.putBatch(scanId, 'mobile', [
+      metrics('https://example.com/accepted', '/accepted', 0.9, 1800),
+      metrics('https://example.com/reject', '/reject', 0.9, 1800),
+    ])).rejects.toThrow('rejected route')
+
+    expect((await storage.routes.listForScan(scanId)).items).toHaveLength(0)
+    raw.exec('DROP TRIGGER reject_route')
+  })
+
+  // The shared Drizzle route writer persists D-040 provenance + the D-034 reconciled
   // report_blob_key, so route.get's reconciled deep-dive resolves on the Worker
   // host (parity with the drizzle better-sqlite3 writer).
   it('d1 route writer persists auditor + report_blob_key (D-040/D-034 parity)', async () => {

@@ -31,6 +31,8 @@ export interface ResolveAuditorOptions {
   config: UnlighthouseConfig
   /** Optional logger for tagged sub-auditors. */
   logger?: Logger
+  /** Host-resolved chrome-launcher flags; core never reads the environment. */
+  chromeFlags?: string[]
 }
 
 function withTag(logger: Logger | undefined, tag: string): Logger | undefined {
@@ -62,13 +64,15 @@ function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Aud
       const localStorage = opts.config.localStorage
       const sessionStorage = opts.config.sessionStorage
       const indexedDb = resolveIndexedDbSeed(opts.config.indexedDb)
+      const chromeFlags = opts.chromeFlags
       const hasStorage = !!(localStorage && Object.keys(localStorage).length)
         || !!(sessionStorage && Object.keys(sessionStorage).length)
         || !!(indexedDb && Object.keys(indexedDb).length)
       return createLocalAuditor({
-        defaults: (flags || hasStorage)
+        defaults: (flags || hasStorage || chromeFlags?.length)
           ? {
               ...(flags ? { lighthouseFlags: flags } : {}),
+              ...(chromeFlags?.length ? { launchOptions: { chromeFlags } } : {}),
               ...(localStorage ? { localStorage } : {}),
               ...(sessionStorage ? { sessionStorage } : {}),
               ...(indexedDb ? { indexedDb } : {}),

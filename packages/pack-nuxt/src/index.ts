@@ -201,5 +201,3 @@ export const nuxtPack: Pack<NuxtReport> = {
     }
   },
 }
-
-export default nuxtPack

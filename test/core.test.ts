@@ -7,13 +7,13 @@ import type {
   CrawlEvent,
   Crawler,
   CrawlerRunOptions,
+  Logger,
   SeedSource,
   Storage,
 } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookEvent } from '@unlighthouse/contracts/hooks'
 import { gzipSync } from 'node:zlib'
-import { setOperationalLogSink } from '@unlighthouse/contracts/logging'
 import { describe, expect, it } from 'vitest'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
@@ -35,6 +35,25 @@ const baseConfig: UnlighthouseConfig = { site: 'https://example.com' }
 
 const emptySeeds: SeedSource = {
   seeds: async function* () {},
+}
+
+function recordingLogger(entries: string[]): Logger {
+  const record = (...args: unknown[]) => {
+    const match = typeof args[0] === 'string' ? /^\[([^\]]+)]/.exec(args[0]) : null
+    if (match?.[1])
+      entries.push(match[1])
+  }
+  const logger: Logger = {
+    debug: record,
+    info: record,
+    warn: record,
+    error: record,
+    log: record,
+    success: record,
+    trace: record,
+    withTag: () => logger,
+  }
+  return logger
 }
 
 function stubReport(url: string) {
@@ -624,33 +643,28 @@ describe('createUnlighthouseCore orchestration', () => {
     const url = 'https://example.com/screenshot'
     const storage = memoryStorage()
     const entries: string[] = []
-    setOperationalLogSink(entry => entries.push(entry.name))
-    try {
-      const put = storage.blobs.put.bind(storage.blobs)
-      storage.blobs.put = async (key, data, opts) => {
-        if (key.includes('/screenshots/'))
-          throw new Error('screenshot write failed')
-        return put(key, data, opts)
-      }
-      const auditor: Auditor = {
-        capabilities: passingAuditor().capabilities,
-        audit: async () => stubLhrReport(url, { screenshot: true }),
-      }
-      const core = createUnlighthouseCore({
-        config: baseConfig,
-        auditor,
-        seeds: emptySeeds,
-        crawler: discoveryCrawler([url]),
-        storage,
-      })
-      const session = core.run()
-      await session.done
-      expect(session.stats()).toMatchObject({ scanned: 1, failed: 0 })
-      expect(entries).toContain('scan.screenshot_write_failed')
+    const put = storage.blobs.put.bind(storage.blobs)
+    storage.blobs.put = async (key, data, opts) => {
+      if (key.includes('/screenshots/'))
+        throw new Error('screenshot write failed')
+      return put(key, data, opts)
     }
-    finally {
-      setOperationalLogSink(null)
+    const auditor: Auditor = {
+      capabilities: passingAuditor().capabilities,
+      audit: async () => stubLhrReport(url, { screenshot: true }),
     }
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor,
+      seeds: emptySeeds,
+      crawler: discoveryCrawler([url]),
+      storage,
+      logger: recordingLogger(entries),
+    })
+    const session = core.run()
+    await session.done
+    expect(session.stats()).toMatchObject({ scanned: 1, failed: 0 })
+    expect(entries).toContain('scan.screenshot_write_failed')
   })
 })
 

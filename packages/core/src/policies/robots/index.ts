@@ -1,8 +1,6 @@
 import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
-import type { ConsolaInstance } from 'consola'
 import type { RobotsGroupResolved } from './parser'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { createConsola } from 'consola'
 import { $URL } from 'ufo'
 import { fetchUrlRaw } from '../../util/fetch'
 
@@ -21,9 +19,9 @@ export interface FetchRobotsDeps {
  */
 export async function fetchRobotsTxt(deps: FetchRobotsDeps, site: string): Promise<false | string> {
   site = new $URL(site).origin
-  const logger = (deps.logger as ConsolaInstance | undefined) ?? createConsola().withTag('unlighthouse')
+  const logger = deps.logger
   // we scan the robots.txt content for the sitemaps
-  logger.debug(`Scanning ${site}/robots.txt`)
+  logger?.debug(`Scanning ${site}/robots.txt`)
   const robotsTxt = await fetchUrlRaw(
     `${site}/robots.txt`,
     deps.resolvedConfig,
@@ -33,7 +31,7 @@ export async function fetchRobotsTxt(deps: FetchRobotsDeps, site: string): Promi
     logOperationalWarn('robots.missing', robotsTxt.error ?? null, { site }, logger)
     return false
   }
-  logger.debug('Found robots.txt')
+  logger?.debug('Found robots.txt')
   return robotsTxt.response.data as string
 }
 

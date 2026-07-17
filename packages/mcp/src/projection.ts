@@ -27,6 +27,8 @@ export interface CreateMcpServerOptions {
   ctx: HandlerCtx | McpHandlerCtxFactory
   /** Server identity for MCP handshake. Defaults to { name: 'unlighthouse', version: '1.0.0' }. */
   identity?: { name?: string, version?: string }
+  /** Include plain internal error messages. Defaults to false. */
+  exposeInternal?: boolean
 }
 
 // Map UnlighthouseError.code → MCP error code.
@@ -38,9 +40,9 @@ function mcpErrorCodeForCode(code: string): number {
   return ErrorCode.InternalError
 }
 
-function toMcpError(err: unknown): McpError {
+function toMcpError(err: unknown, exposeInternal = false): McpError {
   const envelope = createErrorEnvelope(err, {
-    exposeInternal: process.env.NODE_ENV !== 'production',
+    exposeInternal,
   })
   const e = envelope.error
   return new McpError(
@@ -121,7 +123,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
         code: ErrorCodes.INPUT_INVALID,
         message: 'Input validation failed',
         details: { issues: parsed.error.issues },
-      }))
+      }), opts.exposeInternal)
     }
 
     let ctx: HandlerCtx
@@ -129,7 +131,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
       ctx = await ctxFactory({ name: req.params.name, arguments: req.params.arguments }, extra)
     }
     catch (err) {
-      throw toMcpError(err)
+      throw toMcpError(err, opts.exposeInternal)
     }
 
     try {
@@ -171,7 +173,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
       }
     }
     catch (err) {
-      throw toMcpError(err)
+      throw toMcpError(err, opts.exposeInternal)
     }
   })
 

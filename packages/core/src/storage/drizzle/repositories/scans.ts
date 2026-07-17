@@ -26,6 +26,7 @@ function insertToRow(scan: ScanInsert): ScanRowInsert {
     scanId: scan.scanId,
     siteId: scan.siteId ?? null,
     site: scan.site,
+    mode: scan.mode ?? 'site',
     device: scan.device,
     status: scan.status,
     startedAt: scan.startedAt,

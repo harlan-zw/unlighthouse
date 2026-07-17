@@ -60,7 +60,7 @@ export function createStorage(opts: CreateStorageOptions): Storage {
     reports: opts.rows.reports ?? emptyReports,
     comparisons: opts.rows.comparisons ?? emptyComparisons,
     packRuns: opts.rows.packRuns,
-    // Internal escape hatch for processScanData / assertions / compareScans.
+    // Internal escape hatch for assertions and comparison queries.
     // Exposed as `unknown` on the Storage contract; callers must narrow.
     ...(opts.rows.db !== undefined ? { db: opts.rows.db } : {}),
   } as Storage

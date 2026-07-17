@@ -66,8 +66,8 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   CONFIG_INVALID on unsupported/empty). Config `{ strategy: 'split', assignments }` in AuditorConfig +
   wired in `resolveAuditor`. Tests `test/auditor-provenance-split.test.ts` (6): sample pinning + split
   merge + validation. Gate: typecheck green; tests 637 pass/1 skip.
-- D-034 (reconciled-report reader cutover): done — the codebase had already cut 3/4 readers by prior
-  evolution: `processScanData` is a no-op (detail tables removed; work flows through packs);
+- D-034 (reconciled-report reader cutover): done — the codebase had already cut the active readers by
+  prior evolution; the obsolete `processScanData` compatibility no-op has since been deleted;
   `generateClient` (build.ts) reads rows + reconciled via `buildStaticSnapshot` (only a screenshot
   fallback reads raw LHR); dashboard deep-dive reads the reconciled blob (`loadRouteContract`). The one
   genuine raw-LHR reader was `ci.ts` (CI reporter) — CUT to the reconciled report
@@ -84,7 +84,7 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   ALREADY core-owned by prior evolution: `finalizeScan` (core/scan/route-audit.ts) already computes
   scan.summary from routes.listForScan, writes pack auto-runs + the terminal `complete` row + emits
   `scan:complete`, and is already called by core.ts (CLI) AND ScanRunnerDO (Cloudflare). tracking.ts
-  only called the no-op `processScanData` → removed that dead call (subscriber now does CLI-only
+  only called the obsolete `processScanData` → removed that dead call (subscriber now does CLI-only
   manifest + CrUX). Substantive work: D1 `reports`/`comparisons` stubs replaced with REAL shared
   drizzle repos (`createReportRepositories`/`createComparisonRepository` exported from core drizzle;
   d1-r2 builds a `drizzle-orm/d1` handle + exposes `db`); added comparison/comparison_diffs/scan_crux

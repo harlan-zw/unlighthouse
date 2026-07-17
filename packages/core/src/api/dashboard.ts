@@ -13,19 +13,15 @@
 // instead. If you're tempted to add a new endpoint here, ask whether a
 // typed command would do.
 
-import type { Storage } from '@unlighthouse/contracts'
+import type { Logger, Storage } from '@unlighthouse/contracts'
 import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Router } from 'h3'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
-import { createTaggedLogger } from '../logger'
 import { loadRouteContract } from '../report/route-contracts'
 import { base64ToBytes } from '../util/base64'
 import { gunzipToString } from '../util/gzip'
-
-const log = createTaggedLogger('dashboard')
-log.debug('init')
 
 interface DashboardRouteMatch {
   route: ScanRoute
@@ -50,7 +46,8 @@ async function findDashboardRoute(storage: Storage, scanId: string, path: string
   }
 }
 
-export function createDashboardApi(storage: Storage): Router {
+export function createDashboardApi(storage: Storage, logger?: Logger): Router {
+  const log = logger?.withTag('dashboard')
   const router = createRouter()
 
   // Screenshot — try the dedicated screenshot blob first, fall back to

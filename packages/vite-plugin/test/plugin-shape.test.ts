@@ -35,8 +35,9 @@ describe('@unlighthouse/vite — plugin shape', () => {
     await expect(close()).resolves.toBeUndefined()
   })
 
-  it('default export matches the named export', async () => {
+  it('exposes only the named plugin factory', async () => {
     const mod = await import('../src/index')
-    expect(mod.default).toBe(mod.unlighthouseVite)
+    expect(mod.unlighthouseVite).toBe(unlighthouseVite)
+    expect('default' in mod).toBe(false)
   })
 })
