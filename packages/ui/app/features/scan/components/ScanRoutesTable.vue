@@ -48,6 +48,22 @@ const formatMetric = formatRouteMetric
 const UiIconC = resolveComponent('UiIcon')
 const UiChipC = resolveComponent('UiChip')
 const UiTrendC = resolveComponent('UiTrend')
+const isStatic = useIsStatic()
+
+function routeActionItems(row: RouteRow) {
+  const items = [
+    { label: 'View details', icon: 'chart-bar', onSelect: () => openRoute(row) },
+    { label: 'Open page', icon: 'external', to: row.url, target: '_blank' },
+    { label: 'Copy URL', icon: 'copy', onSelect: () => copyRouteUrl(row) },
+  ]
+  if (isStatic)
+    return items
+  return [
+    ...items,
+    { type: 'separator' as const },
+    { label: 'Rescan route', icon: 'refresh', onSelect: () => rescanRoute(row) },
+  ]
+}
 
 const columns = computed<ColumnDef<RouteRow>[]>(() => {
   const cols: ColumnDef<RouteRow>[] = [
@@ -58,7 +74,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       headClass: 'w-[140px]',
       cell: ({ row }) => {
         const path = row.original.path || row.original.url
-        const src = screenshotUrl(scanId.value, path)
+        const src = screenshotUrl(scanId.value, path, row.original.device)
         return h('img', {
           src,
           width: 128,
@@ -280,13 +296,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       >
         <template #actions="{ row }">
           <UDropdownMenu
-            :items="[
-              { label: 'View details', icon: 'chart-bar', onSelect: () => openRoute(row) },
-              { label: 'Open page', icon: 'external', to: row.url, target: '_blank' },
-              { label: 'Copy URL', icon: 'copy', onSelect: () => copyRouteUrl(row) },
-              { type: 'separator' },
-              { label: 'Rescan route', icon: 'refresh', onSelect: () => rescanRoute(row) },
-            ]"
+            :items="routeActionItems(row)"
             :content="{ align: 'end' }"
           >
             <UiButton purpose="quiet" size="sm" icon="more-horizontal" class="size-7 p-0 justify-center" aria-label="Open route actions" @click.stop />

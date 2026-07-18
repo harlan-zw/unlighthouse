@@ -1,7 +1,8 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
-import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Page } from '@unlighthouse/contracts/ports'
 import { gzipSync } from '../util/gzip'
 import { LIGHTHOUSE_DEFAULT_CATEGORIES } from './categories'
+import { assertLighthouseResult, attachExtractedRouteData } from './lighthouse-report'
 
 export interface MockAuditorOptions {
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
@@ -118,7 +119,7 @@ export function createMockProvider(): UnlighthouseProvider {
         'webmcp-schema-validity': { id: 'webmcp-schema-validity', title: 'WebMCP schemas are valid', description: 'WebMCP schemas are valid.', score: 1, scoreDisplayMode: 'binary' },
         'llms-txt': { id: 'llms-txt', title: 'llms.txt follows recommendations', description: 'The llms.txt file follows recommendations.', score: 1, scoreDisplayMode: 'binary' },
       },
-    }
+    } satisfies AuditorReport
 
     return {
       url,
@@ -144,7 +145,7 @@ export function createMockProvider(): UnlighthouseProvider {
       // Without this, the `if (lhrGzip)` branch never fires and downstream
       // pack tests can't read per-route audit data.
       lhrGzip: gzipSync(JSON.stringify(raw)),
-      raw: raw as unknown as NonNullable<UnlighthouseReport['raw']>,
+      raw,
     }
   }
 }
@@ -153,12 +154,12 @@ export function createMockAuditor(_opts: MockAuditorOptions = {}): Auditor {
   const provider = createMockProvider()
   return {
     capabilities: MOCK_CAPABILITIES,
-    async audit(url: string, _page?: Page, opts?: AuditOpts): Promise<LighthouseReport> {
+    async audit(url: string, _page?: Page, opts?: AuditOpts): Promise<AuditorReport> {
       const report = await provider(url)
       // core.ts's auditWrapper reads `lhrGzip` + `extracted` off the return
       // value, so re-attach them alongside the raw LHR. Without this the
       // ingest path never writes the LHR / reconciled blobs in test runs.
-      const out = { ...(report.raw as object) } as Record<string, unknown>
+      const out: AuditorReport = { ...assertLighthouseResult(report.raw) }
       // D-029: nudge the synthetic LHR per-device so tests can tell mobile
       // and desktop rows apart. Desktop gets better perf numbers — mirrors
       // the real-world pattern (less throttling = higher scores). lhrGzip
@@ -166,47 +167,19 @@ export function createMockAuditor(_opts: MockAuditorOptions = {}): Auditor {
       const device = opts?.device ?? 'mobile'
       const isDesktop = device === 'desktop'
       if (isDesktop) {
-        const audits = (out.audits ?? {}) as Record<string, { score?: number, numericValue?: number }>
+        const audits = out.audits
         out.audits = {
           ...audits,
           'largest-contentful-paint': { ...(audits['largest-contentful-paint'] ?? {}), score: 1, numericValue: 600 },
           'first-contentful-paint': { ...(audits['first-contentful-paint'] ?? {}), score: 1, numericValue: 500 },
         }
-        const categories = (out.categories ?? {}) as Record<string, { score?: number }>
+        const categories = out.categories
         out.categories = {
           ...categories,
           performance: { ...(categories.performance ?? {}), score: 0.98 },
         }
-        out.lhrGzip = gzipSync(JSON.stringify(out))
       }
-      else {
-        out.lhrGzip = (report as { lhrGzip?: Uint8Array }).lhrGzip
-      }
-      // Attach an `extracted` payload so core.ts's ingest doesn't fall back to
-      // all-null metric columns. Desktop variant mirrors the LHR nudge above.
-      const lhr = out as { lighthouseVersion?: string }
-      out.extracted = {
-        url,
-        path: new URL(url).pathname,
-        routeName: null,
-        scorePerformance: isDesktop ? 0.98 : 0.9,
-        scoreAccessibility: 0.8,
-        scoreSeo: 1,
-        scoreBestPractices: 0.95,
-        scoreAgenticBrowsing: 0.83,
-        lcp: isDesktop ? 600 : 1200,
-        cls: 0.01,
-        inp: null,
-        fcp: isDesktop ? 500 : 1000,
-        ttfb: null,
-        tbt: 100,
-        si: 1500,
-        lighthouseVersion: lhr.lighthouseVersion ?? '13.4.0',
-        auditor: 'mock',
-        capturedAt: new Date().toISOString(),
-      }
-      out.auditor = 'mock'
-      return out as unknown as LighthouseReport
+      return attachExtractedRouteData(out, url, 'mock')
     },
   }
 }

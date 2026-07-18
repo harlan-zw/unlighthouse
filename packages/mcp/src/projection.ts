@@ -2,7 +2,7 @@
 // Mirrors @unlighthouse/core/api/http.ts but emits MCP tools.
 
 import type { Command, CommandName } from '@unlighthouse/contracts/commands'
-import type { Handler, HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
+import type { HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import {
   CallToolRequestSchema,
@@ -10,8 +10,9 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js'
-import { commands } from '@unlighthouse/contracts/commands'
-import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { commandEntries, isAsyncIterable } from '@unlighthouse/contracts/commands'
+import { createErrorEnvelope } from '@unlighthouse/contracts/errors'
+import { createCommandExecutor } from '@unlighthouse/core/api/handlers'
 import { z } from 'zod'
 
 /**
@@ -52,10 +53,6 @@ function toMcpError(err: unknown, exposeInternal = false): McpError {
   )
 }
 
-function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
-  return value != null && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === 'function'
-}
-
 function toolNameFor(cmd: Command): string {
   return cmd.mcp?.name ?? cmd.name.replaceAll('.', '_')
 }
@@ -72,6 +69,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
   const { handlers, ctx: ctxOpt, identity } = opts
   const ctxFactory: McpHandlerCtxFactory
     = typeof ctxOpt === 'function' ? ctxOpt : () => ctxOpt
+  const executor = createCommandExecutor({ handlers })
 
   const server = new Server(
     {
@@ -89,8 +87,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
   const toolToCommand = new Map<string, CommandName>()
   const tools: Array<{ name: string, description: string, inputSchema: Record<string, unknown> }> = []
 
-  for (const name of Object.keys(commands) as CommandName[]) {
-    const cmd = commands[name] as Command
+  for (const [name, cmd] of commandEntries()) {
     if (cmd.mcp?.hidden)
       continue
     const toolName = toolNameFor(cmd)
@@ -112,40 +109,25 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
     if (!commandName)
       throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${toolName}`)
 
-    const cmd = commands[commandName] as Command
     const handler = handlers[commandName]
     if (!handler)
       throw new McpError(ErrorCode.MethodNotFound, `No handler for ${commandName}`)
 
-    const parsed = cmd.input.safeParse(req.params.arguments ?? {})
-    if (!parsed.success) {
-      throw toMcpError(new UnlighthouseError({
-        code: ErrorCodes.INPUT_INVALID,
-        message: 'Input validation failed',
-        details: { issues: parsed.error.issues },
-      }), opts.exposeInternal)
-    }
-
-    let ctx: HandlerCtx
     try {
-      ctx = await ctxFactory({ name: req.params.name, arguments: req.params.arguments }, extra)
-    }
-    catch (err) {
-      throw toMcpError(err, opts.exposeInternal)
-    }
-
-    try {
-      const result = (handler as Handler<typeof cmd>).run(parsed.data, ctx)
-      const awaited = await result
+      const result = await executor.execute(
+        commandName,
+        req.params.arguments ?? {},
+        () => ctxFactory({ name: req.params.name, arguments: req.params.arguments }, extra),
+      )
 
       // Streaming: if client opted-in via _meta.progressToken, emit each chunk
       // as a notifications/progress message (payload is passed in the
       // passthrough params). Otherwise fall back to collecting into an array.
-      if (isAsyncIterable(awaited)) {
+      if (isAsyncIterable(result)) {
         const progressToken = req.params._meta?.progressToken
         if (progressToken !== undefined) {
           let progress = 0
-          for await (const chunk of awaited) {
+          for await (const chunk of result) {
             progress += 1
             await extra.sendNotification({
               method: 'notifications/progress',
@@ -161,7 +143,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
           }
         }
         const out: unknown[] = []
-        for await (const chunk of awaited)
+        for await (const chunk of result)
           out.push(chunk)
         return {
           content: [{ type: 'text', text: JSON.stringify(out) }],
@@ -169,7 +151,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
       }
 
       return {
-        content: [{ type: 'text', text: JSON.stringify(awaited) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       }
     }
     catch (err) {

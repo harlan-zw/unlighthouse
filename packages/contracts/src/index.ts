@@ -42,9 +42,6 @@ export * from './types/dashboard'
 // name collisions with v1 atoms in `./config` (DiscoveryOptions) and
 // `./hooks` (UnlighthouseHooks).
 export type {
-  Assertion,
-  AssertionResult,
-  AssertionType,
   ClientOptions,
   ClientOptionsPayload,
   ComputedLighthouseReportAudit,
@@ -62,6 +59,7 @@ export type {
   RouteDefinition,
   RuntimeSettings,
   ScanMeta,
+  StaticScreenshotMap,
   UnlighthouseColumn,
   UnlighthouseInsights,
   UnlighthouseOptions,

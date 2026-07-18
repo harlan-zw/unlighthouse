@@ -1,12 +1,13 @@
-import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { Logger } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
+import type { FetchConfig } from '../util/fetch'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { isScanOrigin } from '../api/util'
 import { fetchUrlRaw } from '../util/fetch'
 import { extractSitemapMetaRefreshUrl, parseSitemapDocument, resolveSitemapLocation } from './sitemap-parser'
 
 export interface ExtractSitemapDeps {
-  resolvedConfig: ResolvedUserConfig
+  resolvedConfig: FetchConfig
   siteUrl: URL
   logger?: Logger
 }
@@ -115,7 +116,7 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
 }
 
 export interface SitemapSeedsOptions {
-  resolvedConfig: ResolvedUserConfig
+  resolvedConfig: FetchConfig
   siteUrl: URL
   /** Sitemap URLs to fetch. `true` (default) resolves to `${site}/sitemap.xml`. */
   sitemaps?: true | string[]

@@ -1,0 +1,461 @@
+// MCP projection + handler routing — in-memory client/server transport pair.
+//
+// What we're guarding against:
+//   1. A command's `mcp.hidden` getting stripped (the noisy/dangerous tool
+//      starts being advertised to agents again — see PR #315).
+//   2. The pack handler regressing on the cache hit/miss/refresh cycle that
+//      PR #314 shipped.
+//   3. The pack tool descriptions losing the agent-friendly explanation —
+//      LLMs derive call sequencing from these strings, so silent edits
+//      break behaviour even when types still match.
+//
+// We don't spawn a child process / stdio binary here; that path is exercised
+// by the bin shim itself. The in-memory transport lets us assert the
+// projection layer in isolation in well under a second.
+
+import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
+import { commands } from '@unlighthouse/contracts/commands'
+import { createUnlighthouseCore } from '@unlighthouse/core'
+import { createHandlers } from '@unlighthouse/core/api/handlers'
+import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
+import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
+import { manualSeeds } from '@unlighthouse/core/seeds'
+import { memoryStorage } from '@unlighthouse/core/storage/memory'
+import { createMcpServer } from '@unlighthouse/mcp'
+import { beforeAll, describe, expect, it } from 'vitest'
+
+let client: Client
+let scanId: string
+
+beforeAll(async () => {
+  // Real core/storage stack, mocked auditor — gives us a writable scan and
+  // a working pack pipeline without hitting Chrome or the network.
+  const storage = memoryStorage()
+  const auditor = createMockAuditor()
+  const core = createUnlighthouseCore({
+    config: { site: 'http://localhost' } as never,
+    auditor,
+    seeds: manualSeeds({ urls: ['http://localhost/'] }),
+    crawler: parallelMapCrawler({ concurrency: 1 }),
+    storage,
+  })
+  const ctx: HandlerCtx = {
+    core,
+    auditor,
+    storage,
+    config: { site: 'http://localhost' } as never,
+    version: 'test',
+  }
+
+  // Seed one finished scan so pack.run has data to reconcile against.
+  const handlers = createHandlers()
+  const startResult = await (handlers['scan.start'] as { run: (i: unknown, c: HandlerCtx) => Promise<{ scanId: string }> }).run(
+    { site: 'http://localhost' },
+    ctx,
+  )
+  scanId = startResult.scanId
+  // Wait for the scan to drain — parallel-map crawler with concurrency 1 and
+  // one seed completes synchronously inside core.run; poll just in case.
+  await new Promise(r => setTimeout(r, 50))
+
+  // Wire the MCP server and connect an in-memory client to it.
+  const server = createMcpServer({ handlers, ctx, identity: { name: 'test', version: 'test' } })
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+  client = new Client({ name: 'test-client', version: 'test' }, { capabilities: {} })
+  await Promise.all([
+    server.connect(serverTransport),
+    client.connect(clientTransport),
+  ])
+})
+
+describe('mCP tool surface', () => {
+  it('does not advertise destructive / orchestration commands', async () => {
+    const { tools } = await client.listTools()
+    const names = new Set(tools.map(t => t.name))
+
+    // Curated hidden-set (PR #315). Listed by MCP tool name (dots → underscores).
+    const mustBeHidden = [
+      'scan_cancel',
+      'scan_pause',
+      'scan_resume',
+      'scan_delete',
+      'scan_current',
+      'scan_rescanAll',
+      'route_rescan',
+      'history_delete',
+      'history_rescan',
+      'sites_create',
+      'sites_delete',
+      'auditors_test',
+      'events_subscribe',
+      'events_tail',
+    ]
+    for (const hidden of mustBeHidden)
+      expect(names.has(hidden), `${hidden} should be hidden from MCP`).toBe(false)
+  })
+
+  it('advertises the pack tools', async () => {
+    const { tools } = await client.listTools()
+    const names = new Set(tools.map(t => t.name))
+    expect(names.has('pack_run')).toBe(true)
+    expect(names.has('pack_list')).toBe(true)
+    expect(names.has('scan_summary')).toBe(true)
+  })
+
+  it('pack tool descriptions spell out the agent calling sequence', async () => {
+    // These descriptions are LLM-facing. If someone shortens them back to the
+    // pre-PR one-liners ("Execute a registered pack against a scan"), agents
+    // lose the workflow hint. Guard with substring assertions on the bits
+    // that carry the workflow signal.
+    const { tools } = await client.listTools()
+    const packRun = tools.find(t => t.name === 'pack_run')
+    expect(packRun?.description).toMatch(/pack\.list/i)
+    expect(packRun?.description).toMatch(/history\.list/i)
+    const packList = tools.find(t => t.name === 'pack_list')
+    expect(packList?.description).toMatch(/overview/i)
+    expect(packList?.description).toMatch(/images/i)
+  })
+
+  it('tool count equals (visible registry commands)', async () => {
+    // Sanity check the projection isn't accidentally listing hidden commands.
+    const visible = Object.values(commands).filter(c => !c.mcp?.hidden).length
+    const { tools } = await client.listTools()
+    expect(tools.length).toBe(visible)
+  })
+})
+
+describe('mCP device matrix surfacing (issue #349 Phase 8)', () => {
+  // The contract supports a `device` array on scan_start and a `device` filter
+  // on scan_results. These assertions pin two LLM-facing concerns:
+  //   - the tool description spells out the array shape (so an agent picks the
+  //     matrix mode without an out-of-band hint)
+  //   - the input schema accepts both single-device strings and arrays, and
+  //     rejects non-device values like 'tablet'
+  it('scan_start description mentions the multi-device matrix and the array shape', async () => {
+    const { tools } = await client.listTools()
+    const scanStart = tools.find(t => t.name === 'scan_start')
+    expect(scanStart, 'scan_start must be advertised').toBeTruthy()
+    expect(scanStart!.description).toMatch(/matrix/i)
+    // The literal array example helps an LLM commit to the right shape.
+    expect(scanStart!.description).toMatch(/\["mobile",\s*"desktop"\]/)
+  })
+
+  it('scan_results description mentions device-narrowed matrix output', async () => {
+    const { tools } = await client.listTools()
+    const scanResults = tools.find(t => t.name === 'scan_results')
+    expect(scanResults, 'scan_results must be advertised').toBeTruthy()
+    expect(scanResults!.description).toMatch(/matrix/i)
+    expect(scanResults!.description).toMatch(/device/i)
+  })
+
+  it('scan_start JSON schema for `device` exposes both string and array shapes', async () => {
+    const { tools } = await client.listTools()
+    const scanStart = tools.find(t => t.name === 'scan_start')
+    expect(scanStart).toBeTruthy()
+    // The Zod union projects to JSON Schema as `anyOf`. We don't pin the exact
+    // structure (z.toJSONSchema is upstream-controlled) — just assert that the
+    // serialised shape advertises both `mobile`/`desktop` AND an array form,
+    // so an agent reading the schema can construct either input.
+    const serialised = JSON.stringify(scanStart!.inputSchema)
+    expect(serialised).toMatch(/mobile/)
+    expect(serialised).toMatch(/desktop/)
+    expect(serialised).toMatch(/"type":\s*"array"/)
+  })
+
+  it('accepts a single-device string for back-compat', async () => {
+    // String input — the union's first arm. Should round-trip without
+    // validation errors. We can't drive a full scan here without a fresh
+    // core (the suite-level core already ran one), but ACTIVE_SCAN_CONFLICT
+    // still proves the input passed validation and reached the handler.
+    let caught: unknown
+    try {
+      await client.callTool({
+        name: 'scan_start',
+        arguments: { site: 'http://device-matrix-single', device: 'mobile' },
+      })
+    }
+    catch (err) {
+      caught = err
+    }
+    // Either succeeded or hit the live-session guard — both prove the schema
+    // accepted the input. We only fail if it errored with a validation issue.
+    if (caught) {
+      const msg = (caught as { message?: string }).message ?? String(caught)
+      expect(msg).not.toMatch(/Input validation failed/i)
+    }
+  })
+
+  it('accepts a two-element device array', async () => {
+    let caught: unknown
+    try {
+      await client.callTool({
+        name: 'scan_start',
+        arguments: { site: 'http://device-matrix-array', device: ['mobile', 'desktop'] },
+      })
+    }
+    catch (err) {
+      caught = err
+    }
+    if (caught) {
+      const msg = (caught as { message?: string }).message ?? String(caught)
+      expect(msg).not.toMatch(/Input validation failed/i)
+    }
+  })
+
+  it('rejects unsupported device values like ["tablet"]', async () => {
+    // Zod's enum rejects anything outside ('mobile' | 'desktop'). The
+    // projection wraps that as McpError(InvalidParams).
+    await expect(
+      client.callTool({
+        name: 'scan_start',
+        arguments: { site: 'http://device-matrix-bad', device: ['tablet'] },
+      }),
+    ).rejects.toThrow(/Input validation failed/i)
+  })
+
+  it('rejects an empty device array (matrix must have at least one form-factor)', async () => {
+    await expect(
+      client.callTool({
+        name: 'scan_start',
+        arguments: { site: 'http://device-matrix-empty', device: [] },
+      }),
+    ).rejects.toThrow(/Input validation failed/i)
+  })
+})
+
+describe('mCP scan.start end-to-end (v1.md line 1710 ship gate)', () => {
+  it('drives scan_start → scan_status → scan_summary → pack_run via MCP', async () => {
+    // The "ship gate" in v1.md: an agent connects, calls scan_start with a
+    // URL it picked itself, polls scan_status until done, and reads results
+    // back through scan_summary + pack_run — without the host pre-configuring
+    // a site. This test runs the whole loop over the in-memory transport.
+    //
+    // The fixture core is wired to a fresh memoryStorage instance (separate
+    // from the beforeAll's per-suite storage); it crawls one seed URL via
+    // the mock auditor and finishes synchronously.
+    const storage = memoryStorage()
+    const auditor = createMockAuditor()
+    const core = createUnlighthouseCore({
+      config: { site: 'http://agent-site' } as never,
+      auditor,
+      seeds: manualSeeds({ urls: ['http://agent-site/'] }),
+      crawler: parallelMapCrawler({ concurrency: 1 }),
+      storage,
+    })
+    const ctx: HandlerCtx = {
+      core,
+      auditor,
+      storage,
+      config: { site: 'http://agent-site' } as never,
+      version: 'test',
+    }
+    const handlers = createHandlers()
+    const server = createMcpServer({ handlers, ctx, identity: { name: 'gate', version: 'test' } })
+    const [c, s] = InMemoryTransport.createLinkedPair()
+    const gateClient = new Client({ name: 'gate-client', version: 'test' }, { capabilities: {} })
+    await Promise.all([server.connect(s), gateClient.connect(c)])
+
+    // 1. Agent triggers a scan with a URL it picked. No host preset required.
+    const startCall = await gateClient.callTool({
+      name: 'scan_start',
+      arguments: { site: 'http://agent-site' },
+    })
+    const started = JSON.parse((startCall.content as Array<{ text: string }>)[0].text)
+    expect(started.scanId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(started.site).toBe('http://agent-site')
+
+    // 2. Agent polls scan_status until terminal. parallel-map + 1 seed +
+    //    mock auditor drains in < 100ms, but we loop defensively.
+    const startedScanId: string = started.scanId
+    let statusJson: { status: string } | null = null
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const res = await gateClient.callTool({
+        name: 'scan_status',
+        arguments: { scanId: startedScanId },
+      })
+      statusJson = JSON.parse((res.content as Array<{ text: string }>)[0].text)
+      if (statusJson?.status === 'complete' || statusJson?.status === 'error' || statusJson?.status === 'cancelled')
+        break
+      await new Promise(r => setTimeout(r, 25))
+    }
+    expect(statusJson?.status).toBe('complete')
+
+    // 3. Agent reads the layered output: summary first, then drill via pack.
+    const summaryRes = await gateClient.callTool({
+      name: 'scan_summary',
+      arguments: { scanId: startedScanId },
+    })
+    const summary = JSON.parse((summaryRes.content as Array<{ text: string }>)[0].text)
+    expect(summary.scanId).toBe(startedScanId)
+    expect(summary.routesScanned).toBeGreaterThan(0)
+
+    const packRes = await gateClient.callTool({
+      name: 'pack_run',
+      arguments: { scanId: startedScanId, pack: 'overview' },
+    })
+    const pack = JSON.parse((packRes.content as Array<{ text: string }>)[0].text)
+    // `cache: 'hit'` — finalizeScan auto-runs every built-in pack (incl.
+    // overview) at scan completion so reports are ready immediately, so this
+    // first explicit pack_run is served from that cached run, not recomputed.
+    expect(pack.cache).toBe('hit')
+    expect(pack.report.routesScanned).toBeGreaterThan(0)
+
+    // 4. ciBuild was auto-detected from git — the scan row should carry the
+    // current commit even though the agent passed no ciBuild block. (The
+    // checkout this test runs in is always a git repo with a HEAD commit.)
+    // scan.meta carries the scan row's ciCommit (there is no history.get tool;
+    // scan.meta is the per-scan metadata read).
+    const metaRes = await gateClient.callTool({
+      name: 'scan_meta',
+      arguments: { scanId: startedScanId },
+    })
+    const meta = JSON.parse((metaRes.content as Array<{ text: string }>)[0].text)
+    expect(meta.ciCommit).toMatch(/^[0-9a-f]{40}$/)
+  }, 15_000)
+})
+
+describe('mCP D-029 matrix scan end-to-end', () => {
+  // Mirrors the ship-gate above but with a multi-device scan and exercises
+  // every command that grew a device input across PRs #320-#325. If any of
+  // the device-threading work regresses, an agent calling MCP against a
+  // matrix scan would see collapsed rows / wrong-device cache hits — this
+  // pins the wire.
+  it('agent starts a matrix scan and reads per-device results back through MCP', async () => {
+    const storage = memoryStorage()
+    const auditor = createMockAuditor()
+    const core = createUnlighthouseCore({
+      config: { site: 'http://matrix-site' } as never,
+      auditor,
+      // Seed must match the scan.start `site` (the override-injected primary
+      // seed) exactly — a trailing-slash mismatch makes them two distinct URLs
+      // and doubles the row count (1 URL × 2 devices = 2, not 4).
+      seeds: manualSeeds({ urls: ['http://matrix-site'] }),
+      crawler: parallelMapCrawler({ concurrency: 1 }),
+      storage,
+    })
+    const ctx: HandlerCtx = {
+      core,
+      auditor,
+      storage,
+      config: { site: 'http://matrix-site' } as never,
+      version: 'test',
+    }
+    const handlers = createHandlers()
+    const server = createMcpServer({ handlers, ctx, identity: { name: 'matrix', version: 'test' } })
+    const [c, s] = InMemoryTransport.createLinkedPair()
+    const mClient = new Client({ name: 'matrix-client', version: 'test' }, { capabilities: {} })
+    await Promise.all([server.connect(s), mClient.connect(c)])
+
+    // 1. Start a matrix scan via the wire (array on the device input).
+    const startCall = await mClient.callTool({
+      name: 'scan_start',
+      arguments: { site: 'http://matrix-site', device: ['mobile', 'desktop'] },
+    })
+    const started = JSON.parse((startCall.content as Array<{ text: string }>)[0].text)
+    const mScanId: string = started.scanId
+
+    // 2. Drain to terminal.
+    let statusJson: { status: string } | null = null
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const res = await mClient.callTool({
+        name: 'scan_status',
+        arguments: { scanId: mScanId },
+      })
+      statusJson = JSON.parse((res.content as Array<{ text: string }>)[0].text)
+      if (statusJson?.status === 'complete' || statusJson?.status === 'error')
+        break
+      await new Promise(r => setTimeout(r, 25))
+    }
+    expect(statusJson?.status).toBe('complete')
+
+    // 3. scan_results without a device filter returns every (url, device) row.
+    const allRes = await mClient.callTool({
+      name: 'scan_results',
+      arguments: { scanId: mScanId },
+    })
+    const all = JSON.parse((allRes.content as Array<{ text: string }>)[0].text)
+    expect(all.total).toBe(2)
+    expect(all.items.map((r: { device: string }) => r.device).sort()).toEqual(['desktop', 'mobile'])
+
+    // 4. scan_results with device='desktop' narrows to the desktop row.
+    const desktopRes = await mClient.callTool({
+      name: 'scan_results',
+      arguments: { scanId: mScanId, device: 'desktop' },
+    })
+    const desktop = JSON.parse((desktopRes.content as Array<{ text: string }>)[0].text)
+    expect(desktop.total).toBe(1)
+    expect(desktop.items[0].device).toBe('desktop')
+    expect(desktop.items[0].scorePerformance).toBe(0.98) // mock desktop bump
+
+    // 5. pack_run scoped to mobile + desktop cache separately. Sequential
+    // requests should both report cache='miss' (different cache keys), and
+    // a third repeat-of-mobile should hit cache.
+    const packMobile = JSON.parse((
+      await mClient.callTool({ name: 'pack_run', arguments: { scanId: mScanId, pack: 'overview', device: 'mobile' } })
+    ).content[0].text)
+    const packDesktop = JSON.parse((
+      await mClient.callTool({ name: 'pack_run', arguments: { scanId: mScanId, pack: 'overview', device: 'desktop' } })
+    ).content[0].text)
+    const packMobileAgain = JSON.parse((
+      await mClient.callTool({ name: 'pack_run', arguments: { scanId: mScanId, pack: 'overview', device: 'mobile' } })
+    ).content[0].text)
+    expect(packMobile.cache).toBe('miss')
+    expect(packDesktop.cache).toBe('miss')
+    expect(packMobileAgain.cache).toBe('hit')
+    // Wire packName stays the bare pack id — cache-key mangling is internal.
+    expect(packMobile.packName).toBe('overview')
+
+    // 6. route_get on a specific device returns the matching row + LHR.
+    const routeRes = await mClient.callTool({
+      name: 'route_get',
+      arguments: { scanId: mScanId, url: 'http://matrix-site', device: 'desktop' },
+    })
+    const route = JSON.parse((routeRes.content as Array<{ text: string }>)[0].text)
+    expect(route.route.device).toBe('desktop')
+    expect(route.route.scorePerformance).toBe(0.98)
+    // route.get derives provenance from the device-keyed LHR blob — a populated
+    // provenance object confirms the blob was loaded/gunzipped for the right
+    // device (PR #323). (route.get returns categories/audits/provenance, not a
+    // raw `lhr` field.)
+    expect(route.provenance).toBeTypeOf('object')
+  }, 15_000)
+})
+
+describe('mCP pack.run caching', () => {
+  it('reports cache miss → hit → refresh-miss', async () => {
+    // First call forces a fresh reconcile (refresh: true). finalizeScan
+    // auto-runs + caches overview at scan completion, so a plain first call
+    // would be a hit; refresh recomputes it as a miss, giving a clean
+    // miss → hit → refresh-miss sequence to assert against.
+    const r1 = await client.callTool({
+      name: 'pack_run',
+      arguments: { scanId, pack: 'overview', refresh: true },
+    })
+    const p1 = JSON.parse((r1.content as Array<{ text: string }>)[0].text)
+    expect(p1.cache).toBe('miss')
+
+    // Second call — served from cache, same startedAt as the first.
+    const r2 = await client.callTool({
+      name: 'pack_run',
+      arguments: { scanId, pack: 'overview' },
+    })
+    const p2 = JSON.parse((r2.content as Array<{ text: string }>)[0].text)
+    expect(p2.cache).toBe('hit')
+    expect(p2.startedAt).toBe(p1.startedAt)
+
+    // Force refresh — new reconcile, new startedAt. A 2ms wait pushes the
+    // second startedAt past the ms-rounded ISO timestamp from the first call;
+    // without it the overview pack reconciles fast enough that both runs can
+    // land in the same millisecond on a hot CI runner.
+    await new Promise(resolve => setTimeout(resolve, 2))
+    const r3 = await client.callTool({
+      name: 'pack_run',
+      arguments: { scanId, pack: 'overview', refresh: true },
+    })
+    const p3 = JSON.parse((r3.content as Array<{ text: string }>)[0].text)
+    expect(p3.cache).toBe('miss')
+    expect(p3.startedAt).not.toBe(p1.startedAt)
+  })
+})

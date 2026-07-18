@@ -243,8 +243,10 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
       },
     })
 
+    let runError: unknown
     const runPromise = crawler.run(initialUrls)
       .catch((err: unknown) => {
+        runError = err
         opts.logger?.warn?.('crawlee run failed', err)
       })
       .finally(() => {
@@ -254,8 +256,11 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
     let done = false
     try {
       while (!done) {
-        while (queue.length)
-          yield queue.shift()!
+        while (queue.length) {
+          const event = queue.shift()
+          if (event)
+            yield event
+        }
 
         if (aborted) {
           // crawlee doesn't expose a cancel for in-flight requests; let them settle.
@@ -273,8 +278,14 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         if (tag === 'done' && queue.length === 0)
           done = true
       }
-      while (queue.length)
-        yield queue.shift()!
+      while (queue.length) {
+        const event = queue.shift()
+        if (event)
+          yield event
+      }
+
+      if (runError && !aborted)
+        throw runError
 
       await hooks.callHook('queue:drained')
       yield { type: 'idle' }

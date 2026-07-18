@@ -1,15 +1,10 @@
-import type { LighthouseReport } from '@unlighthouse/contracts/ports'
-import type { LighthouseResult } from '../report/types'
+import type { AuditorReport } from '@unlighthouse/contracts/ports'
 import { ExtractedMetricsSchema } from '@unlighthouse/contracts/types/atoms'
-import { extractRouteData } from '../report/extract'
+import { assertLighthouseResult, extractRouteData } from '../report/extract'
 
-function assertLighthouseResult(value: unknown): LighthouseResult {
-  if (!value || typeof value !== 'object' || !('categories' in value) || !('audits' in value))
-    throw new Error('Expected a Lighthouse result with categories and audits.')
-  return value as LighthouseResult
-}
+export { assertLighthouseResult }
 
-export function attachExtractedRouteData(value: unknown, url: string, auditor?: string): LighthouseReport {
+export function attachExtractedRouteData(value: unknown, url: string, auditor?: string): AuditorReport {
   const lhr = assertLighthouseResult(value)
   const extracted = extractRouteData(lhr)
   const path = (() => {
@@ -43,5 +38,5 @@ export function attachExtractedRouteData(value: unknown, url: string, auditor?: 
     auditor: auditor ?? null,
     capturedAt: new Date().toISOString(),
   })
-  return Object.assign(lhr, { extracted: metrics, lhrGzip: extracted.lhrGzip, auditor }) as unknown as LighthouseReport
+  return Object.assign(lhr, { extracted: metrics, lhrGzip: extracted.lhrGzip, auditor })
 }

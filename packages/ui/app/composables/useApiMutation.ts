@@ -1,15 +1,16 @@
 import type {
   CommandInput,
-  CommandName,
   CommandOutput,
   CommandRegistry,
+  NonStreamingCommandName,
 } from '@unlighthouse/contracts/commands'
+import { callClientCommand } from '@unlighthouse/contracts/client'
 import { useNuxtMutation } from 'nuxt-use-query/mutation'
 
-type Input<K extends CommandName> = CommandInput<CommandRegistry[K]>
-type Output<K extends CommandName> = CommandOutput<CommandRegistry[K]>
+type Input<K extends NonStreamingCommandName> = CommandInput<CommandRegistry[K]>
+type Output<K extends NonStreamingCommandName> = CommandOutput<CommandRegistry[K]>
 
-export interface UseApiMutationOptions<K extends CommandName, TContext = unknown> {
+export interface UseApiMutationOptions<K extends NonStreamingCommandName, TContext = unknown> {
   /**
    * Command-name prefixes whose {@link useApiQuery} reads should refetch once
    * the mutation succeeds — e.g. `['scan.results', 'scan.summary']`. Matches
@@ -29,13 +30,13 @@ export interface UseApiMutationOptions<K extends CommandName, TContext = unknown
  * `{ _tag: 'ok' | 'err' }` outcome (run the error through `normalizeApiError`)
  * rather than throwing.
  */
-export function useApiMutation<K extends CommandName, TContext = unknown>(
+export function useApiMutation<K extends NonStreamingCommandName, TContext = unknown>(
   command: K,
   opts: UseApiMutationOptions<K, TContext> = {},
 ) {
   const api = useApi()
   return useNuxtMutation<Input<K>, Output<K>, TContext>({
-    mutation: input => api[command](input as CommandInput<CommandRegistry[K]>) as Promise<Output<K>>,
+    mutation: input => callClientCommand(api, command, input),
     invalidates: opts.invalidates,
     onMutate: opts.onMutate,
     onSuccess: opts.onSuccess,

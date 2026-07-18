@@ -1,17 +1,13 @@
 // history.* handlers.
 
-import type {
-  CommandOutput,
-  HistoryList,
-  HistoryPrune,
-  HistoryRescan,
-} from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
+import { HistoryList, HistoryPrune, HistoryRescan } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { normaliseDeviceMatrix } from '@unlighthouse/contracts/types/atoms'
 import { pruneScans } from '../../scan/prune'
 
 export const historyList: Handler<typeof HistoryList> = {
-  command: {} as typeof HistoryList,
+  command: HistoryList,
   async run(input, ctx) {
     const res = await ctx.storage.scans.list({
       site: input.site,
@@ -20,12 +16,12 @@ export const historyList: Handler<typeof HistoryList> = {
       page: input.page,
       pageSize: input.pageSize,
     })
-    return res as CommandOutput<typeof HistoryList>
+    return HistoryList.output.parse(res)
   },
 }
 
 export const historyRescan: Handler<typeof HistoryRescan> = {
-  command: {} as typeof HistoryRescan,
+  command: HistoryRescan,
   async run(input, ctx) {
     const source = await ctx.storage.scans.get(input.scanId)
     if (!source)
@@ -36,15 +32,16 @@ export const historyRescan: Handler<typeof HistoryRescan> = {
     const session = ctx.core.run({
       overrides: {
         site,
-        device: source.device ? [source.device as 'mobile' | 'desktop'] : undefined,
+        mode: source.mode,
+        device: normaliseDeviceMatrix(source.summary?.devices ?? source.device),
       },
     })
-    return {
+    return HistoryRescan.output.parse({
       scanId: session.scanId,
       site,
       startedAt: new Date().toISOString(),
       sourceScanId: input.scanId,
-    } as CommandOutput<typeof HistoryRescan>
+    })
   },
 }
 
@@ -52,7 +49,7 @@ export const historyRescan: Handler<typeof HistoryRescan> = {
 // overrides (input wins where present) and runs `pruneScans` over the Storage
 // port. Dry-run reports what would be deleted without mutating.
 export const historyPrune: Handler<typeof HistoryPrune> = {
-  command: {} as typeof HistoryPrune,
+  command: HistoryPrune,
   async run(input, ctx) {
     const base = ctx.config.retention ?? {}
     const retention = {
@@ -61,6 +58,6 @@ export const historyPrune: Handler<typeof HistoryPrune> = {
       keepCiBaselines: input.keepCiBaselines ?? base.keepCiBaselines,
     }
     const result = await pruneScans(ctx.storage, retention, { dryRun: input.dryRun })
-    return result as CommandOutput<typeof HistoryPrune>
+    return HistoryPrune.output.parse(result)
   },
 }

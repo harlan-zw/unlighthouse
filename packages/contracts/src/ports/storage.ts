@@ -187,21 +187,28 @@ export interface BlobStore {
 // ============================================================================
 // Report-side repositories (dashboard-private aggregations).
 //
-// Row shapes are `$inferSelect` types from `./drizzle/sqlite`. Listed as
-// `unknown` here to keep this port file free of drizzle imports — the SQL
-// adapter narrows to concrete row types via module augmentation in
-// `@unlighthouse/core/storage/drizzle` consumers. dashboards do their own
-// JSON-parsing of text columns (matches v0 behavior).
+// These domain records deliberately mirror the persisted columns without
+// importing Drizzle. SQL adapters remain structurally compatible while every
+// storage consumer retains the owned contract.
 // ============================================================================
 
 export interface ReportListRepository<Row> {
   list: (scanId: ScanId) => Promise<Row[]>
 }
 
+export interface ScanCruxRecord {
+  id: number
+  scanId: string
+  hostname: string
+  formFactor: 'PHONE' | 'DESKTOP'
+  seriesJson: string
+  fetchedAt: Date
+}
+
 // v2: dashboard aggregation tables removed. Only CrUX (external field data)
 // remains. All cross-route analysis flows through the pack system.
 export interface ReportRepositories {
-  crux: ReportListRepository<unknown>
+  crux: ReportListRepository<ScanCruxRecord>
 }
 
 export interface ComparisonListQuery {
@@ -210,13 +217,35 @@ export interface ComparisonListQuery {
   currentScanId?: ScanId
 }
 
+export interface ComparisonRecord {
+  id: number
+  baseScanId: string | null
+  currentScanId: string | null
+  improved: number
+  regressed: number
+  unchanged: number
+  newUrls: number
+  removedUrls: number
+  createdAt: Date | null
+}
+
+export interface ComparisonDiffRecord {
+  id: number
+  comparisonId: number | null
+  path: string
+  url: string
+  device: Device
+  metricDiffs: string
+  severity: string
+}
+
 export interface ComparisonRepository {
   /** Lists comparison header rows. Diffs are fetched separately. */
-  list: (q: ComparisonListQuery) => Promise<unknown[]>
-  get: (id: number) => Promise<unknown | null>
+  list: (q: ComparisonListQuery) => Promise<ComparisonRecord[]>
+  get: (id: number) => Promise<ComparisonRecord | null>
   /** Latest comparison whose `currentScanId === scanId`, with diffs joined. */
-  latestForCurrent: (scanId: ScanId) => Promise<unknown | null>
-  diffs: (comparisonId: number) => Promise<unknown[]>
+  latestForCurrent: (scanId: ScanId) => Promise<(ComparisonRecord & { diffs: ComparisonDiffRecord[] }) | null>
+  diffs: (comparisonId: number) => Promise<ComparisonDiffRecord[]>
 }
 
 // Pack run cache (D-028). Scans are immutable, so (scanId, packName, packVersion)

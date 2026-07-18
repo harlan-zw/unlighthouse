@@ -151,6 +151,7 @@ export const comparisonDiffs = sqliteTable(
     comparisonId: integer('comparison_id').references(() => comparisons.id, { onDelete: 'cascade' }),
     path: text('path').notNull(),
     url: text('url').notNull(),
+    device: text('device', { enum: ['mobile', 'desktop'] }).notNull().default('mobile'),
     metricDiffs: text('metric_diffs').notNull(),
     severity: text('severity').notNull(),
   },

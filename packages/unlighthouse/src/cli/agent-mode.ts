@@ -50,8 +50,8 @@ export function exitCodeForError(err: unknown, cmd?: { exitCodes?: Record<string
 }
 
 /** Emit a typed error envelope to stderr (NDJSON in agent mode, prettified otherwise). */
-export function emitError(err: unknown, agent: boolean): void {
-  const envelope = createErrorEnvelope(err, { exposeInternal: process.env.NODE_ENV !== 'production' })
+export function emitError(err: unknown, agent: boolean, env: NodeJS.ProcessEnv = process.env): void {
+  const envelope = createErrorEnvelope(err, { exposeInternal: env.NODE_ENV !== 'production' })
   if (agent) {
     process.stderr.write(`${JSON.stringify({ $schema: `${SCHEMA_BASE_URL}/error.json`, ...envelope })}\n`)
     return

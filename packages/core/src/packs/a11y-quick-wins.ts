@@ -23,26 +23,6 @@ import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-interface LhrLike {
-  categories?: {
-    accessibility?: {
-      auditRefs?: Array<{ id: string, weight: number }>
-    }
-  }
-  audits?: Record<string, {
-    id?: string
-    title?: string
-    description?: string
-    score?: number | null
-    scoreDisplayMode?: string
-    details?: {
-      items?: Array<{
-        node?: { selector?: string, snippet?: string, nodeLabel?: string }
-      }>
-    }
-  }>
-}
-
 function severityFromWeight(weight: number): A11yFinding['severity'] {
   if (weight >= 10)
     return 'critical'
@@ -128,17 +108,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
     const reconciled = await ctx.getReconciled(url, device).catch((err) => {
       ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load reconciled report for ${url} [${device}]`, err)
       return null
-    }) as
-    | {
-      categories?: { accessibility?: { auditRefs?: Array<{ id: string, weight: number }> } }
-      audits?: Record<string, {
-        score: number | null
-        title: string | null
-        description: string | null
-        items: Array<{ node?: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null }> | null
-      }>
-    }
-    | null
+    })
     if (reconciled?.audits && reconciled.categories?.accessibility?.auditRefs?.length) {
       const audits = new Map<string, RouteViewAudit>()
       const weights = new Map<string, number>()
@@ -178,7 +148,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
     const lhr = await ctx.getLhr(url, device).catch((err) => {
       ctx.logger?.debug?.(`a11y-quick-wins pack: failed to load LHR for ${url} [${device}]`, err)
       return null
-    }) as LhrLike | null
+    })
     if (!lhr?.audits || !lhr.categories?.accessibility?.auditRefs)
       return null
     const audits = new Map<string, RouteView['audits'] extends Map<string, infer V> ? V : never>()
@@ -201,7 +171,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
         }
       }
       audits.set(ref.id, {
-        weight: ref.weight,
+        weight: ref.weight ?? 0,
         title: a.title ?? ref.id,
         description: a.description ?? null,
         items,

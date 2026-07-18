@@ -31,6 +31,7 @@ const {
 } = useSiteOverview()
 
 usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`))
+const isStatic = useIsStatic()
 </script>
 
 <template>
@@ -49,7 +50,7 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
           </a>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div v-if="!isStatic" class="flex items-center gap-2">
         <UiButton v-if="canCompare" purpose="secondary" size="sm" icon="compare" @click="compareLatest">
           Compare latest two
         </UiButton>
@@ -63,8 +64,8 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
 
     <UiLoadingState v-else-if="loading" :rows="3" />
 
-    <UiEmptyState v-else-if="isEmpty" icon="radar" title="Run a scan to build this site's history.">
-      <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
+    <UiEmptyState v-else-if="isEmpty" icon="radar" :title="isStatic ? 'No scans were included for this site.' : 'Run a scan to build this site\'s history.'">
+      <UiButton v-if="!isStatic" purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`">
         Run first scan
       </UiButton>
     </UiEmptyState>
@@ -96,7 +97,7 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
       <!-- Score trend -->
       <UiCard size="sm">
         <template #header>
-          <h2 class="text-label text-dimmed">
+          <h2 class="text-label text-muted">
             Category scores over time
           </h2>
         </template>
@@ -107,7 +108,7 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
       <UiCard size="sm">
         <template #header>
           <div class="flex flex-row items-center justify-between">
-            <h2 class="text-label text-dimmed">
+            <h2 class="text-label text-muted">
               Core Web Vitals (p75) over time
             </h2>
             <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted inline-flex items-center gap-1">
@@ -140,6 +141,7 @@ usePageTitle(computed(() => `Site Overview - ${formatTitleSite(siteName.value)}`
         </h2>
         <SiteHistoryTable
           :pairs="pairs"
+          :readonly="isStatic"
           @open="openPair"
           @rescan="rescan"
           @delete="deleteScan"

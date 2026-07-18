@@ -7,5 +7,5 @@
 export function useIsStatic(): boolean {
   if (import.meta.server)
     return false
-  return !!(window as unknown as { __unlighthouse_static?: boolean }).__unlighthouse_static
+  return !!window.__unlighthouse_static
 }

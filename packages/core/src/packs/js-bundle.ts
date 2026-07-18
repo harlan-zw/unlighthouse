@@ -15,19 +15,13 @@
 // unloaded multiple times. Render-blocking ms is MAX per-URL too.
 
 import type { BundleFinding, BundleReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { LighthouseResult } from '@unlighthouse/contracts/ports'
 import { BundleReportSchema } from '@unlighthouse/contracts/packs'
 import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-interface LhrLike {
-  audits?: Record<string, {
-    score?: number | null
-    details?: {
-      items?: Array<Record<string, unknown>>
-    }
-  }>
-}
+type LhrLike = Pick<LighthouseResult, 'audits'>
 
 interface RawFinding {
   kind: BundleFinding['kind']
@@ -235,7 +229,7 @@ function extractLegacyOrDup(
   if (!a || a.score === 1)
     return
   for (const it of a.details?.items ?? []) {
-    const url = readStr(it.url) ?? readStr((it as { source?: unknown }).source)
+    const url = readStr(it.url) ?? readStr(it.source)
     if (!url)
       continue
     const norm = normaliseUrl(url)
@@ -305,7 +299,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<BundleReport> {
     const lhr = await ctx.getLhr(url, device).catch((err) => {
       ctx.logger?.debug?.(`js-bundle pack: failed to load LHR for ${url} [${device}]`, err)
       return null
-    }) as LhrLike | null
+    })
     if (!lhr)
       continue
     routesAnalysed++

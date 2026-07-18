@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { BundleReport } from '@unlighthouse/contracts/packs'
-// See CwvWidget.vue for why `report` arrives untyped and gets cast here.
+import { BundleReportSchema } from '@unlighthouse/contracts/packs'
+
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
 const { fmtBytes } = createFormatters()
 
-const report = computed(() => props.report as BundleReport)
+const report = computed(() => BundleReportSchema.parse(props.report))
 
 // js-bundle findings are keyed by `kind` + `resource`, not a title/auditId
 // convention, so they don't go through FindingsAccordion.

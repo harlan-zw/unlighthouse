@@ -5,37 +5,30 @@
  * Replaces the 465-line createUnlighthouse in unlighthouse.ts (deleted in Step H).
  */
 import type { Logger, ResolvedUserConfig, RuntimeSettings, UserConfig } from '@unlighthouse/contracts'
-import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { Pack } from '@unlighthouse/contracts/packs'
-import type { UnlighthouseCore, UnlighthouseCoreRunOverrides } from '@unlighthouse/contracts/ports'
+import type { CrawlSession, UnlighthouseCore, UnlighthouseCoreRunOverrides } from '@unlighthouse/contracts/ports'
 import type { WS } from '@unlighthouse/core/api'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
-import type { createStorage } from '@unlighthouse/core/storage'
 import type { App } from 'h3'
 import type { Hookable } from 'hookable'
 import type http from 'node:http'
 import type { IncomingMessage } from 'node:http'
 import type https from 'node:https'
 import type { Socket } from 'node:net'
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import type { LocalRuntime } from './local-runtime'
+import { existsSync, mkdirSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
+import { createHookEvent } from '@unlighthouse/contracts/hooks'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
 import { createWS } from '@unlighthouse/core/api'
-import { crawleeCrawler } from '@unlighthouse/core/crawlers'
 import { createLogger } from '@unlighthouse/core/logger'
-import { createCruxPack, createPackRegistry } from '@unlighthouse/core/packs'
-import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
-import { routeDefinitionSeeds } from '@unlighthouse/core/seeds/route-definitions'
 import { joinURL } from 'ufo'
 import { version } from '../package.json'
-import { resolveAuditor } from './auditor'
-import { initStorage } from './cli/storage-init'
 import { resolveConfig } from './config/resolve'
 import { historySubscriber } from './data/history/tracking'
+import { createLocalRuntime } from './local-runtime'
 import { mountServer } from './server'
 import { checkWsUpgrade, isExposedHost, normaliseOrigin } from './server-guards'
 import { createServerHooks } from './server-hooks'
@@ -73,7 +66,7 @@ export interface UnlighthouseHost {
    * Optional `overrides` are forwarded as `UnlighthouseCoreRunOverrides`
    * (e.g. multi-device matrix from `--device mobile,desktop`).
    */
-  start: (overrides?: UnlighthouseCoreRunOverrides) => Promise<{ scanId: string }>
+  start: (overrides?: UnlighthouseCoreRunOverrides) => Promise<CrawlSession>
 }
 
 export interface CreateUnlighthouseHostOptions {
@@ -91,73 +84,10 @@ export interface CreateUnlighthouseHostOptions {
   packs?: Pack[]
 }
 
-function resolveSeeds(resolvedConfig: ResolvedUserConfig, logger: Logger): {
-  seeds: ReturnType<typeof fuseSeeds>
-  routeMatcher?: (url: string) => string | null
-} {
-  const site = resolvedConfig.site || ''
-  const rawUrls = resolvedConfig.urls
-  const isDashboardPlaceholder = site === 'http://localhost'
-  const urlList: string[] = isDashboardPlaceholder
-    ? []
-    : [
-        ...(site ? [site] : []),
-        ...(Array.isArray(rawUrls) ? rawUrls : []),
-      ]
-  const sources = [
-    manualSeeds({
-      urls: urlList,
-      logger: logger.withTag('seeds/manual'),
-    }),
-  ]
-
-  // D-039: framework page files → static seeds + a routeName matcher. Wired
-  // only when `routeDefinitions` is configured (pagesDir resolved to absolute
-  // in config/resolve.ts). The matcher is threaded to core so ingest fills the
-  // `routeName` column; the seeds are fused alongside sitemap/manual.
-  let routeMatcher: ((url: string) => string | null) | undefined
-  if (resolvedConfig.routeDefinitions) {
-    try {
-      const source = routeDefinitionSeeds({
-        pagesDir: resolvedConfig.routeDefinitions.pagesDir,
-        framework: resolvedConfig.routeDefinitions.framework,
-        extensions: resolvedConfig.routeDefinitions.extensions,
-        site: site || undefined,
-        logger: logger.withTag('seeds/route-definitions'),
-      })
-      routeMatcher = source.matcher
-      sources.push(source)
-    }
-    catch (err) {
-      logOperationalWarn('seeds.route_definitions_wire_failed', err, {
-        pagesDir: resolvedConfig.routeDefinitions.pagesDir,
-      }, logger)
-    }
-  }
-
-  const sitemapEnabled = resolvedConfig.scanner?.sitemap !== false
-    && !(Array.isArray(rawUrls) && rawUrls.length > 0)
-    && !isDashboardPlaceholder
-  if (sitemapEnabled && site) {
-    try {
-      sources.push(sitemapSeeds({
-        resolvedConfig,
-        siteUrl: new URL(site),
-        sitemaps: Array.isArray(resolvedConfig.scanner?.sitemap)
-          ? resolvedConfig.scanner.sitemap
-          : true,
-        logger: logger.withTag('seeds/sitemap'),
-      }))
-    }
-    catch (err) {
-      logOperationalWarn('seeds.sitemap_wire_failed', err, { site }, logger)
-    }
-  }
-  return { seeds: fuseSeeds(sources), routeMatcher }
-}
-
-function toCoreConfig(resolvedConfig: ResolvedUserConfig): UnlighthouseConfig {
-  return UnlighthouseConfigSchema.parse(resolvedConfig)
+function requireCoreHooks(core: UnlighthouseCore): Hookable<HookMap> {
+  if (!core.hooks)
+    throw new TypeError('Expected the Unlighthouse core hook bus to be initialized.')
+  return core.hooks
 }
 
 function wireWsBroadcast(core: UnlighthouseCore, ws: WS | null, logger: Logger) {
@@ -166,81 +96,42 @@ function wireWsBroadcast(core: UnlighthouseCore, ws: WS | null, logger: Logger) 
     return
   }
   logger.debug?.('[host] Wiring WS broadcast hooks')
-  const hookable = core.hooks as Hookable<HookMap>
+  const hookable = requireCoreHooks(core)
   hookable.hook('scan:created', (payload) => {
     logger.debug?.(`[ws] scan:created — scanId: ${payload.scanId}, site: ${payload.site}`)
-    ws.broadcast({
-      event: 'scan:created',
-      data: {
-        scanId: payload.scanId,
-        site: payload.site,
-        startedAt: payload.startedAt,
-      },
-    })
+    ws.broadcast(createHookEvent('scan:created', payload))
   })
   hookable.hook('scan:started', (payload) => {
-    ws.broadcast({ event: 'scan:started', data: { scanId: payload.scanId } })
+    ws.broadcast(createHookEvent('scan:started', payload))
   })
   hookable.hook('scan:discovering', (payload) => {
-    ws.broadcast({ event: 'scan:discovering', data: { scanId: payload.scanId } })
+    ws.broadcast(createHookEvent('scan:discovering', payload))
   })
   hookable.hook('scan:scanning', (payload) => {
-    ws.broadcast({
-      event: 'scan:scanning',
-      data: { scanId: payload.scanId, discovered: payload.discovered },
-    })
+    ws.broadcast(createHookEvent('scan:scanning', payload))
   })
   hookable.hook('scan:progress', (payload) => {
     logger.debug?.(`[ws] scan:progress — discovered: ${payload.discovered}, scanned: ${payload.scanned}/${payload.total}, failed: ${payload.failed}`)
-    ws.broadcast({
-      event: 'scan:progress',
-      data: {
-        discovered: payload.discovered,
-        scanned: payload.scanned,
-        total: payload.total,
-        failed: payload.failed,
-      },
-    })
+    ws.broadcast(createHookEvent('scan:progress', payload))
   })
   hookable.hook('scan:route-complete', (payload) => {
     logger.debug?.(`[ws] scan:route-complete — ${payload.url} (perf: ${payload.metrics?.scorePerformance ?? '?'})`)
-    ws.broadcast({
-      event: 'scan:route-complete',
-      data: {
-        url: payload.url,
-        metrics: payload.metrics,
-      },
-    })
+    ws.broadcast(createHookEvent('scan:route-complete', payload))
   })
   hookable.hook('scan:complete', (payload) => {
     logger.info?.(`[ws] scan:complete — scanId: ${payload.scanId}, routes: ${payload.summary?.completed}`)
-    ws.broadcast({
-      event: 'scan:complete',
-      data: {
-        scanId: payload.scanId,
-        summary: payload.summary,
-      },
-    })
+    ws.broadcast(createHookEvent('scan:complete', payload))
   })
   hookable.hook('scan:cancelled', (payload) => {
     logger.info?.(`[ws] scan:cancelled — reason: ${payload.reason}`)
-    ws.broadcast({
-      event: 'scan:cancelled',
-      data: { reason: payload.reason },
-    })
+    ws.broadcast(createHookEvent('scan:cancelled', payload))
   })
   hookable.hook('scan:route-failed', (payload) => {
-    ws.broadcast({
-      event: 'scan:route-failed',
-      data: { url: payload.url, error: payload.error },
-    })
+    ws.broadcast(createHookEvent('scan:route-failed', payload))
   })
   hookable.hook('scan:error', (payload) => {
     logger.error?.(`[ws] scan:error — ${payload.error}`)
-    ws.broadcast({
-      event: 'scan:error',
-      data: { error: payload.error },
-    })
+    ws.broadcast(createHookEvent('scan:error', payload))
   })
 }
 
@@ -267,28 +158,27 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   })
   const resolvedConfig = config as ResolvedUserConfig
 
-  // D-046: merge environment, config-sourced, and explicitly supplied packs.
-  // Later sources win by name, matching normal precedence: explicit option >
-  // config file > environment > built-in.
-  const environmentPacks: Pack[] = env.CRUX_API_KEY
-    ? [createCruxPack({ apiKey: env.CRUX_API_KEY })]
-    : []
-  const packs: Pack[] = [...environmentPacks, ...(configPacks ?? []), ...(opts.packs ?? [])]
-
   // ── RuntimeSettings ──────────────────────────────────────────────────────
 
-  const rs: { moduleWorkingDir: string } & Partial<RuntimeSettings> = {
+  const rs: RuntimeSettings = {
     configFile: configFile || undefined,
     moduleWorkingDir: import.meta.dirname,
-    configCacheKey: '',
+    configCacheKey: computeConfigCacheKey(resolvedConfig, version),
     currentScanId: null,
+    siteUrl: normaliseHost(resolvedConfig.site || 'http://localhost'),
+    serverUrl: '',
+    apiUrl: '',
+    apiPath: joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix),
+    hasRouteDefinitions: false,
+    websocketUrl: '',
+    generatedClientPath: '',
+    clientUrl: '',
+    resolvedClientPath: '',
+    outputPath: '',
   }
 
-  rs.configCacheKey = computeConfigCacheKey(resolvedConfig, version)
-
   if (resolvedConfig.site) {
-    const site = normaliseHost(resolvedConfig.site)
-    rs.siteUrl = site
+    const site = rs.siteUrl
     const outputPath = join(
       resolvedConfig.outputPath,
       site.hostname.replace(':', '꞉'),
@@ -313,7 +203,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   // setServerContext, start, generateClientStub — already awaits before
   // any proxy access, so the proxies are guaranteed to find a hydrated
   // cache when they fire.
-  interface Ports { core: UnlighthouseCore, storage: ReturnType<typeof createStorage>, auditor: ReturnType<typeof resolveAuditor>, handlerCtx: HandlerCtx }
+  type Ports = LocalRuntime
   let portsRef: Ports | null = null
   let portsInitPromise: Promise<Ports> | null = null
 
@@ -327,72 +217,30 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       return portsInitPromise
 
     portsInitPromise = (async () => {
-      const outputPath = (rs as RuntimeSettings).outputPath || resolvedConfig.outputPath
+      const outputPath = rs.outputPath || resolvedConfig.outputPath
       logger.debug?.(`initPortsAsync — outputPath: ${outputPath}`)
-      mkdirSync(outputPath, { recursive: true })
-
-      if (!resolvedConfig.cache && existsSync(outputPath)) {
-        try {
-          rmSync(outputPath, { recursive: true, force: true })
-        }
-        catch (err) {
-          logOperationalWarn('host.output_cleanup_failed', err, { outputPath }, logger)
-        }
-        mkdirSync(outputPath, { recursive: true })
-      }
-
-      const { storage } = await initStorage({ outputPath, logger, env })
-
-      // Sweep zombies left by a prior process before we wire core — see
-      // reapStaleScans for D-019c rationale. Fire-and-forget so boot doesn't
-      // block on storage IO; a stale row that survives one extra boot is
-      // tolerable, blocking the CLI on a slow disk is not.
-      reapStaleScans(storage, logger).catch((err) => {
-        logOperationalWarn('core.stale_scan_reap_failed', err, { phase: 'host-boot' }, logger)
-      })
-
-      const coreConfig = toCoreConfig(resolvedConfig)
-      const chromeFlags = (env.CHROME_FLAGS ?? '').split(/\s+/).filter(Boolean)
-      const auditor = resolveAuditor({ config: coreConfig, logger, chromeFlags })
-
-      const { seeds, routeMatcher } = resolveSeeds(resolvedConfig, logger)
-
-      // noFollow (page mode / explicit urls) is decided per-scan in core's
-      // orchestrate() and passed via CrawlerRunOptions — it's override-aware
-      // so the dashboard's per-scan mode works too. Nothing to set here.
-      const crawler = crawleeCrawler({ logger: logger.withTag('crawler/crawlee') })
-
-      logger.debug?.('Creating core — crawler: crawlee')
-      const core = createUnlighthouseCore({
-        config: coreConfig,
-        auditor,
-        seeds,
-        routeMatcher,
-        crawler,
-        storage,
-        packs,
+      const runtime = await createLocalRuntime({
+        config,
+        output: {
+          path: outputPath,
+          mode: resolvedConfig.cache ? 'preserve' : 'reset',
+        },
         logger,
+        env,
+        packs: [...(configPacks ?? []), ...(opts.packs ?? [])],
       })
+      const { core, storage } = runtime
 
       wireWsBroadcast(core, ws, logger)
 
       historySubscriber({
         resolvedConfig,
         storage,
-        hooks: core.hooks as Hookable<HookMap>,
+        hooks: requireCoreHooks(core),
         logger,
       })
 
-      const handlerCtx: HandlerCtx = {
-        core,
-        auditor,
-        storage,
-        config: coreConfig,
-        version,
-        packs: createPackRegistry(packs),
-      }
-
-      portsRef = { core, storage, auditor, handlerCtx }
+      portsRef = runtime
       return portsRef
     })()
 
@@ -436,7 +284,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     const clientUrl = joinURL($server.toString(), resolvedConfig.routerPrefix)
     const apiPath = joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)
 
-    ;(rs as RuntimeSettings).serverUrl = url
+    rs.serverUrl = url
     Object.assign(rs, {
       apiPath,
       server,
@@ -446,18 +294,18 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       websocketUrl: `ws://${joinURL($server.host, apiPath, '/ws')}`,
     })
 
-    if (!(rs as RuntimeSettings).outputPath) {
+    if (!rs.outputPath) {
       const site = normaliseHost(resolvedConfig.site || 'http://localhost')
       const outputPath = join(
         resolvedConfig.outputPath,
         site.hostname.replace(':', '꞉'),
         rs.configCacheKey || '',
       )
-      ;(rs as RuntimeSettings).outputPath = outputPath
-      ;(rs as RuntimeSettings).generatedClientPath = outputPath
+      rs.outputPath = outputPath
+      rs.generatedClientPath = outputPath
     }
 
-    mkdirSync((rs as RuntimeSettings).outputPath, { recursive: true })
+    mkdirSync(rs.outputPath, { recursive: true })
 
     const { handlerCtx } = await initPortsAsync()
 
@@ -471,13 +319,13 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
     const mountDeps = {
       resolvedConfig,
-      runtimeSettings: rs as RuntimeSettings,
+      runtimeSettings: rs,
       hooks: serverHooks,
       ws,
       logger,
       env,
     }
-    logger.debug?.(`Mounting server — apiPath: ${(rs as RuntimeSettings).apiPath}, clientUrl: ${(rs as RuntimeSettings).clientUrl}`)
+    logger.debug?.(`Mounting server — apiPath: ${rs.apiPath}, clientUrl: ${rs.clientUrl}`)
     await mountServer(mountDeps, app, { handlerCtx })
 
     if (ws) {
@@ -489,7 +337,8 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       // HTTP gate (server.ts).
       const wsPath = joinURL(apiPath, 'ws')
       const wsSiteOrigin = normaliseOrigin(typeof resolvedConfig.site === 'string' ? resolvedConfig.site : null)
-      const wsExposed = isExposedHost((resolvedConfig.server as { hostname?: string } | undefined)?.hostname)
+      const serverHostname = typeof resolvedConfig.server?.hostname === 'string' ? resolvedConfig.server.hostname : undefined
+      const wsExposed = isExposedHost(serverHostname)
       const wsTrustLoopbackOrigin = !env.UNLIGHTHOUSE_CORS_ORIGINS && !env.UNLIGHTHOUSE_API_TOKEN
       server.on('upgrade', (request: IncomingMessage, socket: Socket) => {
         const decision = checkWsUpgrade({
@@ -523,7 +372,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     logger.info?.(`Starting scan — site: ${resolvedConfig.site}, overrides: ${JSON.stringify(overrides ?? {})}`)
     const session = core.run(overrides ? { overrides } : undefined)
     logger.info?.(`Scan session created — scanId: ${session.scanId}`)
-    return { scanId: session.scanId }
+    return session
   }
 
   const generateClientStub = async (opts?: { static?: boolean }) => {
@@ -531,11 +380,11 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     // CI (`--build-static`) never mounts a server, so `resolvedClientPath` —
     // normally set by setServerContext — is still empty. Resolve the
     // @unlighthouse/ui client package here so build.ts has a source to copy.
-    if (!(rs as RuntimeSettings).resolvedClientPath) {
+    if (!rs.resolvedClientPath) {
       try {
         const p = fileURLToPath(import.meta.resolve('@unlighthouse/ui'))
         if (existsSync(p))
-          (rs as RuntimeSettings).resolvedClientPath = p
+          rs.resolvedClientPath = p
       }
       catch (err) {
         logOperationalWarn('host.client_resolve_failed', err, { phase: 'static-generation' }, logger)
@@ -544,7 +393,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     const { generateClient } = await import('./build')
     await generateClient({ static: opts?.static ?? false }, {
       resolvedConfig,
-      runtimeSettings: rs as RuntimeSettings,
+      runtimeSettings: rs,
       storage,
       logger,
     })
@@ -561,13 +410,13 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
       },
     }),
     ws,
-    runtimeSettings: rs as RuntimeSettings,
+    runtimeSettings: rs,
     config: resolvedConfig,
     resolvedConfig,
     hooks: new Proxy({} as Hookable<HookMap>, {
       get(_, prop) {
         const { core } = ensurePorts()
-        return Reflect.get(core.hooks as Hookable<HookMap>, prop)
+        return Reflect.get(requireCoreHooks(core), prop)
       },
     }),
     generateClient: generateClientStub,

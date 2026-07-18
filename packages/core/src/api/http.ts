@@ -2,13 +2,14 @@
 // Each command → one route. Streaming commands → NDJSON GETs.
 
 import type { Logger } from '@unlighthouse/contracts'
-import type { Command, CommandName, HttpMethod } from '@unlighthouse/contracts/commands'
+import type { Command, HttpMethod } from '@unlighthouse/contracts/commands'
 import type { H3Event, Router } from 'h3'
-import type { Handler, HandlerCtx, HandlerMap } from './handlers/types'
-import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
+import type { HandlerCtx, HandlerMap } from './handlers/types'
+import { commandEntries, commandToRoute, isAsyncIterable } from '@unlighthouse/contracts/commands'
 import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalError, logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, readBody, setResponseHeader, setResponseStatus } from 'h3'
+import { createCommandExecutor } from './handlers/execute'
 
 /**
  * Per-request ctx factory. Hosts use this to construct a request-scoped
@@ -76,10 +77,6 @@ async function readInput(event: H3Event, method: HttpMethod, logger?: Logger): P
   return Object.assign({}, params)
 }
 
-function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
-  return value != null && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === 'function'
-}
-
 // Contract-drift detector: the server validates command input but nothing
 // validates output, so a handler that returns the wrong shape ships silently.
 // This re-checks the result against `cmd.output` and warns on mismatch — it
@@ -116,9 +113,9 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
   const validateOutput = opts.validateOutput ?? false
   const exposeInternal = opts.exposeInternal ?? false
   const router = createRouter()
+  const executor = createCommandExecutor({ handlers })
 
-  for (const name of Object.keys(commands) as CommandName[]) {
-    const cmd = commands[name] as Command
+  for (const [name, cmd] of commandEntries()) {
     const handler = handlers[name]
     if (!handler)
       continue
@@ -128,40 +125,26 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
       const raw = await readInput(event, method, log)
       log?.debug(`${method} ${path} — input: ${JSON.stringify(raw)}`)
 
-      const parsed = cmd.input.safeParse(raw)
-      if (!parsed.success) {
-        log?.debug(`${method} ${path} — validation failed: ${parsed.error.issues.map(i => i.message).join(', ')}`)
-        return errorResponse(event, new UnlighthouseError({
-          code: ErrorCodes.INPUT_INVALID,
-          message: 'Input validation failed',
-          details: { issues: parsed.error.issues },
-        }), { exposeInternal })
-      }
-
-      let ctx: HandlerCtx
+      let phase: 'input' | 'ctx' | 'handler' = 'input'
       try {
-        ctx = await ctxFactory(event)
-      }
-      catch (err) {
-        logOperationalError('api.unhandled_error', err, { method, path, phase: 'ctx' }, log)
-        return errorResponse(event, err, { exposeInternal })
-      }
-
-      try {
-        const result = (handler as Handler<typeof cmd>).run(parsed.data, ctx)
+        const result = await executor.execute(name, raw, async () => {
+          phase = 'ctx'
+          const ctx = await ctxFactory(event)
+          phase = 'handler'
+          return ctx
+        })
 
         // Streaming commands → NDJSON.
         if (cmd.streaming) {
-          const iterable = isAsyncIterable(result) ? result : await result
           setResponseHeader(event, 'Content-Type', 'application/x-ndjson')
           const res = event.node.res
           const req = event.node.req
-          if (isAsyncIterable(iterable)) {
+          if (isAsyncIterable(result)) {
             // Manual iteration so a client disconnect closes the iterator (its
             // `return()` unsubscribes and unblocks a pending next()) — a `for
             // await` alone would keep pulling live events and hold the slot open
             // for the whole scan after the client is gone.
-            const iterator = iterable[Symbol.asyncIterator]()
+            const iterator = result[Symbol.asyncIterator]()
             const onClose = () => { void iterator.return?.() }
             req.on('close', onClose)
             try {
@@ -181,7 +164,7 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
           else {
             // Handler resolved a single value instead of an iterable — emit one line.
             try {
-              res.write(`${JSON.stringify(iterable)}\n`)
+              res.write(`${JSON.stringify(result)}\n`)
             }
             finally {
               res.end()
@@ -191,23 +174,24 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
         }
 
         // Non-streaming: handler may still return an AsyncIterable; collect it.
-        const awaited = await result
-        if (isAsyncIterable(awaited)) {
+        if (isAsyncIterable(result)) {
           const out: unknown[] = []
-          for await (const chunk of awaited)
+          for await (const chunk of result)
             out.push(chunk)
           return out
         }
         if (validateOutput)
-          warnOnOutputMismatch(cmd, awaited, log)
-        return awaited
+          warnOnOutputMismatch(cmd, result, log)
+        return result
       }
       catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err)
         const code = err instanceof UnlighthouseError ? err.code : ErrorCodes.INTERNAL
         log?.debug(`${method} ${path} — error ${code}: ${errMsg}`)
+        if (phase === 'input')
+          log?.debug(`${method} ${path} — input validation failed`)
         if (!(err instanceof UnlighthouseError))
-          logOperationalError('api.unhandled_error', err, { method, path, phase: 'handler' }, log)
+          logOperationalError('api.unhandled_error', err, { method, path, phase }, log)
         return errorResponse(event, err, { exposeInternal })
       }
     })

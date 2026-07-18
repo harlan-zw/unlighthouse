@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import {
+  TooltipContent,
+  TooltipPortal,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+} from 'reka-ui'
 import { computed, useSlots } from 'vue'
 
 /**

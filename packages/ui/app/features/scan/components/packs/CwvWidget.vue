@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import type { CwvReport } from '@unlighthouse/contracts/packs'
-// `pack.run`'s `report` field is typed as the wide built-in-report union (see
-// the comment on PackRunCmd in contracts/src/commands/pack.ts) — every widget
-// receives it as `unknown` and casts to its own pack's shape at the boundary,
-// the same pattern the pre-pivot category pages used per-pack.
+import { CwvReportSchema } from '@unlighthouse/contracts/packs'
+
 const props = defineProps<{ report: unknown, scanBase: string }>()
 
 const { fmtMs } = createFormatters()
 
-const report = computed(() => props.report as CwvReport)
+const report = computed(() => CwvReportSchema.parse(props.report))
 
 function verdictColor(verdict: string | null) {
   if (verdict === 'good')

@@ -1,11 +1,12 @@
-import type { ScanEventBus, ScanEventHandler, ScanEventName, WsEnvelope } from '~/types/scan-events'
+import type { HookName, HookPayload } from '@unlighthouse/contracts/hooks'
+import type { ScanEventBus, ScanEventHookMap } from '~/types/scan-events'
+import { parseHookEvent } from '@unlighthouse/contracts/hooks'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-
-type RawScanEventHandler = (data: unknown) => void
+import { createHooks } from 'hookable'
 
 function createBrowserWsBus(url: string): ScanEventBus {
   let ws: WebSocket | null = null
-  const listeners = new Map<string, Set<RawScanEventHandler>>()
+  const hooks = createHooks<ScanEventHookMap>()
   const reconnectListeners = new Set<() => void>()
   let retryDelay = 1000
   const maxRetryDelay = 30000
@@ -13,6 +14,10 @@ function createBrowserWsBus(url: string): ScanEventBus {
   // The first `onopen` is the initial connect; every later one followed a drop,
   // so it's a reconnect — and events may have been missed in the gap.
   let connectedOnce = false
+  type CallHook = <K extends HookName>(event: K, payload: HookPayload<K>) => Promise<unknown> | void
+  // Hookable's Parameters<InferCallback<...>> loses the correlation when a
+  // validated discriminated HookEvent union is dispatched dynamically.
+  const callHook = hooks.callHook.bind(hooks) as CallHook
 
   function connect() {
     if (disposed || !url)
@@ -31,18 +36,14 @@ function createBrowserWsBus(url: string): ScanEventBus {
         }
       }
 
-      ws.onmessage = (e) => {
+      ws.onmessage = async (e) => {
         try {
-          const msg = JSON.parse(e.data) as WsEnvelope
-          const data = msg.data ?? msg.payload
-          const handlers = listeners.get(msg.event)
-          if (handlers) {
-            for (const fn of handlers) fn(data)
-          }
-          const wildcardHandlers = listeners.get('*')
-          if (wildcardHandlers) {
-            for (const fn of wildcardHandlers) fn({ ...msg, data })
-          }
+          if (typeof e.data !== 'string')
+            throw new TypeError('Expected a text WebSocket frame.')
+          const raw: unknown = JSON.parse(e.data)
+          const msg = parseHookEvent(raw)
+          await callHook(msg.event, msg.payload)
+          await hooks.callHook('*', msg)
         }
         catch (err) {
           logOperationalWarn('ui.websocket_message_failed', err, undefined, console)
@@ -74,15 +75,8 @@ function createBrowserWsBus(url: string): ScanEventBus {
     connect()
 
   return {
-    on<K extends ScanEventName>(event: K, fn: ScanEventHandler<K>) {
-      if (!listeners.has(event)) {
-        listeners.set(event, new Set())
-      }
-      listeners.get(event)!.add(fn as RawScanEventHandler)
-    },
-    off<K extends ScanEventName>(event: K, fn: ScanEventHandler<K>) {
-      listeners.get(event)?.delete(fn as RawScanEventHandler)
-    },
+    on: hooks.hook.bind(hooks),
+    off: hooks.removeHook.bind(hooks),
     onReconnect(fn: () => void) {
       reconnectListeners.add(fn)
       return () => reconnectListeners.delete(fn)
@@ -90,15 +84,14 @@ function createBrowserWsBus(url: string): ScanEventBus {
     dispose() {
       disposed = true
       ws?.close()
-      listeners.clear()
+      hooks.removeAllHooks()
       reconnectListeners.clear()
     },
   }
 }
 
 export default defineNuxtPlugin({ name: 'ws', setup() {
-  const config = useRuntimeConfig()
-  const bus = createBrowserWsBus(config.public.unlighthouseWsUrl as string)
+  const bus = createBrowserWsBus(getRuntimeWebsocketUrl())
 
   window.addEventListener('beforeunload', () => bus.dispose())
 

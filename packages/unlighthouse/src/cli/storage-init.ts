@@ -10,13 +10,6 @@ import Database from 'better-sqlite3'
 import { drizzle as drizzleBetterSqlite } from 'drizzle-orm/better-sqlite3'
 import fsDriver from 'unstorage/drivers/fs'
 
-type StorageLogger = Logger | {
-  warn?: (...args: unknown[]) => void
-  info?: (...args: unknown[]) => void
-  debug?: (...args: unknown[]) => void
-  withTag?: (tag: string) => StorageLogger
-}
-
 export interface InitStorageOptions {
   /**
    * Default base directory used when no DB URL is configured and as the
@@ -40,15 +33,19 @@ export interface InitStorageOptions {
   dbUrl?: string
   /** Host environment translated by this creation-layer adapter. */
   env?: NodeJS.ProcessEnv
-  logger?: StorageLogger
+  logger?: Logger
 }
 
 type ParsedDbUrl
   = | { scheme: 'file', path: string }
     | { scheme: 'libsql', url: string, authToken?: string }
 
-function taggedLogger(logger: StorageLogger | undefined, tag: string): StorageLogger | undefined {
-  return logger?.withTag?.(tag) ?? logger
+function taggedLogger(logger: Logger | undefined, tag: string): Logger | undefined {
+  return logger?.withTag(tag)
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 // Tiny parser instead of `new URL()` because file:/abs/path doesn't
@@ -203,9 +200,9 @@ async function initLibsqlStorage(
       await client.execute(stmt)
     }
     catch (err) {
-      const msg = (err as Error).message
+      const msg = errorMessage(err)
       if (!/already exists|duplicate column name/i.test(msg))
-        logOperationalWarn('storage.migration_statement_failed', err, { driver: 'libsql', statement: stmt }, logger as Logger | undefined)
+        logOperationalWarn('storage.migration_statement_failed', err, { driver: 'libsql', statement: stmt }, logger)
     }
   }
 
@@ -214,7 +211,7 @@ async function initLibsqlStorage(
   const drizzleDb = drizzleLibsql(client)
   const drizzleAdapter = drizzleStorage({
     driver: drizzleDb,
-    logger: taggedLogger(logger, 'storage/drizzle') as Logger | undefined,
+    logger: taggedLogger(logger, 'storage/drizzle'),
   })
 
   const storage = createStorage({
@@ -244,9 +241,9 @@ export async function initStorage({ outputPath, dbUrl, env = {}, logger }: InitS
         db.exec(stmt)
       }
       catch (err) {
-        const msg = (err as Error).message
+        const msg = errorMessage(err)
         if (!/duplicate column name/i.test(msg))
-          logOperationalWarn('storage.migration_statement_failed', err, { driver: 'sqlite', statement: stmt }, logger as Logger | undefined)
+          logOperationalWarn('storage.migration_statement_failed', err, { driver: 'sqlite', statement: stmt }, logger)
       }
     }
     applyMigrations(db, {
@@ -275,7 +272,7 @@ export async function initStorage({ outputPath, dbUrl, env = {}, logger }: InitS
         rmSync(`${parsed.path}${suffix}`, { force: true })
       }
       catch (err) {
-        logOperationalWarn('storage.local_cache_delete_failed', err, { path: `${parsed.path}${suffix}` }, logger as Logger | undefined)
+        logOperationalWarn('storage.local_cache_delete_failed', err, { path: `${parsed.path}${suffix}` }, logger)
       }
     }
     sqliteDb = new Database(parsed.path)
@@ -285,7 +282,7 @@ export async function initStorage({ outputPath, dbUrl, env = {}, logger }: InitS
   const drizzleDb = drizzleBetterSqlite(sqliteDb)
   const drizzleAdapter = drizzleStorage({
     driver: drizzleDb,
-    logger: taggedLogger(logger, 'storage/drizzle') as Logger | undefined,
+    logger: taggedLogger(logger, 'storage/drizzle'),
   })
 
   const storage = createStorage({

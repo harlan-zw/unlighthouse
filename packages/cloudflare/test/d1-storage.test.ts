@@ -15,16 +15,18 @@ import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { scanCrux } from '@unlighthouse/contracts/drizzle'
 import { parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
-import {
-  compareDetail,
-  compareRun,
-  scanResults,
-} from '@unlighthouse/core/api/handlers'
+import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { compareScans } from '@unlighthouse/core/comparison'
 import { asDrizzleDatabase } from '@unlighthouse/core/storage/drizzle'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { testHandlerCtx } from '../../../test/helpers/contracts'
 import { d1R2Storage, migrate } from '../src/storage/d1-r2'
 import { createTestD1, createTestR2 } from './helpers/d1-better-sqlite3'
+
+const handlers = createHandlers()
+const compareDetail = handlers['compare.detail']
+const compareRun = handlers['compare.run']
+const scanResults = handlers['scan.results']
 
 function metrics(url: string, path: string, perf: number, lcp: number): ExtractedMetrics {
   return {
@@ -76,13 +78,9 @@ function scanInsert(scanId: string, startedAt: string): ScanInsert {
 
 function handlerCtx(storage: Storage): HandlerCtx {
   const config = UnlighthouseConfigSchema.parse({ site: 'https://example.com', scanner: {} })
-  return {
-    storage,
-    core: { hooks: undefined, session: () => null, run: () => { throw new Error('unused') } } as unknown as HandlerCtx['core'],
-    auditor: { audit: async () => { throw new Error('unused') }, capabilities: {} } as unknown as HandlerCtx['auditor'],
+  return testHandlerCtx(storage, {
     config,
-    version: 'test',
-  }
+  })
 }
 
 describe('d1R2Storage — Worker host command-surface parity (D-035)', () => {

@@ -19,13 +19,19 @@ const cleanDomain = computed(() =>
 
 const src = computed(() => `https://www.google.com/s2/favicons?domain=${encodeURIComponent(cleanDomain.value)}&sz=128`)
 const failed = ref(false)
+const canFetchFavicon = computed(() => {
+  const host = cleanDomain.value.replace(/:\d+$/, '')
+  return host.includes('.')
+    && host !== 'localhost'
+    && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)
+})
 
 watch(cleanDomain, () => {
   failed.value = false
 })
 
 const initial = computed(() => (cleanDomain.value.replace(/^www\./, '')[0] ?? '?').toUpperCase())
-const showFallback = computed(() => failed.value || !cleanDomain.value)
+const showFallback = computed(() => failed.value || !canFetchFavicon.value)
 const a11y = computed(() =>
   decorative
     ? { 'aria-hidden': 'true' as const }

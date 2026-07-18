@@ -1,7 +1,14 @@
 // scan.* handlers — wired to UnlighthouseCore session + Storage.
 
+import type { CommandOutput } from '@unlighthouse/contracts/commands'
 import type {
-  CommandOutput,
+  Category,
+  Device,
+  ExtractedMetrics,
+  ScanId,
+} from '@unlighthouse/contracts/types/atoms'
+import type { Handler, HandlerCtx } from './types'
+import {
   ScanCancel,
   ScanCategories,
   ScanCurrent,
@@ -16,14 +23,8 @@ import type {
   ScanStatusCmd,
   ScanSummaryCmd,
 } from '@unlighthouse/contracts/commands'
-import type {
-  Category,
-  Device,
-  ExtractedMetrics,
-  ScanId,
-} from '@unlighthouse/contracts/types/atoms'
-import type { Handler, HandlerCtx } from './types'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { normaliseDeviceMatrix } from '@unlighthouse/contracts/types/atoms'
 import { overviewPack } from '../../packs/overview'
 import { loadRouteContract } from '../../report/route-contracts'
 import { readGitMeta } from '../../util/git-meta'
@@ -37,7 +38,7 @@ function notFound(scanId: string): never {
 }
 
 export const scanStart: Handler<typeof ScanStart> = {
-  command: {} as typeof ScanStart,
+  command: ScanStart,
   async run(input, ctx) {
     if (ctx.core.session())
       throw new UnlighthouseError({ code: 'ACTIVE_SCAN_CONFLICT', message: 'A scan is already in flight' })
@@ -58,12 +59,12 @@ export const scanStart: Handler<typeof ScanStart> = {
         ciBuild,
       },
     })
-    return {
+    return ScanStart.output.parse({
       scanId: session.scanId,
       site: input.site,
       mode: input.mode ?? 'site',
       startedAt: new Date().toISOString(),
-    } as CommandOutput<typeof ScanStart>
+    })
   },
 }
 
@@ -79,13 +80,13 @@ function deriveCiBuild(): { branch?: string, hash?: string, message?: string } |
 }
 
 export const scanStatus: Handler<typeof ScanStatusCmd> = {
-  command: {} as typeof ScanStatusCmd,
+  command: ScanStatusCmd,
   async run(input, ctx) {
     const session = ctx.core.session()
     if (session && session.scanId === input.scanId) {
       const stats = session.stats()
       const scan = await ctx.storage.scans.get(input.scanId)
-      return {
+      return ScanStatusCmd.output.parse({
         scanId: input.scanId,
         status: session.state(),
         discovered: stats.discovered,
@@ -94,13 +95,13 @@ export const scanStatus: Handler<typeof ScanStatusCmd> = {
         total: stats.total,
         startedAt: scan?.startedAt ?? new Date().toISOString(),
         completedAt: scan?.completedAt ?? null,
-      } as CommandOutput<typeof ScanStatusCmd>
+      })
     }
     const scan = await ctx.storage.scans.get(input.scanId)
     if (!scan)
       notFound(input.scanId)
     const summary = scan.summary
-    return {
+    return ScanStatusCmd.output.parse({
       scanId: scan.scanId,
       status: scan.status,
       discovered: summary?.routes ?? 0,
@@ -109,27 +110,27 @@ export const scanStatus: Handler<typeof ScanStatusCmd> = {
       total: summary?.routes ?? 0,
       startedAt: scan.startedAt,
       completedAt: scan.completedAt,
-    } as CommandOutput<typeof ScanStatusCmd>
+    })
   },
 }
 
 export const scanCancel: Handler<typeof ScanCancel> = {
-  command: {} as typeof ScanCancel,
+  command: ScanCancel,
   async run(input, ctx) {
     const session = ctx.core.session()
     if (!session || session.scanId !== input.scanId)
       notFound(input.scanId)
     await session.cancel(input.reason)
-    return {
+    return ScanCancel.output.parse({
       scanId: input.scanId,
       status: session.state(),
       cancelledAt: new Date().toISOString(),
-    } as CommandOutput<typeof ScanCancel>
+    })
   },
 }
 
 export const scanPause: Handler<typeof ScanPause> = {
-  command: {} as typeof ScanPause,
+  command: ScanPause,
   async run(input, ctx) {
     const session = ctx.core.session()
     if (!session || session.scanId !== input.scanId)
@@ -137,12 +138,12 @@ export const scanPause: Handler<typeof ScanPause> = {
     if (!session.capabilities.pausable)
       throw new UnlighthouseError({ code: 'NOT_SUPPORTED', message: 'Active crawler is not pausable' })
     await session.pause()
-    return { scanId: input.scanId, status: session.state() } as CommandOutput<typeof ScanPause>
+    return ScanPause.output.parse({ scanId: input.scanId, status: session.state() })
   },
 }
 
 export const scanResume: Handler<typeof ScanResume> = {
-  command: {} as typeof ScanResume,
+  command: ScanResume,
   async run(input, ctx) {
     const session = ctx.core.session()
     if (!session || session.scanId !== input.scanId)
@@ -150,18 +151,25 @@ export const scanResume: Handler<typeof ScanResume> = {
     if (!session.capabilities.pausable)
       throw new UnlighthouseError({ code: 'NOT_SUPPORTED', message: 'Active crawler is not pausable' })
     await session.resume()
-    return { scanId: input.scanId, status: session.state() } as CommandOutput<typeof ScanResume>
+    return ScanResume.output.parse({ scanId: input.scanId, status: session.state() })
   },
 }
 
 export const scanDelete: Handler<typeof ScanDelete> = {
-  command: {} as typeof ScanDelete,
+  command: ScanDelete,
   async run(input, ctx) {
     const existing = await ctx.storage.scans.get(input.scanId)
     if (!existing)
       notFound(input.scanId)
+    const session = ctx.core.session()
+    if (session?.scanId === input.scanId) {
+      throw new UnlighthouseError({
+        code: 'ACTIVE_SCAN_CONFLICT',
+        message: 'Cancel the active scan before deleting it.',
+      })
+    }
     await ctx.storage.scans.delete(input.scanId)
-    return { scanId: input.scanId, deleted: true } as CommandOutput<typeof ScanDelete>
+    return ScanDelete.output.parse({ scanId: input.scanId, deleted: true })
   },
 }
 
@@ -170,7 +178,7 @@ export const scanDelete: Handler<typeof ScanDelete> = {
 // overwrite: existing scanId throws SCAN_ALREADY_EXISTS (call scan.delete
 // first if you intend to replace).
 export const scanImport: Handler<typeof ScanImport> = {
-  command: {} as typeof ScanImport,
+  command: ScanImport,
   async run(input, ctx) {
     const { scan, routes, packRuns } = input
 
@@ -219,12 +227,12 @@ export const scanImport: Handler<typeof ScanImport> = {
         }
       }
 
-      return {
+      return ScanImport.output.parse({
         scanId: scan.scanId,
         imported: true,
         routes: routes.length,
         packRuns: importedPackRuns,
-      } as CommandOutput<typeof ScanImport>
+      })
     }
     catch (error) {
       if (!created)
@@ -239,7 +247,7 @@ export const scanImport: Handler<typeof ScanImport> = {
 }
 
 export const scanMeta: Handler<typeof ScanMetaCmd> = {
-  command: {} as typeof ScanMetaCmd,
+  command: ScanMetaCmd,
   async run(input, ctx) {
     const scanId = input.scanId ?? ctx.core.session()?.scanId
     if (!scanId)
@@ -247,7 +255,7 @@ export const scanMeta: Handler<typeof ScanMetaCmd> = {
     const scan = await ctx.storage.scans.get(scanId)
     if (!scan)
       notFound(scanId)
-    return {
+    return ScanMetaCmd.output.parse({
       scanId: scan.scanId,
       site: scan.site,
       device: scan.device,
@@ -258,38 +266,38 @@ export const scanMeta: Handler<typeof ScanMetaCmd> = {
       ciBranch: scan.ciBranch,
       ciCommit: scan.ciCommit,
       ciCommitMessage: scan.ciCommitMessage,
-    } as CommandOutput<typeof ScanMetaCmd>
+    })
   },
 }
 
 export const scanCurrent: Handler<typeof ScanCurrent> = {
-  command: {} as typeof ScanCurrent,
+  command: ScanCurrent,
   async run(_input, ctx) {
-    return { scanId: ctx.core.session()?.scanId ?? null } as CommandOutput<typeof ScanCurrent>
+    return ScanCurrent.output.parse({ scanId: ctx.core.session()?.scanId ?? null })
   },
 }
 
 export const scanRescanAll: Handler<typeof ScanRescanAll> = {
-  command: {} as typeof ScanRescanAll,
+  command: ScanRescanAll,
   async run(input, ctx) {
     const scan = await ctx.storage.scans.get(input.scanId)
     if (!scan)
       notFound(input.scanId)
     if (ctx.core.session())
       throw new UnlighthouseError({ code: 'ACTIVE_SCAN_CONFLICT', message: 'A scan is already in flight' })
-    await ctx.storage.routes.delete(input.scanId)
     const session = ctx.core.run({
       overrides: {
         site: scan.site,
-        device: scan.device ? [scan.device as 'mobile' | 'desktop'] : undefined,
+        mode: scan.mode,
+        device: normaliseDeviceMatrix(scan.summary?.devices ?? scan.device),
       },
     })
-    return { scanId: session.scanId, queued: 0 } as CommandOutput<typeof ScanRescanAll>
+    return ScanRescanAll.output.parse({ scanId: session.scanId, queued: 0 })
   },
 }
 
 export const scanResults: Handler<typeof ScanResults> = {
-  command: {} as typeof ScanResults,
+  command: ScanResults,
   async run(input, ctx) {
     const scan = await ctx.storage.scans.get(input.scanId)
     if (!scan)
@@ -319,12 +327,12 @@ export const scanResults: Handler<typeof ScanResults> = {
     // substring filter that came with it.
     const items = applyRouteRegexFallback(page.items, input.filter?.urlPattern, filterForStorage)
 
-    return {
+    return ScanResults.output.parse({
       items,
       total: page.total,
       page: input.page,
       pageSize: input.pageSize,
-    } as CommandOutput<typeof ScanResults>
+    })
   },
 }
 
@@ -332,7 +340,7 @@ export const scanResults: Handler<typeof ScanResults> = {
 // Kept thin — all aggregation lives in the pack so third-party tools can
 // reproduce or extend it.
 export const scanSummary: Handler<typeof ScanSummaryCmd> = {
-  command: {} as typeof ScanSummaryCmd,
+  command: ScanSummaryCmd,
   async run(input, ctx) {
     const scan = await ctx.storage.scans.get(input.scanId)
     if (!scan)
@@ -369,13 +377,13 @@ export const scanSummary: Handler<typeof ScanSummaryCmd> = {
     // The wire schema in commands/scan.ts intentionally mirrors OverviewReport
     // plus the scan's site (which isn't on the pack output — packs don't
     // reach into scan metadata). Add it here.
-    return {
+    return ScanSummaryCmd.output.parse({
       ...report,
       categoryScoreDisplayModes,
       categoryFractions,
       site: scan.site,
       device: input.device ?? scan.device,
-    } as CommandOutput<typeof ScanSummaryCmd>
+    })
   },
 }
 
@@ -398,9 +406,10 @@ function titleForCategory(id: string): string {
 }
 
 const SUMMARY_CATEGORIES = ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'] as const satisfies readonly Category[]
+const SUMMARY_CATEGORY_SET: ReadonlySet<string> = new Set(SUMMARY_CATEGORIES)
 
 function isSummaryCategory(id: string): id is Category {
-  return (SUMMARY_CATEGORIES as readonly string[]).includes(id)
+  return SUMMARY_CATEGORY_SET.has(id)
 }
 
 interface CategoryAgg {
@@ -467,13 +476,13 @@ async function collectCategorySummaries(
 }
 
 export const scanCategories: Handler<typeof ScanCategories> = {
-  command: {} as typeof ScanCategories,
+  command: ScanCategories,
   async run(input, ctx) {
     const scan = await ctx.storage.scans.get(input.scanId)
     if (!scan)
       notFound(input.scanId)
 
     const categories = await collectCategorySummaries(ctx, input.scanId, input.device)
-    return { categories } as CommandOutput<typeof ScanCategories>
+    return ScanCategories.output.parse({ categories })
   },
 }

@@ -290,7 +290,7 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string, env: NodeJS.Proc
     }
   }
 
-  return config as UnlighthouseConfig
+  return config
 }
 
 /**

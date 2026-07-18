@@ -103,7 +103,7 @@ export default typegen(antfu({
   // D-032: the UI's live path imports the typed client from
   // @unlighthouse/contracts/client and nothing from core. The only permitted
   // core import is the static (offline) read slice, which is deliberately
-  // browser-portable (test/treeshake.test.ts `browser-static`). Everything
+  // browser-portable (test/e2e/treeshake.test.ts `browser-static`). Everything
   // else in core drags node:*/db/server deps into the ssr:false bundle.
   name: 'unlighthouse/ui-core-import-boundary',
   files: ['packages/ui/**/*.{ts,vue}'],

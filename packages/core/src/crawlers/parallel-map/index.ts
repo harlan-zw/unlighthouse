@@ -19,10 +19,7 @@ interface PausePromise {
 }
 
 function createPauseGate(): PausePromise {
-  let resolve!: () => void
-  const promise = new Promise<void>((r) => {
-    resolve = r
-  })
+  const { promise, resolve } = Promise.withResolvers<void>()
   return { promise, resolve }
 }
 
@@ -165,8 +162,11 @@ export function parallelMapCrawler(opts: ParallelMapCrawlerOptions = {}): Crawle
 
     try {
       while (true) {
-        while (queue.length)
-          yield queue.shift()!
+        while (queue.length) {
+          const event = queue.shift()
+          if (event)
+            yield event
+        }
 
         if (dispatchedAll && inflight.size === 0)
           break
@@ -178,8 +178,11 @@ export function parallelMapCrawler(opts: ParallelMapCrawlerOptions = {}): Crawle
       }
 
       // drain any remaining queued events
-      while (queue.length)
-        yield queue.shift()!
+      while (queue.length) {
+        const event = queue.shift()
+        if (event)
+          yield event
+      }
 
       yield { type: 'idle' }
     }

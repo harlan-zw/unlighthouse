@@ -129,7 +129,7 @@ export function createTestR2(): R2Bucket {
   const bucket = {
     async put(key: string, data: Uint8Array) {
       store.set(key, data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer))
-      return { key } as unknown
+      return { key }
     },
     async get(key: string) {
       const data = store.get(key)
@@ -146,10 +146,10 @@ export function createTestR2(): R2Bucket {
         async arrayBuffer() {
           return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
         },
-      } as unknown
+      }
     },
     async head(key: string) {
-      return store.has(key) ? ({ key } as unknown) : null
+      return store.has(key) ? { key } : null
     },
     async delete(key: string) {
       store.delete(key)

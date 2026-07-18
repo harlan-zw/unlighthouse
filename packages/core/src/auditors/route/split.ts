@@ -7,8 +7,9 @@
 // Example: { performance: local, accessibility: psi, seo: psi } gives a fast
 // parallel a11y/seo sweep with a trustworthy local perf score in one scan.
 
-import type { AuditOpts, Auditor, AuditorCapabilities, Category, LighthouseReport, NamedAuditor, Page } from '@unlighthouse/contracts/ports'
+import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Category, NamedAuditor, Page } from '@unlighthouse/contracts/ports'
 import { ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { CategorySchema } from '@unlighthouse/contracts/types/atoms'
 import { attachExtractedRouteData } from '../lighthouse-report'
 
 export type CategoryAssignments = Partial<Record<Category, NamedAuditor>>
@@ -18,7 +19,14 @@ export interface SplitCategoriesOptions {
 }
 
 function assignedCategories(assignments: CategoryAssignments): Category[] {
-  return Object.keys(assignments) as Category[]
+  return CategorySchema.array().parse(Object.keys(assignments))
+}
+
+function assignedEntries(assignments: CategoryAssignments): Array<[Category, NamedAuditor]> {
+  return assignedCategories(assignments).flatMap((category) => {
+    const assignee = assignments[category]
+    return assignee ? [[category, assignee]] : []
+  })
 }
 
 /** Validate at construction: non-empty, and each backend supports its assigned category. */
@@ -30,8 +38,7 @@ function validate(assignments: CategoryAssignments): void {
       message: 'splitCategoriesAuditor: assignments must cover at least one category.',
     })
   }
-  for (const category of categories) {
-    const assignee = assignments[category]!
+  for (const [category, assignee] of assignedEntries(assignments)) {
     if (!assignee.auditor.capabilities.categories.includes(category)) {
       throw new UnlighthouseError({
         code: ErrorCodes.CONFIG_INVALID,
@@ -49,20 +56,13 @@ function validate(assignments: CategoryAssignments): void {
  */
 function deriveCapabilities(assignments: CategoryAssignments): AuditorCapabilities {
   const perf = assignments.performance?.auditor.capabilities
-  const all = Object.values(assignments).map(a => a!.auditor.capabilities)
+  const all = assignedEntries(assignments).map(([, assignee]) => assignee.auditor.capabilities)
   return {
     reliablePerfScores: perf?.reliablePerfScores ?? false,
     supportsThrottling: perf?.supportsThrottling ?? false,
     reliableFieldData: all.some(c => c.reliableFieldData),
     categories: assignedCategories(assignments),
   }
-}
-
-interface RawLhr {
-  lighthouseVersion?: string
-  categories?: Record<string, unknown>
-  audits?: Record<string, unknown>
-  [key: string]: unknown
 }
 
 export function splitCategoriesAuditor(opts: SplitCategoriesOptions): Auditor {
@@ -72,37 +72,39 @@ export function splitCategoriesAuditor(opts: SplitCategoriesOptions): Auditor {
 
   return {
     capabilities,
-    async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<LighthouseReport> {
+    async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<AuditorReport> {
       // Group assigned categories by their (distinct) backend so a backend that
       // owns several categories runs once with all of them scoped in.
       const byBackend = new Map<NamedAuditor, Category[]>()
-      for (const category of assignedCategories(assignments)) {
-        const assignee = assignments[category]!
+      for (const [category, assignee] of assignedEntries(assignments)) {
         const list = byBackend.get(assignee) ?? []
         list.push(category)
         byBackend.set(assignee, list)
       }
 
       // Run each backend once, scoped to its categories via onlyCategories.
-      const results: Array<{ backend: NamedAuditor, categories: Category[], report: RawLhr }> = []
+      const results: Array<{ backend: NamedAuditor, categories: Category[], report: AuditorReport }> = []
       for (const [backend, categories] of byBackend) {
         const scopedOpts: AuditOpts = {
           ...auditOpts,
           lighthouseFlags: { ...auditOpts?.lighthouseFlags, onlyCategories: categories },
         }
-        const report = await backend.auditor.audit(url, page, scopedOpts) as unknown as RawLhr
+        const report = await backend.auditor.audit(url, page, scopedOpts)
         results.push({ backend, categories, report })
       }
 
       // Base metadata from the perf assignee's run (or the first) — LH version,
       // environment, timing all live on the raw LHR.
       const perfBackend = assignments.performance
-      const base = (perfBackend && results.find(r => r.backend === perfBackend)?.report) ?? results[0]!.report
+      const firstResult = results[0]
+      if (!firstResult)
+        throw new TypeError('Expected at least one category auditor result.')
+      const base = (perfBackend && results.find(r => r.backend === perfBackend)?.report) ?? firstResult.report
 
       // Concatenate: each backend contributes its assigned categories; audits are
       // unioned (disjoint per category, so no conflict).
-      const mergedCategories: Record<string, unknown> = {}
-      const mergedAudits: Record<string, unknown> = {}
+      const mergedCategories: AuditorReport['categories'] = {}
+      const mergedAudits: AuditorReport['audits'] = {}
       const perCategoryAuditor: Record<string, string> = {}
       for (const { backend, categories, report } of results) {
         Object.assign(mergedAudits, report.audits ?? {})
@@ -113,7 +115,7 @@ export function splitCategoriesAuditor(opts: SplitCategoriesOptions): Auditor {
         }
       }
 
-      const mergedLhr: RawLhr = {
+      const mergedLhr: AuditorReport = {
         ...base,
         lighthouseVersion: base.lighthouseVersion,
         categories: mergedCategories,
@@ -124,12 +126,13 @@ export function splitCategoriesAuditor(opts: SplitCategoriesOptions): Auditor {
       // categories record `split` at the row level (per-category truth lives in
       // the reconciled report's `provenance.auditors`).
       const distinct = new Set(Object.values(perCategoryAuditor))
-      const rowAuditor = distinct.size === 1 ? [...distinct][0]! : 'split'
+      const onlyAuditor = distinct.values().next().value
+      const rowAuditor = distinct.size === 1 && onlyAuditor ? onlyAuditor : 'split'
 
-      const out = attachExtractedRouteData(mergedLhr, url, rowAuditor) as unknown as RawLhr
+      const out = attachExtractedRouteData(mergedLhr, url, rowAuditor)
       out.auditor = rowAuditor
       out.auditors = perCategoryAuditor
-      return out as unknown as LighthouseReport
+      return out
     },
   }
 }

@@ -7,6 +7,8 @@ import type https from 'node:https'
 import type { Page, LaunchOptions as PuppeteerLaunchOptions } from 'puppeteer-core'
 import type { QueryObject } from 'ufo'
 import type { Pack } from '../packs'
+import type { AuditorReport } from '../ports/auditor'
+import type { Assertion, Device, ScanId } from './atoms'
 
 export * from './atoms'
 
@@ -77,7 +79,27 @@ export interface LighthouseReportCategory {
   categoryScoreDisplayMode?: 'gauge' | 'fraction'
 }
 
-export type LighthouseReportAudit = Result['audits'][string]
+/**
+ * Reporter-facing audit projection.
+ *
+ * This is intentionally smaller and more null-tolerant than Lighthouse's raw
+ * `Result['audits'][string]`: CI reports are hydrated from the reconciled route
+ * contract, which preserves only stable fields across Lighthouse versions.
+ */
+export interface LighthouseReportAudit {
+  id?: string
+  title?: string | null
+  description?: string | null
+  score?: number | null
+  scoreDisplayMode?: string
+  numericValue?: number | null
+  numericUnit?: string | null
+  displayValue?: string | number | null
+  details?: {
+    items?: unknown[] | null
+    [key: string]: unknown
+  }
+}
 
 export type LighthouseReport = Omit<Partial<Result>, 'categories' | 'audits'> & {
   /**
@@ -183,28 +205,6 @@ export interface HTMLExtractPayload {
 }
 
 export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer' | 'ndjson' | 'agentSummary'
-
-export type AssertionType = 'minScore' | 'maxNumericValue' | 'maxRegression'
-
-export interface Assertion {
-  type: AssertionType
-  /** Category for minScore: performance, accessibility, seo, best-practices */
-  category?: string
-  /** Metric for maxNumericValue: lcp, cls, tbt, fcp, si, ttfb */
-  metric?: string
-  /** Threshold value */
-  value: number
-  /** Fail if any single route fails, or only if the average fails */
-  failOn?: 'any' | 'average'
-}
-
-export interface AssertionResult {
-  assertion: Assertion
-  passed: boolean
-  actual: number
-  /** Routes that failed this assertion (when failOn is 'any') */
-  failingRoutes?: { url: string, path: string, value: number }[]
-}
 
 export interface ReporterConfig {
   lhciHost?: string
@@ -686,6 +686,9 @@ export interface ResolvedUserConfig {
 export type ClientOptionsPayload = Pick<ResolvedUserConfig, 'client' | 'site' | 'lighthouseOptions' | 'scanner' | 'routerPrefix'>
   & Pick<RuntimeSettings, 'websocketUrl' | 'apiUrl'>
 
+/** Static report screenshot URLs, keyed by scan, route path, then device. */
+export type StaticScreenshotMap = Record<string, Record<string, Partial<Record<Device, string>>>>
+
 type DeepPartial<T> = T extends (...args: never[]) => unknown
   ? T
   : T extends Array<infer U>
@@ -741,7 +744,7 @@ export interface RuntimeSettings {
   /**
    * The currently active scan id, used to isolate per-scan artifacts.
    */
-  currentScanId: string | null
+  currentScanId: ScanId | null
   /**
    * The URL to the client, used for opening it automatically.
    */
@@ -762,7 +765,7 @@ export interface RuntimeSettings {
   /**
    * The server instance.
    */
-  server: http.Server | https.Server
+  server?: http.Server | https.Server
 }
 
 export type HookResult = Promise<void> | void
@@ -854,7 +857,7 @@ export interface UnlighthouseReport {
   fetchTime: string
   insights: UnlighthouseInsights
   artifacts?: unknown
-  raw?: Result
+  raw?: Result | AuditorReport
   // Gzipped LHCI-format LHR. Set by providers that produce a raw Lighthouse
   // run (local, mock, cdp-connect); core's ingest path persists it to the
   // blob store under the route's `lhrBlobKey` when present.

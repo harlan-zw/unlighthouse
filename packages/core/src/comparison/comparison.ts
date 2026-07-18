@@ -1,115 +1,75 @@
-import type { ComparisonDiffRow, ComparisonRow, ScanRouteRow as ScanRoute } from '@unlighthouse/contracts/drizzle'
-import type { ComparisonDiff, MetricDiff } from '../report/types'
+import type { RouteDiff } from '@unlighthouse/contracts/commands'
+import type { ComparisonDiffRow, ComparisonRow, ScanRouteRow } from '@unlighthouse/contracts/drizzle'
+import type { Device, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { MetricDiff } from '../report/types'
 import { comparisonDiffs, comparisons, scanRoutes } from '@unlighthouse/contracts/drizzle'
+import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
 import { and, eq } from 'drizzle-orm'
+import { MetricDiffSchema } from '../report/types'
 import { chunkRowsByBindLimit } from '../storage/drizzle/bind-chunks'
 import { asDrizzleDatabase } from '../storage/drizzle/types'
+import { compareRoutes, routeIdentityKey } from './policy'
 
-export const DEFAULT_THRESHOLDS: Record<string, number> = {
-  lcp: 500, // 500ms
-  cls: 0.1, // CLS unit (v1 stores raw float)
-  tbt: 200,
-  fcp: 300,
-  si: 500,
-  ttfb: 200,
-  inp: 200,
-  performance: 0.05, // 5 points on 0-1 scale (v1)
-  accessibility: 0.05,
-  bestpractices: 0.05,
-  seo: 0.05,
+function toScanRoutes(rows: ScanRouteRow[]): ScanRoute[] {
+  return rows.map(row => ScanRouteSchema.parse(row))
 }
 
-type ScanRouteRecord = Pick<ScanRoute, | 'path' | 'url'
-  | 'lcp' | 'cls' | 'tbt' | 'fcp' | 'si' | 'ttfb' | 'inp'
-  | 'scorePerformance' | 'scoreAccessibility' | 'scoreBestPractices' | 'scoreSeo'>
+function toMetricDiff(diff: RouteDiff): MetricDiff | null {
+  if (diff.base == null || diff.current == null)
+    return null
+  return {
+    name: diff.metric,
+    base: diff.base,
+    current: diff.current,
+    delta: diff.delta,
+    deltaPercent: diff.base ? Math.round((diff.delta / diff.base) * 100) : 0,
+    severity: diff.regressed ? 'regression' : 'improvement',
+  }
+}
 
-type RouteMetricKey = Exclude<keyof ScanRouteRecord, 'path' | 'url'>
+function groupPersistedDiffs(
+  routes: ScanRoute[],
+  regressions: RouteDiff[],
+  improvements: RouteDiff[],
+): Array<{ path: string, url: string, device: Device, metricDiffs: MetricDiff[], severity: 'regression' | 'improvement' }> {
+  const routesByKey = new Map(routes.map(route => [routeIdentityKey(route), route]))
+  const grouped = new Map<string, { metricDiffs: MetricDiff[], severity: 'regression' | 'improvement' }>()
 
-const ROUTE_METRICS: readonly RouteMetricKey[] = [
-  'lcp',
-  'cls',
-  'tbt',
-  'fcp',
-  'si',
-  'ttfb',
-  'inp',
-  'scorePerformance',
-  'scoreAccessibility',
-  'scoreBestPractices',
-  'scoreSeo',
-]
+  for (const diff of [...regressions, ...improvements]) {
+    const metricDiff = toMetricDiff(diff)
+    if (!metricDiff)
+      continue
+    const key = routeIdentityKey(diff)
+    const current = grouped.get(key)
+    const severity = diff.regressed || current?.severity === 'regression' ? 'regression' : 'improvement'
+    grouped.set(key, { metricDiffs: [...(current?.metricDiffs ?? []), metricDiff], severity })
+  }
 
-function compareRouteMetrics(base: ScanRouteRecord, current: ScanRouteRecord, thresholds: Record<string, number> = DEFAULT_THRESHOLDS): MetricDiff[] {
-  return ROUTE_METRICS.map((name) => {
-    const baseVal = base[name] ?? 0
-    const currentVal = current[name] ?? 0
-    const delta = currentVal - baseVal
-    const thresholdKey = name.startsWith('score') ? name.slice(5).toLowerCase() : name
-    const threshold = thresholds[thresholdKey] ?? DEFAULT_THRESHOLDS[thresholdKey] ?? 5
-
-    // For scores, higher is better. For timings, lower is better.
-    const isScore = name.startsWith('score')
-    const isRegression = isScore ? delta < -threshold : delta > threshold
-    const isImprovement = isScore ? delta > threshold : delta < -threshold
-
-    return {
-      name,
-      base: baseVal,
-      current: currentVal,
-      delta,
-      deltaPercent: baseVal ? Math.round((delta / baseVal) * 100) : 0,
-      severity: isRegression ? 'regression' as const : isImprovement ? 'improvement' as const : 'neutral' as const,
-    }
-  }).filter(m => m.severity !== 'neutral')
+  return [...grouped.entries()].flatMap(([key, diff]) => {
+    const route = routesByKey.get(key)
+    return route ? [{ path: route.path, url: route.url, device: route.device, ...diff }] : []
+  })
 }
 
 export async function compareScans(db: unknown, baseScanId: string, currentScanId: string, thresholds?: Record<string, number>) {
   const sqlDb = asDrizzleDatabase(db)
-  const baseRoutes = await sqlDb.select<ScanRouteRecord>().from(scanRoutes).where(eq(scanRoutes.scanId, baseScanId))
-  const currentRoutes = await sqlDb.select<ScanRouteRecord>().from(scanRoutes).where(eq(scanRoutes.scanId, currentScanId))
-  const resolvedThresholds = { ...DEFAULT_THRESHOLDS, ...(thresholds ?? {}) }
-
-  const baseByPath = new Map((baseRoutes as ScanRouteRecord[]).map(r => [r.path, r]))
-  const currentByPath = new Map((currentRoutes as ScanRouteRecord[]).map(r => [r.path, r]))
-
-  const diffs: ComparisonDiff[] = []
-  let improved = 0
-  let regressed = 0
-  let unchanged = 0
-
-  for (const [path, current] of currentByPath) {
-    const base = baseByPath.get(path)
-    if (!base)
-      continue
-
-    const metricDiffs = compareRouteMetrics(base, current, resolvedThresholds)
-    const hasRegression = metricDiffs.some(m => m.severity === 'regression')
-    const hasImprovement = metricDiffs.some(m => m.severity === 'improvement')
-
-    if (hasRegression)
-      regressed++
-    else if (hasImprovement)
-      improved++
-    else unchanged++
-
-    if (hasRegression || hasImprovement) {
-      diffs.push({
-        path,
-        url: current.url,
-        metricDiffs,
-        severity: hasRegression ? 'regression' : 'improvement',
-      })
-    }
-  }
+  const [baseRows, currentRows] = await Promise.all([
+    sqlDb.select<ScanRouteRow>().from(scanRoutes).where(eq(scanRoutes.scanId, baseScanId)),
+    sqlDb.select<ScanRouteRow>().from(scanRoutes).where(eq(scanRoutes.scanId, currentScanId)),
+  ])
+  const baseRoutes = toScanRoutes(baseRows)
+  const currentRoutes = toScanRoutes(currentRows)
+  const result = compareRoutes({ baseRoutes, currentRoutes, thresholds })
+  const diffs = groupPersistedDiffs(currentRoutes, result.regressions, result.improvements)
 
   const values = {
     baseScanId,
     currentScanId,
-    improved,
-    regressed,
-    unchanged,
-    newUrls: [...currentByPath.keys()].filter(p => !baseByPath.has(p)).length,
-    removedUrls: [...baseByPath.keys()].filter(p => !currentByPath.has(p)).length,
+    improved: result.counts.improved,
+    regressed: result.counts.regressed,
+    unchanged: result.counts.unchanged,
+    newUrls: result.counts.added,
+    removedUrls: result.counts.removed,
   }
   const priorRows = await sqlDb
     .select<ComparisonRow>()
@@ -133,11 +93,12 @@ export async function compareScans(db: unknown, baseScanId: string, currentScanI
       comparisonId: comparison.id,
       path: diff.path,
       url: diff.url,
+      device: diff.device,
       metricDiffs: JSON.stringify(diff.metricDiffs),
       severity: diff.severity,
     }))
-    // Five bound values per row; cap each INSERT at 20 rows / 100 binds.
-    for (const chunk of chunkRowsByBindLimit(rows, 5))
+    // Six bound values per row; cap each INSERT below D1's 100-bind ceiling.
+    for (const chunk of chunkRowsByBindLimit(rows, 6))
       await sqlDb.insert(comparisonDiffs).values(chunk)
   }
   catch (error) {
@@ -154,8 +115,9 @@ export async function compareScans(db: unknown, baseScanId: string, currentScanI
 }
 
 function parseMetricDiffs(raw: string): MetricDiff[] {
-  const parsed = JSON.parse(raw) as unknown
-  return Array.isArray(parsed) ? parsed as MetricDiff[] : []
+  const parsed: unknown = JSON.parse(raw)
+  const result = MetricDiffSchema.array().safeParse(parsed)
+  return result.success ? result.data : []
 }
 
 export async function getComparisonSummary(db: unknown, comparisonId: number) {
@@ -186,6 +148,7 @@ interface ComparisonSummaryLike {
   diffs: Array<{
     path: string
     url: string
+    device: string
     severity: string
     metricDiffs: MetricDiff[]
   }>
@@ -247,7 +210,7 @@ export function formatComparisonMarkdown(summary: ComparisonSummaryLike): string
     for (const d of regressions) {
       for (const m of d.metricDiffs.filter(m => m.severity === 'regression')) {
         const delta = m.delta > 0 ? `+${formatValue(m.name, m.delta)}` : formatValue(m.name, m.delta)
-        lines.push(`| \`${d.path}\` | ${METRIC_LABELS[m.name]?.label ?? m.name} | ${formatValue(m.name, m.base)} | ${formatValue(m.name, m.current)} | ${delta} |`)
+        lines.push(`| \`${d.path}\` (${d.device}) | ${METRIC_LABELS[m.name]?.label ?? m.name} | ${formatValue(m.name, m.base)} | ${formatValue(m.name, m.current)} | ${delta} |`)
       }
     }
   }
@@ -261,7 +224,7 @@ export function formatComparisonMarkdown(summary: ComparisonSummaryLike): string
     for (const d of improvements) {
       for (const m of d.metricDiffs.filter(m => m.severity === 'improvement')) {
         const delta = m.delta > 0 ? `+${formatValue(m.name, m.delta)}` : formatValue(m.name, m.delta)
-        lines.push(`| \`${d.path}\` | ${METRIC_LABELS[m.name]?.label ?? m.name} | ${formatValue(m.name, m.base)} | ${formatValue(m.name, m.current)} | ${delta} |`)
+        lines.push(`| \`${d.path}\` (${d.device}) | ${METRIC_LABELS[m.name]?.label ?? m.name} | ${formatValue(m.name, m.base)} | ${formatValue(m.name, m.current)} | ${delta} |`)
       }
     }
   }

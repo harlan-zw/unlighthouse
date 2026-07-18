@@ -28,6 +28,7 @@
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "@vueuse/core": "catalog:dependencies",
+    "hookable": "catalog:dependencies",
     "motion-v": "catalog:",
     "nuxt": "catalog:",
     "nuxt-use-query": "catalog:",

@@ -107,7 +107,13 @@ export function extractPrNumber(eventName: string | undefined, payload: unknown)
     return null
   if (!payload || typeof payload !== 'object')
     return null
-  const pr = (payload as { pull_request?: { number?: number }, number?: number }).pull_request
-  const n = pr?.number ?? (payload as { number?: number }).number
+  const pullRequest = 'pull_request' in payload && payload.pull_request && typeof payload.pull_request === 'object'
+    ? payload.pull_request
+    : null
+  const n = pullRequest && 'number' in pullRequest
+    ? pullRequest.number
+    : 'number' in payload
+      ? payload.number
+      : undefined
   return typeof n === 'number' ? n : null
 }

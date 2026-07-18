@@ -38,5 +38,8 @@ export function asDrizzleDatabase(db: unknown): DrizzleDatabase {
   ) {
     throw new TypeError('Expected a drizzle-compatible database handle.')
   }
+  // Runtime checks above establish the owned DrizzleDatabase contract. Generic
+  // method signatures cannot be recovered from `unknown` by control-flow alone,
+  // so this double assertion is intentionally isolated at the adapter boundary.
   return db as unknown as DrizzleDatabase
 }

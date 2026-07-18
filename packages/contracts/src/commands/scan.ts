@@ -123,7 +123,7 @@ export const ScanDelete = defineCommand({
     scanId: ScanIdSchema,
     deleted: z.literal(true),
   }),
-  exitCodes: { SCAN_NOT_FOUND: 64 },
+  exitCodes: { SCAN_NOT_FOUND: 64, ACTIVE_SCAN_CONFLICT: 9 },
   // Destructive + irreversible. Keep behind UI/CLI confirmation flows.
   mcp: { hidden: true },
 })
@@ -167,15 +167,15 @@ export const ScanCurrent = defineCommand({
 // ── scan.rescanAll ──────────────────────────────────────────────────────────
 export const ScanRescanAll = defineCommand({
   name: 'scan.rescanAll',
-  description: 'Full-site rescan within an existing scan (drops all routes + re-queues).',
+  description: 'Start a fresh scan using an existing scan\'s site, mode, and device matrix.',
   input: z.object({ scanId: ScanIdSchema }),
   output: z.object({
     scanId: ScanIdSchema,
     queued: z.number().int().nonnegative(),
   }),
   exitCodes: { SCAN_NOT_FOUND: 64, ACTIVE_SCAN_CONFLICT: 9 },
-  // Drops all routes for an existing scan. Destructive enough to keep
-  // behind a deliberate UI / CLI flow.
+  // Starts a new historical scan and preserves the source scan as its
+  // comparison baseline. Kept behind a deliberate UI / CLI flow.
   mcp: { hidden: true },
 })
 

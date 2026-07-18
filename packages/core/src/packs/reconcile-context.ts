@@ -1,7 +1,7 @@
 import type { PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import type { BlobStore } from '@unlighthouse/contracts/ports'
+import type { BlobStore, LighthouseResult } from '@unlighthouse/contracts/ports'
 import type { Device, ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
-import { gunzipSync } from 'fflate'
+import { decompressLhr } from '../report/extract'
 import { loadRouteContract } from '../report/route-contracts'
 
 export interface CreatePackReconcileCtxOptions {
@@ -23,7 +23,7 @@ export function createPackReconcileCtx(opts: CreatePackReconcileCtxOptions): Pac
       routesByKey.set(key, route)
   }
 
-  const lhrCache = new Map<string, unknown | null>()
+  const lhrCache = new Map<string, LighthouseResult | null>()
   const reconciledCache = new Map<string, Awaited<ReturnType<NonNullable<PackReconcileCtx['getReconciled']>>>>()
 
   return {
@@ -46,7 +46,7 @@ export function createPackReconcileCtx(opts: CreatePackReconcileCtxOptions): Pac
         return null
       }
 
-      const lhr = JSON.parse(new TextDecoder().decode(gunzipSync(gz)))
+      const lhr = decompressLhr(gz)
       lhrCache.set(key, lhr)
       return lhr
     },
@@ -102,8 +102,11 @@ export function resolveDistinctPackRows(routes: ScanRoute[]): ScanRoute[] {
     }
     byDevice.set(route.device, route)
   }
-  return urlOrder.map((url) => {
-    const byDevice = rowsByUrl.get(url)!
-    return byDevice.get('mobile') ?? [...byDevice.values()][0]!
+  return urlOrder.flatMap((url) => {
+    const byDevice = rowsByUrl.get(url)
+    if (!byDevice)
+      return []
+    const row = byDevice.get('mobile') ?? byDevice.values().next().value
+    return row ? [row] : []
   })
 }

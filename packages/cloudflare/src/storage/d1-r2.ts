@@ -123,6 +123,9 @@ export async function migrate(db: D1Database): Promise<void> {
 }
 
 export function d1R2Storage(opts: D1R2StorageOptions): Storage {
+  // Cloudflare's D1 generics and Drizzle's driver/batch generics describe the
+  // same runtime objects but are not assignable upstream; isolate both bridges
+  // in this adapter rather than leaking assertions into storage consumers.
   const db = drizzle(opts.db as unknown as Parameters<typeof drizzle>[0])
   const executeBatch: DrizzleBatchExecutor = async (statements) => {
     await db.batch(statements as unknown as Parameters<typeof db.batch>[0])

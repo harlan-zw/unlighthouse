@@ -19,11 +19,30 @@ import { buildCli } from './createCli'
 import { buildCliContext } from './ctx'
 import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
 
-const debugEnv = process.env.DEBUG
-const rootLogger = createLogger({ level: debugEnv === '1' || debugEnv === 'true' || debugEnv === '*' ? 4 : 3 })
-const log = rootLogger.withTag('cli')
+export interface CliEntryOptions {
+  /** Raw CLI arguments, without the node and script entries. */
+  argv?: string[]
+  /** Environment captured at the executable boundary. */
+  env?: NodeJS.ProcessEnv
+}
 
-async function createServer(resolvedConfig: Pick<ResolvedUserConfig, 'server'>) {
+function createCliRuntime(options: CliEntryOptions = {}) {
+  const argv = options.argv ?? process.argv.slice(2)
+  const env = options.env ?? process.env
+  const debugEnv = env.DEBUG
+  const rootLogger = createLogger({ level: debugEnv === '1' || debugEnv === 'true' || debugEnv === '*' ? 4 : 3 })
+  return {
+    argv,
+    env,
+    rootLogger,
+    log: rootLogger.withTag('cli'),
+  }
+}
+
+type CliRuntime = ReturnType<typeof createCliRuntime>
+
+async function createServer(resolvedConfig: Pick<ResolvedUserConfig, 'server'>, runtime: CliRuntime) {
+  const { log } = runtime
   log.debug('Creating h3 app + listener...')
   const app = createApp()
   const server = await listen(toNodeListener(app), {
@@ -56,7 +75,8 @@ async function createServer(resolvedConfig: Pick<ResolvedUserConfig, 'server'>) 
 // under a temp `lighthouse.<rand>` dir, which is a precise, safe signature to
 // target (it never matches the user's real browser). Best-effort + synchronous
 // so it completes before the process exits.
-function killLighthouseChromes(): void {
+function killLighthouseChromes(runtime: CliRuntime): void {
+  const { log } = runtime
   if (process.platform === 'win32')
     return
   try {
@@ -76,12 +96,14 @@ function killLighthouseChromes(): void {
 function setupGracefulShutdown(
   server: { server: { close: (cb?: (err?: Error) => void) => void } },
   unlighthouse: Awaited<ReturnType<typeof createUnlighthouseHost>>,
+  runtime: CliRuntime,
 ): void {
   // Cap derived from UNLIGHTHOUSE_SHUTDOWN_TIMEOUT (seconds). Default
   // 10s — long enough to let an audit currently in lighthouse() finish
   // emitting, short enough that platform timeouts (k8s grace=30s,
   // systemd TimeoutStopSec=90s) don't escalate to SIGKILL.
-  const timeoutMs = Math.max(1, Number.parseInt(process.env.UNLIGHTHOUSE_SHUTDOWN_TIMEOUT ?? '10', 10)) * 1000
+  const { env, log } = runtime
+  const timeoutMs = Math.max(1, Number.parseInt(env.UNLIGHTHOUSE_SHUTDOWN_TIMEOUT ?? '10', 10)) * 1000
 
   let shuttingDown = false
   const drain = async (signal: NodeJS.Signals) => {
@@ -146,7 +168,7 @@ function setupGracefulShutdown(
 
     // Reap leaked Lighthouse Chromes before we go — the worker threads that
     // spawned them won't get a chance to once we exit.
-    killLighthouseChromes()
+    killLighthouseChromes(runtime)
 
     process.stderr.write(`[unlighthouse] drained cleanly.\n`)
     process.exit(0)
@@ -161,11 +183,12 @@ function setupGracefulShutdown(
   // Last-ditch synchronous reap for any exit path that bypasses drain()
   // (uncaught fatal, explicit process.exit elsewhere). Safe to run twice.
   process.on('exit', () => {
-    killLighthouseChromes()
+    killLighthouseChromes(runtime)
   })
 }
 
-async function runDashboardMode(options: CliOptions) {
+async function runDashboardMode(options: CliOptions, runtime: CliRuntime) {
+  const { env, log, rootLogger } = runtime
   setMaxListeners(0)
 
   log.debug('Dashboard-only mode (no --site)')
@@ -178,14 +201,15 @@ async function runDashboardMode(options: CliOptions) {
     },
     behavior: { generateClient: true, showBanner: true, label: 'cli' },
     logger: rootLogger,
+    env,
   })
 
   log.info('Starting Unlighthouse dashboard...')
 
-  const { server, app } = await createServer(unlighthouse.resolvedConfig)
+  const { server, app } = await createServer(unlighthouse.resolvedConfig, runtime)
   log.debug('Setting server context...')
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  setupGracefulShutdown(server, unlighthouse)
+  setupGracefulShutdown(server, unlighthouse, runtime)
 
   log.success(`Unlighthouse UI available at: ${unlighthouse.runtimeSettings.clientUrl}`)
   log.debug(`API: ${server.url} | Output: ${unlighthouse.resolvedConfig.outputPath}`)
@@ -196,16 +220,17 @@ async function runDashboardMode(options: CliOptions) {
 
 // Root command runtime: the v0 ergonomic entry. No --site/--urls → dashboard;
 // --history → dashboard; otherwise scan + serve. citty owns --help / --version.
-async function runRoot(options: CliOptions) {
+async function runRoot(options: CliOptions, runtime: CliRuntime) {
+  const { env, log, rootLogger } = runtime
   const start = new Date()
 
   if (!options.site && !options.urls) {
-    await runDashboardMode(options)
+    await runDashboardMode(options, runtime)
     return
   }
 
   if (options.history) {
-    await runDashboardMode(options)
+    await runDashboardMode(options, runtime)
     return
   }
 
@@ -225,15 +250,16 @@ async function runRoot(options: CliOptions) {
     },
     behavior: { generateClient: true, showBanner: true, label: 'cli' },
     logger: rootLogger,
+    env,
   })
 
   log.debug(`Config resolved — site: ${unlighthouse.resolvedConfig.site}`)
   validateOptions(unlighthouse.resolvedConfig)
 
-  const { server, app } = await createServer(unlighthouse.resolvedConfig)
+  const { server, app } = await createServer(unlighthouse.resolvedConfig, runtime)
   log.debug('Setting server context...')
   await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  setupGracefulShutdown(server, unlighthouse)
+  setupGracefulShutdown(server, unlighthouse, runtime)
 
   const deviceOverride = parseDevices(options)
   log.debug(`Device override: ${JSON.stringify(deviceOverride)}`)
@@ -290,56 +316,64 @@ async function runRoot(options: CliOptions) {
     await open(scanLandingUrl)
 }
 
-// D-033: the CLI is the third registry projection. Subcommands
-// (`unlighthouse scan start`, `query routes`, `manifest`, …) are generated from
-// the command registry; the root command is the v0 scan-and-serve entry above.
-const agent = isAgentMode()
-
-async function emit(cmd: Command, result: unknown): Promise<void> {
-  if (agent) {
-    writeNdjson(stampSchema(cmd.name, result))
-    return
-  }
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
-}
-
-function onError(cmd: Command, err: unknown): never {
-  emitError(err, agent)
-  process.exit(exitCodeForError(err, cmd))
-}
-
-// Projected subcommands are one-shot; the ctx holds a DB handle that keeps the
-// loop alive, so flush stdout and exit once the command has emitted.
-async function onComplete(): Promise<void> {
-  await new Promise<void>(resolve => process.stdout.write('', () => resolve()))
-  process.exit(0)
-}
-
 // Subcommands point storage at the same --site/--root the scan ran under.
-function argFromArgv(name: string): string | undefined {
+function argFromArgv(argv: string[], name: string): string | undefined {
   const flag = `--${name}`
-  const idx = process.argv.indexOf(flag)
-  const next = idx !== -1 ? process.argv[idx + 1] : undefined
+  const idx = argv.indexOf(flag)
+  const next = idx !== -1 ? argv[idx + 1] : undefined
   if (next && !next.startsWith('-'))
     return next
-  const eq = process.argv.find(a => a.startsWith(`${flag}=`))
+  const eq = argv.find(a => a.startsWith(`${flag}=`))
   return eq ? eq.slice(flag.length + 1) : undefined
 }
 
-const main = buildCli({
-  version,
-  runRoot,
-  projection: {
-    handlers: createHandlers(),
-    createCtx: () => buildCliContext({
-      site: argFromArgv('site'),
-      root: argFromArgv('root'),
-      debug: process.argv.includes('--debug') || process.argv.includes('-d'),
-    }),
-    emit,
-    onError,
-    onComplete,
-  },
-})
+/** Build the CLI command without parsing arguments or touching process lifecycle. */
+export function createCliCommand(options: CliEntryOptions = {}) {
+  const runtime = createCliRuntime(options)
+  const { argv, env } = runtime
+  const agent = isAgentMode(argv)
 
-runMain(main)
+  async function emit(cmd: Command, result: unknown): Promise<void> {
+    if (agent) {
+      writeNdjson(stampSchema(cmd.name, result))
+      return
+    }
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+  }
+
+  function onError(cmd: Command, err: unknown): never {
+    emitError(err, agent, env)
+    process.exit(exitCodeForError(err, cmd))
+  }
+
+  // Projected subcommands are one-shot; the ctx holds a DB handle that keeps
+  // the loop alive, so flush stdout and exit once the command has emitted.
+  async function onComplete(): Promise<void> {
+    await new Promise<void>(resolve => process.stdout.write('', () => resolve()))
+    process.exit(0)
+  }
+
+  return buildCli({
+    version,
+    argv,
+    runRoot: options => runRoot(options, runtime),
+    projection: {
+      handlers: createHandlers(),
+      createCtx: () => buildCliContext({
+        site: argFromArgv(argv, 'site'),
+        root: argFromArgv(argv, 'root'),
+        debug: argv.includes('--debug') || argv.includes('-d'),
+        env,
+      }),
+      emit,
+      onError,
+      onComplete,
+    },
+  })
+}
+
+/** Run the executable CLI entrypoint. Importing this module does not run it. */
+export async function runCli(options: CliEntryOptions = {}): Promise<void> {
+  const argv = options.argv ?? process.argv.slice(2)
+  await runMain(createCliCommand({ ...options, argv }), { rawArgs: argv })
+}

@@ -39,7 +39,7 @@ export function useScanOverview() {
   const api = useApi()
   const store = useScanStore()
   const { scanId, scanBase } = useScanBase()
-  const exportBaseUrl = useRuntimeConfig().public.unlighthouseApiUrl as string
+  const exportBaseUrl = getRuntimeApiUrl()
   const { scoreToColor, scoreToLabel, scoreToRingColor } = createScoreColorHelpers()
 
   const { data: scanMeta, error: scanMetaError, refresh: refreshScanMeta } = useApiQuery(
@@ -61,7 +61,7 @@ export function useScanOverview() {
   // `useScanSubscription` (mounted in `layouts/scan.vue`) also invalidates
   // `scan.summary`/`scan.results`/`scan.meta` on the same event, covering
   // scan-detail views mounted elsewhere (e.g. the routes table).
-  const wsEnabled = Boolean(useRuntimeConfig().public.unlighthouseWsUrl)
+  const wsEnabled = Boolean(getRuntimeWebsocketUrl())
 
   async function startPollingIfActive() {
     if (wsEnabled)

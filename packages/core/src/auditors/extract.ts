@@ -25,11 +25,11 @@ export function extractInsights(result: Result): UnlighthouseInsights {
     score: categoryCount > 0 ? totalScore / categoryCount : 0,
     categories,
     coreWebVitals: {
-      lcp: (result.audits['largest-contentful-paint']?.numericValue as number) || 0,
-      cls: (result.audits['cumulative-layout-shift']?.numericValue as number) || 0,
-      fcp: (result.audits['first-contentful-paint']?.numericValue as number) || 0,
-      tbt: (result.audits['total-blocking-time']?.numericValue as number) || 0,
-      si: (result.audits['speed-index']?.numericValue as number) || 0,
+      lcp: result.audits['largest-contentful-paint']?.numericValue || 0,
+      cls: result.audits['cumulative-layout-shift']?.numericValue || 0,
+      fcp: result.audits['first-contentful-paint']?.numericValue || 0,
+      tbt: result.audits['total-blocking-time']?.numericValue || 0,
+      si: result.audits['speed-index']?.numericValue || 0,
     },
   }
 }

@@ -37,8 +37,12 @@ export interface RateLimiterEnv {
   RATE_LIMITER_REFILL_PER_SEC?: string | number
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
 function resolveConfig(env: unknown): RateLimiterConfig {
-  const e = env as RateLimiterEnv
+  const e = isRecord(env) ? env : {}
   const capRaw = Number(e?.RATE_LIMITER_CAPACITY ?? DEFAULT_CONFIG.capacity)
   const refillRaw = Number(e?.RATE_LIMITER_REFILL_PER_SEC ?? DEFAULT_CONFIG.refillPerSec)
   return {
@@ -52,6 +56,19 @@ export interface RateLimiterCheckResult {
   remaining: number
   limit: number
   resetAt: number
+}
+
+function isRateLimiterCheckResult(value: unknown): value is RateLimiterCheckResult {
+  return typeof value === 'object'
+    && value !== null
+    && 'ok' in value
+    && typeof value.ok === 'boolean'
+    && 'remaining' in value
+    && typeof value.remaining === 'number'
+    && 'limit' in value
+    && typeof value.limit === 'number'
+    && 'resetAt' in value
+    && typeof value.resetAt === 'number'
 }
 
 export class RateLimiterDO extends DurableObject<RateLimiterEnv> {
@@ -152,7 +169,10 @@ export function createRateLimiterClient(namespace: DurableObjectNamespace): Rate
     if (cost != null)
       params.set('cost', String(cost))
     const res = await stubFor(bucket).fetch(`https://rate-limiter/?${params.toString()}`)
-    return await res.json() as RateLimiterCheckResult
+    const value: unknown = await res.json()
+    if (!isRateLimiterCheckResult(value))
+      throw new TypeError('Rate limiter Durable Object returned an invalid response.')
+    return value
   }
 
   return {

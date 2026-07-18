@@ -3,10 +3,12 @@ import type { CwvReport } from '@unlighthouse/contracts/packs'
 import type { TrendMarker, TrendSeries } from '~/features/sites/components/TrendChart.vue'
 import type { DevicePair, ScanRow } from '~/features/sites/scan-pairs'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { CwvReportSchema } from '@unlighthouse/contracts/packs'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
+import { routeParamString } from '~/features/scan/route-context'
 import { scanLinkPath } from '~/features/scan/scan-links'
-import { pairScans } from '~/features/sites/scan-pairs'
+import { devicesForScan, pairScans, scoreSummaryForDevice } from '~/features/sites/scan-pairs'
 import { originOf, resolveSiteUrl } from '~/features/sites/site-url'
 import { siteSlug } from '~/utils/site'
 
@@ -26,33 +28,28 @@ const VITALS = [
   { key: 'tbt', label: 'TBT', color: cwvMetricColors.tbt.hex, fmt: (value: number) => formatMs(value) },
 ] as const
 
-interface SiteEntry {
-  url: string
-  name?: string | null
-}
-
 interface CwvReportEntry {
   t: number
-  report: CwvReport | null
+  report: CwvReport
 }
 
 function completedScoredScans(scans: ScanRow[], device: SiteDevice): ScanRow[] {
-  return scans.filter(scan => scan.device === device && scan.summary && (scan.summary.completed ?? 0) > 0)
+  return scans.filter(scan => devicesForScan(scan).includes(device) && scan.summary && (scan.summary.completed ?? 0) > 0)
 }
 
-function primaryScanId(pair: DevicePair): string {
-  return pair.mobile?.scanId ?? pair.desktop?.scanId ?? ''
+function primaryScanId(pair: DevicePair): ScanId | undefined {
+  return pair.mobile?.scanId ?? pair.desktop?.scanId
 }
 
 export function useSiteOverview() {
   const route = useRoute()
   const router = useRouter()
   const api = useApi()
-  const slug = route.params.siteId as string
+  const slug = routeParamString(route.params.siteId) ?? ''
 
   const { data: sitesData, error: sitesError } = useApiQuery('sites.list', () => ({}))
 
-  const siteMeta = computed(() => ((sitesData.value?.sites ?? []) as SiteEntry[]).find(site => siteSlug(site.url) === slug) ?? null)
+  const siteMeta = computed(() => (sitesData.value?.sites ?? []).find(site => siteSlug(site.url) === slug) ?? null)
   const siteUrl = computed(() => resolveSiteUrl(slug, sitesData.value?.sites ?? []))
   const siteName = computed(() => siteMeta.value?.name || slug)
 
@@ -63,8 +60,8 @@ export function useSiteOverview() {
 
   // `siteUrl` (registry lookup) is best-effort and falls back to a lossy
   // `https://{slug}` guess when unregistered — fine for display/rescan
-  // prefill, but too lossy to gate scan filtering (drops port/scheme for
-  // http / non-default-port / unregistered sites). Prefer the origin off an
+  // prefill, but too lossy to gate scan filtering (drops scheme for http /
+  // unregistered sites). Prefer the origin off an
   // actual history row sharing this slug — it carries the real scanned URL.
   const siteOrigin = computed(() => {
     const fromHistory = (histData.value?.items ?? []).find(scan => siteSlug(scan.site) === slug)
@@ -72,8 +69,8 @@ export function useSiteOverview() {
       return originOf(fromHistory.site) ?? fromHistory.site
     return originOf(siteUrl.value) ?? siteUrl.value
   })
-  const allScans = computed(() => ((histData.value?.items ?? []) as ScanRow[]).filter(scan => originOf(scan.site) === siteOrigin.value))
-  const presentDevices = computed(() => new Set(allScans.value.map(scan => scan.device)))
+  const allScans = computed(() => (histData.value?.items ?? []).filter(scan => originOf(scan.site) === siteOrigin.value))
+  const presentDevices = computed(() => new Set(allScans.value.flatMap(devicesForScan)))
   const hasBoth = computed(() => presentDevices.value.has('mobile') && presentDevices.value.has('desktop'))
 
   const deviceFilter = ref<SiteDevice>('mobile')
@@ -113,7 +110,7 @@ export function useSiteOverview() {
     label: series.label,
     color: series.color,
     points: trendScans.value.map((scan) => {
-      const raw = (scan.summary?.scoresByCategory as Record<string, number | undefined> | undefined)?.[series.key]
+      const raw = scoreSummaryForDevice(scan, effectiveDevice.value)?.scoresByCategory[series.key]
       return { t: new Date(scan.startedAt).getTime(), v: raw == null ? null : Math.round(raw * 100) }
     }),
   })))
@@ -126,10 +123,10 @@ export function useSiteOverview() {
     async () => {
       const scans = trendScans.value
       if (!scans.length)
-        return [] as CwvReportEntry[]
+        return []
       const results = await Promise.all(scans.map(scan =>
-        api['pack.run']({ scanId: scan.scanId, pack: 'cwv' })
-          .then(result => ({ t: new Date(scan.startedAt).getTime(), report: result.report as CwvReport }))
+        api['pack.run']({ scanId: scan.scanId, pack: 'cwv', device: effectiveDevice.value })
+          .then(result => ({ t: new Date(scan.startedAt).getTime(), report: CwvReportSchema.parse(result.report) }))
           .catch((err) => {
             logOperationalWarn('ui.optional_api_read_failed', err, {
               command: 'pack.run',
@@ -140,9 +137,9 @@ export function useSiteOverview() {
             return null
           }),
       ))
-      return results.filter(Boolean) as CwvReportEntry[]
+      return results.filter((entry): entry is CwvReportEntry => entry !== null)
     },
-    { key: () => `site-vitals:${slug}:${trendScans.value.map(scan => scan.scanId).join(',')}` },
+    { key: () => `site-vitals:${slug}:${effectiveDevice.value}:${trendScans.value.map(scan => scan.scanId).join(',')}` },
   )
 
   function vitalsSeries(metricKey: string, label: string, color: string): TrendSeries[] {
@@ -150,7 +147,7 @@ export function useSiteOverview() {
       label,
       color,
       points: (vitalsData.value ?? []).map((entry) => {
-        const metric = (entry.report?.metrics as Array<{ metric: string, p75: number | null }> | undefined)?.find(item => item.metric === metricKey)
+        const metric = entry.report.metrics.find(item => item.metric === metricKey)
         return { t: entry.t, v: metric?.p75 ?? null }
       }),
     }]
@@ -165,10 +162,8 @@ export function useSiteOverview() {
   }
 
   const rescanMutation = useApiMutation('history.rescan')
-  async function rescan(scanId: string) {
-    if (!scanId)
-      return
-    const result = await rescanMutation.mutateSafe({ scanId: scanId as ScanId })
+  async function rescan(scanId: ScanId) {
+    const result = await rescanMutation.mutateSafe({ scanId })
     if (result._tag === 'err') {
       toast.error('Site rescan failed', { description: `${normalizeApiError(result.error).message}. Check the scan host and retry.` })
       return
@@ -178,10 +173,8 @@ export function useSiteOverview() {
   }
 
   const deleteMutation = useApiMutation('scan.delete', { invalidates: ['history.list'] })
-  async function deleteScan(scanId: string) {
-    if (!scanId)
-      return
-    const result = await deleteMutation.mutateSafe({ scanId: scanId as ScanId })
+  async function deleteScan(scanId: ScanId) {
+    const result = await deleteMutation.mutateSafe({ scanId })
     if (result._tag === 'err') {
       toast.error('Scan delete failed', { description: `${normalizeApiError(result.error).message}. Check the scan host and retry.` })
       return

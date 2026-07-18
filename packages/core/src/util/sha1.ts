@@ -5,7 +5,7 @@
  * dashboard build — Node's `crypto` can't.
  *
  * Matches Node's output for UTF-8 string input (verified against node:crypto in
- * test/sha1.test.ts). Inputs here are short (URLs); the 64-bit length field only
+ * packages/core/test/sha1.test.ts). Inputs here are short (URLs); the 64-bit length field only
  * fills its low word, which is all we need.
  */
 export function sha1Hex(input: string): string {

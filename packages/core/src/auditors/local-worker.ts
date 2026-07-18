@@ -16,6 +16,7 @@ import lighthouse from 'lighthouse'
 import puppeteer from 'puppeteer-core'
 import { createWorkerHandler, defineTask } from './audit-pool/worker'
 import { withWebMcpChromeFlag } from './categories'
+import { killChromePidIfAlive } from './chrome-process'
 import { extractInsights } from './extract'
 import { getScreenEmulation, getUserAgent, resolveLighthouseConfig } from './lighthouse-config'
 import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from './storage-injection'
@@ -35,7 +36,7 @@ const liveChromePids = new Set<number>()
 function killAllChrome() {
   for (const pid of liveChromePids) {
     try {
-      process.kill(pid, 'SIGKILL')
+      killChromePidIfAlive(pid)
     }
     catch (err) {
       logOperationalWarn('auditor.cleanup_failed', err, { operation: 'process.kill', pid })
@@ -58,7 +59,8 @@ function bindChromeCleanup() {
 
 const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (_ctx, { url, options = {} }) => {
   let chrome
-  let port = options.port || (options.lighthouseFlags?.port as number)
+  const flagPort = options.lighthouseFlags?.port
+  let port = options.port || (typeof flagPort === 'number' ? flagPort : undefined)
 
   if (!port) {
     const chromeFlags = withWebMcpChromeFlag(['--headless', ...(options.launchOptions?.chromeFlags || [])])
@@ -138,8 +140,15 @@ const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (
       await Promise.resolve(chrome.kill()).catch((err) => {
         logOperationalWarn('auditor.cleanup_failed', err, { operation: 'chrome.kill', pid })
       })
-      if (typeof pid === 'number')
+      if (typeof pid === 'number') {
+        try {
+          killChromePidIfAlive(pid)
+        }
+        catch (err) {
+          logOperationalWarn('auditor.cleanup_failed', err, { operation: 'chrome.force-kill', pid })
+        }
         liveChromePids.delete(pid)
+      }
     }
   }
 })

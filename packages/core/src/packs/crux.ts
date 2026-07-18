@@ -42,6 +42,7 @@ import type { CruxFinding, CruxFormFactor, CruxReport, CruxSource, GapAnalysis, 
 import type { Device, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { CruxReportSchema } from '@unlighthouse/contracts/packs'
+import { z } from 'zod'
 
 // ── Thresholds ──────────────────────────────────────────────────────────────
 // web.dev/articles/vitals — kept in sync with the cwv pack's THRESHOLDS table
@@ -62,23 +63,31 @@ const CRUX_ENDPOINT = 'https://chromeuxreport.googleapis.com/v1/records:queryRec
 
 // Raw CrUX response shape — only the fields we read. See:
 // https://developer.chrome.com/docs/crux/api/#queryrecord
-interface CruxApiRecord {
-  key: {
-    formFactor?: 'PHONE' | 'DESKTOP' | 'TABLET'
-    origin?: string
-    url?: string
-  }
-  metrics?: {
-    largest_contentful_paint?: { percentiles?: { p75?: number | string } }
-    cumulative_layout_shift?: { percentiles?: { p75?: number | string } }
-    interaction_to_next_paint?: { percentiles?: { p75?: number | string } }
-  }
-}
-
-interface CruxApiEnvelope {
-  record?: CruxApiRecord
-  error?: { code?: number, message?: string, status?: string }
-}
+const CruxPercentilesSchema = z.object({
+  p75: z.union([z.number(), z.string()]).optional(),
+})
+const CruxMetricSchema = z.object({ percentiles: CruxPercentilesSchema.optional() })
+const CruxApiRecordSchema = z.object({
+  key: z.object({
+    formFactor: z.enum(['PHONE', 'DESKTOP', 'TABLET']).optional(),
+    origin: z.string().optional(),
+    url: z.string().optional(),
+  }),
+  metrics: z.object({
+    largest_contentful_paint: CruxMetricSchema.optional(),
+    cumulative_layout_shift: CruxMetricSchema.optional(),
+    interaction_to_next_paint: CruxMetricSchema.optional(),
+  }).optional(),
+})
+const CruxApiEnvelopeSchema = z.object({
+  record: CruxApiRecordSchema.optional(),
+  error: z.object({
+    code: z.number().optional(),
+    message: z.string().optional(),
+    status: z.string().optional(),
+  }).optional(),
+})
+type CruxApiRecord = z.infer<typeof CruxApiRecordSchema>
 
 export interface CruxQueryResult {
   source: CruxSource
@@ -134,8 +143,9 @@ async function postCrux(
     })
     throw new Error(`CrUX API ${res.status}: ${body.slice(0, 200)}`)
   }
-  const json = (await res.json()) as CruxApiEnvelope
-  return { ok: true, record: json.record }
+  const json: unknown = await res.json()
+  const parsed = CruxApiEnvelopeSchema.parse(json)
+  return { ok: true, record: parsed.record }
 }
 
 /**
@@ -367,7 +377,7 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
     // Sequential — keeps us under the CrUX free-tier 150 QPM ceiling in
     // common cases. A future PR can add bounded parallelism via Promise
     // pool once we wire CrUX into compare/run.
-    for (const route of routes as ScanRoute[]) {
+    for (const route of routes) {
       totalRoutesQueried++
       try {
         const result = await queryCrux(route.url, formFactor, apiKey)
@@ -387,8 +397,9 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
           severity,
         })
       }
-      catch (e) {
-        ctx.logger?.warn?.(`crux pack: query failed for ${route.url}: ${(e as Error).message}`)
+      catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        ctx.logger?.warn?.(`crux pack: query failed for ${route.url}: ${message}`)
         findings.push({
           url: route.url,
           formFactor,
@@ -412,7 +423,7 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
       // Always compute — `analyzeLabVsField` short-circuits when there's no
       // overlap, returning empty buckets. The caller can then decide whether
       // to surface "0 gaps detected" or hide the section entirely.
-      gapAnalysis: analyzeLabVsField(routes as ScanRoute[], findings),
+      gapAnalysis: analyzeLabVsField(routes, findings),
     }
   }
 

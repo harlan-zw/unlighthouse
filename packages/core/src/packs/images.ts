@@ -13,22 +13,14 @@
 // image (not per route).
 
 import type { ImageFinding, ImagesReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { LighthouseAuditDetailItem, LighthouseResult } from '@unlighthouse/contracts/ports'
 import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { ImagesReportSchema } from '@unlighthouse/contracts/packs'
 import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-interface LhrLike {
-  audits?: Record<string, {
-    score?: number | null
-    metricSavings?: { LCP?: number, FCP?: number, CLS?: number }
-    details?: {
-      type?: string
-      items?: Array<Record<string, unknown>>
-    }
-  }>
-}
+type LhrLike = Pick<LighthouseResult, 'audits'>
 
 interface RawFinding {
   kind: ImageFinding['kind']
@@ -233,21 +225,7 @@ async function loadRouteAuditsAsLhrLike(url: string, device: Device, ctx: PackRe
     const reconciled = await ctx.getReconciled(url, device).catch((err) => {
       ctx.logger?.debug?.(`images pack: failed to load reconciled report for ${url} [${device}]`, err)
       return null
-    }) as
-    | { audits?: Record<string, {
-      score: number | null
-      metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
-      items: Array<{
-        url: string | null
-        type: string | null
-        totalBytes: number | null
-        wastedBytes: number | null
-        node: { selector: string | null, snippet: string | null, nodeLabel: string | null } | null
-        snippet: string | null
-        reason: string | null
-      }> | null
-    }> }
-    | null
+    })
     if (reconciled?.audits) {
       const audits: NonNullable<LhrLike['audits']> = {}
       for (const [id, a] of Object.entries(reconciled.audits)) {
@@ -255,7 +233,7 @@ async function loadRouteAuditsAsLhrLike(url: string, device: Device, ctx: PackRe
         // projected `reason` back under subItems[0].reason where the image-
         // delivery extractor expects it.
         const items = (a.items ?? []).map((it) => {
-          const out: Record<string, unknown> = {}
+          const out: LighthouseAuditDetailItem = {}
           if (it.url != null)
             out.url = it.url
           if (it.type != null)
@@ -264,8 +242,13 @@ async function loadRouteAuditsAsLhrLike(url: string, device: Device, ctx: PackRe
             out.totalBytes = it.totalBytes
           if (it.wastedBytes != null)
             out.wastedBytes = it.wastedBytes
-          if (it.node)
-            out.node = it.node
+          if (it.node) {
+            out.node = {
+              selector: it.node.selector ?? undefined,
+              snippet: it.node.snippet ?? undefined,
+              nodeLabel: it.node.nodeLabel ?? undefined,
+            }
+          }
           if (it.snippet != null)
             out.snippet = it.snippet
           if (it.reason != null)
@@ -282,10 +265,10 @@ async function loadRouteAuditsAsLhrLike(url: string, device: Device, ctx: PackRe
     }
   }
   if (ctx.getLhr) {
-    return (await ctx.getLhr(url, device).catch((err) => {
+    return ctx.getLhr(url, device).catch((err) => {
       ctx.logger?.debug?.(`images pack: failed to load LHR for ${url} [${device}]`, err)
       return null
-    })) as LhrLike | null
+    })
   }
   return null
 }

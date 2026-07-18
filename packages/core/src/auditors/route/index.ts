@@ -2,8 +2,8 @@ import type {
   AuditOpts,
   Auditor,
   AuditorCapabilities,
+  AuditorReport,
   Category,
-  LighthouseReport,
   NamedAuditor,
   Page,
   RateLimiter,
@@ -95,7 +95,7 @@ export function routeAuditors(opts: RouteAuditorsOptions): Auditor {
   const sampleMemo = new Map<string, Auditor>()
   return {
     capabilities,
-    async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<LighthouseReport> {
+    async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<AuditorReport> {
       const requestedCategories = categoriesFromAuditOpts(auditOpts)
       const candidates = filterAuditorsByCategories(opts.auditors, requestedCategories)
       const sample = auditOpts?.sample
@@ -200,7 +200,7 @@ export function fallbackAuditor(auditors: NamedAuditor[]): Auditor {
   const capabilities = deriveCapabilities(auditors)
   return {
     capabilities,
-    async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<LighthouseReport> {
+    async audit(url: string, page?: Page, auditOpts?: AuditOpts): Promise<AuditorReport> {
       const requestedCategories = categoriesFromAuditOpts(auditOpts)
       const candidates = filterAuditorsByCategories(auditors, requestedCategories)
       const errors: unknown[] = []

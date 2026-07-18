@@ -7,90 +7,49 @@
 // world. Without this, history.list returns [] and pack.run can't be invoked
 // because there's no scanId to feed it.
 
-import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
-import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
-import { isAbsolute, join, resolve } from 'node:path'
-import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { createUnlighthouseCore, reapStaleScans } from '@unlighthouse/core'
+import type { ArgsDef } from 'citty'
+import { isAbsolute, resolve } from 'node:path'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
-import { crawleeCrawler } from '@unlighthouse/core/crawlers'
-import { createCruxPack, createPackRegistry } from '@unlighthouse/core/packs'
-import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { startStdioServer } from '@unlighthouse/mcp'
-import Database from 'better-sqlite3'
+import { parseArgs } from 'citty'
 import { createConsola } from 'consola'
 import { version } from '../../package.json'
-import { resolveAuditor } from '../auditor'
 import { resolveConfig } from '../config/resolve'
-import { computeConfigCacheKey, normaliseHost } from '../util'
-import { initStorage } from './storage-init'
+import { createLocalRuntime } from '../local-runtime'
+import { resolveScanDirectory } from './scan-directory'
 
-function resolveManualUrls(urls: UnlighthouseConfig['urls']): string[] | (() => string[] | Promise<string[]>) {
-  if (typeof urls === 'function') {
-    return async () => {
-      const result = await urls()
-      return Array.isArray(result) ? result.filter((url): url is string => typeof url === 'string') : []
-    }
-  }
-  return urls ?? []
+const MCP_ARGS = {
+  site: { type: 'string', alias: 's' },
+  root: { type: 'string', alias: 'r' },
+  debug: { type: 'boolean', alias: 'd' },
+} satisfies ArgsDef
+
+export interface McpFlags {
+  site?: string
+  root?: string
+  debug: boolean
 }
 
-// Minimal flag parsing — keep this dependency-free so the stdio entrypoint
-// boots fast. The CLI's full citty surface is overkill here; we only need to
-// know which site (= which `.unlighthouse/<site>/<hash>/` to point at).
-//
-// Throws via process.exit on malformed input — `unlighthouse-mcp --site` with
-// no value used to silently land on the bare outputPath and return an empty
-// history, which is much harder to diagnose than a "missing value" error.
-function parseFlags(argv: string[]): { site?: string, root?: string, debug?: boolean } {
-  const out: { site?: string, root?: string, debug?: boolean } = {}
-  const needsValue = (name: string, next: string | undefined): string => {
-    if (next == null || next.startsWith('--') || next.startsWith('-')) {
-      process.stderr.write(`[unlighthouse-mcp] missing value for ${name}\n`)
-      process.exit(2)
-    }
-    return next
-  }
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]
-    if (!a)
-      continue
-    if (a === '--site' || a === '-s') {
-      out.site = needsValue(a, argv[++i])
-    }
-    else if (a.startsWith('--site=')) {
-      const v = a.slice('--site='.length)
-      if (!v) {
-        process.stderr.write(`[unlighthouse-mcp] missing value for --site\n`)
-        process.exit(2)
-      }
-      out.site = v
-    }
-    else if (a === '--root' || a === '-r') {
-      out.root = needsValue(a, argv[++i])
-    }
-    else if (a.startsWith('--root=')) {
-      const v = a.slice('--root='.length)
-      if (!v) {
-        process.stderr.write(`[unlighthouse-mcp] missing value for --root\n`)
-        process.exit(2)
-      }
-      out.root = v
-    }
-    else if (a === '--debug' || a === '-d') {
-      out.debug = true
-    }
-  }
-  return out
+export class McpUsageError extends Error {
+  readonly exitCode = 2
 }
 
-// Module-level flag so the discovery helpers (which are pure but emit
-// diagnostics) can stay quiet without threading a logger through every call.
-// Set once during boot from --debug; never reassigned at runtime.
-let debugMode = false
-function diag(msg: string): void {
-  if (debugMode)
-    process.stderr.write(msg)
+/** Parse the MCP bin's small flag surface through the same citty seam as CLI. */
+export function parseMcpFlags(argv: string[]): McpFlags {
+  const parsed = parseArgs(argv, MCP_ARGS) as Record<string, unknown>
+  const stringFlag = (name: 'site' | 'root'): string | undefined => {
+    const value = parsed[name]
+    if (value === undefined)
+      return undefined
+    if (typeof value !== 'string' || value.length === 0)
+      throw new McpUsageError(`missing value for --${name}`)
+    return value
+  }
+  return {
+    site: stringFlag('site'),
+    root: stringFlag('root'),
+    debug: parsed.debug === true,
+  }
 }
 
 // Resolve --root to an absolute path under CWD. Prevents `--root ../../../`
@@ -100,65 +59,18 @@ function diag(msg: string): void {
 function sanitiseRoot(raw: string): string {
   const abs = isAbsolute(raw) ? raw : resolve(process.cwd(), raw)
   const cwd = process.cwd()
-  if (!isAbsolute(raw) && !abs.startsWith(`${cwd}/`) && abs !== cwd) {
-    process.stderr.write(`[unlighthouse-mcp] --root resolves outside CWD: ${abs}\n`)
-    process.exit(2)
-  }
+  if (!isAbsolute(raw) && !abs.startsWith(`${cwd}/`) && abs !== cwd)
+    throw new McpUsageError(`--root resolves outside CWD: ${abs}`)
   return abs
 }
 
-// Count `scans` rows in a sqlite DB. Opens readonly, returns 0 on any error
-// (table missing, locked, malformed). Used for both site-level (--site given)
-// and root-level (no --site) discovery scoring.
-function countScans(dbPath: string): number {
-  let db: InstanceType<typeof Database> | null = null
-  try {
-    db = new Database(dbPath, { readonly: true })
-    return (db.prepare('SELECT count(*) AS c FROM scans').get() as { c: number }).c
+export async function runMcp(argv: string[] = process.argv.slice(2), env: NodeJS.ProcessEnv = process.env): Promise<void> {
+  const flags = parseMcpFlags(argv)
+  const debugMode = flags.debug
+  const diag = (message: string): void => {
+    if (debugMode)
+      process.stderr.write(message)
   }
-  catch (_err) {
-    // Missing, locked, or legacy DBs simply rank as having no scans.
-    return 0
-  }
-  finally {
-    db?.close()
-  }
-}
-
-// For a given site directory, rank its <cacheKey> subdirs by scan count
-// (mtime tiebreak), return the path of the winner. If no subdir has scans,
-// mint a fresh cacheKey dir so future writes land somewhere structured.
-function pickScanDir(parent: string, hostname: string, config: unknown, version: string): string {
-  const siteDir = join(parent, hostname)
-  if (!existsSync(siteDir))
-    return join(siteDir, computeConfigCacheKey(config, version))
-  const candidates = readdirSync(siteDir)
-    .map((name) => {
-      const dbPath = join(siteDir, name, 'db.sqlite')
-      if (!existsSync(dbPath))
-        return null
-      return { name, mtime: statSync(join(siteDir, name)).mtimeMs, count: countScans(dbPath) }
-    })
-    .filter((e): e is { name: string, mtime: number, count: number } => e !== null)
-    .sort((a, b) => (b.count - a.count) || (b.mtime - a.mtime))
-  const withScans = candidates.filter(c => c.count > 0)
-  const topScanned = withScans[0]
-  if (withScans.length > 1 && topScanned) {
-    diag(
-      `[unlighthouse-mcp] ${withScans.length} scan dirs found for ${hostname}; picking ${topScanned.name} `
-      + `(${topScanned.count} scans). Others: ${withScans.slice(1).map(c => `${c.name}=${c.count}`).join(', ')}\n`,
-    )
-  }
-  const topCandidate = candidates[0]
-  if (topCandidate && topCandidate.count > 0)
-    return join(siteDir, topCandidate.name)
-  return join(siteDir, computeConfigCacheKey(config, version))
-}
-
-export async function runMcp(): Promise<void> {
-  const env = process.env
-  const flags = parseFlags(process.argv.slice(2))
-  debugMode = flags.debug === true
   const rootDir = flags.root ? sanitiseRoot(flags.root) : undefined
   const { config, packs: configPacks } = await resolveConfig({
     overrides: flags.site ? { site: flags.site } : undefined,
@@ -172,107 +84,30 @@ export async function runMcp(): Promise<void> {
   // storage chatter alongside the discover diagnostics.
   const logger = createConsola({ defaults: { level: debugMode ? 4 : 1 } }).withTag('unlighthouse-mcp')
 
-  // Resolve the on-disk scan directory. The CLI writes to
-  // `.unlighthouse/<hostname>/<configCacheKey>/` where `configCacheKey` is a
-  // 4-char hash of the *raw* userConfig at scan time. Computing the same hash
-  // from MCP's resolved config doesn't always match (c12 layering / defaults
-  // differ), so we discover instead — pick the subdir whose `scans` table has
-  // the most rows, breaking ties by mtime. If none exists, mint a fresh hash
-  // dir so future writes don't pollute the site root.
-  //
-  // When --site is absent, walk `.unlighthouse/<*>/` to find any hostname with
-  // scans on disk. The agent gets to enumerate sites without the user having
-  // to know the URL in advance.
-  let outputPath = config.outputPath as string
-  if (config.site) {
-    const site = normaliseHost(config.site)
-    outputPath = pickScanDir(outputPath, site.hostname.replace(':', '꞉'), config, version)
-  }
-  else {
-    const rootDir = outputPath
-    if (existsSync(rootDir)) {
-      const hostDirs = readdirSync(rootDir)
-        .filter(name => statSync(join(rootDir, name)).isDirectory())
-        .map((hostname) => {
-          // Score each hostname by total scans across all <cacheKey> subdirs.
-          const hostDir = join(rootDir, hostname)
-          let total = 0
-          let mtime = 0
-          for (const sub of readdirSync(hostDir)) {
-            const dbPath = join(hostDir, sub, 'db.sqlite')
-            if (!existsSync(dbPath))
-              continue
-            const c = countScans(dbPath)
-            total += c
-            const m = statSync(join(hostDir, sub)).mtimeMs
-            if (m > mtime)
-              mtime = m
-          }
-          return { hostname, total, mtime }
-        })
-        .filter(h => h.total > 0)
-        .sort((a, b) => (b.total - a.total) || (b.mtime - a.mtime))
-      if (hostDirs.length > 0) {
-        const pick = hostDirs[0]
-        if (!pick)
-          return
-        if (hostDirs.length > 1) {
-          diag(
-            `[unlighthouse-mcp] no --site provided; ${hostDirs.length} sites have scans on disk; picking ${pick.hostname} `
-            + `(${pick.total} scans). Others: ${hostDirs.slice(1).map(h => `${h.hostname}=${h.total}`).join(', ')}\n`,
-          )
-        }
-        else {
-          diag(`[unlighthouse-mcp] no --site provided; defaulting to ${pick.hostname} (${pick.total} scans)\n`)
-        }
-        outputPath = pickScanDir(rootDir, pick.hostname, config, version)
-      }
-      // No scans anywhere → leave outputPath at the bare root and history
-      // will be empty. Better than guessing a hostname.
-    }
-  }
-  mkdirSync(outputPath, { recursive: true })
+  const output = resolveScanDirectory({
+    outputRoot: config.outputPath as string,
+    site: config.site,
+    config,
+    version,
+  })
+  for (const message of output.diagnostics)
+    diag(`[unlighthouse-mcp] ${message}\n`)
+  const outputPath = output.path
   // Diagnostic to stderr (stdout is the JSON-RPC channel and must stay clean).
   // Gated by --debug so production agents don't see internal paths by default.
   diag(`[unlighthouse-mcp] outputPath=${outputPath}\n`)
 
-  const { storage } = await initStorage({ outputPath, logger, env })
-
-  // Sweep zombies left by a prior process. MCP often opens an existing DB
-  // written by the CLI; "starting" rows from a Ctrl+C'd CLI run would
-  // otherwise stay forever in agent's history_list output.
-  reapStaleScans(storage, logger).catch((err) => {
-    logOperationalWarn('core.stale_scan_reap_failed', err, { phase: 'mcp-boot' }, logger)
-  })
-
-  const chromeFlags = (env.CHROME_FLAGS ?? '').split(/\s+/).filter(Boolean)
-  const auditor = resolveAuditor({ config, logger, chromeFlags })
-  const environmentPacks = env.CRUX_API_KEY ? [createCruxPack({ apiKey: env.CRUX_API_KEY })] : []
-  const packs = [...environmentPacks, ...(configPacks ?? [])]
-  const crawler = crawleeCrawler({ logger: logger.withTag('crawler/crawlee') })
-  const seeds = fuseSeeds([
-    manualSeeds({ urls: resolveManualUrls(config.urls), logger: logger.withTag('seeds/manual') }),
-  ])
-  const core = createUnlighthouseCore({
+  const runtime = await createLocalRuntime({
     config,
-    auditor,
-    seeds,
-    crawler,
-    storage,
+    output: { path: outputPath },
     logger,
-    packs,
+    env,
+    packs: configPacks,
   })
 
   await startStdioServer({
     handlers: createHandlers(),
-    ctx: {
-      core,
-      auditor,
-      storage,
-      config,
-      version,
-      packs: createPackRegistry(packs),
-    },
+    ctx: runtime.handlerCtx,
     identity: { name: 'unlighthouse', version },
     exposeInternal: debugMode,
   })
@@ -282,6 +117,6 @@ export async function runMcp(): Promise<void> {
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('unlighthouse-mcp.mjs')) {
   runMcp().catch((err) => {
     process.stderr.write(`[unlighthouse-mcp] ${err?.message ?? err}\n`)
-    process.exit(1)
+    process.exit(err instanceof McpUsageError ? err.exitCode : 1)
   })
 }

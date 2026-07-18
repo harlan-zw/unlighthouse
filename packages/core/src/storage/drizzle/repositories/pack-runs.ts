@@ -6,11 +6,12 @@ import type { PackRunRow } from '@unlighthouse/contracts/drizzle'
 import type { PackRun } from '@unlighthouse/contracts/packs'
 import type { DrizzleDatabase, IdempotentWriteExecutor } from '../types'
 import { packRuns } from '@unlighthouse/contracts/drizzle'
+import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { and, eq } from 'drizzle-orm'
 
 function rowToPackRun(row: PackRunRow): PackRun {
   return {
-    scanId: row.scanId as ScanId,
+    scanId: parseScanId(row.scanId),
     packName: row.packName,
     packVersion: row.packVersion,
     startedAt: row.startedAt,

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { SeoReport } from '@unlighthouse/contracts/packs'
+import { SeoReportSchema } from '@unlighthouse/contracts/packs'
 import { h } from 'vue'
-// See CwvWidget.vue for why `report` arrives untyped and gets cast here.
+
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
-const report = computed(() => props.report as SeoReport)
+const report = computed(() => SeoReportSchema.parse(props.report))
 
 type RouteCheckRow = SeoReport['routeChecks'][number]
 const UiIconC = resolveComponent('UiIcon')

@@ -12,6 +12,7 @@ import {
   getCurrentHash,
   getExternalBuildUrl,
 } from '@lhci/utils/src/build-context.js'
+import { assertLighthouseResult } from '@unlighthouse/core/report'
 import { handleError } from '../cli/errors'
 
 export async function reportLighthouseServer(
@@ -55,7 +56,8 @@ export async function reportLighthouseServer(
     })
 
     for (const report of reports) {
-      const lighthouseResult = JSON.parse(await readFile(`${report.artifactPath}/lighthouse.json`, 'utf8'))
+      const raw: unknown = JSON.parse(await readFile(`${report.artifactPath}/lighthouse.json`, 'utf8'))
+      const lighthouseResult = assertLighthouseResult(raw)
 
       await api.createRun({
         projectId: project.id,

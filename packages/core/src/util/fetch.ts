@@ -1,4 +1,4 @@
-import type { Logger, ResolvedUserConfig } from '@unlighthouse/contracts'
+import type { Logger } from '@unlighthouse/contracts'
 import type { FetchOptions } from 'ofetch'
 import { ofetch } from 'ofetch'
 import { utf8ToBase64 } from './base64'
@@ -19,6 +19,16 @@ export interface FetchUrlClient {
   get: (url: string, opts?: FetchOptions<'text'>) => Promise<FetchUrlResponse>
 }
 
+/** Narrow fetch policy shared by legacy and v1 config contracts. */
+export interface FetchConfig {
+  auth?: false | { username: string, password: string }
+  cookies?: false | Array<{ name: string, value: string }>
+  defaultQueryParams?: false | object
+  extraHeaders?: false | Record<string, string>
+  lighthouseOptions?: { emulatedUserAgent?: unknown }
+  userAgent?: string
+}
+
 function headersToRecord(headers?: HeadersInit): Record<string, string> {
   if (!headers)
     return {}
@@ -29,7 +39,7 @@ function headersToRecord(headers?: HeadersInit): Record<string, string> {
   return { ...headers }
 }
 
-export function createFetchClient(resolvedConfig: ResolvedUserConfig): FetchUrlClient {
+export function createFetchClient(resolvedConfig: FetchConfig): FetchUrlClient {
   const headers: Record<string, string> = {}
 
   if (resolvedConfig.cookies) {
@@ -38,7 +48,8 @@ export function createFetchClient(resolvedConfig: ResolvedUserConfig): FetchUrlC
       .join('; ')
   }
 
-  const userAgent = resolvedConfig.userAgent || resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
+  const emulatedUserAgent = resolvedConfig.lighthouseOptions?.emulatedUserAgent
+  const userAgent = resolvedConfig.userAgent || (typeof emulatedUserAgent === 'string' ? emulatedUserAgent : undefined) || 'Unlighthouse'
   Object.assign(headers, {
     'User-Agent': userAgent,
     ...(resolvedConfig.extraHeaders || {}),
@@ -108,7 +119,7 @@ function errorCode(error: unknown): string | undefined {
 
 export async function fetchUrlRaw(
   url: string,
-  resolvedConfig: ResolvedUserConfig,
+  resolvedConfig: FetchConfig,
   opts: { logger?: Logger, client?: FetchUrlClient } = {},
 ): Promise<{ error?: unknown, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: FetchUrlResponse }> {
   const logger = opts.logger

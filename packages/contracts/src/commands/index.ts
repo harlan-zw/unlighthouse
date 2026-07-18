@@ -135,3 +135,18 @@ export const commands = {
 
 export type CommandRegistry = typeof commands
 export type CommandName = keyof CommandRegistry
+export type NonStreamingCommandName = {
+  [K in CommandName]: CommandRegistry[K] extends { streaming: true } ? never : K
+}[CommandName]
+export type CommandEntry = {
+  [K in CommandName]: [name: K, command: CommandRegistry[K]]
+}[CommandName]
+
+/**
+ * Typed registry iteration for every transport projection. Object.entries
+ * cannot preserve key/value correlation, so that single standard-library
+ * inference gap is isolated here instead of reasserted by each consumer.
+ */
+export function commandEntries(): CommandEntry[] {
+  return Object.entries(commands) as CommandEntry[]
+}

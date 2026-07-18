@@ -12,13 +12,14 @@ import type {
 } from '@unlighthouse/contracts/types/atoms'
 import type { DrizzleDatabase, IdempotentWriteExecutor } from '../types'
 import { scans } from '@unlighthouse/contracts/drizzle'
+import { ScanSchema } from '@unlighthouse/contracts/types/atoms'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
 
 const DEFAULT_PAGE_SIZE = 50
 
 function rowToScan(row: ScanRow): Scan {
   const { createdAtMs: _ignored, ...rest } = row
-  return rest as Scan
+  return ScanSchema.parse(rest)
 }
 
 function insertToRow(scan: ScanInsert): ScanRowInsert {

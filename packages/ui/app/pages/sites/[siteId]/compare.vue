@@ -19,7 +19,7 @@ import { useCompareWorkflow } from '~/features/compare/workflow'
 
 definePageMeta({ layout: 'compare' })
 
-const { scoreToRingColor } = createScoreColorHelpers()
+const { scoreToColor } = createScoreColorHelpers()
 const { fmtScore, fmtDelta, fmtMetric, fmtTimestamp: fmtDate, fmtBytes } = createFormatters()
 const {
   siteId,
@@ -353,7 +353,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
     <template v-else-if="report">
       <!-- Summary band -->
       <div class="px-4 py-3 border-b flex items-center gap-6 flex-wrap">
-        <UiChip v-if="verdict" purpose="status" :status="toneSemantic(verdict.tone)" size="sm">
+        <UiChip v-if="verdict" purpose="status" :status="toneSemantic(verdict.tone)" size="sm" class="!bg-transparent ring-1 ring-inset ring-current/20">
           {{ verdict.text }}
         </UiChip>
         <div class="flex items-center gap-4 text-xs">
@@ -386,12 +386,12 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
         </div>
 
         <!-- Category strip — inline, compact -->
-        <div v-if="report.summary.categoryDeltas?.length" class="ml-auto flex items-center gap-3 text-xs">
+        <div v-if="report.summary.categoryDeltas?.length" class="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs max-sm:w-full max-sm:justify-start">
           <div v-for="cd in report.summary.categoryDeltas" :key="cd.category" class="flex items-center gap-1">
             <span class="text-muted">{{ cd.label }}</span>
-            <span class="tabular-nums" :style="cd.base != null ? { color: scoreToRingColor(cd.base) } : {}">{{ fmtScore(cd.base) }}</span>
+            <span class="tabular-nums" :class="cd.base != null ? scoreToColor(cd.base) : 'text-muted'">{{ fmtScore(cd.base) }}</span>
             <UiIcon name="next" class="size-2.5 text-muted/40" />
-            <span class="tabular-nums" :style="cd.current != null ? { color: scoreToRingColor(cd.current) } : {}">{{ fmtScore(cd.current) }}</span>
+            <span class="tabular-nums" :class="cd.current != null ? scoreToColor(cd.current) : 'text-muted'">{{ fmtScore(cd.current) }}</span>
             <span class="numerals-display" :class="deltaClass(cd.delta, true)">{{ fmtDelta(cd.delta, true) }}</span>
           </div>
         </div>
@@ -401,7 +401,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
            per-route CWV columns below. Sourced from the cwv pack
            (aggregates across routes). Hidden when the pack didn't
            run on either scan. -->
-      <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b bg-default/30 flex items-center gap-6 text-xs">
+      <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b bg-default/30 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs">
         <span class="text-label text-muted shrink-0">
           Web Vitals p75
         </span>
@@ -530,8 +530,8 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       </div>
 
       <!-- Main split: table left, detail right -->
-      <SplitterGroup direction="horizontal" class="flex-1 min-h-0">
-        <SplitterPanel :default-size="62" :min-size="35">
+      <SplitterGroup direction="horizontal" class="flex-1 min-h-0 min-w-0 overflow-hidden">
+        <SplitterPanel :default-size="62" :min-size="35" class="min-w-0">
           <div class="h-full overflow-auto">
             <UiTable
               :columns="compareColumns"
@@ -559,7 +559,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
 
         <SplitterResizeHandle class="w-1.5 bg-[var(--ui-border)]/40 hover:bg-accented transition-colors data-[state=drag]:bg-inverted/60" />
 
-        <SplitterPanel :default-size="38" :min-size="25">
+        <SplitterPanel :default-size="38" :min-size="25" class="min-w-0">
           <div v-if="selectedRow" class="h-full overflow-auto p-4 space-y-4">
             <div>
               <h2 class="font-mono text-sm font-medium break-all">

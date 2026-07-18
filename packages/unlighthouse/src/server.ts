@@ -1,5 +1,6 @@
 import type { Logger, ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
 import type { WS } from '@unlighthouse/core/api'
+import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import type { App, H3Event } from 'h3'
 import type { Hookable } from 'hookable'
 import type { ServerHookMap } from './server-hooks'
@@ -57,7 +58,7 @@ export interface MountServerDeps {
 
 interface MountServerOptions {
   /** Handler context for createHttpRouter (passes core/storage/config/auditors). */
-  handlerCtx: Parameters<typeof createHttpRouter>[0]['ctx']
+  handlerCtx: HandlerCtx
 }
 
 /**
@@ -112,7 +113,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
 
   // Dashboard sub-router.
   // Host always passes a resolved HandlerCtx (not a factory); narrow here.
-  const storage = (opts.handlerCtx as { storage: Parameters<typeof createDashboardApi>[0] }).storage
+  const storage = opts.handlerCtx.storage
   const dashboardRouter = createDashboardApi(storage, logger)
   apiRouter.use('/dashboard/**', useBase('/dashboard', dashboardRouter.handler))
 
@@ -120,7 +121,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
 
   // Static client with SPA fallback.
   root.get('/**', defineEventHandler(async (event) => {
-    await (hooks as { callHook: (name: string) => Promise<void> | void }).callHook('visited-client')
+    await hooks.callHook('visited-client')
     const path = event.path || '/'
     const ext = path.substring(path.lastIndexOf('.'))
     const mimeType = mimeTypes[ext]
@@ -214,7 +215,8 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   // relaxed (its legitimate Host set — LAN IP / tunnel name — can't be
   // enumerated) and the token becomes the barrier.
   const siteOrigin = normaliseOrigin(typeof resolvedConfig.site === 'string' ? resolvedConfig.site : null)
-  const exposed = isExposedHost((resolvedConfig.server as { hostname?: string } | undefined)?.hostname)
+  const serverHostname = typeof resolvedConfig.server?.hostname === 'string' ? resolvedConfig.server.hostname : undefined
+  const exposed = isExposedHost(serverHostname)
   if (exposed)
     log?.warn('network: bound to a non-loopback host — DNS-rebinding Host check relaxed; set UNLIGHTHOUSE_API_TOKEN to gate the exposed surface.')
 

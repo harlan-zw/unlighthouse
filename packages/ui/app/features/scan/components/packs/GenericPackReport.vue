@@ -15,6 +15,10 @@
 //      well-rendered report).
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 interface GenericFinding {
   auditId: string
   severity: string
@@ -26,31 +30,35 @@ interface GenericFinding {
 }
 
 const reportObj = computed<Record<string, unknown> | null>(() =>
-  props.report && typeof props.report === 'object' && !Array.isArray(props.report)
-    ? props.report as Record<string, unknown>
-    : null,
+  isRecord(props.report) ? props.report : null,
 )
 
 const severityCounts = computed<Record<string, number> | null>(() => {
   const sc = reportObj.value?.severityCounts
-  if (!sc || typeof sc !== 'object' || Array.isArray(sc))
+  if (!isRecord(sc))
     return null
-  const entries = Object.entries(sc as Record<string, unknown>).filter(([, v]) => typeof v === 'number')
-  return entries.length ? Object.fromEntries(entries) as Record<string, number> : null
+  const entries = Object.entries(sc).filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+  return entries.length ? Object.fromEntries(entries) : null
 })
 
-function isFindingShaped(item: unknown): item is Record<string, unknown> & { severity: string } {
-  if (!item || typeof item !== 'object')
+type GenericFindingSource = Record<string, unknown> & { severity: string } & ({ auditId: string } | { id: string })
+
+function isFindingShaped(item: unknown): item is GenericFindingSource {
+  if (!isRecord(item))
     return false
-  const rec = item as Record<string, unknown>
-  return typeof rec.severity === 'string' && (typeof rec.auditId === 'string' || typeof rec.id === 'string')
+  return typeof item.severity === 'string' && (typeof item.auditId === 'string' || typeof item.id === 'string')
 }
 
 const findings = computed<GenericFinding[] | null>(() => {
   const list = reportObj.value?.findings
   if (!Array.isArray(list) || !list.length || !list.every(isFindingShaped))
     return null
-  return list.map(item => ({ ...item, auditId: (item.auditId as string) ?? (item.id as string) }) as GenericFinding)
+  return list.map((item) => {
+    const auditId = typeof item.auditId === 'string' ? item.auditId : item.id
+    if (typeof auditId !== 'string')
+      throw new TypeError('Expected a generic finding to have an audit id.')
+    return { ...item, auditId, severity: item.severity }
+  })
 })
 
 const hasStructuredContent = computed(() => !!severityCounts.value || !!findings.value)

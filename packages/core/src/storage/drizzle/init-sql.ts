@@ -21,7 +21,7 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
 
   // Comparison + Assertion tables
   'CREATE TABLE IF NOT EXISTS `comparisons` (\n  `id` integer PRIMARY KEY AUTOINCREMENT,\n  `base_scan_id` text REFERENCES `scans`(`scan_id`) ON DELETE cascade,\n  `current_scan_id` text REFERENCES `scans`(`scan_id`) ON DELETE cascade,\n  `improved` integer NOT NULL DEFAULT 0,\n  `regressed` integer NOT NULL DEFAULT 0,\n  `unchanged` integer NOT NULL DEFAULT 0,\n  `new_urls` integer NOT NULL DEFAULT 0,\n  `removed_urls` integer NOT NULL DEFAULT 0,\n  `created_at` integer DEFAULT (unixepoch())\n);',
-  'CREATE TABLE IF NOT EXISTS `comparison_diffs` (\n  `id` integer PRIMARY KEY AUTOINCREMENT,\n  `comparison_id` integer REFERENCES `comparisons`(`id`) ON DELETE cascade,\n  `path` text NOT NULL,\n  `url` text NOT NULL,\n  `metric_diffs` text NOT NULL,\n  `severity` text NOT NULL\n);',
+  'CREATE TABLE IF NOT EXISTS `comparison_diffs` (\n  `id` integer PRIMARY KEY AUTOINCREMENT,\n  `comparison_id` integer REFERENCES `comparisons`(`id`) ON DELETE cascade,\n  `path` text NOT NULL,\n  `url` text NOT NULL,\n  `device` text NOT NULL DEFAULT \'mobile\',\n  `metric_diffs` text NOT NULL,\n  `severity` text NOT NULL\n);',
   'CREATE TABLE IF NOT EXISTS `assertions` (\n  `id` integer PRIMARY KEY AUTOINCREMENT,\n  `scan_id` text REFERENCES `scans`(`scan_id`) ON DELETE cascade,\n  `type` text NOT NULL,\n  `category` text,\n  `metric` text,\n  `value` real NOT NULL,\n  `passed` integer NOT NULL,\n  `actual` real NOT NULL,\n  `failing_routes` text\n);',
 
   // CrUX field data
@@ -38,6 +38,7 @@ export const INIT_SQL_STATEMENTS: readonly string[] = [
   'ALTER TABLE `scan_routes` ADD COLUMN `report_blob_key` text;',
   // D-040: per-row auditor provenance.
   'ALTER TABLE `scan_routes` ADD COLUMN `auditor` text;',
+  'ALTER TABLE `comparison_diffs` ADD COLUMN `device` text NOT NULL DEFAULT \'mobile\';',
   'ALTER TABLE `scans` ADD COLUMN `site_id` text REFERENCES `sites`(`id`) ON DELETE SET NULL;',
   'CREATE INDEX IF NOT EXISTS `idx_scans_site_id` ON `scans` (`site_id`);',
 ]

@@ -1,8 +1,7 @@
 import type { RouteDiff } from '@unlighthouse/contracts/commands'
 import type { Category } from '@unlighthouse/contracts/types/atoms'
-import type { CategoryDelta, CompareThresholds } from './route-comparison'
-import { isRouteCategory } from '../route-metrics'
-import { CATEGORY_LABEL } from './route-comparison'
+import type { CategoryDelta, CompareThresholds } from '../../../comparison/policy'
+import { CATEGORY_LABEL, isRouteCategory } from '../../../comparison/policy'
 
 const TOP_N = 5
 

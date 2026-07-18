@@ -14,9 +14,10 @@
 // Workers type releases without leaking their global DOM declarations into
 // consumers. The Worker's `auditorFactory` imports Workers types separately.
 
-import type { Auditor } from '@unlighthouse/contracts/ports'
+import type { Auditor, LighthouseAuditRequest } from '@unlighthouse/contracts/ports'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createRemoteLighthouseAuditor } from '@unlighthouse/core/auditors/remote-lighthouse'
+import { assertLighthouseResult } from '@unlighthouse/core/report'
 
 /**
  * Minimal local shape of the Container DO namespace surface this helper
@@ -88,18 +89,19 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
       const stub = opts.container.getByName
         ? opts.container.getByName(name)
         : opts.container.get(opts.container.idFromName(name))
+      const body: LighthouseAuditRequest = {
+        url: req.url,
+        config: req.lighthouseConfig,
+        flags: req.lighthouseFlags,
+        device: req.device,
+      }
       const res = await stub.fetch('https://container.internal/audit', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           'authorization': `Bearer ${req.token}`,
         },
-        body: JSON.stringify({
-          url: req.url,
-          config: req.lighthouseConfig,
-          flags: req.lighthouseFlags,
-          device: req.device,
-        }),
+        body: JSON.stringify(body),
         signal: req.signal,
       })
       if (!res.ok) {
@@ -117,13 +119,16 @@ export function createContainerLighthouseAuditor(opts: ContainerLighthouseOption
         })
       }
       const lhr = await res.json()
-      if (!lhr || typeof lhr !== 'object' || !('categories' in (lhr as object))) {
+      try {
+        return assertLighthouseResult(lhr)
+      }
+      catch (cause) {
         throw new UnlighthouseError({
           code: 'INFRA_RETRYABLE',
           message: 'LighthouseContainer returned an invalid LHR',
+          cause,
         })
       }
-      return lhr as Awaited<ReturnType<Auditor['audit']>>
     },
   })
 }

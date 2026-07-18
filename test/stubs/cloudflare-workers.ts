@@ -7,16 +7,13 @@
 // the real deploy. Tests here only need the symbols to resolve.
 
 export class DurableObject {
-  // eslint-disable-next-line ts/no-explicit-any
-  constructor(_ctx?: any, _env?: any) {}
+  constructor(_ctx?: unknown, _env?: unknown) {}
 }
 
 export class WorkerEntrypoint {
-  // eslint-disable-next-line ts/no-explicit-any
-  constructor(_ctx?: any, _env?: any) {}
+  constructor(_ctx?: unknown, _env?: unknown) {}
 }
 
 export class WorkflowEntrypoint {
-  // eslint-disable-next-line ts/no-explicit-any
-  constructor(_ctx?: any, _env?: any) {}
+  constructor(_ctx?: unknown, _env?: unknown) {}
 }

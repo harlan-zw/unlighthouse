@@ -40,6 +40,7 @@ const {
 } = useRouteDetail()
 
 const { fmtMs } = createFormatters()
+const isStatic = useIsStatic()
 
 useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
 </script>
@@ -87,12 +88,12 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
               </a>
             </UiTooltip>
           </div>
-          <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted/60">
+          <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted">
             <span>LH {{ routeData.provenance.lighthouseVersion }}</span>
             <span v-if="routeData.provenance.timingTotal">{{ fmtMs(routeData.provenance.timingTotal) }} audit</span>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div v-if="!isStatic" class="flex items-center gap-2">
           <a
             v-if="routeData.route?.lhrBlobKey"
             :href="rawLhrUrl"
@@ -128,7 +129,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
       <UiCard v-if="screenshotVisible" size="sm">
         <template #header>
           <div class="flex flex-row items-center justify-between gap-2">
-            <h2 class="text-label text-dimmed">
+            <h2 class="text-label text-muted">
               Visual
             </h2>
             <div class="flex items-center gap-3">
@@ -158,6 +159,8 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
              desktop — so neither form factor looks distorted. -->
         <div
           id="route-screenshot"
+          tabindex="0"
+          aria-label="Scrollable full-page screenshot"
           class="mx-auto w-full overflow-y-auto rounded border bg-elevated"
           :class="[
             screenshotExpanded ? 'max-h-[80dvh]' : 'max-h-[420px]',

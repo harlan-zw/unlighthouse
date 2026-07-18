@@ -127,13 +127,6 @@ interface InsightAccum {
   routes: Set<string>
 }
 
-interface LhrLike {
-  audits?: Record<string, {
-    title?: string
-    metricSavings?: { FCP?: number, LCP?: number, INP?: number, CLS?: number }
-  }>
-}
-
 // Map an LHR-savings key to our metric key. CLS savings are in CLS-units
 // (dimensionless) and we don't convert; consumer ignores them in the "ms"
 // summary anyway. Only LCP/FCP/INP feed the ms-shaped fix list today.
@@ -174,14 +167,14 @@ async function readInsightAudits(
     const lhr = await ctx.getLhr(url, device).catch((err) => {
       ctx.logger?.debug?.(`cwv pack: failed to load LHR for ${url} [${device}]`, err)
       return null
-    }) as LhrLike | null
+    })
     if (!lhr?.audits)
       return null
     const out = new Map<string, SavingsMap>()
     for (const [id, audit] of Object.entries(lhr.audits)) {
       if (!id.endsWith('-insight') || !audit.metricSavings)
         continue
-      out.set(id, audit.metricSavings as SavingsMap)
+      out.set(id, audit.metricSavings)
     }
     return out
   }

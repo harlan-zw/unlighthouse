@@ -1,10 +1,10 @@
-import type { Device, ScanId } from '@unlighthouse/contracts/types/atoms'
-import type { LighthouseReportAudit, LighthouseReportCategory } from '../index.ts'
+import type { LighthouseReportCategory } from '../index.ts'
 import type { CiOptions, UnlighthouseRouteReport } from './types'
 import { setMaxListeners } from 'node:events'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
+import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
 import { parseRouteContract, routeContractBlobKey } from '@unlighthouse/core/report'
 import { createConsola } from 'consola'
@@ -12,19 +12,25 @@ import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
 import { runAssertions } from './assertions'
 import { createCiBaseCli } from './cac-base'
-import { parseDevices, pickOptions, validateHost, validateOptions } from './util'
+import { parseDevices, pickOptions, resolveCiReporter, validateHost, validateOptions } from './util'
 
-const cli = createCiBaseCli()
+export interface CiEntryOptions {
+  /** Full process-style argv, including node and script entries. */
+  argv?: string[]
+  /** Environment captured at the executable boundary. */
+  env?: NodeJS.ProcessEnv
+}
 
-cli
-  .option('--budget <budget>', 'Budget (1-100), the minimum score required for each page to pass.')
-  .option('--build-static', 'Build a static version of the Unlighthouse report.')
-  .option('--reporter <reporter>', 'The reporter to use. Options: csvExpanded, csv, json, jsonExpanded. Set to false to disable.')
-  .option('--no-assert', 'Disable CI assertions. On by default in CI mode.')
-  .option('--compare [target]', 'Compare this scan against a previous one. Values: "latest" (default) | <scanId> | <branch>. Regressions cause non-zero exit.')
-  .option('--compare-output <path>', 'When using --compare, write a Markdown summary of the diff to this path (suitable for PR comments).')
-
-const { options } = cli.parse() as unknown as { options: CiOptions }
+/** Build the CI parser without parsing arguments or starting a scan. */
+export function createCiCli() {
+  return createCiBaseCli()
+    .option('--budget <budget>', 'Budget (1-100), the minimum score required for each page to pass.')
+    .option('--build-static', 'Build a static version of the Unlighthouse report.')
+    .option('--reporter <reporter>', 'The reporter to use. Options: csvExpanded, csv, json, jsonExpanded. Set to false to disable.')
+    .option('--no-assert', 'Disable CI assertions. On by default in CI mode.')
+    .option('--compare [target]', 'Compare this scan against a previous one. Values: "latest" (default) | <scanId> | <branch>. Regressions cause non-zero exit.')
+    .option('--compare-output <path>', 'When using --compare, write a Markdown summary of the diff to this path (suitable for PR comments).')
+}
 
 function reportRouteFor(row: { path: string, url: string }): UnlighthouseRouteReport['route'] {
   return {
@@ -39,9 +45,14 @@ function reportRouteFor(row: { path: string, url: string }): UnlighthouseRouteRe
   }
 }
 
-async function run() {
+/** Run CI and return the desired process exit code. Importing this module is inert. */
+export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
+  const env = entry.env ?? process.env
+  // cac exposes parsed options as `any`; constrain that upstream boundary once
+  // so the runner stays on the owned CiOptions contract.
+  const options = createCiCli().parse(entry.argv ?? process.argv).options as CiOptions
   if (options.help || options.version)
-    return
+    return 0
 
   const start = new Date()
   setMaxListeners(0)
@@ -60,6 +71,7 @@ async function run() {
       },
     },
     behavior: { ws: null, label: 'ci' },
+    env,
   })
 
   validateOptions(unlighthouse.resolvedConfig)
@@ -67,33 +79,32 @@ async function run() {
   // D-029: forward parsed `--device` matrix into the run overrides so CI
   // runs can exercise mobile + desktop under a single scan id.
   const deviceOverride = parseDevices(options)
-  // start() initialises the host ports (and kicks off the scan); the hooks
-  // proxy throws if accessed before that. Register scan:complete immediately
-  // after — JS runs these synchronous statements before the scan can emit on a
-  // later tick, so there's no race with `await completed` below.
-  const { scanId } = await unlighthouse.start(
+  // Await the session's completion contract directly. A pending hook promise
+  // does not keep Node alive, so a failed scan could previously let the CI
+  // process exit 0 without producing its report.
+  const session = await unlighthouse.start(
     deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
   )
-  const completed = new Promise<{ completed: number }>((resolve) => {
-    unlighthouse.hooks.hook('scan:complete', (payload) => {
-      resolve({ completed: payload.summary.completed })
-    })
-  })
-  const { completed: completedCount } = await completed
+  const { scanId } = session
+  const { summary } = await session.done
+  const completedCount = summary.completed
   const seconds = Math.round((Date.now() - start.getTime()) / 1000)
+
+  // A CI run with no usable route results cannot satisfy budgets or produce a
+  // meaningful report. Treat it as a failed run instead of writing an empty
+  // artifact and exiting successfully (which masks crawler/auditor failures).
+  if (completedCount === 0) {
+    logger.error(`Unlighthouse finished with no successful routes (${summary.failed} failed) after ${seconds}s.`)
+    return 1
+  }
+
   logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${completedCount} routes in ${seconds}s.`)
 
-  const cliReporter = options.reporter
-  const configReporter = unlighthouse.resolvedConfig.ci?.reporter
-  const reporter
-    = cliReporter === false || configReporter === false
-      ? false
-      : cliReporter ?? configReporter ?? 'jsonSimple'
+  const reporter = resolveCiReporter(options.reporter, unlighthouse.resolvedConfig.ci?.reporter)
   if (reporter) {
     // Hydrate UnlighthouseRouteReport shape from `storage.routes` + LHR blobs;
     // hand off to the existing reporter pipeline (jsonSimple/jsonExpanded/csv).
-    const typedScanId = scanId as ScanId
-    const { items } = await unlighthouse.handlerCtx.storage.routes.listForScan(typedScanId, { pageSize: 10_000 })
+    const { items } = await unlighthouse.handlerCtx.storage.routes.listForScan(scanId, { pageSize: 10_000 })
     // D-029: when `--device` narrows the run to a subset, also narrow the
     // export so consumers only see the rows they asked for. Matrix scans
     // (no narrowing, or narrowing to multiple devices) export every (url,
@@ -102,7 +113,7 @@ async function run() {
       ? new Set(deviceOverride)
       : null
     const filtered = exportDeviceFilter
-      ? items.filter(r => exportDeviceFilter.has(r.device as Device))
+      ? items.filter(r => exportDeviceFilter.has(r.device))
       : items
     const hydrated = await Promise.all(filtered.map(async (r) => {
       // D-034: read the reconciled report (the LH-version-isolated projection),
@@ -136,7 +147,7 @@ async function run() {
         report: {
           score: scoreAverage,
           categories: categoriesArr,
-          audits: contract.audits as unknown as Record<string, LighthouseReportAudit>,
+          audits: contract.audits,
           computed: {
             imageIssues: emptyComputedAudit,
             ariaIssues: emptyComputedAudit,
@@ -174,7 +185,7 @@ async function run() {
   if (assertEnabled && assertionConfigs?.length && db) {
     const { passed } = await runAssertions(db, scanId, assertionConfigs, logger)
     if (!passed)
-      process.exit(1)
+      return 1
   }
 
   if (options.compare !== undefined && options.compare !== false && db) {
@@ -182,7 +193,7 @@ async function run() {
     const branch = target === 'latest' ? undefined : target
     let baseScanId: string | undefined
 
-    const asScan = await unlighthouse.handlerCtx.storage.scans.get(target as ScanId)
+    const asScan = await unlighthouse.handlerCtx.storage.scans.get(parseScanId(target))
     if (asScan) {
       baseScanId = asScan.scanId
     }
@@ -216,12 +227,10 @@ async function run() {
 
       if (comparison.regressed > 0) {
         logger.error(`Comparison failed: ${comparison.regressed} route(s) regressed beyond threshold.`)
-        process.exit(1)
+        return 1
       }
     }
   }
 
-  process.exit(0)
+  return 0
 }
-
-run()

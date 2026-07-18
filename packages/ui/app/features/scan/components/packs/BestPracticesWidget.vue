@@ -1,17 +1,29 @@
 <script setup lang="ts">
 import type { BestPracticesReport } from '@unlighthouse/contracts/packs'
-// See CwvWidget.vue for why `report` arrives untyped and gets cast here.
+import { BestPracticesReportSchema } from '@unlighthouse/contracts/packs'
+
 const props = defineProps<{ report: unknown, scanBase: string }>()
 
-const report = computed(() => props.report as BestPracticesReport)
+const report = computed(() => BestPracticesReportSchema.parse(props.report))
 
 // FindingsAccordion's shared finding shape only names the fields common to
 // every pack (auditId/severity/title/…); `sampleElements` is best-practices-
 // specific, so it flows through the finding-body slot via Finding's index
 // signature as `unknown`. Narrow it here rather than in the template.
 type SampleElement = BestPracticesReport['findings'][number]['sampleElements'][number]
+function isSampleElement(value: unknown): value is SampleElement {
+  if (!value || typeof value !== 'object')
+    return false
+  return 'selector' in value
+    && (value.selector === null || typeof value.selector === 'string')
+    && 'snippet' in value
+    && (value.snippet === null || typeof value.snippet === 'string')
+    && 'nodeLabel' in value
+    && (value.nodeLabel === null || typeof value.nodeLabel === 'string')
+}
+
 function sampleElementsOf(finding: Record<string, unknown>): SampleElement[] {
-  return Array.isArray(finding.sampleElements) ? finding.sampleElements as SampleElement[] : []
+  return Array.isArray(finding.sampleElements) ? finding.sampleElements.filter(isSampleElement) : []
 }
 </script>
 

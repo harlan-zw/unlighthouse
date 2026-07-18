@@ -1,6 +1,7 @@
 import type { Logger } from '@unlighthouse/contracts'
-import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
-import { gzipSync } from '../util/gzip'
+import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, LighthouseAuditResult, Page } from '@unlighthouse/contracts/ports'
+import { z } from 'zod'
+import { attachExtractedRouteData } from './lighthouse-report'
 
 export type FormFactor = 'PHONE' | 'DESKTOP' | 'TABLET' | 'ALL_FORM_FACTORS'
 
@@ -20,35 +21,40 @@ export interface CruxMetricSeries {
   cls: CruxHistoryEntry[]
 }
 
-interface MetricTimeseries {
-  histogramTimeseries: Array<{
-    start: number | string
-    end?: number | string
-    densities: (number | string)[]
-  }>
-  percentilesTimeseries: {
-    p75s: (number | string | null)[]
-  }
-}
+const NumberLikeSchema = z.union([z.number(), z.string()])
+const DateSchema = z.object({ year: z.number(), month: z.number(), day: z.number() })
+const MetricTimeseriesSchema = z.object({
+  histogramTimeseries: z.array(z.object({
+    start: NumberLikeSchema,
+    end: NumberLikeSchema.optional(),
+    densities: z.array(NumberLikeSchema),
+  })),
+  percentilesTimeseries: z.object({
+    p75s: z.array(z.union([NumberLikeSchema, z.null()])),
+  }),
+})
+const CrUXHistoryResultSchema = z.object({
+  key: z.object({
+    formFactor: z.enum(['PHONE', 'DESKTOP', 'TABLET']),
+    origin: z.string().optional(),
+    url: z.string().optional(),
+  }),
+  metrics: z.object({
+    cumulative_layout_shift: MetricTimeseriesSchema.optional(),
+    largest_contentful_paint: MetricTimeseriesSchema.optional(),
+    interaction_to_next_paint: MetricTimeseriesSchema.optional(),
+    first_contentful_paint: MetricTimeseriesSchema.optional(),
+    experimental_time_to_first_byte: MetricTimeseriesSchema.optional(),
+  }),
+  collectionPeriods: z.array(z.object({
+    firstDate: DateSchema,
+    lastDate: DateSchema,
+  })),
+})
+const CrUXHistoryResponseSchema = z.object({ record: CrUXHistoryResultSchema.optional() })
 
-interface CrUXHistoryResult {
-  key: {
-    formFactor: 'PHONE' | 'DESKTOP' | 'TABLET'
-    origin?: string
-    url?: string
-  }
-  metrics: {
-    cumulative_layout_shift?: MetricTimeseries
-    largest_contentful_paint?: MetricTimeseries
-    interaction_to_next_paint?: MetricTimeseries
-    first_contentful_paint?: MetricTimeseries
-    experimental_time_to_first_byte?: MetricTimeseries
-  }
-  collectionPeriods: Array<{
-    firstDate: { year: number, month: number, day: number }
-    lastDate: { year: number, month: number, day: number }
-  }>
-}
+type MetricTimeseries = z.infer<typeof MetricTimeseriesSchema>
+type CrUXHistoryResult = z.infer<typeof CrUXHistoryResultSchema>
 
 interface NormalizedEntry {
   date: string
@@ -127,15 +133,21 @@ function toSeries(
   poorKey: 'lcpPoor' | 'inpPoor' | 'clsPoor',
   filterZero: boolean,
 ): CruxHistoryEntry[] {
-  return entries
-    .filter(h => h[p75Key] != null && (!filterZero || h[p75Key]! > 0))
-    .map(h => ({
-      value: h[p75Key]!,
+  return entries.flatMap((h) => {
+    const value = h[p75Key]
+    if (value == null || (filterZero && value <= 0))
+      return []
+    const good = h[goodKey]
+    const ni = h[niKey]
+    const poor = h[poorKey]
+    return [{
+      value,
       time: new Date(h.date).getTime(),
-      good: typeof h[goodKey] === 'number' ? Math.round(h[goodKey]! * 100) : undefined,
-      ni: typeof h[niKey] === 'number' ? Math.round(h[niKey]! * 100) : undefined,
-      poor: typeof h[poorKey] === 'number' ? Math.round(h[poorKey]! * 100) : undefined,
-    }))
+      good: typeof good === 'number' ? Math.round(good * 100) : undefined,
+      ni: typeof ni === 'number' ? Math.round(ni * 100) : undefined,
+      poor: typeof poor === 'number' ? Math.round(poor * 100) : undefined,
+    }]
+  })
 }
 
 const EMPTY_SERIES: CruxMetricSeries = { lcp: [], inp: [], cls: [] }
@@ -182,11 +194,14 @@ export async function fetchCruxHistory(opts: {
     throw new Error(`CrUX API ${res.status}: ${cruxErrorMessage(body) || res.statusText}`)
   }
 
-  const data = await res.json() as { record?: CrUXHistoryResult }
-  if (!data.record)
+  const data: unknown = await res.json()
+  const parsed = CrUXHistoryResponseSchema.safeParse(data)
+  if (!parsed.success)
+    throw new TypeError(`CrUX API returned an invalid history response: ${parsed.error.message}`)
+  if (!parsed.data.record)
     return EMPTY_SERIES
 
-  const history = normaliseCruxHistory(data.record)
+  const history = normaliseCruxHistory(parsed.data.record)
   return {
     lcp: toSeries(history, 'lcp75', 'lcpGood', 'lcpNi', 'lcpPoor', true),
     inp: toSeries(history, 'inp75', 'inpGood', 'inpNi', 'inpPoor', true),
@@ -259,14 +274,14 @@ function buildSyntheticLhr(args: {
   url: string
   formFactor: FormFactor | undefined
   latest: NormalizedEntry | undefined
-}): Record<string, unknown> {
+}): AuditorReport {
   const { url, formFactor, latest } = args
   const lcp = latest?.lcp75
   // CrUX serialises CLS as a raw float (e.g. 0.05). No scale conversion.
   const cls = latest?.cls75
   const inp = latest?.inp75
 
-  const audits: Record<string, unknown> = {}
+  const audits: Record<string, LighthouseAuditResult> = {}
   const auditRefs: Array<{ id: string, weight: number }> = []
   const lcpScore = scoreMetric('lcp', lcp)
   const clsScore = scoreMetric('cls', cls)
@@ -312,8 +327,8 @@ function buildSyntheticLhr(args: {
   // Weighted-average performance score using the auditRef weights above.
   // Missing metrics drop out so a partial dataset scores the metrics it has.
   const scoredRefs = auditRefs
-    .map(r => ({ weight: r.weight, score: (audits[r.id] as { score?: number | null } | undefined)?.score }))
-    .filter(r => typeof r.score === 'number') as Array<{ weight: number, score: number }>
+    .map(r => ({ weight: r.weight, score: audits[r.id]?.score }))
+    .filter((ref): ref is { weight: number, score: number } => typeof ref.score === 'number')
   const totalWeight = scoredRefs.reduce((a, r) => a + r.weight, 0)
   const perfScore = totalWeight > 0
     ? Math.round((scoredRefs.reduce((a, r) => a + r.weight * r.score, 0) / totalWeight) * 100) / 100
@@ -335,7 +350,7 @@ function buildSyntheticLhr(args: {
 export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
   return {
     capabilities: CRUX_CAPABILITIES,
-    async audit(url: string, _page?: Page, _auditOpts?: AuditOpts): Promise<LighthouseReport> {
+    async audit(url: string, _page?: Page, _auditOpts?: AuditOpts): Promise<AuditorReport> {
       const series = await fetchCruxHistory({
         apiKey: opts.apiKey,
         origin: getSiteOrigin(url),
@@ -355,41 +370,15 @@ export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
             inp75: inpLast?.value,
           }
         : undefined
-      const lhr = buildSyntheticLhr({ url, formFactor: opts.formFactor, latest }) as LighthouseReport & {
-        categories: { performance: { score: number | null } }
-      }
-      // Attach `lhrGzip` so core's ingest path writes the LHR blob + the
-      // D-030 reconciled report. Without it, CrUX scans would persist row
-      // data but no per-route blob, and packs that read getLhr/getReconciled
-      // would see nothing.
-      ;(lhr as Record<string, unknown>).lhrGzip = gzipSync(JSON.stringify(lhr))
-      // Also pre-populate `extracted` so ingest writes real metric columns
-      // (the same shape ExtractedMetrics expects). Without this, the row
-      // ends up with all-null metric columns.
-      ;(lhr as Record<string, unknown>).extracted = {
+      const lhr = attachExtractedRouteData(
+        buildSyntheticLhr({ url, formFactor: opts.formFactor, latest }),
         url,
-        path: new URL(url).pathname,
-        routeName: null,
-        scorePerformance: lhr.categories.performance.score,
-        scoreAccessibility: null,
-        scoreSeo: null,
-        scoreBestPractices: null,
-        lcp: latest?.lcp75 ?? null,
-        cls: latest?.cls75 ?? null,
-        inp: latest?.inp75 ?? null,
-        fcp: null,
-        ttfb: null,
-        tbt: null,
-        si: null,
-        lighthouseVersion: '12.0.0',
-        auditor: 'crux',
-        capturedAt: new Date().toISOString(),
-      }
-      ;(lhr as Record<string, unknown>).auditor = 'crux'
+        'crux',
+      )
       // Keep the raw series accessible for dashboards / debug — packs
       // don't read it but the UI shows the time-series chart from it.
-      ;(lhr as Record<string, unknown>)['crux-history'] = series
-      return lhr as unknown as LighthouseReport
+      lhr['crux-history'] = series
+      return lhr
     },
   }
 }

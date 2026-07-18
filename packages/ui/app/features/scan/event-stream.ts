@@ -222,7 +222,7 @@ export function useScanEventStream(scanId: ScanId) {
   const api = useApi()
   const stream = createScanEventStream({
     scanId,
-    tailEvents: scanId => api['events.tail']({ scanId, follow: true }) as unknown as AsyncIterable<TailEvent>,
+    tailEvents: scanId => api['events.tail']({ scanId, follow: true }),
   })
   onUnmounted(() => stream.stopStream())
   return stream

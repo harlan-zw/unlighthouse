@@ -23,7 +23,7 @@ import type {
   ScanId,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
-import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
+import { ScanRouteSchema, ScanSchema } from '@unlighthouse/contracts/types/atoms'
 import { routeArtifactKeys } from '../artifact-keys'
 
 const SCORE_FILTER_KEYS = ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'] as const satisfies readonly Category[]
@@ -77,7 +77,12 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
   const packRunKey = (scanId: ScanId, name: string, version: string) =>
     `${scanId}::${name}::${version}`
 
-  const clone = <T>(v: T): T => (v == null ? v : JSON.parse(JSON.stringify(v)) as T)
+  const clone = <T>(value: T): T => structuredClone(value)
+
+  function fromStoredScan(stored: Scan & { _createdAtMs: number }): Scan {
+    const { _createdAtMs: _created, ...scan } = stored
+    return ScanSchema.parse(scan)
+  }
 
   function toRoute(scanId: ScanId, device: Device, m: ScanRouteWrite): ScanRoute {
     const keys = routeArtifactKeys(scanId, m.url, device)
@@ -95,11 +100,13 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
 
   const scanRepo: ScanRepository = {
     async create(scan: ScanInsert): Promise<Scan> {
-      const full: Scan = {
+      const full = ScanSchema.parse({
         ...clone(scan),
+        siteId: scan.siteId ?? null,
+        mode: scan.mode ?? 'site',
         completedAt: scan.completedAt ?? null,
-        summary: (scan.summary ?? null) as Scan['summary'],
-      } as Scan
+        summary: scan.summary ?? null,
+      })
       scansMap.set(full.scanId, { ...full, _createdAtMs: Date.now() })
       return clone(full)
     },
@@ -107,17 +114,18 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
       const cur = scansMap.get(scanId)
       if (!cur)
         return null
-      const { _createdAtMs: _x, ...out } = cur
-      return clone(out as Scan)
+      return clone(fromStoredScan(cur))
     },
     async update(scanId, patch) {
       const cur = scansMap.get(scanId)
       if (!cur)
         throw new Error(`Scan not found: ${scanId}`)
-      const next = { ...cur, ...clone(patch) } as Scan & { _createdAtMs: number }
+      const next = {
+        ...ScanSchema.parse({ ...cur, ...clone(patch) }),
+        _createdAtMs: cur._createdAtMs,
+      }
       scansMap.set(scanId, next)
-      const { _createdAtMs: _x, ...out } = next
-      return clone(out as Scan)
+      return clone(fromStoredScan(next))
     },
     async findPrevious(q: FindPreviousQuery) {
       const matches = Array.from(scansMap.values())
@@ -127,8 +135,7 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
         .sort((a, b) => (b.startedAt > a.startedAt ? 1 : b.startedAt < a.startedAt ? -1 : b._createdAtMs - a._createdAtMs))
       if (!matches[0])
         return null
-      const { _createdAtMs: _x, ...out } = matches[0]
-      return clone(out as Scan)
+      return clone(fromStoredScan(matches[0]))
     },
     async list(q: ListQuery): Promise<Paginated<Scan>> {
       const page = Math.max(1, q.page ?? 1)
@@ -147,7 +154,7 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
       const total = filtered.length
       const items = filtered
         .slice((page - 1) * pageSize, page * pageSize)
-        .map(({ _createdAtMs: _x, ...rest }) => clone(rest as Scan))
+        .map(stored => clone(fromStoredScan(stored)))
       return { items, total, page, pageSize }
     },
     async delete(scanId) {
@@ -294,26 +301,9 @@ export function memoryStorage(_opts: MemoryStorageOptions = {}): Storage {
   // cloudflare/test environments degrade to "no dashboard data" instead of
   // crashing handlers.
   const emptyList = { list: async () => [] }
-  const reportRepos = {
-    accessibility: emptyList,
-    accessibilityElements: emptyList,
-    missingAltImages: emptyList,
-    performance: emptyList,
-    thirdPartyScripts: emptyList,
-    lcpElements: emptyList,
-    seoMeta: emptyList,
-    seoDuplicates: emptyList,
-    canonicalChains: emptyList,
-    linkTextIssues: emptyList,
-    tapTargetIssues: emptyList,
-    bestPracticesSecurity: emptyList,
-    bestPracticesLibraries: emptyList,
-    bestPracticesVulnerable: emptyList,
-    bestPracticesDeprecated: emptyList,
-    bestPracticesConsoleErrors: emptyList,
+  const reportRepos: Storage['reports'] = {
     crux: emptyList,
-    dashboardSummary: { get: async () => null },
-  } as Storage['reports']
+  }
 
   const comparisonsRepo: Storage['comparisons'] = {
     async list() { return [] },

@@ -1,33 +1,12 @@
-import type { ScanId } from '@unlighthouse/contracts'
+import type { CommandOutput, RouteGet } from '@unlighthouse/contracts/commands'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { createScreenshotUrl, getScanId } from '~/features/scan/route-context'
 
 type DeviceFilter = '' | 'mobile' | 'desktop'
-
-interface AuditEntry {
-  id: string
-  title: string | null
-  description: string | null
-  severity: 'pass' | 'warn' | 'fail'
-  score: number | null
-  displayValue: string | null
-  metricSavings: Record<string, number> | null
-  items: AuditItem[] | null
-  scoreDisplayMode: string
-}
-
-interface RouteCategorySummary {
-  id: string
-  title: string
-  score: number | null
-  categoryScoreDisplayMode?: 'gauge' | 'fraction' | null
-  auditCount: number
-  passingCount: number
-  failingCount: number
-  auditRefs: Array<{ id: string, weight: number }>
-}
-
+type RouteGetOutput = CommandOutput<typeof RouteGet>
+type AuditEntry = RouteGetOutput['audits'][string]
+type AuditItem = NonNullable<AuditEntry['items']>[number]
 interface RouteScoreSummary {
   id: string
   label: string
@@ -37,19 +16,11 @@ interface RouteScoreSummary {
   passingCount: number
 }
 
-// Lighthouse audit-detail items carry pack-specific shapes; this view only
-// probes a handful of fields to decide whether a row has drill-in content.
-interface AuditItem {
-  url?: string
-  node?: { snippet?: string, nodeLabel?: string }
-  reason?: string
-  wastedBytes?: number
-  wastedMs?: number
-  totalBytes?: number
-  transferSize?: number
-  blockingTime?: number
-  snippet?: string
-  [key: string]: unknown
+interface RouteMetric {
+  label: string
+  value: number | null
+  unit: 'ms' | ''
+  description: string
 }
 
 interface RichTextPart {
@@ -91,8 +62,8 @@ function resolveRouteUrl(path: string, site?: string | null): string {
   }
 }
 
-function formatRouteDetailMetric(value: number | null | undefined, unit: string = 'ms'): string {
-  return formatMetricValue(value, unit as 'ms' | '')
+function formatRouteDetailMetric(value: number | null | undefined, unit: 'ms' | '' = 'ms'): string {
+  return formatMetricValue(value, unit)
 }
 
 function routeMetricColor(label: string, value: number | null | undefined): string {
@@ -144,21 +115,20 @@ function hasVisibleAuditItem(item: AuditItem): boolean {
   return !!(item.url || item.node?.snippet || item.reason || item.wastedBytes || item.wastedMs || item.snippet)
 }
 
-function hasNonZeroSavings(savings: Record<string, unknown>): boolean {
+function hasNonZeroSavings(savings: NonNullable<AuditEntry['metricSavings']>): boolean {
   return Object.values(savings).some(value => typeof value === 'number' ? value > 0 : !!value)
 }
 
 export function useRouteDetail() {
   const route = useRoute()
   const router = useRouter()
-  const config = useRuntimeConfig()
   const screenshotUrl = createScreenshotUrl()
   const { scoreToLabel, scoreToRingColor } = createScoreColorHelpers()
   const { fmtBytes: formatBytes } = createFormatters()
 
   const scanId = getScanId()
   const routePath = routeParamPath(route.params.path)
-  const baseUrl = config.public.unlighthouseApiUrl as string
+  const baseUrl = getRuntimeApiUrl()
 
   const screenshotVisible = ref(true)
   const screenshotExpanded = ref(false)
@@ -199,7 +169,7 @@ export function useRouteDetail() {
     toast.success('Route rescan started')
   }
 
-  const availableDevices = computed<string[]>(() => routeData.value?.availableDevices ?? [])
+  const availableDevices = computed(() => routeData.value?.availableDevices ?? [])
   const hasMultipleDevices = computed(() => availableDevices.value.length > 1)
 
   const rawLhrUrl = computed(() => {
@@ -212,7 +182,11 @@ export function useRouteDetail() {
   })
 
   const lhrDownloadName = computed(() => `${scanId}-${routeData.value?.route?.device || 'mobile'}.lhr.json`)
-  const screenshotFullUrl = computed(() => screenshotUrl(scanId, routeData.value?.route?.path || routePath))
+  const screenshotFullUrl = computed(() => screenshotUrl(
+    scanId,
+    routeData.value?.route?.path || routePath,
+    routeData.value?.route?.device || deviceFilter.value || undefined,
+  ))
   const screenshotImageUrl = computed(() => screenshotUrl(
     scanId,
     routeData.value?.route?.path || routePath,
@@ -220,7 +194,7 @@ export function useRouteDetail() {
   ))
 
   const scores = computed(() => {
-    const categorySummaries = routeData.value?.categories as RouteCategorySummary[] | undefined
+    const categorySummaries = routeData.value?.categories
     if (categorySummaries?.length) {
       return categorySummaries
         .filter(category => category.score != null)
@@ -238,13 +212,13 @@ export function useRouteDetail() {
     if (!routeRow)
       return []
     const categories: RouteScoreSummary[] = [
-      { id: 'performance', label: 'Performance', score: routeRow.scorePerformance, categoryScoreDisplayMode: 'gauge' as const, auditCount: 0, passingCount: 0 },
-      { id: 'accessibility', label: 'Accessibility', score: routeRow.scoreAccessibility, categoryScoreDisplayMode: 'gauge' as const, auditCount: 0, passingCount: 0 },
-      { id: 'seo', label: 'SEO', score: routeRow.scoreSeo, categoryScoreDisplayMode: 'gauge' as const, auditCount: 0, passingCount: 0 },
-      { id: 'best-practices', label: 'Best Practices', score: routeRow.scoreBestPractices, categoryScoreDisplayMode: 'gauge' as const, auditCount: 0, passingCount: 0 },
+      { id: 'performance', label: 'Performance', score: routeRow.scorePerformance, categoryScoreDisplayMode: 'gauge', auditCount: 0, passingCount: 0 },
+      { id: 'accessibility', label: 'Accessibility', score: routeRow.scoreAccessibility, categoryScoreDisplayMode: 'gauge', auditCount: 0, passingCount: 0 },
+      { id: 'seo', label: 'SEO', score: routeRow.scoreSeo, categoryScoreDisplayMode: 'gauge', auditCount: 0, passingCount: 0 },
+      { id: 'best-practices', label: 'Best Practices', score: routeRow.scoreBestPractices, categoryScoreDisplayMode: 'gauge', auditCount: 0, passingCount: 0 },
     ]
     if (routeRow.scoreAgenticBrowsing != null)
-      categories.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: routeRow.scoreAgenticBrowsing, categoryScoreDisplayMode: 'fraction' as const, auditCount: 0, passingCount: 0 })
+      categories.push({ id: 'agentic-browsing', label: 'Agentic Browsing', score: routeRow.scoreAgenticBrowsing, categoryScoreDisplayMode: 'fraction', auditCount: 0, passingCount: 0 })
     return categories.filter(category => category.score != null)
   })
 
@@ -254,7 +228,7 @@ export function useRouteDetail() {
     return scoreToLabel(category.score)
   }
 
-  const metrics = computed(() => {
+  const metrics = computed<RouteMetric[]>(() => {
     const routeRow = routeData.value?.route
     if (!routeRow)
       return []
@@ -270,8 +244,8 @@ export function useRouteDetail() {
   })
 
   const categoryAudits = computed(() => {
-    const categories = routeData.value?.categories as RouteCategorySummary[] | undefined
-    const audits = routeData.value?.audits as Record<string, AuditEntry> | undefined
+    const categories = routeData.value?.categories
+    const audits = routeData.value?.audits
     if (!categories || !audits)
       return []
 
@@ -310,7 +284,7 @@ export function useRouteDetail() {
   })
 
   return {
-    scanId: scanId as ScanId,
+    scanId,
     routePath,
     status,
     scanMetaStatus,

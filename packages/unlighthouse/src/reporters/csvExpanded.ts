@@ -1,11 +1,6 @@
 import type { UnlighthouseTabs } from '../index.ts'
-import type { UnlighthouseRouteReport } from '../types'
-import type { ReporterConfig } from './types'
+import type { ReporterConfig, ReportWithLighthouse } from './types'
 import { appendDeviceColumn, csvSimpleFormat } from './csvSimple'
-
-type ReportWithLighthouse = UnlighthouseRouteReport & {
-  report: NonNullable<UnlighthouseRouteReport['report']>
-}
 
 interface CsvAuditValue {
   scoreDisplayMode?: string

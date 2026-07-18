@@ -5,10 +5,11 @@
 // lets tests exercise the HTTP interface without opening a real socket.
 
 import type { Logger } from '@unlighthouse/contracts'
-import type { Auditor } from '@unlighthouse/contracts/ports'
+import type { Auditor, LighthouseAuditRequest } from '@unlighthouse/contracts/ports'
 import { Buffer } from 'node:buffer'
 import { timingSafeEqual } from 'node:crypto'
 import { logOperationalError } from '@unlighthouse/contracts/logging'
+import { parseLighthouseAuditRequest } from '@unlighthouse/contracts/ports'
 import {
   createApp,
   createRouter,
@@ -66,16 +67,14 @@ export function createLighthouseContainerServer(opts: CreateLighthouseContainerS
         return { error: 'unauthorized' }
       }
 
-      const body = await readBody<{
-        url?: string
-        config?: Record<string, unknown>
-        flags?: Record<string, unknown>
-        device?: 'mobile' | 'desktop'
-      }>(event)
-
-      if (!body?.url || typeof body.url !== 'string') {
+      let body: LighthouseAuditRequest
+      try {
+        const rawBody: unknown = await readBody(event)
+        body = parseLighthouseAuditRequest(rawBody)
+      }
+      catch {
         event.node.res.statusCode = 400
-        return { error: 'url required' }
+        return { error: 'invalid audit request' }
       }
 
       try {

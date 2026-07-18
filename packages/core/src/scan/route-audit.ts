@@ -14,6 +14,7 @@
 import type {
   Device,
   DeviceMatrix,
+  ExtractedMetrics,
   Logger,
   ScanId,
   ScanSummary,
@@ -22,15 +23,16 @@ import type {
 } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
+import type { AuditOpts, Auditor, AuditorReport } from '@unlighthouse/contracts/ports'
 import type { PackRegistry } from '../packs/index'
 import type { LighthouseResult } from '../report/types'
 import { ErrorCodes, toUnlighthouseError, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { ExtractedMetricsSchema, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createPackReconcileCtx } from '../packs/reconcile-context'
+import { decompressLhr } from '../report/extract'
 import { routeArtifactKeys } from '../storage/artifact-keys'
 import { base64ToBytes } from '../util/base64'
-import { gunzipToString } from '../util/gzip'
 import { computeMedianRun } from '../util/median'
 
 /** Emit on whatever hook/event bus the caller owns. */
@@ -39,11 +41,7 @@ export type EmitFn = <K extends keyof HookMap>(
   payload: Parameters<HookMap[K]>[0],
 ) => Promise<void>
 
-interface AuditorLike {
-  // We never pass a page from this path; keeping the second parameter at
-  // `undefined` stays assignable from real auditors without widening to any.
-  audit: (url: string, page?: undefined, opts?: { signal?: AbortSignal, device?: Device, lighthouseFlags?: Record<string, unknown>, sample?: { index: number, total: number } }) => Promise<unknown>
-}
+type AuditorLike = Pick<Auditor, 'audit'>
 
 /** Clamp `scanner.samples` to the schema range (1..10); default 1. */
 function samplesFor(config: UnlighthouseConfig): number {
@@ -52,9 +50,8 @@ function samplesFor(config: UnlighthouseConfig): number {
 }
 
 /** A run's performance score (0..1) for median ranking; null when absent. */
-function perfScoreOf(report: unknown): number | null {
-  const extracted = (report as { extracted?: { scorePerformance?: number | null } }).extracted
-  return extracted?.scorePerformance ?? null
+function perfScoreOf(report: AuditorReport): number | null {
+  return report.extracted?.scorePerformance ?? null
 }
 
 /**
@@ -66,13 +63,13 @@ function perfScoreOf(report: unknown): number | null {
 async function auditSampled(
   auditor: AuditorLike,
   url: string,
-  opts: { signal?: AbortSignal, device?: Device, lighthouseFlags?: Record<string, unknown> },
+  opts: AuditOpts,
   samples: number,
   logger?: Logger,
-): Promise<unknown> {
+): Promise<AuditorReport> {
   if (samples <= 1)
     return auditor.audit(url, undefined, opts)
-  const runs: unknown[] = []
+  const runs: AuditorReport[] = []
   for (let i = 0; i < samples; i++) {
     if (opts.signal?.aborted)
       break
@@ -181,7 +178,11 @@ export interface RouteAuditArgs {
  * key is deterministic (sha1(url)+device), so a retried call overwrites
  * cleanly rather than duplicating.
  */
-export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Promise<{ ok: boolean, metrics?: unknown }> {
+export type RouteAuditResult
+  = | { ok: true, metrics: ExtractedMetrics }
+    | { ok: false, error: StructuredError }
+
+export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Promise<RouteAuditResult> {
   const { auditor, storage, logger, emit } = deps
   const { scanId, url, device, signal } = args
   const parsedUrl = parseUrl(url)
@@ -196,9 +197,8 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       samplesFor(deps.config),
       logger,
     )
-    const extracted = (report as { extracted?: unknown }).extracted
-    const lhrGzip = (report as { lhrGzip?: Uint8Array }).lhrGzip
-    const metrics = ExtractedMetricsSchema.parse(extracted ?? {
+    const lhrGzip = report.lhrGzip
+    const metrics = ExtractedMetricsSchema.parse(report.extracted ?? {
       url,
       path: new URL(url).pathname,
       routeName: null,
@@ -214,7 +214,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       ttfb: null,
       tbt: null,
       si: null,
-      lighthouseVersion: (report as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
+      lighthouseVersion: report.lighthouseVersion,
       capturedAt: nowIso(),
     })
 
@@ -222,12 +222,12 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
     // adapter sets `report.auditor`; a router/fallback passes it through, so this
     // is the real backend, not the composer. `split` arrives here already set by
     // splitCategoriesAuditor (D-041) when categories diverged.
-    const reportAuditor = (report as { auditor?: string }).auditor
-    const reportAuditors = (report as { auditors?: Record<string, string> }).auditors
+    const reportAuditor = report.auditor
+    const reportAuditors = report.auditors
     // D-042: effective pool concurrency the audit ran under (1 when the perf
     // serial lane was active). Stamped into the reconciled report's provenance
     // so historical rows record whether the perf score was contended.
-    const reportConcurrency = (report as { concurrency?: number }).concurrency
+    const reportConcurrency = report.concurrency
     if (reportAuditor)
       metrics.auditor = reportAuditor
 
@@ -251,33 +251,18 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       })
 
       // Reconciled per-route report — UI-shaped, decoupled from LHR shape.
-      // Uses the auditor's reconciled output if present (faster); otherwise
-      // gunzips + reconciles here as a fallback.
-      const reconciled = (report as { reconciled?: unknown }).reconciled
-      let payload: unknown = reconciled
-      let lhrCache: unknown = null
-      if (!payload) {
-        try {
-          const { reconcileRoute } = await import('../report/extract')
-          lhrCache = JSON.parse(gunzipToString(lhrGzip))
-          payload = reconcileRoute({
-            url,
-            path: (metrics as { path?: string }).path ?? new URL(url).pathname,
-            routeName: (metrics as { routeName?: string | null }).routeName ?? null,
-            reportBlobKey: reportKey,
-            lhr: lhrCache as LighthouseResult,
-          })
-        }
-        catch (err) {
-          logOperationalWarn('scan.reconciled_report_write_failed', err, {
-            scanId,
-            url,
-            device,
-            phase: 'reconcile',
-          }, logger)
-        }
-      }
-      if (payload) {
+      // The raw artifact is validated once before any report consumer sees it.
+      let lhrCache: LighthouseResult | null = null
+      try {
+        const { reconcileRoute } = await import('../report/extract')
+        lhrCache = decompressLhr(lhrGzip)
+        const payload = reconcileRoute({
+          url,
+          path: metrics.path,
+          routeName: metrics.routeName,
+          reportBlobKey: reportKey,
+          lhr: lhrCache,
+        })
         const bytes = new TextEncoder().encode(JSON.stringify(payload))
         await storage.blobs.put(reportKey, bytes).catch((err) => {
           logOperationalWarn('scan.reconciled_report_write_failed', err, {
@@ -288,12 +273,20 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
           }, logger)
         })
       }
+      catch (err) {
+        logOperationalWarn('scan.reconciled_report_write_failed', err, {
+          scanId,
+          url,
+          device,
+          phase: 'reconcile',
+        }, logger)
+      }
 
       // D-030 contract reconciled report. Reuse the LHR gunzip if we already
       // did one above. Packs that opt into `getReconciled` read this.
       const { reconcileToContract } = await import('../report/extract')
-      const lhr = lhrCache ?? JSON.parse(gunzipToString(lhrGzip))
-      const contract = reconcileToContract({ scanId, url, device, lhr: lhr as LighthouseResult, auditor: reportAuditor, auditors: reportAuditors, concurrency: reportConcurrency })
+      const lhr = lhrCache ?? decompressLhr(lhrGzip)
+      const contract = reconcileToContract({ scanId, url, device, lhr, auditor: reportAuditor, auditors: reportAuditors, concurrency: reportConcurrency })
       const contractBytes = new TextEncoder().encode(JSON.stringify(contract))
       await storage.blobs.put(contractKey, contractBytes).catch((err) => {
         throw new UnlighthouseError({
@@ -306,8 +299,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       // Extract and store fullPageScreenshot as a separate blob.
       let screenshotBlobKey: string | null = null
       try {
-        const lhrObj = lhrCache ?? JSON.parse(gunzipToString(lhrGzip))
-        const fpScreenshot = (lhrObj as { fullPageScreenshot?: { screenshot?: { data?: string } } })
+        const fpScreenshot = lhr
           .fullPageScreenshot
           ?.screenshot
           ?.data
@@ -366,7 +358,7 @@ export async function auditRoute(deps: RouteAuditDeps, args: RouteAuditArgs): Pr
       durationMs: Date.now() - auditStart,
       ok: false,
     })
-    return { ok: false }
+    return { ok: false, error: structured }
   }
 }
 
@@ -416,13 +408,22 @@ export async function finalizeScan(deps: FinalizeDeps, args: FinalizeArgs): Prom
   const scoredRoutes = stats.scanned > 0
     ? (await storage.routes.listForScan(scanId, { page: 1, pageSize: 10_000 })).items
     : []
+  const scoresByDevice: NonNullable<ScanSummary['scoresByDevice']> = {}
+  for (const device of devices) {
+    const deviceRoutes = scoredRoutes.filter(route => route.device === device)
+    if (deviceRoutes.length)
+      scoresByDevice[device] = aggregateScores(deviceRoutes)
+  }
   const summary: ScanSummary = {
-    routes: stats.discovered,
+    // A Route is (scan, URL, device), so a two-device scan of two URLs has
+    // four routes even though the crawler only discovers two distinct URLs.
+    routes: stats.discovered * devices.length,
     completed: stats.scanned,
     failed: stats.failed,
     ...aggregateScores(scoredRoutes),
     durationMs: Date.now() - startedAtMs,
     devices,
+    scoresByDevice,
   }
 
   // Run all registered packs automatically so reports are ready immediately.

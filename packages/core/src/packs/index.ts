@@ -53,16 +53,16 @@ export type {
 } from '@unlighthouse/contracts/packs'
 
 export const builtInPacks: Record<string, Pack<unknown>> = {
-  [overviewPack.name]: overviewPack as Pack<unknown>,
-  [cwvPack.name]: cwvPack as Pack<unknown>,
-  [cruxPack.name]: cruxPack as Pack<unknown>,
-  [imagesPack.name]: imagesPack as Pack<unknown>,
-  [a11yQuickWinsPack.name]: a11yQuickWinsPack as Pack<unknown>,
-  [jsBundlePack.name]: jsBundlePack as Pack<unknown>,
-  [seoBasicsPack.name]: seoBasicsPack as Pack<unknown>,
-  [bestPracticesPack.name]: bestPracticesPack as Pack<unknown>,
-  [insightsPack.name]: insightsPack as Pack<unknown>,
-  [agenticBrowsingPack.name]: agenticBrowsingPack as Pack<unknown>,
+  [overviewPack.name]: overviewPack,
+  [cwvPack.name]: cwvPack,
+  [cruxPack.name]: cruxPack,
+  [imagesPack.name]: imagesPack,
+  [a11yQuickWinsPack.name]: a11yQuickWinsPack,
+  [jsBundlePack.name]: jsBundlePack,
+  [seoBasicsPack.name]: seoBasicsPack,
+  [bestPracticesPack.name]: bestPracticesPack,
+  [insightsPack.name]: insightsPack,
+  [agenticBrowsingPack.name]: agenticBrowsingPack,
 }
 
 export function getPack(name: string): Pack<unknown> | undefined {

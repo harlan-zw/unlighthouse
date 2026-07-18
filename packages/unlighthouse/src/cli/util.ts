@@ -10,6 +10,15 @@ import { handleError } from './errors'
 
 const VALID_DEVICES: readonly Device[] = ['mobile', 'desktop']
 
+export function resolveCiReporter(
+  cliReporter: CiOptions['reporter'],
+  configReporter: NonNullable<ResolvedUserConfig['ci']>['reporter'],
+): Exclude<CiOptions['reporter'], 'false' | undefined> | false {
+  if (cliReporter === false || cliReporter === 'false' || configReporter === false)
+    return false
+  return cliReporter ?? configReporter ?? 'jsonSimple'
+}
+
 function pickKeys<K extends string>(source: object, keys: readonly K[]): Partial<Record<K, unknown>> {
   const picked: Partial<Record<K, unknown>> = {}
   for (const key of keys) {

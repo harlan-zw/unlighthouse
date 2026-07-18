@@ -1,5 +1,5 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
-import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Page } from '@unlighthouse/contracts/ports'
 import { ofetch } from 'ofetch'
 import { utf8ToBase64 } from '../util/base64'
 import { extractInsights } from './extract'
@@ -84,7 +84,7 @@ export function createDataForSeoAuditor(opts: DataForSeoOptions): Auditor {
   const provider = createDataForSeoProvider(opts)
   return {
     capabilities: DATAFORSEO_CAPABILITIES,
-    async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
+    async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<AuditorReport> {
       const report = await provider(url)
       return attachExtractedRouteData(report.raw, url, 'dataforseo')
     },

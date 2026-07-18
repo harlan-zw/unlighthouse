@@ -1,8 +1,8 @@
 import type { Logger } from '@unlighthouse/contracts'
-import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Page } from '@unlighthouse/contracts/ports'
 import { ofetch } from 'ofetch'
 import { LIGHTHOUSE_DEFAULT_CATEGORIES } from './categories'
-import { attachExtractedRouteData } from './lighthouse-report'
+import { assertLighthouseResult, attachExtractedRouteData } from './lighthouse-report'
 
 // Generic remote-Lighthouse adapter. The remote service runs Lighthouse on its own
 // hardware and returns the raw LHR — unlike cdp-connect (D-022), perf scores are
@@ -26,7 +26,7 @@ export interface RemoteLighthouseOptions {
    * flags, and device the caller wants applied and must return a parsed LHR. Use this for vendors whose
    * request body shape diverges from `{ url, config }`.
    */
-  transport?: (req: RemoteLighthouseRequest) => Promise<LighthouseReport>
+  transport?: (req: RemoteLighthouseRequest) => Promise<AuditorReport>
   /**
    * Override advertised capabilities when a vendor runs an older Lighthouse or
    * ignores categories/features such as LH13 agentic browsing.
@@ -63,8 +63,12 @@ function resolveCapabilities(overrides?: Partial<AuditorCapabilities>): AuditorC
   }
 }
 
-async function defaultTransport(req: RemoteLighthouseRequest): Promise<LighthouseReport> {
-  const lhr = await ofetch(req.endpoint, {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+async function defaultTransport(req: RemoteLighthouseRequest): Promise<AuditorReport> {
+  const response: unknown = await ofetch(req.endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...req.headers },
     query: req.token ? { token: req.token } : undefined,
@@ -75,9 +79,16 @@ async function defaultTransport(req: RemoteLighthouseRequest): Promise<Lighthous
     timeout: req.timeoutMs,
     signal: req.signal,
   })
-  if (!lhr || typeof lhr !== 'object' || !('categories' in lhr))
-    throw new Error('Remote Lighthouse returned an invalid LHR')
-  return lhr as LighthouseReport
+  if (!isRecord(response))
+    return assertLighthouseResult(response)
+
+  // Browserless-compatible endpoints may omit URL fields even though the
+  // requested URL is already authoritative at this transport boundary.
+  return assertLighthouseResult({
+    ...response,
+    requestedUrl: typeof response.requestedUrl === 'string' ? response.requestedUrl : req.url,
+    finalUrl: typeof response.finalUrl === 'string' ? response.finalUrl : req.url,
+  })
 }
 
 export function createRemoteLighthouseAuditor(opts: RemoteLighthouseOptions): Auditor {
@@ -85,7 +96,7 @@ export function createRemoteLighthouseAuditor(opts: RemoteLighthouseOptions): Au
   const timeoutMs = opts.timeoutMs ?? 120_000
   return {
     capabilities: resolveCapabilities(opts.capabilities),
-    async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<LighthouseReport> {
+    async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<AuditorReport> {
       const lighthouseConfig = auditOpts.lighthouseConfig ?? {}
       const lighthouseFlags = auditOpts.lighthouseFlags ?? {}
       const lhr = await transport({

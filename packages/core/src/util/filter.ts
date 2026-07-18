@@ -35,11 +35,11 @@ export function createFilter(options: CreateFilterOptions = {}): (path: string) 
   return function (path: string): boolean {
     // check include first
     for (const v of [{ rules: include, result: true }, { rules: exclude, result: false }]) {
-      const regexRules = v.rules.filter(r => r instanceof RegExp) as RegExp[]
+      const regexRules = v.rules.filter((rule): rule is RegExp => rule instanceof RegExp)
       if (regexRules.some(r => r.test(path)))
         return v.result
 
-      const stringRules = v.rules.filter(r => typeof r === 'string') as string[]
+      const stringRules = v.rules.filter(r => typeof r === 'string')
       if (stringRules.length > 0) {
         const routes: Record<string, true> = {}
         for (const r of stringRules) {

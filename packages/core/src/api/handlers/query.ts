@@ -1,8 +1,8 @@
 // query.routes handler — cross-scan route query.
 
-import type { CommandOutput, QueryRoutes } from '@unlighthouse/contracts/commands'
 import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { Handler } from './types'
+import { QueryRoutes } from '@unlighthouse/contracts/commands'
 import {
   applyRouteFilter,
   applyRouteRegexFallback,
@@ -13,8 +13,9 @@ import {
 
 // INTERNAL: not used by the UI; kept for power users and test coverage (d029).
 export const queryRoutes: Handler<typeof QueryRoutes> = {
-  command: {} as typeof QueryRoutes,
+  command: QueryRoutes,
   async run(input, ctx) {
+    const projection = input.projection
     // Single-scan path: push the filter / sort / pagination straight to
     // storage. The drizzle adapter emits real SQL — a 10k-route scan
     // filtered to 50 reads 50 rows from disk, not 10k.
@@ -30,14 +31,14 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
       })
 
       let items = applyRouteRegexFallback(page.items, input.urlPattern, filterForStorage)
-      if (input.projection?.length)
-        items = items.map(route => projectRoute(route, input.projection!))
-      return {
+      if (projection?.length)
+        items = items.map(route => projectRoute(route, projection))
+      return QueryRoutes.output.parse({
         items,
         total: page.total,
         page: input.page,
         pageSize: input.pageSize,
-      } as CommandOutput<typeof QueryRoutes>
+      })
     }
 
     // Cross-scan path: aggregate rows from every matching scan, then
@@ -68,16 +69,16 @@ export const queryRoutes: Handler<typeof QueryRoutes> = {
 
     let filtered = applyRouteSort(applyRouteFilter(pool, input.filter), input.sort)
 
-    if (input.projection?.length)
-      filtered = filtered.map(route => projectRoute(route, input.projection!))
+    if (projection?.length)
+      filtered = filtered.map(route => projectRoute(route, projection))
 
     const start = (input.page - 1) * input.pageSize
     const items = filtered.slice(start, start + input.pageSize)
-    return {
+    return QueryRoutes.output.parse({
       items,
       total: filtered.length,
       page: input.page,
       pageSize: input.pageSize,
-    } as CommandOutput<typeof QueryRoutes>
+    })
   },
 }

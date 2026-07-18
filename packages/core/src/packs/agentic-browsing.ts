@@ -5,6 +5,7 @@
 // available so "informative pass" does not become a false positive.
 
 import type { AgenticBrowsingReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { LighthouseAuditResult, LighthouseCategoryResult, LighthouseResult } from '@unlighthouse/contracts/ports'
 import type { AuditFinding, ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import { AgenticBrowsingReportSchema } from '@unlighthouse/contracts/packs'
 
@@ -17,24 +18,7 @@ const AGENTIC_AUDIT_IDS = [
   'llms-txt',
 ] as const
 
-interface RawAudit {
-  score?: number | null
-  scoreDisplayMode?: string
-  displayValue?: string
-  explanation?: string
-  title?: string
-  numericValue?: number
-  details?: unknown
-}
-
-interface RawLhr {
-  categories?: Record<string, {
-    score?: number | null
-    categoryScoreDisplayMode?: string
-    auditRefs?: Array<{ id: string, weight?: number }>
-  }>
-  audits?: Record<string, RawAudit>
-}
+type RawAudit = LighthouseAuditResult
 
 interface FindingBucket {
   title: string | null
@@ -47,16 +31,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function rawAudit(lhr: unknown, id: string): RawAudit | null {
-  return isRecord(lhr) && isRecord(lhr.audits) && isRecord(lhr.audits[id])
-    ? lhr.audits[id] as RawAudit
-    : null
+function rawAudit(lhr: LighthouseResult | null, id: string): RawAudit | null {
+  return lhr?.audits[id] ?? null
 }
 
-function rawCategory(lhr: unknown): NonNullable<RawLhr['categories']>[string] | null {
-  return isRecord(lhr) && isRecord(lhr.categories) && isRecord(lhr.categories['agentic-browsing'])
-    ? lhr.categories['agentic-browsing'] as NonNullable<RawLhr['categories']>[string]
-    : null
+function rawCategory(lhr: LighthouseResult | null): LighthouseCategoryResult | null {
+  return lhr?.categories['agentic-browsing'] ?? null
 }
 
 function countObjectsWithKey(value: unknown, key: string): number {
@@ -115,7 +95,7 @@ function classifyLlmsTxt(raw: RawAudit | null, audit: AuditFinding | null): 'pre
   return 'invalid'
 }
 
-async function loadRoute(ctx: PackReconcileCtx, route: ScanRoute): Promise<{ reconciled: ReconciledReport | null, lhr: unknown | null }> {
+async function loadRoute(ctx: PackReconcileCtx, route: ScanRoute): Promise<{ reconciled: ReconciledReport | null, lhr: LighthouseResult | null }> {
   const [reconciled, lhr] = await Promise.all([
     ctx.getReconciled
       ? ctx.getReconciled(route.url, route.device).catch((err) => {
@@ -135,7 +115,7 @@ async function loadRoute(ctx: PackReconcileCtx, route: ScanRoute): Promise<{ rec
 
 function countFractionChecks(
   reconciled: ReconciledReport | null,
-  lhr: unknown | null,
+  lhr: LighthouseResult | null,
 ): { passed: number, total: number } {
   const refs = reconciled?.categories?.['agentic-browsing']?.auditRefs ?? rawCategory(lhr)?.auditRefs ?? []
   let passed = 0
@@ -305,7 +285,7 @@ export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
             : 'unknown'
 
     return {
-      scanId: ctx.scanId as string,
+      scanId: ctx.scanId,
       routesAnalysed: ctx.routes.length,
       avgScore: scoreCount > 0 ? scoreSum / scoreCount : null,
       passedChecks,

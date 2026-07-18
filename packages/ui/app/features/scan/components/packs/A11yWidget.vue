@@ -1,15 +1,29 @@
 <script setup lang="ts">
 import type { A11yReport } from '@unlighthouse/contracts/packs'
-// See CwvWidget.vue for why `report` arrives untyped and gets cast here.
+import { A11yReportSchema } from '@unlighthouse/contracts/packs'
+
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
-const report = computed(() => props.report as A11yReport)
+const report = computed(() => A11yReportSchema.parse(props.report))
 
 // FindingsAccordion exposes the cross-pack finding fields; `topElements` is
 // a11y-specific, so narrow it in script before the template iterates it.
 type TopElement = A11yReport['findings'][number]['topElements'][number]
+function isTopElement(value: unknown): value is TopElement {
+  if (!value || typeof value !== 'object')
+    return false
+  return 'selector' in value
+    && typeof value.selector === 'string'
+    && 'snippet' in value
+    && (value.snippet === null || typeof value.snippet === 'string')
+    && 'nodeLabel' in value
+    && (value.nodeLabel === null || typeof value.nodeLabel === 'string')
+    && 'firstSeenOn' in value
+    && typeof value.firstSeenOn === 'string'
+}
+
 function topElementsOf(finding: Record<string, unknown>): TopElement[] {
-  return Array.isArray(finding.topElements) ? finding.topElements as TopElement[] : []
+  return Array.isArray(finding.topElements) ? finding.topElements.filter(isTopElement) : []
 }
 </script>
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { InsightsReport } from '@unlighthouse/contracts/packs'
-// See CwvWidget.vue for why `report` arrives untyped and gets cast here.
+import { InsightsReportSchema } from '@unlighthouse/contracts/packs'
+
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
 const { fmtMs } = createFormatters()
 
-const report = computed(() => props.report as InsightsReport)
+const report = computed(() => InsightsReportSchema.parse(props.report))
 </script>
 
 <template>

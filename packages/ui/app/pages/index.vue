@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
+import type { Category } from '@unlighthouse/contracts'
 import type { SiteHomeRow } from '~/features/sites/home'
 import { h } from 'vue'
 import { useSitesHome } from '~/features/sites/home'
@@ -7,6 +8,7 @@ import { useSitesRegistry } from '~/features/sites/registry'
 
 definePageMeta({ middleware: 'onboarding' })
 usePageTitle('Sites')
+const isStatic = useIsStatic()
 
 const { scoreToColor, scoreToLabel } = createScoreColorHelpers()
 const { fmtRelTime } = createFormatters()
@@ -33,6 +35,7 @@ const {
   editing,
   formOpen,
   formUrl,
+  formUrlError,
   formName,
   formGroup,
   saving,
@@ -66,7 +69,7 @@ function statusWord(score: number | null): string {
 }
 
 // ── Sites table ──────────────────────────────────────────────────────────────
-const CAT_COLS: { key: string, label: string }[] = [
+const CAT_COLS: Array<{ key: Category, label: string }> = [
   { key: 'performance', label: 'Perf' },
   { key: 'accessibility', label: 'A11y' },
   { key: 'seo', label: 'SEO' },
@@ -128,7 +131,7 @@ const columns: ColumnDef<SiteHomeRow>[] = [
     sortUndefined: 'last' as const,
     align: 'center' as const,
     cell: ({ row }) => {
-      const v = row.original.cats[c.key] as number | undefined
+      const v = row.original.cats[c.key]
       return h('span', { class: `text-xs font-semibold tabular-nums ${scoreToColor(v ?? null)}` }, scoreToLabel(v ?? null))
     },
   })),
@@ -152,13 +155,13 @@ const columns: ColumnDef<SiteHomeRow>[] = [
 <template>
   <div class="space-y-6">
     <UiPageHeader title="Sites" description="Every site you scan, registered or not." flush>
-      <template #actions>
+      <template v-if="!isStatic" #actions>
         <UModal v-model:open="formOpen" :title="editing ? 'Edit site' : 'Add site'" :ui="{ content: 'sm:max-w-md' }">
           <UiButton purpose="secondary" icon="add" label="Add site" @click="openAdd" />
           <template #body>
             <form id="site-form" class="space-y-4" @submit.prevent="saveSite">
-              <UFormField name="site-url" label="URL" required>
-                <UInput id="site-url" v-model="formUrl" name="site-url" type="url" placeholder="https://example.com" autocomplete="url" inputmode="url" enterkeyhint="done" autocapitalize="none" :spellcheck="false" required class="w-full font-mono" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+              <UFormField name="site-url" label="URL" required :error="formUrlError || undefined">
+                <UInput id="site-url" v-model="formUrl" name="site-url" type="text" placeholder="example.com…" autocomplete="url" inputmode="url" enterkeyhint="done" autocapitalize="none" :spellcheck="false" required class="w-full font-mono" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
               </UFormField>
               <p v-if="editing && formUrl !== editing.url" class="text-sm text-warning">
                 Changing the URL creates a new site. The old one will remain.
@@ -212,7 +215,7 @@ const columns: ColumnDef<SiteHomeRow>[] = [
       title="Connect a site to run your first audit"
       description="Add a site to the registry, or run a scan. Either one starts this list."
     >
-      <div class="flex items-center gap-2">
+      <div v-if="!isStatic" class="flex items-center gap-2">
         <UiButton purpose="secondary" icon="add" @click="openAdd">
           Add site
         </UiButton>
@@ -225,9 +228,10 @@ const columns: ColumnDef<SiteHomeRow>[] = [
     <UiTable v-else :columns="columns" :data="rows" :loading="historyStatus === 'pending'" enable-sorting row-clickable row-hover row-id="key" @row-click="openSite">
       <template #actions="{ row }">
         <div class="flex items-center justify-end gap-1">
-          <template v-if="row.registered">
+          <UiButton v-if="isStatic" purpose="quiet" size="xs" icon="external" :aria-label="`Open ${row.name}`" @click.stop="openSite(row)" />
+          <template v-else-if="row.registered">
             <UiButton purpose="quiet" size="xs" icon="radar" :aria-label="`Run scan for ${row.name}`" @click.stop="scanSite(row.url)" />
-            <UiButton purpose="quiet" size="xs" icon="edit" :aria-label="`Edit ${row.name}`" @click.stop="openEdit(row.site!)" />
+            <UiButton purpose="quiet" size="xs" icon="edit" :aria-label="`Edit ${row.name}`" @click.stop="openEdit(row.site)" />
             <UModal
               title="Remove site?"
               :description="`This removes ${row.name} from the registry. Scan history will be preserved.`"
@@ -237,7 +241,7 @@ const columns: ColumnDef<SiteHomeRow>[] = [
                 <UiButton purpose="quiet" @click="close">
                   Keep site
                 </UiButton>
-                <UiButton purpose="danger" @click="() => { deleteSite(row.site!.id); close() }">
+                <UiButton purpose="danger" @click="() => { deleteSite(row.site.id); close() }">
                   Remove site
                 </UiButton>
               </template>

@@ -3,8 +3,8 @@ import { reportJsonSimple } from './jsonSimple'
 
 const CATEGORY_ORDER = ['performance', 'accessibility', 'best-practices', 'seo', 'agentic-browsing'] as const
 
-function pct(score: number | undefined): string {
-  return score == null ? '—' : String(Math.round(score * 100))
+function pct(score: unknown): string {
+  return typeof score === 'number' ? String(Math.round(score * 100)) : '—'
 }
 
 /**
@@ -13,7 +13,7 @@ function pct(score: number | undefined): string {
  * agent gets the whole scan at a glance without parsing NDJSON.
  */
 export function reportAgentSummary(reports: UnlighthouseRouteReport[]): string {
-  const rows = reportJsonSimple(reports) as Array<Record<string, number | string | undefined>>
+  const rows = reportJsonSimple(reports)
   const present = CATEGORY_ORDER.filter(cat => rows.some(r => r[cat] != null))
   const header = ['Route', 'Device', 'Score', ...present]
   const lines: string[] = []
@@ -26,9 +26,9 @@ export function reportAgentSummary(reports: UnlighthouseRouteReport[]): string {
     const cells = [
       String(r.path ?? ''),
       String(r.device ?? ''),
-      pct(r.score as number | undefined),
+      pct(r.score),
       ...present.map((cat) => {
-        const v = r[cat] as number | undefined
+        const v = r[cat]
         if (typeof v === 'number') {
           sums[cat] = (sums[cat] ?? 0) + v
           counts[cat] = (counts[cat] ?? 0) + 1
@@ -39,7 +39,10 @@ export function reportAgentSummary(reports: UnlighthouseRouteReport[]): string {
     lines.push(`| ${cells.join(' | ')} |`)
   }
 
-  const avg = present.map(cat => (counts[cat] ? pct((sums[cat] ?? 0) / counts[cat]!) : '—'))
+  const avg = present.map((cat) => {
+    const count = counts[cat] ?? 0
+    return count > 0 ? pct((sums[cat] ?? 0) / count) : '—'
+  })
   lines.push(`| **Average** |  |  | ${avg.join(' | ')} |`)
   return `${lines.join('\n')}\n`
 }

@@ -1,3 +1,4 @@
+import type { Category } from '@unlighthouse/contracts'
 import type { Site } from '~/features/sites/registry'
 import type { ScanRow } from '~/features/sites/scan-pairs'
 import { computed } from 'vue'
@@ -10,22 +11,28 @@ import { siteSlug } from '~/utils/site'
 // their history via `onDelete: 'set null'`; `scan.import` can reference an
 // unknown site) without a second page.
 
-export interface SiteHomeRow {
+interface SiteHomeRowData {
   /** Registry id for registered rows, the scan origin otherwise. */
   key: string
-  registered: boolean
-  /** Raw registry record, present only for registered rows (drives edit/delete). */
-  site: Site | null
   name: string
   slug: string
   url: string
   group: string | null
   avg: number | null
-  cats: Record<string, number | undefined>
+  cats: Partial<Record<Category, number>>
   series: number[]
   lastAt: string | null
   scanCount: number
 }
+
+export type SiteHomeRow = SiteHomeRowData & (
+  | { registered: true, site: Site }
+  | { registered: false, site: null }
+)
+
+type SiteHomeInput
+  = | { registered: true, site: Site, name: string, url: string, group: string | null }
+    | { registered: false, site: null, name: string, url: string, group: string | null }
 
 function originOf(url: string): string {
   try {
@@ -41,24 +48,25 @@ function completedScans(scans: ScanRow[]): ScanRow[] {
   return scans.filter(scan => scan.summary && (scan.summary.completed ?? 0) > 0)
 }
 
-function buildRow(input: { registered: boolean, site: Site | null, name: string, url: string, group: string | null }, scans: ScanRow[]): SiteHomeRow {
+function buildRow(input: SiteHomeInput, scans: ScanRow[]): SiteHomeRow {
   const completed = completedScans(scans)
   const latest = completed[0] ?? null
   const series = [...completed].reverse().slice(-12).map(scan => Math.round((scan.summary?.scoreAverage ?? 0) * 100))
-  return {
+  const data: SiteHomeRowData = {
     key: input.site?.id ?? originOf(input.url),
-    registered: input.registered,
-    site: input.site,
     name: input.name,
     slug: siteSlug(input.url),
     url: input.url,
     group: input.group,
     avg: latest?.summary?.scoreAverage ?? null,
-    cats: (latest?.summary?.scoresByCategory ?? {}) as Record<string, number | undefined>,
+    cats: latest?.summary?.scoresByCategory ?? {},
     series,
     lastAt: latest?.startedAt ?? null,
     scanCount: completed.length,
   }
+  return input.registered
+    ? { ...data, registered: true, site: input.site }
+    : { ...data, registered: false, site: null }
 }
 
 export function useSitesHome() {
@@ -71,7 +79,7 @@ export function useSitesHome() {
   )
   const { data: sitesData, error: sitesError, refresh: refreshSites } = useApiQuery('sites.list', () => ({}))
 
-  const allScans = computed(() => (histResp.value?.items ?? []) as ScanRow[])
+  const allScans = computed(() => histResp.value?.items ?? [])
 
   const byOrigin = computed(() => {
     const grouped = new Map<string, ScanRow[]>()
@@ -86,7 +94,7 @@ export function useSitesHome() {
     return grouped
   })
 
-  const registeredSites = computed(() => (sitesData.value?.sites ?? []) as Site[])
+  const registeredSites = computed(() => sitesData.value?.sites ?? [])
   const registeredOrigins = computed(() => new Set(registeredSites.value.map(site => originOf(site.url))))
 
   const rows = computed<SiteHomeRow[]>(() => {

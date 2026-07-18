@@ -28,24 +28,43 @@ function getNumeric(lhr: LighthouseResult, auditId: string): number | null {
   return lhr.audits[auditId]?.numericValue ?? null
 }
 
-interface FullPageScreenshotNode {
-  left?: unknown
-  top?: unknown
-  width?: unknown
-  height?: unknown
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
-interface LighthouseResultWithScreenshot extends LighthouseResult {
-  fullPageScreenshot?: {
-    nodes?: Record<string, FullPageScreenshotNode>
+export function isLighthouseResult(value: unknown): value is LighthouseResult {
+  if (
+    !isRecord(value)
+    || typeof value.lighthouseVersion !== 'string'
+    || typeof value.requestedUrl !== 'string'
+    || typeof value.finalUrl !== 'string'
+    || !isRecord(value.categories)
+    || !isRecord(value.audits)
+  ) {
+    return false
   }
+  const categoriesValid = Object.values(value.categories).every(category =>
+    category === undefined
+    || (isRecord(category) && (category.score === null || typeof category.score === 'number')),
+  )
+  const auditsValid = Object.values(value.audits).every(audit =>
+    isRecord(audit)
+    && (audit.score === null || typeof audit.score === 'number'),
+  )
+  return categoriesValid && auditsValid
+}
+
+export function assertLighthouseResult(value: unknown): LighthouseResult {
+  if (!isLighthouseResult(value))
+    throw new TypeError('Expected a Lighthouse result with valid URLs, categories, and audits.')
+  return value
 }
 
 export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
   const version = lhr.lighthouseVersion.split('.')[0] ?? ''
   const mapAudit = (id: string) => AUDIT_MAP[version]?.[id] ?? id
 
-  const fpNodes = (lhr as LighthouseResultWithScreenshot).fullPageScreenshot?.nodes
+  const fpNodes = lhr.fullPageScreenshot?.nodes
   let screenshotNodes: Record<string, { left: number, top: number, width: number, height: number }> | undefined
   if (fpNodes && typeof fpNodes === 'object') {
     screenshotNodes = {}
@@ -93,7 +112,8 @@ export function extractRouteData(lhr: LighthouseResult): ExtractedRoute {
 }
 
 export function decompressLhr(gzipped: Uint8Array): LighthouseResult {
-  return JSON.parse(gunzipToString(gzipped))
+  const parsed: unknown = JSON.parse(gunzipToString(gzipped))
+  return assertLighthouseResult(parsed)
 }
 
 export interface ReconciledRouteReport {
@@ -126,25 +146,24 @@ export function reconcileRoute(args: {
   const ext = extractRouteData(lhr)
 
   const categories = Object.entries(lhr.categories ?? {}).map(([key, c]) => {
-    const categoryScoreDisplayMode: 'gauge' | 'fraction' = (c as { categoryScoreDisplayMode?: string })?.categoryScoreDisplayMode === 'fraction' ? 'fraction' : 'gauge'
+    const categoryScoreDisplayMode: 'gauge' | 'fraction' = c?.categoryScoreDisplayMode === 'fraction' ? 'fraction' : 'gauge'
     return {
       key,
-      id: (c as { id?: string })?.id ?? key,
-      title: (c as { title?: string })?.title ?? key,
-      score: (c as { score?: number | null })?.score ?? null,
+      id: c?.id ?? key,
+      title: c?.title ?? key,
+      score: c?.score ?? null,
       categoryScoreDisplayMode,
     }
   })
 
   const audits: ReconciledRouteReport['audits'] = {}
   for (const [id, a] of Object.entries(lhr.audits ?? {})) {
-    const aa = a as { score?: number | null, numericValue?: number, displayValue?: string, title?: string, description?: string }
     audits[id] = {
-      score: aa?.score ?? null,
-      numericValue: aa?.numericValue,
-      displayValue: aa?.displayValue,
-      title: aa?.title,
-      description: aa?.description,
+      score: a.score ?? null,
+      numericValue: a.numericValue,
+      displayValue: a.displayValue,
+      title: a.title,
+      description: a.description,
     }
   }
 
@@ -366,10 +385,24 @@ const PROJECTED_DETAIL_AUDITS = new Set<string>([
 ])
 
 const DETAIL_ITEM_CAP = 30
+type ContractScoreDisplayMode = ContractAuditFinding['scoreDisplayMode']
+
+function contractScoreDisplayMode(value: string | undefined): ContractScoreDisplayMode {
+  switch (value) {
+    case 'numeric':
+    case 'binary':
+    case 'informative':
+    case 'manual':
+    case 'notApplicable':
+      return value
+    default:
+      return 'informative'
+  }
+}
 
 function projectDetailItem(raw: unknown): ContractAuditDetailItem {
-  const r = (raw ?? {}) as Record<string, unknown>
-  const rawNode = r.node as Record<string, unknown> | undefined
+  const r = isRecord(raw) ? raw : {}
+  const rawNode = isRecord(r.node) ? r.node : undefined
   const node = rawNode
     ? {
         selector: typeof rawNode.selector === 'string' ? rawNode.selector : null,
@@ -377,8 +410,9 @@ function projectDetailItem(raw: unknown): ContractAuditDetailItem {
         nodeLabel: typeof rawNode.nodeLabel === 'string' ? rawNode.nodeLabel : null,
       }
     : null
-  const subItems = (r.subItems as { items?: Array<{ reason?: unknown }> } | undefined)?.items
-  const reason = typeof subItems?.[0]?.reason === 'string' ? subItems[0].reason : null
+  const subItems = isRecord(r.subItems) && Array.isArray(r.subItems.items) ? r.subItems.items : undefined
+  const firstSubItem = subItems?.[0]
+  const reason = isRecord(firstSubItem) && typeof firstSubItem.reason === 'string' ? firstSubItem.reason : null
   return {
     url: typeof r.url === 'string' ? r.url : null,
     type: typeof r.type === 'string' ? r.type : null,
@@ -447,11 +481,10 @@ export function reconcileToContract(args: {
 
   const categories: Record<string, { score: number | null, categoryScoreDisplayMode: 'gauge' | 'fraction' | null, auditRefs: Array<{ id: string, weight: number }> }> = {}
   for (const [key, c] of Object.entries(lhr.categories ?? {})) {
-    const cat = c as { score?: number | null, categoryScoreDisplayMode?: string, auditRefs?: Array<{ id: string, weight?: number }> }
     categories[key] = {
-      score: cat?.score ?? null,
-      categoryScoreDisplayMode: cat?.categoryScoreDisplayMode === 'fraction' ? 'fraction' : 'gauge',
-      auditRefs: (cat?.auditRefs ?? []).map(r => ({
+      score: c?.score ?? null,
+      categoryScoreDisplayMode: c?.categoryScoreDisplayMode === 'fraction' ? 'fraction' : 'gauge',
+      auditRefs: (c?.auditRefs ?? []).map(r => ({
         id: r.id,
         // LHR usually carries a weight on every auditRef. Defensive default of
         // 0 — a non-existent weight shouldn't crash pack severity rules; they
@@ -463,26 +496,14 @@ export function reconcileToContract(args: {
 
   const audits: Record<string, ContractAuditFinding> = {}
   for (const [id, a] of Object.entries(lhr.audits ?? {})) {
-    const aa = a as {
-      score?: number | null
-      scoreDisplayMode?: string
-      numericValue?: number
-      displayValue?: string
-      title?: string
-      description?: string
-      metricSavings?: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number }
-      details?: { items?: unknown[] }
-    }
-    const mode = (['numeric', 'binary', 'informative', 'manual', 'notApplicable'].includes(aa?.scoreDisplayMode ?? '')
-      ? aa.scoreDisplayMode
-      : 'informative') as 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
+    const mode = contractScoreDisplayMode(a.scoreDisplayMode)
     // Only project metricSavings when at least one field is present + numeric;
     // an empty object would round-trip as truthy and confuse pack guards.
     let metricSavings: ContractAuditFinding['metricSavings'] = null
-    if (aa?.metricSavings && typeof aa.metricSavings === 'object') {
+    if (a.metricSavings) {
       const out: NonNullable<ContractAuditFinding['metricSavings']> = {}
       for (const k of ['LCP', 'FCP', 'INP', 'CLS', 'TBT'] as const) {
-        const v = aa.metricSavings[k]
+        const v = a.metricSavings[k]
         if (typeof v === 'number')
           out[k] = v
       }
@@ -494,26 +515,26 @@ export function reconcileToContract(args: {
     // on truthiness without worrying about empty-array footguns.
     let items: ContractAuditDetailItem[] | null = null
     if (PROJECTED_DETAIL_AUDITS.has(id)) {
-      const raw = aa?.details?.items
+      const raw = a.details?.items
       if (Array.isArray(raw) && raw.length > 0)
         items = raw.slice(0, DETAIL_ITEM_CAP).map(projectDetailItem)
     }
     audits[id] = {
       id,
-      score: aa?.score ?? null,
+      score: a.score ?? null,
       scoreDisplayMode: mode,
-      numericValue: typeof aa?.numericValue === 'number' ? aa.numericValue : null,
-      displayValue: aa?.displayValue ?? null,
-      title: typeof aa?.title === 'string' ? aa.title : null,
-      description: typeof aa?.description === 'string' ? aa.description : null,
-      severity: deriveSeverity(aa?.score ?? null, mode),
+      numericValue: a.numericValue ?? null,
+      displayValue: a.displayValue ?? null,
+      title: a.title ?? null,
+      description: a.description ?? null,
+      severity: deriveSeverity(a.score ?? null, mode),
       metricSavings,
       items,
     }
   }
 
   // Extract stackPacks (framework-specific recommendations)
-  const rawStackPacks = (lhr as { stackPacks?: Array<{ id: string, title: string, iconDataURL?: string, descriptions?: Record<string, string> }> }).stackPacks
+  const rawStackPacks = lhr.stackPacks
   const stackPacks = rawStackPacks?.length
     ? rawStackPacks.map(sp => ({
         id: sp.id,
@@ -524,7 +545,7 @@ export function reconcileToContract(args: {
     : null
 
   // Extract entities (third-party origins)
-  const rawEntities = (lhr as { entities?: Array<{ name: string, isFirstParty?: boolean, origins?: string[] }> }).entities
+  const rawEntities = lhr.entities
   const entities = rawEntities?.length
     ? rawEntities.map(e => ({
         name: e.name,
@@ -533,9 +554,9 @@ export function reconcileToContract(args: {
       }))
     : null
 
-  const timing = (lhr as { timing?: { total?: number } }).timing
-  const runtimeError = (lhr as { runtimeError?: { code?: string, message?: string } }).runtimeError
-  const runWarnings = (lhr as { runWarnings?: string[] }).runWarnings
+  const timing = lhr.timing
+  const runtimeError = lhr.runtimeError
+  const runWarnings = lhr.runWarnings
 
   return {
     scanId,
@@ -559,9 +580,9 @@ export function reconcileToContract(args: {
     audits,
     provenance: {
       lighthouseVersion: lhr.lighthouseVersion,
-      userAgent: (lhr as { userAgent?: string }).userAgent ?? null,
+      userAgent: lhr.userAgent ?? null,
       capturedAt: new Date().toISOString(),
-      benchmarkIndex: (lhr as { environment?: { benchmarkIndex?: number } }).environment?.benchmarkIndex ?? null,
+      benchmarkIndex: lhr.environment?.benchmarkIndex ?? null,
       timingTotal: timing?.total ?? null,
       warnings: Array.isArray(runWarnings) ? runWarnings : [],
       runtimeError: runtimeError?.code ? { code: runtimeError.code, message: runtimeError.message ?? '' } : null,

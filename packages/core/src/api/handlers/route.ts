@@ -1,19 +1,16 @@
 // route.* handlers.
 
+import type { CommandOutput } from '@unlighthouse/contracts/commands'
 import type {
-  CommandOutput,
-  RouteAudits,
-  RouteGet,
-  RouteRescan,
-} from '@unlighthouse/contracts/commands'
-import type {
-  ExtractedMetrics,
   ScanId,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
+import type { EmitFn } from '../../scan/route-audit'
 import type { Handler, HandlerCtx } from './types'
+import { RouteAudits, RouteGet, RouteRescan } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { loadRouteContract } from '../../report/route-contracts'
+import { auditRoute } from '../../scan/route-audit'
 
 // Lighthouse's stable category ids → display titles. The reconciled contract
 // blob keeps `categories` keyed by id and drops the LHR title string (it's
@@ -86,7 +83,7 @@ async function findRoute(ctx: HandlerCtx, scanId: ScanId, url: string, device?: 
 }
 
 export const routeGet: Handler<typeof RouteGet> = {
-  command: {} as typeof RouteGet,
+  command: RouteGet,
   async run(input, ctx) {
     const { route, availableDevices } = await findRoute(ctx, input.scanId, input.url, input.device)
     const contract = await loadRouteContract(ctx.storage.blobs, route)
@@ -124,7 +121,7 @@ export const routeGet: Handler<typeof RouteGet> = {
       }
     }
 
-    return {
+    return RouteGet.output.parse({
       route,
       categories,
       audits: contract?.audits ?? {},
@@ -141,17 +138,17 @@ export const routeGet: Handler<typeof RouteGet> = {
       entities: contract?.entities ?? null,
       screenshotUrl: screenshotUrlFor(route),
       availableDevices,
-    } as CommandOutput<typeof RouteGet>
+    })
   },
 }
 
 export const routeAudits: Handler<typeof RouteAudits> = {
-  command: {} as typeof RouteAudits,
+  command: RouteAudits,
   async run(input, ctx) {
     const { route } = await findRoute(ctx, input.scanId, input.url, input.device)
     const contract = await loadRouteContract(ctx.storage.blobs, route)
     if (!contract)
-      return { audits: [] } as CommandOutput<typeof RouteAudits>
+      return RouteAudits.output.parse({ audits: [] })
 
     // When a category filter is set, restrict to that category's auditRefs so
     // the weight comes from the right place (a single audit can carry
@@ -159,7 +156,7 @@ export const routeAudits: Handler<typeof RouteAudits> = {
     // possible with plugin categories).
     const targetCategory = input.category ? contract.categories?.[input.category] : null
     if (input.category && !targetCategory)
-      return { audits: [] } as CommandOutput<typeof RouteAudits>
+      return RouteAudits.output.parse({ audits: [] })
 
     const refs: Array<{ id: string, weight: number }> = targetCategory
       ? targetCategory.auditRefs ?? []
@@ -197,42 +194,47 @@ export const routeAudits: Handler<typeof RouteAudits> = {
       })
       .filter((a): a is NonNullable<typeof a> => a !== null)
 
-    return { audits } as CommandOutput<typeof RouteAudits>
+    return RouteAudits.output.parse({ audits })
   },
 }
 
 export const routeRescan: Handler<typeof RouteRescan> = {
-  command: {} as typeof RouteRescan,
+  command: RouteRescan,
   async run(input, ctx) {
-    const scan = await ctx.storage.scans.get(input.scanId)
-    if (!scan)
-      throw new UnlighthouseError({ code: 'SCAN_NOT_FOUND', message: `scanId=${input.scanId}` })
-    // D-029: explicit device, then scan's primary. Auditor emulation profile
-    // is threaded through opts.device so the re-audit produces numbers
-    // consistent with the original device's row.
-    const device = input.device ?? scan.device
-    const report = await ctx.auditor.audit(input.url, undefined, { device, lighthouseFlags: ctx.config.lighthouseOptions })
-    const extracted = (report as unknown as { extracted?: ExtractedMetrics }).extracted
-    const metrics: ExtractedMetrics = extracted ?? {
+    // Resolve an existing row first. Besides selecting the requested/fallback
+    // device, this prevents a "rescan" from appending an unrelated URL to a
+    // completed scan.
+    const { route } = await findRoute(ctx, input.scanId, input.url, input.device)
+    // Reuse the same ingest path as a full scan so metrics, LHR, reconciled
+    // contract, and screenshot are committed together instead of leaving
+    // stale artifacts behind.
+    const device = route.device
+    const emit: EmitFn = ctx.core.hooks
+      ? ctx.core.hooks.callHook.bind(ctx.core.hooks) as EmitFn
+      : async () => {}
+    const result = await auditRoute({
+      auditor: ctx.auditor,
+      storage: ctx.storage,
+      config: ctx.config,
+      emit,
+    }, {
+      scanId: input.scanId,
       url: input.url,
-      path: new URL(input.url).pathname,
-      routeName: null,
-      scorePerformance: null,
-      scoreAccessibility: null,
-      scoreSeo: null,
-      scoreBestPractices: null,
-      scoreAgenticBrowsing: null,
-      lcp: null,
-      cls: null,
-      inp: null,
-      fcp: null,
-      ttfb: null,
-      tbt: null,
-      si: null,
-      lighthouseVersion: (report as { lighthouseVersion?: string }).lighthouseVersion ?? 'unknown',
-      capturedAt: new Date().toISOString(),
-    } as ExtractedMetrics
-    await ctx.storage.routes.upsert(input.scanId, device, metrics)
-    return { scanId: input.scanId, url: input.url, metrics } as CommandOutput<typeof RouteRescan>
+      device,
+    })
+    if (!result.ok) {
+      throw new UnlighthouseError({
+        code: result.error.code,
+        message: result.error.message,
+        ...(result.error.statusCode === undefined ? {} : { statusCode: result.error.statusCode }),
+        ...(result.error.category === undefined ? {} : { category: result.error.category }),
+        ...(result.error.retryable === undefined ? {} : { retryable: result.error.retryable }),
+        ...(result.error.suggestion === undefined ? {} : { suggestion: result.error.suggestion }),
+        ...(result.error.docsUrl === undefined ? {} : { docsUrl: result.error.docsUrl }),
+        ...(result.error.details === undefined ? {} : { details: result.error.details }),
+        cause: result.error.cause,
+      })
+    }
+    return RouteRescan.output.parse({ scanId: input.scanId, url: input.url, metrics: result.metrics })
   },
 }

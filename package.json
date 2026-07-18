@@ -9,12 +9,12 @@
     "node": ">=24.13.1"
   },
   "scripts": {
-    "cli": "node packages/unlighthouse/dist/cli/cli.mjs",
-    "ci": "node packages/unlighthouse/dist/cli/ci.mjs",
-    "dev:cli": "tsx packages/unlighthouse/src/cli/cli.ts",
-    "dev:cli:watch": "tsx --watch packages/unlighthouse/src/cli/cli.ts",
+    "cli": "node packages/unlighthouse/bin/unlighthouse.mjs",
+    "ci": "node packages/unlighthouse/bin/unlighthouse-ci.mjs",
+    "dev:cli": "tsx packages/unlighthouse/src/cli/run.ts",
+    "dev:cli:watch": "tsx --watch packages/unlighthouse/src/cli/run.ts",
     "dev:build": "pnpm -r --filter './packages/{contracts,core,unlighthouse}' dev",
-    "ci:docs": "node packages/unlighthouse/dist/cli/ci.mjs --site unlighthouse.dev --build-static --debug",
+    "ci:docs": "node packages/unlighthouse/bin/unlighthouse-ci.mjs --site unlighthouse.dev --build-static --debug",
     "build": "pnpm run build:pkg",
     "build:docs": "cd docs && pnpm i && nuxi build",
     "build:pkg": "pnpm -r --filter './packages/**' run build",

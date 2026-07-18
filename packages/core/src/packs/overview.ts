@@ -14,7 +14,7 @@
 //   under the 1KB budget for the agent summary tier.
 
 import type { OverviewReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import type { Category, ScanRoute, Url } from '@unlighthouse/contracts/types/atoms'
+import type { Category, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import { OverviewReportSchema } from '@unlighthouse/contracts/packs'
 
 // ── Reconciler ──────────────────────────────────────────────────────────────
@@ -54,11 +54,7 @@ function worstCategory(row: ScanRoute): Category | null {
 
 async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
   const routes = ctx.routes
-  // Device matrix (D-029) hasn't landed yet — ScanRoute has no `device`
-  // column. When it does, this falls through to the first row's value;
-  // until then the host passes the scan's stored device through the wire
-  // and we surface the same constant in the report.
-  const device = 'mobile' as const
+  const device = routes[0]?.device ?? 'mobile'
 
   // Per-row average across all four categories. Used for both worstRoutes
   // and the headline avgScore.
@@ -105,15 +101,15 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
   // stable output across calls.
   const worstRoutes = routes
     .map(r => ({
-      url: r.url as Url,
+      url: r.url,
       score: rowAverages.get(r.url) ?? null,
       category: worstCategory(r),
       device: r.device,
     }))
-    .filter(r => typeof r.score === 'number')
+    .filter((r): r is typeof r & { score: number } => typeof r.score === 'number')
     .sort((a, b) => {
-      if (a.score! !== b.score!)
-        return a.score! - b.score!
+      if (a.score !== b.score)
+        return a.score - b.score
       return a.url.localeCompare(b.url)
     })
     .slice(0, 5)

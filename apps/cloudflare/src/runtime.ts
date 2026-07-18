@@ -2,10 +2,13 @@
 // handler and exposes direct audit/retention methods to platform entrypoints.
 
 import type {
+  ScanAuditInput,
+  ScanAuditResult,
   ScanWorkflowBinding,
   ScanWorkflowParams,
 } from '@unlighthouse/cloudflare/workflows/scan'
 import type { Logger } from '@unlighthouse/contracts'
+import type { CommandInput } from '@unlighthouse/contracts/commands'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { Auditor } from '@unlighthouse/contracts/ports'
 import type { DeviceMatrix } from '@unlighthouse/contracts/types/atoms'
@@ -13,6 +16,7 @@ import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
 import type { EmitFn } from '@unlighthouse/core/runtime'
 import { fuseSeedsDedup, workerSitemapSeeds } from '@unlighthouse/cloudflare/seeds'
 import { d1R2Storage } from '@unlighthouse/cloudflare/storage'
+import { ScanCancel, ScanPause, ScanResume, ScanStart } from '@unlighthouse/contracts/commands'
 import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
@@ -76,16 +80,10 @@ export interface CloudflareApp {
   scheduled: () => Promise<void>
 }
 
-export interface CloudflareAuditInput {
-  scanId: string
-  url: string
-  devices: DeviceMatrix
-}
+export type CloudflareAuditInput = ScanAuditInput
+export type CloudflareAuditResult = ScanAuditResult
 
-export interface CloudflareAuditResult {
-  scanned: number
-  failed: number
-}
+type ScanStartInput = CommandInput<typeof ScanStart>
 
 /** Host-owned policies and adapters for one Worker invocation. */
 export interface CreateCloudflareAppOptions {
@@ -158,7 +156,8 @@ function createWorkersLogger(tag = 'unlighthouse'): Logger {
 function parseConfig(env: CloudflareEnv): UnlighthouseConfig {
   if (!env.UNLIGHTHOUSE_CONFIG)
     return UnlighthouseConfigSchema.parse({ site: 'https://example.com' })
-  return UnlighthouseConfigSchema.parse(JSON.parse(env.UNLIGHTHOUSE_CONFIG) as unknown)
+  const parsed: unknown = JSON.parse(env.UNLIGHTHOUSE_CONFIG)
+  return UnlighthouseConfigSchema.parse(parsed)
 }
 
 // Mutable reference to the site the next scan should seed against.
@@ -209,7 +208,7 @@ interface JsonBodyRequest {
   body: ReadableStream<Uint8Array> | null
 }
 
-async function readJsonBody<T>(request: JsonBodyRequest, maxBytes = MAX_JSON_BODY_BYTES): Promise<T> {
+async function readJsonBody(request: JsonBodyRequest, maxBytes = MAX_JSON_BODY_BYTES): Promise<unknown> {
   const declaredLength = Number(request.headers.get('content-length'))
   if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
     throw new UnlighthouseError({
@@ -239,7 +238,8 @@ async function readJsonBody<T>(request: JsonBodyRequest, maxBytes = MAX_JSON_BOD
     }
     text += decoder.decode(value, { stream: true })
   }
-  return JSON.parse(text + decoder.decode()) as T
+  const parsed: unknown = JSON.parse(text + decoder.decode())
+  return parsed
 }
 
 function buildHandlerCtx(env: CloudflareEnv, opts: CreateCloudflareAppOptions, pendingSeed?: PendingSeed): HandlerCtx {
@@ -259,7 +259,7 @@ function buildHandlerCtx(env: CloudflareEnv, opts: CreateCloudflareAppOptions, p
     const fromRequest = pendingSeed?.site
     if (fromRequest)
       return fromRequest
-    const fromConfig = (config as { site?: string }).site
+    const fromConfig = config.site
     return fromConfig ?? null
   }
   // Seeds: manual (the site root, always) fused with Workers-native sitemap
@@ -268,7 +268,7 @@ function buildHandlerCtx(env: CloudflareEnv, opts: CreateCloudflareAppOptions, p
   // discovery — so "scan the whole site" degraded to one page. Sitemap
   // discovery (global fetch + regex parse, no Node deps) restores it. Gated by
   // `scanner.sitemap !== false` to mirror the local host's behaviour.
-  const sitemapConfig = (config as { scanner?: { sitemap?: true | string[] | false } }).scanner?.sitemap
+  const sitemapConfig = config.scanner?.sitemap
   const seedSources = [
     manualSeeds({
       urls: () => {
@@ -281,7 +281,7 @@ function buildHandlerCtx(env: CloudflareEnv, opts: CreateCloudflareAppOptions, p
     seedSources.push(workerSitemapSeeds({
       site: siteFor,
       sitemaps: Array.isArray(sitemapConfig) ? sitemapConfig : true,
-      logger: (logger as { withTag: (t: string) => Logger }).withTag('seeds/sitemap'),
+      logger: logger.withTag('seeds/sitemap'),
     }))
   }
   const seeds = fuseSeedsDedup(seedSources)
@@ -300,7 +300,7 @@ function buildHandlerCtx(env: CloudflareEnv, opts: CreateCloudflareAppOptions, p
     storage,
     config,
     version: opts.version ?? env.UNLIGHTHOUSE_VERSION ?? 'unknown',
-  } as HandlerCtx
+  }
 }
 
 // Distinguish API calls from UI routes so non-API GETs can be served from the
@@ -329,12 +329,6 @@ function isApiPath(pathname: string): boolean {
     return true
   const root = pathname.split('/')[1] ?? ''
   return API_EXCLUSIVE_ROOTS.has(root)
-}
-
-interface ScanStartBody {
-  site?: unknown
-  device?: unknown
-  mode?: unknown
 }
 
 // Normalise a scan.start `device` input (single | array | absent) into a
@@ -461,14 +455,12 @@ export function createCloudflareApp(env: CloudflareEnv, opts: CreateCloudflareAp
       // request that's actually handed downstream — so the body isn't consumed
       // out from under the h3 handler (the `/api` rewrite above already moved
       // the body onto `apiReq`).
-      let startBody: ScanStartBody | null = null
+      let startBody: ScanStartInput | null = null
       let startBodyParseError: unknown = null
       if (apiReq.method === 'POST' && url.pathname === '/scan/start') {
         try {
-          startBody = await readJsonBody<ScanStartBody>(apiReq.clone())
-          pendingSeed.site = (startBody && typeof startBody.site === 'string' && startBody.site.length > 0)
-            ? startBody.site
-            : null
+          startBody = ScanStart.input.parse(await readJsonBody(apiReq.clone()))
+          pendingSeed.site = startBody.site
         }
         catch (err) {
           startBodyParseError = err
@@ -485,7 +477,7 @@ export function createCloudflareApp(env: CloudflareEnv, opts: CreateCloudflareAp
 
         // SSRF policy gate (D-043). Vet the resolved target before any scan
         // work starts. Core stays policy-free; the host policy is required.
-        const target = pendingSeed.site ?? (ctx.config as { site?: string }).site ?? null
+        const target = pendingSeed.site ?? ctx.config.site ?? null
         if (target && !(await opts.allowedTargets(target))) {
           logOperationalWarn('cloudflare.scan_target_rejected', null, { target }, logger)
           return new Response(
@@ -517,7 +509,7 @@ export function createCloudflareApp(env: CloudflareEnv, opts: CreateCloudflareAp
           )
         }
 
-        const site = pendingSeed.site ?? (ctx.config as { site?: string }).site ?? null
+        const site = pendingSeed.site ?? ctx.config.site ?? null
         if (!site) {
           return errorResponse(new UnlighthouseError({
             code: ErrorCodes.INPUT_INVALID,
@@ -568,18 +560,25 @@ export function createCloudflareApp(env: CloudflareEnv, opts: CreateCloudflareAp
         apiReq.method === 'POST'
         && (url.pathname === '/scan/cancel' || url.pathname === '/scan/pause' || url.pathname === '/scan/resume')
       ) {
-        const body = await readJsonBody<{ scanId?: string }>(apiReq.clone()).catch((err) => {
+        const action = url.pathname.slice('/scan/'.length) // cancel | pause | resume
+        const rawBody = await readJsonBody(apiReq.clone()).catch((err) => {
           logOperationalWarn('api.request_body_parse_failed', err, { path: url.pathname }, logger)
           return null
         })
-        const scanId = body?.scanId
+        const parsedBody = rawBody === null
+          ? null
+          : action === 'cancel'
+            ? ScanCancel.input.safeParse(rawBody)
+            : action === 'pause'
+              ? ScanPause.input.safeParse(rawBody)
+              : ScanResume.input.safeParse(rawBody)
+        const scanId = parsedBody?.success ? parsedBody.data.scanId : null
         if (!scanId) {
           return errorResponse(new UnlighthouseError({
             code: ErrorCodes.INPUT_INVALID,
             message: 'scanId is required.',
           }))
         }
-        const action = url.pathname.slice('/scan/'.length) // cancel | pause | resume
         try {
           const [instance, lifecycle] = await Promise.all([
             runtimeEnv.SCAN_WORKFLOW.get(scanId),

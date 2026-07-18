@@ -16,6 +16,9 @@ Where the code lives is [`ARCHITECTURE.md`](ARCHITECTURE.md). Why we build it is
 
 **Host** — anything that drives the engine: the CLI, the agent (MCP) server, the serverless preset, the dashboard, or a user's own code. Every host speaks the same commands.
 
+**Command** — a transport-agnostic typed operation spoken by every Host, identified by name and carrying input and output contracts plus optional streaming semantics.
+**Not:** an HTTP route, MCP tool, or CLI subcommand — those are transport projections of a Command.
+
 **Primitive** — our framing of the engine as something to *compose*, not merely *consume*. The user supplies a few pieces; the rest is theirs.
 
 **BYO (bring your own)** — the stance that the browser and storage backend are the user's choice, not something we bundle. We ship adapters for common choices and document the seam.
@@ -101,6 +104,12 @@ A single URL's audit exists in three representations, from richest to leanest. K
 ## Engine & ports
 
 **Engine** / **Core** — the runtime-agnostic scanner. It knows how to turn URLs into audited results; it knows nothing about *where* it runs.
+
+**Local runtime** — the Node-host composition that wires the engine to filesystem-backed storage, a crawler, an auditor, seed sources, and the command handler context used by the default host, CLI, and MCP entrypoints.
+**Not:** the Engine/Core itself — the engine is runtime-agnostic, while the local runtime is one host composition.
+
+**Scan directory** — the filesystem-backed history selected for a local runtime, scoped to one site and configuration when that identity is known.
+**Not:** the output root — the root may contain scan directories for many sites and configurations.
 
 **Port** — a capability the engine depends on but does not implement, supplied by the host. The four ports: **Seed source**, **Crawler**, **Auditor**, **Storage**.
 

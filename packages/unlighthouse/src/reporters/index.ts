@@ -8,14 +8,7 @@ import { reportCSVSimple } from './csvSimple'
 import { reportJsonExpanded } from './jsonExpanded'
 import { reportJsonSimple } from './jsonSimple'
 import { reportNdjson } from './ndjson'
-
-type ReportWithLighthouse = UnlighthouseRouteReport & {
-  report: NonNullable<UnlighthouseRouteReport['report']>
-}
-
-function hasLighthouseReport(report: UnlighthouseRouteReport): report is ReportWithLighthouse {
-  return !!report.report?.categories && !!report.report.audits
-}
+import { hasLighthouseReport } from './types'
 
 export function generateReportPayload(reporter: 'lighthouseServer', reports: UnlighthouseRouteReport[], config?: ReporterConfig): Promise<void>
 export function generateReportPayload(reporter: 'jsonExpanded', reports: UnlighthouseRouteReport[]): ReportJsonExpanded

@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
+import { normalizeSiteUrl } from '~/utils/site-url'
 
 export interface Site {
   id: string
@@ -7,13 +8,6 @@ export interface Site {
   url: string
   group: string | null
   createdAt: string
-}
-
-function normalizeSiteUrl(value: string): string {
-  const url = value.trim()
-  if (url.startsWith('http://') || url.startsWith('https://'))
-    return url
-  return `https://${url}`
 }
 
 export function useSitesRegistry() {
@@ -32,6 +26,7 @@ export function useSitesRegistry() {
   const editing = ref<Site | null>(null)
   const formOpen = ref(false)
   const formUrl = ref('')
+  const formUrlError = ref('')
   const formName = ref('')
   const formGroup = ref('')
   const saving = createSite.isPending
@@ -41,6 +36,7 @@ export function useSitesRegistry() {
   function resetForm() {
     editing.value = null
     formUrl.value = ''
+    formUrlError.value = ''
     formName.value = ''
     formGroup.value = ''
   }
@@ -71,8 +67,16 @@ export function useSitesRegistry() {
     if (!formUrl.value.trim())
       return
 
+    const url = normalizeSiteUrl(formUrl.value)
+    if (!url) {
+      formUrlError.value = 'Enter a valid web address, such as example.com.'
+      await nextTick()
+      document.getElementById('site-url')?.focus()
+      return
+    }
+
     const result = await createSite.mutateSafe({
-      url: normalizeSiteUrl(formUrl.value),
+      url,
       name: formName.value.trim() || undefined,
       group: formGroup.value.trim() || null,
     })
@@ -106,10 +110,15 @@ export function useSitesRegistry() {
     return Array.from(groups).sort()
   })
 
+  watch(formUrl, () => {
+    formUrlError.value = ''
+  })
+
   return {
     editing,
     formOpen,
     formUrl,
+    formUrlError,
     formName,
     formGroup,
     saving,

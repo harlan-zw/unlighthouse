@@ -19,6 +19,7 @@ import type { Router } from 'h3'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
+import { decompressLhr } from '../report/extract'
 import { loadRouteContract } from '../report/route-contracts'
 import { base64ToBytes } from '../util/base64'
 import { gunzipToString } from '../util/gzip'
@@ -136,7 +137,7 @@ export function createDashboardApi(storage: Storage, logger?: Logger): Router {
       setResponseStatus(event, 404)
       return { error: 'No screenshot data' }
     }
-    const lhr = JSON.parse(gunzipToString(gz))
+    const lhr = decompressLhr(gz)
     const screenshotData = lhr.fullPageScreenshot?.screenshot?.data
     if (!screenshotData) {
       setResponseStatus(event, 404)

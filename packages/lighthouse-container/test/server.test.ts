@@ -1,13 +1,16 @@
-import type { Auditor, LighthouseReport } from '@unlighthouse/contracts/ports'
+import type { Auditor, AuditorReport } from '@unlighthouse/contracts/ports'
 import { createLighthouseContainerServer } from '@unlighthouse/lighthouse-container/server'
 import { toWebHandler } from 'h3'
 import { describe, expect, it, vi } from 'vitest'
 
 function createAuditor() {
   const report = {
+    requestedUrl: 'https://example.com/',
     finalUrl: 'https://example.com/',
+    lighthouseVersion: '13.4.0',
     categories: { performance: { score: 1 } },
-  } as unknown as LighthouseReport
+    audits: {},
+  } satisfies AuditorReport
   const audit = vi.fn(async () => report)
   const auditor: Auditor = {
     capabilities: {
@@ -93,6 +96,33 @@ describe('lighthouse container server', () => {
       lighthouseConfig: { extends: 'lighthouse:default' },
       lighthouseFlags: { onlyCategories: ['performance'] },
     })
+  })
+
+  it('rejects malformed audit options before loading the auditor', async () => {
+    const getAuditor = vi.fn(async () => createAuditor().auditor)
+    const handler = toWebHandler(createLighthouseContainerServer({
+      token: 'shared-token',
+      auditorConfigured: true,
+      getAuditor,
+      nodeVersion: '24.test',
+    }))
+
+    const response = await handler(new Request('http://container.test/audit', {
+      method: 'POST',
+      headers: {
+        'authorization': 'Bearer shared-token',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: 'https://example.com/',
+        device: 'tablet',
+        flags: ['performance'],
+      }),
+    }))
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ error: 'invalid audit request' })
+    expect(getAuditor).not.toHaveBeenCalled()
   })
 
   it('rejects an invalid bearer token before loading the auditor', async () => {

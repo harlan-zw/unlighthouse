@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { ImagesReport } from '@unlighthouse/contracts/packs'
-// See CwvWidget.vue for why `report` arrives untyped and gets cast here.
+import { ImagesReportSchema } from '@unlighthouse/contracts/packs'
+
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
 const { fmtBytes, fmtMs } = createFormatters()
 
-const report = computed(() => props.report as ImagesReport)
+const report = computed(() => ImagesReportSchema.parse(props.report))
 
 function severityStatus(severity: string): 'error' | 'warning' | 'neutral' {
   if (severity === 'critical' || severity === 'serious')
@@ -26,6 +26,11 @@ const imageItems = computed(() =>
   (showAllImages.value ? allImageFindings.value : allImageFindings.value.slice(0, IMAGE_CAP))
     .map(f => ({ ...f, value: f.imageUrl })),
 )
+
+function hideBrokenImage(event: Event): void {
+  if (event.target instanceof HTMLImageElement)
+    event.target.style.display = 'none'
+}
 </script>
 
 <template>
@@ -91,7 +96,7 @@ const imageItems = computed(() =>
                   referrerpolicy="no-referrer"
                   alt=""
                   class="w-32 h-20 object-contain bg-elevated rounded border"
-                  @error="(e) => { const el = e.target as HTMLImageElement; el.style.display = 'none' }"
+                  @error="hideBrokenImage"
                 >
               </a>
               <div class="flex-1 min-w-0 space-y-2">

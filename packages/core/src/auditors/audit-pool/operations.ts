@@ -5,18 +5,13 @@ import { consola } from 'consola'
 
 const logger = consola.withTag('audit-pool')
 
-interface PoolHandle {
-  pool: Tinypool
-  destroyed: boolean
-}
-
 function ensureAlive(pool: AuditPool): asserts pool is AuditPool {
   if (pool._internal.destroyed)
     throw new Error('[unlighthouse:core/audit-pool] pool has been destroyed')
 }
 
 function tp(pool: AuditPool): Tinypool {
-  return (pool._internal as unknown as PoolHandle).pool
+  return pool._internal.pool
 }
 
 /**

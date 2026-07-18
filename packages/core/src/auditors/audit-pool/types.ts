@@ -1,5 +1,6 @@
 import type { Hookable } from 'hookable'
 import type { Browser, BrowserContext, Page } from 'puppeteer-core'
+import type Tinypool from 'tinypool'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Options
@@ -111,7 +112,7 @@ export interface AuditPool {
 
 /** @internal */
 export interface AuditPoolInternal {
-  pool: unknown
+  pool: Tinypool
   stats: AuditPoolStats
   pending: Set<Promise<unknown>>
   destroyed: boolean

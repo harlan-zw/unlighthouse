@@ -11,7 +11,7 @@
  * `maxThreads` gives real parallelism.
  */
 import type { Logger, UnlighthouseOptions, UnlighthouseReport } from '@unlighthouse/contracts'
-import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Page } from '@unlighthouse/contracts/ports'
 import type { AuditPool } from './audit-pool'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -39,9 +39,10 @@ export interface LocalAuditorOptions {
    */
   perfConcurrency?: 'serial' | 'parallel'
   /**
-   * @internal
    * worker-thread pool. Injected in tests to exercise the serial perf lane and
    * concurrency stamping without launching Chrome.
+   *
+   * @internal
    */
   runLighthouseTask?: (payload: { url: string, options: unknown }) => Promise<UnlighthouseReport>
 }
@@ -124,7 +125,7 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
 
   return {
     capabilities,
-    async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<LighthouseReport> {
+    async audit(url: string, _page?: Page, _opts?: AuditOpts): Promise<AuditorReport> {
       // Map the per-route device onto Lighthouse's emulatedFormFactor. Without
       // this every audit (mobile AND desktop) silently ran with the default
       // mobile emulation, so desktop scores/screenshots were really mobile.

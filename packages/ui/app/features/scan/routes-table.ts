@@ -1,5 +1,5 @@
 import type { SortingState } from '@tanstack/vue-table'
-import type { Device, ScanId } from '@unlighthouse/contracts'
+import type { Device } from '@unlighthouse/contracts'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -231,7 +231,7 @@ export function useScanRoutesTable() {
       const prev = await optionalApiRead('compare.findPrevious', api['compare.findPrevious']({ site: meta.site, device: meta.device as Device, excludeScanId: scanId.value }))
       if (!prev?.scanId)
         return null
-      const res = await optionalApiRead('scan.results', api['scan.results']({ scanId: prev.scanId as ScanId, page: 1, pageSize: ROUTES_PAGE_SIZE }))
+      const res = await optionalApiRead('scan.results', api['scan.results']({ scanId: prev.scanId, page: 1, pageSize: ROUTES_PAGE_SIZE }))
       if (!res)
         return null
       const map = new Map<string, number>()

@@ -1,0 +1,790 @@
+// Unit tests for Core orchestration (packages/core/src/core.ts).
+// Covers: happy-path event sequence, cancel, pause/resume capability gating,
+// ring buffer replay, ACTIVE_SCAN_CONFLICT, and audit failure → scan:route-failed.
+
+import type {
+  Auditor,
+  AuditorReport,
+  Crawler,
+  CrawlerRunOptions,
+  CrawlEvent,
+  Logger,
+  SeedSource,
+  Storage,
+} from '@unlighthouse/contracts'
+import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { HookEvent } from '@unlighthouse/contracts/hooks'
+import { gzipSync } from 'node:zlib'
+import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { createUnlighthouseCore } from '@unlighthouse/core'
+import { reapStaleScans } from '@unlighthouse/core/runtime'
+import { memoryStorage } from '@unlighthouse/core/storage/memory'
+import { describe, expect, it } from 'vitest'
+import { testUrl } from '../../../test/helpers/contracts'
+
+// SCAN_CANCELLED rejections on `session.done` fire from the orchestrate IIFE
+// after the cancelling test body finishes. Even with .catch() attached, Node's
+// unhandledRejection event fires before vitest re-checks. Suppress at module
+// load so vitest's own listener doesn't surface the rejection.
+process.on('unhandledRejection', (reason: unknown) => {
+  if (reason instanceof UnlighthouseError && reason.code === 'SCAN_CANCELLED')
+    return
+  throw reason
+})
+
+// ── Test helpers ────────────────────────────────────────────────────────────
+
+const baseConfig: UnlighthouseConfig = { site: 'https://example.com' }
+
+const emptySeeds: SeedSource = {
+  async* seeds() {},
+}
+
+function recordingLogger(entries: string[]): Logger {
+  const record = (...args: unknown[]) => {
+    const match = typeof args[0] === 'string' ? /^\[([^\]]+)\]/.exec(args[0]) : null
+    if (match?.[1])
+      entries.push(match[1])
+  }
+  const logger: Logger = {
+    debug: record,
+    info: record,
+    warn: record,
+    error: record,
+    log: record,
+    success: record,
+    trace: record,
+    withTag: () => logger,
+  }
+  return logger
+}
+
+function stubReport(url: string): AuditorReport {
+  return {
+    requestedUrl: url,
+    finalUrl: url,
+    lighthouseVersion: 'test',
+    categories: {},
+    audits: {},
+    extracted: {
+      url: testUrl(url),
+      path: new URL(url).pathname,
+      routeName: null,
+      scorePerformance: 0.9,
+      scoreAccessibility: 0.9,
+      scoreSeo: 0.9,
+      scoreBestPractices: 0.9,
+      lcp: 1000,
+      cls: 0.01,
+      inp: 50,
+      fcp: 800,
+      ttfb: 100,
+      tbt: 50,
+      si: 1500,
+      lighthouseVersion: 'test',
+      capturedAt: new Date().toISOString(),
+    },
+  }
+}
+
+function stubLhrReport(url: string, opts: { screenshot?: boolean } = {}): AuditorReport {
+  const lhr = {
+    lighthouseVersion: 'test',
+    requestedUrl: url,
+    finalUrl: url,
+    finalDisplayedUrl: url,
+    categories: {},
+    audits: {},
+    ...(opts.screenshot
+      ? {
+          fullPageScreenshot: {
+            screenshot: {
+              data: 'data:image/webp;base64,AA==',
+            },
+          },
+        }
+      : {}),
+  }
+  return {
+    ...stubReport(url),
+    lhrGzip: gzipSync(JSON.stringify(lhr)),
+  }
+}
+
+function passingAuditor(): Auditor {
+  return {
+    capabilities: {
+      reliablePerfScores: true,
+      reliableFieldData: false,
+      supportsThrottling: true,
+      categories: ['performance'],
+    },
+    audit: async (url: string) => stubReport(url),
+  }
+}
+
+function failingAuditor(failUrls: Set<string>): Auditor {
+  return {
+    capabilities: {
+      reliablePerfScores: true,
+      reliableFieldData: false,
+      supportsThrottling: true,
+      categories: ['performance'],
+    },
+    audit: async (url: string) => {
+      if (failUrls.has(url))
+        throw new Error(`forced failure for ${url}`)
+      return stubReport(url)
+    },
+  }
+}
+
+/** Crawler that emits a fixed list of url-discovered events, awaiting each audit. */
+function discoveryCrawler(urls: string[], opts?: { pauseable?: boolean }): Crawler {
+  const c: Crawler = {
+    run(runOpts: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
+      return (async function* () {
+        for (const url of urls) {
+          if (runOpts.signal?.aborted)
+            return
+          yield { type: 'url-discovered', url }
+          // fire-and-forget audit; core awaits via auditWrapper
+          await runOpts.audit(url, { scanId: 'x', signal: runOpts.signal })
+          if (runOpts.signal?.aborted)
+            return
+        }
+        yield { type: 'idle' }
+      })()
+    },
+  }
+  if (opts?.pauseable) {
+    c.pause = async () => {}
+    c.resume = async () => {}
+  }
+  return c
+}
+
+/** Crawler that emits one discovery, then awaits forever (until signal aborts). */
+function hangingCrawler(url: string): Crawler {
+  return {
+    run(runOpts: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
+      return (async function* () {
+        yield { type: 'url-discovered', url }
+        await new Promise<void>((resolve) => {
+          runOpts.signal?.addEventListener('abort', () => resolve(), { once: true })
+        })
+      })()
+    },
+  }
+}
+
+// ── Tests ───────────────────────────────────────────────────────────────────
+
+describe('createUnlighthouseCore orchestration', () => {
+  it('happy path: emits stable scan:* sequence and persists routes', async () => {
+    const urls = ['https://example.com/a', 'https://example.com/b', 'https://example.com/c']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+
+    const session = core.run()
+    const collected: HookEvent[] = []
+    const stop = session.subscribe(e => collected.push(e))
+    await session.done
+    // give iter a tick to close
+    await new Promise(r => setTimeout(r, 0))
+    stop()
+
+    const names = collected.map(e => e.event)
+    expect(names[0]).toBe('scan:created')
+    expect(names[1]).toBe('scan:started')
+    expect(names[2]).toBe('scan:discovering')
+    expect(names).toContain('scan:scanning')
+    expect(names.filter(n => n === 'scan:route-complete')).toHaveLength(3)
+    expect(names.at(-1)).toBe('scan:complete')
+
+    const list = await storage.routes.listForScan(session.scanId)
+    expect(list.items.length).toBe(3)
+
+    expect(session.stats()).toEqual({ discovered: 3, scanned: 3, failed: 0, total: 3 })
+    expect(session.state()).toBe('complete')
+  })
+
+  it('session.events is per-consumer multicast: two concurrent tails both see the full stream', async () => {
+    const urls = ['https://example.com/a', 'https://example.com/b', 'https://example.com/c']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+
+    const session = core.run()
+    const collect = async () => {
+      const names: string[] = []
+      for await (const e of session.events as AsyncIterable<HookEvent>)
+        names.push(e.event)
+      return names
+    }
+    // Two consumers started before the scan finishes. Previously they shared a
+    // single queue and stole events from each other; now each gets its own.
+    const [a, b] = await Promise.all([collect(), collect()])
+
+    // Both terminate (the scan-end close fans out to every live iterator)...
+    expect(a.at(-1)).toBe('scan:complete')
+    expect(b.at(-1)).toBe('scan:complete')
+    // ...and both see every route-complete, none stolen by the other.
+    expect(a.filter(n => n === 'scan:route-complete')).toHaveLength(3)
+    expect(b.filter(n => n === 'scan:route-complete')).toHaveLength(3)
+    expect(a).toEqual(b)
+  })
+
+  it('abandoning a session.events iterator (return) unsubscribes it', async () => {
+    const urls = ['https://example.com/a', 'https://example.com/b']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    const it = (session.events as AsyncIterable<HookEvent>)[Symbol.asyncIterator]()
+    const first = await it.next()
+    expect(first.done).toBe(false)
+    // Simulate a client disconnect: the HTTP layer calls return() on close.
+    const closed = await it.return!()
+    expect(closed.done).toBe(true)
+    // A subsequent next() stays done and the scan still completes cleanly.
+    expect((await it.next()).done).toBe(true)
+    await session.done
+    expect(session.state()).toBe('complete')
+  })
+
+  it('scanner.include scopes the audited routes (config was previously ignored)', async () => {
+    const urls = [
+      'https://example.com/',
+      'https://example.com/products/a',
+      'https://example.com/products/b',
+      'https://example.com/about',
+    ]
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: { ...baseConfig, scanner: { include: ['/products/**'] } },
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+
+    const list = await storage.routes.listForScan(session.scanId)
+    expect(list.items.map(r => r.path).sort()).toEqual(['/products/a', '/products/b'])
+  })
+
+  it('scanner.exclude drops matching routes from the audit set', async () => {
+    const urls = ['https://example.com/', 'https://example.com/admin/x', 'https://example.com/blog']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: { ...baseConfig, scanner: { exclude: ['/admin/**'] } },
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+
+    const list = await storage.routes.listForScan(session.scanId)
+    expect(list.items.map(r => r.path).sort()).toEqual(['/', '/blog'])
+  })
+
+  it('page mode passes noFollow to the crawler; site mode does not', async () => {
+    const captured: Record<string, boolean | undefined> = {}
+    function spyCrawler(tag: string): Crawler {
+      return {
+        run(runOpts: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
+          captured[tag] = runOpts.noFollow
+          return (async function* () {
+            for await (const s of runOpts.seeds.seeds())
+              await runOpts.audit(s.url, { scanId: 'x' as never, signal: runOpts.signal })
+            yield { type: 'idle' }
+          })()
+        },
+      }
+    }
+    const run = async (tag: string, overrides: { site: string, mode?: 'site' | 'page' }) => {
+      const core = createUnlighthouseCore({
+        config: baseConfig,
+        auditor: passingAuditor(),
+        seeds: emptySeeds,
+        crawler: spyCrawler(tag),
+        storage: memoryStorage(),
+      })
+      await core.run({ overrides }).done
+    }
+    await run('page', { site: 'https://example.com/', mode: 'page' })
+    await run('site', { site: 'https://example.com/' })
+
+    expect(captured.page).toBe(true)
+    expect(captured.site).toBeFalsy()
+  })
+
+  it('uRL providers disable link-following like explicit URL arrays', async () => {
+    let noFollow: boolean | undefined
+    const crawler: Crawler = {
+      run(runOpts: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
+        noFollow = runOpts.noFollow
+        return (async function* () {
+          yield { type: 'idle' }
+        })()
+      },
+    }
+    const core = createUnlighthouseCore({
+      config: { ...baseConfig, urls: async () => ['https://example.com/about'] },
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler,
+      storage: memoryStorage(),
+    })
+
+    await core.run().done
+
+    expect(noFollow).toBe(true)
+  })
+
+  it('aggregates scoreAverage + scoresByCategory on scan:complete', async () => {
+    // Regression for the v0→v1 port bug where summary.scoreAverage was
+    // hardcoded `null` even after routes finished scoring — broke
+    // compare.run baselines and the dashboard summary tile.
+    const urls = ['https://example.com/a', 'https://example.com/b']
+    const storage: Storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+
+    const persisted = await storage.scans.get(session.scanId)
+    expect(persisted?.summary?.scoreAverage).not.toBeNull()
+    // passingAuditor() returns 0.9 for every category, so the average is 0.9.
+    expect(persisted?.summary?.scoreAverage).toBeCloseTo(0.9, 5)
+    expect(persisted?.summary?.scoresByCategory).toEqual({
+      'performance': 0.9,
+      'accessibility': 0.9,
+      'seo': 0.9,
+      'best-practices': 0.9,
+    })
+    expect(persisted?.summary?.categoryScoreDisplayModes).toEqual({
+      'performance': 'gauge',
+      'accessibility': 'gauge',
+      'seo': 'gauge',
+      'best-practices': 'gauge',
+    })
+  })
+
+  it('cancel: emits scan:cancelled and rejects done', async () => {
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: hangingCrawler('https://example.com/x'),
+      storage,
+    })
+
+    const session = core.run()
+    const settled = session.done.then(v => ({ ok: true as const, v }), e => ({ ok: false as const, e }))
+    const events: HookEvent[] = []
+    session.subscribe(e => events.push(e))
+
+    // wait until the scanning event fires (post-discovery)
+    await new Promise<void>((resolve) => {
+      const i = setInterval(() => {
+        if (events.some(e => e.event === 'scan:scanning')) {
+          clearInterval(i)
+          resolve()
+        }
+      }, 5)
+    })
+
+    await session.cancel('user')
+    const result = await settled
+    expect(result.ok).toBe(false)
+
+    const cancelled = events.find((e): e is Extract<HookEvent, { event: 'scan:cancelled' }> => e.event === 'scan:cancelled')
+    expect(cancelled).toBeDefined()
+    expect(cancelled?.payload.reason).toBe('user')
+    expect(session.state()).toBe('cancelled')
+  })
+
+  it('pause/resume capability gating: missing methods', async () => {
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: hangingCrawler('https://example.com/x'),
+      storage,
+    })
+    const session = core.run()
+    // eslint-disable-next-line harlanzw/no-silent-catch -- cancellation rejection is asserted below.
+    session.done.catch((_err) => {
+      // Expected after the test cancels the hanging session.
+    })
+    expect(session.capabilities.pausable).toBe(false)
+    await expect(session.pause()).rejects.toMatchObject({ code: 'NOT_SUPPORTED' })
+    await session.cancel()
+    // eslint-disable-next-line harlanzw/no-silent-catch -- cancellation is the expected terminal state.
+    await session.done.catch((_err) => {
+      // Expected after cancellation.
+    })
+  })
+
+  it('pause/resume capability gating: present methods emit events', async () => {
+    const storage = memoryStorage()
+    const crawler = discoveryCrawler(['https://example.com/a'], { pauseable: true })
+    // Make audit slow so we can pause/resume mid-run.
+    let release!: () => void
+    const gate = new Promise<void>((r) => { release = r })
+    const auditor: Auditor = {
+      capabilities: passingAuditor().capabilities,
+      audit: async (url: string) => {
+        await gate
+        return stubReport(url)
+      },
+    }
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor,
+      seeds: emptySeeds,
+      crawler,
+      storage,
+    })
+    const session = core.run()
+    expect(session.capabilities.pausable).toBe(true)
+    const events: HookEvent[] = []
+    session.subscribe(e => events.push(e))
+
+    // wait until scanning fires (discovery happened)
+    await new Promise<void>((resolve) => {
+      const i = setInterval(() => {
+        if (events.some(e => e.event === 'scan:scanning')) {
+          clearInterval(i)
+          resolve()
+        }
+      }, 5)
+    })
+
+    await session.pause()
+    expect(session.state()).toBe('paused')
+    await session.resume()
+    expect(session.state()).toBe('scanning')
+
+    release()
+    await session.done
+
+    const names = events.map(e => e.event)
+    expect(names).toContain('scan:paused')
+    expect(names).toContain('scan:resumed')
+    expect(names.indexOf('scan:paused')).toBeLessThan(names.indexOf('scan:resumed'))
+  })
+
+  it('ring buffer + replay: caps at 10k and returns most recent', async () => {
+    // Build a crawler that emits >10k discoveries with a no-op audit so we
+    // don't pay 10k route-complete events. Each discovery is one stable event.
+    const COUNT = 10_050
+    const auditor: Auditor = {
+      capabilities: passingAuditor().capabilities,
+      audit: async () => stubReport('https://example.com/x'),
+    }
+    const crawler: Crawler = {
+      run(runOpts: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
+        return (async function* () {
+          for (let i = 0; i < COUNT; i++) {
+            if (runOpts.signal?.aborted)
+              return
+            yield { type: 'url-discovered', url: `https://example.com/p${i}` }
+          }
+        })()
+      },
+    }
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor,
+      seeds: emptySeeds,
+      crawler,
+      storage,
+    })
+    const session = core.run()
+    await session.done
+
+    const all = session.replay(10_001)
+    expect(all.length).toBe(10_000)
+
+    const last5 = session.replay(5)
+    expect(last5.length).toBe(5)
+    // Most recent slice equals tail of full replay.
+    expect(last5).toEqual(all.slice(all.length - 5))
+    // And ends with scan:complete.
+    expect(last5.at(-1)!.event).toBe('scan:complete')
+  }, 10_000)
+
+  it('throws ACTIVE_SCAN_CONFLICT on concurrent run()', async () => {
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: hangingCrawler('https://example.com/x'),
+      storage,
+    })
+    const session = core.run()
+    // eslint-disable-next-line harlanzw/no-silent-catch -- cancellation rejection is asserted by the terminal state.
+    session.done.catch((_err) => {
+      // Expected after the test cancels the hanging session.
+    })
+    expect(() => core.run()).toThrow(UnlighthouseError)
+    try {
+      core.run()
+    }
+    catch (e) {
+      expect(e).toBeInstanceOf(UnlighthouseError)
+      if (e instanceof UnlighthouseError)
+        expect(e.code).toBe('ACTIVE_SCAN_CONFLICT')
+    }
+    await session.cancel()
+    // eslint-disable-next-line harlanzw/no-silent-catch -- cancellation is the expected terminal state.
+    await session.done.catch((_err) => {
+      // Expected after cancellation.
+    })
+  })
+
+  it('run({ overrides }): site/device/ciBuild are persisted onto the scans row', async () => {
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: { site: 'https://default.example', scanner: { device: 'mobile' } },
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(['https://override.example/a']),
+      storage,
+    })
+
+    const session = core.run({
+      overrides: {
+        site: 'https://override.example',
+        device: 'desktop',
+        ciBuild: { branch: 'feat/x', hash: 'deadbeef', message: 'wip' },
+      },
+    })
+    await session.done
+
+    const scan = await storage.scans.get(session.scanId)
+    expect(scan?.site).toBe('https://override.example')
+    expect(scan?.device).toBe('desktop')
+    expect(scan?.ciBranch).toBe('feat/x')
+    expect(scan?.ciCommit).toBe('deadbeef')
+    expect(scan?.ciCommitMessage).toBe('wip')
+  })
+
+  it('run() without overrides: falls back to host config (default device=mobile, no ci)', async () => {
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: passingAuditor(),
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(['https://example.com/a']),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+    const scan = await storage.scans.get(session.scanId)
+    expect(scan?.site).toBe('https://example.com')
+    expect(scan?.device).toBe('mobile')
+    expect(scan?.ciBranch).toBeNull()
+    expect(scan?.ciCommit).toBeNull()
+    expect(scan?.ciCommitMessage).toBeNull()
+  })
+
+  it('audit error: emits scan:route-failed, completes with stats.failed=1', async () => {
+    const urls = ['https://example.com/a', 'https://example.com/b', 'https://example.com/c']
+    const storage = memoryStorage()
+    const auditor = failingAuditor(new Set(['https://example.com/b']))
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor,
+      seeds: emptySeeds,
+      crawler: discoveryCrawler(urls),
+      storage,
+    })
+    const session = core.run()
+    const events: HookEvent[] = []
+    session.subscribe(e => events.push(e))
+    await session.done
+
+    const failed = events.find((e): e is Extract<HookEvent, { event: 'scan:route-failed' }> => e.event === 'scan:route-failed')
+    expect(failed).toBeDefined()
+    expect(failed?.payload.url).toBe('https://example.com/b')
+    expect(session.stats().failed).toBe(1)
+    expect(session.stats().scanned).toBe(2)
+    expect(events.some(e => e.event === 'scan:complete')).toBe(true)
+  })
+
+  it('route artifact write failure emits scan:route-failed with typed code', async () => {
+    const url = 'https://example.com/artifact'
+    const storage = memoryStorage()
+    const put = storage.blobs.put.bind(storage.blobs)
+    storage.blobs.put = async (key, data, opts) => {
+      if (key.includes('/lhr/'))
+        throw new Error('blob write failed')
+      return put(key, data, opts)
+    }
+    const auditor: Auditor = {
+      capabilities: passingAuditor().capabilities,
+      audit: async () => stubLhrReport(url),
+    }
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor,
+      seeds: emptySeeds,
+      crawler: discoveryCrawler([url]),
+      storage,
+    })
+    const session = core.run()
+    const events: HookEvent[] = []
+    session.subscribe(e => events.push(e))
+    await session.done
+
+    const failed = events.find((e): e is Extract<HookEvent, { event: 'scan:route-failed' }> => e.event === 'scan:route-failed')
+    expect(failed?.payload.error.code).toBe('ROUTE_ARTIFACT_WRITE_FAILED')
+    expect(failed?.payload.error.category).toBe('route-failed')
+    expect(session.stats()).toMatchObject({ scanned: 0, failed: 1 })
+  })
+
+  it('optional screenshot write failure is catalogued as operational log', async () => {
+    const url = 'https://example.com/screenshot'
+    const storage = memoryStorage()
+    const entries: string[] = []
+    const put = storage.blobs.put.bind(storage.blobs)
+    storage.blobs.put = async (key, data, opts) => {
+      if (key.includes('/screenshots/'))
+        throw new Error('screenshot write failed')
+      return put(key, data, opts)
+    }
+    const auditor: Auditor = {
+      capabilities: passingAuditor().capabilities,
+      audit: async () => stubLhrReport(url, { screenshot: true }),
+    }
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor,
+      seeds: emptySeeds,
+      crawler: discoveryCrawler([url]),
+      storage,
+      logger: recordingLogger(entries),
+    })
+    const session = core.run()
+    await session.done
+    expect(session.stats()).toMatchObject({ scanned: 1, failed: 0 })
+    expect(entries).toContain('scan.screenshot_write_failed')
+    const route = (await storage.routes.listForScan(session.scanId)).items[0]
+    expect(route?.screenshotBlobKey).toBeNull()
+  })
+
+  it('persists the exact screenshot blob key on the route row', async () => {
+    const url = 'https://example.com/screenshot-row'
+    const storage = memoryStorage()
+    const core = createUnlighthouseCore({
+      config: baseConfig,
+      auditor: {
+        capabilities: passingAuditor().capabilities,
+        audit: async () => stubLhrReport(url, { screenshot: true }),
+      },
+      seeds: emptySeeds,
+      crawler: discoveryCrawler([url]),
+      storage,
+    })
+    const session = core.run()
+    await session.done
+    const route = (await storage.routes.listForScan(session.scanId)).items[0]
+    expect(route?.screenshotBlobKey).toMatch(new RegExp(`^scans/${session.scanId}/screenshots/.+-mobile\\.webp$`))
+    expect(await storage.blobs.has(route!.screenshotBlobKey!)).toBe(true)
+  })
+})
+
+describe('reapStaleScans', () => {
+  it('marks non-terminal zombie scans as error and leaves terminals alone', async () => {
+    const storage = memoryStorage()
+    // Plant one of each non-terminal status + a terminal control.
+    const planted: Array<['starting' | 'discovering' | 'scanning' | 'paused' | 'complete' | 'error' | 'cancelled', string]> = [
+      ['starting', 'zombie-start'],
+      ['discovering', 'zombie-discovering'],
+      ['scanning', 'zombie-scanning'],
+      ['paused', 'zombie-paused'],
+      ['complete', 'survivor-complete'],
+      ['error', 'survivor-error'],
+      ['cancelled', 'survivor-cancelled'],
+    ]
+    for (const [status, id] of planted) {
+      await storage.scans.create({
+        scanId: id as never,
+        site: 'https://example.com' as never,
+        mode: 'site',
+        device: 'mobile',
+        status,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: status === 'complete' || status === 'error' || status === 'cancelled'
+          ? '2025-01-01T00:05:00.000Z'
+          : null,
+        ciBranch: null,
+        ciCommit: null,
+        ciCommitMessage: null,
+        summary: null,
+      })
+    }
+    const reaped = await reapStaleScans(storage)
+    expect(reaped).toBe(4)
+    // Zombies flipped to error + got a completedAt.
+    for (const id of ['zombie-start', 'zombie-discovering', 'zombie-scanning', 'zombie-paused']) {
+      const row = await storage.scans.get(id as never)
+      expect(row?.status).toBe('error')
+      expect(row?.completedAt).not.toBeNull()
+    }
+    // Terminals untouched.
+    expect((await storage.scans.get('survivor-complete' as never))?.status).toBe('complete')
+    expect((await storage.scans.get('survivor-error' as never))?.status).toBe('error')
+    expect((await storage.scans.get('survivor-cancelled' as never))?.status).toBe('cancelled')
+  })
+
+  it('is a no-op when no zombies exist', async () => {
+    const storage = memoryStorage()
+    await storage.scans.create({
+      scanId: 'ok' as never,
+      site: 'https://example.com' as never,
+      mode: 'site',
+      device: 'mobile',
+      status: 'complete',
+      startedAt: '2025-01-01T00:00:00.000Z',
+      completedAt: '2025-01-01T00:05:00.000Z',
+      ciBranch: null,
+      ciCommit: null,
+      ciCommitMessage: null,
+      summary: null,
+    })
+    expect(await reapStaleScans(storage)).toBe(0)
+  })
+})

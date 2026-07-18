@@ -1,18 +1,15 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import type { CruxFinding, CruxReport, GapEntry } from '@unlighthouse/contracts/packs'
+import type { CruxFinding, GapEntry } from '@unlighthouse/contracts/packs'
+import { CruxReportSchema } from '@unlighthouse/contracts/packs'
 import { h } from 'vue'
 import { cwvColor } from '~/features/scan/routes-table'
-// See CwvWidget.vue for why `report` arrives untyped and gets cast here.
-// This replaces the pre-pivot crux.vue page, which cast `pack.run`'s report
-// through a stale, unrelated `CruxData` type (`packages/contracts/types/dashboard.ts`,
-// now deleted) that never matched what the `crux` pack actually returns
-// (`CruxReportSchema`). This widget renders the real shape.
+
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
 const { fmtMs } = createFormatters()
 
-const report = computed(() => props.report as CruxReport)
+const report = computed(() => CruxReportSchema.parse(props.report))
 
 const GAP_CAP = 20
 

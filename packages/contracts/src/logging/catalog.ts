@@ -48,6 +48,7 @@ export const OPERATIONAL_LOG_CATALOG = {
   'scan.pack_system_failed': 'The report pack system failed while scan completion continued',
 
   'pack.report_schema_to_json_schema_failed': 'pack.list could not convert a pack\'s reportSchema to JSON Schema; that pack\'s reportSchema degraded to null',
+  'pack.cached_report_invalid': 'A persisted pack report no longer matched its owning reportSchema and was rebuilt',
 
   'storage.old_blob_delete_failed': 'Old report blob deletion failed after the replacement report was persisted',
   'storage.migration_statement_failed': 'Storage init skipped a schema statement after it failed with a tolerated error',

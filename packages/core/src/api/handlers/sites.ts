@@ -1,23 +1,18 @@
-import type {
-  CommandOutput,
-  SitesCreate,
-  SitesDelete,
-  SitesList,
-} from '@unlighthouse/contracts/commands'
 import type { Handler } from './types'
+import { SitesCreate, SitesDelete, SitesList } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { deriveSiteId, deriveSiteName } from '../../util/site'
 
 export const sitesList: Handler<typeof SitesList> = {
-  command: {} as typeof SitesList,
+  command: SitesList,
   async run(_input, ctx) {
     const sites = await ctx.storage.sites.list()
-    return { sites } as CommandOutput<typeof SitesList>
+    return SitesList.output.parse({ sites })
   },
 }
 
 export const sitesCreate: Handler<typeof SitesCreate> = {
-  command: {} as typeof SitesCreate,
+  command: SitesCreate,
   async run(input, ctx) {
     const id = deriveSiteId(input.url)
     const existing = await ctx.storage.sites.get(id)
@@ -27,7 +22,13 @@ export const sitesCreate: Handler<typeof SitesCreate> = {
         url: input.url,
         group: input.group === undefined ? existing.group : input.group,
       })
-      return { site: updated! } as CommandOutput<typeof SitesCreate>
+      if (!updated) {
+        throw new UnlighthouseError({
+          code: 'SITE_NOT_FOUND',
+          message: `Site disappeared while updating id=${id}`,
+        })
+      }
+      return SitesCreate.output.parse({ site: updated })
     }
     const site = await ctx.storage.sites.create({
       id,
@@ -36,12 +37,12 @@ export const sitesCreate: Handler<typeof SitesCreate> = {
       group: input.group ?? null,
       createdAt: new Date().toISOString(),
     })
-    return { site } as CommandOutput<typeof SitesCreate>
+    return SitesCreate.output.parse({ site })
   },
 }
 
 export const sitesDelete: Handler<typeof SitesDelete> = {
-  command: {} as typeof SitesDelete,
+  command: SitesDelete,
   async run(input, ctx) {
     const ok = await ctx.storage.sites.delete(input.id)
     if (!ok) {
@@ -50,6 +51,6 @@ export const sitesDelete: Handler<typeof SitesDelete> = {
         message: `No site found for id=${input.id}`,
       })
     }
-    return { id: input.id, deleted: true } as CommandOutput<typeof SitesDelete>
+    return SitesDelete.output.parse({ id: input.id, deleted: true })
   },
 }

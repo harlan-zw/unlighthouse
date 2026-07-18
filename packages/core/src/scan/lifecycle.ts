@@ -137,7 +137,7 @@ export function createScanLifecycle(options: CreateScanLifecycleOptions): ScanLi
     status: 'scanning' | 'paused' = 'scanning',
   ): Promise<ScanSummary> {
     const summary: ScanSummary = {
-      routes: stats.discovered,
+      routes: stats.total,
       completed: stats.scanned,
       failed: stats.failed,
       scoreAverage: null,

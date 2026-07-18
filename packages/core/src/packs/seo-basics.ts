@@ -12,31 +12,14 @@
 // will actually rank.
 
 import type { Pack, PackReconcileCtx, SeoFinding, SeoReport, SeoRouteCheck } from '@unlighthouse/contracts/packs'
+import type { LighthouseResult } from '@unlighthouse/contracts/ports'
 import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { SeoReportSchema } from '@unlighthouse/contracts/packs'
 import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-interface LhrLike {
-  categories?: {
-    seo?: {
-      auditRefs?: Array<{ id: string, weight: number }>
-    }
-  }
-  audits?: Record<string, {
-    id?: string
-    title?: string
-    description?: string
-    score?: number | null
-    scoreDisplayMode?: string
-    details?: {
-      items?: Array<{
-        node?: { selector?: string, snippet?: string, nodeLabel?: string }
-      }>
-    }
-  }>
-}
+type LhrLike = Pick<LighthouseResult, 'categories' | 'audits'>
 
 // is-crawlable is the load-bearing audit — a non-crawlable route is invisible
 // to search engines regardless of how good its meta tags are. Weight comes
@@ -111,9 +94,9 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
     : null
   const lhr = ctx.getLhr
     ? await ctx.getLhr(url, device).catch((err) => {
-      ctx.logger?.debug?.(`seo-basics pack: failed to load LHR for ${url} [${device}]`, err)
-      return null
-    }) as LhrLike | null
+        ctx.logger?.debug?.(`seo-basics pack: failed to load LHR for ${url} [${device}]`, err)
+        return null
+      })
     : null
 
   if (!reconciled && !lhr)
@@ -124,14 +107,14 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
 
   if (reconciled) {
     for (const ref of reconciled.categories.seo?.auditRefs ?? [])
-      auditWeights.set(ref.id, ref.weight)
+      auditWeights.set(ref.id, ref.weight ?? 0)
     for (const [id, a] of Object.entries(reconciled.audits)) {
       audits[id] = { score: a.score, title: a.title, description: a.description }
     }
   }
   else if (lhr) {
     for (const ref of lhr.categories?.seo?.auditRefs ?? [])
-      auditWeights.set(ref.id, ref.weight)
+      auditWeights.set(ref.id, ref.weight ?? 0)
     for (const [id, a] of Object.entries(lhr.audits ?? {})) {
       audits[id] = {
         score: a.score ?? null,

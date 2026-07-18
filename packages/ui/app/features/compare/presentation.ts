@@ -135,7 +135,7 @@ export function createComparePresentation(deps: {
       return { klass: 'text-muted', mutedByThreshold: false }
     const threshold = effectiveThreshold(deps.thresholds, thresholdKey)
     if (threshold != null && Math.abs(value) <= threshold)
-      return { klass: 'text-muted/70', mutedByThreshold: true }
+      return { klass: 'text-muted', mutedByThreshold: true }
     return { klass: deltaClass(value, isScore), mutedByThreshold: false }
   }
 

@@ -14,8 +14,9 @@ import type {
   CommandName,
   CommandOutput,
   CommandRegistry,
+  NonStreamingCommandName,
 } from '../commands'
-import { commands, commandToRoute } from '../commands'
+import { commandEntries, commandToRoute } from '../commands'
 import { ErrorCodes, errorFromEnvelope, isErrorEnvelope, UnlighthouseError } from '../errors'
 
 export interface CreateClientOptions {
@@ -31,6 +32,24 @@ export type UnlighthouseClient = {
   [K in CommandName]: CommandRegistry[K] extends { streaming: true }
     ? (input: CommandInput<CommandRegistry[K]>) => AsyncIterable<CommandOutput<CommandRegistry[K]>>
     : (input: CommandInput<CommandRegistry[K]>) => Promise<CommandOutput<CommandRegistry[K]>>
+}
+
+/**
+ * Invoke a non-streaming client method while preserving registry key/input/output
+ * correlation through generic callers (query and mutation adapters in particular).
+ */
+export function callClientCommand<K extends NonStreamingCommandName>(
+  client: UnlighthouseClient,
+  command: K,
+  input: CommandInput<CommandRegistry[K]>,
+): Promise<CommandOutput<CommandRegistry[K]>> {
+  // TypeScript widens an indexed mapped-function access to the union of every
+  // client method. `NonStreamingCommandName` proves this branch is unary; keep
+  // the unavoidable key/method correlation bridge at the contract owner.
+  const method = client[command] as (
+    input: CommandInput<CommandRegistry[K]>,
+  ) => Promise<CommandOutput<CommandRegistry[K]>>
+  return method(input)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -112,12 +131,11 @@ export function createClient(opts: CreateClientOptions = {}): UnlighthouseClient
 
   const client = {} as Record<string, unknown>
 
-  for (const name of Object.keys(commands) as CommandName[]) {
-    const cmd = commands[name]
+  for (const [name, cmd] of commandEntries()) {
     const { method, path } = commandToRoute(cmd)
     const url = (qs: string) => `${baseUrl}${path}${qs}`
 
-    if ((cmd as { streaming?: boolean }).streaming) {
+    if ('streaming' in cmd && cmd.streaming) {
       // NDJSON streaming over GET. Returns AsyncIterable<Output>.
       client[name] = (input: unknown) => {
         async function* iterate(): AsyncGenerator<unknown> {
@@ -127,7 +145,13 @@ export function createClient(opts: CreateClientOptions = {}): UnlighthouseClient
           })
           if (!res.ok)
             await parseErrorAndThrow(res)
-          const reader = res.body!.getReader()
+          if (!res.body) {
+            throw new UnlighthouseError({
+              code: ErrorCodes.INTERNAL,
+              message: `${cmd.name}: streaming response had no body.`,
+            })
+          }
+          const reader = res.body.getReader()
           const decoder = new TextDecoder()
           let buffer = ''
           while (true) {

@@ -88,7 +88,7 @@ function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Aud
       return createPsiAuditor({ apiKey: p.apiKey, logger })
     case 'crux':
       // Contract allows apiKey optional; createCruxAuditor requires it — coerce.
-      return createCruxAuditor({ apiKey: (p.apiKey ?? '') as string, logger })
+      return createCruxAuditor({ apiKey: p.apiKey ?? '', logger })
     case 'dataforseo':
       return createDataForSeoAuditor({ username: p.login, password: p.password, logger })
     case 'mock':

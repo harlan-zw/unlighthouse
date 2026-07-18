@@ -42,6 +42,7 @@ const railTint = computed(() => (inScan.value
   : 'border-default'))
 
 const { healthy } = useBackendHealth()
+const isStatic = useIsStatic()
 </script>
 
 <template>
@@ -64,6 +65,8 @@ const { healthy } = useBackendHealth()
           purpose="quiet"
           class="lg:hidden -ml-2 size-8 justify-center"
           aria-label="Open navigation menu"
+          :aria-expanded="navOpen"
+          aria-controls="mobile-navigation"
           icon="menu"
           @click="navOpen = true"
         />
@@ -73,8 +76,11 @@ const { healthy } = useBackendHealth()
         </div>
 
         <div class="ml-auto flex items-center gap-2">
+          <div v-if="isStatic" class="text-xs text-muted" role="status">
+            Offline report
+          </div>
           <div
-            v-if="healthy !== null"
+            v-else-if="healthy !== null"
             class="flex items-center gap-1.5 text-xs"
             :class="healthy ? 'text-success' : 'text-error'"
             role="status"
@@ -109,6 +115,7 @@ const { healthy } = useBackendHealth()
     <UDrawer v-model:open="navOpen" direction="left">
       <template #content>
         <div
+          id="mobile-navigation"
           class="h-full w-72 overflow-y-auto px-3 py-3 bg-[var(--rail-bg,var(--ui-bg))]"
           :class="railTint"
         >

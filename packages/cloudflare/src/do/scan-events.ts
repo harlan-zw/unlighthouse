@@ -28,6 +28,36 @@ interface RawEvent {
   data?: { scanId?: string }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isScanReference(value: unknown): value is { scanId?: string } {
+  return isRecord(value) && (value.scanId === undefined || typeof value.scanId === 'string')
+}
+
+function isRawEvent(value: unknown): value is RawEvent {
+  return isRecord(value)
+    && typeof value.event === 'string'
+    && (value.payload === undefined || isScanReference(value.payload))
+    && (value.data === undefined || isScanReference(value.data))
+}
+
+function subscriberFilter(value: unknown): SubscriberFilter | null {
+  if (!isRecord(value))
+    return null
+  const out: SubscriberFilter = {}
+  if (Array.isArray(value.events) && value.events.every(e => typeof e === 'string'))
+    out.events = value.events
+  else if (value.events !== undefined)
+    return null
+  if (typeof value.scanId === 'string')
+    out.scanId = value.scanId
+  else if (value.scanId !== undefined)
+    return null
+  return out
+}
+
 type WebSocketResponseInit = Omit<ResponseInit, 'webSocket'> & {
   webSocket: WebSocket
 }
@@ -40,15 +70,8 @@ type WebSocketResponseConstructor = new (
 function parseFilter(raw: string | ArrayBuffer): SubscriberFilter | null {
   try {
     const text = typeof raw === 'string' ? raw : new TextDecoder().decode(raw)
-    const parsed = JSON.parse(text) as Partial<SubscriberFilter>
-    if (parsed == null || typeof parsed !== 'object')
-      return null
-    const out: SubscriberFilter = {}
-    if (Array.isArray(parsed.events) && parsed.events.every(e => typeof e === 'string'))
-      out.events = parsed.events
-    if (typeof parsed.scanId === 'string')
-      out.scanId = parsed.scanId
-    return out
+    const parsed: unknown = JSON.parse(text)
+    return subscriberFilter(parsed)
   }
   catch (_err) {
     return null
@@ -94,18 +117,17 @@ export class ScanEventsDO extends DurableObject<unknown> {
       // socket whose filter accepts it. Used by the Worker fetch handler
       // to forward events emitted by HandlerCtx hooks.
       if (request.method === 'POST') {
-        const event = await request.json().catch((err) => {
+        const event: unknown = await request.json().catch((err) => {
           logOperationalWarn('cloudflare.scan_events_invalid_payload', err)
           return null
-        }) as RawEvent | null
-        if (!event || typeof event.event !== 'string')
+        })
+        if (!isRawEvent(event))
           return new Response('invalid event payload', { status: 400 })
         if (!event.data && event.payload)
           event.data = event.payload
         if (!event.payload && event.data)
           event.payload = event.data
-        if (event && typeof event.event === 'string')
-          this.fanout(event)
+        this.fanout(event)
         return new Response(null, { status: 204 })
       }
       return new Response('expected websocket upgrade', { status: 426 })
@@ -121,6 +143,8 @@ export class ScanEventsDO extends DurableObject<unknown> {
     // the DO alive between events.
     this.state.acceptWebSocket(server)
 
+    // Workers extends ResponseInit with `webSocket` and permits status 101;
+    // lib.dom's constructor omits both, so isolate that platform type gap here.
     const WorkerResponse = Response as unknown as WebSocketResponseConstructor
     return new WorkerResponse(null, {
       status: 101,
@@ -132,7 +156,7 @@ export class ScanEventsDO extends DurableObject<unknown> {
   fanout(event: RawEvent): void {
     const payload = JSON.stringify(event)
     for (const ws of this.state.getWebSockets()) {
-      const filter = ws.deserializeAttachment?.() as SubscriberFilter | undefined
+      const filter = subscriberFilter(ws.deserializeAttachment?.()) ?? undefined
       if (!matches(filter, event))
         continue
       try {

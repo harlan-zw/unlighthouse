@@ -60,7 +60,13 @@ export function defineCommand<
   IName extends string,
   Input extends z.ZodType,
   Output extends z.ZodType,
->(cmd: Command<IName, Input, Output>): Command<IName, Input, Output> {
+>(cmd: Command<IName, Input, Output> & { streaming: true }): Command<IName, Input, Output> & { streaming: true }
+export function defineCommand<
+  IName extends string,
+  Input extends z.ZodType,
+  Output extends z.ZodType,
+>(cmd: Command<IName, Input, Output>): Command<IName, Input, Output>
+export function defineCommand(cmd: Command): Command {
   return cmd
 }
 
@@ -73,3 +79,9 @@ export type CommandInput<C> = C extends Command<string, infer I, z.ZodType>
 export type CommandOutput<C> = C extends Command<string, z.ZodType, infer O>
   ? z.infer<O>
   : never
+
+export function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function'))
+    return false
+  return Symbol.asyncIterator in value && typeof value[Symbol.asyncIterator] === 'function'
+}

@@ -12,31 +12,14 @@
 // truth for the category, matching `seo-basics` and `a11y-quick-wins`.
 
 import type { BestPracticesFinding, BestPracticesReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import type { LighthouseResult } from '@unlighthouse/contracts/ports'
 import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { BestPracticesReportSchema } from '@unlighthouse/contracts/packs'
 import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-interface LhrLike {
-  categories?: {
-    'best-practices'?: {
-      auditRefs?: Array<{ id: string, weight: number }>
-    }
-  }
-  audits?: Record<string, {
-    id?: string
-    title?: string
-    description?: string
-    score?: number | null
-    scoreDisplayMode?: string
-    details?: {
-      items?: Array<{
-        node?: { selector?: string, snippet?: string, nodeLabel?: string }
-      }>
-    }
-  }>
-}
+type LhrLike = Pick<LighthouseResult, 'categories' | 'audits'>
 
 // weight → severity, mirroring seo-basics' severityFromWeight. Most
 // best-practices audits are weight 1; a handful of security checks
@@ -111,9 +94,9 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
     : null
   const lhr = ctx.getLhr
     ? await ctx.getLhr(url, device).catch((err) => {
-      ctx.logger?.debug?.(`best-practices pack: failed to load LHR for ${url} [${device}]`, err)
-      return null
-    }) as LhrLike | null
+        ctx.logger?.debug?.(`best-practices pack: failed to load LHR for ${url} [${device}]`, err)
+        return null
+      })
     : null
 
   if (!reconciled && !lhr)
@@ -124,7 +107,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
 
   if (reconciled) {
     for (const ref of reconciled.categories[CATEGORY]?.auditRefs ?? [])
-      auditWeights.set(ref.id, ref.weight)
+      auditWeights.set(ref.id, ref.weight ?? 0)
     for (const [id, a] of Object.entries(reconciled.audits)) {
       audits[id] = {
         score: a.score,
@@ -140,7 +123,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
   }
   else if (lhr) {
     for (const ref of lhr.categories?.[CATEGORY]?.auditRefs ?? [])
-      auditWeights.set(ref.id, ref.weight)
+      auditWeights.set(ref.id, ref.weight ?? 0)
     for (const [id, a] of Object.entries(lhr.audits ?? {})) {
       audits[id] = {
         score: a.score ?? null,

@@ -239,6 +239,8 @@ const hookEventVariants = Object.entries(HookSchemas).map(([name, payload]) =>
 )
 export const HookEventUnion = z.discriminatedUnion(
   'event',
+  // Object.entries/map erase the non-empty tuple that Zod requires even though
+  // HookSchemas is statically non-empty; keep the bridge at schema construction.
   hookEventVariants as unknown as [
     (typeof hookEventVariants)[number],
     ...(typeof hookEventVariants)[number][],

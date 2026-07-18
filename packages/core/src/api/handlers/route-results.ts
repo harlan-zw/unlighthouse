@@ -1,11 +1,7 @@
 import type { RouteFilter, RouteSort } from '@unlighthouse/contracts/ports'
-import type {
-  Category,
-  MetricName,
-  ScanRoute,
-} from '@unlighthouse/contracts/types/atoms'
-import { ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
-import { routeMetricValue, routeNumericValue } from './route-metrics'
+import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import { CategorySchema, MetricNameSchema, ScanRouteSchema } from '@unlighthouse/contracts/types/atoms'
+import { routeMetricValue, routeNumericValue } from '../../comparison/policy'
 
 export interface RouteFilterInput {
   minScore?: RouteFilter['minScore']
@@ -47,17 +43,23 @@ export function applyRouteFilter(items: ScanRoute[], filter: RouteFilterInput | 
       return false
 
     if (filter.minScore) {
-      for (const [category, min] of Object.entries(filter.minScore)) {
-        const value = routeMetricValue(route, category as Category)
-        if (value == null || value < (min as number))
+      for (const category of CategorySchema.options) {
+        const min = filter.minScore[category]
+        if (min == null)
+          continue
+        const value = routeMetricValue(route, category)
+        if (value == null || value < min)
           return false
       }
     }
 
     if (filter.maxMetric) {
-      for (const [metric, max] of Object.entries(filter.maxMetric)) {
-        const value = routeMetricValue(route, metric as MetricName)
-        if (value != null && value > (max as number))
+      for (const metric of MetricNameSchema.options) {
+        const max = filter.maxMetric[metric]
+        if (max == null)
+          continue
+        const value = routeMetricValue(route, metric)
+        if (value != null && value > max)
           return false
       }
     }

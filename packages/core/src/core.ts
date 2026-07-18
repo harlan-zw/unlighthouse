@@ -218,8 +218,10 @@ function createSession(deps: SessionDeps): CrawlSession {
     = scannerDevice === 'mobile' || scannerDevice === 'desktop' ? scannerDevice : undefined
   const devices = normaliseDeviceMatrix(overrides?.device ?? validScannerDevice)
   const scanMode = (overrides?.mode ?? deps.config.scanner?.mode) === 'page' ? 'page' as const : 'site' as const
+  const configuredUrls = deps.config.urls
   const noFollow = scanMode === 'page'
-    || (Array.isArray((deps.config as { urls?: unknown[] }).urls) && ((deps.config as { urls?: unknown[] }).urls?.length ?? 0) > 0)
+    || typeof configuredUrls === 'function'
+    || (Array.isArray(configuredUrls) && configuredUrls.length > 0)
 
   // AbortController + fan-in with user signal.
   const internal = new AbortController()
@@ -302,8 +304,11 @@ function createSession(deps: SessionDeps): CrawlSession {
 
       return {
         next(): Promise<IteratorResult<HookEvent>> {
-          if (localQueue.length)
-            return Promise.resolve({ value: localQueue.shift()!, done: false })
+          if (localQueue.length) {
+            const event = localQueue.shift()
+            if (event)
+              return Promise.resolve({ value: event, done: false })
+          }
           if (done)
             return Promise.resolve({ value: undefined, done: true })
           return new Promise((r) => {
@@ -474,7 +479,7 @@ function createSession(deps: SessionDeps): CrawlSession {
           if (!discoveredUrls.has(e.url)) {
             discoveredUrls.add(e.url)
             stats.discovered++
-            stats.total = stats.discovered
+            stats.total = stats.discovered * devices.length
             if (!firstUrlSeen) {
               firstUrlSeen = true
               setStatus('scanning')

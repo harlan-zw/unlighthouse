@@ -1,5 +1,5 @@
 import type { Logger } from '@unlighthouse/contracts'
-import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Page } from '@unlighthouse/contracts/ports'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import lighthouse from 'lighthouse'
 import puppeteer from 'puppeteer-core'
@@ -65,7 +65,7 @@ type LighthouseWithPage = (
 export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
   return {
     capabilities: resolveCapabilities(opts.capabilities),
-    async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<LighthouseReport> {
+    async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<AuditorReport> {
       const { signal } = auditOpts
       const connect = opts.connect ?? puppeteer.connect
       const browser = await connect({

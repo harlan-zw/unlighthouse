@@ -1,0 +1,274 @@
+import type { ScanInsert, Storage } from '@unlighthouse/contracts/ports'
+import type { ExtractedMetrics, Scan, ScanId } from '@unlighthouse/contracts/types/atoms'
+import { readdirSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { drizzleStorage } from '@unlighthouse/core/storage/drizzle'
+import { memoryStorage } from '@unlighthouse/core/storage/memory'
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { describe, expect, it } from 'vitest'
+
+// Apply every drizzle-kit migration in order. Filenames carry a numeric
+// prefix (0000_, 0001_, …) plus a random slug, so sort lexically and
+// concatenate — yields the current full schema without pinning a name.
+const MIGRATIONS_DIR = resolve(__dirname, '../migrations/sqlite')
+const INIT_SQL = readdirSync(MIGRATIONS_DIR)
+  .filter(f => f.endsWith('.sql'))
+  .sort()
+  .map(f => readFileSync(resolve(MIGRATIONS_DIR, f), 'utf8'))
+  .join('\n--> statement-breakpoint\n')
+
+function makeDrizzleStorage(): Storage {
+  const sqlite = new Database(':memory:')
+  // Apply schema. Migration file uses --> statement-breakpoint markers from drizzle-kit.
+  for (const stmt of INIT_SQL.split('--> statement-breakpoint')) {
+    const trimmed = stmt.trim()
+    if (trimmed)
+      sqlite.exec(trimmed)
+  }
+  const db = drizzle(sqlite)
+  // Compose row repo with the memory blob store; drizzle adapter is row-only.
+  const blobs = memoryStorage().blobs
+  const rows = drizzleStorage({ driver: db })
+  return { scans: rows.scans, routes: rows.routes, blobs }
+}
+
+function isoNow(offsetMs = 0): string {
+  return new Date(Date.now() + offsetMs).toISOString()
+}
+
+function makeScanInsert(overrides: Partial<ScanInsert> = {}): ScanInsert {
+  const base: ScanInsert = {
+    scanId: (`scan_${Math.random().toString(36).slice(2, 10)}`) as ScanId,
+    site: 'https://example.com',
+    device: 'mobile',
+    status: 'starting',
+    startedAt: isoNow(),
+    completedAt: null,
+    ciBranch: null,
+    ciCommit: null,
+    ciCommitMessage: null,
+  }
+  return { ...base, ...overrides }
+}
+
+function makeMetrics(url: string): ExtractedMetrics {
+  return {
+    url,
+    path: new URL(url).pathname,
+    routeName: null,
+    scorePerformance: 0.9,
+    scoreAccessibility: 0.95,
+    scoreSeo: 0.9,
+    scoreBestPractices: 0.95,
+    lcp: 1200,
+    cls: 0.01,
+    inp: 100,
+    fcp: 800,
+    ttfb: 200,
+    tbt: 50,
+    si: 1500,
+    lighthouseVersion: '11.0.0',
+    capturedAt: isoNow(),
+  }
+}
+
+const backends: Array<[string, () => Storage]> = [
+  ['memory', () => memoryStorage()],
+  ['drizzle (better-sqlite3 :memory:)', makeDrizzleStorage],
+]
+
+describe.each(backends)('storage port — %s', (_name, createStorage) => {
+  it('scans.create returns Scan with summary: null', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    const created = await s.scans.create(insert)
+    expect(created.scanId).toBe(insert.scanId)
+    expect(created.summary).toBeNull()
+    expect(created.completedAt).toBeNull()
+  })
+
+  it('scans.get(unknown) returns null', async () => {
+    const s = createStorage()
+    const r = await s.scans.get('does_not_exist' as ScanId)
+    expect(r).toBeNull()
+  })
+
+  it('scans.update patch merges; get returns merged', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    await s.scans.update(insert.scanId, { status: 'complete', completedAt: isoNow() })
+    const after = await s.scans.get(insert.scanId)
+    expect(after?.status).toBe('complete')
+    expect(after?.completedAt).not.toBeNull()
+    // unchanged fields preserved
+    expect(after?.site).toBe(insert.site)
+  })
+
+  it('scans.list({ site }) filters by site, paginates', async () => {
+    const s = createStorage()
+    await s.scans.create(makeScanInsert({ site: 'https://a.test', startedAt: isoNow(-5000) }))
+    await s.scans.create(makeScanInsert({ site: 'https://a.test', startedAt: isoNow(-3000) }))
+    await s.scans.create(makeScanInsert({ site: 'https://b.test', startedAt: isoNow(-1000) }))
+
+    const all = await s.scans.list({ site: 'https://a.test' })
+    expect(all.items.length).toBe(2)
+    expect(all.total).toBe(2)
+    expect(all.page).toBe(1)
+    expect(all.pageSize).toBeGreaterThan(0)
+    for (const item of all.items)
+      expect(item.site).toBe('https://a.test')
+
+    const paged = await s.scans.list({ site: 'https://a.test', page: 1, pageSize: 1 })
+    expect(paged.items.length).toBe(1)
+    expect(paged.total).toBe(2)
+  })
+
+  it('scans.findPrevious excludes given scanId; returns most recent same-site/device complete', async () => {
+    const s = createStorage()
+    const older = makeScanInsert({ site: 'https://x.test', status: 'complete', startedAt: isoNow(-10_000) })
+    const newer = makeScanInsert({ site: 'https://x.test', status: 'complete', startedAt: isoNow(-5_000) })
+    const current = makeScanInsert({ site: 'https://x.test', status: 'complete', startedAt: isoNow() })
+    await s.scans.create(older)
+    await s.scans.create(newer)
+    await s.scans.create(current)
+
+    const prev = await s.scans.findPrevious({
+      site: 'https://x.test',
+      device: 'mobile',
+      excludeScanId: current.scanId,
+    })
+    expect(prev?.scanId).toBe(newer.scanId)
+  })
+
+  it('scans.delete removes scan; routes for that scan also gone', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    await s.routes.putBatch(insert.scanId, 'mobile', [makeMetrics('https://example.com/a')])
+    await s.scans.delete(insert.scanId)
+    expect(await s.scans.get(insert.scanId)).toBeNull()
+    const remaining = await s.routes.listForScan(insert.scanId)
+    expect(remaining.items).toEqual([])
+    expect(remaining.total).toBe(0)
+  })
+
+  it('routes.putBatch 50 rows; listForScan returns all 50', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    const rows = Array.from({ length: 50 }, (_, i) => makeMetrics(`https://example.com/p/${i}`))
+    await s.routes.putBatch(insert.scanId, 'mobile', rows)
+    const out = await s.routes.listForScan(insert.scanId, { pageSize: 100 })
+    expect(out.items.length).toBe(50)
+    expect(out.total).toBe(50)
+  })
+
+  it('routes.upsert second call for same url overwrites prior', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    const url = 'https://example.com/dup'
+    await s.routes.upsert(insert.scanId, 'mobile', { ...makeMetrics(url), scorePerformance: 0.1 })
+    await s.routes.upsert(insert.scanId, 'mobile', { ...makeMetrics(url), scorePerformance: 0.9 })
+    const got = await s.routes.get(insert.scanId, url, 'mobile')
+    expect(got?.scorePerformance).toBe(0.9)
+    const list = await s.routes.listForScan(insert.scanId)
+    expect(list.total).toBe(1)
+  })
+
+  it('routes.get returns single row', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    const url = 'https://example.com/one'
+    await s.routes.upsert(insert.scanId, 'mobile', makeMetrics(url))
+    const row = await s.routes.get(insert.scanId, url, 'mobile')
+    expect(row?.url).toBe(url)
+    expect(row?.scanId).toBe(insert.scanId)
+    expect(row?.device).toBe('mobile')
+  })
+
+  it('routes.findByPath returns only matching device rows and preserves artifact keys', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    const url = 'https://example.com/target'
+    const screenshotBlobKey = `scans/${insert.scanId}/screenshots/custom.webp`
+    await s.routes.upsert(insert.scanId, 'mobile', { ...makeMetrics(url), screenshotBlobKey })
+    await s.routes.upsert(insert.scanId, 'desktop', makeMetrics(url))
+    await s.routes.upsert(insert.scanId, 'mobile', makeMetrics('https://example.com/other'))
+
+    const rows = await s.routes.findByPath(insert.scanId, '/target')
+    expect(rows.map(row => row.device)).toEqual(['desktop', 'mobile'])
+    expect(rows.every(row => row.path === '/target')).toBe(true)
+    expect(rows.find(row => row.device === 'mobile')?.screenshotBlobKey).toBe(screenshotBlobKey)
+  })
+
+  it('routes.delete(scanId) clears all rows for that scan', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    await s.routes.putBatch(insert.scanId, 'mobile', [
+      makeMetrics('https://example.com/a'),
+      makeMetrics('https://example.com/b'),
+    ])
+    await s.routes.delete(insert.scanId)
+    const list = await s.routes.listForScan(insert.scanId)
+    expect(list.total).toBe(0)
+  })
+
+  it('d-029: same URL on mobile + desktop coexists as two rows', async () => {
+    const s = createStorage()
+    const insert = makeScanInsert()
+    await s.scans.create(insert)
+    const url = 'https://example.com/matrix'
+    await s.routes.upsert(insert.scanId, 'mobile', { ...makeMetrics(url), scorePerformance: 0.5 })
+    await s.routes.upsert(insert.scanId, 'desktop', { ...makeMetrics(url), scorePerformance: 0.9 })
+
+    const mob = await s.routes.get(insert.scanId, url, 'mobile')
+    const des = await s.routes.get(insert.scanId, url, 'desktop')
+    expect(mob?.scorePerformance).toBe(0.5)
+    expect(des?.scorePerformance).toBe(0.9)
+
+    // listForScan with no filter returns both; filtered by device returns one.
+    const all = await s.routes.listForScan(insert.scanId)
+    expect(all.total).toBe(2)
+    const mobileOnly = await s.routes.listForScan(insert.scanId, { device: 'mobile' })
+    expect(mobileOnly.total).toBe(1)
+    expect(mobileOnly.items[0].device).toBe('mobile')
+  })
+
+  it('blobs.put/get/has/delete roundtrip Uint8Array', async () => {
+    const s = createStorage()
+    const key = 'k/test.bin'
+    const data = new Uint8Array([1, 2, 3, 4, 5])
+    expect(await s.blobs.has(key)).toBe(false)
+    await s.blobs.put(key, data)
+    expect(await s.blobs.has(key)).toBe(true)
+    const got = await s.blobs.get(key)
+    expect(got).toBeInstanceOf(Uint8Array)
+    expect(Array.from(got!)).toEqual([1, 2, 3, 4, 5])
+    await s.blobs.delete(key)
+    expect(await s.blobs.has(key)).toBe(false)
+    expect(await s.blobs.get(key)).toBeNull()
+  })
+
+  it('blobs.list(prefix) returns keys under the prefix (D-044)', async () => {
+    const s = createStorage()
+    const bytes = new Uint8Array([9])
+    await s.blobs.put('scans/abc/lhr/x.json.gz', bytes)
+    await s.blobs.put('scans/abc/reports/x.json', bytes)
+    await s.blobs.put('scans/def/lhr/y.json.gz', bytes)
+
+    const abc = await s.blobs.list('scans/abc/')
+    expect(abc.length).toBe(2)
+    expect(abc.every(k => k.includes('abc'))).toBe(true)
+    // Sibling namespace is not included.
+    expect(abc.some(k => k.includes('def'))).toBe(false)
+  })
+
+  // satisfy unused-import lint
+  void ({} as Scan)
+})

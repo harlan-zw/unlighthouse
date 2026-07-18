@@ -1,4 +1,5 @@
 import type { Logger } from '@unlighthouse/contracts'
+import type { HookEvent } from '@unlighthouse/contracts/hooks'
 import type { IncomingMessage } from 'node:http'
 import type { Socket } from 'node:net'
 import type { WebSocket } from 'ws'
@@ -33,7 +34,7 @@ export class WS {
     })
   }
 
-  broadcast(data: Record<string, unknown>) {
+  broadcast(data: HookEvent) {
     const clientCount = this.wss.clients?.size ?? 0
     if (clientCount === 0) {
       this.logger?.debug(`broadcast ${data.event} — no clients`)

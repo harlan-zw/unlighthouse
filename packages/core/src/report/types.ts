@@ -1,38 +1,15 @@
+import type {
+  LighthouseResult as ContractLighthouseResult,
+  LighthouseAuditResult,
+  LighthouseCategoryResult,
+} from '@unlighthouse/contracts/ports'
+import type { Assertion as CanonicalAssertion } from '@unlighthouse/contracts/types/atoms'
+import { z } from 'zod'
+
 // Lighthouse Result types (simplified)
-export interface LighthouseAudit {
-  score: number | null
-  numericValue?: number
-  displayValue?: string
-  title?: string
-  description?: string
-  details?: {
-    items?: unknown[]
-    [key: string]: unknown
-  }
-}
-
-export interface LighthouseCategory {
-  score: number | null
-  title?: string
-  id?: string
-  categoryScoreDisplayMode?: 'gauge' | 'fraction'
-  auditRefs?: Array<{ id: string, weight?: number }>
-}
-
-export interface LighthouseResult {
-  lighthouseVersion: string
-  requestedUrl: string
-  finalUrl: string
-  categories: {
-    'performance'?: LighthouseCategory
-    'accessibility'?: LighthouseCategory
-    'best-practices'?: LighthouseCategory
-    'seo'?: LighthouseCategory
-    'agentic-browsing'?: LighthouseCategory
-    [key: string]: LighthouseCategory | undefined
-  }
-  audits: Record<string, LighthouseAudit>
-}
+export type LighthouseAudit = LighthouseAuditResult
+export type LighthouseCategory = LighthouseCategoryResult
+export type LighthouseResult = ContractLighthouseResult
 
 // Extracted route data after LHR processing
 export interface ExtractedRoute {
@@ -59,20 +36,23 @@ export interface ExtractedRoute {
 export type { HTMLExtractPayload } from '@unlighthouse/contracts'
 
 // Comparison types
-export interface MetricDiff {
-  name: string
-  base: number
-  current: number
-  delta: number
-  deltaPercent: number
-  severity: 'regression' | 'improvement' | 'neutral'
-}
+export const MetricDiffSchema = z.object({
+  name: z.string(),
+  base: z.number(),
+  current: z.number(),
+  delta: z.number(),
+  deltaPercent: z.number(),
+  severity: z.enum(['regression', 'improvement', 'neutral']),
+})
+export type MetricDiff = z.infer<typeof MetricDiffSchema>
 
 export interface ComparisonDiff {
   path: string
   url: string
+  device: 'mobile' | 'desktop'
   metricDiffs: MetricDiff[]
   severity: 'regression' | 'improvement' | 'neutral'
 }
 
-export type { Assertion, AssertionResult, AssertionType } from '@unlighthouse/contracts'
+export type { Assertion, AssertionResult } from '@unlighthouse/contracts/types/atoms'
+export type AssertionType = CanonicalAssertion['type']

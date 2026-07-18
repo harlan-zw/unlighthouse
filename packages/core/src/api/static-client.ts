@@ -11,28 +11,30 @@
 // D-032 landed the browser-portability this file used to stop short of: the
 // read slice reachable from here (report/*, memory storage, handlers) carries
 // no node:zlib / node:crypto / node:buffer, so this module bundles cleanly into
-// the Nuxt (ssr:false) build. Enforced by test/treeshake.test.ts's
+// the Nuxt (ssr:false) build. Enforced by test/e2e/treeshake.test.ts's
 // `browser-static` scenario. The build wiring is live: `build.ts` embeds
 // `buildStaticSnapshot()` as `window.__unlighthouse_payload.snapshot`, `ci.ts`
 // consumes `--build-static`, and `api.client.ts` swaps in `createStaticClient`
 // when `window.__unlighthouse_static`.
 import type { Auditor, Logger, UnlighthouseCore } from '@unlighthouse/contracts'
 import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
-import type { CommandInput, CommandName, CommandOutput, CommandRegistry } from '@unlighthouse/contracts/commands'
+import type { CommandName } from '@unlighthouse/contracts/commands'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { PackRun } from '@unlighthouse/contracts/packs'
 import type { SiteRecord, Storage } from '@unlighthouse/contracts/ports'
 import type {
   Scan,
   ScanRoute,
 } from '@unlighthouse/contracts/types/atoms'
-import type { HandlerCtx, HandlerMap } from './handlers'
-import { commands } from '@unlighthouse/contracts/commands'
+import type { HandlerCtx } from './handlers'
+import { commandEntries } from '@unlighthouse/contracts/commands'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
+import { createHooks } from 'hookable'
 import { routeContractBlobKey } from '../report/route-contracts'
 import { memoryStorage } from '../storage/memory'
-import { createHandlers } from './handlers'
+import { createCommandExecutor, createHandlers } from './handlers'
 
 /**
  * Self-contained snapshot of one or more scans, embedded into the static
@@ -101,7 +103,7 @@ export async function buildStaticSnapshot(opts: {
     const ctx = createStaticHandlerCtx(storage, config, opts.version)
     for (const pack of packs) {
       try {
-        await (handlers['pack.run'] as { run: (i: unknown, c: unknown) => Promise<unknown> }).run({ scanId, pack }, ctx)
+        await handlers['pack.run'].run({ scanId, pack }, ctx)
       }
       catch (err) {
         logOperationalWarn('host.static_snapshot_pack_failed', err, { scanId, pack }, opts.logger)
@@ -192,43 +194,32 @@ function seedStorage(snapshot: StaticSnapshot): Storage {
   return storage
 }
 
-const staticCore: UnlighthouseCore = {
-  run: () => {
-    throw new Error(WRITE_REJECT_MESSAGE)
-  },
-  session: () => null,
-  hooks: undefined,
-}
-
-const staticAuditor: Auditor = {
-  capabilities: {
-    reliablePerfScores: false,
-    reliableFieldData: false,
-    supportsThrottling: false,
-    categories: ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'],
-  },
-  audit: async () => {
-    throw new Error(WRITE_REJECT_MESSAGE)
-  },
-}
-
 function createStaticHandlerCtx(storage: Storage, config: UnlighthouseConfig, version?: string): HandlerCtx {
+  const core: UnlighthouseCore = {
+    run: () => {
+      throw new Error(WRITE_REJECT_MESSAGE)
+    },
+    session: () => null,
+    hooks: createHooks<HookMap>(),
+  }
+  const auditor: Auditor = {
+    capabilities: {
+      reliablePerfScores: false,
+      reliableFieldData: false,
+      supportsThrottling: false,
+      categories: ['performance', 'accessibility', 'seo', 'best-practices', 'agentic-browsing'],
+    },
+    audit: async () => {
+      throw new Error(WRITE_REJECT_MESSAGE)
+    },
+  }
   return {
-    core: staticCore,
-    auditor: staticAuditor,
+    core,
+    auditor,
     storage,
     config,
     version: version ?? 'static',
   }
-}
-
-function runStaticHandler<K extends CommandName>(
-  handlers: HandlerMap,
-  name: K,
-  input: unknown,
-  ctx: HandlerCtx,
-): Promise<CommandOutput<CommandRegistry[K]>> | AsyncIterable<CommandOutput<CommandRegistry[K]>> {
-  return handlers[name].run(input as CommandInput<CommandRegistry[K]>, ctx)
 }
 
 /**
@@ -239,11 +230,11 @@ function runStaticHandler<K extends CommandName>(
 export function createStaticClient(snapshot: StaticSnapshot): UnlighthouseClient {
   const storage = seedStorage(snapshot)
   const handlers = createHandlers()
+  const executor = createCommandExecutor({ handlers })
   const ctx = createStaticHandlerCtx(storage, snapshot.config, snapshot.version)
 
   const client = {} as Record<string, unknown>
-  for (const name of Object.keys(commands) as CommandName[]) {
-    const cmd = commands[name]
+  for (const [name, cmd] of commandEntries()) {
     const handler = handlers[name]
 
     if (cmd.streaming) {
@@ -257,9 +248,7 @@ export function createStaticClient(snapshot: StaticSnapshot): UnlighthouseClient
         throw new Error(WRITE_REJECT_MESSAGE)
       if (!handler || typeof handler.run !== 'function')
         throw new Error(`${name}: not available in a static report`)
-      const parsed = cmd.input?.safeParse(input)
-      const value = parsed?.success ? parsed.data : (input ?? {})
-      const output = await runStaticHandler(handlers, name, value, ctx)
+      const output = await executor.execute(name, input ?? {}, ctx)
       return cmd.output.parse(output)
     }
   }

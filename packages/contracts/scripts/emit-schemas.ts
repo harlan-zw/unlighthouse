@@ -10,7 +10,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { commands } from '@unlighthouse/contracts/commands'
+import { commandEntries } from '@unlighthouse/contracts/commands'
 import * as atoms from '@unlighthouse/contracts/types/atoms'
 import { z } from 'zod'
 
@@ -44,7 +44,7 @@ function isZodType(value: unknown): value is z.ZodType {
 export function buildSchemas(): Record<string, Record<string, unknown>> {
   const out: Record<string, Record<string, unknown>> = {}
 
-  for (const [name, cmd] of Object.entries(commands)) {
+  for (const [name, cmd] of commandEntries()) {
     out[`${name}.input.json`] = toJsonSchema(cmd.input)
     out[`${name}.output.json`] = toJsonSchema(cmd.output)
   }

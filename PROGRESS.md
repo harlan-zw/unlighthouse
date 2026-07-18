@@ -38,8 +38,8 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   not a registry projection). Added `citty` dep (catalog). Verified: `--version`/`--help` render;
   full registry projects (scan/route/history/compare/assert/pack/query/events/manifest/health/ready/
   sites); `manifest` emits NDJSON w/ $schema, 35 commands, exits cleanly; root parse byte-identical to
-  cac (cache:false from --no-cache, samples→number, comma-lists). New `test/cli-parity.test.ts` (41
-  tests: third-leg parity + per-command flags + root-parse tripwires). Retargeted `test/cli.test.ts`
+  cac (cache:false from --no-cache, samples→number, comma-lists). New `packages/unlighthouse/test/cli-parity.test.ts` (41
+  tests: third-leg parity + per-command flags + root-parse tripwires). Retargeted `packages/unlighthouse/test/cli.test.ts`
   to `parseRootArgs`. Gate: typecheck green; cli-parity 41/41. NOTE: undocumented cac camelCase flag
   aliases (`--extraHeaders`) dropped for the documented kebab (`--extra-headers`); citty `--help`
   format differs from cac (parse-result equivalence, not help-text bytes, per the tripwire). cac dep
@@ -64,7 +64,7 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
 - D-041 (splitCategoriesAuditor): done — `core/auditors/route/split.ts` (disjoint-category merge,
   per-category provenance, `split` row auditor when categories diverge, single-backend collapse,
   CONFIG_INVALID on unsupported/empty). Config `{ strategy: 'split', assignments }` in AuditorConfig +
-  wired in `resolveAuditor`. Tests `test/auditor-provenance-split.test.ts` (6): sample pinning + split
+  wired in `resolveAuditor`. Tests `packages/core/test/auditor-provenance-split.test.ts` (6): sample pinning + split
   merge + validation. Gate: typecheck green; tests 637 pass/1 skip.
 - D-034 (reconciled-report reader cutover): done — the codebase had already cut the active readers by
   prior evolution; the obsolete `processScanData` compatibility no-op has since been deleted;
@@ -75,7 +75,7 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   `numericValue` to the reconciled `AuditFinding` (atoms `AuditFindingSchema` + extract
   `ContractAuditFinding` + population) — csvExpanded's numeric columns need it. Expected lossy fields
   (Step G): category `id`/`title` fall back to the key; audit `numericUnit` dropped. Lint boundary:
-  new `test/lhr-reader-boundary.test.ts` fails if any file outside {report/extract, scan/route-audit,
+  new `test/e2e/lhr-reader-boundary.test.ts` fails if any file outside {report/extract, scan/route-audit,
   packs/reconcile-context, api/dashboard, build.ts} reads a raw LHR blob via `lhrBlobKey`.
   NOTE on the gate's generateClient before/after snapshot: generateClient's data path was already
   reconciled-based (unchanged here), so its output is identical; the lossy diff lives in the ci.ts CI
@@ -113,7 +113,7 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   (per-command input/output + atoms bundle); `dist/schemas` added to `files`. `manifest` output extended
   (`.default()`-free) with `schemaBaseUrl`, per-command `inputSchemaUrl`/`outputSchemaUrl`, and
   `binaryEndpoints` (the 4 dashboard raw-binary escape hatches, `binary:true`). ($schema stamping seam
-  was already in agent-mode.ts from D-033.) Test `test/emit-schemas.test.ts`. Gate: full typecheck
+  was already in agent-mode.ts from D-033.) Test `packages/contracts/test/emit-schemas.test.ts`. Gate: full typecheck
   green; targeted tests 293 pass; contracts build emits schemas (verified).
   MAINTAINER-FLAG: `tsx` is used by the contracts build but not declared as a dep (resolves from the
   workspace store; matches the repo's existing undeclared `dev:cli` tsx usage). Declaring it a contracts
@@ -146,7 +146,7 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   `scanner.perfConcurrency: 'serial'|'parallel'` (contracts, `.default()`-free; imperative
   serial default lives in the auditor per D-020); wired via host `auditor.ts`. Docs:
   concurrency section + samples cross-ref note in `recipes/improving-accuracy.md`. Test
-  `test/audit-pool-perf-lane.test.ts` (6, injected pool runner, no Chrome): serialize by
+  `packages/core/test/audit-pool-perf-lane.test.ts` (6, injected pool runner, no Chrome): serialize by
   default, all-categories treated as perf, non-perf parallel, parallel-mode flips
   reliablePerfScores false + overlaps, 1-thread stays reliable, concurrency stamp.
   Gate: typecheck green (contracts/core/unlighthouse); targeted tests 51/51 (+treeshake/
@@ -166,9 +166,9 @@ D-038 → D-032 → D-033 → D-040+D-041 → D-034 → D-035 → (D-036, D-037,
   `CreateCloudflareAppOptions.allowedTargets?: (url) => boolean|Promise<boolean>`, checked in
   `createCloudflareApp` scan.start path before the rate limiter/runner (default allow-all; multi-tenant
   MUST supply). Added 2 catalog keys (`host.launch_path_rejected`, `cloudflare.scan_target_rejected`).
-  Tests: `test/server-guards.test.ts` (26: enumerated allow/reject rules + DNS-rebinding cross-origin →
+  Tests: `packages/unlighthouse/test/server-guards.test.ts` (26: enumerated allow/reject rules + DNS-rebinding cross-origin →
   403 + /__launch traversal → 403, pure + h3-app-level via toWebHandler) and
-  `packages/cloudflare/test/allowed-targets.test.ts` (3: reject/allow/default). Gate: unlighthouse +
+  `apps/cloudflare/test/runtime.test.ts` (3: reject/allow/default). Gate: unlighthouse +
   cloudflare typecheck green; targeted suites 108/108 (server-guards/auth-gate/cli/cli-parity/d1-storage/
   allowed-targets); config-resolve + e2e-http unaffected. Did NOT run full suite/attw/publint per scope.
 - D-044 (retention + history.prune + BlobStore.list): done (subagent, gated by me) — `.default()`-free

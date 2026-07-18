@@ -117,6 +117,7 @@ const ADDITIVE_COLUMNS: Array<{ table: string, column: string, ddl: string }> = 
   { table: 'scan_routes', column: 'score_agentic_browsing', ddl: 'ALTER TABLE `scan_routes` ADD COLUMN `score_agentic_browsing` real' },
   { table: 'scan_routes', column: 'report_blob_key', ddl: 'ALTER TABLE `scan_routes` ADD COLUMN `report_blob_key` text' },
   { table: 'scan_routes', column: 'screenshot_blob_key', ddl: 'ALTER TABLE `scan_routes` ADD COLUMN `screenshot_blob_key` text' },
+  { table: 'comparison_diffs', column: 'device', ddl: 'ALTER TABLE `comparison_diffs` ADD COLUMN `device` text NOT NULL DEFAULT \'mobile\'' },
 ]
 
 export interface EnsureSchemaOptions {

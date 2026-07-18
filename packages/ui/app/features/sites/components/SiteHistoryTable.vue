@@ -3,16 +3,19 @@
 // Each instance owns its own sort state so groups don't interfere.
 
 import type { ColumnDef, SortingState } from '@tanstack/vue-table'
+import type { ScanId } from '@unlighthouse/contracts'
 import type { DevicePair, ScanRow } from '../scan-pairs'
 
 import { h } from 'vue'
+import { scoreSummaryForDevice } from '../scan-pairs'
 
 defineProps<{
   pairs: DevicePair[]
+  readonly?: boolean
 }>()
 const emit = defineEmits<{
-  rescan: [scanId: string]
-  delete: [scanId: string]
+  rescan: [scanId: ScanId]
+  delete: [scanId: ScanId]
   open: [pair: DevicePair]
 }>()
 
@@ -20,12 +23,13 @@ const { scoreToColor } = createScoreColorHelpers()
 const { fmtRelTime, fmtTimestamp } = createFormatters()
 const UiStatusBadgeC = resolveComponent('UiStatusBadge')
 
-function categoryPct(scan: ScanRow | null, key: string): number | null {
+function categoryPct(scan: ScanRow | null, device: 'mobile' | 'desktop', key: string): number | null {
   // The typed contract narrows scoresByCategory to a Partial<Record<Category, number>>;
   // this helper takes a free-form string key, so widen the lookup
   // surface explicitly. Cleaner than constraining `key` to Category
   // for a single dynamic call site.
-  const raw = (scan?.summary?.scoresByCategory as Record<string, number | undefined> | undefined)?.[key]
+  const summary = scan ? scoreSummaryForDevice(scan, device) : null
+  const raw = (summary?.scoresByCategory as Record<string, number | undefined> | undefined)?.[key]
   return raw == null ? null : Math.round(raw * 100)
 }
 
@@ -66,7 +70,7 @@ const columns: ColumnDef<DevicePair>[] = [
   },
   ...(['performance', 'accessibility', 'best-practices', 'seo'] as const).map(key => ({
     id: key,
-    accessorFn: (row: DevicePair) => Math.max(categoryPct(row.mobile, key) ?? -1, categoryPct(row.desktop, key) ?? -1),
+    accessorFn: (row: DevicePair) => Math.max(categoryPct(row.mobile, 'mobile', key) ?? -1, categoryPct(row.desktop, 'desktop', key) ?? -1),
     align: 'center',
     header: () => {
       const label = key === 'best-practices' ? 'Best' : key === 'performance' ? 'Perf' : key === 'accessibility' ? 'A11y' : 'SEO'
@@ -76,8 +80,8 @@ const columns: ColumnDef<DevicePair>[] = [
       ])
     },
     cell: ({ row }) => {
-      const m = categoryPct(row.original.mobile, key)
-      const d = categoryPct(row.original.desktop, key)
+      const m = categoryPct(row.original.mobile, 'mobile', key)
+      const d = categoryPct(row.original.desktop, 'desktop', key)
       return h('div', { class: 'flex items-center justify-center gap-1.5 tabular-nums text-sm font-medium' }, [
         h('span', { class: m == null ? 'text-muted/50' : scoreToColor(m / 100) }, m ?? '—'),
         h('span', { class: 'text-muted/30 text-xs' }, '|'),
@@ -85,8 +89,8 @@ const columns: ColumnDef<DevicePair>[] = [
       ])
     },
     sortingFn: (a, b) => {
-      const aMax = Math.max(categoryPct(a.original.mobile, key) ?? -1, categoryPct(a.original.desktop, key) ?? -1)
-      const bMax = Math.max(categoryPct(b.original.mobile, key) ?? -1, categoryPct(b.original.desktop, key) ?? -1)
+      const aMax = Math.max(categoryPct(a.original.mobile, 'mobile', key) ?? -1, categoryPct(a.original.desktop, 'desktop', key) ?? -1)
+      const bMax = Math.max(categoryPct(b.original.mobile, 'mobile', key) ?? -1, categoryPct(b.original.desktop, 'desktop', key) ?? -1)
       return aMax - bMax
     },
   } satisfies ColumnDef<DevicePair>)),
@@ -103,8 +107,11 @@ const columns: ColumnDef<DevicePair>[] = [
   },
 ]
 
-function primaryScanId(pair: DevicePair): string {
-  return pair.mobile?.scanId ?? pair.desktop?.scanId ?? ''
+function primaryScanId(pair: DevicePair): ScanId {
+  const scanId = pair.mobile?.scanId ?? pair.desktop?.scanId
+  if (!scanId)
+    throw new TypeError('A device pair must contain at least one scan.')
+  return scanId
 }
 function statusForPair(pair: DevicePair): { label: string, status: 'success' | 'error' | 'warning' | 'info' | 'neutral' } {
   const m = pair.mobile?.status
@@ -138,7 +145,7 @@ function statusForPair(pair: DevicePair): { label: string, status: 'success' | '
     @row-click="(p: DevicePair) => emit('open', p)"
   >
     <template #actions="{ row }">
-      <div class="flex items-center justify-end gap-0.5">
+      <div v-if="!readonly" class="flex items-center justify-end gap-0.5">
         <UiButton purpose="quiet" size="sm" icon="refresh" :aria-label="`Rescan from ${fmtTimestamp(row.startedAt, 'short')}`" @click="emit('rescan', primaryScanId(row))" />
         <UModal
           title="Delete scan?"

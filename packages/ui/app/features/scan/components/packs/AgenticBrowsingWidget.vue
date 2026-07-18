@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { AgenticBrowsingReport } from '@unlighthouse/contracts/packs'
-// See CwvWidget.vue for why `report` arrives untyped and gets cast here.
+import { AgenticBrowsingReportSchema } from '@unlighthouse/contracts/packs'
+
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
-const report = computed(() => props.report as AgenticBrowsingReport)
+const report = computed(() => AgenticBrowsingReportSchema.parse(props.report))
 
 // Agentic Browsing has its own pass/fail-based severity (vs the
 // critical/serious/moderate scheme FindingsAccordion handles) so findings

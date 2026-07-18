@@ -65,7 +65,7 @@ const statCols = computed(() => {
   <UiCard size="sm">
     <div class="flex items-center justify-between">
       <span class="text-label text-muted">{{ label }}</span>
-      <span v-if="stats" class="text-xs text-muted/70 tabular-nums">{{ stats.count }} routes</span>
+      <span v-if="stats" class="text-xs text-muted tabular-nums">{{ stats.count }} routes</span>
     </div>
 
     <template v-if="stats">

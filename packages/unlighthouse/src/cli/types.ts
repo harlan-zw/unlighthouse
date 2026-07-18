@@ -40,7 +40,8 @@ export interface CliOptions {
 export interface CiOptions extends CliOptions {
   budget: number
   buildStatic: boolean
-  reporter?: ValidReportTypes | false
+  /** cac parses `--reporter false` as the string literal. */
+  reporter?: ValidReportTypes | false | 'false'
   lhciHost?: string
   lhciBuildToken?: string
   lhciAuth?: string

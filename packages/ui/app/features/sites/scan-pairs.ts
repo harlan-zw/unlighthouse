@@ -1,4 +1,4 @@
-import type { Scan } from '@unlighthouse/contracts'
+import type { Device, Scan, ScanSummary } from '@unlighthouse/contracts'
 
 // Re-export the persisted Scan shape so UI code stops re-declaring a thinner
 // version and the history table, dashboard, and pairing logic share one
@@ -22,6 +22,19 @@ export interface DevicePair {
 // treated as one matrix scan and collapsed onto a single row.
 const PAIR_WINDOW_MS = 5 * 60_000
 
+export function devicesForScan(scan: ScanRow): Device[] {
+  return scan.summary?.devices?.length ? [...scan.summary.devices] : [scan.device]
+}
+
+export function scoreSummaryForDevice(scan: ScanRow, device: Device): Pick<ScanSummary, 'scoreAverage' | 'scoresByCategory' | 'categoryScoreDisplayModes'> | null {
+  const byDevice = scan.summary?.scoresByDevice?.[device]
+  if (byDevice)
+    return byDevice
+  // Summaries written before per-device rollups are only safe to attribute to
+  // the scan row's primary device. Do not duplicate an aggregate matrix score.
+  return scan.device === device ? scan.summary : null
+}
+
 /**
  * Collapse a flat list of scans into device pairs: a mobile and a desktop scan
  * of the same URL started within ~5 min merge into one row with both score
@@ -39,6 +52,18 @@ export function pairScans(scans: ScanRow[]): DevicePair[] {
     if (used.has(scan.scanId))
       continue
     used.add(scan.scanId)
+
+    const devices = devicesForScan(scan)
+    if (devices.length > 1) {
+      pairs.push({
+        startedAt: scan.startedAt,
+        routes: scan.summary?.routes ?? 0,
+        completed: scan.summary?.completed ?? 0,
+        mobile: devices.includes('mobile') ? scan : null,
+        desktop: devices.includes('desktop') ? scan : null,
+      })
+      continue
+    }
 
     const otherDevice = scan.device === 'mobile' ? 'desktop' : 'mobile'
     const tsScan = new Date(scan.startedAt).getTime()

@@ -6,14 +6,14 @@ import type {
 } from '@unlighthouse/contracts/types/atoms'
 import type { Handler, HandlerCtx } from '../types'
 import { CompareDetail, CompareFindPrevious, CompareMarkdown, CompareRun } from '@unlighthouse/contracts/commands'
-import { loadScanRoutes } from '../scan-routes'
-import { renderCompareMarkdown } from './markdown'
-import { computePackDiffs } from './pack-diffs'
 import {
   categoryDeltasFromSummaries,
   compareRoutes,
   selectDetailRows,
-} from './route-comparison'
+} from '../../../comparison/policy'
+import { loadScanRoutes } from '../scan-routes'
+import { renderCompareMarkdown } from './markdown'
+import { computePackDiffs } from './pack-diffs'
 
 async function runCompare(ctx: HandlerCtx, baseScanId: ScanId, currentScanId: ScanId, thresholds?: Record<string, number>) {
   const [baseRoutes, currentRoutes] = await Promise.all([

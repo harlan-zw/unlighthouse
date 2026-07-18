@@ -11,9 +11,9 @@
 // version is what invalidates a stale entry. Callers can force a re-run with
 // `refresh: true`.
 
-import type { CommandOutput, PackList, PackRunCmd } from '@unlighthouse/contracts/commands'
 import type { Pack, PackRun } from '@unlighthouse/contracts/packs'
 import type { Handler } from './types'
+import { PackList, PackRunCmd } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { z } from 'zod'
@@ -40,7 +40,7 @@ function packKeyFor(packName: string, device?: string): string {
 }
 
 export const packRun: Handler<typeof PackRunCmd> = {
-  command: {} as typeof PackRunCmd,
+  command: PackRunCmd,
   async run(input, ctx) {
     const pack = ctx.packs?.get(input.pack) ?? getPack(input.pack)
     if (!pack) {
@@ -67,20 +67,28 @@ export const packRun: Handler<typeof PackRunCmd> = {
       if (cached) {
         const report = await loadCachedReport(cached, ctx)
         if (report !== null) {
-          return {
-            scanId: cached.scanId,
-            // Strip the device suffix from the wire — clients see the bare
-            // pack name they asked for, the cache key is internal.
-            packName: pack.name,
-            packVersion: cached.packVersion,
-            startedAt: cached.startedAt,
-            completedAt: cached.completedAt,
-            report,
-            cache: 'hit',
-          } as CommandOutput<typeof PackRunCmd>
+          const parsed = pack.reportSchema.safeParse(report)
+          if (parsed.success) {
+            return PackRunCmd.output.parse({
+              scanId: cached.scanId,
+              // Strip the device suffix from the wire — clients see the bare
+              // pack name they asked for, the cache key is internal.
+              packName: pack.name,
+              packVersion: cached.packVersion,
+              startedAt: cached.startedAt,
+              completedAt: cached.completedAt,
+              report: parsed.data,
+              cache: 'hit',
+            })
+          }
+          logOperationalWarn('pack.cached_report_invalid', parsed.error, {
+            scanId: input.scanId,
+            packName: cachePackName,
+            packVersion: pack.version,
+          })
         }
-        // Blob missing for a row that claims one — fall through and rebuild
-        // rather than serving a half-row. Stale storage shouldn't 500 us.
+        // Missing blobs and schema-invalid cached reports both rebuild. A stale
+        // storage row should not escape its owning pack contract or 500 a scan.
       }
     }
 
@@ -157,7 +165,7 @@ export const packRun: Handler<typeof PackRunCmd> = {
       })
     }
 
-    return {
+    return PackRunCmd.output.parse({
       // Wire `packName` is the bare pack id the caller asked for; cache key
       // mangling (cachePackName) stays internal.
       scanId: input.scanId,
@@ -167,7 +175,7 @@ export const packRun: Handler<typeof PackRunCmd> = {
       completedAt,
       report: parsed.data,
       cache: 'miss',
-    } as CommandOutput<typeof PackRunCmd>
+    })
   },
 }
 
@@ -202,7 +210,7 @@ function safeReportJsonSchema(pack: Pack<unknown>): unknown | null {
 }
 
 export const packList: Handler<typeof PackList> = {
-  command: {} as typeof PackList,
+  command: PackList,
   async run(_input, ctx) {
     const packs = (ctx.packs?.list() ?? Object.values(builtInPacks)).map(p => ({
       name: p.name,
@@ -212,6 +220,6 @@ export const packList: Handler<typeof PackList> = {
       ui: p.ui,
       reportSchema: safeReportJsonSchema(p),
     }))
-    return { packs } as CommandOutput<typeof PackList>
+    return PackList.output.parse({ packs })
   },
 }

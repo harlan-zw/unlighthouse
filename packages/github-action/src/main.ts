@@ -147,6 +147,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  process.stderr.write(`::error::${(err as Error).stack ?? err}\n`)
+  const message = err instanceof Error ? err.stack ?? err.message : String(err)
+  process.stderr.write(`::error::${message}\n`)
   process.exit(1)
 })

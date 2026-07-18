@@ -25,7 +25,7 @@ export function createComparisonRepository(db: DrizzleDatabase) {
       const rows = where
         ? await builder.where(where).orderBy(desc(comparisons.createdAt))
         : await builder.orderBy(desc(comparisons.createdAt))
-      return rows as ComparisonRow[]
+      return rows
     },
 
     async get(id: number): Promise<ComparisonRow | null> {

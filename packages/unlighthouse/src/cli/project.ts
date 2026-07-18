@@ -2,14 +2,14 @@
 // transport alongside HTTP (core/api/http.ts) and MCP (mcp/projection.ts). Dot
 // names map to nested subcommands (`scan.start` -> `unlighthouse scan start`);
 // flags derive from each command's Zod input via `cittyFlagsFor`. A parity test
-// (test/cli-parity.test.ts) asserts every non-hidden command projects with the
+// (packages/unlighthouse/test/cli-parity.test.ts) asserts every non-hidden command projects with the
 // flags this module derives, so the CLI can't drift from the registry.
 
 import type { Command, CommandName } from '@unlighthouse/contracts/commands'
-import type { HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
+import type { CommandExecutor, HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
 import type { ArgsDef, CommandDef } from 'citty'
-import { commands } from '@unlighthouse/contracts/commands'
-import { ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { commandEntries, isAsyncIterable } from '@unlighthouse/contracts/commands'
+import { createCommandExecutor } from '@unlighthouse/core/api/handlers'
 import { z } from 'zod'
 
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'default', 'nullish', 'readonly', 'catch'])
@@ -100,11 +100,7 @@ export interface CliProjectionOptions {
   onComplete?: (cmd: Command) => void | Promise<void>
 }
 
-function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
-  return value != null && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === 'function'
-}
-
-function leafCommand(cmd: Command, flags: ArgsDef, opts: CliProjectionOptions): CommandDef {
+function leafCommand(name: CommandName, cmd: Command, flags: ArgsDef, opts: CliProjectionOptions, executor: CommandExecutor): CommandDef {
   const verb = cmd.name.split('.').pop() ?? cmd.name
   return {
     meta: { name: verb, description: cmd.description },
@@ -112,17 +108,7 @@ function leafCommand(cmd: Command, flags: ArgsDef, opts: CliProjectionOptions): 
     async run({ args }) {
       try {
         const raw = argsToInput(cmd.input, args as Record<string, unknown>)
-        const parsed = cmd.input.safeParse(raw)
-        if (!parsed.success) {
-          throw new UnlighthouseError({
-            code: ErrorCodes.INPUT_INVALID,
-            message: `${cmd.name}: input validation failed`,
-            details: { issues: parsed.error.issues },
-          })
-        }
-        const ctx = await opts.createCtx()
-        const handler = opts.handlers[cmd.name as CommandName]
-        const result = await handler.run(parsed.data as never, ctx)
+        const result = await executor.execute(name, raw, opts.createCtx)
         if (isAsyncIterable(result)) {
           for await (const chunk of result)
             await opts.emit(cmd, chunk)
@@ -167,13 +153,13 @@ export function projectCliCommands(opts: CliProjectionOptions): {
 } {
   const subCommands: Record<string, CommandDef> = {}
   const leafFlagsByName = new Map<string, ArgsDef>()
-  for (const name of Object.keys(commands) as CommandName[]) {
-    const cmd = commands[name] as Command
+  const executor = createCommandExecutor({ handlers: opts.handlers })
+  for (const [name, cmd] of commandEntries()) {
     if (cmd.cli?.hidden)
       continue
     const flags = cittyFlagsFor(cmd.input)
     leafFlagsByName.set(name, flags)
-    insertNested(subCommands, name.split('.'), leafCommand(cmd, flags, opts), cmd)
+    insertNested(subCommands, name.split('.'), leafCommand(name, cmd, flags, opts, executor), cmd)
   }
   return { subCommands, leafFlagsByName }
 }

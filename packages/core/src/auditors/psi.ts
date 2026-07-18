@@ -1,5 +1,5 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseProvider, UnlighthouseReport } from '@unlighthouse/contracts'
-import type { AuditOpts, Auditor, AuditorCapabilities, LighthouseReport, Page } from '@unlighthouse/contracts/ports'
+import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Page } from '@unlighthouse/contracts/ports'
 import { ofetch } from 'ofetch'
 import { PSI_SUPPORTED_CATEGORIES, unsupportedCategories } from './categories'
 import { extractInsights } from './extract'
@@ -67,7 +67,7 @@ export function createPsiAuditor(opts: PsiOptions = {}): Auditor {
   const provider = createPsiProvider(opts)
   return {
     capabilities: PSI_CAPABILITIES,
-    async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<LighthouseReport> {
+    async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<AuditorReport> {
       // Pass the per-route device through so PSI runs the mobile vs desktop
       // strategy (otherwise every audit ran PSI's default mobile emulation).
       const report = await provider(url, {

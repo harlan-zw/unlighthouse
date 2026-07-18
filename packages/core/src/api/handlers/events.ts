@@ -1,8 +1,9 @@
 // events.* handlers — streaming AsyncGenerators.
 
-import type { CommandOutput, EventsSubscribe, EventsTail } from '@unlighthouse/contracts/commands'
+import type { CommandOutput } from '@unlighthouse/contracts/commands'
 import type { HookEvent } from '@unlighthouse/contracts/hooks'
 import type { Handler } from './types'
+import { EventsSubscribe, EventsTail } from '@unlighthouse/contracts/commands'
 import { parseHookEvent } from '@unlighthouse/contracts/hooks'
 import { gunzipSync } from 'fflate'
 
@@ -15,7 +16,7 @@ function makeFilter(events?: string[]) {
 
 // INTERNAL: not used by the UI; kept for backwards compatibility and test coverage.
 export const eventsSubscribe: Handler<typeof EventsSubscribe> = {
-  command: {} as typeof EventsSubscribe,
+  command: EventsSubscribe,
   run(input, ctx) {
     const filter = makeFilter(input.events)
     async function* gen(): AsyncIterable<CommandOutput<typeof EventsSubscribe>> {
@@ -28,12 +29,12 @@ export const eventsSubscribe: Handler<typeof EventsSubscribe> = {
       if (input.replay && input.replay > 0) {
         for (const event of session.replay(input.replay)) {
           if (filter(event))
-            yield event as CommandOutput<typeof EventsSubscribe>
+            yield EventsSubscribe.output.parse(event)
         }
       }
       for await (const event of session.events) {
         if (filter(event))
-          yield event as CommandOutput<typeof EventsSubscribe>
+          yield EventsSubscribe.output.parse(event)
       }
     }
     return gen()
@@ -41,20 +42,20 @@ export const eventsSubscribe: Handler<typeof EventsSubscribe> = {
 }
 
 export const eventsTail: Handler<typeof EventsTail> = {
-  command: {} as typeof EventsTail,
+  command: EventsTail,
   run(input, ctx) {
     const filter = makeFilter(input.events)
     async function* gen(): AsyncIterable<CommandOutput<typeof EventsTail>> {
       const blobKey = `scans/${input.scanId}/events.jsonl.gz`
       const blob = await ctx.storage.blobs.get(blobKey)
       if (blob) {
-        const text = new TextDecoder().decode(gunzipSync(blob as Uint8Array))
+        const text = new TextDecoder().decode(gunzipSync(blob))
         for (const line of text.split('\n')) {
           if (!line.trim())
             continue
           const event = parseHookEvent(JSON.parse(line))
           if (filter(event))
-            yield event as CommandOutput<typeof EventsTail>
+            yield EventsTail.output.parse(event)
         }
       }
       if (input.follow) {
@@ -62,7 +63,7 @@ export const eventsTail: Handler<typeof EventsTail> = {
         if (session && session.scanId === input.scanId) {
           for await (const event of session.events) {
             if (filter(event))
-              yield event as CommandOutput<typeof EventsTail>
+              yield EventsTail.output.parse(event)
           }
         }
       }

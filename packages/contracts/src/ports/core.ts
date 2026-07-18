@@ -1,3 +1,4 @@
+import type { Hookable } from 'hookable'
 import type { UnlighthouseConfig } from '../config/index'
 import type { HookEvent, UnlighthouseHooks } from '../hooks/index'
 // (UnlighthouseHooks now sourced from contracts/hooks, not the legacy types/index shim.)
@@ -122,8 +123,7 @@ export interface UnlighthouseCore {
   /** Single-session: throws ACTIVE_SCAN_CONFLICT if a session is already in flight. */
   run: (opts?: UnlighthouseCoreRunOptions) => CrawlSession
   session: () => CrawlSession | null
-  // hooks: Hookable<UnlighthouseHooks> — typed in core once contracts/hooks lands.
-  hooks: unknown
+  hooks?: Hookable<UnlighthouseHooks>
 }
 
 export type CreateUnlighthouseCore = (opts: UnlighthouseCoreOptions) => UnlighthouseCore

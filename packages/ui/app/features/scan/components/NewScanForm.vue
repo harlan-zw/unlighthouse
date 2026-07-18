@@ -2,6 +2,7 @@
 import type { Category, Device } from '@unlighthouse/contracts'
 import { toast } from 'vue-sonner'
 import { useScanStore } from '~/stores/scan'
+import { normalizeSiteUrl } from '~/utils/site-url'
 
 // The new-scan form, extracted so both /scan/new and /onboarding can reuse
 // it. Owns the whole submit lifecycle (store.startScan + toast + navigation)
@@ -18,8 +19,10 @@ const props = withDefaults(defineProps<{
 
 const router = useRouter()
 const store = useScanStore()
+const isStatic = useIsStatic()
 
 const siteUrl = ref(props.initialUrl)
+const siteUrlError = ref('')
 // Default to a mobile+desktop matrix scan so every route is captured on both
 // form factors (the route detail + screenshots aren't stuck on mobile-only).
 const device = ref<Device | 'both'>('both')
@@ -54,9 +57,12 @@ async function handleSubmit() {
   if (!siteUrl.value.trim())
     return
 
-  let url = siteUrl.value.trim()
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = `https://${url}`
+  const url = normalizeSiteUrl(siteUrl.value)
+  if (!url) {
+    siteUrlError.value = 'Enter a valid web address, such as example.com.'
+    await nextTick()
+    document.getElementById('site-url')?.focus()
+    return
   }
 
   const deviceValue: Device | [Device, ...Device[]] = device.value === 'both' ? ['mobile', 'desktop'] : device.value
@@ -109,18 +115,32 @@ async function handleSubmit() {
     loading.value = false
   }
 }
+
+watch(siteUrl, () => {
+  siteUrlError.value = ''
+})
 </script>
 
 <template>
-  <UiCard>
+  <UiEmptyState
+    v-if="isStatic"
+    icon="archive"
+    title="Scanning is unavailable in an offline report."
+    description="Open a live Unlighthouse dashboard to start another scan."
+  >
+    <UiButton purpose="secondary" to="/">
+      View report
+    </UiButton>
+  </UiEmptyState>
+  <UiCard v-else>
     <form class="space-y-6" @submit.prevent="handleSubmit">
-      <UFormField name="site-url" label="Site URL" required>
+      <UFormField name="site-url" label="Site URL" required :error="siteUrlError || undefined">
         <UInput
           id="site-url"
           v-model="siteUrl"
           name="site-url"
-          type="url"
-          placeholder="https://example.com"
+          type="text"
+          placeholder="example.com…"
           autocomplete="url"
           inputmode="url"
           enterkeyhint="go"

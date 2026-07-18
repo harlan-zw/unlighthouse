@@ -132,7 +132,7 @@ export const insightsPack: Pack<InsightsReport> = {
     insights.sort((a, b) => totalImpact(b.totalSavings) - totalImpact(a.totalSavings))
 
     return {
-      scanId: scanId as string,
+      scanId,
       routesAnalysed: routes.length,
       insights,
       priorityOrder: insights.map(i => i.id),

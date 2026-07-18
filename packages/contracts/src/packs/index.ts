@@ -11,6 +11,7 @@
 //   2. Runtime interfaces (TypeScript) — Pack<T>, PackReconcileCtx. Live inside
 //      a process; closures over storage / logger; not serialisable.
 
+import type { LighthouseResult } from '../ports/auditor'
 import type { Logger } from '../ports/core'
 import type { Device, ReconciledReport, ScanId, ScanRoute } from '../types/atoms'
 import { z } from 'zod'
@@ -49,7 +50,7 @@ export interface PackReconcileCtx {
   scanId: ScanId
   routes: ScanRoute[]
   getReconciled?: (url: string, device: Device) => Promise<ReconciledReport | null>
-  getLhr?: (url: string, device: Device) => Promise<unknown>
+  getLhr?: (url: string, device: Device) => Promise<LighthouseResult | null>
   logger?: Logger
 }
 

@@ -12,6 +12,7 @@ import { ICON_ROLES } from '#layers/design-system/shared/icons'
 // mobile drawer). Navigation rows use the design-system `UiNavList`
 // primitive; the blue scan-mode wash lives on the <aside> in SidebarShell.
 const route = useRoute()
+const isStatic = useIsStatic()
 
 const siteId = computed(() => route.params.siteId as string | undefined)
 const scanId = computed(() => route.params.scanId as string | undefined)
@@ -27,10 +28,10 @@ const scanSiteName = computed(() => {
   return sites.value.find(s => siteSlug(s.url) === slug)?.name || slug
 })
 
-const nav = [
+const nav = computed(() => [
   { label: 'Home', to: '/', icon: 'layout', active: (p: string) => p === '/' },
-  { label: 'Run scan', to: '/scan/new', icon: 'add', active: (p: string) => p === '/scan/new' },
-]
+  ...(!isStatic ? [{ label: 'Run scan', to: '/scan/new', icon: 'add', active: (p: string) => p === '/scan/new' }] : []),
+])
 
 // ── Sites list (default mode) ────────────────────────────────────────────────
 // useApiQuery surfaces the error (as a normalized ApiError) rather than
@@ -123,7 +124,7 @@ const packLinks = computed(() => {
 })
 
 const compareLinks = computed(() => {
-  if (!inScan.value)
+  if (!inScan.value || isStatic)
     return []
   return [{ label: 'Compare scans', to: `/sites/${siteId.value}/compare?current=${scanId.value}`, icon: 'compare', active: () => false }]
 })

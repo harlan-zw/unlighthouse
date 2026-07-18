@@ -3,6 +3,7 @@ import { RateLimiterDO } from '../src/do/rate-limiter'
 
 function createState(): DurableObjectState {
   const values = new Map<string, unknown>()
+  // Minimal Workers-runtime shim; this unit only exercises storage.get/put.
   return {
     storage: {
       get: async (key: string) => values.get(key),

@@ -1,4 +1,12 @@
-import type { UnlighthouseColumn, UnlighthouseTabs } from '../index.ts'
+import type { UnlighthouseColumn, UnlighthouseRouteReport, UnlighthouseTabs } from '../index.ts'
+
+export type ReportWithLighthouse = UnlighthouseRouteReport & {
+  report: NonNullable<UnlighthouseRouteReport['report']>
+}
+
+export function hasLighthouseReport(report: UnlighthouseRouteReport): report is ReportWithLighthouse {
+  return report.report != null
+}
 
 export interface CategoryScore {
   key: string

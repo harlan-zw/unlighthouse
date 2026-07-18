@@ -26,6 +26,7 @@ function toggleColorMode() {
 }
 
 const { healthy } = useBackendHealth()
+const isStatic = useIsStatic()
 </script>
 
 <template>
@@ -50,8 +51,11 @@ const { healthy } = useBackendHealth()
         <span class="font-medium truncate">Compare scans</span>
       </nav>
 
+      <div v-if="isStatic" class="ml-2 text-muted" role="status">
+        Offline report
+      </div>
       <div
-        v-if="healthy !== null"
+        v-else-if="healthy !== null"
         class="flex items-center gap-1 ml-2"
         :class="healthy ? 'text-success' : 'text-error'"
         role="status"

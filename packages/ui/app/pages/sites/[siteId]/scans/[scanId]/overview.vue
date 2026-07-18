@@ -44,6 +44,7 @@ useScanPageTitle('Overview')
 
 const eventsOpen = ref(false)
 const { fmtTimestamp } = createFormatters()
+const isStatic = useIsStatic()
 </script>
 
 <template>
@@ -72,7 +73,7 @@ const { fmtTimestamp } = createFormatters()
           <span v-if="scanMeta?.startedAt" class="text-xs">{{ fmtTimestamp(scanMeta.startedAt) }}</span>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div v-if="!isStatic" class="flex items-center gap-2">
         <ScanActions v-if="showScanActions" />
         <UDrawer
           v-model:open="eventsOpen"

@@ -31,15 +31,22 @@ export function metricStats(values: Array<number | null | undefined>): MetricSta
   const nums = values.filter((v): v is number => typeof v === 'number').sort((a, b) => a - b)
   if (!nums.length)
     return null
+  const min = nums[0]
+  const max = nums.at(-1)
+  const median = percentile(nums, 0.5)
+  const p75 = percentile(nums, 0.75)
+  const p95 = percentile(nums, 0.95)
+  if (min === undefined || max === undefined || median === null || p75 === null || p95 === null)
+    return null
   const sum = nums.reduce((a, b) => a + b, 0)
   return {
     count: nums.length,
-    min: nums[0]!,
-    max: nums[nums.length - 1]!,
+    min,
+    max,
     avg: sum / nums.length,
-    median: percentile(nums, 0.5)!,
-    p75: percentile(nums, 0.75)!,
-    p95: percentile(nums, 0.95)!,
+    median,
+    p75,
+    p95,
     sorted: nums,
   }
 }

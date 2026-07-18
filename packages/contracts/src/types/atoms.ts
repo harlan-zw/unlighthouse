@@ -17,6 +17,8 @@ const DeviceSchema = z.enum(['mobile', 'desktop'])
 export type Device = z.infer<typeof DeviceSchema>
 export type NonEmptyArray<T> = [T, ...T[]]
 export type DeviceMatrix = NonEmptyArray<Device>
+// Zod enforces non-empty at runtime, but `.min(1)` intentionally retains an
+// array output type; isolate that upstream inference gap at the schema.
 const DeviceMatrixSchema = z.array(DeviceSchema).min(1) as unknown as z.ZodType<DeviceMatrix>
 
 export function isDevice(value: unknown): value is Device {
@@ -33,7 +35,8 @@ export function normaliseDeviceMatrix(input: Device | readonly Device[] | null |
       out.push(device)
     }
   }
-  return (out.length ? out : [fallback]) as DeviceMatrix
+  const first = out[0]
+  return first === undefined ? [fallback] : [first, ...out.slice(1)]
 }
 
 export function parseScanId(value: string): ScanId {
@@ -103,6 +106,12 @@ export interface Paginated<T> {
   pageSize: number
 }
 
+const ScanScoreSummarySchema = z.object({
+  scoreAverage: z.number().min(0).max(1).nullable(),
+  scoresByCategory: z.partialRecord(CategorySchema, z.number().min(0).max(1)),
+  categoryScoreDisplayModes: z.partialRecord(CategorySchema, CategoryScoreDisplayModeSchema).optional(),
+})
+
 // Aggregate scan summary, written when a scan completes.
 const ScanSummarySchema = z.object({
   routes: z.number().int().nonnegative(),
@@ -119,6 +128,9 @@ const ScanSummarySchema = z.object({
   // the primary device for a mobile+desktop scan. Optional — older summaries
   // (and the scan row's primary `device`) predate it.
   devices: DeviceMatrixSchema.optional(),
+  // Per-device score rollups keep a one-scan device matrix useful in history
+  // charts without duplicating the scan row. Optional for older summaries.
+  scoresByDevice: z.partialRecord(DeviceSchema, ScanScoreSummarySchema).optional(),
 })
 export type ScanSummary = z.infer<typeof ScanSummarySchema>
 

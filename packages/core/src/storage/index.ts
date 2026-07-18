@@ -18,7 +18,6 @@ export interface CreateStorageOptions {
  * Compose row + blob halves into a `Storage`. Trivial; exists so callers
  * don't reach into individual adapter return shapes.
  */
-export * from './wrap'
 
 const emptyReports: Storage['reports'] = (() => {
   const emptyList = { list: async () => [] }

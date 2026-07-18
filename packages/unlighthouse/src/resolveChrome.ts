@@ -101,9 +101,9 @@ export async function resolveChrome({ chrome, puppeteerOptions, logger }: Resolv
     throw new Error('Failed to find chrome. Please ensure you have a valid chrome installed.')
 
   const instance = await launch(puppeteerOptions).catch((e) => {
-    if (detectBrowserPlatform() === 'linux' && e.toString().includes('error while loading shared libraries')) {
+    if (detectBrowserPlatform() === 'linux' && e.toString().includes('error while loading shared libraries') && puppeteerOptions.executablePath) {
       const depsPath = path.join(
-        path.dirname(puppeteerOptions.executablePath!),
+        path.dirname(puppeteerOptions.executablePath),
         'deb.deps',
       )
       if (existsSync(depsPath)) {

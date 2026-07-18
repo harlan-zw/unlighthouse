@@ -1,17 +1,11 @@
 import type { UnlighthouseRouteReport } from '../types'
+import type { ReportWithLighthouse } from './types'
+import { hasLighthouseReport } from './types'
 
 function escapeValueForCsv(value: string | number | boolean): string {
   if (typeof value === 'number' || typeof value === 'boolean')
     return String(value)
   return `"${value.replace(/"/g, '""')}"`
-}
-
-type ReportWithLighthouse = UnlighthouseRouteReport & {
-  report: NonNullable<UnlighthouseRouteReport['report']>
-}
-
-function hasLighthouseReport(report: UnlighthouseRouteReport): report is ReportWithLighthouse {
-  return !!report.report
 }
 
 export function csvSimpleFormat(reports: ReportWithLighthouse[]): { headers: string[], body: Array<Array<string | number | boolean>> } {

@@ -26,33 +26,10 @@ import {
 } from './scan'
 import { sitesCreate, sitesDelete, sitesList } from './sites'
 
-export { assertEvaluate } from './assert'
-export { compareDetail, compareFindPrevious, compareMarkdown, compareRun } from './compare'
-export { eventsSubscribe, eventsTail } from './events'
-export { historyList, historyPrune, historyRescan } from './history'
-export { auditorsList, health, manifest } from './meta'
-export { packList, packRun } from './pack'
-export { queryRoutes } from './query'
-export { routeAudits, routeGet, routeRescan } from './route'
-export {
-  scanCancel,
-  scanCategories,
-  scanCurrent,
-  scanDelete,
-  scanImport,
-  scanMeta,
-  scanPause,
-  scanRescanAll,
-  scanResults,
-  scanResume,
-  scanStart,
-  scanStatus,
-  scanSummary,
-} from './scan'
-export { sitesCreate, sitesDelete, sitesList } from './sites'
+export * from './execute'
 
 export function createHandlers(): HandlerMap {
-  const handlers = {
+  return {
     'scan.start': scanStart,
     'scan.status': scanStatus,
     'scan.cancel': scanCancel,
@@ -62,13 +39,13 @@ export function createHandlers(): HandlerMap {
     'scan.import': scanImport,
     'scan.results': scanResults,
     'scan.summary': scanSummary,
-    'scan.categories': scanCategories,
     'scan.meta': scanMeta,
     'scan.current': scanCurrent,
     'scan.rescanAll': scanRescanAll,
     'route.get': routeGet,
     'route.audits': routeAudits,
     'route.rescan': routeRescan,
+    'scan.categories': scanCategories,
     'history.list': historyList,
     'history.rescan': historyRescan,
     'history.prune': historyPrune,
@@ -89,9 +66,7 @@ export function createHandlers(): HandlerMap {
     'sites.list': sitesList,
     'sites.create': sitesCreate,
     'sites.delete': sitesDelete,
-  } satisfies HandlerMap
-  return handlers
+  }
 }
 
 export * from './types'
-export * from './wrap'

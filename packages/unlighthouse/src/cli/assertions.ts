@@ -1,4 +1,4 @@
-import type { Assertion, AssertionResult } from '@unlighthouse/contracts'
+import type { Assertion, AssertionResult } from '@unlighthouse/contracts/types/atoms'
 import { evaluateAndStoreAssertions } from '@unlighthouse/core/comparison'
 
 export async function runAssertions(
@@ -17,12 +17,8 @@ export async function runAssertions(
         || ('metric' in f.assertion ? f.assertion.metric : undefined)
         || f.assertion.type
       logger.error(`  ${f.assertion.type} ${label}: expected ${f.assertion.value}, got ${f.actual}`)
-      if (f.failingRoutes?.length) {
-        for (const r of f.failingRoutes.slice(0, 5))
-          logger.error(`    - ${r.path} (${r.value})`)
-        if (f.failingRoutes.length > 5)
-          logger.error(`    ... and ${f.failingRoutes.length - 5} more`)
-      }
+      if (f.url)
+        logger.error(`    - ${f.url}`)
     }
     return { passed: false, results }
   }

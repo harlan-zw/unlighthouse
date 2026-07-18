@@ -4,6 +4,7 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { compareRowKey } from '~/features/compare/presentation'
+import { optionalScanId, routeParamString } from '~/features/scan/route-context'
 import { originOf } from '~/features/sites/site-url'
 import { siteSlug } from '~/utils/site'
 
@@ -17,7 +18,7 @@ export type { CompareRouteRow }
 type CompareThresholdPayload = NonNullable<Parameters<UnlighthouseClient['compare.run']>[0]['thresholds']>
 type CompareThresholdKey = keyof CompareThresholdPayload
 
-const COMPARE_THRESHOLD_KEYS = new Set<CompareThresholdKey>([
+const COMPARE_THRESHOLD_KEYS: ReadonlySet<string> = new Set([
   'performance',
   'accessibility',
   'seo',
@@ -53,7 +54,7 @@ export interface CwvP75Row {
 }
 
 function isCompareThresholdKey(key: string): key is CompareThresholdKey {
-  return COMPARE_THRESHOLD_KEYS.has(key as CompareThresholdKey)
+  return COMPARE_THRESHOLD_KEYS.has(key)
 }
 
 export function thresholdPayload(thresholds: Record<string, string>): CompareThresholdPayload | undefined {
@@ -76,13 +77,13 @@ export function useCompareWorkflow() {
   // Site comes off the route param (/sites/:siteId/compare); both scan ids
   // ride the query string (`?current=&base=`) so the whole compare is
   // deep-linkable and refresh-survives.
-  const siteId = computed(() => route.params.siteId as string)
+  const siteId = computed(() => routeParamString(route.params.siteId) ?? '')
 
   // `undefined` is the "nothing picked" sentinel; once chosen it's a real
   // ScanId, matching both the `value: s.scanId` items the USelect renders and
   // the v-model type the select infers from those items.
-  const currentScanId = ref<ScanId | undefined>((route.query.current as string) ? (route.query.current as string as ScanId) : undefined)
-  const baseScanId = ref<ScanId | undefined>((route.query.base as string) ? (route.query.base as string as ScanId) : undefined)
+  const currentScanId = ref<ScanId | undefined>(optionalScanId(route.query.current))
+  const baseScanId = ref<ScanId | undefined>(optionalScanId(route.query.base))
 
   // Sync both picks back into the URL in one navigation — updating them
   // separately would race (each `router.replace` reads the still-stale
@@ -99,8 +100,8 @@ export function useCompareWorkflow() {
   // only assign on an actual diff so it doesn't fight the outbound sync
   // above (assigning back would just re-replace with the same query).
   watch(() => [route.query.current, route.query.base] as const, ([c, b]) => {
-    const nextCurrent = (c as string) ? (c as string as ScanId) : undefined
-    const nextBase = (b as string) ? (b as string as ScanId) : undefined
+    const nextCurrent = optionalScanId(c)
+    const nextBase = optionalScanId(b)
     if (nextCurrent !== currentScanId.value)
       currentScanId.value = nextCurrent
     if (nextBase !== baseScanId.value)
@@ -109,13 +110,13 @@ export function useCompareWorkflow() {
 
   const { data: currentMeta, error: currentMetaError, refresh: refreshCurrentMeta } = useApiQuery(
     'scan.meta',
-    () => ({ scanId: currentScanId.value as ScanId }),
+    () => ({ scanId: currentScanId.value }),
     { enabled: () => !!currentScanId.value },
   )
 
   const { data: baseMeta } = useApiQuery(
     'scan.meta',
-    () => ({ scanId: baseScanId.value as ScanId }),
+    () => ({ scanId: baseScanId.value }),
     { enabled: () => !!baseScanId.value },
   )
 
@@ -166,7 +167,7 @@ export function useCompareWorkflow() {
       return
     const latest = [...pool].sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0]
     if (latest)
-      currentScanId.value = latest.scanId as ScanId
+      currentScanId.value = latest.scanId
   }, { immediate: true })
 
   // Only scans of the same site (excluding current) can produce meaningful
@@ -179,15 +180,21 @@ export function useCompareWorkflow() {
   // arrives `enabled` flips and the query runs. A failed previous-scan lookup
   // is an optional read and degrades to "no prior scan".
   const { data: autoBase } = useNuxtAsyncQuery<ScanId | null>(
-    () => api['compare.findPrevious']({
-      site: currentMeta.value!.site,
-      device: currentMeta.value!.device,
-      branch: currentMeta.value!.ciBranch ?? undefined,
-      excludeScanId: currentScanId.value as ScanId,
-    }).then(res => res.scanId ?? null).catch((err) => {
-      logOperationalWarn('ui.optional_api_read_failed', err, { command: 'compare.findPrevious', feature: 'compare-workflow' }, console)
-      return null
-    }),
+    async () => {
+      const meta = currentMeta.value
+      const current = currentScanId.value
+      if (!meta || !current)
+        return null
+      return api['compare.findPrevious']({
+        site: meta.site,
+        device: meta.device,
+        branch: meta.ciBranch ?? undefined,
+        excludeScanId: current,
+      }).then(res => res.scanId ?? null).catch((err) => {
+        logOperationalWarn('ui.optional_api_read_failed', err, { command: 'compare.findPrevious', feature: 'compare-workflow' }, console)
+        return null
+      })
+    },
     {
       key: () => `compare-auto:${currentScanId.value}`,
       enabled: () => !!currentMeta.value && !baseScanId.value,
@@ -232,13 +239,15 @@ export function useCompareWorkflow() {
   const currentThresholdPayload = () => thresholdPayload(thresholds)
 
   async function copyAsMarkdown() {
-    if (!baseScanId.value)
+    const base = baseScanId.value
+    const current = currentScanId.value
+    if (!base || !current)
       return
     copyingMarkdown.value = true
     try {
       const res = await api['compare.markdown']({
-        baseScanId: baseScanId.value,
-        currentScanId: currentScanId.value as ScanId,
+        baseScanId: base,
+        currentScanId: current,
         thresholds: currentThresholdPayload(),
       })
       if (navigator.clipboard?.writeText) {
@@ -266,12 +275,13 @@ export function useCompareWorkflow() {
 
   async function fetchPage() {
     const base = baseScanId.value
-    if (!base)
+    const current = currentScanId.value
+    if (!base || !current)
       return
     try {
       report.value = await api['compare.detail']({
         baseScanId: base,
-        currentScanId: currentScanId.value as ScanId,
+        currentScanId: current,
         page: page.value,
         pageSize: 100,
         sort: sortKey.value,
@@ -290,12 +300,13 @@ export function useCompareWorkflow() {
 
   async function fetchPacks() {
     const base = baseScanId.value
-    if (!base)
+    const current = currentScanId.value
+    if (!base || !current)
       return
     try {
       packReport.value = await api['compare.run']({
         baseScanId: base,
-        currentScanId: currentScanId.value as ScanId,
+        currentScanId: current,
         thresholds: currentThresholdPayload(),
       })
     }
