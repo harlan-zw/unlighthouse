@@ -49,6 +49,14 @@ function readStr(v: unknown): string | null {
   return typeof v === 'string' ? v : null
 }
 
+function readEntity(v: unknown): string | null {
+  if (typeof v === 'string')
+    return v
+  if (v && typeof v === 'object' && 'text' in v)
+    return readStr(v.text)
+  return null
+}
+
 // CDN-served bundles often carry a content hash in the path; we don't
 // normalise that out (different hashes = different bundles, intentionally).
 // We DO drop the query string so cache-busting `?v=…` collapses correctly.
@@ -191,8 +199,7 @@ function extractThirdParty(routeUrl: string, lhr: LhrLike, sink: Map<string, Raw
     // LHR puts the entity name on the top-level row; sub-items break it
     // down per origin. We aggregate at the entity level — that's what the
     // agent / human cares about ("Google Tag Manager: 1.2s blocking").
-    const entity = readStr((it as { entity?: unknown }).entity)
-      ?? readStr((it.entity as { text?: unknown })?.text)
+    const entity = readEntity(it.entity)
       ?? readStr(it.url)
     if (!entity)
       continue

@@ -3,6 +3,7 @@ import { iconAliasMap, iconBundleList } from './layers/design-system/shared/icon
 
 export default defineNuxtConfig({
   ssr: false,
+  css: ['~/assets/css/accessibility.css'],
   app: {
     head: {
       htmlAttrs: {

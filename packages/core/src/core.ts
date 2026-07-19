@@ -1,11 +1,11 @@
 import type {
-  CrawlEvent,
   CrawlSession,
   CrawlStats,
   Logger,
   ScanId,
   ScanStatus,
   ScanSummary,
+  Seed,
   Storage,
   UnlighthouseCore,
   UnlighthouseCoreOptions,
@@ -20,7 +20,7 @@ import { UnlighthouseConfigSchema } from '@unlighthouse/contracts/config'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { createHookEvent } from '@unlighthouse/contracts/hooks'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { normaliseDeviceMatrix, parseScanId } from '@unlighthouse/contracts/types/atoms'
+import { normaliseDeviceMatrix, parseScanId, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { createHooks } from 'hookable'
 import { createPackRegistry } from './packs/index'
 import { persistStableEvents } from './persist-events'
@@ -28,19 +28,10 @@ import { createScanLifecycle } from './scan/lifecycle'
 import { auditRoute, nowIso, toStructuredError } from './scan/route-audit'
 import { createFilter } from './util/filter'
 
-/** Map from CrawlEvent.type → counter side-effect on CrawlStats. */
-type LoggerLike = Logger & {
-  withTag?: (tag: string) => LoggerLike
-  error?: (...args: unknown[]) => void
-  info?: (...args: unknown[]) => void
-}
-
-function tagLogger(logger: LoggerLike | undefined, tag: string): LoggerLike | undefined {
+function tagLogger(logger: Logger | undefined, tag: string): Logger | undefined {
   if (!logger)
     return undefined
-  if (typeof logger.withTag === 'function')
-    return logger.withTag(tag) as LoggerLike
-  return logger
+  return logger.withTag(tag)
 }
 
 function generateScanId(): ScanId {
@@ -119,7 +110,7 @@ export async function reapStaleScans(storage: Storage, logger?: Logger): Promise
     }
   }
   if (reaped > 0)
-    (logger as { warn?: (msg: string) => void } | undefined)?.warn?.(`[core] reaped ${reaped} stale scan${reaped === 1 ? '' : 's'} from prior process`)
+    logger?.warn(`[core] reaped ${reaped} stale scan${reaped === 1 ? '' : 's'} from prior process`)
   return reaped
 }
 
@@ -140,7 +131,7 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
   if (opts.hooks)
     hooks.addHooks(opts.hooks)
 
-  const logger = tagLogger(opts.logger as LoggerLike | undefined, 'core')
+  const logger = tagLogger(opts.logger, 'core')
 
   // Built-in packs plus any host-supplied third-party packs, resolved once.
   const packs = createPackRegistry(opts.packs)
@@ -199,7 +190,7 @@ interface SessionDeps {
   routeMatcher?: UnlighthouseCoreOptions['routeMatcher']
   crawler: UnlighthouseCoreOptions['crawler']
   hooks: Hookable<HookMap>
-  logger: LoggerLike | undefined
+  logger: Logger | undefined
   userSignal?: AbortSignal
   overrides?: UnlighthouseCoreRunOverrides
   packs: PackRegistry
@@ -450,8 +441,8 @@ function createSession(deps: SessionDeps): CrawlSession {
     // as the primary seed URL so the crawler starts from the right origin.
     const effectiveSeeds = overrides?.site
       ? {
-          async* seeds() {
-            yield { url: site, source: 'override' } as { url: string, source: string }
+          async* seeds(): AsyncIterable<Seed> {
+            yield { url: parseUrl(site), source: 'override' }
             yield* seeds.seeds()
           },
         }
@@ -471,7 +462,7 @@ function createSession(deps: SessionDeps): CrawlSession {
       signal,
     })
 
-    for await (const e of crawlEvents as AsyncIterable<CrawlEvent>) {
+    for await (const e of crawlEvents) {
       if (signal.aborted)
         break
       switch (e.type) {

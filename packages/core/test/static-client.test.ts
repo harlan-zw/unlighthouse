@@ -166,4 +166,21 @@ describe('buildStaticSnapshot → createStaticClient round-trip', () => {
     const pack = await api['pack.run']({ scanId: SCAN_ID, pack: 'cwv' })
     expect(pack.cache).toBe('hit')
   })
+
+  it('includes spilled pack report blobs using the PackRun contract key', async () => {
+    const storage = memoryStorage()
+    const reportBlobKey = `scans/${SCAN_ID}/packs/cwv-1.0.0.json`
+    const inlineRun = makePackRun()
+    await storage.scans.create(makeScan())
+    await storage.packRuns.put({
+      ...inlineRun,
+      report: null,
+      reportBlobKey,
+    })
+    await storage.blobs.put(reportBlobKey, new TextEncoder().encode(JSON.stringify(inlineRun.report)))
+
+    const snapshot = await buildStaticSnapshot({ storage, scanId: SCAN_ID, config, packs: [] })
+
+    expect(snapshot.blobs[reportBlobKey]).toBe(JSON.stringify(inlineRun.report))
+  })
 })

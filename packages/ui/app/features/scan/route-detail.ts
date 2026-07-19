@@ -123,7 +123,7 @@ export function useRouteDetail() {
   const route = useRoute()
   const router = useRouter()
   const screenshotUrl = createScreenshotUrl()
-  const { scoreToLabel, scoreToRingColor } = createScoreColorHelpers()
+  const { scoreToColor, scoreToLabel } = createScoreColorHelpers()
   const { fmtBytes: formatBytes } = createFormatters()
 
   const scanId = getScanId()
@@ -306,8 +306,8 @@ export function useRouteDetail() {
     scores,
     metrics,
     categoryAudits,
+    scoreToColor,
     scoreToLabel,
-    scoreToRingColor,
     categoryScoreLabel,
     formatBytes,
     formatMetric: formatRouteDetailMetric,

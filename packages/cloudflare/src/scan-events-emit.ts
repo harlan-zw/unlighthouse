@@ -18,7 +18,7 @@ interface ScanEventsEnv {
 export function scanEventsEmit(env: ScanEventsEnv, scanId: string): EmitFn {
   const id = env.SCAN_EVENTS_DO.idFromName(scanId)
   const stub = env.SCAN_EVENTS_DO.get(id)
-  return (async (event: string, payload: unknown): Promise<void> => {
+  const emit: EmitFn = async (event, payload) => {
     try {
       await stub.fetch('https://scan-events/', {
         method: 'POST',
@@ -29,5 +29,6 @@ export function scanEventsEmit(env: ScanEventsEnv, scanId: string): EmitFn {
     catch (err) {
       logOperationalWarn('cloudflare.scan_event_fanout_failed', err, { scanId, event })
     }
-  }) as EmitFn
+  }
+  return emit
 }

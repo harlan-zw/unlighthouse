@@ -9,7 +9,8 @@
  * The worker is `bare: true` — it spawns its own Chrome via chrome-launcher; the pool does
  * NOT pre-launch puppeteer here.
  */
-import type { UnlighthouseOptions, UnlighthouseReport } from '@unlighthouse/contracts'
+import type { UnlighthouseReport } from '@unlighthouse/contracts'
+import type { LocalLighthouseTaskPayload } from './local'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { launch } from 'chrome-launcher'
 import lighthouse from 'lighthouse'
@@ -20,11 +21,6 @@ import { killChromePidIfAlive } from './chrome-process'
 import { extractInsights } from './extract'
 import { getScreenEmulation, getUserAgent, resolveLighthouseConfig } from './lighthouse-config'
 import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from './storage-injection'
-
-export interface LighthousePayload {
-  url: string
-  options?: UnlighthouseOptions
-}
 
 // Chrome leak guard. chrome-launcher spawns Chrome as a child of this worker
 // thread's process; when the pool recycles or terminates a worker mid-audit the
@@ -57,7 +53,7 @@ function bindChromeCleanup() {
   process.once('exit', killAllChrome)
 }
 
-const lighthouseTask = defineTask<LighthousePayload, UnlighthouseReport>(async (_ctx, { url, options = {} }) => {
+const lighthouseTask = defineTask<LocalLighthouseTaskPayload, UnlighthouseReport>(async (_ctx, { url, options }) => {
   let chrome
   const flagPort = options.lighthouseFlags?.port
   let port = options.port || (typeof flagPort === 'number' ? flagPort : undefined)

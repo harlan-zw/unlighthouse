@@ -245,7 +245,13 @@ function tableValue(s: TrendSeries, t: number): string {
         {{ s.label }}
       </div>
     </div>
-    <div ref="wrap" class="w-full relative" @pointermove="onMove" @pointerleave="onLeave">
+    <div
+      ref="wrap"
+      class="w-full relative"
+      :style="{ minHeight: `${height}px` }"
+      @pointermove="onMove"
+      @pointerleave="onLeave"
+    >
       <svg v-if="width > 0 && hasData" :width="width" :height="height" class="overflow-visible" aria-hidden="true" focusable="false">
         <!-- y gridlines + labels -->
         <g>

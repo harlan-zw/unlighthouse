@@ -56,21 +56,21 @@ function formatDuration(ms: number): string {
 // D-051: the two hand-rolled count grids re-platform onto UiStats (inline,
 // compact) — one shared primitive instead of two ad-hoc `grid-cols-N` blocks.
 const countStats = computed<UiStatProps[]>(() => [
-  { title: 'Routes found', value: store.total },
-  { title: 'Audited', value: store.scanned },
-  { title: 'Failed', value: store.failed, valueClass: store.failed > 0 ? 'text-error' : undefined },
-  { title: 'Remaining', value: Math.max(0, store.total - store.scanned - store.failed) },
+  { title: 'Routes found', value: store.total, animatedValue: false },
+  { title: 'Audited', value: store.scanned, animatedValue: false },
+  { title: 'Failed', value: store.failed, valueClass: store.failed > 0 ? 'text-error' : undefined, animatedValue: false },
+  { title: 'Remaining', value: Math.max(0, store.total - store.scanned - store.failed), animatedValue: false },
 ])
 
 const scoringStats = computed<UiStatProps[]>(() => [
-  { title: 'Avg Perf', value: store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—', valueClass: scoreToColor(store.avgPerfScore) },
-  { title: 'Pass', value: store.passCount, valueClass: 'text-success' },
-  { title: 'Needs Work', value: store.needsWorkCount, valueClass: 'text-warning' },
-  { title: 'Poor', value: store.poorCount, valueClass: 'text-error' },
+  { title: 'Avg Perf', value: store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—', valueClass: scoreToColor(store.avgPerfScore), animatedValue: false },
+  { title: 'Pass', value: store.passCount, valueClass: 'text-success', animatedValue: false },
+  { title: 'Needs Work', value: store.needsWorkCount, valueClass: 'text-warning', animatedValue: false },
+  { title: 'Poor', value: store.poorCount, valueClass: 'text-error', animatedValue: false },
   // Stable title (used as the v-for key) — elapsed rides the trendLabel slot
   // instead of being interpolated into the title, so the tick doesn't remount
   // (and re-trigger UiStat's value roll-up animation) every second.
-  { title: 'ETA', value: etaLabel.value, trendLabel: `· ${elapsedLabel.value}` },
+  { title: 'ETA', value: etaLabel.value, trendLabel: `· ${elapsedLabel.value}`, animatedValue: false },
 ])
 </script>
 

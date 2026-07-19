@@ -1,9 +1,6 @@
 // compare.* handlers operate on the v2 Storage port (ScanRoute rows).
 
-import type {
-  Category,
-  ScanId,
-} from '@unlighthouse/contracts/types/atoms'
+import type { ScanId } from '@unlighthouse/contracts/types/atoms'
 import type { Handler, HandlerCtx } from '../types'
 import { CompareDetail, CompareFindPrevious, CompareMarkdown, CompareRun } from '@unlighthouse/contracts/commands'
 import {
@@ -49,8 +46,8 @@ export const compareRun: Handler<typeof CompareRun> = {
     const baseAvg = baseScan?.summary?.scoreAverage ?? null
     const currentAvg = currentScan?.summary?.scoreAverage ?? null
     const categoryDeltas = categoryDeltasFromSummaries(
-      baseScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined,
-      currentScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined,
+      baseScan?.summary?.scoresByCategory,
+      currentScan?.summary?.scoresByCategory,
     )
 
     const output = {
@@ -95,8 +92,8 @@ export const compareDetail: Handler<typeof CompareDetail> = {
     const baseAvg = baseScan?.summary?.scoreAverage ?? null
     const currentAvg = currentScan?.summary?.scoreAverage ?? null
     const categoryDeltas = categoryDeltasFromSummaries(
-      baseScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined,
-      currentScan?.summary?.scoresByCategory as Partial<Record<Category, number>> | null | undefined,
+      baseScan?.summary?.scoresByCategory,
+      currentScan?.summary?.scoresByCategory,
     )
 
     return CompareDetail.output.parse({
@@ -163,7 +160,6 @@ export const compareFindPrevious: Handler<typeof CompareFindPrevious> = {
   },
 }
 
-async function emitCompareComplete(ctx: HandlerCtx, baseScanId: string, currentScanId: string, regressions: number, improvements: number) {
-  const hooks = ctx.core.hooks as { callHook: (event: string, payload: unknown) => Promise<void> } | undefined
-  await hooks?.callHook('compare:complete', { baseScanId, currentScanId, regressions, improvements })
+async function emitCompareComplete(ctx: HandlerCtx, baseScanId: ScanId, currentScanId: ScanId, regressions: number, improvements: number) {
+  await ctx.core.hooks?.callHook('compare:complete', { baseScanId, currentScanId, regressions, improvements })
 }

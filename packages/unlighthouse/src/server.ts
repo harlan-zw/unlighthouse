@@ -22,7 +22,7 @@ async function statFileOrNull(path: string, logger?: Logger) {
     return await stat(path)
   }
   catch (err) {
-    const code = (err as { code?: unknown }).code
+    const code = err && typeof err === 'object' && 'code' in err ? err.code : undefined
     if (code !== 'ENOENT' && code !== 'ENOTDIR')
       logOperationalWarn('host.static_asset_probe_failed', err, { path }, logger)
     return null

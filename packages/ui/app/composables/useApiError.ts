@@ -44,12 +44,33 @@ function isNetworkError(err: Error): boolean {
   return err.name === 'TypeError' || /failed to fetch|networkerror|load failed/i.test(err.message)
 }
 
+type ErrorWithMetadata = Error & {
+  code?: unknown
+  statusCode?: unknown
+  retryable?: unknown
+  suggestion?: unknown
+}
+
+function errorChain(error: Error): Error[] {
+  const chain: Error[] = []
+  const seen = new Set<Error>()
+  let current: Error | undefined = error
+  while (current && !seen.has(current) && chain.length < 4) {
+    chain.push(current)
+    seen.add(current)
+    current = current.cause instanceof Error ? current.cause : undefined
+  }
+  return chain
+}
+
 export function normalizeApiError(err: unknown): ApiError {
   if (!(err instanceof Error)) {
     return { _tag: 'unknown', code: 'ERROR', title: 'Something went wrong', message: String(err), retryable: false }
   }
 
-  if (isNetworkError(err)) {
+  const chain = errorChain(err)
+  const networkError = chain.find(isNetworkError)
+  if (networkError) {
     return {
       _tag: 'offline',
       code: 'OFFLINE',
@@ -59,35 +80,32 @@ export function normalizeApiError(err: unknown): ApiError {
     }
   }
 
-  const typed = err as Error & {
-    code?: unknown
-    statusCode?: unknown
-    retryable?: unknown
-    suggestion?: unknown
-  }
-  if (typeof typed.code === 'string') {
-    const status = typeof typed.statusCode === 'number' ? typed.statusCode : undefined
+  // Nuxt's useAsyncData passes failures through h3.createError(). When the
+  // original client error comes from another bundled Error constructor, h3
+  // wraps it and retains the typed UnlighthouseError in `cause`. Walk that
+  // chain so domain code/status/retryability survive the query boundary.
+  const typed = (chain.find((candidate) => {
+    const meta = candidate as ErrorWithMetadata
+    return typeof meta.code === 'string' || candidate.name.startsWith('HTTP_')
+  }) ?? err) as ErrorWithMetadata
+  const statusSource = chain.find(candidate => typeof (candidate as ErrorWithMetadata).statusCode === 'number') as ErrorWithMetadata | undefined
+  const status = typeof typed.statusCode === 'number'
+    ? typed.statusCode
+    : typeof statusSource?.statusCode === 'number' ? statusSource.statusCode : undefined
+  const typedCode = typeof typed.code === 'string'
+    ? typed.code
+    : typed.name.startsWith('HTTP_') ? typed.name : status != null ? `HTTP_${status}` : undefined
+
+  if (typedCode) {
     return {
       _tag: 'http',
       status,
-      code: typed.code,
+      code: typedCode,
       title: titleForStatus(status),
-      message: err.message,
+      message: typed.message || err.message,
       retryable: typeof typed.retryable === 'boolean'
         ? typed.retryable
         : status != null && (status >= 500 || status === 429),
-    }
-  }
-
-  if (err.name.startsWith('HTTP_')) {
-    const status = Number(err.name.slice(5)) || undefined
-    return {
-      _tag: 'http',
-      status,
-      code: err.name,
-      title: titleForStatus(status),
-      message: err.message,
-      retryable: status != null && (status >= 500 || status === 429),
     }
   }
 

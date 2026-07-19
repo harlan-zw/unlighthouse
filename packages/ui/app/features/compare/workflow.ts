@@ -250,19 +250,30 @@ export function useCompareWorkflow() {
         currentScanId: current,
         thresholds: currentThresholdPayload(),
       })
+      let copied = false
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(res.markdown)
+        try {
+          await navigator.clipboard.writeText(res.markdown)
+          copied = true
+        }
+        catch (_err) {
+          // Clipboard permissions/user activation can expire while the
+          // markdown request is in flight. Fall through to the synchronous
+          // selection-based path instead of reporting a false hard failure.
+        }
       }
-      else {
+      if (!copied) {
         const ta = document.createElement('textarea')
         ta.value = res.markdown
         ta.style.position = 'fixed'
         ta.style.opacity = '0'
         document.body.appendChild(ta)
         ta.select()
-        document.execCommand('copy')
+        copied = document.execCommand('copy')
         document.body.removeChild(ta)
       }
+      if (!copied)
+        throw new Error('The browser denied clipboard access')
       toast.success(res.hasRegressions ? 'Copied: regressions present' : 'Copied to clipboard')
     }
     catch (err) {

@@ -51,7 +51,10 @@ function scanCount(dbPath: string, diagnostics: string[]): number {
   let db: InstanceType<typeof Database> | null = null
   try {
     db = new Database(dbPath, { readonly: true })
-    return (db.prepare('SELECT count(*) AS count FROM scans').get() as { count: number }).count
+    const row = db.prepare('SELECT count(*) AS count FROM scans').get()
+    if (!row || typeof row !== 'object' || !('count' in row) || typeof row.count !== 'number')
+      throw new TypeError('Expected a numeric scan count from SQLite.')
+    return row.count
   }
   catch (error) {
     diagnostics.push(`ignored unreadable scan database ${dbPath}: ${errorMessage(error)}`)

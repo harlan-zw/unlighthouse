@@ -1,14 +1,9 @@
-import type { ClientOptionsPayload, StaticScreenshotMap } from '@unlighthouse/contracts'
-import type { StaticSnapshot } from '@unlighthouse/core/api/static-client'
+import type { ClientRuntimePayload } from '@unlighthouse/contracts'
 
 declare global {
   interface Window {
     __unlighthouse_static?: boolean
-    __unlighthouse_payload?: {
-      options?: ClientOptionsPayload
-      snapshot?: StaticSnapshot
-      screenshots?: StaticScreenshotMap
-    }
+    __unlighthouse_payload?: ClientRuntimePayload
   }
 }
 

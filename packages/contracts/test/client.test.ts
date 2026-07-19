@@ -123,4 +123,29 @@ describe('typed client', () => {
     const output = await callClientCommand(client, 'scan.current', {})
     expect(output).toEqual({ scanId: null })
   })
+
+  it('preserves fields from structurally overlapping pack reports', async () => {
+    const report = {
+      scanId: 'abc',
+      routesAnalysed: 1,
+      totalBytesSavable: 0,
+      totalRenderBlockingMs: 0,
+      severityCounts: { critical: 0, serious: 0, moderate: 0, minor: 0 },
+      findings: [],
+    }
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+      scanId: 'abc',
+      packName: 'js-bundle',
+      packVersion: '1.0.0',
+      startedAt: '2025-01-01T00:00:00.000Z',
+      completedAt: '2025-01-01T00:00:01.000Z',
+      report,
+      cache: 'miss',
+    }))
+    const client = createClient({ fetch: fetchMock })
+
+    const out = await client['pack.run']({ scanId: testScanId('abc'), pack: 'js-bundle' })
+
+    expect(out.report).toEqual(report)
+  })
 })

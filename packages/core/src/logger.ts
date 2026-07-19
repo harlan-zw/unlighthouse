@@ -6,5 +6,5 @@ export interface CreateLoggerOptions {
 }
 
 export function createLogger(opts: CreateLoggerOptions = {}): Logger {
-  return createConsola({ level: opts.level ?? 3 }).withTag('unlighthouse') as Logger
+  return createConsola({ level: opts.level ?? 3 }).withTag('unlighthouse')
 }

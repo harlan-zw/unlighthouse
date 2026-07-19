@@ -39,10 +39,10 @@ function topElementsOf(finding: Record<string, unknown>): TopElement[] {
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <UiStat card title="Total Violations" :value="report.totalViolations" value-class="text-error" />
-      <UiStat card title="Critical Rules" :value="report.severityCounts.critical" :value-class="report.severityCounts.critical > 0 ? 'text-error' : 'text-success'" />
-      <UiStat card title="Unique Rules" :value="report.findings.length" />
-      <UiStat card title="Routes Analysed" :value="report.routesAnalysed" value-class="text-success" />
+      <UiStat card title="Total Violations" :value="report.totalViolations" value-class="text-error" :animated-value="false" />
+      <UiStat card title="Critical Rules" :value="report.severityCounts.critical" :value-class="report.severityCounts.critical > 0 ? 'text-error' : 'text-success'" :animated-value="false" />
+      <UiStat card title="Unique Rules" :value="report.findings.length" :animated-value="false" />
+      <UiStat card title="Routes Analysed" :value="report.routesAnalysed" value-class="text-success" :animated-value="false" />
     </div>
 
     <!-- Findings: shared accordion + a11y-specific element preview body slot

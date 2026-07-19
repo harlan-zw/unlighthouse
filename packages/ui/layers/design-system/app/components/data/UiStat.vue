@@ -205,12 +205,12 @@ const formattedTrend = computed(() => {
       </slot>
       <slot name="title">
         <UiTooltip v-if="tooltip && title" :text="tooltipDescription || tooltip" trigger-as="button">
-          <span class="inline-flex items-center gap-1 text-label text-dimmed">
+          <span class="inline-flex items-center gap-1 text-label text-muted">
             {{ title }}
             <UiIcon name="help" class="size-3 opacity-50 shrink-0" aria-hidden="true" />
           </span>
         </UiTooltip>
-        <span v-else-if="title" class="text-label text-dimmed">{{ title }}</span>
+        <span v-else-if="title" class="text-label text-muted">{{ title }}</span>
       </slot>
       <slot v-if="!card" name="trend">
         <span v-if="trend != null && trend !== 0" class="text-xs numerals-display" :class="trendColorClass">

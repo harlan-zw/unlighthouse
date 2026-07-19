@@ -48,7 +48,7 @@ const accordionItems = computed<AccordionItem[]>(() =>
 <template>
   <UiCard v-if="findings?.length" size="sm">
     <template #header>
-      <h3 class="text-label text-dimmed flex items-center gap-2">
+      <h3 class="text-label text-muted flex items-center gap-2">
         {{ title }}
         <UiChip purpose="count">
           {{ findings.length }}

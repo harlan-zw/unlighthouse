@@ -1,0 +1,13 @@
+/* Unlighthouse's dashboard renders dense 10–12px labels and status chips on
+   tinted surfaces. The canonical design-system's tertiary/light semantic
+   tokens are intentionally softer and miss WCAG AA in those combinations,
+   so strengthen them at the application boundary without modifying the
+   mirrored design-system layer. Dark-mode tokens already pass as shipped. */
+.light.dashboard-theme {
+  --ui-text-dimmed: var(--ui-color-neutral-600);
+  --ui-text-muted: var(--ui-color-neutral-600);
+  --ui-text-success: var(--ui-color-success-800);
+  --ui-text-info: var(--ui-color-info-700);
+  --ui-text-warning: var(--ui-color-warning-800);
+  --ui-text-error: var(--ui-color-error-700);
+}

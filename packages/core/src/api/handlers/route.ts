@@ -210,7 +210,7 @@ export const routeRescan: Handler<typeof RouteRescan> = {
     // stale artifacts behind.
     const device = route.device
     const emit: EmitFn = ctx.core.hooks
-      ? ctx.core.hooks.callHook.bind(ctx.core.hooks) as EmitFn
+      ? ctx.core.hooks.callHook
       : async () => {}
     const result = await auditRoute({
       auditor: ctx.auditor,

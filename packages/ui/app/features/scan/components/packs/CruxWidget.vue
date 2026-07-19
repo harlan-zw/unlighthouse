@@ -133,10 +133,10 @@ const gapSections = computed(() => [
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <UiStat card title="Good" :value="report.severityCounts.good" value-class="text-success" />
-      <UiStat card title="Needs Improvement" :value="report.severityCounts.needsImprovement" value-class="text-warning" />
-      <UiStat card title="Poor" :value="report.severityCounts.poor" value-class="text-error" />
-      <UiStat card title="Unknown" :value="report.severityCounts.unknown" />
+      <UiStat card title="Good" :value="report.severityCounts.good" value-class="text-success" :animated-value="false" />
+      <UiStat card title="Needs Improvement" :value="report.severityCounts.needsImprovement" value-class="text-warning" :animated-value="false" />
+      <UiStat card title="Poor" :value="report.severityCounts.poor" value-class="text-error" :animated-value="false" />
+      <UiStat card title="Unknown" :value="report.severityCounts.unknown" :animated-value="false" />
     </div>
 
     <UiCard v-if="report.findings.length" size="sm">

@@ -118,7 +118,8 @@ const isStatic = useIsStatic()
         </template>
         <div class="grid gap-6 lg:grid-cols-3">
           <div v-for="m in vitals" :key="m.key">
-            <div class="text-xs font-medium mb-1" :style="{ color: m.color }">
+            <div class="flex items-center gap-1.5 text-xs font-medium text-default mb-1">
+              <span class="size-2 rounded-full shrink-0" :style="{ backgroundColor: m.color }" aria-hidden="true" />
               {{ m.label }}
             </div>
             <TrendChart

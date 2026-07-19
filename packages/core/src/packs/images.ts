@@ -88,7 +88,7 @@ function extractImageDelivery(routeUrl: string, lhr: LhrLike, sink: Map<string, 
       continue
     const key = `unoptimized|${normaliseImageUrl(url)}`
     const existing = sink.get(key)
-    const subItems = (it.subItems as { items?: Array<{ reason?: string }> } | undefined)?.items ?? []
+    const subItems = it.subItems?.items ?? []
     const reason = subItems[0]?.reason ?? null
     const wastedBytes = readNumber(it.wastedBytes)
     const totalBytes = readNumber(it.totalBytes)
@@ -125,9 +125,9 @@ function extractLcpDiscovery(routeUrl: string, lhr: LhrLike, sink: Map<string, R
   for (const it of audit.details?.items ?? []) {
     // The LHR emits two item shapes: a checklist (skip) and a node (the
     // actual LCP element). Pull the node's snippet src as the image url.
-    if ((it as { type?: string }).type !== 'node')
+    if (it.type !== 'node')
       continue
-    const snippet = readString((it as { snippet?: unknown }).snippet) ?? ''
+    const snippet = readString(it.snippet) ?? ''
     const m = snippet.match(/src=["']([^"']+)["']/)
     const url = m?.[1]
     if (!url)
@@ -187,8 +187,7 @@ function extractMissingAlt(routeUrl: string, lhr: LhrLike, sink: Map<string, Raw
   for (const it of audit.details?.items ?? []) {
     // image-alt items wrap each violating node. URL isn't always populated;
     // fall back to a path-keyed bucket when missing so the count is honest.
-    const node = it.node as { snippet?: string } | undefined
-    const snippet = node?.snippet ?? readString(it.url) ?? '(no url)'
+    const snippet = it.node?.snippet ?? readString(it.url) ?? '(no url)'
     const m = snippet.match(/src=["']([^"']+)["']/)
     const url = m?.[1] ?? snippet
     const key = `missing-alt|${normaliseImageUrl(url)}`

@@ -86,7 +86,7 @@ function killLighthouseChromes(runtime: CliRuntime): void {
   }
   catch (err) {
     // pkill exits 1 when nothing matched — that's the common, fine case.
-    const status = (err as { status?: unknown }).status
+    const status = err && typeof err === 'object' && 'status' in err ? err.status : undefined
     if (status !== 1)
       logOperationalWarn('cli.chrome_reap_failed', err, { status }, log)
   }
@@ -158,9 +158,9 @@ function setupGracefulShutdown(
     // wrapped client (libsql Client and better-sqlite3 Database both
     // have it). Catch errors — already-closed is fine.
     try {
-      const storage = unlighthouse.handlerCtx?.storage as { db?: { close?: () => void | Promise<void> } } | undefined
-      if (storage?.db?.close)
-        await storage.db.close()
+      const db = unlighthouse.handlerCtx?.storage.db
+      if (db && typeof db === 'object' && 'close' in db && typeof db.close === 'function')
+        await db.close()
     }
     catch (err) {
       logOperationalWarn('cli.shutdown_db_close_failed', err, {}, log)

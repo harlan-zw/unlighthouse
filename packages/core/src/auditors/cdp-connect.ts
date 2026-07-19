@@ -56,11 +56,8 @@ function withAbort<T>(p: Promise<T>, signal?: AbortSignal): Promise<T> {
 }
 
 type LighthouseWithPage = (
-  url: string,
-  flags?: unknown,
-  config?: unknown,
-  page?: unknown,
-) => ReturnType<typeof lighthouse>
+  ...args: Parameters<typeof lighthouse>
+) => Promise<{ lhr: unknown } | undefined>
 
 export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
   return {
@@ -77,7 +74,7 @@ export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
         await withAbort(page.goto(url, { waitUntil: 'networkidle0' }), signal)
 
         // Lighthouse v11+ accepts a connected puppeteer Page as the 4th arg; port is omitted.
-        const runLighthouse = opts.runLighthouse ?? lighthouse as unknown as LighthouseWithPage
+        const runLighthouse = opts.runLighthouse ?? lighthouse
         const formFactor = auditOpts.device ?? 'mobile'
         const flags = {
           output: 'json' as const,

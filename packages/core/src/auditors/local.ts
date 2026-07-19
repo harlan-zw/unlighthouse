@@ -44,7 +44,13 @@ export interface LocalAuditorOptions {
    *
    * @internal
    */
-  runLighthouseTask?: (payload: { url: string, options: unknown }) => Promise<UnlighthouseReport>
+  runLighthouseTask?: (payload: LocalLighthouseTaskPayload) => Promise<UnlighthouseReport>
+}
+
+/** Serializable payload shared by the local auditor and its worker task. */
+export interface LocalLighthouseTaskPayload {
+  url: string
+  options: UnlighthouseOptions
 }
 
 const LOCAL_CAPABILITIES: AuditorCapabilities = {
@@ -118,9 +124,9 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
   const perfLane = createSerialLane()
 
   const runLighthouse = opts.runLighthouseTask
-    ?? (async (payload: { url: string, options: unknown }): Promise<UnlighthouseReport> => {
+    ?? (async (payload: LocalLighthouseTaskPayload): Promise<UnlighthouseReport> => {
       const pool = await getPool()
-      return runTask<UnlighthouseReport>(pool, 'lighthouse', payload)
+      return runTask<UnlighthouseReport, LocalLighthouseTaskPayload>(pool, 'lighthouse', payload)
     })
 
   return {
@@ -153,7 +159,7 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
       const report = serialize ? await perfLane.run(dispatch) : await dispatch()
 
       const out = attachExtractedRouteData(report.raw, url, 'local')
-      ;(out as { concurrency?: number }).concurrency = effectiveConcurrency
+      out.concurrency = effectiveConcurrency
       return out
     },
   }

@@ -194,7 +194,9 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <QueryError v-if="resultsError" :error="resultsError" :on-retry="refresh" />
+
+  <div v-else class="space-y-4">
     <!-- Scan context strip -->
     <div v-if="filtered.length" class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
@@ -279,8 +281,6 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
         @click="density = density === 'compact' ? 'comfortable' : 'compact'"
       />
     </div>
-
-    <QueryError :error="resultsError" :on-retry="refresh" />
 
     <div class="border-y">
       <UiTable

@@ -16,17 +16,13 @@
 // `buildStaticSnapshot()` as `window.__unlighthouse_payload.snapshot`, `ci.ts`
 // consumes `--build-static`, and `api.client.ts` swaps in `createStaticClient`
 // when `window.__unlighthouse_static`.
-import type { Auditor, Logger, UnlighthouseCore } from '@unlighthouse/contracts'
+import type { Auditor, Logger, StaticSnapshot, UnlighthouseCore } from '@unlighthouse/contracts'
 import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
 import type { CommandName } from '@unlighthouse/contracts/commands'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
-import type { PackRun } from '@unlighthouse/contracts/packs'
-import type { SiteRecord, Storage } from '@unlighthouse/contracts/ports'
-import type {
-  Scan,
-  ScanRoute,
-} from '@unlighthouse/contracts/types/atoms'
+import type { Storage } from '@unlighthouse/contracts/ports'
+import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { HandlerCtx } from './handlers'
 import { commandEntries } from '@unlighthouse/contracts/commands'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
@@ -35,28 +31,6 @@ import { createHooks } from 'hookable'
 import { routeContractBlobKey } from '../report/route-contracts'
 import { memoryStorage } from '../storage/memory'
 import { createCommandExecutor, createHandlers } from './handlers'
-
-/**
- * Self-contained snapshot of one or more scans, embedded into the static
- * build's payload. Everything the read handlers need to answer the dashboard's
- * queries without a server.
- */
-export interface StaticSnapshot {
-  /** Scan rows — drives history.list, scan.meta, scan.summary. */
-  scans: Scan[]
-  /** Every audited route row (carries reportBlobKey / device). */
-  routes: ScanRoute[]
-  /** blobKey → UTF-8 JSON string. Contract blobs the read handlers reconcile. */
-  blobs: Record<string, string>
-  /** Pre-run pack outputs, seeded as cache rows so pack.run returns a hit. */
-  packRuns: PackRun[]
-  /** Registered sites — drives sites.list and the home page. */
-  sites: SiteRecord[]
-  /** Resolved config subset (site, scanner, routerPrefix, …). */
-  config: UnlighthouseConfig
-  /** Package version surfaced by health/manifest. */
-  version?: string
-}
 
 const WRITE_REJECT_MESSAGE = 'This is a static report — live actions are unavailable offline.'
 
@@ -122,7 +96,7 @@ export async function buildStaticSnapshot(opts: {
       blobKeys.add(key)
   }
   for (const run of packRuns) {
-    const key = (run as { blobKey?: string }).blobKey
+    const key = run.reportBlobKey
     if (key)
       blobKeys.add(key)
   }

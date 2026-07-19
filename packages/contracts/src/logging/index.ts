@@ -24,21 +24,24 @@ export function parseOperationalError(error: unknown): ParsedOperationalError | 
   if (error == null)
     return null
   if (error instanceof Error) {
-    const coded = error as Error & { code?: unknown }
+    const code = 'code' in error && typeof error.code === 'string' ? error.code : undefined
     return {
       name: error.name,
       message: error.message,
       stack: error.stack,
-      code: typeof coded.code === 'string' ? coded.code : undefined,
+      code,
     }
   }
   if (typeof error === 'object') {
-    const record = error as Record<string, unknown>
+    const name = 'name' in error ? error.name : undefined
+    const message = 'message' in error ? error.message : undefined
+    const stack = 'stack' in error ? error.stack : undefined
+    const code = 'code' in error ? error.code : undefined
     return {
-      name: typeof record.name === 'string' ? record.name : undefined,
-      message: typeof record.message === 'string' ? record.message : String(error),
-      stack: typeof record.stack === 'string' ? record.stack : undefined,
-      code: typeof record.code === 'string' ? record.code : undefined,
+      name: typeof name === 'string' ? name : undefined,
+      message: typeof message === 'string' ? message : String(error),
+      stack: typeof stack === 'string' ? stack : undefined,
+      code: typeof code === 'string' ? code : undefined,
     }
   }
   return { message: String(error) }

@@ -36,7 +36,8 @@ function slotStyle(index: number) {
 
 <template>
   <span v-if="reduced" class="ui-slot-text-host">{{ text }}</span>
-  <span v-else class="ui-slot-text-host ui-slot-text" :class="directionClass" :aria-label="text">
+  <span v-else class="ui-slot-text-host ui-slot-text" :class="directionClass">
+    <span class="sr-only">{{ text }}</span>
     <span
       v-for="(char, index) in chars"
       :key="index"

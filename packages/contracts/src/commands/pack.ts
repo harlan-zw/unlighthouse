@@ -37,7 +37,13 @@ export const PackRunCmd = defineCommand({
     packVersion: z.string(),
     startedAt: z.iso.datetime(),
     completedAt: z.iso.datetime(),
-    report: PackReportSchema.or(z.record(z.string(), z.unknown())),
+    // Preserve the report exactly as the owning pack emitted it. Built-in
+    // report schemas overlap structurally (an empty js-bundle report also
+    // satisfies ImagesReportSchema), so parsing the built-in union first can
+    // select the wrong branch and strip fields that branch does not know.
+    // The pack handler already validates against `pack.reportSchema`; this
+    // transport boundary only needs to guarantee a JSON object.
+    report: z.record(z.string(), z.unknown()).or(PackReportSchema),
     // `cache: 'hit'` means the report came from packRuns storage; `'miss'`
     // means it was just reconciled. Useful for "Last computed at …" UI hints
     // and for asserting cache behaviour in tests.

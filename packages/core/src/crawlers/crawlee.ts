@@ -59,7 +59,7 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
     state = 'running'
 
     const signal = runOpts.signal
-    const scanId = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto?.randomUUID?.() ?? `scan-${Date.now()}`
+    const scanId = globalThis.crypto.randomUUID()
     const ctx: CrawlCtx = { scanId, signal }
 
     const queue: CrawlEvent[] = []

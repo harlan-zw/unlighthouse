@@ -274,14 +274,17 @@ export function createErrorEnvelope(err: unknown, opts: ErrorEnvelopeOptions = {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 export function isErrorEnvelope(value: unknown): value is UnlighthouseErrorEnvelope {
-  if (!value || typeof value !== 'object')
+  if (!isRecord(value))
     return false
-  const error = (value as { error?: unknown }).error
-  return !!error
-    && typeof error === 'object'
-    && typeof (error as { code?: unknown }).code === 'string'
-    && typeof (error as { message?: unknown }).message === 'string'
+  const { error } = value
+  return isRecord(error)
+    && typeof error.code === 'string'
+    && typeof error.message === 'string'
 }
 
 export function errorFromEnvelope(envelope: UnlighthouseErrorEnvelope): UnlighthouseError {

@@ -11,7 +11,14 @@ describe('normalizeSiteUrl', () => {
   it('rejects malformed and non-web URLs', () => {
     expect(normalizeSiteUrl('https://')).toBeNull()
     expect(normalizeSiteUrl('ftp://example.com')).toBeNull()
+    expect(normalizeSiteUrl('not a valid url')).toBeNull()
+    expect(normalizeSiteUrl('exa\tmple.com')).toBeNull()
+    expect(normalizeSiteUrl('https://user name@example.com')).toBeNull()
     expect(normalizeSiteUrl('')).toBeNull()
+  })
+
+  it('allows whitespace outside the URL authority', () => {
+    expect(normalizeSiteUrl('example.com/a useful page')).toBe('https://example.com/a%20useful%20page')
   })
 })
 

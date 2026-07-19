@@ -1,6 +1,5 @@
-import type { Logger, Storage } from '@unlighthouse/contracts'
+import type { ClientRuntimePayload, Logger, Storage } from '@unlighthouse/contracts'
 import type {
-  ClientOptionsPayload,
   GenerateClientOptions,
   ResolvedUserConfig,
   RuntimeSettings,
@@ -22,15 +21,6 @@ export interface GenerateClientDeps {
   runtimeSettings: Pick<RuntimeSettings, 'apiUrl' | 'currentScanId' | 'generatedClientPath' | 'resolvedClientPath' | 'websocketUrl'>
   storage: Storage
   logger?: Logger
-}
-
-function pickKeys<K extends string>(source: object, keys: readonly K[]): Partial<Record<K, unknown>> {
-  const picked: Partial<Record<K, unknown>> = {}
-  for (const key of keys) {
-    if (key in source)
-      picked[key] = (source as Record<K, unknown>)[key]
-  }
-  return picked
 }
 
 async function findHtmlFiles(root: string): Promise<string[]> {
@@ -132,23 +122,19 @@ export async function generateClient(options: GenerateClientOptions = {}, deps: 
     }
   }
 
-  const staticData: { options: ClientOptionsPayload, scanMeta: ScanMeta, reports: unknown[], snapshot?: unknown, screenshots?: StaticScreenshotMap } = {
+  const staticData: ClientRuntimePayload = {
     reports: options.static ? routes : [],
     scanMeta,
     snapshot,
-    options: pickKeys({
-      ...runtimeSettings,
-      ...resolvedConfig,
-    }, [
-      'client',
-      'site',
-      'websocketUrl',
-      'lighthouseOptions',
-      'scanner',
-      'routerPrefix',
-      'websocketUrl',
-      'apiUrl',
-    ]) as ClientOptionsPayload,
+    options: {
+      client: resolvedConfig.client,
+      site: resolvedConfig.site,
+      websocketUrl: runtimeSettings.websocketUrl,
+      lighthouseOptions: resolvedConfig.lighthouseOptions,
+      scanner: resolvedConfig.scanner,
+      routerPrefix: resolvedConfig.routerPrefix,
+      apiUrl: runtimeSettings.apiUrl,
+    },
   }
   staticData.options.lighthouseOptions = { onlyCategories: resolvedConfig.lighthouseOptions.onlyCategories }
 

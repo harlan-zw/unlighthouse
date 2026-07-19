@@ -24,7 +24,7 @@ export function isAgentMode(argv: string[] = process.argv): boolean {
 /** Stamp a `$schema` URL onto an emitted object (arrays/scalars pass through). */
 export function stampSchema(commandName: string, value: unknown): unknown {
   if (value && typeof value === 'object' && !Array.isArray(value))
-    return { $schema: schemaUrl(commandName, 'output'), ...(value as Record<string, unknown>) }
+    return { $schema: schemaUrl(commandName, 'output'), ...value }
   return value
 }
 

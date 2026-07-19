@@ -58,7 +58,7 @@ function toolNameFor(cmd: Command): string {
 }
 
 function toJsonSchema(schema: z.ZodType): Record<string, unknown> {
-  const json = z.toJSONSchema(schema) as Record<string, unknown>
+  const json = Object.fromEntries(Object.entries(z.toJSONSchema(schema)))
   // Strip $schema — MCP clients don't need it and some reject extra keys.
   if ('$schema' in json)
     delete json.$schema

@@ -24,6 +24,7 @@ import type {
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { AuditOpts, Auditor, AuditorReport } from '@unlighthouse/contracts/ports'
+import type { Hookable } from 'hookable'
 import type { PackRegistry } from '../packs/index'
 import type { LighthouseResult } from '../report/types'
 import { ErrorCodes, toUnlighthouseError, UnlighthouseError } from '@unlighthouse/contracts/errors'
@@ -36,10 +37,7 @@ import { base64ToBytes } from '../util/base64'
 import { computeMedianRun } from '../util/median'
 
 /** Emit on whatever hook/event bus the caller owns. */
-export type EmitFn = <K extends keyof HookMap>(
-  event: K,
-  payload: Parameters<HookMap[K]>[0],
-) => Promise<void>
+export type EmitFn = Hookable<HookMap>['callHook']
 
 type AuditorLike = Pick<Auditor, 'audit'>
 

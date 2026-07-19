@@ -39,10 +39,10 @@ function sampleElementsOf(finding: Record<string, unknown>): SampleElement[] {
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <UiStat card title="Critical" :value="report.severityCounts.critical" :value-class="report.severityCounts.critical > 0 ? 'text-error' : 'text-success'" />
-      <UiStat card title="Serious" :value="report.severityCounts.serious" :value-class="report.severityCounts.serious > 0 ? 'text-error' : 'text-success'" />
-      <UiStat card title="Moderate" :value="report.severityCounts.moderate" :value-class="report.severityCounts.moderate > 0 ? 'text-warning' : 'text-success'" />
-      <UiStat card title="Minor" :value="report.severityCounts.minor" />
+      <UiStat card title="Critical" :value="report.severityCounts.critical" :value-class="report.severityCounts.critical > 0 ? 'text-error' : 'text-success'" :animated-value="false" />
+      <UiStat card title="Serious" :value="report.severityCounts.serious" :value-class="report.severityCounts.serious > 0 ? 'text-error' : 'text-success'" :animated-value="false" />
+      <UiStat card title="Moderate" :value="report.severityCounts.moderate" :value-class="report.severityCounts.moderate > 0 ? 'text-warning' : 'text-success'" :animated-value="false" />
+      <UiStat card title="Minor" :value="report.severityCounts.minor" :animated-value="false" />
     </div>
 
     <!-- Findings via the shared accordion — sampleElements gets the same

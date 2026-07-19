@@ -48,11 +48,10 @@ const isStatic = useIsStatic()
 </script>
 
 <template>
-  <div class="space-y-8">
-    <!-- Scan failed to load (unreachable backend / missing scan). Shown above
-         everything so it isn't hidden behind empty stat rows. -->
-    <QueryError v-if="scanMetaError" :error="scanMetaError" :on-retry="refreshScanMeta" />
+  <!-- Scan failed to load (unreachable backend / missing scan). -->
+  <QueryError v-if="scanMetaError" :error="scanMetaError" :on-retry="refreshScanMeta" />
 
+  <div v-else class="space-y-8">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -171,7 +170,7 @@ const isStatic = useIsStatic()
                 :style="{ width: `${(cat.score ?? 0) * 100}%`, backgroundColor: scoreColor(cat.score) }"
               />
             </div>
-            <span class="text-sm font-bold tabular-nums w-8 text-right" :style="{ color: scoreColor(cat.score) }">
+            <span class="text-sm font-bold text-default tabular-nums w-8 text-right">
               {{ categoryScoreLabel(cat) }}
             </span>
           </div>
@@ -241,7 +240,7 @@ const isStatic = useIsStatic()
                 :style="{ width: `${cat.score * 100}%`, backgroundColor: scoreColor(cat.score) }"
               />
             </div>
-            <span class="text-sm font-bold tabular-nums w-8 text-right" :style="{ color: scoreColor(cat.score) }">
+            <span class="text-sm font-bold text-default tabular-nums w-8 text-right">
               {{ categoryScoreLabel(cat) }}
             </span>
           </template>

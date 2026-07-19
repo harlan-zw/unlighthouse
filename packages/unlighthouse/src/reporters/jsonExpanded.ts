@@ -93,7 +93,7 @@ export function reportJsonExpanded(reports: UnlighthouseRouteReport[]): ReportJs
 }
 
 function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
-  const categoriesWithAllScores = routes.reduce((prev, curr) => {
+  const categoriesWithAllScores = routes.reduce<Record<string, { key: string, id: string, title: string, scores: number[] }>>((prev, curr) => {
     return Object.entries(curr.categories).reduce((target, [categoryKey, category]) => {
       const scores = target[categoryKey]?.scores ?? []
       const { ...strippedCategory } = category
@@ -105,16 +105,11 @@ function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
         },
       }
     }, prev)
-  }, {} as { [key: string]: { key: string, id: string, title: string, scores: number[] } })
+  }, {})
 
   // returns averageCategories
-  return Object.keys(categoriesWithAllScores).reduce(
-    (
-      prev: {
-        [key: string]: CategoryAverageScore
-      },
-      key: string,
-    ) => {
+  return Object.keys(categoriesWithAllScores).reduce<Record<string, CategoryAverageScore>>(
+    (prev, key) => {
       const category = categoriesWithAllScores[key]
       if (!category)
         return prev
@@ -129,14 +124,12 @@ function extractCategoriesFromRoutes(routes: ExpandedRouteReport[]) {
       const { ...strippedCategory } = category
       return { ...prev, [key]: { ...strippedCategory, averageScore } }
     },
-    {} as {
-      [key: string]: CategoryAverageScore
-    },
+    {},
   )
 }
 
 function extractMetricsFromRoutes(routes: ExpandedRouteReport[]) {
-  const metricsWithAllNumericValues = routes.reduce((prev, curr) => {
+  const metricsWithAllNumericValues = routes.reduce<Record<string, Omit<MetricScore, 'numericValue' | 'displayValue'> & { numericValues: number[] }>>((prev, curr) => {
     return Object.entries(curr.metrics).reduce((target, [metricKey, metric]) => {
       const numericValues = target[metricKey]?.numericValues ?? []
       const { ...strippedMetric } = metric
@@ -148,11 +141,11 @@ function extractMetricsFromRoutes(routes: ExpandedRouteReport[]) {
         },
       }
     }, prev)
-  }, {} as { [key: string]: Omit<MetricScore, 'numericValue' | 'displayValue'> & { numericValues: number[] } })
+  }, {})
 
   // average metrics
-  return Object.keys(metricsWithAllNumericValues).reduce(
-    (prev: { [key: string]: MetricAverageScore }, key: string) => {
+  return Object.keys(metricsWithAllNumericValues).reduce<Record<string, MetricAverageScore>>(
+    (prev, key) => {
       const metric = metricsWithAllNumericValues[key]
       if (!metric)
         return prev
@@ -167,6 +160,6 @@ function extractMetricsFromRoutes(routes: ExpandedRouteReport[]) {
       const { ...strippedMetric } = metric
       return { ...prev, [key]: { ...strippedMetric, averageNumericValue } }
     },
-    {} as { [key: string]: MetricAverageScore },
+    {},
   )
 }

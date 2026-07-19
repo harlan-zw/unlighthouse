@@ -68,7 +68,14 @@ const colorClass = computed(() => {
     case 'status':
     default: {
       const c = semanticColors[status]
-      return `${c.bg} ${c.text}`
+      const text = {
+        success: 'text-[var(--ui-color-success-800)] dark:text-success',
+        error: 'text-[var(--ui-color-error-700)] dark:text-error',
+        warning: 'text-[var(--ui-color-warning-800)] dark:text-warning',
+        info: 'text-[var(--ui-color-info-700)] dark:text-info',
+        neutral: c.text,
+      }[status]
+      return `${c.bg} ${text}`
     }
   }
 })

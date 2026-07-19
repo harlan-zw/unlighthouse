@@ -32,7 +32,7 @@ async function writeScanManifest(storage: Storage, scanId: string): Promise<void
       url: r.url,
       score: r.scorePerformance,
       lhrBlobKey: r.lhrBlobKey,
-      reportBlobKey: (r as { reportBlobKey?: string | null }).reportBlobKey ?? null,
+      reportBlobKey: r.reportBlobKey ?? null,
     })),
   }
   const key = `scans/${scanId}/manifest.json`
@@ -111,8 +111,8 @@ export function historySubscriber(deps: HistorySubscriberDeps): void {
               fetchedAt: new Date(),
             })
           })
-          .catch((err: { message: string }) => {
-            logger?.warn?.(`CrUX fetch failed (${formFactor}): ${err.message}`)
+          .catch((err: unknown) => {
+            logger?.warn?.(`CrUX fetch failed (${formFactor}): ${err instanceof Error ? err.message : String(err)}`)
           })
       }
     }

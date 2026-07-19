@@ -68,11 +68,24 @@ export async function runTask<TResult = unknown, TPayload = unknown>(
   })()
 
   pending.add(promise)
-  promise.finally(() => {
+  const release = () => {
     pending.delete(promise)
-    if (pending.size === 0)
-      void pool.hooks.callHook('queue:drained')
-  })
+    if (pending.size === 0) {
+      try {
+        void Promise.resolve(pool.hooks.callHook('queue:drained'))
+          .catch(err => logOperationalWarn('auditor.cleanup_failed', err, { operation: 'queue:drained hook' }, logger))
+      }
+      catch (err) {
+        logOperationalWarn('auditor.cleanup_failed', err, { operation: 'queue:drained hook' }, logger)
+      }
+    }
+  }
+  // `Promise.prototype.finally()` returns a second promise which mirrors the
+  // original rejection. Ignoring that promise turns every handled task failure
+  // into an unhandled rejection and can crash the CLI under Node's strict
+  // rejection mode. Observe both outcomes explicitly so cleanup never forks an
+  // orphaned rejecting chain.
+  void promise.then(release, release)
   return promise
 }
 

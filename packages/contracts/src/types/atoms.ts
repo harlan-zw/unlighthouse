@@ -16,10 +16,8 @@ export type Url = z.infer<typeof UrlSchema>
 const DeviceSchema = z.enum(['mobile', 'desktop'])
 export type Device = z.infer<typeof DeviceSchema>
 export type NonEmptyArray<T> = [T, ...T[]]
-export type DeviceMatrix = NonEmptyArray<Device>
-// Zod enforces non-empty at runtime, but `.min(1)` intentionally retains an
-// array output type; isolate that upstream inference gap at the schema.
-const DeviceMatrixSchema = z.array(DeviceSchema).min(1) as unknown as z.ZodType<DeviceMatrix>
+const DeviceMatrixSchema = z.tuple([DeviceSchema], DeviceSchema)
+export type DeviceMatrix = z.infer<typeof DeviceMatrixSchema>
 
 export function isDevice(value: unknown): value is Device {
   return value === 'mobile' || value === 'desktop'

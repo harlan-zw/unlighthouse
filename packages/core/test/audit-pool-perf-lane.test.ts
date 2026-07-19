@@ -11,6 +11,7 @@
 
 import type { UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditorReport } from '@unlighthouse/contracts/ports'
+import type { LocalLighthouseTaskPayload } from '../src/auditors/local'
 import { describe, expect, it } from 'vitest'
 import { createLocalAuditor } from '../src/auditors/local'
 
@@ -24,7 +25,7 @@ function sleep(ms: number): Promise<void> {
  */
 function trackingRunner(delayMs = 20) {
   const state = { inFlight: 0, maxInFlight: 0, calls: 0 }
-  async function run(_payload: { url: string, options: unknown }): Promise<UnlighthouseReport> {
+  async function run(_payload: LocalLighthouseTaskPayload): Promise<UnlighthouseReport> {
     state.calls++
     state.inFlight++
     state.maxInFlight = Math.max(state.maxInFlight, state.inFlight)
@@ -128,17 +129,17 @@ describe('d-042 serial perf lane', () => {
     const { run } = trackingRunner(1)
 
     const serial = createLocalAuditor({ maxThreads: 4, runLighthouseTask: run })
-    const serialReport = await serial.audit('https://x.com/a', undefined, PERF) as { concurrency?: number }
+    const serialReport = await serial.audit('https://x.com/a', undefined, PERF)
     // Serial lane → the perf audit ran alone.
     expect(serialReport.concurrency).toBe(1)
 
     const parallel = createLocalAuditor({ maxThreads: 4, perfConcurrency: 'parallel', runLighthouseTask: run })
-    const parallelReport = await parallel.audit('https://x.com/a', undefined, PERF) as { concurrency?: number }
+    const parallelReport = await parallel.audit('https://x.com/a', undefined, PERF)
     // Parallel perf → ran under the full pool concurrency.
     expect(parallelReport.concurrency).toBe(4)
 
     // Non-perf audit is never serialized, so it records the pool concurrency.
-    const nonPerfReport = await serial.audit('https://x.com/b', undefined, NON_PERF) as { concurrency?: number }
+    const nonPerfReport = await serial.audit('https://x.com/b', undefined, NON_PERF)
     expect(nonPerfReport.concurrency).toBe(4)
   })
 })

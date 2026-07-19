@@ -56,7 +56,7 @@ function verdictColor(verdict: string | null) {
 
     <UiCard v-if="report.topFixes?.length" size="sm">
       <template #header>
-        <h3 class="text-label text-dimmed">
+        <h3 class="text-label text-muted">
           Top Fixes (by impact)
         </h3>
       </template>

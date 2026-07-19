@@ -85,17 +85,18 @@ function llmsLabel(status: string | undefined): string {
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <UiStat card title="Routes Analysed" :value="report.routesAnalysed ?? 0" />
+      <UiStat card title="Routes Analysed" :value="report.routesAnalysed ?? 0" :animated-value="false" />
       <UiStat
         card
         title="Passed Checks"
         :value="report.totalChecks ? `${report.passedChecks ?? 0}/${report.totalChecks}` : '—'"
         :value-class="fractionClass(report.passedChecks, report.totalChecks)"
+        :animated-value="false"
       />
       <div class="rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center justify-center">
         <UiStatusBadge size="md" :status="llmsStatus(report.llmsTxt?.status)" :icon="llmsIcon(report.llmsTxt?.status)" :label="`llms.txt ${llmsLabel(report.llmsTxt?.status)}`" />
       </div>
-      <UiStat card title="Registered Tools" :value="report.webmcp?.registeredToolCount ?? report.webmcp?.routesWithTools ?? 0" />
+      <UiStat card title="Registered Tools" :value="report.webmcp?.registeredToolCount ?? report.webmcp?.routesWithTools ?? 0" :animated-value="false" />
     </div>
 
     <!-- llms.txt detail — the stat tile above only carries the headline
