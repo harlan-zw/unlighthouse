@@ -351,7 +351,7 @@ Note: If you have `robotsTxt` enabled it will load sitemap config from here.
 - **Type:** `boolean | string`{lang="ts"}
 - **Default:** `mobile`{lang="ts"}
 
-Alias to switch the viewport dimentions used for scanning. Set to `desktop` for a viewport of 1350×950. Set to `false` if you want to manually configure it through `lighthouseOptions.formFactor`.
+Alias to switch the viewport dimensions used for scanning. Set to `desktop` for a viewport of 1350×950. Set to `false` if you want to manually configure it through `lighthouseOptions.formFactor`.
 
 See [Device Configuration](/guide/guides/device) for more information.
 

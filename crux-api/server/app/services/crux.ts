@@ -84,7 +84,7 @@ interface NormalizedCrUXHistoryResult {
 }
 
 function normaliseCruxHistory(data: CrUXHistoryResult): NormalizedCrUXHistoryResult {
-  // we need to turn it into a time series data where we have each metric seperated into
+  // we need to turn it into a time series data where we have each metric separated into
   // an array like { value: number, time: number }[]
   // we also need to make sure that the data is sorted by time
   const { cumulative_layout_shift, largest_contentful_paint, interaction_to_next_paint } = data.metrics
