@@ -20,7 +20,7 @@ export default defineCachedEventHandler(async (event) => {
 }, {
   base: 'crux2',
   swr: true,
-  shouldBypassCache: () => true, // !!import.meta.dev,
+  shouldBypassCache: () => import.meta.dev,
   getKey: event => getRouterParam(event, 'domain', { decode: true }),
   maxAge: 60 * 60,
   staleMaxAge: 24 * 60 * 60,
