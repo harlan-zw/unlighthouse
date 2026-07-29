@@ -30,6 +30,7 @@ import { resolveUserConfig } from './resolveConfig'
 import { createApi, createBroadcastingEvents, createMockRouter, WS } from './router'
 import { normaliseHost } from './util'
 import { successBox } from './util/cliFormatting'
+import { isNewerVersion } from './util/version'
 
 const engineContext = createContext<UnlighthouseContext>()
 
@@ -338,7 +339,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       const title = [
         `⛵\u200D  ${colorize('bold', colorize('blueBright', AppName))} ${colorize('dim', `${provider?.name} @ v${version}`)}`,
       ]
-      if (Number(latestTag.replace('v', '').replace('.', '')) > Number(version.replace('.', ''))) {
+      if (isNewerVersion(latestTag, version)) {
         title.push(...[
           '',
           `🎉 New version ${latestTag} available! Use the latest:`,
