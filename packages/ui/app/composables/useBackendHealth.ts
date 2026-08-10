@@ -5,7 +5,7 @@ import { useIntervalFn } from '@vueuse/core'
 // `setInterval(checkHealth, 30000)` — and the compare layout never stored the
 // handle, so its poll leaked on unmount. One composable, one poll, auto-cleaned
 // on scope dispose via useIntervalFn.
-const HEALTH_POLL_MS = 30_000
+const HEALTH_POLL_MS = 5_000
 
 export function useBackendHealth() {
   const api = useApi()

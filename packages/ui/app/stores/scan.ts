@@ -19,6 +19,7 @@ function createScanStore() {
     startedAt,
     completedAt,
     error,
+    pausable,
     discovered,
     scanned,
     failed,
@@ -103,6 +104,7 @@ function createScanStore() {
       device: options?.device,
       mode: options?.mode,
       sampleSize: options?.sampleSize,
+      maxRoutes: options?.maxRoutes,
       categories: options?.categories,
       ciBuild: options?.ciBuild,
     })
@@ -156,19 +158,25 @@ function createScanStore() {
   async function cancelScan() {
     if (!scanId.value)
       return
-    await requireApi()['scan.cancel']({ scanId: scanId.value })
+    const result = await requireApi()['scan.cancel']({ scanId: scanId.value })
+    if (result.status === 'cancelled' && status.value !== 'cancelled')
+      progress.applyCancelled({ scanId: result.scanId, reason: 'user' })
   }
 
   async function pauseScan() {
     if (!scanId.value)
       return
-    await requireApi()['scan.pause']({ scanId: scanId.value })
+    const result = await requireApi()['scan.pause']({ scanId: scanId.value })
+    if (result.status === 'paused' && status.value !== 'paused')
+      progress.applyPaused()
   }
 
   async function resumeScan() {
     if (!scanId.value)
       return
-    await requireApi()['scan.resume']({ scanId: scanId.value })
+    const result = await requireApi()['scan.resume']({ scanId: scanId.value })
+    if (result.status === 'scanning' && status.value !== 'scanning')
+      progress.applyResumed()
   }
 
   function hydrateActive(id: ScanId, snapshot: ActiveScanSnapshot | null) {
@@ -183,6 +191,7 @@ function createScanStore() {
     startedAt,
     completedAt,
     error,
+    pausable,
     discovered,
     scanned,
     failed,
@@ -206,6 +215,7 @@ function createScanStore() {
     resumeScan,
     addLog: progress.addLog,
     hydrateActive,
+    refreshProgress: pollTick,
     startPolling,
     stopPolling,
   }

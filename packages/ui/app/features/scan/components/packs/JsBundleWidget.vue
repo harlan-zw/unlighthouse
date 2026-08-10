@@ -3,7 +3,7 @@ import { BundleReportSchema } from '@unlighthouse/contracts/packs'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
-const { fmtBytes } = createFormatters()
+const { fmtBytes, fmtPercent } = createFormatters()
 
 const report = computed(() => BundleReportSchema.parse(props.report))
 
@@ -45,10 +45,7 @@ function severityStatus(severity: string): SemanticStatus {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading">
-        JS Bundle
-      </h2>
+    <div class="flex items-center justify-end">
       <UiButton purpose="link" size="sm" icon="list" :to="`${scanBase}/routes`">
         View routes
       </UiButton>
@@ -85,7 +82,7 @@ function severityStatus(severity: string): SemanticStatus {
             </UiChip>
           </div>
           <div v-if="finding.wastedBytes" class="text-xs text-warning mt-2">
-            {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ finding.wastedPercent }}%)</span>
+            {{ fmtBytes(finding.wastedBytes) }} wasted<span v-if="finding.wastedPercent"> ({{ fmtPercent(finding.wastedPercent) }})</span>
           </div>
           <div v-if="finding.fixHint" class="text-xs text-muted mt-1">
             {{ finding.fixHint }}

@@ -58,11 +58,12 @@ function mergeOverrides(
   // adapters/UI reading config.scanner.device directly. The full matrix is
   // surfaced separately to orchestrate() via `normaliseDeviceMatrix`.
   const primaryDevice = overrides.device ? normaliseDeviceMatrix(overrides.device)[0] : undefined
-  if (primaryDevice || overrides.sampleSize != null || overrides.mode) {
+  if (primaryDevice || overrides.sampleSize != null || overrides.maxRoutes != null || overrides.mode) {
     next.scanner = {
       ...(base.scanner ?? {}),
       ...(primaryDevice ? { device: primaryDevice } : {}),
       ...(overrides.sampleSize != null ? { samples: overrides.sampleSize } : {}),
+      ...(overrides.maxRoutes != null ? { maxRoutes: overrides.maxRoutes } : {}),
       ...(overrides.mode ? { mode: overrides.mode } : {}),
     }
   }
@@ -370,6 +371,12 @@ function createSession(deps: SessionDeps): CrawlSession {
       ciBuild: overrides?.ciBuild,
     },
   })
+  let cancellation: Promise<void> | null = null
+
+  function persistCancellation(reason?: string): Promise<void> {
+    cancellation ??= lifecycle.cancel(reason)
+    return cancellation
+  }
 
   // ── done deferred ──────────────────────────────────────────────────────
   const { promise: donePromise, resolve: resolveDone, reject: rejectDone }
@@ -459,6 +466,7 @@ function createSession(deps: SessionDeps): CrawlSession {
       noFollow,
       // Skip auditing localized (x-default alternate) duplicates. Defaults true.
       ignoreI18nPages: deps.config.scanner?.ignoreI18nPages ?? true,
+      maxRoutes: deps.config.scanner?.maxRoutes === false ? undefined : deps.config.scanner?.maxRoutes,
       signal,
     })
 
@@ -496,7 +504,7 @@ function createSession(deps: SessionDeps): CrawlSession {
       const reason = internal.signal.aborted
         ? (internal.signal.reason as string | undefined)
         : 'aborted'
-      await lifecycle.cancel(typeof reason === 'string' ? reason : undefined)
+      await persistCancellation(typeof reason === 'string' ? reason : undefined)
       throw new UnlighthouseError({ code: 'SCAN_CANCELLED', message: 'Scan cancelled.' })
     }
 
@@ -563,7 +571,11 @@ function createSession(deps: SessionDeps): CrawlSession {
   }
 
   async function cancel(reason?: string): Promise<void> {
+    if (status === 'complete' || status === 'cancelled' || status === 'error')
+      return
     internal.abort(reason)
+    setStatus('cancelled')
+    await persistCancellation(reason)
   }
 
   return {

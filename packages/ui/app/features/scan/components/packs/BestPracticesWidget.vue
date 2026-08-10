@@ -29,10 +29,7 @@ function sampleElementsOf(finding: Record<string, unknown>): SampleElement[] {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading">
-        Best Practices
-      </h2>
+    <div class="flex items-center justify-end">
       <UiButton purpose="link" size="sm" icon="list" :to="`${scanBase}/routes?sort=scoreBestPractices:asc`">
         View routes
       </UiButton>

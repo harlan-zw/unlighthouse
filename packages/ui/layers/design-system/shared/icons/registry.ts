@@ -180,7 +180,7 @@ export const ICON_ROLES = {
   'unplug': { lucide: 'unplug', carbon: 'connection-signal-off', solar: 'plug-circle-broken', hugeicons: 'plug-socket' },
   'radar': { lucide: 'radar', carbon: 'radar', solar: 'radar-2-linear', hugeicons: 'radar-01' },
   'wrench': { lucide: 'wrench', carbon: 'tool-kit', hugeicons: 'wrench-01' },
-  'history': { lucide: 'history', carbon: 'recently-viewed', solar: 'history-linear', hugeicons: 'time-quarter-pass' },
+  'history': { lucide: 'clock-arrow-up', carbon: 'recently-viewed', solar: 'history-linear', hugeicons: 'time-quarter-pass' },
   'cpu': { lucide: 'cpu', carbon: 'chip', solar: 'cpu-linear', hugeicons: 'cpu' },
   'puzzle': { lucide: 'puzzle', carbon: 'plug-filled', solar: 'pip-linear', hugeicons: 'puzzle' },
   'inbox': { lucide: 'inbox', carbon: 'email-new', solar: 'inbox-linear', hugeicons: 'inbox' },

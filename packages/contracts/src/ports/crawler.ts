@@ -34,6 +34,8 @@ export interface CrawlerRunOptions {
    * `scanner.ignoreI18nPages`. The x-default target is still enqueued for discovery.
    */
   ignoreI18nPages?: boolean
+  /** Maximum routes to discover and audit for this run. */
+  maxRoutes?: number
   crawlDelayMs?: number
   signal?: AbortSignal
 }

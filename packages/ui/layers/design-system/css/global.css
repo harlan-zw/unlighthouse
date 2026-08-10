@@ -159,6 +159,76 @@
   --ui-text-error: var(--ui-error);
 }
 
+/* Focused threshold surfaces use the canonical nuxtseo.com greydient family.
+   Runtime variables keep the light and dark versions mode-aware. */
+:root {
+  --greydient-ink: linear-gradient(135deg in oklch, oklch(93% 0.012 300) 0%, oklch(89% 0.022 300) 55%, oklch(85% 0.03 314) 100%);
+  --greydient-blue: linear-gradient(135deg in oklch, oklch(96% 0.014 238) 0%, oklch(90% 0.038 250) 50%, oklch(91% 0.027 276) 100%);
+  --greydient-twilight: linear-gradient(135deg in oklch, oklch(95% 0.015 340) 0%, oklch(90% 0.03 350) 48%, oklch(88% 0.025 300) 100%);
+  --greydient-dawn: linear-gradient(135deg in oklch, oklch(94% 0.02 45) 0%, oklch(91% 0.038 30) 50%, oklch(97% 0.012 66) 100%);
+  --greydient-dusk: linear-gradient(135deg in oklch, oklch(95% 0.018 300) 0%, oklch(89% 0.05 293) 46%, oklch(91% 0.02 286) 100%);
+  --greydient-dusk-vivid: linear-gradient(135deg in oklch, var(--ui-color-primary-950) 0%, var(--ui-color-primary-600) 48%, var(--ui-color-primary-800) 100%);
+  --greydient-mist: linear-gradient(135deg in oklch, oklch(96% 0.012 300) 0%, oklch(93% 0.018 330) 52%, oklch(97% 0.01 350) 100%);
+  --greydient-ash: linear-gradient(135deg in oklch, oklch(95% 0.004 285) 0%, oklch(91% 0.008 285) 50%, oklch(87% 0.012 285) 100%);
+}
+
+.dark {
+  --greydient-ink: linear-gradient(135deg in oklch, oklch(13% 0.02 288) 0%, oklch(21% 0.032 300) 55%, oklch(30% 0.045 316) 100%);
+  --greydient-blue: linear-gradient(135deg in oklch, oklch(17% 0.034 248) 0%, oklch(48% 0.06 252) 50%, oklch(76% 0.032 234) 100%);
+  --greydient-twilight: linear-gradient(135deg in oklch, oklch(17% 0.04 324) 0%, oklch(72% 0.03 350) 48%, oklch(77% 0.032 286) 100%);
+  --greydient-dawn: linear-gradient(135deg in oklch, oklch(30% 0.035 40) 0%, oklch(74% 0.045 24) 50%, oklch(92% 0.018 66) 100%);
+  --greydient-dusk: linear-gradient(135deg in oklch, oklch(20% 0.05 300) 0%, oklch(52% 0.085 292) 46%, oklch(84% 0.028 286) 100%);
+  --greydient-dusk-vivid: linear-gradient(135deg in oklch, var(--ui-color-primary-200) 0%, var(--ui-color-primary-500) 48%, var(--ui-color-primary-300) 100%);
+  --greydient-mist: linear-gradient(135deg in oklch, oklch(66% 0.022 300) 0%, oklch(80% 0.024 330) 52%, oklch(91% 0.014 350) 100%);
+  --greydient-ash: linear-gradient(135deg in oklch, oklch(24% 0.006 285) 0%, oklch(54% 0.01 285) 50%, oklch(82% 0.014 285) 100%);
+}
+
+.ui-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--_atmo-greydient, var(--greydient-ash));
+  opacity: var(--_atmo-op, 0.6);
+}
+
+.ui-atmosphere[data-intensity="subtle"] { --_atmo-op: 0.45; }
+.ui-atmosphere[data-intensity="ambient"] { --_atmo-op: 0.6; }
+.ui-atmosphere[data-intensity="present"] { --_atmo-op: 0.78; }
+.ui-atmosphere[data-intensity="vivid"] { --_atmo-op: 0.58; }
+.dark .ui-atmosphere[data-intensity="subtle"] { --_atmo-op: 0.14; }
+.dark .ui-atmosphere[data-intensity="ambient"] { --_atmo-op: 0.26; }
+.dark .ui-atmosphere[data-intensity="present"] { --_atmo-op: 0.38; }
+.dark .ui-atmosphere[data-intensity="vivid"] { --_atmo-op: 0.58; }
+
+.ui-atmosphere[data-geometry="sky"] {
+  inset: 0 0 auto;
+  height: 70vh;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 86%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 86%);
+}
+
+.ui-atmosphere[data-geometry="bloom"] {
+  mask-image: radial-gradient(58% 50% at 50% 38%, black, transparent 76%);
+  -webkit-mask-image: radial-gradient(58% 50% at 50% 38%, black, transparent 76%);
+}
+
+.ui-atmosphere[data-geometry="wash"] {
+  mask-image: radial-gradient(92% 120% at 16% 22%, black, transparent 76%);
+  -webkit-mask-image: radial-gradient(92% 120% at 16% 22%, black, transparent 76%);
+}
+
+.ui-atmosphere[data-grain]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
 :root {
   /* Let the UA animate to/from intrinsic keywords (height: auto, width:
      min-content, …). Pure progressive enhancement — unsupported browsers

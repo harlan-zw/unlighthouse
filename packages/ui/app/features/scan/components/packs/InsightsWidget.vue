@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { InsightsReportSchema } from '@unlighthouse/contracts/packs'
+import { formatRouteCount } from '~/features/scan/pack-presentation'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
@@ -10,10 +11,7 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading">
-        Performance Insights
-      </h2>
+    <div class="flex items-center justify-end">
       <UiButton purpose="link" size="sm" icon="list" :to="`${scanBase}/routes`">
         View routes
       </UiButton>
@@ -35,7 +33,7 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
               {{ insight.title || insight.id }}
             </div>
             <UiChip purpose="count">
-              {{ insight.routeCount }} routes
+              {{ formatRouteCount(insight.routeCount) }}
             </UiChip>
           </div>
           <div class="flex gap-1 mt-2 flex-wrap">

@@ -67,12 +67,12 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
 
     <template v-else>
       <!-- Header -->
-      <div class="flex items-start justify-between gap-4">
+      <div class="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
-          <h1 class="text-title font-mono break-all">
+          <h1 class="text-title font-mono break-words">
             {{ routeData.route?.path }}
           </h1>
-          <div class="flex items-center gap-2 mt-1 text-sm text-muted">
+          <div class="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted">
             <UiChip purpose="count">
               {{ routeData.route?.device }}
             </UiChip>
@@ -81,7 +81,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                 :href="routeData.route.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex min-h-11 min-w-0 items-center gap-1 font-mono hover:underline lg:min-h-6"
+                class="flex min-h-11 min-w-0 max-w-full items-center gap-1 font-mono hover:underline lg:min-h-6"
               >
                 <span class="truncate">{{ routeData.route.url }}</span>
                 <UiIcon name="external" class="size-3 shrink-0" />
@@ -93,7 +93,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             <span v-if="routeData.provenance.timingTotal">{{ fmtMs(routeData.provenance.timingTotal) }} audit</span>
           </div>
         </div>
-        <div v-if="!isStatic" class="flex items-center gap-2">
+        <div v-if="!isStatic" class="flex flex-wrap items-center gap-2">
           <a
             v-if="routeData.route?.lhrBlobKey"
             :href="rawLhrUrl"
@@ -204,14 +204,17 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
       </div>
 
       <!-- Category Scores -->
-      <div class="grid grid-cols-2 gap-4" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
         <div v-for="s in scores" :key="s.id" class="rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4">
-          <ScoreRing :score="s.score" size="md" />
+          <ScoreRing v-if="s.categoryScoreDisplayMode === 'gauge'" :score="s.score" size="md" />
+          <div v-else class="flex size-16 shrink-0 items-center justify-center rounded-full border border-default bg-default/50">
+            <UiIcon name="bot" class="size-6 text-muted" />
+          </div>
           <div>
             <div class="text-sm font-medium">
               {{ s.label }}
             </div>
-            <div class="numerals-display text-2xl" :class="scoreToColor(s.score)">
+            <div v-if="s.categoryScoreDisplayMode === 'fraction'" class="numerals-display text-2xl" :class="scoreToColor(s.score)">
               {{ categoryScoreLabel(s) }}
             </div>
           </div>

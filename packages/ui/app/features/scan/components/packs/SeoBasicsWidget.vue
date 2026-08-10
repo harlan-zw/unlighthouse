@@ -14,7 +14,8 @@ const routeCheckColumns: UiTableColumn<RouteCheckRow>[] = [
   {
     accessorKey: 'url',
     header: 'URL',
-    cell: ({ row }) => h('span', { class: 'font-mono text-xs break-all' }, row.original.url),
+    meta: { headClass: 'min-w-[18rem]' },
+    cell: ({ row }) => h('span', { class: 'block min-w-[18rem] max-w-[32rem] font-mono text-xs break-words' }, row.original.url),
   },
   {
     accessorKey: 'passes',
@@ -39,10 +40,7 @@ const routeCheckColumns: UiTableColumn<RouteCheckRow>[] = [
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading">
-        SEO
-      </h2>
+    <div class="flex items-center justify-end">
       <UiButton purpose="link" size="sm" icon="list" :to="`${scanBase}/routes?sort=scoreSeo:asc`">
         View routes
       </UiButton>

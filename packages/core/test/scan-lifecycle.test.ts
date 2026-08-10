@@ -1,4 +1,5 @@
 import type { HookMap } from '@unlighthouse/contracts/hooks'
+import type { ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { CreateScanLifecycleOptions } from '@unlighthouse/core/runtime'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { createScanLifecycle } from '@unlighthouse/core/runtime'
@@ -28,6 +29,31 @@ function fixture() {
     },
   })
   return { storage, events, scanId, lifecycle }
+}
+
+function scoredRoute(scanId: ReturnType<typeof parseScanId>): ScanRoute {
+  return {
+    scanId,
+    url: 'https://example.com/docs',
+    path: '/docs',
+    routeName: null,
+    device: 'mobile',
+    scorePerformance: 0.9,
+    scoreAccessibility: 0.8,
+    scoreSeo: 1,
+    scoreBestPractices: 0.95,
+    scoreAgenticBrowsing: null,
+    lcp: 1200,
+    cls: 0.01,
+    inp: null,
+    fcp: 1000,
+    ttfb: 100,
+    tbt: 50,
+    si: 1100,
+    lighthouseVersion: '13.4.0',
+    capturedAt: '2026-08-10T00:00:00.000Z',
+    lhrBlobKey: null,
+  }
 }
 
 describe('scan lifecycle', () => {
@@ -104,5 +130,32 @@ describe('scan lifecycle', () => {
 
     expect(await failed.storage.scans.get(failed.scanId)).toMatchObject({ status: 'error' })
     expect(failed.events.filter(event => event.event === 'scan:error')).toHaveLength(1)
+  })
+
+  it('persists a scored partial summary from actual audited rows on cancellation', async () => {
+    const cancelled = fixture()
+    await cancelled.lifecycle.create()
+    await cancelled.lifecycle.scanning(214)
+    await cancelled.lifecycle.progress({ discovered: 214, scanned: 13, failed: 0, total: 214 })
+    await cancelled.storage.routes.putBatch(cancelled.scanId, 'mobile', [scoredRoute(cancelled.scanId)])
+
+    await cancelled.lifecycle.cancel('user requested')
+
+    const persisted = await cancelled.storage.scans.get(cancelled.scanId)
+    expect(persisted).toMatchObject({
+      status: 'cancelled',
+      summary: {
+        routes: 214,
+        completed: 1,
+        failed: 0,
+        scoresByCategory: {
+          'performance': 0.9,
+          'accessibility': 0.8,
+          'seo': 1,
+          'best-practices': 0.95,
+        },
+      },
+    })
+    expect(persisted?.summary?.scoreAverage).toBeCloseTo(0.9125)
   })
 })

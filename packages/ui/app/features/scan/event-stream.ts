@@ -14,6 +14,7 @@ interface TailEvent {
   event?: string
   payload?: unknown
   data?: unknown
+  timestamp?: string
 }
 
 type TailEvents = (scanId: ScanId) => AsyncIterable<TailEvent>
@@ -36,7 +37,7 @@ export function createScanEventStream(deps: {
   const connected = ref(false)
   const streamError = ref<string | null>(null)
   const reconnectAttempts = ref(0)
-  const follow = ref(true)
+  const follow = ref(false)
   const scrollRef = ref<HTMLElement>()
 
   const MAX_EVENTS = deps.maxEvents ?? DEFAULT_MAX_EVENTS
@@ -97,7 +98,7 @@ export function createScanEventStream(deps: {
         id: eventSeq++,
         event: name,
         payload,
-        timestamp: Date.now(),
+        timestamp: evt.timestamp ? Date.parse(evt.timestamp) : Date.now(),
         json,
       })
 

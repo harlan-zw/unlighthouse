@@ -134,6 +134,11 @@ const WRITE_COMMANDS = new Set<CommandName>([
   'sites.delete',
 ])
 
+const LIVE_ONLY_COMMANDS = new Set<CommandName>([
+  ...WRITE_COMMANDS,
+  'scan.preview',
+])
+
 function seedStorage(snapshot: StaticSnapshot): Storage {
   const storage = memoryStorage()
 
@@ -218,7 +223,7 @@ export function createStaticClient(snapshot: StaticSnapshot): UnlighthouseClient
     }
 
     client[name] = async (input: unknown) => {
-      if (WRITE_COMMANDS.has(name))
+      if (LIVE_ONLY_COMMANDS.has(name))
         throw new Error(WRITE_REJECT_MESSAGE)
       if (!handler || typeof handler.run !== 'function')
         throw new Error(`${name}: not available in a static report`)

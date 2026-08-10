@@ -46,7 +46,7 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
 
 <template>
   <div class="space-y-6">
-    <UiPageHeader :title="title" flush>
+    <UiPageHeader class="pack-page-header" :title="title" flush>
       <template v-if="pack" #actions>
         <UiChip purpose="count" mono>
           {{ pack }}
@@ -56,6 +56,10 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
         </UiChip>
       </template>
     </UiPageHeader>
+
+    <p class="text-sm text-muted">
+      Pack totals summarize distinct audited URLs. When both devices exist, packs use the mobile result for each URL unless stated otherwise.
+    </p>
 
     <QueryError v-if="error" :error="error" :on-retry="onRetry" />
 

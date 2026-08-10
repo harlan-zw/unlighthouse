@@ -116,9 +116,16 @@ const isStatic = useIsStatic()
       <template #content>
         <div
           id="mobile-navigation"
-          class="h-full w-72 overflow-y-auto px-3 py-3 bg-[var(--rail-bg,var(--ui-bg))]"
+          class="relative h-full w-72 overflow-y-auto px-3 py-3 bg-[var(--rail-bg,var(--ui-bg))]"
           :class="railTint"
         >
+          <UiButton
+            purpose="quiet"
+            class="absolute top-2 right-2 z-10 size-11 justify-center"
+            aria-label="Close navigation menu"
+            icon="close"
+            @click="navOpen = false"
+          />
           <AppSidebar />
         </div>
       </template>

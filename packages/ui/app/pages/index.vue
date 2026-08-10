@@ -140,7 +140,9 @@ const columns: UiTableColumn<SiteHomeRow>[] = [
     header: 'Trend',
     enableSorting: false,
     meta: { align: 'left' },
-    cell: ({ row }) => h(SparklineC, { data: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null), width: '100%', height: 28, preserveAspectRatio: 'none' }),
+    cell: ({ row }) => row.original.series.length >= 2
+      ? h(SparklineC, { data: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null), width: '100%', height: 28, preserveAspectRatio: 'none' })
+      : h('span', { class: 'text-xs text-muted whitespace-nowrap' }, 'Need 2 scans'),
   },
   {
     id: 'last',
@@ -161,7 +163,7 @@ const columns: UiTableColumn<SiteHomeRow>[] = [
           <template #body>
             <form id="site-form" class="space-y-4" @submit.prevent="saveSite">
               <UFormField name="site-url" label="URL" required :error="formUrlError || undefined">
-                <UInput id="site-url" v-model="formUrl" name="site-url" type="text" placeholder="example.com…" autocomplete="url" inputmode="url" enterkeyhint="done" autocapitalize="none" :spellcheck="false" required class="w-full font-mono" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
+                <UInput id="site-url" v-model="formUrl" name="site-url" type="text" placeholder="example.com…" autocomplete="url" inputmode="url" enterkeyhint="done" autocapitalize="none" :spellcheck="false" aria-required="true" :aria-invalid="Boolean(formUrlError)" class="w-full font-mono" :ui="{ base: 'min-h-11 lg:min-h-8' }" />
               </UFormField>
               <p v-if="editing && formUrl !== editing.url" class="text-sm text-warning">
                 Changing the URL creates a new site. The old one will remain.
@@ -178,8 +180,8 @@ const columns: UiTableColumn<SiteHomeRow>[] = [
             </form>
           </template>
           <template #footer>
-            <UiButton purpose="cta" type="submit" form="site-form" :loading="saving" :disabled="saving">
-              {{ editing ? 'Save site' : 'Add site' }}
+            <UiButton purpose="cta" type="submit" form="site-form" :loading="saving" :disabled="saving" :aria-busy="saving">
+              {{ saving ? 'Saving…' : editing ? 'Save site' : 'Add site' }}
             </UiButton>
           </template>
         </UModal>

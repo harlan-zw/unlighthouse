@@ -30,6 +30,9 @@ catalogs:
     '@libsql/client':
       specifier: ^0.17.4
       version: 0.17.4
+    '@mdream/js':
+      specifier: ^1.5.13
+      version: 1.5.13
     '@modelcontextprotocol/sdk':
       specifier: ^1.30.0
       version: 1.30.0
@@ -387,6 +390,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@mdream/js':
+        specifier: 'catalog:'
+        version: 1.5.13
       '@unlighthouse/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -2256,6 +2262,10 @@ packages:
   '@mapbox/node-pre-gyp@2.0.3':
     resolution: {integrity: sha512-uwPAhccfFJlsfCxMYTwOdVfOz3xqyj8xYL3zJj8f0pb30tLohnnFPhLuqp4/qoEz8sNxe4SESZedcBojRefIzg==}
     engines: {node: '>=18'}
+    hasBin: true
+
+  '@mdream/js@1.5.13':
+    resolution: {integrity: sha512-OjY5Ipjx8Q7Igwt3tCdGYKaZaMzH3tpGlfaYEXYlAGPL4QvrQU97SQpqqtJh0OnRZLGx5x814Kx5E3VgpqIEvQ==}
     hasBin: true
 
   '@modelcontextprotocol/sdk@1.30.0':
@@ -11332,6 +11342,11 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@mdream/js@1.5.13':
+    dependencies:
+      cac: 7.0.0
+      pathe: 2.0.3
 
   '@modelcontextprotocol/sdk@1.30.0(supports-color@10.2.2)(zod@4.4.3)':
     dependencies:

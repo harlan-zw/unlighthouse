@@ -1,4 +1,5 @@
 import type { CompareRouteRow } from '@unlighthouse/contracts'
+import { formatMetricValue, formatMs } from '../../utils/format'
 
 // Every CompareMetric.key is a real key of the per-route metrics object, so
 // reads (`row.current?.[key]`) index it directly without a cast.

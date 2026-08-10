@@ -58,6 +58,8 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
   async function* run(runOpts: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
     state = 'running'
 
+    const runMaxRequests = Math.min(maxRequests, runOpts.maxRoutes ?? maxRequests)
+
     const signal = runOpts.signal
     const scanId = globalThis.crypto.randomUUID()
     const ctx: CrawlCtx = { scanId, signal }
@@ -110,6 +112,8 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
         continue
       if (discovered.has(dedupKey(seed.url)))
         continue
+      if (initialUrls.length >= runMaxRequests)
+        break
       discovered.add(dedupKey(seed.url))
       initialUrls.push(seed.url)
       emit({ type: 'url-discovered', url: seed.url, from: seed.source })
@@ -137,7 +141,7 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
     const crawler = new CheerioCrawler({
       requestQueue,
       maxConcurrency: concurrency,
-      maxRequestsPerCrawl: maxRequests,
+      maxRequestsPerCrawl: runMaxRequests,
       respectRobotsTxtFile: false,
       requestHandler: async ({ request, enqueueLinks, $ }) => {
         if (aborted)
@@ -173,6 +177,8 @@ export function crawleeCrawler(opts: CrawleeCrawlerOptions = {}): CrawleeCrawler
           if (discovered.has(key))
             return false
           if (runOpts.allows && !runOpts.allows(req.url))
+            return false
+          if (discovered.size >= runMaxRequests)
             return false
           discovered.add(key)
           emit({ type: 'url-discovered', url: req.url, from: url })

@@ -91,6 +91,10 @@
       "types": "./dist/util/filter.d.mts",
       "import": "./dist/util/filter.mjs"
     },
+    "./util/html-discovery": {
+      "types": "./dist/util/html-discovery.d.mts",
+      "import": "./dist/util/html-discovery.mjs"
+    },
     "./storage": {
       "types": "./dist/storage/index.d.mts",
       "import": "./dist/storage/index.mjs"
@@ -178,6 +182,7 @@
     }
   },
   "dependencies": {
+    "@mdream/js": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
     "chrome-launcher": "catalog:dependencies",
     "consola": "catalog:dependencies",

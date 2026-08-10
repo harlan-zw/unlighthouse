@@ -1,5 +1,5 @@
 import type { CommandOutput, RouteGet } from '@unlighthouse/contracts/commands'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { createScreenshotUrl, getScanId } from '~/features/scan/route-context'
 
@@ -132,7 +132,14 @@ export function useRouteDetail() {
 
   const screenshotVisible = ref(true)
   const screenshotExpanded = ref(false)
-  const deviceFilter = ref<DeviceFilter>('')
+  const initialDevice = typeof route.query.device === 'string' ? route.query.device : ''
+  const deviceFilter = ref<DeviceFilter>(initialDevice === 'mobile' || initialDevice === 'desktop' ? initialDevice : '')
+  watch(deviceFilter, device => router.replace({ query: { ...route.query, device: device || undefined } }))
+  watch(() => route.query.device, (device) => {
+    const next = device === 'mobile' || device === 'desktop' ? device : ''
+    if (deviceFilter.value !== next)
+      deviceFilter.value = next
+  })
 
   function backToRoutes() {
     if (import.meta.client && window.history.length <= 1) {

@@ -150,6 +150,7 @@ const cases: Partial<Record<CommandName, Case>> = {
   'scan.status': { input: { scanId: SCAN_ID } },
   'scan.cancel': { input: { scanId: SCAN_ID, reason: 'test' }, session: stubSession() },
   'scan.pause': { input: { scanId: SCAN_ID }, session: stubSession() },
+  'scan.preview': { input: { site: FIXTURE_URL, mode: 'site' }, smokeSkip: true },
   'scan.resume': { input: { scanId: SCAN_ID }, session: stubSession() },
   'scan.delete': { input: { scanId: SCAN_ID } },
   'scan.results': { input: { scanId: SCAN_ID, page: 1, pageSize: 50 } },
@@ -203,6 +204,104 @@ describe('handlers — smoke', () => {
         throw new Error(`${name} output failed schema:\n${JSON.stringify(parsed.error.issues, null, 2)}\n\nOutput: ${JSON.stringify(result, null, 2)}`)
       }
       expect(parsed.success).toBe(true)
+    })
+  })
+})
+
+describe('handlers — live scan capabilities', () => {
+  it('exposes whether the active crawler can pause', async () => {
+    const ctx = makeCtx()
+    await seed(ctx)
+    ctx.core = makeCore({
+      session: () => stubSession({ capabilities: { pausable: false } }),
+    })
+
+    const result = await createHandlers()['scan.status'].run({ scanId: SCAN_ID }, ctx)
+    expect(result.pausable).toBe(false)
+  })
+
+  it('reports cancellation immediately after accepting the request', async () => {
+    const ctx = makeCtx()
+    await seed(ctx)
+    ctx.core = makeCore({
+      session: () => stubSession({
+        cancel: async () => {},
+        state: () => 'scanning',
+      }),
+    })
+
+    const result = await createHandlers()['scan.cancel'].run({ scanId: SCAN_ID, reason: 'user' }, ctx)
+    expect(result.status).toBe('cancelled')
+  })
+
+  it('keeps persisted active status in scan metadata even when a partial summary exists', async () => {
+    const ctx = makeCtx()
+    await seed(ctx)
+    await ctx.storage.scans.update(SCAN_ID, { status: 'scanning' })
+
+    const result = await createHandlers()['scan.meta'].run({ scanId: SCAN_ID }, ctx)
+    expect(result.status).toBe('scanning')
+    expect(result.summary).not.toBeNull()
+  })
+})
+
+describe('handlers — terminal history summary', () => {
+  it('projects actual audited rows and scores while retaining the discovered total', async () => {
+    const ctx = makeCtx()
+    await seed(ctx)
+    await ctx.storage.scans.update(SCAN_ID, {
+      status: 'cancelled',
+      summary: {
+        routes: 214,
+        completed: 13,
+        failed: 0,
+        scoreAverage: null,
+        scoresByCategory: {},
+        durationMs: 60_000,
+        devices: ['mobile'],
+      },
+    })
+
+    const result = await createHandlers()['history.list'].run({ page: 1, pageSize: 50 }, ctx)
+    expect(result.items[0]).toMatchObject({
+      status: 'cancelled',
+      summary: {
+        routes: 214,
+        completed: 1,
+        scoresByCategory: {
+          'performance': 0.9,
+          'accessibility': 0.8,
+          'seo': 1,
+          'best-practices': 0.95,
+        },
+      },
+    })
+    expect(result.items[0]?.summary?.scoreAverage).toBeCloseTo(0.9125)
+  })
+
+  it('projects actual audited rows for completed scans with stale completion counters', async () => {
+    const ctx = makeCtx()
+    await seed(ctx)
+    await ctx.storage.scans.update(SCAN_ID, {
+      summary: {
+        routes: 44,
+        completed: 20,
+        failed: 0,
+        scoreAverage: null,
+        scoresByCategory: {},
+        durationMs: 60_000,
+        devices: ['mobile'],
+      },
+    })
+
+    const result = await createHandlers()['history.list'].run({ page: 1, pageSize: 50 }, ctx)
+    expect(result.items[0]).toMatchObject({
+      status: 'complete',
+      summary: {
+        routes: 44,
+        completed: 1,
+        scoresByCategory: { performance: 0.9 },
+      },
     })
   })
 })
@@ -264,17 +363,21 @@ describe('handlers — streaming', () => {
   it('events.tail yields persisted events from a gzipped blob', async () => {
     const ctx = makeCtx()
     const lines = [
-      JSON.stringify({ event: 'scan:started', payload: { scanId: SCAN_ID } }),
-      JSON.stringify({ event: 'scan:complete', payload: { scanId: SCAN_ID, summary: makeScan().summary } }),
+      JSON.stringify({ event: 'scan:started', payload: { scanId: SCAN_ID }, timestamp: '2025-01-01T00:00:01.000Z' }),
+      JSON.stringify({ event: 'scan:complete', payload: { scanId: SCAN_ID, summary: makeScan().summary }, timestamp: '2025-01-01T00:05:00.000Z' }),
     ].join('\n')
     const gz = gzipSync(Buffer.from(lines, 'utf-8'))
     await ctx.storage.blobs.put(`scans/${SCAN_ID}/events.jsonl.gz`, new Uint8Array(gz))
-    const iter = handlers['events.tail'].run({ scanId: SCAN_ID }, ctx) as AsyncIterable<{ event: string }>
-    const out: Array<{ event: string }> = []
+    const iter = handlers['events.tail'].run({ scanId: SCAN_ID }, ctx) as AsyncIterable<{ event: string, timestamp: string }>
+    const out: Array<{ event: string, timestamp: string }> = []
     for await (const item of iter)
       out.push(item)
     expect(out.length).toBe(2)
     expect(out[0].event).toBe('scan:started')
+    expect(out.map(event => event.timestamp)).toEqual([
+      '2025-01-01T00:00:01.000Z',
+      '2025-01-01T00:05:00.000Z',
+    ])
   })
 })
 
@@ -318,7 +421,7 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
     expect(commands['scan.start'].output.parse(result).scanId).toBe('newscan')
   })
 
-  it('scan.start threads input (site/device/categories/sampleSize/auditor/ciBuild) into core.run(overrides)', async () => {
+  it('scan.start threads input (site/device/categories/sampleSize/maxRoutes/auditor/ciBuild) into core.run(overrides)', async () => {
     const handlers = createHandlers()
     const ctx = makeCtx()
     let receivedOpts: UnlighthouseCoreRunOptions | undefined
@@ -333,6 +436,7 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
       site: FIXTURE_URL,
       device: 'desktop',
       sampleSize: 3,
+      maxRoutes: 100,
       categories: ['performance', 'seo'],
       auditor: 'psi',
       ciBuild: { branch: 'main', hash: 'abc123', message: 'release' },
@@ -341,6 +445,7 @@ describe('handlers — scan.start / scan.rescanAll / history.rescan', () => {
       site: FIXTURE_URL,
       device: 'desktop',
       sampleSize: 3,
+      maxRoutes: 100,
       categories: ['performance', 'seo'],
       auditor: 'psi',
       ciBuild: { branch: 'main', hash: 'abc123', message: 'release' },

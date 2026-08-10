@@ -459,7 +459,7 @@ export async function finalizeScan(deps: FinalizeDeps, args: FinalizeArgs): Prom
     }
   }
 
-  logger?.info?.(`Scan ${scanId} complete — ${summary.completed} routes, ${summary.failed} failed, avg score: ${summary.scoreAverage?.toFixed(2) ?? 'N/A'}, ${(summary.durationMs / 1000).toFixed(1)}s`)
+  logger?.info?.(`Scan ${scanId} complete: ${summary.completed} audited of ${summary.routes} URL/device entries, ${summary.failed} failed, avg score: ${summary.scoreAverage?.toFixed(2) ?? 'N/A'}, ${(summary.durationMs / 1000).toFixed(1)}s`)
   await storage.scans.update(scanId, {
     status: 'complete',
     completedAt: nowIso(),

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useTitle } from '@vueuse/core'
+
 const props = defineProps<{
   error: {
     statusCode?: number
@@ -19,7 +21,9 @@ const errorTitle = computed(() => {
   return 'Request failed'
 })
 
+const fullErrorTitle = computed(() => `${errorTitle.value} | Unlighthouse`)
 usePageTitle(errorTitle)
+useTitle(fullErrorTitle)
 
 const errorMessage = computed(() => {
   if (props.error.statusCode === 404)

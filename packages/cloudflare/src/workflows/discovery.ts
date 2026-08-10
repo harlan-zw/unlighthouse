@@ -2,13 +2,11 @@ import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { createFilter } from '@unlighthouse/core/util/filter'
+import { extractPageDiscovery } from '@unlighthouse/core/util/html-discovery'
 import { fuseSeedsDedup, workerSitemapSeeds } from '../seeds'
 
 export const MAX_CLOUDFLARE_SCAN_QUEUE = 200
 export const MAX_LINK_DISCOVERY_HTML_BYTES = 2 * 1024 * 1024
-
-const ASSET_EXT_RE = /\.(?:css|js|mjs|json|xml|txt|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|pdf|zip|gz|map)(?:$|\?)/i
-const HREF_RE = /href\s*=\s*["']([^"'\s>]+)["']/gi
 
 function buildAllows(config: UnlighthouseConfig): (url: string) => boolean {
   const filter = createFilter({
@@ -23,28 +21,6 @@ function buildAllows(config: UnlighthouseConfig): (url: string) => boolean {
       return filter(url)
     }
   }
-}
-
-function extractSameOriginLinks(html: string, pageUrl: string, origin: string): string[] {
-  const links: string[] = []
-  let match: RegExpExecArray | null
-  // eslint-disable-next-line no-cond-assign
-  while ((match = HREF_RE.exec(html)) !== null) {
-    const raw = match[1]?.trim()
-    if (!raw || raw.startsWith('mailto:') || raw.startsWith('tel:') || raw.startsWith('javascript:') || raw.startsWith('#'))
-      continue
-    try {
-      const url = new URL(raw, pageUrl)
-      url.hash = ''
-      if (url.origin !== origin || ASSET_EXT_RE.test(url.pathname))
-        continue
-      links.push(url.toString())
-    }
-    catch (err) {
-      logOperationalWarn('cloudflare.link_discovery_url_skipped', err, { raw, pageUrl })
-    }
-  }
-  return links
 }
 
 export async function readBoundedText(response: Response, maxBytes: number): Promise<string> {
@@ -135,7 +111,6 @@ export interface CloudflareLinkDiscoveryInput {
 export async function discoverCloudflarePageLinks(
   input: CloudflareLinkDiscoveryInput,
 ): Promise<string[]> {
-  const origin = new URL(input.site).origin
   const response = await fetch(input.pageUrl, {
     headers: { accept: 'text/html' },
     // Never let discovery follow an unchecked redirect to a different origin.
@@ -145,6 +120,13 @@ export async function discoverCloudflarePageLinks(
     return []
 
   const html = await readBoundedText(response, input.maxBytes ?? MAX_LINK_DISCOVERY_HTML_BYTES)
+  const discovery = extractPageDiscovery({ html, pageUrl: input.pageUrl, siteUrl: input.site })
+  for (const malformed of discovery.malformedLinks) {
+    logOperationalWarn('cloudflare.link_discovery_url_skipped', malformed.error, {
+      raw: malformed.href,
+      pageUrl: input.pageUrl,
+    })
+  }
   const allows = buildAllows(input.config)
-  return extractSameOriginLinks(html, input.pageUrl, origin).filter(allows)
+  return discovery.links.filter(allows)
 }

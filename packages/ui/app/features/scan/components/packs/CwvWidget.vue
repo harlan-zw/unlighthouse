@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CwvReportSchema } from '@unlighthouse/contracts/packs'
+import { formatRouteCount } from '~/features/scan/pack-presentation'
 
 const props = defineProps<{ report: unknown, scanBase: string }>()
 
@@ -20,10 +21,7 @@ function verdictColor(verdict: string | null) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading">
-        Core Web Vitals
-      </h2>
+    <div class="flex items-center justify-end">
       <UiButton purpose="link" size="sm" icon="list" :to="`${scanBase}/routes?sort=scorePerformance:asc`">
         View routes
       </UiButton>
@@ -38,7 +36,7 @@ function verdictColor(verdict: string | null) {
           {{ m.metric === 'cls' ? formatMetricValue(m.p75, '') : fmtMs(m.p75) }}
         </div>
         <div class="text-xs text-muted mt-1">
-          p75 across {{ (m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0) }} routes
+          p75 across {{ formatRouteCount((m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0)) }}
         </div>
         <div class="flex justify-center gap-1 mt-2">
           <UiChip purpose="status" status="success">
@@ -67,7 +65,7 @@ function verdictColor(verdict: string | null) {
               {{ fix.title || fix.insight }}
             </div>
             <div class="text-xs text-muted mt-0.5">
-              {{ fix.routeCount }} routes affected · {{ fix.metric.toUpperCase() }}
+              {{ formatRouteCount(fix.routeCount) }} affected · {{ fix.metric.toUpperCase() }}
             </div>
           </div>
           <div class="flex gap-1 flex-wrap justify-end">

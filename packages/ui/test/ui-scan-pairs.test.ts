@@ -1,6 +1,6 @@
 import type { Scan } from '@unlighthouse/contracts'
 import { describe, expect, it } from 'vitest'
-import { pairScans, scoreSummaryForDevice } from '../app/features/sites/scan-pairs'
+import { deviceLabelForScan, hasMultipleDevicesForScans, pairScans, scoreSummaryForDevice } from '../app/features/sites/scan-pairs'
 
 const matrixScan = {
   scanId: 'matrix-scan',
@@ -43,5 +43,14 @@ describe('uI scan history device pairs', () => {
   it('reads the persisted score rollup for each matrix device', () => {
     expect(scoreSummaryForDevice(matrixScan, 'mobile')?.scoresByCategory.performance).toBe(0.7)
     expect(scoreSummaryForDevice(matrixScan, 'desktop')?.scoresByCategory.performance).toBe(0.9)
+  })
+
+  it('labels matrix scans as both devices', () => {
+    expect(deviceLabelForScan(matrixScan)).toBe('both')
+  })
+
+  it('keeps device controls available when a filtered response only contains one device', () => {
+    expect(hasMultipleDevicesForScans([matrixScan])).toBe(true)
+    expect(hasMultipleDevicesForScans([{ ...matrixScan, summary: { ...matrixScan.summary, devices: ['desktop'] } }])).toBe(false)
   })
 })

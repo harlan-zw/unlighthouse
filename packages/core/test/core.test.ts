@@ -422,6 +422,9 @@ describe('createUnlighthouseCore orchestration', () => {
     })
 
     await session.cancel('user')
+    expect(session.state()).toBe('cancelled')
+    expect(events.filter(event => event.event === 'scan:cancelled')).toHaveLength(1)
+    expect(await storage.scans.get(session.scanId)).toMatchObject({ status: 'cancelled' })
     const result = await settled
     expect(result.ok).toBe(false)
 

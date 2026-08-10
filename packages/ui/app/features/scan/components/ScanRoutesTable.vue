@@ -110,10 +110,13 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
       header: 'Device',
       enableSorting: false,
       meta: { align: 'center', headClass: 'w-16' },
-      cell: ({ row }) => h(UiIconC, {
-        name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
-        class: 'size-3.5 text-muted',
-      }),
+      cell: ({ row }) => h('span', { class: 'inline-flex items-center gap-1 text-xs text-muted' }, [
+        h(UiIconC, {
+          name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
+          class: 'size-3.5',
+        }),
+        row.original.device === 'mobile' ? 'Mobile' : 'Desktop',
+      ]),
     })
   }
 
@@ -200,10 +203,16 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
           <span class="size-2 rounded-full" :style="{ backgroundColor: score100Color(summary.avg) }" />
           avg <span class="font-semibold tabular-nums">{{ summary.avg ?? '—' }}</span>
         </span>
-        <span class="text-muted text-xs tabular-nums">
+        <span v-if="quick === 'all'" class="text-muted text-xs tabular-nums">
           <span class="text-success font-medium">{{ summary.pass }}</span> pass ·
           <span class="text-warning font-medium">{{ summary.needs }}</span> needs work ·
           <span class="text-error font-medium">{{ summary.poor }}</span> poor
+        </span>
+        <span v-else-if="quick === 'failing'" class="text-muted text-xs">
+          {{ summary.count }} with at least one category score below 90
+        </span>
+        <span v-else class="text-muted text-xs">
+          {{ summary.count }} matching poor Core Web Vitals
         </span>
         <span class="flex items-center gap-1 text-muted">
           <UiIcon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'smartphone' : 'monitor'" class="size-3.5" />

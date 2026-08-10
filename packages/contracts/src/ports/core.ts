@@ -104,6 +104,8 @@ export interface UnlighthouseCoreRunOverrides {
   categories?: Array<'performance' | 'accessibility' | 'seo' | 'best-practices' | 'agentic-browsing'>
   /** Sample count — mapped onto `scanner.samples`. */
   sampleSize?: number
+  /** Maximum routes for this run — mapped onto `scanner.maxRoutes`. */
+  maxRoutes?: number
   /** Auditor provider name — selects from `config.auditor` when it's a router. */
   auditor?: string
   /** CI metadata persisted on the scans row. */

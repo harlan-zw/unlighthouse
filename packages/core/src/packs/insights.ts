@@ -6,6 +6,7 @@
 import type { InsightsReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { ReconciledReport } from '@unlighthouse/contracts/types/atoms'
 import { InsightsReportSchema } from '@unlighthouse/contracts/packs'
+import { resolveDistinctPackRoutes } from './reconcile-context'
 
 const INSIGHT_AUDIT_IDS = [
   'cache-insight',
@@ -64,7 +65,7 @@ export const insightsPack: Pack<InsightsReport> = {
 
   async reconciler(ctx: PackReconcileCtx): Promise<InsightsReport> {
     const { scanId, routes } = ctx
-    const device = routes[0]?.device ?? 'mobile'
+    const distinctRoutes = resolveDistinctPackRoutes(routes)
 
     const insightMap = new Map<string, {
       title: string | null
@@ -84,14 +85,14 @@ export const insightsPack: Pack<InsightsReport> = {
       })
     }
 
-    for (const route of routes) {
+    for (const route of distinctRoutes) {
       let reconciled: ReconciledReport | null = null
       if (ctx.getReconciled) {
         try {
-          reconciled = await ctx.getReconciled(route.url, device)
+          reconciled = await ctx.getReconciled(route.url, route.device)
         }
         catch (err) {
-          ctx.logger?.debug?.(`insights pack: failed to load reconciled report for ${route.url} [${device}]`, err)
+          ctx.logger?.debug?.(`insights pack: failed to load reconciled report for ${route.url} [${route.device}]`, err)
         }
       }
       if (!reconciled?.audits)

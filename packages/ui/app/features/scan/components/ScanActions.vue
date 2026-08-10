@@ -38,7 +38,7 @@ async function handleResume() {
 <template>
   <div class="flex items-center gap-2">
     <template v-if="store.isActive">
-      <UiButton v-if="store.status === 'scanning'" purpose="secondary" size="sm" icon="pause" @click="handlePause">
+      <UiButton v-if="store.status === 'scanning' && store.pausable" purpose="secondary" size="sm" icon="pause" @click="handlePause">
         Pause scan
       </UiButton>
 

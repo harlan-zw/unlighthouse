@@ -14,7 +14,7 @@
 // correctly end to end.
 
 import type { ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
-import { bestPracticesPack, cwvPack, resolveDistinctPackRoutes, seoBasicsPack } from '@unlighthouse/core/packs'
+import { bestPracticesPack, cwvPack, insightsPack, overviewPack, resolveDistinctPackRoutes, seoBasicsPack } from '@unlighthouse/core/packs'
 import { describe, expect, it } from 'vitest'
 import { testScanId, testUrl } from '../../../test/helpers/contracts'
 
@@ -59,6 +59,25 @@ const routeADesktop = makeRoute(URL_A, 'desktop')
 const routeBDesktop = makeRoute(URL_B, 'desktop')
 
 const dualDeviceRoutes = [routeAMobile, routeADesktop, routeBDesktop]
+
+describe('overviewPack — multi-device scan', () => {
+  it('classifies every audited URL/device entry without collapsing matching URLs', async () => {
+    const report = await overviewPack.reconciler({
+      scanId: routeAMobile.scanId,
+      routes: dualDeviceRoutes,
+      getReconciled: async () => null,
+      getLhr: async () => null,
+    })
+
+    expect(report.routesScanned).toBe(3)
+    expect(report.distribution.passing + report.distribution.needsWork + report.distribution.poor).toBe(3)
+    expect(report.worstRoutes.map(route => `${route.url}|${route.device}`)).toEqual([
+      `${URL_A}|desktop`,
+      `${URL_A}|mobile`,
+      `${URL_B}|desktop`,
+    ])
+  })
+})
 
 // ── resolveDistinctPackRoutes (direct) ───────────────────────────────────────
 
@@ -331,5 +350,22 @@ describe('cwvPack — multi-device scan', () => {
     })
     // URL A (mobile+desktop) + URL B (desktop-only) → 2 distinct URLs, not 3 rows.
     expect(report.routesAnalysed).toBe(2)
+  })
+})
+
+describe('insightsPack — multi-device scan', () => {
+  it('reads one preferred device result per distinct URL', async () => {
+    const requested: string[] = []
+    await insightsPack.reconciler({
+      scanId: routeAMobile.scanId,
+      routes: dualDeviceRoutes,
+      getReconciled: async (url, device) => {
+        requested.push(`${url}|${device}`)
+        return null
+      },
+      getLhr: async () => null,
+    })
+
+    expect(requested).toEqual([`${URL_A}|mobile`, `${URL_B}|desktop`])
   })
 })

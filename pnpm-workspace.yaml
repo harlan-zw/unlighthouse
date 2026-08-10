@@ -3,6 +3,7 @@ catalogMode: prefer
 minimumReleaseAgeExclude:
   - '@cloudflare/workers-types@5.20260717.1'
   - nuxt-use-query@1.0.0
+  - '@mdream/js@1.5.13'
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -32,6 +33,7 @@ catalog:
   '@iconify-json/lucide': ^1.2.122
   '@lhci/utils': ^0.15.1
   '@libsql/client': ^0.17.4
+  '@mdream/js': ^1.5.13
   '@modelcontextprotocol/sdk': ^1.30.0
   '@nuxt/icon': 2.2.2
   '@nuxtjs/color-mode': 4.0.0

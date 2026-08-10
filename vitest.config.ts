@@ -53,6 +53,7 @@ const aliasEntries = [
   ['@unlighthouse/core/util/path', './packages/core/src/util/path.ts'],
   ['@unlighthouse/core/util/fetch', './packages/core/src/util/fetch.ts'],
   ['@unlighthouse/core/util/filter', './packages/core/src/util/filter.ts'],
+  ['@unlighthouse/core/util/html-discovery', './packages/core/src/util/html-discovery.ts'],
   ['@unlighthouse/core/storage', './packages/core/src/storage/index.ts'],
   ['@unlighthouse/core/storage/drizzle', './packages/core/src/storage/drizzle/index.ts'],
   ['@unlighthouse/core/storage/memory', './packages/core/src/storage/memory/index.ts'],

@@ -11,3 +11,65 @@
   --ui-text-warning: var(--ui-color-warning-800);
   --ui-text-error: var(--ui-color-error-700);
 }
+
+/* motion-v entrances can remain at their initial inline opacity in the SPA.
+   Keep critical controls, alerts, and recovery states available when motion
+   hydration fails. Data visibility takes precedence over decoration. */
+.ui-motion-button__leading,
+.ui-alert,
+[data-testid="empty-state"] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Mobile remains comfortably readable even where dense desktop tables use the
+   design system's compact label sizes. */
+@media (width < 640px) {
+  .dashboard-theme .text-xs,
+  .dashboard-theme .text-label,
+  .dashboard-theme .text-mini {
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+  }
+
+  .pack-page-header > div > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pack-page-header > div > div > :last-child {
+    justify-content: flex-start;
+  }
+}
+
+.dark.dashboard-theme {
+  --ui-text-dimmed: var(--ui-color-neutral-400);
+  --ui-text-muted: var(--ui-color-neutral-400);
+}
+
+/* Compact icon-first segmented control. Natural width keeps the device choice
+   visually secondary while each option retains a 44px target. */
+.scan-device-toggle {
+  gap: 0.125rem;
+  padding: 0.25rem;
+  border: 1px solid var(--ui-border);
+  background: color-mix(in oklab, var(--ui-bg-muted) 72%, transparent);
+}
+
+.scan-device-toggle > button {
+  flex: 0 0 auto;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  min-height: 2.75rem;
+}
+
+.onboarding-scan-alert .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-motion-button__leading .animate-spin {
+    animation: none !important;
+  }
+}

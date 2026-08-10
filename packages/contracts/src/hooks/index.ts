@@ -205,7 +205,7 @@ export const HookSchemas = {
 
 export type HookName = keyof typeof HookSchemas
 export type HookPayload<K extends HookName> = z.infer<(typeof HookSchemas)[K]>
-export interface HookEventFor<K extends HookName> { event: K, payload: HookPayload<K> }
+export interface HookEventFor<K extends HookName> { event: K, payload: HookPayload<K>, timestamp: string }
 
 /**
  * TS hook map compatible with `Hookable<HookMap>` from the `hookable` package.
@@ -229,13 +229,13 @@ export type HookEvent = {
   [K in HookName]: HookEventFor<K>
 }[HookName]
 
-export function createHookEvent<K extends HookName>(event: K, payload: HookPayload<K>): HookEvent {
-  return { event, payload } as HookEvent
+export function createHookEvent<K extends HookName>(event: K, payload: HookPayload<K>, timestamp = new Date().toISOString()): HookEvent {
+  return { event, payload, timestamp } as HookEvent
 }
 
 /** Runtime-validating discriminated union over HookMap. */
 const hookEventVariants = Object.entries(HookSchemas).map(([name, payload]) =>
-  z.object({ event: z.literal(name as HookName), payload }),
+  z.object({ event: z.literal(name as HookName), payload, timestamp: z.iso.datetime() }),
 )
 export const HookEventUnion = z.discriminatedUnion(
   'event',

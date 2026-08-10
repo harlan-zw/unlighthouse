@@ -32,6 +32,7 @@ export const ScanStart = defineCommand({
     mode: z.enum(['site', 'page']).default('site').optional(),
     device: z.union([DeviceSchema, DeviceMatrixSchema]).optional(),
     sampleSize: z.number().int().min(1).max(10).optional(),
+    maxRoutes: z.number().int().positive().optional(),
     categories: z.array(CategorySchema).optional(),
     auditor: z.string().optional(),
     ciBuild: z
@@ -51,6 +52,42 @@ export const ScanStart = defineCommand({
   exitCodes: { ACTIVE_SCAN_CONFLICT: 9, QUOTA_EXCEEDED: 78 },
 })
 
+export const ScanPreview = defineCommand({
+  name: 'scan.preview',
+  description: 'Preview the likely URL count for a scan without starting it.',
+  input: z.object({
+    site: UrlSchema,
+    mode: z.enum(['site', 'page']).default('site').optional(),
+  }),
+  output: z.discriminatedUnion('status', [
+    z.object({
+      status: z.literal('ready'),
+      site: UrlSchema,
+      mode: z.enum(['site', 'page']),
+      urlCount: z.number().int().positive(),
+      source: z.enum(['sitemap', 'homepage', 'single-page']),
+      confidence: z.enum(['high', 'low']),
+      warnings: z.array(z.literal('cloudflare-trap-links')),
+    }),
+    z.object({
+      status: z.literal('blocked'),
+      site: UrlSchema,
+      mode: z.enum(['site', 'page']),
+      reason: z.enum(['rate-limited', 'cloudflare-challenge', 'cloudflare-trap']),
+      retryAfterSeconds: z.number().int().nonnegative().nullable(),
+    }),
+    z.object({
+      status: z.literal('unavailable'),
+      site: UrlSchema,
+      mode: z.enum(['site', 'page']),
+      reason: z.literal('discovery-unavailable'),
+    }),
+  ]),
+  http: { method: 'GET' },
+  mcp: { hidden: true },
+  cli: { hidden: true },
+})
+
 // ── scan.status ─────────────────────────────────────────────────────────────
 export const ScanStatusCmd = defineCommand({
   name: 'scan.status',
@@ -63,6 +100,7 @@ export const ScanStatusCmd = defineCommand({
     scanned: z.number().int().nonnegative(),
     failed: z.number().int().nonnegative(),
     total: z.number().int().nonnegative(),
+    pausable: z.boolean(),
     startedAt: z.iso.datetime(),
     completedAt: z.iso.datetime().nullable(),
   }),
@@ -137,6 +175,7 @@ export const ScanMetaCmd = defineCommand({
     scanId: ScanIdSchema,
     site: UrlSchema,
     device: DeviceSchema,
+    status: ScanStatusSchema,
     throttle: z.boolean(),
     startedAt: z.iso.datetime(),
     // Completion timestamp. Null while the scan is in flight or paused.

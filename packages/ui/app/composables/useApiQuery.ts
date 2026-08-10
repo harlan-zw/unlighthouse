@@ -13,6 +13,16 @@ import { useNuxtAsyncQuery } from 'nuxt-use-query/async-query'
 import { computed, toValue } from 'vue'
 import { normalizeApiError } from './useApiError'
 
+type ApiQueryResult<T>
+  = | { _tag: 'ok', data: T }
+    | { _tag: 'err', error: ApiError }
+
+function settleApiQuery<T>(request: Promise<T>): Promise<ApiQueryResult<T>> {
+  return request
+    .then(data => ({ _tag: 'ok' as const, data }))
+    .catch(error => ({ _tag: 'err' as const, error: normalizeApiError(error) }))
+}
+
 // "Parse, don't validate" at the read boundary. The server validates command
 // *input* but never *output* (no transport runs `cmd.output.parse`), so the UI
 // otherwise trusts response shapes blindly. The command schemas are already
@@ -75,11 +85,14 @@ export function useApiQuery<K extends NonStreamingCommandName>(
     opts.key != null ? toValue(opts.key) : `${command}:${stableInputKey(toValue(input))}`,
   )
 
-  const query = useNuxtAsyncQuery<CommandOutput<CommandRegistry[K]>>(
+  const query = useNuxtAsyncQuery<ApiQueryResult<CommandOutput<CommandRegistry[K]>>>(
     async () => {
-      const data = await callClientCommand(api, command, toValue(input))
-      validateResponse(command, data)
-      return data
+      const result = await settleApiQuery(callClientCommand(api, command, toValue(input)))
+      if (result._tag === 'ok')
+        validateResponse(command, result.data)
+      // Keep expected transport/domain failures inside query data. Nuxt can
+      // clear thrown useAsyncData errors before consumers observe them.
+      return result
     },
     {
       key,
@@ -98,14 +111,19 @@ export function useApiQuery<K extends NonStreamingCommandName>(
     },
   )
 
-  const error = computed<ApiError | null>(() =>
-    query.error.value ? normalizeApiError(query.error.value) : null,
+  const error = computed<ApiError | null>(() => {
+    if (query.displayData.value?._tag === 'err')
+      return query.displayData.value.error
+    return query.error.value ? normalizeApiError(query.error.value) : null
+  })
+  const data = computed<CommandOutput<CommandRegistry[K]> | undefined>(() =>
+    query.displayData.value?._tag === 'ok' ? query.displayData.value.data : undefined,
   )
 
   return {
     ...query,
     /** SWR display value: keeps the previous result visible while refetching. */
-    data: query.displayData,
+    data,
     /** Normalized failure, or `null`. Use `_tag === 'offline'` for a banner. */
     error,
   }

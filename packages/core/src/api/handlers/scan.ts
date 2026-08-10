@@ -16,6 +16,7 @@ import {
   ScanImport,
   ScanMetaCmd,
   ScanPause,
+  ScanPreview,
   ScanRescanAll,
   ScanResults,
   ScanResume,
@@ -27,6 +28,7 @@ import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { normaliseDeviceMatrix } from '@unlighthouse/contracts/types/atoms'
 import { overviewPack } from '../../packs/overview'
 import { loadRouteContract } from '../../report/route-contracts'
+import { createScanPreviewIo, resolveScanPreview } from '../../scan/preview'
 import { readGitMeta } from '../../util/git-meta'
 import { applyRouteRegexFallback, routeFilterForStorage } from './route-results'
 
@@ -54,6 +56,7 @@ export const scanStart: Handler<typeof ScanStart> = {
         mode: input.mode,
         device: input.device,
         sampleSize: input.sampleSize,
+        maxRoutes: input.maxRoutes,
         categories: input.categories,
         auditor: input.auditor,
         ciBuild,
@@ -65,6 +68,17 @@ export const scanStart: Handler<typeof ScanStart> = {
       mode: input.mode ?? 'site',
       startedAt: new Date().toISOString(),
     })
+  },
+}
+
+export const scanPreview: Handler<typeof ScanPreview> = {
+  command: ScanPreview,
+  async run(input, ctx) {
+    const result = await resolveScanPreview(
+      { site: input.site, mode: input.mode ?? 'site' },
+      createScanPreviewIo(ctx.config),
+    )
+    return ScanPreview.output.parse(result)
   },
 }
 
@@ -93,6 +107,7 @@ export const scanStatus: Handler<typeof ScanStatusCmd> = {
         scanned: stats.scanned,
         failed: stats.failed,
         total: stats.total,
+        pausable: session.capabilities.pausable,
         startedAt: scan?.startedAt ?? new Date().toISOString(),
         completedAt: scan?.completedAt ?? null,
       })
@@ -108,6 +123,7 @@ export const scanStatus: Handler<typeof ScanStatusCmd> = {
       scanned: summary?.completed ?? 0,
       failed: summary?.failed ?? 0,
       total: summary?.routes ?? 0,
+      pausable: false,
       startedAt: scan.startedAt,
       completedAt: scan.completedAt,
     })
@@ -123,7 +139,7 @@ export const scanCancel: Handler<typeof ScanCancel> = {
     await session.cancel(input.reason)
     return ScanCancel.output.parse({
       scanId: input.scanId,
-      status: session.state(),
+      status: 'cancelled',
       cancelledAt: new Date().toISOString(),
     })
   },
@@ -259,6 +275,7 @@ export const scanMeta: Handler<typeof ScanMetaCmd> = {
       scanId: scan.scanId,
       site: scan.site,
       device: scan.device,
+      status: scan.status,
       throttle: ctx.config.scanner?.throttle ?? true,
       startedAt: scan.startedAt,
       completedAt: scan.completedAt,

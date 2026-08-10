@@ -47,6 +47,14 @@ const mimeTypes: Record<string, string> = {
   '.ico': 'image/x-icon',
 }
 
+export function isKnownDashboardPath(path: string): boolean {
+  const pathname = path.split('?', 1)[0] || '/'
+  const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  if (normalized === '/' || normalized === '/onboarding' || normalized === '/scan/new')
+    return true
+  return /^\/sites\/[^/]+(?:\/compare|\/scans\/[^/]+(?:\/(?:overview|routes)|\/route(?:\/.*)?|\/packs\/[^/]+)?)?$/.test(normalized)
+}
+
 export interface MountServerDeps {
   resolvedConfig: ResolvedUserConfig
   runtimeSettings: RuntimeSettings
@@ -150,6 +158,8 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     const htmlPath = await statFileOrNull(fallbackPath, log).then(s => s ? fallbackPath : indexPath)
 
     setResponseHeader(event, 'Content-Type', 'text/html')
+    if (!isKnownDashboardPath(path))
+      setResponseStatus(event, 404)
     return readFile(htmlPath, 'utf-8')
   }))
 

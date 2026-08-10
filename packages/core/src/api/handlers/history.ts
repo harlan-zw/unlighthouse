@@ -4,6 +4,7 @@ import type { Handler } from './types'
 import { HistoryList, HistoryPrune, HistoryRescan } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { normaliseDeviceMatrix } from '@unlighthouse/contracts/types/atoms'
+import { aggregatePersistedScanSummary } from '../../scan/lifecycle'
 import { pruneScans } from '../../scan/prune'
 
 export const historyList: Handler<typeof HistoryList> = {
@@ -16,7 +17,10 @@ export const historyList: Handler<typeof HistoryList> = {
       page: input.page,
       pageSize: input.pageSize,
     })
-    return HistoryList.output.parse(res)
+    const items = await Promise.all(res.items.map(async scan => scan.status === 'complete' || scan.status === 'cancelled'
+      ? { ...scan, summary: await aggregatePersistedScanSummary(ctx.storage, scan) }
+      : scan))
+    return HistoryList.output.parse({ ...res, items })
   },
 }
 

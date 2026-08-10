@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ImagesReportSchema } from '@unlighthouse/contracts/packs'
+import { formatRouteCount } from '~/features/scan/pack-presentation'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
@@ -35,10 +36,7 @@ function hideBrokenImage(event: Event): void {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading">
-        Images
-      </h2>
+    <div class="flex items-center justify-end">
       <UiButton purpose="link" size="sm" icon="list" :to="`${scanBase}/routes`">
         View routes
       </UiButton>
@@ -78,7 +76,7 @@ function hideBrokenImage(event: Event): void {
               {{ finding.severity }}
             </UiChip>
             <span class="min-w-0 break-all font-mono text-xs line-clamp-2">{{ finding.imageUrl }}</span>
-            <span class="text-xs text-muted shrink-0">{{ finding.routeCount }} routes</span>
+            <span class="text-xs text-muted shrink-0">{{ formatRouteCount(finding.routeCount) }}</span>
           </div>
         </template>
         <template #content="{ item: finding }">

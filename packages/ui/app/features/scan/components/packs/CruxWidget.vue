@@ -10,6 +10,10 @@ const props = defineProps<{ report: unknown, scanBase?: string }>()
 const { fmtMs } = createFormatters()
 
 const report = computed(() => CruxReportSchema.parse(props.report))
+const fieldFindings = computed(() => report.value.findings.filter(finding =>
+  finding.source !== 'none'
+  && [finding.lcp_p75, finding.cls_p75, finding.inp_p75].some(value => value !== null),
+))
 
 const GAP_CAP = 20
 
@@ -55,7 +59,8 @@ const findingColumns: UiTableColumn<CruxFinding>[] = [
   {
     accessorKey: 'url',
     header: 'URL',
-    cell: ({ row }) => h('span', { class: 'font-mono text-xs break-all' }, row.original.url),
+    meta: { headClass: 'min-w-[18rem]' },
+    cell: ({ row }) => h('span', { class: 'block min-w-[18rem] max-w-[32rem] font-mono text-xs break-words' }, row.original.url),
   },
   {
     accessorKey: 'formFactor',
@@ -120,10 +125,7 @@ const gapSections = computed(() => [
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading">
-        Field Data (CrUX)
-      </h2>
+    <div class="flex items-center justify-end">
       <UiButton purpose="link" size="sm" icon="list" :to="`${scanBase}/routes`">
         View routes
       </UiButton>
@@ -136,7 +138,7 @@ const gapSections = computed(() => [
       <UiStat card title="Unknown" :value="report.severityCounts.unknown" :animated-value="false" />
     </div>
 
-    <UiCard v-if="report.findings.length" size="sm">
+    <UiCard v-if="fieldFindings.length" size="sm">
       <template #header>
         <h3 class="text-label text-dimmed">
           Field rating distribution
@@ -149,26 +151,26 @@ const gapSections = computed(() => [
       Some routes lacked enough URL-level traffic for a CrUX record and fell back to origin-level field data.
     </p>
 
-    <UiCard v-if="report.findings.length" size="sm">
+    <UiCard v-if="fieldFindings.length" size="sm">
       <template #header>
         <h3 class="text-label text-dimmed flex items-center gap-2">
           Field Data by Route
           <UiChip purpose="count">
-            {{ report.findings.length }}
+            {{ fieldFindings.length }}
           </UiChip>
         </h3>
       </template>
-      <UiTable :columns="findingColumns" :data="report.findings" :page-size="20" />
+      <UiTable :columns="findingColumns" :data="fieldFindings" :page-size="20" />
     </UiCard>
     <UiEmptyState
       v-else
       icon="globe"
-      title="0 CrUX field records for this site"
-      description="Field data requires the site to have enough traffic in the Chrome User Experience Report."
+      :title="`0 CrUX field records across ${report.findings.length} audited entries`"
+      description="Field data requires enough Chrome User Experience Report traffic. Lab results remain available in Core Web Vitals."
       compact
     />
 
-    <div v-if="report.findings.length" class="grid gap-4 lg:grid-cols-3">
+    <div v-if="fieldFindings.length" class="grid gap-4 lg:grid-cols-3">
       <UiCard v-for="section in gapSections" :key="section.key" size="sm">
         <template #header>
           <h3 class="text-label text-dimmed flex items-center gap-2">

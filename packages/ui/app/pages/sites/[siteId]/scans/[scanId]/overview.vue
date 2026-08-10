@@ -18,6 +18,7 @@ const {
   showLiveView,
   resolvedStatus,
   scanIsComplete,
+  scanHasResults,
   deviceFilter,
   hasMultipleDevices,
   scanSummary,
@@ -86,6 +87,11 @@ const isStatic = useIsStatic()
           </UiButton>
 
           <template #body>
+            <div class="mb-3 flex justify-end">
+              <UiButton purpose="quiet" icon="close" aria-label="Close events" @click="eventsOpen = false">
+                Close events
+              </UiButton>
+            </div>
             <EventStreamPanel v-if="eventsOpen" :scan-id="scanId" :scan-base="scanBase" />
           </template>
         </UDrawer>
@@ -119,7 +125,7 @@ const isStatic = useIsStatic()
     <LiveResults v-if="showLiveView" />
 
     <!-- Device filter (only when scan captured both) -->
-    <div v-if="hasMultipleDevices && scanIsComplete && !currentScanIsActive" class="flex items-center gap-2">
+    <div v-if="hasMultipleDevices && scanHasResults && !currentScanIsActive" class="flex items-center gap-2">
       <span class="text-xs text-muted">View as</span>
       <UTabs
         v-model="deviceFilter"
@@ -140,7 +146,7 @@ const isStatic = useIsStatic()
           {{ scanSummary.routesScanned }}
         </div>
         <div class="text-xs text-muted mt-0.5">
-          Routes
+          Audited URL/device entries
         </div>
       </div>
       <div>
@@ -203,7 +209,7 @@ const isStatic = useIsStatic()
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
               <span class="numerals-display text-2xl">{{ distribution.total }}</span>
-              <span class="text-xs text-muted">routes</span>
+              <span class="text-xs text-muted">entries</span>
             </div>
           </div>
           <div class="flex flex-col gap-3">
@@ -254,7 +260,7 @@ const isStatic = useIsStatic()
          fetch isn't masked by the loading copy. -->
     <QueryError v-if="scanSummaryError" :error="scanSummaryError" :on-retry="refreshSummary" />
     <div v-else-if="!scanSummary && !showLiveView" class="py-12 text-center text-muted">
-      <p v-if="scanIsComplete">
+      <p v-if="scanHasResults">
         Loading results...
       </p>
       <p v-else>

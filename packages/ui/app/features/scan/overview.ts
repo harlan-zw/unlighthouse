@@ -2,6 +2,7 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useScanBase } from '~/features/scan/route-context'
+import { resolveScanOverviewStatus } from '~/features/scan/status-presentation'
 import { useScanStore } from '~/stores/scan'
 
 type DeviceFilter = '' | 'mobile' | 'desktop'
@@ -64,12 +65,12 @@ export function useScanOverview() {
   const wsEnabled = Boolean(getRuntimeWebsocketUrl())
 
   async function startPollingIfActive() {
-    if (wsEnabled)
-      return
     const status = await optionalApiRead('scan.status', api['scan.status']({ scanId: scanId.value }))
     if (status && ['starting', 'discovering', 'scanning', 'paused'].includes(status.status)) {
       store.hydrateActive(scanId.value, { ...status, site: scanMeta.value?.site })
-      store.startPolling()
+      await store.refreshProgress()
+      if (!wsEnabled)
+        store.startPolling()
     }
   }
 
@@ -98,20 +99,32 @@ export function useScanOverview() {
   // so the live view + WS/poll subscription engage in place, same as a scan
   // started from this tab.
   watch(remoteStatus, (status) => {
-    if (status && ['starting', 'discovering', 'scanning', 'paused'].includes(status.status))
+    if (status && ['starting', 'discovering', 'scanning', 'paused'].includes(status.status)) {
       store.hydrateActive(scanId.value, { ...status, site: scanMeta.value?.site })
+      void store.refreshProgress()
+    }
   })
 
   const resolvedStatus = computed(() => {
-    if (scanMeta.value?.summary)
-      return 'complete'
-    if (isCurrentScan.value)
-      return store.status
-    return remoteStatus.value?.status ?? 'pending'
+    return resolveScanOverviewStatus({
+      metaStatus: scanMeta.value?.status,
+      hasSummary: Boolean(scanMeta.value?.summary),
+      isCurrent: isCurrentScan.value,
+      storeStatus: store.status === 'idle' ? null : store.status,
+      remoteStatus: remoteStatus.value?.status,
+    })
   })
 
   const scanIsComplete = computed(() => resolvedStatus.value === 'complete')
-  const deviceFilter = ref<DeviceFilter>('')
+  const scanHasResults = computed(() => ['complete', 'cancelled', 'error'].includes(resolvedStatus.value))
+  const initialDevice = typeof route.query.device === 'string' ? route.query.device : ''
+  const deviceFilter = ref<DeviceFilter>(initialDevice === 'mobile' || initialDevice === 'desktop' ? initialDevice : '')
+  watch(deviceFilter, device => router.replace({ query: { ...route.query, device: device || undefined } }))
+  watch(() => route.query.device, (device) => {
+    const next = device === 'mobile' || device === 'desktop' ? device : ''
+    if (deviceFilter.value !== next)
+      deviceFilter.value = next
+  })
 
   // Composite probe (two reads), so it uses the handler-based query directly.
   // The per-device `.catch` is a deliberate "treat an errored probe as absent"
@@ -126,7 +139,7 @@ export function useScanOverview() {
     },
     {
       key: () => `scan-devices:${scanId.value}`,
-      enabled: scanIsComplete,
+      enabled: scanHasResults,
     },
   )
 
@@ -135,7 +148,7 @@ export function useScanOverview() {
   const { data: scanSummary, error: scanSummaryError, refresh: refreshSummary } = useApiQuery(
     'scan.summary',
     () => ({ scanId: scanId.value, device: deviceFilter.value || undefined }),
-    { enabled: scanIsComplete },
+    { enabled: scanHasResults },
   )
 
   const rescan = useApiMutation('scan.rescanAll')
@@ -167,12 +180,15 @@ export function useScanOverview() {
       return null
     const distribution = scanSummary.value.distribution
     const total = scanSummary.value.routesScanned || 1
+    const classified = distribution.passing + distribution.needsWork + distribution.poor
+    const unscored = Math.max(0, scanSummary.value.routesScanned - classified)
     return {
       total,
       segments: [
         { label: 'Pass', count: distribution.passing, pct: (distribution.passing / total) * 100, color: BAND_HEX.good, status: 'success' as const },
         { label: 'Needs Work', count: distribution.needsWork, pct: (distribution.needsWork / total) * 100, color: BAND_HEX.average, status: 'warning' as const },
         { label: 'Poor', count: distribution.poor, pct: (distribution.poor / total) * 100, color: BAND_HEX.poor, status: 'error' as const },
+        { label: 'No score', count: unscored, pct: (unscored / total) * 100, color: 'var(--ui-color-neutral-400)', status: 'neutral' as const },
       ].filter(segment => segment.count > 0),
     }
   })
@@ -223,6 +239,7 @@ export function useScanOverview() {
     showLiveView,
     resolvedStatus,
     scanIsComplete,
+    scanHasResults,
     deviceFilter,
     hasMultipleDevices,
     scanSummary,

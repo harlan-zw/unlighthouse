@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CompareRouteRow } from '@unlighthouse/contracts'
 import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
+import { useMediaQuery } from '@vueuse/core'
 import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
 import {
   CATEGORY_METRICS,
@@ -15,22 +16,37 @@ import {
   SORT_OPTIONS as sortOptions,
   statusBadge,
 } from '~/features/compare/presentation'
+import { comparisonRouteSetNotice } from '~/features/compare/state'
 import { useCompareWorkflow } from '~/features/compare/workflow'
+import { deviceLabelForScan } from '~/features/sites/scan-pairs'
 
 definePageMeta({ layout: 'compare' })
 
 const { scoreToColor } = createScoreColorHelpers()
 const { fmtScore, fmtDelta, fmtMetric, fmtTimestamp: fmtDate, fmtBytes } = createFormatters()
+const isMobile = useMediaQuery('(max-width: 767px)')
 const {
   siteId,
   currentScanId,
   baseScanId,
   currentMeta,
   currentMetaError,
+  currentMetaStatus,
   refreshCurrentMeta,
   baseMeta,
+  baseMetaError,
+  baseMetaStatus,
+  refreshBaseMeta,
+  historyError,
+  historyStatus,
+  refreshHistory,
   otherScans,
+  currentScans,
   comparing,
+  requestState,
+  compareError,
+  packError,
+  pairCompatibility,
   statusFilter,
   deviceFilter,
   urlFilter,
@@ -40,14 +56,19 @@ const {
   thresholds,
   report,
   copyingMarkdown,
+  copyingLink,
   showLegacyMetrics,
   showPackDetails,
   copyAsMarkdown,
+  copyLink,
   cwvP75Rows,
   otherPackChanges,
   handleCompare,
+  retryComparison,
+  retryPacks,
   swapDirection,
   onFilterInput,
+  clearFilters,
   hasMultipleDevices,
   selectedRow,
   totalPages,
@@ -55,6 +76,14 @@ const {
   shortId,
   gotoOverview,
 } = useCompareWorkflow()
+
+const routeSetNotice = computed(() => report.value ? comparisonRouteSetNotice(report.value.summary) : null)
+const hasActiveFilters = computed(() => statusFilter.value !== 'all' || deviceFilter.value !== '' || urlFilter.value !== '' || sortKey.value !== 'delta-perf-desc')
+const pairHasPartialDeviceOverlap = computed(() => pairCompatibility.value._tag === 'ready'
+  && (pairCompatibility.value.baseOnlyDevices.length > 0 || pairCompatibility.value.currentOnlyDevices.length > 0))
+const sharedDeviceLabel = computed(() => pairCompatibility.value._tag === 'ready'
+  ? pairCompatibility.value.sharedDevices.map(device => device === 'mobile' ? 'Mobile' : 'Desktop').join(' and ')
+  : '')
 
 usePageTitle(computed(() => {
   const siteTitle = formatTitleSite(currentMeta.value?.site)
@@ -115,11 +144,14 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
       id: 'device',
       header: 'Dev',
       enableSorting: false,
-      meta: { align: 'center', headClass: 'w-16' },
-      cell: ({ row }) => h(IconCmp, {
-        name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
-        class: 'size-3.5 text-muted inline',
-      }),
+      meta: { align: 'center', headClass: 'w-24' },
+      cell: ({ row }) => h('span', { class: 'inline-flex items-center gap-1 text-xs text-muted' }, [
+        h(IconCmp, {
+          name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
+          class: 'size-3.5',
+        }),
+        row.original.device === 'mobile' ? 'Mobile' : 'Desktop',
+      ]),
     })
   }
   for (const m of CATEGORY_METRICS) {
@@ -142,218 +174,271 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col overflow-y-auto md:overflow-hidden">
     <h1 class="sr-only">
       Compare scans
     </h1>
     <!-- Couldn't load the current scan — the compare can't proceed, so
          surface it above the toolbar with a retry. -->
     <QueryError v-if="currentMetaError" :error="currentMetaError" :on-retry="refreshCurrentMeta" class="m-4" />
+    <QueryError v-if="baseMetaError" :error="baseMetaError" :on-retry="refreshBaseMeta" retry-label="Retry base scan" class="m-4" />
+    <QueryError v-if="historyError" :error="historyError" :on-retry="refreshHistory" retry-label="Retry scan history" class="m-4" />
 
-    <!-- Top toolbar — base/current scan identity, swap, picker, actions -->
-    <div class="border-b bg-default/50">
-      <div class="px-4 py-2.5 flex items-center gap-3 flex-wrap">
-        <UiIcon name="compare" class="size-4 text-muted shrink-0" />
-
-        <!-- Base scan -->
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="text-label text-muted shrink-0">Base</span>
-          <USelect
-            v-model="baseScanId"
-            aria-label="Base scan"
-            :items="otherScans.map(s => ({ value: s.scanId, label: `${shortId(s.scanId)} · ${s.device}`, scan: s }))"
-            placeholder="Select previous scan"
-            size="sm"
-            class="min-w-[220px] max-w-[320px]"
-          >
-            <template #item="{ item }">
-              <div class="flex items-center gap-2 text-xs">
-                <span class="font-mono">{{ shortId(item.scan.scanId) }}</span>
-                <UiChip purpose="count">
-                  {{ item.scan.device }}
-                </UiChip>
-                <span class="text-muted">{{ fmtDate(item.scan.completedAt || item.scan.startedAt) }}</span>
-                <span v-if="item.scan.ciCommit" class="font-mono text-xs text-muted">{{ item.scan.ciCommit.slice(0, 7) }}</span>
+    <!-- Base → Current is one directional control, followed by its tools. -->
+    <div class="border-b bg-default/50 p-3">
+      <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
+        <section aria-labelledby="compare-direction-title" class="min-w-0 rounded-lg border border-default bg-elevated/30 p-3">
+          <div class="grid min-w-0 grid-cols-1 items-end gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+            <div class="min-w-0">
+              <div class="mb-1.5 flex items-center justify-between gap-2">
+                <label for="compare-base-scan" class="text-label text-muted">Base</label>
+                <span class="text-xs text-muted">Before</span>
               </div>
-            </template>
-          </USelect>
-        </div>
+              <USelect
+                id="compare-base-scan"
+                v-model="baseScanId"
+                aria-label="Base scan"
+                :items="otherScans.map(s => ({ value: s.scanId, label: `${shortId(s.scanId)} · ${deviceLabelForScan(s)}`, scan: s }))"
+                placeholder="Select base scan"
+                size="sm"
+                class="min-h-11 w-full min-w-0 sm:min-h-8"
+              >
+                <template #item="{ item }">
+                  <div class="flex min-w-0 items-center gap-2 text-xs">
+                    <span class="font-mono">{{ shortId(item.scan.scanId) }}</span>
+                    <UiChip purpose="count">
+                      {{ deviceLabelForScan(item.scan) }}
+                    </UiChip>
+                    <span class="truncate text-muted">{{ fmtDate(item.scan.completedAt || item.scan.startedAt) }}</span>
+                  </div>
+                </template>
+              </USelect>
+              <button v-if="baseMeta" type="button" class="mt-1 inline-flex min-h-11 max-w-full items-center gap-1 text-left text-xs text-muted hover:text-default hover:underline sm:min-h-6" @click="gotoOverview(baseScanId)">
+                <UiIcon name="external" class="size-3 shrink-0" aria-hidden="true" />
+                <span class="truncate">{{ fmtDate(baseMeta.completedAt || baseMeta.startedAt) }}</span>
+                <span v-if="baseMeta.ciCommit" class="shrink-0 font-mono">· {{ baseMeta.ciCommit.slice(0, 7) }}</span>
+              </button>
+            </div>
 
-        <!-- Swap -->
-        <UiTooltip text="Swap base ↔ current" trigger-as="child">
-          <UiButton purpose="quiet" size="sm" class="size-8 p-0 justify-center" :disabled="!baseScanId" icon="compare" aria-label="Swap base and current" @click="swapDirection" />
-        </UiTooltip>
+            <UiButton purpose="secondary" size="sm" block icon="compare" :disabled="!baseScanId || !currentScanId" @click="swapDirection">
+              Swap
+            </UiButton>
 
-        <!-- Current scan -->
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="text-label text-muted shrink-0">Current</span>
-          <span class="font-mono text-xs">{{ shortId(currentScanId) }}</span>
-          <UiChip v-if="currentMeta" purpose="count">
-            {{ currentMeta.device }}
-          </UiChip>
-          <span v-if="currentMeta" class="text-xs text-muted truncate max-w-[200px]">{{ currentMeta.site }}</span>
-        </div>
+            <div class="min-w-0">
+              <div class="mb-1.5 flex items-center justify-between gap-2">
+                <label for="compare-current-scan" class="text-label text-muted">Current</label>
+                <span class="text-xs text-muted">After</span>
+              </div>
+              <USelect
+                id="compare-current-scan"
+                v-model="currentScanId"
+                aria-label="Current scan"
+                :items="currentScans.map(s => ({ value: s.scanId, label: `${shortId(s.scanId)} · ${deviceLabelForScan(s)}`, scan: s }))"
+                placeholder="Select current scan"
+                size="sm"
+                class="min-h-11 w-full min-w-0 sm:min-h-8"
+              >
+                <template #item="{ item }">
+                  <div class="flex min-w-0 items-center gap-2 text-xs">
+                    <span class="font-mono">{{ shortId(item.scan.scanId) }}</span>
+                    <UiChip purpose="count">
+                      {{ deviceLabelForScan(item.scan) }}
+                    </UiChip>
+                    <span class="truncate text-muted">{{ fmtDate(item.scan.completedAt || item.scan.startedAt) }}</span>
+                  </div>
+                </template>
+              </USelect>
+              <button v-if="currentMeta" type="button" class="mt-1 inline-flex min-h-11 max-w-full items-center gap-1 text-left text-xs text-muted hover:text-default hover:underline sm:min-h-6" @click="gotoOverview(currentScanId)">
+                <UiIcon name="external" class="size-3 shrink-0" aria-hidden="true" />
+                <span class="truncate">{{ fmtDate(currentMeta.completedAt || currentMeta.startedAt) }}</span>
+                <span v-if="currentMeta.ciCommit" class="shrink-0 font-mono">· {{ currentMeta.ciCommit.slice(0, 7) }}</span>
+              </button>
+            </div>
+          </div>
 
-        <div class="ml-auto flex items-center gap-1.5">
-          <!-- Thresholds popover -->
+          <div id="compare-direction-title" class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-default pt-2 text-xs">
+            <strong class="font-medium text-default">Current − Base</strong>
+            <span class="text-muted">Higher scores improve; lower timings and CLS improve.</span>
+            <span class="inline-flex items-center gap-1 text-success"><span aria-hidden="true">↑</span> score or <span aria-hidden="true">↓</span> timing = improved</span>
+            <span class="inline-flex items-center gap-1 text-error"><span aria-hidden="true">↓</span> score or <span aria-hidden="true">↑</span> timing = regressed</span>
+          </div>
+        </section>
+
+        <div class="grid grid-cols-2 content-start gap-2" aria-label="Comparison tools">
           <UiPopover>
-            <UiButton purpose="secondary" size="sm" icon="sliders">
-              Edit thresholds
+            <UiButton purpose="secondary" size="sm" block icon="sliders">
+              Thresholds
             </UiButton>
             <template #panel>
-              <div class="w-96 p-4 space-y-3">
+              <div class="w-[min(24rem,calc(100vw-2rem))] space-y-3 p-4">
                 <div>
                   <h2 class="text-sm font-semibold">
                     Regression thresholds
                   </h2>
                   <p class="text-xs text-muted">
-                    Empty = CI defaults. Deltas within threshold render muted (treated as noise).
+                    Empty uses CI defaults. Deltas inside a threshold render as noise.
                   </p>
                 </div>
 
-                <!-- Single inline note about sampling — explained once,
-                     not as a banner the user has to dismiss. -->
                 <UiAlert status="warning" icon="info">
                   CWV is noisy on parallel single-sample runs. Run with <code class="code-inline text-xs">--samples 3</code> for stability, or widen these thresholds.
                 </UiAlert>
 
                 <div class="space-y-3 text-xs">
                   <div>
-                    <div class="text-label text-muted mb-1.5">
+                    <div class="text-label mb-1.5 text-muted">
                       Category scores (0–1)
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                      <label class="space-y-1">
-                        <span class="text-muted">Performance</span>
-                        <UInput v-model="thresholds.performance" name="threshold-performance" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
-                      </label>
-                      <label class="space-y-1">
-                        <span class="text-muted">Accessibility</span>
-                        <UInput v-model="thresholds.accessibility" name="threshold-accessibility" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
-                      </label>
-                      <label class="space-y-1">
-                        <span class="text-muted">SEO</span>
-                        <UInput v-model="thresholds.seo" name="threshold-seo" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
-                      </label>
-                      <label class="space-y-1">
-                        <span class="text-muted">Best Practices</span>
-                        <UInput v-model="thresholds['best-practices']" name="threshold-best-practices" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
-                      </label>
-                      <label class="space-y-1">
-                        <span class="text-muted">Agentic</span>
-                        <UInput v-model="thresholds['agentic-browsing']" name="threshold-agentic-browsing" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="w-full" />
-                      </label>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <label class="space-y-1"><span class="text-muted">Performance</span><UInput v-model="thresholds.performance" name="threshold-performance" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
+                      <label class="space-y-1"><span class="text-muted">Accessibility</span><UInput v-model="thresholds.accessibility" name="threshold-accessibility" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
+                      <label class="space-y-1"><span class="text-muted">SEO</span><UInput v-model="thresholds.seo" name="threshold-seo" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
+                      <label class="space-y-1"><span class="text-muted">Best Practices</span><UInput v-model="thresholds['best-practices']" name="threshold-best-practices" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
+                      <label class="space-y-1"><span class="text-muted">Agentic</span><UInput v-model="thresholds['agentic-browsing']" name="threshold-agentic-browsing" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.05" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
                     </div>
                   </div>
 
                   <div>
-                    <div class="text-label text-muted mb-1.5">
+                    <div class="text-label mb-1.5 text-muted">
                       Core Web Vitals
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                      <label class="space-y-1">
-                        <span class="text-muted flex justify-between">
-                          LCP (ms)
-                          <span class="text-xs italic text-muted/70">≈ 300ms noise</span>
-                        </span>
-                        <UInput v-model="thresholds.lcp" name="threshold-lcp" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="500" size="xs" class="w-full" />
-                      </label>
-                      <label class="space-y-1">
-                        <span class="text-muted flex justify-between">
-                          CLS
-                          <span class="text-xs italic text-muted/70">≈ 0.02 noise</span>
-                        </span>
-                        <UInput v-model="thresholds.cls" name="threshold-cls" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.1" size="xs" class="w-full" />
-                      </label>
-                      <label class="space-y-1">
-                        <span class="text-muted flex justify-between">
-                          INP (ms)
-                          <span class="text-xs italic text-muted/70">≈ 100ms noise</span>
-                        </span>
-                        <UInput v-model="thresholds.inp" name="threshold-inp" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="200" size="xs" class="w-full" />
-                      </label>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <label class="space-y-1"><span class="flex justify-between text-muted">LCP (ms)<span class="italic text-muted/70">≈ 300ms noise</span></span><UInput v-model="thresholds.lcp" name="threshold-lcp" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="500" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
+                      <label class="space-y-1"><span class="flex justify-between text-muted">CLS<span class="italic text-muted/70">≈ 0.02 noise</span></span><UInput v-model="thresholds.cls" name="threshold-cls" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="0.1" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
+                      <label class="space-y-1"><span class="flex justify-between text-muted">INP (ms)<span class="italic text-muted/70">≈ 100ms noise</span></span><UInput v-model="thresholds.inp" name="threshold-inp" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="200" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
                     </div>
                   </div>
                 </div>
 
-                <UiButton purpose="cta" size="sm" class="w-full justify-center" @click="handleCompare">
+                <UiButton purpose="cta" size="sm" block :disabled="pairCompatibility._tag !== 'ready'" @click="handleCompare">
                   Apply thresholds
                 </UiButton>
               </div>
             </template>
           </UiPopover>
 
-          <UiButton purpose="secondary" size="sm" :loading="copyingMarkdown" :disabled="copyingMarkdown || !baseScanId || !report" icon="copy" @click="copyAsMarkdown">
+          <UiButton purpose="secondary" size="sm" block :loading="copyingLink" :disabled="copyingLink || !currentScanId" icon="link" @click="copyLink">
+            Copy link
+          </UiButton>
+          <UiButton purpose="secondary" size="sm" block :loading="copyingMarkdown" :disabled="copyingMarkdown || !report" icon="copy" @click="copyAsMarkdown">
             Copy markdown
           </UiButton>
-
-          <UiButton purpose="cta" size="sm" :loading="comparing" :disabled="!baseScanId || comparing" icon="refresh" @click="handleCompare">
+          <UiButton purpose="cta" size="sm" block :loading="comparing" :disabled="pairCompatibility._tag !== 'ready' || comparing" icon="refresh" @click="handleCompare">
             Compare scans
           </UiButton>
         </div>
       </div>
+    </div>
 
-      <!-- Scan-metadata strip — visible only when both scans are loaded -->
-      <div v-if="baseMeta && currentMeta" class="px-4 py-2 text-xs flex items-center gap-4 flex-wrap border-t bg-default/40">
-        <button type="button" class="min-h-6 hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(baseScanId)">
-          <UiIcon name="external" class="size-3" />
-          Base: {{ fmtDate(baseMeta.completedAt || baseMeta.startedAt) }}
-          <span v-if="baseMeta.ciCommit" class="font-mono text-xs">· {{ baseMeta.ciCommit.slice(0, 7) }}</span>
-          <span v-if="baseMeta.ciBranch" class="text-xs">· {{ baseMeta.ciBranch }}</span>
-        </button>
-        <UiIcon name="next" class="size-3 text-muted" />
-        <button type="button" class="min-h-6 hover:underline text-muted hover:text-default inline-flex items-center gap-1" @click="gotoOverview(currentScanId)">
-          <UiIcon name="external" class="size-3" />
-          Current: {{ fmtDate(currentMeta.completedAt || currentMeta.startedAt) }}
-          <span v-if="currentMeta.ciCommit" class="font-mono text-xs">· {{ currentMeta.ciCommit.slice(0, 7) }}</span>
-          <span v-if="currentMeta.ciBranch" class="text-xs">· {{ currentMeta.ciBranch }}</span>
-        </button>
+    <div v-if="pairCompatibility._tag === 'missing-current'" class="flex-1 overflow-auto p-4">
+      <div v-if="historyStatus === 'pending'" class="flex min-h-64 items-center justify-center gap-3 text-sm text-muted" role="status">
+        <UiIcon name="loading" class="size-5 animate-spin" aria-hidden="true" />
+        Loading completed scans…
+      </div>
+      <UiEmptyState v-else icon="radar" title="Run a scan to create the current result" description="Compare needs a completed current scan before it can find a baseline.">
+        <UiButton purpose="cta" :to="{ path: '/scan/new' }" icon="radar">
+          Run first scan
+        </UiButton>
+      </UiEmptyState>
+    </div>
+
+    <div v-else-if="pairCompatibility._tag === 'missing-base'" class="flex-1 overflow-auto p-4">
+      <UiEmptyState icon="compare" :title="otherScans.length ? 'Choose a Base scan' : 'Run one more scan to create a baseline'" :description="otherScans.length ? 'Choose a Base scan above. Current stays on the right side of the comparison.' : 'This site has one completed scan. Run it again, then compare the earlier Base with the newer Current result.'">
+        <UiButton v-if="!otherScans.length" purpose="cta" :to="{ path: '/scan/new', query: { url: currentMeta?.site } }" icon="radar">
+          Run another scan
+        </UiButton>
+      </UiEmptyState>
+    </div>
+
+    <div v-else-if="pairCompatibility._tag === 'same-scan'" class="flex-1 overflow-auto p-4">
+      <UiAlert status="warning" title="Choose two different scans" description="Base and Current point to the same scan. Choose another result in either selector to produce a meaningful delta." />
+    </div>
+
+    <div v-else-if="pairCompatibility._tag === 'different-site'" class="flex-1 overflow-auto p-4">
+      <UiAlert status="error" title="Scans belong to different sites" description="Base and Current must share the same origin. Choose both scans from this site's completed history." />
+    </div>
+
+    <div v-else-if="pairCompatibility._tag === 'no-shared-device'" class="flex-1 overflow-auto p-4">
+      <UiAlert
+        status="warning"
+        title="Scans have no shared device"
+        :description="`Base contains ${pairCompatibility.baseDevices.join(', ')}; Current contains ${pairCompatibility.currentDevices.join(', ')}. Choose scans with Mobile or Desktop in common.`"
+      />
+    </div>
+
+    <div v-else-if="pairCompatibility._tag === 'loading-metadata'" class="flex-1 overflow-auto p-4">
+      <div v-if="currentMetaStatus === 'pending' || baseMetaStatus === 'pending'" class="mx-auto max-w-3xl space-y-4 py-12" role="status" aria-label="Loading scan metadata">
+        <div class="flex items-center justify-center gap-3 text-sm text-muted">
+          <UiIcon name="loading" class="size-5 animate-spin" aria-hidden="true" />
+          Loading scan metadata…
+        </div>
+        <UiSkeleton class="h-16 w-full" />
+        <UiSkeleton class="h-48 w-full" />
       </div>
     </div>
 
-    <!-- Empty state — no base picked yet -->
-    <div v-if="!baseScanId" class="flex-1 flex items-center justify-center p-8">
-      <UiCard class="max-w-md">
-        <div class="text-center space-y-3">
-          <UiIcon name="compare" class="size-12 text-muted/40 mx-auto" />
-          <h2 class="font-semibold">
-            Pick a scan to compare against
-          </h2>
-          <p class="text-sm text-muted">
-            Select a base scan for <span class="font-mono text-xs">{{ currentMeta?.site || 'this site' }}</span>. The most recent scan on the same device + branch is auto-selected when available.
-          </p>
-          <p v-if="!otherScans.length" class="text-xs text-muted">
-            Run another scan of this site to create a comparison baseline.
-          </p>
-        </div>
-      </UiCard>
+    <div v-else-if="compareError && !report" class="flex-1 overflow-auto p-4">
+      <QueryError :error="compareError" :on-retry="retryComparison" retry-label="Retry comparison" />
     </div>
 
-    <!-- No report yet but base picked: instructive empty state -->
-    <div v-else-if="!report && !comparing" class="flex-1 flex items-center justify-center p-8">
-      <UiCard class="max-w-md">
-        <div class="text-center space-y-3">
-          <UiIcon name="play" class="size-10 text-muted/40 mx-auto" />
-          <p class="text-sm text-muted">
-            Diff pending for the selected base and current scans.
-          </p>
+    <!-- Initial and explicit comparison loading. -->
+    <div v-else-if="comparing && !report" class="flex-1 overflow-auto p-4">
+      <div class="mx-auto max-w-4xl space-y-4 py-10" role="status" aria-live="polite" aria-label="Comparing route metrics">
+        <div class="flex items-center justify-center gap-3 text-sm font-medium">
+          <UiIcon name="loading" class="size-5 animate-spin text-muted" aria-hidden="true" />
+          Comparing route metrics…
         </div>
-      </UiCard>
+        <UiSkeleton class="h-12 w-full" />
+        <div class="grid gap-3 md:grid-cols-2">
+          <UiSkeleton class="h-52 w-full" />
+          <UiSkeleton class="h-52 w-full" />
+        </div>
+      </div>
     </div>
 
-    <!-- Loading -->
-    <div v-else-if="comparing && !report" class="flex-1 flex items-center justify-center">
-      <UiIcon name="loading" class="size-6 animate-spin text-muted" />
+    <div v-else-if="!report" class="flex-1 overflow-auto p-4">
+      <UiEmptyState icon="compare" title="Compare Base with Current" description="Choose compatible scans above, then run the comparison." compact>
+        <UiButton purpose="cta" :disabled="pairCompatibility._tag !== 'ready'" @click="handleCompare">
+          Compare scans
+        </UiButton>
+      </UiEmptyState>
     </div>
 
     <!-- Report body -->
     <template v-else-if="report">
+      <div v-if="comparing" class="flex items-center gap-2 border-b border-default px-4 py-2 text-xs text-muted" role="status" aria-live="polite">
+        <UiIcon name="loading" class="size-3.5 animate-spin" aria-hidden="true" />
+        Updating comparison…
+      </div>
+      <QueryError v-if="compareError" :error="compareError" :on-retry="retryComparison" retry-label="Retry comparison" class="m-4" />
+      <UiAlert
+        v-if="requestState._tag === 'partial' && packError"
+        status="warning"
+        title="Route comparison ready; pack summaries unavailable"
+        :description="`${packError.message} Route-level results remain usable. Retry the summary request when the backend is available.`"
+        class="m-4"
+      >
+        <template #action>
+          <UiButton purpose="secondary" size="xs" @click="retryPacks">
+            Retry summaries
+          </UiButton>
+        </template>
+      </UiAlert>
+      <UiAlert
+        v-if="pairHasPartialDeviceOverlap"
+        status="info"
+        title="Device scope differs"
+        :description="`${sharedDeviceLabel} exists in both scans. Entries from devices present on only one side can appear added or removed; filter to ${sharedDeviceLabel} for like-for-like route evidence.`"
+        class="m-4"
+      />
+
       <!-- Summary band -->
       <div class="px-4 py-3 border-b flex items-center gap-6 flex-wrap">
+        <span class="text-label text-muted">Full-scan summary</span>
         <UiChip v-if="verdict" purpose="status" :status="toneSemantic(verdict.tone)" size="sm" class="!bg-transparent ring-1 ring-inset ring-current/20">
           {{ verdict.text }}
         </UiChip>
-        <div class="flex items-center gap-4 text-xs">
+        <div class="flex flex-wrap items-center gap-4 text-xs">
           <div class="flex items-center gap-1.5">
             <span class="text-muted">Total</span>
             <span class="numerals-display">{{ report.summary.totalRoutes }}</span>
@@ -375,7 +460,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
             <span class="numerals-display text-warning">{{ report.summary.removedRoutes }}</span>
           </div>
           <div class="flex items-center gap-1.5 border-l pl-4">
-            <span class="text-muted">Avg Score Δ</span>
+            <span class="text-muted">Avg score Current − Base</span>
             <span class="numerals-display" :class="(report.summary.avgScoreDelta ?? 0) >= 0 ? 'text-success' : 'text-error'">
               {{ fmtDelta(report.summary.avgScoreDelta, true) }}
             </span>
@@ -393,6 +478,15 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
           </div>
         </div>
       </div>
+
+      <UiAlert
+        v-if="routeSetNotice"
+        status="warning"
+        icon="info"
+        title="URL or device set changed"
+        :description="routeSetNotice"
+        class="mx-4 my-3"
+      />
 
       <!-- Core Web Vitals p75 strip — the smoothed answer to the noisy
            per-route CWV columns below. Sourced from the cwv pack
@@ -412,7 +506,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
             class="text-xs tabular-nums"
             :class="deltaClassWithThreshold(row.delta, false, row.metric).klass"
           >
-            ({{ fmtDelta(row.delta, false) }})
+            ({{ fmtDelta(row.delta, false, row.metric) }})
             <span v-if="deltaClassWithThreshold(row.delta, false, row.metric).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
           </span>
         </div>
@@ -424,27 +518,58 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
 
       <!-- Filter bar -->
       <div class="px-4 py-2 border-b flex items-center gap-3 flex-wrap">
-        <div class="relative w-64">
+        <span class="text-label w-full text-muted sm:w-auto">Route changes</span>
+        <div class="relative w-full sm:w-64">
           <UiIcon name="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
-          <UInput name="compare-route-filter" type="search" autocomplete="off" aria-label="Filter routes by URL or path" placeholder="Filter by URL or path…" size="sm" class="w-full" :model-value="urlFilter" :ui="{ base: 'pl-8' }" @update:model-value="onFilterInput" />
+          <UInput name="compare-route-filter" type="search" autocomplete="off" aria-label="Filter routes by URL or path" placeholder="Filter by URL or path…" size="sm" class="min-h-11 w-full sm:min-h-8" :model-value="urlFilter" :ui="{ base: 'pl-8' }" @update:model-value="onFilterInput" />
         </div>
 
-        <UTabs
+        <USelect
+          v-if="isMobile"
           v-model="statusFilter"
-          :content="false"
-          size="sm"
           :items="[
-            { value: 'all', label: 'All' },
+            { value: 'all', label: 'All changes' },
             { value: 'changed', label: 'Changed' },
             { value: 'regressed', label: 'Regressed' },
             { value: 'improved', label: 'Improved' },
             { value: 'added', label: 'Added' },
             { value: 'removed', label: 'Removed' },
           ]"
+          aria-label="Filter routes by change status"
+          size="sm"
+          class="min-h-11 w-full sm:min-h-8"
+        />
+        <div v-else class="max-w-full overflow-x-auto">
+          <UTabs
+            v-model="statusFilter"
+            :content="false"
+            size="sm"
+            :items="[
+              { value: 'all', label: 'All' },
+              { value: 'changed', label: 'Changed' },
+              { value: 'regressed', label: 'Regressed' },
+              { value: 'improved', label: 'Improved' },
+              { value: 'added', label: 'Added' },
+              { value: 'removed', label: 'Removed' },
+            ]"
+          />
+        </div>
+
+        <USelect
+          v-if="hasMultipleDevices && isMobile"
+          v-model="deviceFilter"
+          :items="[
+            { value: '', label: 'All devices' },
+            { value: 'mobile', label: 'Mobile', icon: 'smartphone' },
+            { value: 'desktop', label: 'Desktop', icon: 'monitor' },
+          ]"
+          aria-label="Filter routes by device"
+          size="sm"
+          class="min-h-11 w-full sm:min-h-8"
         />
 
         <UTabs
-          v-if="hasMultipleDevices"
+          v-else-if="hasMultipleDevices"
           v-model="deviceFilter"
           :content="false"
           size="sm"
@@ -455,7 +580,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
           ]"
         />
 
-        <USelect v-model="sortKey" :items="sortOptions" aria-label="Sort routes" size="sm" class="w-44" />
+        <USelect v-model="sortKey" :items="sortOptions" aria-label="Sort routes" size="sm" class="min-h-11 w-full sm:min-h-8 sm:w-44" />
 
         <span class="ml-auto text-xs text-muted tabular-nums">
           {{ report.routes.total }} route{{ report.routes.total === 1 ? '' : 's' }}
@@ -527,7 +652,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
       </div>
 
       <!-- Main split: table left, detail right -->
-      <SplitterGroup direction="horizontal" class="flex-1 min-h-0 min-w-0 overflow-hidden">
+      <SplitterGroup :direction="isMobile ? 'vertical' : 'horizontal'" class="flex-1 min-h-0 min-w-0 overflow-hidden max-md:h-[70vh] max-md:flex-none">
         <SplitterPanel :default-size="62" :min-size="35" class="min-w-0">
           <div class="h-full overflow-auto">
             <UiTable
@@ -540,7 +665,19 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
               @row-click="(r) => { selectedRowKey = rowKey(r) }"
             >
               <template #empty-component>
-                No routes match the current filter.
+                <div class="flex min-h-48 flex-col items-center justify-center gap-3 px-4 text-center">
+                  <div>
+                    <p class="font-medium text-default">
+                      No routes match these filters
+                    </p>
+                    <p class="mt-1 text-sm text-muted">
+                      Clear filters to restore all route changes for this scan pair.
+                    </p>
+                  </div>
+                  <UiButton v-if="hasActiveFilters" purpose="secondary" size="sm" @click="clearFilters">
+                    Clear filters
+                  </UiButton>
+                </div>
               </template>
             </UiTable>
 
@@ -554,7 +691,10 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
           </div>
         </SplitterPanel>
 
-        <SplitterResizeHandle class="w-1.5 bg-[var(--ui-border)]/40 hover:bg-accented transition-colors data-[state=drag]:bg-inverted/60" />
+        <SplitterResizeHandle
+          class="bg-[var(--ui-border)]/40 hover:bg-accented transition-colors data-[state=drag]:bg-inverted/60"
+          :class="isMobile ? 'h-1.5 w-full' : 'w-1.5'"
+        />
 
         <SplitterPanel :default-size="38" :min-size="25" class="min-w-0">
           <div v-if="selectedRow" class="h-full overflow-auto p-4 space-y-4">
@@ -601,17 +741,17 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
                     {{ m.label }}
                   </UiTableTd>
                   <UiTableTd align="right" class="tabular-nums">
-                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score, m.key) }}
                   </UiTableTd>
                   <UiTableTd align="right" class="tabular-nums">
-                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score, m.key) }}
                   </UiTableTd>
                   <UiTableTd
                     align="right"
                     class="tabular-nums font-medium"
                     :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                   >
-                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score, m.key) }}
                     <span v-if="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
                   </UiTableTd>
                 </tr>
@@ -634,17 +774,17 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
                     </UiTooltip>
                   </UiTableTd>
                   <UiTableTd align="right" class="tabular-nums">
-                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score, m.key) }}
                   </UiTableTd>
                   <UiTableTd align="right" class="tabular-nums">
-                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score, m.key) }}
                   </UiTableTd>
                   <UiTableTd
                     align="right"
                     class="tabular-nums font-medium"
                     :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                   >
-                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score, m.key) }}
                     <span v-if="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
                   </UiTableTd>
                 </tr>
@@ -671,17 +811,17 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
                     </UiTooltip>
                   </UiTableTd>
                   <UiTableTd align="right" class="tabular-nums">
-                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score) }}
+                    {{ fmtMetric(selectedRow.base?.[m.key] ?? null, m.score, m.key) }}
                   </UiTableTd>
                   <UiTableTd align="right" class="tabular-nums">
-                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score) }}
+                    {{ fmtMetric(selectedRow.current?.[m.key] ?? null, m.score, m.key) }}
                   </UiTableTd>
                   <UiTableTd
                     align="right"
                     class="tabular-nums font-medium"
                     :class="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).klass"
                   >
-                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score) }}
+                    {{ fmtDelta(selectedRow.deltas?.[m.key], m.score, m.key) }}
                     <span v-if="deltaClassWithThreshold(selectedRow.deltas?.[m.key], m.score, m.thresholdKey).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
                   </UiTableTd>
                 </tr>

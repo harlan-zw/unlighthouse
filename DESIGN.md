@@ -184,7 +184,7 @@ Use `tabular-nums` / `.numerals-display` on every columnar or hero number — sc
 
 ## Surfaces, elevation & radius
 
-Flat tinted surfaces. **No backdrop blur, no glass, no mesh, no gradient backgrounds.** Hierarchy comes from the surface tier ladder (`bg-default` → `bg-muted` → `bg-elevated` → `bg-accented`) and a two-tier depth system.
+Flat tinted surfaces. **No backdrop blur, glass, mesh, or hand-rolled gradient backgrounds.** `UiAtmosphere` is the sole exception for focused threshold surfaces such as onboarding; it never appears behind audit data. Hierarchy comes from the surface tier ladder (`bg-default` → `bg-muted` → `bg-elevated` → `bg-accented`) and a two-tier depth system.
 
 Depth lives in CSS vars (not Tailwind `shadow-*`, which would inline at build and break the runtime remap). Components reference **only** the presets:
 
@@ -266,7 +266,7 @@ Rules not enforced by components:
 - Check the DS layer before hand-rolling any primitive (sparkline, ring, stat, skeleton, table).
 - No `text-gray-*` / `slate-*` / `zinc-*` / `stone-*` literals — use semantic `--ui-*` tokens. Both light and dark must resolve.
 - No hardcoded hex / rgb / rgba in templates; status color goes through `semanticColors` / `dataVizColors` / `useScoreColor`. Inline `:style` for *computed geometry* (width / height / left) or *sourced colors* is fine.
-- No `bg-white` / `text-black`, no `backdrop-blur`, no glass / mesh / gradient backgrounds.
+- No `bg-white` / `text-black`, no `backdrop-blur`, no glass or mesh. Decorative gradients are restricted to canonical `UiAtmosphere` threshold surfaces.
 - No drop shadows on cards beyond the elevation presets; overlays use `--elevation-popover`.
 - No `rounded-xl` / `rounded-2xl`; cards `rounded-lg`, controls `rounded-md`.
 - No emoji in UI copy. No bouncy easing beyond `--ease-spring`.
@@ -279,6 +279,7 @@ Rules not enforced by components:
 ## Design Decisions
 
 - **DS layer is a canonical mirror, not editable in-tree.** `packages/ui/layers/design-system` is copied one-way from `nuxtseo.com`. Adopt it as-is; never add Unlighthouse-specific components there (a resync wipes them). App UI lives in `app/components/` (cross-feature) or `app/features/*/components/` (feature-local, explicit import).
+- **Atmosphere at the front door only.** The canonical `UiAtmosphere` mirror may render `preset="front-door"` behind onboarding and similar threshold surfaces. Audit cards, tables, charts, and result pages remain visually quiet.
 - **Light + dark via `system`.** The dashboard is an SPA (`ssr: false`) with `colorMode.preference: 'system'`. Every surface resolves through semantic tokens; no per-mode class pairs.
 - **Violet primary, slate neutral, both at hue 292.** Neutrals carry a faint violet cast so the interface reads editorial. Saturated violet is reserved for `color="pro"` (purchase moments); standard CTAs invert to neutral (`bg-inverted`).
 - **`UiButton` is purpose-driven.** `cta / secondary / quiet / danger / link` map to fixed color+variant pairs; there is no raw `color`/`variant` knob. Brand violet requires dropping to a raw `UButton color="pro"`.

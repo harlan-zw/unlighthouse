@@ -4,12 +4,13 @@ import type { TrendMarker, TrendSeries } from '~/features/sites/components/Trend
 import type { DevicePair, ScanRow } from '~/features/sites/scan-pairs'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { CwvReportSchema } from '@unlighthouse/contracts/packs'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { routeParamString } from '~/features/scan/route-context'
 import { scanLinkPath } from '~/features/scan/scan-links'
 import { devicesForScan, pairScans, scoreSummaryForDevice } from '~/features/sites/scan-pairs'
 import { originOf, resolveSiteUrl } from '~/features/sites/site-url'
+import { hasMeaningfulTrendSeries } from '~/features/sites/trend-presentation'
 import { siteSlug } from '~/utils/site'
 
 type SiteDevice = 'mobile' | 'desktop'
@@ -73,7 +74,14 @@ export function useSiteOverview() {
   const presentDevices = computed(() => new Set(allScans.value.flatMap(devicesForScan)))
   const hasBoth = computed(() => presentDevices.value.has('mobile') && presentDevices.value.has('desktop'))
 
-  const deviceFilter = ref<SiteDevice>('mobile')
+  const initialDevice = route.query.device === 'desktop' ? 'desktop' : 'mobile'
+  const deviceFilter = ref<SiteDevice>(initialDevice)
+  watch(deviceFilter, device => router.replace({ query: { ...route.query, device } }))
+  watch(() => route.query.device, (device) => {
+    const next = device === 'desktop' ? 'desktop' : 'mobile'
+    if (deviceFilter.value !== next)
+      deviceFilter.value = next
+  })
   const effectiveDevice = computed<SiteDevice>(() => {
     if (presentDevices.value.has(deviceFilter.value))
       return deviceFilter.value
@@ -114,6 +122,7 @@ export function useSiteOverview() {
       return { t: new Date(scan.startedAt).getTime(), v: raw == null ? null : Math.round(raw * 100) }
     }),
   })))
+  const hasScoreTrend = computed(() => hasMeaningfulTrendSeries(scoreSeries.value))
 
   // Composite: one `pack.run` per trend scan, fanned out. Per-scan `.catch`
   // drops a scan whose pack failed rather than failing the whole chart — an
@@ -152,6 +161,8 @@ export function useSiteOverview() {
       }),
     }]
   }
+  const vitals = computed(() => VITALS.filter(metric => hasMeaningfulTrendSeries(vitalsSeries(metric.key, metric.label, metric.color))))
+  const hasVitalsTrend = computed(() => vitals.value.length > 0)
 
   const pairs = computed<DevicePair[]>(() => pairScans(allScans.value))
 
@@ -210,9 +221,11 @@ export function useSiteOverview() {
     releaseMarkers,
     hasReleases,
     scoreSeries,
+    hasScoreTrend,
     vitalsStatus,
-    vitals: VITALS,
+    vitals,
     vitalsSeries,
+    hasVitalsTrend,
     pairs,
     openPair,
     rescan,

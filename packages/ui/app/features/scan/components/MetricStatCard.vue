@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DistributionSegment } from '~/components/DistributionBar.vue'
 import { metricStats } from '~/features/scan/metric-stats'
+import { formatRouteCount } from '~/features/scan/pack-presentation'
 
 // Expo-Observe-style metric card: a headline p75, a threshold-coloured
 // distribution bar across the scan's routes, and a Median/Avg/Min/Max/P75/P95
@@ -65,7 +66,7 @@ const statCols = computed(() => {
   <UiCard size="sm">
     <div class="flex items-center justify-between">
       <span class="text-label text-muted">{{ label }}</span>
-      <span v-if="stats" class="text-xs text-muted tabular-nums">{{ stats.count }} routes</span>
+      <span v-if="stats" class="text-xs text-muted tabular-nums">{{ formatRouteCount(stats.count) }}</span>
     </div>
 
     <template v-if="stats">

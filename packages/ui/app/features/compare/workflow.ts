@@ -1,15 +1,19 @@
 import type { CompareReport, CompareRouteRow, ScanId } from '@unlighthouse/contracts'
 import type { UnlighthouseClient } from '@unlighthouse/contracts/client'
+import type { ApiError } from '~/composables/useApiError'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { computed, onUnmounted, reactive, ref, watch } from 'vue'
+import { useClipboard, watchDebounced } from '@vueuse/core'
+import { computed, reactive, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
+import { normalizeApiError } from '~/composables/useApiError'
 import { compareRowKey } from '~/features/compare/presentation'
+import { comparePairCompatibility, didComparePairChange, parseCompareQueryState } from '~/features/compare/state'
 import { optionalScanId, routeParamString } from '~/features/scan/route-context'
+import { hasMultipleDevicesForScans } from '~/features/sites/scan-pairs'
 import { originOf } from '~/features/sites/site-url'
 import { siteSlug } from '~/utils/site'
 
-export type CompareStatusFilter = 'all' | 'changed' | 'regressed' | 'improved' | 'added' | 'removed'
-export type CompareDeviceFilter = '' | 'mobile' | 'desktop'
+export type { CompareDeviceFilter, CompareStatusFilter } from '~/features/compare/state'
 
 // compare.detail's output isn't exported as a named type, so derive it from the
 // typed client. compare.run reuses the exported CompareReport schema.
@@ -53,6 +57,17 @@ export interface CwvP75Row {
   verdict: string | null
 }
 
+export type CompareRequestState
+  = | { _tag: 'idle' }
+    | { _tag: 'loading', hasPreviousReport: boolean }
+    | { _tag: 'ready' }
+    | { _tag: 'partial', error: ApiError }
+    | { _tag: 'error', error: ApiError }
+
+type CompareResult<T>
+  = | { _tag: 'ok', data: T }
+    | { _tag: 'err', error: ApiError }
+
 function isCompareThresholdKey(key: string): key is CompareThresholdKey {
   return COMPARE_THRESHOLD_KEYS.has(key)
 }
@@ -73,6 +88,8 @@ export function useCompareWorkflow() {
   const route = useRoute()
   const router = useRouter()
   const api = useApi()
+  const requestUrl = useRequestURL()
+  const { copy } = useClipboard({ legacy: true })
 
   // Site comes off the route param (/sites/:siteId/compare); both scan ids
   // ride the query string (`?current=&base=`) so the whole compare is
@@ -82,15 +99,34 @@ export function useCompareWorkflow() {
   // `undefined` is the "nothing picked" sentinel; once chosen it's a real
   // ScanId, matching both the `value: s.scanId` items the USelect renders and
   // the v-model type the select infers from those items.
+  const initialQuery = parseCompareQueryState(route.query)
   const currentScanId = ref<ScanId | undefined>(optionalScanId(route.query.current))
   const baseScanId = ref<ScanId | undefined>(optionalScanId(route.query.base))
+  const statusFilter = ref(initialQuery.status)
+  const deviceFilter = ref(initialQuery.device)
+  const urlFilter = ref(initialQuery.q)
+  const page = ref(initialQuery.page)
+  const sortKey = ref(initialQuery.sort)
+
+  function compareQuery() {
+    return {
+      ...route.query,
+      current: currentScanId.value || undefined,
+      base: baseScanId.value || undefined,
+      status: statusFilter.value === 'all' ? undefined : statusFilter.value,
+      device: deviceFilter.value || undefined,
+      q: urlFilter.value || undefined,
+      page: page.value === 1 ? undefined : String(page.value),
+      sort: sortKey.value === 'delta-perf-desc' ? undefined : sortKey.value,
+    }
+  }
 
   // Sync both picks back into the URL in one navigation — updating them
   // separately would race (each `router.replace` reads the still-stale
   // `route.query` before the previous one resolves) and could drop one of
   // the two writes.
-  watch([currentScanId, baseScanId], ([c, b]) => {
-    router.replace({ query: { ...route.query, current: c || undefined, base: b || undefined } })
+  watch([currentScanId, baseScanId, statusFilter, deviceFilter, urlFilter, page, sortKey], () => {
+    void router.replace({ query: compareQuery() })
   })
 
   // Inbound: Vue Router reuses this component across query-only navigations
@@ -99,22 +135,28 @@ export function useCompareWorkflow() {
   // everything derived from them) go stale vs the address bar. Guarded to
   // only assign on an actual diff so it doesn't fight the outbound sync
   // above (assigning back would just re-replace with the same query).
-  watch(() => [route.query.current, route.query.base] as const, ([c, b]) => {
-    const nextCurrent = optionalScanId(c)
-    const nextBase = optionalScanId(b)
+  watch(() => route.query, (query) => {
+    const parsed = parseCompareQueryState(query)
+    const nextCurrent = optionalScanId(query.current)
+    const nextBase = optionalScanId(query.base)
     if (nextCurrent !== currentScanId.value)
       currentScanId.value = nextCurrent
     if (nextBase !== baseScanId.value)
       baseScanId.value = nextBase
+    statusFilter.value = parsed.status
+    deviceFilter.value = parsed.device
+    urlFilter.value = parsed.q
+    page.value = parsed.page
+    sortKey.value = parsed.sort
   })
 
-  const { data: currentMeta, error: currentMetaError, refresh: refreshCurrentMeta } = useApiQuery(
+  const { data: currentMeta, error: currentMetaError, status: currentMetaStatus, refresh: refreshCurrentMeta } = useApiQuery(
     'scan.meta',
     () => ({ scanId: currentScanId.value }),
     { enabled: () => !!currentScanId.value },
   )
 
-  const { data: baseMeta } = useApiQuery(
+  const { data: baseMeta, error: baseMetaError, status: baseMetaStatus, refresh: refreshBaseMeta } = useApiQuery(
     'scan.meta',
     () => ({ scanId: baseScanId.value }),
     { enabled: () => !!baseScanId.value },
@@ -123,7 +165,7 @@ export function useCompareWorkflow() {
   // History is loaded with a generous page size so users with many scans can
   // still pick anything from the dropdown without paging. 200 is the server cap;
   // for orgs that exceed it we'd need a search box.
-  const { data: history, error: historyError } = useApiQuery(
+  const { data: history, error: historyError, status: historyStatus, refresh: refreshHistory } = useApiQuery(
     'history.list',
     () => ({ page: 1, pageSize: 200 }),
   )
@@ -173,6 +215,7 @@ export function useCompareWorkflow() {
   // Only scans of the same site (excluding current) can produce meaningful
   // route overlap.
   const otherScans = computed(() => poolScans.value.filter(s => s.scanId !== currentScanId.value))
+  const currentScans = computed(() => poolScans.value.filter(s => s.scanId !== baseScanId.value))
 
   // Auto-pick the most recent prior scan on the same site (+ branch if the
   // current scan has one). Doesn't override an explicit URL pick.
@@ -206,12 +249,6 @@ export function useCompareWorkflow() {
       baseScanId.value = id
   })
 
-  const comparing = ref(false)
-  const statusFilter = ref<CompareStatusFilter>('all')
-  const deviceFilter = ref<CompareDeviceFilter>('')
-  const urlFilter = ref('')
-  const page = ref(1)
-  const sortKey = ref('delta-perf-desc')
   const selectedRowKey = ref<string | null>(null)
 
   // Threshold UI bound to the same shape compare.detail accepts. Empty string
@@ -232,9 +269,21 @@ export function useCompareWorkflow() {
   // compare.detail only carries route data. Keep it separate so filter/sort
   // changes do not refetch pack summaries.
   const packReport = ref<CompareReport | null>(null)
+  const requestState = ref<CompareRequestState>({ _tag: 'idle' })
+  const packError = ref<ApiError | null>(null)
   const copyingMarkdown = ref(false)
+  const copyingLink = ref(false)
   const showLegacyMetrics = ref(false)
   const showPackDetails = ref(false)
+  const comparing = computed(() => requestState.value._tag === 'loading')
+  const compareError = computed(() => requestState.value._tag === 'error' ? requestState.value.error : null)
+
+  const pairCompatibility = computed(() => comparePairCompatibility({
+    baseScanId: baseScanId.value,
+    currentScanId: currentScanId.value,
+    base: baseMeta.value,
+    current: currentMeta.value,
+  }))
 
   const currentThresholdPayload = () => thresholdPayload(thresholds)
 
@@ -244,87 +293,81 @@ export function useCompareWorkflow() {
     if (!base || !current)
       return
     copyingMarkdown.value = true
-    try {
-      const res = await api['compare.markdown']({
-        baseScanId: base,
-        currentScanId: current,
-        thresholds: currentThresholdPayload(),
+    await api['compare.markdown']({
+      baseScanId: base,
+      currentScanId: current,
+      thresholds: currentThresholdPayload(),
+    })
+      .then(async (res) => {
+        await copy(res.markdown)
+        toast.success(res.hasRegressions ? 'Markdown copied: regressions present' : 'Comparison markdown copied')
       })
-      let copied = false
-      if (navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(res.markdown)
-          copied = true
-        }
-        catch (_err) {
-          // Clipboard permissions/user activation can expire while the
-          // markdown request is in flight. Fall through to the synchronous
-          // selection-based path instead of reporting a false hard failure.
-        }
-      }
-      if (!copied) {
-        const ta = document.createElement('textarea')
-        ta.value = res.markdown
-        ta.style.position = 'fixed'
-        ta.style.opacity = '0'
-        document.body.appendChild(ta)
-        ta.select()
-        copied = document.execCommand('copy')
-        document.body.removeChild(ta)
-      }
-      if (!copied)
-        throw new Error('The browser denied clipboard access')
-      toast.success(res.hasRegressions ? 'Copied: regressions present' : 'Copied to clipboard')
-    }
-    catch (err) {
-      toast.error('Copy markdown failed', { description: `${err instanceof Error ? err.message : String(err)}. Allow clipboard access and retry.` })
-    }
-    finally {
-      copyingMarkdown.value = false
-    }
+      .catch((err) => {
+        toast.error('Copy markdown failed', { description: `${err instanceof Error ? err.message : String(err)}. Allow clipboard access and retry.` })
+      })
+      .finally(() => {
+        copyingMarkdown.value = false
+      })
   }
 
-  async function fetchPage() {
-    const base = baseScanId.value
-    const current = currentScanId.value
-    if (!base || !current)
-      return
-    try {
-      report.value = await api['compare.detail']({
-        baseScanId: base,
-        currentScanId: current,
-        page: page.value,
-        pageSize: 100,
-        sort: sortKey.value,
-        filter: {
-          url: urlFilter.value || undefined,
-          status: statusFilter.value,
-          device: deviceFilter.value || undefined,
-        },
-        thresholds: currentThresholdPayload(),
+  async function copyLink() {
+    copyingLink.value = true
+    const href = new URL(router.resolve({ path: route.path, query: compareQuery() }).href, requestUrl.origin).toString()
+    await copy(href)
+      .then(() => toast.success('Comparison link copied'))
+      .catch((err) => {
+        toast.error('Copy link failed', { description: `${err instanceof Error ? err.message : String(err)}. Allow clipboard access and retry.` })
       })
-    }
-    catch (err) {
-      toast.error('Compare scans failed', { description: `${err instanceof Error ? err.message : String(err)}. Check both scans are available and retry.` })
-    }
+      .finally(() => {
+        copyingLink.value = false
+      })
   }
 
-  async function fetchPacks() {
+  async function fetchPage(): Promise<CompareResult<CompareDetailReport>> {
     const base = baseScanId.value
     const current = currentScanId.value
-    if (!base || !current)
-      return
-    try {
-      packReport.value = await api['compare.run']({
-        baseScanId: base,
-        currentScanId: current,
-        thresholds: currentThresholdPayload(),
+    if (!base || !current) {
+      return {
+        _tag: 'err',
+        error: normalizeApiError(new Error('Select both a base and current scan before comparing.')),
+      }
+    }
+    return api['compare.detail']({
+      baseScanId: base,
+      currentScanId: current,
+      page: page.value,
+      pageSize: 100,
+      sort: sortKey.value,
+      filter: {
+        url: urlFilter.value || undefined,
+        status: statusFilter.value,
+        device: deviceFilter.value || undefined,
+      },
+      thresholds: currentThresholdPayload(),
+    })
+      .then(data => ({ _tag: 'ok' as const, data }))
+      .catch(error => ({ _tag: 'err' as const, error: normalizeApiError(error) }))
+  }
+
+  async function fetchPacks(): Promise<CompareResult<CompareReport>> {
+    const base = baseScanId.value
+    const current = currentScanId.value
+    if (!base || !current) {
+      return {
+        _tag: 'err',
+        error: normalizeApiError(new Error('Select both a base and current scan before comparing.')),
+      }
+    }
+    return api['compare.run']({
+      baseScanId: base,
+      currentScanId: current,
+      thresholds: currentThresholdPayload(),
+    })
+      .then(data => ({ _tag: 'ok' as const, data }))
+      .catch((error) => {
+        logOperationalWarn('ui.optional_api_read_failed', error, { command: 'compare.run', feature: 'compare-workflow-packs' }, console)
+        return { _tag: 'err' as const, error: normalizeApiError(error) }
       })
-    }
-    catch (err) {
-      logOperationalWarn('ui.optional_api_read_failed', err, { command: 'compare.run', feature: 'compare-workflow-packs' }, console)
-      packReport.value = null
-    }
   }
 
   const cwvPackDiff = computed(() => {
@@ -367,18 +410,68 @@ export function useCompareWorkflow() {
     return packReport.value.packDiffs.filter(p => p.packName !== 'cwv' && p.hasChanges)
   })
 
-  async function handleCompare() {
-    if (!baseScanId.value)
+  let requestVersion = 0
+  async function runComparison(includePacks: boolean) {
+    if (pairCompatibility.value._tag !== 'ready')
       return
-    comparing.value = true
-    selectedRowKey.value = null
-    page.value = 1
-    try {
-      await Promise.all([fetchPage(), fetchPacks()])
+
+    const version = ++requestVersion
+    requestState.value = { _tag: 'loading', hasPreviousReport: report.value !== null }
+    const [detailResult, packResult] = await Promise.all([
+      fetchPage(),
+      includePacks ? fetchPacks() : Promise.resolve(null),
+    ])
+    if (version !== requestVersion)
+      return
+
+    if (detailResult._tag === 'err') {
+      requestState.value = { _tag: 'error', error: detailResult.error }
+      return
     }
-    finally {
-      comparing.value = false
+
+    report.value = detailResult.data
+    const visibleRows = detailResult.data.routes.items
+    const selectedStillVisible = visibleRows.some(row => compareRowKey(row) === selectedRowKey.value)
+    if (!selectedStillVisible)
+      selectedRowKey.value = visibleRows[0] ? compareRowKey(visibleRows[0]) : null
+
+    if (packResult?._tag === 'ok') {
+      packReport.value = packResult.data
+      packError.value = null
     }
+    else if (packResult?._tag === 'err') {
+      packError.value = packResult.error
+    }
+
+    requestState.value = packError.value
+      ? { _tag: 'partial', error: packError.value }
+      : { _tag: 'ready' }
+  }
+
+  let includePacksOnNextPageChange = false
+  function handleCompare() {
+    if (page.value !== 1) {
+      includePacksOnNextPageChange = true
+      page.value = 1
+      return
+    }
+    void runComparison(true)
+  }
+
+  function retryComparison() {
+    void runComparison(true)
+  }
+
+  async function retryPacks() {
+    const result = await fetchPacks()
+    if (result._tag === 'err') {
+      packError.value = result.error
+      requestState.value = { _tag: 'partial', error: result.error }
+      return
+    }
+    packReport.value = result.data
+    packError.value = null
+    requestState.value = { _tag: 'ready' }
   }
 
   function swapDirection() {
@@ -389,32 +482,32 @@ export function useCompareWorkflow() {
     baseScanId.value = oldCurrent
   }
 
-  let filterTimeout: ReturnType<typeof setTimeout> | null = null
   function onFilterInput(val: string) {
-    if (filterTimeout)
-      clearTimeout(filterTimeout)
     urlFilter.value = val
-    filterTimeout = setTimeout(() => {
-      page.value = 1
-      void fetchPage()
-    }, 300)
   }
 
   function resetPageAndFetch() {
-    page.value = 1
-    void fetchPage()
+    if (page.value !== 1) {
+      page.value = 1
+      return
+    }
+    void runComparison(false)
   }
-  watch(statusFilter, resetPageAndFetch)
-  watch(deviceFilter, resetPageAndFetch)
-  watch(sortKey, resetPageAndFetch)
-  watch(page, () => void fetchPage())
-
-  const hasMultipleDevices = computed(() => {
-    if (!report.value?.routes?.items)
-      return false
-    const devices = new Set(report.value.routes.items.map(r => r.device))
-    return devices.size > 1
+  watchDebounced([urlFilter, statusFilter, deviceFilter, sortKey], resetPageAndFetch, { debounce: 300, maxWait: 600 })
+  watch(page, () => {
+    const includePacks = includePacksOnNextPageChange
+    includePacksOnNextPageChange = false
+    void runComparison(includePacks)
   })
+
+  function clearFilters() {
+    statusFilter.value = 'all'
+    deviceFilter.value = ''
+    urlFilter.value = ''
+    sortKey.value = 'delta-perf-desc'
+  }
+
+  const hasMultipleDevices = computed(() => hasMultipleDevicesForScans([currentMeta.value, baseMeta.value]))
 
   const selectedRow = computed(() => {
     if (!selectedRowKey.value || !report.value)
@@ -441,18 +534,23 @@ export function useCompareWorkflow() {
     return { tone: 'outline', text: 'No significant change' }
   })
 
-  watch([baseScanId, currentScanId], ([b, c]) => {
-    if (b && c) {
+  watch([baseScanId, currentScanId, pairCompatibility], ([base, current, compatibility], previous) => {
+    const [previousBase, previousCurrent] = previous ?? []
+    if (didComparePairChange(
+      previous?.length >= 2 ? [previousBase, previousCurrent] : undefined,
+      [base, current],
+    )) {
+      report.value = null
+      packReport.value = null
+      packError.value = null
+      selectedRowKey.value = null
       page.value = 1
-      void fetchPage()
-      void fetchPacks()
     }
+    if (compatibility._tag === 'ready')
+      void runComparison(true)
+    else
+      requestState.value = { _tag: 'idle' }
   }, { immediate: true })
-
-  onUnmounted(() => {
-    if (filterTimeout)
-      clearTimeout(filterTimeout)
-  })
 
   function shortId(id: string | null | undefined): string {
     if (!id)
@@ -472,11 +570,22 @@ export function useCompareWorkflow() {
     baseScanId,
     currentMeta,
     currentMetaError,
+    currentMetaStatus,
     historyError,
+    historyStatus,
     refreshCurrentMeta,
+    refreshHistory,
     baseMeta,
+    baseMetaError,
+    baseMetaStatus,
+    refreshBaseMeta,
     otherScans,
+    currentScans,
     comparing,
+    requestState,
+    compareError,
+    packError,
+    pairCompatibility,
     statusFilter,
     deviceFilter,
     urlFilter,
@@ -486,14 +595,19 @@ export function useCompareWorkflow() {
     thresholds,
     report,
     copyingMarkdown,
+    copyingLink,
     showLegacyMetrics,
     showPackDetails,
     copyAsMarkdown,
+    copyLink,
     cwvP75Rows,
     otherPackChanges,
     handleCompare,
+    retryComparison,
+    retryPacks,
     swapDirection,
     onFilterInput,
+    clearFilters,
     hasMultipleDevices,
     selectedRow,
     totalPages,

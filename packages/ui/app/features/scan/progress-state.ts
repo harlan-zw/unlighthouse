@@ -23,6 +23,7 @@ export function createScanProgressState() {
   const startedAt = ref<string | null>(null)
   const completedAt = ref<string | null>(null)
   const error = ref<string | null>(null)
+  const pausable = ref(false)
 
   const discovered = ref(0)
   const scanned = ref(0)
@@ -110,6 +111,8 @@ export function createScanProgressState() {
 
   function applyScanning(data: ScanEventPayloads['scan:scanning']) {
     status.value = 'scanning'
+    discovered.value = data?.discovered ?? discovered.value
+    total.value = Math.max(total.value, discovered.value)
     addLog('info', `Scanning ${data?.discovered ?? 0} discovered routes`)
   }
 
@@ -157,7 +160,7 @@ export function createScanProgressState() {
   function applyComplete(data: ScanEventPayloads['scan:complete']) {
     status.value = 'complete'
     completedAt.value = new Date().toISOString()
-    addLog('success', `Scan complete — ${data?.summary?.routes ?? scanned.value} routes scanned`)
+    addLog('success', `Scan complete: ${data?.summary?.completed ?? scanned.value} audited of ${data?.summary?.routes ?? total.value} URL/device entries`)
   }
 
   function applyCancelled(data: ScanEventPayloads['scan:cancelled']) {
@@ -185,6 +188,7 @@ export function createScanProgressState() {
     scanned.value = s.scanned ?? scanned.value
     failed.value = s.failed ?? failed.value
     total.value = s.total ?? total.value
+    pausable.value = s.pausable ?? pausable.value
     if (s.startedAt)
       startedAt.value = s.startedAt
     if (s.completedAt)
@@ -243,6 +247,7 @@ export function createScanProgressState() {
     startedAt,
     completedAt,
     error,
+    pausable,
     discovered,
     scanned,
     failed,

@@ -64,8 +64,12 @@ export function useSitesRegistry() {
   }
 
   async function saveSite() {
-    if (!formUrl.value.trim())
+    if (!formUrl.value.trim()) {
+      formUrlError.value = 'Enter a site URL.'
+      await nextTick()
+      document.getElementById('site-url')?.focus()
       return
+    }
 
     const url = normalizeSiteUrl(formUrl.value)
     if (!url) {

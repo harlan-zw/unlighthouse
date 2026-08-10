@@ -115,6 +115,26 @@ describe('extractSitemapRoutes', () => {
     expect(out.ignored).toBe(0)
   })
 
+  it('exposes refused sitemap responses to preview protection detection', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('limited', {
+      status: 429,
+      headers: { 'content-type': 'text/plain', 'retry-after': '60' },
+    })))
+    const responses: number[] = []
+
+    await extractSitemapRoutes(
+      {
+        resolvedConfig: config(),
+        siteUrl: new URL('https://example.com'),
+        onResponse: response => responses.push(response.status),
+      },
+      'https://example.com',
+      true,
+    )
+
+    expect(responses).toEqual([429])
+  })
+
   it('follows same-origin meta refreshes and resolves relative prefixed sitemap entries', async () => {
     mockFetch({
       'https://example.com/sitemap.xml': '<html><meta content="0; url=/sitemaps/index.xml" http-equiv="refresh"></html>',

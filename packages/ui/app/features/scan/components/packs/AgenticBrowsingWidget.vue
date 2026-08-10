@@ -75,10 +75,7 @@ function llmsLabel(status: string | undefined): string {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading">
-        Agentic Browsing
-      </h2>
+    <div class="flex items-center justify-end">
       <UiButton purpose="link" size="sm" icon="list" :to="`${scanBase}/routes?sort=scoreAgenticBrowsing:asc`">
         View routes
       </UiButton>
@@ -201,10 +198,10 @@ function llmsLabel(status: string | undefined): string {
       <UAccordion :items="findingItems" type="multiple" class="w-full">
         <template #default="{ item: finding }">
           <div class="flex items-center gap-3 text-left flex-1 min-w-0 text-sm">
-            <UiIcon :name="severityIcon(finding.severity)" :class="severityColor(finding.severity)" class="size-4 shrink-0" />
+            <UiIcon :name="finding.routeCount === 0 ? 'minus' : severityIcon(finding.severity)" :class="finding.routeCount === 0 ? 'text-muted' : severityColor(finding.severity)" class="size-4 shrink-0" />
             <span class="truncate">{{ finding.title || finding.auditId }}</span>
-            <UiChip purpose="status" :status="severityStatus(finding.severity)">
-              {{ finding.passingRouteCount }}/{{ finding.routeCount }} pass
+            <UiChip :purpose="finding.routeCount === 0 ? 'count' : 'status'" :status="finding.routeCount === 0 ? undefined : severityStatus(finding.severity)">
+              {{ finding.routeCount === 0 ? 'Not applicable' : `${finding.passingRouteCount}/${finding.routeCount} pass` }}
             </UiChip>
           </div>
         </template>
@@ -220,8 +217,8 @@ function llmsLabel(status: string | undefined): string {
               </li>
             </ul>
           </div>
-          <div v-else class="text-xs text-success pb-2">
-            0 failing routes.
+          <div v-else class="text-xs text-muted pb-2">
+            {{ finding.routeCount === 0 ? 'No applicable routes.' : '0 failing routes.' }}
           </div>
         </template>
       </UAccordion>

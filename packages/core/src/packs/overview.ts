@@ -58,11 +58,10 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
 
   // Per-row average across all four categories. Used for both worstRoutes
   // and the headline avgScore.
-  const rowAverages = new Map<string, number | null>()
-  for (const r of routes)
-    rowAverages.set(r.url, rowAvg(r))
-
-  const validAverages = [...rowAverages.values()].filter((v): v is number => typeof v === 'number')
+  const rowsWithAverages = routes.map(route => ({ route, average: rowAvg(route) }))
+  const validAverages = rowsWithAverages
+    .map(row => row.average)
+    .filter((value): value is number => typeof value === 'number')
   const overallAvg = validAverages.length
     ? validAverages.reduce((a, b) => a + b, 0) / validAverages.length
     : null
@@ -86,7 +85,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
   // Lighthouse threshold buckets (≥ 0.9 passing, ≥ 0.5 needs-work, < 0.5 poor).
   // Rows with no score at all fall out — they aren't a passing/failing signal.
   const distribution = { passing: 0, needsWork: 0, poor: 0 }
-  for (const score of rowAverages.values()) {
+  for (const { average: score } of rowsWithAverages) {
     if (typeof score !== 'number')
       continue
     if (score >= 0.9)
@@ -99,18 +98,19 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
 
   // Top-5 worst routes by overall score (asc). Ties are broken by URL for
   // stable output across calls.
-  const worstRoutes = routes
-    .map(r => ({
-      url: r.url,
-      score: rowAverages.get(r.url) ?? null,
-      category: worstCategory(r),
-      device: r.device,
+  const worstRoutes = rowsWithAverages
+    .map(({ route, average }) => ({
+      url: route.url,
+      score: average,
+      category: worstCategory(route),
+      device: route.device,
     }))
     .filter((r): r is typeof r & { score: number } => typeof r.score === 'number')
     .sort((a, b) => {
       if (a.score !== b.score)
         return a.score - b.score
-      return a.url.localeCompare(b.url)
+      const byUrl = a.url.localeCompare(b.url)
+      return byUrl || a.device.localeCompare(b.device)
     })
     .slice(0, 5)
 
@@ -129,7 +129,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<OverviewReport> {
     .map(([routeName, rows]) => ({
       routeName,
       routes: rows.length,
-      avgScore: avg(rows.map(r => rowAverages.get(r.url) ?? null)),
+      avgScore: avg(rows.map(rowAvg)),
     }))
     // Worst-scoring template groups first — the actionable surface.
     .sort((a, b) => {

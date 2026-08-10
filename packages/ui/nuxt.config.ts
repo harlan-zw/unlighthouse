@@ -1,9 +1,10 @@
 import { fileURLToPath } from 'node:url'
+import { version as unlighthouseVersion } from '../unlighthouse/package.json'
 import { iconAliasMap, iconBundleList } from './layers/design-system/shared/icons'
 
 export default defineNuxtConfig({
   ssr: false,
-  css: ['~/assets/css/accessibility.css'],
+  css: ['vue-sonner/style.css', '~/assets/css/accessibility.css'],
   app: {
     head: {
       htmlAttrs: {
@@ -56,6 +57,7 @@ export default defineNuxtConfig({
   // window.__unlighthouse_payload, so the override only applies in dev.
   runtimeConfig: {
     public: {
+      unlighthouseVersion,
       unlighthouseApiUrl: process.env.NUXT_PUBLIC_UNLIGHTHOUSE_API_URL || 'http://localhost:5678/api',
       unlighthouseWsUrl: process.env.NUXT_PUBLIC_UNLIGHTHOUSE_WS_URL || 'ws://localhost:5678/api/ws',
     },

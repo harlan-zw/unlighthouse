@@ -120,16 +120,21 @@ function errorCode(error: unknown): string | undefined {
 export async function fetchUrlRaw(
   url: string,
   resolvedConfig: FetchConfig,
-  opts: { logger?: Logger, client?: FetchUrlClient } = {},
+  opts: {
+    logger?: Logger
+    client?: FetchUrlClient
+    timeoutMs?: number
+    maxRetries?: number
+  } = {},
 ): Promise<{ error?: unknown, redirected?: boolean, redirectUrl?: string, valid: boolean, response?: FetchUrlResponse }> {
   const logger = opts.logger
   const client = opts.client ?? createFetchClient(resolvedConfig)
-  const maxRetries = 3
+  const maxRetries = opts.maxRetries ?? 3
   let attempt = 0
 
   while (attempt < maxRetries) {
     try {
-      const response = await client.get(url, { timeout: 30_000 })
+      const response = await client.get(url, { timeout: opts.timeoutMs ?? 30_000 })
       let responseUrl = response.request.res.responseUrl
       if (responseUrl && resolvedConfig.auth) {
         responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')

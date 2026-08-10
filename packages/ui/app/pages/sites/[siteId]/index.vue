@@ -15,9 +15,11 @@ const {
   releaseMarkers,
   hasReleases,
   scoreSeries,
+  hasScoreTrend,
   vitalsStatus,
   vitals,
   vitalsSeries,
+  hasVitalsTrend,
   pairs,
   openPair,
   rescan,
@@ -101,7 +103,8 @@ const isStatic = useIsStatic()
             Category scores over time
           </h2>
         </template>
-        <TrendChart label="Category scores over time" :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
+        <TrendChart v-if="hasScoreTrend" label="Category scores over time" :series="scoreSeries" :y-min="0" :y-max="100" :height="220" :markers="showReleases ? releaseMarkers : []" />
+        <UiEmptyState v-else icon="chart-line" title="Run one more scan to draw a trend" description="Trend charts need at least two completed scans for the selected device." />
       </UiCard>
 
       <!-- Web vitals trend -->
@@ -116,7 +119,7 @@ const isStatic = useIsStatic()
             </span>
           </div>
         </template>
-        <div class="grid gap-6 lg:grid-cols-3">
+        <div v-if="hasVitalsTrend" class="grid gap-6 lg:grid-cols-3">
           <div v-for="m in vitals" :key="m.key">
             <div class="flex items-center gap-1.5 text-xs font-medium text-default mb-1">
               <span class="size-2 rounded-full shrink-0" :style="{ backgroundColor: m.color }" aria-hidden="true" />
@@ -133,6 +136,7 @@ const isStatic = useIsStatic()
             />
           </div>
         </div>
+        <UiEmptyState v-else icon="chart-line" title="Not enough history for a trend" description="Core Web Vitals trends appear after two scans have field or lab data." />
       </UiCard>
 
       <!-- Scans -->

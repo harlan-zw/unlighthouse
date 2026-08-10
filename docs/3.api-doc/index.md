@@ -262,7 +262,28 @@ Fired when a path discovered internal links, used for "crawl" mode.
 
 - **Type:** `(page: Page) => HookResult`{lang="ts"}
 
-After a page has been visited with puppeteer. Useful for running
+Called after Unlighthouse creates the Puppeteer page and before it navigates to
+the route under test. Use it to register listeners, inject scripts that must run
+before site JavaScript, or seed browser state for authenticated pages.
+
+```ts
+export default defineUnlighthouseConfig({
+  hooks: {
+    'puppeteer:before-goto': async (page) => {
+      await page.evaluateOnNewDocument((token) => {
+        window.localStorage.setItem('auth_token', token)
+      }, process.env.UNLIGHTHOUSE_AUTH_TOKEN)
+
+      page.on('requestfailed', (request) => {
+        console.warn('Request failed:', request.url(), request.failure()?.errorText)
+      })
+    },
+  },
+})
+```
+
+The hook receives the active Puppeteer `Page`. Do not call `page.goto()` in this
+hook; Unlighthouse owns navigation and Lighthouse execution.
 
 ## Recipes
 

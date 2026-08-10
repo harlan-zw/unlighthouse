@@ -27,11 +27,15 @@ export function createFormatters() {
   // Delta of a score (-1..1) or a ms metric. `isScore` switches
   // between percentage-point and ms/s rendering. Sign is always
   // included so the cell shows direction at a glance.
-  function fmtDelta(v: number | null | undefined, isScore: boolean): string {
+  function fmtDelta(v: number | null | undefined, isScore: boolean, metric?: string): string {
     if (v == null)
       return '—'
     if (isScore) {
       const n = (v * 100).toFixed(1)
+      return v > 0 ? `+${n}` : n
+    }
+    if (metric === 'cls') {
+      const n = v.toFixed(3)
       return v > 0 ? `+${n}` : n
     }
     if (Math.abs(v) >= 1000)
@@ -41,8 +45,12 @@ export function createFormatters() {
 
   // Picks between score and ms format based on metric kind. Used by
   // the per-route detail tables that mix categories + CWV.
-  function fmtMetric(v: number | null | undefined, isScore: boolean): string {
-    return isScore ? fmtScore(v) : fmtMs(v)
+  function fmtMetric(v: number | null | undefined, isScore: boolean, metric?: string): string {
+    if (isScore)
+      return fmtScore(v)
+    if (v == null)
+      return '—'
+    return metric === 'cls' ? v.toFixed(3) : fmtMs(v)
   }
 
   // Byte sizes used by pack reports (wasted bytes) and the asset
@@ -57,6 +65,12 @@ export function createFormatters() {
     if (v >= 1024)
       return `${(v / 1024).toFixed(1)}KB`
     return `${Math.round(v)}B`
+  }
+
+  function fmtPercent(v: number | null | undefined): string {
+    if (v == null)
+      return '—'
+    return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(v)}%`
   }
 
   // Human-readable relative time. Used by the recent-scans list and
@@ -136,6 +150,7 @@ export function createFormatters() {
     fmtDelta,
     fmtMetric,
     fmtBytes,
+    fmtPercent,
     fmtRelTime,
     fmtDuration,
     fmtTimestamp,

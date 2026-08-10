@@ -37,6 +37,7 @@ export default defineConfig({
     './src/packs/nuxt.ts',
     './src/util/fetch.ts',
     './src/util/filter.ts',
+    './src/util/html-discovery.ts',
     './src/util/misc.ts',
     './src/util/path.ts',
     './src/persist-events.ts',

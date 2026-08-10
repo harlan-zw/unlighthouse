@@ -8,7 +8,7 @@ import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import type { DevicePair, ScanRow } from '../scan-pairs'
 
 import { h } from 'vue'
-import { scoreSummaryForDevice } from '../scan-pairs'
+import { scoreSummaryForDevice, statusForPair } from '../scan-pairs'
 
 defineProps<{
   pairs: DevicePair[]
@@ -52,7 +52,7 @@ const columns: UiTableColumn<DevicePair>[] = [
     // accessorFn (not just sortFn) is what makes a column sortable —
     // TanStack disables sorting on accessor-less display columns.
     accessorFn: row => row.completed ?? 0,
-    header: 'Routes',
+    header: 'Audited / found',
     cell: ({ row }) => {
       const p = row.original
       const all = p.routes || 0
@@ -64,7 +64,7 @@ const columns: UiTableColumn<DevicePair>[] = [
       const label = all > 0 && done !== all ? `${done}/${all}` : `${done || all}`
       return h('span', {
         class: isEmpty ? 'text-xs tabular-nums text-muted' : 'text-xs tabular-nums',
-        title: isEmpty ? 'Scan completed structurally but no routes were audited' : `${done} of ${all} pages audited`,
+        title: isEmpty ? 'Scan completed structurally but no URLs were audited' : `${done} audited of ${all} discovered URL and device entries`,
       }, label)
     },
     sortFn: (a, b) => (a.original.completed ?? 0) - (b.original.completed ?? 0),
@@ -112,25 +112,6 @@ function primaryScanId(pair: DevicePair): ScanId {
   if (!scanId)
     throw new TypeError('A device pair must contain at least one scan.')
   return scanId
-}
-function statusForPair(pair: DevicePair): { label: string, status: 'success' | 'error' | 'warning' | 'info' | 'neutral' } {
-  const m = pair.mobile?.status
-  const d = pair.desktop?.status
-  const anyComplete = (m === 'complete' && (pair.mobile?.summary?.completed ?? 0) > 0)
-    || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) > 0)
-  if (anyComplete)
-    return { label: 'complete', status: 'success' }
-  if ((m === 'complete' && (pair.mobile?.summary?.completed ?? 0) === 0)
-    || (d === 'complete' && (pair.desktop?.summary?.completed ?? 0) === 0)) {
-    return { label: 'no data', status: 'neutral' }
-  }
-  if (m === 'error' || d === 'error' || m === 'cancelled' || d === 'cancelled')
-    return { label: 'failed', status: 'error' }
-  if (m === 'scanning' || d === 'scanning' || m === 'discovering' || d === 'discovering' || m === 'starting' || d === 'starting')
-    return { label: m || d || 'pending', status: 'info' }
-  if (m === 'paused' || d === 'paused')
-    return { label: 'paused', status: 'warning' }
-  return { label: m || d || 'pending', status: 'neutral' }
 }
 </script>
 

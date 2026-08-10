@@ -87,6 +87,7 @@ export function parallelMapCrawler(opts: ParallelMapCrawlerOptions = {}): Crawle
     const inflight = new Set<Promise<void>>()
     let dispatchedAll = false
     let aborted = false
+    let dispatchedRoutes = 0
 
     const onAbort = () => {
       aborted = true
@@ -121,6 +122,10 @@ export function parallelMapCrawler(opts: ParallelMapCrawlerOptions = {}): Crawle
 
           if (runOpts.allows && !runOpts.allows(seed.url))
             continue
+
+          if (runOpts.maxRoutes != null && dispatchedRoutes >= runOpts.maxRoutes)
+            break
+          dispatchedRoutes += 1
 
           emit({ type: 'url-discovered', url: seed.url, from: seed.source })
 

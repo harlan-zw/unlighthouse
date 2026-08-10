@@ -1,22 +1,13 @@
 import type { NormalisedRoute, ResolvedUserConfig } from '@unlighthouse/contracts'
 import { basename } from 'node:path'
-import { hasProtocol, isRelative, withBase, withLeadingSlash } from 'ufo'
+import { hasProtocol, withBase, withLeadingSlash } from 'ufo'
 import { hashPathName, trimSlashes } from '../util/path'
+
+export { isScanOrigin } from '../util/scan-origin'
 
 export interface NormaliseRouteDeps {
   siteUrl: URL
   resolvedConfig: ResolvedUserConfig
-}
-
-export function isScanOrigin(deps: { siteUrl: URL }, url: string): boolean {
-  if (isRelative(url) || (url.startsWith('/') && !url.startsWith('//')))
-    return true
-
-  const $url = new URL(url)
-  if ($url.hostname === deps.siteUrl.hostname)
-    return true
-  // allow subdomains
-  return $url.hostname.endsWith(`.${deps.siteUrl.hostname}`)
 }
 
 /**

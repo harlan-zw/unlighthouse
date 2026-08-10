@@ -1,15 +1,18 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
-import type { FetchConfig } from '../util/fetch'
+import type { FetchConfig, FetchUrlResponse } from '../util/fetch'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { isScanOrigin } from '../api/util'
 import { fetchUrlRaw } from '../util/fetch'
+import { isScanOrigin } from '../util/scan-origin'
 import { extractSitemapMetaRefreshUrl, parseSitemapDocument, resolveSitemapLocation } from './sitemap-parser'
 
 export interface ExtractSitemapDeps {
   resolvedConfig: FetchConfig
   siteUrl: URL
   logger?: Logger
+  fetchTimeoutMs?: number
+  fetchMaxRetries?: number
+  onResponse?: (response: FetchUrlResponse) => void
 }
 
 interface FetchedSitemapText {
@@ -22,8 +25,14 @@ async function fetchSitemapText(deps: ExtractSitemapDeps, sitemapUrl: string): P
   const fetched = await fetchUrlRaw(
     sitemapUrl,
     deps.resolvedConfig,
-    { logger: deps.logger },
+    {
+      logger: deps.logger,
+      timeoutMs: deps.fetchTimeoutMs,
+      maxRetries: deps.fetchMaxRetries,
+    },
   )
+  if (fetched.response)
+    deps.onResponse?.(fetched.response)
   if (!fetched.valid || !fetched.response)
     return null
   return {

@@ -2,6 +2,7 @@ import type {
   CrawlStats,
   DeviceMatrix,
   Logger,
+  Scan,
   ScanId,
   ScanMode,
   ScanStatus,
@@ -12,9 +13,9 @@ import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { PackRegistry } from '../packs/index'
 import type { EmitFn } from './route-audit'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { parseUrl } from '@unlighthouse/contracts/types/atoms'
+import { normaliseDeviceMatrix, parseUrl } from '@unlighthouse/contracts/types/atoms'
 import { deriveSiteId, deriveSiteName, siteOrigin } from '../util/site'
-import { finalizeScan, nowIso, toStructuredError } from './route-audit'
+import { aggregateScores, finalizeScan, nowIso, toStructuredError } from './route-audit'
 
 export interface ScanLifecycleContext {
   scanId: ScanId
@@ -54,6 +55,29 @@ export interface ScanLifecycle {
 }
 
 const TERMINAL_STATUSES = new Set<ScanStatus>(['complete', 'cancelled', 'error'])
+
+export async function aggregatePersistedScanSummary(storage: Storage, scan: Scan): Promise<ScanSummary> {
+  const audited = await storage.routes.listForScan(scan.scanId, { page: 1, pageSize: 10_000 })
+  const devices = normaliseDeviceMatrix(scan.summary?.devices ?? scan.device)
+  const scoresByDevice: NonNullable<ScanSummary['scoresByDevice']> = {}
+  for (const device of devices) {
+    const deviceRoutes = audited.items.filter(route => route.device === device)
+    if (deviceRoutes.length)
+      scoresByDevice[device] = aggregateScores(deviceRoutes)
+  }
+
+  const failed = scan.summary?.failed ?? 0
+  const endedAt = scan.completedAt ? new Date(scan.completedAt).getTime() : Date.now()
+  return {
+    routes: Math.max(scan.summary?.routes ?? 0, audited.total + failed),
+    completed: audited.total,
+    failed,
+    ...aggregateScores(audited.items),
+    durationMs: Math.max(0, endedAt - new Date(scan.startedAt).getTime()),
+    devices,
+    scoresByDevice,
+  }
+}
 
 /**
  * Own the runtime-neutral scan lifecycle shared by the local crawler and
@@ -169,10 +193,11 @@ export function createScanLifecycle(options: CreateScanLifecycleOptions): ScanLi
   }
 
   async function cancel(reason?: string): Promise<void> {
-    const current = await currentStatus()
-    if (!current || TERMINAL_STATUSES.has(current))
+    const current = await storage.scans.get(scanId)
+    if (!current || TERMINAL_STATUSES.has(current.status))
       return
-    await storage.scans.update(scanId, { status: 'cancelled', completedAt: nowIso() })
+    const summary = await aggregatePersistedScanSummary(storage, current)
+    await storage.scans.update(scanId, { status: 'cancelled', completedAt: nowIso(), summary })
     await emit('scan:cancelled', { scanId, reason })
   }
 

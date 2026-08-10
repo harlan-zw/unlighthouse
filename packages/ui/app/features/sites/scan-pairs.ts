@@ -18,12 +18,47 @@ export interface DevicePair {
   desktop: ScanRow | null
 }
 
+export interface PairStatus {
+  label: string
+  status: 'success' | 'error' | 'warning' | 'info' | 'neutral'
+}
+
+export function statusForPair(pair: DevicePair): PairStatus {
+  const statuses = [pair.mobile?.status, pair.desktop?.status]
+  if (statuses.includes('cancelled'))
+    return { label: 'cancelled', status: 'warning' }
+  if (statuses.includes('error'))
+    return { label: 'failed', status: 'error' }
+  if (statuses.includes('paused'))
+    return { label: 'paused', status: 'warning' }
+  if (statuses.some(status => status === 'scanning' || status === 'discovering' || status === 'starting'))
+    return { label: statuses.find(Boolean) ?? 'pending', status: 'info' }
+
+  const scans = [pair.mobile, pair.desktop].filter(scan => scan !== null)
+  if (statuses.includes('complete')) {
+    const completed = scans.reduce((total, scan) => total + (scan.summary?.completed ?? 0), 0)
+    return completed > 0
+      ? { label: 'complete', status: 'success' }
+      : { label: 'no data', status: 'neutral' }
+  }
+  return { label: statuses.find(Boolean) ?? 'pending', status: 'neutral' }
+}
+
 // Mobile + desktop scans of the same exact URL started within this window are
 // treated as one matrix scan and collapsed onto a single row.
 const PAIR_WINDOW_MS = 5 * 60_000
 
 export function devicesForScan(scan: ScanRow): Device[] {
   return scan.summary?.devices?.length ? [...scan.summary.devices] : [scan.device]
+}
+
+export function hasMultipleDevicesForScans(scans: Array<{ device: Device, summary?: { devices?: Device[] } | null } | null | undefined>): boolean {
+  const devices = new Set(scans.flatMap(scan => scan ? (scan.summary?.devices?.length ? scan.summary.devices : [scan.device]) : []))
+  return devices.size > 1
+}
+
+export function deviceLabelForScan(scan: { device: Device, summary?: { devices?: Device[] } | null }): Device | 'both' {
+  return (scan.summary?.devices?.length ?? 0) > 1 ? 'both' : scan.device
 }
 
 export function scoreSummaryForDevice(scan: ScanRow, device: Device): Pick<ScanSummary, 'scoreAverage' | 'scoresByCategory' | 'categoryScoreDisplayModes'> | null {
