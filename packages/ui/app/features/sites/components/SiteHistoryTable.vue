@@ -2,8 +2,9 @@
 // Per-site scan-history table — TanStack-powered, dual-device score columns.
 // Each instance owns its own sort state so groups don't interfere.
 
-import type { ColumnDef, SortingState } from '@tanstack/vue-table'
+import type { SortingState } from '@tanstack/vue-table'
 import type { ScanId } from '@unlighthouse/contracts'
+import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import type { DevicePair, ScanRow } from '../scan-pairs'
 
 import { h } from 'vue'
@@ -35,7 +36,7 @@ function categoryPct(scan: ScanRow | null, device: 'mobile' | 'desktop', key: st
 
 const sorting = ref<SortingState>([{ id: 'startedAt', desc: true }])
 
-const columns: ColumnDef<DevicePair>[] = [
+const columns: UiTableColumn<DevicePair>[] = [
   {
     id: 'startedAt',
     accessorFn: row => row.startedAt,
@@ -44,11 +45,11 @@ const columns: ColumnDef<DevicePair>[] = [
       h('span', { class: 'text-sm' }, fmtTimestamp(row.original.startedAt, 'short')),
       h('span', { class: 'text-xs text-muted' }, fmtRelTime(row.original.startedAt)),
     ]),
-    sortingFn: (a, b) => a.original.startedAt.localeCompare(b.original.startedAt),
+    sortFn: (a, b) => a.original.startedAt.localeCompare(b.original.startedAt),
   },
   {
     id: 'routes',
-    // accessorFn (not just sortingFn) is what makes a column sortable —
+    // accessorFn (not just sortFn) is what makes a column sortable —
     // TanStack disables sorting on accessor-less display columns.
     accessorFn: row => row.completed ?? 0,
     header: 'Routes',
@@ -66,12 +67,12 @@ const columns: ColumnDef<DevicePair>[] = [
         title: isEmpty ? 'Scan completed structurally but no routes were audited' : `${done} of ${all} pages audited`,
       }, label)
     },
-    sortingFn: (a, b) => (a.original.completed ?? 0) - (b.original.completed ?? 0),
+    sortFn: (a, b) => (a.original.completed ?? 0) - (b.original.completed ?? 0),
   },
   ...(['performance', 'accessibility', 'best-practices', 'seo'] as const).map(key => ({
     id: key,
     accessorFn: (row: DevicePair) => Math.max(categoryPct(row.mobile, 'mobile', key) ?? -1, categoryPct(row.desktop, 'desktop', key) ?? -1),
-    align: 'center',
+    meta: { align: 'center' },
     header: () => {
       const label = key === 'best-practices' ? 'Best' : key === 'performance' ? 'Perf' : key === 'accessibility' ? 'A11y' : 'SEO'
       return h('div', { class: 'text-center' }, [
@@ -88,18 +89,17 @@ const columns: ColumnDef<DevicePair>[] = [
         h('span', { class: d == null ? 'text-muted/50' : scoreToColor(d / 100) }, d ?? '—'),
       ])
     },
-    sortingFn: (a, b) => {
+    sortFn: (a, b) => {
       const aMax = Math.max(categoryPct(a.original.mobile, 'mobile', key) ?? -1, categoryPct(a.original.desktop, 'desktop', key) ?? -1)
       const bMax = Math.max(categoryPct(b.original.mobile, 'mobile', key) ?? -1, categoryPct(b.original.desktop, 'desktop', key) ?? -1)
       return aMax - bMax
     },
-  } satisfies ColumnDef<DevicePair>)),
+  } satisfies UiTableColumn<DevicePair>)),
   {
     id: 'status',
     header: 'Status',
     enableSorting: false,
-    align: 'center',
-    headClass: 'w-24',
+    meta: { align: 'center', headClass: 'w-24' },
     cell: ({ row }) => {
       const s = statusForPair(row.original)
       return h(UiStatusBadgeC, { status: s.status, label: s.label, class: 'capitalize' })

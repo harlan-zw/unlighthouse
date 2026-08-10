@@ -112,7 +112,7 @@ export const sizes = {
             :collision-padding="8"
             class="ui-tooltip-content"
           >
-            <div :class="`text-xs text-left font-normal leading-normal space-y-2 w-max ${sizes[size]}`" data-ui="UiTooltip">
+            <div class="text-xs text-left font-normal leading-normal space-y-2 w-max" :class="sizes[size]" data-ui="UiTooltip">
               <template v-if="title">
                 <div class="font-semibold">
                   {{ title }}
@@ -175,7 +175,7 @@ export const sizes = {
           :collision-padding="8"
           class="ui-tooltip-content"
         >
-          <div :class="`text-xs text-left font-normal leading-normal space-y-2 w-max ${sizes[size]}`" data-ui="UiTooltip">
+          <div class="text-xs text-left font-normal leading-normal space-y-2 w-max" :class="sizes[size]" data-ui="UiTooltip">
             <slot v-if="$slots.text" name="text" />
             <template v-else-if="title">
               <div class="font-semibold">

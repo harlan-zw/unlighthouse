@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ColumnDef } from '@tanstack/vue-table'
 import type { SeoReport } from '@unlighthouse/contracts/packs'
+import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import { SeoReportSchema } from '@unlighthouse/contracts/packs'
 import { h } from 'vue'
 
@@ -10,7 +10,7 @@ const report = computed(() => SeoReportSchema.parse(props.report))
 
 type RouteCheckRow = SeoReport['routeChecks'][number]
 const UiIconC = resolveComponent('UiIcon')
-const routeCheckColumns: ColumnDef<RouteCheckRow>[] = [
+const routeCheckColumns: UiTableColumn<RouteCheckRow>[] = [
   {
     accessorKey: 'url',
     header: 'URL',
@@ -19,21 +19,19 @@ const routeCheckColumns: ColumnDef<RouteCheckRow>[] = [
   {
     accessorKey: 'passes',
     header: 'Passes',
-    align: 'right',
-    headClass: 'w-20',
+    meta: { align: 'right', headClass: 'w-20' },
     cell: ({ row }) => h('span', { class: 'tabular-nums text-success' }, String(row.original.passes)),
   },
   {
     accessorKey: 'fails',
     header: 'Fails',
-    align: 'right',
-    headClass: 'w-20',
+    meta: { align: 'right', headClass: 'w-20' },
     cell: ({ row }) => h('span', { class: `tabular-nums ${row.original.fails > 0 ? 'text-error' : ''}` }, String(row.original.fails)),
   },
   {
     accessorKey: 'indexable',
     header: 'Indexable',
-    headClass: 'w-20',
+    meta: { headClass: 'w-20' },
     cell: ({ row }) => h(UiIconC, { name: row.original.indexable ? 'success' : 'error', class: `size-4 ${row.original.indexable ? 'text-success' : 'text-error'}` }),
   },
 ]

@@ -54,6 +54,7 @@ export const OPERATIONAL_LOG_CATALOG = {
   'storage.migration_statement_failed': 'Storage init skipped a schema statement after it failed with a tolerated error',
   'storage.local_cache_delete_failed': 'Storage init failed to delete a stale local SQLite cache file during schema repair',
   'compare.pack_cache_read_failed': 'Compare pack-cache read failed and degraded to an empty pack list',
+  'compare.scan_cache_read_failed': 'Compare scan metadata read failed and degraded to device-agnostic pack selection',
   'dashboard.pack_runs_read_failed': 'Dashboard route detail failed to read pack runs and degraded the pack panel',
 
   'auditor.cleanup_failed': 'Auditor/browser cleanup failed after an audit or worker task settled',

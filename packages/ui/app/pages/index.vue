@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ColumnDef } from '@tanstack/vue-table'
 import type { Category } from '@unlighthouse/contracts'
+import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import type { SiteHomeRow } from '~/features/sites/home'
 import { h } from 'vue'
 import { useSitesHome } from '~/features/sites/home'
@@ -77,7 +77,7 @@ const CAT_COLS: Array<{ key: Category, label: string }> = [
   { key: 'agentic-browsing', label: 'Agentic' },
 ]
 
-const columns: ColumnDef<SiteHomeRow>[] = [
+const columns: UiTableColumn<SiteHomeRow>[] = [
   {
     accessorKey: 'name',
     header: 'Site',
@@ -105,7 +105,7 @@ const columns: ColumnDef<SiteHomeRow>[] = [
     id: 'group',
     accessorFn: (r: SiteHomeRow) => r.group ?? '',
     header: 'Group',
-    align: 'left',
+    meta: { align: 'left' },
     cell: ({ row }) => {
       const group = row.original.group
       return group
@@ -118,18 +118,18 @@ const columns: ColumnDef<SiteHomeRow>[] = [
     accessorFn: (r: SiteHomeRow) => r.avg ?? undefined,
     header: 'Score',
     sortUndefined: 'last',
-    align: 'center',
+    meta: { align: 'center' },
     cell: ({ row }) => h('span', { class: 'inline-flex items-baseline gap-1.5' }, [
       h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(row.original.avg)}` }, scoreToLabel(row.original.avg)),
       h('span', { class: 'text-xs text-muted' }, statusWord(row.original.avg)),
     ]),
   },
-  ...CAT_COLS.map((c): ColumnDef<SiteHomeRow> => ({
+  ...CAT_COLS.map((c): UiTableColumn<SiteHomeRow> => ({
     id: c.key,
     accessorFn: (r: SiteHomeRow) => r.cats[c.key] ?? undefined,
     header: c.label,
     sortUndefined: 'last' as const,
-    align: 'center' as const,
+    meta: { align: 'center' as const },
     cell: ({ row }) => {
       const v = row.original.cats[c.key]
       return h('span', { class: `text-xs font-semibold tabular-nums ${scoreToColor(v ?? null)}` }, scoreToLabel(v ?? null))
@@ -139,14 +139,14 @@ const columns: ColumnDef<SiteHomeRow>[] = [
     id: 'trend',
     header: 'Trend',
     enableSorting: false,
-    align: 'left',
+    meta: { align: 'left' },
     cell: ({ row }) => h(SparklineC, { data: row.original.series, color: score100Color(row.original.avg != null ? row.original.avg * 100 : null), width: '100%', height: 28, preserveAspectRatio: 'none' }),
   },
   {
     id: 'last',
     accessorFn: (r: SiteHomeRow) => r.lastAt ?? '',
     header: 'Last scan',
-    align: 'right',
+    meta: { align: 'right' },
     cell: ({ row }) => h('span', { class: 'text-xs text-muted tabular-nums' }, row.original.lastAt ? fmtRelTime(row.original.lastAt) : '—'),
   },
 ]

@@ -130,8 +130,14 @@ export async function computePackDiffs(ctx: HandlerCtx, baseScanId: ScanId, curr
       logOperationalWarn('compare.pack_cache_read_failed', err, { scanId: currentScanId, side: 'current' })
       return [] as PackRun[]
     }),
-    ctx.storage.scans.get(baseScanId).catch(() => null),
-    ctx.storage.scans.get(currentScanId).catch(() => null),
+    ctx.storage.scans.get(baseScanId).catch((err) => {
+      logOperationalWarn('compare.scan_cache_read_failed', err, { scanId: baseScanId, side: 'base' })
+      return null
+    }),
+    ctx.storage.scans.get(currentScanId).catch((err) => {
+      logOperationalWarn('compare.scan_cache_read_failed', err, { scanId: currentScanId, side: 'current' })
+      return null
+    }),
   ])
 
   const baseByName = selectPackRuns(baseRuns, baseScan?.device)

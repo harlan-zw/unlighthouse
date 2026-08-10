@@ -1,10 +1,11 @@
-<script setup lang="ts" generic="T">
-import type { Header } from '@tanstack/vue-table'
+<script setup lang="ts" generic="T extends RowData">
+import type { Header, RowData } from '@tanstack/vue-table'
+import type { UiTableFeatures } from '../../../utils/ui-table'
 import { FlexRender } from '@tanstack/vue-table'
 import { computed } from 'vue'
 
 const { header, sortDirection } = defineProps<{
-  header: Header<T, unknown>
+  header: Header<UiTableFeatures, T, unknown>
   sortDirection: 'asc' | 'desc' | false
 }>()
 
@@ -14,9 +15,9 @@ const def = computed(() => header.column.columnDef)
 const sortable = computed(() => header.column.getCanSort())
 
 const justifyClass = computed(() => {
-  if (def.value.align === 'center')
+  if (def.value.meta?.align === 'center')
     return 'justify-center'
-  if (def.value.align === 'right')
+  if (def.value.meta?.align === 'right')
     return 'justify-end'
   return 'justify-start'
 })
@@ -39,7 +40,7 @@ const buttonClass = 'flex min-h-6 items-center gap-1 w-full text-label cursor-po
 </script>
 
 <template>
-  <UiTooltip v-if="def.tooltip" :text="def.tooltip" trigger-as="child">
+  <UiTooltip v-if="def.meta?.tooltip" :text="def.meta.tooltip" trigger-as="child">
     <button
       v-if="sortable"
       type="button"

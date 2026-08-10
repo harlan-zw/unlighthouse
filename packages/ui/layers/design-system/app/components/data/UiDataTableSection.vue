@@ -1,5 +1,5 @@
-<script setup lang="ts" generic="T extends object">
-import type { SortingState } from '@tanstack/vue-table'
+<script setup lang="ts" generic="T extends RowData">
+import type { RowData, RowSelectionState, SortingState } from '@tanstack/vue-table'
 import type { UiIcon } from '../../shared/ui-icons'
 import type { UiTableProps } from './UiTable.vue'
 
@@ -61,7 +61,7 @@ const totalDisplay = computed(() => formatTotal ? formatTotal(total) : total.toL
 const search = defineModel<string>('search', { default: '' })
 const page = defineModel<number>('page', { default: 1 })
 const sorting = defineModel<SortingState>('sorting', { default: () => [] })
-const rowSelection = defineModel<Record<string, boolean>>('rowSelection')
+const rowSelection = defineModel<RowSelectionState>('rowSelection')
 const rowSelectionEnabled = computed(() => rowSelection.value !== undefined)
 
 const showEmpty = computed(() => !pending && !error && rows.length === 0)

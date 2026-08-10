@@ -1,26 +1,22 @@
-<script setup lang="ts" generic="T extends object">
+<script setup lang="ts" generic="T extends RowData">
 import type { RowData } from '@tanstack/table-core'
 import type {
-  ColumnDef,
   ColumnFiltersState,
+  ColumnVisibilityState,
   ExpandedState,
   Row,
-  SortingFn,
+  RowSelectionState,
   SortingState,
-  VisibilityState,
 } from '@tanstack/vue-table'
+import type { UiTableColumn, UiTableFeatures } from '../../utils/ui-table'
 import {
   FlexRender,
   functionalUpdate,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useVueTable,
+  useTable,
 } from '@tanstack/vue-table'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { useIntersectionObserver } from '@vueuse/core'
+import { uiTableFeatures } from '../../utils/ui-table'
 
 const {
   data,
@@ -32,7 +28,6 @@ const {
   enableSorting = false,
   manualSorting = false,
   pageSize = 10,
-  sortingFns,
   ignoreHeader,
   size = 'md',
   loading = false,
@@ -45,19 +40,19 @@ const {
 } = defineProps<UiTableProps<T>>()
 
 const emit = defineEmits<{
-  'rowSelectionChange': [value: Record<string, boolean>]
+  'rowSelectionChange': [value: RowSelectionState]
   'rowClick': [row: T]
   'update:page': [page: number]
   'sortColumn': [column: string]
 }>()
 
-const selectedModel = defineModel<Record<string, boolean>>('selected')
+const selectedModel = defineModel<RowSelectionState>('selected')
 const pageModel = defineModel<number>('page', { default: 1 })
 const sortingModel = defineModel<SortingState>('sorting', { default: () => [] })
 
 const columnFilters = ref<ColumnFiltersState>([])
-const columnVisibility = ref<VisibilityState>({})
-const rowSelection = ref(selected || {})
+const columnVisibility = ref<ColumnVisibilityState>({})
+const rowSelection = ref<RowSelectionState>(selected || {})
 const expanded = ref<ExpandedState>({})
 const pagination = ref({ pageIndex: 0, pageSize })
 
@@ -115,7 +110,7 @@ function resolveRowId(row: T): string {
   return typeof id === 'string' ? id : String(id ?? '')
 }
 
-function handleRowClick(row: T, tanstackRow: Row<T>) {
+function handleRowClick(row: T, tanstackRow: Row<UiTableFeatures, T>) {
   if (!rowClickable)
     return
   emit('rowClick', row)
@@ -127,7 +122,7 @@ function handleRowClick(row: T, tanstackRow: Row<T>) {
   }
 }
 
-function onRowKeydown(e: KeyboardEvent, row: T, tanstackRow: Row<T>) {
+function onRowKeydown(e: KeyboardEvent, row: T, tanstackRow: Row<UiTableFeatures, T>) {
   if (e.target !== e.currentTarget)
     return
   if (e.key === 'Enter') {
@@ -140,7 +135,7 @@ function onRowKeydown(e: KeyboardEvent, row: T, tanstackRow: Row<T>) {
   }
 }
 
-function onRowKeyup(e: KeyboardEvent, row: T, tanstackRow: Row<T>) {
+function onRowKeyup(e: KeyboardEvent, row: T, tanstackRow: Row<UiTableFeatures, T>) {
   if (e.target !== e.currentTarget)
     return
   if (e.key === ' ') {
@@ -149,7 +144,7 @@ function onRowKeyup(e: KeyboardEvent, row: T, tanstackRow: Row<T>) {
   }
 }
 
-function onRowClick(e: MouseEvent, row: T, tanstackRow: Row<T>) {
+function onRowClick(e: MouseEvent, row: T, tanstackRow: Row<UiTableFeatures, T>) {
   const target = e.target
   const currentTarget = e.currentTarget
   if (target instanceof Element && target !== currentTarget) {
@@ -168,16 +163,12 @@ const slots = useSlots()
 const hasActions = computed(() => !!slots.actions)
 const colSpan = computed(() => columns.length + (hasActions.value ? 1 : 0))
 
-const table = useVueTable<T>({
+const table = useTable({
+  features: uiTableFeatures,
   data: toRef(() => data),
-  columns: columns as ColumnDef<T, unknown>[],
-  getCoreRowModel: getCoreRowModel(),
+  columns: toRef(() => columns),
   enableSorting,
   manualSorting,
-  ...(!manualPagination && { getPaginationRowModel: getPaginationRowModel() }),
-  ...(!manualSorting && { getSortedRowModel: getSortedRowModel() }),
-  getFilteredRowModel: getFilteredRowModel(),
-  getExpandedRowModel: getExpandedRowModel(),
   manualPagination,
   ...(manualPagination && total != null && { rowCount: total }),
   onPaginationChange: u => pagination.value = functionalUpdate(u, pagination.value),
@@ -198,7 +189,6 @@ const table = useVueTable<T>({
     get rowSelection() { return controlledSelection ? selectedModel.value : rowSelection.value },
     get expanded() { return expanded.value },
   },
-  sortingFns,
 })
 
 // Exposed so callers can reach the TanStack instance (e.g. a column-visibility
@@ -237,57 +227,23 @@ if (import.meta.dev) {
 </script>
 
 <script lang="ts">
-declare module '@tanstack/table-core' {
-  // Type parameters must match TanStack's `ColumnDefBase` declaration exactly
-  // (name, constraint, and default) — interface declaration merging requires
-  // identical type parameters (TS2428).
-  interface ColumnDefBase<TData extends RowData, TValue = unknown> {
-    align?: 'left' | 'center' | 'right'
-    noPadding?: boolean
-    stableData?: boolean
-    tooltip?: string
-    /** Extra classes for this column's header cell (e.g. width constraints). */
-    headClass?: string
-    /** Extra classes for this column's body cells. */
-    cellClass?: string
-    ui?: { td?: { base?: string } }
-    /**
-     * @internal Phantom member — exists only to bind the `TData`/`TValue` type
-     * parameters that declaration merging forces us to declare. Never assigned.
-     */
-    readonly __uiTablePhantom?: (data: TData, value: TValue) => void
-  }
-}
-
-export interface UiTableColumnProps<_T> {
-  align?: 'left' | 'center' | 'right'
-  noPadding?: boolean
-  accessorKey?: string
-  stableData?: boolean
-  tooltip?: string
-  headClass?: string
-  cellClass?: string
-  ui?: { td?: { base?: string } }
-}
-
 const sizes = {
   xs: { td: 'py-1 h-8', skeleton: 'h-4' },
   sm: { td: 'py-1 h-10', skeleton: 'h-4' },
   md: { td: 'py-2 h-10', skeleton: 'h-6' },
 } as const
 
-export interface UiTableProps<T> {
+export interface UiTableProps<T extends RowData> {
   data: T[]
-  columns: (Omit<ColumnDef<T, unknown>, 'accessorKey'> & UiTableColumnProps<T>)[]
-  selected?: Record<string, boolean>
+  columns: UiTableColumn<T>[]
+  selected?: RowSelectionState
   controlledSelection?: boolean
   rowHover?: boolean
   rowClickable?: boolean
   enableSorting?: boolean
-  /** Caller owns sort state; UiTable emits @sortColumn and does not run getSortedRowModel. */
+  /** Caller owns sort state; UiTable emits @sortColumn and skips client sorting. */
   manualSorting?: boolean
   pageSize?: number
-  sortingFns?: Record<string, SortingFn<T>>
   ignoreHeader?: boolean
   size?: keyof typeof sizes
   loading?: boolean
@@ -317,8 +273,8 @@ export interface UiTableProps<T> {
             :key="header.id"
             class="text-label text-muted text-left whitespace-nowrap border-b border-default bg-default"
             :class="[
-              header.column.columnDef.noPadding ? '' : header.column.getCanSort() ? 'px-2' : 'px-3',
-              header.column.columnDef.headClass,
+              header.column.columnDef.meta?.noPadding ? '' : header.column.getCanSort() ? 'px-2' : 'px-3',
+              header.column.columnDef.meta?.headClass,
             ]"
             :aria-sort="header.column.getCanSort() ? getAriaSort(header.column.id) : undefined"
             scope="col"
@@ -355,25 +311,25 @@ export interface UiTableProps<T> {
               @keyup="rowClickable && onRowKeyup($event, row.original, row)"
             >
               <td
-                v-for="cell in row.getVisibleCells()"
+                v-for="(cell, cellIndex) in row.getVisibleCells()"
                 :key="cell.id"
                 class="text-xs font-normal text-default relative"
                 :class="[
                   sizes[size].td,
-                  cell.column.columnDef.noPadding ? '' : cell.column.getCanSort() ? 'px-2' : 'px-3',
-                  getTextAlignClass(cell.column.columnDef.align),
-                  cell.column.columnDef.cellClass,
-                  cell.column.columnDef.ui?.td?.base || '',
+                  cell.column.columnDef.meta?.noPadding ? '' : cell.column.getCanSort() ? 'px-2' : 'px-3',
+                  getTextAlignClass(cell.column.columnDef.meta?.align),
+                  cell.column.columnDef.meta?.cellClass,
+                  cell.column.columnDef.meta?.ui?.td?.base || '',
                 ]"
               >
                 <UiSkeleton
-                  v-if="loading && !cell.column.columnDef.stableData"
+                  v-if="loading && !cell.column.columnDef.meta?.stableData"
                   :class="[sizes[size].skeleton]"
-                  :index="row.index * columns.length + cell.column.getIndex()"
+                  :index="row.index * columns.length + cellIndex"
                   :base="60"
                   :range="50"
                 />
-                <FlexRender v-else :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                <FlexRender v-else :cell="cell" />
               </td>
               <td v-if="hasActions" class="text-right whitespace-nowrap px-3" :class="sizes[size].td" @click.stop>
                 <slot name="actions" :row="row.original" />
@@ -425,7 +381,7 @@ export interface UiTableProps<T> {
     <UPagination
       v-else-if="!disablePagination && !manualPagination && data.length > pageSize"
       class="mt-5"
-      :page="table.getState().pagination.pageIndex + 1"
+      :page="table.atoms.pagination.get().pageIndex + 1"
       :items-per-page="pageSize"
       :total="data.length"
       @update:page="e => table.setPageIndex(e - 1)"

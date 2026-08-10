@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ColumnDef } from '@tanstack/vue-table'
 import type { CompareRouteRow } from '@unlighthouse/contracts'
+import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
 import {
   CATEGORY_METRICS,
@@ -90,14 +90,13 @@ function compareStatusSemantic(status: string): SemanticStatus {
   return toneSemantic(statusBadge(status))
 }
 
-const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
-  const cols: ColumnDef<CompareRouteRow>[] = [
+const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
+  const cols: UiTableColumn<CompareRouteRow>[] = [
     {
       id: 'path',
       header: 'Path',
       enableSorting: false,
-      headClass: 'min-w-[200px]',
-      cellClass: 'font-mono text-xs',
+      meta: { headClass: 'min-w-[200px]', cellClass: 'font-mono text-xs' },
       cell: ({ row }) => h('span', {
         'class': 'block truncate max-w-[400px]',
         'aria-label': `Route ${row.original.url}`,
@@ -107,7 +106,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       id: 'status',
       header: 'Status',
       enableSorting: false,
-      headClass: 'w-20',
+      meta: { headClass: 'w-20' },
       cell: ({ row }) => h(UiStatusBadgeCmp, { status: compareStatusSemantic(row.original.status), label: row.original.status, class: 'capitalize' }),
     },
   ]
@@ -116,8 +115,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       id: 'device',
       header: 'Dev',
       enableSorting: false,
-      align: 'center',
-      headClass: 'w-16',
+      meta: { align: 'center', headClass: 'w-16' },
       cell: ({ row }) => h(IconCmp, {
         name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
         class: 'size-3.5 text-muted inline',
@@ -129,8 +127,7 @@ const compareColumns = computed<ColumnDef<CompareRouteRow>[]>(() => {
       id: m.key,
       header: SHORT_LABEL[m.key] ?? m.label,
       enableSorting: false,
-      align: 'right',
-      headClass: 'w-16',
+      meta: { align: 'right', headClass: 'w-16' },
       cell: ({ row }) => {
         const c = rowScoreCell(row.original, m.key, m.thresholdKey)
         return h('span', { class: ['tabular-nums text-xs', c.klass] }, [

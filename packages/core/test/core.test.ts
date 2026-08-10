@@ -441,14 +441,14 @@ describe('createUnlighthouseCore orchestration', () => {
       storage,
     })
     const session = core.run()
-    // eslint-disable-next-line harlanzw/no-silent-catch -- cancellation rejection is asserted below.
+
     session.done.catch((_err) => {
       // Expected after the test cancels the hanging session.
     })
     expect(session.capabilities.pausable).toBe(false)
     await expect(session.pause()).rejects.toMatchObject({ code: 'NOT_SUPPORTED' })
     await session.cancel()
-    // eslint-disable-next-line harlanzw/no-silent-catch -- cancellation is the expected terminal state.
+
     await session.done.catch((_err) => {
       // Expected after cancellation.
     })
@@ -554,7 +554,7 @@ describe('createUnlighthouseCore orchestration', () => {
       storage,
     })
     const session = core.run()
-    // eslint-disable-next-line harlanzw/no-silent-catch -- cancellation rejection is asserted by the terminal state.
+
     session.done.catch((_err) => {
       // Expected after the test cancels the hanging session.
     })
@@ -568,7 +568,7 @@ describe('createUnlighthouseCore orchestration', () => {
         expect(e.code).toBe('ACTIVE_SCAN_CONFLICT')
     }
     await session.cancel()
-    // eslint-disable-next-line harlanzw/no-silent-catch -- cancellation is the expected terminal state.
+
     await session.done.catch((_err) => {
       // Expected after cancellation.
     })

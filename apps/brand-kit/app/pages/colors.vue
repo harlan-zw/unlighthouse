@@ -11,7 +11,7 @@ const semanticBorder = ['default', 'muted', 'accented', 'inverted']
 const HUE = 292
 const swatch = (l: number, c: number) => `oklch(${l}% ${c} ${HUE})`
 
-const neutralL = [98.4, 96.8, 92.9, 86.9, 70.4, 55.4, 44.6, 32, 22, 16, 11]
+const neutralL = [98.4, 96.8, 92.9, 86.9, 70.4, 55.4, 44.6, 32, 22, 16, 11] as const
 const neutralVariants = {
   // ~1.6x chroma — currently applied in global.css
   'Light bleed': [0.003, 0.006, 0.013, 0.022, 0.035, 0.038, 0.037, 0.033, 0.029, 0.024, 0.019],
@@ -22,6 +22,10 @@ const neutralVariants = {
 } as const
 
 const APPLIED = { neutral: 'Noticeable bleed' }
+
+function chromaAt(chroma: readonly number[], index: number): number {
+  return chroma[index] ?? 0
+}
 </script>
 
 <template>
@@ -76,7 +80,7 @@ const APPLIED = { neutral: 'Noticeable bleed' }
                 v-for="(l, i) in neutralL"
                 :key="i"
                 class="aspect-square rounded-md ring-1 ring-default"
-                :style="{ background: swatch(l, chroma[i]) }"
+                :style="{ background: swatch(l, chromaAt(chroma, i)) }"
               />
             </div>
             <div

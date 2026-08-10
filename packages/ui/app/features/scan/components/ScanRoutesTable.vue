@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ColumnDef } from '@tanstack/vue-table'
+import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import type { RouteRow } from '~/features/scan/routes-table'
 import { createScreenshotUrl } from '~/features/scan/route-context'
 import {
@@ -65,13 +65,13 @@ function routeActionItems(row: RouteRow) {
   ]
 }
 
-const columns = computed<ColumnDef<RouteRow>[]>(() => {
-  const cols: ColumnDef<RouteRow>[] = [
+const columns = computed<UiTableColumn<RouteRow>[]>(() => {
+  const cols: UiTableColumn<RouteRow>[] = [
     {
       id: 'thumbnail',
       header: 'Screenshot',
       enableSorting: false,
-      headClass: 'w-[140px]',
+      meta: { headClass: 'w-[140px]' },
       cell: ({ row }) => {
         const path = row.original.path || row.original.url
         const src = screenshotUrl(scanId.value, path, row.original.device)
@@ -93,7 +93,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
     {
       accessorKey: 'path',
       header: 'Path',
-      headClass: 'min-w-[200px]',
+      meta: { headClass: 'min-w-[200px]' },
       cell: ({ row }) => {
         const label = row.original.path || row.original.url
         return h('span', {
@@ -109,8 +109,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       accessorKey: 'device',
       header: 'Device',
       enableSorting: false,
-      align: 'center',
-      headClass: 'w-16',
+      meta: { align: 'center', headClass: 'w-16' },
       cell: ({ row }) => h(UiIconC, {
         name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
         class: 'size-3.5 text-muted',
@@ -125,8 +124,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       accessorKey: 'auditor',
       header: 'Auditor',
       enableSorting: false,
-      align: 'center',
-      headClass: 'w-20',
+      meta: { align: 'center', headClass: 'w-20' },
       cell: ({ row }) => {
         const auditor = row.original.auditor
         if (!auditor)
@@ -142,8 +140,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       accessorFn: (row: RouteRow) => (row[s.key] as number | null) ?? undefined,
       header: s.label,
       sortUndefined: 'last',
-      align: 'center',
-      headClass: 'w-16',
+      meta: { align: 'center', headClass: 'w-16' },
       cell: ({ row }) => {
         const score = row.original[s.key] as number | null
         return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
@@ -161,8 +158,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       },
       header: 'Δ',
       sortUndefined: 'last',
-      align: 'right',
-      headClass: 'w-16',
+      meta: { align: 'right', headClass: 'w-16' },
       cell: ({ row }) => {
         const prev = prevMap.value?.get(row.original.path || row.original.url)
         const cur = overallScore(row.original)
@@ -183,8 +179,7 @@ const columns = computed<ColumnDef<RouteRow>[]>(() => {
       accessorFn: (row: RouteRow) => (row[m.key] as number | null) ?? undefined,
       header: m.label,
       sortUndefined: 'last',
-      align: 'right',
-      headClass: 'w-20',
+      meta: { align: 'right', headClass: 'w-20' },
       cell: ({ row }) => h('span', { class: `tabular-nums text-xs font-medium ${cwvColor(m.key, row.original[m.key] as number | null)}` }, formatMetric(row.original[m.key] as number | null, m.unit)),
     })
   }

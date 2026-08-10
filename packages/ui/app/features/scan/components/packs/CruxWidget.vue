@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ColumnDef } from '@tanstack/vue-table'
 import type { CruxFinding, GapEntry } from '@unlighthouse/contracts/packs'
+import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import { CruxReportSchema } from '@unlighthouse/contracts/packs'
 import { h } from 'vue'
 import { cwvColor } from '~/features/scan/routes-table'
@@ -42,14 +42,14 @@ function sourceLabel(source: string): string {
 
 const UiStatusBadgeC = resolveComponent('UiStatusBadge')
 
-const findingColumns: ColumnDef<CruxFinding>[] = [
+const findingColumns: UiTableColumn<CruxFinding>[] = [
   {
     accessorKey: 'severity',
     // A CWV good/needsImprovement/poor band, not a finding severity —
     // "Rating" avoids conflating it with the critical/serious/moderate/minor
     // vocabulary the other packs' findings use (see DESIGN.md severity rules).
     header: 'Rating',
-    headClass: 'w-8',
+    meta: { headClass: 'w-8' },
     cell: ({ row }) => h(UiStatusBadgeC, { status: severityToStatus(row.original.severity) }),
   },
   {
@@ -60,34 +60,31 @@ const findingColumns: ColumnDef<CruxFinding>[] = [
   {
     accessorKey: 'formFactor',
     header: 'Form Factor',
-    headClass: 'w-28',
+    meta: { headClass: 'w-28' },
     cell: ({ row }) => h('span', { class: 'text-xs text-muted' }, row.original.formFactor),
   },
   {
     accessorKey: 'lcp_p75',
     header: 'LCP p75',
-    align: 'right',
-    headClass: 'w-24',
+    meta: { align: 'right', headClass: 'w-24' },
     cell: ({ row }) => h('span', { class: `tabular-nums text-xs ${cwvColor('lcp', row.original.lcp_p75)}` }, fmtMs(row.original.lcp_p75)),
   },
   {
     accessorKey: 'cls_p75',
     header: 'CLS p75',
-    align: 'right',
-    headClass: 'w-24',
+    meta: { align: 'right', headClass: 'w-24' },
     cell: ({ row }) => h('span', { class: `tabular-nums text-xs ${cwvColor('cls', row.original.cls_p75)}` }, fmtCls(row.original.cls_p75)),
   },
   {
     accessorKey: 'inp_p75',
     header: 'INP p75',
-    align: 'right',
-    headClass: 'w-24',
+    meta: { align: 'right', headClass: 'w-24' },
     cell: ({ row }) => h('span', { class: `tabular-nums text-xs ${cwvColor('inp', row.original.inp_p75)}` }, fmtMs(row.original.inp_p75)),
   },
   {
     accessorKey: 'source',
     header: 'Source',
-    headClass: 'w-32',
+    meta: { headClass: 'w-32' },
     cell: ({ row }) => h('span', { class: 'text-xs text-muted' }, sourceLabel(row.original.source)),
   },
 ]

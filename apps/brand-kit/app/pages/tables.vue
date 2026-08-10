@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { ColumnDef } from '@tanstack/vue-table'
+import type { UiTableColumn } from '#design-system/app/utils/ui-table'
 
 interface RouteRow {
   route: string
@@ -23,7 +23,7 @@ const rows: RouteRow[] = [
   { route: '/changelog', performance: 96, accessibility: 100, bestPractices: 100, seo: 100, lcp: 1.3 },
 ]
 
-const columns: ColumnDef<RouteRow>[] = [
+const columns: UiTableColumn<RouteRow>[] = [
   { accessorKey: 'route', header: 'Route' },
   { accessorKey: 'performance', header: 'Performance' },
   { accessorKey: 'accessibility', header: 'Accessibility' },

@@ -1,5 +1,8 @@
 catalogMode: prefer
 
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@5.20260717.1'
+  - nuxt-use-query@1.0.0
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -50,7 +53,7 @@ catalog:
   tinypool: ^2.1.0
   tsdown: ^0.22.14
   tsx: ^4.23.11
-  typescript: ^7.0.2
+  typescript: 6.0.3
   unstorage: ^1.17.5
   vite: 8.2.1
   vitest: ^4.1.10
@@ -89,7 +92,6 @@ catalogs:
     radix3: ^1.1.2
     tailwindcss: ^4.3.3
     ufo: ^1.6.4
-    vite: ^8.2.1
     vue: ^3.5.41
     ws: ^8.21.3
 ignoredBuiltDependencies:
@@ -114,6 +116,3 @@ allowBuilds:
   unrs-resolver: true
   vue-demi: true
   workerd: true
-minimumReleaseAgeExclude:
-  - '@cloudflare/workers-types@5.20260717.1'
-  - nuxt-use-query@1.0.0

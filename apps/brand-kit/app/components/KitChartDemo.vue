@@ -321,7 +321,7 @@ function fmtVal(n: number | null | undefined): string {
     </div>
 
     <div v-if="debug" class="text-[10px] text-dimmed tabular-nums">
-      {{ data.length }} pts · width: {{ chartWidth }}px · isDragging: {{ isDragging }} · anchor: {{ cardAnchor }} · committed: {{ committedRange ? `${committedRange.startDate} → ${committedRange.endDate}` : '—' }}
+      {{ data.length }} pts · width: {{ chartWidth }}px · isDragging: {{ isDragging }} · placement: {{ placement }} · committed: {{ committedRange ? `${committedRange.startDate} → ${committedRange.endDate}` : '—' }}
     </div>
   </div>
 </template>

@@ -32,7 +32,7 @@
     </KitSection>
 
     <KitSection title="Help label" code="<UiHelpLabel>">
-      <UiHelpLabel label="Scanned routes" help="Routes discovered and audited in the latest crawl." />
+      <UiHelpLabel text="Scanned routes" tooltip="Routes discovered and audited in the latest crawl." />
     </KitSection>
   </div>
 </template>
