@@ -1,4 +1,5 @@
 import type { WsEnvelope } from '~/types/scan-events'
+import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 
 // Bridges the live scan WebSocket bus (`$ws`, owned by the ws.client plugin)
 // into the query cache via nuxt-use-query's `useNuxtSubscription`. On a
@@ -13,10 +14,12 @@ import type { WsEnvelope } from '~/types/scan-events'
 //
 // Refetch the queries that hold persisted scan data. Prefix match hits every
 // active scanId's query.
-function invalidateScanReads(): void {
-  invalidateNuxtQueries('scan.summary')
-  invalidateNuxtQueries('scan.results')
-  invalidateNuxtQueries('scan.meta')
+async function invalidateScanReads(): Promise<void> {
+  await Promise.all([
+    invalidateNuxtQueries('scan.summary'),
+    invalidateNuxtQueries('scan.results'),
+    invalidateNuxtQueries('scan.meta'),
+  ])
 }
 
 export function useScanSubscription() {
@@ -28,11 +31,21 @@ export function useScanSubscription() {
       const ws = nuxtApp.$ws
       if (!ws)
         return
-      const handler = (msg: WsEnvelope) => ctx.push(msg)
+      const handler = (msg: WsEnvelope) => {
+        void ctx.push(msg).catch((error) => {
+          // The bridge already routed this rejection through `onError`.
+          void error
+        })
+      }
       ws.on('*', handler)
       // A socket reconnect means we may have missed events during the gap —
-      // tell the bridge to run `onReconnect` and recover.
-      const offReconnect = ws.onReconnect(() => ctx.resync())
+      // tell the bridge to run `onResync` and recover.
+      const offReconnect = ws.onReconnect(() => {
+        void ctx.resync().catch((error) => {
+          // The bridge already routed this rejection through `onError`.
+          void error
+        })
+      })
       return () => {
         ws.off('*', handler)
         offReconnect()
@@ -43,10 +56,11 @@ export function useScanSubscription() {
       // available — refetch summary, per-route results, and meta (which now
       // carries the summary).
       if (envelope?.event === 'scan:complete' || envelope?.event === 'scan:cancelled' || envelope?.event === 'scan:error')
-        invalidateScanReads()
+        return invalidateScanReads()
     },
     // After a socket drop, conservatively refetch — a `scan:complete` that
     // fired while we were disconnected would otherwise be lost.
-    onReconnect: invalidateScanReads,
+    onResync: invalidateScanReads,
+    onError: error => logOperationalWarn('ui.websocket_message_failed', error, undefined, console),
   })
 }

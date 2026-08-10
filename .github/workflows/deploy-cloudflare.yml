@@ -22,7 +22,8 @@ on:
   workflow_dispatch:
     inputs:
       containers:
-        description: Build + roll out the Lighthouse container image (needs Docker on the runner)
+        description: Build + roll out the Lighthouse container image (needs Docker on
+          the runner)
         type: boolean
         default: true
 
@@ -32,13 +33,13 @@ jobs:
     # Docker is preinstalled on ubuntu-latest runners, so wrangler can build
     # and push the container image.
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4.0.0
+        uses: pnpm/action-setup@v6.0.10
 
       - name: Use Node.js v24
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: v24
           cache: pnpm

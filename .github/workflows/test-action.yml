@@ -20,13 +20,13 @@ jobs:
   shape:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4.0.0
+        uses: pnpm/action-setup@v6.0.10
 
       - name: Use Node.js v24
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: v24
           cache: pnpm
