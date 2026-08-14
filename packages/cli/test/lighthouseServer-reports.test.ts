@@ -68,6 +68,18 @@ describe('lighthouseServer reports', () => {
     expect(urls).toEqual(lighthouseReport.map(({ route }) => route.url))
   })
 
+  it('uses the final audited URL after a redirect', async () => {
+    const finalUrl = 'https://harlanzw.com/canonical'
+    vi.mocked(fsp.readFile).mockResolvedValueOnce(JSON.stringify({ finalUrl }) as any)
+
+    await Promise.resolve<Promise<any>>(generateReportPayload('lighthouseServer', lighthouseReport.slice(0, 1), {
+      lhciHost: 'http://localhost',
+      lhciBuildToken: 'token',
+    }))
+
+    expect(createRun).toBeCalledWith(expect.objectContaining({ url: finalUrl }))
+  })
+
   it('expanded', async () => {
     vi.useFakeTimers()
 
