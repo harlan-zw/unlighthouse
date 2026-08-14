@@ -1,7 +1,7 @@
 import type { UnlighthouseRouteReport } from '../src/types'
 import * as fsp from 'node:fs/promises'
 import ApiClient from '@lhci/utils/src/api-client.js'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { generateReportPayload } from '../src/reporters'
 import _lighthouseReport from './__fixtures__/lighthouseReport.mjs'
 
@@ -53,6 +53,21 @@ vi.mock('@lhci/utils/src/build-context.js', () => {
 })
 
 describe('lighthouseServer reports', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('sends the scanned URL without appending the path to it', async () => {
+    await Promise.resolve<Promise<any>>(generateReportPayload('lighthouseServer', lighthouseReport, {
+      lhciHost: 'http://localhost',
+      lhciBuildToken: 'token',
+    }))
+
+    const urls = createRun.mock.calls.map(([run]) => (run as { url: string }).url)
+
+    expect(urls).toEqual(lighthouseReport.map(({ route }) => route.url))
+  })
+
   it('expanded', async () => {
     vi.useFakeTimers()
 
@@ -88,7 +103,7 @@ describe('lighthouseServer reports', () => {
         projectId: 1,
         buildId: 1,
         representative: false,
-        url: `${route.url}${route.path}`,
+        url: route.url,
         lhr: '{}',
       })
     })

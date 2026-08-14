@@ -58,7 +58,7 @@ export async function reportLighthouseServer(
         projectId: project.id,
         buildId: build.id,
         representative: false,
-        url: `${report.route.url}${report.route.path}`,
+        url: report.route.url,
         lhr: JSON.stringify(lighthouseResult),
       })
     }
