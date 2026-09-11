@@ -28,7 +28,7 @@ catalog:
   obuild: ^0.4.37
   puppeteer: ^25.2.1
   typescript: ^6.0.3
-  vitest: ^4.1.9
+  vitest: ^5.0.0
 
 catalogs:
   crux-api:
