@@ -260,4 +260,9 @@ Fired when a path discovered internal links, used for "crawl" mode.
 
 - **Type:** `(page: Page) => HookResult`{lang="ts"}
 
-After a page has been visited with puppeteer. Useful for running
+Fired before Lighthouse navigates the page to its URL.
+Unlighthouse re-applies the configured cookies, extra headers and
+user agent before it calls this hook.
+
+Use it to prepare the page. For example, intercept requests, inject a
+script, or seed extra state.

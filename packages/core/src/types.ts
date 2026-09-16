@@ -722,7 +722,10 @@ export interface UnlighthouseHooks {
    */
   'discovered-internal-links': (path: string, internalLinks: string[]) => HookResult
   /**
-   * After a page has been visited with puppeteer. Useful for running
+   * Fired before Lighthouse navigates the page to its URL.
+   *
+   * Unlighthouse re-applies the configured cookies, extra headers and user agent before it calls this hook.
+   * Use it to prepare the page. For example, intercept requests, inject a script, or seed extra state.
    * @param page
    */
   'puppeteer:before-goto': (page: Page) => HookResult
