@@ -6,6 +6,7 @@ import { glob, rm } from 'node:fs/promises'
 import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '@unlighthouse/core'
 import { relative, resolve } from 'pathe'
 import { isCI } from 'std-env'
+import { isScoreBelowBudget } from './ciBudget'
 import createCli from './createCli'
 import { handleError } from './errors'
 import { generateReportPayload, outputReport } from './reporters'
@@ -86,12 +87,12 @@ async function run() {
         if (!categories)
           return
 
-        Object.values(categories).forEach((category: { score: number, key: string }) => {
+        Object.values(categories).forEach((category: { score: number | null, key: string }) => {
           let budget = resolvedConfig.ci.budget
           if (!Number.isInteger(budget))
             budget = resolvedConfig.ci.budget[category.key]
 
-          if (category.score && category.score * 100 < (budget as number)) {
+          if (isScoreBelowBudget(category.score, budget as number | undefined)) {
             logger.error(
               `${report.route.path} has invalid score \`${category.score}\` for category \`${category.key}\`.`,
             )
