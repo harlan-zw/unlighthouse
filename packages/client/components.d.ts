@@ -63,11 +63,11 @@ declare module 'vue' {
     StatItem: typeof import('./components/StatItem.vue')['default']
     StatusChip: typeof import('./components/StatusChip.vue')['default']
     Tooltip: typeof import('./components/Tooltip.vue')['default']
-    UApp: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
-    UButton: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
-    UDropdownMenu: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/components/DropdownMenu.vue')['default']
-    UIcon: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
-    UModal: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.9.0_e393d51e5186c2bb2f107ca0abdb537a/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
+    UApp: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.11.1_946b10b7813fa8169c42b63a1023ab87/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
+    UButton: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.11.1_946b10b7813fa8169c42b63a1023ab87/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
+    UDropdownMenu: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.11.1_946b10b7813fa8169c42b63a1023ab87/node_modules/@nuxt/ui/dist/runtime/components/DropdownMenu.vue')['default']
+    UIcon: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.11.1_946b10b7813fa8169c42b63a1023ab87/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
+    UModal: typeof import('./../../node_modules/.pnpm/@nuxt+ui@4.11.1_946b10b7813fa8169c42b63a1023ab87/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
     WarningChip: typeof import('./components/Chip/WarningChip.vue')['default']
   }
 }
