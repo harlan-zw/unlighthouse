@@ -1,54 +1,68 @@
+import type { UnlighthouseColumn } from '@unlighthouse/core'
 import type { UnlighthouseRouteReport } from '../types'
 import type { ReporterConfig } from './types'
 import { get } from 'lodash-es'
 import { csvSimpleFormat } from './csvSimple'
 
+interface AuditValue {
+  score?: number | null
+  numericValue?: number
+  scoreDisplayMode?: string
+}
+
+function readAudit(report: UnlighthouseRouteReport['report'], key: string): AuditValue | undefined {
+  return get(report, key.replace('report.', ''))
+}
+
+function isExportedAudit(audit: AuditValue | undefined) {
+  return Boolean(
+    audit?.scoreDisplayMode
+    && audit.scoreDisplayMode !== 'informative'
+    && audit.scoreDisplayMode !== 'notApplicable',
+  )
+}
+
+function formatExportedAudit(audit: AuditValue | undefined): string | number {
+  if (!audit || !isExportedAudit(audit))
+    return ''
+  if (audit.scoreDisplayMode === 'binary')
+    return audit.score ?? ''
+  if (audit.scoreDisplayMode === 'numeric')
+    return Math.round((audit.numericValue ?? Number.NaN) * 100) / 100
+  return audit.score ?? ''
+}
+
+function categoryPresent(reports: UnlighthouseRouteReport[], key: string) {
+  return reports.some(routeReport =>
+    Object.values(routeReport.report.categories).some(category => (category as { key?: string }).key === key),
+  )
+}
+
 export function reportCSVExpanded(reports: UnlighthouseRouteReport[], { columns }: ReporterConfig): string {
   const { headers, body } = csvSimpleFormat(reports)
-  for (const k of Object.keys(columns)) {
-    // already have overview
-    if (k === 'overview')
-      continue
-    // check if k is within the reports
-    if (!reports[0].report.categories.some(category => category.key === k))
+  const exportedColumns: UnlighthouseColumn[] = []
+  const columnGroups = columns ?? {}
+
+  for (const key of Object.keys(columnGroups)) {
+    if (key === 'overview' || !columnGroups[key] || !categoryPresent(reports, key))
       continue
 
-    // add to headers
-    headers.push(
-      ...columns[k]
-        .map(column => ({
-          column,
-          val: get(reports[0], column.key),
-        }))
-        .filter(({ val }) => val?.scoreDisplayMode && val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')
-        .map(({ column }) => column.label),
-    )
+    for (const column of columnGroups[key]) {
+      const exportedSomewhere = reports.some(routeReport =>
+        isExportedAudit(readAudit(routeReport.report, column.key)),
+      )
+      if (!exportedSomewhere)
+        continue
+      exportedColumns.push(column)
+    }
   }
 
-  reports.forEach(({ report }, i) => {
-    for (const k of Object.keys(columns)) {
-      // already have overview
-      if (k === 'overview')
-        continue
-      // check if k is within the reports
-      if (!reports[0].report.categories.some(category => category.key === k))
-        continue
+  headers.push(...exportedColumns.map(column => column.label))
 
-      // headers are good, now add body
-      body[i].push(
-        ...columns[k]
-          .map(column => get(report, column.key.replace('report.', '')))
-          .filter(val => val?.scoreDisplayMode && val.scoreDisplayMode !== 'informative' && val.scoreDisplayMode !== 'notApplicable')
-          .map((val) => {
-            if (val.scoreDisplayMode === 'binary')
-              return val.score
-            if (val.scoreDisplayMode === 'numeric')
-              // round to 2 decimal places
-              return Math.round(val.numericValue * 100) / 100
-            return val.score
-          }),
-      )
-    }
+  reports.forEach(({ report }, index) => {
+    body[index].push(...exportedColumns.map(column =>
+      formatExportedAudit(readAudit(report, column.key)),
+    ))
   })
 
   return [

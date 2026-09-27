@@ -6,24 +6,42 @@ function escapeValueForCsv(value: string | number | boolean): string {
   return `"${value.replace(/"/g, '""')}"`
 }
 
+interface CategoryCell {
+  key: string
+  title: string
+  score: number | null
+}
+
+function categoriesOf(categories: UnlighthouseRouteReport['report']['categories']): CategoryCell[] {
+  return Object.values(categories) as CategoryCell[]
+}
+
 export function csvSimpleFormat(reports: UnlighthouseRouteReport[]): { headers: string[], body: any } {
-  const headers = ['URL', 'Score']
-  Object.values(reports[0].report.categories).forEach((category) => {
-    headers.push(category.title)
-  })
+  const categoryColumns: { key: string, title: string }[] = []
+  const seenCategoryKeys = new Set<string>()
+  for (const { report } of reports) {
+    for (const category of categoriesOf(report.categories)) {
+      if (seenCategoryKeys.has(category.key))
+        continue
+      seenCategoryKeys.add(category.key)
+      categoryColumns.push({ key: category.key, title: category.title })
+    }
+  }
+
+  const headers = ['URL', 'Score', ...categoryColumns.map(category => category.title)]
 
   const body = reports
     .map(({ report, route }) => {
-      const topLevelScoreKeys = []
-      Object.keys(report.categories).forEach((category) => {
-        topLevelScoreKeys.push(Math.round(report.categories[category].score * 100))
-      })
-      // map to the format
+      const categories = categoriesOf(report.categories)
       return [
         route.path,
         Math.round(report.score * 100),
-        // list all top level scores (performance, accessibility, etc)
-        ...topLevelScoreKeys,
+        ...categoryColumns.map((column) => {
+          const category = categories.find(item => item.key === column.key)
+          if (!category)
+            return ''
+          return Math.round(category.score * 100)
+        }),
       ]
         .map(escapeValueForCsv)
     })
