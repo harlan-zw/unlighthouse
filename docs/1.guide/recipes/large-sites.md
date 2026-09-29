@@ -37,7 +37,7 @@ These defaults optimize scanning for sites with thousands of pages:
 - [maxRoutes](/api-doc/config#scanner-maxroutes) set to 200
 - [skipJavascript](/api-doc/config#scanner-skipjavascript) enabled
 - [samples](/api-doc/config#scanner-samples) set to 1
-- [throttling](/api-doc/config#scanner-throttle) enabled
+- [throttling](/api-doc/config#scanner-throttle) enabled, except for local sites
 - [crawler](/api-doc/config#scanner-crawler) enabled
 - [dynamicSampling](/api-doc/config#scanner-dynamicsampling) set to 8
 

@@ -307,7 +307,7 @@ and [Improving Accuracy](/guide/recipes/improving-accuracy) for more information
 
 Should lighthouse run with throttling enabled. This is an alias for manually configuring lighthouse.
 
-Set it to `false` to turn throttling off. The default applies to every site, including local ones.
+Local sites, such as `localhost` and `127.0.0.1`, run unthrottled unless you set this option. An explicit `true` or `false` always wins.
 
 See [Network Throttling](/guide/guides/device#network-throttling) for more information.
 

@@ -17,39 +17,47 @@ import { normaliseHost, withSlashes } from './util'
 /**
  * Map the `scanner.throttle` alias to lighthouse throttling options.
  *
+ * An explicit `throttle` always wins. Without one, local sites run unthrottled and remote sites simulate a slow network.
  * Returns `undefined` when the lighthouse options already configure throttling, since those win over the alias.
  */
 export function resolveThrottling(
   lighthouseOptions: NonNullable<ResolvedUserConfig['lighthouseOptions']>,
-  throttle: boolean | undefined,
+  { throttle, site }: { throttle?: boolean, site?: string },
 ): Pick<NonNullable<ResolvedUserConfig['lighthouseOptions']>, 'throttlingMethod' | 'throttling'> | undefined {
   if (typeof lighthouseOptions.throttlingMethod !== 'undefined' || typeof lighthouseOptions.throttling !== 'undefined')
     return undefined
-  if (throttle === false) {
+  if (throttle ?? !isLocalSite(site)) {
     return {
-      throttlingMethod: 'provided',
+      throttlingMethod: 'simulate',
+      // we need a custom throttling profile to account for the cpu / network already getting blasted
       throttling: {
-        rttMs: 0,
-        throughputKbps: 0,
+        rttMs: 150,
+        throughputKbps: 1.6 * 1024,
+        requestLatencyMs: 150 * 4,
+        downloadThroughputKbps: 1.6 * 1024,
+        uploadThroughputKbps: 750,
         cpuSlowdownMultiplier: 1,
-        requestLatencyMs: 0, // 0 means unset
-        downloadThroughputKbps: 0,
-        uploadThroughputKbps: 0,
       },
     }
   }
   return {
-    throttlingMethod: 'simulate',
-    // we need a custom throttling profile to account for the cpu / network already getting blasted
+    throttlingMethod: 'provided',
     throttling: {
-      rttMs: 150,
-      throughputKbps: 1.6 * 1024,
-      requestLatencyMs: 150 * 4,
-      downloadThroughputKbps: 1.6 * 1024,
-      uploadThroughputKbps: 750,
+      rttMs: 0,
+      throughputKbps: 0,
       cpuSlowdownMultiplier: 1,
+      requestLatencyMs: 0, // 0 means unset
+      downloadThroughputKbps: 0,
+      uploadThroughputKbps: 0,
     },
   }
+}
+
+function isLocalSite(site: string | undefined): boolean {
+  if (!site)
+    return true
+  const { hostname } = new URL(site)
+  return hostname === 'localhost' || hostname.endsWith('.localhost') || hostname === '127.0.0.1' || hostname === '[::1]'
 }
 
 /**
@@ -107,9 +115,12 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   else {
     config.lighthouseOptions = {}
   }
-  const throttling = resolveThrottling(config.lighthouseOptions, config.scanner?.throttle)
-  if (throttling)
+  // read the user's value, the merged config always carries the default
+  const throttling = resolveThrottling(config.lighthouseOptions, { throttle: userConfig.scanner?.throttle, site: config.site })
+  if (throttling) {
     Object.assign(config.lighthouseOptions, throttling)
+    config.scanner!.throttle = throttling.throttlingMethod === 'simulate'
+  }
 
   config.scanner!.exclude = config.scanner?.exclude || []
   config.scanner!.exclude.push('/cdn-cgi/*')

@@ -435,6 +435,8 @@ export interface ResolvedUserConfig {
     /**
      * Should lighthouse run with throttling enabled? This is an alias for manually configuring lighthouse.
      *
+     * Without an explicit value, local sites such as `localhost` run unthrottled.
+     *
      * @see https://unlighthouse.dev/guide/device.html#alias-enable-disable-throttling
      * @default true
      */
