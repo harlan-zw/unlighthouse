@@ -1,6 +1,6 @@
 import type { Page } from '../types/puppeteer'
 import { useLogger, useUnlighthouse } from '../unlighthouse'
-import { resolveRequestHeaders, toBrowserCookies } from '../util/requestHeaders'
+import { resolvePageHeaders, toBrowserCookies } from '../util/requestHeaders'
 
 export async function setupPage(page: Page) {
   const { resolvedConfig, hooks } = useUnlighthouse()
@@ -37,8 +37,9 @@ export async function setupPage(page: Page) {
       resolvedConfig.sessionStorage,
     )
   }
-  // headers apply to every request the page makes, so cookies go to the cookie jar, which scopes them by domain and path
-  const requestHeaders = resolveRequestHeaders(resolvedConfig)
+  // headers apply to every request the page makes, so only explicit headers ride here: `page.authenticate` scopes auth
+  // to origins that challenge for it and the cookie jar scopes cookies by domain and path
+  const requestHeaders = resolvePageHeaders(resolvedConfig)
   const cookies = toBrowserCookies(resolvedConfig.cookies, resolvedConfig.site)
   if (cookies.length) {
     await page.setCookie(...cookies)

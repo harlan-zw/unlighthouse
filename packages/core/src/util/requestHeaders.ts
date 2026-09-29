@@ -45,8 +45,9 @@ export function cookieAppliesTo(cookie: Cookie, url: string, site: string): bool
  * `Cookie` header holding only the cookies that apply to that URL, for requests made outside the browser.
  * An explicit `Cookie` or `Authorization` in `extraHeaders` wins.
  *
- * Browser requests get cookies from the cookie jar instead (see `toBrowserCookies`), because a page wide header would
- * go to every host the page loads from.
+ * Only request paths that target the scanned origin may use this. Browser requests get cookies from the cookie jar
+ * instead (see `toBrowserCookies`) and auth from the challenge based `page.authenticate`, because a page wide header
+ * would go to every host the page loads from (see `resolvePageHeaders`).
  */
 export function resolveRequestHeaders(
   { cookies, auth, extraHeaders }: RequestIdentity,
@@ -62,6 +63,15 @@ export function resolveRequestHeaders(
   if (auth && !has('authorization'))
     headers.Authorization = `Basic ${Buffer.from(`${auth.username}:${auth.password}`).toString('base64')}`
   return headers
+}
+
+/**
+ * The page wide headers of a browser page: only the explicit `extraHeaders`.
+ * A page wide header goes to every host the page loads from, so derived credentials stay out of it.
+ * `auth` rides on the challenge based `page.authenticate`, cookies on the cookie jar (see `toBrowserCookies`).
+ */
+export function resolvePageHeaders({ extraHeaders }: RequestIdentity): Record<string, string> {
+  return { ...extraHeaders }
 }
 
 /**
