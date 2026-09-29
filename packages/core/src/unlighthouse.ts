@@ -53,9 +53,9 @@ export function defineConfig(config: UserConfig) {
  * not start automatically, a server context needs to be provided using `setServerContext()`.
  *
  * @param userConfig
- * @param provider
+ * @param provider Integration details. Defaults to none, which discovers routes from the site.
  */
-export async function createUnlighthouse(userConfig: UserConfig, provider?: Provider) {
+export async function createUnlighthouse(userConfig: UserConfig, provider: Provider = {}) {
   const logger = createLogger(userConfig.debug)
   if (userConfig.root && !isAbsolute(userConfig.root))
     userConfig.root = join(process.cwd(), userConfig.root)
@@ -345,6 +345,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     // Now start queuing routes after the static info is shown
     worker.queueRoutes(ctx.routes)
+    if (ctx.routes.length && !worker.reports().length) {
+      logger.error(`No routes left to scan. Discovery found ${ctx.routes.length} route(s), and include, exclude, or robots.txt rules skipped all of them. The crawler starts from \`/\`, so keep \`/\` in \`scanner.include\` or pass explicit \`urls\`.`)
+    }
     return ctx
   }
 

@@ -166,6 +166,14 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     progressBox.update(progressData)
   }
 
+  /**
+   * Every branch that ends a route's last task calls this, so the scan cannot stall after a skip or failure.
+   */
+  const finishIfIdle = () => {
+    if (monitor().status === 'completed')
+      hooks.callHook('worker-finished')
+  }
+
   const exceededMaxRoutes = () => {
     return resolvedConfig.scanner.maxRoutes !== false && routeReports.size >= resolvedConfig.scanner.maxRoutes
   }
@@ -247,10 +255,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
       const taskName = Object.keys(tasks)?.[idx] as UnlighthouseTask
       // handle invalid index
       if (!taskName) {
-        // tasks are finished
-        if (monitor().status === 'completed')
-          hooks.callHook('worker-finished')
-
+        finishIfIdle()
         return
       }
 
@@ -274,14 +279,13 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
             routeReports.delete(id)
             ignoredRoutes.add(id)
             logger.debug(`Ignoring route \`${routeReport.route.path}\`.`)
-            // Check if all routes are ignored/completed and trigger worker-finished
-            if (monitor().status === 'completed') {
-              hooks.callHook('worker-finished')
-            }
+            finishIfIdle()
             return
           }
-          if (response.tasks[taskName] === 'failed')
+          if (response.tasks[taskName] === 'failed') {
+            finishIfIdle()
             return
+          }
           if (response.tasks[taskName] === 'failed-retry') {
             const currentRetries = retriedRoutes.get(id) || 0
             logger.debug(`Route "${path}" (id: ${id}) failed, retry attempt ${currentRetries + 1}/3`)
@@ -294,6 +298,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
               logger.warn(`Route "${path}" has exceeded maximum retry attempts (3), skipping.`)
               response.tasks[taskName] = 'failed'
               routeReports.set(id, response)
+              finishIfIdle()
             }
             return
           }

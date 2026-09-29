@@ -16,6 +16,7 @@ export async function launchPuppeteerCluster(): Promise<UnlighthousePuppeteerClu
   cluster.display = {
     log() {},
     resetCursor() {},
+    close() {},
   }
   return cluster
 }
