@@ -143,18 +143,19 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
   const maxRetries = 3
   let attempt = 0
 
-  const userAgent = resolvedConfig.userAgent || resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
-  const headers: Record<string, string> = {
-    'User-Agent': String(userAgent),
-    ...resolveRequestHeaders(resolvedConfig),
-  }
-
   let finalUrl = url
   if (resolvedConfig.defaultQueryParams) {
     const u = new URL(url)
     for (const [k, v] of Object.entries(resolvedConfig.defaultQueryParams))
       u.searchParams.set(k, String(v))
     finalUrl = u.toString()
+  }
+
+  const userAgent = resolvedConfig.userAgent || resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
+  const headers: Record<string, string> = {
+    'User-Agent': String(userAgent),
+    // only the cookies that apply to this URL; fetch drops the Cookie header on a cross origin redirect
+    ...resolveRequestHeaders(resolvedConfig, { url: finalUrl, site: resolvedConfig.site || url }),
   }
 
   while (attempt < maxRetries) {

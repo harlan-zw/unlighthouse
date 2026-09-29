@@ -1,6 +1,6 @@
 import type { Page } from '../types/puppeteer'
 import { useLogger, useUnlighthouse } from '../unlighthouse'
-import { resolveRequestHeaders } from '../util/requestHeaders'
+import { resolveRequestHeaders, toBrowserCookies } from '../util/requestHeaders'
 
 export async function setupPage(page: Page) {
   const { resolvedConfig, hooks } = useUnlighthouse()
@@ -37,8 +37,19 @@ export async function setupPage(page: Page) {
       resolvedConfig.sessionStorage,
     )
   }
-  // cookies go as a header, since a cookie jar entry does not survive the Lighthouse storage reset
+  // headers apply to every request the page makes, so cookies go to the cookie jar, which scopes them by domain and path
   const requestHeaders = resolveRequestHeaders(resolvedConfig)
+  const cookies = toBrowserCookies(resolvedConfig.cookies, resolvedConfig.site)
+  if (cookies.length) {
+    await page.setCookie(...cookies)
+      .catch(softErrorHandler('Failed to set cookies'))
+    // Lighthouse opens its page in the default browser context, which does not share this page's cookie jar.
+    // CDP takes the same `url` scoping as the page, so a cookie without a domain stays host only.
+    const session = await browser.target().createCDPSession()
+    await session.send('Storage.setCookies', { cookies })
+      .catch(softErrorHandler('Failed to set cookies'))
+    await session.detach().catch(softErrorHandler('Failed to detach the cookie session'))
+  }
   if (Object.keys(requestHeaders).length) {
     await page.setExtraHTTPHeaders(requestHeaders)
       .catch(softErrorHandler('Failed to set extra headers'))
@@ -49,6 +60,10 @@ export async function setupPage(page: Page) {
     const page = await target.page()
     if (page) {
       // in case they get reset
+      if (cookies.length) {
+        await page.setCookie(...cookies)
+          .catch(softErrorHandler('Failed to set cookies'))
+      }
       if (Object.keys(requestHeaders).length) {
         await page.setExtraHTTPHeaders(requestHeaders)
           .catch(softErrorHandler('Failed to set extra headers'))
