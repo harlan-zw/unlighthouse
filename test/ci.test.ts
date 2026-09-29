@@ -11,12 +11,12 @@ export const ci = resolve(__dirname, '../packages/unlighthouse/bin/unlighthouse-
 // a two page site with no robots.txt or sitemap, so discovery falls back to the crawler
 const fixtureSite = createServer((req, res) => {
   const pages: Record<string, string> = {
-    '/': '<a href="/about">About</a>',
-    '/about': '<a href="/">Home</a>',
+    '/': '<!doctype html><html lang="en"><head><title>Home</title></head><body><a href="/about">About</a></body></html>',
+    '/about': '<!doctype html><html lang="en"><head><title>About</title></head><body><a href="/">Home</a></body></html>',
   }
-  const body = pages[req.url || '']
-  res.writeHead(body ? 200 : 404, { 'content-type': 'text/html' })
-  res.end(body ? `<!doctype html><html lang="en"><head><title>${req.url}</title></head><body>${body}</body></html>` : 'Not found')
+  const page = pages[req.url || '']
+  res.writeHead(page ? 200 : 404, { 'content-type': 'text/html' })
+  res.end(page || 'Not found')
 })
 let fixtureUrl = ''
 
