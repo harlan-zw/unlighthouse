@@ -37,7 +37,8 @@ npx unlighthouse-ci --site https://example.com --budget 80
 - **`scanner.maxRoutes`** (200) stops the queue. It logs a warning and exits 0.
 - **HTML inspection skips JavaScript.** If the home page has no links, the crawler turns JavaScript on and retries. For an SPA, pass `--enable-javascript`.
 - **Device** is mobile. Pass `--desktop` for desktop.
-- **Throttling** is simulated on every site, including localhost. Set `scanner.throttle: false` to turn it off.
+- **Throttling** is simulated for a remote site and off for a local one (`localhost`, `127.0.0.1`). An explicit `scanner.throttle` or `--throttle` wins.
+- **Redirects:** if `site` redirects to another host, such as http to https or apex to www, the scan uses the redirect target.
 
 ## Common tasks
 
@@ -65,7 +66,7 @@ export default defineUnlighthouseConfig({
 
 Static HTML report: pass `--build-static`, or set `ci.buildStatic: true`. It writes `index.html` to the root of `outputPath` (`.unlighthouse`). Upload that folder. It deletes the per page `lighthouse.json` files.
 
-Authentication: the `authenticate` hook gets the Puppeteer `Page` as its first argument. It runs once, and its cookies and storage apply to every page.
+Authentication: the `authenticate` hook gets the Puppeteer `Page` as its first argument. It runs once. Its cookies go with every request, including the Lighthouse run.
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
@@ -118,7 +119,6 @@ await unlighthouse.start()
 - **`unlighthouse-ci` clears `outputPath` before it scans, and refuses a folder it did not create.** `--output-path .` exits 1 with `Refusing to clear ... it is not an unlighthouse output folder`. Point it at a new or empty folder. Unlighthouse marks its folders with a `.unlighthouse-output` file.
 - **String patterns are route patterns, not regex.** `--exclude-urls "/blog/.*"` excludes nothing. `*` matches one segment and `**` any depth, so use `/blog/**`, or a `RegExp` in the config.
 - **An `include` list that skips `/` stops a crawler scan.** The crawler starts from `/`, so nothing is queued and both binaries exit 1 with `No routes left to scan`. Add `'/'` to `include`, or use `--urls`.
-- **`cookies` do not reach the Lighthouse request.** Only the HTML inspection request carries them. For a session that Lighthouse must see, send a header: `--extra-headers 'Cookie=sid=abc'` or `extraHeaders: { Cookie: 'sid=abc' }`.
 - **A hook that throws stops `unlighthouse-ci` with exit code 1.** Guard on `taskName` and optional fields.
 - **Dynamic sampling is random.** Two runs can scan different pages in one group. For stable CI results, pass `--urls` or turn sampling off.
 
@@ -129,7 +129,7 @@ await unlighthouse.start()
 
 ## Config
 
-- `scanner.device` (`'mobile'`), `scanner.samples` (1, runs per page, averaged), `scanner.throttle` (`true`).
+- `scanner.device` (`'mobile'`), `scanner.samples` (1, runs per page, averaged), `scanner.throttle` (on for remote sites, off for local ones).
 - `scanner.dynamicSampling` (8), `scanner.maxRoutes` (200), `scanner.crawler`, `scanner.sitemap`, `scanner.robotsTxt`.
 - `puppeteerClusterOptions.maxConcurrency` (half the CPU cores). Set 1 for stable performance scores.
 - `lighthouseOptions` passes through to Lighthouse. `onlyAudits` replaces `onlyCategories`.
