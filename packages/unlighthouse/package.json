@@ -46,6 +46,7 @@
     "config.d.ts",
     "config.mjs",
     "dist",
+    "skills",
     "types.d.mts",
     "types.d.ts"
   ],

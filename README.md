@@ -5,6 +5,13 @@
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![License][license-src]][license-href]
+<a href="https://skilld.dev/gh/harlan-zw/unlighthouse">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://skilld.dev/b/harlan-zw/unlighthouse?theme=dark">
+    <source media="(prefers-color-scheme: light)" srcset="https://skilld.dev/b/harlan-zw/unlighthouse?theme=light">
+    <img alt="Skill repository on skilld.dev" src="https://skilld.dev/b/harlan-zw/unlighthouse?theme=light">
+  </picture>
+</a>
 
 <p align="center">
 Unlighthouse scans your entire site using Google Lighthouse,<br> with a modern UI, minimal config and smart sampling.
@@ -33,10 +40,7 @@ pnpm dlx unlighthouse --site <your-site>
 ```
 
 > [!TIP]
-> Generate an Agent Skill for this package using [skilld](https://github.com/harlan-zw/skilld):
-> ```bash
-> npx skilld add unlighthouse
-> ```
+> Using an AI agent? Get the unlighthouse Skill on [skilld.dev/gh/harlan-zw/unlighthouse](https://skilld.dev/gh/harlan-zw/unlighthouse).
 
 _Requirements: Node >= 22.18.0._
 
