@@ -1,7 +1,7 @@
 import type { App, Router } from 'h3'
 import { existsSync, rmSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { createRouter, defineEventHandler, getQuery, getRouterParams, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
 import launch from 'launch-editor'
 import { createScanMeta } from '../data'
@@ -51,9 +51,13 @@ export async function createApi(app: App): Promise<Router> {
       setResponseStatus(event, 400)
       return false
     }
-    const path = file.replace(resolvedConfig.root, '')
-    const resolved = join(resolvedConfig.root, path)
-    logger.info(`Launching file in editor: \`${path}\``)
+    const root = resolve(resolvedConfig.root)
+    const resolved = resolve(root, file)
+    if (resolved !== root && !resolved.startsWith(root + sep)) {
+      setResponseStatus(event, 400)
+      return false
+    }
+    logger.info(`Launching file in editor: \`${resolved}\``)
     launch(resolved)
     return true
   }))
