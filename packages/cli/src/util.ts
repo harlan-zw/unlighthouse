@@ -24,7 +24,7 @@ export async function validateHost(resolvedConfig: ResolvedUserConfig) {
     }
     else if (response) {
       // change the URL to the redirect one, make sure it's not to a file (i.e /index.php)
-      if (redirected && redirectUrl && !redirectUrl.includes('.')) {
+      if (redirected && redirectUrl && !isFileUrl(redirectUrl)) {
         logger.success(`Request to site \`${site}\` redirected to \`${redirectUrl}\`, using that as the site.`)
         resolvedConfig.site = normaliseHost(redirectUrl).toString()
       }
@@ -33,6 +33,13 @@ export async function validateHost(resolvedConfig: ResolvedUserConfig) {
       }
     }
   }
+}
+
+/**
+ * A URL whose last path segment has an extension, such as `/index.php`. Only the path counts: every real host has a dot.
+ */
+function isFileUrl(url: string) {
+  return new URL(url).pathname.split('/').pop()!.includes('.')
 }
 
 export function isValidUrl(s: string) {

@@ -8,6 +8,7 @@ import sanitize from 'sanitize-filename'
 import slugify from 'slugify'
 import { joinURL, withLeadingSlash, withoutLeadingSlash, withoutTrailingSlash, withTrailingSlash } from 'ufo'
 import { useLogger, useUnlighthouse } from './unlighthouse'
+import { resolveRequestHeaders } from './util/requestHeaders'
 
 export const ReportArtifacts = {
   html: 'payload.html',
@@ -142,20 +143,10 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
   const maxRetries = 3
   let attempt = 0
 
-  const headers: Record<string, string> = {}
   const userAgent = resolvedConfig.userAgent || resolvedConfig.lighthouseOptions.emulatedUserAgent || 'Unlighthouse'
-  headers['User-Agent'] = String(userAgent)
-  Object.assign(headers, resolvedConfig.extraHeaders || {})
-
-  if (resolvedConfig.cookies) {
-    headers.Cookie = resolvedConfig.cookies
-      .map(cookie => `${cookie.name}=${cookie.value}`)
-      .join('; ')
-  }
-
-  if (resolvedConfig.auth) {
-    const credentials = `${resolvedConfig.auth.username}:${resolvedConfig.auth.password}`
-    headers.Authorization = `Basic ${Buffer.from(credentials).toString('base64')}`
+  const headers: Record<string, string> = {
+    'User-Agent': String(userAgent),
+    ...resolveRequestHeaders(resolvedConfig),
   }
 
   let finalUrl = url

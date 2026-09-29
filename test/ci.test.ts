@@ -8,11 +8,17 @@ import { x } from 'tinyexec'
 export const cacheDir = resolve(__dirname, '.cache')
 export const ci = resolve(__dirname, '../packages/unlighthouse/bin/unlighthouse-ci.mjs')
 
+// the Cookie header of every request to /session, to check which request paths carry it
+const sessionCookies: (string | undefined)[] = []
+
 // a two page site with no robots.txt or sitemap, so discovery falls back to the crawler
 const fixtureSite = createServer((req, res) => {
+  if (req.url === '/session')
+    sessionCookies.push(req.headers.cookie)
   const pages: Record<string, string> = {
     '/': '<!doctype html><html lang="en"><head><title>Home</title></head><body><a href="/about">About</a></body></html>',
     '/about': '<!doctype html><html lang="en"><head><title>About</title></head><body><a href="/">Home</a></body></html>',
+    '/session': '<!doctype html><html lang="en"><head><title>Session</title></head><body>Session</body></html>',
   }
   const page = pages[req.url || '']
   res.writeHead(page ? 200 : 404, { 'content-type': 'text/html' })
@@ -77,6 +83,22 @@ describe('scan lifecycle', () => {
 
     expect(exitCode).toBe(1)
     expect(stdout + stderr).toContain('No routes left to scan')
+  })
+
+  it('sends cookies with the HTML inspection and the Lighthouse run', async () => {
+    const testDir = resolve(cacheDir, `cookies-${Date.now()}`)
+    await mkdir(testDir, { recursive: true })
+    sessionCookies.length = 0
+
+    const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir, '--site', fixtureUrl, '--urls', '/session', '--cookies', 'sid=abc=def'], {
+      nodeOptions: { cwd: testDir },
+      timeout: 180_000,
+    })
+
+    expect(exitCode, stdout + stderr).toBe(0)
+    // one request from the HTML inspection, at least one from Lighthouse
+    expect(sessionCookies.length).toBeGreaterThanOrEqual(2)
+    expect(sessionCookies.every(cookie => cookie === 'sid=abc=def')).toBe(true)
   })
 
   it('scans with the programmatic API and closes the cluster', async () => {

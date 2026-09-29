@@ -11,6 +11,7 @@ import { withQuery } from 'ufo'
 import { useLogger } from '../../logger'
 import { useUnlighthouse } from '../../unlighthouse'
 import { base64ToBuffer, ReportArtifacts } from '../../util'
+import { resolveRequestHeaders } from '../../util/requestHeaders'
 import { setupPage } from '../util'
 
 export function normaliseLighthouseResult(route: UnlighthouseRouteReport, result: Result): LighthouseReport {
@@ -143,7 +144,11 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,
     `--routeReport=${JSON.stringify(routeReportForArgs)}`,
-    `--lighthouseOptions=${JSON.stringify(resolvedConfig.lighthouseOptions)}`,
+    // resolved per task, so cookies from the authenticate hook reach every Lighthouse run
+    `--lighthouseOptions=${JSON.stringify({
+      ...resolvedConfig.lighthouseOptions,
+      extraHeaders: { ...resolveRequestHeaders(resolvedConfig), ...resolvedConfig.lighthouseOptions.extraHeaders },
+    })}`,
     `--port=${port}`,
   ]
 
