@@ -179,7 +179,8 @@ export async function fetchUrlRaw(url: string, resolvedConfig: ResolvedUserConfi
         // remove auth credentials from url (e.g. https://user:passwd@domain.de)
         responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
       }
-      const redirected = !!responseUrl && responseUrl !== finalUrl
+      // fetch normalises `https://site` to `https://site/`, which is not a redirect
+      const redirected = !!responseUrl && withoutTrailingSlash(responseUrl) !== withoutTrailingSlash(finalUrl)
       const redirectUrl = responseUrl
 
       const headersObj: Record<string, string> = {}

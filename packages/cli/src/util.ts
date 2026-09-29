@@ -17,9 +17,9 @@ export async function validateHost(resolvedConfig: ResolvedUserConfig) {
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
-        logger.warn(`Request to site \`${site}\` returned an invalid http status code \`${response.status}\`. lease check the URL is valid and not blocking crawlers.`)
+        logger.warn(`Request to site \`${site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid and not blocking crawlers.`)
       else
-        logger.warn(`Request to site \`${site}\` threw an unhandled exception. Please check the URL is valid and not blocking crawlers.`, error)
+        logger.warn(`Request to site \`${site}\` threw an unhandled exception. PPlease check the URL is valid and not blocking crawlers.`, error)
       logger.error('Site check failed. will attempt to proceed but may fail.')
     }
     else if (response) {
@@ -62,7 +62,7 @@ export function validateOptions(resolvedOptions: UserConfig) {
     }
     if (!resolvedOptions?.ci?.reporterConfig?.lhciHost) {
       handleError(
-        'Please provide the lighthouse server build token with --lhci-host.',
+        'Please provide the lighthouse server URL with --lhci-host.',
       )
     }
   }
