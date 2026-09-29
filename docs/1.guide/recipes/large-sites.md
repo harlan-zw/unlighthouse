@@ -37,9 +37,9 @@ These defaults optimize scanning for sites with thousands of pages:
 - [maxRoutes](/api-doc/config#scanner-maxroutes) set to 200
 - [skipJavascript](/api-doc/config#scanner-skipjavascript) enabled
 - [samples](/api-doc/config#scanner-samples) set to 1
-- [throttling](/api-doc/config#scanner-throttle) disabled
+- [throttling](/api-doc/config#scanner-throttle) enabled
 - [crawler](/api-doc/config#scanner-crawler) enabled
-- [dynamicSampling](/api-doc/config#scanner-dynamicsampling) set to 5
+- [dynamicSampling](/api-doc/config#scanner-dynamicsampling) set to 8
 
 For example, when scanning a blog with thousands of posts, it may be redundant to scan every single blog post, as the
 DOM is very similar. Using the configuration we can select exactly how many posts should be scanned.
@@ -75,7 +75,7 @@ import { defineUnlighthouseConfig } from 'unlighthouse/config'
 export default defineUnlighthouseConfig({
   scanner: {
     exclude: [
-      '/docs/*',
+      '/docs/**',
     ],
   },
 })
@@ -93,8 +93,9 @@ import { defineUnlighthouseConfig } from 'unlighthouse/config'
 export default defineUnlighthouseConfig({
   scanner: {
     include: [
-      '/articles/*',
-      '/authors/*',
+      '/', // the crawler starts here
+      '/articles/**',
+      '/authors/**',
     ],
   },
 })
@@ -102,7 +103,7 @@ export default defineUnlighthouseConfig({
 
 ## Change Dynamic Sampling Limit
 
-By default, a URLs will be matched to a specific route definition 5 times.
+By default, a URL will be matched to a specific route definition 8 times.
 
 You can change the sample limit with:
 

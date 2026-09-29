@@ -34,7 +34,7 @@ unlighthouse --site https://example.com --mobile
 unlighthouse --site https://example.com --samples 3 --throttle
 
 # Custom URLs and exclusions
-unlighthouse --site https://example.com --urls /home,/about,/contact --exclude-urls /admin/*
+unlighthouse --site https://example.com --urls /home,/about,/contact --exclude-urls '/admin/**'
 
 # With custom configuration
 unlighthouse --site https://example.com --config-file ./my-config.ts
