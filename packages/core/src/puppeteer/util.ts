@@ -1,5 +1,6 @@
 import type { Page } from '../types/puppeteer'
 import { useLogger, useUnlighthouse } from '../unlighthouse'
+import { resolvePageHeaders, toBrowserCookies } from '../util/requestHeaders'
 
 export async function setupPage(page: Page) {
   const { resolvedConfig, hooks } = useUnlighthouse()
@@ -36,12 +37,22 @@ export async function setupPage(page: Page) {
       resolvedConfig.sessionStorage,
     )
   }
-  if (resolvedConfig.cookies) {
-    await page.setCookie(...resolvedConfig.cookies.map(cookie => ({ domain: resolvedConfig.site, ...cookie })))
+  // headers apply to every request the page makes, so only explicit headers ride here: `page.authenticate` scopes auth
+  // to origins that challenge for it and the cookie jar scopes cookies by domain and path
+  const requestHeaders = resolvePageHeaders(resolvedConfig)
+  const cookies = toBrowserCookies(resolvedConfig.cookies, resolvedConfig.site)
+  if (cookies.length) {
+    await page.setCookie(...cookies)
       .catch(softErrorHandler('Failed to set cookies'))
+    // Lighthouse opens its page in the default browser context, which does not share this page's cookie jar.
+    // CDP takes the same `url` scoping as the page, so a cookie without a domain stays host only.
+    const session = await browser.target().createCDPSession()
+    await session.send('Storage.setCookies', { cookies })
+      .catch(softErrorHandler('Failed to set cookies'))
+    await session.detach().catch(softErrorHandler('Failed to detach the cookie session'))
   }
-  if (resolvedConfig.extraHeaders) {
-    await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
+  if (Object.keys(requestHeaders).length) {
+    await page.setExtraHTTPHeaders(requestHeaders)
       .catch(softErrorHandler('Failed to set extra headers'))
   }
 
@@ -50,13 +61,12 @@ export async function setupPage(page: Page) {
     const page = await target.page()
     if (page) {
       // in case they get reset
-      if (resolvedConfig.cookies) {
-        await page.setCookie(...resolvedConfig.cookies.map(cookie => ({ domain: resolvedConfig.site, ...cookie })))
+      if (cookies.length) {
+        await page.setCookie(...cookies)
           .catch(softErrorHandler('Failed to set cookies'))
       }
-      // set local storage
-      if (resolvedConfig.extraHeaders) {
-        await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
+      if (Object.keys(requestHeaders).length) {
+        await page.setExtraHTTPHeaders(requestHeaders)
           .catch(softErrorHandler('Failed to set extra headers'))
       }
       if (resolvedConfig.userAgent) {

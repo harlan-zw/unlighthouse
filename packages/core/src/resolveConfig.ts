@@ -1,6 +1,5 @@
 import type { InstallOptions } from '@puppeteer/browsers'
 import type { ResolvedUserConfig, UnlighthouseTabs, UserConfig } from './types'
-import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path, { join, resolve } from 'node:path'
@@ -131,14 +130,6 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     downloadFallbackCacheDir: join(homedir(), '.unlighthouse'),
   })
 
-  if (config.auth) {
-    config.lighthouseOptions.extraHeaders = config.lighthouseOptions.extraHeaders || {}
-    if (!config.lighthouseOptions.extraHeaders.Authorization) {
-      const credentials = `${config.auth.username}:${config.auth.password}`
-      config.lighthouseOptions.extraHeaders.Authorization = `Basic ${Buffer.from(credentials).toString('base64')}`
-    }
-  }
-
   if (config.client?.columns) {
     // filter out any columns for categories we're not showing
     config.client.columns = pick(config.client.columns, ['overview', ...config.lighthouseOptions.onlyCategories as UnlighthouseTabs[]])
@@ -181,9 +172,6 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
     else
       config.lighthouseOptions.emulatedUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
   }
-
-  if (userConfig.extraHeaders)
-    config.lighthouseOptions.extraHeaders = userConfig.extraHeaders
 
   if (config.routerPrefix)
     config.routerPrefix = withSlashes(config.routerPrefix)
