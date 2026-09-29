@@ -66,7 +66,7 @@ export default defineUnlighthouseConfig({
 
 Static HTML report: pass `--build-static`, or set `ci.buildStatic: true`. It writes `index.html` to the root of `outputPath` (`.unlighthouse`). Upload that folder. It deletes the per page `lighthouse.json` files.
 
-Authentication: the `authenticate` hook gets the Puppeteer `Page` as its first argument. It runs once. Its cookies go with every request, including the Lighthouse run.
+Authentication: the `authenticate` hook gets the Puppeteer `Page` as its first argument. It runs once. Its cookies reach every scanned page, including the Lighthouse run, and only the hosts they belong to.
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
