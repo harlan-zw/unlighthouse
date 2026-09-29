@@ -17,9 +17,9 @@ export async function validateHost(resolvedConfig: ResolvedUserConfig) {
     if (!valid) {
       // something is wrong with the site, bail
       if (response?.status)
-        logger.warn(`Request to site \`${site}\` returned an invalid http status code \`${response.status}\`. lease check the URL is valid and not blocking crawlers.`)
+        logger.warn(`Request to site \`${site}\` returned an invalid http status code \`${response.status}\`. Please check the URL is valid and not blocking crawlers.`)
       else
-        logger.warn(`Request to site \`${site}\` threw an unhandled exception. Please check the URL is valid and not blocking crawlers.`, error)
+        logger.warn(`Request to site \`${site}\` threw an unhandled exception. PPlease check the URL is valid and not blocking crawlers.`, error)
       logger.error('Site check failed. will attempt to proceed but may fail.')
     }
     else if (response) {
@@ -62,18 +62,29 @@ export function validateOptions(resolvedOptions: UserConfig) {
     }
     if (!resolvedOptions?.ci?.reporterConfig?.lhciHost) {
       handleError(
-        'Please provide the lighthouse server build token with --lhci-host.',
+        'Please provide the lighthouse server URL with --lhci-host.',
       )
     }
   }
 }
 
+/**
+ * Split at the first separator only, so values such as base64 tokens keep their `=` padding.
+ */
+function splitOnce(str: string, separator: string): [string, string] {
+  const index = str.indexOf(separator)
+  if (index === -1)
+    return [str, '']
+  return [str.slice(0, index), str.slice(index + separator.length)]
+}
+
+/**
+ * Map CLI flags to config. Only flags the user passed are set, so the config file keeps every other value.
+ */
 export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   const picked: Omit<UserConfig, 'site' | 'root'> = {}
   picked.scanner = {}
   picked.urls = []
-  if (options.noCache)
-    picked.cache = true
   if (options.throttle)
     picked.scanner.throttle = true
 
@@ -122,13 +133,12 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     picked.scanner.dynamicSampling = false
 
   if (options.auth) {
-    const [username, password] = options.auth.split(':')
+    const [username, password] = splitOnce(options.auth, ':')
     picked.auth = { username, password }
   }
 
   function splitNameValue(str: string) {
-    const splitToken = str.includes('=') ? '=' : ':'
-    const [name, value] = str.split(splitToken)
+    const [name, value] = splitOnce(str, str.includes('=') ? '=' : ':')
     return { name, value }
   }
 
@@ -176,4 +186,27 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     config,
     picked,
   ) as UserConfig
+}
+
+/**
+ * Map `unlighthouse-ci` flags to config, including the `ci` options. Only flags the user passed are set.
+ */
+export function pickCiOptions(options: CiOptions): UserConfig {
+  const picked = pickOptions(options)
+  const ci: NonNullable<UserConfig['ci']> = {}
+  if (options.budget)
+    ci.budget = options.budget
+  if (options.buildStatic)
+    ci.buildStatic = true
+  if (options.reporter)
+    ci.reporter = options.reporter
+  const reporterConfig = Object.fromEntries(Object.entries({
+    lhciHost: options.lhciHost,
+    lhciBuildToken: options.lhciBuildToken,
+    lhciAuth: options.lhciAuth,
+  }).filter(([, value]) => value !== undefined))
+  if (Object.keys(reporterConfig).length)
+    ci.reporterConfig = reporterConfig
+  picked.ci = ci
+  return picked
 }
