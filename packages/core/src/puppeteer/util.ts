@@ -1,5 +1,6 @@
 import type { Page } from '../types/puppeteer'
 import { useLogger, useUnlighthouse } from '../unlighthouse'
+import { resolveRequestHeaders } from '../util/requestHeaders'
 
 export async function setupPage(page: Page) {
   const { resolvedConfig, hooks } = useUnlighthouse()
@@ -36,12 +37,10 @@ export async function setupPage(page: Page) {
       resolvedConfig.sessionStorage,
     )
   }
-  if (resolvedConfig.cookies) {
-    await page.setCookie(...resolvedConfig.cookies.map(cookie => ({ domain: resolvedConfig.site, ...cookie })))
-      .catch(softErrorHandler('Failed to set cookies'))
-  }
-  if (resolvedConfig.extraHeaders) {
-    await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
+  // cookies go as a header, since a cookie jar entry does not survive the Lighthouse storage reset
+  const requestHeaders = resolveRequestHeaders(resolvedConfig)
+  if (Object.keys(requestHeaders).length) {
+    await page.setExtraHTTPHeaders(requestHeaders)
       .catch(softErrorHandler('Failed to set extra headers'))
   }
 
@@ -50,13 +49,8 @@ export async function setupPage(page: Page) {
     const page = await target.page()
     if (page) {
       // in case they get reset
-      if (resolvedConfig.cookies) {
-        await page.setCookie(...resolvedConfig.cookies.map(cookie => ({ domain: resolvedConfig.site, ...cookie })))
-          .catch(softErrorHandler('Failed to set cookies'))
-      }
-      // set local storage
-      if (resolvedConfig.extraHeaders) {
-        await page.setExtraHTTPHeaders(resolvedConfig.extraHeaders)
+      if (Object.keys(requestHeaders).length) {
+        await page.setExtraHTTPHeaders(requestHeaders)
           .catch(softErrorHandler('Failed to set extra headers'))
       }
       if (resolvedConfig.userAgent) {
