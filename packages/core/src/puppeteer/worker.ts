@@ -371,7 +371,7 @@ export async function createUnlighthouseWorker(tasks: Record<UnlighthouseTask, T
     }, 3500)
   }
 
-  const hasStarted = () => cluster.workers.length || cluster.workersStarting
+  const hasStarted = () => cluster.workers.length > 0 || cluster.workersStarting > 0
 
   const reports = () => [...routeReports.values()]
 

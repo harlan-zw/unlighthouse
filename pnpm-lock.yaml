@@ -482,6 +482,9 @@ importers:
       '@unlighthouse/core':
         specifier: workspace:*
         version: link:../core
+      c12:
+        specifier: catalog:dependencies
+        version: 3.3.4(magicast@0.5.3)
 
   packages/unlighthouse-ci:
     dependencies:
