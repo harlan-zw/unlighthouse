@@ -133,7 +133,8 @@ For login forms, OAuth flows, or anything the simpler methods can't handle:
 ```ts
 export default defineUnlighthouseConfig({
   hooks: {
-    async authenticate({ page }) {
+    // the hook receives the Puppeteer page itself, not an object
+    async authenticate(page) {
       // Navigate to login
       await page.goto('https://example.com/login')
 
