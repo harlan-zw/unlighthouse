@@ -316,7 +316,9 @@ export interface ResolvedUserConfig {
   /**
    * Where to emit lighthouse reports and the runtime client.
    *
-   * @default "./unlighthouse"
+   * Unlighthouse clears this folder before a scan without cache. It refuses to clear a folder that it did not create.
+   *
+   * @default "./.unlighthouse"
    */
   outputPath: string
   /**

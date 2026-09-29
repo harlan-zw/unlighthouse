@@ -66,9 +66,11 @@ For example:
 ### `outputPath`{lang="ts"}
 
 - **Type:** `string`{lang="ts"}
-- **Default:** `./lighthouse/`{lang="ts"}
+- **Default:** `./.unlighthouse`{lang="ts"}
 
 Where to emit lighthouse reports and the runtime client.
+
+Unlighthouse clears this folder before a scan without cache, such as every `unlighthouse-ci` run. It refuses to clear a folder that it did not create, so point it at a new or empty folder.
 
 ### `debug`{lang="ts"}
 

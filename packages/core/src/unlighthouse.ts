@@ -9,8 +9,7 @@ import type {
   UserConfig,
 } from './types'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
-import { mkdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadConfig } from 'c12'
@@ -30,6 +29,7 @@ import { resolveUserConfig } from './resolveConfig'
 import { createApi, createBroadcastingEvents, createMockRouter, WS } from './router'
 import { normaliseHost } from './util'
 import { successBox } from './util/cliFormatting'
+import { prepareOutputDir } from './util/outputDir'
 import { isNewerVersion } from './util/version'
 
 const engineContext = createContext<UnlighthouseContext>()
@@ -182,30 +182,15 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     logger.debug(`Setting Unlighthouse CI Context [Site: ${$site}]`)
 
-    // avoid nesting reports for ci mode
-    let outputPath = join(
-      resolvedConfig.outputPath,
-      // fix windows not supporting : in paths
-      $site.hostname.replace(':', '꞉'),
-      runtimeSettings.configCacheKey || '',
-    )
-
-    try {
-      await mkdir(resolvedConfig.outputPath, { recursive: true })
-    }
-    catch (e) {
-      logger.error(`Failed to create output directory. Please check unlighthouse has permissions to: ${resolvedConfig.outputPath}`, e)
-    }
-
-    try {
-      await mkdir(outputPath, { recursive: true })
-    }
-    catch (e) {
-      logger.error(`Failed to create output directory. Please check unlighthouse has permission to create files and folders in: ${resolvedConfig.outputPath}`, e)
-    }
-
-    if (provider?.name === 'ci')
-      outputPath = resolvedConfig.outputPath
+    // ci mode writes straight into the output path, other providers nest reports by host and config
+    const outputPath = provider?.name === 'ci'
+      ? resolvedConfig.outputPath
+      : join(
+          resolvedConfig.outputPath,
+          // fix windows not supporting : in paths
+          $site.hostname.replace(':', '꞉'),
+          runtimeSettings.configCacheKey || '',
+        )
 
     ctx.runtimeSettings = {
       ...ctx.runtimeSettings,
@@ -214,11 +199,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       resolvedClientPath: fileURLToPath(import.meta.resolve(ClientPkg)),
     }
 
-    if (!resolvedConfig.cache && existsSync(resolvedConfig.outputPath)) {
-      logger.debug(`\`cache\` is disabled, deleting cache folder: \`${resolvedConfig.outputPath}\``)
-      rmSync(outputPath, { recursive: true })
-    }
-    mkdirSync(ctx.runtimeSettings.outputPath, { recursive: true })
+    if (!resolvedConfig.cache)
+      logger.debug(`\`cache\` is disabled, clearing output folder: \`${outputPath}\``)
+    await prepareOutputDir(outputPath, { clear: !resolvedConfig.cache, root: resolvedConfig.root })
     return ctx
   }
 
@@ -269,16 +252,9 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
       })
     }
 
-    if (!resolvedConfig.cache && existsSync(ctx.runtimeSettings.outputPath)) {
-      logger.debug(`\`cache\` is disabled, deleting cache folder: \`${ctx.runtimeSettings.outputPath}\``)
-      try {
-        rmSync(ctx.runtimeSettings.outputPath, { recursive: true })
-      }
-      catch (e) {
-        logger.debug(`Failed to delete cache folder: \`${ctx.runtimeSettings.outputPath}\``, e)
-      }
-    }
-    mkdirSync(ctx.runtimeSettings.outputPath, { recursive: true })
+    if (!resolvedConfig.cache)
+      logger.debug(`\`cache\` is disabled, clearing output folder: \`${ctx.runtimeSettings.outputPath}\``)
+    await prepareOutputDir(ctx.runtimeSettings.outputPath, { clear: !resolvedConfig.cache, root: resolvedConfig.root })
     await generateClient()
 
     if (provider?.name !== 'cli') {

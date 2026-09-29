@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { x } from 'tinyexec'
@@ -31,6 +31,20 @@ describe('ci', () => {
     expect(output.routes[0].path).toBeDefined()
     expect(output.routes[0].score).toBeDefined()
     expect(output.routes[0].categories).toBeDefined()
+  })
+
+  it('refuses to clear an output path that holds other files', async () => {
+    const projectDir = resolve(cacheDir, `project-${Date.now()}`)
+    await mkdir(join(projectDir, 'src'), { recursive: true })
+    await writeFile(join(projectDir, 'package.json'), '{}')
+
+    const { exitCode, stdout, stderr } = await x('node', [ci, '--root', projectDir, '--site', 'harlanzw.com', '--output-path', '.'], {
+      nodeOptions: { cwd: projectDir },
+    })
+
+    expect(exitCode).toBe(1)
+    expect(stdout + stderr).toContain('not an unlighthouse output folder')
+    expect((await readdir(projectDir)).sort()).toEqual(['package.json', 'src'])
   })
 })
 
