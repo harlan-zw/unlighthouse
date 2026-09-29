@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import createCli from '../packages/cli/src/createCli'
-import { pickOptions } from '../packages/cli/src/util'
+import createCli, { createCiCli } from '../packages/cli/src/createCli'
+import { pickCiOptions, pickOptions } from '../packages/cli/src/util'
 
 const argsv = (args: string[]) => ['node', 'unlighthouse.js', '--site', 'unlighthouse.dev', ...args]
 
@@ -84,5 +84,55 @@ describe('cli args', () => {
         "my-other-header": "value",
       }
     `)
+  })
+
+  it('cache flag omitted leaves the config value alone', async () => {
+    const cli = createCli()
+    const { options } = cli.parse(argsv([]))
+    const picked = pickOptions(options)
+    expect(picked.cache).toBeUndefined()
+  })
+
+  it('cookies keep every = after the first', async () => {
+    const cli = createCli()
+    const { options } = cli.parse(argsv(['--cookies', 'sid=abc=def;token=eyJ==']))
+    const picked = pickOptions(options)
+    expect(picked.cookies).toEqual([
+      { name: 'sid', value: 'abc=def' },
+      { name: 'token', value: 'eyJ==' },
+    ])
+  })
+
+  it('extra headers keep every = after the first', async () => {
+    const cli = createCli()
+    const { options } = cli.parse(argsv(['--extra-headers', 'x-token=a=b,Authorization=Basic dXNlcjpwYXNz']))
+    const picked = pickOptions(options)
+    expect(picked.extraHeaders).toEqual({ 'x-token': 'a=b', 'Authorization': 'Basic dXNlcjpwYXNz' })
+  })
+
+  it('auth password keeps every : after the first', async () => {
+    const cli = createCli()
+    const { options } = cli.parse(argsv(['--auth', 'admin:pa:ss']))
+    const picked = pickOptions(options)
+    expect(picked.auth).toEqual({ username: 'admin', password: 'pa:ss' })
+  })
+})
+
+describe('ci args', () => {
+  function parseCi(args: string[]) {
+    const { options } = createCiCli().parse(argsv(args))
+    return pickCiOptions(options)
+  }
+
+  it('build static flag omitted leaves the config value alone', () => {
+    expect(parseCi([]).ci?.buildStatic).toBeUndefined()
+  })
+
+  it('build static flag enables it', () => {
+    expect(parseCi(['--build-static']).ci?.buildStatic).toBe(true)
+  })
+
+  it('budget flag omitted leaves the config value alone', () => {
+    expect(parseCi([]).ci?.budget).toBeUndefined()
   })
 })

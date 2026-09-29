@@ -15,6 +15,52 @@ import { useLogger } from './logger'
 import { normaliseHost, withSlashes } from './util'
 
 /**
+ * Map the `scanner.throttle` alias to lighthouse throttling options.
+ *
+ * An explicit `throttle` always wins. Without one, local sites run unthrottled and remote sites simulate a slow network.
+ * Returns `undefined` when the lighthouse options already configure throttling, since those win over the alias.
+ */
+export function resolveThrottling(
+  lighthouseOptions: NonNullable<ResolvedUserConfig['lighthouseOptions']>,
+  { throttle, site }: { throttle?: boolean, site?: string },
+): Pick<NonNullable<ResolvedUserConfig['lighthouseOptions']>, 'throttlingMethod' | 'throttling'> | undefined {
+  if (typeof lighthouseOptions.throttlingMethod !== 'undefined' || typeof lighthouseOptions.throttling !== 'undefined')
+    return undefined
+  if (throttle ?? !isLocalSite(site)) {
+    return {
+      throttlingMethod: 'simulate',
+      // we need a custom throttling profile to account for the cpu / network already getting blasted
+      throttling: {
+        rttMs: 150,
+        throughputKbps: 1.6 * 1024,
+        requestLatencyMs: 150 * 4,
+        downloadThroughputKbps: 1.6 * 1024,
+        uploadThroughputKbps: 750,
+        cpuSlowdownMultiplier: 1,
+      },
+    }
+  }
+  return {
+    throttlingMethod: 'provided',
+    throttling: {
+      rttMs: 0,
+      throughputKbps: 0,
+      cpuSlowdownMultiplier: 1,
+      requestLatencyMs: 0, // 0 means unset
+      downloadThroughputKbps: 0,
+      uploadThroughputKbps: 0,
+    },
+  }
+}
+
+function isLocalSite(site: string | undefined): boolean {
+  if (!site)
+    return true
+  const { hostname } = new URL(site)
+  return hostname === 'localhost' || hostname.endsWith('.localhost') || hostname === '127.0.0.1' || hostname === '[::1]'
+}
+
+/**
  * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.
  *
  * Mostly normalisation of data and provided sane runtime defaults when configuration hasn't been fully provided, also
@@ -69,31 +115,11 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   else {
     config.lighthouseOptions = {}
   }
-  if (typeof config.lighthouseOptions.throttlingMethod === 'undefined' && typeof config.lighthouseOptions.throttling === 'undefined') {
-    // for local urls we disable throttling
-    if (typeof config.scanner?.throttle) {
-      config.lighthouseOptions.throttlingMethod = 'simulate'
-      // we need a custom throttling profile to account for the  cpu / network already getting blasted
-      config.lighthouseOptions.throttling = {
-        rttMs: 150,
-        throughputKbps: 1.6 * 1024,
-        requestLatencyMs: 150 * 4,
-        downloadThroughputKbps: 1.6 * 1024,
-        uploadThroughputKbps: 750,
-        cpuSlowdownMultiplier: 1,
-      }
-    }
-    else if (!config.site || config.site.includes('localhost') || config.scanner?.throttle === false) {
-      config.lighthouseOptions.throttlingMethod = 'provided'
-      config.lighthouseOptions.throttling = {
-        rttMs: 0,
-        throughputKbps: 0,
-        cpuSlowdownMultiplier: 1,
-        requestLatencyMs: 0, // 0 means unset
-        downloadThroughputKbps: 0,
-        uploadThroughputKbps: 0,
-      }
-    }
+  // read the user's value, the merged config always carries the default
+  const throttling = resolveThrottling(config.lighthouseOptions, { throttle: userConfig.scanner?.throttle, site: config.site })
+  if (throttling) {
+    Object.assign(config.lighthouseOptions, throttling)
+    config.scanner!.throttle = throttling.throttlingMethod === 'simulate'
   }
 
   config.scanner!.exclude = config.scanner?.exclude || []
