@@ -1,5 +1,5 @@
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 /**
  * Unlighthouse writes this file into every output folder it creates. Only a folder that holds it may be cleared.
@@ -13,16 +13,28 @@ export type OutputDirState
     | { _tag: 'Foreign', entries: string[] }
 
 /**
+ * True when `dir` sits strictly inside `ancestor`, so clearing `dir` can never touch `ancestor` itself.
+ */
+function isStrictDescendant(dir: string, ancestor: string): boolean {
+  const rel = relative(resolve(ancestor), resolve(dir))
+  return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)
+}
+
+/**
  * Decide who owns an output folder from its path and its top level entries (`null` when it does not exist).
  *
- * Folders from releases before the marker file sit inside the default `.unlighthouse` folder, so those count as owned.
+ * A folder counts as owned when it holds the marker file. Folders from releases before the marker file sit inside the
+ * default `.unlighthouse` folder of the site root, so those count as owned too when that root is known. A path that
+ * merely contains a `.unlighthouse` segment does not, a project may live under such a path.
  */
-export function classifyOutputDir(dir: string, entries: string[] | null): OutputDirState {
+export function classifyOutputDir(dir: string, entries: string[] | null, options: { root?: string } = {}): OutputDirState {
   if (entries === null)
     return { _tag: 'Missing' }
   if (entries.length === 0)
     return { _tag: 'Empty' }
-  if (entries.includes(OutputMarkerFile) || dir.split(/[\\/]/).includes('.unlighthouse'))
+  if (entries.includes(OutputMarkerFile))
+    return { _tag: 'Owned' }
+  if (options.root && isStrictDescendant(dir, join(resolve(options.root), '.unlighthouse')))
     return { _tag: 'Owned' }
   return { _tag: 'Foreign', entries }
 }
@@ -39,10 +51,11 @@ async function readEntries(dir: string): Promise<string[] | null> {
  * Create the output folder and mark it as owned by unlighthouse.
  *
  * With `clear`, remove the previous contents first. A folder that unlighthouse did not create is never cleared: the
- * call throws instead, so an `outputPath` such as `.` cannot delete a project.
+ * call throws instead, so an `outputPath` such as `.` cannot delete a project. Pass the site `root` to keep clearing
+ * the unmarked legacy folders that sit inside the default `.unlighthouse` folder of the root.
  */
-export async function prepareOutputDir(dir: string, options: { clear: boolean }): Promise<OutputDirState> {
-  const state = classifyOutputDir(dir, await readEntries(dir))
+export async function prepareOutputDir(dir: string, options: { clear: boolean, root?: string }): Promise<OutputDirState> {
+  const state = classifyOutputDir(dir, await readEntries(dir), { root: options.root })
   if (state._tag === 'Foreign') {
     if (options.clear) {
       throw new Error(
