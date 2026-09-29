@@ -7,40 +7,24 @@ import { createUnlighthouse, generateClient, useLogger, useUnlighthouse } from '
 import { relative, resolve } from 'pathe'
 import { isCI } from 'std-env'
 import { isScoreBelowBudget } from './ciBudget'
-import createCli from './createCli'
+import { createCiCli } from './createCli'
 import { handleError } from './errors'
 import { generateReportPayload, outputReport } from './reporters'
-import { pickOptions, validateHost, validateOptions } from './util'
+import { pickCiOptions, validateHost, validateOptions } from './util'
 
 async function run() {
   const startTime = new Date()
 
   setMaxListeners(0)
 
-  const cli = createCli()
-  cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
-  cli.option('--build-static <build-static>', 'Build a static website for the reports which can be uploaded.')
-  cli.option('--reporter <reporter>', 'The report to generate from results. Options: csv, csvExpanded, json, jsonExpanded or false. Default: json.')
-  cli.option('--lhci-host <lhci-host>', 'URL of your LHCI server.')
-  cli.option('--lhci-build-token <lhci-build-token>', 'LHCI build token, used to add data.')
-  cli.option('--lhci-auth <lhci-auth>', 'Basic auth for your LHCI server.')
+  const cli = createCiCli()
 
   const { options } = cli.parse() as unknown as { options: CiOptions }
 
   if (options.help || options.version)
     return
 
-  const resolvedOptions: UserConfig = pickOptions(options)
-  resolvedOptions.ci = {
-    budget: options.budget || undefined,
-    buildStatic: options.buildStatic || false,
-    reporter: options.reporter || undefined,
-    reporterConfig: {
-      lhciHost: options.lhciHost,
-      lhciBuildToken: options.lhciBuildToken,
-      lhciAuth: options.lhciAuth,
-    },
-  }
+  const resolvedOptions: UserConfig = pickCiOptions(options)
 
   await createUnlighthouse({
     ...resolvedOptions,
@@ -68,8 +52,10 @@ async function run() {
 
   await setCiContext()
   const { routes } = await start()
-  if (!routes.length) {
-    logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
+  // nothing queued means `worker-finished` never fires, so exit instead of waiting forever
+  if (!worker.reports().length) {
+    if (!routes.length)
+      logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
     process.exit(1)
   }
 

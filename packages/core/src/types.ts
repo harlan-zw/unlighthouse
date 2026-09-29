@@ -54,6 +54,13 @@ export interface ComputedLighthouseReportAudit {
   displayValue: string | number
   score: number
 }
+export interface LighthouseReportCategory {
+  key: string
+  id: string
+  title: string
+  score: number | null
+}
+
 /**
  * An augmented Lighthouse Report type, we add custom types to the base report for specific functionality on the
  * @unlighthouse/client.
@@ -63,7 +70,10 @@ export type LighthouseReport = Partial<Result> & {
    * The total score for the result, this is the sum of each category's result
    */
   score: number
-  categories: { score: number | null }[]
+  /**
+   * One entry per Lighthouse category, in report order. `key` is the category id, such as `performance`.
+   */
+  categories: LighthouseReportCategory[]
   computed: {
     /**
      * An aggregation of multiple image audit results.
@@ -316,7 +326,9 @@ export interface ResolvedUserConfig {
   /**
    * Where to emit lighthouse reports and the runtime client.
    *
-   * @default "./unlighthouse"
+   * Unlighthouse clears this folder before a scan without cache. It refuses to clear a folder that it did not create.
+   *
+   * @default "./.unlighthouse"
    */
   outputPath: string
   /**
@@ -434,7 +446,7 @@ export interface ResolvedUserConfig {
      * Should lighthouse run with throttling enabled? This is an alias for manually configuring lighthouse.
      *
      * @see https://unlighthouse.dev/guide/device.html#alias-enable-disable-throttling
-     * @default false
+     * @default true
      */
     throttle: boolean
     /**
@@ -449,7 +461,7 @@ export interface ResolvedUserConfig {
      * redundant route reports.
      *
      * @see https://unlighthouse.dev/guide/large-sites.html#change-dynamic-sampling-limit
-     * @default 5
+     * @default 8
      */
     dynamicSampling: number | false
     /**
@@ -506,7 +518,7 @@ export interface ResolvedUserConfig {
     /**
      * When downloading the fallback which version of chrome should be used.
      *
-     * @default 1095492
+     * @default The Chrome version pinned by the installed `puppeteer-core`.
      */
     downloadFallbackVersion: string | number
     /**

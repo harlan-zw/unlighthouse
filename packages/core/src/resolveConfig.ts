@@ -15,6 +15,44 @@ import { useLogger } from './logger'
 import { normaliseHost, withSlashes } from './util'
 
 /**
+ * Map the `scanner.throttle` alias to lighthouse throttling options.
+ *
+ * Returns `undefined` when the lighthouse options already configure throttling, since those win over the alias.
+ */
+export function resolveThrottling(
+  lighthouseOptions: NonNullable<ResolvedUserConfig['lighthouseOptions']>,
+  throttle: boolean | undefined,
+): Pick<NonNullable<ResolvedUserConfig['lighthouseOptions']>, 'throttlingMethod' | 'throttling'> | undefined {
+  if (typeof lighthouseOptions.throttlingMethod !== 'undefined' || typeof lighthouseOptions.throttling !== 'undefined')
+    return undefined
+  if (throttle === false) {
+    return {
+      throttlingMethod: 'provided',
+      throttling: {
+        rttMs: 0,
+        throughputKbps: 0,
+        cpuSlowdownMultiplier: 1,
+        requestLatencyMs: 0, // 0 means unset
+        downloadThroughputKbps: 0,
+        uploadThroughputKbps: 0,
+      },
+    }
+  }
+  return {
+    throttlingMethod: 'simulate',
+    // we need a custom throttling profile to account for the cpu / network already getting blasted
+    throttling: {
+      rttMs: 150,
+      throughputKbps: 1.6 * 1024,
+      requestLatencyMs: 150 * 4,
+      downloadThroughputKbps: 1.6 * 1024,
+      uploadThroughputKbps: 750,
+      cpuSlowdownMultiplier: 1,
+    },
+  }
+}
+
+/**
  * A provided configuration from the user may require runtime transformations to avoid breaking app functionality.
  *
  * Mostly normalisation of data and provided sane runtime defaults when configuration hasn't been fully provided, also
@@ -69,32 +107,9 @@ export const resolveUserConfig: (userConfig: UserConfig) => Promise<ResolvedUser
   else {
     config.lighthouseOptions = {}
   }
-  if (typeof config.lighthouseOptions.throttlingMethod === 'undefined' && typeof config.lighthouseOptions.throttling === 'undefined') {
-    // for local urls we disable throttling
-    if (typeof config.scanner?.throttle) {
-      config.lighthouseOptions.throttlingMethod = 'simulate'
-      // we need a custom throttling profile to account for the  cpu / network already getting blasted
-      config.lighthouseOptions.throttling = {
-        rttMs: 150,
-        throughputKbps: 1.6 * 1024,
-        requestLatencyMs: 150 * 4,
-        downloadThroughputKbps: 1.6 * 1024,
-        uploadThroughputKbps: 750,
-        cpuSlowdownMultiplier: 1,
-      }
-    }
-    else if (!config.site || config.site.includes('localhost') || config.scanner?.throttle === false) {
-      config.lighthouseOptions.throttlingMethod = 'provided'
-      config.lighthouseOptions.throttling = {
-        rttMs: 0,
-        throughputKbps: 0,
-        cpuSlowdownMultiplier: 1,
-        requestLatencyMs: 0, // 0 means unset
-        downloadThroughputKbps: 0,
-        uploadThroughputKbps: 0,
-      }
-    }
-  }
+  const throttling = resolveThrottling(config.lighthouseOptions, config.scanner?.throttle)
+  if (throttling)
+    Object.assign(config.lighthouseOptions, throttling)
 
   config.scanner!.exclude = config.scanner?.exclude || []
   config.scanner!.exclude.push('/cdn-cgi/*')
