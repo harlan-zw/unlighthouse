@@ -26,6 +26,16 @@ describe('prepareOutputDir', () => {
     expect(existsSync(join(project, 'src'))).toBe(true)
   })
 
+  it('refuses to clear a project whose path only contains a .unlighthouse segment', async () => {
+    const project = join(root, '.unlighthouse', 'project')
+    await mkdir(join(project, 'src'), { recursive: true })
+    await writeFile(join(project, 'package.json'), '{}')
+
+    await expect(prepareOutputDir(project, { clear: true })).rejects.toThrow(/not an unlighthouse output/)
+    expect(existsSync(join(project, 'package.json'))).toBe(true)
+    expect(existsSync(join(project, 'src'))).toBe(true)
+  })
+
   it('clears a folder it created before', async () => {
     const out = join(root, 'out')
     await prepareOutputDir(out, { clear: true })
@@ -45,12 +55,21 @@ describe('prepareOutputDir', () => {
     expect(await readdir(empty)).toEqual(['.unlighthouse-output'])
   })
 
-  it('clears an unmarked folder inside a .unlighthouse folder', async () => {
+  it('clears an unmarked folder inside the default .unlighthouse folder of the root', async () => {
     const legacy = join(root, '.unlighthouse', 'localhost', 'abcd')
     await mkdir(join(legacy, 'reports'), { recursive: true })
 
-    await prepareOutputDir(legacy, { clear: true })
+    await prepareOutputDir(legacy, { clear: true, root })
     expect(await readdir(legacy)).toEqual(['.unlighthouse-output'])
+  })
+
+  it('refuses to clear the unmarked default .unlighthouse folder itself', async () => {
+    const defaultOut = join(root, '.unlighthouse')
+    await mkdir(defaultOut)
+    await writeFile(join(defaultOut, 'reports.json'), '[]')
+
+    await expect(prepareOutputDir(defaultOut, { clear: true, root })).rejects.toThrow(/not an unlighthouse output/)
+    expect(existsSync(join(defaultOut, 'reports.json'))).toBe(true)
   })
 
   it('keeps existing files when not clearing', async () => {
