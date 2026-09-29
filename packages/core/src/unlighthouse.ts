@@ -68,7 +68,8 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
     userConfig.configFile = join(process.cwd(), userConfig.configFile)
   // support loading configuration files
   ;(globalThis as any).defineUnlighthouseConfig = (c: any) => c
-  const { configFile, config } = await loadConfig<UserConfig>({
+  // c12 echoes the requested name in `configFile` even when no file exists; `_configFile` is set only for a real file
+  const { _configFile: configFile, config } = await loadConfig<UserConfig>({
     name: 'unlighthouse',
     cwd: userConfig.root,
     configFile: userConfig.configFile || 'unlighthouse.config',
@@ -111,7 +112,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
   await hooks.callHook('resolved-config', resolvedConfig)
 
   if (configFile)
-    logger.info(`Creating Unlighthouse ${configFile ? `using config from \`${configFile}\`` : ''}`)
+    logger.info(`Creating Unlighthouse using config from \`${configFile}\``)
 
   // web socket instance for broadcasting
   const ws = provider?.name === 'ci' ? null : new WS()

@@ -260,19 +260,22 @@ configuration to be able to run properly
 
 ### `scanner.include`{lang="ts"}
 
-- **Type:** `string[]|null`{lang="ts"}
+- **Type:** `(string|RegExp)[]|null`{lang="ts"}
 - **Default:** `null`{lang="ts"}
 
 Paths to explicitly include from the search, this will exclude any paths not listed here.
+
+A string is a route pattern, not a regex: `*` matches one path segment and `**` matches any depth. Pass a `RegExp` for regex matching.
+The crawler starts from `/`, so keep `/` in the list when you rely on the crawler.
 
 See [Include URL Patterns](/guide/recipes/large-sites#include-url-patterns) for more information.
 
 ### `scanner.exclude`{lang="ts"}
 
-- **Type:** `string[]|null`{lang="ts"}
+- **Type:** `(string|RegExp)[]|null`{lang="ts"}
 - **Default:** `null`{lang="ts"}
 
-Paths to ignore from scanning.
+Paths to ignore from scanning. Strings are route patterns, the same as `scanner.include`.
 
 See [Exclude URL Patterns](/guide/recipes/large-sites#exclude-url-patterns) for more information.
 
@@ -304,7 +307,7 @@ and [Improving Accuracy](/guide/recipes/improving-accuracy) for more information
 
 Should lighthouse run with throttling enabled. This is an alias for manually configuring lighthouse.
 
-Note: This will be disabled by default for local scans.
+Set it to `false` to turn throttling off. The default applies to every site, including local ones.
 
 See [Network Throttling](/guide/guides/device#network-throttling) for more information.
 
@@ -321,7 +324,7 @@ See [URL Discovery](/guide/guides/url-discovery) for more information.
 ### `scanner.dynamicSampling`{lang="ts"}
 
 - **Type:** `number|false`{lang="ts"}
-- **Default:** `5`{lang="ts"}
+- **Default:** `8`{lang="ts"}
 
 When a route definition is provided, you're able to configure the worker to sample the dynamic routes to avoid
 redundant route reports.

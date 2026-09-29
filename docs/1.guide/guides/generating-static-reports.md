@@ -72,9 +72,9 @@ You can generate a report like this by providing the `--build-static` flag.
 unlighthouse-ci --site <your-site> --build-static
 ```
 
-This will generate files in your `outputPath` (`.unlighthouse` by default). You can upload the `client` directory to a static host from there.
+This will generate files in your `outputPath` (`.unlighthouse` by default). Upload that whole folder to a static host; `index.html` sits at its root.
 
-If you want to preview the static report you can run `npx sirv-cli .unlighthouse/client`
+If you want to preview the static report you can run `npx sirv-cli .unlighthouse`
 
 Note: You will need to host your site using a web server.
 
@@ -115,7 +115,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Dependencies
-        run: npm add -g @unlighthouse/cli puppeteer
+        run: npm add -g @unlighthouse/cli
 
       - name: Unlighthouse assertions and client
         run: unlighthouse-ci --site <your-site> --build-static

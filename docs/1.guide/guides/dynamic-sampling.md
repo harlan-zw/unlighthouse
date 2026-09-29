@@ -63,7 +63,7 @@ import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
 export default defineUnlighthouseConfig({
   scanner: {
-    dynamicSampling: 10, // Number of samples per group (default: 5)
+    dynamicSampling: 10, // Number of samples per group (default: 8)
   },
 })
 ```

@@ -97,5 +97,5 @@ export default defineUnlighthouseConfig({
 ```
 
 ::note
-Throttling is automatically enabled for production sites and disabled for localhost by default.
+Throttling is enabled by default for every site, including localhost. Set `scanner.throttle: false` to turn it off.
 ::

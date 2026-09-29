@@ -436,7 +436,7 @@ export interface ResolvedUserConfig {
      * Should lighthouse run with throttling enabled? This is an alias for manually configuring lighthouse.
      *
      * @see https://unlighthouse.dev/guide/device.html#alias-enable-disable-throttling
-     * @default false
+     * @default true
      */
     throttle: boolean
     /**
@@ -451,7 +451,7 @@ export interface ResolvedUserConfig {
      * redundant route reports.
      *
      * @see https://unlighthouse.dev/guide/large-sites.html#change-dynamic-sampling-limit
-     * @default 5
+     * @default 8
      */
     dynamicSampling: number | false
     /**
@@ -508,7 +508,7 @@ export interface ResolvedUserConfig {
     /**
      * When downloading the fallback which version of chrome should be used.
      *
-     * @default 1095492
+     * @default The Chrome version pinned by the installed `puppeteer-core`.
      */
     downloadFallbackVersion: string | number
     /**
