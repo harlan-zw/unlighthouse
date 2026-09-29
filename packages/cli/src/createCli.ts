@@ -13,8 +13,8 @@ export default function createCli() {
   cli.option('--root <root>', 'Define the project root. Useful for changing where the config is read from or setting up sampling.')
   cli.option('--config-file <config-file>', 'Path to config file.')
   cli.option('--output-path <output-path>', 'Path to save the contents of the client and reports to.')
-  cli.option('--no-cache', 'Disable the caching.')
-  cli.option('--cache', 'Enable the caching.')
+  // only `--cache` is declared: declaring `--no-cache` makes cac default `cache` to true, which overrides the config file
+  cli.option('--cache', 'Enable the caching. Disable it with --no-cache.')
 
   cli.option('--desktop', 'Simulate device as desktop.')
   cli.option('--mobile', 'Simulate device as mobile.')
@@ -44,5 +44,16 @@ export default function createCli() {
 
   cli.option('-d, --debug', 'Debug. Enable debugging in the logger.')
 
+  return cli
+}
+
+export function createCiCli() {
+  const cli = createCli()
+  cli.option('--budget <budget>', 'Budget (1-100), the minimum score which can pass.')
+  cli.option('--build-static', 'Build a static website for the reports which can be uploaded.')
+  cli.option('--reporter <reporter>', 'The report to generate from results. Options: csv, csvExpanded, json, jsonExpanded or false. Default: json.')
+  cli.option('--lhci-host <lhci-host>', 'URL of your LHCI server.')
+  cli.option('--lhci-build-token <lhci-build-token>', 'LHCI build token, used to add data.')
+  cli.option('--lhci-auth <lhci-auth>', 'Basic auth for your LHCI server.')
   return cli
 }

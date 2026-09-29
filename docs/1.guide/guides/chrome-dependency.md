@@ -45,14 +45,14 @@ This fallback will download a chrome binary for your system and use that path.
 There are a number of options you can customize on this.
 
 - `chrome.useDownloadFallback` - Disables the fallback installer
-- `chrome.downloadFallbackVersion` - Which version of chromium to use (default `1095492`)
+- `chrome.downloadFallbackVersion` - Which Chrome for Testing version to download (default: the version pinned by the installed `puppeteer-core`)
 - `chrome.downloadFallbackCacheDir` - Where the binary should be saved (default `$home/.unlighthouse`)
 
 ```ts
 export default defineUnlighthouseConfig({
   chrome: {
     useDownloadFallback: true,
-    downloadFallbackVersion: '1095492',
+    downloadFallbackVersion: '153.0.8010.36',
     downloadFallbackCacheDir: '/tmp/unlighthouse',
   },
 })
