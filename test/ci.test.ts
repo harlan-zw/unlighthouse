@@ -1,9 +1,12 @@
 import type { AddressInfo } from 'node:net'
+import { Buffer } from 'node:buffer'
 import { createServer } from 'node:http'
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { x } from 'tinyexec'
+import { createUnlighthouse } from '../packages/core/src'
+import { extractHtmlPayload } from '../packages/core/src/puppeteer/tasks/html'
 
 export const cacheDir = resolve(__dirname, '.cache')
 export const ci = resolve(__dirname, '../packages/unlighthouse/bin/unlighthouse-ci.mjs')
@@ -124,6 +127,66 @@ describe('scan lifecycle', () => {
     expect(sessionCookies.length).toBeGreaterThanOrEqual(2)
     expect(sessionCookies).toEqual(sessionCookies.map(() => 'sid=abc'))
   })
+
+  it('sends basic auth to the scanned origin only', async () => {
+    const expectedAuth = `Basic ${Buffer.from('admin:secret').toString('base64')}`
+    // the Authorization header of every request, per origin
+    const scanAuthHeaders: (string | undefined)[] = []
+    const thirdPartyAuthHeaders: (string | undefined)[] = []
+
+    const thirdParty = createServer((req, res) => {
+      thirdPartyAuthHeaders.push(req.headers.authorization)
+      res.writeHead(200, { 'content-type': 'application/javascript' })
+      res.end('')
+    })
+    await new Promise<void>(resolve => thirdParty.listen(0, '127.0.0.1', resolve))
+    const thirdPartyUrl = `http://127.0.0.1:${(thirdParty.address() as AddressInfo).port}`
+
+    // a basic auth protected page that loads a script from a second origin
+    const protectedSite = createServer((req, res) => {
+      scanAuthHeaders.push(req.headers.authorization)
+      if (req.headers.authorization !== expectedAuth) {
+        res.writeHead(401, { 'www-authenticate': 'Basic realm="scan"' })
+        res.end('unauthorized')
+        return
+      }
+      res.writeHead(200, { 'content-type': 'text/html' })
+      res.end(`<!doctype html><html lang="en"><head><title>authed</title><script src="${thirdPartyUrl}/script.js"></script></head><body>authed</body></html>`)
+    })
+    await new Promise<void>(resolve => protectedSite.listen(0, '127.0.0.1', resolve))
+    const protectedUrl = `http://127.0.0.1:${(protectedSite.address() as AddressInfo).port}`
+
+    const testDir = resolve(cacheDir, `auth-scope-${Date.now()}`)
+    await mkdir(testDir, { recursive: true })
+
+    const unlighthouse = await createUnlighthouse({
+      root: testDir,
+      site: protectedUrl,
+      auth: { username: 'admin', password: 'secret' },
+      // the browser path, which sets the page wide headers
+      scanner: { skipJavascript: false },
+      puppeteerOptions: { args: ['--no-sandbox'] },
+    })
+
+    try {
+      // the html inspection, the browser path that sets page wide headers
+      const response = await unlighthouse.worker.cluster.execute({}, ({ page }) => extractHtmlPayload(page, `${protectedUrl}/authed`))
+      expect(response.success, response.message).toBe(true)
+      expect(response.payload).toContain('authed')
+
+      // the page did load the script from the second origin
+      expect(thirdPartyAuthHeaders.length).toBeGreaterThanOrEqual(1)
+      // but none of those requests carried the site credentials
+      expect(thirdPartyAuthHeaders).toEqual(thirdPartyAuthHeaders.map(() => undefined))
+      // the scanned origin still authenticates, through the 401 challenge
+      expect(scanAuthHeaders).toContain(expectedAuth)
+    }
+    finally {
+      await unlighthouse.worker.cluster.close()
+      thirdParty.close()
+      protectedSite.close()
+    }
+  }, 180_000)
 
   it('scans with the programmatic API and closes the cluster', async () => {
     const { createUnlighthouse } = await import('../packages/core/dist/index.mjs')
