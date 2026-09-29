@@ -201,7 +201,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     if (!resolvedConfig.cache)
       logger.debug(`\`cache\` is disabled, clearing output folder: \`${outputPath}\``)
-    await prepareOutputDir(outputPath, { clear: !resolvedConfig.cache })
+    await prepareOutputDir(outputPath, { clear: !resolvedConfig.cache, root: resolvedConfig.root })
     return ctx
   }
 
@@ -254,7 +254,7 @@ export async function createUnlighthouse(userConfig: UserConfig, provider?: Prov
 
     if (!resolvedConfig.cache)
       logger.debug(`\`cache\` is disabled, clearing output folder: \`${ctx.runtimeSettings.outputPath}\``)
-    await prepareOutputDir(ctx.runtimeSettings.outputPath, { clear: !resolvedConfig.cache })
+    await prepareOutputDir(ctx.runtimeSettings.outputPath, { clear: !resolvedConfig.cache, root: resolvedConfig.root })
     await generateClient()
 
     if (provider?.name !== 'cli') {
