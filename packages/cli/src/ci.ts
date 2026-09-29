@@ -68,8 +68,10 @@ async function run() {
 
   await setCiContext()
   const { routes } = await start()
-  if (!routes.length) {
-    logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
+  // nothing queued means `worker-finished` never fires, so exit instead of waiting forever
+  if (!worker.reports().length) {
+    if (!routes.length)
+      logger.error('Failed to queue routes for scanning. Please check the logs with debug enabled.')
     process.exit(1)
   }
 
