@@ -101,6 +101,30 @@ describe('scan lifecycle', () => {
     expect(sessionCookies.every(cookie => cookie === 'sid=abc=def')).toBe(true)
   })
 
+  it('sends a cookie only to the host it belongs to', async () => {
+    const testDir = resolve(cacheDir, `cookie-scope-${Date.now()}`)
+    await mkdir(testDir, { recursive: true })
+    await writeFile(join(testDir, 'unlighthouse.config.ts'), `export default ${JSON.stringify({
+      site: fixtureUrl,
+      urls: ['/session'],
+      cookies: [
+        { name: 'sid', value: 'abc' },
+        // collected from a single sign-on host, must never reach the scanned site
+        { name: 'sso', value: 'secret', domain: 'sso.example.com', path: '/' },
+      ],
+    })}`)
+    sessionCookies.length = 0
+
+    const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir], {
+      nodeOptions: { cwd: testDir },
+      timeout: 180_000,
+    })
+
+    expect(exitCode, stdout + stderr).toBe(0)
+    expect(sessionCookies.length).toBeGreaterThanOrEqual(2)
+    expect(sessionCookies).toEqual(sessionCookies.map(() => 'sid=abc'))
+  })
+
   it('scans with the programmatic API and closes the cluster', async () => {
     const { createUnlighthouse } = await import('../packages/core/dist/index.mjs')
     const unlighthouse = await createUnlighthouse({

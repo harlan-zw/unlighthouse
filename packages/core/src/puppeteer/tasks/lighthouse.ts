@@ -144,7 +144,7 @@ export const runLighthouseTask: PuppeteerTask = async (props) => {
   const args = [
     `--cache=${JSON.stringify(resolvedConfig.cache)}`,
     `--routeReport=${JSON.stringify(routeReportForArgs)}`,
-    // resolved per task, so cookies from the authenticate hook reach every Lighthouse run
+    // cookies reach the Lighthouse page through the cookie jar, see setupPage
     `--lighthouseOptions=${JSON.stringify({
       ...resolvedConfig.lighthouseOptions,
       extraHeaders: { ...resolveRequestHeaders(resolvedConfig), ...resolvedConfig.lighthouseOptions.extraHeaders },
