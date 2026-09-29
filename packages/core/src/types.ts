@@ -54,6 +54,13 @@ export interface ComputedLighthouseReportAudit {
   displayValue: string | number
   score: number
 }
+export interface LighthouseReportCategory {
+  key: string
+  id: string
+  title: string
+  score: number | null
+}
+
 /**
  * An augmented Lighthouse Report type, we add custom types to the base report for specific functionality on the
  * @unlighthouse/client.
@@ -63,7 +70,10 @@ export type LighthouseReport = Partial<Result> & {
    * The total score for the result, this is the sum of each category's result
    */
   score: number
-  categories: { score: number | null }[]
+  /**
+   * One entry per Lighthouse category, in report order. `key` is the category id, such as `performance`.
+   */
+  categories: LighthouseReportCategory[]
   computed: {
     /**
      * An aggregation of multiple image audit results.

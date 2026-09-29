@@ -82,41 +82,41 @@ export class Cluster<JobData = any, ReturnData = any> extends EventEmitter {
   static CONCURRENCY_PAGE: number
   static CONCURRENCY_CONTEXT: number
   static CONCURRENCY_BROWSER: number
-  public options
-  public perBrowserOptions
-  public workers
-  public workersAvail
-  public workersBusy
-  public workersStarting
-  public allTargetCount
-  public jobQueue
-  public errorCount
-  public taskFunction
-  public idleResolvers
-  public waitForOneResolvers
-  public browser
-  public isClosed
-  public startTime
-  public nextWorkerId
-  public monitoringInterval
-  public display
-  public duplicateCheckUrls
-  public lastDomainAccesses
-  public systemMonitor
-  public checkForWorkInterval
+  public options: ClusterOptions
+  public perBrowserOptions: LaunchOptions[] | null
+  public workers: unknown[]
+  public workersAvail: unknown[]
+  public workersBusy: unknown[]
+  public workersStarting: number
+  public allTargetCount: number
+  public jobQueue: { size: () => number }
+  public errorCount: number
+  public taskFunction: TaskFunction<JobData, ReturnData> | null
+  public idleResolvers: (() => void)[]
+  public waitForOneResolvers: ((data: JobData) => void)[]
+  public browser: ConcurrencyImplementation | null
+  public isClosed: boolean
+  public startTime: number
+  public nextWorkerId: number
+  public monitoringInterval: unknown
+  public display: { log: (str: string) => void, resetCursor: () => void, close: () => void } | null
+  public duplicateCheckUrls: Set<string>
+  public lastDomainAccesses: Map<string, number>
+  public systemMonitor: { getCpuUsage: () => number, getMemoryUsage: () => number }
+  public checkForWorkInterval: unknown
   static launch(options: ClusterOptionsArgument): Promise<Cluster<any, any>>
   public constructor()
-  public init
-  public launchWorker
+  public init: unknown
+  public launchWorker: unknown
   task(taskFunction: TaskFunction<JobData, ReturnData>): Promise<void>
-  public nextWorkCall
-  public workCallTimeout
-  public work
-  public doWork
-  public lastLaunchedWorkerTime
-  public allowedToStartWorker
-  public isTaskFunction
-  public queueJob
+  public nextWorkCall: number
+  public workCallTimeout: unknown
+  public work: unknown
+  public doWork: unknown
+  public lastLaunchedWorkerTime: number
+  public allowedToStartWorker: unknown
+  public isTaskFunction: unknown
+  public queueJob: unknown
   queue(data: JobData, taskFunction?: TaskFunction<JobData, ReturnData>): Promise<void>
   queue(taskFunction: TaskFunction<JobData, ReturnData>): Promise<void>
   execute(data: JobData, taskFunction?: TaskFunction<JobData, ReturnData>): Promise<ReturnData>
@@ -124,5 +124,5 @@ export class Cluster<JobData = any, ReturnData = any> extends EventEmitter {
   idle(): Promise<void>
   waitForOne(): Promise<JobData>
   close(): Promise<void>
-  public monitor
+  public monitor: unknown
 }
