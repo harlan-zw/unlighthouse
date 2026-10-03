@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { InsightsReportSchema } from '@unlighthouse/contracts/packs'
+import { useAffectedRouteLinks } from '~/features/scan/affected-route-links'
 import { formatRouteCount } from '~/features/scan/pack-presentation'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
+const { affectedRouteLink, linksPending, linksError, refreshLinks } = useAffectedRouteLinks(() => props.scanBase)
 
 const { fmtMs } = createFormatters()
 
@@ -18,13 +20,17 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
     </div>
 
     <UiCard v-if="report.insights?.length" size="sm">
+      <QueryError v-if="linksError" :error="linksError" :on-retry="refreshLinks" />
+      <p v-else-if="linksPending" role="status" class="pb-2 text-sm text-muted">
+        Loading affected route links
+      </p>
       <template #header>
-        <h3 class="text-label text-dimmed flex items-center gap-2">
+        <h2 class="text-label text-dimmed flex items-center gap-2">
           Opportunities
           <UiChip purpose="count">
             {{ report.insights.length }}
           </UiChip>
-        </h3>
+        </h2>
       </template>
       <div class="space-y-3">
         <div v-for="insight in report.insights" :key="insight.id" class="p-3 border rounded-lg">
@@ -33,7 +39,7 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
               {{ insight.title || insight.id }}
             </div>
             <UiChip purpose="count">
-              {{ formatRouteCount(insight.routeCount) }}
+              {{ formatRouteCount(insight.routeCount) }} affected
             </UiChip>
           </div>
           <div class="flex gap-1 mt-2 flex-wrap">
@@ -41,8 +47,19 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
               {{ key }}: {{ typeof val === 'number' ? fmtMs(val) : val }}
             </UiChip>
           </div>
-          <div v-if="insight.worstRoutes?.length" class="mt-2 text-xs text-muted">
-            Worst: <span v-for="(wr, i) in insight.worstRoutes.slice(0, 3)" :key="wr.url" class="font-mono">{{ wr.url }}{{ Number(i) < Math.min(insight.worstRoutes.length, 3) - 1 ? ', ' : '' }}</span>
+          <div v-if="insight.worstRoutes?.length" class="mt-2 text-sm text-muted">
+            Worst:
+            <ul class="font-mono">
+              <li v-for="wr in insight.worstRoutes.slice(0, 3)" :key="wr.url">
+                <NuxtLink v-if="affectedRouteLink(wr.url)" :to="affectedRouteLink(wr.url)" class="inline-flex min-h-11 items-center break-all hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:min-h-6">
+                  {{ wr.url }}
+                </NuxtLink>
+                <span v-else class="break-all">{{ wr.url }}</span>
+              </li>
+              <li v-if="insight.routeCount > Math.min(insight.worstRoutes.length, 3)">
+                +{{ insight.routeCount - Math.min(insight.worstRoutes.length, 3) }} more
+              </li>
+            </ul>
           </div>
         </div>
       </div>

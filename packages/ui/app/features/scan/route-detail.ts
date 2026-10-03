@@ -2,6 +2,7 @@ import type { CommandOutput, RouteGet } from '@unlighthouse/contracts/commands'
 import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { createScreenshotUrl, getScanId } from '~/features/scan/route-context'
+import { parseRecordedRouteUrl, routeDetailPath } from '~/features/scan/route-links'
 
 type DeviceFilter = '' | 'mobile' | 'desktop'
 type RouteGetOutput = CommandOutput<typeof RouteGet>
@@ -42,12 +43,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   'seo': 'SEO',
   'best-practices': 'Best Practices',
   'agentic-browsing': 'Agentic Browsing',
-}
-
-function routeParamPath(value: unknown): string {
-  if (Array.isArray(value))
-    return decodeURIComponent(value.join('/'))
-  return decodeURIComponent(String(value ?? ''))
 }
 
 function resolveRouteUrl(path: string, site?: string | null): string {
@@ -127,7 +122,7 @@ export function useRouteDetail() {
   const { fmtBytes: formatBytes } = createFormatters()
 
   const scanId = getScanId()
-  const routePath = routeParamPath(route.params.path)
+  const routePath = routeDetailPath(route.params.path)
   const baseUrl = getRuntimeApiUrl()
 
   const screenshotVisible = ref(true)
@@ -154,7 +149,7 @@ export function useRouteDetail() {
     () => ({ scanId }),
   )
 
-  const fullUrl = computed(() => resolveRouteUrl(routePath, scanMeta.value?.site))
+  const fullUrl = computed(() => parseRecordedRouteUrl(routePath, route.query.url, scanMeta.value?.site) ?? resolveRouteUrl(routePath, scanMeta.value?.site))
 
   // Gated on `fullUrl` (derived from scanMeta.site) — until the meta loads
   // there's no absolute URL to fetch. The input getter reads `fullUrl` +

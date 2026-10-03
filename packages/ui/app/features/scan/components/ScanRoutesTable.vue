@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import type { RouteRow } from '~/features/scan/routes-table'
+import { useMediaQuery } from '@vueuse/core'
+import { visibleRouteColumns } from '~/features/scan/route-columns'
 import { createScreenshotUrl } from '~/features/scan/route-context'
 import {
+  COLUMN_LABELS,
   CWV_COLS,
   cwvColor,
   formatRouteMetric,
@@ -22,6 +25,7 @@ const {
   total,
   truncated,
   prevMap,
+  previousDevice,
   hasPrev,
   hasMultipleDevices,
   hasMultipleAuditors,
@@ -34,11 +38,10 @@ const {
   score100Color,
   sorting,
   density,
-  tableRef,
-  columnToggleItems,
   copyRouteUrl,
   rescanRoute,
   openRoute,
+  routeLink,
   resultsError,
   refresh,
 } = useScanRoutesTable()
@@ -48,7 +51,11 @@ const formatMetric = formatRouteMetric
 const UiIconC = resolveComponent('UiIcon')
 const UiChipC = resolveComponent('UiChip')
 const UiTrendC = resolveComponent('UiTrend')
+const NuxtLinkC = resolveComponent('NuxtLink')
+const UiTooltipC = resolveComponent('UiTooltip')
 const isStatic = useIsStatic()
+const mobile = useMediaQuery('(max-width: 767px)')
+const columnChoices = ref<Record<string, boolean>>({})
 
 function routeActionItems(row: RouteRow) {
   const items = [
@@ -65,7 +72,7 @@ function routeActionItems(row: RouteRow) {
   ]
 }
 
-const columns = computed<UiTableColumn<RouteRow>[]>(() => {
+const allColumns = computed<UiTableColumn<RouteRow>[]>(() => {
   const cols: UiTableColumn<RouteRow>[] = [
     {
       id: 'thumbnail',
@@ -93,13 +100,14 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
     {
       accessorKey: 'path',
       header: 'Path',
-      meta: { headClass: 'min-w-[200px]' },
+      meta: { headClass: 'min-w-0 md:min-w-[200px]' },
       cell: ({ row }) => {
         const label = row.original.path || row.original.url
-        return h('span', {
-          'class': 'font-mono text-xs truncate block max-w-xs',
-          'aria-label': `Route ${row.original.url}`,
-        }, label)
+        return h(UiTooltipC, { text: label, triggerAs: 'child' }, () => h(NuxtLinkC, {
+          'to': routeLink(row.original),
+          'class': 'inline-flex min-h-11 min-w-11 max-w-[120px] items-center font-mono text-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:max-w-xs lg:min-h-6',
+          'aria-label': `Route ${label} on ${row.original.device}`,
+        }, () => h('span', { class: 'truncate' }, label)))
       },
     },
   ]
@@ -107,15 +115,15 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
   if (hasMultipleDevices.value && deviceFilter.value === 'all') {
     cols.push({
       accessorKey: 'device',
-      header: 'Device',
+      header: () => h('span', { class: 'sr-only md:not-sr-only' }, 'Device'),
       enableSorting: false,
       meta: { align: 'center', headClass: 'w-16' },
-      cell: ({ row }) => h('span', { class: 'inline-flex items-center gap-1 text-xs text-muted' }, [
+      cell: ({ row }) => h('span', { class: 'inline-flex items-center gap-1 text-sm text-muted' }, [
         h(UiIconC, {
           name: row.original.device === 'mobile' ? 'smartphone' : 'monitor',
           class: 'size-3.5',
         }),
-        row.original.device === 'mobile' ? 'Mobile' : 'Desktop',
+        h('span', { class: 'sr-only md:not-sr-only' }, row.original.device === 'mobile' ? 'Mobile' : 'Desktop'),
       ]),
     })
   }
@@ -143,10 +151,10 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
       accessorFn: (row: RouteRow) => (row[s.key] as number | null) ?? undefined,
       header: s.label,
       sortUndefined: 'last',
-      meta: { align: 'center', headClass: 'w-16' },
+      meta: { align: 'right', headClass: 'w-16' },
       cell: ({ row }) => {
         const score = row.original[s.key] as number | null
-        return h('span', { class: `text-xs font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
+        return h('span', { class: `text-sm font-bold tabular-nums ${scoreToColor(score)}` }, scoreToLabel(score))
       },
     })
   }
@@ -155,7 +163,9 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
     cols.push({
       id: 'delta',
       accessorFn: (row: RouteRow) => {
-        const prev = prevMap.value?.get(row.path || row.url)
+        if (row.device !== previousDevice.value)
+          return undefined
+        const prev = prevMap.value?.get(`${row.device}:${row.path || row.url}`)
         const cur = overallScore(row)
         return prev == null || cur == null ? undefined : cur - prev
       },
@@ -163,10 +173,13 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
       sortUndefined: 'last',
       meta: { align: 'right', headClass: 'w-16' },
       cell: ({ row }) => {
-        const prev = prevMap.value?.get(row.original.path || row.original.url)
+        if (row.original.device !== previousDevice.value)
+          return h('span', { class: 'text-sm text-muted' }, '—')
+        const prev = prevMap.value?.get(`${row.original.device}:${row.original.path || row.original.url}`)
         const cur = overallScore(row.original)
         if (prev == null)
-          return h('span', { class: 'text-xs text-muted border rounded px-1 py-0.5' }, 'new')
+          // A capped previous-results page cannot prove that a route is new.
+          return h('span', { class: 'text-sm text-muted' }, '—')
         if (cur == null)
           return h('span', { class: 'text-muted' }, '—')
         // Raw point delta (not a ratio), so UiTrend renders in 'number' mode —
@@ -183,18 +196,42 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
       header: m.label,
       sortUndefined: 'last',
       meta: { align: 'right', headClass: 'w-20' },
-      cell: ({ row }) => h('span', { class: `tabular-nums text-xs font-medium ${cwvColor(m.key, row.original[m.key] as number | null)}` }, formatMetric(row.original[m.key] as number | null, m.unit)),
+      cell: ({ row }) => h('span', { class: `tabular-nums text-sm font-medium ${cwvColor(m.key, row.original[m.key] as number | null)}` }, formatMetric(row.original[m.key] as number | null, m.unit)),
     })
   }
 
   return cols
 })
+
+function columnId(column: UiTableColumn<RouteRow>): string {
+  return column.id ?? ('accessorKey' in column ? String(column.accessorKey) : '')
+}
+
+const visibleIds = computed(() => visibleRouteColumns(allColumns.value.map(columnId), mobile.value, columnChoices.value, sorting.value))
+const tableRef = ref<{ table: { setColumnVisibility: (visibility: Record<string, boolean>) => void } } | null>(null)
+watch([tableRef, visibleIds], ([instance, ids]) => {
+  instance?.table.setColumnVisibility(Object.fromEntries(allColumns.value.map(column => [columnId(column), ids.includes(columnId(column))])))
+}, { flush: 'post', immediate: true })
+const hiddenSort = computed(() => sorting.value.find(sort => !visibleIds.value.includes(sort.id)))
+const columnToggleItems = computed(() => [
+  [{ label: 'Toggle columns', type: 'label' as const }],
+  allColumns.value.map((column) => {
+    const id = columnId(column)
+    return {
+      label: COLUMN_LABELS[id] ?? id,
+      type: 'checkbox' as const,
+      checked: visibleIds.value.includes(id),
+      onUpdateChecked: (checked: boolean) => { columnChoices.value = { ...columnChoices.value, [id]: checked } },
+      onSelect: (event: Event) => event.preventDefault(),
+    }
+  }),
+])
 </script>
 
 <template>
   <QueryError v-if="resultsError" :error="resultsError" :on-retry="refresh" />
 
-  <div v-else class="space-y-4">
+  <div v-else class="route-results space-y-4">
     <!-- Scan context strip -->
     <div v-if="filtered.length" class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
@@ -286,11 +323,15 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
       />
     </div>
 
+    <p v-if="hiddenSort" class="text-sm text-muted">
+      {{ COLUMN_LABELS[hiddenSort.id] ?? hiddenSort.id }}: {{ hiddenSort.desc ? 'descending' : 'ascending' }}
+    </p>
+
     <div class="border-y">
       <UiTable
         ref="tableRef"
         v-model:sorting="sorting"
-        :columns="columns"
+        :columns="allColumns"
         :data="filtered"
         :size="density === 'compact' ? 'sm' : 'md'"
         enable-sorting
@@ -303,7 +344,7 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
             :items="routeActionItems(row)"
             :content="{ align: 'end' }"
           >
-            <UiButton purpose="quiet" size="sm" icon="more-horizontal" class="size-7 p-0 justify-center" aria-label="Open route actions" @click.stop />
+            <UiButton purpose="quiet" size="sm" icon="more-horizontal" class="min-h-11 min-w-11 p-0 justify-center lg:min-h-7 lg:min-w-7" aria-label="Open route actions" @click.stop />
           </UDropdownMenu>
         </template>
 
@@ -326,3 +367,14 @@ const columns = computed<UiTableColumn<RouteRow>[]>(() => {
     </p>
   </div>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .route-results :deep(thead button),
+  .route-results :deep([role="tab"]),
+  .route-results :deep(button) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+</style>

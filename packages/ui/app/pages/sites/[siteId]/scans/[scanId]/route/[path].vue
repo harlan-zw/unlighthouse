@@ -39,7 +39,7 @@ const {
   rescanRoute,
 } = useRouteDetail()
 
-const { fmtMs } = createFormatters()
+const { fmtMs, fmtTimestamp } = createFormatters()
 const isStatic = useIsStatic()
 
 useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
@@ -88,10 +88,6 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
               </a>
             </UiTooltip>
           </div>
-          <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted">
-            <span>LH {{ routeData.provenance.lighthouseVersion }}</span>
-            <span v-if="routeData.provenance.timingTotal">{{ fmtMs(routeData.provenance.timingTotal) }} audit</span>
-          </div>
         </div>
         <div v-if="!isStatic" class="flex flex-wrap items-center gap-2">
           <a
@@ -119,6 +115,8 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
           v-model="deviceFilter"
           :content="false"
           size="sm"
+          color="neutral"
+          :ui="{ indicator: 'hidden', trigger: 'min-h-11 min-w-11 data-[state=active]:bg-inverted data-[state=active]:text-inverted' }"
           :items="availableDevices.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1), icon: d === 'mobile' ? 'smartphone' : 'monitor' }))"
         />
       </div>
@@ -236,11 +234,69 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             <div class="numerals-display text-xl" :class="metricColor(m.label, m.value)">
               {{ formatMetric(m.value, m.unit) }}
             </div>
-            <div class="text-xs text-muted/60 mt-1">
+            <div class="text-sm text-muted mt-1">
               {{ m.description }}
             </div>
           </div>
         </div>
+      </UiCard>
+
+      <UiCard v-if="routeData.provenance" size="sm">
+        <UCollapsible>
+          <UiButton purpose="quiet" class="w-full justify-between min-h-11" trailing-icon="chevron-down">
+            Measurement details
+          </UiButton>
+          <template #content>
+            <dl class="grid gap-4 pt-4 text-sm sm:grid-cols-2">
+              <div v-if="routeData.provenance.capturedAt">
+                <dt class="text-muted">
+                  Captured at
+                </dt>
+                <dd class="break-words">
+                  {{ fmtTimestamp(routeData.provenance.capturedAt) }}
+                </dd>
+              </div>
+              <div v-if="routeData.provenance.lighthouseVersion">
+                <dt class="text-muted">
+                  Lighthouse version
+                </dt>
+                <dd>{{ routeData.provenance.lighthouseVersion }}</dd>
+              </div>
+              <div v-if="routeData.route?.device">
+                <dt class="text-muted">
+                  Recorded device
+                </dt>
+                <dd class="capitalize">
+                  {{ routeData.route.device }}
+                </dd>
+              </div>
+              <div v-if="routeData.provenance.timingTotal != null">
+                <dt class="text-muted">
+                  Audit duration
+                </dt>
+                <dd class="tabular-nums">
+                  {{ fmtMs(routeData.provenance.timingTotal) }}
+                </dd>
+              </div>
+              <div v-if="routeData.provenance.benchmarkIndex != null">
+                <dt class="text-muted">
+                  Benchmark index
+                </dt>
+                <dd class="tabular-nums">
+                  {{ formatMetricValue(routeData.provenance.benchmarkIndex, '') }}
+                </dd>
+              </div>
+              <div v-if="routeData.provenance.userAgent" class="sm:col-span-2">
+                <dt class="text-muted">
+                  User agent
+                </dt>
+                <dd class="break-all font-mono">
+                  {{ routeData.provenance.userAgent }}
+                </dd>
+              </div>
+            </dl>
+          </template>
+        </UCollapsible>
       </UiCard>
 
       <!-- Category Sections -->
@@ -335,7 +391,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                   <div class="flex items-center gap-2 text-left text-sm">
                     <UiIcon name="check" class="size-3.5 text-success shrink-0" />
                     <span class="text-muted">{{ audit.title || audit.id }}</span>
-                    <span v-if="audit.displayValue" class="text-muted/60 text-xs ml-auto mr-4 shrink-0">
+                    <span v-if="audit.displayValue" class="text-muted text-sm ml-auto mr-4 shrink-0">
                       {{ audit.displayValue }}
                     </span>
                   </div>
@@ -378,7 +434,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                 </UiChip>
               </template>
               <div class="space-y-0.5 pt-2 pl-6">
-                <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted/60">
+                <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted">
                   <UiIcon name="minus" class="size-3 shrink-0" />
                   <span>{{ audit.title || audit.id }}</span>
                 </div>
