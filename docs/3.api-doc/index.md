@@ -1,13 +1,6 @@
 ---
 title: "API Reference"
-description: "Complete API reference for Unlighthouse core functions, context methods, and hooks system for building custom integrations."
-keywords:
-  - unlighthouse api
-  - unlighthouse programmatic
-  - createUnlighthouse
-  - useUnlighthouse
-  - unlighthouse hooks
-  - unlighthouse integration api
+description: "API Reference for the Unlighthouse v1 beta."
 navigation:
   title: "API Reference"
 relatedPages:
@@ -19,357 +12,100 @@ relatedPages:
     title: Configuration Guide
 ---
 
-# API Reference
+Use `createUnlighthouseHost` for programmatic scans in Node.js.
+Keep the returned host and pass it to your integration code.
 
-Programmatic API for building custom integrations and extending Unlighthouse functionality. Use these functions to create custom providers, respond to scan events, and integrate with your build tools.
-
-## Core Package
-
-Functions from `unlighthouse`:
-
-### `createUnlighthouse()`{lang="ts"}
-
-- **Type:** `(userConfig: UserConfig, provider?: Provider) => Promise<UnlighthouseContext>`{lang="ts"}
-
-  This is the entry point to using Unlighthouse, it will initialise Unlighthouse with the provided configuration and an optional provider.
-
-  When no provider is given, a default provider is created which will try and resolve route definitions and URLs.
-
-  ```ts
-  import { createUnlighthouse } from 'unlighthouse'
-
-  createUnlighthouse(
-    // config
-    { configFile: 'mysite.config.ts' },
-    // provider
-    {
-      name: 'custom',
-      // some custom implementation to find the route definitions
-      routeDefinitions: () => generateRouteDefinitions(),
-    }
-  )
-  ```
-
-### `defineUnlighthouseConfig()`{lang="ts"}
-
-- **Type:** `(userConfig: UserConfig) => Promise<UnlighthouseContext>`{lang="ts"}
-
-  A simple define wrapper to provide typings to config definitions. This is primarily used when creating a
-  config file `unlighthouse.config.ts`
-
-  Powered by [c12](https://github.com/unjs/c12).
-
-  ```ts
-  import { defineUnlighthouseConfig } from 'unlighthouse/config'
-
-  export default defineUnlighthouseConfig({
-    site: 'harlanzw.com'
-  })
-  ```
-
-### `generateClient()`{lang="ts"}
-
-- **Type:** `(options: GenerateClientOptions) => Promise<void>`{lang="ts"}
-
-  This copies over the client from `@unlighthouse/ui` to be used to render our scans details.
-
-  It's publicly exposed to provide a tight integrations for custom client builds, such as the CI build.
-
-  ```ts
-  import { generateClient } from 'unlighthouse'
-
-  // ...
-  logger.info('Generating static client.')
-  await generateClient({ static: true })
-  logger.success(`Static client generated at \`${unlighthouse.runtimeSettings.generatedClientPath}\`, ready for hosting.`)
-  ```
-
-### `useUnlighthouse()`{lang="ts"}
-
-- **Type:** `() => UnlighthouseContext`{lang="ts"}
-
-  Unlighthouse makes use of a [composition API](https://github.com/unjs/unctx) to retain the core state. This allows you to access unlighthouse _anywhere_,
-  which is great to avoid transferring state between your logic.
-
-  ```ts
-  import { useUnlighthouse } from 'unlighthouse'
-
-  // access the lighthouse context, pick out the worker
-  const { worker } = useUnlighthouse()
-  // force whichever route matches home.md to be re-scanned
-  worker.invalidateFile('/home.md')
-  ```
-
-### `useLogger()`{lang="ts"}
-
-- **Type:** `() => void`{lang="ts"}
-
-  Get the global logger instance. This is useful for tight unlighthouse integrations which want to make use of the
-  `debug` config.
-
-  ```ts
-  import { useLogger } from 'unlighthouse'
-
-  // you need to instantiate the logger to get the instance
-  const logger = useLogger()
-  // force whichever route matches home.md to be re-scanned
-  logger.debug('Something weird has happened')
-  ```
-
-## @unlighthouse/server
-
-Functions exposed from the `@unlighthouse/server` package.
-
-This package is used for instances where unlighthouse is running without a provider which has an accessible web server. For instance
-running Unlighthouse with the `cli` provider will use this package.
-
-### `createServer()`{lang="ts"}
-
-- **Type:** `() => Promise<void>`{lang="ts"}
-
-  Creates a [h3](https://github.com/unjs/h3) app which uses [listhen](https://github.com/unjs/listhen) as a web server.
-  This is used to host the API and the client.
-
-  ```ts
-  import { createServer } from '@unlighthouse/server'
-
-  // ...
-  const { server, app } = await createServer()
-  // server is an instance of listhen, app is an instance of h3
-  await unlighthouse.setServerContext({ url: server.url, server: server.server, app })
-  await unlighthouse.start()
-  ```
-
-## Unlighthouse Context
-
-Functions exposed from unlighthouse context provided by `useUnlighthouse()` or `createUnlighthouse()` .
-
-### `start()`{lang="ts"}
-
-- **Type:** `() => Promise<UnlighthouseContext>`{lang="ts"}
-
-  Start the client and the queue worker. A server context must be provided before this function is called.
-
-### `setCiContext()`{lang="ts"}
-
-- **Type:** `() => Promise<UnlighthouseContext>`{lang="ts"}
-
-  Running Unlighthouse via CI does not require a server or the client, so we have a special utility for it.
-
-### `setServerContext()`{lang="ts"}
-
-- **Type:** `(arg: ServerContextArg) => Promise<UnlighthouseContext>`{lang="ts"}
-
-  To use Unlighthouse with a client, it needs a server / app to register the API and client middleware.
-
-### `setSiteUrl()`{lang="ts"}
-
-- **Type:** `(url: string) => void`{lang="ts"}
-
-  Sets the site URL that will be scanned if it's not known at initialisation.
-
-## Hooks
-
-Unlighthouse provides hooks using [hookable](https://github.com/unjs/hookable) which allow you tailor the core behaviour.
-
-Hooks can be accessed on the `hooks` property of the context and will always return a `Promise<void>|void`.
+## Create a host
 
 ```ts
-export type HookResult = Promise<void> | void
-```
+import { createUnlighthouseHost } from 'unlighthouse'
 
-```ts
-import { useUnlighthouse } from 'unlighthouse'
-
-const { hooks } = useUnlighthouse()
-
-hooks.hook('task-complete', (path, response) => {
-  console.log('task is finished at path', path)
+const host = await createUnlighthouseHost({
+  userConfig: {
+    site: 'https://example.com',
+    urls: ['/', '/about'],
+  },
+  behavior: { ws: null },
 })
 ```
 
-### `site-changed`{lang="ts"}
+`userConfig` loads alongside your config file.
+`behavior.ws: null` disables WebSocket broadcasting for scripts without a dashboard.
+The factory also accepts an explicit `logger`, `env`, and custom `packs`.
 
-- **Type:** `(site: string) => HookResult`{lang="ts"}
+## Prepare resolved config
 
-  It's possible the site is not known at initialisation, this hook is called when it's set or changed.
-
-  ```ts
-  hooks.hook('site-changed', (site) => {
-    // generate payload for site
-  })
-  ```
-
-### `worker-finished`{lang="ts"}
-
-- **Type:** `() => HookResult`{lang="ts"}
-
-  Called when the worker has finished processing all queued routes. Will be called multiple times if routes are re-queued.
-
-  Mostly useful for the CI environment.
-
-  ```ts
-  hooks.hook('worker-finished', () => {
-    console.log('all done :)')
-  })
-  ```
-
-### `route-definitions-provided`{lang="ts"}
-
-- **Type:** `(routeDefinitions: any[]) => HookResult`{lang="ts"}
-
-  When route definitions are provided to Unlighthouse this function will be called useful for delaying internal logic
-  until the definitions are found.
-
-### `visited-client`{lang="ts"}
-
-- **Type:** `() => HookResult`{lang="ts"}
-
-  Called when a user visits the path of the `@unlighthouse/ui` for the first time. Useful for starting the worker on-demand.
-
-  ```ts
-  // only start when the user wants to see the client
-  hooks.hookOnce('visited-client', () => {
-    unlighthouse.start()
-  })
-  ```
-
-### `task-added`{lang="ts"}
-
-- **Type:** `(path: string, response: UnlighthouseRouteReport) => HookResult`{lang="ts"}
-
-  Fired when a new task is added to the queue worker.
-
-### `task-started`{lang="ts"}
-
-- **Type:** `(path: string, response: UnlighthouseRouteReport) => HookResult`{lang="ts"}
-
-  Fired when a task has started to work.
-
-### `task-complete`{lang="ts"}
-
-- **Type:** `(path: string, response: UnlighthouseRouteReport, taskName: string) => HookResult`{lang="ts"}
-
-Fired when a task has completed it's work.
-
-### `discovered-internal-links`{lang="ts"}
-
-- **Type:** `(path: string, internalLinks: string[]) => HookResult`{lang="ts"}
-
-Fired when a path discovered internal links, used for "crawl" mode.
-
-### `puppeteer:before-goto`{lang="ts"}
-
-- **Type:** `(page: Page) => HookResult`{lang="ts"}
-
-Called after Unlighthouse creates the Puppeteer page and before it navigates to
-the route under test. Use it to register listeners, inject scripts that must run
-before site JavaScript, or seed browser state for authenticated pages.
+Use `onResolvedConfig` before the host derives output paths and initializes adapters.
 
 ```ts
-export default defineUnlighthouseConfig({
-  hooks: {
-    'puppeteer:before-goto': async (page) => {
-      await page.evaluateOnNewDocument((token) => {
-        window.localStorage.setItem('auth_token', token)
-      }, process.env.UNLIGHTHOUSE_AUTH_TOKEN)
+import { createUnlighthouseHost } from 'unlighthouse'
 
-      page.on('requestfailed', (request) => {
-        console.warn('Request failed:', request.url(), request.failure()?.errorText)
-      })
-    },
+const host = await createUnlighthouseHost({
+  userConfig: { site: 'https://example.com' },
+  onResolvedConfig(config) {
+    console.log(config.site)
   },
 })
 ```
 
-The hook receives the active Puppeteer `Page`. Do not call `page.goto()` in this
-hook; Unlighthouse owns navigation and Lighthouse execution.
-
-## Recipes
-
-End-to-end examples of driving Unlighthouse from code. Each builds on
-[`createUnlighthouse()`](#createunlighthouse) and the [hooks](#hooks) above.
-
-### Run a scan and collect every route report
-
-Use the [`task-complete`](#task-complete) hook to capture each report as it
-finishes, and [`worker-finished`](#worker-finished) to act once the run is done.
+## Start and await a scan
 
 ```ts
-import { createUnlighthouse } from 'unlighthouse'
-
-const { hooks, start } = await createUnlighthouse({
-  site: 'https://example.com',
-  scanner: { device: 'mobile' },
-})
-
-const scores: Record<string, number> = {}
-hooks.hook('task-complete', (path, report) => {
-  scores[path] = (report.report?.score ?? 0) * 100
-})
-
-hooks.hook('worker-finished', () => {
-  console.log('Scores by route:', scores)
-})
-
-await start()
+const session = await host.start()
+const { scanId, summary } = await session.done
+console.log(scanId, summary.completed, summary.failed)
 ```
 
-### Headless / CI: scan and fail on a budget
+`start()` returns the started session.
+Await `session.done` for completion and scan failures.
 
-`setCiContext()` runs the worker to completion without serving the UI — ideal
-for pipelines. Collect scores via `task-complete`, then assert on
-`worker-finished`.
+| Session member | Purpose |
+| --- | --- |
+| `stats()` | Read discovered, scanned, failed, and total counts. |
+| `state()` | Read scan status. |
+| `cancel(reason?)` | Cancel the scan. |
+| `capabilities.pausable` | Check whether pause and resume are supported. |
+| `pause()` and `resume()` | Control a supported crawler. |
+| `events` | Iterate scan events. |
+| `subscribe(handler)` | Subscribe and receive an unsubscribe function. |
+| `replay(count)` | Read recent buffered events. |
 
-```ts
-import { createUnlighthouse } from 'unlighthouse'
+## Register hooks
 
-const { hooks, setCiContext } = await createUnlighthouse({
-  site: process.env.SITE_URL,
-})
-
-const failures: string[] = []
-hooks.hook('task-complete', (path, report) => {
-  if ((report.report?.score ?? 0) * 100 < 90)
-    failures.push(path)
-})
-hooks.hook('worker-finished', () => {
-  if (failures.length) {
-    console.error(`Below budget:`, failures)
-    process.exit(1)
-  }
-})
-
-await setCiContext()
-```
-
-### Authenticate pages before they're scanned
-
-For token / session-gated apps, seed cookies or web storage in your config —
-they're applied to every audited page before its scripts run.
+Register hooks before starting the scan:
 
 ```ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
+host.hooks.hook('scan:route-complete', ({ url, metrics }) => {
+  console.log(url, metrics.scorePerformance)
+})
 
-export default defineUnlighthouseConfig({
-  site: 'https://app.example.com',
-  // sent as a request header
-  cookies: [{ name: 'session', value: process.env.SESSION_TOKEN! }],
-  // injected into the page before load (SPAs reading auth from storage)
-  sessionStorage: { token: process.env.SESSION_TOKEN! },
-  localStorage: { 'feature-flags': JSON.stringify({ beta: true }) },
+host.hooks.hook('scan:complete', ({ scanId, summary }) => {
+  console.log(scanId, summary.completed)
 })
 ```
 
-### Provide your own routes (skip crawling)
+Hook payloads contain typed scan data.
+`scan:route-complete` contains metrics, rather than the full Lighthouse result.
+Config-file `hooks` and Puppeteer page hooks are unsupported.
 
-Set `urls` to scan an explicit list — this disables sitemap/crawler discovery.
+## Read reports and export the dashboard
+
+After initializing the host, read scan records through storage:
 
 ```ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
-
-export default defineUnlighthouseConfig({
-  site: 'https://example.com',
-  urls: ['/', '/pricing', '/blog/hello-world'],
-})
+const { items } = await host.handlerCtx.storage.routes.listForScan(session.scanId)
+console.log(items)
+await host.generateClient({ static: true })
 ```
+
+`host.core` and `host.handlerCtx` require initialized adapters.
+Call `start()`, `setServerContext()`, or `generateClient()` before accessing them.
+Hook registration does not require storage initialization.
+
+## Low-level adapters
+
+`@unlighthouse/core` exports the core factory and adapters.
+Use them when you need custom storage, crawling, seeds, or auditors.
+The host factory supplies the Node.js runtime for ordinary integrations.
+
+See [Migrating to v1](/guide/guides/migrating-to-v1) for removed global accessors and provider APIs.

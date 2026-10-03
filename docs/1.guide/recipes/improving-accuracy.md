@@ -1,13 +1,6 @@
 ---
 title: "Improving Lighthouse Accuracy"
-description: "Optimize Lighthouse scan accuracy with multiple samples and reduced concurrency for more reliable, consistent Core Web Vitals results."
-keywords:
-  - lighthouse accuracy
-  - lighthouse score variability
-  - lighthouse consistent results
-  - lighthouse multiple runs
-  - core web vitals accuracy
-  - lighthouse reliable scores
+description: "Improving Lighthouse Accuracy for the Unlighthouse v1 beta."
 navigation:
   title: "Improving Accuracy"
 relatedPages:
@@ -19,99 +12,36 @@ relatedPages:
     title: Core Web Vitals Glossary
 ---
 
-# Improving Lighthouse Accuracy
+CPU load and network conditions can change Lighthouse measurements between runs.
+Use repeated audits and serial performance scans for more consistent results.
 
-Lighthouse scores can vary 5-10 points between runs due to network conditions, CPU load, and browser state. These techniques improve consistency for reliable [Core Web Vitals](/glossary) measurement.
-
-## Why Scores Vary
-
-Single Lighthouse runs can fluctuate by 5-10 points due to:
-- CPU load from other browser tabs or processes
-- Network latency variations
-- Memory pressure
-- Background service workers
-
-For reliable performance monitoring, use multiple samples.
-
-## Multiple Samples Per URL
-
-Run Lighthouse multiple times per URL to smooth run-to-run variance. Unlighthouse keeps the **median run** (by performance score), not an average, so the stored report, metrics, and screenshot all come from one consistent audit:
+## Repeat each audit
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
 export default defineUnlighthouseConfig({
-  scanner: {
-    samples: 3, // Audit each URL 3× and keep the median run (max 10)
-  },
+  site: 'https://example.com',
+  scanner: { samples: 3, perfConcurrency: 'serial' },
 })
 ```
 
-::tip
-Use `samples: 3` for development, `samples: 5` for CI/production audits.
-::
+`samples` accepts values from 1 to 10.
+Unlighthouse retains the median run by performance score.
+The retained metrics, report, and screenshot belong to that same audit.
 
-::warning
-Samples do not fix CPU contention. Running many audits in parallel contends for CPU, so every sample of a contended run is contaminated the same way, and the median converges on a contended median. See [Concurrency and perf scores](#concurrency-and-perf-scores) below.
-::
+## Protect performance measurements
 
-## Concurrency and Perf Scores
+Serial performance audits avoid competing for CPU within the audit pool.
+Non-performance audits can still use parallel workers.
+If you select `perfConcurrency: 'parallel'`, treat performance scores as contended measurements.
+The local auditor reports `reliablePerfScores: false` for that mode.
 
-Unlighthouse runs several audits in parallel (up to about half your CPU cores) to finish scans faster. Concurrent audits compete for CPU, which inflates timing-sensitive metrics (Total Blocking Time, Largest Contentful Paint, Speed Index). This is why lighthouse-ci runs serially.
+## Control the environment
 
-By default, Unlighthouse protects perf scores from this: **performance audits run one at a time (a serial lane), while non-performance categories keep sweeping in parallel.** You get trustworthy perf scores without serializing the whole scan.
+Close unrelated workloads before comparing local scans.
+Keep the device and Lighthouse throttling profile consistent between comparisons.
+CI and localhost defaults disable throttling unless you supply an explicit profile.
+Use `lighthouseOptions.throttling` when you need a fixed profile.
 
-The behaviour is controlled by `scanner.perfConcurrency`:
-
-```ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
-
-export default defineUnlighthouseConfig({
-  scanner: {
-    // 'serial' (default): perf audits run one-at-a-time; scores stay trustworthy.
-    // 'parallel': perf audits run concurrently for speed; scores are no longer
-    //             reliable, and the report is flagged as such.
-    perfConcurrency: 'serial',
-  },
-})
-```
-
-When you set `perfConcurrency: 'parallel'`, the local auditor reports `reliablePerfScores: false`: it will never claim contended perf scores are trustworthy. Use `parallel` only when you care about accessibility/SEO/best-practices coverage and treat perf numbers as indicative.
-
-::tip
-Pair `perfConcurrency: 'serial'` with the category-split auditor to run accessibility, SEO, and best-practices in parallel while performance sweeps serially, getting a fast scan and trustworthy perf scores at once.
-::
-
-Each stored report records the effective concurrency it ran under (`provenance.concurrency`), so historical rows stay interpretable: a value of `1` means the audit ran uncontended.
-
-## Enable Throttling
-
-Network throttling simulates real-world conditions and reduces score variability:
-
-```ts
-export default defineUnlighthouseConfig({
-  scanner: {
-    throttle: true, // Simulate 4G network
-  },
-})
-```
-
-## Recommended Production Config
-
-For the most accurate results:
-
-```ts
-export default defineUnlighthouseConfig({
-  scanner: {
-    samples: 5,
-    throttle: true,
-  },
-  puppeteerClusterOptions: {
-    maxConcurrency: 1,
-  },
-})
-```
-
-::warning
-Higher accuracy increases scan time significantly. Balance accuracy needs with scan duration.
-::
+Puppeteer cluster concurrency settings do not control the v1 auditor.

@@ -1,18 +1,8 @@
 ---
-title: "Puppeteer Launch Options"
-description: "Configure Puppeteer launch options in Unlighthouse: headless mode, Chrome args, viewport settings, executable path, and navigation hooks."
-keywords:
-  - puppeteer launch options
-  - puppeteer.launch options
-  - puppeteer args
-  - puppeteer headless
-  - puppeteer chrome flags
-  - lighthouse puppeteer
-  - puppeteer evaluateonnewdocument localstorage
-  - puppeteer.evaluateonnewdocument
-  - puppeteer set localstorage
+title: "Chrome Options"
+description: "Chrome Options for the Unlighthouse v1 beta."
 navigation:
-  title: "Puppeteer"
+  title: "Chrome Options"
 relatedPages:
   - path: /guide/guides/chrome-dependency
     title: Chrome Dependency
@@ -22,143 +12,43 @@ relatedPages:
     title: Docker
 ---
 
-# Puppeteer Launch Options
+The local auditor runs Lighthouse through Chrome Launcher.
+It replaces the previous Puppeteer cluster.
 
-Unlighthouse uses [Puppeteer](https://pptr.dev/) to control Chrome for Lighthouse audits. Configure browser behavior, navigation hooks, and Chrome flags via `puppeteerOptions`.
+## Chrome arguments
 
-## All Available Options
+Set `CHROME_FLAGS` for Chrome process arguments:
+
+```sh
+CHROME_FLAGS="--no-sandbox --disable-setuid-sandbox" pnpm exec unlighthouse --site http://localhost:3000
+```
+
+The auditor launches Chrome in headless mode.
+Install Chrome where Chrome Launcher can find it.
+
+## Lighthouse options
 
 ```ts
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
 export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    // See: https://pptr.dev/api/puppeteer.launchoptions
+  site: 'https://example.com',
+  lighthouseOptions: {
+    onlyCategories: ['performance', 'accessibility'],
   },
 })
 ```
 
-Full reference: [Puppeteer LaunchOptions API](https://pptr.dev/api/puppeteer.launchoptions)
+Use [Device Configuration](/guide/guides/device) for device emulation.
+Use [Authentication](/guide/guides/authentication) for browser storage seeding.
 
-## Common Configurations
+## Concurrency
 
-### Headless Mode
+Use `scanner.perfConcurrency: 'serial'` to protect performance measurements from concurrent audits.
+Parallel performance audits trade measurement reliability for throughput.
 
-```ts
-// Run with visible browser (debugging)
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    headless: false,
-  },
-})
-```
+## Legacy options
 
-### Custom Chrome Executable
-
-```ts
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    executablePath: '/usr/bin/google-chrome',
-  },
-})
-```
-
-### Chrome Arguments
-
-Common args for CI/Docker environments:
-
-```ts
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-    ],
-  },
-})
-```
-
-### Viewport Settings
-
-```ts
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    defaultViewport: {
-      width: 1920,
-      height: 1080,
-    },
-  },
-})
-```
-
-### Timeout Configuration
-
-```ts
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    timeout: 60000, // 60 seconds
-  },
-})
-```
-
-### User Data Directory
-
-Persist browser data between runs:
-
-```ts
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    userDataDir: './.puppeteer-data',
-  },
-})
-```
-
-## Navigation Hooks
-
-Hook into Puppeteer's page navigation for custom logic.
-
-### Before Page Load
-
-```ts
-export default defineUnlighthouseConfig({
-  hooks: {
-    'puppeteer:before-goto': async (page) => {
-      // Set localStorage before navigation
-      await page.evaluateOnNewDocument((token) => {
-        localStorage.setItem('auth', token)
-      }, process.env.AUTH_TOKEN)
-    },
-  },
-})
-```
-
-### Modify Page Content
-
-```ts
-export default defineUnlighthouseConfig({
-  hooks: {
-    'puppeteer:before-goto': async (page) => {
-      page.waitForNavigation().then(async () => {
-        // Remove elements that cause CLS
-        await page.evaluate(() => {
-          document.querySelector('.cookie-banner')?.remove()
-        })
-      })
-    },
-  },
-})
-```
-
-## Troubleshooting
-
-### Chrome not found
-
-See [Chrome Dependency Guide](/guide/guides/chrome-dependency).
-
-### Connection refused in Docker
-
-Add `--no-sandbox` and `--disable-dev-shm-usage` args.
-
-### Memory issues
-
-Reduce concurrent workers or add `--disable-dev-shm-usage`.
+`puppeteerOptions` and `puppeteerClusterOptions` do not configure the local auditor.
+Puppeteer page hooks, custom page objects, and cluster methods have no direct replacement.
+Use the [migration guide](/guide/guides/migrating-to-v1) to assess custom browser flows.

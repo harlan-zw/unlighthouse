@@ -29,6 +29,18 @@ describe('host redirects', () => {
 const args = (extra: string[]) => parseRootArgs(['--site', 'unlighthouse.dev', ...extra])
 
 describe('cli args', () => {
+  it.each(['--cache=false', '--no-cache'])('preserves explicit false for %s', (flag) => {
+    expect(pickOptions(args([flag])).cache).toBe(false)
+  })
+  it('preserves explicit true cache assignments', () => {
+    expect(pickOptions(args(['--cache=true'])).cache).toBe(true)
+  })
+  it.each(['--debug=false', '--no-debug'])('disables configured debug with %s', (flag) => {
+    expect(pickOptions(args([flag])).debug).toBe(false)
+  })
+  it('lets an explicit reporter override disabled config', () => {
+    expect(resolveCiReporter('csv', false)).toBe('csv')
+  })
   it('leaves configured cache unchanged when CI receives no cache flag', () => {
     const options = createCiCli().parse(['node', 'ci', '--site', 'https://example.com']).options
     expect(pickOptions(options).cache).toBeUndefined()

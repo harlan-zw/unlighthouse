@@ -312,6 +312,13 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
   })
 
   const merged = applyHostRules(config, cwd, env)
+  const legacyHooks = (merged as UserConfig).hooks
+  if (legacyHooks && Object.keys(legacyHooks).length > 0) {
+    throw new UnlighthouseError({
+      code: 'CONFIG_INVALID',
+      message: 'Config hooks are unsupported in v1. Register supported events with host.hooks instead.',
+    })
+  }
 
   // D-046: pull `packs` out before validation — it's code, not JSON, and the
   // Zod schema has no field for it (would silently strip it on parse either
