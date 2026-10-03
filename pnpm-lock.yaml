@@ -495,6 +495,24 @@ importers:
         specifier: 'catalog:'
         version: 2.9.1
 
+  packages/lighthouse-runtime:
+    devDependencies:
+      '@puppeteer/browsers':
+        specifier: catalog:dependencies
+        version: 3.2.3(yauzl@2.10.0)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.4
+      fflate:
+        specifier: catalog:dependencies
+        version: 0.8.3
+      lighthouse:
+        specifier: catalog:dependencies
+        version: 13.5.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(supports-color@10.2.2)(yauzl@2.10.0)
+      puppeteer-core:
+        specifier: catalog:dependencies
+        version: 25.12.0(yauzl@2.10.0)
+
   packages/mcp:
     dependencies:
       '@unlighthouse/contracts':
@@ -619,6 +637,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.4
+      '@unlighthouse/lighthouse-runtime':
+        specifier: workspace:*
+        version: link:../lighthouse-runtime
       '@unlighthouse/ui':
         specifier: workspace:*
         version: link:../ui
@@ -646,6 +667,9 @@ importers:
       drizzle-orm:
         specifier: catalog:dependencies
         version: 0.45.3(@cloudflare/workers-types@5.20261002.1)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/better-sqlite3@9.6.0)(@types/pg@8.6.1)(better-sqlite3@13.0.3)
+      fflate:
+        specifier: catalog:dependencies
+        version: 0.8.3
       h3:
         specifier: catalog:dependencies
         version: 1.15.11
