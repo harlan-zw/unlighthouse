@@ -6,6 +6,8 @@ import { writeBundledLicenses } from '../../scripts/bundled-licenses.ts'
 
 const require = createRequire(import.meta.url)
 function installedVersion(name: string): string {
+  if (name === '@unlighthouse/ui')
+    return JSON.parse(readFileSync(require.resolve('@unlighthouse/ui/package.json'), 'utf8')).version
   const entry = name === '@modelcontextprotocol/sdk' ? `${name}/server/index.js` : name === '@lhci/utils' ? `${name}/src/api-client.js` : name
   let directory = dirname(require.resolve(entry))
   while (true) {
