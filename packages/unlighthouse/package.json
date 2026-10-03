@@ -1,7 +1,7 @@
 {
   "name": "unlighthouse",
   "type": "module",
-  "version": "0.17.7",
+  "version": "1.0.0-beta.0",
   "description": "Delightfully scan your entire website with Google Lighthouse. Navigate your performance, accessibility and SEO.",
   "license": "MIT",
   "homepage": "https://github.com/harlan-zw/unlighthouse#readme",
@@ -46,6 +46,7 @@
     "unlighthouse-mcp": "bin/unlighthouse-mcp.mjs"
   },
   "files": [
+    "bin",
     "config.d.mts",
     "config.mjs",
     "dist",
@@ -105,5 +106,9 @@
     "@lhci/utils": "catalog:",
     "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
   }
 }

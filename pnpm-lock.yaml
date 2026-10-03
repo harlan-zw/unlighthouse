@@ -506,7 +506,10 @@ importers:
         version: 4.4.3
 
   packages/ui:
-    dependencies:
+    devDependencies:
+      '@iconify-json/lucide':
+        specifier: 'catalog:'
+        version: 1.2.122
       '@nuxt/icon':
         specifier: 'catalog:'
         version: 2.2.2(magicast@0.5.3)(vite@8.1.0(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(tsx@4.23.11)(yaml@2.9.0))(vue@3.5.41(typescript@6.0.3))
@@ -546,6 +549,9 @@ importers:
       reka-ui:
         specifier: 'catalog:'
         version: 2.10.1(vue@3.5.41(typescript@6.0.3))
+      tailwindcss:
+        specifier: catalog:dependencies
+        version: 4.3.3
       vue:
         specifier: catalog:dependencies
         version: 3.5.41(typescript@6.0.3)
@@ -555,19 +561,12 @@ importers:
       vue-sonner:
         specifier: 'catalog:'
         version: 2.0.9(@nuxt/kit@4.4.6(magicast@0.5.3))(@nuxt/schema@4.5.0)(nuxt@4.4.6(fb1b64c1f4bec2403c5cf4d2d11f8b03))
-      zod:
-        specifier: 'catalog:'
-        version: 4.4.3
-    devDependencies:
-      '@iconify-json/lucide':
-        specifier: 'catalog:'
-        version: 1.2.122
-      tailwindcss:
-        specifier: catalog:dependencies
-        version: 4.3.3
       vue-tsc:
         specifier: 'catalog:'
         version: 3.3.9(typescript@6.0.3)
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
 
   packages/unlighthouse:
     dependencies:
