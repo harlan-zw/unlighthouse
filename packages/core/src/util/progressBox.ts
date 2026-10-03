@@ -77,7 +77,7 @@ export function createProgressBox(): ProgressBox {
 
   const clear = () => {
     if (clackSpinner) {
-      clackSpinner.stop('Scan completed!')
+      clackSpinner.clear()
       clackSpinner = undefined
     }
   }
