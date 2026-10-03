@@ -1,12 +1,6 @@
 ---
 title: "Route Definitions"
-description: "Configure route discovery and custom sampling patterns for better page organization and intelligent scanning."
-keywords:
-  - lighthouse routes
-  - page discovery
-  - custom sampling
-  - route mapping
-  - lighthouse url mapping
+description: "Route Definitions for the Unlighthouse v1 beta."
 navigation:
   title: "Route Definitions"
 relatedPages:
@@ -18,48 +12,37 @@ relatedPages:
     title: Configuration
 ---
 
-# Route Definitions
+Route definitions map framework page files to URL templates and route names.
 
-Map URLs to source files for intelligent
-[dynamic sampling](/guide/guides/dynamic-sampling). Configure route definitions
-when your project layout cannot be inferred from the default pages directory.
-
-## Pages directory
-
-By default, the `pages/` dir is scanned for files with extensions `.vue` and `.md`, from the `root` directory.
-
-If your project has a different setup you can modify the configuration.
+## Nuxt pages
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
 export default defineUnlighthouseConfig({
-  root: './app',
-  discovery: {
-    pagesDir: 'routes',
-    fileExtensions: ['jsx', 'md'],
+  site: 'https://example.com',
+  routeDefinitions: {
+    framework: 'nuxt',
+    pagesDir: 'pages',
+    extensions: ['vue', 'md'],
   },
 })
 ```
 
-## Custom sampling
+`pagesDir` resolves relative to your project root.
+Static page files can supply concrete seed URLs.
+Dynamic page files supply templates for matching discovered URLs.
 
-When you have URL patterns which don't use URL segments or the mapping is failing, it can be useful to map the sampling
-yourself.
+## Next.js pages
 
-By using the `customSampling` option you map regex to a route definition.
+Use `framework: 'next'` and set `pagesDir` to your route directory.
+Supply concrete dynamic URLs through a sitemap, crawler, or `urls`.
 
-In the below example we will map any URL such as `/q-search-query`, `/q-where-is-the-thing` to a single route
-definition, which allows the sampling to work.
+## Select representative routes
 
-```ts
-export default defineUnlighthouseConfig({
-  scanner: {
-    customSampling: {
-      '/q-(.*?)': {
-        name: 'search-query',
-      },
-    },
-  },
-})
-```
+Legacy `scanner.customSampling` does not select routes in the v1 pipeline.
+Use explicit `urls` for a representative selection.
+Use `scanner.maxRoutes` to bound a broader scan.
+
+Replace `discovery.pagesDir` and `discovery.supportedExtensions` with `routeDefinitions`.
+See [Migrating to v1](/guide/guides/migrating-to-v1).

@@ -59,13 +59,13 @@ export const ROOT_ARGS: ArgsDef = {
  */
 export function rootArgsToOptions(args: Record<string, unknown>, rawArgs: string[]): CliOptions {
   const str = (k: string): string | undefined => (typeof args[k] === 'string' && args[k] !== '' ? args[k] as string : undefined)
-  const bool = (k: string): boolean | undefined => (args[k] === true ? true : undefined)
-
-  let cache: boolean | undefined
-  if (rawArgs.includes('--no-cache'))
-    cache = false
-  else if (rawArgs.includes('--cache'))
-    cache = true
+  const bool = (k: string): boolean | undefined => {
+    const definition = ROOT_ARGS[k]
+    const alias = definition && 'alias' in definition ? definition.alias : undefined
+    const supplied = rawArgs.some(arg => arg === `--${k}` || arg === `--no-${k}`
+      || arg.startsWith(`--${k}=`) || (typeof alias === 'string' && arg === `-${alias}`))
+    return supplied && typeof args[k] === 'boolean' ? args[k] : undefined
+  }
 
   const samplesRaw = str('samples')
 
@@ -73,7 +73,7 @@ export function rootArgsToOptions(args: Record<string, unknown>, rawArgs: string
     root: str('root'),
     configFile: str('config-file'),
     outputPath: str('output-path') as CliOptions['outputPath'],
-    cache,
+    cache: bool('cache'),
     desktop: bool('desktop'),
     mobile: bool('mobile'),
     device: str('device'),

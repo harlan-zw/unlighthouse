@@ -1,191 +1,73 @@
 ---
-title: "Authentication for Lighthouse Scans"
-description: "Scan password-protected websites with Unlighthouse. Configure basic auth, cookies, headers, localStorage, and programmatic login flows."
-keywords:
-  - lighthouse authentication
-  - lighthouse password protected
-  - lighthouse login
-  - puppeteer authentication
-  - lighthouse behind login
-  - scan authenticated pages
+title: "Authentication"
+description: "Authentication for the Unlighthouse v1 beta."
 navigation:
   title: "Authentication"
 relatedPages:
   - path: /guide/guides/debugging
     title: Debugging
   - path: /guide/guides/puppeteer
-    title: Puppeteer Configuration
+    title: Chrome Options
   - path: /guide/guides/config
     title: Configuration
 ---
 
-Need to scan pages behind a login? Unlighthouse supports every common auth pattern. Find yours below.
+The local auditor supports basic auth, request headers, and browser storage seeding.
+It does not expose Puppeteer pages for interactive login.
 
-## Quick Reference
-
-| Auth Type | Best For | Config Key |
-|-----------|----------|------------|
-| Basic Auth | Staging environments with HTTP basic auth | `auth` |
-| Cookies | Session tokens, JWTs in cookies | `cookies` |
-| Headers | Bearer tokens, API keys | `extraHeaders` |
-| localStorage | SPAs storing tokens in localStorage | `localStorage` |
-| Programmatic | Complex login flows, 2FA | `hooks.authenticate` |
-
-## Basic Auth
-
-For sites using HTTP Basic Authentication (the browser popup):
+## Basic auth
 
 ```ts
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
 export default defineUnlighthouseConfig({
-  auth: {
-    username: process.env.AUTH_USER,
-    password: process.env.AUTH_PASS,
-  },
+  site: 'https://example.com',
+  auth: { username: process.env.SCAN_USERNAME || '', password: process.env.SCAN_PASSWORD || '' },
 })
 ```
 
-Or via CLI:
-```bash
-unlighthouse --site staging.example.com --auth admin:secretpass
-```
+Keep credentials in environment variables.
 
-## Cookies
-
-Most common for session-based auth. Grab your session cookie from browser DevTools (Application → Cookies):
+## Headers and cookie headers
 
 ```ts
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
 export default defineUnlighthouseConfig({
-  cookies: [
-    {
-      name: 'session_id',
-      value: 'abc123...',
-      domain: 'example.com',  // Must match your site
-      path: '/',
-    },
-  ],
-})
-```
-
-**Getting the cookie value:**
-1. Log into your site in Chrome
-2. Open DevTools → Application → Cookies
-3. Copy the session cookie value
-4. Paste into config (or use environment variable)
-
-CLI shorthand:
-```bash
-unlighthouse --site example.com --cookies "session_id=abc123"
-
-# Multiple cookies
-unlighthouse --site example.com --cookies "session_id=abc123;csrf_token=xyz789"
-```
-
-## Headers (Bearer Tokens, API Keys)
-
-For APIs or sites expecting `Authorization` headers:
-
-```ts
-export default defineUnlighthouseConfig({
+  site: 'https://example.com',
   extraHeaders: {
-    'Authorization': `Bearer ${process.env.API_TOKEN}`,
+    Authorization: `Bearer ${process.env.SCAN_TOKEN || ''}`,
+    Cookie: `session=${process.env.SCAN_SESSION || ''}`,
   },
 })
 ```
 
-CLI:
-```bash
-unlighthouse --site api.example.com --extra-headers "Authorization:Bearer abc123"
-```
+Headers reach Lighthouse and fetch helpers.
+The `cookies` config option does not seed the local Lighthouse browser.
 
-## Query Params
-
-Some staging environments use URL tokens:
+## Browser storage
 
 ```ts
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
 export default defineUnlighthouseConfig({
-  defaultQueryParams: {
-    access_token: process.env.STAGING_TOKEN,
-  },
+  site: 'https://example.com',
+  localStorage: { token: process.env.SCAN_TOKEN || '' },
+  sessionStorage: { session: process.env.SCAN_SESSION || '' },
 })
 ```
 
-Every scanned URL will include `?access_token=...`
+Unlighthouse seeds these values before auditing the page.
+Match the storage keys your application reads.
 
-## localStorage (SPAs)
+## Protected route discovery
 
-For React/Vue/Angular apps storing auth tokens in localStorage:
+The HTML crawler does not receive the authentication headers used by Lighthouse.
+Authenticated HTML discovery therefore needs a custom crawler or another tested integration.
+Keep affected integrations on 0.x until their replacement works.
 
-```ts
-export default defineUnlighthouseConfig({
-  localStorage: {
-    'auth_token': process.env.AUTH_TOKEN,
-    'user_id': '12345',
-  },
-})
-```
+## Page-based login
 
-Unlighthouse sets these before each page loads.
-
-## Programmatic Login (Complex Flows)
-
-For login forms, OAuth flows, or anything the simpler methods can't handle:
-
-```ts
-export default defineUnlighthouseConfig({
-  hooks: {
-    async authenticate({ page }) {
-      // Navigate to login
-      await page.goto('https://example.com/login')
-
-      // Fill form
-      await page.type('input[name="email"]', 'test@example.com')
-      await page.type('input[name="password"]', process.env.PASSWORD)
-
-      // Submit and wait for redirect
-      await Promise.all([
-        page.click('button[type="submit"]'),
-        page.waitForNavigation(),
-      ])
-    },
-  },
-})
-```
-
-This runs once before scanning starts. The session persists for all pages.
-
-## Auth Not Sticking?
-
-If authentication isn't persisting between page scans:
-
-```ts
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    userDataDir: './.unlighthouse-session',  // Persist browser data
-  },
-  lighthouseOptions: {
-    disableStorageReset: true,   // Don't clear storage between pages
-    skipAboutBlank: true,
-  },
-})
-```
-
-## Debugging Auth Issues
-
-Can't tell if auth is working? Watch it happen:
-
-```ts
-export default defineUnlighthouseConfig({
-  debug: true,
-  puppeteerOptions: {
-    headless: false,  // See the browser
-    slowMo: 100,      // Slow it down
-  },
-  puppeteerClusterOptions: {
-    maxConcurrency: 1,  // One at a time
-  },
-})
-```
-
-Now you can watch the browser and see exactly where auth fails.
-
-See the [Debugging Guide](/guide/guides/debugging) for more techniques.
+Legacy `authenticate(page)` and `puppeteer:before-goto` hooks have no v1 page replacement.
+`audit:before` provides metadata and does not expose a browser page.
+Read [Migrating to v1](/guide/guides/migrating-to-v1) before replacing a login flow.

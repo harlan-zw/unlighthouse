@@ -1,12 +1,6 @@
 ---
 title: "URL Discovery"
-description: "How Unlighthouse discovers pages using sitemaps, robots.txt, and internal link crawling. Configure URL sources and filters."
-keywords:
-  - lighthouse sitemap
-  - crawl website lighthouse
-  - lighthouse all pages
-  - automatic url discovery
-  - lighthouse find all pages
+description: "URL Discovery for the Unlighthouse v1 beta."
 navigation:
   title: "URL Discovery"
 relatedPages:
@@ -18,117 +12,50 @@ relatedPages:
     title: Configuration
 ---
 
-# URL Discovery
+The v1 host combines explicit URLs, sitemaps, and route definitions.
+The crawler follows links from server-rendered HTML when link following is enabled.
 
-Unlighthouse automatically finds all pages on your site using multiple discovery methods. Configure which sources to use and filter results to scan exactly what you need.
-
-Unlighthouse discovers URLs through multiple methods:
-
-1. Add the specified `site` from `--site` or config
-2. Manually providing URLs via the `--urls` flag or `urls` on the provider.
-3. `robotsTxt` - Reading robots.txt, if it exists. Provides sitemap URLs and disallowed paths.
-4. `sitemap` - Reading sitemap.xml, if it exists
-5. `crawler` - Inspecting internal links
-6. Using provided static [route definitions](/api-doc/glossary#route-definition)
-
-## Robots.txt
-
-When a robots.txt is found, it will attempt to read the sitemap and disallowed paths.
-
-### Disabling robots
-
-You may not want to use the robots.txt in all occasions. For example if you want to scan
-URLs which are disallowed.
+## Sitemap URLs
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
 export default defineUnlighthouseConfig({
-  scanner: {
-    // disable robots.txt scanning
-    robotsTxt: false,
-  },
+  site: 'https://example.com',
+  scanner: { sitemap: ['https://example.com/sitemap.xml'], maxRoutes: 100 },
 })
 ```
 
-## Sitemap.xml
+Set `scanner.sitemap: false` to disable sitemap discovery.
+The v1 pipeline does not read legacy robots.txt sitemap or exclusion rules.
+Provide sitemap URLs explicitly and configure `scanner.exclude` for excluded paths.
 
-By default, the sitemap config will be read from your `/robots.txt`. Otherwise, it will fall back to using `/sitemap.xml`.
-
-Note: When a sitemap exists with over 50 paths, it will disable the crawler.
-
-### Manual sitemap paths
-
-You may provide an array of sitemap paths to scan.
+## Explicit URLs
 
 ```ts
+import { defineUnlighthouseConfig } from 'unlighthouse/config'
+
 export default defineUnlighthouseConfig({
-  scanner: {
-    sitemap: [
-      '/sitemap.xml',
-      '/sitemap2.xml',
-    ],
-  },
+  site: 'https://example.com',
+  urls: ['/', '/about', '/blog/example'],
 })
 ```
 
-### Disabling scan
+Explicit URLs stop link following.
+If you use a URL provider function, also supply `site`.
 
-If you know your site doesn't have a sitemap, it may make sense to disable it.
+## Stop link following
 
-```ts
-export default defineUnlighthouseConfig({
-  scanner: {
-    // disable sitemap scanning
-    sitemap: false,
-  },
-})
-```
+Set `scanner.crawler: false` to audit only seed URLs.
+Use `scanner.maxRoutes` to limit a scan that follows links.
 
-## Crawler
+## JavaScript-rendered links
 
-When enabled, the crawler will inspect the HTML payload of a page and extract internal links.
-These internal links will be queued up and scanned if they haven't already been scanned.
+The crawler does not render the application in a browser.
+Use a sitemap or explicit URLs for routes whose links appear after JavaScript runs.
+Lighthouse still audits each page in Chrome.
 
-## Disable crawling
+## Route names
 
-If you have many pages with many internal links, it may be a good idea to disable the crawling.
-
-```ts
-export default defineUnlighthouseConfig({
-  scanner: {
-    crawler: false,
-  },
-})
-```
-
-## Manually Providing URLs
-
-While not recommended for most use cases, you may provide relative URLs within your configuration file, or use the `--urls` flag.
-
-This will disable the crawler and sitemap scanning.
-
-Can be provided statically.
-
-```ts
-export default defineUnlighthouseConfig({
-  urls: [
-    '/about',
-    '/other-page',
-  ],
-})
-```
-
-Or you can return a function or promise.
-
-```ts
-export default defineUnlighthouseConfig({
-  urls: async () => await getUrls(),
-})
-```
-
-Specify explicit relative URLs as a comma-separated list.
-
-```bash
-unlighthouse --site https://example.com --urls /about,/other-page
-```
+Configure [Route Definitions](/guide/guides/route-definitions) to match URLs to framework page templates.
+Dynamic templates need concrete URLs from another seed source or the crawler.

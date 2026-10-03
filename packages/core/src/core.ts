@@ -115,7 +115,7 @@ export async function reapStaleScans(storage: Storage, logger?: Logger): Promise
   return reaped
 }
 
-export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): UnlighthouseCore {
+export function createUnlighthouseCore(opts: UnlighthouseCoreOptions, hooks: Hookable<HookMap> = createHooks<HookMap>()): UnlighthouseCore {
   // 1. Validate config via Zod; throw CONFIG_INVALID on failure.
   const parsed = UnlighthouseConfigSchema.safeParse(opts.config)
   if (!parsed.success) {
@@ -128,7 +128,6 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions): Unlightho
   const config = parsed.data
 
   // 2. Hook bus + user-supplied subscribers.
-  const hooks: Hookable<HookMap> = createHooks<HookMap>()
   if (opts.hooks)
     hooks.addHooks(opts.hooks)
 
@@ -212,6 +211,7 @@ function createSession(deps: SessionDeps): CrawlSession {
   const scanMode = (overrides?.mode ?? deps.config.scanner?.mode) === 'page' ? 'page' as const : 'site' as const
   const configuredUrls = deps.config.urls
   const noFollow = scanMode === 'page'
+    || deps.config.scanner?.crawler === false
     || typeof configuredUrls === 'function'
     || (Array.isArray(configuredUrls) && configuredUrls.length > 0)
 
