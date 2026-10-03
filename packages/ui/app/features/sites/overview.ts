@@ -8,6 +8,7 @@ import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { routeParamString } from '~/features/scan/route-context'
 import { scanLinkPath } from '~/features/scan/scan-links'
+import { comparisonForLoadedScan, latestLoadedComparison } from '~/features/sites/history-baselines'
 import { devicesForScan, pairScans, scoreSummaryForDevice } from '~/features/sites/scan-pairs'
 import { originOf, resolveSiteUrl } from '~/features/sites/site-url'
 import { hasMeaningfulTrendSeries } from '~/features/sites/trend-presentation'
@@ -35,7 +36,7 @@ interface CwvReportEntry {
 }
 
 function completedScoredScans(scans: ScanRow[], device: SiteDevice): ScanRow[] {
-  return scans.filter(scan => devicesForScan(scan).includes(device) && scan.summary && (scan.summary.completed ?? 0) > 0)
+  return scans.filter(scan => scan.status === 'complete' && devicesForScan(scan).includes(device) && scan.summary && (scan.summary.completed ?? 0) > 0)
 }
 
 function primaryScanId(pair: DevicePair): ScanId | undefined {
@@ -193,16 +194,17 @@ export function useSiteOverview() {
     toast.success('Scan deleted')
   }
 
-  const recentForDevice = computed(() =>
-    completedScoredScans(allScans.value, effectiveDevice.value)
-      .sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
-  )
-  const canCompare = computed(() => recentForDevice.value.length >= 2)
+  const latestComparison = computed(() => latestLoadedComparison(allScans.value, effectiveDevice.value))
+  const canCompare = computed(() => latestComparison.value !== null)
+
+  function comparisonForPair(pair: DevicePair) {
+    const current = pair[effectiveDevice.value]
+    return current ? comparisonForLoadedScan(current, allScans.value, effectiveDevice.value) : null
+  }
 
   function compareLatest() {
-    const [current, base] = recentForDevice.value
-    if (current && base)
-      router.push(`/sites/${slug}/compare?current=${current.scanId}&base=${base.scanId}`)
+    if (latestComparison.value)
+      router.push(latestComparison.value.to)
   }
 
   const loading = computed(() => histStatus.value === 'pending')
@@ -232,6 +234,8 @@ export function useSiteOverview() {
     deleteScan,
     canCompare,
     compareLatest,
+    comparisonForPair,
+    effectiveDevice,
     loading,
     isEmpty,
   }

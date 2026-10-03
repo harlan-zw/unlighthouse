@@ -5,6 +5,7 @@
 import type { SortingState } from '@tanstack/vue-table'
 import type { ScanId } from '@unlighthouse/contracts'
 import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
+import type { LoadedComparison } from '../history-baselines'
 import type { DevicePair, ScanRow } from '../scan-pairs'
 
 import { h } from 'vue'
@@ -13,6 +14,7 @@ import { scoreSummaryForDevice, statusForPair } from '../scan-pairs'
 defineProps<{
   pairs: DevicePair[]
   readonly?: boolean
+  comparisonForPair?: (pair: DevicePair) => LoadedComparison | null
 }>()
 const emit = defineEmits<{
   rescan: [scanId: ScanId]
@@ -127,12 +129,24 @@ function primaryScanId(pair: DevicePair): ScanId {
   >
     <template #actions="{ row }">
       <div v-if="!readonly" class="flex items-center justify-end gap-0.5">
-        <UiButton purpose="quiet" size="sm" icon="refresh" :aria-label="`Rescan from ${fmtTimestamp(row.startedAt, 'short')}`" @click="emit('rescan', primaryScanId(row))" />
+        <template v-for="comparison in [comparisonForPair?.(row)]" :key="comparison?.current.scanId ?? 'unavailable'">
+          <UiButton
+            v-if="comparison"
+            purpose="quiet"
+            size="sm"
+            icon="compare"
+            :to="comparison.to"
+            :aria-label="`Compare with older scan, ${comparison.device}: ${fmtTimestamp(comparison.current.startedAt)} against ${fmtTimestamp(comparison.base.startedAt)}`"
+            :title="`Compare with older scan, ${comparison.device}: ${fmtTimestamp(comparison.current.startedAt)} against ${fmtTimestamp(comparison.base.startedAt)}`"
+            class="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+          />
+        </template>
+        <UiButton purpose="quiet" size="sm" icon="refresh" class="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0" :aria-label="`Rescan from ${fmtTimestamp(row.startedAt, 'short')}`" @click="emit('rescan', primaryScanId(row))" />
         <UModal
           title="Delete scan?"
           description="This will permanently delete this scan and all its data. This cannot be undone."
         >
-          <UiButton purpose="quiet" size="sm" icon="delete" :aria-label="`Delete scan from ${fmtTimestamp(row.startedAt, 'short')}`" />
+          <UiButton purpose="quiet" size="sm" icon="delete" class="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0" :aria-label="`Delete scan from ${fmtTimestamp(row.startedAt, 'short')}`" />
           <template #footer="{ close }">
             <UiButton purpose="quiet" @click="close">
               Keep scan

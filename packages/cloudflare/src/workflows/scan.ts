@@ -64,18 +64,8 @@ export interface ScanWorkflowResult {
   failed: number
 }
 
-export interface ScanWorkflowInstance {
-  id: string
-  pause: () => Promise<void>
-  resume: () => Promise<void>
-  /** Pass `{ rollback: true }` so the Workflow's lifecycle rollback marks D1 cancelled. */
-  terminate: (options?: { rollback?: boolean }) => Promise<void>
-  status: () => Promise<{
-    status: 'queued' | 'running' | 'paused' | 'errored' | 'terminated' | 'complete' | 'waiting' | 'waitingForPause' | 'unknown'
-    error?: { name: string, message: string }
-    output?: unknown
-  }>
-}
+// Derive platform methods so new Workflow states remain compatible with Worker bindings.
+export type ScanWorkflowInstance = Pick<WorkflowInstance, 'id' | 'pause' | 'resume' | 'terminate' | 'status'>
 
 /** Structural Workflow binding for app hosts and generated Worker env types. */
 export interface ScanWorkflowBinding {

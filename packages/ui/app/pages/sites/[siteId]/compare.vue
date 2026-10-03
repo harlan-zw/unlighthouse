@@ -18,6 +18,7 @@ import {
 } from '~/features/compare/presentation'
 import { comparisonRouteSetNotice } from '~/features/compare/state'
 import { useCompareWorkflow } from '~/features/compare/workflow'
+import { scanRouteLink } from '~/features/scan/route-links'
 import { deviceLabelForScan } from '~/features/sites/scan-pairs'
 
 definePageMeta({ layout: 'compare' })
@@ -76,6 +77,13 @@ const {
   shortId,
   gotoOverview,
 } = useCompareWorkflow()
+
+const deviceSelection = computed({
+  get: () => deviceFilter.value || 'all',
+  set: (value: 'all' | 'mobile' | 'desktop') => {
+    deviceFilter.value = value === 'all' ? '' : value
+  },
+})
 
 const routeSetNotice = computed(() => report.value ? comparisonRouteSetNotice(report.value.summary) : null)
 const hasActiveFilters = computed(() => statusFilter.value !== 'all' || deviceFilter.value !== '' || urlFilter.value !== '' || sortKey.value !== 'delta-perf-desc')
@@ -185,7 +193,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
     <QueryError v-if="historyError" :error="historyError" :on-retry="refreshHistory" retry-label="Retry scan history" class="m-4" />
 
     <!-- Base → Current is one directional control, followed by its tools. -->
-    <div class="border-b bg-default/50 p-3">
+    <div class="border-b border-default bg-default/50 p-3">
       <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
         <section aria-labelledby="compare-direction-title" class="min-w-0 rounded-lg border border-default bg-elevated/30 p-3">
           <div class="grid min-w-0 grid-cols-1 items-end gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
@@ -433,7 +441,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
       />
 
       <!-- Summary band -->
-      <div class="px-4 py-3 border-b flex items-center gap-6 flex-wrap">
+      <div class="px-4 py-3 border-b border-default flex items-center gap-6 flex-wrap">
         <span class="text-label text-muted">Full-scan summary</span>
         <UiChip v-if="verdict" purpose="status" :status="toneSemantic(verdict.tone)" size="sm" class="!bg-transparent ring-1 ring-inset ring-current/20">
           {{ verdict.text }}
@@ -459,7 +467,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
             <span class="text-muted">Removed</span>
             <span class="numerals-display text-warning">{{ report.summary.removedRoutes }}</span>
           </div>
-          <div class="flex items-center gap-1.5 border-l pl-4">
+          <div class="flex items-center gap-1.5 border-l border-default pl-4">
             <span class="text-muted">Avg score Current − Base</span>
             <span class="numerals-display" :class="(report.summary.avgScoreDelta ?? 0) >= 0 ? 'text-success' : 'text-error'">
               {{ fmtDelta(report.summary.avgScoreDelta, true) }}
@@ -492,7 +500,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
            per-route CWV columns below. Sourced from the cwv pack
            (aggregates across routes). Hidden when the pack didn't
            run on either scan. -->
-      <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b bg-default/30 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs">
+      <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b border-default bg-default/30 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs">
         <span class="text-label text-muted shrink-0">
           Web Vitals p75
         </span>
@@ -517,7 +525,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
       </div>
 
       <!-- Filter bar -->
-      <div class="px-4 py-2 border-b flex items-center gap-3 flex-wrap">
+      <div class="px-4 py-2 border-b border-default flex items-center gap-3 flex-wrap">
         <span class="text-label w-full text-muted sm:w-auto">Route changes</span>
         <div class="relative w-full sm:w-64">
           <UiIcon name="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
@@ -557,9 +565,9 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
 
         <USelect
           v-if="hasMultipleDevices && isMobile"
-          v-model="deviceFilter"
+          v-model="deviceSelection"
           :items="[
-            { value: '', label: 'All devices' },
+            { value: 'all', label: 'All devices' },
             { value: 'mobile', label: 'Mobile', icon: 'smartphone' },
             { value: 'desktop', label: 'Desktop', icon: 'monitor' },
           ]"
@@ -593,7 +601,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
            moved. cwv handled separately above as the headline; this
            lists the rest. Collapsed by default to keep the route
            table the primary surface. -->
-      <div v-if="otherPackChanges.length" class="border-b">
+      <div v-if="otherPackChanges.length" class="border-b border-default">
         <button
           type="button"
           class="px-4 py-2 w-full flex items-center gap-2 hover:bg-elevated/30 transition-colors text-xs"
@@ -609,7 +617,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
           <span class="ml-auto text-xs text-muted italic">{{ showPackDetails ? 'expanded' : 'collapsed' }}</span>
         </button>
         <div v-if="showPackDetails" id="compare-pack-details" class="px-4 py-3 bg-default/20 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="pack in otherPackChanges" :key="pack.packName" class="rounded-lg border bg-default p-3 space-y-2">
+          <div v-for="pack in otherPackChanges" :key="pack.packName" class="rounded-lg border border-default bg-default p-3 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium capitalize">{{ pack.packName.replace(/-/g, ' ') }}</span>
               <span class="text-xs text-muted">{{ pack.base ? 'changed' : 'new' }}</span>
@@ -681,7 +689,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
               </template>
             </UiTable>
 
-            <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t sticky bottom-0 bg-default">
+            <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t border-default sticky bottom-0 bg-default">
               <span class="text-xs text-muted">Page {{ page }} of {{ totalPages }}</span>
               <div class="flex gap-1">
                 <UiButton purpose="secondary" size="sm" :disabled="page <= 1" icon="chevron-left" aria-label="Go to previous page" @click="page--" />
@@ -708,7 +716,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
                 </UiChip>
                 <UiStatusBadge :status="compareStatusSemantic(selectedRow.status)" :label="selectedRow.status" class="capitalize" />
                 <NuxtLink
-                  :to="`/sites/${siteId}/scans/${currentScanId}/route/${encodeURIComponent(selectedRow.path)}`"
+                  :to="scanRouteLink(`/sites/${encodeURIComponent(siteId)}/scans/${selectedRow.current ? currentScanId : baseScanId}`, selectedRow.path, selectedRow.device, selectedRow.url)"
                   class="text-xs text-muted hover:text-default inline-flex items-center gap-1"
                 >
                   <UiIcon name="external" class="size-2.5" />
@@ -723,7 +731,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
               <h3 class="text-label text-muted mb-2">
                 Categories
               </h3>
-              <UiTableShell bordered label="Category metric comparison">
+              <UiTableShell bordered label="Category metric comparison" class="min-w-0 overflow-x-auto! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" tabindex="0" role="region" aria-label="Category metric comparison">
                 <template #head>
                   <UiTableTh>Metric</UiTableTh>
                   <UiTableTh align="right">
@@ -766,7 +774,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
                   <UiIcon name="info" class="size-2.5 opacity-60" />
                 </UiTooltip>
               </h3>
-              <UiTableShell bordered label="Core Web Vitals comparison">
+              <UiTableShell bordered label="Core Web Vitals comparison" class="min-w-0 overflow-x-auto! rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" tabindex="0" role="region" aria-label="Core Web Vitals comparison">
                 <tr v-for="m in CWV_METRICS" :key="m.key" class="border-b border-default last:border-0">
                   <UiTableTd class="font-medium">
                     <UiTooltip :text="m.hint" trigger-as="button">
@@ -803,7 +811,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
                 <UiIcon name="chevron-right" class="size-3 transition-transform" :class="{ 'rotate-90': showLegacyMetrics }" />
                 Diagnostics ({{ DIAGNOSTIC_METRICS.length }})
               </button>
-              <UiTableShell v-if="showLegacyMetrics" id="compare-diagnostic-metrics" bordered label="Diagnostic metric comparison">
+              <UiTableShell v-if="showLegacyMetrics" id="compare-diagnostic-metrics" bordered label="Diagnostic metric comparison" class="min-w-0 overflow-x-auto! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" tabindex="0" role="region" aria-label="Diagnostic metric comparison">
                 <tr v-for="m in DIAGNOSTIC_METRICS" :key="m.key" class="border-b border-default last:border-0">
                   <UiTableTd class="font-medium text-muted">
                     <UiTooltip :text="m.hint" trigger-as="button">

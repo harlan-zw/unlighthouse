@@ -1,18 +1,26 @@
 catalogMode: prefer
 
+minimumReleaseAgeExcludePrune: true
 minimumReleaseAgeExclude:
   - '@cloudflare/workers-types@5.20260717.1'
   - nuxt-use-query@1.0.0
   - '@mdream/js@1.5.13'
-shellEmulator: true
+  - wrangler@4.147.0
 
 trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 262800
 
 trustPolicyExclude:
   - chokidar@4.0.3
   - semver@5.7.2
   - semver@6.3.1
-trustPolicyIgnoreAfter: 262800
+
+peerDependencyRules:
+  ignoreMissing:
+    - '@pinia/colada'
+    - pinia
+
+shellEmulator: true
 
 packages:
   - packages/*
@@ -20,94 +28,10 @@ packages:
   - '!docs'
 
 overrides:
-  '@nuxt/kit': 4.4.6
-  nuxt: 4.4.6
-  vite: 8.1.0
-catalog:
-  '@antfu/eslint-config': ^9.3.0
-  '@arethetypeswrong/cli': 0.18.5
-  '@cloudflare/containers': ^0.3.7
-  '@cloudflare/vitest-pool-workers': ^0.20.3
-  '@cloudflare/workers-types': ^5.20260809.1
-  '@iconify-json/lucide': ^1.2.122
-  '@lhci/utils': ^0.15.1
-  '@libsql/client': ^0.17.4
-  '@mdream/js': ^1.5.13
-  '@modelcontextprotocol/sdk': ^1.30.0
-  '@nuxt/icon': 2.2.2
-  '@nuxtjs/color-mode': 4.0.0
-  '@types/better-sqlite3': ^9.6.0
-  '@types/node': ^26.2.0
-  aws4fetch: 1.0.20
-  bumpp: ^12.2.0
-  drizzle-kit: ^0.31.10
-  eslint: ^10.8.1
-  eslint-plugin-harlanzw: ^0.17.1
-  eslint-typegen: ^2.3.1
-  jiti: ^2.7.0
-  motion-v: ^2.3.0
-  nuxt: ^4.5.2
-  nuxt-use-query: ^1.0.1
-  obuild: ^0.4.38
-  publint: ^0.3.23
-  reka-ui: ^2.10.1
-  rolldown: ^1.2.3
-  tinypool: ^2.1.0
-  tsdown: ^0.22.14
-  tsx: ^4.23.11
-  typescript: 6.0.3
-  unstorage: ^1.17.5
-  vite: 8.2.1
-  vitest: ^4.1.10
-  vue-router: ^5.2.0
-  vue-sonner: ^2.0.9
-  vue-tsc: ^3.3.9
-  wrangler: ^4.120.0
-  yaml: ^2.9.0
-  zod: ^4.4.3
-catalogs:
-  dependencies:
-    '@nuxt/ui': ^4.10.0
-    '@puppeteer/browsers': ^3.1.0
-    '@tanstack/table-core': ^9.1.1
-    '@tanstack/vue-table': ^9.1.1
-    '@vueuse/core': ^14.4.0
-    better-opn: ^3.0.2
-    better-sqlite3: ^13.0.3
-    c12: ^3.3.4
-    cac: ^7.0.0
-    chrome-launcher: ^1.2.1
-    citty: ^0.2.2
-    consola: ^3.4.2
-    defu: ^6.1.7
-    drizzle-orm: ^0.45.2
-    fflate: ^0.8.3
-    h3: ^1.15.11
-    hookable: ^6.1.1
-    launch-editor: ^2.14.1
-    lighthouse: ^13.4.1
-    listhen: ^1.10.1
-    ofetch: ^1.5.1
-    pathe: ^2.0.3
-    puppeteer-core: ^25.5.0
-    radix3: ^1.1.2
-    tailwindcss: ^4.3.3
-    ufo: ^1.6.4
-    vue: ^3.5.41
-    ws: ^8.21.3
-ignoredBuiltDependencies:
-  - vue-demi
+  '@nuxt/kit': 4.5.2
+  nuxt: 4.5.2
+  vite: 8.3.2
 
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@tailwindcss/oxide'
-  - better-sqlite3
-  - esbuild
-
-peerDependencyRules:
-  ignoreMissing:
-    - '@pinia/colada'
-    - pinia
 allowBuilds:
   '@parcel/watcher': true
   better-sqlite3: true
@@ -117,3 +41,88 @@ allowBuilds:
   unrs-resolver: true
   vue-demi: true
   workerd: true
+
+ignoredBuiltDependencies:
+  - vue-demi
+
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@tailwindcss/oxide'
+  - better-sqlite3
+  - esbuild
+
+catalog:
+  '@antfu/eslint-config': ^9.5.1
+  '@arethetypeswrong/cli': 0.18.5
+  '@cloudflare/containers': ^0.3.7
+  '@cloudflare/vitest-pool-workers': ^0.22.0
+  '@cloudflare/workers-types': ^5.20261002.1
+  '@iconify-json/lucide': ^1.2.138
+  '@iconify/utils': ^3.1.7
+  '@lhci/utils': ^0.15.1
+  '@libsql/client': ^0.18.0
+  '@mdream/js': ^1.7.2
+  '@modelcontextprotocol/sdk': ^1.31.0
+  '@nuxt/icon': 2.5.1
+  '@nuxtjs/color-mode': 4.0.1
+  '@types/better-sqlite3': ^9.6.0
+  '@types/node': ^26.6.4
+  aws4fetch: 1.0.20
+  bumpp: ^12.3.0
+  drizzle-kit: ^0.31.11
+  eslint: ^10.11.0
+  eslint-plugin-harlanzw: ^0.23.0
+  eslint-typegen: ^2.3.1
+  jiti: ^2.7.0
+  motion-v: ^2.5.1
+  nuxt: ^4.5.2
+  nuxt-use-query: ^1.0.1
+  obuild: ^0.4.43
+  publint: ^0.3.25
+  rangi: ^2.2.0
+  reka-ui: ^2.10.5
+  rolldown: ^1.2.12
+  tinypool: ^2.2.0
+  tsdown: ^0.23.0
+  tsx: ^4.23.15
+  typescript: 6.0.3
+  unstorage: ^1.17.5
+  vite: 8.3.2
+  vitest: ^4.1.11
+  vue-router: ^5.3.1
+  vue-sonner: ^2.0.9
+  vue-tsc: ^3.3.11
+  wrangler: ^4.147.0
+  yaml: ^2.9.1
+  zod: ^4.6.5
+
+catalogs:
+  dependencies:
+    '@nuxt/ui': ^4.11.3
+    '@puppeteer/browsers': ^3.2.3
+    '@tanstack/table-core': ^9.2.4
+    '@tanstack/vue-table': ^9.2.4
+    '@vueuse/core': ^15.0.0
+    better-opn: ^3.0.2
+    better-sqlite3: ^13.0.3
+    c12: ^3.3.4
+    cac: ^7.0.0
+    chrome-launcher: ^1.2.2
+    citty: ^0.2.2
+    consola: ^3.4.2
+    defu: ^6.1.7
+    drizzle-orm: ^0.45.3
+    fflate: ^0.8.3
+    h3: ^1.15.11
+    hookable: ^6.1.2
+    launch-editor: ^2.14.1
+    lighthouse: ^13.5.0
+    listhen: ^1.10.1
+    ofetch: ^1.5.1
+    pathe: ^2.0.3
+    puppeteer-core: ^25.12.0
+    radix3: ^1.1.2
+    tailwindcss: ^4.3.3
+    ufo: ^1.6.4
+    vue: ^3.5.43
+    ws: ^8.22.0

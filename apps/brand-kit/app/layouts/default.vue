@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UiNavLink } from '#design-system/app/components/element/UiNavList.vue'
+import type { UiNavLink } from '#design-system/app/shared/nav'
 
 const colorMode = useColorMode()
 
@@ -21,6 +21,7 @@ const sections = [
     { to: '/elements', label: 'Elements', icon: 'i-carbon-cube' },
     { to: '/tooltip', label: 'Tooltip', icon: 'i-carbon-information' },
     { to: '/popover', label: 'Popover & menus', icon: 'i-carbon-menu' },
+    { to: '/navigation', label: 'Navigation & setup', icon: 'i-lucide-panel-left' },
   ] },
   { heading: 'Data', items: [
     { to: '/data-cells', label: 'Table cells', icon: 'i-carbon-grid' },
@@ -42,7 +43,7 @@ const navSections = computed(() => sections.map(group => ({
 </script>
 
 <template>
-  <AppShell :sidebar-width="56" content-class="">
+  <UiAppShell :sidebar-width="56" content-class="">
     <template #brand>
       <div class="space-y-3">
         <div class="space-y-1 px-1">
@@ -76,7 +77,7 @@ const navSections = computed(() => sections.map(group => ({
         <div class="text-[10px] uppercase tracking-wider text-dimmed font-semibold mb-1 px-1">
           {{ group.heading }}
         </div>
-        <UiNavList :links="group.links" active-mode="prefix" />
+        <UiNavList :links="group.links" active-mode="prefix" variant="sidebar" :label="group.heading" />
       </div>
     </template>
 
@@ -92,5 +93,5 @@ const navSections = computed(() => sections.map(group => ({
     <div class="pro-container py-8 space-y-10">
       <slot />
     </div>
-  </AppShell>
+  </UiAppShell>
 </template>

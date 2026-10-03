@@ -227,7 +227,7 @@ const columns: UiTableColumn<SiteHomeRow>[] = [
       </div>
     </UiEmptyState>
 
-    <UiTable v-else :columns="columns" :data="rows" :loading="historyStatus === 'pending'" enable-sorting row-clickable row-hover row-id="key" @row-click="openSite">
+    <UiTable v-else class="site-results min-w-0 max-w-full overflow-x-auto! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" tabindex="0" role="region" aria-label="Sites" label="Sites" :columns="columns" :data="rows" :loading="historyStatus === 'pending'" enable-sorting row-clickable row-hover row-id="key" @row-click="openSite">
       <template #actions="{ row }">
         <div class="flex items-center justify-end gap-1">
           <UiButton v-if="isStatic" purpose="quiet" size="xs" icon="external" :aria-label="`Open ${row.name}`" @click.stop="openSite(row)" />
@@ -261,3 +261,12 @@ const columns: UiTableColumn<SiteHomeRow>[] = [
     </UiTable>
   </div>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .site-results :deep(thead button) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+</style>

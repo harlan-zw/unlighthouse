@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ToggleGroupItem, ToggleGroupRoot } from 'reka-ui'
+import { vizBgColor } from '../../composables/dataVizColors'
 
 export interface MetricToggleOption {
   key: string

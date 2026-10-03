@@ -17,6 +17,7 @@ interface Props {
   pack?: string
   // Pack version — shown alongside the name badge when known.
   version?: string
+  device?: 'mobile' | 'desktop'
   status: 'idle' | 'pending' | 'success' | 'error'
   // The pack's `report` field. Null + settled status → empty state.
   report: unknown
@@ -54,11 +55,19 @@ const ready = computed(() => props.status !== 'pending' && !!props.report)
         <UiChip v-if="version" purpose="count" mono>
           v{{ version }}
         </UiChip>
+        <UiChip v-if="device" purpose="count" class="capitalize">
+          {{ device }}
+        </UiChip>
       </template>
     </UiPageHeader>
 
     <p class="text-sm text-muted">
-      Pack totals summarize distinct audited URLs. When both devices exist, packs use the mobile result for each URL unless stated otherwise.
+      <template v-if="device">
+        Pack totals summarize audited URLs for {{ device }}.
+      </template>
+      <template v-else>
+        Pack totals summarize distinct audited URLs. When both devices exist, packs use the mobile result for each URL unless stated otherwise.
+      </template>
     </p>
 
     <QueryError v-if="error" :error="error" :on-retry="onRetry" />

@@ -35,6 +35,7 @@ const WIDGETS: Record<string, Component> = {
 const route = useRoute()
 const { scanId, scanBase } = useScanBase()
 const packName = computed(() => route.params.pack as string)
+const device = computed(() => route.query.device === 'mobile' || route.query.device === 'desktop' ? route.query.device : undefined)
 
 // pack.list drives both tab metadata (title, version badge) and pack-name
 // validation — a route param that doesn't match a registered pack gets a
@@ -46,7 +47,7 @@ const packUnknown = computed(() => listStatus.value === 'success' && !packMeta.v
 
 const { data: runData, status: runStatus, error: runError, refresh: refreshRun } = useApiQuery(
   'pack.run',
-  () => ({ scanId: scanId.value, pack: packName.value }),
+  () => ({ scanId: scanId.value, pack: packName.value, device: device.value }),
   { enabled: packKnown },
 )
 
@@ -92,6 +93,7 @@ function retry() {
     :title="title"
     :pack="packName"
     :version="packMeta?.version"
+    :device="device"
     :status="shellStatus"
     :error="shellError"
     :on-retry="retry"

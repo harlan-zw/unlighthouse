@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SemanticStatus } from '../../composables/semanticColors'
+import { semanticColors } from '../../composables/semanticColors'
 
 const { severity = 'neutral', label } = defineProps<{
   severity?: SemanticStatus

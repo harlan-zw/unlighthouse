@@ -148,7 +148,7 @@
 :root {
   --ui-text-success: var(--ui-color-success-700);
   --ui-text-info: var(--ui-color-info-600);
-  --ui-text-warning: var(--ui-color-warning-700);
+  --ui-text-warning: var(--ui-color-warning-800);
   --ui-text-error: var(--ui-color-error-600);
 }
 
@@ -435,9 +435,9 @@
   --ui-bg-elevated: var(--ui-color-neutral-100);
   --ui-bg-accented: var(--ui-color-neutral-200);
   --ui-bg-inverted: var(--ui-color-neutral-900);
-  --ui-text-dimmed: var(--ui-color-neutral-400);
-  --ui-text-muted: var(--ui-color-neutral-500);
-  --ui-text-toned: var(--ui-color-neutral-600);
+  --ui-text-dimmed: oklch(47.5% 0.018 286);
+  --ui-text-muted: var(--ui-color-neutral-600);
+  --ui-text-toned: var(--ui-color-neutral-700);
   --ui-text: oklch(37% 0.044 285);
   --ui-text-highlighted: oklch(21% 0.042 285);
   --ui-text-inverted: #fff;
@@ -959,9 +959,9 @@ textarea {
   --ui-bg-elevated: var(--ui-color-neutral-100);
   --ui-bg-accented: var(--ui-color-neutral-200);
   --ui-bg-inverted: var(--ui-color-neutral-900);
-  --ui-text-dimmed: var(--ui-color-neutral-400);
-  --ui-text-muted: var(--ui-color-neutral-500);
-  --ui-text-toned: var(--ui-color-neutral-600);
+  --ui-text-dimmed: oklch(47.5% 0.018 286);
+  --ui-text-muted: var(--ui-color-neutral-600);
+  --ui-text-toned: var(--ui-color-neutral-700);
   --ui-text: var(--ui-color-neutral-800);
   --ui-text-highlighted: var(--ui-color-neutral-900);
   --ui-text-inverted: #fff;
@@ -1159,8 +1159,11 @@ textarea {
    column headers, metric/filter labels, stat captions. Consolidates a sprawl
    of 10–12px uppercase combos (varying weight/tracking) onto one spec. Color
    stays at the call site (labels read muted/dimmed/default by context). */
-.text-label {
-  @apply text-[10px] font-semibold uppercase tracking-wider;
+@layer components {
+  .text-label {
+    @apply text-[10px] font-semibold uppercase tracking-wider;
+    color: var(--ui-text-muted);
+  }
 }
 
 /* Micro label — the 9px tier below .text-label, for the tiniest tags (table

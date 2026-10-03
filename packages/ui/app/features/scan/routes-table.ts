@@ -4,6 +4,8 @@ import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useScanBase } from '~/features/scan/route-context'
+import { scanRouteLink } from '~/features/scan/route-links'
+import { comparisonForLoadedScan } from '~/features/sites/history-baselines'
 import { useScanStore } from '~/stores/scan'
 
 type RouteDeviceFilter = 'all' | 'mobile' | 'desktop'
@@ -38,18 +40,6 @@ interface RouteSummary {
   devices: string[]
 }
 
-interface ColumnVisibilityToggle {
-  id: string
-  getIsVisible: () => boolean
-  toggleVisibility: () => void
-}
-
-interface RoutesTableExpose {
-  table: {
-    getAllLeafColumns: () => ColumnVisibilityToggle[]
-  }
-}
-
 const ROUTES_PAGE_SIZE = 500
 
 export const QUICK_FILTERS = [
@@ -73,7 +63,7 @@ export const CWV_COLS: { key: keyof Pick<RouteRow, 'lcp' | 'cls' | 'tbt' | 'inp'
   { key: 'inp', label: 'INP', unit: 'ms' },
 ]
 
-const COLUMN_LABELS: Record<string, string> = {
+export const COLUMN_LABELS: Record<string, string> = {
   thumbnail: 'Thumbnail',
   path: 'Path',
   device: 'Device',
@@ -214,6 +204,8 @@ export function useScanRoutesTable() {
   const api = useApi()
   const store = useScanStore()
   const { scanId, scanBase } = useScanBase()
+  const rawDevice = queryString(route.query.device)
+  const deviceFilter = ref<RouteDeviceFilter>(isRouteDeviceFilter(rawDevice) ? rawDevice : 'all')
 
   const { data: scanResults, error: resultsError, refresh } = useApiQuery(
     'scan.results',
@@ -223,32 +215,37 @@ export function useScanRoutesTable() {
   // Best-effort previous-scan diff (3 chained reads). The per-step `.catch`
   // returns null on "no previous scan" — an expected, ignorable absence that
   // just hides the delta column — so this stays a composite handler query.
-  const { data: prevData } = useNuxtAsyncQuery<Map<string, number> | null>(
+  const { data: prevData } = useNuxtAsyncQuery<{ scores: Map<string, number>, device: Device } | null>(
     async () => {
+      const requestedDevice = deviceFilter.value
       const meta = await optionalApiRead('scan.meta', api['scan.meta']({ scanId: scanId.value }))
       if (!meta)
         return null
-      const prev = await optionalApiRead('compare.findPrevious', api['compare.findPrevious']({ site: meta.site, device: meta.device as Device, excludeScanId: scanId.value }))
-      if (!prev?.scanId)
+      const history = await optionalApiRead('history.list', api['history.list']({ site: meta.site, page: 1, pageSize: 200 }))
+      const current = history?.items.find(scan => scan.scanId === scanId.value)
+      const selectedDevice = requestedDevice === 'all' ? meta.device as Device : requestedDevice
+      const comparison = current && history ? comparisonForLoadedScan(current, history.items, selectedDevice) : null
+      if (!comparison)
         return null
-      const res = await optionalApiRead('scan.results', api['scan.results']({ scanId: prev.scanId, page: 1, pageSize: ROUTES_PAGE_SIZE }))
+      const res = await optionalApiRead('scan.results', api['scan.results']({ scanId: comparison.base.scanId, device: selectedDevice, page: 1, pageSize: ROUTES_PAGE_SIZE }))
       if (!res)
         return null
       const map = new Map<string, number>()
       for (const row of res.items as RouteRow[]) {
         const score = overallRouteScore(row)
         if (score != null)
-          map.set(row.path || row.url, score)
+          map.set(`${row.device}:${row.path || row.url}`, score)
       }
-      return map
+      return { scores: map, device: selectedDevice }
     },
-    { key: () => `routes-prev:${scanId.value}` },
+    { key: () => `routes-prev:${scanId.value}:${deviceFilter.value}` },
   )
 
   const allRows = computed(() => (scanResults.value?.items ?? []) as RouteRow[])
   const total = computed(() => scanResults.value?.total ?? 0)
   const truncated = computed(() => total.value > allRows.value.length)
-  const prevMap = computed(() => prevData.value ?? null)
+  const prevMap = computed(() => prevData.value?.scores ?? null)
+  const previousDevice = computed(() => prevData.value?.device)
   const hasPrev = computed(() => (prevMap.value?.size ?? 0) > 0)
   const hasMultipleDevices = computed(() => new Set(allRows.value.map(row => row.device)).size > 1)
   // D-040: only surface the auditor backend when a scan actually mixed more than
@@ -256,8 +253,6 @@ export function useScanRoutesTable() {
   const hasMultipleAuditors = computed(() => new Set(allRows.value.map(row => row.auditor).filter((a): a is string => a != null)).size > 1)
 
   const q = ref(queryString(route.query.q))
-  const rawDevice = queryString(route.query.device)
-  const deviceFilter = ref<RouteDeviceFilter>(isRouteDeviceFilter(rawDevice) ? rawDevice : 'all')
   const rawQuick = queryString(route.query.f)
   const quick = ref<RouteQuickFilter>(isRouteQuickFilter(rawQuick) ? rawQuick : 'all')
 
@@ -304,21 +299,14 @@ export function useScanRoutesTable() {
   }
 
   function openRoute(row: RouteRow) {
-    router.push(`${scanBase.value}/route/${encodeURIComponent(row.path || row.url)}`)
+    router.push(routeLink(row))
+  }
+
+  function routeLink(row: RouteRow) {
+    return scanRouteLink(scanBase.value, row.path || row.url, row.device, row.url)
   }
 
   const density = ref<RouteDensity>('comfortable')
-  const tableRef = ref<RoutesTableExpose | null>(null)
-  const columnToggleItems = computed(() => [
-    [{ label: 'Toggle columns', type: 'label' as const }],
-    (tableRef.value?.table?.getAllLeafColumns() ?? []).map(col => ({
-      label: COLUMN_LABELS[col.id] ?? col.id,
-      type: 'checkbox' as const,
-      checked: col.getIsVisible(),
-      onUpdateChecked: () => col.toggleVisibility(),
-      onSelect: (event: Event) => event.preventDefault(),
-    })),
-  ])
 
   return {
     store,
@@ -329,6 +317,7 @@ export function useScanRoutesTable() {
     total,
     truncated,
     prevMap,
+    previousDevice,
     hasPrev,
     hasMultipleDevices,
     hasMultipleAuditors,
@@ -341,10 +330,9 @@ export function useScanRoutesTable() {
     score100Color: routeScore100Color,
     sorting,
     density,
-    tableRef,
-    columnToggleItems,
     copyRouteUrl,
     rescanRoute,
     openRoute,
+    routeLink,
   }
 }

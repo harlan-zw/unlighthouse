@@ -37,6 +37,7 @@
     "motion-v": "catalog:",
     "nuxt": "catalog:",
     "nuxt-use-query": "catalog:",
+    "rangi": "catalog:",
     "reka-ui": "catalog:",
     "tailwindcss": "catalog:dependencies",
     "vue": "catalog:dependencies",

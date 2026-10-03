@@ -29,8 +29,8 @@ export function writeBundledLicenses(chunks: Array<{ type: string, modules?: Rec
   const notices = [...packages.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, pkg]) => {
     const files = readdirSync(pkg.root).filter(file => /^(license|licence|copying|notice)(\.|$)/i.test(file))
     // Drizzle's npm artifact omits the upstream license file. Preserve the pinned release's copy.
-    if (!files.length && name === 'drizzle-orm@0.45.2')
-      return `${name}\n${readFileSync(join(import.meta.dirname, 'licenses/drizzle-orm-0.45.2.LICENSE'), 'utf8')}\n`
+    if (!files.length && name === 'drizzle-orm@0.45.3')
+      return `${name}\n${readFileSync(join(import.meta.dirname, 'licenses/drizzle-orm-0.45.3.LICENSE'), 'utf8')}\n`
     if (!files.length)
       throw new Error(`Bundled dependency has no license notice: ${name}`)
     return `${name}\n${files.map(file => readFileSync(join(pkg.root, file), 'utf8')).join('\n')}\n`
