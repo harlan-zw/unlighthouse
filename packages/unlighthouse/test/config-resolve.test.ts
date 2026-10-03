@@ -27,6 +27,16 @@ const CI_ENVS = [
 ]
 
 describe('resolveConfig', () => {
+  it('preserves explicit expanded CSV columns through config parsing', async () => {
+    const columns = { performance: [{ key: 'report.audits.first-contentful-paint', label: 'Custom FCP' }] }
+    const { config } = await resolveConfig({ cwd: freshCwd(), overrides: { ci: { reporterConfig: { columns } } } })
+    expect(config.ci?.reporterConfig?.columns).toEqual(columns)
+  })
+  it('rejects legacy hooks instead of silently discarding callbacks', async () => {
+    await expect(resolveConfig({ cwd: freshCwd(), overrides: { hooks: { 'resolved-config': () => {} } } }))
+      .rejects
+      .toMatchObject({ code: 'CONFIG_INVALID', message: expect.stringContaining('host.hooks') })
+  })
   it('preserves an explicit custom throttling profile', async () => {
     const { config } = await resolveConfig({ cwd: freshCwd(), env: {}, overrides: { site: 'https://example.com', scanner: { throttle: true }, lighthouseOptions: { throttling: { cpuSlowdownMultiplier: 2 } } } })
     expect(config.scanner?.throttle).toBe(true)

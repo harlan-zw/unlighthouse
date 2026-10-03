@@ -22,6 +22,9 @@ relatedPages:
     title: Docker
 ---
 
+> This reference describes Unlighthouse 0.x.
+> For the v1 beta, read [Migrating to v1](/guide/guides/migrating-to-v1).
+
 # Puppeteer Launch Options
 
 Unlighthouse uses [Puppeteer](https://pptr.dev/) to control Chrome for Lighthouse audits. Configure browser behavior, navigation hooks, and Chrome flags via `puppeteerOptions`.

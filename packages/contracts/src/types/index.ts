@@ -207,6 +207,7 @@ export interface HTMLExtractPayload {
 export type ValidReportTypes = 'jsonSimple' | 'json' | 'jsonExpanded' | 'csvSimple' | 'csv' | 'csvExpanded' | 'lighthouseServer' | 'ndjson' | 'agentSummary'
 
 export interface ReporterConfig {
+  columns?: Record<UnlighthouseTabs, UnlighthouseColumn[]>
   lhciHost?: string
   lhciBuildToken?: string
   lhciAuth?: string

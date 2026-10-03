@@ -19,6 +19,9 @@ relatedPages:
     title: Configuration
 ---
 
+> This reference describes Unlighthouse 0.x.
+> For the v1 beta, read [Migrating to v1](/guide/guides/migrating-to-v1).
+
 Need to scan pages behind a login? Unlighthouse supports every common auth pattern. Find yours below.
 
 ## Quick Reference

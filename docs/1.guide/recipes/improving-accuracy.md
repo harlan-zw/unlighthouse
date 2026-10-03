@@ -19,6 +19,9 @@ relatedPages:
     title: Core Web Vitals Glossary
 ---
 
+> This reference describes Unlighthouse 0.x.
+> For the v1 beta, read [Migrating to v1](/guide/guides/migrating-to-v1).
+
 # Improving Lighthouse Accuracy
 
 Lighthouse scores can vary 5-10 points between runs due to network conditions, CPU load, and browser state. These techniques improve consistency for reliable [Core Web Vitals](/glossary) measurement.

@@ -18,6 +18,9 @@ relatedPages:
     title: Configuration
 ---
 
+> This reference describes Unlighthouse 0.x.
+> For the v1 beta, read [Migrating to v1](/guide/guides/migrating-to-v1).
+
 # Route Definitions
 
 Map URLs to source files for intelligent

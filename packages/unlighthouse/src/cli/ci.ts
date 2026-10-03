@@ -27,6 +27,8 @@ export function createCiCli() {
     .option('--budget <budget>', 'Budget (1-100), the minimum score required for each page to pass.')
     .option('--build-static', 'Build a static version of the Unlighthouse report.')
     .option('--reporter <reporter>', 'The reporter to use. Options: csvExpanded, csv, json, jsonExpanded. Set to false to disable.')
+    .option('--lhci-host <host>', 'Lighthouse CI server URL.')
+    .option('--lhci-build-token <token>', 'Lighthouse CI server build token.')
     .option('--no-assert', 'Disable CI assertions. On by default in CI mode.')
     .option('--compare [target]', 'Compare this scan against a previous one. Values: "latest" (default) | <scanId> | <branch>. Regressions cause non-zero exit.')
     .option('--compare-output <path>', 'When using --compare, write a Markdown summary of the diff to this path (suitable for PR comments).')
@@ -64,14 +66,10 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
   const unlighthouse = await createUnlighthouseHost({
     userConfig: {
       ...pickCiOptions(options),
-      hooks: {
-        'resolved-config': async (config) => {
-          await validateHost(config, logger)
-        },
-      },
     },
     behavior: { ws: null, label: 'ci' },
     env,
+    onResolvedConfig: config => validateHost(config, logger),
   })
 
   validateOptions(unlighthouse.resolvedConfig)
@@ -121,7 +119,7 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
       // D-034: read the reconciled report (the LH-version-isolated projection),
       // not the raw LHR. `categories` (score + display mode) and `audits`
       // (score / scoreDisplayMode / numericValue / displayValue) are all the
-      // reporters need; category `id`/`title` fall back to the key and audit
+      // reporters need; category `id` falls back to the key and audit
       // `numericUnit` is dropped (the expected lossy fields — Step G).
       const contractKey = routeContractBlobKey(r)
       const blob = contractKey ? await unlighthouse.handlerCtx.storage.blobs.get(contractKey) : null
@@ -141,7 +139,7 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
       const categoriesArr: LighthouseReportCategory[] = Object.entries(contract.categories).map(([key, c]) => ({
         key,
         id: key,
-        title: key,
+        title: ({ 'performance': 'Performance', 'accessibility': 'Accessibility', 'best-practices': 'Best Practices', 'seo': 'SEO' } as Record<string, string>)[key] ?? key,
         score: c.score ?? null,
         categoryScoreDisplayMode: c.categoryScoreDisplayMode ?? 'gauge',
       }))
@@ -179,7 +177,13 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
     if (reporter) {
       const lhrBlobKeys = new Map(filtered.map(row => [`${row.device}:${row.url}`, row.lhrBlobKey]))
       // Lighthouse server upload is a raw-LHR export, rather than a reconciled report export.
-      const payload = await generateReportPayload(reporter, reports, unlighthouse.resolvedConfig.ci?.reporterConfig, async (report) => {
+      const reporterConfig = reporter === 'csvExpanded'
+        ? {
+            ...unlighthouse.resolvedConfig.ci?.reporterConfig,
+            columns: unlighthouse.resolvedConfig.ci?.reporterConfig?.columns ?? unlighthouse.resolvedConfig.client?.columns,
+          }
+        : unlighthouse.resolvedConfig.ci?.reporterConfig
+      const payload = await generateReportPayload(reporter, reports, reporterConfig, async (report) => {
         const key = lhrBlobKeys.get(`${report.device}:${report.route.url}`)
         const blob = key ? await unlighthouse.handlerCtx.storage.blobs.get(key) : null
         if (!blob)

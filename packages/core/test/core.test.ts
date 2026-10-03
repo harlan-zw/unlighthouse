@@ -322,9 +322,9 @@ describe('createUnlighthouseCore orchestration', () => {
         },
       }
     }
-    const run = async (tag: string, overrides: { site: string, mode?: 'site' | 'page' }) => {
+    const run = async (tag: string, overrides: { site: string, mode?: 'site' | 'page' }, config = baseConfig) => {
       const core = createUnlighthouseCore({
-        config: baseConfig,
+        config,
         auditor: passingAuditor(),
         seeds: emptySeeds,
         crawler: spyCrawler(tag),
@@ -334,9 +334,11 @@ describe('createUnlighthouseCore orchestration', () => {
     }
     await run('page', { site: 'https://example.com/', mode: 'page' })
     await run('site', { site: 'https://example.com/' })
+    await run('disabled', { site: 'https://example.com/' }, { ...baseConfig, scanner: { crawler: false } })
 
     expect(captured.page).toBe(true)
     expect(captured.site).toBeFalsy()
+    expect(captured.disabled).toBe(true)
   })
 
   it('uRL providers disable link-following like explicit URL arrays', async () => {

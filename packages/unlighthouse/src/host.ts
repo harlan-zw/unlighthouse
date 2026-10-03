@@ -24,6 +24,7 @@ import { createHookEvent } from '@unlighthouse/contracts/hooks'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createWS } from '@unlighthouse/core/api'
 import { createLogger } from '@unlighthouse/core/logger'
+import { createHooks } from 'hookable'
 import { joinURL } from 'ufo'
 import { version } from '../package.json'
 import { resolveConfig } from './config/resolve'
@@ -76,6 +77,8 @@ export interface CreateUnlighthouseHostOptions {
   logger?: Logger
   /** Host environment read once at the creation boundary. */
   env?: NodeJS.ProcessEnv
+  /** Prepare resolved config before the host derives paths or initializes adapters. */
+  onResolvedConfig?: (config: ResolvedUserConfig) => void | Promise<void>
   /**
    * Third-party packs to register alongside the built-ins. Threaded to both the
    * scan-finalize step (via the core factory) and the `pack.*` handlers (via the
@@ -157,6 +160,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     env,
   })
   const resolvedConfig = config as ResolvedUserConfig
+  await opts.onResolvedConfig?.(resolvedConfig)
 
   // ── RuntimeSettings ──────────────────────────────────────────────────────
 
@@ -193,6 +197,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
   // callers go through the factory; a plain function call doesn't trip the
   // missing-construct slot.
   const ws = behavior.ws !== undefined ? behavior.ws : createWS(logger)
+  const hooks = createHooks<HookMap>()
 
   // ── Ports (lazy: Storage + Core built after outputPath is known) ──────────
   // Init is async (libsql adapter needs await for the dynamic import +
@@ -227,6 +232,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
         },
         logger,
         env,
+        hooks,
         packs: [...(configPacks ?? []), ...(opts.packs ?? [])],
       })
       const { core, storage } = runtime
@@ -413,12 +419,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     runtimeSettings: rs,
     config: resolvedConfig,
     resolvedConfig,
-    hooks: new Proxy({} as Hookable<HookMap>, {
-      get(_, prop) {
-        const { core } = ensurePorts()
-        return Reflect.get(requireCoreHooks(core), prop)
-      },
-    }),
+    hooks,
     generateClient: generateClientStub,
     setServerContext,
     handlerCtx: new Proxy({} as UnlighthouseHost['handlerCtx'], {

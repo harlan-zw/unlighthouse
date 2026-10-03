@@ -18,6 +18,9 @@ relatedPages:
     title: Route Definitions Guide
 ---
 
+> This reference describes Unlighthouse 0.x.
+> For the v1 beta, read [Migrating to v1](/guide/guides/migrating-to-v1).
+
 # API Glossary
 
 Key terms, types, and concepts used throughout the Unlighthouse API and documentation.

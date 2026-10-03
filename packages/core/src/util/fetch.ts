@@ -1,6 +1,7 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { FetchOptions } from 'ofetch'
 import { ofetch } from 'ofetch'
+import { withoutTrailingSlash, withQuery } from 'ufo'
 import { utf8ToBase64 } from './base64'
 
 export interface FetchUrlResponse {
@@ -136,7 +137,8 @@ export async function fetchUrlRaw(
       if (responseUrl && resolvedConfig.auth) {
         responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
       }
-      const redirected = !!responseUrl && responseUrl !== url
+      const requestedUrl = withQuery(url, { ...(resolvedConfig.defaultQueryParams || {}) })
+      const redirected = !!responseUrl && withoutTrailingSlash(responseUrl) !== withoutTrailingSlash(requestedUrl)
       const redirectUrl = responseUrl
       if (response.status < 200 || response.status >= 300) {
         return { valid: false, redirected, response, redirectUrl }

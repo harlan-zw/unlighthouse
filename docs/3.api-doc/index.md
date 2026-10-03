@@ -19,6 +19,9 @@ relatedPages:
     title: Configuration Guide
 ---
 
+> This reference describes Unlighthouse 0.x.
+> For the v1 beta, read [Migrating to v1](/guide/guides/migrating-to-v1).
+
 # API Reference
 
 Programmatic API for building custom integrations and extending Unlighthouse functionality. Use these functions to create custom providers, respond to scan events, and integrate with your build tools.
