@@ -132,6 +132,7 @@ provideUiAppShellNav({ openNav })
          the nav rows here. -->
     <UDrawer
       v-model:open="navOpen"
+      title="Navigation menu"
       direction="left"
       :handle="false"
       :ui="{ content: 'w-80 max-w-[calc(100vw-3rem)]' }"

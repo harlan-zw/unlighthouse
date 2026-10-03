@@ -21,6 +21,6 @@ usePageTitle()
         <NuxtPage />
       </NuxtLayout>
     </component>
-    <Toaster position="bottom-right" rich-colors close-button :theme="colorMode.value === 'dark' ? 'dark' : 'light'" />
+    <Toaster position="bottom-right" close-button :theme="colorMode.value === 'dark' ? 'dark' : 'light'" />
   </UApp>
 </template>
