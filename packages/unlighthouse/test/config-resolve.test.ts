@@ -27,6 +27,11 @@ const CI_ENVS = [
 ]
 
 describe('resolveConfig', () => {
+  it('preserves an explicit custom throttling profile', async () => {
+    const { config } = await resolveConfig({ cwd: freshCwd(), env: {}, overrides: { site: 'https://example.com', scanner: { throttle: true }, lighthouseOptions: { throttling: { cpuSlowdownMultiplier: 2 } } } })
+    expect(config.scanner?.throttle).toBe(true)
+    expect(config.lighthouseOptions?.throttling).toEqual({ cpuSlowdownMultiplier: 2 })
+  })
   it.each(['http://localhost:3000', 'http://127.0.0.1:3000', 'http://[::1]:3000'])('honors explicit throttling for %s', async (site) => {
     const { config } = await resolveConfig({ cwd: freshCwd(), env: {}, overrides: { site, scanner: { throttle: true } } })
     expect(config.lighthouseOptions?.throttlingMethod).toBe('simulate')

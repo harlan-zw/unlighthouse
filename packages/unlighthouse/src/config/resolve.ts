@@ -198,9 +198,8 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string, env: NodeJS.Proc
         cpuSlowdownMultiplier: 1,
       }
     }
+    ensureScanner(config).throttle = lh.throttlingMethod === 'simulate'
   }
-
-  ensureScanner(config).throttle = lh.throttlingMethod === 'simulate'
 
   // Rule: always exclude cdn-cgi paths.
   const scanner = ensureScanner(config)

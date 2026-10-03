@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
-import { parseRouteContract, routeContractBlobKey } from '@unlighthouse/core/report'
+import { decompressLhr, parseRouteContract, routeContractBlobKey } from '@unlighthouse/core/report'
 import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
@@ -177,10 +177,20 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
     }))
     const reports = hydrated.filter((x): x is NonNullable<typeof x> => x != null)
     if (reporter) {
-      const payload = generateReportPayload(reporter, reports)
-      const path = await outputReport(reporter, unlighthouse.resolvedConfig, payload)
-      if (path)
-        logger.success(`Wrote ${reporter} report to ${path}`)
+      const lhrBlobKeys = new Map(filtered.map(row => [`${row.device}:${row.url}`, row.lhrBlobKey]))
+      // Lighthouse server upload is a raw-LHR export, rather than a reconciled report export.
+      const payload = await generateReportPayload(reporter, reports, unlighthouse.resolvedConfig.ci?.reporterConfig, async (report) => {
+        const key = lhrBlobKeys.get(`${report.device}:${report.route.url}`)
+        const blob = key ? await unlighthouse.handlerCtx.storage.blobs.get(key) : null
+        if (!blob)
+          throw new Error(`Missing Lighthouse report for ${report.route.url}.`)
+        return decompressLhr(blob)
+      })
+      if (reporter !== 'lighthouseServer') {
+        const path = await outputReport(reporter, unlighthouse.resolvedConfig, payload)
+        if (path)
+          logger.success(`Wrote ${reporter} report to ${path}`)
+      }
     }
   }
 

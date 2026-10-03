@@ -1,7 +1,25 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createCiCli } from '../src/cli/ci'
 import { parseRootArgs } from '../src/cli/createCli'
-import { parseDevices, pickOptions, resolveCiReporter } from '../src/cli/util'
+import { parseDevices, pickOptions, resolveCiReporter, validateHost } from '../src/cli/util'
+
+afterEach(() => vi.unstubAllGlobals())
+
+describe('host redirects', () => {
+  it.each([
+    ['https://www.example.com/about', 'https://www.example.com/about'],
+    ['https://www.example.com/index.php', 'https://example.com'],
+  ])('adopts a page redirect but skips a file: %s', async (target, expected) => {
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      const response = new Response('ok')
+      Object.defineProperty(response, 'url', { value: target })
+      return response
+    }))
+    const config = { site: 'https://example.com', lighthouseOptions: {} } as Parameters<typeof validateHost>[0]
+    await validateHost(config)
+    expect(config.site).toBe(expected)
+  })
+})
 
 // D-033: the CLI is now a citty projection of the command registry. The root
 // command's flags parse to the same `CliOptions` the previous cac program

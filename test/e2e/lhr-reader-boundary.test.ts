@@ -25,6 +25,8 @@ const ALLOWLIST = new Set([
   // Labelled raw escape hatches.
   'packages/core/src/api/dashboard.ts',
   'packages/unlighthouse/src/build.ts',
+  // Lighthouse server upload exports the raw LHR to the remote server.
+  'packages/unlighthouse/src/cli/ci.ts',
 ])
 
 // `storage.blobs.get(<expr containing lhrBlobKey>)` — a raw LHR blob read.
