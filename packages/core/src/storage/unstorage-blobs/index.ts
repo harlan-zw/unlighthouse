@@ -56,6 +56,10 @@ export function unstorageBlobs(opts: UnstorageBlobsOptions): BlobStore {
       // A Node Buffer is a Uint8Array subclass, so this branch also handles it.
       if (raw instanceof Uint8Array)
         return raw
+      if (raw instanceof ArrayBuffer)
+        return new Uint8Array(raw)
+      if (ArrayBuffer.isView(raw))
+        return new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength)
       if (typeof raw === 'string')
         return new TextEncoder().encode(raw)
       // Last resort: serialise.
