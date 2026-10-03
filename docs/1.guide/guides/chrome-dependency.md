@@ -30,6 +30,8 @@ See [Chrome Options](/guide/guides/puppeteer).
 ## Automatic downloads
 
 Set `chrome.useSystem: false` to use the downloaded browser.
+An existing `CHROME_PATH` takes precedence over this setting.
+Clear `CHROME_PATH` to force the downloaded browser.
 Set `chrome.useDownloadFallback: false` to require an installed browser.
 Set `chrome.downloadFallbackVersion` to select a Chrome build.
 Set `chrome.downloadFallbackCacheDir` to select the browser cache directory.
@@ -38,6 +40,11 @@ Lighthouse and Puppeteer also download before the first audit.
 The dashboard downloads when you open the CLI server or export a static report.
 These downloads require npm and network access on first use.
 Cached dependencies work offline.
+
+The CLI excludes Lighthouse's upstream error-reporting dependencies from audit downloads.
+Lighthouse library audits do not initialize that reporting system.
+Audit code and results remain unchanged.
+The standalone Core package keeps the dependencies supplied by its host.
 
 Set `UNLIGHTHOUSE_RUNTIME_CACHE` to select the shared dependency cache.
 The default follows `XDG_CACHE_HOME`, or uses `~/.cache/unlighthouse/runtime`.

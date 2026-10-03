@@ -45,7 +45,7 @@ function installPackages(directory: string, packages: string[], env: NodeJS.Proc
   const { command, prefix } = npmCommand(env)
   return new Promise((resolve, reject) => {
     let output = ''
-    const child = spawn(command, [...prefix, 'install', '--ignore-scripts', '--omit=optional', '--no-audit', '--no-fund', '--save-exact', '--loglevel=error', ...packages], {
+    const child = spawn(command, [...prefix, 'install', '--install-links', '--ignore-scripts', '--omit=optional', '--no-audit', '--no-fund', '--save-exact', '--loglevel=error', ...packages], {
       cwd: directory,
       env,
       signal,
@@ -130,7 +130,11 @@ export async function downloadRuntimePackages(packages: Record<string, string>, 
     return `${name}@${version}`
   })
   const env = { ...process.env, ...options.env }
-  const key = createHash('sha256').update(JSON.stringify([specs, process.platform, process.arch, process.versions.modules])).digest('hex').slice(0, 20)
+  // Lighthouse initializes Sentry only in its own CLI. Library audits never use it.
+  // Exclude that graph before npm resolves it, rather than pruning after download.
+  const libraryAudit = Object.hasOwn(packages, 'lighthouse')
+  const policy = libraryAudit ? 'lighthouse-library-v1' : undefined
+  const key = createHash('sha256').update(JSON.stringify([specs, process.platform, process.arch, process.versions.modules, ...(policy ? [policy] : [])])).digest('hex').slice(0, 20)
   const cache = options.cacheDir ?? runtimeCacheDirectory(env)
   const destination = join(cache, key)
   const ready = join(destination, 'ready')
@@ -147,7 +151,17 @@ export async function downloadRuntimePackages(packages: Record<string, string>, 
       if (existsSync(ready))
         return resolve()
       await mkdir(staging)
-      await writeFile(join(staging, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
+      if (libraryAudit) {
+        const excluded = join(staging, 'lighthouse-no-telemetry')
+        await mkdir(excluded)
+        // No exports: accidental telemetry use fails explicitly instead of silently succeeding.
+        await writeFile(join(excluded, 'package.json'), JSON.stringify({ name: '@sentry/node', version: '0.0.0', private: true, exports: {} }))
+      }
+      await writeFile(join(staging, 'package.json'), JSON.stringify({
+        private: true,
+        type: 'module',
+        ...(libraryAudit ? { overrides: { lighthouse: { '@sentry/node': `file:${join(staging, 'lighthouse-no-telemetry')}` } } } : {}),
+      }))
       options.logger?.info?.(`Downloading dependencies: ${specs.join(', ')}`)
       await (options.install ?? ((directory, pins, signal) => installPackages(directory, pins, env, signal)))(staging, specs, options.signal)
       options.signal?.throwIfAborted()
