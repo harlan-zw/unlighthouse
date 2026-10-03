@@ -27,6 +27,16 @@ const CI_ENVS = [
 ]
 
 describe('resolveConfig', () => {
+  it.each(['http://localhost:3000', 'http://127.0.0.1:3000', 'http://[::1]:3000'])('honors explicit throttling for %s', async (site) => {
+    const { config } = await resolveConfig({ cwd: freshCwd(), env: {}, overrides: { site, scanner: { throttle: true } } })
+    expect(config.lighthouseOptions?.throttlingMethod).toBe('simulate')
+  })
+
+  it('does not treat a remote hostname containing localhost as local', async () => {
+    const { config } = await resolveConfig({ cwd: freshCwd(), env: {}, overrides: { site: 'https://localhost.example.com' } })
+    expect(config.lighthouseOptions?.throttlingMethod).toBe('simulate')
+  })
+
   beforeEach(() => {
     // CI detection in test env would skew throttle assertions — clear them first.
     for (const k of CI_ENVS)

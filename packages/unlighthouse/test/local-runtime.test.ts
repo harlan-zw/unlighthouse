@@ -35,6 +35,14 @@ afterEach(() => {
 })
 
 describe('createLocalRuntime interface', () => {
+  it('refuses to reset a folder containing foreign files', async () => {
+    const outputPath = tempOutput()
+    const sentinel = join(outputPath, 'keep.txt')
+    writeFileSync(sentinel, 'keep')
+    await expect(createLocalRuntime({ config: config(), output: { path: outputPath, mode: 'reset' }, logger: createLogger({ level: 0 }), env: {} })).rejects.toThrow('Refusing to clear')
+    expect(existsSync(sentinel)).toBe(true)
+  })
+
   it('preserves output by default and returns one shared runtime graph', async () => {
     const outputPath = tempOutput()
     const sentinel = join(outputPath, 'keep.txt')
@@ -56,6 +64,8 @@ describe('createLocalRuntime interface', () => {
 
   it('resets only when requested and applies supplied packs after environment packs', async () => {
     const outputPath = tempOutput()
+    const initial = await createLocalRuntime({ config: config(), output: { path: outputPath }, logger: createLogger({ level: 0 }), env: {} })
+    closeRuntime(initial)
     const sentinel = join(outputPath, 'remove.txt')
     writeFileSync(sentinel, 'remove', { encoding: 'utf8', flag: 'w' })
     const customCrux: Pack = {

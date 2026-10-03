@@ -3,7 +3,8 @@ import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
 import type { Pack } from '@unlighthouse/contracts/packs'
 import type { Storage, UnlighthouseCore } from '@unlighthouse/contracts/ports'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createUnlighthouseCore } from '@unlighthouse/core'
 import { crawleeCrawler } from '@unlighthouse/core/crawlers'
@@ -114,15 +115,21 @@ function resolveSeeds(config: UnlighthouseConfig, logger: Logger) {
 /** Compose the complete Node-local runtime shared by host, CLI, and MCP. */
 export async function createLocalRuntime(opts: CreateLocalRuntimeOptions): Promise<LocalRuntime> {
   const outputPath = opts.output.path
-  if (opts.output.mode === 'reset' && existsSync(outputPath)) {
-    try {
-      rmSync(outputPath, { recursive: true, force: true })
-    }
-    catch (err) {
-      logOperationalWarn('host.output_cleanup_failed', err, { outputPath }, opts.logger)
-    }
-  }
-  mkdirSync(outputPath, { recursive: true })
+  const marker = '.unlighthouse-output'
+  const entries: string[] = await readdir(outputPath).catch((error: NodeJS.ErrnoException): string[] => {
+    if (error.code === 'ENOENT')
+      return []
+    throw error
+  })
+  const owned = entries.includes(marker)
+  const foreign = entries.length > 0 && !owned
+  if (foreign && opts.output.mode === 'reset')
+    throw new Error(`Refusing to clear ${outputPath}. Choose a new or empty output folder.`)
+  if (owned && opts.output.mode === 'reset')
+    await rm(outputPath, { recursive: true, force: true })
+  await mkdir(outputPath, { recursive: true })
+  if (!foreign)
+    await writeFile(join(outputPath, marker), 'This folder was created by unlighthouse. Unlighthouse may delete it.\n')
 
   const { storage } = await initStorage({ outputPath, logger: opts.logger, env: opts.env })
   void reapStaleScans(storage, opts.logger).catch((err) => {

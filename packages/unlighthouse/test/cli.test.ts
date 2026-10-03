@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { createCiCli } from '../src/cli/ci'
 import { parseRootArgs } from '../src/cli/createCli'
 import { parseDevices, pickOptions, resolveCiReporter } from '../src/cli/util'
 
@@ -10,6 +11,19 @@ import { parseDevices, pickOptions, resolveCiReporter } from '../src/cli/util'
 const args = (extra: string[]) => parseRootArgs(['--site', 'unlighthouse.dev', ...extra])
 
 describe('cli args', () => {
+  it('leaves configured cache unchanged when CI receives no cache flag', () => {
+    const options = createCiCli().parse(['node', 'ci', '--site', 'https://example.com']).options
+    expect(pickOptions(options).cache).toBeUndefined()
+  })
+
+  it('preserves separators in credentials and tokens', () => {
+    const picked = pickOptions(args(['--auth', 'user:pass:word', '--cookies', 'token=abc==', '--extra-headers', 'Authorization:Bearer abc==', '--default-query-params', 'token=abc==']))
+    expect(picked.auth).toEqual({ username: 'user', password: 'pass:word' })
+    expect(picked.cookies).toEqual([{ name: 'token', value: 'abc==' }])
+    expect(picked.extraHeaders).toEqual({ Authorization: 'Bearer abc==' })
+    expect(picked.defaultQueryParams).toEqual({ token: 'abc==' })
+  })
+
   it('treats the documented --reporter false value as disabled', () => {
     expect(resolveCiReporter('false', 'jsonExpanded')).toBe(false)
     expect(resolveCiReporter(undefined, false)).toBe(false)

@@ -123,6 +123,11 @@ export function validateOptions(resolvedOptions: UserConfig) {
   }
 }
 
+function splitOnce(value: string, separator: string): [string, string] {
+  const index = value.indexOf(separator)
+  return index < 0 ? [value, ''] : [value.slice(0, index), value.slice(index + separator.length)]
+}
+
 export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   const picked: Omit<UserConfig, 'site' | 'root'> = {
     scanner: {},
@@ -138,10 +143,8 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
   if (host)
     picked.server = { ...(picked.server ?? {}), hostname: host }
 
-  if (options.noCache)
-    picked.cache = true
-  if (options.throttle)
-    scanner.throttle = true
+  if (options.throttle !== undefined)
+    scanner.throttle = options.throttle
 
   if (options.sitemaps) {
     scanner.sitemap = scanner.sitemap || []
@@ -197,13 +200,13 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     scanner.dynamicSampling = false
 
   if (options.auth) {
-    const [username, password] = options.auth.split(':')
+    const [username, password] = splitOnce(options.auth, ':')
     picked.auth = { username, password }
   }
 
   function splitNameValue(str: string) {
-    const splitToken = str.includes('=') ? '=' : ':'
-    const [name, value] = str.split(splitToken)
+    const splitToken = str.match(/[=:]/)?.[0] ?? '='
+    const [name, value] = splitOnce(str, splitToken)
     return { name: name || '', value: value || '' }
   }
 
@@ -254,4 +257,22 @@ export function pickOptions(options: CiOptions | CliOptions): UserConfig {
     config,
     picked,
   ) as UserConfig
+}
+
+export function pickCiOptions(options: CiOptions): UserConfig {
+  const ci: NonNullable<UserConfig['ci']> = {}
+  if (options.budget !== undefined)
+    ci.budget = options.budget
+  if (options.buildStatic !== undefined)
+    ci.buildStatic = options.buildStatic
+  if (options.reporter !== undefined)
+    ci.reporter = options.reporter === 'false' ? false : options.reporter
+  const reporterConfig = Object.fromEntries(Object.entries({
+    lhciHost: options.lhciHost,
+    lhciBuildToken: options.lhciBuildToken,
+    lhciAuth: options.lhciAuth,
+  }).filter(([, value]) => value !== undefined))
+  if (Object.keys(reporterConfig).length)
+    ci.reporterConfig = reporterConfig
+  return { ...pickOptions(options), ci }
 }
