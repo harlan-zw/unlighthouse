@@ -18,7 +18,6 @@ export interface CliOptions {
   mobile?: boolean
   device?: string
   cache?: boolean
-  noCache?: boolean
   version?: boolean
   root?: string
   configFile?: string
@@ -38,8 +37,8 @@ export interface CliOptions {
 }
 
 export interface CiOptions extends CliOptions {
-  budget: number
-  buildStatic: boolean
+  budget?: number
+  buildStatic?: boolean
   /** cac parses `--reporter false` as the string literal. */
   reporter?: ValidReportTypes | false | 'false'
   lhciHost?: string

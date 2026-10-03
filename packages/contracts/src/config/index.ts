@@ -63,7 +63,7 @@ const CiConfig = z.object({
   buildStatic: z.boolean().optional(),
   reporter: z
     .union([
-      z.enum(['jsonSimple', 'jsonExpanded', 'lighthouseServer']),
+      z.enum(['jsonSimple', 'json', 'jsonExpanded', 'csvSimple', 'csv', 'csvExpanded', 'ndjson', 'agentSummary', 'lighthouseServer']),
       z.literal(false),
     ])
     .optional(),

@@ -40,24 +40,21 @@ function headersToRecord(headers?: HeadersInit): Record<string, string> {
 }
 
 export function createFetchClient(resolvedConfig: FetchConfig): FetchUrlClient {
-  const headers: Record<string, string> = {}
+  const headers: Record<string, string> = Object.fromEntries(new Headers(resolvedConfig.extraHeaders || {}).entries())
 
-  if (resolvedConfig.cookies) {
-    headers.Cookie = resolvedConfig.cookies
+  if (resolvedConfig.cookies && !headers.cookie) {
+    headers.cookie = resolvedConfig.cookies
       .map(cookie => `${cookie.name}=${cookie.value}`)
       .join('; ')
   }
 
   const emulatedUserAgent = resolvedConfig.lighthouseOptions?.emulatedUserAgent
   const userAgent = resolvedConfig.userAgent || (typeof emulatedUserAgent === 'string' ? emulatedUserAgent : undefined) || 'Unlighthouse'
-  Object.assign(headers, {
-    'User-Agent': userAgent,
-    ...(resolvedConfig.extraHeaders || {}),
-  })
+  headers['user-agent'] ||= userAgent
 
-  if (resolvedConfig.auth) {
+  if (resolvedConfig.auth && !headers.authorization) {
     const token = utf8ToBase64(`${resolvedConfig.auth.username}:${resolvedConfig.auth.password}`)
-    headers.Authorization = `Basic ${token}`
+    headers.authorization = `Basic ${token}`
   }
 
   const query = { ...(resolvedConfig.defaultQueryParams || {}) }
@@ -67,7 +64,7 @@ export function createFetchClient(resolvedConfig: FetchConfig): FetchUrlClient {
         ...opts,
         headers: {
           ...headers,
-          ...headersToRecord(opts.headers),
+          ...headersToRecord(new Headers(opts.headers)),
         },
         query: {
           ...query,
@@ -141,7 +138,7 @@ export async function fetchUrlRaw(
       }
       const redirected = !!responseUrl && responseUrl !== url
       const redirectUrl = responseUrl
-      if (response.status < 200 || (response.status >= 300 && !redirected)) {
+      if (response.status < 200 || response.status >= 300) {
         return { valid: false, redirected, response, redirectUrl }
       }
       return { valid: true, redirected, response, redirectUrl }

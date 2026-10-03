@@ -1,5 +1,5 @@
 import type { ResolvedUserConfig } from '@unlighthouse/contracts'
-import { createFetchClient } from '@unlighthouse/core/util/fetch'
+import { createFetchClient, fetchUrlRaw } from '@unlighthouse/core/util/fetch'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 function config(username: string, cookie: string): ResolvedUserConfig {
@@ -12,6 +12,24 @@ function config(username: string, cookie: string): ResolvedUserConfig {
 }
 
 describe('createFetchClient', () => {
+  it('keeps explicit authorization and cookie headers', async () => {
+    const requests: Headers[] = []
+    vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push(new Headers(init?.headers))
+      return new Response('ok')
+    }))
+    await createFetchClient({ ...config('alice', 'a'), extraHeaders: { authorization: 'Bearer token', cookie: 'session=explicit' } }).get('https://example.com')
+    expect(requests[0]?.get('authorization')).toBe('Bearer token')
+    expect(requests[0]?.get('cookie')).toBe('session=explicit')
+  })
+
+  it('rejects a redirect that ends in an HTTP error', async () => {
+    const result = await fetchUrlRaw('https://example.com', {}, { client: {
+      get: async () => ({ status: 404, data: '', headers: new Headers(), url: 'https://example.com/missing', request: { res: { responseUrl: 'https://example.com/missing' } } }),
+    } })
+    expect(result.valid).toBe(false)
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
   })

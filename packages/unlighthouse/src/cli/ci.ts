@@ -6,13 +6,13 @@ import { resolve } from 'node:path'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
-import { parseRouteContract, routeContractBlobKey } from '@unlighthouse/core/report'
+import { decompressLhr, parseRouteContract, routeContractBlobKey } from '@unlighthouse/core/report'
 import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
 import { runAssertions } from './assertions'
 import { createCiBaseCli } from './cac-base'
-import { parseDevices, pickOptions, resolveCiReporter, validateHost, validateOptions } from './util'
+import { parseDevices, pickCiOptions, resolveCiReporter, validateHost, validateOptions } from './util'
 
 export interface CiEntryOptions {
   /** Full process-style argv, including node and script entries. */
@@ -63,7 +63,7 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
 
   const unlighthouse = await createUnlighthouseHost({
     userConfig: {
-      ...pickOptions(options),
+      ...pickCiOptions(options),
       hooks: {
         'resolved-config': async (config) => {
           await validateHost(config, logger)
@@ -101,7 +101,9 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
   logger.success(`Unlighthouse has finished scanning ${unlighthouse.resolvedConfig.site}: ${completedCount} routes in ${seconds}s.`)
 
   const reporter = resolveCiReporter(options.reporter, unlighthouse.resolvedConfig.ci?.reporter)
-  if (reporter) {
+  const configuredBudget = unlighthouse.resolvedConfig.ci?.budget
+  let budgetFailed = false
+  if (reporter || configuredBudget !== undefined) {
     // Hydrate UnlighthouseRouteReport shape from `storage.routes` + LHR blobs;
     // hand off to the existing reporter pipeline (jsonSimple/jsonExpanded/csv).
     const { items } = await unlighthouse.handlerCtx.storage.routes.listForScan(scanId, { pageSize: 10_000 })
@@ -126,6 +128,16 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
       const contract = blob ? parseRouteContract(blob) : null
       if (!contract)
         return null
+      for (const [category, result] of Object.entries(contract.categories)) {
+        const budget = typeof configuredBudget === 'number'
+          ? configuredBudget
+          : configuredBudget?.[category as keyof typeof configuredBudget]
+        if (typeof result.score === 'number' && Number.isFinite(result.score)
+          && typeof budget === 'number' && Number.isFinite(budget) && result.score * 100 < budget) {
+          budgetFailed = true
+          logger.error(`${r.path} scored ${result.score * 100} for ${category}. Required score: ${budget}.`)
+        }
+      }
       const categoriesArr: LighthouseReportCategory[] = Object.entries(contract.categories).map(([key, c]) => ({
         key,
         id: key,
@@ -164,15 +176,27 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
       return report
     }))
     const reports = hydrated.filter((x): x is NonNullable<typeof x> => x != null)
-    const payload = generateReportPayload(reporter, reports)
-    const path = await outputReport(reporter, unlighthouse.resolvedConfig, payload)
-    if (path)
-      logger.success(`Wrote ${reporter} report to ${path}`)
+    if (reporter) {
+      const lhrBlobKeys = new Map(filtered.map(row => [`${row.device}:${row.url}`, row.lhrBlobKey]))
+      // Lighthouse server upload is a raw-LHR export, rather than a reconciled report export.
+      const payload = await generateReportPayload(reporter, reports, unlighthouse.resolvedConfig.ci?.reporterConfig, async (report) => {
+        const key = lhrBlobKeys.get(`${report.device}:${report.route.url}`)
+        const blob = key ? await unlighthouse.handlerCtx.storage.blobs.get(key) : null
+        if (!blob)
+          throw new Error(`Missing Lighthouse report for ${report.route.url}.`)
+        return decompressLhr(blob)
+      })
+      if (reporter !== 'lighthouseServer') {
+        const path = await outputReport(reporter, unlighthouse.resolvedConfig, payload)
+        if (path)
+          logger.success(`Wrote ${reporter} report to ${path}`)
+      }
+    }
   }
 
   // #290/#275/#120: build an offline static report embedding a full snapshot
   // (every route incl. the homepage + contract blobs), served by createStaticClient.
-  if (options.buildStatic) {
+  if (unlighthouse.resolvedConfig.ci?.buildStatic) {
     unlighthouse.runtimeSettings.currentScanId = scanId
     await unlighthouse.generateClient({ static: true })
     logger.success(`Built static report at ${unlighthouse.runtimeSettings.generatedClientPath}`)
@@ -232,5 +256,5 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
     }
   }
 
-  return 0
+  return budgetFailed ? 1 : 0
 }

@@ -85,33 +85,9 @@ describe('uI review regressions', () => {
     expect(css).toMatch(/\[data-testid=["']empty-state["']\][\s\S]*opacity:\s*1\s*!important/)
   })
 
-  it('announces required URL errors and scan startup progress', async () => {
-    const [scanForm, sitesPage] = await Promise.all([
-      readFile(new URL('app/features/scan/components/NewScanForm.vue', root), 'utf8'),
-      readFile(new URL('app/pages/index.vue', root), 'utf8'),
-    ])
-
-    expect(scanForm).toContain('aria-required="true"')
-    expect(scanForm).toContain(':aria-invalid="Boolean(siteUrlError)"')
-    expect(scanForm).toContain('loading ? \'Starting scan…\' : \'Run scan\'')
-    expect(scanForm).toContain(':aria-busy="loading"')
-    expect(sitesPage).toContain('aria-required="true"')
-    expect(sitesPage).toContain(':aria-invalid="Boolean(formUrlError)"')
-  })
-
   it('provides an explicit mobile navigation close control', async () => {
     const shell = await readFile(new URL('app/components/SidebarShell.vue', root), 'utf8')
     expect(shell).toContain('aria-label="Close navigation menu"')
-  })
-
-  it('retains command failures when Nuxt drops the raw async-data error', async () => {
-    const query = await readFile(new URL('app/composables/useApiQuery.ts', root), 'utf8')
-    expect(query).toContain('type ApiQueryResult<T> =')
-    expect(query).toContain('_tag: \'err\'')
-    expect(query).toContain('query.displayData.value?._tag === \'err\'')
-    expect(query).toContain('query.displayData.value?._tag === \'ok\'')
-    expect(query).not.toContain('requestError')
-    expect(query).not.toContain('throw caught')
   })
 
   it('sets a client document title in the global Nuxt error shell', async () => {

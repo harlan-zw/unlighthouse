@@ -165,11 +165,9 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string, env: NodeJS.Proc
   }
 
   // Rule: localhost → throttle off as well.
-  if (config.site && /localhost|127\.0\.0\.1/.test(config.site)) {
-    const scanner = ensureScanner(config)
-    if (scanner.throttle !== true)
-      scanner.throttle = false
-  }
+  const hostname = typeof config.site === 'string' && config.site ? new URL(config.site).hostname : undefined
+  const localSite = !hostname || hostname === 'localhost' || hostname.endsWith('.localhost')
+    || hostname === '127.0.0.1' || hostname === '[::1]'
 
   // Rule: lighthouseOptions presence + onlyCategories vs onlyAudits conflict.
   if (config.lighthouseOptions.onlyCategories?.length && config.lighthouseOptions.onlyAudits?.length)
@@ -178,7 +176,7 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string, env: NodeJS.Proc
   // Rule: derive throttling profile if not provided.
   const lh = config.lighthouseOptions
   if (typeof lh.throttlingMethod === 'undefined' && typeof lh.throttling === 'undefined') {
-    if (!config.site || /localhost|127\.0\.0\.1/.test(config.site) || config.scanner?.throttle === false) {
+    if (!(config.scanner?.throttle ?? !localSite)) {
       lh.throttlingMethod = 'provided'
       lh.throttling = {
         rttMs: 0,
@@ -200,6 +198,7 @@ function applyHostRules(input: UnlighthouseConfig, cwd: string, env: NodeJS.Proc
         cpuSlowdownMultiplier: 1,
       }
     }
+    ensureScanner(config).throttle = lh.throttlingMethod === 'simulate'
   }
 
   // Rule: always exclude cdn-cgi paths.
@@ -307,7 +306,7 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
     name: 'unlighthouse',
     cwd,
     configFile: opts.configFile,
-    defaults: HOST_DEFAULTS as UnlighthouseConfig,
+    defaults: { ...HOST_DEFAULTS, scanner: { ...HOST_DEFAULTS.scanner, throttle: undefined } } as UnlighthouseConfig,
     overrides: toC12Overrides(opts.overrides),
     dotenv: true,
   })

@@ -42,6 +42,34 @@ const matrixReports: UnlighthouseRouteReport[] = [
 ]
 
 describe('csv reports', () => {
+  it('aligns reordered and missing categories across devices', () => {
+    const mobile = makeMatrixReport('/', 'mobile', 0.8, 0.9)
+    const desktop = makeMatrixReport('/', 'desktop', 0.7, 0.6)
+    desktop.report!.categories.reverse()
+    const partial = makeMatrixReport('/about', 'mobile', 0.5, 0.4)
+    partial.report!.categories.splice(0, 1)
+    expect(generateReportPayload('csv', [desktop, mobile, partial])).toBe([
+      'URL,Score,Accessibility,Performance,Device',
+      '"/",65,60,70,"desktop"',
+      '"/",85,90,80,"mobile"',
+      '"/about",45,40,"","mobile"',
+    ].join('\n'))
+  })
+
+  it('keeps missing audits blank and includes audits absent from the first route', () => {
+    const first = makeMatrixReport('/', 'mobile', 0.8, 0.9)
+    const second = makeMatrixReport('/about', 'desktop', 0.7, 0.6)
+    first.report!.audits = { a: { scoreDisplayMode: 'notApplicable', score: null }, b: { scoreDisplayMode: 'binary', score: 1 } }
+    second.report!.audits = { a: { scoreDisplayMode: 'numeric', numericValue: 12.345, score: 0.5 } }
+    expect(generateReportPayload('csvExpanded', [first, second], {
+      columns: { performance: [{ key: 'report.audits.a', label: 'A' }, { key: 'report.audits.b', label: 'B' }] } as typeof DefaultColumns,
+    })).toBe([
+      'URL,Score,Performance,Accessibility,A,B,Device',
+      '"/",85,80,90,,1,"mobile"',
+      '"/about",65,70,60,12.35,,"desktop"',
+    ].join('\n'))
+  })
+
   it('basic', () => {
     const actual = generateReportPayload('csv', lighthouseReport)
     expect(actual).toMatchInlineSnapshot(`

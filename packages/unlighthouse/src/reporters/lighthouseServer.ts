@@ -18,6 +18,8 @@ import { handleError } from '../cli/errors'
 export async function reportLighthouseServer(
   reports: UnlighthouseRouteReport[],
   { lhciBuildToken, lhciHost, lhciAuth }: ReporterConfig,
+  loadLighthouseResult: (report: UnlighthouseRouteReport) => Promise<unknown> = async report =>
+    JSON.parse(await readFile(`${report.artifactPath}/lighthouse.json`, 'utf8')),
 ): Promise<void> {
   if (!lhciBuildToken || !lhciHost) {
     handleError('Lighthouse CI server reporting requires lhciHost and lhciBuildToken.')
@@ -56,14 +58,14 @@ export async function reportLighthouseServer(
     })
 
     for (const report of reports) {
-      const raw: unknown = JSON.parse(await readFile(`${report.artifactPath}/lighthouse.json`, 'utf8'))
+      const raw = await loadLighthouseResult(report)
       const lighthouseResult = assertLighthouseResult(raw)
 
       await api.createRun({
         projectId: project.id,
         buildId: build.id,
         representative: false,
-        url: `${report.route.url}${report.route.path}`,
+        url: lighthouseResult.finalUrl || report.route.url,
         lhr: JSON.stringify(lighthouseResult),
       })
     }
