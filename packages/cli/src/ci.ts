@@ -63,6 +63,9 @@ async function run() {
     const end = new Date()
     const seconds = Math.round((end.getTime() - startTime.getTime()) / 1000)
 
+    // stop the progress spinner before any output, its exit handler would otherwise print "Canceled"
+    worker.clearProgressDisplay()
+
     logger.success(`Unlighthouse has finished scanning \`${resolvedConfig.site}\`: ${worker.reports().length} routes in \`${seconds}s\`.`)
 
     let hadError = false
