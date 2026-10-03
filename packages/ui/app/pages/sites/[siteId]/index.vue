@@ -26,6 +26,8 @@ const {
   deleteScan,
   canCompare,
   compareLatest,
+  comparisonForPair,
+  effectiveDevice,
   loading,
   isEmpty,
   histError,
@@ -37,7 +39,7 @@ const isStatic = useIsStatic()
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="site-overview space-y-6">
     <!-- Header -->
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex items-start gap-3 min-w-0">
@@ -53,10 +55,10 @@ const isStatic = useIsStatic()
         </div>
       </div>
       <div v-if="!isStatic" class="flex items-center gap-2">
-        <UiButton v-if="canCompare" purpose="secondary" size="sm" icon="compare" @click="compareLatest">
+        <UiButton v-if="canCompare" purpose="secondary" size="sm" icon="compare" class="min-h-11 sm:min-h-0" @click="compareLatest">
           Compare latest two
         </UiButton>
-        <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`" icon="add">
+        <UiButton purpose="cta" size="sm" :to="`/scan/new?url=${encodeURIComponent(siteUrl)}`" icon="add" class="min-h-11 sm:min-h-0">
           Run scan
         </UiButton>
       </div>
@@ -144,9 +146,15 @@ const isStatic = useIsStatic()
         <h2 class="text-sm font-medium text-muted mb-3">
           Scans
         </h2>
+        <p v-if="!isStatic" class="text-sm text-muted mb-3">
+          Comparisons use older completed scans for the selected device from loaded history.
+          <span class="capitalize">{{ effectiveDevice }}</span>.
+          <span v-if="!canCompare">No older eligible scan in loaded history.</span>
+        </p>
         <SiteHistoryTable
           :pairs="pairs"
           :readonly="isStatic"
+          :comparison-for-pair="comparisonForPair"
           @open="openPair"
           @rescan="rescan"
           @delete="deleteScan"
@@ -155,3 +163,13 @@ const isStatic = useIsStatic()
     </template>
   </div>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .site-overview :deep(button),
+  .site-overview :deep([role='tab']) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+</style>

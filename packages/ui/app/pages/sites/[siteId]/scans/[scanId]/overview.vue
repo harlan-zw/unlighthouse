@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import EventStreamPanel from '~/features/scan/components/EventStreamPanel.vue'
 import LiveResults from '~/features/scan/components/LiveResults.vue'
+import OverviewCwvFixes from '~/features/scan/components/OverviewCwvFixes.vue'
+import OverviewRankings from '~/features/scan/components/OverviewRankings.vue'
 import ScanActions from '~/features/scan/components/ScanActions.vue'
 import ScanProgress from '~/features/scan/components/ScanProgress.vue'
 import ScanStatusBadge from '~/features/scan/components/ScanStatusBadge.vue'
@@ -22,6 +24,11 @@ const {
   deviceFilter,
   hasMultipleDevices,
   scanSummary,
+  scanSummaryStatus,
+  cwvFixes,
+  cwvError,
+  cwvStatus,
+  refreshCwv,
   scanMetaError,
   scanSummaryError,
   refreshScanMeta,
@@ -52,14 +59,14 @@ const isStatic = useIsStatic()
   <!-- Scan failed to load (unreachable backend / missing scan). -->
   <QueryError v-if="scanMetaError" :error="scanMetaError" :on-retry="refreshScanMeta" />
 
-  <div v-else class="space-y-8">
+  <div v-else class="min-w-0 space-y-8">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
+    <div class="flex min-w-0 flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0 max-w-full">
         <h1 class="text-title truncate max-w-lg">
           {{ siteTitle }}
         </h1>
-        <div class="flex items-center gap-2 mt-1.5 text-sm text-muted">
+        <div class="flex flex-wrap items-center gap-2 mt-1.5 text-sm text-muted">
           <ScanStatusBadge :status="resolvedStatus" />
           <UiChip v-if="hasMultipleDevices" purpose="count">
             <UiIcon name="smartphone" class="size-2.5 mr-0.5" />
@@ -73,7 +80,7 @@ const isStatic = useIsStatic()
           <span v-if="scanMeta?.startedAt" class="text-xs">{{ fmtTimestamp(scanMeta.startedAt) }}</span>
         </div>
       </div>
-      <div v-if="!isStatic" class="flex items-center gap-2">
+      <div v-if="!isStatic" class="flex min-w-0 max-w-full flex-wrap items-center gap-2">
         <ScanActions v-if="showScanActions" />
         <UDrawer
           v-model:open="eventsOpen"
@@ -82,7 +89,7 @@ const isStatic = useIsStatic()
           description="Live activity from the scan host: route lifecycle, progress and completion events."
           :ui="{ content: 'w-full sm:max-w-2xl' }"
         >
-          <UiButton purpose="quiet" size="sm" icon="activity">
+          <UiButton purpose="quiet" size="sm" icon="activity" class="min-h-11">
             View events
           </UiButton>
 
@@ -100,7 +107,7 @@ const isStatic = useIsStatic()
           :href="jsonExportUrl"
           :download="jsonExportName"
           aria-description="Self-contained scan data without raw Lighthouse result blobs"
-          class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
+          class="inline-flex min-h-11 items-center gap-1 rounded-md px-2.5 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
           <UiIcon name="download" class="size-4" />
           Export JSON
@@ -110,12 +117,12 @@ const isStatic = useIsStatic()
           :href="csvExportUrl"
           :download="csvExportName"
           aria-description="Per-route scores and Core Web Vitals for spreadsheet tools"
-          class="inline-flex items-center gap-1 rounded-md px-2.5 h-8 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
+          class="inline-flex min-h-11 items-center gap-1 rounded-md px-2.5 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
           <UiIcon name="table" class="size-4" />
           Export CSV
         </a>
-        <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" :loading="rescanningAll" icon="refresh" @click="handleRescanAll">
+        <UiButton v-if="scanIsComplete && !currentScanIsActive" purpose="secondary" size="sm" class="min-h-11" :loading="rescanningAll" icon="refresh" @click="handleRescanAll">
           Rescan all
         </UiButton>
       </div>
@@ -131,6 +138,7 @@ const isStatic = useIsStatic()
         v-model="deviceFilter"
         :content="false"
         size="sm"
+        :ui="{ trigger: 'min-h-11 min-w-11 md:min-h-8 md:min-w-0' }"
         :items="[
           { value: '', label: 'All' },
           { value: 'mobile', label: 'Mobile', icon: 'smartphone' },
@@ -140,7 +148,7 @@ const isStatic = useIsStatic()
     </div>
 
     <!-- Stats row -->
-    <div v-if="scanSummary" class="flex items-center gap-8 border-b pb-6">
+    <div v-if="scanSummary" class="flex items-center gap-8 border-b border-default pb-6">
       <div>
         <div class="text-3xl font-bold tabular-nums">
           {{ scanSummary.routesScanned }}
@@ -167,7 +175,7 @@ const isStatic = useIsStatic()
         <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
           Category Scores
         </h2>
-        <div class="rounded-lg border px-4 py-4 space-y-4">
+        <div class="rounded-lg border border-default px-4 py-4 space-y-4">
           <div v-for="cat in categories.filter(c => c.score != null)" :key="cat.key" class="flex items-center gap-3">
             <span class="text-xs text-muted w-24 shrink-0 truncate">{{ cat.label }}</span>
             <div class="flex-1 h-5 bg-elevated rounded overflow-hidden">
@@ -191,7 +199,7 @@ const isStatic = useIsStatic()
         <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
           Score Distribution
         </h2>
-        <div class="rounded-lg border px-4 py-4 flex items-center gap-6 justify-center">
+        <div class="rounded-lg border border-default px-4 py-4 flex items-center gap-6 justify-center">
           <div class="relative shrink-0">
             <svg viewBox="0 0 100 100" class="size-32" aria-hidden="true" focusable="false">
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ui-border)" stroke-width="10" />
@@ -223,6 +231,24 @@ const isStatic = useIsStatic()
       </div>
     </div>
 
+    <template v-if="!showLiveView && scanHasResults">
+      <OverviewRankings
+        v-if="!scanSummaryError"
+        :summary="scanSummary"
+        :scan-base="scanBase"
+        :device="deviceFilter || undefined"
+        :loading="scanSummaryStatus === 'pending'"
+      />
+      <OverviewCwvFixes
+        :fixes="cwvFixes"
+        :error="cwvError"
+        :status="cwvStatus"
+        :scan-base="scanBase"
+        :device="deviceFilter || undefined"
+        :on-retry="refreshCwv"
+      />
+    </template>
+
     <!-- Categories — only when the scan is finished. During a live scan
          these links would lead to pages with zero data; LiveResults
          above covers the in-flight view. -->
@@ -230,7 +256,7 @@ const isStatic = useIsStatic()
       <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
         Categories
       </h2>
-      <div class="divide-y rounded-lg border">
+      <div class="divide-y divide-default rounded-lg border border-default">
         <NuxtLink
           v-for="cat in categories"
           :key="cat.key"

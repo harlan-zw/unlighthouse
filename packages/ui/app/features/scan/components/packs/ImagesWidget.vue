@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ImagesReportSchema } from '@unlighthouse/contracts/packs'
+import { useAffectedRouteLinks } from '~/features/scan/affected-route-links'
 import { formatRouteCount } from '~/features/scan/pack-presentation'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
+const { affectedRouteLink, linksPending, linksError, refreshLinks } = useAffectedRouteLinks(() => props.scanBase)
 
 const { fmtBytes, fmtMs } = createFormatters()
 
@@ -43,6 +45,10 @@ function hideBrokenImage(event: Event): void {
     </div>
 
     <UiCard v-if="report.findings?.length" size="sm">
+      <QueryError v-if="linksError" :error="linksError" :on-retry="refreshLinks" />
+      <p v-else-if="linksPending" role="status" class="pb-2 text-sm text-muted">
+        Loading affected route links
+      </p>
       <template #header>
         <h3 class="text-label text-dimmed flex items-center gap-2">
           <UiIcon name="image" class="size-4" />
@@ -93,7 +99,7 @@ function hideBrokenImage(event: Event): void {
                   loading="lazy"
                   referrerpolicy="no-referrer"
                   alt=""
-                  class="w-32 h-20 object-contain bg-elevated rounded border"
+                  class="w-32 h-20 object-contain bg-elevated rounded border border-default"
                   @error="hideBrokenImage"
                 >
               </a>
@@ -112,10 +118,16 @@ function hideBrokenImage(event: Event): void {
                 <p v-if="finding.reason" class="text-xs text-muted">
                   {{ finding.reason }}
                 </p>
-                <div v-if="finding.routes?.length" class="text-xs text-muted">
+                <div v-if="finding.routes?.length" class="text-sm text-muted">
                   <ul class="mt-1 space-y-0.5 font-mono">
                     <li v-for="r in finding.routes" :key="r">
-                      {{ r }}
+                      <NuxtLink v-if="affectedRouteLink(r)" :to="affectedRouteLink(r)" class="inline-flex min-h-11 items-center break-all hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:min-h-6">
+                        {{ r }}
+                      </NuxtLink>
+                      <span v-else class="break-all">{{ r }}</span>
+                    </li>
+                    <li v-if="finding.routeCount > finding.routes.length">
+                      +{{ finding.routeCount - finding.routes.length }} more
                     </li>
                   </ul>
                 </div>

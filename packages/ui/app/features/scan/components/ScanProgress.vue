@@ -111,7 +111,7 @@ const scoringStats = computed<UiStatProps[]>(() => [
     <!-- Scoring row — appears once at least one audit produced a perf
            score. Avg + bucket counts + ETA give the user "is this going
            well + how long to wait" at a glance. -->
-    <UiStats v-if="store.scoreCount > 0 || store.etaMs != null" variant="inline" size="sm" :data="scoringStats" class="border-t pt-3" />
+    <UiStats v-if="store.scoreCount > 0 || store.etaMs != null" variant="inline" size="sm" :data="scoringStats" class="border-t border-default pt-3" />
 
     <!-- Terminal -->
     <div v-if="expanded" id="scan-progress-terminal">

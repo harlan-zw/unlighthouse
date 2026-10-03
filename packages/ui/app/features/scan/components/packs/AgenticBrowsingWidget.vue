@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { AgenticBrowsingReportSchema } from '@unlighthouse/contracts/packs'
+import { useAffectedRouteLinks } from '~/features/scan/affected-route-links'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
+const { affectedRouteLink, linksPending, linksError, refreshLinks } = useAffectedRouteLinks(() => props.scanBase)
 
 const report = computed(() => AgenticBrowsingReportSchema.parse(props.report))
 
@@ -100,12 +102,12 @@ function llmsLabel(status: string | undefined): string {
          status; the route-level breakdown lives here. -->
     <UiCard v-if="report.llmsTxt" size="sm">
       <template #header>
-        <h3 class="text-label text-dimmed">
+        <h2 class="text-label text-dimmed">
           llms.txt
-        </h3>
+        </h2>
       </template>
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums text-success">
             {{ report.llmsTxt.validRoutes }}
           </div>
@@ -113,7 +115,7 @@ function llmsLabel(status: string | undefined): string {
             Valid
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums" :class="report.llmsTxt.invalidRoutes > 0 ? 'text-error' : ''">
             {{ report.llmsTxt.invalidRoutes }}
           </div>
@@ -121,7 +123,7 @@ function llmsLabel(status: string | undefined): string {
             Invalid
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums text-muted">
             {{ report.llmsTxt.missingRoutes }}
           </div>
@@ -129,7 +131,7 @@ function llmsLabel(status: string | undefined): string {
             Missing
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums" :class="report.llmsTxt.fetchFailedRoutes > 0 ? 'text-error' : ''">
             {{ report.llmsTxt.fetchFailedRoutes }}
           </div>
@@ -142,12 +144,12 @@ function llmsLabel(status: string | undefined): string {
 
     <UiCard v-if="report.webmcp" size="sm">
       <template #header>
-        <h3 class="text-label text-dimmed">
+        <h2 class="text-label text-dimmed">
           WebMCP
-        </h3>
+        </h2>
       </template>
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <UiIcon
             :name="report.webmcp.supported === false ? 'minus' : report.webmcp.hasRegisteredTools ? 'success' : 'error'"
             :class="report.webmcp.supported === false ? 'text-muted' : report.webmcp.hasRegisteredTools ? 'text-success' : 'text-muted'"
@@ -157,7 +159,7 @@ function llmsLabel(status: string | undefined): string {
             {{ report.webmcp.supported === false ? 'WebMCP Unsupported' : 'Registered Tools' }}
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums">
             {{ report.webmcp.routesMissingFormAnnotations ?? 0 }}
           </div>
@@ -165,7 +167,7 @@ function llmsLabel(status: string | undefined): string {
             Routes Missing Form Annotations
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <UiIcon
             :name="report.webmcp.schemaValid ? 'success' : report.webmcp.schemaValid === false ? 'error' : 'minus'"
             :class="report.webmcp.schemaValid ? 'text-success' : report.webmcp.schemaValid === false ? 'text-error' : 'text-muted'"
@@ -175,7 +177,7 @@ function llmsLabel(status: string | undefined): string {
             Schema Valid
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums">
             {{ report.stability?.passingCount ?? 0 }}/{{ report.stability?.routeCount ?? 0 }}
           </div>
@@ -187,13 +189,17 @@ function llmsLabel(status: string | undefined): string {
     </UiCard>
 
     <UiCard v-if="report.findings?.length" size="sm">
+      <QueryError v-if="linksError" :error="linksError" :on-retry="refreshLinks" />
+      <p v-else-if="linksPending" role="status" class="pb-2 text-sm text-muted">
+        Loading affected route links
+      </p>
       <template #header>
-        <h3 class="text-label text-dimmed flex items-center gap-2">
+        <h2 class="text-label text-dimmed flex items-center gap-2">
           Audit Findings
           <UiChip purpose="count">
             {{ report.findings.length }}
           </UiChip>
-        </h3>
+        </h2>
       </template>
       <UAccordion :items="findingItems" type="multiple" class="w-full">
         <template #default="{ item: finding }">
@@ -206,14 +212,17 @@ function llmsLabel(status: string | undefined): string {
           </div>
         </template>
         <template #content="{ item: finding }">
-          <div v-if="finding.failingRoutes?.length" class="text-xs text-muted pb-2">
+          <div v-if="finding.failingRoutes?.length" class="text-sm text-muted pb-2">
             Failing routes:
             <ul class="mt-1 space-y-0.5 font-mono">
               <li v-for="r in finding.failingRoutes.slice(0, 10)" :key="r">
-                {{ r }}
+                <NuxtLink v-if="affectedRouteLink(r)" :to="affectedRouteLink(r)" class="inline-flex min-h-11 items-center break-all hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:min-h-6">
+                  {{ r }}
+                </NuxtLink>
+                <span v-else class="break-all">{{ r }}</span>
               </li>
-              <li v-if="finding.failingRoutes.length > 10">
-                +{{ finding.failingRoutes.length - 10 }} more
+              <li v-if="finding.routeCount - finding.passingRouteCount > Math.min(finding.failingRoutes.length, 10)">
+                +{{ finding.routeCount - finding.passingRouteCount - Math.min(finding.failingRoutes.length, 10) }} more
               </li>
             </ul>
           </div>

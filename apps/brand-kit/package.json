@@ -18,6 +18,7 @@
     "motion-v": "catalog:",
     "nuxt": "catalog:",
     "pathe": "catalog:dependencies",
+    "rangi": "catalog:",
     "reka-ui": "catalog:",
     "vue": "catalog:dependencies",
     "zod": "catalog:"

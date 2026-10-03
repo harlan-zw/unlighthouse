@@ -60,11 +60,20 @@ const routeCheckColumns: UiTableColumn<RouteCheckRow>[] = [
     <!-- Per-route checks table (SEO-specific again). -->
     <UiCard v-if="report.routeChecks.length" size="sm">
       <template #header>
-        <h3 class="text-label text-muted">
+        <h2 class="text-label text-muted">
           Route Checks
-        </h3>
+        </h2>
       </template>
-      <UiTable :columns="routeCheckColumns" :data="report.routeChecks" disable-pagination />
+      <UiTable
+        :columns="routeCheckColumns"
+        :data="report.routeChecks"
+        disable-pagination
+        tabindex="0"
+        role="region"
+        aria-label="Route Checks"
+        label="Route Checks"
+        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      />
     </UiCard>
 
     <UiEmptyState

@@ -39,7 +39,7 @@ const {
   rescanRoute,
 } = useRouteDetail()
 
-const { fmtMs } = createFormatters()
+const { fmtMs, fmtTimestamp } = createFormatters()
 const isStatic = useIsStatic()
 
 useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
@@ -88,10 +88,6 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
               </a>
             </UiTooltip>
           </div>
-          <div v-if="routeData.provenance" class="flex items-center gap-3 mt-1 text-xs text-muted">
-            <span>LH {{ routeData.provenance.lighthouseVersion }}</span>
-            <span v-if="routeData.provenance.timingTotal">{{ fmtMs(routeData.provenance.timingTotal) }} audit</span>
-          </div>
         </div>
         <div v-if="!isStatic" class="flex flex-wrap items-center gap-2">
           <a
@@ -119,6 +115,8 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
           v-model="deviceFilter"
           :content="false"
           size="sm"
+          color="neutral"
+          :ui="{ indicator: 'hidden', trigger: 'min-h-11 min-w-11 data-[state=active]:bg-inverted data-[state=active]:text-inverted' }"
           :items="availableDevices.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1), icon: d === 'mobile' ? 'smartphone' : 'monitor' }))"
         />
       </div>
@@ -161,7 +159,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
           id="route-screenshot"
           tabindex="0"
           aria-label="Scrollable full-page screenshot"
-          class="mx-auto w-full overflow-y-auto rounded border bg-elevated"
+          class="mx-auto w-full overflow-y-auto rounded border border-default bg-elevated"
           :class="[
             screenshotExpanded ? 'max-h-[80dvh]' : 'max-h-[420px]',
             routeData.route?.device === 'desktop' ? 'max-w-4xl' : 'max-w-sm',
@@ -205,13 +203,13 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
 
       <!-- Category Scores -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
-        <div v-for="s in scores" :key="s.id" class="rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4">
-          <ScoreRing v-if="s.categoryScoreDisplayMode === 'gauge'" :score="s.score" size="md" />
+        <div v-for="s in scores" :key="s.id" class="min-w-0 rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4 lg:flex-col lg:text-center 2xl:flex-row 2xl:text-left">
+          <ScoreRing v-if="s.categoryScoreDisplayMode === 'gauge'" :score="s.score" size="md" class="shrink-0" />
           <div v-else class="flex size-16 shrink-0 items-center justify-center rounded-full border border-default bg-default/50">
             <UiIcon name="bot" class="size-6 text-muted" />
           </div>
-          <div>
-            <div class="text-sm font-medium">
+          <div class="min-w-0">
+            <div class="text-sm font-medium break-words">
               {{ s.label }}
             </div>
             <div v-if="s.categoryScoreDisplayMode === 'fraction'" class="numerals-display text-2xl" :class="scoreToColor(s.score)">
@@ -229,18 +227,76 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
           </h2>
         </template>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
-          <div v-for="m in metrics" :key="m.label" class="rounded-lg border p-4 text-center">
+          <div v-for="m in metrics" :key="m.label" class="rounded-lg border border-default p-4 text-center">
             <div class="text-xs text-muted mb-1">
               {{ m.label }}
             </div>
             <div class="numerals-display text-xl" :class="metricColor(m.label, m.value)">
               {{ formatMetric(m.value, m.unit) }}
             </div>
-            <div class="text-xs text-muted/60 mt-1">
+            <div class="text-sm text-muted mt-1">
               {{ m.description }}
             </div>
           </div>
         </div>
+      </UiCard>
+
+      <UiCard v-if="routeData.provenance" size="sm">
+        <UCollapsible>
+          <UiButton purpose="quiet" class="w-full justify-between min-h-11" trailing-icon="chevron-down">
+            Measurement details
+          </UiButton>
+          <template #content>
+            <dl class="grid gap-4 pt-4 text-sm sm:grid-cols-2">
+              <div v-if="routeData.provenance.capturedAt">
+                <dt class="text-muted">
+                  Captured at
+                </dt>
+                <dd class="break-words">
+                  {{ fmtTimestamp(routeData.provenance.capturedAt) }}
+                </dd>
+              </div>
+              <div v-if="routeData.provenance.lighthouseVersion">
+                <dt class="text-muted">
+                  Lighthouse version
+                </dt>
+                <dd>{{ routeData.provenance.lighthouseVersion }}</dd>
+              </div>
+              <div v-if="routeData.route?.device">
+                <dt class="text-muted">
+                  Recorded device
+                </dt>
+                <dd class="capitalize">
+                  {{ routeData.route.device }}
+                </dd>
+              </div>
+              <div v-if="routeData.provenance.timingTotal != null">
+                <dt class="text-muted">
+                  Audit duration
+                </dt>
+                <dd class="tabular-nums">
+                  {{ fmtMs(routeData.provenance.timingTotal) }}
+                </dd>
+              </div>
+              <div v-if="routeData.provenance.benchmarkIndex != null">
+                <dt class="text-muted">
+                  Benchmark index
+                </dt>
+                <dd class="tabular-nums">
+                  {{ formatMetricValue(routeData.provenance.benchmarkIndex, '') }}
+                </dd>
+              </div>
+              <div v-if="routeData.provenance.userAgent" class="sm:col-span-2">
+                <dt class="text-muted">
+                  User agent
+                </dt>
+                <dd class="break-all font-mono">
+                  {{ routeData.provenance.userAgent }}
+                </dd>
+              </div>
+            </dl>
+          </template>
+        </UCollapsible>
       </UiCard>
 
       <!-- Category Sections -->
@@ -291,9 +347,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                       </UiChip>
                     </template>
                   </div>
-                  <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
+                  <div v-if="audit.items?.filter(hasVisibleContent).length" class="border border-default rounded-lg overflow-hidden">
                     <template v-for="(item, idx) in audit.items.slice(0, 20)" :key="idx">
-                      <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
+                      <div v-if="hasVisibleContent(item)" class="border-b border-default last:border-b-0 p-2 text-xs">
                         <div v-if="item.url" class="font-mono break-all text-muted">
                           {{ item.url }}
                         </div>
@@ -335,7 +391,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                   <div class="flex items-center gap-2 text-left text-sm">
                     <UiIcon name="check" class="size-3.5 text-success shrink-0" />
                     <span class="text-muted">{{ audit.title || audit.id }}</span>
-                    <span v-if="audit.displayValue" class="text-muted/60 text-xs ml-auto mr-4 shrink-0">
+                    <span v-if="audit.displayValue" class="text-muted text-sm ml-auto mr-4 shrink-0">
                       {{ audit.displayValue }}
                     </span>
                   </div>
@@ -348,9 +404,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                         <span v-else>{{ part.text }}</span>
                       </template>
                     </p>
-                    <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
+                    <div v-if="audit.items?.filter(hasVisibleContent).length" class="border border-default rounded-lg overflow-hidden">
                       <template v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx">
-                        <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
+                        <div v-if="hasVisibleContent(item)" class="border-b border-default last:border-b-0 p-2 text-xs">
                           <div v-if="item.url" class="font-mono break-all text-muted">
                             {{ item.url }}
                           </div>
@@ -378,7 +434,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                 </UiChip>
               </template>
               <div class="space-y-0.5 pt-2 pl-6">
-                <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted/60">
+                <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted">
                   <UiIcon name="minus" class="size-3 shrink-0" />
                   <span>{{ audit.title || audit.id }}</span>
                 </div>

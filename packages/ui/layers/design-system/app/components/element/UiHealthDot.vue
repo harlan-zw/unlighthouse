@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HealthStatus } from '../../composables/semanticColors'
+import { healthColors } from '../../composables/semanticColors'
 
 const { health = 'unknown', size = 'sm', pulse = false, label } = defineProps<{
   health?: HealthStatus | null

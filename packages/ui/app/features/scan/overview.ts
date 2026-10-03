@@ -1,6 +1,7 @@
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
+import { overviewDistributionRows, parseOverviewFixes } from '~/features/scan/overview-diagnostics'
 import { useScanBase } from '~/features/scan/route-context'
 import { resolveScanOverviewStatus } from '~/features/scan/status-presentation'
 import { useScanStore } from '~/stores/scan'
@@ -145,11 +146,18 @@ export function useScanOverview() {
 
   const hasMultipleDevices = computed(() => Boolean(deviceProbe.value?.mobile && deviceProbe.value?.desktop))
 
-  const { data: scanSummary, error: scanSummaryError, refresh: refreshSummary } = useApiQuery(
+  const { data: scanSummary, error: scanSummaryError, status: scanSummaryStatus, refresh: refreshSummary } = useApiQuery(
     'scan.summary',
     () => ({ scanId: scanId.value, device: deviceFilter.value || undefined }),
     { enabled: scanHasResults },
   )
+
+  const { data: cwvPack, error: cwvError, status: cwvStatus, refresh: refreshCwv } = useApiQuery(
+    'pack.run',
+    () => ({ scanId: scanId.value, pack: 'cwv', device: deviceFilter.value || undefined }),
+    { enabled: computed(() => scanHasResults.value && !showLiveView.value) },
+  )
+  const cwvFixes = computed(() => parseOverviewFixes(cwvPack.value?.report))
 
   const rescan = useApiMutation('scan.rescanAll')
   const rescanningAll = rescan.isPending
@@ -179,17 +187,16 @@ export function useScanOverview() {
     if (!scanSummary.value)
       return null
     const distribution = scanSummary.value.distribution
-    const total = scanSummary.value.routesScanned || 1
-    const classified = distribution.passing + distribution.needsWork + distribution.poor
-    const unscored = Math.max(0, scanSummary.value.routesScanned - classified)
+    const total = scanSummary.value.routesScanned
+    const bands = {
+      passing: { label: 'Pass', color: BAND_HEX.good, status: 'success' as const },
+      needsWork: { label: 'Needs Work', color: BAND_HEX.average, status: 'warning' as const },
+      poor: { label: 'Poor', color: BAND_HEX.poor, status: 'error' as const },
+      unscored: { label: 'No score', color: 'var(--ui-color-neutral-400)', status: 'neutral' as const },
+    }
     return {
       total,
-      segments: [
-        { label: 'Pass', count: distribution.passing, pct: (distribution.passing / total) * 100, color: BAND_HEX.good, status: 'success' as const },
-        { label: 'Needs Work', count: distribution.needsWork, pct: (distribution.needsWork / total) * 100, color: BAND_HEX.average, status: 'warning' as const },
-        { label: 'Poor', count: distribution.poor, pct: (distribution.poor / total) * 100, color: BAND_HEX.poor, status: 'error' as const },
-        { label: 'No score', count: unscored, pct: (unscored / total) * 100, color: 'var(--ui-color-neutral-400)', status: 'neutral' as const },
-      ].filter(segment => segment.count > 0),
+      segments: overviewDistributionRows(total, distribution).map(row => ({ ...row, ...bands[row.band] })),
     }
   })
 
@@ -243,6 +250,11 @@ export function useScanOverview() {
     deviceFilter,
     hasMultipleDevices,
     scanSummary,
+    scanSummaryStatus,
+    cwvFixes,
+    cwvError,
+    cwvStatus,
+    refreshCwv,
     scanMetaError,
     scanSummaryError,
     refreshScanMeta,

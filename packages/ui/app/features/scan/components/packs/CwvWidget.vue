@@ -38,7 +38,7 @@ function verdictColor(verdict: string | null) {
         <div class="text-xs text-muted mt-1">
           p75 across {{ formatRouteCount((m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0)) }}
         </div>
-        <div class="flex justify-center gap-1 mt-2">
+        <div class="flex flex-wrap justify-center gap-1 mt-2">
           <UiChip purpose="status" status="success">
             {{ m.distribution?.good ?? 0 }} good
           </UiChip>
@@ -54,12 +54,12 @@ function verdictColor(verdict: string | null) {
 
     <UiCard v-if="report.topFixes?.length" size="sm">
       <template #header>
-        <h3 class="text-label text-muted">
+        <h2 class="text-label text-muted">
           Top Fixes (by impact)
-        </h3>
+        </h2>
       </template>
       <div class="space-y-3">
-        <div v-for="fix in report.topFixes.slice(0, 10)" :key="`${fix.insight}:${fix.metric}`" class="flex items-start gap-3 p-3 border rounded-lg">
+        <div v-for="fix in report.topFixes.slice(0, 10)" :key="`${fix.insight}:${fix.metric}`" class="flex items-start gap-3 p-3 border border-default rounded-lg">
           <div class="flex-1">
             <div class="text-sm font-medium">
               {{ fix.title || fix.insight }}

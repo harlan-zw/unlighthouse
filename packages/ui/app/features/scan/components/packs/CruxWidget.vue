@@ -140,9 +140,9 @@ const gapSections = computed(() => [
 
     <UiCard v-if="fieldFindings.length" size="sm">
       <template #header>
-        <h3 class="text-label text-dimmed">
+        <h2 class="text-label text-dimmed">
           Field rating distribution
-        </h3>
+        </h2>
       </template>
       <DistributionBar :segments="ratingDistribution" />
     </UiCard>
@@ -153,14 +153,23 @@ const gapSections = computed(() => [
 
     <UiCard v-if="fieldFindings.length" size="sm">
       <template #header>
-        <h3 class="text-label text-dimmed flex items-center gap-2">
+        <h2 class="text-label text-dimmed flex items-center gap-2">
           Field Data by Route
           <UiChip purpose="count">
             {{ fieldFindings.length }}
           </UiChip>
-        </h3>
+        </h2>
       </template>
-      <UiTable :columns="findingColumns" :data="fieldFindings" :page-size="20" />
+      <UiTable
+        :columns="findingColumns"
+        :data="fieldFindings"
+        :page-size="20"
+        class="min-w-0 max-w-full overflow-x-auto! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        tabindex="0"
+        role="region"
+        aria-label="Field Data by Route"
+        label="Field Data by Route"
+      />
     </UiCard>
     <UiEmptyState
       v-else
@@ -173,12 +182,12 @@ const gapSections = computed(() => [
     <div v-if="fieldFindings.length" class="grid gap-4 lg:grid-cols-3">
       <UiCard v-for="section in gapSections" :key="section.key" size="sm">
         <template #header>
-          <h3 class="text-label text-dimmed flex items-center gap-2">
+          <h2 class="text-label text-dimmed flex items-center gap-2">
             <UiChip purpose="status" :status="section.status">
               {{ section.entries.length }}
             </UiChip>
             {{ section.title }}
-          </h3>
+          </h2>
         </template>
         <p class="text-xs text-muted mb-3">
           {{ section.description }}
