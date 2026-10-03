@@ -62,6 +62,7 @@ export default typegen(antfu({
   ignores: [
     '.codex/**',
     '.data/**',
+    'apps/cloudflare/src/worker-configuration.d.ts',
     'scripts/**',
     'test/*',
     'examples/*',

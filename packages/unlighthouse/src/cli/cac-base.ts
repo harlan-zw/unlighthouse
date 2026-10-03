@@ -16,7 +16,6 @@ export function createCiBaseCli() {
   cli.option('--root <root>', 'Define the project root. Useful for changing where the config is read from or setting up sampling.')
   cli.option('--config-file <config-file>', 'Path to config file.')
   cli.option('--output-path <output-path>', 'Path to save the contents of the client and reports to.')
-  cli.option('--no-cache', 'Disable the caching.')
   cli.option('--cache', 'Enable the caching.')
 
   cli.option('--desktop', 'Simulate device as desktop.')

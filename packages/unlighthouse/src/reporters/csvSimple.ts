@@ -9,27 +9,27 @@ function escapeValueForCsv(value: string | number | boolean): string {
 }
 
 export function csvSimpleFormat(reports: ReportWithLighthouse[]): { headers: string[], body: Array<Array<string | number | boolean>> } {
-  const headers = ['URL', 'Score']
-  const firstReport = reports[0]
-  if (!firstReport)
-    return { headers, body: [] }
-
-  firstReport.report.categories.forEach((category) => {
-    headers.push(category.title)
-  })
+  const categoryColumns = new Map<string, string>()
+  for (const { report } of reports) {
+    for (const category of report.categories) {
+      if (!categoryColumns.has(category.key))
+        categoryColumns.set(category.key, category.title)
+    }
+  }
+  const headers = ['URL', 'Score', ...categoryColumns.values()]
 
   const body = reports
     .map(({ report, route }) => {
-      const topLevelScoreKeys: number[] = []
-      report.categories.forEach((category) => {
-        topLevelScoreKeys.push(Math.round((category.score ?? 0) * 100))
-      })
+      const categories = new Map(report.categories.map(category => [category.key, category]))
       // map to the format
       return [
         route.path,
         Math.round(report.score * 100),
         // list all top level scores (performance, accessibility, etc)
-        ...topLevelScoreKeys,
+        ...Array.from(categoryColumns.keys(), (key) => {
+          const category = categories.get(key)
+          return category ? Math.round((category.score ?? 0) * 100) : ''
+        }),
       ]
         .map(escapeValueForCsv)
     })
