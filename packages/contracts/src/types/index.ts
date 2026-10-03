@@ -601,6 +601,8 @@ export interface ResolvedUserConfig {
      * @default 1
      */
     samples: number
+    /** Control whether performance audits share the audit pool. */
+    perfConcurrency?: 'serial' | 'parallel'
     /**
      * Should lighthouse run with throttling enabled? This is an alias for manually configuring lighthouse.
      *

@@ -5,8 +5,6 @@ navigation:
   title: "Migrating to v1"
 ---
 
-# Migrating to v1
-
 This guide compares the 0.19.1 `main` branch with the v1 beta.
 The beta replaces the programmatic runtime and storage model.
 Review custom integrations before upgrading.
@@ -133,8 +131,8 @@ It does not use the previous Puppeteer cluster.
 Use `CHROME_FLAGS` for Chrome process arguments.
 Use `lighthouseOptions` for supported Lighthouse audit settings.
 Use `scanner.perfConcurrency` to select serial or parallel performance audits.
-Use `chrome` options for Chrome discovery and download policy.
-These options do not replace every Puppeteer option.
+Set `CHROME_PATH` to select an installed Chrome browser.
+Legacy `chrome` download options do not configure the v1 local auditor.
 
 ## Programmatic scans
 

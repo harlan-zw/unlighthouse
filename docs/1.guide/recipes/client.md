@@ -1,12 +1,6 @@
 ---
-title: "Customizing the UI"
-description: "Modify Unlighthouse client interface columns and display to show custom metrics and data."
-keywords:
-  - lighthouse dashboard
-  - lighthouse ui
-  - custom lighthouse metrics
-  - lighthouse report customization
-  - lighthouse custom columns
+title: "Dashboard and Export Customization"
+description: "Dashboard and Export Customization for the Unlighthouse v1 beta."
 navigation:
   title: "UI Customization"
 relatedPages:
@@ -18,34 +12,23 @@ relatedPages:
     title: Static Reports
 ---
 
-# Customizing the UI
+The v1 dashboard uses built-in views backed by scan storage.
+Legacy dashboard column components and `afterBuild` config hooks do not customize those views.
 
-Customize the Unlighthouse dashboard to display metrics relevant to your workflow. Replace default columns, add custom audit displays, and configure how results appear.
+## Export a static dashboard
 
-## Customizing Columns
-
-Replace or add columns to display specific Lighthouse metrics:
-
-### Example: Replace FCP with Server Response Time
-
-```ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
-
-export default defineUnlighthouseConfig({
-  hooks: {
-    'resolved-config': function (config) {
-      config.client.columns.performance[2] = {
-        cols: 1,
-        label: 'Response Time',
-        tooltip: 'Time for the server to respond',
-        sortKey: 'numericValue',
-        key: 'report.audits.server-response-time',
-      }
-    },
-  },
-})
+```sh
+pnpm exec unlighthouse-ci --site https://example.com --build-static --reporter json
 ```
 
-::tip
-See the [Column API Reference](/api-doc/glossary#columns) for all available column options.
-::
+For scripts, call `host.generateClient({ static: true })` after the scan completes.
+See [API Reference](/api-doc#read-reports-and-export-the-dashboard).
+
+## Expanded CSV columns
+
+`ci.reporterConfig.columns` configures expanded CSV exports.
+Each category contains an array of column definitions with a label and audit key.
+`client.columns` remains an export fallback when explicit reporter columns are absent.
+It does not change the v1 dashboard.
+
+Use [CI Integration](/integrations/ci) for report formats and filenames.

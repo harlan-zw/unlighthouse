@@ -1,83 +1,38 @@
 ---
-title: "Single-Page Applications"
-description: "Configure Unlighthouse to scan single-page applications (SPAs) with client-side routing like React, Vue, and Angular apps."
-keywords:
-  - lighthouse spa
-  - lighthouse react
-  - lighthouse vue
-  - lighthouse angular
-  - lighthouse client side rendering
-  - spa performance testing
-  - lighthouse csr
+title: "Scanning Single Page Applications"
+description: "Scanning Single Page Applications for the Unlighthouse v1 beta."
 navigation:
   title: "SPAs"
 relatedPages:
   - path: /guide/guides/url-discovery
     title: URL Discovery
   - path: /guide/guides/puppeteer
-    title: Puppeteer Configuration
+    title: Chrome Options
   - path: /glossary/lcp
     title: LCP for SPAs
 ---
 
-Scan React, Vue, Angular, and other SPAs with client-side routing. SPAs require JavaScript execution for link discovery and accurate [Core Web Vitals](/glossary) measurement.
+Lighthouse audits application pages in Chrome.
+The discovery crawler reads server-rendered HTML and does not execute JavaScript.
 
-## Enable JavaScript Execution
+## Supply routes
 
-Allow Puppeteer to execute JavaScript before extracting page content:
+Use a sitemap or explicit URLs when navigation links appear only after hydration.
 
 ```ts
 import { defineUnlighthouseConfig } from 'unlighthouse/config'
 
 export default defineUnlighthouseConfig({
-  scanner: {
-    skipJavascript: false, // Enable JS execution for SPAs
-  },
+  site: 'http://localhost:3000',
+  urls: ['/', '/about', '/products'],
 })
 ```
 
-## Wait for Hydration
+Each URL must load the application directly.
+Configure your server to return the application shell for those paths.
 
-SPAs often need time to hydrate. Configure wait conditions:
+## Legacy browser discovery
 
-```ts
-export default defineUnlighthouseConfig({
-  scanner: {
-    skipJavascript: false,
-  },
-  lighthouseOptions: {
-    maxWaitForLoad: 45000, // Wait up to 45s for page load
-  },
-})
-```
-
-## Provide URLs Manually
-
-If automatic crawling misses routes, provide them explicitly:
-
-```ts
-export default defineUnlighthouseConfig({
-  urls: [
-    '/',
-    '/about',
-    '/products',
-    '/contact',
-  ],
-  scanner: {
-    skipJavascript: false,
-  },
-})
-```
-
-## SPA Performance Considerations
-
-SPAs typically have worse [LCP](/glossary/lcp) scores because:
-- Content renders after JavaScript execution
-- Initial HTML is often empty or minimal
-- Hydration adds to [INP](/glossary/inp) delays
-
-Consider SSR or SSG for content-heavy pages to improve Core Web Vitals.
-
-::note
-Enabling JavaScript execution increases scan time but is necessary for accurate SPA scanning.
-::
+`--enable-javascript` does not enable browser-based link discovery in v1.
+Puppeteer page hooks do not provide a hydration callback.
+Read [Migrating to v1](/guide/guides/migrating-to-v1) before upgrading custom discovery integrations.

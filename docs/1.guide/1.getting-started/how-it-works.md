@@ -1,13 +1,6 @@
 ---
 title: "How Unlighthouse Works"
-description: "Learn how Unlighthouse automatically discovers pages, runs Lighthouse audits in parallel, and generates site-wide performance reports."
-keywords:
-  - how unlighthouse works
-  - lighthouse site scanner
-  - automated lighthouse testing
-  - site-wide lighthouse audit
-  - bulk lighthouse scan
-  - parallel lighthouse testing
+description: "How Unlighthouse Works for the Unlighthouse v1 beta."
 navigation:
   title: "How It Works"
 relatedPages:
@@ -19,129 +12,34 @@ relatedPages:
     title: Core Web Vitals Glossary
 ---
 
-# How Unlighthouse Works
+The host loads config, discovers URLs, audits routes, and stores scan results.
 
-Unlighthouse automates the entire site audit process: it finds all your pages, runs Lighthouse on each one in parallel, then shows you aggregated results in a real-time dashboard.
+## Load configuration
 
-## How It Starts
+The Node.js host loads config files and applies CLI overrides.
+It initializes storage and adapters when a scan or server needs them.
 
-### 1. Setup
+## Discover URLs
 
-First, Unlighthouse loads your config file using the [c12](https://github.com/unjs/c12) package. This supports TypeScript config files and gives you a global `defineUnlighthouseConfig` function for type support:
+Seed sources provide configured URLs, sitemap entries, and static route definitions.
+The HTML crawler can then follow links within the site.
+It reads server-rendered HTML and does not execute JavaScript to discover links.
+Explicit URLs and single-page mode stop link following.
 
-::code-group
+## Audit routes
 
-```ts [Configuration Loading]
-const unlighthouse = await createUnlighthouse(config)
-```
+The local auditor launches headless Chrome and runs Lighthouse in worker threads.
+Performance audits use a serial lane by default.
+Repeated samples retain the median performance run.
 
-```ts [unlighthouse.config.ts]
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
+## Store and display results
 
-export default defineUnlighthouseConfig({
-  site: 'https://example.com',
-  scanner: {
-    samples: 3,
-    throttle: true,
-  },
-})
-```
+SQLite stores scan and route records.
+Report blobs contain reconciled results and raw Lighthouse artifacts.
+The dashboard receives scan updates through the host.
+CI waits for scan completion before exporting reports and evaluating budgets.
 
-::
+## Extend the runtime
 
-#### Browser Workers
-
-Unlighthouse creates a pool of Chrome browsers using [puppeteer-cluster](https://github.com/thomasdondorf/puppeteer-cluster):
-
-- Opens multiple Chrome instances
-- Each one can scan a different page
-- Runs scans in parallel to go faster
-
-### 2. Report Site Setup
-
-Unlighthouse starts a local web server so you can see the results:
-
-```ts
-// Create server for the UI client
-const { server, app } = await createServer()
-await unlighthouse.setServerContext({
-  url: server.url,
-  server: server.server,
-  app
-})
-```
-
-#### API
-
-The [unrouted](https://github.com/harlan-zw/unrouted) API handles:
-
-- Sending scan updates to your browser
-- Serving Lighthouse reports
-- Managing the scanning process
-
-#### Web App
-
-A [Vite](https://github.com/vitejs/vite) web app that:
-
-- Shows scan progress in real-time
-- Displays all the Lighthouse scores
-- Lets you filter and explore results
-
-### 3. The Actual Scanning
-
-#### When It Starts
-
-Unlighthouse can start in two ways:
-
-::code-group
-
-```ts [Immediate Start]
-// CLI mode - starts immediately
-unlighthouse.start()
-```
-
-```ts [Lazy Start]
-// Integration mode - waits for first client access
-hooks.hookOnce('visited-client', () => {
-  unlighthouse.start()
-})
-```
-
-::
-
-#### Finding Your Pages
-
-Unlighthouse finds pages to scan in a few ways:
-
-1. **Route Files**: Reads your framework's route files (like Next.js pages)
-2. **Robots.txt**: Checks your robots.txt file for sitemap links
-3. **Sitemap.xml**: Gets all URLs from your sitemap
-4. **Crawling**: If no sitemap, it starts from your homepage and follows links
-
-::tip
-Having a sitemap.xml makes scanning much faster and finds more pages.
-::
-
-#### What Happens to Each Page
-
-For every URL it finds, Unlighthouse does two things:
-
-##### Step 1: Quick HTML Check
-
-- Makes a simple HTTP request to get the HTML
-- Grabs basic info like title, meta tags
-- Looks for more links to scan
-
-##### Step 2: Full Lighthouse Scan
-
-- Opens the page in Chrome
-- Runs all the Lighthouse tests (including [Core Web Vitals](/glossary) like [LCP](/glossary/lcp), [CLS](/glossary/cls), [INP](/glossary/inp))
-- Saves the report as HTML and JSON files
-
-#### Live Updates
-
-While scanning, the report page updates in real-time:
-
-- Shows how many pages are done
-- Updates the progress bar
-- Shows results as soon as each page finishes
+Use [the host API](/api-doc) for programmatic scans and typed hooks.
+Custom core runtimes can supply their own storage, seed source, crawler, and auditor.
