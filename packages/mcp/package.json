@@ -30,9 +30,11 @@
     "test:publint": "publint"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "catalog:"
   }
 }

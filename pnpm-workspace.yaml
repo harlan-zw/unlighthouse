@@ -38,6 +38,7 @@ catalog:
   '@nuxtjs/color-mode': 4.0.0
   '@types/better-sqlite3': ^9.6.0
   '@types/node': ^26.2.0
+  aws4fetch: 1.0.20
   bumpp: ^12.2.0
   drizzle-kit: ^0.31.10
   eslint: ^10.8.1

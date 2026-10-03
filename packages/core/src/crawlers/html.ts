@@ -23,6 +23,21 @@ type HtmlResult
 
 const asError = (error: unknown): Error => error instanceof Error ? error : new Error(String(error))
 
+function waitForRetry(ms: number, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted()
+  return new Promise((resolve, reject) => {
+    const abort = () => {
+      clearTimeout(timer)
+      reject(signal.reason)
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', abort)
+      resolve()
+    }, ms)
+    signal.addEventListener('abort', abort, { once: true })
+  })
+}
+
 /** Native fetch and bounded work, adapted from NuxtSEO's fetch-html provider. */
 export function htmlCrawler(opts: HtmlCrawlerOptions = {}): Crawler {
   const concurrency = Math.max(1, Math.floor(opts.concurrency ?? 5))
@@ -42,16 +57,30 @@ export function htmlCrawler(opts: HtmlCrawlerOptions = {}): Crawler {
           throw new Error(`Redirect target is excluded: ${url}`)
         // Every redirect rechecks the origin before sending configured credentials.
         const requestHeaders = url.origin === credentialOrigin ? headers : { 'user-agent': headers['user-agent']! }
-        let response: Response
-        try {
-          response = await fetch(url, { headers: requestHeaders, redirect: 'manual', signal: requestSignal })
+        const request = async (): Promise<Response> => {
+          for (let attempt = 0; attempt < 2; attempt++) {
+            let response: Response
+            try {
+              response = await fetch(url, { headers: requestHeaders, redirect: 'manual', signal: requestSignal })
+            }
+            catch (error) {
+              if (requestSignal.aborted || attempt === 1)
+                throw error
+              opts.logger?.debug?.(`Retrying HTML request: ${url}`, error)
+              continue
+            }
+            if (attempt === 0 && [408, 425, 429, 500, 502, 503, 504].includes(response.status)) {
+              await response.body?.cancel()
+              const after = response.headers.get('retry-after')
+              const delay = after === null ? 250 : /^\d+(?:\.\d+)?$/.test(after) ? Number(after) * 1000 : Date.parse(after) - Date.now()
+              await waitForRetry(Math.max(0, Math.min(5000, Number.isFinite(delay) ? delay : 250)), requestSignal)
+              continue
+            }
+            return response
+          }
+          throw new Error(`HTML request exhausted retries: ${url}`)
         }
-        catch (error) {
-          if (requestSignal.aborted)
-            throw error
-          opts.logger?.debug?.(`Retrying HTML request: ${url}`, error)
-          response = await fetch(url, { headers: requestHeaders, redirect: 'manual', signal: requestSignal })
-        }
+        const response = await request()
         if ([301, 302, 303, 307, 308].includes(response.status)) {
           await response.body?.cancel()
           const location = response.headers.get('location')
@@ -66,7 +95,8 @@ export function htmlCrawler(opts: HtmlCrawlerOptions = {}): Crawler {
           throw new Error(`HTML request failed: ${response.status} ${url}`)
         }
         const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
+        const charset = /charset\s*=\s*["']?([^\s;"']+)/i.exec(contentType)?.[1] ?? 'utf-8'
+        const decoder = new TextDecoder(charset)
         const maxBytes = opts.maxHtmlBytes ?? 8 * 1024 * 1024
         let bytes = 0
         let html = ''

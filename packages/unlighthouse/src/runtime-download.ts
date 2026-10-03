@@ -1,0 +1,173 @@
+import type { Logger } from '@unlighthouse/contracts'
+import { spawn } from 'node:child_process'
+import { createHash, randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { homedir } from 'node:os'
+import { delimiter, dirname, join } from 'node:path'
+import { setTimeout } from 'node:timers/promises'
+import { pathToFileURL } from 'node:url'
+
+declare const __UNLIGHTHOUSE_RUNTIME_PACKAGES__: Record<string, string>
+
+// Replaced from installed package versions at build time. Source tests use these pins.
+const versions = typeof __UNLIGHTHOUSE_RUNTIME_PACKAGES__ === 'undefined'
+  ? { 'lighthouse': '13.4.1', 'puppeteer-core': '25.5.0', '@puppeteer/browsers': '3.1.0', '@libsql/client': '0.17.4', '@modelcontextprotocol/sdk': '1.30.0', '@unlighthouse/ui': '0.0.1', 'unstorage': '1.17.5', 'aws4fetch': '1.0.20', 'jiti': '2.7.0', '@lhci/utils': '0.15.1' }
+  : __UNLIGHTHOUSE_RUNTIME_PACKAGES__
+
+export interface RuntimeDownloadOptions {
+  cacheDir?: string
+  env?: NodeJS.ProcessEnv
+  logger?: Logger
+  signal?: AbortSignal
+  /** Installer seam for hosts and tests. Installs only into the staging directory. */
+  install?: (directory: string, packages: string[], signal?: AbortSignal) => Promise<void>
+}
+
+export function runtimeCacheDirectory(env: NodeJS.ProcessEnv = process.env): string {
+  return env.UNLIGHTHOUSE_RUNTIME_CACHE ?? join(env.XDG_CACHE_HOME ?? join(homedir(), '.cache'), 'unlighthouse', 'runtime')
+}
+
+function npmCommand(env: NodeJS.ProcessEnv): { command: string, prefix: string[] } {
+  if (process.platform !== 'win32')
+    return { command: 'npm', prefix: [] }
+  // Execute npm's script through Node. Avoid cmd.exe interpreting cache paths.
+  for (const directory of (env.PATH ?? env.Path ?? '').split(delimiter)) {
+    const script = join(directory, 'node_modules', 'npm', 'bin', 'npm-cli.js')
+    if (existsSync(script))
+      return { command: process.execPath, prefix: [script] }
+  }
+  throw new Error('npm was not found. Install npm to download audit dependencies.')
+}
+
+function installPackages(directory: string, packages: string[], env: NodeJS.ProcessEnv, signal?: AbortSignal): Promise<void> {
+  const { command, prefix } = npmCommand(env)
+  return new Promise((resolve, reject) => {
+    let output = ''
+    const child = spawn(command, [...prefix, 'install', '--ignore-scripts', '--omit=optional', '--no-audit', '--no-fund', '--save-exact', '--loglevel=error', ...packages], {
+      cwd: directory,
+      env,
+      signal,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+    for (const stream of [child.stdout, child.stderr])
+      stream.on('data', chunk => output = (output + String(chunk)).slice(-8000))
+    child.once('error', reject)
+    child.once('close', code => code === 0 ? resolve() : reject(new Error(`Dependency download failed (${code}). ${output.trim()}`)))
+  })
+}
+
+async function ownerIsGone(lock: string): Promise<boolean> {
+  const owner = await readFile(join(lock, 'owner'), 'utf8').catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT')
+      return undefined
+    throw error
+  })
+  if (!owner) {
+    // A process may have created the directory but not written its PID yet.
+    const info = await stat(lock).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT')
+        return undefined
+      throw error
+    })
+    return !!info && Date.now() - info.mtimeMs > 30_000
+  }
+  const pid = Number(owner)
+  if (!Number.isInteger(pid) || pid <= 0)
+    throw new Error(`Invalid dependency cache lock: ${lock}`)
+  try {
+    process.kill(pid, 0)
+    return false
+  }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ESRCH')
+      return true
+    throw error
+  }
+}
+
+/** Serializes package or browser publication across CLI processes. */
+export async function withRuntimeDownloadLock<T>(lock: string, operation: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  signal?.throwIfAborted()
+  await mkdir(dirname(lock), { recursive: true })
+  const deadline = Date.now() + 300_000
+  while (true) {
+    const acquired = await mkdir(lock).then(() => true, (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EEXIST')
+        return false
+      throw error
+    })
+    if (acquired)
+      break
+    if (await ownerIsGone(lock)) {
+      // Only one waiter may recover a dead owner. Recheck after winning recovery.
+      await withRuntimeDownloadLock(`${lock}.recovery`, async () => {
+        if (await ownerIsGone(lock))
+          await rm(lock, { recursive: true, force: true })
+      }, signal)
+    }
+    if (Date.now() > deadline)
+      throw new Error(`Dependency download timed out. Check the cache lock: ${lock}`)
+    await setTimeout(100, undefined, { signal })
+  }
+  try {
+    await writeFile(join(lock, 'owner'), String(process.pid))
+    signal?.throwIfAborted()
+    return await operation()
+  }
+  finally {
+    await rm(lock, { recursive: true, force: true })
+  }
+}
+
+/** Atomic publication keeps failed or interrupted installs out of the reusable cache. */
+export async function downloadRuntimePackages(packages: Record<string, string>, options: RuntimeDownloadOptions = {}): Promise<(specifier: string) => string> {
+  const specs = Object.entries(packages).sort(([a], [b]) => a.localeCompare(b)).map(([name, version]) => {
+    if (!/^(@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(name) || !/^\d+\.\d+\.\d+(?:-[a-z0-9.-]+)?$/i.test(version))
+      throw new Error(`Invalid dependency pin: ${name}@${version}`)
+    return `${name}@${version}`
+  })
+  const env = { ...process.env, ...options.env }
+  const key = createHash('sha256').update(JSON.stringify([specs, process.platform, process.arch, process.versions.modules])).digest('hex').slice(0, 20)
+  const cache = options.cacheDir ?? runtimeCacheDirectory(env)
+  const destination = join(cache, key)
+  const ready = join(destination, 'ready')
+  const resolve = () => {
+    const require = createRequire(join(destination, 'package.json'))
+    return (specifier: string) => pathToFileURL(require.resolve(specifier)).href
+  }
+  options.signal?.throwIfAborted()
+  if (existsSync(ready))
+    return resolve()
+  return withRuntimeDownloadLock(`${destination}.lock`, async () => {
+    const staging = `${destination}.${randomUUID()}.tmp`
+    try {
+      if (existsSync(ready))
+        return resolve()
+      await mkdir(staging)
+      await writeFile(join(staging, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
+      options.logger?.info?.(`Downloading dependencies: ${specs.join(', ')}`)
+      await (options.install ?? ((directory, pins, signal) => installPackages(directory, pins, env, signal)))(staging, specs, options.signal)
+      options.signal?.throwIfAborted()
+      await writeFile(join(staging, 'ready'), JSON.stringify(specs))
+      await rename(staging, destination)
+      return resolve()
+    }
+    finally {
+      await rm(staging, { recursive: true, force: true })
+    }
+  }, options.signal)
+}
+
+export function downloadDependencies(names: string[], options: RuntimeDownloadOptions = {}) {
+  return downloadRuntimePackages(Object.fromEntries(names.map(name => [name, versions[name]!])), options)
+}
+
+export function runtimePackageVersion(name: string): string {
+  const version = versions[name]
+  if (!version)
+    throw new Error(`Dependency has no version pin: ${name}`)
+  return version
+}

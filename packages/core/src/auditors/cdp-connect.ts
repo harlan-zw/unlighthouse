@@ -1,13 +1,16 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Page } from '@unlighthouse/contracts/ports'
+import type lighthouse from 'lighthouse'
+import type puppeteer from 'puppeteer-core'
+import type { LighthouseRuntime } from './lighthouse-runtime'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import lighthouse from 'lighthouse'
-import puppeteer from 'puppeteer-core'
 import { CDP_CONNECT_CATEGORIES } from './categories'
 import { getScreenEmulation, getUserAgent } from './lighthouse-config'
 import { attachExtractedRouteData } from './lighthouse-report'
+import { loadLighthouseRuntime } from './lighthouse-runtime'
 
 export interface CdpConnectOptions {
+  loadRuntime?: (signal?: AbortSignal) => Promise<LighthouseRuntime>
   /** WebSocket endpoint of the remote Chrome (browserless, CF Browser Rendering, self-hosted, etc.) */
   browserWSEndpoint: string
   /** Optional auth headers (e.g. CF API token). */
@@ -64,7 +67,11 @@ export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
     capabilities: resolveCapabilities(opts.capabilities),
     async audit(url: string, _page?: Page, auditOpts: AuditOpts = {}): Promise<AuditorReport> {
       const { signal } = auditOpts
-      const connect = opts.connect ?? puppeteer.connect
+      const runtime = opts.connect && opts.runLighthouse
+        ? undefined
+        : await loadLighthouseRuntime(await opts.loadRuntime?.(signal))
+      signal?.throwIfAborted()
+      const connect = opts.connect ?? runtime!.puppeteer.connect
       const browser = await connect({
         browserWSEndpoint: opts.browserWSEndpoint,
         headers: opts.headers,
@@ -74,7 +81,7 @@ export function createCdpConnectAuditor(opts: CdpConnectOptions): Auditor {
         await withAbort(page.goto(url, { waitUntil: 'networkidle0' }), signal)
 
         // Lighthouse v11+ accepts a connected puppeteer Page as the 4th arg; port is omitted.
-        const runLighthouse = opts.runLighthouse ?? lighthouse
+        const runLighthouse = opts.runLighthouse ?? runtime!.lighthouse
         const formFactor = auditOpts.device ?? 'mobile'
         const flags = {
           output: 'json' as const,

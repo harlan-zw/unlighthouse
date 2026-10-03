@@ -62,29 +62,24 @@
     "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"
   },
-  "peerDependencies": {
-    "@lhci/utils": "catalog:"
-  },
-  "peerDependenciesMeta": {
-    "@lhci/utils": {
-      "optional": true
-    },
-    "puppeteer": {
-      "optional": true
-    },
-    "vue": {
-      "optional": true
-    }
-  },
   "dependencies": {
-    "@libsql/client": "catalog:",
-    "@puppeteer/browsers": "catalog:dependencies",
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "@unlighthouse/mcp": "workspace:*",
-    "@unlighthouse/ui": "workspace:*",
     "better-opn": "catalog:dependencies",
-    "better-sqlite3": "catalog:dependencies",
+    "tinypool": "catalog:",
+    "ws": "catalog:dependencies",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@lhci/utils": "catalog:",
+    "@libsql/client": "catalog:",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "@puppeteer/browsers": "catalog:dependencies",
+    "@types/better-sqlite3": "catalog:",
+    "@types/node": "catalog:",
+    "@unlighthouse/ui": "workspace:*",
+    "aws4fetch": "catalog:",
     "c12": "catalog:dependencies",
     "cac": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
@@ -94,16 +89,12 @@
     "drizzle-orm": "catalog:dependencies",
     "h3": "catalog:dependencies",
     "hookable": "catalog:dependencies",
+    "jiti": "catalog:",
     "launch-editor": "catalog:dependencies",
+    "lighthouse": "catalog:dependencies",
     "listhen": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "ufo": "catalog:dependencies",
-    "unstorage": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@lhci/utils": "catalog:",
-    "@types/better-sqlite3": "catalog:",
-    "@types/node": "catalog:"
+    "unstorage": "catalog:"
   }
 }

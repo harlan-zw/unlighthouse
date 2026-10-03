@@ -25,7 +25,7 @@ export async function buildCliContext(flags: CliContextFlags = {}): Promise<Hand
     cwd: flags.root,
     env,
   })
-  const logger = createConsola({ defaults: { level: flags.debug ? 4 : 1 } }).withTag('unlighthouse-cli')
+  const logger = createConsola({ level: flags.debug ? 4 : 1, stdout: process.stderr, stderr: process.stderr }).withTag('unlighthouse-cli')
   const output = resolveScanDirectory({
     outputRoot: config.outputPath as string,
     site: config.site,

@@ -19,9 +19,7 @@ import type { Socket } from 'node:net'
 import type { LocalRuntime } from './local-runtime'
 import { existsSync, mkdirSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { createHookEvent } from '@unlighthouse/contracts/hooks'
-import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createWS } from '@unlighthouse/core/api'
 import { createLogger } from '@unlighthouse/core/logger'
 import { joinURL } from 'ufo'
@@ -32,6 +30,7 @@ import { createLocalRuntime } from './local-runtime'
 import { mountServer } from './server'
 import { checkWsUpgrade, isExposedHost, normaliseOrigin } from './server-guards'
 import { createServerHooks } from './server-hooks'
+import { resolveUiClient } from './ui-download'
 import { computeConfigCacheKey, normaliseHost } from './util'
 
 /**
@@ -271,15 +270,9 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     logger.debug?.(`setServerContext — url: ${url}`)
     const $server = new URL(url)
 
-    let resolvedClientPath = ''
-    try {
-      resolvedClientPath = fileURLToPath(import.meta.resolve('@unlighthouse/ui'))
-      if (!existsSync(resolvedClientPath))
-        resolvedClientPath = ''
-    }
-    catch (err) {
-      logOperationalWarn('host.client_resolve_failed', err, { phase: 'server-context' }, logger)
-    }
+    const resolvedClientPath = behavior.generateClient
+      ? await resolveUiClient({ logger, env })
+      : ''
 
     const clientUrl = joinURL($server.toString(), resolvedConfig.routerPrefix)
     const apiPath = joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)
@@ -381,14 +374,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
     // normally set by setServerContext — is still empty. Resolve the
     // @unlighthouse/ui client package here so build.ts has a source to copy.
     if (!rs.resolvedClientPath) {
-      try {
-        const p = fileURLToPath(import.meta.resolve('@unlighthouse/ui'))
-        if (existsSync(p))
-          rs.resolvedClientPath = p
-      }
-      catch (err) {
-        logOperationalWarn('host.client_resolve_failed', err, { phase: 'static-generation' }, logger)
-      }
+      rs.resolvedClientPath = await resolveUiClient({ logger, env })
     }
     const { generateClient } = await import('./build')
     await generateClient({ static: opts?.static ?? false }, {

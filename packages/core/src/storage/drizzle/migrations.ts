@@ -13,27 +13,47 @@
 // appending one entry; old entries stay so an ancient database can
 // catch up through every intermediate version.
 
-import type { Database } from 'better-sqlite3'
+export interface SqliteMigrationDatabase {
+  exec: (sql: string) => unknown
+  prepare: (sql: string) => {
+    get: (...params: string[]) => unknown
+    all: () => unknown[]
+  }
+}
+
+/** Run synchronous SQL work atomically, without a native package dependency. */
+export function runSqliteTransaction<T>(db: Pick<SqliteMigrationDatabase, 'exec'>, operation: () => T): T {
+  db.exec('BEGIN')
+  try {
+    const result = operation()
+    db.exec('COMMIT')
+    return result
+  }
+  catch (error) {
+    db.exec('ROLLBACK')
+    throw error
+  }
+}
 
 interface Migration {
   /** Stable name for logging. */
   id: string
   /** True if the migration should run against this db. */
-  needs: (db: Database) => boolean
+  needs: (db: SqliteMigrationDatabase) => boolean
   /** Apply the change. Wrap in a transaction. */
-  apply: (db: Database) => void
+  apply: (db: SqliteMigrationDatabase) => void
 }
 
 // SQLite has no `IF NOT EXISTS` for ALTER and no first-class column
 // metadata — but `PRAGMA table_info(<table>)` returns one row per
 // column. Cheap, no transaction needed, returns [] for non-existent
 // tables.
-function hasColumn(db: Database, table: string, column: string): boolean {
+function hasColumn(db: SqliteMigrationDatabase, table: string, column: string): boolean {
   const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
   return rows.some(r => r.name === column)
 }
 
-function tableExists(db: Database, table: string): boolean {
+function tableExists(db: SqliteMigrationDatabase, table: string): boolean {
   const row = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(table)
   return row != null
 }
@@ -48,9 +68,9 @@ const MIGRATIONS: Migration[] = [
     id: 'd029-scan-routes-device-column',
     needs: db => tableExists(db, 'scan_routes') && !hasColumn(db, 'scan_routes', 'device'),
     apply: (db) => {
-      db.pragma('foreign_keys = OFF')
+      db.exec('PRAGMA foreign_keys = OFF')
       try {
-        const migrate = db.transaction(() => {
+        runSqliteTransaction(db, () => {
           db.exec(`ALTER TABLE scan_routes RENAME TO scan_routes_d029_old`)
           db.exec(`
             CREATE TABLE scan_routes (
@@ -95,10 +115,9 @@ const MIGRATIONS: Migration[] = [
           db.exec(`DROP TABLE scan_routes_d029_old`)
           db.exec(`CREATE INDEX IF NOT EXISTS idx_scan_routes_scan_id ON scan_routes (scan_id)`)
         })
-        migrate()
       }
       finally {
-        db.pragma('foreign_keys = ON')
+        db.exec('PRAGMA foreign_keys = ON')
       }
     },
   },
@@ -133,7 +152,7 @@ export interface EnsureSchemaOptions {
  * treats a non-empty result as an irreparably-stale DB and recreates it.
  * Idempotent + cheap (a PRAGMA per column), safe on every boot.
  */
-export function ensureSchema(db: Database, opts: EnsureSchemaOptions = {}): string[] {
+export function ensureSchema(db: SqliteMigrationDatabase, opts: EnsureSchemaOptions = {}): string[] {
   const stillMissing: string[] = []
   for (const { table, column, ddl } of ADDITIVE_COLUMNS) {
     if (!tableExists(db, table))
@@ -165,7 +184,7 @@ interface ApplyMigrationsOptions {
  * already-current case (each `needs` check is a single PRAGMA / sqlite_master
  * lookup) so it's safe to call on every host boot.
  */
-export function applyMigrations(db: Database, opts: ApplyMigrationsOptions = {}): void {
+export function applyMigrations(db: SqliteMigrationDatabase, opts: ApplyMigrationsOptions = {}): void {
   for (const m of MIGRATIONS) {
     if (!m.needs(db))
       continue

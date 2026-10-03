@@ -61,7 +61,7 @@ beforeAll(async () => {
   await new Promise(r => setTimeout(r, 50))
 
   // Wire the MCP server and connect an in-memory client to it.
-  const server = createMcpServer({ handlers, ctx, identity: { name: 'test', version: 'test' } })
+  const server = await createMcpServer({ handlers, ctx, identity: { name: 'test', version: 'test' } })
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   client = new Client({ name: 'test-client', version: 'test' }, { capabilities: {} })
   await Promise.all([
@@ -252,7 +252,7 @@ describe('mCP scan.start end-to-end (v1.md line 1710 ship gate)', () => {
       version: 'test',
     }
     const handlers = createHandlers()
-    const server = createMcpServer({ handlers, ctx, identity: { name: 'gate', version: 'test' } })
+    const server = await createMcpServer({ handlers, ctx, identity: { name: 'gate', version: 'test' } })
     const [c, s] = InMemoryTransport.createLinkedPair()
     const gateClient = new Client({ name: 'gate-client', version: 'test' }, { capabilities: {} })
     await Promise.all([server.connect(s), gateClient.connect(c)])
@@ -343,7 +343,7 @@ describe('mCP D-029 matrix scan end-to-end', () => {
       version: 'test',
     }
     const handlers = createHandlers()
-    const server = createMcpServer({ handlers, ctx, identity: { name: 'matrix', version: 'test' } })
+    const server = await createMcpServer({ handlers, ctx, identity: { name: 'matrix', version: 'test' } })
     const [c, s] = InMemoryTransport.createLinkedPair()
     const mClient = new Client({ name: 'matrix-client', version: 'test' }, { capabilities: {} })
     await Promise.all([server.connect(s), mClient.connect(c)])

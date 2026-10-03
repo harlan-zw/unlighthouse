@@ -137,7 +137,7 @@ export async function createLocalRuntime(opts: CreateLocalRuntimeOptions): Promi
   })
 
   const chromeFlags = (opts.env.CHROME_FLAGS ?? '').split(/\s+/).filter(Boolean)
-  const auditor = resolveAuditor({ config: opts.config, logger: opts.logger, chromeFlags })
+  const auditor = resolveAuditor({ config: opts.config, logger: opts.logger, chromeFlags, env: opts.env })
   const environmentPacks = opts.env.CRUX_API_KEY ? [createCruxPack({ apiKey: opts.env.CRUX_API_KEY })] : []
   const packs = [...environmentPacks, ...(opts.packs ?? [])]
   const { seeds, routeMatcher } = resolveSeeds(opts.config, opts.logger)

@@ -21,6 +21,7 @@ import {
   splitCategoriesAuditor,
   weightedPick,
 } from '@unlighthouse/core/auditors/route'
+import { createLighthouseLoader } from './lighthouse-download'
 
 type AuditorProviderConfig = z.infer<typeof AuditorProvider>
 type AuditorRouterStrategyConfig = z.infer<typeof AuditorRouterStrategy>
@@ -33,6 +34,7 @@ export interface ResolveAuditorOptions {
   logger?: Logger
   /** Host-resolved chrome-launcher flags; core never reads the environment. */
   chromeFlags?: string[]
+  env?: NodeJS.ProcessEnv
 }
 
 function withTag(logger: Logger | undefined, tag: string): Logger | undefined {
@@ -69,6 +71,7 @@ function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Aud
         || !!(sessionStorage && Object.keys(sessionStorage).length)
         || !!(indexedDb && Object.keys(indexedDb).length)
       return createLocalAuditor({
+        loadRuntime: createLighthouseLoader({ logger, env: opts.env, chrome: opts.config.chrome, local: true }),
         defaults: (flags || hasStorage || chromeFlags?.length)
           ? {
               ...(flags ? { lighthouseFlags: flags } : {}),
@@ -94,7 +97,7 @@ function buildSingle(p: AuditorProviderConfig, opts: ResolveAuditorOptions): Aud
     case 'mock':
       return createMockAuditor({ logger })
     case 'cdp-connect':
-      return createCdpConnectAuditor({ browserWSEndpoint: p.browserWSEndpoint, headers: p.headers, logger })
+      return createCdpConnectAuditor({ browserWSEndpoint: p.browserWSEndpoint, headers: p.headers, logger, loadRuntime: createLighthouseLoader({ logger, env: opts.env }) })
   }
 }
 

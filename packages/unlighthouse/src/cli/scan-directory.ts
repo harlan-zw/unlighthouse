@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import Database from 'better-sqlite3'
+import { DatabaseSync } from 'node:sqlite'
 import { computeConfigCacheKey, normaliseHost } from '../util'
 
 export interface ResolveScanDirectoryOptions {
@@ -48,9 +48,9 @@ function scanCount(dbPath: string, diagnostics: string[]): number {
   if (!existsSync(dbPath))
     return 0
 
-  let db: InstanceType<typeof Database> | null = null
+  let db: DatabaseSync | null = null
   try {
-    db = new Database(dbPath, { readonly: true })
+    db = new DatabaseSync(dbPath, { readOnly: true, timeout: 5000 })
     const row = db.prepare('SELECT count(*) AS count FROM scans').get()
     if (!row || typeof row !== 'object' || !('count' in row) || typeof row.count !== 'number')
       throw new TypeError('Expected a numeric scan count from SQLite.')

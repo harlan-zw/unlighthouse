@@ -2,13 +2,15 @@ import type { Logger } from '@unlighthouse/contracts'
 import type { Driver } from 'unstorage'
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createStorage } from '@unlighthouse/core/storage'
-import { applyMigrations, drizzleStorage, ensureSchema, INIT_SQL_STATEMENTS } from '@unlighthouse/core/storage/drizzle'
+import { applyMigrations, drizzleStorage, ensureSchema, INIT_SQL_STATEMENTS, runSqliteTransaction } from '@unlighthouse/core/storage/drizzle'
 import { unstorageBlobs } from '@unlighthouse/core/storage/unstorage-blobs'
-import Database from 'better-sqlite3'
-import { drizzle as drizzleBetterSqlite } from 'drizzle-orm/better-sqlite3'
 import fsDriver from 'unstorage/drivers/fs'
+import { downloadDependencies } from '../runtime-download'
+import { createLibsqlDriver } from './libsql'
+import { createNativeSqliteDriver } from './sqlite'
 
 export interface InitStorageOptions {
   /**
@@ -22,7 +24,7 @@ export interface InitStorageOptions {
    * from env, then falls back to `file:<outputPath>/db.sqlite`.
    *
    * Supported schemes:
-   *   - `file:/abs/path/to.sqlite`  — better-sqlite3 (default for CLI)
+   *   - `file:/abs/path/to.sqlite`  — node:sqlite (default for CLI)
    *   - `libsql://host[?authToken=...]` — remote libSQL / Turso
    *   - `libsql+http://host` / `libsql+https://host` — explicit HTTP transport
    *   - bare absolute or relative path — same as `file:` (convenience)
@@ -62,9 +64,12 @@ function parseDbUrl(raw: string, env: NodeJS.ProcessEnv): ParsedDbUrl {
     // Fall back: bare libsql:// without a query string is fine for
     // local-file libsql or unauthenticated dev instances.
     let authToken: string | undefined
+    let url = raw.replace(/^libsql\+(https?):/, '$1:')
     try {
-      const u = new URL(raw)
+      const u = new URL(url)
       authToken = u.searchParams.get('authToken') ?? undefined
+      u.searchParams.delete('authToken')
+      url = u.toString()
     }
     catch (_err) {
       // Malformed URL — let the libsql client surface the real error
@@ -72,7 +77,7 @@ function parseDbUrl(raw: string, env: NodeJS.ProcessEnv): ParsedDbUrl {
     }
     return {
       scheme: 'libsql',
-      url: raw,
+      url,
       authToken: authToken ?? env.UNLIGHTHOUSE_DB_AUTH_TOKEN,
     }
   }
@@ -130,7 +135,8 @@ async function buildBlobDriver(outputPath: string, logger: InitStorageOptions['l
         + '_ACCESS_KEY_ID, _SECRET_ACCESS_KEY, _PREFIX.',
       )
     }
-    const { default: s3Driver } = await import('unstorage/drivers/s3')
+    const resolve = await downloadDependencies(['unstorage', 'aws4fetch'], { logger, env })
+    const { default: s3Driver } = await import(resolve('unstorage/drivers/s3')) as typeof import('unstorage/drivers/s3')
     const region = env.UNLIGHTHOUSE_BLOBS_S3_REGION ?? 'auto'
     // The unstorage S3 driver requires an explicit endpoint URL. For
     // real AWS we derive the standard regional endpoint when one wasn't
@@ -161,11 +167,11 @@ async function buildBlobDriver(outputPath: string, logger: InitStorageOptions['l
   )
 }
 
-// libsql-backed storage. Returns the same shape as the better-sqlite3
+// libsql-backed storage. Returns the same shape as the node:sqlite
 // path so callers don't branch on driver. Two notable differences:
 //
 //   1. The runtime migrations module (applyMigrations) needs the
-//      better-sqlite3 sync API for schema introspection (PRAGMA
+//      node:sqlite sync API for schema introspection (PRAGMA
 //      table_info, prepared statements). We skip it for libsql and log
 //      a warning — operators wiring Turso start with a fresh DB, so
 //      INIT_SQL_STATEMENTS is enough. Schema bumps post-deploy need a
@@ -183,8 +189,8 @@ async function initLibsqlStorage(
   // Dynamic imports so users on the file: path don't pay the load cost
   // for libsql, and so a missing peer dep surfaces with a useful error
   // rather than a top-level Cannot find module.
-  const { createClient } = await import('@libsql/client')
-  const { drizzle: drizzleLibsql } = await import('drizzle-orm/libsql')
+  const resolve = await downloadDependencies(['@libsql/client'], { logger, env })
+  const { createClient } = await import(resolve('@libsql/client/web')) as typeof import('@libsql/client/web')
 
   logger?.debug?.(`Connecting to libsql: ${parsed.url}`)
   const client = createClient({
@@ -208,7 +214,7 @@ async function initLibsqlStorage(
 
   logger?.info?.(`[storage] libsql: schema applied. Runtime migrations skipped — schema bumps require manual upgrade.`)
 
-  const drizzleDb = drizzleLibsql(client)
+  const drizzleDb = createLibsqlDriver(client)
   const drizzleAdapter = drizzleStorage({
     driver: drizzleDb,
     logger: taggedLogger(logger, 'storage/drizzle'),
@@ -220,7 +226,7 @@ async function initLibsqlStorage(
   })
 
   // `sqliteDb` is the libsql Client for libsql-backed setups. Shape is
-  // not interface-compatible with better-sqlite3 — flagged in the
+  // not interface-compatible with node:sqlite — flagged in the
   // returned tuple type so consumers know what they're getting.
   return { sqliteDb: client, drizzleDb, drizzleAdapter, storage }
 }
@@ -232,11 +238,11 @@ export async function initStorage({ outputPath, dbUrl, env = {}, logger }: InitS
   if (parsed.scheme === 'libsql')
     return initLibsqlStorage(parsed, outputPath, logger, env)
 
-  // file: scheme (default) — better-sqlite3, sync API, runtime migrations.
+  // file: scheme (default) — node:sqlite, sync API, runtime migrations.
   logger?.debug?.(`Opening SQLite (file): ${parsed.path}`)
 
-  const runInit = (db: Database.Database): void => {
-    db.transaction(() => {
+  const runInit = (db: DatabaseSync): void => {
+    runSqliteTransaction(db, () => {
       for (const stmt of INIT_SQL_STATEMENTS) {
         try {
           db.exec(stmt)
@@ -247,13 +253,13 @@ export async function initStorage({ outputPath, dbUrl, env = {}, logger }: InitS
             logOperationalWarn('storage.migration_statement_failed', err, { driver: 'sqlite', statement: stmt }, logger)
         }
       }
-    })()
+    })
     applyMigrations(db, {
       onApply: id => logger?.info?.(`[storage] applied migration: ${id}`),
     })
   }
 
-  let sqliteDb = new Database(parsed.path)
+  let sqliteDb = new DatabaseSync(parsed.path, { timeout: 5000, enableForeignKeyConstraints: false })
   runInit(sqliteDb)
 
   // Schema-drift guard. Heal any missing additive columns (a stale build or a
@@ -277,11 +283,11 @@ export async function initStorage({ outputPath, dbUrl, env = {}, logger }: InitS
         logOperationalWarn('storage.local_cache_delete_failed', err, { path: `${parsed.path}${suffix}` }, logger)
       }
     }
-    sqliteDb = new Database(parsed.path)
+    sqliteDb = new DatabaseSync(parsed.path, { timeout: 5000, enableForeignKeyConstraints: false })
     runInit(sqliteDb)
   }
 
-  const drizzleDb = drizzleBetterSqlite(sqliteDb)
+  const drizzleDb = createNativeSqliteDriver(sqliteDb)
   const drizzleAdapter = drizzleStorage({
     driver: drizzleDb,
     logger: taggedLogger(logger, 'storage/drizzle'),

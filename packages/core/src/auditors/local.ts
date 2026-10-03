@@ -13,6 +13,7 @@
 import type { Logger, UnlighthouseOptions, UnlighthouseReport } from '@unlighthouse/contracts'
 import type { AuditOpts, Auditor, AuditorCapabilities, AuditorReport, Page } from '@unlighthouse/contracts/ports'
 import type { AuditPool } from './audit-pool'
+import type { LighthouseRuntime } from './lighthouse-runtime'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,6 +22,8 @@ import { LIGHTHOUSE_DEFAULT_CATEGORIES } from './categories'
 import { attachExtractedRouteData } from './lighthouse-report'
 
 export interface LocalAuditorOptions {
+  /** Host-owned download cache. Core performs no package installation. */
+  loadRuntime?: (signal?: AbortSignal) => Promise<LighthouseRuntime>
   /** Default UnlighthouseOptions applied to every audit call. */
   defaults?: UnlighthouseOptions
   /** Tagged logger from `createUnlighthouseCore`; absent = silent. */
@@ -51,6 +54,7 @@ export interface LocalAuditorOptions {
 export interface LocalLighthouseTaskPayload {
   url: string
   options: UnlighthouseOptions
+  runtime?: LighthouseRuntime
 }
 
 const LOCAL_CAPABILITIES: AuditorCapabilities = {
@@ -155,7 +159,11 @@ export function createLocalAuditor(opts: LocalAuditorOptions = {}): Auditor {
       const serialize = perfIncluded && !parallelPerf && maxThreads > 1
       const effectiveConcurrency = serialize ? 1 : maxThreads
 
-      const dispatch = () => runLighthouse({ url, options })
+      const dispatch = async () => {
+        const runtime = opts.runLighthouseTask ? undefined : await opts.loadRuntime?.(_opts?.signal)
+        _opts?.signal?.throwIfAborted()
+        return runLighthouse({ url, options, ...(runtime ? { runtime } : {}) })
+      }
       const report = serialize ? await perfLane.run(dispatch) : await dispatch()
 
       const out = attachExtractedRouteData(report.raw, url, 'local')

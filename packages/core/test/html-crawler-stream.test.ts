@@ -198,3 +198,24 @@ it('finishes at the route limit without asking for another seed', async () => {
   for await (const _event of htmlCrawler({ fetch: async () => new Response('<p>Page</p>', { headers: { 'content-type': 'text/html' } }) }).run({ seeds, maxRoutes: 1, audit: async (url) => { audits.push(url) } })) { /* Drain. */ }
   expect(audits).toEqual(['http://localhost/'])
 })
+
+it('retries a transient HTTP failure before auditing the page', async () => {
+  let requests = 0
+  const audited: string[] = []
+  const crawler = htmlCrawler({ fetch: async () => {
+    requests++
+    return requests === 1
+      ? new Response('Busy', { status: 503, headers: { 'retry-after': '0' } })
+      : new Response('<h1>Recovered</h1>', { headers: { 'content-type': 'text/html' } })
+  } })
+  for await (const _event of crawler.run({ seeds: seedsFor(['http://localhost/']), audit: async (url) => { audited.push(url) } })) { /* Drain. */ }
+  expect(requests).toBe(2)
+  expect(audited).toEqual(['http://localhost/'])
+})
+
+it('decodes links using the response charset', async () => {
+  const audited: string[] = []
+  const crawler = htmlCrawler({ fetch: async () => new Response(Buffer.from('<a href="/café">Page</a>', 'latin1'), { headers: { 'content-type': 'text/html; charset=iso-8859-1' } }) })
+  for await (const _event of crawler.run({ seeds: seedsFor(['http://localhost/']), audit: async (url) => { audited.push(url) } })) { /* Drain. */ }
+  expect(audited).toEqual(['http://localhost/', 'http://localhost/caf%C3%A9'])
+})

@@ -25,7 +25,7 @@ The engine knows nothing about *where* it runs. Every runtime-specific concern i
 | Port | Job | In-repo adapters |
 |---|---|---|
 | `SeedSource` | Produce URLs to scan (`seeds(): AsyncIterable<Seed>`) | `core/seeds/`: `sitemap`, `manual`, `fuse` (compose/dedup). CF: `workerSitemapSeeds` |
-| `Crawler` | Drive the seed→audit loop (`run(): AsyncIterable<CrawlEvent>`) | `core/crawlers/`: `crawlee`, `parallel-map`. The CF app owns durable Workflow orchestration instead of implementing this port. |
+| `Crawler` | Drive the seed→audit loop (`run(): AsyncIterable<CrawlEvent>`) | `core/crawlers/`: `html`, `parallel-map`. The CF app owns durable Workflow orchestration instead of implementing this port. |
 | `Auditor` | Produce a Lighthouse report for one URL (`audit(url, page?, opts?)`) + advertise `capabilities` | `core/auditors/`: `local`, `cdp-connect`, `remote-lighthouse`, `psi`, `crux`, `dataforseo`, `mock`; `route/` (AuditorRouter). CF: Worker-safe Container transport over `remote-lighthouse` |
 | `Storage` | Persist a scan's data | `core/storage/`: `drizzle` (rows), `unstorage-blobs`, `memory`. CF: `d1-r2` |
 | `RateLimiter` | Gate audits against a quota bucket (`check` / `consume` / `remaining`) | `core/rate-limiters/`: `unstorage` (token bucket over any unstorage backend). CF: `createRateLimiterClient` over `RateLimiterDO` |
@@ -50,7 +50,7 @@ createUnlighthouseCore({
   config,   // already resolved by the host (c12 + env + rules); Zod-validated inside
   auditor,  // single, may be an AuditorRouter
   seeds,    // single, may be fuseSeeds([...])
-  crawler,  // single: crawlee / parallel-map / custom
+  crawler,  // single: html / parallel-map / custom
   storage,
   hooks?,   // additive subscribers merged into the bus
   logger?,  // ConsolaInstance; tagged per adapter via logger.withTag(name)
@@ -90,7 +90,14 @@ interface Storage {
 }
 ```
 
-Rows are backed by **Drizzle** (sqlite dialect → `better-sqlite3` today, libsql/Turso, D1); blobs by **unstorage** (fs locally, R2 on Cloudflare). A `memory` adapter backs tests and lightweight custom hosts. Route identity is `(scanId, url, device)` so mobile and desktop results never collapse (D-029). `better-sqlite3` is the v1.0 default driver; `node:sqlite` is parked for v2. Migrations ship as SQL files read by drizzle-kit, not as a subpath export. On D1, `reports`/`comparisons` are real shared drizzle repositories (D-035 replaced the former stubs), and the D1 raw-SQL route writer populates the provenance + reconciled `report_blob_key` columns, so `compare.*`, pack drill-ins, and `route.get`'s reconciled deep-dive all return data on the Worker host.
+Rows use **Drizzle** with Node SQLite locally, libSQL/Turso remotely, or D1 on Cloudflare.
+The CLI binds `node:sqlite` through Drizzle's `sqlite-proxy` callbacks.
+This uses Drizzle 0.45 without a native npm SQLite dependency.
+Blobs use **unstorage** with local files or a host-supplied remote driver.
+A `memory` adapter backs tests and custom hosts.
+Route identity remains `(scanId, url, device)` (D-029).
+Migrations remain shared SQL and schema checks.
+D1 uses the same report and comparison repositories (D-035).
 
 ## Packages
 
@@ -113,7 +120,7 @@ Deployment composition is not a package. `apps/cloudflare/` owns the maintained 
 
 | Host | Crawler | Auditor | Rows | Blobs | Fan-out |
 |---|---|---|---|---|---|
-| Local CLI (`unlighthouse`) | `crawlee` | `local` (chrome-launcher + Puppeteer) | `drizzle` + `better-sqlite3` | `unstorage` + fs | WS broadcast |
+| Local CLI (`unlighthouse`) | `html` | `local` (chrome-launcher + Puppeteer) | `drizzle` + `node:sqlite` | `unstorage` + fs | WS broadcast |
 | MCP (`unlighthouse-mcp`) | inherits CLI | inherits CLI | inherits CLI storage | inherits CLI storage | — (request/response + progress) |
 | CF app (`apps/cloudflare`) | bounded Workflow discovery | PSI or Container Lighthouse, optional CrUX | shared `drizzle` repositories + D1 | `BlobStore` + R2 | polling; optional event adapter remains package-local |
 
@@ -142,7 +149,7 @@ Data flow: `app/plugins/api.client.ts` provides `$api` — `createClient` from `
 - **Errors as values** for expected domain failures; a single `UnlighthouseError` with a `.code` discriminant and a `category` (`fatal` / `route-failed` / `retryable` / `validation`). Codes include `NOT_SUPPORTED`, `ACTIVE_SCAN_CONFLICT`, `QUOTA_EXCEEDED`, `CONFIG_INVALID`, `SCAN_NOT_FOUND`, `ROUTE_NOT_FOUND`, `INPUT_INVALID`, `ASSERTION_FAILED`, `COMPARE_BASELINE_MISSING`, `SCAN_ALREADY_EXISTS`. Infra errors propagate.
 - **No backwards compat with v0** — clean break, no shims. D-038 deleted the legacy `packages/client` / `packages/cli` bundles and the `// v0 re-export shim` files under `unlighthouse/src/process/*` + `src/cli/reporters/`; only `unlighthouse/src/types.ts` remains as a public re-export via `index.ts` (flagged, not a shim).
 - **CLI is the third registry projection** — `unlighthouse/src/cli/` is generated from `contracts/commands` via citty (D-033), alongside the HTTP and MCP projectors; dot-names nest as subcommands (`scan.start` → `unlighthouse scan start`), flags derive from each command's Zod input, and `--agent`/non-TTY emits `$schema`-stamped NDJSON. The v0 ergonomic entry (`unlighthouse --site x.com`) survives as the root command. `ci.ts` keeps its own cac program (it is a CI runner, not a registry projection).
-- **Treeshake invariants** — explicit subpaths keep heavy deps out of the wrong bundle (Crawlee and Node Lighthouse out of Workers, plus the `browser-static` scenario for the UI static path and `seeds-barrel` keeping `node:fs` out of the `./seeds` barrel — D-032/D-039). Enforced by `test/e2e/treeshake.test.ts`.
+- **Treeshake invariants** — explicit subpaths keep heavy deps out of the wrong bundle (Node Lighthouse out of Workers, plus the `browser-static` scenario for the UI static path and `seeds-barrel` keeping `node:fs` out of the `./seeds` barrel — D-032/D-039). Enforced by `test/e2e/treeshake.test.ts`.
 - **Reconciled-reader boundary (D-034)** — raw-LHR (`lhrBlobKey`) access is confined to the translation layer + dashboard export handler; `test/e2e/lhr-reader-boundary.test.ts` fails if any file outside {`report/extract`, `scan/route-audit`, `packs/reconcile-context`, `api/dashboard`, `build.ts`} gunzips a raw LHR blob.
 - Runtime baseline: **Node ≥ 24.13.1** on every published package; **Lighthouse 13** is the pinned engine (`agentic-browsing` category + insight audits). Lighthouse's version is isolated in the report-translation layer (`core/report/*` + `auditors/lighthouse-report.ts`) and translated into our stable report shape.
 
@@ -153,3 +160,22 @@ Data flow: `app/plugins/api.client.ts` provides `$api` — `createClient` from `
 - Add a command: `packages/contracts/src/commands/` (contract) → `packages/core/src/api/handlers/` (handler). It reaches CLI/HTTP/MCP/UI automatically.
 - Add an adapter: pick the port dir under `packages/core/src/` (or `packages/cloudflare/src/`), implement the interface in `packages/contracts/src/ports/`.
 - Full rationale + decisions log (D-001…D-051): `v1.md`.
+
+## CLI startup and downloads
+
+Help and version load the command entry without storage or scan setup.
+The CLI downloads exact dependency versions when a feature needs them.
+
+- Local and CDP audits download Lighthouse and Puppeteer.
+- Local audits reuse system Chrome, or download the Puppeteer-pinned Chrome build.
+- Dashboard and static export download the matching UI package.
+- MCP downloads its SDK. Its logs use stderr.
+- Remote storage downloads the libSQL web client. S3 downloads its blob driver.
+- Node 24 loads TypeScript configs. Unsupported syntax triggers a Jiti download.
+- Lighthouse CI reporting downloads its upload utilities.
+
+Downloads use `UNLIGHTHOUSE_RUNTIME_CACHE`, or `$XDG_CACHE_HOME/unlighthouse/runtime`.
+Without XDG settings, the cache uses `~/.cache/unlighthouse/runtime`.
+Package installs use temporary folders, process locks, and atomic publication.
+Completed downloads work offline. The first use needs network access.
+Pure runtime dependencies are bundled with their license notices.
