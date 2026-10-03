@@ -21,7 +21,6 @@ import { threadId } from 'node:worker_threads'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { consola } from 'consola'
 import { createHooks } from 'hookable'
-import puppeteer from 'puppeteer-core'
 import Tinypool from 'tinypool'
 
 const logger = consola.withTag('audit-pool:worker')
@@ -56,6 +55,8 @@ export function createWorkerHandler(definition: WorkerDefinition): (input: { tas
   async function getBrowser(opts: InternalWorkerData): Promise<Browser> {
     if (browser)
       return browser
+    // Bare Lighthouse workers resolve their own cached engine instead.
+    const { default: puppeteer } = await import('puppeteer-core')
     browser = await puppeteer.launch(opts.puppeteerOptions)
     await hooks.callHook('browser:launched', browser)
     return browser

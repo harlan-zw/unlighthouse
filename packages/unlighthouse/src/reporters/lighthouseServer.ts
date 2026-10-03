@@ -1,19 +1,9 @@
 import type { UnlighthouseRouteReport } from '../types'
 import type { ReporterConfig } from './types'
 import { readFile } from 'node:fs/promises'
-import ApiClient from '@lhci/utils/src/api-client.js'
-import {
-  getAncestorHash,
-  getAuthor,
-  getAvatarUrl,
-  getCommitMessage,
-  getCommitTime,
-  getCurrentBranch,
-  getCurrentHash,
-  getExternalBuildUrl,
-} from '@lhci/utils/src/build-context.js'
 import { assertLighthouseResult } from '@unlighthouse/core/report'
 import { handleError } from '../cli/errors'
+import { downloadDependencies } from '../runtime-download'
 
 export async function reportLighthouseServer(
   reports: UnlighthouseRouteReport[],
@@ -27,6 +17,9 @@ export async function reportLighthouseServer(
   }
 
   try {
+    const resolve = await downloadDependencies(['@lhci/utils'])
+    const { default: ApiClient } = await import(resolve('@lhci/utils/src/api-client.js')) as typeof import('@lhci/utils/src/api-client.js')
+    const { getAncestorHash, getAuthor, getAvatarUrl, getCommitMessage, getCommitTime, getCurrentBranch, getCurrentHash, getExternalBuildUrl } = await import(resolve('@lhci/utils/src/build-context.js')) as typeof import('@lhci/utils/src/build-context.js')
     const api = new ApiClient({
       fetch,
       rootURL: lhciHost,

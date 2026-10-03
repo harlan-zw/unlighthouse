@@ -13,6 +13,8 @@ export interface PageDiscoveryInput {
 }
 
 export interface PageDiscoveryResult {
+  canonical?: string
+  xDefault?: string
   links: string[]
   pageIndexable: boolean
   cloudflareTrapLinks: number
@@ -32,11 +34,21 @@ export function extractPageDiscovery(input: PageDiscoveryInput): PageDiscoveryRe
   const { events } = parseHtml(input.html)
   const anchors: Array<{ href: string, rel: Set<string> }> = []
   const pageRobots = new Set<string>()
+  let canonical: string | undefined
+  let xDefault: string | undefined
 
   for (const event of events) {
     if (event.type !== NodeEventEnter || !isElementNode(event.node))
       continue
     const name = event.node.name.toLowerCase()
+    if (name === 'link') {
+      const attrs = event.node.attributes
+      const rel = robotsTokens(attrs.rel)
+      if (rel.has('canonical'))
+        canonical ??= attrs.href
+      if (rel.has('alternate') && attrs.hreflang?.toLowerCase() === 'x-default')
+        xDefault ??= attrs.href
+    }
     if (name === 'meta' && event.node.attributes.name?.toLowerCase() === 'robots') {
       for (const token of robotsTokens(event.node.attributes.content))
         pageRobots.add(token)
@@ -79,5 +91,12 @@ export function extractPageDiscovery(input: PageDiscoveryInput): PageDiscoveryRe
     }
   }
 
-  return { links: [...links], pageIndexable, cloudflareTrapLinks, malformedLinks }
+  return {
+    links: [...links],
+    pageIndexable,
+    cloudflareTrapLinks,
+    malformedLinks,
+    ...(canonical ? { canonical } : {}),
+    ...(xDefault ? { xDefault } : {}),
+  }
 }

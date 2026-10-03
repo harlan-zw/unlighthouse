@@ -1,6 +1,9 @@
+import { join } from 'node:path'
 import { defineConfig } from 'tsdown'
+import { writeBundledLicenses } from '../../scripts/bundled-licenses.ts'
 
 export default defineConfig({
+  hooks: { 'build:done': ({ chunks }) => writeBundledLicenses(chunks, join(import.meta.dirname, 'dist')) },
   entry: [
     './src/index.ts',
     './src/logger.ts',
@@ -45,4 +48,9 @@ export default defineConfig({
   format: 'esm',
   dts: true,
   platform: 'node',
+  deps: {
+    neverBundle: ['lighthouse', 'puppeteer-core', '@puppeteer/browsers'],
+    alwaysBundle: ['@mdream/js', 'chrome-launcher', 'consola', 'fflate', 'h3', 'hookable', 'ofetch', 'radix3', 'ufo', /^unstorage(\/|$)/, /^drizzle-orm(\/|$)/],
+    dts: { neverBundle: true, alwaysBundle: ['h3', 'hookable', 'consola', 'ofetch', 'ufo'] },
+  },
 })

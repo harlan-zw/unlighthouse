@@ -1,6 +1,9 @@
+import { join } from 'node:path'
 import { defineConfig } from 'tsdown'
+import { writeBundledLicenses } from '../../scripts/bundled-licenses.ts'
 
 export default defineConfig({
+  hooks: { 'build:done': ({ chunks }) => writeBundledLicenses(chunks, join(import.meta.dirname, 'dist')) },
   entry: [
     './src/index.ts',
     './src/commands/index.ts',
@@ -18,6 +21,8 @@ export default defineConfig({
   dts: true,
   platform: 'node',
   deps: {
+    alwaysBundle: [/^drizzle-orm(\/|$)/],
+    dts: { neverBundle: true },
     neverBundle: [
       'lighthouse',
       'lighthouse/types/lhr/lhr',

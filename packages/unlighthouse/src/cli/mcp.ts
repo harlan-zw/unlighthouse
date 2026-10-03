@@ -16,6 +16,7 @@ import { createConsola } from 'consola'
 import { version } from '../../package.json'
 import { resolveConfig } from '../config/resolve'
 import { createLocalRuntime } from '../local-runtime'
+import { downloadDependencies } from '../runtime-download'
 import { resolveScanDirectory } from './scan-directory'
 
 const MCP_ARGS = {
@@ -82,7 +83,7 @@ export async function runMcp(argv: string[] = process.argv.slice(2), env: NodeJS
   // adapter. MCP routes consola → stderr only (stdout is the JSON-RPC channel).
   // --debug raises consola to verbose so the user sees migration / drizzle /
   // storage chatter alongside the discover diagnostics.
-  const logger = createConsola({ defaults: { level: debugMode ? 4 : 1 } }).withTag('unlighthouse-mcp')
+  const logger = createConsola({ level: debugMode ? 4 : 1, stdout: process.stderr, stderr: process.stderr }).withTag('unlighthouse-mcp')
 
   const output = resolveScanDirectory({
     outputRoot: config.outputPath as string,
@@ -105,7 +106,13 @@ export async function runMcp(argv: string[] = process.argv.slice(2), env: NodeJS
     packs: configPacks,
   })
 
+  const resolveSdk = await downloadDependencies(['@modelcontextprotocol/sdk'], { logger, env })
   await startStdioServer({
+    runtime: {
+      server: resolveSdk('@modelcontextprotocol/sdk/server/index.js'),
+      types: resolveSdk('@modelcontextprotocol/sdk/types.js'),
+      stdio: resolveSdk('@modelcontextprotocol/sdk/server/stdio.js'),
+    },
     handlers: createHandlers(),
     ctx: runtime.handlerCtx,
     identity: { name: 'unlighthouse', version },

@@ -13,13 +13,12 @@ import type { UnlighthouseReport } from '@unlighthouse/contracts'
 import type { LocalLighthouseTaskPayload } from './local'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { launch } from 'chrome-launcher'
-import lighthouse from 'lighthouse'
-import puppeteer from 'puppeteer-core'
 import { createWorkerHandler, defineTask } from './audit-pool/worker'
 import { withWebMcpChromeFlag } from './categories'
 import { killChromePidIfAlive } from './chrome-process'
 import { extractInsights } from './extract'
 import { getScreenEmulation, getUserAgent, resolveLighthouseConfig } from './lighthouse-config'
+import { loadLighthouseRuntime } from './lighthouse-runtime'
 import { buildIndexedDbInjectionScript, buildStorageInjectionScript } from './storage-injection'
 
 // Chrome leak guard. chrome-launcher spawns Chrome as a child of this worker
@@ -53,7 +52,8 @@ function bindChromeCleanup() {
   process.once('exit', killAllChrome)
 }
 
-const lighthouseTask = defineTask<LocalLighthouseTaskPayload, UnlighthouseReport>(async (_ctx, { url, options }) => {
+const lighthouseTask = defineTask<LocalLighthouseTaskPayload, UnlighthouseReport>(async (_ctx, { url, options, runtime }) => {
+  const { lighthouse, puppeteer } = await loadLighthouseRuntime(runtime)
   let chrome
   const flagPort = options.lighthouseFlags?.port
   let port = options.port || (typeof flagPort === 'number' ? flagPort : undefined)
@@ -61,6 +61,7 @@ const lighthouseTask = defineTask<LocalLighthouseTaskPayload, UnlighthouseReport
   if (!port) {
     const chromeFlags = withWebMcpChromeFlag(['--headless', ...(options.launchOptions?.chromeFlags || [])])
     chrome = await launch({
+      ...(runtime?.chromePath ? { chromePath: runtime.chromePath } : {}),
       ...options.launchOptions,
       chromeFlags,
     })

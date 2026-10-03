@@ -25,7 +25,7 @@ export interface DrizzleStorageOptions {
    *   - `drizzle(new DatabaseSync(path))` for `node:sqlite`
    *   - `drizzle(env.DB)` for Cloudflare D1
    *   - `drizzle(createClient({ url, authToken }))` for libsql/Turso
-   *   - `drizzle(new Database(path))` for the v1 local CLI `better-sqlite3` default
+   *   - `drizzle(new Database(path))` for a host using `better-sqlite3`
    */
   driver: unknown
   /** Runtime adapter for atomic statement batches (for example D1 `db.batch`). */
@@ -62,7 +62,7 @@ export function drizzleStorage(opts: DrizzleStorageOptions): DrizzleStorage {
 }
 
 export { INIT_SQL, INIT_SQL_STATEMENTS } from './init-sql'
-export { applyMigrations, ensureSchema } from './migrations'
+export { applyMigrations, ensureSchema, runSqliteTransaction } from './migrations'
 // Repository factories, exported so any host with a drizzle-compatible driver
 // (D1, libsql, better-sqlite3) reuses the exact same query code — see the
 // Cloudflare d1-r2 storage, which builds a `drizzle-orm/d1` handle and calls

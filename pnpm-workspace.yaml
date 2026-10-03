@@ -67,6 +67,7 @@ catalog:
   '@nuxtjs/color-mode': 4.0.1
   '@types/better-sqlite3': ^9.6.0
   '@types/node': ^26.6.4
+  aws4fetch: 1.0.20
   bumpp: ^12.3.0
   drizzle-kit: ^0.31.11
   eslint: ^10.11.0
@@ -109,7 +110,6 @@ catalogs:
     chrome-launcher: ^1.2.2
     citty: ^0.2.2
     consola: ^3.4.2
-    crawlee: ^3.18.2
     defu: ^6.1.7
     drizzle-orm: ^0.45.3
     fflate: ^0.8.3

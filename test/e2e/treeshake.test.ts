@@ -147,10 +147,12 @@ function scenario(label: string, run: () => Promise<void>): void {
 }
 
 describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
-  scenario('local-cli: bundles unlighthouse with lighthouse + listhen', async () => {
+  scenario('local-cli: includes the server and defers audit engines', async () => {
     await assertGraph('local-cli', {
-      mustInclude: ['lighthouse', 'listhen'],
+      mustInclude: ['listhen'],
       mustExclude: [
+        'lighthouse',
+        'puppeteer-core',
         '@cloudflare/puppeteer',
         '@modelcontextprotocol/sdk',
       ],
@@ -214,10 +216,10 @@ describe('treeshake invariants (v1.md §"Treeshake invariants")', () => {
     }
   })
 
-  scenario('agent-mcp: includes @modelcontextprotocol/sdk, excludes lighthouse/puppeteer/listhen', async () => {
+  scenario('agent-mcp: defers the SDK and excludes browser and server dependencies', async () => {
     await assertGraph('agent-mcp', {
-      mustInclude: ['@modelcontextprotocol/sdk'],
       mustExclude: [
+        '@modelcontextprotocol/sdk',
         'lighthouse',
         'puppeteer-core',
         'listhen',

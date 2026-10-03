@@ -12,8 +12,10 @@ relatedPages:
     title: Docker
 ---
 
-The local Lighthouse auditor requires an installed Chrome browser.
-Chrome Launcher discovers the browser used by each audit worker.
+The local Lighthouse auditor requires Chrome.
+Unlighthouse uses an installed browser when available.
+If no browser exists, Unlighthouse downloads Chrome before the first audit.
+Later audits reuse that browser.
 
 ## Select an installed browser
 
@@ -25,8 +27,19 @@ Set `CHROME_PATH` to the executable available on your machine or container.
 Use `CHROME_FLAGS` for process arguments.
 See [Chrome Options](/guide/guides/puppeteer).
 
-## Previous download settings
+## Automatic downloads
 
-Legacy `chrome.useSystem` and download-fallback options do not configure the v1 local auditor.
-Install the browser before running scans.
+Set `chrome.useSystem: false` to use the downloaded browser.
+Set `chrome.useDownloadFallback: false` to require an installed browser.
+Set `chrome.downloadFallbackVersion` to select a Chrome build.
+Set `chrome.downloadFallbackCacheDir` to select the browser cache directory.
+
+Lighthouse and Puppeteer also download before the first audit.
+The dashboard downloads when you open the CLI server or export a static report.
+These downloads require npm and network access on first use.
+Cached dependencies work offline.
+
+Set `UNLIGHTHOUSE_RUNTIME_CACHE` to select the shared dependency cache.
+The default follows `XDG_CACHE_HOME`, or uses `~/.cache/unlighthouse/runtime`.
+
 `puppeteerOptions.executablePath` has no effect on the v1 local auditor.

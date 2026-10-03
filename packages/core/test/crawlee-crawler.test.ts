@@ -1,5 +1,5 @@
 import type { CrawlEvent, SeedSource } from '@unlighthouse/contracts'
-import { crawleeCrawler } from '@unlighthouse/core/crawlers'
+import { htmlCrawler } from '@unlighthouse/core/crawlers'
 import { describe, expect, it } from 'vitest'
 
 describe('crawlee crawler failures', () => {
@@ -12,7 +12,7 @@ describe('crawlee crawler failures', () => {
     const events: CrawlEvent[] = []
 
     await expect((async () => {
-      for await (const event of crawleeCrawler().run({
+      for await (const event of htmlCrawler().run({
         seeds,
         audit: async () => {},
       })) {

@@ -3,6 +3,7 @@ import reports from '../../../test/fixtures/lighthouseReport.mjs'
 import { generateReportPayload } from '../src/reporters'
 
 const boundary = vi.hoisted(() => ({ createRun: vi.fn(), finalUrl: 'https://example.com/final' }))
+vi.mock('../src/runtime-download', () => ({ downloadDependencies: async () => (specifier: string) => specifier }))
 vi.mock('node:fs/promises', () => ({ readFile: async () => JSON.stringify({ lighthouseVersion: '13.0.0', requestedUrl: 'https://example.com/start', finalUrl: boundary.finalUrl, categories: {}, audits: {} }) }))
 // Constructors need a function expression so `new ApiClient()` works.
 // eslint-disable-next-line prefer-arrow-callback

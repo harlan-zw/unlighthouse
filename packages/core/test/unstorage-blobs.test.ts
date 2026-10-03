@@ -21,6 +21,20 @@ describe('unstorage BlobStore adapter', () => {
     vi.restoreAllMocks()
   })
 
+  it('preserves raw ArrayBuffer bytes returned by S3 drivers', async () => {
+    const bytes = new Uint8Array([31, 139, 0, 255])
+    const driver = { ...memoryDriver(), getItemRaw: () => bytes.buffer }
+    const blobs = unstorageBlobs({ driver })
+    expect(await blobs.get('reports/a.json.gz')).toEqual(bytes)
+  })
+
+  it('preserves only the visible bytes of a raw buffer view', async () => {
+    const bytes = new Uint8Array([99, 31, 139, 0, 255, 88])
+    const driver = { ...memoryDriver(), getItemRaw: () => new DataView(bytes.buffer, 1, 4) }
+    const blobs = unstorageBlobs({ driver })
+    expect(await blobs.get('reports/a.json.gz')).toEqual(new Uint8Array([31, 139, 0, 255]))
+  })
+
   it('preserves ttl/contentType metadata and hides metadata sidecars from list', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1_000)
     const driver = memoryDriver()

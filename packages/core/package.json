@@ -169,28 +169,20 @@
     "test:attw": "attw --pack --profile esm-only",
     "test:publint": "publint"
   },
-  "peerDependencies": {
-    "better-sqlite3": "catalog:dependencies",
-    "drizzle-orm": "catalog:dependencies",
-    "unstorage": "catalog:"
-  },
-  "peerDependenciesMeta": {
-    "better-sqlite3": {
-      "optional": true
-    },
-    "drizzle-orm": {
-      "optional": true
-    },
-    "unstorage": {
-      "optional": true
-    }
-  },
   "dependencies": {
-    "@mdream/js": "catalog:",
     "@unlighthouse/contracts": "workspace:*",
+    "tinypool": "catalog:",
+    "ws": "catalog:dependencies",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@mdream/js": "catalog:",
+    "@types/better-sqlite3": "catalog:",
+    "better-sqlite3": "catalog:dependencies",
     "chrome-launcher": "catalog:dependencies",
     "consola": "catalog:dependencies",
-    "crawlee": "catalog:dependencies",
+    "drizzle-kit": "catalog:",
+    "drizzle-orm": "catalog:dependencies",
     "fflate": "catalog:dependencies",
     "h3": "catalog:dependencies",
     "hookable": "catalog:dependencies",
@@ -198,16 +190,7 @@
     "ofetch": "catalog:dependencies",
     "puppeteer-core": "catalog:dependencies",
     "radix3": "catalog:dependencies",
-    "tinypool": "catalog:",
     "ufo": "catalog:dependencies",
-    "ws": "catalog:dependencies",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@types/better-sqlite3": "catalog:",
-    "better-sqlite3": "catalog:dependencies",
-    "drizzle-kit": "catalog:",
-    "drizzle-orm": "catalog:dependencies",
     "unstorage": "catalog:"
   },
   "publishConfig": {

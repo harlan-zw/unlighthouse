@@ -1,15 +1,10 @@
 // MCP projection of the command registry.
 // Mirrors @unlighthouse/core/api/http.ts but emits MCP tools.
 
+import type { Server } from '@modelcontextprotocol/sdk/server/index.js'
+import type { McpError } from '@modelcontextprotocol/sdk/types.js'
 import type { Command, CommandName } from '@unlighthouse/contracts/commands'
 import type { HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
-import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-import {
-  CallToolRequestSchema,
-  ErrorCode,
-  ListToolsRequestSchema,
-  McpError,
-} from '@modelcontextprotocol/sdk/types.js'
 import { commandEntries, isAsyncIterable } from '@unlighthouse/contracts/commands'
 import { createErrorEnvelope } from '@unlighthouse/contracts/errors'
 import { createCommandExecutor } from '@unlighthouse/core/api/handlers'
@@ -23,6 +18,8 @@ import { z } from 'zod'
 export type McpHandlerCtxFactory = (req: { name: string, arguments: unknown }, extra: unknown) => HandlerCtx | Promise<HandlerCtx>
 
 export interface CreateMcpServerOptions {
+  /** Host-resolved SDK URLs. The SDK remains optional until the server starts. */
+  runtime?: { server: string, types: string, stdio: string }
   handlers: HandlerMap
   /** Static ctx (single-tenant) or a factory invoked per tool call (multi-tenant). */
   ctx: HandlerCtx | McpHandlerCtxFactory
@@ -33,7 +30,7 @@ export interface CreateMcpServerOptions {
 }
 
 // Map UnlighthouseError.code → MCP error code.
-function mcpErrorCodeForCode(code: string): number {
+function mcpErrorCodeForCode(code: string, ErrorCode: typeof import('@modelcontextprotocol/sdk/types.js')['ErrorCode']): number {
   if (code === 'NOT_SUPPORTED')
     return ErrorCode.MethodNotFound
   if (code === 'INPUT_INVALID' || code === 'CONFIG_INVALID')
@@ -41,13 +38,13 @@ function mcpErrorCodeForCode(code: string): number {
   return ErrorCode.InternalError
 }
 
-function toMcpError(err: unknown, exposeInternal = false): McpError {
+function toMcpError(err: unknown, sdk: typeof import('@modelcontextprotocol/sdk/types.js'), exposeInternal = false): McpError {
   const envelope = createErrorEnvelope(err, {
     exposeInternal,
   })
   const e = envelope.error
-  return new McpError(
-    mcpErrorCodeForCode(e.code),
+  return new sdk.McpError(
+    mcpErrorCodeForCode(e.code, sdk.ErrorCode),
     `[${e.code}] ${e.message}`,
     envelope,
   )
@@ -65,7 +62,12 @@ function toJsonSchema(schema: z.ZodType): Record<string, unknown> {
   return json
 }
 
-export function createMcpServer(opts: CreateMcpServerOptions): Server {
+export async function createMcpServer(opts: CreateMcpServerOptions): Promise<Server> {
+  const serverModule = opts.runtime?.server ?? '@modelcontextprotocol/sdk/server/index.js'
+  const typesModule = opts.runtime?.types ?? '@modelcontextprotocol/sdk/types.js'
+  const { Server } = await import(serverModule) as typeof import('@modelcontextprotocol/sdk/server/index.js')
+  const sdk = await import(typesModule) as typeof import('@modelcontextprotocol/sdk/types.js')
+  const { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } = sdk
   const { handlers, ctx: ctxOpt, identity } = opts
   const ctxFactory: McpHandlerCtxFactory
     = typeof ctxOpt === 'function' ? ctxOpt : () => ctxOpt
@@ -155,7 +157,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): Server {
       }
     }
     catch (err) {
-      throw toMcpError(err, opts.exposeInternal)
+      throw toMcpError(err, sdk, opts.exposeInternal)
     }
   })
 

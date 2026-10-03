@@ -75,13 +75,7 @@
     "test:publint": "publint"
   },
   "peerDependencies": {
-    "drizzle-orm": "catalog:dependencies",
     "zod": "catalog:"
-  },
-  "peerDependenciesMeta": {
-    "drizzle-orm": {
-      "optional": true
-    }
   },
   "dependencies": {
     "hookable": "catalog:dependencies"

@@ -46,7 +46,7 @@ function headersToRecord(headers?: HeadersInit): Record<string, string> {
   return { ...headers }
 }
 
-export function createFetchClient(resolvedConfig: FetchConfig): FetchUrlClient {
+export function resolveFetchHeaders(resolvedConfig: FetchConfig): Record<string, string> {
   const headers: Record<string, string> = Object.fromEntries(new Headers(resolvedConfig.extraHeaders || {}).entries())
 
   if (resolvedConfig.cookies && !headers.cookie) {
@@ -64,6 +64,11 @@ export function createFetchClient(resolvedConfig: FetchConfig): FetchUrlClient {
     headers.authorization = `Basic ${token}`
   }
 
+  return headers
+}
+
+export function createFetchClient(resolvedConfig: FetchConfig): FetchUrlClient {
+  const headers = resolveFetchHeaders(resolvedConfig)
   const query = { ...(resolvedConfig.defaultQueryParams || {}) }
   const client: FetchUrlClient = {
     async get(url, opts = {}) {
