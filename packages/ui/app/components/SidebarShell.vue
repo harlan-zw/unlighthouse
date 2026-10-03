@@ -1,134 +1,53 @@
 <script setup lang="ts">
-import { useMediaQuery } from '@vueuse/core'
+import ShellHeader from '~/features/navigation/components/ShellHeader.vue'
 
-// The shared chrome for every primary layout (root / site / scan): the
-// persistent AppSidebar in a fixed rail plus a sticky top bar carrying a
-// contextual `#subnav` slot (breadcrumbs / tabs), the global health-pulse,
-// and the theme toggle. On <lg the rail collapses into a left drawer opened
-// from the top-bar menu button.
-//
-// Scan mode tints the whole rail blue so entering a scan is an obvious
-// context shift — the rail's content fully transforms (see AppSidebar) and
-// the surface washes blue here.
-const colorMode = useColorMode()
 const route = useRoute()
-
-const inScan = computed(() => !!route.params.scanId && !!route.params.siteId)
-
-// Pages that want the full content width (e.g. the wide routes table) opt in
-// via `definePageMeta({ fluid: true })`. Default stays the centered max-w-7xl
-// column so reading-width pages aren't stretched on ultrawide displays.
+const colorMode = useColorMode()
+const { healthy } = useBackendHealth()
+const isStatic = useIsStatic()
 const fluid = computed(() => route.meta.fluid === true)
-
+const content = useTemplateRef<HTMLElement>('content')
+watch([() => route.path, () => route.hash], async () => {
+  await nextTick()
+  const target = route.hash ? document.getElementById(route.hash.slice(1)) : null
+  if (target && content.value?.contains(target))
+    target.scrollIntoView({ block: 'start' })
+  else
+    content.value?.scrollTo({ top: 0 })
+})
 function toggleColorMode() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
 }
-
-// Mobile drawer — closes on navigation and when crossing back to desktop.
-const navOpen = ref(false)
-const isDesktop = useMediaQuery('(min-width: 1024px)')
-watch(() => route.path, () => {
-  navOpen.value = false
-})
-if (import.meta.client) {
-  watch(isDesktop, (desktop) => {
-    if (desktop)
-      navOpen.value = false
-  })
-}
-
-const railTint = computed(() => (inScan.value
-  ? '[--rail-bg:color-mix(in_srgb,var(--ui-info)_8%,var(--ui-bg))] border-info/25'
-  : 'border-default'))
-
-const { healthy } = useBackendHealth()
-const isStatic = useIsStatic()
 </script>
 
 <template>
-  <div class="flex min-h-dvh">
-    <a
-      href="#main-content"
-      class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-default focus-visible:px-3 focus-visible:py-2 focus-visible:text-sm focus-visible:font-medium focus-visible:ring-2 focus-visible:ring-primary"
-    >Skip to content</a>
-    <!-- Desktop fixed rail -->
-    <aside
-      class="hidden lg:flex flex-col shrink-0 fixed top-0 bottom-0 left-0 w-64 border-r overflow-y-auto px-3 py-3 transition-colors bg-[var(--rail-bg,var(--ui-bg))]"
-      :class="railTint"
-    >
+  <UiAppShell flush-content inline-mobile-nav>
+    <template #brand>
+      <NuxtLink to="/" aria-label="Unlighthouse home" class="flex min-h-11 items-center gap-2 rounded-md px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+        <img src="/logo.png" alt="" width="28" height="28" class="size-7 object-contain">
+        <span class="text-sm font-semibold">Unlighthouse</span>
+      </NuxtLink>
+    </template>
+    <template #sidebar>
       <AppSidebar />
-    </aside>
-
-    <div class="flex-1 min-w-0 lg:ml-64 flex h-dvh flex-col">
-      <header class="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-2 border-b border-default bg-default px-4">
-        <UiButton
-          purpose="quiet"
-          class="lg:hidden -ml-2 size-8 justify-center"
-          aria-label="Open navigation menu"
-          :aria-expanded="navOpen"
-          aria-controls="mobile-navigation"
-          icon="menu"
-          @click="navOpen = true"
-        />
-
-        <div class="flex min-w-0 flex-1 items-center">
-          <slot name="subnav" />
-        </div>
-
-        <div class="ml-auto flex items-center gap-2">
-          <div v-if="isStatic" class="text-xs text-muted" role="status">
-            Offline report
-          </div>
-          <div
-            v-else-if="healthy !== null"
-            class="flex items-center gap-1.5 text-xs"
-            :class="healthy ? 'text-success' : 'text-error'"
-            role="status"
-            aria-live="polite"
-          >
-            <span class="relative flex size-1.5">
-              <span
-                class="relative inline-flex size-1.5 rounded-full"
-                :class="healthy ? 'bg-success' : 'bg-error motion-safe:animate-pulse'"
-              />
-            </span>
-            <span>{{ healthy ? 'Connected' : 'Disconnected' }}</span>
-          </div>
-          <UiButton
-            purpose="quiet"
-            class="size-8 justify-center"
-            :aria-label="colorMode.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-            :icon="colorMode.value === 'dark' ? 'light' : 'dark'"
-            @click="toggleColorMode"
-          />
-        </div>
-      </header>
-
-      <main id="main-content" tabindex="-1" class="flex-1 overflow-auto">
-        <div class="px-4 py-6" :class="fluid ? 'w-full' : 'mx-auto max-w-7xl'">
-          <slot />
-        </div>
-      </main>
+    </template>
+    <template #footer>
+      <div class="flex items-center justify-between gap-2">
+        <span v-if="isStatic" class="text-sm text-muted" role="status">Offline report</span>
+        <span v-else-if="healthy !== null" class="flex items-center gap-2 text-sm text-muted" role="status" aria-live="polite">
+          <span class="size-1.5 rounded-full" :class="healthy ? 'bg-success' : 'bg-error'" aria-hidden="true" />
+          {{ healthy ? 'Connected' : 'Disconnected' }}
+        </span>
+        <UiButton purpose="quiet" class="ml-auto min-h-11 min-w-11 justify-center lg:min-h-8 lg:min-w-8" :aria-label="colorMode.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'" :icon="colorMode.value === 'dark' ? 'light' : 'dark'" @click="toggleColorMode" />
+      </div>
+    </template>
+    <template #topBanners>
+      <ShellHeader />
+    </template>
+    <div ref="content" class="h-full overflow-auto">
+      <div class="px-4 py-6 sm:px-6" :class="fluid ? 'w-full' : 'mx-auto max-w-7xl'">
+        <slot />
+      </div>
     </div>
-
-    <!-- Mobile drawer -->
-    <UDrawer v-model:open="navOpen" direction="left">
-      <template #content>
-        <div
-          id="mobile-navigation"
-          class="relative h-full w-72 overflow-y-auto px-3 py-3 bg-[var(--rail-bg,var(--ui-bg))]"
-          :class="railTint"
-        >
-          <UiButton
-            purpose="quiet"
-            class="absolute top-2 right-2 z-10 size-11 justify-center"
-            aria-label="Close navigation menu"
-            icon="close"
-            @click="navOpen = false"
-          />
-          <AppSidebar />
-        </div>
-      </template>
-    </UDrawer>
-  </div>
+  </UiAppShell>
 </template>

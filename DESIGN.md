@@ -77,6 +77,8 @@ The DS layer ships opinionated wrappers around Nuxt UI primitives so chrome (sha
 
 ## Voice & Copy
 
+COPY.md records reused dashboard strings and follows this section. GLOSSARY.md owns navigation nouns.
+
 UI strings, empty states, error messages and tooltips read like CLI output, not marketing copy. Opinionated, terminal-shaped, assumes the reader runs Lighthouse audits and edits code.
 
 | Don't | Do |
@@ -277,6 +279,11 @@ Rules not enforced by components:
 ---
 
 ## Design Decisions
+
+- **Persistent dashboard shell.** AppSidebar and the header stay mounted across Browse, Sites, Scans, and Agents. Compare and onboarding use dedicated layouts.
+- **Site switching belongs in the header.** Search by site name or host. Keep the scan section on the destination site's latest scan. Discard source scan IDs and route IDs. If no scan exists, open site history.
+- **Canonical navigation refresh.** Shell, navigation, tabs, terminal, and contrast tokens follow nuxtseo.com commit `f944d7773bf4c2a76097f8166f8fc075950e1b1e`. Preserve Unlighthouse assets and existing atmosphere tokens. The shell permits skip-link focus. The terminal uses purpose-driven buttons.
+- **Agents setup uses local tools.** MCP runs through stdio. Skill instructions save manually as SKILL.md. Setup commands use the original project root and installed v1 executable.
 
 - **DS layer is a canonical mirror, not editable in-tree.** `packages/ui/layers/design-system` is copied one-way from `nuxtseo.com`. Adopt it as-is; never add Unlighthouse-specific components there (a resync wipes them). App UI lives in `app/components/` (cross-feature) or `app/features/*/components/` (feature-local, explicit import).
 - **Atmosphere at the front door only.** The canonical `UiAtmosphere` mirror may render `preset="front-door"` behind onboarding and similar threshold surfaces. Audit cards, tables, charts, and result pages remain visually quiet.

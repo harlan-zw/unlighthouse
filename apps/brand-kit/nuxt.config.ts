@@ -69,7 +69,13 @@ export default defineNuxtConfig({
   // trust policy happy). Add `@iconify-json/carbon` + `serverBundle: 'local'`
   // later if offline rendering is needed.
   routeRules: {
-    '/**': { robots: false, prerender: false },
+    '/**': { prerender: false },
+  },
+
+  app: {
+    head: {
+      meta: [{ name: 'robots', content: 'noindex, nofollow' }],
+    },
   },
 
   devServer: {

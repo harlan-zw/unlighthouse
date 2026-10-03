@@ -1,10 +1,11 @@
 import { createRequire } from 'node:module'
+import { getIconData } from '@iconify/utils'
 import { describe, expect, it } from 'vitest'
 import { iconAliasMap, iconBundleList, iconMapFor, resolveUiIcon } from '../layers/design-system/shared/icons'
 import { ICON_ALIASES } from '../layers/design-system/shared/icons/registry'
 
 const require = createRequire(new URL('../package.json', import.meta.url))
-const lucide = require('@iconify-json/lucide/icons.json') as { icons: Record<string, unknown> }
+const lucide = require('@iconify-json/lucide/icons.json') as Parameters<typeof getIconData>[0]
 
 function lucideNameFromResolved(id: string) {
   return id.startsWith('i-lucide-') ? id.slice('i-lucide-'.length) : null
@@ -28,7 +29,7 @@ describe('ui icon registry', () => {
       if (!name)
         continue
 
-      expect(lucide.icons, `${role} -> ${id}`).toHaveProperty(name)
+      expect(getIconData(lucide, name)?.body, `${role} -> ${id}`).toMatch(/<[^>]+>/)
     }
   })
 
@@ -59,7 +60,7 @@ describe('ui icon registry', () => {
       if (!icon)
         continue
 
-      expect(lucide.icons, `${name} -> ${id}`).toHaveProperty(icon)
+      expect(getIconData(lucide, icon)?.body, `${name} -> ${id}`).toMatch(/<[^>]+>/)
     }
 
     for (const id of iconBundleList('lucide')) {
@@ -67,7 +68,7 @@ describe('ui icon registry', () => {
       if (!icon)
         continue
 
-      expect(lucide.icons, id).toHaveProperty(icon)
+      expect(getIconData(lucide, icon)?.body, id).toMatch(/<[^>]+>/)
     }
   })
 })

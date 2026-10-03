@@ -36,6 +36,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
     "@arethetypeswrong/cli": "catalog:",
+    "@iconify/utils": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
     "better-sqlite3": "catalog:dependencies",
     "bumpp": "catalog:",

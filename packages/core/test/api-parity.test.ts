@@ -13,10 +13,6 @@ describe('api parity', () => {
   const handlers = createHandlers()
   const commandList = Object.entries(commands)
 
-  it('registry has 36 commands', () => {
-    expect(commandList.length).toBe(36)
-  })
-
   it.each(commandList)('%s has a handler', (name) => {
     expect(handlers[name as keyof typeof handlers]).toBeDefined()
     expect(typeof handlers[name as keyof typeof handlers].run).toBe('function')

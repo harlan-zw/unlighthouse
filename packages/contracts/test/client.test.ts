@@ -49,6 +49,7 @@ describe('typed client', () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
       scanId: 'abc',
       status: 'scanning',
+      pausable: true,
       discovered: 0,
       scanned: 0,
       failed: 0,
@@ -66,9 +67,9 @@ describe('typed client', () => {
 
   it('gET events.subscribe streams NDJSON chunks as AsyncIterable', async () => {
     const events = [
-      { event: 'scan:started', payload: { scanId: 'abc' } },
-      { event: 'scan:progress', payload: { scanId: 'abc', discovered: 1, scanned: 0, failed: 0, total: 1 } },
-      { event: 'log', payload: { level: 'info', message: 'scan queued' } },
+      { event: 'scan:started', payload: { scanId: 'abc' }, timestamp: '2025-01-01T00:00:00.000Z' },
+      { event: 'scan:progress', payload: { scanId: 'abc', discovered: 1, scanned: 0, failed: 0, total: 1 }, timestamp: '2025-01-01T00:00:01.000Z' },
+      { event: 'log', payload: { level: 'info', message: 'scan queued' }, timestamp: '2025-01-01T00:00:02.000Z' },
     ]
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(ndjsonResponse(events))
     const client = createClient({ fetch: fetchMock })

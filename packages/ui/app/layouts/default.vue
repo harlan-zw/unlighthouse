@@ -1,5 +1,3 @@
 <template>
-  <SidebarShell>
-    <slot />
-  </SidebarShell>
+  <slot />
 </template>
