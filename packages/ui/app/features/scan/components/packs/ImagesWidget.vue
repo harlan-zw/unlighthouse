@@ -99,7 +99,7 @@ function hideBrokenImage(event: Event): void {
                   loading="lazy"
                   referrerpolicy="no-referrer"
                   alt=""
-                  class="w-32 h-20 object-contain bg-elevated rounded border"
+                  class="w-32 h-20 object-contain bg-elevated rounded border border-default"
                   @error="hideBrokenImage"
                 >
               </a>

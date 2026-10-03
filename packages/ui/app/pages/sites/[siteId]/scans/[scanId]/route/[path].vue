@@ -203,13 +203,13 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
 
       <!-- Category Scores -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2" :class="scores.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
-        <div v-for="s in scores" :key="s.id" class="rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4">
-          <ScoreRing v-if="s.categoryScoreDisplayMode === 'gauge'" :score="s.score" size="md" />
+        <div v-for="s in scores" :key="s.id" class="min-w-0 rounded-lg border border-default bg-[var(--ui-bg-elevated)]/35 p-4 flex items-center gap-4 lg:flex-col lg:text-center 2xl:flex-row 2xl:text-left">
+          <ScoreRing v-if="s.categoryScoreDisplayMode === 'gauge'" :score="s.score" size="md" class="shrink-0" />
           <div v-else class="flex size-16 shrink-0 items-center justify-center rounded-full border border-default bg-default/50">
             <UiIcon name="bot" class="size-6 text-muted" />
           </div>
-          <div>
-            <div class="text-sm font-medium">
+          <div class="min-w-0">
+            <div class="text-sm font-medium break-words">
               {{ s.label }}
             </div>
             <div v-if="s.categoryScoreDisplayMode === 'fraction'" class="numerals-display text-2xl" :class="scoreToColor(s.score)">

@@ -107,7 +107,7 @@ function llmsLabel(status: string | undefined): string {
         </h2>
       </template>
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums text-success">
             {{ report.llmsTxt.validRoutes }}
           </div>
@@ -115,7 +115,7 @@ function llmsLabel(status: string | undefined): string {
             Valid
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums" :class="report.llmsTxt.invalidRoutes > 0 ? 'text-error' : ''">
             {{ report.llmsTxt.invalidRoutes }}
           </div>
@@ -123,7 +123,7 @@ function llmsLabel(status: string | undefined): string {
             Invalid
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums text-muted">
             {{ report.llmsTxt.missingRoutes }}
           </div>
@@ -131,7 +131,7 @@ function llmsLabel(status: string | undefined): string {
             Missing
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums" :class="report.llmsTxt.fetchFailedRoutes > 0 ? 'text-error' : ''">
             {{ report.llmsTxt.fetchFailedRoutes }}
           </div>
@@ -149,7 +149,7 @@ function llmsLabel(status: string | undefined): string {
         </h2>
       </template>
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <UiIcon
             :name="report.webmcp.supported === false ? 'minus' : report.webmcp.hasRegisteredTools ? 'success' : 'error'"
             :class="report.webmcp.supported === false ? 'text-muted' : report.webmcp.hasRegisteredTools ? 'text-success' : 'text-muted'"
@@ -159,7 +159,7 @@ function llmsLabel(status: string | undefined): string {
             {{ report.webmcp.supported === false ? 'WebMCP Unsupported' : 'Registered Tools' }}
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums">
             {{ report.webmcp.routesMissingFormAnnotations ?? 0 }}
           </div>
@@ -167,7 +167,7 @@ function llmsLabel(status: string | undefined): string {
             Routes Missing Form Annotations
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <UiIcon
             :name="report.webmcp.schemaValid ? 'success' : report.webmcp.schemaValid === false ? 'error' : 'minus'"
             :class="report.webmcp.schemaValid ? 'text-success' : report.webmcp.schemaValid === false ? 'text-error' : 'text-muted'"
@@ -177,7 +177,7 @@ function llmsLabel(status: string | undefined): string {
             Schema Valid
           </div>
         </div>
-        <div class="p-3 border rounded-lg text-center">
+        <div class="p-3 border border-default rounded-lg text-center">
           <div class="text-lg font-bold tabular-nums">
             {{ report.stability?.passingCount ?? 0 }}/{{ report.stability?.routeCount ?? 0 }}
           </div>

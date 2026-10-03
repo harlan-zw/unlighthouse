@@ -33,7 +33,7 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
         </h2>
       </template>
       <div class="space-y-3">
-        <div v-for="insight in report.insights" :key="insight.id" class="p-3 border rounded-lg">
+        <div v-for="insight in report.insights" :key="insight.id" class="p-3 border border-default rounded-lg">
           <div class="flex items-center justify-between">
             <div class="text-sm font-medium">
               {{ insight.title || insight.id }}

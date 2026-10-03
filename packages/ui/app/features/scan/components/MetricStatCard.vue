@@ -63,7 +63,7 @@ const statCols = computed(() => {
 </script>
 
 <template>
-  <UiCard size="sm">
+  <UiCard size="sm" class="@container">
     <div class="flex items-center justify-between">
       <span class="text-label text-muted">{{ label }}</span>
       <span v-if="stats" class="text-xs text-muted tabular-nums">{{ formatRouteCount(stats.count) }}</span>
@@ -79,12 +79,12 @@ const statCols = computed(() => {
       <DistributionBar class="mt-3" :segments="distributionSegments" />
 
       <!-- Percentile stat row -->
-      <div class="mt-3 grid grid-cols-6 gap-1 border-t border-default pt-2">
-        <div v-for="c in statCols" :key="c.label" class="text-center">
+      <div class="mt-3 grid grid-cols-3 gap-2 border-t border-default pt-2 @min-[24rem]:grid-cols-6">
+        <div v-for="c in statCols" :key="c.label" class="min-w-0 text-center">
           <div class="text-xs text-muted">
             {{ c.label }}
           </div>
-          <div class="numerals-display text-xs mt-0.5">
+          <div class="numerals-display text-xs mt-0.5 break-words">
             {{ c.val }}
           </div>
         </div>
