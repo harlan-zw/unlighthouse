@@ -19,7 +19,8 @@
     "typecheck": "nuxt typecheck",
     "test:publint": "publint"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@iconify-json/lucide": "catalog:",
     "@nuxt/icon": "catalog:",
     "@nuxt/ui": "catalog:dependencies",
     "@nuxtjs/color-mode": "catalog:",
@@ -33,14 +34,11 @@
     "nuxt": "catalog:",
     "nuxt-use-query": "catalog:",
     "reka-ui": "catalog:",
+    "tailwindcss": "catalog:dependencies",
     "vue": "catalog:dependencies",
     "vue-router": "catalog:",
     "vue-sonner": "catalog:",
+    "vue-tsc": "catalog:",
     "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@iconify-json/lucide": "catalog:",
-    "tailwindcss": "catalog:dependencies",
-    "vue-tsc": "catalog:"
   }
 }

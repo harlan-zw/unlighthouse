@@ -6,10 +6,9 @@
 // flags this module derives, so the CLI can't drift from the registry.
 
 import type { Command, CommandName } from '@unlighthouse/contracts/commands'
-import type { CommandExecutor, HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
+import type { HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
 import type { ArgsDef, CommandDef } from 'citty'
 import { commandEntries, isAsyncIterable } from '@unlighthouse/contracts/commands'
-import { createCommandExecutor } from '@unlighthouse/core/api/handlers'
 import { z } from 'zod'
 
 const WRAPPER_TYPES = new Set(['optional', 'nullable', 'default', 'nullish', 'readonly', 'catch'])
@@ -81,7 +80,7 @@ export function argsToInput(input: z.ZodType, args: Record<string, unknown>): Re
 }
 
 export interface CliProjectionOptions {
-  handlers: HandlerMap
+  handlers: HandlerMap | (() => Promise<HandlerMap>)
   /** Lazily build the per-invocation handler context (storage/core/config). */
   createCtx: () => HandlerCtx | Promise<HandlerCtx>
   /** Render a command's result to stdout (human or agent NDJSON). */
@@ -100,13 +99,16 @@ export interface CliProjectionOptions {
   onComplete?: (cmd: Command) => void | Promise<void>
 }
 
-function leafCommand(name: CommandName, cmd: Command, flags: ArgsDef, opts: CliProjectionOptions, executor: CommandExecutor): CommandDef {
+function leafCommand(name: CommandName, cmd: Command, flags: ArgsDef, opts: CliProjectionOptions): CommandDef {
   const verb = cmd.name.split('.').pop() ?? cmd.name
   return {
     meta: { name: verb, description: cmd.description },
     args: flags,
     async run({ args }) {
       try {
+        const { createCommandExecutor } = await import('@unlighthouse/core/api/handlers')
+        const handlers = typeof opts.handlers === 'function' ? await opts.handlers() : opts.handlers
+        const executor = createCommandExecutor({ handlers })
         const raw = argsToInput(cmd.input, args as Record<string, unknown>)
         const result = await executor.execute(name, raw, opts.createCtx)
         if (isAsyncIterable(result)) {
@@ -153,13 +155,12 @@ export function projectCliCommands(opts: CliProjectionOptions): {
 } {
   const subCommands: Record<string, CommandDef> = {}
   const leafFlagsByName = new Map<string, ArgsDef>()
-  const executor = createCommandExecutor({ handlers: opts.handlers })
   for (const [name, cmd] of commandEntries()) {
     if (cmd.cli?.hidden)
       continue
     const flags = cittyFlagsFor(cmd.input)
     leafFlagsByName.set(name, flags)
-    insertNested(subCommands, name.split('.'), leafCommand(name, cmd, flags, opts, executor), cmd)
+    insertNested(subCommands, name.split('.'), leafCommand(name, cmd, flags, opts), cmd)
   }
   return { subCommands, leafFlagsByName }
 }

@@ -236,16 +236,18 @@ export async function initStorage({ outputPath, dbUrl, env = {}, logger }: InitS
   logger?.debug?.(`Opening SQLite (file): ${parsed.path}`)
 
   const runInit = (db: Database.Database): void => {
-    for (const stmt of INIT_SQL_STATEMENTS) {
-      try {
-        db.exec(stmt)
+    db.transaction(() => {
+      for (const stmt of INIT_SQL_STATEMENTS) {
+        try {
+          db.exec(stmt)
+        }
+        catch (err) {
+          const msg = errorMessage(err)
+          if (!/duplicate column name/i.test(msg))
+            logOperationalWarn('storage.migration_statement_failed', err, { driver: 'sqlite', statement: stmt }, logger)
+        }
       }
-      catch (err) {
-        const msg = errorMessage(err)
-        if (!/duplicate column name/i.test(msg))
-          logOperationalWarn('storage.migration_statement_failed', err, { driver: 'sqlite', statement: stmt }, logger)
-      }
-    }
+    })()
     applyMigrations(db, {
       onApply: id => logger?.info?.(`[storage] applied migration: ${id}`),
     })

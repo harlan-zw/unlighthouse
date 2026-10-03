@@ -186,7 +186,6 @@
     "@unlighthouse/contracts": "workspace:*",
     "chrome-launcher": "catalog:dependencies",
     "consola": "catalog:dependencies",
-    "crawlee": "catalog:dependencies",
     "fflate": "catalog:dependencies",
     "h3": "catalog:dependencies",
     "hookable": "catalog:dependencies",

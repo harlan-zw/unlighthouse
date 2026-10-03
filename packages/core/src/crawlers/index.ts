@@ -1,3 +1,3 @@
 // v1 — Crawler port factories.
-export * from './crawlee'
+export * from './html'
 export * from './parallel-map'

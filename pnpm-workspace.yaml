@@ -20,7 +20,6 @@ packages:
   - '!docs'
 
 overrides:
-  '@crawlee/puppeteer@3.17.0>devtools-protocol': 0.0.1652909
   '@nuxt/kit': 4.4.6
   nuxt: 4.4.6
   vite: 8.1.0
@@ -79,7 +78,6 @@ catalogs:
     chrome-launcher: ^1.2.1
     citty: ^0.2.2
     consola: ^3.4.2
-    crawlee: ^3.18.0
     defu: ^6.1.7
     drizzle-orm: ^0.45.2
     fflate: ^0.8.3

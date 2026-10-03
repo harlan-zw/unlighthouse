@@ -7,7 +7,7 @@ import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createUnlighthouseCore } from '@unlighthouse/core'
-import { crawleeCrawler } from '@unlighthouse/core/crawlers'
+import { htmlCrawler } from '@unlighthouse/core/crawlers'
 import { createCruxPack, createPackRegistry } from '@unlighthouse/core/packs'
 import { reapStaleScans } from '@unlighthouse/core/runtime'
 import { fuseSeeds, manualSeeds, sitemapSeeds } from '@unlighthouse/core/seeds'
@@ -141,7 +141,11 @@ export async function createLocalRuntime(opts: CreateLocalRuntimeOptions): Promi
   const environmentPacks = opts.env.CRUX_API_KEY ? [createCruxPack({ apiKey: opts.env.CRUX_API_KEY })] : []
   const packs = [...environmentPacks, ...(opts.packs ?? [])]
   const { seeds, routeMatcher } = resolveSeeds(opts.config, opts.logger)
-  const crawler = crawleeCrawler({ logger: opts.logger.withTag('crawler/crawlee') })
+  const crawler = htmlCrawler({
+    logger: opts.logger.withTag('crawler/html'),
+    fetchConfig: opts.config,
+    site: opts.config.site,
+  })
   const core = createUnlighthouseCore({
     config: opts.config,
     auditor,
