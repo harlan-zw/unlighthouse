@@ -36,14 +36,16 @@ Set `chrome.useDownloadFallback: false` to require an installed browser.
 Set `chrome.downloadFallbackVersion` to select a Chrome build.
 Set `chrome.downloadFallbackCacheDir` to select the browser cache directory.
 
-Lighthouse and Puppeteer also download before the first audit.
+Lighthouse and Puppeteer download as one prebuilt package before the first audit.
 The dashboard downloads when you open the CLI server or export a static report.
 These downloads require npm and network access on first use.
 Cached dependencies work offline.
 
 The CLI excludes Lighthouse's upstream error-reporting dependencies from audit downloads.
 Lighthouse library audits do not initialize that reporting system.
-Audit code and results remain unchanged.
+The CLI also excludes source maps, type declarations, unused assets, and translated audit text.
+CLI audit output uses English.
+Audit logic remains upstream Lighthouse code.
 The standalone Core package keeps the dependencies supplied by its host.
 
 Set `UNLIGHTHOUSE_RUNTIME_CACHE` to select the shared dependency cache.

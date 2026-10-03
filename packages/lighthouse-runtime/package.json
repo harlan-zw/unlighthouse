@@ -1,0 +1,31 @@
+{
+  "name": "@unlighthouse/lighthouse-runtime",
+  "type": "module",
+  "version": "1.0.0-beta.1",
+  "description": "On-demand English Lighthouse and Puppeteer runtime assets.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/lighthouse-runtime"
+  },
+  "exports": {
+    ".": "./dist/runtime.zip",
+    "./package.json": "./package.json"
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=24.13.1" },
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test:publint": "publint"
+  },
+  "devDependencies": {
+    "@puppeteer/browsers": "catalog:dependencies",
+    "@types/node": "catalog:",
+    "fflate": "catalog:dependencies",
+    "lighthouse": "catalog:dependencies",
+    "puppeteer-core": "catalog:dependencies"
+  },
+  "publishConfig": { "access": "public", "tag": "beta" }
+}

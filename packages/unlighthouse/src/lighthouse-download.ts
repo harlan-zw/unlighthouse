@@ -6,7 +6,8 @@ import { existsSync } from 'node:fs'
 import { mkdir, rename, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { Launcher } from 'chrome-launcher'
-import { downloadDependencies, runtimeCacheDirectory, withRuntimeDownloadLock } from './runtime-download'
+import { downloadAuditRuntime } from './compact-runtime'
+import { runtimeCacheDirectory, withRuntimeDownloadLock } from './runtime-download'
 
 export function createLighthouseLoader(options: {
   logger?: Logger
@@ -16,7 +17,7 @@ export function createLighthouseLoader(options: {
 } = {}): NonNullable<LocalAuditorOptions['loadRuntime']> {
   let pending: ReturnType<NonNullable<LocalAuditorOptions['loadRuntime']>> | undefined
   const load = async (signal?: AbortSignal) => {
-    const resolve = await downloadDependencies(['lighthouse', 'puppeteer-core', '@puppeteer/browsers'], { ...options, signal })
+    const resolve = await downloadAuditRuntime({ ...options, signal })
     const runtime = { lighthouse: resolve('lighthouse'), puppeteer: resolve('puppeteer-core') }
     if (!options.local)
       return runtime
