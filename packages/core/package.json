@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/core",
   "type": "module",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Pure core modules for Unlighthouse v1 (report, comparison, seeds, policies, crawlers, auditors, storage, api).",
   "license": "MIT",
   "repository": {
@@ -121,6 +121,7 @@
     },
     "./api/static-client": {
       "types": "./dist/api/static-client.d.mts",
+      "browser": "./dist-browser/static-client.mjs",
       "import": "./dist/api/static-client.mjs"
     },
     "./api/http": {
@@ -155,6 +156,7 @@
   "types": "./dist/index.d.mts",
   "files": [
     "dist",
+    "dist-browser",
     "dist/migrations/sqlite/**",
     "src/logger.ts"
   ],
