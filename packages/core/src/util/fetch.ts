@@ -20,6 +20,12 @@ export interface FetchUrlClient {
   get: (url: string, opts?: FetchOptions<'text'>) => Promise<FetchUrlResponse>
 }
 
+function normalizeRedirectUrl(value: string): string {
+  const url = new URL(value)
+  url.pathname = withoutTrailingSlash(url.pathname)
+  return url.toString()
+}
+
 /** Narrow fetch policy shared by legacy and v1 config contracts. */
 export interface FetchConfig {
   auth?: false | { username: string, password: string }
@@ -138,7 +144,7 @@ export async function fetchUrlRaw(
         responseUrl = responseUrl.replace(/(?<=https?:\/\/)(.+?@)/g, '')
       }
       const requestedUrl = withQuery(url, { ...(resolvedConfig.defaultQueryParams || {}) })
-      const redirected = !!responseUrl && withoutTrailingSlash(responseUrl) !== withoutTrailingSlash(requestedUrl)
+      const redirected = !!responseUrl && normalizeRedirectUrl(responseUrl) !== normalizeRedirectUrl(requestedUrl)
       const redirectUrl = responseUrl
       if (response.status < 200 || response.status >= 300) {
         return { valid: false, redirected, response, redirectUrl }

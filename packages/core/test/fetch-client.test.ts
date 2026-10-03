@@ -15,6 +15,8 @@ describe('createFetchClient', () => {
   it.each([
     ['https://example.com', 'https://example.com/', {}],
     ['https://example.com/', 'https://example.com/?token=value', { defaultQueryParams: { token: 'value' } }],
+    ['https://example.com', 'https://example.com/?token=value', { defaultQueryParams: { token: 'value' } }],
+    ['https://example.com/about', 'https://example.com/about/?token=value', { defaultQueryParams: { token: 'value' } }],
   ])('does not treat URL normalization as a redirect: %s', async (url, responseUrl, config) => {
     const result = await fetchUrlRaw(url, config, { client: {
       get: async () => ({ status: 200, data: 'ok', headers: new Headers(), url: responseUrl, request: { res: { responseUrl } } }),
