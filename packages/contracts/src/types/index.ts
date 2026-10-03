@@ -204,7 +204,7 @@ export interface HTMLExtractPayload {
   jsonLd?: unknown[]
 }
 
-export type ValidReportTypes = 'jsonSimple' | 'jsonExpanded' | 'lighthouseServer' | 'ndjson' | 'agentSummary'
+export type ValidReportTypes = 'jsonSimple' | 'json' | 'jsonExpanded' | 'csvSimple' | 'csv' | 'csvExpanded' | 'lighthouseServer' | 'ndjson' | 'agentSummary'
 
 export interface ReporterConfig {
   lhciHost?: string
