@@ -20,7 +20,10 @@ Install the beta through the `beta` npm tag:
 npm install --save-dev unlighthouse@beta
 ```
 
-The `unlighthouse` package contains the CLI, CI runner, server, and dashboard assets.
+The `unlighthouse` package contains the CLI, CI runner, server, and MCP executable.
+Audit engines and dashboard assets download on first use, then remain in a shared cache.
+Keep npm and network access available for those initial downloads.
+Set `UNLIGHTHOUSE_RUNTIME_CACHE` to choose the dependency cache directory.
 Replace direct dependencies on `@unlighthouse/cli`, `@unlighthouse/server`, and `@unlighthouse/client` with `unlighthouse`.
 Replace standalone `unlighthouse-ci` package installations too.
 The `unlighthouse` and `unlighthouse-ci` executable names remain available.
@@ -81,7 +84,7 @@ Some accepted scanner and authentication options have narrower effects.
 
 ### URL discovery limits
 
-The v1 crawler reads server-rendered HTML with Cheerio.
+The v1 crawler fetches server-rendered HTML with native fetch.
 `--enable-javascript` does not enable browser-based link discovery.
 Use a sitemap or explicit `urls` for links rendered by JavaScript.
 
@@ -97,8 +100,8 @@ Review crawl policy before scanning a production site.
 
 The `cookies` option applies to fetch helpers, but does not seed the local Lighthouse browser.
 For cookie headers, use `extraHeaders.Cookie`.
-The Cheerio discovery crawler does not receive these authentication headers.
-Keep integrations requiring authenticated HTML discovery on 0.19 until you replace that crawler.
+The HTML discovery crawler receives configured headers and cookies for the site's origin.
+Cross-origin redirects do not receive those credentials.
 
 ### Route definitions
 
@@ -132,7 +135,32 @@ Use `CHROME_FLAGS` for Chrome process arguments.
 Use `lighthouseOptions` for supported Lighthouse audit settings.
 Use `scanner.perfConcurrency` to select serial or parallel performance audits.
 Set `CHROME_PATH` to select an installed Chrome browser.
-Legacy `chrome` download options do not configure the v1 local auditor.
+The `chrome` options control system-browser selection and automatic download fallback.
+See [Chrome Dependency](/guide/guides/chrome-dependency) for supported options.
+
+## Standalone adapters and MCP
+
+Replace `crawleeCrawler` with `htmlCrawler` from `@unlighthouse/core/crawlers`.
+Crawlee-specific adapter hooks have no replacement.
+The HTML crawler supports cancellation, but does not expose pause or resume methods.
+
+Standalone Core hosts must install dependencies required by their chosen adapters.
+For the local Lighthouse auditor, install `lighthouse` and `puppeteer-core`.
+The `unlighthouse` host downloads these dependencies automatically.
+
+Standalone MCP hosts must install `@modelcontextprotocol/sdk`.
+The root `unlighthouse-mcp` executable downloads its SDK automatically.
+`createMcpServer(options)` now returns a promise.
+Await it before connecting a transport:
+
+```ts
+import type { CreateMcpServerOptions } from '@unlighthouse/mcp'
+import { createMcpServer } from '@unlighthouse/mcp'
+
+export async function createServer(options: CreateMcpServerOptions) {
+  return await createMcpServer(options)
+}
+```
 
 ## Programmatic scans
 
