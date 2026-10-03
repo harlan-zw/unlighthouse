@@ -5,11 +5,12 @@ on:
     branches:
       - main
       - v1
+    paths-ignore:
+      - '**/*.md'
 
   pull_request:
-    branches:
-      - main
-      - v1
+    paths-ignore:
+      - '**/*.md'
 
 jobs:
   build:

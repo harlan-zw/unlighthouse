@@ -1,8 +1,12 @@
 {
   "name": "@unlighthouse/ui",
   "type": "module",
-  "version": "0.0.1",
-  "private": true,
+  "version": "1.0.0-beta.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/ui"
+  },
   "exports": {
     ".": "./dist/index.html"
   },
@@ -19,7 +23,8 @@
     "typecheck": "nuxt typecheck",
     "test:publint": "publint"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@iconify-json/lucide": "catalog:",
     "@nuxt/icon": "catalog:",
     "@nuxt/ui": "catalog:dependencies",
     "@nuxtjs/color-mode": "catalog:",
@@ -33,14 +38,15 @@
     "nuxt": "catalog:",
     "nuxt-use-query": "catalog:",
     "reka-ui": "catalog:",
+    "tailwindcss": "catalog:dependencies",
     "vue": "catalog:dependencies",
     "vue-router": "catalog:",
     "vue-sonner": "catalog:",
+    "vue-tsc": "catalog:",
     "zod": "catalog:"
   },
-  "devDependencies": {
-    "@iconify-json/lucide": "catalog:",
-    "tailwindcss": "catalog:dependencies",
-    "vue-tsc": "catalog:"
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
   }
 }

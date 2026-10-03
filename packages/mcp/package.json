@@ -1,10 +1,14 @@
 {
   "name": "@unlighthouse/mcp",
   "type": "module",
-  "version": "0.0.0-v1",
-  "private": true,
+  "version": "1.0.0-beta.0",
   "description": "MCP server preset for Unlighthouse: projects the command registry as MCP tools.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/mcp"
+  },
   "sideEffects": false,
   "exports": {
     ".": {
@@ -34,5 +38,9 @@
     "@unlighthouse/contracts": "workspace:*",
     "@unlighthouse/core": "workspace:*",
     "zod": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
   }
 }
