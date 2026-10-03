@@ -331,6 +331,11 @@ const columnToggleItems = computed(() => [
       <UiTable
         ref="tableRef"
         v-model:sorting="sorting"
+        class="min-w-0 max-w-full overflow-x-auto! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        tabindex="0"
+        role="region"
+        aria-label="Routes"
+        label="Routes"
         :columns="allColumns"
         :data="filtered"
         :size="density === 'compact' ? 'sm' : 'md'"
