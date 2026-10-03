@@ -27,10 +27,11 @@ const ready = computed(() => setup.value !== null)
 const shell = computed(() => setup.value ? agentShell(setup.value) : '')
 const command = computed(() => setup.value ? buildClaudeCommand(setup.value) : '')
 const config = computed(() => setup.value ? buildMcpConfig(setup.value) : '')
+const prompt = computed(() => setup.value ? buildAgentPrompt(setup.value) : '')
 
 function copySetupPrompt() {
   if (setup.value)
-    return copyText(buildAgentPrompt(setup.value))
+    return copyText(prompt.value)
 }
 
 async function copyText(text: string) {
@@ -97,6 +98,9 @@ async function copyText(text: string) {
         <p class="text-sm text-muted">
           Paste the prompt into an agent that can run terminal commands.
         </p>
+        <Disclosure v-if="ready" label="View setup prompt">
+          <CodeBlock :code="prompt" tabindex="0" role="region" aria-label="Setup prompt" class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
+        </Disclosure>
 
         <div v-if="ready" class="space-y-6 border-t border-default pt-6">
           <div class="space-y-3">
