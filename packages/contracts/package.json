@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/contracts",
   "type": "module",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Shared types and contracts for Unlighthouse v1.",
   "license": "MIT",
   "repository": {

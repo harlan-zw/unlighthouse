@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/mcp",
   "type": "module",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "MCP server preset for Unlighthouse: projects the command registry as MCP tools.",
   "license": "MIT",
   "repository": {

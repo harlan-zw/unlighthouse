@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { defineConfig } from 'tsdown'
 import { writeBundledLicenses } from '../../scripts/bundled-licenses.ts'
 
-export default defineConfig({
+export default defineConfig([{
   hooks: { 'build:done': ({ chunks }) => writeBundledLicenses(chunks, join(import.meta.dirname, 'dist')) },
   entry: [
     './src/index.ts',
@@ -53,4 +53,13 @@ export default defineConfig({
     alwaysBundle: ['@mdream/js', 'chrome-launcher', 'consola', 'fflate', 'h3', 'hookable', 'ofetch', 'radix3', 'ufo', /^unstorage(\/|$)/, /^drizzle-orm(\/|$)/],
     dts: { neverBundle: true, alwaysBundle: ['h3', 'hookable', 'consola', 'ofetch', 'ufo'] },
   },
-})
+}, {
+  hooks: { 'build:done': ({ chunks }) => writeBundledLicenses(chunks, join(import.meta.dirname, 'dist-browser')) },
+  entry: ['./src/api/static-client.ts'],
+  outDir: 'dist-browser',
+  platform: 'browser',
+  format: 'esm',
+  fixedExtension: true,
+  dts: false,
+  deps: { alwaysBundle: ['hookable', 'fflate'] },
+}])
