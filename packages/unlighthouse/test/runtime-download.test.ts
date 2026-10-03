@@ -1,9 +1,59 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { expect, it } from 'vitest'
 import { downloadRuntimePackages } from '../src/runtime-download'
+
+it('runs library audits without installing unused upstream error reporting', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'unlighthouse-telemetry-'))
+  const engine = join(root, 'engine')
+  await mkdir(engine)
+  await writeFile(join(engine, 'package.json'), JSON.stringify({ name: 'lighthouse', version: '1.0.0', type: 'module', main: 'index.mjs', dependencies: { '@sentry/node': '^10.0.0' } }))
+  await writeFile(join(engine, 'index.mjs'), 'export const audit = url => ({ url, score: 1 }); export const telemetry = () => import("@sentry/node")\n')
+  const npm = (args: string[], directory: string) => new Promise<void>((resolve, reject) => {
+    const child = spawn('npm', args, { cwd: directory, stdio: 'pipe' })
+    let output = ''
+    child.stderr.on('data', chunk => output += String(chunk))
+    child.once('error', reject)
+    child.once('close', code => code === 0 ? resolve() : reject(new Error(output)))
+  })
+  const registry = createServer()
+  try {
+    await npm(['pack', '--offline', '--ignore-scripts', '--pack-destination', root], engine)
+    const tarball = await readFile(join(root, 'lighthouse-1.0.0.tgz'))
+    await new Promise<void>(resolve => registry.listen(0, '127.0.0.1', resolve))
+    const address = registry.address()
+    if (!address || typeof address === 'string')
+      throw new Error('Missing fixture registry address')
+    const origin = `http://127.0.0.1:${address.port}`
+    registry.on('request', (request, response) => {
+      if (request.url === '/lighthouse') {
+        response.setHeader('content-type', 'application/json')
+        response.end(JSON.stringify({ 'name': 'lighthouse', 'dist-tags': { latest: '1.0.0' }, 'versions': { '1.0.0': { name: 'lighthouse', version: '1.0.0', dependencies: { '@sentry/node': '^10.0.0' }, dist: { tarball: `${origin}/fixture.tgz`, integrity: `sha512-${createHash('sha512').update(tarball).digest('base64')}` } } } }))
+      }
+      else if (request.url === '/fixture.tgz') {
+        response.end(tarball)
+      }
+      else {
+        response.statusCode = 404
+        response.end()
+      }
+    })
+    const resolve = await downloadRuntimePackages({ lighthouse: '1.0.0' }, { cacheDir: join(root, 'cache'), env: { npm_config_registry: origin, npm_config_cache: join(root, 'npm-cache') } })
+    const runtime = await import(resolve('lighthouse'))
+    expect(runtime.audit('https://example.com')).toEqual({ url: 'https://example.com', score: 1 })
+    await expect(runtime.telemetry()).rejects.toMatchObject({ code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
+  }
+  finally {
+    registry.closeAllConnections()
+    registry.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
 
 async function installFixture(directory: string) {
   const root = join(directory, 'node_modules', 'fixture-engine')
