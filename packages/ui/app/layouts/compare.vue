@@ -24,15 +24,15 @@ const isStatic = useIsStatic()
     <!-- Slim top strip; the page itself owns the in-flow toolbar
          underneath (scan picker / swap / threshold etc). Keep this
          strip absolutely minimal so we don't burn vertical space. -->
-    <div class="flex min-h-14 shrink-0 items-center gap-2 px-3 border-b text-sm">
-      <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 min-w-0">
+    <div class="flex min-h-14 shrink-0 flex-wrap items-center gap-2 px-3 py-1 border-b border-default text-sm">
+      <nav aria-label="Breadcrumb" class="flex basis-full flex-wrap items-center gap-1.5 min-w-0 sm:basis-auto sm:flex-1">
         <NuxtLink to="/" class="inline-flex min-h-11 min-w-11 items-center px-1 -mx-1 text-muted hover:text-default transition-colors shrink-0 lg:min-h-6 lg:min-w-6">
           Sites
         </NuxtLink>
         <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />
         <SiteSwitcher />
-        <UiIcon name="chevron-right" class="size-3.5 text-muted shrink-0" />
-        <span class="font-medium truncate">Compare scans</span>
+        <UiIcon name="chevron-right" class="hidden size-3.5 text-muted shrink-0 sm:block" />
+        <span class="basis-full font-medium truncate sm:basis-auto">Compare scans</span>
       </nav>
 
       <div v-if="isStatic" class="ml-2 text-muted" role="status">

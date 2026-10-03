@@ -66,7 +66,7 @@ const accordionItems = computed<AccordionItem[]>(() =>
     <p v-else-if="linksPending" role="status" class="pb-2 text-sm text-muted">
       Loading affected route links
     </p>
-    <UAccordion :items="accordionItems" type="multiple" class="w-full">
+    <UAccordion :items="accordionItems" type="multiple" class="w-full" :ui="{ label: 'min-w-0 flex-1', trailingIcon: 'shrink-0' }">
       <template #default="{ item: finding }">
         <div class="flex items-center gap-3 text-left flex-1 min-w-0 text-sm">
           <UiChip purpose="status" :status="severityVariant(finding.severity)" class="shrink-0 capitalize">

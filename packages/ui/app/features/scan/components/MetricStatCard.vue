@@ -79,7 +79,7 @@ const statCols = computed(() => {
       <DistributionBar class="mt-3" :segments="distributionSegments" />
 
       <!-- Percentile stat row -->
-      <div class="mt-3 grid grid-cols-6 gap-1 border-t pt-2">
+      <div class="mt-3 grid grid-cols-6 gap-1 border-t border-default pt-2">
         <div v-for="c in statCols" :key="c.label" class="text-center">
           <div class="text-xs text-muted">
             {{ c.label }}

@@ -53,7 +53,7 @@ function severityStatus(severity: string): SemanticStatus {
 
     <UiCard v-if="report.findings?.length" size="sm">
       <template #header>
-        <h3 class="text-label text-dimmed flex items-center gap-2">
+        <h2 class="text-label text-dimmed flex items-center gap-2">
           JS Bundle Issues
           <UiChip purpose="count">
             {{ report.findings.length }}
@@ -61,10 +61,10 @@ function severityStatus(severity: string): SemanticStatus {
           <UiChip v-if="report.totalBytesSavable > 0" purpose="status" status="warning">
             {{ fmtBytes(report.totalBytesSavable) }} savable
           </UiChip>
-        </h3>
+        </h2>
       </template>
       <div class="space-y-3">
-        <div v-for="(finding, idx) in report.findings" :key="`${finding.kind}-${finding.resource}-${idx}`" class="p-3 border rounded-lg">
+        <div v-for="(finding, idx) in report.findings" :key="`${finding.kind}-${finding.resource}-${idx}`" class="p-3 border border-default rounded-lg">
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
               <div class="text-sm font-medium flex items-center gap-2">

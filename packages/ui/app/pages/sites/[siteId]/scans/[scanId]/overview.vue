@@ -138,6 +138,7 @@ const isStatic = useIsStatic()
         v-model="deviceFilter"
         :content="false"
         size="sm"
+        :ui="{ trigger: 'min-h-11 min-w-11 md:min-h-8 md:min-w-0' }"
         :items="[
           { value: '', label: 'All' },
           { value: 'mobile', label: 'Mobile', icon: 'smartphone' },
@@ -147,7 +148,7 @@ const isStatic = useIsStatic()
     </div>
 
     <!-- Stats row -->
-    <div v-if="scanSummary" class="flex items-center gap-8 border-b pb-6">
+    <div v-if="scanSummary" class="flex items-center gap-8 border-b border-default pb-6">
       <div>
         <div class="text-3xl font-bold tabular-nums">
           {{ scanSummary.routesScanned }}
@@ -174,7 +175,7 @@ const isStatic = useIsStatic()
         <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
           Category Scores
         </h2>
-        <div class="rounded-lg border px-4 py-4 space-y-4">
+        <div class="rounded-lg border border-default px-4 py-4 space-y-4">
           <div v-for="cat in categories.filter(c => c.score != null)" :key="cat.key" class="flex items-center gap-3">
             <span class="text-xs text-muted w-24 shrink-0 truncate">{{ cat.label }}</span>
             <div class="flex-1 h-5 bg-elevated rounded overflow-hidden">
@@ -198,7 +199,7 @@ const isStatic = useIsStatic()
         <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
           Score Distribution
         </h2>
-        <div class="rounded-lg border px-4 py-4 flex items-center gap-6 justify-center">
+        <div class="rounded-lg border border-default px-4 py-4 flex items-center gap-6 justify-center">
           <div class="relative shrink-0">
             <svg viewBox="0 0 100 100" class="size-32" aria-hidden="true" focusable="false">
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ui-border)" stroke-width="10" />
@@ -255,7 +256,7 @@ const isStatic = useIsStatic()
       <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
         Categories
       </h2>
-      <div class="divide-y rounded-lg border">
+      <div class="divide-y divide-default rounded-lg border border-default">
         <NuxtLink
           v-for="cat in categories"
           :key="cat.key"

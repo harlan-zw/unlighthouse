@@ -53,7 +53,7 @@ function topElementsOf(finding: Record<string, unknown>): TopElement[] {
           {{ finding.fixHint }}
         </p>
         <div v-if="topElementsOf(finding).length" class="space-y-2">
-          <div v-for="(el, i) in topElementsOf(finding)" :key="i" class="rounded border p-2">
+          <div v-for="(el, i) in topElementsOf(finding)" :key="i" class="rounded border border-default p-2">
             <CodeBlock inline :code="el.selector || el.snippet || ''" />
             <div v-if="el.nodeLabel" class="text-xs text-muted mt-1">
               {{ el.nodeLabel }}

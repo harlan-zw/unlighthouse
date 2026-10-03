@@ -91,7 +91,7 @@ const allColumns = computed<UiTableColumn<RouteRow>[]>(() => {
           // Inline sizing (not just w-/h- classes) so the table's auto layout
           // can't squeeze the cell — full-page mobile screenshots are very tall,
           // object-cover/top crops to a clean wide thumbnail.
-          class: 'object-cover object-top rounded-md border bg-elevated shrink-0',
+          class: 'object-cover object-top rounded-md border border-default bg-elevated shrink-0',
           style: 'width:128px;height:80px;min-width:128px;max-width:128px',
           onError: (e: Event) => { (e.target as HTMLImageElement).style.visibility = 'hidden' },
         })
@@ -327,7 +327,7 @@ const columnToggleItems = computed(() => [
       {{ COLUMN_LABELS[hiddenSort.id] ?? hiddenSort.id }}: {{ hiddenSort.desc ? 'descending' : 'ascending' }}
     </p>
 
-    <div class="border-y">
+    <div class="border-y border-default">
       <UiTable
         ref="tableRef"
         v-model:sorting="sorting"

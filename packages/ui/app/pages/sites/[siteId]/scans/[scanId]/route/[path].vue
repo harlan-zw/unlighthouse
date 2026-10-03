@@ -159,7 +159,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
           id="route-screenshot"
           tabindex="0"
           aria-label="Scrollable full-page screenshot"
-          class="mx-auto w-full overflow-y-auto rounded border bg-elevated"
+          class="mx-auto w-full overflow-y-auto rounded border border-default bg-elevated"
           :class="[
             screenshotExpanded ? 'max-h-[80dvh]' : 'max-h-[420px]',
             routeData.route?.device === 'desktop' ? 'max-w-4xl' : 'max-w-sm',
@@ -227,7 +227,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
           </h2>
         </template>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
-          <div v-for="m in metrics" :key="m.label" class="rounded-lg border p-4 text-center">
+          <div v-for="m in metrics" :key="m.label" class="rounded-lg border border-default p-4 text-center">
             <div class="text-xs text-muted mb-1">
               {{ m.label }}
             </div>
@@ -347,9 +347,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                       </UiChip>
                     </template>
                   </div>
-                  <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
+                  <div v-if="audit.items?.filter(hasVisibleContent).length" class="border border-default rounded-lg overflow-hidden">
                     <template v-for="(item, idx) in audit.items.slice(0, 20)" :key="idx">
-                      <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
+                      <div v-if="hasVisibleContent(item)" class="border-b border-default last:border-b-0 p-2 text-xs">
                         <div v-if="item.url" class="font-mono break-all text-muted">
                           {{ item.url }}
                         </div>
@@ -404,9 +404,9 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                         <span v-else>{{ part.text }}</span>
                       </template>
                     </p>
-                    <div v-if="audit.items?.filter(hasVisibleContent).length" class="border rounded-lg overflow-hidden">
+                    <div v-if="audit.items?.filter(hasVisibleContent).length" class="border border-default rounded-lg overflow-hidden">
                       <template v-for="(item, idx) in audit.items.slice(0, 10)" :key="idx">
-                        <div v-if="hasVisibleContent(item)" class="border-b last:border-b-0 p-2 text-xs">
+                        <div v-if="hasVisibleContent(item)" class="border-b border-default last:border-b-0 p-2 text-xs">
                           <div v-if="item.url" class="font-mono break-all text-muted">
                             {{ item.url }}
                           </div>
