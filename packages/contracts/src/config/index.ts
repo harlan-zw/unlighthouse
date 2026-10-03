@@ -13,6 +13,8 @@ const Budget = z.union([
 ])
 
 const ReporterConfig = z.object({
+  // Column definitions can contain Vue components, like client.columns.
+  columns: z.unknown().optional(),
   lhciHost: z.string().optional(),
   lhciBuildToken: z.string().optional(),
   lhciAuth: z.string().optional(),

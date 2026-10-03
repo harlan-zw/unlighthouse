@@ -1,71 +1,32 @@
 ---
-title: "Run Lighthouse in Docker"
-description: "Run Unlighthouse site-wide Lighthouse scans in Docker containers. Dockerfile examples and CI/CD configuration."
-keywords:
-  - lighthouse docker
-  - docker lighthouse
-  - lighthouse container
-  - puppeteer docker
-  - lighthouse ci docker
+title: "Docker"
+description: "Docker for the Unlighthouse v1 beta."
 navigation:
   title: "Docker"
 relatedPages:
   - path: /integrations/ci
     title: CI Integration
   - path: /guide/guides/puppeteer
-    title: Puppeteer Configuration
+    title: Chrome Options
   - path: /guide/guides/chrome-dependency
     title: Chrome Dependency
 ---
 
-# Run Lighthouse in Docker
+Use a container with Node.js 24.13.1 or newer and Chrome installed.
+Install `unlighthouse@beta` alongside your project dependencies.
 
-Run Unlighthouse in Docker containers for consistent CI/CD environments. Docker requires special Puppeteer configuration due to sandboxing restrictions.
+## Run the CI executable
 
-::warning
-Docker support is community-maintained and experimental. Use the CI integration for best results.
-::
-
-## Unlighthouse Config
-
-It's recommended you only use the `@unlighthouse/ci` with Docker. Hosting the client does not have known support.
-
-You will need to remove the Chrome sandbox in a Docker environment, this will require using an `unlighthouse.config.ts` file.
-
-```ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
-
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--ignore-certificate-errors',
-    ],
-  },
-})
+```sh
+CHROME_PATH=/usr/bin/google-chrome CHROME_FLAGS="--no-sandbox --disable-setuid-sandbox" pnpm exec unlighthouse-ci --site http://app:3000 --reporter json
 ```
 
-If you're using the `unlighthouse` binary instead of the CI integration, then you will need to tell Unlighthouse not to use the server and close when
-the reports are finished.
+The browser executable must exist at `CHROME_PATH` inside the container.
+Mount a writable output directory when you need exports after the container exits.
+Set the site hostname to an address reachable from that container.
 
-```ts
-export default defineUnlighthouseConfig({
-  server: {
-    open: false,
-  },
-  hooks: {
-    'worker-finished': async () => {
-      process.exit(0)
-    },
-  },
-})
-```
+## Authentication
 
-## Docker File
-
-Please see the following community repos:
-
-- [indykoning—Unlighthouse Docker](https://github.com/indykoning/unlighthouse-docker)
+Pass required credentials through container environment variables.
+Use [Authentication](/guide/guides/authentication) for supported audit headers and storage seeding.
+Puppeteer launch options and login page hooks do not configure the v1 runtime.

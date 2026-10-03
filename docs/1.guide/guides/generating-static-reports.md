@@ -1,14 +1,6 @@
 ---
-title: "Generate Lighthouse Reports"
-description: "Generate static Lighthouse reports for your entire site. Export as HTML, CSV, or JSON. Deploy to Netlify, CloudFlare, or any static host."
-keywords:
-  - lighthouse report
-  - lighthouse html report
-  - lighthouse json report
-  - lighthouse csv export
-  - static lighthouse report
-  - lighthouse report generation
-  - bulk lighthouse report
+title: "Generating Static Reports"
+description: "Generating Static Reports for the Unlighthouse v1 beta."
 navigation:
   title: "Static Reports"
 relatedPages:
@@ -20,295 +12,32 @@ relatedPages:
     title: UI Customization
 ---
 
-# Generate Lighthouse Reports
+The CI executable can export a dashboard after a successful scan.
 
-Create static, shareable Lighthouse reports for your entire site. Export as interactive HTML dashboards, CSV for spreadsheet analysis, or JSON for CI/CD integration.
-
-## Report Types
-
-| Format | Use Case | Command |
-|--------|----------|---------|
-| HTML | Shareable dashboards | `--build-static` |
-| JSON | CI/CD integration | `--reporter json` |
-| CSV | Spreadsheet analysis | `--reporter csv` |
-| LHCI | Server upload | `--reporter lighthouseServer` |
-
-Unlike single-page Lighthouse reports, Unlighthouse aggregates results across your entire site.
-
-::tip
-Static reports are perfect for stakeholder reviews, automated deployments, and long-term performance tracking.
-::
-
-## Installation
-
-Install the CLI globally to use `unlighthouse-ci`:
-
-::code-group
-
-```bash [npm]
-npm install -g unlighthouse
+```sh
+pnpm add -D unlighthouse@beta
+pnpm exec unlighthouse-ci --site https://example.com --build-static --reporter json
 ```
 
-```bash [yarn]
-yarn global add unlighthouse
+Publish the generated client directory as static files.
+Keep the complete directory so report assets remain available.
+
+## Programmatic export
+
+```ts
+import { createUnlighthouseHost } from 'unlighthouse'
+
+const host = await createUnlighthouseHost({
+  userConfig: { site: 'https://example.com' },
+  behavior: { ws: null },
+})
+const session = await host.start()
+await session.done
+await host.generateClient({ static: true })
 ```
 
-```bash [pnpm]
-pnpm install -g unlighthouse
-```
+## CI result files
 
-::
-
-For complete CI features, see the [CI Integration Guide](/integrations/ci).
-
-## HTML Reports
-
-You can create static, self-hosted reports for your sites using the CI. This allows you to generate an always up-to-date version
-of how your site is performing overall.
-
-You can see an example of this here: <https://inspect.unlighthouse.dev/>.
-
-You can generate a report like this by providing the `--build-static` flag.
-
-```bash
-unlighthouse-ci --site <your-site> --build-static
-```
-
-This will generate files in your `outputPath` (`.unlighthouse` by default). You can upload the `client` directory to a static host from there.
-
-If you want to preview the static report you can run `npx sirv-cli .unlighthouse/client`
-
-Note: You will need to host your site using a web server.
-
-The static report is **fully self-contained** — every scan's data, scores and
-route screenshots are embedded into the build, so it runs entirely offline with
-no Unlighthouse API or backend. That means you can drop the output directory onto
-any static host (GitHub Pages, S3, Netlify drop, `npx serve`, an internal
-fileserver) and it just works — no server-side component to deploy.
-
-If you serve the report under a sub-path (e.g. `example.com/reports/`), set
-[`routerPrefix`](/api-doc/config#routerprefix) so the embedded asset URLs resolve.
-
-#### CloudFlare Pages Example
-
-You should create a CloudFlare Pages site using [Direct Upload](https://developers.cloudflare.com/pages/platform/direct-upload/).
-
-You will use the [wrangler](https://developers.cloudflare.com/pages/platform/using-wrangler) CLI to upload the static report.
-
-You will need to init wrangler and configure it for your requirements.
-
-```bash
-wrangler init
-```
-
-You can then run the following command to generate the static report and upload it to CloudFlare Pages.
-
-```bash
-unlighthouse-ci --site www.example.com --build-static && wrangler pages publish .unlighthouse
-```
-
-#### GitHub Actions & Netlify Example
-
-This example is for GitHub Actions and deploys a static client build to Netlify.
-
-```yml unlighthouse.yml
-name: Assertions and static report
-
-on:
-  workflow_dispatch:
-
-jobs:
-  demo:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install Dependencies
-        run: npm add -g unlighthouse puppeteer
-
-      - name: Unlighthouse assertions and client
-        run: unlighthouse-ci --site <your-site> --build-static
-
-      - name: Deploy report to Netlify
-        uses: nwtgck/actions-netlify@v3.0
-        with:
-          publish-dir: ./.unlighthouse
-          production-branch: main
-          production-deploy: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: New Release Deploy from GitHub Actions
-          enable-pull-request-comment: false
-          enable-commit-comment: true
-          overwrites-pull-request-comment: true
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEMO_SITE_ID }}
-        timeout-minutes: 1
-```
-
-## CSV Reports
-
-You can generate a CSV report by providing the `--reporter csv` or `--reporter csvExpanded` flag.
-
-```bash
-unlighthouse-ci --site <your-site> --reporter csv
-```
-
-Note: This report format is experimental and may change in the future.
-
-This will generate a report like the following (`csvExpanded` sample):
-
-```csv
-URL,Score,Performance,Accessibility,Best Practices,SEO,Largest Contentful Paint,Cumulative Layout Shift,FID,Blocking,Color Contrast,Headings,Image Alts,Link Names,Errors,Inspector Issues,Images Responsive,Image Aspect Ratio,Indexable,Tap Targets
-"/",93,72,100,100,100,3211.44,0,290.36,562.29,1,1,1,1,1,1,1,1,1,1
-"/blog",94,77,100,100,100,3911.7,0,205.57,260.03,1,1,1,1,1,1,1,1,1,1
-"/blog/2023-april",88,51,100,100,100,4925.84,0,311.24,797.95,1,1,1,1,1,1,1,1,1,1
-"/blog/2023-february",96,82,100,100,100,3207.98,0,209.96,302.01,1,1,1,1,1,1,1,1,1,1
-"/blog/nuxt-3-migration-cheatsheet",85,43,97,100,100,4373.88,0,1581.52,2820.75,0,1,1,1,1,1,1,1,1,1
-"/blog/vue-automatic-component-imports",93,74,97,100,100,1696.51,0,793.36,1314.27,0,1,1,1,1,1,1,1,1,1
-"/blog/vue-use-head-v1",82,30,97,100,100,8053.8,0,379.59,1127.99,0,1,1,1,1,1,1,1,1,1
-"/projects",92,66,100,100,100,3666.86,0,322.48,625.51,1,1,1,1,1,1,1,1,1,1
-"/sponsors",92,69,100,100,100,4438.15,0,362.62,408.63,1,1,1,1,1,1,1,1,1,1
-"/talks",98,90,100,100,100,864.86,0,390.93,427.94,1,1,1,1,1,1,1,1,1,1
-```
-
-### Import into Google Sheets
-
-The CSV drops straight into Google Sheets for tracking scores over time.
-
-**One-off:** in Sheets, **File → Import → Upload** the generated `.csv` and pick
-*"Replace current sheet"*.
-
-**Auto-refreshing:** if you publish the CSV to a URL (e.g. alongside a
-[static report](#html-reports), or any object store), pull it in live with
-[`IMPORTDATA`](https://support.google.com/docs/answer/3093335) — Sheets re-fetches
-it periodically, so each new scan you publish updates the sheet automatically:
-
-```text
-=IMPORTDATA("https://example.com/reports/unlighthouse.csv")
-```
-
-From there, Sheets' own history (**File → Version history**) plus a dated tab per
-run gives you a longitudinal record. The dashboard also keeps per-site scan
-history natively — see the **History** view in the UI.
-
-## JSON Reports
-
-You can generate a JSON report by providing the `--reporter json` or `--reporter jsonExpanded` flag.
-
-```bash
-unlighthouse-ci --site <your-site> --reporter json
-```
-
-Note: This report format is experimental and may change in the future.
-
-This will generate a report like the following (`json` sample):
-
-```json
-[
-  {
-    "path": "/",
-    "score": 0.97,
-    "performance": 0.87,
-    "accessibility": 1,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/blog",
-    "score": 0.98,
-    "performance": 0.91,
-    "accessibility": 1,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/blog/2023-february",
-    "score": 0.91,
-    "performance": 0.65,
-    "accessibility": 1,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/blog/modern-package-development",
-    "score": 0.9,
-    "performance": 0.61,
-    "accessibility": 0.97,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/blog/scale-your-vue-components",
-    "score": 0.87,
-    "performance": 0.51,
-    "accessibility": 0.97,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/blog/vue-automatic-component-imports",
-    "score": 0.88,
-    "performance": 0.53,
-    "accessibility": 0.97,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/blog/vue-use-head-v1",
-    "score": 0.97,
-    "performance": 0.9,
-    "accessibility": 0.97,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/projects",
-    "score": 0.94,
-    "performance": 0.77,
-    "accessibility": 1,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/sponsors",
-    "score": 0.97,
-    "performance": 0.88,
-    "accessibility": 1,
-    "best-practices": 1,
-    "seo": 1
-  },
-  {
-    "path": "/talks",
-    "score": 0.94,
-    "performance": 0.74,
-    "accessibility": 1,
-    "best-practices": 1,
-    "seo": 1
-  }
-]
-```
-
-Since Lighthouse 13, each row also carries an `agentic-browsing` score alongside `performance`, `accessibility`, `best-practices`, and `seo` (omitted from the sample above for brevity). Drop the category via `lighthouseOptions.onlyCategories` if you don't want it.
-
-## LHCI Reports
-
-You can upload your reports to a Lighthouse CI server using the `lighthouseServer` reporter.
-
-You will need to provide the `--lhci-host` and `--lhci-build-token` flags.
-
-```bash
-unlighthouse-ci --site <your-site> --reporter lighthouseServer --lhci-host <lhci host> --lhci-build-token <lhci buildToken>
-```
-
-This will upload your reports to the Lighthouse CI server.
-
-### Basic Auth
-
-You can provide basic auth credentials using the `--lhci-auth` flag.
-
-```bash
-unlighthouse-ci --site <your-site> --reporter lighthouseServer --lhci-host <lhci host> --lhci-build-token <lhci buildToken> --lhci-auth <username>:<password>
-```
+JSON exports use `ci-result.json`; CSV exports use `ci-result.csv`.
+These exports are separate from the static dashboard.
+See [CI Integration](/integrations/ci) for reporter selection and device rows.

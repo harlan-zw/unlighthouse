@@ -1,8 +1,10 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { UnlighthouseConfig } from '@unlighthouse/contracts/config'
+import type { HookMap } from '@unlighthouse/contracts/hooks'
 import type { Pack } from '@unlighthouse/contracts/packs'
 import type { Storage, UnlighthouseCore } from '@unlighthouse/contracts/ports'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
+import type { Hookable } from 'hookable'
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
@@ -26,6 +28,8 @@ export interface CreateLocalRuntimeOptions {
   env: NodeJS.ProcessEnv
   /** Non-environment packs in ascending precedence order. */
   packs?: readonly Pack[]
+  /** Host-owned subscribers can register before storage initialization. */
+  hooks?: Hookable<HookMap>
 }
 
 export interface LocalRuntime {
@@ -155,7 +159,7 @@ export async function createLocalRuntime(opts: CreateLocalRuntimeOptions): Promi
     storage,
     packs,
     logger: opts.logger,
-  })
+  }, opts.hooks)
   const handlerCtx: HandlerCtx = {
     core,
     auditor,

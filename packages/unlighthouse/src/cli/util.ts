@@ -14,7 +14,7 @@ export function resolveCiReporter(
   cliReporter: CiOptions['reporter'],
   configReporter: NonNullable<ResolvedUserConfig['ci']>['reporter'],
 ): Exclude<CiOptions['reporter'], 'false' | undefined> | false {
-  if (cliReporter === false || cliReporter === 'false' || configReporter === false)
+  if (cliReporter === false || cliReporter === 'false')
     return false
   return cliReporter ?? configReporter ?? 'jsonSimple'
 }

@@ -1,10 +1,14 @@
 {
   "name": "@unlighthouse/contracts",
   "type": "module",
-  "version": "0.0.0-v1",
-  "private": true,
+  "version": "1.0.0-beta.0",
   "description": "Shared types and contracts for Unlighthouse v1.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/contracts"
+  },
   "sideEffects": false,
   "exports": {
     ".": {
@@ -84,5 +88,9 @@
     "puppeteer-core": "catalog:dependencies",
     "ufo": "catalog:dependencies",
     "zod": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
   }
 }

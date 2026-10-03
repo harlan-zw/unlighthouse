@@ -1,6 +1,6 @@
 ---
 title: "Unlighthouse --desktop Flag & Device Configuration"
-description: "Run Unlighthouse in desktop mode with the --desktop flag: npx unlighthouse --site <url> --desktop. Configure mobile, desktop, or custom viewports with throttling."
+description: "Run Unlighthouse in desktop mode with the --desktop flag: pnpm exec unlighthouse --site <url> --desktop. Configure mobile, desktop, or custom viewports with throttling."
 keywords:
   - unlighthouse --desktop
   - unlighthouse --desktop flag
@@ -26,12 +26,10 @@ relatedPages:
     title: Core Web Vitals Glossary
 ---
 
-# Desktop & Device Configuration
-
 Run Unlighthouse in desktop mode with the `--desktop` flag:
 
 ```bash
-npx unlighthouse --site https://example.com --desktop
+pnpm exec unlighthouse --site https://example.com --desktop
 ```
 
 This overrides the default mobile emulation and scans every page using a desktop viewport. Prefer a config file? Set `scanner.device: 'desktop'` instead.
@@ -46,6 +44,15 @@ Mobile is the default because Google uses mobile-first indexing. But desktop sca
 - Benchmarking against PageSpeed Insights desktop scores
 
 The `--desktop` flag is equivalent to the `--device desktop` long form and takes precedence over any config file setting.
+
+## Device matrix
+
+Use `--device mobile,desktop` to audit both device profiles.
+Each route has one report per device.
+
+```sh
+pnpm exec unlighthouse-ci --site https://example.com --device mobile,desktop --reporter json
+```
 
 ## Device Types
 

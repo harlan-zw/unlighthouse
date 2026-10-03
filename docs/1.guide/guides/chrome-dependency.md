@@ -1,71 +1,45 @@
 ---
 title: "Chrome Dependency"
-description: "Configure Chrome browser settings for Unlighthouse scanning, including system Chrome usage and custom installations."
-keywords:
-  - lighthouse chrome
-  - puppeteer chrome
-  - chromium lighthouse
-  - chrome executable path
-  - lighthouse browser
+description: "Chrome Dependency for the Unlighthouse v1 beta."
 navigation:
   title: "Chrome Dependency"
 relatedPages:
   - path: /guide/guides/puppeteer
-    title: Puppeteer Configuration
+    title: Chrome Options
   - path: /guide/guides/common-errors
     title: Common Errors
   - path: /guide/guides/docker
     title: Docker
 ---
 
-Unlighthouse uses your system Chrome installation to keep package size minimal. When Chrome isn't available, it automatically downloads a compatible Chromium binary.
+The local Lighthouse auditor requires Chrome.
+Unlighthouse uses an installed browser when available.
+If no browser exists, Unlighthouse downloads Chrome before the first audit.
+Later audits reuse that browser.
 
-## Disabling system Chrome
+## Select an installed browser
 
-You can disable the system chrome usage by modifying the `chrome.useSystem` flag.
-
-This will make Unlighthouse download and use the latest Chrome binary instead.
-
-```ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
-
-export default defineUnlighthouseConfig({
-  chrome: {
-    useSystem: false
-  },
-})
+```sh
+CHROME_PATH=/usr/bin/google-chrome pnpm exec unlighthouse --site https://example.com
 ```
 
-## Customizing the fallback installer
+Set `CHROME_PATH` to the executable available on your machine or container.
+Use `CHROME_FLAGS` for process arguments.
+See [Chrome Options](/guide/guides/puppeteer).
 
-When Chrome can't be found on your system or if the `chrome.useSystem: false` flag is passed, then a fallback will be attempted.
+## Automatic downloads
 
-This fallback will download a chrome binary for your system and use that path.
+Set `chrome.useSystem: false` to use the downloaded browser.
+Set `chrome.useDownloadFallback: false` to require an installed browser.
+Set `chrome.downloadFallbackVersion` to select a Chrome build.
+Set `chrome.downloadFallbackCacheDir` to select the browser cache directory.
 
-There are a number of options you can customize on this.
+Lighthouse and Puppeteer also download before the first audit.
+The dashboard downloads when you open the CLI server or export a static report.
+These downloads require npm and network access on first use.
+Cached dependencies work offline.
 
-- `chrome.useDownloadFallback` - Disables the fallback installer
-- `chrome.downloadFallbackVersion` - Which version of chromium to use (default `1095492`)
-- `chrome.downloadFallbackCacheDir` - Where the binary should be saved (default `$home/.unlighthouse`)
+Set `UNLIGHTHOUSE_RUNTIME_CACHE` to select the shared dependency cache.
+The default follows `XDG_CACHE_HOME`, or uses `~/.cache/unlighthouse/runtime`.
 
-```ts
-export default defineUnlighthouseConfig({
-  chrome: {
-    useDownloadFallback: true,
-    downloadFallbackVersion: '1095492',
-    downloadFallbackCacheDir: '/tmp/unlighthouse',
-  },
-})
-```
-
-## Using your own chrome path
-
-You can provide your own chrome path by setting `puppeteerOptions.executablePath`.
-
-```ts
-export default defineUnlighthouseConfig({
-  puppeteerOptions: {
-    executablePath: '/usr/bin/chrome',
-  },
-})
-```
+`puppeteerOptions.executablePath` has no effect on the v1 local auditor.

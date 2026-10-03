@@ -174,22 +174,11 @@ function setupGracefulShutdown(
   })
 }
 
-async function runDashboardMode(options: CliOptions, runtime: CliRuntime) {
-  const { env, log, rootLogger } = runtime
+async function runDashboardMode(unlighthouse: Awaited<ReturnType<typeof createUnlighthouseHost>>, runtime: CliRuntime) {
+  const { log } = runtime
   setMaxListeners(0)
 
-  log.debug('Dashboard-only mode (no --site)')
-  log.debug(`Options: ${JSON.stringify({ debug: options.debug, history: options.history, configFile: options.configFile })}`)
-
-  const unlighthouse = await createUnlighthouseHost({
-    userConfig: {
-      ...pickOptions(options),
-      site: options.site || 'http://localhost',
-    },
-    behavior: { generateClient: true, showBanner: true, label: 'cli' },
-    logger: rootLogger,
-    env,
-  })
+  log.debug('Dashboard-only mode')
 
   log.info('Starting Unlighthouse dashboard...')
 
@@ -205,20 +194,28 @@ async function runDashboardMode(options: CliOptions, runtime: CliRuntime) {
     await open(unlighthouse.runtimeSettings.clientUrl)
 }
 
-// Root command runtime: the v0 ergonomic entry. No --site/--urls → dashboard;
+// Root command runtime: the v0 ergonomic entry. No configured site/urls → dashboard;
 // --history → dashboard; otherwise scan + serve. citty owns --help / --version.
 export async function runCliRoot(options: CliOptions, entry: CliEntryOptions = {}) {
   const runtime = createCliRuntime(entry)
   const { env, log, rootLogger } = runtime
   const start = new Date()
 
-  if (!options.site && !options.urls) {
-    await runDashboardMode(options, runtime)
+  const unlighthouse = await createUnlighthouseHost({
+    userConfig: pickOptions(options),
+    behavior: { generateClient: true, showBanner: true, label: 'cli' },
+    logger: rootLogger,
+    env,
+    onResolvedConfig: config => options.history ? undefined : validateHost(config, rootLogger),
+  })
+
+  if (!unlighthouse.resolvedConfig.site && !unlighthouse.resolvedConfig.urls?.length) {
+    await runDashboardMode(unlighthouse, runtime)
     return
   }
 
   if (options.history) {
-    await runDashboardMode(options, runtime)
+    await runDashboardMode(unlighthouse, runtime)
     return
   }
 
@@ -226,20 +223,6 @@ export async function runCliRoot(options: CliOptions, entry: CliEntryOptions = {
 
   log.debug(`Scan mode — site: ${options.site}`)
   log.debug(`Options: ${JSON.stringify({ site: options.site, urls: options.urls, device: options.device, samples: options.samples })}`)
-
-  const unlighthouse = await createUnlighthouseHost({
-    userConfig: {
-      ...pickOptions(options),
-      hooks: {
-        'resolved-config': async (config) => {
-          await validateHost(config, rootLogger)
-        },
-      },
-    },
-    behavior: { generateClient: true, showBanner: true, label: 'cli' },
-    logger: rootLogger,
-    env,
-  })
 
   log.debug(`Config resolved — site: ${unlighthouse.resolvedConfig.site}`)
   validateOptions(unlighthouse.resolvedConfig)
@@ -251,6 +234,23 @@ export async function runCliRoot(options: CliOptions, entry: CliEntryOptions = {
 
   const deviceOverride = parseDevices(options)
   log.debug(`Device override: ${JSON.stringify(deviceOverride)}`)
+
+  unlighthouse.hooks.hook('scan:complete', async (payload) => {
+    const end = new Date()
+    const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
+
+    log.success(`Scan finished: ${payload.summary.completed} routes in ${seconds}s — ${unlighthouse.resolvedConfig.site}`)
+
+    const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
+    if (options.assert && assertionConfigs?.length) {
+      const db = unlighthouse.handlerCtx.storage.db
+      if (db) {
+        const { passed } = await runAssertions(db, payload.scanId, assertionConfigs, log)
+        if (!passed)
+          process.exit(1)
+      }
+    }
+  })
 
   const { scanId } = await unlighthouse.start(
     deviceOverride && deviceOverride.length > 0 ? { device: deviceOverride } : undefined,
@@ -282,23 +282,6 @@ export async function runCliRoot(options: CliOptions, entry: CliEntryOptions = {
     // that page redirects by scan status.
     scanLandingUrl = joinURL(unlighthouse.runtimeSettings.clientUrl, `/sites/${parsedUrl.hostname}/scans/${scanId}`)
   }
-
-  unlighthouse.hooks.hook('scan:complete', async (payload) => {
-    const end = new Date()
-    const seconds = Math.round((end.getTime() - start.getTime()) / 1000)
-
-    log.success(`Scan finished: ${payload.summary.completed} routes in ${seconds}s — ${unlighthouse.resolvedConfig.site}`)
-
-    const assertionConfigs = unlighthouse.resolvedConfig.ci?.assertions
-    if (options.assert && assertionConfigs?.length) {
-      const db = unlighthouse.handlerCtx.storage.db
-      if (db) {
-        const { passed } = await runAssertions(db, scanId, assertionConfigs, log)
-        if (!passed)
-          process.exit(1)
-      }
-    }
-  })
 
   if (unlighthouse.resolvedConfig.server.open)
     await open(scanLandingUrl)

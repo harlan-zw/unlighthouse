@@ -3,16 +3,17 @@ import { describe, expect, it, vi } from 'vitest'
 import { createCiCli, runCi } from '../src/cli/ci'
 import { pickCiOptions } from '../src/cli/util'
 
-const state = vi.hoisted(() => ({ score: 0 as number | null, budget: 80 as number | Record<string, number>, generated: vi.fn(), reporter: false as false | 'lighthouseServer', uploaded: vi.fn() }))
+const state = vi.hoisted(() => ({ score: 0 as number | null, budget: 80 as number | Record<string, number>, generated: vi.fn(), reporter: false as false | 'lighthouseServer' | 'csvExpanded', uploaded: vi.fn(), output: vi.fn() }))
+vi.mock('../src/reporters', async importOriginal => ({ ...await importOriginal<object>(), outputReport: async (...args: unknown[]) => { state.output(...args) } }))
 const rawReport = { lighthouseVersion: '13.0.0', requestedUrl: 'https://example.com/', finalUrl: 'https://example.com/final', categories: {}, audits: {} }
 vi.mock('../src/reporters/lighthouseServer', () => ({ reportLighthouseServer: async (reports: unknown[], config: unknown, load: (report: unknown) => Promise<unknown>) => { state.uploaded(config, await load(reports[0])) } }))
 vi.mock('../src/index.ts', () => ({
   createUnlighthouseHost: async () => ({
-    resolvedConfig: { site: 'https://example.com', ci: { budget: state.budget, reporter: state.reporter, buildStatic: true, reporterConfig: { lhciHost: 'https://lhci.example.com', lhciBuildToken: 'token' } } },
+    resolvedConfig: { site: 'https://example.com', client: { columns: { performance: [{ key: 'report.audits.first-contentful-paint', label: 'FCP' }] } }, ci: { budget: state.budget, reporter: state.reporter, buildStatic: true, reporterConfig: { lhciHost: 'https://lhci.example.com', lhciBuildToken: 'token' } } },
     start: async () => ({ scanId: 'scan', done: Promise.resolve({ summary: { completed: 1, failed: 0 } }) }),
     handlerCtx: { storage: {
       routes: { listForScan: async () => ({ items: [{ path: '/', url: 'https://example.com/', device: 'mobile', reportBlobKey: 'report.json', lhrBlobKey: 'lhr.json.gz' }] }) },
-      blobs: { get: async (key: string) => key === 'lhr.json.gz' ? gzipSync(JSON.stringify(rawReport)) : new TextEncoder().encode(JSON.stringify({ scanId: 'scan', url: 'https://example.com/', device: 'mobile', metrics: { scorePerformance: state.score, scoreAccessibility: null, scoreSeo: null, scoreBestPractices: null, lcp: null, cls: null, inp: null, fcp: null, ttfb: null, tbt: null, si: null }, categories: { performance: { score: state.score, auditRefs: [] } }, audits: {}, stackPacks: null, entities: null, provenance: { lighthouseVersion: '13.0.0', userAgent: null, capturedAt: '2026-10-03T00:00:00.000Z', benchmarkIndex: null, timingTotal: null, warnings: [], runtimeError: null } })) },
+      blobs: { get: async (key: string) => key === 'lhr.json.gz' ? gzipSync(JSON.stringify(rawReport)) : new TextEncoder().encode(JSON.stringify({ scanId: 'scan', url: 'https://example.com/', device: 'mobile', metrics: { scorePerformance: state.score, scoreAccessibility: null, scoreSeo: null, scoreBestPractices: null, lcp: null, cls: null, inp: null, fcp: null, ttfb: null, tbt: null, si: null }, categories: { performance: { score: state.score, auditRefs: [] } }, audits: { 'first-contentful-paint': { id: 'first-contentful-paint', score: 1, scoreDisplayMode: 'numeric', numericValue: 123, displayValue: '123 ms', title: 'First Contentful Paint', description: null, severity: 'pass', metricSavings: null, items: null } }, stackPacks: null, entities: null, provenance: { lighthouseVersion: '13.0.0', userAgent: null, capturedAt: '2026-10-03T00:00:00.000Z', benchmarkIndex: null, timingTotal: null, warnings: [], runtimeError: null } })) },
     } },
     runtimeSettings: {},
     generateClient: state.generated,
@@ -20,6 +21,17 @@ vi.mock('../src/index.ts', () => ({
 }))
 
 describe('cI backports', () => {
+  it('keeps CSV category labels and configured client columns', async () => {
+    state.reporter = 'csvExpanded'
+    state.score = 1
+    try {
+      expect(await runCi({ argv: ['node', 'ci'], env: {} })).toBe(0)
+      expect(state.output).toHaveBeenCalledWith('csvExpanded', expect.anything(), 'URL,Score,Performance,FCP,Device\n"/",100,100,123,"mobile"')
+    }
+    finally {
+      state.reporter = false
+    }
+  })
   it('awaits Lighthouse server uploads with config and the stored raw report', async () => {
     state.reporter = 'lighthouseServer'
     state.budget = 80

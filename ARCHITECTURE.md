@@ -106,7 +106,7 @@ Dependency graph (no cycles): `contracts` ← `core` ← { `ui`, `mcp`, `cloudfl
 | Package | npm name | Role | Status |
 |---|---|---|---|
 | `contracts` | `@unlighthouse/contracts` | Types, ports, command registry, hooks, config schema, errors, packs contract, drizzle schema. Peer: zod, drizzle-orm. | Full |
-| `core` | `@unlighthouse/core` | The engine: seeds, crawlers, auditors, policies, storage, report, comparison, packs, api (client/http/ws/dashboard/handlers). Peer: better-sqlite3, drizzle-orm, unstorage. | Full |
+| `core` | `@unlighthouse/core` | The engine: seeds, crawlers, auditors, policies, storage, report, comparison, packs, api (client/http/ws/dashboard/handlers). Hosts inject auditor and storage dependencies. | Full |
 | `unlighthouse` | `unlighthouse` | CLI + host + public npm name. `createUnlighthouseHost`, config resolution (c12 + defu + Zod in `src/config/resolve.ts`), reporters, history subscriber. Owns bins `unlighthouse` / `unlighthouse-ci` / `unlighthouse-mcp`. Exports `.`, `./cli`, `./ci`, `./config`. | Full |
 | `ui` | `@unlighthouse/ui` | Nuxt **SPA** dashboard (`ssr: false`). Consumes `@unlighthouse/contracts/client` via `nuxt-use-query` (live path); the static path also imports `@unlighthouse/core/api/static-client`. Builds to a static bundle (`dist/index.html`) embedded by the CLI host. | Full |
 | `mcp` | `@unlighthouse/mcp` | `createMcpServer` / `startStdioServer`: projects the command registry as MCP tools (Zod→JSON-schema), with progress-token streaming and `UnlighthouseError`→MCP error mapping. | Full |

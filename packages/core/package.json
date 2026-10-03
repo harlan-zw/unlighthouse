@@ -1,10 +1,14 @@
 {
   "name": "@unlighthouse/core",
   "type": "module",
-  "version": "0.0.0-v1",
-  "private": true,
+  "version": "1.0.0-beta.0",
   "description": "Pure core modules for Unlighthouse v1 (report, comparison, seeds, policies, crawlers, auditors, storage, api).",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/core"
+  },
   "sideEffects": false,
   "exports": {
     ".": {
@@ -188,5 +192,9 @@
     "radix3": "catalog:dependencies",
     "ufo": "catalog:dependencies",
     "unstorage": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
   }
 }

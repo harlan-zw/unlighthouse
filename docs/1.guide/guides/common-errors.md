@@ -4,7 +4,6 @@ description: "Troubleshoot common issues encountered when running Unlighthouse s
 keywords:
   - lighthouse error
   - lighthouse not working
-  - puppeteer error
   - chrome connection refused
   - wsl lighthouse
   - lighthouse troubleshooting
@@ -16,43 +15,37 @@ relatedPages:
   - path: /guide/guides/chrome-dependency
     title: Chrome Dependency
   - path: /guide/guides/puppeteer
-    title: Puppeteer Configuration
+    title: Chrome Options
 ---
 
-Solutions for frequently encountered issues when running Unlighthouse scans. Ensure you're using the latest version before troubleshooting.
+## Chrome cannot launch
 
-::tip
-For general debugging techniques, see the [Debugging Guide](/guide/guides/debugging).
-::
+If Chrome Launcher cannot find a browser, install Chrome in the environment running Unlighthouse.
+Set `CHROME_PATH` to that browser executable:
 
-## `connect ECONNREFUSED 127.0.0.1:<port>`
-
-**Example**
-
-> Error: Unable to launch browser for worker, error message: connect ECONNREFUSED 127.0.0.1:51667
-
-This error is thrown when Chromium is unable to launch. This happens when puppeteer is unable to connect to the browser.
-This can be from a number of reasons:
-
-- The environment is not configured correctly, likely when using Windows and WSL.
-- You have a firewall or antivirus blocking Chrome or Chromium from launching or connecting to the required port.
-- You are using an unsupported version of Chrome or Chromium.
-
-**Windows and WSL Solution**
-
-- Install Puppeteer on WSL following the [documentation](https://pptr.dev/troubleshooting#running-puppeteer-on-wsl-windows-subsystem-for-linux).
-- Install Chrome in WSL following the [documentation](https://learn.microsoft.com/en-us/windows/wsl/tutorials/gui-apps#install-google-chrome-for-linux).
-
-**Other Environments**
-
-- You can try disabling the system Chrome, instead using the fallback.
-
-```ts
-import { defineUnlighthouseConfig } from 'unlighthouse/config'
-
-export default defineUnlighthouseConfig({
-  chrome: {
-    useSystem: false,
-  },
-})
+```sh
+CHROME_PATH=/usr/bin/google-chrome pnpm exec unlighthouse-ci --site https://example.com
 ```
+
+If Chrome starts but connection fails, check firewall rules and browser permissions.
+If you use WSL, install Chrome inside WSL.
+Legacy `chrome.useSystem` and Puppeteer executable options do not configure the v1 local auditor.
+See [Chrome Dependency](/guide/guides/chrome-dependency) for supported settings.
+
+## Config hooks fail
+
+If config loading raises `CONFIG_INVALID` for hooks, remove the config-file `hooks` property.
+Register supported events on `host.hooks` before starting a programmatic scan.
+Use `onResolvedConfig` for the host factory config callback.
+See [Migrating to v1](/guide/guides/migrating-to-v1).
+
+## Routes are missing
+
+If links need JavaScript, supply explicit `urls` or a sitemap.
+The HTML crawler does not execute JavaScript or receive Lighthouse authentication headers.
+See [URL Discovery](/guide/guides/url-discovery) and [Authentication](/guide/guides/authentication).
+
+## Enable logs
+
+Run the failing command with `--debug`.
+See [Debugging](/guide/guides/debugging) for a single-route check.

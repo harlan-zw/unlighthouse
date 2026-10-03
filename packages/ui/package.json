@@ -1,8 +1,12 @@
 {
   "name": "@unlighthouse/ui",
   "type": "module",
-  "version": "0.0.1",
-  "private": true,
+  "version": "1.0.0-beta.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harlan-zw/unlighthouse.git",
+    "directory": "packages/ui"
+  },
   "exports": {
     ".": "./dist/index.html"
   },
@@ -40,5 +44,9 @@
     "vue-sonner": "catalog:",
     "vue-tsc": "catalog:",
     "zod": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
   }
 }
