@@ -18,6 +18,8 @@ This file records reused dashboard strings. Existing copy rules in DESIGN.md rem
 | Agent connection | MCP | Setup navigation, setup panel |
 | Agent guidance | Skill | Setup navigation, setup panel |
 | Scan action | Run scan | Sidebar, site actions, scan form |
+| Close navigation | Close navigation menu | Mobile drawer close button |
+| Navigation drawer title | Navigation menu | Mobile drawer accessible title |
 | Report action | View report | Scan history, scan links |
 | Copy action | Copy instructions | Agent setup controls |
 | Route ranking | Lowest overall scores | Scan Overview |
