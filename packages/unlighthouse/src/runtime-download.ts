@@ -44,7 +44,7 @@ export async function prepareRuntimeCache(cache: string): Promise<void> {
       const publicRoot = directory === root && !info.isSymbolicLink() && (info.mode & 0o077) !== 0
       const stickyParent = directory !== root && (info.mode & 0o1000) !== 0
       if (!trustedOwner || publicRoot || (writable && !stickyParent))
-        throw new Error('Runtime cache is not protected. Set UNLIGHTHOUSE_RUNTIME_CACHE to a private directory.')
+        throw new Error(`Runtime cache is not protected: ${directory}. Use a private directory with protected parents.`)
       const parent = dirname(directory)
       if (parent === directory)
         break

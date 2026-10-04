@@ -13,7 +13,7 @@ it.skipIf(process.platform === 'win32')('rejects a writable Chrome cache before 
   try {
     await chmod(cache, 0o777)
     const load = createLighthouseLoader({ local: true, env: { CHROME_PATH: '' }, chrome: { useSystem: false, downloadFallbackCacheDir: cache } })
-    await expect(load()).rejects.toThrow('Runtime cache is not protected')
+    await expect(load()).rejects.toThrow(cache)
   }
   finally { await rm(cache, { recursive: true, force: true }) }
 })
