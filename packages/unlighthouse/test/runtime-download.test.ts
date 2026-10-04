@@ -22,6 +22,7 @@ it('runs library audits without installing unused upstream error reporting', asy
     child.once('close', code => code === 0 ? resolve() : reject(new Error(output)))
   })
   const registry = createServer()
+  const requests: string[] = []
   try {
     await npm(['pack', '--offline', '--ignore-scripts', '--pack-destination', root], engine)
     const tarball = await readFile(join(root, 'lighthouse-1.0.0.tgz'))
@@ -31,6 +32,7 @@ it('runs library audits without installing unused upstream error reporting', asy
       throw new Error('Missing fixture registry address')
     const origin = `http://127.0.0.1:${address.port}`
     registry.on('request', (request, response) => {
+      requests.push(request.url ?? '')
       if (request.url === '/lighthouse') {
         response.setHeader('content-type', 'application/json')
         response.end(JSON.stringify({ 'name': 'lighthouse', 'dist-tags': { latest: '1.0.0' }, 'versions': { '1.0.0': { name: 'lighthouse', version: '1.0.0', dependencies: { '@sentry/node': '^10.0.0' }, dist: { tarball: `${origin}/fixture.tgz`, integrity: `sha512-${createHash('sha512').update(tarball).digest('base64')}` } } } }))
@@ -46,6 +48,7 @@ it('runs library audits without installing unused upstream error reporting', asy
     const resolve = await downloadRuntimePackages({ lighthouse: '1.0.0' }, { cacheDir: join(root, 'cache'), env: { npm_config_registry: origin, npm_config_cache: join(root, 'npm-cache') } })
     const runtime = await import(resolve('lighthouse'))
     expect(runtime.audit('https://example.com')).toEqual({ url: 'https://example.com', score: 1 })
+    expect(requests).not.toContain('/npm')
     await expect(runtime.telemetry()).rejects.toMatchObject({ code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
   }
   finally {

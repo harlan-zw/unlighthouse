@@ -6,8 +6,8 @@ import { writeBundledLicenses } from '../../scripts/bundled-licenses.ts'
 
 const require = createRequire(import.meta.url)
 function installedVersion(name: string): string {
-  if (name === '@unlighthouse/ui')
-    return JSON.parse(readFileSync(require.resolve('@unlighthouse/ui/package.json'), 'utf8')).version
+  if (name === '@unlighthouse/ui' || name === '@unlighthouse/lighthouse-runtime')
+    return JSON.parse(readFileSync(require.resolve(`${name}/package.json`), 'utf8')).version
   const entry = name === '@modelcontextprotocol/sdk' ? `${name}/server/index.js` : name === '@lhci/utils' ? `${name}/src/api-client.js` : name
   let directory = dirname(require.resolve(entry))
   while (true) {
@@ -23,7 +23,7 @@ function installedVersion(name: string): string {
     directory = parent
   }
 }
-const runtimePackages = Object.fromEntries(['lighthouse', 'puppeteer-core', '@puppeteer/browsers', '@libsql/client', '@modelcontextprotocol/sdk', '@unlighthouse/ui', 'unstorage', 'aws4fetch', 'jiti', '@lhci/utils'].map(name => [name, installedVersion(name)]))
+const runtimePackages = Object.fromEntries(['lighthouse', 'puppeteer-core', '@puppeteer/browsers', '@libsql/client', '@modelcontextprotocol/sdk', '@unlighthouse/ui', '@unlighthouse/lighthouse-runtime', 'unstorage', 'aws4fetch', 'jiti', '@lhci/utils'].map(name => [name, installedVersion(name)]))
 
 export default defineConfig({
   hooks: { 'build:done': ({ chunks }) => writeBundledLicenses(chunks, join(import.meta.dirname, 'dist')) },
@@ -33,7 +33,7 @@ export default defineConfig({
   // These packages locate adjacent runtime assets, or remain optional downloads.
   deps: {
     neverBundle: ['tinypool', 'ws', 'better-opn', 'lighthouse', 'puppeteer-core', '@puppeteer/browsers', '@libsql/client', '@modelcontextprotocol/sdk', '@unlighthouse/ui', '@lhci/utils'],
-    alwaysBundle: ['c12', 'cac', 'chrome-launcher', 'citty', 'consola', 'defu', /^drizzle-orm(\/|$)/, 'h3', 'hookable', 'launch-editor', 'listhen', 'ufo', /^unstorage(\/|$)/],
+    alwaysBundle: ['c12', 'cac', 'chrome-launcher', 'citty', 'consola', 'defu', /^drizzle-orm(\/|$)/, 'fflate', 'h3', 'hookable', 'launch-editor', 'listhen', 'ufo', /^unstorage(\/|$)/],
     dts: {
       neverBundle: true,
       alwaysBundle: ['h3', 'hookable', 'consola'],

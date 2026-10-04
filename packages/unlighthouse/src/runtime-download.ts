@@ -13,7 +13,7 @@ declare const __UNLIGHTHOUSE_RUNTIME_PACKAGES__: Record<string, string>
 
 // Replaced from installed package versions at build time. Source tests use these pins.
 const versions = typeof __UNLIGHTHOUSE_RUNTIME_PACKAGES__ === 'undefined'
-  ? { 'lighthouse': '13.5.0', 'puppeteer-core': '25.12.0', '@puppeteer/browsers': '3.2.3', '@libsql/client': '0.18.0', '@modelcontextprotocol/sdk': '1.31.0', '@unlighthouse/ui': '1.0.0-beta.0', 'unstorage': '1.17.5', 'aws4fetch': '1.0.20', 'jiti': '2.7.0', '@lhci/utils': '0.15.1' }
+  ? { 'lighthouse': '13.5.0', 'puppeteer-core': '25.12.0', '@puppeteer/browsers': '3.2.3', '@libsql/client': '0.18.0', '@modelcontextprotocol/sdk': '1.31.0', '@unlighthouse/ui': '1.0.0-beta.0', '@unlighthouse/lighthouse-runtime': '1.0.0-beta.1', 'unstorage': '1.17.5', 'aws4fetch': '1.0.20', 'jiti': '2.7.0', '@lhci/utils': '0.15.1' }
   : __UNLIGHTHOUSE_RUNTIME_PACKAGES__
 
 export interface RuntimeDownloadOptions {
@@ -45,7 +45,7 @@ function installPackages(directory: string, packages: string[], env: NodeJS.Proc
   const { command, prefix } = npmCommand(env)
   return new Promise((resolve, reject) => {
     let output = ''
-    const child = spawn(command, [...prefix, 'install', '--install-links', '--ignore-scripts', '--omit=optional', '--no-audit', '--no-fund', '--save-exact', '--loglevel=error', ...packages], {
+    const child = spawn(command, [...prefix, 'install', '--install-links', '--ignore-scripts', '--omit=optional', '--no-audit', '--no-fund', '--no-update-notifier', '--save-exact', '--loglevel=error', ...packages], {
       cwd: directory,
       env,
       signal,
