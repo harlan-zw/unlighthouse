@@ -13,6 +13,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "build.config.ts"],
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "build.config.ts"],
   "exclude": ["dist"]
 }
