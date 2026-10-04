@@ -7,7 +7,7 @@ import { mkdir, rename, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { Launcher } from 'chrome-launcher'
 import { downloadAuditRuntime } from './compact-runtime'
-import { runtimeCacheDirectory, withRuntimeDownloadLock } from './runtime-download'
+import { prepareRuntimeCache, runtimeCacheDirectory, withRuntimeDownloadLock } from './runtime-download'
 
 export function createLighthouseLoader(options: {
   logger?: Logger
@@ -31,12 +31,14 @@ export function createLighthouseLoader(options: {
     }
     if (options.chrome?.useDownloadFallback === false)
       throw new Error('Chrome was not found. Enable chrome.useDownloadFallback or set CHROME_PATH.')
+    const browserCache = options.chrome?.downloadFallbackCacheDir ?? runtimeCacheDirectory(env)
+    await prepareRuntimeCache(browserCache)
     const browsers = await import(resolve('@puppeteer/browsers')) as typeof import('@puppeteer/browsers')
     const { PUPPETEER_REVISIONS } = await import(resolve('puppeteer-core/internal/revisions.js')) as typeof import('puppeteer-core/internal/revisions.js')
     const browserOptions = {
       browser: browsers.Browser.CHROME,
       buildId: String(options.chrome?.downloadFallbackVersion ?? PUPPETEER_REVISIONS.chrome),
-      cacheDir: options.chrome?.downloadFallbackCacheDir ?? runtimeCacheDirectory(env),
+      cacheDir: browserCache,
       unpack: true as const,
       platform: browsers.detectBrowserPlatform(),
     }
