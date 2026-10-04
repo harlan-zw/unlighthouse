@@ -58,7 +58,7 @@ it.each(['../outside', '/absolute', 'node_modules/../outside', 'node_modules\\ou
   finally { await rm(root, { recursive: true, force: true }) }
 })
 
-it.skipIf(process.platform === 'win32')('uses private permissions and rejects a cache writable by other users', async () => {
+it.skipIf(process.platform === 'win32').each([0o750, 0o755, 0o777])('uses private permissions and rejects cache permissions %s', async (mode) => {
   const root = await mkdtemp(join(tmpdir(), 'unlighthouse-private-'))
   try {
     const destination = join(root, 'private/engines')
@@ -66,7 +66,7 @@ it.skipIf(process.platform === 'win32')('uses private permissions and rejects a 
     expect((await stat(destination)).mode & 0o077).toBe(0)
     const unsafe = join(root, 'unsafe')
     await mkdir(unsafe)
-    await chmod(unsafe, 0o777)
+    await chmod(unsafe, mode)
     await expect(extractAuditRuntime(join(unsafe, 'engines'), async () => fixture())).rejects.toThrow('private directory')
   }
   finally { await rm(root, { recursive: true, force: true }) }

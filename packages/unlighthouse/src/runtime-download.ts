@@ -41,8 +41,9 @@ export async function prepareRuntimeCache(cache: string): Promise<void> {
       const info = await lstat(directory)
       const trustedOwner = info.uid === process.getuid() || info.uid === 0
       const writable = !info.isSymbolicLink() && (info.mode & 0o022) !== 0
+      const publicRoot = directory === root && !info.isSymbolicLink() && (info.mode & 0o077) !== 0
       const stickyParent = directory !== root && (info.mode & 0o1000) !== 0
-      if (!trustedOwner || (writable && !stickyParent))
+      if (!trustedOwner || publicRoot || (writable && !stickyParent))
         throw new Error('Runtime cache is not protected. Set UNLIGHTHOUSE_RUNTIME_CACHE to a private directory.')
       const parent = dirname(directory)
       if (parent === directory)
