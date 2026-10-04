@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { strToU8, zipSync } from 'fflate'
@@ -11,6 +11,25 @@ function fixture() {
     'node_modules/fixture/index.mjs': strToU8('export const audit = url => ({ url, score: 1 })'),
   })
 }
+
+it.skipIf(process.platform === 'win32').each([0o700, 0o777])('checks symlink cache parents with permissions %s', async (mode) => {
+  const root = await mkdtemp(join(tmpdir(), 'unlighthouse-cache-link-'))
+  const target = join(root, 'private')
+  const parent = join(root, 'aliases')
+  const alias = join(parent, 'cache')
+  try {
+    await mkdir(target, { mode: 0o700 })
+    await mkdir(parent, { mode: 0o700 })
+    await chmod(parent, mode)
+    await symlink(target, alias, 'dir')
+    const extraction = extractAuditRuntime(join(alias, 'engine'), async () => fixture())
+    if (mode === 0o777)
+      await expect(extraction).rejects.toThrow('Runtime cache is not protected')
+    else
+      expect((await import((await extraction)('fixture'))).audit('private-alias').url).toBe('private-alias')
+  }
+  finally { await rm(root, { recursive: true, force: true }) }
+})
 
 it('shares extraction and reuses an offline runtime', async () => {
   const root = await mkdtemp(join(tmpdir(), 'unlighthouse-archive-'))
@@ -29,12 +48,26 @@ it('shares extraction and reuses an offline runtime', async () => {
   finally { await rm(root, { recursive: true, force: true }) }
 })
 
-it.each(['../outside', '/absolute', 'node_modules/../outside', 'node_modules\\outside', 'node_modules/C:/outside'])('rejects unsafe archive entry %s', async (name) => {
+it.each(['../outside', '/absolute', 'node_modules/../outside', 'node_modules\\outside', 'node_modules/C:/outside', 'node_modules/.. /outside', 'node_modules/fixture/NUL.js', 'node_modules/fixture/index.mjs.'])('rejects unsafe archive entry %s', async (name) => {
   const root = await mkdtemp(join(tmpdir(), 'unlighthouse-archive-'))
   try {
     const archive = zipSync({ [name]: strToU8('unsafe') })
     await expect(extractAuditRuntime(join(root, 'engines'), async () => archive)).rejects.toThrow('Invalid audit archive path')
     await expect(readFile(join(root, 'outside'))).rejects.toMatchObject({ code: 'ENOENT' })
+  }
+  finally { await rm(root, { recursive: true, force: true }) }
+})
+
+it.skipIf(process.platform === 'win32').each([0o750, 0o755, 0o777])('uses private permissions and rejects cache permissions %s', async (mode) => {
+  const root = await mkdtemp(join(tmpdir(), 'unlighthouse-private-'))
+  try {
+    const destination = join(root, 'private/engines')
+    await extractAuditRuntime(destination, async () => fixture())
+    expect((await stat(destination)).mode & 0o077).toBe(0)
+    const unsafe = join(root, 'unsafe')
+    await mkdir(unsafe)
+    await chmod(unsafe, mode)
+    await expect(extractAuditRuntime(join(unsafe, 'engines'), async () => fixture())).rejects.toThrow('private directory')
   }
   finally { await rm(root, { recursive: true, force: true }) }
 })
