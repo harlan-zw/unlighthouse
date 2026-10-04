@@ -2,10 +2,10 @@ import type { Logger } from '@unlighthouse/contracts'
 import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
-import { delimiter, dirname, join } from 'node:path'
+import { delimiter, dirname, join, resolve } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import { npmProjectConfig } from './audit-download-config'
@@ -28,24 +28,27 @@ export interface RuntimeDownloadOptions {
   validate?: (resolve: (specifier: string) => string) => Promise<{ _tag: 'Valid' } | { _tag: 'Invalid', reason: string }>
 }
 
-/** Executable caches must not be replaceable by another local account. */
+/** POSIX executable caches must not be replaceable by another local account. */
 export async function prepareRuntimeCache(cache: string): Promise<void> {
+  cache = resolve(cache)
   await mkdir(cache, { recursive: true, mode: 0o700 })
   if (!process.getuid)
     return // Windows access is governed by the user's directory ACLs.
-  const root = await realpath(cache)
-  let directory = root
-  while (true) {
-    const info = await stat(directory)
-    const trustedOwner = info.uid === process.getuid() || info.uid === 0
-    const writable = (info.mode & 0o022) !== 0
-    const stickyParent = directory !== root && (info.mode & 0o1000) !== 0
-    if (!trustedOwner || (writable && !stickyParent))
-      throw new Error('Runtime cache is not protected. Set UNLIGHTHOUSE_RUNTIME_CACHE to a private directory.')
-    const parent = dirname(directory)
-    if (parent === directory)
-      break
-    directory = parent
+  // Protect both paths: an attacker could replace an alias under a writable parent.
+  for (const root of new Set([cache, await realpath(cache)])) {
+    let directory = root
+    while (true) {
+      const info = await lstat(directory)
+      const trustedOwner = info.uid === process.getuid() || info.uid === 0
+      const writable = !info.isSymbolicLink() && (info.mode & 0o022) !== 0
+      const stickyParent = directory !== root && (info.mode & 0o1000) !== 0
+      if (!trustedOwner || (writable && !stickyParent))
+        throw new Error('Runtime cache is not protected. Set UNLIGHTHOUSE_RUNTIME_CACHE to a private directory.')
+      const parent = dirname(directory)
+      if (parent === directory)
+        break
+      directory = parent
+    }
   }
 }
 
