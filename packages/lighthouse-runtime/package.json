@@ -11,6 +11,7 @@
   },
   "exports": {
     ".": "./dist/runtime.zip",
+    "./manifest": "./dist/manifest.json",
     "./package.json": "./package.json"
   },
   "files": ["dist"],

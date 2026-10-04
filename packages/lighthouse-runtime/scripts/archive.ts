@@ -114,7 +114,7 @@ export async function buildAuditArchive(roots: string[], destination: string): P
   for (const [name, pkg] of hoisted)
     await copy(pkg, `node_modules/${name}`, hoisted)
   const bytes = Object.values(files).reduce((total, data) => total + data.length, 0)
-  const archive = zipSync(files, { level: 6, mtime: new Date('2000-01-01T00:00:00Z') })
+  const archive = zipSync(files, { level: 6, mtime: new Date(2000, 0, 1) })
   await mkdir(dirname(destination), { recursive: true })
   await writeFile(destination, archive)
   return { bytes, archiveBytes: archive.length, packages: graph.size }

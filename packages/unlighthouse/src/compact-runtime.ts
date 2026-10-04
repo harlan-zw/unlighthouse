@@ -1,3 +1,4 @@
+import type { AuditArtifact } from './audit-download-config'
 import type { RuntimeDownloadOptions } from './runtime-download'
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
@@ -6,7 +7,9 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { unzipSync } from 'fflate'
-import { downloadDependencies, withRuntimeDownloadLock } from './runtime-download'
+import { fetchAuditArtifact, verifyAuditArchive } from './audit-artifact'
+import { auditArtifactPin, hasNpmDownloadConfig } from './audit-download-config'
+import { downloadRuntimePackages, runtimeCacheDirectory, withRuntimeDownloadLock } from './runtime-download'
 
 /** Bounded, atomic extraction protects shared caches from interrupted or invalid downloads. */
 export async function extractAuditRuntime(destination: string, readArchive: () => Promise<Uint8Array>, options: { signal?: AbortSignal, maxBytes?: number } = {}): Promise<(specifier: string) => string> {
@@ -61,8 +64,26 @@ export async function extractAuditRuntime(destination: string, readArchive: () =
   }, options.signal)
 }
 
-export async function downloadAuditRuntime(options: RuntimeDownloadOptions = {}): Promise<(specifier: string) => string> {
-  const resolve = await downloadDependencies(['@unlighthouse/lighthouse-runtime'], options)
-  const archive = fileURLToPath(resolve('@unlighthouse/lighthouse-runtime'))
-  return extractAuditRuntime(join(dirname(archive), 'engines'), () => readFile(archive), options)
+export interface AuditRuntimeDownloadOptions extends RuntimeDownloadOptions {
+  artifact?: AuditArtifact
+  url?: string
+  fetch?: typeof fetch
+  maxDownloadBytes?: number
+}
+
+export async function downloadAuditRuntime(options: AuditRuntimeDownloadOptions = {}): Promise<(specifier: string) => string> {
+  const artifact = options.artifact ?? auditArtifactPin()
+  if (!/^\d+\.\d+\.\d+(?:-[a-z0-9.-]+)?$/i.test(artifact.version) || !/^[a-f0-9]{64}$/.test(artifact.sha256))
+    throw new Error('Invalid audit runtime pin.')
+  const env = { ...process.env, ...options.env }
+  const url = options.url ?? env.UNLIGHTHOUSE_RUNTIME_URL
+  const destination = join(options.cacheDir ?? runtimeCacheDirectory(env), `audit-${artifact.sha256}`)
+  return extractAuditRuntime(destination, async () => {
+    if (!url && (options.install || hasNpmDownloadConfig(env))) {
+      const resolve = await downloadRuntimePackages({ '@unlighthouse/lighthouse-runtime': artifact.version }, options)
+      return verifyAuditArchive(await readFile(fileURLToPath(resolve('@unlighthouse/lighthouse-runtime'))), artifact.sha256)
+    }
+    options.logger?.info?.(`Downloading audit runtime ${artifact.version}`)
+    return fetchAuditArtifact(url ?? `https://registry.npmjs.org/@unlighthouse/lighthouse-runtime/-/lighthouse-runtime-${artifact.version}.tgz`, artifact.sha256, options)
+  }, options)
 }
