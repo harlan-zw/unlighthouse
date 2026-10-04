@@ -15,6 +15,7 @@ on:
 jobs:
   runtime-windows:
     runs-on: windows-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6.0.10
@@ -25,6 +26,25 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Test audit download and cache recovery
         run: pnpm exec vitest run packages/unlighthouse/test/audit-artifact.test.ts packages/unlighthouse/test/audit-download-config.test.ts packages/unlighthouse/test/compact-runtime.test.ts packages/unlighthouse/test/runtime-download.test.ts
+      - name: Build audit packages
+        run: pnpm --filter @unlighthouse/contracts --filter @unlighthouse/core --filter @unlighthouse/mcp --filter @unlighthouse/lighthouse-runtime --filter unlighthouse run build
+      - name: Pack audit runtime
+        run: pnpm --filter @unlighthouse/lighthouse-runtime pack --out "${{ runner.temp }}/audit-runtime.tgz"
+      - name: Audit with downloaded Chrome
+        env:
+          SMOKE_OUTPUT: ${{ runner.temp }}/unlighthouse-smoke
+        run: node packages/unlighthouse/scripts/smoke-runtime.ts cold "${{ runner.temp }}/audit-runtime.tgz"
+      - name: Audit with offline runtime reuse
+        env:
+          SMOKE_OUTPUT: ${{ runner.temp }}/unlighthouse-smoke
+        run: node packages/unlighthouse/scripts/smoke-runtime.ts offline
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: windows-audit-smoke
+          path: ${{ runner.temp }}/unlighthouse-smoke/smoke-*.json
+          if-no-files-found: ignore
 
   build:
     runs-on: ubuntu-latest
