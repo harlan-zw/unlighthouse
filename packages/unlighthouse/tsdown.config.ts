@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { defineConfig } from 'tsdown'
 import { writeBundledLicenses } from '../../scripts/bundled-licenses.ts'
+import { auditArtifactPin } from './src/audit-download-config.ts'
 
 const require = createRequire(import.meta.url)
 function installedVersion(name: string): string {
@@ -24,7 +25,7 @@ function installedVersion(name: string): string {
   }
 }
 const runtimePackages = Object.fromEntries(['lighthouse', 'puppeteer-core', '@puppeteer/browsers', '@libsql/client', '@modelcontextprotocol/sdk', '@unlighthouse/ui', '@unlighthouse/lighthouse-runtime', 'unstorage', 'aws4fetch', 'jiti', '@lhci/utils'].map(name => [name, installedVersion(name)]))
-const auditArtifact = JSON.parse(readFileSync(require.resolve('@unlighthouse/lighthouse-runtime/manifest'), 'utf8'))
+const auditArtifact = auditArtifactPin()
 
 export default defineConfig({
   hooks: { 'build:done': ({ chunks }) => writeBundledLicenses(chunks, join(import.meta.dirname, 'dist')) },

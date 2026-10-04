@@ -13,6 +13,19 @@ on:
       - '**/*.md'
 
 jobs:
+  runtime-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6.0.10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.13.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Test audit download and cache recovery
+        run: pnpm exec vitest run packages/unlighthouse/test/audit-artifact.test.ts packages/unlighthouse/test/audit-download-config.test.ts packages/unlighthouse/test/compact-runtime.test.ts packages/unlighthouse/test/runtime-download.test.ts
+
   build:
     runs-on: ubuntu-latest
     steps:

@@ -47,9 +47,13 @@ export function readAuditArtifact(tarball: Uint8Array, sha256: string): Uint8Arr
 }
 
 export async function fetchAuditArtifact(url: string, sha256: string, options: { fetch?: typeof fetch, signal?: AbortSignal, maxDownloadBytes?: number } = {}): Promise<Uint8Array> {
+  if (!URL.canParse(url))
+    throw new Error('Invalid audit download URL.')
   const target = new URL(url)
   if (target.protocol !== 'https:' && target.protocol !== 'http:')
     throw new Error('Audit download URL must use HTTP or HTTPS.')
+  if (target.username || target.password)
+    throw new Error('Audit download URL must not include credentials. Use npm configuration for authentication.')
   const signal = options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(120_000)]) : AbortSignal.timeout(120_000)
   signal.throwIfAborted()
   const response = await (options.fetch ?? fetch)(target, { signal })

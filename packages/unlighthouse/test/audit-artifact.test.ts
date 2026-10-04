@@ -9,6 +9,7 @@ import { strToU8, zipSync } from 'fflate'
 import { expect, it } from 'vitest'
 import { fetchAuditArtifact, readAuditArtifact } from '../src/audit-artifact'
 import { downloadAuditRuntime } from '../src/compact-runtime'
+import { downloadRuntimePackages, npmCommand } from '../src/runtime-download'
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'unlighthouse-artifact-'))
@@ -21,7 +22,8 @@ async function fixture() {
   await writeFile(join(root, 'dist/runtime.zip'), zip)
   await writeFile(join(root, 'package.json'), JSON.stringify({ name: '@unlighthouse/lighthouse-runtime', version: '1.0.0', files: ['dist'] }))
   await new Promise<void>((resolve, reject) => {
-    const child = spawn('npm', ['pack', '--offline', '--ignore-scripts', '--pack-destination', root], { cwd: root, stdio: 'ignore' })
+    const { command, prefix } = npmCommand(process.env)
+    const child = spawn(command, [...prefix, 'pack', '--offline', '--ignore-scripts', '--pack-destination', root], { cwd: root, stdio: 'ignore' })
     child.once('error', reject)
     child.once('close', code => code === 0 ? resolve() : reject(new Error(`Fixture pack failed: ${code}`)))
   })
@@ -123,4 +125,58 @@ it('rejects unsupported protocols and failed HTTP responses', async () => {
   await expect(fetchAuditArtifact('https://example.com/runtime.tgz', '0'.repeat(64), {
     fetch: async () => new Response('Unavailable', { status: 503 }),
   })).rejects.toThrow('Audit runtime download failed (503)')
+})
+
+it('rejects URL credentials without exposing them or making a request', async () => {
+  let requests = 0
+  const error = await fetchAuditArtifact('https://user:secret@mirror.example.com/runtime.tgz', '0'.repeat(64), {
+    fetch: async () => { requests++; return new Response('unused') },
+  }).catch(error => error)
+  expect(error).toBeInstanceOf(Error)
+  expect(error.message).toContain('must not include credentials')
+  expect(error.message).not.toContain('secret')
+  expect(requests).toBe(0)
+})
+
+it('does not retain an npm install with the wrong runtime hash', async () => {
+  const input = await fixture()
+  let installs = 0
+  const options = {
+    cacheDir: join(input.root, 'cache'),
+    artifact: input.artifact,
+    install: async (directory: string) => {
+      installs++
+      const target = join(directory, 'node_modules/@unlighthouse/lighthouse-runtime')
+      await mkdir(join(target, 'dist'), { recursive: true })
+      await writeFile(join(target, 'package.json'), JSON.stringify({ name: '@unlighthouse/lighthouse-runtime', main: 'dist/runtime.zip' }))
+      await writeFile(join(target, 'dist/runtime.zip'), installs === 1 ? Buffer.from('wrong archive') : input.zip)
+    },
+  }
+  try {
+    await expect(downloadAuditRuntime(options)).rejects.toThrow('integrity')
+    const resolve = await downloadAuditRuntime(options)
+    expect((await import(resolve('fixture'))).audit('retry').score).toBe(1)
+    expect(installs).toBe(2)
+  }
+  finally { await rm(input.root, { recursive: true, force: true }) }
+})
+
+it('replaces a previously published bad npm cache before retrying the audit', async () => {
+  const input = await fixture()
+  const cacheDir = join(input.root, 'cache')
+  const install = async (directory: string, archive: Uint8Array) => {
+    const target = join(directory, 'node_modules/@unlighthouse/lighthouse-runtime')
+    await mkdir(join(target, 'dist'), { recursive: true })
+    await writeFile(join(target, 'package.json'), JSON.stringify({ name: '@unlighthouse/lighthouse-runtime', main: 'dist/runtime.zip' }))
+    await writeFile(join(target, 'dist/runtime.zip'), archive)
+  }
+  try {
+    await downloadRuntimePackages({ '@unlighthouse/lighthouse-runtime': input.artifact.version }, {
+      cacheDir,
+      install: directory => install(directory, Buffer.from('damaged cache')),
+    })
+    const resolve = await downloadAuditRuntime({ cacheDir, artifact: input.artifact, install: directory => install(directory, input.zip) })
+    expect((await import(resolve('fixture'))).audit('recovered').url).toBe('recovered')
+  }
+  finally { await rm(input.root, { recursive: true, force: true }) }
 })

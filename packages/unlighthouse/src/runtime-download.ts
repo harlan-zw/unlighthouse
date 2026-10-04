@@ -2,12 +2,13 @@ import type { Logger } from '@unlighthouse/contracts'
 import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
+import { npmProjectConfig } from './audit-download-config'
 
 declare const __UNLIGHTHOUSE_RUNTIME_PACKAGES__: Record<string, string>
 
@@ -23,13 +24,36 @@ export interface RuntimeDownloadOptions {
   signal?: AbortSignal
   /** Installer seam for hosts and tests. Installs only into the staging directory. */
   install?: (directory: string, packages: string[], signal?: AbortSignal) => Promise<void>
+  /** Verify cached and staged packages before reuse or publication. */
+  validate?: (resolve: (specifier: string) => string) => Promise<{ _tag: 'Valid' } | { _tag: 'Invalid', reason: string }>
+}
+
+/** Executable caches must not be replaceable by another local account. */
+export async function prepareRuntimeCache(cache: string): Promise<void> {
+  await mkdir(cache, { recursive: true, mode: 0o700 })
+  if (!process.getuid)
+    return // Windows access is governed by the user's directory ACLs.
+  const root = await realpath(cache)
+  let directory = root
+  while (true) {
+    const info = await stat(directory)
+    const trustedOwner = info.uid === process.getuid() || info.uid === 0
+    const writable = (info.mode & 0o022) !== 0
+    const stickyParent = directory !== root && (info.mode & 0o1000) !== 0
+    if (!trustedOwner || (writable && !stickyParent))
+      throw new Error('Runtime cache is not protected. Set UNLIGHTHOUSE_RUNTIME_CACHE to a private directory.')
+    const parent = dirname(directory)
+    if (parent === directory)
+      break
+    directory = parent
+  }
 }
 
 export function runtimeCacheDirectory(env: NodeJS.ProcessEnv = process.env): string {
   return env.UNLIGHTHOUSE_RUNTIME_CACHE ?? join(env.XDG_CACHE_HOME ?? join(homedir(), '.cache'), 'unlighthouse', 'runtime')
 }
 
-function npmCommand(env: NodeJS.ProcessEnv): { command: string, prefix: string[] } {
+export function npmCommand(env: NodeJS.ProcessEnv): { command: string, prefix: string[] } {
   if (process.platform !== 'win32')
     return { command: 'npm', prefix: [] }
   // Execute npm's script through Node. Avoid cmd.exe interpreting cache paths.
@@ -41,22 +65,80 @@ function npmCommand(env: NodeJS.ProcessEnv): { command: string, prefix: string[]
   throw new Error('npm was not found. Install npm to download audit dependencies.')
 }
 
-function installPackages(directory: string, packages: string[], env: NodeJS.ProcessEnv, signal?: AbortSignal): Promise<void> {
+async function installPackages(directory: string, packages: string[], env: NodeJS.ProcessEnv, signal?: AbortSignal): Promise<void> {
   const { command, prefix } = npmCommand(env)
-  return new Promise((resolve, reject) => {
+  const installSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(300_000)]) : AbortSignal.timeout(300_000)
+  const projectConfig = npmProjectConfig(env)
+  const cwd = projectConfig ? dirname(projectConfig) : process.cwd()
+  const run = (args: string[]) => new Promise<string>((resolve, reject) => {
+    installSignal.throwIfAborted()
     let output = ''
-    const child = spawn(command, [...prefix, 'install', '--install-links', '--ignore-scripts', '--omit=optional', '--no-audit', '--no-fund', '--no-update-notifier', '--save-exact', '--loglevel=error', ...packages], {
-      cwd: directory,
+    let stdout = ''
+    const child = spawn(command, [...prefix, ...args, '--no-update-notifier'], {
+      cwd,
       env,
-      signal,
+      detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     })
     for (const stream of [child.stdout, child.stderr])
       stream.on('data', chunk => output = (output + String(chunk)).slice(-8000))
-    child.once('error', reject)
-    child.once('close', code => code === 0 ? resolve() : reject(new Error(`Dependency download failed (${code}). ${output.trim()}`)))
+    child.stdout.on('data', chunk => stdout = (stdout + String(chunk)).slice(-8000))
+    let failure: Error | undefined
+    let termination: ReturnType<typeof globalThis.setTimeout> | undefined
+    const kill = (signal: NodeJS.Signals) => {
+      if (!child.pid)
+        return
+      if (process.platform === 'win32') {
+        child.kill(signal)
+        return
+      }
+      try { process.kill(-child.pid, signal) }
+      catch (error) {
+        // The process group can finish between cancellation and the signal.
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+          failure = error instanceof Error ? error : new Error(String(error))
+          child.kill(signal)
+        }
+      }
+    }
+    const abort = () => {
+      failure = Object.assign(new Error('Dependency download cancelled.'), { name: 'AbortError', code: 'ABORT_ERR', cause: installSignal.reason })
+      // POSIX launchers can spawn npm as a child. Stop the entire private process group.
+      kill('SIGTERM')
+      termination = globalThis.setTimeout(kill, 1000, 'SIGKILL')
+      termination.unref()
+    }
+    child.on('error', error => failure ??= error)
+    installSignal.addEventListener('abort', abort, { once: true })
+    // Wait for all pipe holders to terminate before removing staging files.
+    child.once('close', (code) => {
+      installSignal.removeEventListener('abort', abort)
+      if (termination)
+        globalThis.clearTimeout(termination)
+      if (failure)
+        reject(failure)
+      else if (code === 0)
+        resolve(stdout)
+      else
+        reject(new Error(`Dependency download failed (${code}). ${output.trim()}`))
+    })
   })
+  const config = Object.fromEntries(Object.entries(env).map(([name, value]) => [name.toLowerCase(), value]))
+  // --prefix changes npm's default global config path. Keep the caller's original path.
+  const globalConfig = config.npm_config_globalconfig ?? (await run(['config', 'get', 'globalconfig', '--loglevel=error'])).trim()
+  if (!globalConfig || /[\r\n\0]/.test(globalConfig))
+    throw new Error('npm returned an invalid global configuration path.')
+  if (projectConfig)
+    await writeFile(join(directory, '.npmrc'), await readFile(projectConfig), { mode: 0o600 })
+  try {
+    // Original cwd preserves relative certificate paths. Explicit prefix contains all install writes.
+    await run(['install', '--prefix', directory, '--globalconfig', globalConfig, '--install-links', '--ignore-scripts', '--omit=optional', '--no-audit', '--no-fund', '--save-exact', '--loglevel=error', ...packages])
+  }
+  finally {
+    // Project config can contain credentials. Never retain it in the published cache.
+    await rm(join(directory, '.npmrc'), { force: true })
+  }
 }
 
 async function ownerIsGone(lock: string): Promise<boolean> {
@@ -91,10 +173,10 @@ async function ownerIsGone(lock: string): Promise<boolean> {
 /** Serializes package or browser publication across CLI processes. */
 export async function withRuntimeDownloadLock<T>(lock: string, operation: () => Promise<T>, signal?: AbortSignal): Promise<T> {
   signal?.throwIfAborted()
-  await mkdir(dirname(lock), { recursive: true })
+  await mkdir(dirname(lock), { recursive: true, mode: 0o700 })
   const deadline = Date.now() + 300_000
   while (true) {
-    const acquired = await mkdir(lock).then(() => true, (error: NodeJS.ErrnoException) => {
+    const acquired = await mkdir(lock, { mode: 0o700 }).then(() => true, (error: NodeJS.ErrnoException) => {
       if (error.code === 'EEXIST')
         return false
       throw error
@@ -136,21 +218,28 @@ export async function downloadRuntimePackages(packages: Record<string, string>, 
   const policy = libraryAudit ? 'lighthouse-library-v1' : undefined
   const key = createHash('sha256').update(JSON.stringify([specs, process.platform, process.arch, process.versions.modules, ...(policy ? [policy] : [])])).digest('hex').slice(0, 20)
   const cache = options.cacheDir ?? runtimeCacheDirectory(env)
+  await prepareRuntimeCache(cache)
   const destination = join(cache, key)
   const ready = join(destination, 'ready')
-  const resolve = () => {
-    const require = createRequire(join(destination, 'package.json'))
+  const resolve = (directory = destination) => {
+    const require = createRequire(join(directory, 'package.json'))
     return (specifier: string) => pathToFileURL(require.resolve(specifier)).href
   }
   options.signal?.throwIfAborted()
-  if (existsSync(ready))
+  if (existsSync(ready) && !options.validate)
     return resolve()
   return withRuntimeDownloadLock(`${destination}.lock`, async () => {
     const staging = `${destination}.${randomUUID()}.tmp`
     try {
-      if (existsSync(ready))
-        return resolve()
-      await mkdir(staging)
+      if (existsSync(ready)) {
+        const validation = options.validate ? await options.validate(resolve()) : { _tag: 'Valid' as const }
+        if (validation._tag === 'Valid')
+          return resolve()
+        options.logger?.warn?.(`Cached dependency verification failed: ${validation.reason} Downloading again.`)
+      }
+      // Recover a cache interrupted before its ready marker was published.
+      await rm(destination, { recursive: true, force: true })
+      await mkdir(staging, { mode: 0o700 })
       if (libraryAudit) {
         const excluded = join(staging, 'lighthouse-no-telemetry')
         await mkdir(excluded)
@@ -165,6 +254,11 @@ export async function downloadRuntimePackages(packages: Record<string, string>, 
       options.logger?.info?.(`Downloading dependencies: ${specs.join(', ')}`)
       await (options.install ?? ((directory, pins, signal) => installPackages(directory, pins, env, signal)))(staging, specs, options.signal)
       options.signal?.throwIfAborted()
+      if (options.validate) {
+        const validation = await options.validate(resolve(staging))
+        if (validation._tag === 'Invalid')
+          throw new Error(`${validation.reason} Retry the download.`)
+      }
       await writeFile(join(staging, 'ready'), JSON.stringify(specs))
       await rename(staging, destination)
       return resolve()
