@@ -1,0 +1,16 @@
+version: 1
+routines:
+  - name: dependency-updates
+    on:
+      schedule:
+        - cron: '20 12 * * 2'
+    timezone: Australia/Melbourne
+    mode: propose
+    enabled: true
+  - name: ci-review
+    on:
+      schedule:
+        - cron: '20 12 * * 4'
+    timezone: Australia/Melbourne
+    mode: propose
+    enabled: true
