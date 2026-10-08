@@ -29,4 +29,4 @@ jobs:
       - run: pnpm build
 
       - name: Publish
-        run: pnpm dlx pkg-pr-new publish ./packages/cli ./packages/client ./packages/core ./packages/server ./packages/unlighthouse ./packages/unlighthouse-ci
+        run: pnpm dlx pkg-pr-new@0.0.91 publish ./packages/cli ./packages/client ./packages/core ./packages/server ./packages/unlighthouse ./packages/unlighthouse-ci
