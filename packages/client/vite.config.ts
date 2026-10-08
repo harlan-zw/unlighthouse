@@ -3,7 +3,7 @@ import ui from '@nuxt/ui/vite'
 import Vue from '@vitejs/plugin-vue'
 import IconsResolver from 'unplugin-icons/resolver'
 import { defineConfig } from 'vite'
-import { version } from '../../package.json'
+import { version } from '../../package.json' with { type: 'json' }
 
 export default defineConfig(({ mode }) => ({
   define: {
