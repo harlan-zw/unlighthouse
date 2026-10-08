@@ -87,6 +87,10 @@ export default defineConfig(({ mode }) => ({
   },
 
   build: {
+    // three.js is a single ~630 kB module that chunk splitting cannot divide.
+    // It loads lazily via LighthouseThreeD and static reports never load it. Raise the
+    // warning limit so only that chunk stays above the default 500 kB.
+    chunkSizeWarningLimit: 700,
     rolldownOptions: {
       external: [
         '@tailwindcss/oxide',
@@ -98,6 +102,24 @@ export default defineConfig(({ mode }) => ({
         'pathe',
         /^@nuxt\/kit/,
       ],
+      output: {
+        advancedChunks: {
+          groups: [
+            {
+              name: 'ui',
+              test: /node_modules[\\/](@nuxt[\\/]ui|reka-ui|tailwind-merge)/,
+            },
+            {
+              name: 'charts',
+              test: /node_modules[\\/]lightweight-charts/,
+            },
+            {
+              name: 'search',
+              test: /node_modules[\\/](fuse\.js|lodash-es)/,
+            },
+          ],
+        },
+      },
     },
   },
 
