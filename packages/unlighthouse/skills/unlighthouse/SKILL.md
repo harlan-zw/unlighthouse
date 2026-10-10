@@ -2,7 +2,7 @@
 name: unlighthouse
 description: Run Google Lighthouse on every page of a site with the unlighthouse CLI, and fail CI on low scores with unlighthouse-ci. Use when a task mentions unlighthouse, unlighthouse-ci, site-wide Lighthouse scans, performance budgets in CI, unlighthouse.config.ts, defineUnlighthouseConfig, scanner.exclude, dynamic sampling, the authenticate hook, or a scan that never exits, skips pages, or refuses to clear its output folder.
 license: MIT
-compatibility: "Requires a project using unlighthouse. Requires Node.js >=22.18.0."
+compatibility: "Requires Node.js >=22.18.0."
 ---
 
 # unlighthouse
