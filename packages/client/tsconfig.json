@@ -6,6 +6,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "~/*": ["./src/*"],
+      "@unlighthouse/core": ["../core/src"],
+      "@unlighthouse/core/src": ["../core/src"],
       "#build/ui": [
         "./node_modules/@nuxt/ui/.nuxt/ui"
       ]
