@@ -2,7 +2,7 @@ import type { AliasOptions } from 'vite'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 
-const r = (p: string) => resolve(__dirname, p)
+const r = (p: string) => resolve(import.meta.dirname, p)
 
 export const alias: AliasOptions = {
   'unlighthouse': r('./packages/core/src/'),
