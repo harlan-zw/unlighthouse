@@ -55,7 +55,6 @@
     "@iconify-json/mdi": "catalog:dependencies",
     "@iconify-json/simple-line-icons": "catalog:dependencies",
     "@types/three": "catalog:",
-    "@unlighthouse/core": "workspace:*",
     "@vitejs/plugin-vue": "catalog:",
     "@vue/compiler-sfc": "catalog:",
     "@vueuse/core": "catalog:dependencies",
