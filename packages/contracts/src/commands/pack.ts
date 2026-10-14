@@ -10,7 +10,7 @@ import { defineCommand } from './define'
 // ── pack.run ────────────────────────────────────────────────────────────────
 export const PackRunCmd = defineCommand({
   name: 'pack.run',
-  description: 'Run an Unlighthouse audit pack against a finished scan. Images groups image findings. cwv summarizes performance metrics with source and coverage. seo-basics reports SEO findings and crawlability checks. Call pack.list to discover packs. For matrix scans, use device to select a form factor. Reports are cached; use refresh:true to recompute.',
+  description: 'Run an Unlighthouse audit pack against a finished scan. Images groups image findings. cwv summarizes performance metrics with source and coverage. seo-basics reports SEO findings and crawlability checks. Call pack.list to discover packs. Use scanId from history.list. For matrix scans, use device to select a form factor. Reports are cached; use refresh:true to recompute.',
   input: z.object({
     scanId: ScanIdSchema,
     pack: z.string().min(1),
@@ -55,7 +55,7 @@ export const PackRunCmd = defineCommand({
 // ── pack.list ───────────────────────────────────────────────────────────────
 export const PackList = defineCommand({
   name: 'pack.list',
-  description: 'List available Unlighthouse audit packs. cwv reports performance metrics with source and coverage. seo-basics reports crawlability checks and SEO findings. Each entry includes its name, description, version, requirements, UI metadata, and report JSON Schema.',
+  description: 'List available Unlighthouse audit packs. The overview pack summarizes category scores. The cwv pack reports performance metrics with source and coverage. The images pack groups image findings. The js-bundle pack reports JavaScript and CSS findings. The a11y-quick-wins pack reports accessibility findings. The seo-basics pack reports crawlability checks and SEO findings. The best-practices pack groups Lighthouse Best Practices findings. Each entry includes its name, description, version, requirements, UI metadata, and report JSON Schema.',
   input: z.object({}),
   output: z.object({
     packs: z.array(z.object({
