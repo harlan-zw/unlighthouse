@@ -285,7 +285,7 @@ function reconciledSeo(url: string, device: 'mobile' | 'desktop', overrides: Par
 }
 
 describe('seoBasicsPack — multi-device scan', () => {
-  it('counts routesAnalysed/indexabilityPercent over distinct URLs, not device rows', async () => {
+  it('counts routesAnalysed/crawlabilityPercent over distinct URLs, not device rows', async () => {
     // URL A: indexable on both devices. URL B: only exists on desktop, and
     // is NOT indexable there (fails is-crawlable) — proves the desktop-only
     // route is read on its own device instead of being dropped or scored

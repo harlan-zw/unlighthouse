@@ -203,7 +203,7 @@ export function reconcileRoute(args: {
 // callers that need them fetch the raw LHR.
 //
 // `severity` is derived once at ingest so packs don't reinvent the rule:
-//   - manual / notApplicable / informative → 'pass' (these never fail a scan)
+//   - manual / notApplicable / informative / error / unknown have no severity
 //   - score >= 0.9 → 'pass'
 //   - score >= 0.5 → 'warn'
 //   - score <  0.5 → 'fail'

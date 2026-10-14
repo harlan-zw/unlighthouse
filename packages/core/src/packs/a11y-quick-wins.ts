@@ -2,7 +2,7 @@
 // with copy-paste-ready fix suggestions.
 //
 // The pack reads any Lighthouse audit that ships under the `accessibility`
-// category and is `score < 1` on at least one route. It does NOT hardcode
+// category and fails the native pass threshold on at least one route. It does NOT hardcode
 // a fixed audit list: Lighthouse's a11y category is the source of truth,
 // so new axe-core rules added upstream surface automatically.
 //

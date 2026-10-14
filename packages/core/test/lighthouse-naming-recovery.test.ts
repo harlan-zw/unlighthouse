@@ -1,5 +1,6 @@
 import type { LighthouseResult, ScanRoute } from '@unlighthouse/contracts'
 import type { PackReconcileCtx } from '@unlighthouse/contracts/packs'
+import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { a11yQuickWinsPack, analyzeLabVsField, cwvPack, insightsPack, seoBasicsPack } from '@unlighthouse/core/packs'
 import { extractRouteData, loadRouteContract, reconcileToContract } from '@unlighthouse/core/report'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
@@ -11,7 +12,7 @@ function lhr(audits: LighthouseResult['audits'], category = 'performance'): Ligh
   return { requestedUrl: url, finalUrl: url, lighthouseVersion: '13.5.0', fetchTime: '2026-10-14T00:00:00Z', audits, categories: { [category]: { id: category, score: 0.5, auditRefs: Object.keys(audits).map(id => ({ id, weight: 1 })) } } } as LighthouseResult
 }
 function row(overrides: Partial<ScanRoute> = {}): ScanRoute {
-  return { scanId, url, path: '/', device: 'mobile', lcp: 1200, cls: 0.02, inp: null, tbt: 100, fcp: 1000, si: 1500, ttfb: 100, capturedAt: '2026-10-14T00:00:00Z', ...overrides } as ScanRoute
+  return { scanId, url, path: '/', routeName: null, device: 'mobile', scorePerformance: 0.9, scoreAccessibility: 0.9, scoreSeo: 0.9, scoreBestPractices: 0.9, lighthouseVersion: '13.5.0', lcp: 1200, cls: 0.02, inp: null, tbt: 100, fcp: 1000, si: 1500, ttfb: 100, capturedAt: '2026-10-14T00:00:00Z', ...overrides } as ScanRoute
 }
 function ctx(raw?: LighthouseResult): PackReconcileCtx {
   return { scanId, routes: [row()], getLhr: async () => raw ?? null, getReconciled: async () => raw ? reconcileToContract({ scanId, url, device: 'mobile', lhr: raw, auditor: 'local' }) : null } as PackReconcileCtx
@@ -118,5 +119,21 @@ describe('lighthouse result identity', () => {
     const reports = await Promise.all([insightsPack.reconciler(ctx(raw)), cwvPack.reconciler(ctx(raw))])
     expect(reports[0].insights).toEqual([])
     expect(reports[1].topFixes).toEqual([])
+  })
+
+  it('counts the same eligible audit executions in category numerators and denominators', async () => {
+    const raw = lhr({ passed: { score: 1, scoreDisplayMode: 'binary' }, error: { score: null, scoreDisplayMode: 'error' }, info: { score: 1, scoreDisplayMode: 'informative' }, manual: { score: null, scoreDisplayMode: 'manual' }, na: { score: null, scoreDisplayMode: 'notApplicable' }, hidden: { score: 1, scoreDisplayMode: 'binary' } }, 'agentic-browsing')
+    raw.categories['agentic-browsing']!.categoryScoreDisplayMode = 'fraction'
+    raw.categories['agentic-browsing']!.auditRefs!.find(ref => ref.id === 'hidden')!.group = 'hidden'
+    const storage = memoryStorage()
+    await storage.scans.create({ scanId, site: url, mode: 'site', device: 'mobile', status: 'complete', startedAt: '2026-10-14T00:00:00Z', completedAt: '2026-10-14T00:00:01Z', ciBranch: null, ciCommit: null, ciCommitMessage: null } as never)
+    const routes = [row({ reportBlobKey: 'one.json' }), row({ url: `${url}two`, reportBlobKey: 'two.json' })]
+    await storage.routes.putBatch(scanId as never, 'mobile', routes)
+    for (const route of routes) {
+      const report = reconcileToContract({ scanId, url: route.url, device: 'mobile', lhr: raw })
+      await storage.blobs.put(route.reportBlobKey!.replace('.json', '.contract.json'), new TextEncoder().encode(JSON.stringify(report)))
+    }
+    const result = await createHandlers()['scan.categories'].run({ scanId: scanId as never }, { storage, core: { session: () => null } } as never)
+    expect(result.categories.find(category => category.id === 'agentic-browsing')).toMatchObject({ auditCount: 4, passingCount: 2, failingCount: 2 })
   })
 })

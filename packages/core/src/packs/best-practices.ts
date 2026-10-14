@@ -2,9 +2,9 @@
 //
 // Reads every audit under the Lighthouse `best-practices` category (same
 // source-of-truth pattern as `seo-basics` / `a11y-quick-wins`). Failing,
-// actionable audits (score < 1, excluding informative/notApplicable/manual —
-// those never carry a numeric score so they're already excluded by the
-// score !== null check) land in `findings`, keyed by audit id, with the
+// scored audits below the native pass threshold land in `findings`.
+// Informative, manual, not-applicable, error, and unknown results remain separate.
+// Findings are keyed by audit id, with the
 // routes that flagged them and a copy-paste fix hint.
 //
 // Replaces the UI's `best-practices.vue` client-side `route.audits` fan-out
