@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CwvReportSchema } from '@unlighthouse/contracts/packs'
-import { formatRouteCount } from '~/features/scan/pack-presentation'
+import MeasurementSources from '~/features/scan/components/MeasurementSources.vue'
+import { formatInsightSavings, formatRouteCount, performanceSourceLabel } from '~/features/scan/pack-presentation'
 
 const props = defineProps<{ report: unknown, scanBase: string }>()
 
@@ -36,14 +37,24 @@ function verdictColor(verdict: string | null) {
           {{ m.metric === 'cls' ? formatMetricValue(m.p75, '') : fmtMs(m.p75) }}
         </div>
         <div class="text-xs text-muted mt-1">
-          p75 across {{ formatRouteCount((m.distribution?.good ?? 0) + (m.distribution?.needsImprovement ?? 0) + (m.distribution?.poor ?? 0)) }}
+          p75 across {{ m.coverage.analysed }} measured URLs
         </div>
+        <div class="text-xs text-muted mt-1">
+          {{ performanceSourceLabel(m.source) }}
+        </div>
+        <div class="text-xs text-muted mt-1">
+          Measurements available for {{ m.coverage.analysed }} of {{ m.coverage.eligible }} entries
+        </div>
+        <div v-if="m.coverage.missing > 0" class="text-xs text-muted mt-1">
+          {{ m.coverage.missing }} measurements unavailable
+        </div>
+        <MeasurementSources :sources="m.sources" />
         <div class="flex flex-wrap justify-center gap-1 mt-2">
           <UiChip purpose="status" status="success">
             {{ m.distribution?.good ?? 0 }} good
           </UiChip>
           <UiChip purpose="status" status="warning">
-            {{ m.distribution?.needsImprovement ?? 0 }} NI
+            {{ m.distribution?.needsImprovement ?? 0 }} Needs improvement
           </UiChip>
           <UiChip purpose="status" status="error">
             {{ m.distribution?.poor ?? 0 }} poor
@@ -55,7 +66,7 @@ function verdictColor(verdict: string | null) {
     <UiCard v-if="report.topFixes?.length" size="sm">
       <template #header>
         <h2 class="text-label text-muted">
-          Top Fixes (by impact)
+          Lighthouse insights
         </h2>
       </template>
       <div class="space-y-3">
@@ -70,7 +81,7 @@ function verdictColor(verdict: string | null) {
           </div>
           <div class="flex gap-1 flex-wrap justify-end">
             <UiChip purpose="count">
-              {{ fmtMs(fix.maxImpactMs) }} max impact
+              {{ formatInsightSavings(fix.metric, fix.maxImpactMs) }} max impact
             </UiChip>
           </div>
         </div>
@@ -80,8 +91,8 @@ function verdictColor(verdict: string | null) {
     <UiEmptyState
       v-if="!report.metrics?.length && !report.topFixes?.length"
       icon="gauge"
-      title="0 Core Web Vitals metrics captured"
-      description="Metrics are captured automatically during a scan — rerun the scan if this looks wrong."
+      title="No performance metrics captured"
+      description="Run another scan to collect performance metrics."
       compact
     />
   </div>

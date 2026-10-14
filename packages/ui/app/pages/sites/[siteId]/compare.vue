@@ -6,11 +6,11 @@ import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
 import {
   CATEGORY_METRICS,
   createComparePresentation,
-  CWV_METRICS,
   cwvVerdictColor,
   deltaClass,
   DIAGNOSTIC_METRICS,
   fmtCwvP75,
+  PERFORMANCE_METRICS,
   compareRowKey as rowKey,
   SHORT_LABEL,
   SORT_OPTIONS as sortOptions,
@@ -18,6 +18,7 @@ import {
 } from '~/features/compare/presentation'
 import { comparisonRouteSetNotice } from '~/features/compare/state'
 import { useCompareWorkflow } from '~/features/compare/workflow'
+import { performanceSourceLabel } from '~/features/scan/pack-presentation'
 import { scanRouteLink } from '~/features/scan/route-links'
 import { deviceLabelForScan } from '~/features/sites/scan-pairs'
 
@@ -289,7 +290,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
                 </div>
 
                 <UiAlert status="warning" icon="info">
-                  CWV is noisy on parallel single-sample runs. Run with <code class="code-inline text-xs">--samples 3</code> for stability, or widen these thresholds.
+                  Performance metrics can vary between parallel single-sample runs. Run with <code class="code-inline text-xs">--samples 3</code> for stability.
                 </UiAlert>
 
                 <div class="space-y-3 text-xs">
@@ -308,7 +309,7 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
 
                   <div>
                     <div class="text-label mb-1.5 text-muted">
-                      Core Web Vitals
+                      Performance metrics
                     </div>
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <label class="space-y-1"><span class="flex justify-between text-muted">LCP (ms)<span class="italic text-muted/70">≈ 300ms noise</span></span><UInput v-model="thresholds.lcp" name="threshold-lcp" type="number" inputmode="decimal" step="any" autocomplete="off" placeholder="500" size="xs" class="min-h-11 w-full sm:min-h-8" /></label>
@@ -496,13 +497,10 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
         class="mx-4 my-3"
       />
 
-      <!-- Core Web Vitals p75 strip — the smoothed answer to the noisy
-           per-route CWV columns below. Sourced from the cwv pack
-           (aggregates across routes). Hidden when the pack didn't
-           run on either scan. -->
+      <!-- Performance metrics aggregate across measured URLs in the cwv pack. -->
       <div v-if="cwvP75Rows.length" class="px-4 py-2 border-b border-default bg-default/30 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs">
         <span class="text-label text-muted shrink-0">
-          Web Vitals p75
+          Performance metrics
         </span>
         <div v-for="row in cwvP75Rows" :key="row.metric" class="flex items-center gap-1.5">
           <span class="font-medium uppercase text-xs">{{ row.label }}</span>
@@ -517,10 +515,12 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
             ({{ fmtDelta(row.delta, false, row.metric) }})
             <span v-if="deltaClassWithThreshold(row.delta, false, row.metric).mutedByThreshold" class="sr-only"> inside the noise threshold</span>
           </span>
+          <UiTooltip :text="`${performanceSourceLabel(row.baseSource)}; ${row.baseCount == null ? 'Unavailable' : `p75 across ${row.baseCount} measured URLs`} → ${performanceSourceLabel(row.currentSource)}; ${row.currentCount == null ? 'Unavailable' : `p75 across ${row.currentCount} measured URLs`}`" trigger-as="button">
+            <UiIcon name="info" class="size-3" />
+          </UiTooltip>
         </div>
         <span class="ml-auto text-xs text-muted italic">
-          smoothed across routes
-          <span class="sr-only">; this aggregate is less noisy than per-route single-sample values</span>
+          p75 across measured URLs
         </span>
       </div>
 
@@ -766,16 +766,16 @@ const compareColumns = computed<UiTableColumn<CompareRouteRow>[]>(() => {
               </UiTableShell>
             </section>
 
-            <!-- Core Web Vitals — Google's stable real-user metrics. -->
+            <!-- Per-route performance measurements retain their source. -->
             <section>
               <h3 class="text-label text-muted mb-2 flex items-center gap-1.5">
-                Core Web Vitals
+                Performance metrics
                 <UiTooltip text="Lab values can be noisy on parallel-device single-sample runs. Use --samples 3 for stability." trigger-as="button">
                   <UiIcon name="info" class="size-2.5 opacity-60" />
                 </UiTooltip>
               </h3>
-              <UiTableShell bordered label="Core Web Vitals comparison" class="min-w-0 overflow-x-auto! rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" tabindex="0" role="region" aria-label="Core Web Vitals comparison">
-                <tr v-for="m in CWV_METRICS" :key="m.key" class="border-b border-default last:border-0">
+              <UiTableShell bordered label="Performance metrics comparison" class="min-w-0 overflow-x-auto! rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" tabindex="0" role="region" aria-label="Performance metrics comparison">
+                <tr v-for="m in PERFORMANCE_METRICS" :key="m.key" class="border-b border-default last:border-0">
                   <UiTableTd class="font-medium">
                     <UiTooltip :text="m.hint" trigger-as="button">
                       <span>{{ m.label }}</span>

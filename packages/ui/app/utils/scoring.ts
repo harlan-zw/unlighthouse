@@ -1,7 +1,7 @@
 // Lighthouse scoring domain rules — the single source for the two numbers that
 // were previously copy-pasted across the scan, compare, and dashboard features:
 // the score bands (Google's canonical 0–0.49 poor / 0.5–0.89 average / 0.9–1
-// good) and the Core Web Vitals good/poor boundaries. Consumers map a band onto
+// good) and performance metric boundaries. Consumers map a band onto
 // a colour/label/counter; nobody re-encodes the thresholds.
 //
 // NOTE: this is *verdict* banding, distinct from compare/presentation.ts's
@@ -21,8 +21,8 @@ export function scoreBand(score: number | null | undefined): ScoreBand | null {
   return 'poor'
 }
 
-/** Core Web Vitals `[good, poor]` boundaries, keyed by lowercase metric id. */
-export const CWV_THRESHOLDS = {
+/** Performance metric `[good, poor]` boundaries, keyed by lowercase metric id. */
+export const PERFORMANCE_THRESHOLDS = {
   lcp: [2500, 4000],
   cls: [0.1, 0.25],
   fcp: [1800, 3000],
@@ -32,7 +32,7 @@ export const CWV_THRESHOLDS = {
   inp: [200, 500],
 } as const satisfies Record<string, readonly [number, number]>
 
-export type CwvMetric = keyof typeof CWV_THRESHOLDS
+export type CwvMetric = keyof typeof PERFORMANCE_THRESHOLDS
 
 /**
  * Classify a lower-is-better value against explicit `[good, poor]` bounds:
@@ -49,11 +49,11 @@ export function bandFromBounds(value: number | null | undefined, good: number, p
 }
 
 /**
- * Core Web Vitals value → band (lower is better). Accepts any-case metric id;
+ * Performance metric value → band. Lower is better. Accepts any-case metric id;
  * returns null for an unknown metric or a null value so callers render neutral.
  */
 export function cwvBand(metric: string, value: number | null | undefined): ScoreBand | null {
-  const bounds = (CWV_THRESHOLDS as Record<string, readonly [number, number]>)[metric.toLowerCase()]
+  const bounds = (PERFORMANCE_THRESHOLDS as Record<string, readonly [number, number]>)[metric.toLowerCase()]
   if (!bounds)
     return null
   return bandFromBounds(value, bounds[0], bounds[1])

@@ -17,10 +17,10 @@ const packLink = computed(() => ({ path: `${props.scanBase}/packs/cwv`, query: p
 </script>
 
 <template>
-  <UiCard title="Top Core Web Vitals fixes">
+  <UiCard title="Lighthouse insights">
     <template #actions>
       <UiButton purpose="link" :to="packLink" class="min-h-11">
-        View Core Web Vitals
+        View performance metrics
       </UiButton>
     </template>
     <div class="space-y-4">
@@ -34,12 +34,12 @@ const packLink = computed(() => ({ path: `${props.scanBase}/packs/cwv`, query: p
       <div v-else-if="(status === 'idle' || status === 'pending') && fixes._tag !== 'Ready'" class="space-y-3" role="status">
         <UiLoadingState :rows="3" />
         <p class="text-sm text-muted">
-          Loading Core Web Vitals fixes
+          Loading performance metrics
         </p>
       </div>
       <template v-else-if="fixes._tag === 'Ready'">
         <p v-if="status === 'pending'" role="status" class="text-sm text-muted">
-          Refreshing Core Web Vitals fixes
+          Refreshing performance metrics
         </p>
         <ol v-if="fixes.fixes.length" class="divide-y divide-default">
           <li v-for="(fix, index) in fixes.fixes" :key="`${fix.insight}:${fix.metric}`" class="flex min-w-0 flex-wrap items-start gap-3 py-4 first:pt-0 last:pb-0">
@@ -62,7 +62,7 @@ const packLink = computed(() => ({ path: `${props.scanBase}/packs/cwv`, query: p
           No estimated fixes in this report.
         </p>
       </template>
-      <UiAlert v-else status="info" title="Core Web Vitals report unavailable" />
+      <UiAlert v-else status="info" title="Performance metrics report unavailable" />
     </div>
   </UiCard>
 </template>

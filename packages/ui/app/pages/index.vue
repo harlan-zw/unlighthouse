@@ -62,7 +62,7 @@ function score100Color(v: number | null): string {
 function statusWord(score: number | null): string {
   switch (scoreBand(score)) {
     case 'good': return 'passing'
-    case 'average': return 'needs work'
+    case 'average': return 'Needs improvement'
     case 'poor': return 'poor'
     default: return 'no data'
   }

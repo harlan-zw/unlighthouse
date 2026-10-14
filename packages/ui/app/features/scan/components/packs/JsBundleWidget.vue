@@ -94,8 +94,7 @@ function severityStatus(severity: string): SemanticStatus {
     <UiEmptyState
       v-else
       icon="code"
-      title="All routes pass · 0 JS bundle issues"
-      description="No unused, duplicated or render-blocking bundle issues found."
+      title="No findings in available reports"
       compact
     />
   </div>

@@ -101,22 +101,22 @@ function gapValue(metric: GapEntry['metric'], value: number | null): string {
 const gapSections = computed(() => [
   {
     key: 'goodLabPoorField',
-    title: 'Lab passed, field disagrees',
-    description: 'Lighthouse scored these good in the lab; real-user CrUX data says poor. Trust the field data — these are live regressions the lab run missed.',
+    title: 'Lab rating good; field rating poor',
+    description: 'These sources measure different conditions. Check the collection period and URL or origin scope.',
     status: 'error' as const,
     entries: report.value.gapAnalysis.goodLabPoorField,
   },
   {
     key: 'poorLabGoodField',
-    title: 'Lab failed, field passes',
-    description: 'Lighthouse flagged these poor in the lab; CrUX field data says good. Likely single-run noise or an overly strict lab condition — deprioritize unless field data goes stale.',
+    title: 'Lab rating poor; field rating good',
+    description: 'These sources measure different conditions. Check the collection period and URL or origin scope.',
     status: 'warning' as const,
     entries: report.value.gapAnalysis.poorLabGoodField,
   },
   {
     key: 'aligned',
-    title: 'Lab and field agree',
-    description: 'Both lab and field data agree on the verdict. High-confidence findings — fix these first.',
+    title: 'Lab and field ratings match',
+    description: 'Both sources use the same rating band for this metric.',
     status: 'neutral' as const,
     entries: report.value.gapAnalysis.aligned,
   },
@@ -133,7 +133,7 @@ const gapSections = computed(() => [
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <UiStat card title="Good" :value="report.severityCounts.good" value-class="text-success" :animated-value="false" />
-      <UiStat card title="Needs Improvement" :value="report.severityCounts.needsImprovement" value-class="text-warning" :animated-value="false" />
+      <UiStat card title="Needs improvement" :value="report.severityCounts.needsImprovement" value-class="text-warning" :animated-value="false" />
       <UiStat card title="Poor" :value="report.severityCounts.poor" value-class="text-error" :animated-value="false" />
       <UiStat card title="Unknown" :value="report.severityCounts.unknown" :animated-value="false" />
     </div>
@@ -175,7 +175,7 @@ const gapSections = computed(() => [
       v-else
       icon="globe"
       :title="`0 CrUX field records across ${report.findings.length} audited entries`"
-      description="Field data requires enough Chrome User Experience Report traffic. Lab results remain available in Core Web Vitals."
+      description="Field data requires enough Chrome User Experience Report traffic. Lab results remain available in Performance metrics."
       compact
     />
 
@@ -201,6 +201,15 @@ const gapSections = computed(() => [
               <span class="uppercase">{{ g.metric }}</span>
               <span class="tabular-nums">{{ gapValue(g.metric, g.labValue) }} lab · {{ gapValue(g.metric, g.fieldValue) }} field</span>
             </div>
+            <p v-if="g.labCapturedAt" class="text-muted mt-1">
+              Lighthouse lab results: {{ g.labCapturedAt }}
+            </p>
+            <p class="text-muted mt-1">
+              {{ g.fieldScope === 'origin' ? 'Origin field data' : 'URL field data' }}: {{ g.fieldScopeUrl }}
+            </p>
+            <p v-if="g.fieldCollectionPeriod" class="text-muted">
+              {{ g.fieldCollectionPeriod.firstDate }} to {{ g.fieldCollectionPeriod.lastDate }}
+            </p>
           </div>
           <div v-if="section.entries.length > GAP_CAP" class="text-xs text-dimmed pt-1">
             +{{ section.entries.length - GAP_CAP }} more

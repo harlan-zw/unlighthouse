@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { A11yReport } from '@unlighthouse/contracts/packs'
 import { A11yReportSchema } from '@unlighthouse/contracts/packs'
+import ReportCoverage from '~/features/scan/components/ReportCoverage.vue'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
@@ -63,12 +64,9 @@ function topElementsOf(finding: Record<string, unknown>): TopElement[] {
       </template>
     </FindingsAccordion>
 
-    <UiEmptyState
-      v-if="!report.findings.length"
-      icon="shield-check"
-      title="All routes pass · 0 accessibility violations"
-      description="No WCAG issues found across the audited routes."
-      compact
-    />
+    <ReportCoverage :coverage="report.coverage" :findings="report.findings.length" />
+    <p class="text-sm text-muted">
+      Automated checks do not cover every accessibility requirement.
+    </p>
   </div>
 </template>

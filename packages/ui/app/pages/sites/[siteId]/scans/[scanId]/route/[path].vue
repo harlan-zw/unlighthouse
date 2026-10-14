@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import MeasurementSources from '~/features/scan/components/MeasurementSources.vue'
 import ScoreRing from '~/features/scan/components/ScoreRing.vue'
+import { formatInsightSavings } from '~/features/scan/pack-presentation'
 import { useRouteDetail } from '~/features/scan/route-detail'
 
 definePageMeta({ layout: 'scan' })
@@ -219,11 +221,11 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
         </div>
       </div>
 
-      <!-- Core Web Vitals -->
+      <!-- Performance metrics -->
       <UiCard size="sm">
         <template #header>
           <h2 class="text-label text-dimmed">
-            Core Web Vitals &amp; Metrics
+            Performance metrics
           </h2>
         </template>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
@@ -299,6 +301,11 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
         </UCollapsible>
       </UiCard>
 
+      <MeasurementSources v-if="routeData.provenance.performanceSource" :sources="[routeData.provenance.performanceSource]" />
+      <p v-else class="text-sm text-muted">
+        Measurement source unavailable
+      </p>
+
       <!-- Category Sections -->
       <template v-for="cat in categoryAudits" :key="cat.id">
         <UiCard size="sm">
@@ -343,7 +350,7 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
                   <div v-if="audit.metricSavings && hasNonZeroSavings(audit.metricSavings)" class="flex gap-2 flex-wrap">
                     <template v-for="(val, key) in audit.metricSavings" :key="key">
                       <UiChip v-if="typeof val === 'number' ? val > 0 : !!val" purpose="count">
-                        {{ key }}: {{ typeof val === 'number' ? fmtMs(val) : val }}
+                        {{ key }}: {{ formatInsightSavings(String(key), val) }}
                       </UiChip>
                     </template>
                   </div>
@@ -375,13 +382,13 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
               </template>
             </UAccordion>
 
-            <USeparator v-if="cat.failing.length && (cat.passing.length || cat.notApplicable.length)" />
+            <USeparator v-if="cat.failing.length && (cat.passing.length || cat.otherGroups.length)" />
 
             <!-- Passed audits (collapsible) -->
             <Disclosure v-if="cat.passing.length">
               <template #summary>
                 <UiIcon name="success" class="size-4 text-success" />
-                <span class="text-success font-medium">Passed Audits</span>
+                <span class="text-success font-medium">Passed audits</span>
                 <UiChip purpose="status" status="success">
                   {{ cat.passing.length }}
                 </UiChip>
@@ -425,18 +432,29 @@ useScanPageTitle(computed(() => `Route ${formatTitleRoutePath(routePath)}`))
             </Disclosure>
 
             <!-- Not Applicable (collapsible) -->
-            <Disclosure v-if="cat.notApplicable.length">
+            <Disclosure v-for="group in cat.otherGroups" :key="group.label">
               <template #summary>
                 <UiIcon name="minus" class="size-4 text-muted" />
-                <span class="text-muted">Not Applicable</span>
+                <span :class="group.status === 'error' ? 'text-error' : 'text-muted'">{{ group.label }}</span>
                 <UiChip purpose="count">
-                  {{ cat.notApplicable.length }}
+                  {{ group.audits.length }}
                 </UiChip>
               </template>
               <div class="space-y-0.5 pt-2 pl-6">
-                <div v-for="audit in cat.notApplicable" :key="audit.id" class="flex items-center gap-2 py-1 text-sm text-muted">
-                  <UiIcon name="minus" class="size-3 shrink-0" />
-                  <span>{{ audit.title || audit.id }}</span>
+                <div v-for="audit in group.audits" :key="audit.id" class="space-y-1 py-2 text-sm text-muted">
+                  <p>{{ audit.title || audit.id }}</p>
+                  <p v-if="audit.displayValue" class="text-xs">
+                    {{ audit.displayValue }}
+                  </p>
+                  <p v-if="audit.errorMessage" class="text-xs text-error">
+                    {{ audit.errorMessage }}
+                  </p>
+                  <p v-if="audit.description" class="text-xs">
+                    <template v-for="(part, partIndex) in parseMarkdownLinks(audit.description)" :key="partIndex">
+                      <a v-if="part.href" :href="part.href" target="_blank" rel="noopener noreferrer" class="underline text-highlighted">{{ part.text }}</a>
+                      <span v-else>{{ part.text }}</span>
+                    </template>
+                  </p>
                 </div>
               </div>
             </Disclosure>

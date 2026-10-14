@@ -44,8 +44,8 @@ const ROUTES_PAGE_SIZE = 500
 
 export const QUICK_FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'failing', label: 'Failing' },
-  { key: 'poor-cwv', label: 'Poor CWV' },
+  { key: 'failing', label: 'Below 90' },
+  { key: 'poor-cwv', label: 'Poor performance metrics' },
 ] as const
 
 export const SCORE_COLS: { key: keyof Pick<RouteRow, 'scorePerformance' | 'scoreAccessibility' | 'scoreSeo' | 'scoreBestPractices' | 'scoreAgenticBrowsing'>, label: string }[] = [
@@ -56,7 +56,7 @@ export const SCORE_COLS: { key: keyof Pick<RouteRow, 'scorePerformance' | 'score
   { key: 'scoreAgenticBrowsing', label: 'Agentic' },
 ]
 
-export const CWV_COLS: { key: keyof Pick<RouteRow, 'lcp' | 'cls' | 'tbt' | 'inp'>, label: string, unit: 'ms' | '' }[] = [
+export const PERFORMANCE_COLS: { key: keyof Pick<RouteRow, 'lcp' | 'cls' | 'tbt' | 'inp'>, label: string, unit: 'ms' | '' }[] = [
   { key: 'lcp', label: 'LCP', unit: 'ms' },
   { key: 'cls', label: 'CLS', unit: '' },
   { key: 'tbt', label: 'TBT', unit: 'ms' },

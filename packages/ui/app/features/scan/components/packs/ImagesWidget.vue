@@ -146,8 +146,7 @@ function hideBrokenImage(event: Event): void {
     <UiEmptyState
       v-else
       icon="image"
-      title="All routes pass · 0 image issues"
-      description="No oversized, unoptimized or render-blocking images found."
+      title="No findings in available reports"
       compact
     />
   </div>

@@ -19,7 +19,7 @@ const CATEGORY_DEFS = [
   { key: 'seo', label: 'SEO', icon: 'search', path: 'packs/seo-basics' },
   { key: 'accessibility', label: 'Accessibility', icon: 'accessibility', path: 'packs/a11y-quick-wins' },
   { key: 'best-practices', label: 'Best Practices', icon: 'shield-check', path: 'packs/best-practices' },
-  { key: 'agentic-browsing', label: 'Agentic', icon: 'bot', path: 'packs/agentic-browsing' },
+  { key: 'agentic-browsing', label: 'Agentic Browsing', icon: 'bot', path: 'packs/agentic-browsing' },
 ] as const
 
 function scoreColorFromRing(scoreToRingColor: (score: number | null) => string, score: number | null): string {
@@ -190,7 +190,7 @@ export function useScanOverview() {
     const total = scanSummary.value.routesScanned
     const bands = {
       passing: { label: 'Pass', color: BAND_HEX.good, status: 'success' as const },
-      needsWork: { label: 'Needs Work', color: BAND_HEX.average, status: 'warning' as const },
+      needsWork: { label: 'Needs improvement', color: BAND_HEX.average, status: 'warning' as const },
       poor: { label: 'Poor', color: BAND_HEX.poor, status: 'error' as const },
       unscored: { label: 'No score', color: 'var(--ui-color-neutral-400)', status: 'neutral' as const },
     }
@@ -225,8 +225,8 @@ export function useScanOverview() {
   }
 
   function categoryScoreLabel(category: { score: number | null, categoryScoreDisplayMode: CategoryScoreDisplayMode, fraction: { passing: number, total: number } | null }): string | number {
-    if (category.categoryScoreDisplayMode === 'fraction' && category.fraction && category.fraction.total > 0)
-      return `${category.fraction.passing}/${category.fraction.total}`
+    if (category.categoryScoreDisplayMode === 'fraction')
+      return category.fraction && category.fraction.total > 0 ? `${category.fraction.passing}/${category.fraction.total}` : 'Unavailable'
     return scoreToLabel(category.score)
   }
 
