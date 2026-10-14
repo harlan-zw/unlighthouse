@@ -6,6 +6,7 @@
 import type { InsightsReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { ReconciledReport } from '@unlighthouse/contracts/types/atoms'
 import { InsightsReportSchema } from '@unlighthouse/contracts/packs'
+import { isAuditEligible, isAuditPassed } from '@unlighthouse/contracts/types/atoms'
 import { resolveDistinctPackRoutes } from './reconcile-context'
 
 const INSIGHT_AUDIT_IDS = [
@@ -52,14 +53,12 @@ function maxSavings(
   }
 }
 
-function totalImpact(savings: Record<string, number | undefined>): number {
-  return Object.values(savings).reduce<number>((a, b) => a + (b ?? 0), 0)
-}
+const SAVINGS_METRICS = ['LCP', 'FCP', 'INP', 'CLS', 'TBT'] as const
 
 export const insightsPack: Pack<InsightsReport> = {
   name: 'insights',
-  description: 'Lighthouse 13 performance insights: cross-route savings analysis with prioritized fix order.',
-  version: '1.0.0',
+  description: 'Lighthouse performance insights with estimated savings and priority order for each metric. Timing and CLS savings retain their own units.',
+  version: '2.0.0',
   reportSchema: InsightsReportSchema,
   ui: { tab: 'Insights', icon: 'ai' },
 
@@ -100,11 +99,11 @@ export const insightsPack: Pack<InsightsReport> = {
 
       for (const id of INSIGHT_AUDIT_IDS) {
         const audit = reconciled.audits[id]
-        if (!audit || audit.severity === 'pass')
+        if (!audit || !isAuditEligible(audit) || isAuditPassed(audit) || audit.scoreDisplayMode === 'error')
           continue
 
         const entry = insightMap.get(id)!
-        if (!entry.title && audit.title)
+        if (audit.title && (!entry.title || audit.title.localeCompare(entry.title) < 0))
           entry.title = audit.title
         entry.routeCount++
         mergeSavings(entry.totalSavings, audit.metricSavings)
@@ -119,24 +118,29 @@ export const insightsPack: Pack<InsightsReport> = {
     const insights = Array.from(insightMap.entries())
       .filter(([, v]) => v.routeCount > 0)
       .map(([id, v]) => {
-        v.worstRoutes.sort((a, b) => totalImpact(b.savings) - totalImpact(a.savings))
+        const worstRoutesByMetric = Object.fromEntries(SAVINGS_METRICS.map(metric => [metric, v.worstRoutes.flatMap(route => typeof route.savings[metric] === 'number' ? [{ url: route.url, savings: route.savings[metric]! }] : [])
+          .sort((a, b) => b.savings - a.savings || a.url.localeCompare(b.url))
+          .slice(0, 5)]))
         return {
           id,
           title: v.title,
           routeCount: v.routeCount,
           totalSavings: v.totalSavings,
           maxSingleRouteSavings: v.maxSingleRouteSavings,
-          worstRoutes: v.worstRoutes.slice(0, 5),
+          worstRoutesByMetric,
         }
       })
 
-    insights.sort((a, b) => totalImpact(b.totalSavings) - totalImpact(a.totalSavings))
+    insights.sort((a, b) => a.id.localeCompare(b.id))
+    const priorityOrderByMetric = Object.fromEntries(SAVINGS_METRICS.map(metric => [metric, insights.filter(insight => (insight.totalSavings[metric] ?? 0) > 0)
+      .sort((a, b) => (b.totalSavings[metric] ?? 0) - (a.totalSavings[metric] ?? 0) || a.id.localeCompare(b.id))
+      .map(insight => insight.id)]))
 
     return {
       scanId,
       routesAnalysed: routes.length,
       insights,
-      priorityOrder: insights.map(i => i.id),
+      priorityOrderByMetric,
     }
   },
 }

@@ -240,7 +240,8 @@ const AuditFindingSchema = z.object({
   id: z.string(),
   // 0..1 score. `null` for manual / notApplicable audits.
   score: z.number().nullable(),
-  scoreDisplayMode: z.enum(['numeric', 'binary', 'informative', 'manual', 'notApplicable']),
+  scoreDisplayMode: z.enum(['numeric', 'binary', 'metricSavings', 'informative', 'manual', 'notApplicable', 'error', 'unknown']),
+  errorMessage: z.string().nullish(),
   // D-034: raw numeric value for `numeric` audits (ms for timing audits, bytes,
   // etc.). Version-stable — it is the measurement, not a derived score — so it
   // does not compromise the reconciled report's LH-version resilience. Lets the
@@ -254,9 +255,8 @@ const AuditFindingSchema = z.object({
   // informative audits ship without one.
   description: z.string().nullable(),
   // Pre-bucketed severity. `pass` = score ≥ 0.9, `warn` = ≥ 0.5, `fail` = < 0.5.
-  // Manual / notApplicable / informative are always `pass` (they don't fail
-  // a scan; packs filter them out by audit id).
-  severity: z.enum(['pass', 'warn', 'fail']),
+  // Unscored, unavailable, and error results have no scored severity.
+  severity: z.enum(['pass', 'warn', 'fail']).nullable(),
   // Lighthouse 12+ per-audit savings estimates. Populated on insight audits
   // (`*-insight` ids) and a few classic ones; absent fields = "no estimate
   // from Lighthouse," not "zero savings." Units: ms for LCP/FCP/INP/TBT,
@@ -276,6 +276,23 @@ const AuditFindingSchema = z.object({
 })
 export type AuditFinding = z.infer<typeof AuditFindingSchema>
 
+export function isAuditEligible(audit: { scoreDisplayMode?: string } | null | undefined, ref?: { group?: string | null }): boolean {
+  return !!audit && ref?.group !== 'hidden'
+    && ['numeric', 'binary', 'metricSavings', 'error'].includes(audit.scoreDisplayMode ?? 'unknown')
+}
+
+export function isAuditPassed(audit: { score: number | null, scoreDisplayMode?: string } | null | undefined): boolean {
+  return isAuditEligible(audit) && audit?.scoreDisplayMode !== 'error' && typeof audit?.score === 'number' && audit.score >= 0.9
+}
+
+export const CollectionPeriodSchema = z.object({ firstDate: z.string(), lastDate: z.string() })
+export const PerformanceSourceSchema = z.discriminatedUnion('_tag', [
+  z.object({ _tag: z.literal('lab'), auditor: z.string().nullable(), capturedAt: z.string() }),
+  z.object({ _tag: z.literal('field'), auditor: z.string().nullable(), scope: z.enum(['url', 'origin']), scopeUrl: z.string(), collectionPeriod: CollectionPeriodSchema.nullable() }),
+  z.object({ _tag: z.literal('unavailable'), reason: z.string() }),
+])
+export type PerformanceSource = z.infer<typeof PerformanceSourceSchema>
+
 const StackPackSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -292,6 +309,7 @@ const EntitySchema = z.object({
 export type Entity = z.infer<typeof EntitySchema>
 
 const ReconciledReportSchema = z.object({
+  schemaVersion: z.literal(2).optional(),
   scanId: ScanIdSchema,
   url: UrlSchema,
   device: DeviceSchema,
@@ -317,6 +335,7 @@ const ReconciledReportSchema = z.object({
     auditRefs: z.array(z.object({
       id: z.string(),
       weight: z.number().nonnegative(),
+      group: z.string().nullish(),
     })),
   })),
   audits: z.record(z.string(), AuditFindingSchema),
@@ -336,6 +355,7 @@ const ReconciledReportSchema = z.object({
     // D-042: effective pool concurrency at capture time, so historical rows are
     // interpretable (a perf score from a contended run reads differently).
     concurrency: z.number().nullish(),
+    performanceSource: PerformanceSourceSchema.optional(),
   }),
   stackPacks: z.array(StackPackSchema).nullable(),
   entities: z.array(EntitySchema).nullable(),

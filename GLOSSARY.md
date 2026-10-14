@@ -8,7 +8,7 @@ Scope: dashboard navigation. Terms follow existing routes, contracts, and the re
 | --- | --- | --- | --- | --- | --- |
 | Site | Workspace | sites.list | Sites | Many | Site |
 | Scan | Site | history.list | Scans | Many | Scan |
-| Pack | Scan | pack.list | Scans | Many | Pack |
+| Pack | Workspace | pack.list | Scans | Many registered recipes | Pack |
 | Browse | Workspace | Sidebar navigation | UI | One mode | Browse |
 | Agents | Workspace | Agent setup page | UI | One mode | Agents |
 | MCP | Agents | packages/mcp | MCP | One transport | MCP |
@@ -25,13 +25,13 @@ Collisions: none in the navigation scope.
 **Casing:** Site in headings, site in prose.
 
 ### Scan
-**Is:** one audit execution with an ID and stored results.
+**Is:** one run over selected URLs and devices, with an ID and stored results.
 **Use for:** scan history, progress, and results.
 **Never:** session when referring to a Scan.
 **Casing:** Scan in headings, scan in prose.
 
 ### Pack
-**Is:** a registered group of audit findings.
+**Is:** a registered Unlighthouse recipe that analyzes scan results and produces a pack report.
 **Use for:** pack.list entries and scan pack pages.
 **Never:** plugin when referring to a Pack.
 **Casing:** Pack in headings, pack in prose.

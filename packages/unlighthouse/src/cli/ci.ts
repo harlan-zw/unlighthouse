@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { compareScans, formatComparisonMarkdown, getComparisonSummary } from '@unlighthouse/core/comparison'
-import { decompressLhr, parseRouteContract, routeContractBlobKey } from '@unlighthouse/core/report'
+import { decompressLhr, loadRouteContract } from '@unlighthouse/core/report'
 import { createConsola } from 'consola'
 import { createUnlighthouseHost } from '../index.ts'
 import { generateReportPayload, outputReport } from '../reporters'
@@ -121,9 +121,7 @@ export async function runCi(entry: CiEntryOptions = {}): Promise<number> {
       // (score / scoreDisplayMode / numericValue / displayValue) are all the
       // reporters need; category `id` falls back to the key and audit
       // `numericUnit` is dropped (the expected lossy fields — Step G).
-      const contractKey = routeContractBlobKey(r)
-      const blob = contractKey ? await unlighthouse.handlerCtx.storage.blobs.get(contractKey) : null
-      const contract = blob ? parseRouteContract(blob) : null
+      const contract = await loadRouteContract(unlighthouse.handlerCtx.storage.blobs, r)
       if (!contract)
         return null
       for (const [category, result] of Object.entries(contract.categories)) {

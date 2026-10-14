@@ -39,7 +39,7 @@
 // field data" instead of a hard failure.
 
 import type { CruxFinding, CruxFormFactor, CruxReport, CruxSource, GapAnalysis, GapEntry, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import type { Device, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { Device, PerformanceSource, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { CruxReportSchema } from '@unlighthouse/contracts/packs'
 import { z } from 'zod'
@@ -68,6 +68,7 @@ const CruxPercentilesSchema = z.object({
 })
 const CruxMetricSchema = z.object({ percentiles: CruxPercentilesSchema.optional() })
 const CruxApiRecordSchema = z.object({
+  collectionPeriod: z.object({ firstDate: z.object({ year: z.number(), month: z.number(), day: z.number() }), lastDate: z.object({ year: z.number(), month: z.number(), day: z.number() }) }).optional(),
   key: z.object({
     formFactor: z.enum(['PHONE', 'DESKTOP', 'TABLET']).optional(),
     origin: z.string().optional(),
@@ -91,6 +92,8 @@ type CruxApiRecord = z.infer<typeof CruxApiRecordSchema>
 
 export interface CruxQueryResult {
   source: CruxSource
+  collectionPeriod: { firstDate: string, lastDate: string } | null
+  scopeUrl: string | null
   lcp_p75: number | null
   cls_p75: number | null
   inp_p75: number | null
@@ -170,7 +173,7 @@ export async function queryCrux(
   if (urlAttempt.ok && urlAttempt.record) {
     const metrics = metricsFromRecord(urlAttempt.record)
     if (metrics.lcp_p75 != null || metrics.cls_p75 != null || metrics.inp_p75 != null)
-      return { source: 'url', ...metrics }
+      return { source: 'url', scopeUrl: urlAttempt.record.key.url ?? url, collectionPeriod: periodFromRecord(urlAttempt.record), ...metrics }
   }
 
   // 2) Per-URL missed → origin-level fallback.
@@ -178,10 +181,18 @@ export async function queryCrux(
   if (originAttempt.ok && originAttempt.record) {
     const metrics = metricsFromRecord(originAttempt.record)
     if (metrics.lcp_p75 != null || metrics.cls_p75 != null || metrics.inp_p75 != null)
-      return { source: 'origin', ...metrics }
+      return { source: 'origin', scopeUrl: originAttempt.record.key.origin ?? originOf(url), collectionPeriod: periodFromRecord(originAttempt.record), ...metrics }
   }
 
-  return { source: 'none', lcp_p75: null, cls_p75: null, inp_p75: null }
+  return { source: 'none', scopeUrl: null, collectionPeriod: null, lcp_p75: null, cls_p75: null, inp_p75: null }
+}
+
+function periodFromRecord(record: CruxApiRecord): CruxQueryResult['collectionPeriod'] {
+  const period = record.collectionPeriod
+  if (!period)
+    return null
+  const date = (value: { year: number, month: number, day: number }) => `${value.year}-${String(value.month).padStart(2, '0')}-${String(value.day).padStart(2, '0')}`
+  return { firstDate: date(period.firstDate), lastDate: date(period.lastDate) }
 }
 
 // ── Severity ────────────────────────────────────────────────────────────────
@@ -255,6 +266,7 @@ const COMPARABLE_METRICS = [
 export function analyzeLabVsField(
   routes: ReadonlyArray<ScanRoute>,
   findings: ReadonlyArray<CruxFinding>,
+  sources: ReadonlyMap<string, PerformanceSource> = new Map(),
 ): GapAnalysis {
   const result: GapAnalysis = {
     goodLabPoorField: [],
@@ -278,6 +290,9 @@ export function analyzeLabVsField(
     if (!device)
       continue
     const route = labIndex.get(`${device}|${finding.url}`)
+    const source = sources.get(`${device}|${finding.url}`)
+    if (source?._tag !== 'lab')
+      continue
     if (!route)
       continue
 
@@ -295,6 +310,10 @@ export function analyzeLabVsField(
 
       const entry: GapEntry = {
         url: finding.url,
+        labCapturedAt: source.capturedAt,
+        fieldCollectionPeriod: finding.collectionPeriod,
+        fieldScope: finding.source === 'origin' ? 'origin' : 'url',
+        fieldScopeUrl: finding.scopeUrl ?? finding.url,
         formFactor: finding.formFactor,
         metric,
         labVerdict,
@@ -357,6 +376,8 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
           cls_p75: null,
           inp_p75: null,
           source: 'none',
+          collectionPeriod: null,
+          scopeUrl: null,
           severity: 'unknown',
         })
         severityCounts.unknown++
@@ -394,6 +415,8 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
           cls_p75: result.cls_p75,
           inp_p75: result.inp_p75,
           source: result.source,
+          collectionPeriod: result.collectionPeriod,
+          scopeUrl: result.scopeUrl,
           severity,
         })
       }
@@ -407,12 +430,20 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
           cls_p75: null,
           inp_p75: null,
           source: 'none',
+          collectionPeriod: null,
+          scopeUrl: null,
           severity: 'unknown',
         })
         severityCounts.unknown++
       }
     }
 
+    const sources = new Map<string, PerformanceSource>()
+    for (const route of routes) {
+      const contract = ctx.getReconciled ? await ctx.getReconciled(route.url, route.device) : null
+      if (contract?.provenance.performanceSource)
+        sources.set(`${route.device}|${route.url}`, contract.provenance.performanceSource)
+    }
     return {
       scanId: ctx.scanId,
       routesAnalysed: routes.length,
@@ -423,14 +454,14 @@ function buildPack(options: CruxPackOptions = {}): Pack<CruxReport> {
       // Always compute — `analyzeLabVsField` short-circuits when there's no
       // overlap, returning empty buckets. The caller can then decide whether
       // to surface "0 gaps detected" or hide the section entirely.
-      gapAnalysis: analyzeLabVsField(routes, findings),
+      gapAnalysis: analyzeLabVsField(routes, findings, sources),
     }
   }
 
   return {
     name: 'crux',
     description: 'Per-route p75 LCP/CLS/INP from the Chrome User Experience Report. Falls back to origin-level data when per-URL coverage is unavailable.',
-    version: '0.1.0',
+    version: '2.0.0',
     // No auditor requirements — the pack queries CrUX directly during
     // reconcile and doesn't depend on any LH audit being present.
     auditors: [],

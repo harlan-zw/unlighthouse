@@ -327,14 +327,14 @@ describe('seoBasicsPack — multi-device scan', () => {
 
     // Two distinct URLs, not three rows.
     expect(report.routesAnalysed).toBe(2)
-    // URL A indexable, URL B not → 1 of 2 → 50%.
-    expect(report.indexableRoutes).toBe(1)
-    expect(report.unindexableRoutes).toBe(1)
-    expect(report.indexabilityPercent).toBe(50)
+    // URL A lacks two checks; URL B has a demonstrated failure.
+    expect(report.unknownCrawlabilityRoutes).toBe(1)
+    expect(report.failingCrawlabilityRoutes).toBe(1)
+    expect(report.crawlabilityPercent).toBe(0)
 
     const routeCheckB = report.routeChecks.find(rc => rc.url === URL_B)
     expect(routeCheckB).toBeDefined()
-    expect(routeCheckB?.indexable).toBe(false)
+    expect(routeCheckB?.crawlability).toBe('fail')
   })
 })
 

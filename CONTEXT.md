@@ -33,7 +33,7 @@ The spine of the model is a three-level hierarchy: a **Site** has many **Scans**
 **Site** — a website Unlighthouse tracks over time, held in a persistent registry with an id, a name, and a URL. Scans of the same site link back to it, which is what makes cross-scan history and comparison meaningful.
 **Not:** a single scan of that site, and not merely the URL string a one-off scan happens to target — a Site is the durable registry entry that outlives any individual run.
 
-**Scan** — one complete run over a site (or a single page). The unit of history. Everything a run produces is attributed to its scan id, and a scan carries the context it ran under: which device(s), which mode, and the CI metadata (branch, commit, message) if any.
+**Scan**: one run over a site or a single page. It can be active, completed, cancelled, or failed. Results belong to its scan id and retain device and CI context.
 **Not:** a Site (a Scan is one point in a Site's history), and not a single Route's result.
 
 **Scan id** — the opaque identifier the engine mints for a scan and threads through every event, record, and artifact. Callers treat it as a token, never parse it.
@@ -90,10 +90,18 @@ A single URL's audit exists in three representations, from richest to leanest. K
 **Audit finding** — one Lighthouse audit's result within a reconciled report: its id, score, human-facing title and description, any savings estimate, and a pre-bucketed severity.
 **Not:** a category (a finding is a single audit; a category aggregates many), and not a Pack.
 
-**Insight audit** — a newer class of Lighthouse audit (its id ends in `-insight`) that quantifies a specific fix as an estimated metric saving (milliseconds off LCP/FCP/INP/TBT, or a CLS delta). The substrate for prioritisation: "fix these three things first, in this order."
+**Insight audit**: a Lighthouse insight audit with its native ID and producer-supplied title. Keep repair instructions separate. If the title is absent, show the native ID. Savings retain each metric's units: milliseconds for timing metrics and dimensionless values for CLS.
 **Not:** a metric (an insight estimates *how much a fix would move* a metric; the metric is the measurement itself), and not a category.
 
-**Severity** — a finding's bucket derived from its score: `pass`, `warn`, or `fail`. Informational and not-applicable audits are always `pass`. Computed once at ingest so consumers never re-derive the rule.
+**Severity**: an Unlighthouse classification of a scored audit result. Preserve Lighthouse's native audit mode separately. Informative results, manual checks, not applicable results, and errors do not prove an audit passed. Severity describes one result. Change status describes movement between scans.
+
+Use Passed audits only for results satisfying Lighthouse's native pass predicate. Show Not applicable separately from Additional items to manually check. Keep informative results and errors outside passed counts. Unknown historical modes remain unknown when raw reports cannot recover them.
+
+**Performance metrics**: measurements shown with their source, device, scope, units, and coverage. Use Core Web Vitals for LCP, INP, and CLS. Total Blocking Time remains a separate Lighthouse metric. Use Core Web Vitals assessment only for eligible field measurements. A percentile across audited URLs describes that URL sample, not real-user experiences.
+
+**Crawlability checks**: the Lighthouse is-crawlable, HTTP status, and robots.txt checks. Missing checks remain unknown. These checks do not establish indexing or ranking.
+
+**Lab and field rating differences**: comparisons between rating bands from proven lab and field sources. Retain capture dates, field collection periods, and URL or origin scope. A rating difference does not establish a historical regression.
 **Not:** the comparison sense of the word (see *change status* below) — this severity describes one audit's health, not a scan-over-scan movement.
 
 **Provenance** — the recorded circumstances of a report: Lighthouse version, machine benchmark, warnings, runtime error. What lets us trust or discount a result.
@@ -150,6 +158,10 @@ Two state machines exist at different altitudes; do not confuse them.
 
 **Pack** — a curated recipe of related audits aimed at one outcome (Core Web Vitals, images, JS bundle, accessibility, SEO, and so on). The v1 unit of curated, actionable output. A pack declares which auditors it needs, reads a scan's reconciled reports, and returns a typed report of its own. Packs are composable and can be built-in or community-authored. A pack's output for a given scan is computed once and reused.
 **Not:** a port (a pack is composition *on top of* auditor and storage), an auditor (a pack consumes auditor output, it doesn't produce reports for URLs), or a Lighthouse *stack pack*.
+
+**Pack report**: the output an Unlighthouse pack produces for one scan and device scope. One recipe produces reports for many scans.
+
+**Report coverage**: eligible entries, analyzed entries, and entries with unavailable reports or category data. An empty findings list does not prove unavailable checks passed. Automated accessibility checks do not cover every accessibility requirement.
 
 ## Comparison, assertions & budgets
 

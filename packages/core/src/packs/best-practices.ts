@@ -15,6 +15,7 @@ import type { BestPracticesFinding, BestPracticesReport, Pack, PackReconcileCtx 
 import type { LighthouseResult } from '@unlighthouse/contracts/ports'
 import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { BestPracticesReportSchema } from '@unlighthouse/contracts/packs'
+import { isAuditEligible, isAuditPassed } from '@unlighthouse/contracts/types/atoms'
 import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -80,7 +81,7 @@ interface RawFinding {
 // node-level detail where Lighthouse provides it), raw LHR as fallback for
 // older scans that predate the reconciled blob.
 interface RouteView {
-  audits: Record<string, { score: number | null, title: string | null, description: string | null, items: Array<{ selector: string | null, snippet: string | null, nodeLabel: string | null }> | null }>
+  audits: Record<string, { score: number | null, scoreDisplayMode: string, title: string | null, description: string | null, items: Array<{ selector: string | null, snippet: string | null, nodeLabel: string | null }> | null }>
   auditWeights: Map<string, number>
   rawLhr: LhrLike | null
 }
@@ -111,6 +112,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
     for (const [id, a] of Object.entries(reconciled.audits)) {
       audits[id] = {
         score: a.score,
+        scoreDisplayMode: a.scoreDisplayMode,
         title: a.title,
         description: a.description,
         items: a.items?.map(it => ({
@@ -127,6 +129,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
     for (const [id, a] of Object.entries(lhr.audits ?? {})) {
       audits[id] = {
         score: a.score ?? null,
+        scoreDisplayMode: a.scoreDisplayMode ?? 'unknown',
         title: a.title ?? null,
         description: a.description ?? null,
         items: null,
@@ -160,7 +163,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<BestPracticesReport> {
       const score = audit.score
       // notApplicable / manual / informative audits carry no numeric score —
       // neither pass nor fail, mirrors the UI's `a.score === null` skip.
-      if (score == null || score >= 1)
+      if (score == null || !isAuditEligible(audit) || isAuditPassed(audit) || audit.scoreDisplayMode === 'error')
         continue
 
       let finding = findings.get(auditId)
@@ -231,6 +234,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<BestPracticesReport> {
   return {
     scanId: ctx.scanId,
     routesAnalysed,
+    coverage: { eligible: resolveDistinctPackRoutes(ctx.routes).length, analysed: routesAnalysed, missing: resolveDistinctPackRoutes(ctx.routes).length - routesAnalysed },
     severityCounts,
     findings: result,
   }
@@ -241,7 +245,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<BestPracticesReport> {
 export const bestPracticesPack: Pack<BestPracticesReport> = {
   name: 'best-practices',
   description: 'Sitewide best-practices checklist: HTTPS/security headers, console errors, deprecated APIs, image sizing. Failing audits grouped by rule.',
-  version: '1.0.0',
+  version: '2.0.0',
   auditors: [
     { kind: 'lh-category', id: 'best-practices', required: true },
   ],

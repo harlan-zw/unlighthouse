@@ -33,6 +33,7 @@ export interface LighthouseAuditResult {
   id?: string
   score: number | null
   scoreDisplayMode?: string
+  errorMessage?: string
   numericValue?: number
   displayValue?: string
   explanation?: string
@@ -52,7 +53,7 @@ export interface LighthouseCategoryResult {
   title?: string
   id?: string
   categoryScoreDisplayMode?: 'gauge' | 'fraction'
-  auditRefs?: Array<{ id: string, weight?: number }>
+  auditRefs?: Array<{ id: string, weight?: number, group?: string }>
 }
 
 /** Raw Lighthouse-shaped payload accepted at the auditor port. */

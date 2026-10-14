@@ -66,7 +66,7 @@ function makePackRun(): PackRun {
   return {
     scanId: SCAN_ID,
     packName: 'cwv',
-    packVersion: '1.0.0',
+    packVersion: '2.0.0',
     startedAt: '2025-01-01T00:02:00.000Z',
     completedAt: '2025-01-01T00:02:01.000Z',
     report: {
@@ -74,12 +74,14 @@ function makePackRun(): PackRun {
       routesAnalysed: 2,
       metrics: [{
         metric: 'lcp',
+        source: 'unavailable',
+        sources: [{ _tag: 'unavailable', reason: 'Historical source unavailable.' }],
+        coverage: { eligible: 2, analysed: 2, missing: 0 },
         p75: 1200,
         verdict: 'good',
         distribution: { good: 2, needsImprovement: 0, poor: 0, unknown: 0 },
         worstRoutes: [{ url: 'https://example.com/about', value: 1200 }],
       }],
-      passesCoreWebVitals: true,
       topFixes: [],
     },
     reportBlobKey: null,

@@ -28,7 +28,7 @@ import { commandEntries } from '@unlighthouse/contracts/commands'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
 import { createHooks } from 'hookable'
-import { routeContractBlobKey } from '../report/route-contracts'
+import { loadRouteContract, routeContractBlobKey } from '../report/route-contracts'
 import { memoryStorage } from '../storage/memory'
 import { createCommandExecutor, createHandlers } from './handlers'
 
@@ -105,6 +105,14 @@ export async function buildStaticSnapshot(opts: {
     const buf = await storage.blobs.get(key)
     if (buf)
       blobs[key] = new TextDecoder().decode(buf)
+  }
+  // Recover native modes before the offline snapshot loses access to raw LHRs.
+  // This changes the export only. Historical storage remains untouched.
+  for (const route of routes) {
+    const key = routeContractBlobKey(route)
+    const contract = key ? await loadRouteContract(storage.blobs, route) : null
+    if (key && contract)
+      blobs[key] = JSON.stringify(contract)
   }
 
   const sites = await storage.sites.list()

@@ -19,6 +19,7 @@
 import type { A11yFinding, A11yReport, Pack, PackReconcileCtx } from '@unlighthouse/contracts/packs'
 import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { A11yReportSchema } from '@unlighthouse/contracts/packs'
+import { isAuditEligible, isAuditPassed } from '@unlighthouse/contracts/types/atoms'
 import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ interface RawFinding {
   title: string
   description: string | null
   weight: number
+  routes: Set<string>
   // Keyed by selector → element data. One element per selector — we don't
   // dedupe across routes here because the *same* element on multiple routes
   // is genuinely useful information for the affected-routes count.
@@ -118,7 +120,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
         const a = reconciled.audits[id]
         if (!a)
           continue
-        const failed = a.score != null && a.score < 1
+        const failed = isAuditEligible(a) && a.score != null && !isAuditPassed(a) && a.scoreDisplayMode !== 'error'
         const items: RouteViewElement[] = []
         if (failed && a.items) {
           for (const it of a.items) {
@@ -156,7 +158,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
       const a = lhr.audits[ref.id]
       if (!a)
         continue
-      const failed = a.score != null && a.score < 1
+      const failed = isAuditEligible(a, ref) && a.score != null && !isAuditPassed(a) && a.scoreDisplayMode !== 'error'
       const items: RouteViewElement[] = []
       if (failed) {
         for (const it of a.details?.items ?? []) {
@@ -198,7 +200,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
     routesAnalysed++
 
     for (const [auditId, audit] of view.audits) {
-      if (!audit.failed || audit.items.length === 0)
+      if (!audit.failed)
         continue
 
       let finding = findings.get(auditId)
@@ -208,10 +210,12 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
           title: audit.title,
           description: audit.description,
           weight: audit.weight,
+          routes: new Set(),
           elements: new Map(),
         }
         findings.set(auditId, finding)
       }
+      finding.routes.add(url)
 
       for (const it of audit.items) {
         const selector = it.selector ?? '(no selector)'
@@ -235,7 +239,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
   // Materialise into the wire shape.
   const result: A11yFinding[] = [...findings.values()].map((f) => {
     const elementsArr = [...f.elements.values()]
-    const routes = new Set<string>()
+    const routes = new Set<string>(f.routes)
     for (const e of elementsArr) {
       for (const r of e.routes)
         routes.add(r)
@@ -285,6 +289,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
   return {
     scanId: ctx.scanId,
     routesAnalysed,
+    coverage: { eligible: resolveDistinctPackRoutes(ctx.routes).length, analysed: routesAnalysed, missing: resolveDistinctPackRoutes(ctx.routes).length - routesAnalysed },
     totalViolations,
     severityCounts,
     findings: result,
@@ -296,7 +301,7 @@ async function reconcile(ctx: PackReconcileCtx): Promise<A11yReport> {
 export const a11yQuickWinsPack: Pack<A11yReport> = {
   name: 'a11y-quick-wins',
   description: 'Sitewide accessibility violations grouped by rule, with affected-element samples and copy-paste fix hints. Severity from Lighthouse weight.',
-  version: '1.0.0',
+  version: '2.0.0',
   // No specific auditor requirements — every Lighthouse run produces the
   // accessibility category by default.
   auditors: [

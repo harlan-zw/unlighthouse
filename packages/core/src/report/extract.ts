@@ -1,4 +1,6 @@
+import type { PerformanceSource, ReconciledReport } from '@unlighthouse/contracts/types/atoms'
 import type { ExtractedRoute, LighthouseResult } from './types'
+import { PerformanceSourceSchema, ReconciledReportSchema } from '@unlighthouse/contracts/types/atoms'
 import { gunzipToString, gzipSync } from '../util/gzip'
 
 // Per-LH-major-version audit id remap. Lookup is `AUDIT_MAP[version][canonical]`
@@ -221,18 +223,7 @@ interface ContractAuditDetailItem {
   wastedMs: number | null
 }
 
-interface ContractAuditFinding {
-  id: string
-  score: number | null
-  scoreDisplayMode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable'
-  numericValue: number | null
-  displayValue: string | null
-  title: string | null
-  description: string | null
-  severity: 'pass' | 'warn' | 'fail'
-  metricSavings: { LCP?: number, FCP?: number, INP?: number, CLS?: number, TBT?: number } | null
-  items: ContractAuditDetailItem[] | null
-}
+type ContractAuditFinding = ReconciledReport['audits'][string]
 
 // Audits whose `details.items` we project into the reconciled blob. Adding
 // an id here costs ~30 items × 6 fields per route → typically <2KB even on
@@ -391,12 +382,14 @@ function contractScoreDisplayMode(value: string | undefined): ContractScoreDispl
   switch (value) {
     case 'numeric':
     case 'binary':
+    case 'metricSavings':
     case 'informative':
     case 'manual':
     case 'notApplicable':
+    case 'error':
       return value
     default:
-      return 'informative'
+      return 'unknown'
   }
 }
 
@@ -439,53 +432,19 @@ export function reconcileToContract(args: {
   auditors?: Record<string, string> | null
   /** D-042: effective pool concurrency at capture time. */
   concurrency?: number | null
-}): {
-  scanId: string
-  url: string
-  device: 'mobile' | 'desktop'
-  metrics: {
-    scorePerformance: number | null
-    scoreAccessibility: number | null
-    scoreSeo: number | null
-    scoreBestPractices: number | null
-    scoreAgenticBrowsing: number | null
-    lcp: number | null
-    cls: number | null
-    inp: number | null
-    fcp: number | null
-    ttfb: number | null
-    tbt: number | null
-    si: number | null
-  }
-  categories: Record<string, { score: number | null, categoryScoreDisplayMode: 'gauge' | 'fraction' | null, auditRefs: Array<{ id: string, weight: number }> }>
-  audits: Record<string, ContractAuditFinding>
-  provenance: {
-    lighthouseVersion: string
-    userAgent: string | null
-    capturedAt: string
-    benchmarkIndex: number | null
-    timingTotal: number | null
-    warnings: string[]
-    runtimeError: { code: string, message: string } | null
-    auditor?: string | null
-    auditors?: Record<string, string> | null
-    concurrency?: number | null
-  }
-  stackPacks: Array<{ id: string, title: string, iconDataURL: string | null, descriptions: Record<string, string> }> | null
-  entities: Array<{ name: string, isFirstParty: boolean, origins: string[] }> | null
-} {
-  // The function signature spelled out above mirrors the ReconciledReport
-  // contract atom 1:1 — adding fields here means adding them in atoms.ts too.
+  capturedAt?: string
+}): ReconciledReport {
   const { scanId, url, device, lhr } = args
   const ext = extractRouteData(lhr)
 
-  const categories: Record<string, { score: number | null, categoryScoreDisplayMode: 'gauge' | 'fraction' | null, auditRefs: Array<{ id: string, weight: number }> }> = {}
+  const categories: Record<string, { score: number | null, categoryScoreDisplayMode: 'gauge' | 'fraction' | null, auditRefs: Array<{ id: string, weight: number, group?: string }> }> = {}
   for (const [key, c] of Object.entries(lhr.categories ?? {})) {
     categories[key] = {
       score: c?.score ?? null,
       categoryScoreDisplayMode: c?.categoryScoreDisplayMode === 'fraction' ? 'fraction' : 'gauge',
       auditRefs: (c?.auditRefs ?? []).map(r => ({
         id: r.id,
+        ...(r.group ? { group: r.group } : {}),
         // LHR usually carries a weight on every auditRef. Defensive default of
         // 0 — a non-existent weight shouldn't crash pack severity rules; they
         // already cap at "minor" when weight rounds down to 0.
@@ -523,6 +482,7 @@ export function reconcileToContract(args: {
       id,
       score: a.score ?? null,
       scoreDisplayMode: mode,
+      errorMessage: a.errorMessage ?? null,
       numericValue: a.numericValue ?? null,
       displayValue: a.displayValue ?? null,
       title: a.title ?? null,
@@ -558,7 +518,8 @@ export function reconcileToContract(args: {
   const runtimeError = lhr.runtimeError
   const runWarnings = lhr.runWarnings
 
-  return {
+  return ReconciledReportSchema.parse({
+    schemaVersion: 2,
     scanId,
     url,
     device,
@@ -581,7 +542,7 @@ export function reconcileToContract(args: {
     provenance: {
       lighthouseVersion: lhr.lighthouseVersion,
       userAgent: lhr.userAgent ?? null,
-      capturedAt: new Date().toISOString(),
+      capturedAt: lhr.fetchTime ?? args.capturedAt ?? new Date().toISOString(),
       benchmarkIndex: lhr.environment?.benchmarkIndex ?? null,
       timingTotal: timing?.total ?? null,
       warnings: Array.isArray(runWarnings) ? runWarnings : [],
@@ -589,18 +550,19 @@ export function reconcileToContract(args: {
       auditor: args.auditor ?? null,
       auditors: args.auditors ?? null,
       concurrency: args.concurrency ?? null,
+      performanceSource: resolvePerformanceSource(lhr, args.auditors?.performance ?? args.auditor ?? null, args.capturedAt),
     },
     stackPacks,
     entities,
-  }
+  })
 }
 
 function deriveSeverity(
   score: number | null,
-  mode: 'numeric' | 'binary' | 'informative' | 'manual' | 'notApplicable',
-): 'pass' | 'warn' | 'fail' {
-  if (mode === 'manual' || mode === 'notApplicable' || mode === 'informative')
-    return 'pass'
+  mode: ContractScoreDisplayMode,
+): 'pass' | 'warn' | 'fail' | null {
+  if (['manual', 'notApplicable', 'informative', 'error', 'unknown'].includes(mode))
+    return null
   if (score == null)
     return 'fail'
   if (score >= 0.9)
@@ -608,4 +570,14 @@ function deriveSeverity(
   if (score >= 0.5)
     return 'warn'
   return 'fail'
+}
+
+function resolvePerformanceSource(lhr: LighthouseResult, auditor: string | null, capturedAt?: string): PerformanceSource {
+  const supplied = PerformanceSourceSchema.safeParse(lhr.performanceSource)
+  if (supplied.success)
+    return supplied.data
+  const labAuditors = ['local', 'psi', 'remote-lighthouse', 'cdp-connect', 'dataforseo', 'container-lighthouse']
+  if (labAuditors.includes(auditor ?? ''))
+    return { _tag: 'lab', auditor, capturedAt: lhr.fetchTime ?? capturedAt ?? new Date().toISOString() }
+  return { _tag: 'unavailable', reason: 'The report does not identify its performance measurement source.' }
 }

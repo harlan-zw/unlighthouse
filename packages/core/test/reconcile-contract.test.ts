@@ -78,10 +78,9 @@ describe('reconcileToContract', () => {
     expect(out.audits['largest-contentful-paint'].severity).toBe('fail')
     // binary score 0 → fail
     expect(out.audits['image-alt'].severity).toBe('fail')
-    // manual / notApplicable / informative → pass (they never block a scan)
-    expect(out.audits['manual-only'].severity).toBe('pass')
-    expect(out.audits['not-applicable'].severity).toBe('pass')
-    expect(out.audits.informative.severity).toBe('pass')
+    expect(out.audits['manual-only'].severity).toBeNull()
+    expect(out.audits['not-applicable'].severity).toBeNull()
+    expect(out.audits.informative.severity).toBeNull()
   })
 
   it('captures category roll-ups including auditRefs for pack iteration', () => {
