@@ -51,7 +51,7 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
               {{ key }}: {{ formatInsightSavings(key, val) }}
             </UiChip>
           </div>
-          <div v-for="(routes, metric) in insight.worstRoutesByMetric" :key="metric" class="mt-2 text-sm text-muted">
+          <div v-for="(routes, metric) in insight.worstRoutesByMetric" v-show="routes?.length" :key="metric" class="mt-2 text-sm text-muted">
             {{ metric }}
             <ul class="font-mono">
               <li v-for="wr in routes?.slice(0, 3)" :key="wr.url">
