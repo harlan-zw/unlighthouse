@@ -94,6 +94,7 @@ A single URL's audit exists in three representations, from richest to leanest. K
 **Not:** a metric (an insight estimates *how much a fix would move* a metric; the metric is the measurement itself), and not a category.
 
 **Severity**: an Unlighthouse classification of a scored audit result. Preserve Lighthouse's native audit mode separately. Informative results, manual checks, not applicable results, and errors do not prove an audit passed. Severity describes one result. Change status describes movement between scans.
+**Not:** the comparison sense of the word (see *change status* below). Severity describes one audit result, not movement between scans.
 
 Use Passed audits only for results satisfying Lighthouse's native pass predicate. Show Not applicable separately from Additional items to manually check. Keep informative results and errors outside passed counts. Unknown historical modes remain unknown when raw reports cannot recover them.
 
@@ -102,7 +103,6 @@ Use Passed audits only for results satisfying Lighthouse's native pass predicate
 **Crawlability checks**: the Lighthouse is-crawlable, HTTP status, and robots.txt checks. Missing checks remain unknown. These checks do not establish indexing or ranking.
 
 **Lab and field rating differences**: comparisons between rating bands from proven lab and field sources. Retain capture dates, field collection periods, and URL or origin scope. A rating difference does not establish a historical regression.
-**Not:** the comparison sense of the word (see *change status* below) — this severity describes one audit's health, not a scan-over-scan movement.
 
 **Provenance** — the recorded circumstances of a report: Lighthouse version, machine benchmark, warnings, runtime error. What lets us trust or discount a result.
 
