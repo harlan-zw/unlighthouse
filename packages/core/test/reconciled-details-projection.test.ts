@@ -223,6 +223,7 @@ describe('a11y-quick-wins reads from reconciled when available', () => {
       audits: {
         'color-contrast': {
           score: 0,
+          scoreDisplayMode: 'binary',
           title: 'Contrast',
           details: { items: [{ node: { selector: 'a.dim', snippet: '<a>x</a>', nodeLabel: 'x' } }] },
         },

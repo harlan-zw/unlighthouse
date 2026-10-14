@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { BestPracticesReport } from '@unlighthouse/contracts/packs'
 import { BestPracticesReportSchema } from '@unlighthouse/contracts/packs'
+import ReportCoverage from '~/features/scan/components/ReportCoverage.vue'
 
 const props = defineProps<{ report: unknown, scanBase: string }>()
 
@@ -63,12 +64,6 @@ function sampleElementsOf(finding: Record<string, unknown>): SampleElement[] {
       </template>
     </FindingsAccordion>
 
-    <UiEmptyState
-      v-if="!report.findings.length"
-      icon="success"
-      title="All routes pass · 0 best practices issues"
-      description="No best-practices audits failed across the audited routes."
-      compact
-    />
+    <ReportCoverage :coverage="report.coverage" :findings="report.findings.length" />
   </div>
 </template>

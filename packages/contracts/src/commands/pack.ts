@@ -10,7 +10,7 @@ import { defineCommand } from './define'
 // ── pack.run ────────────────────────────────────────────────────────────────
 export const PackRunCmd = defineCommand({
   name: 'pack.run',
-  description: 'Run a Lighthouse pack (cross-route analysis) against a finished scan. Returns a typed report — e.g. "images" lists routes with unoptimised LCP images, "cwv" returns p75 Core Web Vitals, "seo-basics" returns failing audits grouped by rule. Call pack.list first to discover available packs. Use scanId from history.list. For matrix scans, pass `device` to narrow the pack to one form-factor. Output is cached so re-running the same (scanId, pack, device) is free; pass refresh:true to bust.',
+  description: 'Run an Unlighthouse audit pack against a finished scan. Images groups image findings. cwv summarizes performance metrics with source and coverage. seo-basics reports SEO findings and crawlability checks. Call pack.list to discover packs. Use scanId from history.list. For matrix scans, use device to select a form factor. Reports are cached; use refresh:true to recompute.',
   input: z.object({
     scanId: ScanIdSchema,
     pack: z.string().min(1),
@@ -55,7 +55,7 @@ export const PackRunCmd = defineCommand({
 // ── pack.list ───────────────────────────────────────────────────────────────
 export const PackList = defineCommand({
   name: 'pack.list',
-  description: 'List packs available for pack.run. Built-ins include "overview" (top-level scores), "cwv" (Core Web Vitals), "images" (lazy-load + sizing + alt), "js-bundle" (unused JS/CSS, third parties), "a11y-quick-wins" (top accessibility wins), "seo-basics" (indexability + meta), "best-practices" (security headers, console errors, deprecated APIs). Returns name, description, version, auditor count, UI hint, and the pack\'s report JSON Schema for each.',
+  description: 'List available Unlighthouse audit packs. The overview pack summarizes category scores. The cwv pack reports performance metrics with source and coverage. The images pack groups image findings. The js-bundle pack reports JavaScript and CSS findings. The a11y-quick-wins pack reports accessibility findings. The seo-basics pack reports crawlability checks and SEO findings. The best-practices pack groups Lighthouse Best Practices findings. Each entry includes its name, description, version, requirements, UI metadata, and report JSON Schema.',
   input: z.object({}),
   output: z.object({
     packs: z.array(z.object({

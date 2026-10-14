@@ -3,13 +3,13 @@ import type { SeoReport } from '@unlighthouse/contracts/packs'
 import type { UiTableColumn } from '#layers/design-system/app/utils/ui-table'
 import { SeoReportSchema } from '@unlighthouse/contracts/packs'
 import { h } from 'vue'
+import ReportCoverage from '~/features/scan/components/ReportCoverage.vue'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 
 const report = computed(() => SeoReportSchema.parse(props.report))
 
 type RouteCheckRow = SeoReport['routeChecks'][number]
-const UiIconC = resolveComponent('UiIcon')
 const routeCheckColumns: UiTableColumn<RouteCheckRow>[] = [
   {
     accessorKey: 'url',
@@ -30,10 +30,10 @@ const routeCheckColumns: UiTableColumn<RouteCheckRow>[] = [
     cell: ({ row }) => h('span', { class: `tabular-nums ${row.original.fails > 0 ? 'text-error' : ''}` }, String(row.original.fails)),
   },
   {
-    accessorKey: 'indexable',
-    header: 'Indexable',
+    accessorKey: 'crawlability',
+    header: 'Crawlability checks',
     meta: { headClass: 'w-20' },
-    cell: ({ row }) => h(UiIconC, { name: row.original.indexable ? 'success' : 'error', class: `size-4 ${row.original.indexable ? 'text-success' : 'text-error'}` }),
+    cell: ({ row }) => h('span', { class: row.original.crawlability === 'pass' ? 'text-success' : row.original.crawlability === 'fail' ? 'text-error' : 'text-muted' }, row.original.crawlability === 'unknown' ? 'Unavailable' : row.original.crawlability === 'pass' ? 'Passed' : 'Failed'),
   },
 ]
 </script>
@@ -46,12 +46,14 @@ const routeCheckColumns: UiTableColumn<RouteCheckRow>[] = [
       </UiButton>
     </div>
 
-    <!-- Indexability summary cards — SEO-specific. -->
+    <p class="text-sm text-muted">
+      Based on Lighthouse is-crawlable, HTTP status, and robots.txt checks.
+    </p>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <UiStat card title="Indexability" :value="report.indexabilityPercent" suffix="%" :value-class="report.indexabilityPercent === 100 ? 'text-success' : report.indexabilityPercent >= 80 ? 'text-warning' : 'text-error'" :animated-value="false" />
-      <UiStat card title="Indexable Routes" :value="report.indexableRoutes" value-class="text-success" :animated-value="false" />
-      <UiStat card title="Unindexable Routes" :value="report.unindexableRoutes" :value-class="report.unindexableRoutes > 0 ? 'text-error' : 'text-success'" :animated-value="false" />
-      <UiStat card title="Routes Analysed" :value="report.routesAnalysed" :animated-value="false" />
+      <UiStat card title="Crawlability checks" :value="report.crawlabilityPercent ?? 'Unavailable'" :suffix="report.crawlabilityPercent == null ? '' : '%'" :animated-value="false" />
+      <UiStat card title="URLs passing crawlability checks" :value="report.passingCrawlabilityRoutes" :animated-value="false" />
+      <UiStat card title="URLs with crawlability failures" :value="report.failingCrawlabilityRoutes" :animated-value="false" />
+      <UiStat card title="URLs with unavailable crawlability checks" :value="report.unknownCrawlabilityRoutes" :animated-value="false" />
     </div>
 
     <!-- Findings via the shared accordion. -->
@@ -76,12 +78,6 @@ const routeCheckColumns: UiTableColumn<RouteCheckRow>[] = [
       />
     </UiCard>
 
-    <UiEmptyState
-      v-if="!report.findings.length && !report.routeChecks.length"
-      icon="search"
-      title="All routes pass · 0 SEO issues"
-      description="No indexability or SEO issues found across the audited routes."
-      compact
-    />
+    <ReportCoverage :coverage="report.coverage" :findings="report.findings.length" />
   </div>
 </template>

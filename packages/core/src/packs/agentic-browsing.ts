@@ -8,6 +8,7 @@ import type { AgenticBrowsingReport, Pack, PackReconcileCtx } from '@unlighthous
 import type { LighthouseAuditResult, LighthouseCategoryResult, LighthouseResult } from '@unlighthouse/contracts/ports'
 import type { AuditFinding, ReconciledReport, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import { AgenticBrowsingReportSchema } from '@unlighthouse/contracts/packs'
+import { isAuditEligible, isAuditPassed } from '@unlighthouse/contracts/types/atoms'
 
 const AGENTIC_AUDIT_IDS = [
   'agent-accessibility-tree',
@@ -71,10 +72,7 @@ function isNotApplicable(audit?: AuditFinding | null, raw?: RawAudit | null): bo
 }
 
 function isPass(audit?: AuditFinding | null, raw?: RawAudit | null): boolean {
-  if (audit)
-    return audit.severity === 'pass'
-  const score = raw?.score
-  return typeof score === 'number' && score >= 0.9
+  return isAuditPassed(audit ?? raw)
 }
 
 function displayText(raw?: RawAudit | null, audit?: AuditFinding | null): string {
@@ -123,7 +121,7 @@ function countFractionChecks(
   for (const ref of refs) {
     const audit = reconciled?.audits?.[ref.id] ?? null
     const raw = rawAudit(lhr, ref.id)
-    if (isNotApplicable(audit, raw))
+    if (!isAuditEligible(audit ?? raw, ref))
       continue
     total++
     if (isPass(audit, raw))
@@ -135,7 +133,7 @@ function countFractionChecks(
 export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
   name: 'agentic-browsing',
   description: 'Lighthouse 13 agentic browsing: WebMCP coverage, llms.txt, agent accessibility, and stability across all routes.',
-  version: '1.1.0',
+  version: '2.0.0',
   reportSchema: AgenticBrowsingReportSchema,
   ui: { tab: 'Agentic Browsing', icon: 'bot' },
 
@@ -194,7 +192,8 @@ export const agenticBrowsingPack: Pack<AgenticBrowsingReport> = {
         const entry = findings.get(id)!
         if (!entry.title)
           entry.title = audit?.title ?? raw?.title ?? null
-        if (!isNotApplicable(audit, raw)) {
+        const ref = reconciled?.categories?.['agentic-browsing']?.auditRefs.find(ref => ref.id === id) ?? rawCategory(lhr)?.auditRefs?.find(ref => ref.id === id)
+        if (isAuditEligible(audit ?? raw, ref)) {
           entry.total++
           if (isPass(audit, raw))
             entry.passing++

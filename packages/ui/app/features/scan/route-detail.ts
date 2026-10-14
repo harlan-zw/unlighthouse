@@ -1,6 +1,7 @@
 import type { CommandOutput, RouteGet } from '@unlighthouse/contracts/commands'
 import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
+import { groupPageAudits } from '~/features/scan/audit-presentation'
 import { createScreenshotUrl, getScanId } from '~/features/scan/route-context'
 import { parseRecordedRouteUrl, routeDetailPath } from '~/features/scan/route-links'
 
@@ -70,7 +71,7 @@ function routeMetricColor(label: string, value: number | null | undefined): stri
   }
 }
 
-function routeSeverityColor(severity: string): 'error' | 'warning' | 'neutral' {
+function routeSeverityColor(severity: string | null): 'error' | 'warning' | 'neutral' {
   if (severity === 'fail')
     return 'error'
   if (severity === 'warn')
@@ -225,8 +226,8 @@ export function useRouteDetail() {
   })
 
   function categoryScoreLabel(category: RouteScoreSummary): string | number {
-    if (category.categoryScoreDisplayMode === 'fraction' && category.auditCount > 0)
-      return `${category.passingCount}/${category.auditCount}`
+    if (category.categoryScoreDisplayMode === 'fraction')
+      return category.auditCount > 0 ? `${category.passingCount}/${category.auditCount}` : 'Unavailable'
     return scoreToLabel(category.score)
   }
 
@@ -252,25 +253,7 @@ export function useRouteDetail() {
       return []
 
     return categories.map((category) => {
-      const categoryAudits = category.auditRefs
-        .map(ref => audits[ref.id])
-        .filter((audit): audit is AuditEntry => !!audit)
-
-      const failing = categoryAudits
-        .filter(audit => audit.severity === 'fail' || audit.severity === 'warn')
-        .sort((a, b) => {
-          if (a.severity === 'fail' && b.severity !== 'fail')
-            return -1
-          if (a.severity !== 'fail' && b.severity === 'fail')
-            return 1
-          return (a.score ?? 0) - (b.score ?? 0)
-        })
-
-      const passing = categoryAudits
-        .filter(audit => audit.severity === 'pass' && audit.scoreDisplayMode !== 'notApplicable' && audit.scoreDisplayMode !== 'manual')
-
-      const notApplicable = categoryAudits
-        .filter(audit => audit.scoreDisplayMode === 'notApplicable' || audit.scoreDisplayMode === 'manual')
+      const groups = groupPageAudits(audits, category.auditRefs)
 
       return {
         id: category.id,
@@ -278,9 +261,14 @@ export function useRouteDetail() {
         icon: CATEGORY_ICONS[category.id] || 'folder',
         score: category.score,
         categoryScoreDisplayMode: category.categoryScoreDisplayMode ?? 'gauge',
-        failing,
-        passing,
-        notApplicable,
+        ...groups,
+        otherGroups: [
+          { label: 'Audit errors', audits: groups.errors, status: 'error' as const },
+          { label: 'Unknown audit results', audits: groups.unknown, status: 'neutral' as const },
+          { label: 'Informative audits', audits: groups.informative, status: 'neutral' as const },
+          { label: 'Additional items to manually check', audits: groups.manual, status: 'neutral' as const },
+          { label: 'Not applicable', audits: groups.notApplicable, status: 'neutral' as const },
+        ].filter(group => group.audits.length > 0),
       }
     })
   })

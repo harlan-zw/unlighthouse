@@ -14,7 +14,7 @@
 // real CrUX API.
 
 import type { PackReconcileCtx } from '@unlighthouse/contracts/packs'
-import type { Device, ScanRoute } from '@unlighthouse/contracts/types/atoms'
+import type { Device, PerformanceSource, ScanRoute } from '@unlighthouse/contracts/types/atoms'
 import type { CruxFinding } from '@unlighthouse/core/packs'
 import { analyzeLabVsField, createCruxPack, cruxPack, queryCrux } from '@unlighthouse/core/packs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -76,7 +76,12 @@ function ctxFor(routes: ScanRoute[]): PackReconcileCtx {
   return {
     scanId: routes[0]?.scanId ?? ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' as never),
     routes,
+    getReconciled: async (url, device) => ({ provenance: { performanceSource: { _tag: 'lab', auditor: 'local', capturedAt: routes.find(route => route.url === url && route.device === device)!.capturedAt } } }) as never,
   }
+}
+
+function labSources(routes: ScanRoute[]): Map<string, PerformanceSource> {
+  return new Map(routes.map(route => [`${route.device}|${route.url}`, { _tag: 'lab', auditor: 'local', capturedAt: route.capturedAt }]))
 }
 
 interface CruxMetrics {
@@ -114,7 +119,7 @@ describe('queryCrux', () => {
     ) as never
 
     const result = await queryCrux('https://example.com/', 'PHONE', 'fake-key')
-    expect(result).toEqual({ source: 'url', lcp_p75: 1800, cls_p75: 0.05, inp_p75: 150 })
+    expect(result).toEqual({ source: 'url', scopeUrl: 'https://example.com/', collectionPeriod: null, lcp_p75: 1800, cls_p75: 0.05, inp_p75: 150 })
     expect(globalThis.fetch).toHaveBeenCalledTimes(1)
   })
 
@@ -133,7 +138,7 @@ describe('queryCrux', () => {
     }) as never
 
     const result = await queryCrux('https://example.com/missing', 'PHONE', 'fake-key')
-    expect(result).toEqual({ source: 'origin', lcp_p75: 2200, cls_p75: 0.08, inp_p75: 180 })
+    expect(result).toEqual({ source: 'origin', scopeUrl: 'https://example.com', collectionPeriod: null, lcp_p75: 2200, cls_p75: 0.08, inp_p75: 180 })
     expect(call).toBe(2)
   })
 
@@ -143,7 +148,7 @@ describe('queryCrux', () => {
     ) as never
 
     const result = await queryCrux('https://unknown.example/', 'PHONE', 'fake-key')
-    expect(result).toEqual({ source: 'none', lcp_p75: null, cls_p75: null, inp_p75: null })
+    expect(result).toEqual({ source: 'none', scopeUrl: null, collectionPeriod: null, lcp_p75: null, cls_p75: null, inp_p75: null })
   })
 
   it('treats a 400 (origin not in dataset) as a soft miss, not a throw', async () => {
@@ -330,6 +335,8 @@ describe('analyzeLabVsField', () => {
       cls_p75: over.cls_p75 ?? null,
       inp_p75: over.inp_p75 ?? null,
       source: over.source ?? 'url',
+      scopeUrl: over.scopeUrl ?? over.url,
+      collectionPeriod: over.collectionPeriod ?? null,
       severity: over.severity ?? 'good',
     }
   }
@@ -344,7 +351,7 @@ describe('analyzeLabVsField', () => {
       inp_p75: 150,
     })]
 
-    const gap = analyzeLabVsField(routes, findings)
+    const gap = analyzeLabVsField(routes, findings, labSources(routes))
     expect(gap.goodLabPoorField).toHaveLength(1)
     expect(gap.goodLabPoorField[0]).toMatchObject({
       url: 'https://example.com/slow-in-the-wild',
@@ -370,7 +377,7 @@ describe('analyzeLabVsField', () => {
       inp_p75: 100,
     })]
 
-    const gap = analyzeLabVsField(routes, findings)
+    const gap = analyzeLabVsField(routes, findings, labSources(routes))
     expect(gap.poorLabGoodField).toHaveLength(1)
     expect(gap.poorLabGoodField[0]).toMatchObject({
       metric: 'cls',
@@ -393,7 +400,7 @@ describe('analyzeLabVsField', () => {
       severity: 'unknown',
     })]
 
-    const gap = analyzeLabVsField(routes, findings)
+    const gap = analyzeLabVsField(routes, findings, labSources(routes))
     expect(gap.goodLabPoorField).toHaveLength(0)
     expect(gap.poorLabGoodField).toHaveLength(0)
     expect(gap.aligned).toHaveLength(0)
@@ -408,7 +415,7 @@ describe('analyzeLabVsField', () => {
       lcp_p75: 1500,
     })]
 
-    const gap = analyzeLabVsField(routes, findings)
+    const gap = analyzeLabVsField(routes, findings, labSources(routes))
     expect(gap.aligned).toHaveLength(0)
     expect(gap.goodLabPoorField).toHaveLength(0)
     expect(gap.poorLabGoodField).toHaveLength(0)
@@ -426,7 +433,7 @@ describe('analyzeLabVsField', () => {
       finding({ url: 'https://example.com/', formFactor: 'DESKTOP', lcp_p75: 1100 }),
     ]
 
-    const gap = analyzeLabVsField(routes, findings)
+    const gap = analyzeLabVsField(routes, findings, labSources(routes))
     expect(gap.goodLabPoorField).toHaveLength(1)
     expect(gap.goodLabPoorField[0]).toMatchObject({ formFactor: 'PHONE', metric: 'lcp' })
     // The DESKTOP pair is good/good — lands in aligned.
@@ -436,7 +443,7 @@ describe('analyzeLabVsField', () => {
   it('skips TABLET findings (no lab counterpart in this codebase)', async () => {
     const routes = [buildRoute('https://example.com/', { device: 'mobile', lcp: 1200 })]
     const findings = [finding({ url: 'https://example.com/', formFactor: 'TABLET', lcp_p75: 5200 })]
-    const gap = analyzeLabVsField(routes, findings)
+    const gap = analyzeLabVsField(routes, findings, labSources(routes))
     expect(gap.goodLabPoorField).toHaveLength(0)
     expect(gap.aligned).toHaveLength(0)
   })
@@ -451,7 +458,7 @@ describe('analyzeLabVsField', () => {
       inp_p75: null,
     })]
 
-    const gap = analyzeLabVsField(routes, findings)
+    const gap = analyzeLabVsField(routes, findings, labSources(routes))
     const totalEntries
       = gap.goodLabPoorField.length + gap.poorLabGoodField.length + gap.aligned.length
     expect(totalEntries).toBe(2)

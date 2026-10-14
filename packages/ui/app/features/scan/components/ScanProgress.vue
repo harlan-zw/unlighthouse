@@ -65,7 +65,7 @@ const countStats = computed<UiStatProps[]>(() => [
 const scoringStats = computed<UiStatProps[]>(() => [
   { title: 'Avg Perf', value: store.avgPerfScore != null ? scoreToLabel(store.avgPerfScore) : '—', valueClass: scoreToColor(store.avgPerfScore), animatedValue: false },
   { title: 'Perf pass', value: store.passCount, valueClass: 'text-success', animatedValue: false },
-  { title: 'Perf needs work', value: store.needsWorkCount, valueClass: 'text-warning', animatedValue: false },
+  { title: 'Performance: Needs improvement', value: store.needsWorkCount, valueClass: 'text-warning', animatedValue: false },
   { title: 'Perf poor', value: store.poorCount, valueClass: 'text-error', animatedValue: false },
   // Stable title (used as the v-for key) — elapsed rides the trendLabel slot
   // instead of being interpolated into the title, so the tick doesn't remount

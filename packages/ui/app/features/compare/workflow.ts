@@ -43,6 +43,8 @@ interface CwvPackMetric {
   metric: string
   p75: number | null
   verdict: string | null
+  source?: string
+  coverage?: { analysed: number }
 }
 interface CwvPackData {
   metrics?: CwvPackMetric[]
@@ -55,6 +57,10 @@ export interface CwvP75Row {
   delta: number | null
   label: string
   verdict: string | null
+  baseSource: string
+  currentSource: string
+  baseCount: number | null
+  currentCount: number | null
 }
 
 export type CompareRequestState
@@ -400,6 +406,10 @@ export function useCompareWorkflow() {
           currentP75,
           delta,
           verdict: current?.verdict ?? base?.verdict ?? null,
+          baseSource: base?.source ?? 'unavailable',
+          currentSource: current?.source ?? 'unavailable',
+          baseCount: base?.coverage?.analysed ?? null,
+          currentCount: current?.coverage?.analysed ?? null,
         }
       })
   })

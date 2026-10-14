@@ -141,8 +141,7 @@ describe('extract.ts against a Lighthouse 13 LHR', () => {
     expect(out.audits['render-blocking-insight'].metricSavings).toEqual({ FCP: 250, LCP: 180 })
     expect(out.audits['render-blocking-insight'].severity).toBe('warn')
 
-    // Informative insight audits derive severity = 'pass' regardless of score.
-    expect(out.audits['lcp-breakdown-insight'].severity).toBe('pass')
+    expect(out.audits['lcp-breakdown-insight'].severity).toBeNull()
 
     // SEO auditRefs reflect what LH 13 actually ships — no font-size row.
     expect(out.categories.seo?.auditRefs.map(r => r.id)).toEqual([
@@ -179,7 +178,6 @@ describe('extract.ts against a Lighthouse 13 LHR', () => {
       lhr,
     })
     expect(out.audits['image-delivery-insight'].metricSavings).toBeNull()
-    // notApplicable always derives severity = 'pass' (never blocks a scan).
-    expect(out.audits['image-delivery-insight'].severity).toBe('pass')
+    expect(out.audits['image-delivery-insight'].severity).toBeNull()
   })
 })

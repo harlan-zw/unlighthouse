@@ -1,20 +1,20 @@
 // `seo-basics` pack — D-028. Per-route SEO health-check + sitewide
-// indexability score.
+// crawlability checks.
 //
 // Reads every audit under the Lighthouse `seo` category (same source-of-
 // truth pattern as a11y-quick-wins). Failing audits land in `findings`,
 // keyed by audit id, with the routes that flagged them and a copy-paste
 // fix hint.
 //
-// Indexability score is a derived metric: % of routes that pass the
-// crawlability triad (is-crawlable + http-status-code + robots-txt). It's
-// the headline number for an agent or a human auditing whether their site
-// will actually rank.
+// Crawlability percentage counts routes with known triad results.
+// The checks are is-crawlable, http-status-code, and robots-txt.
+// Missing checks remain unknown. These checks cannot prove indexing or ranking.
 
 import type { Pack, PackReconcileCtx, SeoFinding, SeoReport, SeoRouteCheck } from '@unlighthouse/contracts/packs'
 import type { LighthouseResult } from '@unlighthouse/contracts/ports'
 import type { Device } from '@unlighthouse/contracts/types/atoms'
 import { SeoReportSchema } from '@unlighthouse/contracts/packs'
+import { isAuditEligible, isAuditPassed } from '@unlighthouse/contracts/types/atoms'
 import { resolveDistinctPackRoutes } from './reconcile-context'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -56,9 +56,8 @@ const FIX_HINTS: Record<string, string> = {
   'plugins': 'Remove `<embed>` / `<object>` / `<applet>` references. Flash and Java applets aren\'t crawled.',
 }
 
-// The crawlability triad — the headline indexability number ignores
-// content-quality audits (link-text, font-size) and focuses on whether
-// search engines can actually fetch and index this URL.
+// The crawlability triad checks access to each URL.
+// Content-quality audits, such as link-text, remain separate findings.
 const CRAWL_AUDITS = ['is-crawlable', 'http-status-code', 'robots-txt'] as const
 
 interface RawFinding {
@@ -79,7 +78,7 @@ interface RawFinding {
 // older scans + as the only source of `details.items` (the reconciled blob
 // deliberately doesn't carry element-level data — too big).
 interface RouteView {
-  audits: Record<string, { score: number | null, title: string | null, description: string | null }>
+  audits: Record<string, { score: number | null, scoreDisplayMode: string, title: string | null, description: string | null }>
   auditWeights: Map<string, number>
   // Only populated when the raw LHR is available, used for sampleElements.
   rawLhr: LhrLike | null
@@ -109,7 +108,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
     for (const ref of reconciled.categories.seo?.auditRefs ?? [])
       auditWeights.set(ref.id, ref.weight ?? 0)
     for (const [id, a] of Object.entries(reconciled.audits)) {
-      audits[id] = { score: a.score, title: a.title, description: a.description }
+      audits[id] = { score: a.score, scoreDisplayMode: a.scoreDisplayMode, title: a.title, description: a.description }
     }
   }
   else if (lhr) {
@@ -118,6 +117,7 @@ async function loadRouteView(url: string, device: Device, ctx: PackReconcileCtx)
     for (const [id, a] of Object.entries(lhr.audits ?? {})) {
       audits[id] = {
         score: a.score ?? null,
+        scoreDisplayMode: a.scoreDisplayMode ?? 'unknown',
         title: a.title ?? null,
         description: a.description ?? null,
       }
@@ -137,7 +137,9 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
   const findings = new Map<string, RawFinding>()
   const routeChecks: SeoRouteCheck[] = []
   let routesAnalysed = 0
-  let indexableRoutes = 0
+  let passingCrawlabilityRoutes = 0
+  let failingCrawlabilityRoutes = 0
+  let unknownCrawlabilityRoutes = 0
 
   for (const { url, device } of resolveDistinctPackRoutes(ctx.routes)) {
     const view = await loadRouteView(url, device, ctx)
@@ -147,24 +149,26 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
 
     let passes = 0
     let fails = 0
-    let indexable = true
+    const checks = CRAWL_AUDITS.map((id) => {
+      const audit = view.audits[id]
+      return isAuditEligible(audit) && audit?.scoreDisplayMode !== 'error' ? audit?.score : null
+    })
+    const missingChecks = checks.filter(score => score == null).length
+    const crawlability = checks.some(score => score != null && score < 0.9) ? 'fail' : missingChecks ? 'unknown' : 'pass'
 
     for (const [auditId, weight] of view.auditWeights) {
       const audit = view.audits[auditId]
       if (!audit)
         continue
       const score = audit.score
-      if (score == null)
+      if (score == null || !isAuditEligible(audit) || audit.scoreDisplayMode === 'error')
         continue // notApplicable / manual — neither pass nor fail
-      if (score === 1) {
+      if (isAuditPassed(audit)) {
         passes++
         continue
       }
-      // Failing audit. Track per-route count, accumulate the cross-route
-      // finding, and mark indexable=false if it's in the crawl triad.
+      // Count the failing audit and accumulate its cross-route finding.
       fails++
-      if (CRAWL_AUDITS.includes(auditId as (typeof CRAWL_AUDITS)[number]))
-        indexable = false
 
       let finding = findings.get(auditId)
       if (!finding) {
@@ -200,17 +204,20 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
       }
     }
 
-    if (indexable)
-      indexableRoutes++
-
-    routeChecks.push({ url, passes, fails, indexable })
+    if (crawlability === 'pass')
+      passingCrawlabilityRoutes++
+    else if (crawlability === 'fail')
+      failingCrawlabilityRoutes++
+    else
+      unknownCrawlabilityRoutes++
+    routeChecks.push({ url, passes, fails, crawlability, missingChecks })
   }
 
-  // Sort route checks: unindexable first (so the UI leads with them), then
-  // by fail count desc.
+  // Show failing checks first, then unknown checks, then passing checks.
+  // Within each group, show routes with more failing audits first.
   routeChecks.sort((a, b) => {
-    if (a.indexable !== b.indexable)
-      return a.indexable ? 1 : -1
+    if (a.crawlability !== b.crawlability)
+      return ['fail', 'unknown', 'pass'].indexOf(a.crawlability) - ['fail', 'unknown', 'pass'].indexOf(b.crawlability)
     return b.fails - a.fails
   })
 
@@ -245,16 +252,19 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
   for (const f of result)
     severityCounts[f.severity]++
 
-  const indexabilityPercent = routesAnalysed > 0
-    ? Math.round((indexableRoutes / routesAnalysed) * 1000) / 10
-    : 0
+  const measuredCrawlability = passingCrawlabilityRoutes + failingCrawlabilityRoutes
+  const crawlabilityPercent = measuredCrawlability > 0
+    ? Math.round((passingCrawlabilityRoutes / measuredCrawlability) * 1000) / 10
+    : null
 
   return {
     scanId: ctx.scanId,
     routesAnalysed,
-    indexabilityPercent,
-    indexableRoutes,
-    unindexableRoutes: routesAnalysed - indexableRoutes,
+    coverage: { eligible: resolveDistinctPackRoutes(ctx.routes).length, analysed: routesAnalysed, missing: resolveDistinctPackRoutes(ctx.routes).length - routesAnalysed },
+    crawlabilityPercent,
+    passingCrawlabilityRoutes,
+    failingCrawlabilityRoutes,
+    unknownCrawlabilityRoutes,
     routeChecks: routeChecks.slice(0, 50),
     severityCounts,
     findings: result,
@@ -265,8 +275,8 @@ async function reconcile(ctx: PackReconcileCtx): Promise<SeoReport> {
 
 export const seoBasicsPack: Pack<SeoReport> = {
   name: 'seo-basics',
-  description: 'Per-route SEO checklist + sitewide indexability score. Surfaces missing titles, meta descriptions, canonicals, hreflang, robots, link-text issues.',
-  version: '1.0.0',
+  description: 'Lighthouse SEO findings and crawlability checks, with unavailable checks and report coverage shown separately.',
+  version: '2.0.0',
   auditors: [
     { kind: 'lh-category', id: 'seo', required: true },
   ],

@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { InsightsReportSchema } from '@unlighthouse/contracts/packs'
 import { useAffectedRouteLinks } from '~/features/scan/affected-route-links'
-import { formatRouteCount } from '~/features/scan/pack-presentation'
+import { formatInsightSavings, formatRouteCount } from '~/features/scan/pack-presentation'
 
 const props = defineProps<{ report: unknown, scanBase?: string }>()
 const { affectedRouteLink, linksPending, linksError, refreshLinks } = useAffectedRouteLinks(() => props.scanBase)
-
-const { fmtMs } = createFormatters()
 
 const report = computed(() => InsightsReportSchema.parse(props.report))
 </script>
@@ -26,12 +24,18 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
       </p>
       <template #header>
         <h2 class="text-label text-dimmed flex items-center gap-2">
-          Opportunities
+          Insights
           <UiChip purpose="count">
             {{ report.insights.length }}
           </UiChip>
         </h2>
       </template>
+      <p class="text-sm text-muted mb-2">
+        Estimated savings by metric
+      </p>
+      <p class="text-sm text-muted mb-3">
+        Totals add estimates across URLs. Estimates across metrics are not additive.
+      </p>
       <div class="space-y-3">
         <div v-for="insight in report.insights" :key="insight.id" class="p-3 border border-default rounded-lg">
           <div class="flex items-center justify-between">
@@ -44,20 +48,21 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
           </div>
           <div class="flex gap-1 mt-2 flex-wrap">
             <UiChip v-for="(val, key) in insight.totalSavings" :key="key" purpose="tag">
-              {{ key }}: {{ typeof val === 'number' ? fmtMs(val) : val }}
+              {{ key }}: {{ formatInsightSavings(key, val) }}
             </UiChip>
           </div>
-          <div v-if="insight.worstRoutes?.length" class="mt-2 text-sm text-muted">
-            Worst:
+          <div v-for="(routes, metric) in insight.worstRoutesByMetric" v-show="routes?.length" :key="metric" class="mt-2 text-sm text-muted">
+            {{ metric }}
             <ul class="font-mono">
-              <li v-for="wr in insight.worstRoutes.slice(0, 3)" :key="wr.url">
+              <li v-for="wr in routes?.slice(0, 3)" :key="wr.url">
                 <NuxtLink v-if="affectedRouteLink(wr.url)" :to="affectedRouteLink(wr.url)" class="inline-flex min-h-11 items-center break-all hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:min-h-6">
                   {{ wr.url }}
                 </NuxtLink>
                 <span v-else class="break-all">{{ wr.url }}</span>
+                <span class="tabular-nums"> · {{ formatInsightSavings(metric, wr.savings) }}</span>
               </li>
-              <li v-if="insight.routeCount > Math.min(insight.worstRoutes.length, 3)">
-                +{{ insight.routeCount - Math.min(insight.worstRoutes.length, 3) }} more
+              <li v-if="routes && routes.length > 3">
+                +{{ routes.length - 3 }} more
               </li>
             </ul>
           </div>
@@ -69,7 +74,7 @@ const report = computed(() => InsightsReportSchema.parse(props.report))
       v-else
       icon="zap"
       title="0 performance insights across audited routes"
-      description="Lighthouse surfaced no insight-based opportunities for this scan."
+      description="No findings in available reports"
       compact
     />
   </div>

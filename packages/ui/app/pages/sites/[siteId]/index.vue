@@ -114,10 +114,10 @@ const isStatic = useIsStatic()
         <template #header>
           <div class="flex flex-row items-center justify-between">
             <h2 class="text-label text-muted">
-              Core Web Vitals (p75) over time
+              Performance metrics history
             </h2>
             <span v-if="vitalsStatus === 'pending'" class="text-xs text-muted inline-flex items-center gap-1">
-              <UiIcon name="loading" class="size-3.5 animate-spin" /> loading vitals…
+              <UiIcon name="loading" class="size-3.5 animate-spin" /> Loading performance metrics
             </span>
           </div>
         </template>
@@ -129,16 +129,16 @@ const isStatic = useIsStatic()
             </div>
             <TrendChart
               :series="vitalsSeries(m.key, m.label, m.color)"
-              :label="`${m.label} over time`"
+              :label="`${m.label}, p75 across measured URLs over time`"
               :format="m.fmt"
-              :show-legend="false"
+              :show-legend="true"
               :height="140"
               :markers="showReleases ? releaseMarkers : []"
               :marker-pills="false"
             />
           </div>
         </div>
-        <UiEmptyState v-else icon="chart-line" title="Not enough history for a trend" description="Core Web Vitals trends appear after two scans have field or lab data." />
+        <UiEmptyState v-else icon="chart-line" title="Not enough history for a trend" description="Performance metrics trends appear after two scans have field or lab data." />
       </UiCard>
 
       <!-- Scans -->

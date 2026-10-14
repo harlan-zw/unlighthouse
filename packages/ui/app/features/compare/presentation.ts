@@ -52,7 +52,7 @@ export const CATEGORY_METRICS: CompareMetric[] = [
   { key: 'scoreAgenticBrowsing', label: 'Agentic', score: true, thresholdKey: 'agentic-browsing', hint: 'Agentic Browsing is displayed as a Lighthouse fraction; deltas use the raw 0-1 score.' },
 ]
 
-export const CWV_METRICS: CompareMetric[] = [
+export const PERFORMANCE_METRICS: CompareMetric[] = [
   { key: 'lcp', label: 'LCP', score: false, thresholdKey: 'lcp', hint: 'Largest Contentful Paint — when the main content paints. Good < 2.5s.' },
   { key: 'cls', label: 'CLS', score: false, thresholdKey: 'cls', hint: 'Cumulative Layout Shift — visual stability. Good < 0.1.' },
   { key: 'inp', label: 'INP', score: false, thresholdKey: 'inp', hint: 'Interaction to Next Paint — responsiveness. Good < 200ms.' },

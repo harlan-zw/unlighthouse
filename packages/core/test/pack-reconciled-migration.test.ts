@@ -106,6 +106,8 @@ describe('cwv pack prefers reconciled report', () => {
     const getLhr = vi.fn(async () => ({
       audits: {
         'render-blocking-insight': {
+          score: 0,
+          scoreDisplayMode: 'metricSavings',
           metricSavings: { FCP: 150 },
         },
       },
@@ -180,9 +182,9 @@ describe('seo-basics pack prefers reconciled report', () => {
     // need element-level data the reconciled blob doesn't carry).
     expect(getLhr).toHaveBeenCalledTimes(1)
 
-    // Indexability: is-crawlable passes (score 1), so route stays indexable.
-    expect(report.indexableRoutes).toBe(1)
-    expect(report.unindexableRoutes).toBe(0)
+    // Missing HTTP and robots checks keep crawlability unknown.
+    expect(report.unknownCrawlabilityRoutes).toBe(1)
+    expect(report.failingCrawlabilityRoutes).toBe(0)
 
     // The failing audit landed in findings; severity derived from the
     // reconciled blob's weight (1 → 'serious').
@@ -210,6 +212,6 @@ describe('seo-basics pack prefers reconciled report', () => {
 
     expect(getLhr).toHaveBeenCalledTimes(1)
     expect(report.routesAnalysed).toBe(1)
-    expect(report.indexableRoutes).toBe(1)
+    expect(report.unknownCrawlabilityRoutes).toBe(1)
   })
 })

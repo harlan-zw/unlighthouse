@@ -17,7 +17,7 @@ const props = defineProps<{
   hint?: string
   values: Array<number | null | undefined>
   // [good, poor] thresholds — colours the headline + distribution bands.
-  // Readonly so callers can pass the shared CWV_THRESHOLDS tuples directly.
+  // Callers can pass shared PERFORMANCE_THRESHOLDS tuples directly.
   thresholds: readonly [number, number]
   format: (v: number) => string
 }>()

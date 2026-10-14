@@ -29,7 +29,6 @@ describe('overview diagnostics', () => {
       scanId: 'test',
       routesAnalysed: 8,
       metrics: [],
-      passesCoreWebVitals: false,
       topFixes: [
         { insight: 'blocking', title: 'Remove blocking', metric: 'lcp', maxImpactMs: 700, routeCount: 4, routes: [] },
         { insight: 'blocking', title: 'Remove blocking', metric: 'fcp', maxImpactMs: 500, routeCount: 3, routes: [] },
@@ -48,7 +47,7 @@ describe('overview diagnostics', () => {
   })
 
   it('distinguishes no measured routes from measured routes with no estimated fixes', () => {
-    const report = { scanId: 'test', routesAnalysed: 0, metrics: [], passesCoreWebVitals: false, topFixes: [] }
+    const report = { scanId: 'test', routesAnalysed: 0, metrics: [], topFixes: [] }
     expect(parseOverviewFixes(report)).toEqual({ _tag: 'Unavailable' })
     expect(parseOverviewFixes({ ...report, routesAnalysed: 1 })).toEqual({ _tag: 'Ready', fixes: [] })
   })

@@ -25,7 +25,7 @@ import {
   ScanSummaryCmd,
 } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
-import { normaliseDeviceMatrix } from '@unlighthouse/contracts/types/atoms'
+import { isAuditEligible, isAuditPassed, normaliseDeviceMatrix } from '@unlighthouse/contracts/types/atoms'
 import { overviewPack } from '../../packs/overview'
 import { loadRouteContract } from '../../report/route-contracts'
 import { createScanPreviewIo, resolveScanPreview } from '../../scan/preview'
@@ -466,16 +466,15 @@ async function collectCategorySummaries(
         bucket.scoreCount++
       }
       for (const ref of cat.auditRefs ?? []) {
-        // Dedupe by audit id within a category — total auditCount is the
-        // unique set of audits in the category (matches LHR's notion),
-        // not the cumulative across routes.
-        bucket.auditIds.add(ref.id)
+        // Count eligible audit executions per URL/device. The denominator
+        // uses the same population as passingCount and failingCount.
         const a = contract.audits?.[ref.id]
-        if (!a)
+        if (!isAuditEligible(a, ref))
           continue
-        if (a.severity === 'pass' && a.scoreDisplayMode !== 'notApplicable' && a.scoreDisplayMode !== 'manual')
+        bucket.auditIds.add(`${route.url}|${route.device}|${ref.id}`)
+        if (isAuditPassed(a))
           bucket.passingCount++
-        else if (a.scoreDisplayMode !== 'notApplicable' && a.scoreDisplayMode !== 'manual')
+        else
           bucket.failingCount++
       }
     }

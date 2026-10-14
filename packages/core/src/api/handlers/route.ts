@@ -9,6 +9,7 @@ import type { EmitFn } from '../../scan/route-audit'
 import type { Handler, HandlerCtx } from './types'
 import { RouteAudits, RouteGet, RouteRescan } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError } from '@unlighthouse/contracts/errors'
+import { isAuditEligible, isAuditPassed } from '@unlighthouse/contracts/types/atoms'
 import { loadRouteContract } from '../../report/route-contracts'
 import { auditRoute } from '../../scan/route-audit'
 
@@ -95,14 +96,14 @@ export const routeGet: Handler<typeof RouteGet> = {
         let failing = 0
         for (const ref of cat.auditRefs ?? []) {
           const audit = contract.audits?.[ref.id]
-          if (!audit)
+          if (!isAuditEligible(audit, ref))
             continue
           // Severity buckets the contract reconciler already computed.
           // "warn" counts as a fail for the dashboard's pass/fail badge so
           // users see anything below 0.9 as actionable.
-          if (audit.severity === 'pass' && audit.scoreDisplayMode !== 'notApplicable' && audit.scoreDisplayMode !== 'manual')
+          if (isAuditPassed(audit))
             passing++
-          else if (audit.scoreDisplayMode !== 'notApplicable' && audit.scoreDisplayMode !== 'manual')
+          else
             failing++
         }
         categories.push({
@@ -110,7 +111,7 @@ export const routeGet: Handler<typeof RouteGet> = {
           title: titleForCategory(id),
           score: cat.score,
           categoryScoreDisplayMode: cat.categoryScoreDisplayMode ?? 'gauge',
-          auditCount: (cat.auditRefs ?? []).length,
+          auditCount: passing + failing,
           passingCount: passing,
           failingCount: failing,
           // Pass the raw auditRefs through so the UI can walk per-
@@ -186,6 +187,8 @@ export const routeAudits: Handler<typeof RouteAudits> = {
           description: a.description,
           score: a.score,
           severity: a.severity,
+          scoreDisplayMode: a.scoreDisplayMode,
+          errorMessage: a.errorMessage ?? null,
           displayValue: a.displayValue,
           weight: ref.weight,
           metricSavings: a.metricSavings,

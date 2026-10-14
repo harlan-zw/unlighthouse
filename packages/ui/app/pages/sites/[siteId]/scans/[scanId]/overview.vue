@@ -116,7 +116,7 @@ const isStatic = useIsStatic()
           v-if="scanIsComplete && !currentScanIsActive"
           :href="csvExportUrl"
           :download="csvExportName"
-          aria-description="Per-route scores and Core Web Vitals for spreadsheet tools"
+          aria-description="Per-route scores and performance metrics for spreadsheet tools."
           class="inline-flex min-h-11 items-center gap-1 rounded-md px-2.5 text-sm ring-1 ring-default text-default hover:bg-elevated transition-colors"
         >
           <UiIcon name="table" class="size-4" />

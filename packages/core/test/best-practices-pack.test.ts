@@ -188,7 +188,7 @@ describe('bestPracticesPack', () => {
       getLhr: async () => ({
         categories: { 'best-practices': { auditRefs: [{ id: 'errors-in-console', weight: 1 }] } },
         audits: {
-          'errors-in-console': { score: 0, title: 'No errors logged to console', description: 'Errors in console.' },
+          'errors-in-console': { score: 0, scoreDisplayMode: 'binary', title: 'No errors logged to console', description: 'Errors in console.' },
         },
       }),
     })

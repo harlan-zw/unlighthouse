@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { hasMeaningfulTrend, hasMeaningfulTrendSeries } from '../app/features/sites/trend-presentation'
+import { hasMeaningfulTrend, hasMeaningfulTrendSeries, performanceTrendSeries } from '../app/features/sites/trend-presentation'
 
 describe('trend presentation', () => {
+  it('keeps lab and field observations in separate series with gaps', () => {
+    const series = performanceTrendSeries('LCP', '#123456', [{ t: 1, v: 1000, source: 'lab' }, { t: 2, v: 2000, source: 'field' }, { t: 3, v: 1500, source: 'lab' }])
+    expect(series.map(s => [s.label, s.points])).toEqual([
+      ['LCP · Lighthouse lab results', [{ t: 1, v: 1000 }, { t: 2, v: null }, { t: 3, v: 1500 }]],
+      ['LCP · Field measurements', [{ t: 1, v: null }, { t: 2, v: 2000 }, { t: 3, v: null }]],
+    ])
+  })
   it('requires two distinct dated observations', () => {
     expect(hasMeaningfulTrend([{ t: 1, v: 90 }])).toBe(false)
     expect(hasMeaningfulTrend([{ t: 1, v: 90 }, { t: 1, v: 95 }])).toBe(false)

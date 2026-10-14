@@ -6,14 +6,15 @@ import { visibleRouteColumns } from '~/features/scan/route-columns'
 import { createScreenshotUrl } from '~/features/scan/route-context'
 import {
   COLUMN_LABELS,
-  CWV_COLS,
   cwvColor,
   formatRouteMetric,
   overallRouteScore,
+  PERFORMANCE_COLS,
   QUICK_FILTERS,
   SCORE_COLS,
   useScanRoutesTable,
 } from '~/features/scan/routes-table'
+import { PERFORMANCE_THRESHOLDS } from '~/utils/scoring'
 import MetricStatCard from './MetricStatCard.vue'
 
 const { scoreToColor, scoreToLabel } = createScoreColorHelpers()
@@ -189,7 +190,7 @@ const allColumns = computed<UiTableColumn<RouteRow>[]>(() => {
     })
   }
 
-  for (const m of CWV_COLS) {
+  for (const m of PERFORMANCE_COLS) {
     cols.push({
       id: m.key,
       accessorFn: (row: RouteRow) => (row[m.key] as number | null) ?? undefined,
@@ -242,14 +243,14 @@ const columnToggleItems = computed(() => [
         </span>
         <span v-if="quick === 'all'" class="text-muted text-xs tabular-nums">
           <span class="text-success font-medium">{{ summary.pass }}</span> pass ·
-          <span class="text-warning font-medium">{{ summary.needs }}</span> needs work ·
+          <span class="text-warning font-medium">{{ summary.needs }}</span> Needs improvement ·
           <span class="text-error font-medium">{{ summary.poor }}</span> poor
         </span>
         <span v-else-if="quick === 'failing'" class="text-muted text-xs">
           {{ summary.count }} with at least one category score below 90
         </span>
         <span v-else class="text-muted text-xs">
-          {{ summary.count }} matching poor Core Web Vitals
+          {{ summary.count }} matching poor performance metrics
         </span>
         <span class="flex items-center gap-1 text-muted">
           <UiIcon v-for="d in summary.devices" :key="d" :name="d === 'mobile' ? 'smartphone' : 'monitor'" class="size-3.5" />
@@ -260,18 +261,18 @@ const columnToggleItems = computed(() => [
       </button>
     </div>
 
-    <!-- Core Web Vitals — professional metric header (p75 + distribution +
+    <!-- Performance metrics with a cross-URL p75 and distribution.
          percentiles across the visible routes). LCP/CLS/TBT/INP mirrors the
-         CWV_COLS column set below; FCP/SI/TTFB stay behind "More metrics". -->
+         PERFORMANCE_COLS below; FCP/SI/TTFB stay behind "More metrics". -->
     <div v-if="filtered.length" id="route-extra-metrics" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="CWV_THRESHOLDS.lcp" :format="(v: number) => formatMetric(v, 'ms')" />
-      <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="CWV_THRESHOLDS.cls" :format="(v: number) => formatMetric(v, '')" />
-      <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="CWV_THRESHOLDS.tbt" :format="(v: number) => formatMetric(v, 'ms')" />
-      <MetricStatCard label="Interaction to Next Paint" :values="filtered.map(r => r.inp)" :thresholds="CWV_THRESHOLDS.inp" :format="(v: number) => formatMetric(v, 'ms')" />
+      <MetricStatCard label="Largest Contentful Paint" :values="filtered.map(r => r.lcp)" :thresholds="PERFORMANCE_THRESHOLDS.lcp" :format="(v: number) => formatMetric(v, 'ms')" />
+      <MetricStatCard label="Cumulative Layout Shift" :values="filtered.map(r => r.cls)" :thresholds="PERFORMANCE_THRESHOLDS.cls" :format="(v: number) => formatMetric(v, '')" />
+      <MetricStatCard label="Total Blocking Time" :values="filtered.map(r => r.tbt)" :thresholds="PERFORMANCE_THRESHOLDS.tbt" :format="(v: number) => formatMetric(v, 'ms')" />
+      <MetricStatCard label="Interaction to Next Paint" :values="filtered.map(r => r.inp)" :thresholds="PERFORMANCE_THRESHOLDS.inp" :format="(v: number) => formatMetric(v, 'ms')" />
       <template v-if="showAllMetrics">
-        <MetricStatCard label="First Contentful Paint" :values="filtered.map(r => r.fcp)" :thresholds="CWV_THRESHOLDS.fcp" :format="(v: number) => formatMetric(v, 'ms')" />
-        <MetricStatCard label="Speed Index" :values="filtered.map(r => r.si)" :thresholds="CWV_THRESHOLDS.si" :format="(v: number) => formatMetric(v, 'ms')" />
-        <MetricStatCard label="Time to First Byte" :values="filtered.map(r => r.ttfb)" :thresholds="CWV_THRESHOLDS.ttfb" :format="(v: number) => formatMetric(v, 'ms')" />
+        <MetricStatCard label="First Contentful Paint" :values="filtered.map(r => r.fcp)" :thresholds="PERFORMANCE_THRESHOLDS.fcp" :format="(v: number) => formatMetric(v, 'ms')" />
+        <MetricStatCard label="Speed Index" :values="filtered.map(r => r.si)" :thresholds="PERFORMANCE_THRESHOLDS.si" :format="(v: number) => formatMetric(v, 'ms')" />
+        <MetricStatCard label="Time to First Byte" :values="filtered.map(r => r.ttfb)" :thresholds="PERFORMANCE_THRESHOLDS.ttfb" :format="(v: number) => formatMetric(v, 'ms')" />
       </template>
     </div>
 

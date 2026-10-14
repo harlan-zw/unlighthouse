@@ -51,7 +51,10 @@ You can always configure lighthouse directly if you are comfortable with the con
 
 By default, Unlighthouse will scan the categories: `'performance', 'accessibility', 'best-practices', 'seo', 'agentic-browsing'`.
 
-The performance category measures [Core Web Vitals](/glossary) including [LCP](/glossary/lcp), [CLS](/glossary/cls), and [INP](/glossary/inp). The `agentic-browsing` category is new in Lighthouse 13 (see below).
+The Performance category uses Lighthouse lab measurements, including LCP, CLS, and TBT.
+TBT is a responsiveness diagnostic, not a Core Web Vital.
+Core Web Vitals are LCP, INP, and CLS. A field assessment requires eligible real-user measurements.
+The `agentic-browsing` category is new in Lighthouse 13 (see below).
 
 It can be useful to remove certain categories from being scanned to improve scan times. The Unlighthouse UI will adapt
 to any categories you select.
@@ -105,4 +108,9 @@ export default defineUnlighthouseConfig({
 
 ## Insight Audits
 
-Lighthouse's newer *insight* audits (ids ending in `-insight`, e.g. `render-blocking-insight`, `lcp-discovery-insight`) carry per-metric savings estimates in milliseconds (LCP, FCP, INP, TBT) or as a dimensionless delta (CLS). Unlighthouse projects those savings at ingest, and the built-in `insights` pack ranks them site-wide: which insight, how many routes it affects, the total and worst-single-route savings, and a priority order. This is how a scan turns a flat audit dump into "fix these three things first."
+Lighthouse insight audits retain their native IDs and titles.
+Timing savings use milliseconds. CLS savings are dimensionless.
+The `insights` pack groups affected URLs and estimates for each metric.
+`priorityOrderByMetric` ranks insights within each metric.
+`worstRoutesByMetric` lists the largest estimates for that metric.
+The main insight list follows native ID order. Estimates across metrics are not additive.

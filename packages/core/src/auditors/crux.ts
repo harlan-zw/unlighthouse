@@ -13,6 +13,7 @@ export interface CruxHistoryEntry {
   good?: number
   ni?: number
   poor?: number
+  collectionPeriod?: { firstDate: string, lastDate: string }
 }
 
 export interface CruxMetricSeries {
@@ -58,6 +59,7 @@ type CrUXHistoryResult = z.infer<typeof CrUXHistoryResultSchema>
 
 interface NormalizedEntry {
   date: string
+  collectionPeriod?: { firstDate: string, lastDate: string }
   lcp75?: number
   inp75?: number
   cls75?: number
@@ -72,9 +74,9 @@ interface NormalizedEntry {
   clsPoor?: number
 }
 
-function normaliseP75(segment: number | string | null): number {
-  const value = typeof segment === 'string' ? Number.parseFloat(segment) : (segment || 0)
-  return Number.isNaN(value) ? 0 : value
+function normaliseP75(segment: number | string | null): number | undefined {
+  const value = typeof segment === 'string' ? Number.parseFloat(segment) : segment
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
 function extractHistogram(ts: MetricTimeseries['histogramTimeseries'] | undefined) {
@@ -110,6 +112,7 @@ function normaliseCruxHistory(data: CrUXHistoryResult): NormalizedEntry[] {
 
   return dates.map((date, i) => ({
     date,
+    collectionPeriod: { firstDate: date, lastDate: formatCruxDate(data.collectionPeriods[i]!.lastDate) },
     lcp75: lcp[i],
     inp75: inp[i],
     cls75: cls[i],
@@ -143,6 +146,7 @@ function toSeries(
     return [{
       value,
       time: new Date(h.date).getTime(),
+      collectionPeriod: h.collectionPeriod,
       good: typeof good === 'number' ? Math.round(good * 100) : undefined,
       ni: typeof ni === 'number' ? Math.round(ni * 100) : undefined,
       poor: typeof poor === 'number' ? Math.round(poor * 100) : undefined,
@@ -344,17 +348,19 @@ function buildSyntheticLhr(args: {
       performance: { id: 'performance', title: 'Performance', score: perfScore, auditRefs },
     },
     audits,
+    performanceSource: { _tag: 'field', auditor: 'crux', scope: 'origin', scopeUrl: getSiteOrigin(url), collectionPeriod: latest?.collectionPeriod ?? null },
   }
 }
 
 export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
   return {
     capabilities: CRUX_CAPABILITIES,
-    async audit(url: string, _page?: Page, _auditOpts?: AuditOpts): Promise<AuditorReport> {
+    async audit(url: string, _page?: Page, auditOpts?: AuditOpts): Promise<AuditorReport> {
+      const formFactor = opts.formFactor ?? (auditOpts?.device === 'desktop' ? 'DESKTOP' : 'PHONE')
       const series = await fetchCruxHistory({
         apiKey: opts.apiKey,
         origin: getSiteOrigin(url),
-        formFactor: opts.formFactor,
+        formFactor,
       })
       // Materialise a NormalizedEntry-like view of the latest p75 across
       // all three metrics so the synthetic-LHR builder doesn't have to
@@ -362,16 +368,19 @@ export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
       const lcpLast = series.lcp.at(-1)
       const clsLast = series.cls.at(-1)
       const inpLast = series.inp.at(-1)
+      const periods = [lcpLast, clsLast, inpLast].flatMap(entry => entry?.collectionPeriod ? [entry.collectionPeriod] : [])
+      const periodKeys = new Set(periods.map(period => `${period.firstDate}|${period.lastDate}`))
       const latest: NormalizedEntry | undefined = (lcpLast || clsLast || inpLast)
         ? {
             date: new Date().toISOString(),
+            collectionPeriod: periodKeys.size === 1 ? periods[0] : undefined,
             lcp75: lcpLast?.value,
-            cls75: clsLast?.value, // already CLS-units * 1000 from normaliseP75
+            cls75: clsLast?.value, // Dimensionless CrUX p75, for example 0.05.
             inp75: inpLast?.value,
           }
         : undefined
       const lhr = attachExtractedRouteData(
-        buildSyntheticLhr({ url, formFactor: opts.formFactor, latest }),
+        buildSyntheticLhr({ url, formFactor, latest }),
         url,
         'crux',
       )
@@ -381,4 +390,8 @@ export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
       return lhr
     },
   }
+}
+
+function formatCruxDate(date: { year: number, month: number, day: number }): string {
+  return `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`
 }

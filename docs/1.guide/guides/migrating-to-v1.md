@@ -286,3 +286,33 @@ if (result.valid && result.response) {
 
 Trailing slash normalization and configured default query parameters do not count as redirects.
 Real redirects still return `redirected` and `redirectUrl`.
+
+## Performance and audit result contracts
+
+The `cwv` pack reports Performance metrics across measured URLs.
+It includes measurement source, device scope, collection periods, and coverage.
+The cross-URL percentile is not a real-user Core Web Vitals assessment.
+The `passesCoreWebVitals` field has been removed.
+
+Audit results preserve Lighthouse modes, including `metricSavings` and `error`.
+Unscored results have `severity: null`. Manual, informative, and not applicable results do not count as passed checks.
+`unknown` identifies historical modes that cannot be recovered from their raw report.
+Read helpers recover older projections when their raw Lighthouse report is available.
+They preserve stored reports. Offline exports include the recovered projection.
+
+Accessibility, SEO, and Best Practices reports include `coverage` with eligible, analysed, and missing entries.
+An empty findings list does not establish that unavailable checks passed.
+
+SEO reports use `crawlabilityPercent`, `passingCrawlabilityRoutes`, `failingCrawlabilityRoutes`, and `unknownCrawlabilityRoutes`.
+Per-route `crawlability` is `pass`, `fail`, or `unknown`.
+`missingChecks` counts unavailable required checks.
+The percentage uses routes with a known result; inspect the unknown count beside it.
+
+Insight estimates retain their metric's units.
+Use `priorityOrderByMetric` and `worstRoutesByMetric` for comparisons within one metric.
+The main insight list follows native ID order.
+There is no combined priority score across timing and CLS estimates.
+
+Affected built-in pack reports use version `2.0.0`.
+The pack handler recomputes reports rather than using older cached outputs.
+No database migration or history reset is required.

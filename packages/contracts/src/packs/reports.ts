@@ -8,7 +8,13 @@
 //   FindingKindSchema → ImagesFindingKindSchema / BundleFindingKindSchema
 
 import { z } from 'zod'
-import { CategorySchema, DeviceSchema } from '../types/atoms'
+import { CategorySchema, CollectionPeriodSchema, DeviceSchema, PerformanceSourceSchema } from '../types/atoms'
+
+const ReportCoverageSchema = z.object({
+  eligible: z.number().int().nonnegative(),
+  analysed: z.number().int().nonnegative(),
+  missing: z.number().int().nonnegative(),
+})
 
 // ── overview ─────────────────────────────────────────────────────────────────
 
@@ -49,6 +55,9 @@ const VerdictSchema = z.enum(['good', 'needsImprovement', 'poor'])
 
 const MetricSnapshotSchema = z.object({
   metric: CwvMetricKeySchema,
+  coverage: ReportCoverageSchema,
+  source: z.enum(['lab', 'field', 'mixed', 'unavailable']),
+  sources: z.array(PerformanceSourceSchema),
   p75: z.number().nullable(),
   verdict: VerdictSchema.nullable(),
   distribution: z.object({
@@ -81,9 +90,6 @@ export const CwvReportSchema = z.object({
   scanId: z.string(),
   routesAnalysed: z.number().int().nonnegative(),
   metrics: z.array(MetricSnapshotSchema),
-  // Site-wide pass: every Core Web Vital (LCP, CLS, INP) p75 in `good`.
-  // Mirrors the CrUX "Site passes" rule on PageSpeed Insights.
-  passesCoreWebVitals: z.boolean(),
   // Top-N fix suggestions by impact. Capped at 10 for the wire payload.
   topFixes: z.array(CwvFixSchema).max(10),
 })
@@ -102,9 +108,11 @@ const SeveritySchema = z.enum(['good', 'needsImprovement', 'poor', 'unknown'])
 
 const CruxFindingSchema = z.object({
   url: z.string(),
+  collectionPeriod: CollectionPeriodSchema.nullable(),
+  scopeUrl: z.string().nullable(),
   formFactor: FormFactorSchema,
-  // CrUX CLS is a raw float (e.g. 0.05) — NOT scaled like lab CLS-units * 1000.
-  // Keep them separate in the report so consumers don't have to guess the unit.
+  // CrUX and Lighthouse CLS values are dimensionless, for example 0.05.
+  // Keep lab and field results separate because their measurement scopes differ.
   lcp_p75: z.number().nullable(),
   cls_p75: z.number().nullable(),
   inp_p75: z.number().nullable(),
@@ -133,6 +141,10 @@ const GapVerdictSchema = z.enum(['good', 'needsImprovement', 'poor'])
 
 const GapEntrySchema = z.object({
   url: z.string(),
+  labCapturedAt: z.string().nullable(),
+  fieldCollectionPeriod: CollectionPeriodSchema.nullable(),
+  fieldScope: z.enum(['url', 'origin']),
+  fieldScopeUrl: z.string(),
   // CrUX-style form factor for joinability with the rest of the report.
   formFactor: FormFactorSchema,
   metric: CruxMetricKeySchema,
@@ -267,6 +279,7 @@ const A11yFindingSchema = z.object({
 })
 
 export const A11yReportSchema = z.object({
+  coverage: ReportCoverageSchema,
   scanId: z.string(),
   routesAnalysed: z.number().int().nonnegative(),
   // Total violation instances across the site (sum of routeCount × element
@@ -350,7 +363,8 @@ const RouteCheckSchema = z.object({
   url: z.string(),
   passes: z.number().int().nonnegative(),
   fails: z.number().int().nonnegative(),
-  indexable: z.boolean(),
+  crawlability: z.enum(['pass', 'fail', 'unknown']),
+  missingChecks: z.number().int().nonnegative(),
 })
 
 const SeoFindingSchema = z.object({
@@ -372,13 +386,15 @@ const SeoFindingSchema = z.object({
 })
 
 export const SeoReportSchema = z.object({
+  coverage: ReportCoverageSchema,
   scanId: z.string(),
   routesAnalysed: z.number().int().nonnegative(),
-  // Headline: % of routes that pass the crawlability triad.
-  indexabilityPercent: z.number().min(0).max(100),
+  // Passing share of routes with a known crawlability result.
+  crawlabilityPercent: z.number().min(0).max(100).nullable(),
   // The same number split out, for the UI.
-  indexableRoutes: z.number().int().nonnegative(),
-  unindexableRoutes: z.number().int().nonnegative(),
+  passingCrawlabilityRoutes: z.number().int().nonnegative(),
+  failingCrawlabilityRoutes: z.number().int().nonnegative(),
+  unknownCrawlabilityRoutes: z.number().int().nonnegative(),
   // Per-route summary (top 50, sorted unindexable-first then by fail count).
   routeChecks: z.array(RouteCheckSchema).max(50),
   severityCounts: z.object({
@@ -420,6 +436,7 @@ const BestPracticesFindingSchema = z.object({
 })
 
 export const BestPracticesReportSchema = z.object({
+  coverage: ReportCoverageSchema,
   scanId: z.string(),
   routesAnalysed: z.number().int().nonnegative(),
   severityCounts: z.object({
@@ -450,17 +467,14 @@ const InsightFindingSchema = z.object({
   routeCount: z.number().int(),
   totalSavings: SavingsSchema,
   maxSingleRouteSavings: SavingsSchema,
-  worstRoutes: z.array(z.object({
-    url: z.string(),
-    savings: SavingsSchema,
-  })),
+  worstRoutesByMetric: z.partialRecord(z.enum(['LCP', 'FCP', 'INP', 'CLS', 'TBT']), z.array(z.object({ url: z.string(), savings: z.number() }))),
 })
 
 export const InsightsReportSchema = z.object({
   scanId: z.string(),
   routesAnalysed: z.number().int(),
   insights: z.array(InsightFindingSchema),
-  priorityOrder: z.array(z.string()),
+  priorityOrderByMetric: z.partialRecord(z.enum(['LCP', 'FCP', 'INP', 'CLS', 'TBT']), z.array(z.string())),
 })
 export type InsightsReport = z.infer<typeof InsightsReportSchema>
 

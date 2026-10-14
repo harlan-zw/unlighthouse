@@ -11,7 +11,7 @@ import { scanLinkPath } from '~/features/scan/scan-links'
 import { comparisonForLoadedScan, latestLoadedComparison } from '~/features/sites/history-baselines'
 import { devicesForScan, pairScans, scoreSummaryForDevice } from '~/features/sites/scan-pairs'
 import { originOf, resolveSiteUrl } from '~/features/sites/site-url'
-import { hasMeaningfulTrendSeries } from '~/features/sites/trend-presentation'
+import { hasMeaningfulTrendSeries, performanceTrendSeries } from '~/features/sites/trend-presentation'
 import { siteSlug } from '~/utils/site'
 
 type SiteDevice = 'mobile' | 'desktop'
@@ -153,14 +153,10 @@ export function useSiteOverview() {
   )
 
   function vitalsSeries(metricKey: string, label: string, color: string): TrendSeries[] {
-    return [{
-      label,
-      color,
-      points: (vitalsData.value ?? []).map((entry) => {
-        const metric = entry.report.metrics.find(item => item.metric === metricKey)
-        return { t: entry.t, v: metric?.p75 ?? null }
-      }),
-    }]
+    return performanceTrendSeries(label, color, (vitalsData.value ?? []).map((entry) => {
+      const metric = entry.report.metrics.find(item => item.metric === metricKey)
+      return { t: entry.t, v: metric?.p75 ?? null, source: metric?.source ?? 'unavailable' }
+    }))
   }
   const vitals = computed(() => VITALS.filter(metric => hasMeaningfulTrendSeries(vitalsSeries(metric.key, metric.label, metric.color))))
   const hasVitalsTrend = computed(() => vitals.value.length > 0)
