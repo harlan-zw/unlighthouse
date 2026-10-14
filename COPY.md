@@ -68,6 +68,8 @@ This file records reused dashboard strings. Existing copy rules in DESIGN.md rem
 | Partial report coverage | Reports available for {analysed} of {eligible} entries | Pack summaries |
 | Missing reports | {missing} reports unavailable | Partial pack summaries |
 | Manual assessment reminder | Automated checks do not cover every accessibility requirement. | Accessibility summary |
+| Reported accessibility elements | Reported element violations | Supplied element instances, separate from failed rules |
+| Missing accessibility element details | Some failed checks have no element details. | Accessibility findings without supplied element instances |
 | Lab good field poor | Lab rating good; field rating poor | CrUX comparison |
 | Lab poor field good | Lab rating poor; field rating good | CrUX comparison |
 | Matching ratings | Lab and field ratings match | CrUX comparison |

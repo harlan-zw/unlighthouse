@@ -37,7 +37,7 @@ function topElementsOf(finding: Record<string, unknown>): TopElement[] {
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <UiStat card title="Total Violations" :value="report.totalViolations" value-class="text-error" :animated-value="false" />
+      <UiStat card title="Reported element violations" :value="report.totalViolations" value-class="text-error" :animated-value="false" />
       <UiStat card title="Critical Rules" :value="report.severityCounts.critical" :value-class="report.severityCounts.critical > 0 ? 'text-error' : 'text-success'" :animated-value="false" />
       <UiStat card title="Unique Rules" :value="report.findings.length" :animated-value="false" />
       <UiStat card title="Routes Analysed" :value="report.routesAnalysed" value-class="text-success" :animated-value="false" />
@@ -65,6 +65,9 @@ function topElementsOf(finding: Record<string, unknown>): TopElement[] {
     </FindingsAccordion>
 
     <ReportCoverage :coverage="report.coverage" :findings="report.findings.length" />
+    <p v-if="report.findings.some(finding => finding.elementCount === 0)" class="text-sm text-muted">
+      Some failed checks have no element details.
+    </p>
     <p class="text-sm text-muted">
       Automated checks do not cover every accessibility requirement.
     </p>
