@@ -2,6 +2,11 @@ name: Build Unlighthouse Demo
 
 on:
   workflow_dispatch:
+    inputs:
+      urls:
+        description: 'Optional comma-separated paths for a focused mobile and desktop demo scan'
+        required: false
+        default: ''
   push:
     tags:
       - 'v*'
@@ -31,14 +36,24 @@ jobs:
         run: pnpm run build
 
       - name: Run Unlighthouse CI
-        run: pnpm ci:docs && mv .unlighthouse dist
+        run: |
+          if [ -n "$DEMO_URLS" ]; then
+            pnpm ci:docs --urls "$DEMO_URLS" --disable-sitemap --device mobile,desktop
+          else
+            pnpm ci:docs
+          fi
         env:
+          DEMO_URLS: ${{ inputs.urls }}
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Locate static dashboard
+        id: report
+        run: node scripts/demo-report.ts
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v4.0
         with:
-          publish-dir: ./dist
+          publish-dir: ${{ steps.report.outputs.publish-dir }}
           production-branch: main
           production-deploy: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
