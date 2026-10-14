@@ -111,8 +111,8 @@ const CruxFindingSchema = z.object({
   collectionPeriod: CollectionPeriodSchema.nullable(),
   scopeUrl: z.string().nullable(),
   formFactor: FormFactorSchema,
-  // CrUX CLS is a raw float (e.g. 0.05) — NOT scaled like lab CLS-units * 1000.
-  // Keep them separate in the report so consumers don't have to guess the unit.
+  // CrUX and Lighthouse CLS values are dimensionless, for example 0.05.
+  // Keep lab and field results separate because their measurement scopes differ.
   lcp_p75: z.number().nullable(),
   cls_p75: z.number().nullable(),
   inp_p75: z.number().nullable(),

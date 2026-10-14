@@ -375,7 +375,7 @@ export function createCruxAuditor(opts: CruxAuditorOptions): Auditor {
             date: new Date().toISOString(),
             collectionPeriod: periodKeys.size === 1 ? periods[0] : undefined,
             lcp75: lcpLast?.value,
-            cls75: clsLast?.value, // already CLS-units * 1000 from normaliseP75
+            cls75: clsLast?.value, // Dimensionless CrUX p75, for example 0.05.
             inp75: inpLast?.value,
           }
         : undefined
