@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Smoke test the linux-x64 archive
+        run: |
+          mkdir -p "$RUNNER_TEMP/smoke"
+          tar -xzf dist/unlighthouse-linux-x64.tar.gz -C "$RUNNER_TEMP/smoke"
+          "$RUNNER_TEMP/smoke/unlighthouse-linux-x64/unlighthouse" --version
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/unlighthouse-*.tar.gz --title "$GITHUB_REF_NAME" --generate-notes --verify-tag

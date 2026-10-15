@@ -1,0 +1,38 @@
+{
+  "name": "unlighthouse",
+  "version": "0.1.0",
+  "description": "Scan a whole website with Lighthouse, group pages by template, track every scan.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "bin": {
+    "unlighthouse": "./src/cli.ts"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "scripts": {
+    "unlighthouse": "bun src/cli.ts",
+    "dev": "bun --hot src/cli.ts serve",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit && bun test",
+    "config-docs": "bun scripts/config-docs.ts",
+    "build": "bun scripts/build.ts"
+  },
+  "dependencies": {
+    "chrome-launcher": "1.2.2",
+    "lighthouse": "13.5.0",
+    "puppeteer-core": "25.12.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2"
+  },
+  "trustedDependencies": []
+}

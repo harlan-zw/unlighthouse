@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "unlighthouse",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-30",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    // The Host the dashboard is reached at; Unlighthouse rejects other Host headers.
+    "PUBLIC_HOST": "unlighthouse.example.workers.dev"
+  },
+  "secrets": {
+    "required": ["UNLIGHTHOUSE_TOKEN"]
+  },
+  "containers": [
+    {
+      "class_name": "UnlighthouseContainer",
+      "image": "../../Dockerfile",
+      "image_build_context": "../..",
+      "instance_type": "standard-2",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "UNLIGHTHOUSE", "class_name": "UnlighthouseContainer" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["UnlighthouseContainer"] }
+  ],
+  "r2_buckets": [
+    { "binding": "DATA", "bucket_name": "unlighthouse-data" }
+  ],
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  }
+}

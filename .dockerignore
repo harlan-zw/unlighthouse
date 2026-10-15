@@ -1,0 +1,14 @@
+.git
+.claude
+.unlighthouse
+node_modules
+unlighthouse-report
+dist
+coverage
+test
+docs
+docker
+*.tgz
+.env
+.env.*
+.DS_Store

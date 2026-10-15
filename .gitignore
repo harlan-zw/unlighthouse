@@ -1,0 +1,9 @@
+node_modules
+.unlighthouse
+dist
+*.tgz
+coverage
+.env
+.env.*.local
+.DS_Store
+.claude/worktrees

@@ -1,0 +1,139 @@
+name: Unlighthouse
+description: Scan a whole website with Lighthouse, compare it with the last scan and check performance budgets.
+author: Unlighthouse
+branding:
+  icon: activity
+  color: orange
+
+inputs:
+  url:
+    description: Site to scan, e.g. https://preview.example.com
+    required: true
+  devices:
+    description: Comma-separated devices (mobile, desktop). Empty uses the config file (default mobile).
+    required: false
+    default: ''
+  config:
+    description: Path to a unlighthouse.config.ts/js file. Empty looks for unlighthouse.config.ts in working-directory.
+    required: false
+    default: ''
+  budgets:
+    description: Path to a JSON budgets file (same shape as the budgets config key).
+    required: false
+    default: ''
+  fail-on-budget:
+    description: Fail the step when a budget fails. A failed scan always fails the step.
+    required: false
+    default: 'true'
+  data-dir:
+    description: Unlighthouse data directory. Cache it between runs to compare with earlier scans.
+    required: false
+    default: .unlighthouse
+  no-sandbox:
+    description: Launch Chrome with --no-sandbox. Hosted Ubuntu 24.04 runners restrict the user namespaces Chrome's sandbox needs (AppArmor); set to 'false' on runners where the sandbox works.
+    required: false
+    default: 'true'
+  working-directory:
+    description: Directory the scan runs in (config lookup, relative paths).
+    required: false
+    default: .
+  artifact-name:
+    description: Name of the uploaded artifact holding the static report and the Markdown summary.
+    required: false
+    default: unlighthouse-report
+  args:
+    description: Extra arguments for unlighthouse ci, e.g. "--per-template 3 --max-pages 200".
+    required: false
+    default: ''
+
+outputs:
+  exit-code:
+    description: 0 pass, 1 budget failure, 2 scan failure
+    value: ${{ steps.scan.outputs.exit-code }}
+  report-dir:
+    description: Folder with the static report, index.html, unlighthouse.md and unlighthouse.json
+    value: ${{ steps.scan.outputs.report-dir }}
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.4.2
+
+    - id: chrome
+      shell: bash
+      run: |
+        for candidate in "${CHROME_PATH:-}" "$(command -v google-chrome-stable || true)" "$(command -v google-chrome || true)" "$(command -v chromium || true)" "$(command -v chromium-browser || true)"; do
+          if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+            echo "path=$candidate" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+        done
+        echo "path=" >> "$GITHUB_OUTPUT"
+
+    - id: setup-chrome
+      if: steps.chrome.outputs.path == ''
+      uses: browser-actions/setup-chrome@v2
+      with:
+        chrome-version: stable
+        install-dependencies: true
+
+    - shell: bash
+      working-directory: ${{ github.action_path }}
+      run: bun install --frozen-lockfile --production
+
+    - id: scan
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        CHROME_PATH: ${{ steps.chrome.outputs.path || steps.setup-chrome.outputs.chrome-path }}
+        UNLIGHTHOUSE_NO_SANDBOX: ${{ inputs.no-sandbox == 'true' && '1' || '' }}
+        UNLIGHTHOUSE_URL: ${{ inputs.url }}
+        UNLIGHTHOUSE_DEVICES: ${{ inputs.devices }}
+        UNLIGHTHOUSE_CONFIG: ${{ inputs.config }}
+        UNLIGHTHOUSE_BUDGETS: ${{ inputs.budgets }}
+        UNLIGHTHOUSE_DATA_DIR: ${{ inputs.data-dir }}
+        UNLIGHTHOUSE_ARGS: ${{ inputs.args }}
+        UNLIGHTHOUSE_OUT: ${{ runner.temp }}/unlighthouse-report
+      run: |
+        set +e
+        rm -rf "$UNLIGHTHOUSE_OUT"
+        mkdir -p "$UNLIGHTHOUSE_OUT"
+        args=(ci "$UNLIGHTHOUSE_URL" --data-dir "$UNLIGHTHOUSE_DATA_DIR" --markdown "$UNLIGHTHOUSE_OUT/unlighthouse.md" --json "$UNLIGHTHOUSE_OUT/unlighthouse.json" --junit "$UNLIGHTHOUSE_OUT/unlighthouse.junit.xml" --export "$UNLIGHTHOUSE_OUT/report")
+        [ -n "$UNLIGHTHOUSE_DEVICES" ] && args+=(--device "$UNLIGHTHOUSE_DEVICES")
+        [ -n "$UNLIGHTHOUSE_CONFIG" ] && args+=(--config "$UNLIGHTHOUSE_CONFIG")
+        [ -n "$UNLIGHTHOUSE_BUDGETS" ] && args+=(--budgets "$UNLIGHTHOUSE_BUDGETS")
+        read -r -a extra <<< "$UNLIGHTHOUSE_ARGS"
+        bun "$GITHUB_ACTION_PATH/src/cli.ts" "${args[@]}" "${extra[@]}"
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        echo "report-dir=$UNLIGHTHOUSE_OUT" >> "$GITHUB_OUTPUT"
+        exit 0
+
+    - if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ runner.temp }}/unlighthouse-report
+        if-no-files-found: warn
+
+    - shell: bash
+      env:
+        CODE: ${{ steps.scan.outputs.exit-code }}
+        FAIL_ON_BUDGET: ${{ inputs.fail-on-budget }}
+      run: |
+        case "$CODE" in
+          0) echo "Unlighthouse: budgets passed" ;;
+          1)
+            if [ "$FAIL_ON_BUDGET" = "true" ]; then
+              echo "::error::Unlighthouse: budgets failed"
+              exit 1
+            fi
+            echo "::warning::Unlighthouse: budgets failed (fail-on-budget is false)"
+            ;;
+          *)
+            echo "::error::Unlighthouse: the scan failed (exit code ${CODE:-unknown})"
+            exit 1
+            ;;
+        esac
