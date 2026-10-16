@@ -151,11 +151,13 @@ export function ScanOverview({ scan, refresh }: { scan: Scan, refresh: number })
             : (
                 <ul className="list">
                   {data.topIssues.map((issue, i) => (
-                    <li key={`${issue.auditId}|${issue.itemLabel ?? i}`}>
+                    <li key={issue.auditId}>
                       <span className="faint num" style={{ width: 16 }}>{i + 1}</span>
                       <div className="list-main">
                         <span className="list-title">{issue.title}</span>
-                        <span className="list-sub mono">{issue.itemLabel ?? 'Page-level'}</span>
+                        {issue.items > 1
+                          ? <span className="list-sub">{`${formatCount(issue.items)} resources`}</span>
+                          : issue.topItem && <span className="list-sub mono">{issue.topItem}</span>}
                       </div>
                       <div style={{ textAlign: 'right', fontSize: 'var(--text-sm)' }} className="nowrap">
                         <div className="num">{`${formatCount(issue.pages)} pages`}</div>

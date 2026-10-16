@@ -1,6 +1,7 @@
 import { compareScans, type ScanComparison } from '../analysis/compare.ts'
 import { summarize, type ScanSummary } from '../analysis/summary.ts'
-import type { BrokenLink, IssuePage, IssueQuery, Paged, PageQuery } from '../contracts.ts'
+import { groupIssues, issueItems, issuePages, type IssueHit } from '../analysis/issues.ts'
+import type { BrokenLink, IssueDetail, IssueQuery, Paged, PageQuery } from '../contracts.ts'
 import type { UnlighthouseEvent } from '../events.ts'
 import { CATEGORIES, type Category, type Device, type Finding, type Issue, type Metrics, type Page, type Scan, type Scores, type Severity, type Site } from '../types.ts'
 import { ApiError, reportUrl, type Client, type ConnectionState, type Input, type Operation, type Operations, type Output } from './api.ts'
@@ -547,47 +548,6 @@ function averageScores(pages: Page[]): Scores {
   return out
 }
 
-function aggregateIssues(entries: Array<{ page: Page, finding: Finding }>): Issue[] {
-  const groups = new Map<string, { finding: Finding, pages: Set<string>, devices: Set<Device>, templates: Set<string>, ms: number[], bytes: number[], examples: string[] }>()
-  for (const { page, finding } of entries) {
-    const key = `${finding.auditId}\u0000${finding.itemKey}`
-    let group = groups.get(key)
-    if (!group) {
-      group = { finding, pages: new Set(), devices: new Set(), templates: new Set(), ms: [], bytes: [], examples: [] }
-      groups.set(key, group)
-    }
-    group.pages.add(page.url)
-    group.devices.add(page.device)
-    group.templates.add(page.template)
-    if (finding.savingsMs)
-      group.ms.push(finding.savingsMs)
-    if (finding.savingsBytes)
-      group.bytes.push(finding.savingsBytes)
-    if (group.examples.length < 3 && !group.examples.includes(page.url))
-      group.examples.push(page.url)
-  }
-  return [...groups.values()].map(({ finding, pages, devices, templates, ms, bytes, examples }) => {
-    const savingsMs = Math.round(mean(ms) ?? 0)
-    const savingsBytes = Math.round(mean(bytes) ?? 0)
-    const weight = savingsMs + savingsBytes / 1024 + (finding.severity === 'fail' ? 60 : 20)
-    return {
-      auditId: finding.auditId,
-      category: finding.category,
-      title: finding.title,
-      itemKey: finding.itemKey,
-      itemLabel: finding.itemLabel,
-      severity: finding.severity,
-      pages: pages.size,
-      devices: [...devices].sort(),
-      templates: [...templates].sort(),
-      savingsMs,
-      savingsBytes,
-      impact: Math.round(weight * pages.size),
-      examples,
-    }
-  }).sort((a, b) => b.impact - a.impact)
-}
-
 class MockWorld {
   sites: Site[] = []
   scans: MockScan[] = []
@@ -742,8 +702,8 @@ class MockWorld {
     return summarize(input)
   }
 
-  issues(mock: MockScan, filter: { category?: Category, device?: Device, template?: string }): Issue[] {
-    const entries: Array<{ page: Page, finding: Finding }> = []
+  hits(mock: MockScan, filter: { category?: Category, device?: Device, template?: string }): IssueHit[] {
+    const entries: IssueHit[] = []
     for (const page of mock.pages) {
       if (page.current.status !== 'done')
         continue
@@ -757,7 +717,11 @@ class MockWorld {
         entries.push({ page: page.current, finding })
       }
     }
-    return aggregateIssues(entries)
+    return entries
+  }
+
+  issues(mock: MockScan, filter: { category?: Category, device?: Device, template?: string }): Issue[] {
+    return groupIssues(this.hits(mock, filter))
   }
 
   listPages(query: PageQuery): Paged<Page> {
@@ -805,22 +769,13 @@ class MockWorld {
     return { ...page.current, findings: page.current.status === 'done' ? page.findings : [] }
   }
 
-  getIssue(scanId: string, auditId: string, itemKey: string): { issue: Issue, pages: IssuePage[] } {
+  getIssue(scanId: string, auditId: string): IssueDetail {
     const mock = this.scan(scanId)
-    const issue = this.issues(mock, {}).find(i => i.auditId === auditId && i.itemKey === itemKey)
+    const issue = this.issues(mock, {}).find(i => i.auditId === auditId)
     if (!issue)
       throw new ApiError('NOT_FOUND', `Issue ${auditId} not found`)
-    const pages: IssuePage[] = []
-    for (const page of mock.pages) {
-      if (page.current.status !== 'done')
-        continue
-      for (const finding of page.findings) {
-        if (finding.auditId === auditId && finding.itemKey === itemKey)
-          pages.push({ url: page.current.url, device: page.current.device, template: page.current.template, savingsMs: finding.savingsMs, savingsBytes: finding.savingsBytes, displayValue: finding.displayValue })
-      }
-    }
-    pages.sort((a, b) => (b.savingsMs ?? 0) - (a.savingsMs ?? 0) || a.url.localeCompare(b.url))
-    return { issue, pages }
+    const hits = this.hits(mock, {})
+    return { issue, items: issueItems(hits, auditId), pages: issuePages(hits, auditId) }
   }
 
   compare(baseId: string, headId: string): ScanComparison {
@@ -908,7 +863,7 @@ export function createMockClient(options: MockOptions = {}): MockClient {
       const list = world.issues(world.scan(input.scanId), filter)
       return { items: list.slice(input.offset, input.offset + input.limit), total: list.length }
     },
-    'issues.get': input => world.getIssue(input.scanId, input.auditId, input.itemKey),
+    'issues.get': input => world.getIssue(input.scanId, input.auditId),
     'compare': input => world.compare(input.base, input.head),
   }
 

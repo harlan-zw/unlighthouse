@@ -21,7 +21,7 @@ Site ──< Scan ──< Page (url × device) ──< Finding (audit × item)
 - **Scan**: one run over a site with a frozen copy of its options: devices, categories, throttling, sampling, CI metadata (branch, commit), status and stats.
 - **Page**: one URL measured on one device in one scan. Holds category scores (0–1, `null` = not measured), lab metrics (FCP, LCP, TBT, CLS, SI, TTFB), its *template* and provenance. Status: `queued → running → done | failed`, or `skipped` when sampling left it out.
 - **Finding**: one failing audit on one page, optionally narrowed to one *item* (the image, script, DOM node or resource the audit names). Items are keyed by a stable string (resource URL, node selector).
-- **Issue**: not stored; a `GROUP BY (audit, item)` over findings. "This 400 KB hero image fails `image-delivery-insight` on 312 pages" is one issue. Issues are ranked by impact = estimated savings × affected pages.
+- **Issue**: not stored; a `GROUP BY audit` over the findings of one scan. "Reduce unused JavaScript on 312 pages across 14 bundles" is one issue, so hashed bundle names that change on every deploy do not split it or make it look new. An issue counts its distinct items and carries the top few; items are the second level (`issues.get`). Issues are ranked by impact = affected pages weighted by severity plus estimated savings. Savings of the items on one page overlap, so each page contributes its largest item saving and those are summed over pages.
 - **Template**: a URL pattern inferred from discovered paths (`/blog/*`, `/products/*/reviews`). Lets a summary say "the product template regressed" and lets sampling audit a few pages per template instead of thousands of copies.
 
 ## Pipeline
@@ -63,7 +63,7 @@ Site ──< Scan ──< Page (url × device) ──< Finding (audit × item)
 | `pages.get` | read | One page: scores, metrics, provenance, findings |
 | `pages.rescan` | write | Re-audit one page in place |
 | `issues.list` | read | Site-wide issues ranked by impact |
-| `issues.get` | read | One issue with every affected page |
+| `issues.get` | read | One issue with its items and every affected page |
 | `compare` | read | Diff two scans |
 | `budgets.check` | read | Evaluate budgets against a scan (and its baseline) |
 | `flows.list` | read | User flow runs of a scan with their steps ([flows](flows.md)) |

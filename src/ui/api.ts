@@ -1,6 +1,6 @@
 import type { ScanComparison } from '../analysis/compare.ts'
 import type { ScanSummary } from '../analysis/summary.ts'
-import type { BrokenLink, IssuePage, IssueQuery, Paged, PageQuery, TemplateCount } from '../contracts.ts'
+import type { BrokenLink, IssueDetail, IssueQuery, Paged, PageQuery, TemplateCount } from '../contracts.ts'
 import type { UnlighthouseEvent } from '../events.ts'
 import type { Device, Issue, Page, Scan, ScanStatus } from '../types.ts'
 import type { PageDetail, SiteListItem } from './shapes.ts'
@@ -17,7 +17,7 @@ export interface Operations {
   'pages.list': { input: PageQuery, output: Paged<Page> }
   'pages.get': { input: { scanId: string, url: string, device: Device }, output: PageDetail }
   'issues.list': { input: IssueQuery, output: Paged<Issue> }
-  'issues.get': { input: { scanId: string, auditId: string, itemKey: string }, output: { issue: Issue, pages: IssuePage[] } }
+  'issues.get': { input: { scanId: string, auditId: string }, output: IssueDetail }
   'compare': { input: { base: string, head: string }, output: ScanComparison }
 }
 

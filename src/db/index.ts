@@ -2,11 +2,12 @@ import { Database } from 'bun:sqlite'
 import type { SQLQueryBindings } from 'bun:sqlite'
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { TOP_ITEMS } from '../analysis/issues.ts'
 import type { AuditResult, BrokenLink, FieldResult, HreflangProblem, IssuePage, NewPage, NewScan, PageQuery, Paged, ScanPatch, Store, TemplateCount } from '../contracts.ts'
 import { hashUrl } from '../discover/urls.ts'
 import { UnlighthouseError } from '../errors.ts'
 import { CATEGORIES, METRICS } from '../types.ts'
-import type { Category, Device, FieldRecord, FieldSource, Finding, Issue, Metrics, Page, PageStatus, Scan, ScanField, ScanStats, ScanStatus, Scores, Severity, Site } from '../types.ts'
+import type { Category, Device, FieldRecord, FieldSource, Finding, Issue, IssueItem, Metrics, Page, PageStatus, Scan, ScanField, ScanStats, ScanStatus, Scores, Severity, Site } from '../types.ts'
 import { flowQueries } from './flows.ts'
 import { metricColumn, migrate, scoreColumn } from './migrations.ts'
 import { monitorStore } from './monitoring.ts'
@@ -20,6 +21,8 @@ const SCAN_SELECT = 'SELECT scans.*, sites.origin AS origin FROM scans JOIN site
 const EMPTY_STATS: ScanStats = { discovered: 0, queued: 0, done: 0, failed: 0, skipped: 0 }
 
 const TERMINAL_PAGE_STATUSES: PageStatus[] = ['done', 'failed', 'skipped']
+
+const ISSUE_FROM = 'FROM findings f JOIN pages p ON p.scan_id = f.scan_id AND p.url = f.url AND p.device = f.device'
 
 const CRUX_CACHE_KEEP_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -116,6 +119,22 @@ export function openStore(dataDir: string): Store {
   const all = (sql: string, bindings: Bindings = {}) => db.query<Row, Bindings>(sql).all(bindings)
   const get = (sql: string, bindings: Bindings = {}) => db.query<Row, Bindings>(sql).get(bindings)
   const run = (sql: string, bindings: Bindings = {}) => db.query<Row, Bindings>(sql).run(bindings)
+
+  function issueItemRows(scoped: string, bindings: Bindings, limit: number): IssueItem[] {
+    return all(`SELECT f.item_key, max(f.item_label) AS item_label, count(DISTINCT f.url) AS pages,
+        coalesce(sum(f.savings_ms), 0) AS item_ms, coalesce(sum(f.savings_bytes), 0) AS item_bytes
+      ${scoped} AND f.item_key <> ''
+      GROUP BY f.item_key
+      ORDER BY item_ms / 1000.0 + item_bytes / 100000.0 DESC, pages DESC, f.item_key
+      LIMIT $limit`, { ...bindings, limit })
+      .map(row => ({
+        key: row['item_key'] as string,
+        label: row['item_label'] as string | null,
+        pages: row['pages'] as number,
+        savingsMs: row['item_ms'] as number,
+        savingsBytes: row['item_bytes'] as number,
+      }))
+  }
 
   function getScan(id: string): Scan | null {
     const row = get(`${SCAN_SELECT} WHERE scans.id = $id`, { id })
@@ -439,6 +458,10 @@ export function openStore(dataDir: string): Store {
     listIssues(query) {
       const where = ['f.scan_id = $scanId']
       const bindings: Bindings = { scanId: query.scanId }
+      if (query.auditId !== undefined) {
+        where.push('f.audit_id = $auditId')
+        bindings['auditId'] = query.auditId
+      }
       if (query.category !== undefined) {
         where.push('f.category = $category')
         bindings['category'] = query.category
@@ -451,52 +474,67 @@ export function openStore(dataDir: string): Store {
         where.push('p.template = $template')
         bindings['template'] = query.template
       }
-      const grouped = `SELECT f.audit_id, f.item_key,
-          max(f.category) AS category, max(f.title) AS title, max(f.item_label) AS item_label,
-          min(f.severity) AS severity,
-          count(DISTINCT f.url) AS pages,
-          json_group_array(DISTINCT f.device) AS devices,
-          json_group_array(DISTINCT p.template) AS templates,
-          coalesce(sum(f.savings_ms), 0) AS savings_ms,
-          coalesce(sum(f.savings_bytes), 0) AS savings_bytes
-        FROM findings f JOIN pages p ON p.scan_id = f.scan_id AND p.url = f.url AND p.device = f.device
-        WHERE ${where.join(' AND ')}
-        GROUP BY f.audit_id, f.item_key`
-      const total = get(`SELECT count(*) AS total FROM (${grouped})`, bindings)!['total'] as number
-      const rows = all(`SELECT *, pages * (CASE severity WHEN 'fail' THEN 1.0 ELSE 0.5 END) + savings_ms / 1000.0 + savings_bytes / 100000.0 AS impact
-        FROM (${grouped}) ORDER BY impact DESC, pages DESC, audit_id, item_key LIMIT $limit OFFSET $offset`, { ...bindings, limit: query.limit, offset: query.offset })
-      const examples = db.query<{ url: string }, Bindings>(`SELECT DISTINCT f.url FROM findings f
-        JOIN pages p ON p.scan_id = f.scan_id AND p.url = f.url AND p.device = f.device
-        WHERE ${where.join(' AND ')} AND f.audit_id = $auditId AND f.item_key = $itemKey ORDER BY f.url LIMIT 3`)
-      const items = rows.map((row): Issue => ({
-        auditId: row['audit_id'] as string,
-        category: row['category'] as Category | null,
-        title: row['title'] as string,
-        itemKey: row['item_key'] as string,
-        itemLabel: row['item_label'] as string | null,
-        severity: row['severity'] as Severity,
-        pages: row['pages'] as number,
-        devices: (JSON.parse(row['devices'] as string) as Device[]).sort(),
-        templates: (JSON.parse(row['templates'] as string) as string[]).sort(),
-        savingsMs: row['savings_ms'] as number,
-        savingsBytes: row['savings_bytes'] as number,
-        impact: row['impact'] as number,
-        examples: examples.all({ ...bindings, auditId: row['audit_id'] as string, itemKey: row['item_key'] as string }).map(example => example.url),
-      }))
+      const scoped = `${ISSUE_FROM} WHERE ${where.join(' AND ')}`
+      const total = get(`SELECT count(DISTINCT f.audit_id) AS total ${scoped}`, bindings)!['total'] as number
+      const rows = all(`WITH per_page AS (
+          SELECT f.audit_id, f.url, f.device, p.template,
+            max(f.category) AS category, max(f.title) AS title, min(f.severity) AS severity,
+            max(f.savings_ms) AS savings_ms, max(f.savings_bytes) AS savings_bytes
+          ${scoped}
+          GROUP BY f.audit_id, f.url, f.device
+        ), grouped AS (
+          SELECT audit_id, max(category) AS category, max(title) AS title, min(severity) AS severity,
+            count(DISTINCT url) AS pages,
+            json_group_array(DISTINCT device) AS devices,
+            json_group_array(DISTINCT template) AS templates,
+            coalesce(sum(savings_ms), 0) AS savings_ms,
+            coalesce(sum(savings_bytes), 0) AS savings_bytes
+          FROM per_page GROUP BY audit_id
+        )
+        SELECT *, pages * (CASE severity WHEN 'fail' THEN 1.0 ELSE 0.5 END) + savings_ms / 1000.0 + savings_bytes / 100000.0 AS impact
+        FROM grouped ORDER BY impact DESC, pages DESC, audit_id LIMIT $limit OFFSET $offset`, { ...bindings, limit: query.limit, offset: query.offset })
+      const filtered = `${scoped} AND f.audit_id = $issue`
+      const examples = db.query<{ url: string }, Bindings>(`SELECT DISTINCT f.url ${filtered} ORDER BY f.url LIMIT 3`)
+      const itemCount = db.query<{ items: number }, Bindings>(`SELECT count(DISTINCT f.item_key) AS items ${filtered} AND f.item_key <> ''`)
+      const items = rows.map((row): Issue => {
+        const issue = { ...bindings, issue: row['audit_id'] as string }
+        return {
+          auditId: row['audit_id'] as string,
+          category: row['category'] as Category | null,
+          title: row['title'] as string,
+          severity: row['severity'] as Severity,
+          pages: row['pages'] as number,
+          items: itemCount.get(issue)!.items,
+          topItems: issueItemRows(filtered, issue, TOP_ITEMS),
+          devices: (JSON.parse(row['devices'] as string) as Device[]).sort(),
+          templates: (JSON.parse(row['templates'] as string) as string[]).sort(),
+          savingsMs: row['savings_ms'] as number,
+          savingsBytes: row['savings_bytes'] as number,
+          impact: row['impact'] as number,
+          examples: examples.all(issue).map(example => example.url),
+        }
+      })
       return { items, total }
     },
 
-    issuePages(scanId: string, auditId: string, itemKey: string) {
-      return all(`SELECT f.url, f.device, p.template, f.savings_ms, f.savings_bytes, f.display_value
-        FROM findings f JOIN pages p ON p.scan_id = f.scan_id AND p.url = f.url AND p.device = f.device
-        WHERE f.scan_id = $scanId AND f.audit_id = $auditId AND f.item_key = $itemKey
-        ORDER BY coalesce(f.savings_ms, 0) DESC, coalesce(f.savings_bytes, 0) DESC, f.url, f.device`, { scanId, auditId, itemKey })
+    issueItems(scanId: string, auditId: string) {
+      return issueItemRows(`${ISSUE_FROM} WHERE f.scan_id = $scanId AND f.audit_id = $issue`, { scanId, issue: auditId }, -1)
+    },
+
+    issuePages(scanId: string, auditId: string) {
+      return all(`SELECT f.url, f.device, p.template, count(DISTINCT nullif(f.item_key, '')) AS items,
+          max(f.savings_ms) AS page_ms, max(f.savings_bytes) AS page_bytes, max(f.display_value) AS display_value
+        ${ISSUE_FROM}
+        WHERE f.scan_id = $scanId AND f.audit_id = $auditId
+        GROUP BY f.url, f.device
+        ORDER BY coalesce(page_ms, 0) DESC, coalesce(page_bytes, 0) DESC, f.url, f.device`, { scanId, auditId })
         .map((row): IssuePage => ({
           url: row['url'] as string,
           device: row['device'] as Device,
           template: row['template'] as string,
-          savingsMs: row['savings_ms'] as number | null,
-          savingsBytes: row['savings_bytes'] as number | null,
+          items: row['items'] as number,
+          savingsMs: row['page_ms'] as number | null,
+          savingsBytes: row['page_bytes'] as number | null,
           displayValue: row['display_value'] as string | null,
         }))
     },

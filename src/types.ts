@@ -90,14 +90,22 @@ export interface Finding {
   savingsBytes: number | null
 }
 
+export interface IssueItem {
+  key: string
+  label: string | null
+  pages: number
+  savingsMs: number
+  savingsBytes: number
+}
+
 export interface Issue {
   auditId: string
   category: Category | null
   title: string
-  itemKey: string
-  itemLabel: string | null
   severity: Severity
   pages: number
+  items: number
+  topItems: IssueItem[]
   devices: Device[]
   templates: string[]
   savingsMs: number

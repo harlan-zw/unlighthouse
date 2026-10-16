@@ -4,7 +4,9 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { AuditResult, NewPage, Store } from '../src/contracts.ts'
+import { compareScans } from '../src/analysis/compare.ts'
 import { openStore } from '../src/db/index.ts'
+import { loadSide } from '../src/ops/analysis.ts'
 import { MIGRATIONS } from '../src/db/migrations.ts'
 import { UnlighthouseError } from '../src/errors.ts'
 import type { Device, Finding } from '../src/types.ts'
@@ -213,10 +215,10 @@ describe('store', () => {
       auditId: 'image-delivery-insight',
       category: 'performance',
       title: 'Improve image delivery',
-      itemKey: `${ORIGIN}/hero.jpg`,
-      itemLabel: 'hero.jpg',
       severity: 'fail',
       pages: 3,
+      items: 1,
+      topItems: [{ key: `${ORIGIN}/hero.jpg`, label: 'hero.jpg', pages: 3, savingsMs: 500, savingsBytes: 700_000 }],
       devices: ['desktop', 'mobile'],
       templates: ['/a', '/b/*'],
       savingsMs: 500,
@@ -234,10 +236,64 @@ describe('store', () => {
     expect(template.total).toBe(2)
     expect(template.items[0]).toMatchObject({ auditId: 'image-delivery-insight', pages: 2, templates: ['/b/*'], examples: [`${ORIGIN}/b`, `${ORIGIN}/c`] })
 
-    const affected = store.issuePages(scan.id, hero.auditId, hero.itemKey)
+    const affected = store.issuePages(scan.id, hero.auditId)
     expect(affected).toHaveLength(4)
-    expect(affected[0]).toEqual({ url: `${ORIGIN}/a`, device: 'mobile', template: '/a', savingsMs: 500, savingsBytes: 200_000, displayValue: 'Est savings of 400 KiB' })
-    expect(store.issuePages(scan.id, 'color-contrast', '').map(item => item.url)).toEqual([`${ORIGIN}/a`, `${ORIGIN}/b`])
+    expect(affected[0]).toEqual({ url: `${ORIGIN}/a`, device: 'mobile', template: '/a', items: 1, savingsMs: 500, savingsBytes: 200_000, displayValue: 'Est savings of 400 KiB' })
+    expect(store.issuePages(scan.id, 'color-contrast').map(item => item.url)).toEqual([`${ORIGIN}/a`, `${ORIGIN}/b`])
+    expect(store.listIssues({ scanId: scan.id, auditId: 'color-contrast', limit: 10, offset: 0 }).items[0]).toMatchObject({ pages: 2, items: 0, topItems: [] })
+    expect(store.issueItems(scan.id, 'color-contrast')).toEqual([])
+  })
+
+  test('merges the hashed bundles of one audit into one issue, counting each page once with its largest saving', () => {
+    const scan = newScan()
+    store.insertPages(scan.id, [page('/a'), page('/b'), page('/c')])
+    const js = (hash: string, savingsBytes: number) => finding({ auditId: 'unused-javascript', title: 'Reduce unused JavaScript', itemKey: `${ORIGIN}/_nuxt/${hash}.js`, itemLabel: `/_nuxt/${hash}.js`, savingsBytes, savingsMs: savingsBytes / 1000 })
+    const save = (path: string, findings: Finding[]) => store.savePageResult(scan.id, `${ORIGIN}${path}`, 'mobile', result({ findings }))
+    save('/a', [js('RWi7wTWu', 100_000), js('Y9VT7vHg', 50_000)])
+    save('/b', [js('RWi7wTWu', 100_000)])
+    save('/c', [js('Kq2xP0aB', 30_000)])
+
+    const issues = store.listIssues({ scanId: scan.id, limit: 10, offset: 0 })
+    expect(issues.total).toBe(1)
+    expect(issues.items[0]).toMatchObject({
+      auditId: 'unused-javascript',
+      pages: 3,
+      items: 3,
+      savingsBytes: 230_000,
+      savingsMs: 230,
+      impact: 3 + 0.23 + 2.3,
+    })
+    expect(issues.items[0]!.topItems.map(item => [item.key, item.pages, item.savingsBytes])).toEqual([
+      [`${ORIGIN}/_nuxt/RWi7wTWu.js`, 2, 200_000],
+      [`${ORIGIN}/_nuxt/Y9VT7vHg.js`, 1, 50_000],
+      [`${ORIGIN}/_nuxt/Kq2xP0aB.js`, 1, 30_000],
+    ])
+
+    expect(store.issueItems(scan.id, 'unused-javascript').map(item => item.label)).toEqual(['/_nuxt/RWi7wTWu.js', '/_nuxt/Y9VT7vHg.js', '/_nuxt/Kq2xP0aB.js'])
+    expect(store.issuePages(scan.id, 'unused-javascript').map(entry => [entry.url, entry.items, entry.savingsBytes])).toEqual([
+      [`${ORIGIN}/a`, 2, 100_000],
+      [`${ORIGIN}/b`, 1, 100_000],
+      [`${ORIGIN}/c`, 1, 30_000],
+    ])
+  })
+
+  test('comparing scans whose bundle hashes changed reports the audit as persisting, not new and fixed', () => {
+    const scanWith = (hashes: string[]) => {
+      const scan = newScan()
+      store.insertPages(scan.id, [page('/a'), page('/b')])
+      for (const path of ['/a', '/b']) {
+        store.savePageResult(scan.id, `${ORIGIN}${path}`, 'mobile', result({
+          findings: hashes.map(hash => finding({ auditId: 'unused-javascript', itemKey: `${ORIGIN}/_nuxt/${hash}.js`, savingsBytes: 40_000 })),
+        }))
+      }
+      store.updateScan(scan.id, { status: 'done' })
+      return store.getScan(scan.id)!
+    }
+    const base = scanWith(['RWi7wTWu', 'Y9VT7vHg'])
+    const head = scanWith(['Pq81LmZa', 'c0FfEe12', 'Xy7Hn3Qk'])
+    const comparison = compareScans(loadSide(store, base), loadSide(store, head))
+    expect(comparison.totals.issues).toEqual({ new: 0, fixed: 0, persisting: 1, unknown: 0 })
+    expect(comparison.issues.persisting[0]).toMatchObject({ auditId: 'unused-javascript', basePages: 2, headPages: 2, pagesDelta: 0, items: 3 })
   })
 
   test('lists the templates of a scan with distinct page counts, largest first', () => {
@@ -339,11 +395,14 @@ describe('store', () => {
     expect(plan(`SELECT * FROM pages WHERE scan_id = 'x' AND template = '/b/*' AND device = 'mobile' ORDER BY score_performance DESC NULLS LAST`))
       .toContain('SEARCH pages USING INDEX pages_template (scan_id=? AND template=? AND device=?)')
     expect(plan(`SELECT * FROM pages WHERE scan_id = 'x' ORDER BY url LIMIT 50`)).not.toContain('SCAN pages')
-    const issues = plan(`SELECT f.audit_id, f.item_key, count(DISTINCT f.url) FROM findings f
+    const issues = plan(`SELECT f.audit_id, f.url, f.device, max(f.savings_ms) FROM findings f
       JOIN pages p ON p.scan_id = f.scan_id AND p.url = f.url AND p.device = f.device
-      WHERE f.scan_id = 'x' GROUP BY f.audit_id, f.item_key`)
+      WHERE f.scan_id = 'x' GROUP BY f.audit_id, f.url, f.device`)
     expect(issues).toMatch(/SEARCH f USING (COVERING )?INDEX findings_issue/)
-    expect(issues).not.toContain('TEMP B-TREE FOR GROUP BY')
+    const items = plan(`SELECT f.item_key, count(DISTINCT f.url) FROM findings f
+      WHERE f.scan_id = 'x' AND f.audit_id = 'unused-javascript' AND f.item_key <> '' GROUP BY f.item_key`)
+    expect(items).toMatch(/SEARCH f USING (COVERING )?INDEX findings_issue \(scan_id=\? AND audit_id=\?/)
+    expect(items).not.toContain('TEMP B-TREE FOR GROUP BY')
     db.close()
     store = openStore(join(dir, 'data'))
   })

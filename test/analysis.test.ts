@@ -89,15 +89,15 @@ function page(scanId: string, input: PageInput): Page {
   }
 }
 
-function issue(auditId: string, itemKey: string, pages: number, overrides: Partial<Issue> = {}): Issue {
+function issue(auditId: string, pages: number, overrides: Partial<Issue> = {}): Issue {
   return {
     auditId,
     category: 'performance',
     title: `Title of ${auditId}`,
-    itemKey,
-    itemLabel: itemKey || null,
     severity: 'fail',
     pages,
+    items: 0,
+    topItems: [],
     devices: ['mobile'],
     templates: ['/'],
     savingsMs: 100,
@@ -245,30 +245,30 @@ describe('compareScans', () => {
     expect(result.devices[0]!.scores.performance!.delta).toBe(-0.13)
   })
 
-  test('matches issues by audit and item and reports new, fixed and persisting with page-count change', () => {
+  test('matches issues by audit and reports new, fixed and persisting with page-count change', () => {
     const result = compareScans(
-      { scan: base, pages: [], issues: [issue('unused-javascript', 'a.js', 10), issue('unused-javascript', 'b.js', 4), issue('image-alt', '', 3)] },
-      { scan: head, pages: [], issues: [issue('unused-javascript', 'a.js', 12), issue('unused-javascript', 'c.js', 2), issue('image-alt', 'img.hero', 1)] },
+      { scan: base, pages: [], issues: [issue('unused-javascript', 10, { items: 3 }), issue('image-alt', 3), issue('uses-long-cache-ttl', 4)] },
+      { scan: head, pages: [], issues: [issue('unused-javascript', 12, { items: 5 }), issue('render-blocking-insight', 2)] },
     )
-    expect(result.issues.new.map(entry => `${entry.auditId}:${entry.itemKey}`).sort()).toEqual(['image-alt:img.hero', 'unused-javascript:c.js'])
-    expect(result.issues.fixed.map(entry => `${entry.auditId}:${entry.itemKey}`).sort()).toEqual(['image-alt:', 'unused-javascript:b.js'])
+    expect(result.issues.new.map(entry => entry.auditId)).toEqual(['render-blocking-insight'])
+    expect(result.issues.fixed.map(entry => entry.auditId).sort()).toEqual(['image-alt', 'uses-long-cache-ttl'])
     expect(result.issues.persisting).toHaveLength(1)
-    expect(result.issues.persisting[0]).toMatchObject({ itemKey: 'a.js', basePages: 10, headPages: 12, pagesDelta: 2 })
-    expect(result.totals.issues).toEqual({ new: 2, fixed: 2, persisting: 1, unknown: 0 })
+    expect(result.issues.persisting[0]).toMatchObject({ auditId: 'unused-javascript', items: 5, basePages: 10, headPages: 12, pagesDelta: 2 })
+    expect(result.totals.issues).toEqual({ new: 1, fixed: 2, persisting: 1, unknown: 0 })
   })
 
   test('does not report issues of pages that failed in head as fixed', () => {
     const affected: Record<string, Array<{ url: string, device: Device }>> = {
-      'unused-javascript:a.js': [{ url: `${ORIGIN}/a`, device: 'mobile' }, { url: `${ORIGIN}/b`, device: 'mobile' }],
-      'unused-javascript:b.js': [{ url: `${ORIGIN}/b`, device: 'mobile' }],
-      'image-alt:': [{ url: `${ORIGIN}/b`, device: 'desktop' }],
+      'unused-javascript': [{ url: `${ORIGIN}/a`, device: 'mobile' }, { url: `${ORIGIN}/b`, device: 'mobile' }],
+      'uses-long-cache-ttl': [{ url: `${ORIGIN}/b`, device: 'mobile' }],
+      'image-alt': [{ url: `${ORIGIN}/b`, device: 'desktop' }],
     }
     const result = compareScans(
       {
         scan: base,
         pages: [page('base', { path: '/a' }), page('base', { path: '/b' }), page('base', { path: '/b', device: 'desktop' })],
-        issues: [issue('unused-javascript', 'a.js', 2), issue('unused-javascript', 'b.js', 1), issue('image-alt', '', 1)],
-        issuePages: (auditId, itemKey) => affected[`${auditId}:${itemKey}`] ?? [],
+        issues: [issue('unused-javascript', 2), issue('uses-long-cache-ttl', 1), issue('image-alt', 1)],
+        issuePages: auditId => affected[auditId] ?? [],
       },
       {
         scan: head,
@@ -276,8 +276,8 @@ describe('compareScans', () => {
         issues: [],
       },
     )
-    expect(result.issues.fixed.map(entry => `${entry.auditId}:${entry.itemKey}`).sort()).toEqual(['image-alt:', 'unused-javascript:b.js'])
-    expect(result.issues.unknown.map(entry => `${entry.auditId}:${entry.itemKey}`)).toEqual(['unused-javascript:a.js'])
+    expect(result.issues.fixed.map(entry => entry.auditId).sort()).toEqual(['image-alt', 'uses-long-cache-ttl'])
+    expect(result.issues.unknown.map(entry => entry.auditId)).toEqual(['unused-javascript'])
     expect(result.totals.issues).toEqual({ new: 0, fixed: 2, persisting: 0, unknown: 1 })
     const summary = summarize({ scan: head, pages: [], issues: [], brokenLinks: [], comparison: result })
     expect(summary.baseline!.issues).toEqual({ new: 0, fixed: 2, unknown: 1 })
@@ -321,9 +321,9 @@ describe('summarize', () => {
   test('reports origin-wide audits once as site checks and keeps them out of top issues', () => {
     const pages = [page('s', { path: '/' }), page('s', { path: '/a' })]
     const issues = [
-      issue('llms-txt', '', 2, { category: 'agentic-browsing' }),
-      issue('robots-txt', '', 2, { category: 'seo', severity: 'warn' }),
-      issue('unused-javascript', 'a.js', 2),
+      issue('llms-txt', 2, { category: 'agentic-browsing' }),
+      issue('robots-txt', 2, { category: 'seo', severity: 'warn' }),
+      issue('unused-javascript', 2),
     ]
     const summary = summarize({ scan: scan('s'), pages, issues, brokenLinks: [] })
     expect(summary.siteChecks).toEqual({ 'llms-txt': 'fail', 'ard-schema': 'pass', 'robots-txt': 'warn' })
@@ -370,7 +370,7 @@ describe('summarize', () => {
   test('counts broken links and adds the top regressions from a comparison', () => {
     const basePages = [page('b', { path: '/a', scores: { performance: 0.9 } }), page('b', { path: '/b', scores: { performance: 0.9 } })]
     const headPages = [page('h', { path: '/a', scores: { performance: 0.5 }, metrics: { lcp: 4000 } }), page('h', { path: '/b', scores: { performance: 0.8 } })]
-    const comparison = compareScans({ scan: scan('b'), pages: basePages, issues: [] }, { scan: scan('h'), pages: headPages, issues: [issue('x', '', 1)] })
+    const comparison = compareScans({ scan: scan('b'), pages: basePages, issues: [] }, { scan: scan('h'), pages: headPages, issues: [issue('x', 1)] })
     const brokenLinks: BrokenLink[] = [{ url: `${ORIGIN}/gone`, status: 404, from: `${ORIGIN}/` }, { url: `${ORIGIN}/gone`, status: 404, from: `${ORIGIN}/a` }]
     const summary = summarize({ scan: scan('h'), pages: headPages, issues: [], brokenLinks, comparison })
     expect(summary.brokenLinks).toBe(1)
@@ -395,7 +395,7 @@ describe('summarize', () => {
         provenance: { spread: i % 7 === 0 ? 0.2 : 0.01, concurrency: 2 },
       })
     }))
-    const issues = Array.from({ length: 300 }, (_, i) => issue(`unused-javascript-${i % 30}`, `${ORIGIN}/_next/static/chunks/pages/vendor-${i}.3f9a2b7c.js`, 1 + (i % 40)))
+    const issues = Array.from({ length: 300 }, (_, i) => issue(`audit-${i}`, 1 + (i % 40), { items: 12, topItems: [{ key: `${ORIGIN}/_next/static/chunks/pages/vendor-${i}.3f9a2b7c.js`.repeat(3), label: null, pages: 1, savingsMs: 0, savingsBytes: 0 }] }))
     const baseScan = scan('base')
     const headScan = scan('head', { stats: { discovered: 500, queued: 0, done: 290, failed: 10, skipped: 200 } })
     const comparison = compareScans({ scan: baseScan, pages: makePages('base', 0), issues: issues.slice(50) }, { scan: headScan, pages: makePages('head', 0.1), issues })
@@ -440,7 +440,7 @@ describe('checkBudgets', () => {
 
   test('fails regression and new-issue rules against a baseline', () => {
     const basePages = pages.map(entry => ({ ...entry, scanId: 'b', scores: { ...entry.scores, performance: 0.9 } }))
-    const comparison = compareScans({ scan: scan('b'), pages: basePages, issues: [] }, { scan: scan('h'), pages, issues: [issue('render-blocking-insight', 'a.css', 3)] })
+    const comparison = compareScans({ scan: scan('b'), pages: basePages, issues: [] }, { scan: scan('h'), pages, issues: [issue('render-blocking-insight', 3)] })
     const report = checkBudgets({ summary, pages, comparison }, budgets({ regression: { performance: 0.1, accessibility: 0.01 }, newIssues: 0 }))
     const byRule = Object.fromEntries(report.results.map(result => [result.rule, result]))
     expect(byRule['regression:performance']).toMatchObject({ actual: 0.23, limit: 0.1, passed: false })
@@ -505,8 +505,8 @@ describe('toMarkdown', () => {
   test('renders the verdict, score table with deltas, failed budgets, regressions and issue changes', () => {
     const basePages = [page('b', { path: '/a', scores: { performance: 0.9 } }), page('b', { path: '/b', scores: { performance: 0.9 } })]
     const headPages = [page('h', { path: '/a', scores: { performance: 0.5 }, metrics: { lcp: 4500 } }), page('h', { path: '/b', scores: { performance: 0.9 } })]
-    const newIssues = Array.from({ length: 7 }, (_, i) => issue(`audit-${i}`, `item|${i}`, 7 - i))
-    const comparison = compareScans({ scan: scan('base'), pages: basePages, issues: [issue('gone', 'x.js', 2)] }, { scan: scan('head'), pages: headPages, issues: newIssues })
+    const newIssues = Array.from({ length: 7 }, (_, i) => issue(`audit-${i}`, 7 - i, { title: `Title|${i}`, items: 3 }))
+    const comparison = compareScans({ scan: scan('base'), pages: basePages, issues: [issue('gone', 2)] }, { scan: scan('head'), pages: headPages, issues: newIssues })
     const summary = summarize({ scan: scan('head'), pages: headPages, issues: newIssues, comparison, brokenLinks: [] })
     const report = checkBudgets({ summary, pages: headPages, comparison }, budgets({ scores: { performance: 0.9, seo: 0.5 } }))
     const markdown = toMarkdown({ summary, comparison, budgets: report, reportUrl: 'https://ci.example/report' })
@@ -518,7 +518,7 @@ describe('toMarkdown', () => {
     expect(lines).toContain('| **fail** | `score:performance` | mobile | 0.7 | 0.9 |  |')
     expect(lines).toContain('| /a | mobile | /a | Performance -40, LCP +2500 ms |')
     expect(lines).toContain('**New (7)**')
-    expect(lines).toContain('- Title of audit-0 (`audit-0`) — item\\|0 · 7 page(s)')
+    expect(lines).toContain('- Title\\|0 (`audit-0`) · 3 resources · 7 page(s)')
     expect(lines).toContain('<summary>2 more</summary>')
     expect(lines).toContain('**Fixed (1)**')
     expect(lines).toContain('Audited 2 of 2 discovered pages (0 skipped by sampling)')
@@ -528,7 +528,7 @@ describe('toMarkdown', () => {
 
   test('works without baseline or budgets and shows warnings', () => {
     const pages = [page('s', { path: '/', provenance: { benchmarkIndex: 500 } })]
-    const summary = summarize({ scan: scan('s', { devices: ['mobile'] }), pages, issues: [issue('unused-css-rules', 'a.css', 1)], brokenLinks: [] })
+    const summary = summarize({ scan: scan('s', { devices: ['mobile'] }), pages, issues: [issue('unused-css-rules', 1)], brokenLinks: [] })
     const markdown = toMarkdown({ summary })
     expect(markdown).toContain('**Scan done**')
     expect(markdown).toContain('> [!WARNING]')

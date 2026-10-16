@@ -104,9 +104,12 @@ describe('operations', () => {
 
     const issues = await call('issues.list', { scanId: scan.id })
     expect(issues.total).toBe(1)
-    const issue = await call('issues.get', { scanId: scan.id, auditId: 'image-delivery-insight', itemKey: '/hero.png' })
+    const issue = await call('issues.get', { scanId: scan.id, auditId: 'image-delivery-insight' })
     expect(issue.issue.pages).toBe(4)
+    expect(issue.items).toEqual([expect.objectContaining({ key: '/hero.png', pages: 4 })])
     expect(issue.pages).toHaveLength(8)
+    expect(issue.pages[0]).toMatchObject({ items: 1 })
+    await expect(call('issues.get', { scanId: scan.id, auditId: 'nope' })).rejects.toMatchObject({ code: 'NOT_FOUND' })
 
     expect(await call('scans.brokenLinks', { scanId: scan.id })).toEqual([{ url: `${site.origin}/gone`, status: 404, from: expect.any(String) }])
 

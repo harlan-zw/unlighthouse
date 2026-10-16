@@ -298,7 +298,7 @@ export const operations: AnyOperation[] = [
   defineOperation({
     name: 'issues.list',
     kind: 'read',
-    description: 'Lists site-wide issues as { items, total }: the same failing audit on the same item merged across pages, ranked by impact (affected pages x estimated savings). Each issue names its audit, item, affected page count, devices, templates and example URLs. Filter by category, device or template.',
+    description: 'Lists site-wide issues as { items, total }: one issue per failing audit, merged across pages and resources, ranked by impact (affected pages x estimated savings; per page the largest resource saving counts). Each issue names its audit, affected page count, number of distinct resources (items) with the top few (topItems), devices, templates and example URLs. Filter by category, device or template.',
     input: z.object({
       scanId,
       category: category.optional(),
@@ -316,19 +316,17 @@ export const operations: AnyOperation[] = [
   defineOperation({
     name: 'issues.get',
     kind: 'read',
-    description: 'Returns one issue ({ issue, pages }) with every affected page and its savings. Take auditId and itemKey from issues.list or scans.summary (itemKey is "" for page-level audits).',
+    description: 'Returns one issue as { issue, items, pages }: every resource the audit names (key, label, affected pages, savings) and every affected page with its largest saving. Take auditId from issues.list or scans.summary.',
     input: z.object({
       scanId,
       auditId: z.string().min(1),
-      itemKey: z.string().describe('Item key from issues.list; "" when the audit has no item'),
     }),
     handler({ store }, input) {
       getScan(store, input.scanId)
-      const issue = store.listIssues({ scanId: input.scanId, limit: 1_000_000, offset: 0 }).items
-        .find(candidate => candidate.auditId === input.auditId && candidate.itemKey === input.itemKey)
+      const issue = store.listIssues({ scanId: input.scanId, auditId: input.auditId, limit: 1, offset: 0 }).items[0]
       if (!issue)
-        throw new UnlighthouseError('NOT_FOUND', `Issue not found: ${input.auditId} ${JSON.stringify(input.itemKey)} in scan ${input.scanId}`)
-      return { issue, pages: store.issuePages(input.scanId, input.auditId, input.itemKey) }
+        throw new UnlighthouseError('NOT_FOUND', `Issue not found: ${input.auditId} in scan ${input.scanId}`)
+      return { issue, items: store.issueItems(input.scanId, input.auditId), pages: store.issuePages(input.scanId, input.auditId) }
     },
   }),
 

@@ -47,19 +47,19 @@ One row per page × device, every status (`queued`, `running`, `done`, `failed`,
 
 ## issues.csv
 
-One row per site-wide issue (the same failing audit on the same item, merged across pages), ranked by impact, highest first.
+One row per site-wide issue (one failing audit, merged across pages and the items it names), ranked by impact, highest first.
 
 | Column | Type | Meaning |
 |---|---|---|
 | `audit_id` | text | Lighthouse audit id, e.g. `image-delivery-insight` |
-| `item_key` | text | The item the audit names (resource URL, selector); empty for page-level audits |
-| `item_label` | text | Human-readable item label |
 | `title` | text | Audit title |
 | `category` | text | Lighthouse category, empty when the audit belongs to none |
 | `severity` | `fail` \| `warn` | |
 | `pages` | integer | Number of distinct URLs affected |
+| `items` | integer | Number of distinct items the audit names (resource URL, selector); 0 for page-level audits |
+| `top_item` | text | Key of the item with the largest savings; empty for page-level audits |
 | `devices` | text | Affected devices, space separated |
 | `templates` | text | Affected templates, space separated |
-| `savings_ms` | ms | Estimated time savings summed over affected pages |
-| `savings_bytes` | bytes | Estimated transfer savings summed over affected pages |
+| `savings_ms` | ms | Estimated time savings: the largest item saving of each affected page, summed over pages |
+| `savings_bytes` | bytes | Estimated transfer savings: the largest item saving of each affected page, summed over pages |
 | `impact` | number | Ranking score: affected pages weighted by severity plus savings |

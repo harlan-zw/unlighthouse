@@ -10,11 +10,11 @@ import { DataTable, type Column } from '../components/DataTable.tsx'
 const LIMIT = 50
 
 function issueKey(issue: Issue): string {
-  return `${issue.auditId}|${issue.itemKey}`
+  return issue.auditId
 }
 
 function IssueDetail({ scanId, issue }: { scanId: string, issue: Issue }) {
-  const detail = useQuery('issues.get', { scanId, auditId: issue.auditId, itemKey: issue.itemKey })
+  const detail = useQuery('issues.get', { scanId, auditId: issue.auditId })
   if (detail.error)
     return <ErrorState error={detail.error} onRetry={detail.reload} compact />
   if (!detail.data) {
@@ -46,12 +46,7 @@ function IssueDetail({ scanId, issue }: { scanId: string, issue: Issue }) {
           {'Audit '}
           <code>{issue.auditId}</code>
         </span>
-        {issue.itemKey && (
-          <span style={{ overflowWrap: 'anywhere' }}>
-            {'Item '}
-            <code>{issue.itemKey}</code>
-          </span>
-        )}
+        {issue.items > 0 && <span>{`Resources: ${formatCount(issue.items)}`}</span>}
         <span>{`Templates: ${issue.templates.join(', ')}`}</span>
       </div>
       <div className="issue-pages">
@@ -99,7 +94,7 @@ export function ScanIssues({ scan, refresh }: { scan: Scan, refresh: number }) {
       render: issue => (
         <span className="url-cell">
           <span style={{ fontWeight: 500 }}>{issue.title}</span>
-          <span className="cell-sub mono truncate" title={issue.itemKey}>{issue.itemLabel ?? (issue.itemKey || 'Page-level')}</span>
+          {issue.items > 1 && <span className="cell-sub">{`${formatCount(issue.items)} resources`}</span>}
         </span>
       ),
     },
@@ -127,7 +122,7 @@ export function ScanIssues({ scan, refresh }: { scan: Scan, refresh: number }) {
         </div>
         <TemplateFilter value={template} options={templates} onChange={next => setParams({ template: next || null, offset: null })} />
         <span className="spacer" />
-        <span className="faint" style={{ fontSize: 'var(--text-sm)', paddingBottom: 6 }}>Same audit and item across pages counts as one issue</span>
+        <span className="faint" style={{ fontSize: 'var(--text-sm)', paddingBottom: 6 }}>Same audit across pages and resources counts as one issue</span>
       </div>
       {issues.error
         ? <ErrorState error={issues.error} onRetry={issues.reload} compact />

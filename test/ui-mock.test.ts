@@ -71,14 +71,15 @@ const finding = z.strictObject({
   savingsMs: z.number().nullable(),
   savingsBytes: z.number().nullable(),
 })
+const issueItem = z.strictObject({ key: z.string().min(1), label: z.string().nullable(), pages: z.number().int().min(1), savingsMs: z.number().min(0), savingsBytes: z.number().min(0) })
 const issue = z.strictObject({
   auditId: z.string(),
   category: category.nullable(),
   title: z.string(),
-  itemKey: z.string(),
-  itemLabel: z.string().nullable(),
   severity,
   pages: z.number().int().min(1),
+  items: z.number().int().min(0),
+  topItems: z.array(issueItem),
   devices: z.array(device).min(1),
   templates: z.array(z.string()).min(1),
   savingsMs: z.number().min(0),
@@ -86,7 +87,7 @@ const issue = z.strictObject({
   impact: z.number().min(0),
   examples: z.array(z.url()),
 })
-const issuePage = z.strictObject({ url: z.url(), device, template: z.string(), savingsMs: z.number().nullable(), savingsBytes: z.number().nullable(), displayValue: z.string().nullable() })
+const issuePage = z.strictObject({ url: z.url(), device, template: z.string(), items: z.number().int().min(0), savingsMs: z.number().nullable(), savingsBytes: z.number().nullable(), displayValue: z.string().nullable() })
 const paged = <T extends z.ZodType>(item: T) => z.strictObject({ items: z.array(item), total: z.number().int().min(0) })
 const site = z.strictObject({ id: z.number().int(), origin: z.url(), createdAt: timestamp, scans: z.number().int().min(0), lastScan: scan.nullable(), lastScores: z.partialRecord(device, scores) })
 const brokenLink = z.strictObject({ url: z.url(), status: z.number().int(), from: z.url() })
@@ -130,8 +131,10 @@ describe('mock client', () => {
 
     const issues = paged(issue).parse(await client.call('issues.list', { scanId: id, limit: 50, offset: 0 }))
     const first = issues.items[0]!
-    const one = z.strictObject({ issue, pages: z.array(issuePage) }).parse(await client.call('issues.get', { scanId: id, auditId: first.auditId, itemKey: first.itemKey }))
+    expect(new Set(issues.items.map(i => i.auditId)).size).toBe(issues.items.length)
+    const one = z.strictObject({ issue, items: z.array(issueItem), pages: z.array(issuePage) }).parse(await client.call('issues.get', { scanId: id, auditId: first.auditId }))
     expect(one.pages.length).toBe(new Set(one.pages.map(p => `${p.url}|${p.device}`)).size)
+    expect(one.items).toHaveLength(first.items)
 
     const shop = scans.items.filter(s => s.origin === done!.origin && s.status === 'done')
     const diff = await client.call('compare', { base: shop[1]!.id, head: shop[0]!.id })

@@ -120,7 +120,7 @@ function issueColumns(): Column<IssueDiff>[] {
       render: i => (
         <span className="url-cell">
           <span style={{ fontWeight: 500 }}>{i.title}</span>
-          <span className="cell-sub mono truncate">{i.itemLabel ?? (i.itemKey || 'Page-level')}</span>
+          {i.items > 1 && <span className="cell-sub">{`${formatCount(i.items)} resources`}</span>}
         </span>
       ),
     },
@@ -178,10 +178,10 @@ function ComparisonView({ data }: { data: ScanComparison }) {
       </Card>
       <div className="grid-2">
         <Card title="New issues" hint={formatCount(data.issues.new.length)} flush>
-          <DataTable caption="New issues" columns={issueColumns()} rows={data.issues.new} rowKey={i => `${i.auditId}|${i.itemKey}`} defaultSort={{ key: 'impact', order: 'desc' }} maxHeight="420px" dense empty={<EmptyState title="No new issues" compact />} />
+          <DataTable caption="New issues" columns={issueColumns()} rows={data.issues.new} rowKey={i => i.auditId} defaultSort={{ key: 'impact', order: 'desc' }} maxHeight="420px" dense empty={<EmptyState title="No new issues" compact />} />
         </Card>
         <Card title="Fixed issues" hint={formatCount(data.issues.fixed.length)} flush>
-          <DataTable caption="Fixed issues" columns={issueColumns()} rows={data.issues.fixed} rowKey={i => `${i.auditId}|${i.itemKey}`} defaultSort={{ key: 'impact', order: 'desc' }} maxHeight="420px" dense empty={<EmptyState title="No fixed issues" compact />} />
+          <DataTable caption="Fixed issues" columns={issueColumns()} rows={data.issues.fixed} rowKey={i => i.auditId} defaultSort={{ key: 'impact', order: 'desc' }} maxHeight="420px" dense empty={<EmptyState title="No fixed issues" compact />} />
         </Card>
       </div>
     </div>

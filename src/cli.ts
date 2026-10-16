@@ -394,7 +394,7 @@ export function formatSummary(summary: ScanSummary): string {
   if (summary.topIssues.length) {
     lines.push('', `Top issues (${summary.issueCount} in total):`)
     for (const issue of summary.topIssues)
-      lines.push(`  - ${issue.title}${issue.itemLabel ? ` — ${issue.itemLabel}` : ''} (${issue.pages} page(s))`)
+      lines.push(`  - ${issue.title}${issue.items > 1 ? `, ${issue.items} resources` : issue.topItem ? ` — ${issue.topItem}` : ''} (${issue.pages} page(s))`)
   }
   if (summary.brokenLinks)
     lines.push('', `${summary.brokenLinks} broken link(s)`)

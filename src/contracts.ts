@@ -1,5 +1,5 @@
 import type { Config, LighthouseOptions, RunnerConfig } from './config.ts'
-import type { Category, Delivery, Device, FieldRecord, FieldSource, Finding, FlowMetrics, FlowRun, FlowRunDetail, FlowStepMode, Issue, Metrics, NotificationChannel, NotificationEvent, Page, PageField, PageStatus, Provenance, Scan, ScanField, ScanStats, ScanStatus, Schedule, Scores, Site } from './types.ts'
+import type { Category, Delivery, Device, FieldRecord, FieldSource, Finding, FlowMetrics, FlowRun, FlowRunDetail, FlowStepMode, Issue, IssueItem, Metrics, NotificationChannel, NotificationEvent, Page, PageField, PageStatus, Provenance, Scan, ScanField, ScanStats, ScanStatus, Schedule, Scores, Site } from './types.ts'
 
 export interface Cookie {
   name: string
@@ -125,6 +125,7 @@ export interface PageQuery {
 
 export interface IssueQuery {
   scanId: string
+  auditId?: string
   category?: Category
   device?: Device
   template?: string
@@ -136,9 +137,16 @@ export interface IssuePage {
   url: string
   device: Device
   template: string
+  items: number
   savingsMs: number | null
   savingsBytes: number | null
   displayValue: string | null
+}
+
+export interface IssueDetail {
+  issue: Issue
+  items: IssueItem[]
+  pages: IssuePage[]
 }
 
 export interface TemplateCount {
@@ -229,7 +237,8 @@ export interface Store extends MonitorStore {
   templates(scanId: string): TemplateCount[]
   findings(scanId: string, url: string, device: Device): Finding[]
   listIssues(query: IssueQuery): Paged<Issue>
-  issuePages(scanId: string, auditId: string, itemKey: string): IssuePage[]
+  issueItems(scanId: string, auditId: string): IssueItem[]
+  issuePages(scanId: string, auditId: string): IssuePage[]
   getReport(scanId: string, url: string, device: Device): Uint8Array | null
   getThumbnail(scanId: string, url: string, device: Device): Uint8Array | null
   pruneScans(origin: string, keep: number): string[]

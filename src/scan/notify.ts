@@ -20,7 +20,7 @@ export interface NotificationMessage {
   baseline: string | null
   devices: Array<{ device: Device, scores: Partial<Record<Category, number>>, deltas: Partial<Record<Category, number>> }>
   regressions: Array<{ path: string, device: Device, deltas: Partial<Record<Category, number>> }>
-  newIssues: Array<{ title: string, itemLabel: string | null, pages: number }>
+  newIssues: Array<{ title: string, items: number, pages: number }>
   failedBudgets: Array<{ rule: string, scope: string, actual: number | null, limit: number }>
 }
 
@@ -168,7 +168,7 @@ function renderText(input: Omit<NotificationMessage, 'title' | 'text'>): string 
   if (input.newIssues.length) {
     lines.push('New issues:')
     for (const issue of input.newIssues)
-      lines.push(`- ${issue.title}${issue.itemLabel ? ` — ${issue.itemLabel}` : ''} (${issue.pages} page(s))`)
+      lines.push(`- ${issue.title}${issue.items > 1 ? `, ${issue.items} resources` : ''} (${issue.pages} page(s))`)
   }
   if (input.link)
     lines.push(input.link)
@@ -217,7 +217,7 @@ export function scanMessage(store: Store, scanId: string, publicUrl?: string): N
     })),
     regressions: (baseline?.topRegressions ?? []).slice(0, TOP).map(entry => ({ path: entry.path, device: entry.device, deltas: entry.scores })),
     newIssues: (comparison?.issues.new ?? []).slice().sort((a, b) => b.impact - a.impact).slice(0, TOP)
-      .map(issue => ({ title: issue.title, itemLabel: issue.itemLabel, pages: issue.headPages })),
+      .map(issue => ({ title: issue.title, items: issue.items, pages: issue.headPages })),
     failedBudgets: budgets.results.filter(result => !result.passed)
       .map(result => ({ rule: result.rule, scope: result.scope, actual: result.actual, limit: result.limit })),
   })

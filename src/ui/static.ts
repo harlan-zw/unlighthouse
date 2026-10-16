@@ -1,6 +1,8 @@
 import type { ScanComparison } from '../analysis/compare.ts'
+import type { IssueHit } from '../analysis/issues.ts'
+import { groupIssues, issueItems, issuePages } from '../analysis/issues.ts'
 import type { ScanSummary } from '../analysis/summary.ts'
-import type { BrokenLink, IssuePage, IssueQuery, Paged, PageQuery, TemplateCount } from '../contracts.ts'
+import type { BrokenLink, IssueQuery, Paged, PageQuery, TemplateCount } from '../contracts.ts'
 import { CATEGORIES } from '../types.ts'
 import type { Category, Device, Finding, Issue, Metrics, Page, Scan } from '../types.ts'
 import { ApiError } from './api.ts'
@@ -69,13 +71,8 @@ export function listPages(snapshot: Snapshot, query: PageQuery): Paged<Page> {
   return { items: rows.slice(query.offset, query.offset + query.limit), total: rows.length }
 }
 
-interface Hit {
-  page: Page
-  finding: Finding
-}
-
-function hits(snapshot: Snapshot, filter: { category?: Category, device?: Device, template?: string }): Hit[] {
-  const out: Hit[] = []
+function hits(snapshot: Snapshot, filter: { category?: Category, device?: Device, template?: string }): IssueHit[] {
+  const out: IssueHit[] = []
   for (const page of snapshot.pages) {
     if ((filter.device !== undefined && page.device !== filter.device) || (filter.template !== undefined && page.template !== filter.template))
       continue
@@ -87,14 +84,6 @@ function hits(snapshot: Snapshot, filter: { category?: Category, device?: Device
   return out
 }
 
-function maxText<T extends string | null>(a: T, b: T): T {
-  if (a === null)
-    return b
-  if (b === null)
-    return a
-  return b > a ? b : a
-}
-
 export function listIssues(snapshot: Snapshot, query: IssueQuery): Paged<Issue> {
   const filter: { category?: Category, device?: Device, template?: string } = {}
   if (query.category !== undefined)
@@ -103,48 +92,8 @@ export function listIssues(snapshot: Snapshot, query: IssueQuery): Paged<Issue> 
     filter.device = query.device
   if (query.template !== undefined)
     filter.template = query.template
-  const groups = new Map<string, { issue: Issue, urls: Set<string>, devices: Set<Device>, templates: Set<string> }>()
-  for (const { page, finding } of hits(snapshot, filter)) {
-    const key = `${finding.auditId}\u0000${finding.itemKey}`
-    let group = groups.get(key)
-    if (!group) {
-      group = {
-        issue: { auditId: finding.auditId, category: finding.category, title: finding.title, itemKey: finding.itemKey, itemLabel: finding.itemLabel, severity: finding.severity, pages: 0, devices: [], templates: [], savingsMs: 0, savingsBytes: 0, impact: 0, examples: [] },
-        urls: new Set(),
-        devices: new Set(),
-        templates: new Set(),
-      }
-      groups.set(key, group)
-    }
-    const { issue } = group
-    issue.category = maxText(issue.category, finding.category)
-    issue.title = maxText(issue.title, finding.title)
-    issue.itemLabel = maxText(issue.itemLabel, finding.itemLabel)
-    if (finding.severity < issue.severity)
-      issue.severity = finding.severity
-    issue.savingsMs += finding.savingsMs ?? 0
-    issue.savingsBytes += finding.savingsBytes ?? 0
-    group.urls.add(page.url)
-    group.devices.add(page.device)
-    group.templates.add(page.template)
-  }
-  const issues = [...groups.values()].map(({ issue, urls, devices, templates }) => ({
-    ...issue,
-    pages: urls.size,
-    devices: [...devices].sort(),
-    templates: [...templates].sort(),
-    impact: urls.size * (issue.severity === 'fail' ? 1 : 0.5) + issue.savingsMs / 1000 + issue.savingsBytes / 100000,
-    examples: [...urls].sort(compareText).slice(0, 3),
-  }))
-  issues.sort((a, b) => b.impact - a.impact || b.pages - a.pages || compareText(a.auditId, b.auditId) || compareText(a.itemKey, b.itemKey))
+  const issues = groupIssues(hits(snapshot, filter)).filter(issue => query.auditId === undefined || issue.auditId === query.auditId)
   return { items: issues.slice(query.offset, query.offset + query.limit), total: issues.length }
-}
-
-export function issuePages(snapshot: Snapshot, auditId: string, itemKey: string): IssuePage[] {
-  return hits(snapshot, {})
-    .filter(({ finding }) => finding.auditId === auditId && finding.itemKey === itemKey)
-    .map(({ page, finding }): IssuePage => ({ url: page.url, device: page.device, template: page.template, savingsMs: finding.savingsMs, savingsBytes: finding.savingsBytes, displayValue: finding.displayValue }))
-    .sort((a, b) => (b.savingsMs ?? 0) - (a.savingsMs ?? 0) || (b.savingsBytes ?? 0) - (a.savingsBytes ?? 0) || compareText(a.url, b.url) || compareText(a.device, b.device))
 }
 
 function missing(what: string): never {
@@ -194,9 +143,9 @@ export function createStaticClient(snapshot: Snapshot): Client {
     },
     'issues.get': (input) => {
       exported(input.scanId)
-      const issue = listIssues(snapshot, { scanId: input.scanId, limit: Number.MAX_SAFE_INTEGER, offset: 0 }).items
-        .find(candidate => candidate.auditId === input.auditId && candidate.itemKey === input.itemKey) ?? missing(`Issue ${input.auditId}`)
-      return { issue, pages: issuePages(snapshot, input.auditId, input.itemKey) }
+      const issue = listIssues(snapshot, { scanId: input.scanId, auditId: input.auditId, limit: 1, offset: 0 }).items[0] ?? missing(`Issue ${input.auditId}`)
+      const all = hits(snapshot, {})
+      return { issue, items: issueItems(all, input.auditId), pages: issuePages(all, input.auditId) }
     },
     'compare': (input) => {
       const comparison = snapshot.comparison

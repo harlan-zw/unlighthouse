@@ -73,10 +73,10 @@ const issue: Issue = {
   auditId: 'image-delivery-insight',
   category: 'performance',
   title: 'Improve image delivery, "hero"',
-  itemKey: 'https://example.com/a,b.png',
-  itemLabel: '=HYPERLINK("http://evil")',
   severity: 'fail',
   pages: 12,
+  items: 2,
+  topItems: [{ key: '=HYPERLINK("http://evil")', label: 'a,b.png', pages: 12, savingsMs: 300, savingsBytes: 100_000 }],
   devices: ['desktop', 'mobile'],
   templates: ['/', '/blog/*'],
   savingsMs: 300,
@@ -101,7 +101,7 @@ describe('csv', () => {
     const csv = issuesCsv([issue])
     const rows = parseCsv(csv)
     expect(rows[0]).toEqual(ISSUE_COLUMNS)
-    expect(rows[1]).toEqual(['image-delivery-insight', 'https://example.com/a,b.png', '\'=HYPERLINK("http://evil")', 'Improve image delivery, "hero"', 'performance', 'fail', '12', 'desktop mobile', '/ /blog/*', '300', '100000', '13.26'])
+    expect(rows[1]).toEqual(['image-delivery-insight', 'Improve image delivery, "hero"', 'performance', 'fail', '12', '2', '\'=HYPERLINK("http://evil")', 'desktop mobile', '/ /blog/*', '300', '100000', '13.26'])
     expect(csv).toContain('"\'=HYPERLINK(""http://evil"")"')
     for (const start of ['+1', '-1', '@SUM(A1)', '\tx'])
       expect(parseCsv(pagesCsv([page({ error: start })]))[1]!.at(-1)).toBe(`'${start}`)
@@ -152,8 +152,8 @@ describe('unlighthouse export --format csv', () => {
       `mobile ${site.origin}/about`,
     ])
     const issues = parseCsv(readFileSync(join(dir, 'csv', 'issues.csv'), 'utf8').slice(1))
-    expect(issues[1]!.slice(0, 2)).toEqual(['image-delivery-insight', '/hero.png'])
-    expect(issues[1]![6]).toBe('2')
+    expect([issues[1]![0], issues[1]![ISSUE_COLUMNS.indexOf('top_item')]]).toEqual(['image-delivery-insight', '/hero.png'])
+    expect(issues[1]![ISSUE_COLUMNS.indexOf('pages')]).toBe('2')
     expect((await run(['export', scanId, '--format', 'pdf'])).code).toBe(2)
   })
 })

@@ -22,12 +22,12 @@ export const PAGE_COLUMNS = [
 
 export const ISSUE_COLUMNS = [
   'audit_id',
-  'item_key',
-  'item_label',
   'title',
   'category',
   'severity',
   'pages',
+  'items',
+  'top_item',
   'devices',
   'templates',
   'savings_ms',
@@ -67,12 +67,12 @@ export function pagesCsv(pages: Page[], options: CsvOptions = {}): string {
 export function issuesCsv(issues: Issue[], options: CsvOptions = {}): string {
   const rows = issues.map((issue): Cell[] => [
     issue.auditId,
-    issue.itemKey,
-    issue.itemLabel,
     issue.title,
     issue.category,
     issue.severity,
     issue.pages,
+    issue.items,
+    issue.topItems[0]?.key ?? null,
     issue.devices.join(' '),
     issue.templates.join(' '),
     issue.savingsMs,

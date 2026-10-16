@@ -46,7 +46,8 @@ export interface DeviceSummary {
 export interface IssueBrief {
   auditId: string
   title: string
-  itemLabel: string | null
+  items: number
+  topItem: string | null
   pages: number
   impact: number
 }
@@ -234,7 +235,10 @@ function topIssues(issues: Issue[], origin: string): IssueBrief[] {
     .filter(issue => !SITE_CHECK_IDS.has(issue.auditId))
     .toSorted((a, b) => b.impact - a.impact || b.pages - a.pages)
     .slice(0, TOP_ISSUES)
-    .map(issue => ({ auditId: issue.auditId, title: issue.title, itemLabel: clip(issue.itemLabel, origin), pages: issue.pages, impact: Math.round(issue.impact) }))
+    .map((issue) => {
+      const top = issue.topItems[0]
+      return { auditId: issue.auditId, title: issue.title, items: issue.items, topItem: top ? clip(top.label ?? top.key, origin) : null, pages: issue.pages, impact: Math.round(issue.impact) }
+    })
 }
 
 function baselineSummary(comparison: ScanComparison, origin: string): BaselineSummary {

@@ -6,7 +6,7 @@ export interface CompareSide {
   scan: Scan
   pages: Page[]
   issues: Issue[]
-  issuePages?: (auditId: string, itemKey: string) => Array<{ url: string, device: Device }>
+  issuePages?: (auditId: string) => Array<{ url: string, device: Device }>
 }
 
 export interface MetricNoise {
@@ -86,14 +86,13 @@ export interface TemplateDelta {
 
 export interface IssueDiff {
   auditId: string
-  itemKey: string
   title: string
-  itemLabel: string | null
   category: Category | null
   severity: Severity
   basePages: number
   headPages: number
   pagesDelta: number
+  items: number
   impact: number
 }
 
@@ -194,24 +193,19 @@ function meanDelta(pairs: Array<[number, number]>): MeanDelta | null {
   return { base: roundScore(base), head: roundScore(head), delta: roundScore(head - base), pages: pairs.length }
 }
 
-function issueKey(issue: Issue): string {
-  return `${issue.auditId}\u0000${issue.itemKey}`
-}
-
 function issueDiff(base: Issue | undefined, head: Issue | undefined): IssueDiff {
   const issue = (head ?? base)!
   const basePages = base?.pages ?? 0
   const headPages = head?.pages ?? 0
   return {
     auditId: issue.auditId,
-    itemKey: issue.itemKey,
     title: issue.title,
-    itemLabel: issue.itemLabel,
     category: issue.category,
     severity: issue.severity,
     basePages,
     headPages,
     pagesDelta: headPages - basePages,
+    items: issue.items,
     impact: Math.round(issue.impact),
   }
 }
@@ -289,15 +283,15 @@ export function compareScans(base: CompareSide, head: CompareSide, options?: Com
     })
     .sort((a, b) => a.delta - b.delta || a.template.localeCompare(b.template))
 
-  const baseIssues = new Map(base.issues.map(issue => [issueKey(issue), issue]))
-  const headIssues = new Map(head.issues.map(issue => [issueKey(issue), issue]))
+  const baseIssues = new Map(base.issues.map(issue => [issue.auditId, issue]))
+  const headIssues = new Map(head.issues.map(issue => [issue.auditId, issue]))
   const issues: ScanComparison['issues'] = { new: [], fixed: [], persisting: [], unknown: [] }
   for (const [key, issue] of headIssues) {
     const before = baseIssues.get(key)
     ;(before ? issues.persisting : issues.new).push(issueDiff(before, issue))
   }
   const affected = (issue: Issue) => base.issuePages
-    ? base.issuePages(issue.auditId, issue.itemKey)
+    ? base.issuePages(issue.auditId)
     : issue.examples.flatMap(url => issue.devices.map(device => ({ url, device })))
   for (const [key, issue] of baseIssues) {
     if (headIssues.has(key))

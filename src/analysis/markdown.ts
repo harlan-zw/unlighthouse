@@ -191,9 +191,12 @@ function regressionSection(summary: ScanSummary, comparison: ScanComparison): st
   return out
 }
 
+function resources(items: number): string {
+  return items > 1 ? ` · ${items} resources` : ''
+}
+
 function issueLine(issue: IssueDiff, pages: number): string {
-  const label = issue.itemLabel ? ` — ${cell(issue.itemLabel)}` : ''
-  return `- ${cell(issue.title)} (\`${issue.auditId}\`)${label} · ${pages} page(s)`
+  return `- ${cell(issue.title)} (\`${issue.auditId}\`)${resources(issue.items)} · ${pages} page(s)`
 }
 
 function issueList(title: string, issues: IssueDiff[], pagesOf: (issue: IssueDiff) => number): string[] {
@@ -222,7 +225,10 @@ function issueSection(comparison: ScanComparison): string[] {
 function topIssueSection(summary: ScanSummary): string[] {
   if (summary.topIssues.length === 0)
     return []
-  const lines = summary.topIssues.map(issue => `- ${cell(issue.title)} (\`${issue.auditId}\`)${issue.itemLabel ? ` — ${cell(issue.itemLabel)}` : ''} · ${issue.pages} page(s)`)
+  const lines = summary.topIssues.map((issue) => {
+    const item = issue.items === 1 && issue.topItem ? ` — ${cell(issue.topItem)}` : resources(issue.items)
+    return `- ${cell(issue.title)} (\`${issue.auditId}\`)${item} · ${issue.pages} page(s)`
+  })
   return [...details(`Top issues (${lines.length})`, lines), '']
 }
 

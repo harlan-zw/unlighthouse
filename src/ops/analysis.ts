@@ -36,7 +36,7 @@ export function loadSide(store: Store, scan: Scan): CompareSide {
     scan,
     pages: store.allPages(scan.id),
     issues: store.listIssues({ scanId: scan.id, limit: ALL, offset: 0 }).items,
-    issuePages: (auditId, itemKey) => store.issuePages(scan.id, auditId, itemKey),
+    issuePages: auditId => store.issuePages(scan.id, auditId),
   }
 }
 
