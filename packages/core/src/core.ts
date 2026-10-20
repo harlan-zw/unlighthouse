@@ -6,6 +6,7 @@ import type {
   ScanStatus,
   ScanSummary,
   Seed,
+  SeedSource,
   Storage,
   UnlighthouseCore,
   UnlighthouseCoreOptions,
@@ -152,7 +153,7 @@ export function createUnlighthouseCore(opts: UnlighthouseCoreOptions, hooks: Hoo
       config: mergedConfig,
       storage: opts.storage,
       auditor: opts.auditor,
-      seeds: opts.seeds,
+      seeds: typeof opts.seeds === 'function' ? opts.seeds(mergedConfig) : opts.seeds,
       routeMatcher: opts.routeMatcher,
       crawler: opts.crawler,
       packs,
@@ -186,7 +187,7 @@ interface SessionDeps {
   config: UnlighthouseConfig
   storage: Storage
   auditor: UnlighthouseCoreOptions['auditor']
-  seeds: UnlighthouseCoreOptions['seeds']
+  seeds: SeedSource
   routeMatcher?: UnlighthouseCoreOptions['routeMatcher']
   crawler: UnlighthouseCoreOptions['crawler']
   hooks: Hookable<HookMap>

@@ -144,7 +144,10 @@ export async function createLocalRuntime(opts: CreateLocalRuntimeOptions): Promi
   const auditor = resolveAuditor({ config: opts.config, logger: opts.logger, chromeFlags, env: opts.env })
   const environmentPacks = opts.env.CRUX_API_KEY ? [createCruxPack({ apiKey: opts.env.CRUX_API_KEY })] : []
   const packs = [...environmentPacks, ...(opts.packs ?? [])]
-  const { seeds, routeMatcher } = resolveSeeds(opts.config, opts.logger)
+  // The matcher only reads paths, so the boot config's is valid for every run.
+  // Seeds are resolved per run: a dashboard or MCP scan.start can override
+  // `site`, and that scan must seed from its own root and sitemap.
+  const { routeMatcher } = resolveSeeds(opts.config, opts.logger)
   const crawler = htmlCrawler({
     logger: opts.logger.withTag('crawler/html'),
     fetchConfig: opts.config,
@@ -153,7 +156,7 @@ export async function createLocalRuntime(opts: CreateLocalRuntimeOptions): Promi
   const core = createUnlighthouseCore({
     config: opts.config,
     auditor,
-    seeds,
+    seeds: config => resolveSeeds(config, opts.logger).seeds,
     routeMatcher,
     crawler,
     storage,

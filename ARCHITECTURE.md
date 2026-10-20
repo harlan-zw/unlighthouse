@@ -49,7 +49,7 @@ The `Hookable` bus is the cross-cutting event spine. Stable, schema-versioned ev
 createUnlighthouseCore({
   config,   // already resolved by the host (c12 + env + rules); Zod-validated inside
   auditor,  // single, may be an AuditorRouter
-  seeds,    // single, may be fuseSeeds([...])
+  seeds,    // single, may be fuseSeeds([...]); or (config) => SeedSource, called per run
   crawler,  // single: html / parallel-map / custom
   storage,
   hooks?,   // additive subscribers merged into the bus
