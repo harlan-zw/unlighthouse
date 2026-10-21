@@ -6,6 +6,12 @@ function escapeValueForCsv(value: string | number | boolean): string {
   return `"${value.replace(/"/g, '""')}"`
 }
 
+function formatScoreForCsv(score: number | null | undefined): string | number {
+  return typeof score === 'number' && Number.isFinite(score)
+    ? Math.round(score * 100)
+    : ''
+}
+
 interface CategoryCell {
   key: string
   title: string
@@ -35,12 +41,12 @@ export function csvSimpleFormat(reports: UnlighthouseRouteReport[]): { headers: 
       const categories = categoriesOf(report.categories)
       return [
         route.path,
-        Math.round(report.score * 100),
+        formatScoreForCsv(report.score),
         ...categoryColumns.map((column) => {
           const category = categories.find(item => item.key === column.key)
           if (!category)
             return ''
-          return Math.round(category.score * 100)
+          return formatScoreForCsv(category.score)
         }),
       ]
         .map(escapeValueForCsv)
