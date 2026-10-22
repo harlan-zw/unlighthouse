@@ -1,5 +1,6 @@
 import { useUnlighthouse } from '@unlighthouse/core'
-import { createApp, toNodeListener } from 'h3'
+import { createApp } from 'h3'
+import { toNodeHandler } from 'h3/node'
 import { listen } from 'listhen'
 
 /**
@@ -11,7 +12,7 @@ export async function createServer(): Promise<{ app: any, server: any }> {
   const { resolvedConfig } = useUnlighthouse()
 
   const app = createApp()
-  const server = await listen(toNodeListener(app), {
+  const server = await listen(toNodeHandler(app), {
     // @ts-expect-error untyped
     ...resolvedConfig.server,
     // delay opening the server until the app is ready
