@@ -606,6 +606,46 @@ describe('createUnlighthouseCore orchestration', () => {
     expect(scan?.ciCommitMessage).toBe('wip')
   })
 
+  it('run({ overrides }): a seeds factory seeds from the overridden site, not the boot site', async () => {
+    const seededSites: Array<string | undefined> = []
+    const seedsFor = (config: UnlighthouseConfig): SeedSource => {
+      seededSites.push(config.site)
+      return {
+        async* seeds() {
+          yield { url: new URL('/from-sitemap', config.site).toString(), source: 'sitemap' }
+        },
+      }
+    }
+    const audited: string[] = []
+    const drainingCrawler: Crawler = {
+      run(runOpts: CrawlerRunOptions): AsyncIterable<CrawlEvent> {
+        return (async function* () {
+          for await (const seed of runOpts.seeds.seeds()) {
+            audited.push(seed.url)
+            yield { type: 'url-discovered', url: seed.url }
+          }
+          yield { type: 'idle' }
+        })()
+      },
+    }
+    const core = createUnlighthouseCore({
+      config: { site: 'https://boot.example' },
+      auditor: passingAuditor(),
+      seeds: seedsFor,
+      crawler: drainingCrawler,
+      storage: memoryStorage(),
+    })
+
+    await core.run({ overrides: { site: 'https://override.example' } }).done
+    await core.run().done
+
+    expect(seededSites).toEqual(['https://override.example', 'https://boot.example'])
+    expect(audited.filter(url => url.endsWith('/from-sitemap'))).toEqual([
+      'https://override.example/from-sitemap',
+      'https://boot.example/from-sitemap',
+    ])
+  })
+
   it('run() without overrides: falls back to host config (default device=mobile, no ci)', async () => {
     const storage = memoryStorage()
     const core = createUnlighthouseCore({

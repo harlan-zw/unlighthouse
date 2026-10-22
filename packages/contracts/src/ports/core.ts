@@ -28,8 +28,12 @@ export interface UnlighthouseCoreOptions {
   config: UnlighthouseConfig
   /** Single; may be an AuditorRouter — core never knows the difference. */
   auditor: Auditor
-  /** Single; may be fuseSeeds([sitemap, manual, ...]). */
-  seeds: SeedSource
+  /**
+   * Single; may be fuseSeeds([sitemap, manual, ...]). A function is called
+   * once per run with that run's merged config, so a run whose `overrides.site`
+   * differs from `config.site` seeds from the overridden site.
+   */
+  seeds: SeedSource | ((config: UnlighthouseConfig) => SeedSource)
   /**
    * D-039: resolve a URL to its route template's `routeName` (template
    * grouping). Applied at ingest to fill the `routeName` column when the
