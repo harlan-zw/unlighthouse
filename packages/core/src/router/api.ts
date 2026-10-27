@@ -1,4 +1,4 @@
-import type { App, Router } from 'h3'
+import type { H3 } from 'h3'
 import { existsSync, rmSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { join, resolve, sep } from 'node:path'
@@ -8,9 +8,9 @@ import { createScanMeta } from '../data'
 import { useLogger } from '../logger'
 import { useUnlighthouse } from '../unlighthouse'
 
-export async function createApi(app: App): Promise<Router> {
+export async function createApi(app: H3): Promise<H3> {
   const logger = useLogger()
-  const { ws, resolvedConfig, runtimeSettings, hooks } = useUnlighthouse()
+  const { resolvedConfig, runtimeSettings, hooks } = useUnlighthouse()
 
   const router = createRouter()
 
@@ -62,7 +62,9 @@ export async function createApi(app: App): Promise<Router> {
     return true
   }))
 
-  apiRouter.get('/ws', defineEventHandler(event => ws.serve(event.node.req)))
+  // WebSocket upgrades are handled by the raw server `upgrade` listener (see setServerContext),
+  // h3 v2 events no longer expose the raw Node request.
+  apiRouter.get('/ws', defineEventHandler(() => false))
 
   apiRouter.get('/reports', defineEventHandler(() => {
     const { worker } = useUnlighthouse()
@@ -72,7 +74,7 @@ export async function createApi(app: App): Promise<Router> {
   apiRouter.get('/scan-meta', defineEventHandler(() => createScanMeta()))
 
   // Mount API router
-  router.use('/api/**', useBase('/api', apiRouter.handler))
+  router.use('/api/**', useBase('/api', apiRouter))
 
   // MIME types for static file serving
   const mimeTypes: Record<string, string> = {
@@ -95,7 +97,7 @@ export async function createApi(app: App): Promise<Router> {
   // Serve static client files with SPA fallback
   router.get('/**', defineEventHandler(async (event) => {
     await hooks.callHook('visited-client')
-    const path = event.path || '/'
+    const path = event.url.pathname || '/'
     const ext = path.substring(path.lastIndexOf('.'))
     const mimeType = mimeTypes[ext]
 
@@ -127,8 +129,11 @@ export async function createApi(app: App): Promise<Router> {
     return readFile(htmlPath, 'utf-8')
   }))
 
-  // Mount router to app with prefix
-  app.use(resolvedConfig.routerPrefix, router.handler)
+  // Mount router to app with prefix, useBase keeps the pathname prefix-stripped like h3 v1 mounts
+  if (resolvedConfig.routerPrefix === '/')
+    app.use(router)
+  else
+    app.use(`${resolvedConfig.routerPrefix}**`, useBase(resolvedConfig.routerPrefix, router))
 
   return router
 }
