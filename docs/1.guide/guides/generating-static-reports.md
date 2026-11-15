@@ -96,6 +96,18 @@ You can then run the following command to generate the static report and upload 
 unlighthouse-ci --site www.example.com --build-static && wrangler pages publish .unlighthouse
 ```
 
+### deed.page Example
+
+[deed.page](https://deed.page) hosts a folder from a single request, with no account or CLI to set up. Pack the report so `index.html` sits at the archive root and upload it:
+
+```bash
+unlighthouse-ci --site www.example.com --build-static
+tar -C .unlighthouse -czf report.tar.gz .
+curl -T report.tar.gz -H "Content-Type: application/gzip" "https://deed.page/v1/sites?slug=my-site-lighthouse"
+```
+
+The JSON response contains the live `url` and a `token`. Keep the token private (for example as a CI secret) and send it as `Authorization: Bearer <token>` to update the same URL on the next run. Requests over 4 MB need the [large upload flow](https://deed.page/docs).
+
 ### GitHub Actions & Netlify Example
 
 This example is for GitHub Actions and deploys a static client build to Netlify.
