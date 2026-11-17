@@ -1,10 +1,10 @@
 import type { AddressInfo } from 'node:net'
 import { Buffer } from 'node:buffer'
-import { createServer } from 'node:http'
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { join, resolve } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { x } from 'tinyexec'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createUnlighthouse } from '../packages/core/src'
 import { extractHtmlPayload } from '../packages/core/src/puppeteer/tasks/html'
 
@@ -22,6 +22,7 @@ const fixtureSite = createServer((req, res) => {
     '/': '<!doctype html><html lang="en"><head><title>Home</title></head><body><a href="/about">About</a></body></html>',
     '/about': '<!doctype html><html lang="en"><head><title>About</title></head><body><a href="/">Home</a></body></html>',
     '/session': '<!doctype html><html lang="en"><head><title>Session</title></head><body>Session</body></html>',
+    '/noindex': '<!doctype html><html lang="en"><head><title>No index</title><meta name="robots" content="noindex"></head><body>No index</body></html>',
   }
   const page = pages[req.url || '']
   res.writeHead(page ? 200 : 404, { 'content-type': 'text/html' })
@@ -41,14 +42,14 @@ afterAll(async () => {
 })
 
 describe('ci', () => {
-  it('tests harlanzw.com', async () => {
+  it('scans the fixture site within the score budgets', async () => {
     const { output } = await runCli(resolve(__dirname, 'fixtures/harlanzw.config.ts'))
 
-    expect(output[0].path).toBeDefined()
+    expect(output.map((route: { path: string }) => route.path).sort()).toEqual(['/', '/about'])
     expect(output[0].score).toBeDefined()
   })
 
-  it('tests harlanzw.com and generate json expanded', async () => {
+  it('generates expanded JSON for the fixture site', async () => {
     const { output } = await runCli(resolve(__dirname, 'fixtures/harlanzw-json-expanded.config.ts'))
 
     expect(output.summary).toBeDefined()
@@ -57,6 +58,26 @@ describe('ci', () => {
     expect(output.routes[0].path).toBeDefined()
     expect(output.routes[0].score).toBeDefined()
     expect(output.routes[0].categories).toBeDefined()
+    expect(output.routes.map((route: { path: string }) => route.path).sort()).toEqual(['/', '/about'])
+  })
+
+  it('fails when a fixture page falls below the SEO budget', async () => {
+    const testDir = resolve(cacheDir, `budget-${Date.now()}`)
+    await mkdir(testDir, { recursive: true })
+    await writeFile(join(testDir, 'unlighthouse.config.ts'), `export default ${JSON.stringify({
+      lighthouseOptions: { onlyCategories: ['seo'] },
+      ci: { budget: { seo: 100 } },
+    })}`)
+
+    const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir, '--site', fixtureUrl, '--urls', '/noindex'], {
+      nodeOptions: { cwd: testDir },
+    })
+
+    expect(exitCode, stdout + stderr).toBe(1)
+    expect(stdout + stderr).toMatch(/\/noindex has invalid score .* for category `seo`/)
+    const output = JSON.parse(await readFile(join(testDir, '.unlighthouse', 'ci-result.json'), 'utf8'))
+    expect(output[0].path).toBe('/noindex')
+    expect(output[0].seo).toBeLessThan(1)
   })
 
   it('refuses to clear an output path that holds other files', async () => {
@@ -64,7 +85,7 @@ describe('ci', () => {
     await mkdir(join(projectDir, 'src'), { recursive: true })
     await writeFile(join(projectDir, 'package.json'), '{}')
 
-    const { exitCode, stdout, stderr } = await x('node', [ci, '--root', projectDir, '--site', 'harlanzw.com', '--output-path', '.'], {
+    const { exitCode, stdout, stderr } = await x('node', [ci, '--root', projectDir, '--site', fixtureUrl, '--output-path', '.'], {
       nodeOptions: { cwd: projectDir },
     })
 
@@ -213,7 +234,7 @@ async function runCli(configFileFixture: string) {
   const config = await readFile(configFileFixture, 'utf8')
   await writeFile(join(testDir, 'unlighthouse.config.ts'), config)
 
-  const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir, '--debug', '--site', 'harlanzw.com'], {
+  const { exitCode, stdout, stderr } = await x('node', [ci, '--root', testDir, '--debug', '--site', fixtureUrl], {
     nodeOptions: { cwd: testDir },
   })
 
