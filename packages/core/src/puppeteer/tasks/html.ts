@@ -103,6 +103,34 @@ export const extractHtmlPayload: (page: Page, route: string) => Promise<{ succes
   }
 }
 
+const hrefEntityPattern = /&(lt|gt|quot|apos|#\d+|#x[0-9a-f]+);/gi
+
+/**
+ * Decode HTML entities in an href attribute. ultrahtml leaves attribute values
+ * undecoded, so a literal `&amp;` would end up as part of a queued route.
+ * `&amp;` is decoded last so source like `&amp;lt;` only decodes once.
+ */
+export function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(hrefEntityPattern, (entity, name: string) => {
+      if (name[0] === '#') {
+        const isHex = name[1] === 'x' || name[1] === 'X'
+        const codePoint = Number.parseInt(name.slice(isHex ? 2 : 1), isHex ? 16 : 10)
+        if (Number.isFinite(codePoint) && codePoint >= 0 && codePoint <= 0x10FFFF)
+          return String.fromCodePoint(codePoint)
+        return entity
+      }
+      switch (name) {
+        case 'lt': return '<'
+        case 'gt': return '>'
+        case 'quot': return '"'
+        case 'apos': return '\''
+        default: return entity
+      }
+    })
+    .replace(/&amp;/g, '&')
+}
+
 export async function processHtml(html: string, site: string): Promise<{ seo: HTMLExtractPayload, internalLinks: string[], externalLinks: string[] }> {
   const seo: HTMLExtractPayload = {
     favicon: '/favicon.ico',
@@ -149,7 +177,8 @@ export async function processHtml(html: string, site: string): Promise<{ seo: HT
           seo.title = node.children[0].value
       }
       else if (node.name === 'a') {
-        const href = node.attributes?.href
+        const rawHref = node.attributes?.href
+        const href = rawHref ? decodeHtmlEntities(rawHref) : rawHref
         if (href && !href.includes('javascript:') && !href.includes('mailto:') && !href.startsWith('#') && isImplicitOrExplicitHtml(href)) {
           if ((href.startsWith('/') && !href.startsWith('//')) || href.includes(site))
             internalLinks.push(href)

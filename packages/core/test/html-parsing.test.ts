@@ -43,6 +43,31 @@ describe('html-parsing', () => {
     expect(externalLinks.length).toBe(1)
   })
 
+  it('decodes HTML entities in href attributes', async () => {
+    const html = `
+      <body>
+        <a href="/path?a=1&amp;b=2">Internal link with encoded ampersand</a>
+        <a href="https://example.com/docs?x=1&amp;y=2">Absolute internal link with encoded ampersand</a>
+        <a href="/path?c=1&#38;d=2">Internal link with numeric entity</a>
+        <a href="https://google.com/search?q=1&amp;lang=en">External link with encoded ampersand</a>
+      </body>
+    `
+    const { internalLinks, externalLinks } = await processHtml(html, 'https://example.com')
+
+    expect(internalLinks).toContain('/path?a=1&b=2')
+    expect(internalLinks).toContain('https://example.com/docs?x=1&y=2')
+    expect(internalLinks).toContain('/path?c=1&d=2')
+    expect(externalLinks).toContain('https://google.com/search?q=1&lang=en')
+    expect(internalLinks.length).toBe(3)
+    expect(externalLinks.length).toBe(1)
+  })
+
+  it('decodes entities once, not twice', async () => {
+    const html = `<a href="/path?x=1&amp;amp;2">Source that itself encodes an ampersand entity</a>`
+    const { internalLinks } = await processHtml(html, 'https://example.com')
+    expect(internalLinks).toEqual(['/path?x=1&amp;2'])
+  })
+
   it('handles meta title', async () => {
     const html = `
       <head>
