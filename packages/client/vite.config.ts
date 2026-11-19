@@ -103,7 +103,7 @@ export default defineConfig(({ mode }) => ({
         /^@nuxt\/kit/,
       ],
       output: {
-        advancedChunks: {
+        codeSplitting: {
           groups: [
             {
               name: 'ui',
