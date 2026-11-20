@@ -33,6 +33,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
     "@arethetypeswrong/cli": "catalog:",
+    "@typescript/native": "catalog:",
     "bumpp": "catalog:",
     "eslint": "catalog:",
     "obuild": "catalog:",

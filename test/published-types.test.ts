@@ -42,9 +42,9 @@ afterAll(async () => {
 })
 
 describe('published types', () => {
-  it('type check a config file without skipLibCheck', async () => {
-    const { stdout, exitCode } = await x(require.resolve('typescript/bin/tsc'), ['-p', consumerDir])
+  it.each(['tsc', 'tsc6'])('type checks a config file with %s and no skipLibCheck', async (compiler) => {
+    const { stdout, stderr, exitCode } = await x('pnpm', ['exec', compiler, '-p', consumerDir])
+    expect(exitCode, stdout + stderr).toBe(0)
     expect(stdout).toBe('')
-    expect(exitCode).toBe(0)
   })
 })
