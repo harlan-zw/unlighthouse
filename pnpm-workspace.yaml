@@ -3,6 +3,8 @@ minimumReleaseAgeExcludePrune: true
 
 trustPolicy: no-downgrade
 trustPolicyExclude:
+  # Published by chrome-devtools-npm and pinned by Puppeteer.
+  - chromium-bidi@157.0.8090-0
   - chokidar@4.0.3
   - semver@5.7.2
   - semver@6.3.1
@@ -66,7 +68,7 @@ catalogs:
     '@iconify-json/logos': latest
     '@iconify-json/mdi': latest
     '@iconify-json/simple-line-icons': latest
-    '@lhci/utils': ^0.15.1
+    '@lhci/utils': ^0.16.1
     '@nuxt/ui': ^4.11.1
     '@puppeteer/browsers': ^3.2.2
     '@tailwindcss/vite': ^4.3.3
