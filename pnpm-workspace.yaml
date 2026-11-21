@@ -1,16 +1,10 @@
 catalogMode: prefer
-
 minimumReleaseAgeExcludePrune: true
-minimumReleaseAgeExclude:
-  - vite@8.3.5
 
 trustPolicy: no-downgrade
 trustPolicyExclude:
   # Published by chrome-devtools-npm and pinned by Puppeteer.
   - chromium-bidi@157.0.8090-0
-  - chokidar@4.0.3
-  - semver@5.7.2
-  - semver@6.3.1
 
 shellEmulator: true
 
