@@ -1,8 +1,5 @@
 catalogMode: prefer
-
 minimumReleaseAgeExcludePrune: true
-minimumReleaseAgeExclude:
-  - vite@8.3.5
 
 trustPolicy: no-downgrade
 trustPolicyExclude:
