@@ -7,7 +7,7 @@ import type { RendererOptions } from '../audit/render.ts'
 import { createRenderer } from '../audit/render.ts'
 import type { Config, ConfigInput } from '../config.ts'
 import { defaultConcurrency, mergeConfig, parseConfig } from '../config.ts'
-import type { AuditJob, AuditPool, AuthState, Discover, DiscoveredPage, Renderer, RunFlow, Store } from '../contracts.ts'
+import type { AuditJob, AuditPool, AuthState, Discover, DiscoveredPage, Renderer, RunFlow, ScanDefaults, Store } from '../contracts.ts'
 import { discover as defaultDiscover } from '../discover/crawl.ts'
 import type { CruxOptions } from '../field/crux.ts'
 import { collectField } from '../field/crux.ts'
@@ -18,7 +18,7 @@ import type { Device, Page, PageStatus, Scan, ScanStats, ScanStatus } from '../t
 import type { ProcessLock } from './lock.ts'
 import { createProcessLock } from './lock.ts'
 
-export type ScanInput = ConfigInput & { label?: string, branch?: string, commit?: string }
+export type ScanInput = Omit<ConfigInput, 'auth'> & { auth?: ConfigInput['auth'] | boolean, label?: string, branch?: string, commit?: string }
 
 export interface ScannerOptions {
   store: Store
@@ -40,6 +40,7 @@ export interface ScannerOptions {
 
 export interface Scanner {
   start(input: ScanInput): Scan
+  defaults(): ScanDefaults
   cancel(scanId: string): Promise<Scan>
   rescanPage(scanId: string, url: string, device: Device): Page
   wait(scanId: string, timeoutMs: number, signal?: AbortSignal): Promise<Scan>
@@ -277,7 +278,7 @@ export function createScanner(options: ScannerOptions): Scanner {
             lighthouseVersion = result.provenance.lighthouseVersion
             store.updateScan(scanId, { lighthouseVersion })
           }
-          bus.emit({ type: 'page:status', scanId, url: page.url, device: page.device, status: 'done', score: result.scores.performance })
+          bus.emit({ type: 'page:status', scanId, url: page.url, device: page.device, status: 'done', score: result.scores.performance, findings: result.findings.length })
         }
         catch (error) {
           if (signal.aborted)
@@ -448,7 +449,7 @@ export function createScanner(options: ScannerOptions): Scanner {
       const auth = await bounded(login(config, AbortSignal.any([signal, AbortSignal.timeout(config.timeoutMs)])), signal, config.timeoutMs, 'The login script')
       const result = await pool.run(jobFor(config, { url, device }, auth, 1), signal)
       store.savePageResult(scanId, url, device, result)
-      bus.emit({ type: 'page:status', scanId, url, device, status: 'done', score: result.scores.performance })
+      bus.emit({ type: 'page:status', scanId, url, device, status: 'done', score: result.scores.performance, findings: result.findings.length })
     }
     catch (error) {
       if (signal.aborted) {
@@ -479,8 +480,9 @@ export function createScanner(options: ScannerOptions): Scanner {
   function start(input: ScanInput): Scan {
     if (closed)
       throw new UnlighthouseError('SCAN_NOT_RUNNING', 'The scanner is shutting down')
-    const { label, branch, commit, ...overrides } = input
-    const config = resolveConfig(overrides)
+    const { label, branch, commit, auth, ...overrides } = input
+    const resolved = resolveConfig(typeof auth === 'object' ? { ...overrides, auth } : overrides)
+    const config = auth === false ? { ...resolved, auth: { headers: {}, cookies: [], localStorage: {}, sessionStorage: {} } } : resolved
     if (!config.site)
       throw new UnlighthouseError('INVALID_CONFIG', 'site is required: pass the URL to scan')
     const scan = store.createScan({
@@ -495,6 +497,16 @@ export function createScanner(options: ScannerOptions): Scanner {
     queue.push({ kind: 'scan', scanId: scan.id, config, resume: false })
     pump()
     return store.getScan(scan.id) ?? scan
+  }
+
+  function defaults(): ScanDefaults {
+    const config = resolveConfig({})
+    const { headers, cookies, localStorage, sessionStorage, login } = config.auth
+    return {
+      devices: config.devices,
+      sampling: { perTemplate: config.sampling.perTemplate },
+      authConfigured: Boolean(login) || cookies.length > 0 || [headers, localStorage, sessionStorage].some(values => Object.keys(values).length > 0),
+    }
   }
 
   async function cancel(scanId: string): Promise<Scan> {
@@ -647,6 +659,7 @@ export function createScanner(options: ScannerOptions): Scanner {
 
   return {
     start,
+    defaults,
     cancel,
     rescanPage,
     wait,

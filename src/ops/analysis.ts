@@ -61,6 +61,7 @@ export function analyzeScan(store: Store, scanId: string, options: { baselineBra
     pages: side.pages,
     issues: side.issues,
     brokenLinks: store.brokenLinks(scan.id),
+    findingCount: store.countFindings(scan.id),
     field: store.scanField(scan.id),
     ...(comparison ? { comparison } : {}),
   })

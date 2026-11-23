@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unlighthouse — Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E0F12}
+a{color:#AEB4FF}a:hover{color:#D3D6FF}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0E0F12; color: #E6E7EA; font-family: Inter, system-ui, sans-serif; font-size: 13px; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Main" style="flex: 1 1 232px; max-width: 260px; box-sizing: border-box; padding: 14px 10px; border-right: 1px solid #23252B; background: #121317; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.8" aria-hidden="true"><path d="M9 21h6M10 21l1-12h2l1 12M8 9h8M12 3v2M5 6l2 1M19 6l-2 1"></path></svg>
+      <span style="font-weight: 600; font-size: 14px">Unlighthouse</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <a href="Home.dc.html" style="display: flex; align-items: center; padding: 8px 10px; border-radius: 6px; background: #1E2026; color: #E6E7EA; text-decoration: none">Home</a>
+      <a href="Scan.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 6px; color: #C3C6CD; text-decoration: none"><span>Scans</span><span style="width: 7px; height: 7px; border-radius: 50%; background: {{accent}}"></span></a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="padding: 4px 10px; color: #9BA0AA; font-size: 12px">Sites</span>
+      <sc-for list="{{sites}}" as="s" hint-placeholder-count="4">
+        <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: #C3C6CD; text-decoration: none">
+          <span style="width: 18px; height: 18px; border-radius: 4px; background: {{s.tint}}; color: #0E0F12; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{s.letter}}</span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{s.host}}</span>
+        </a>
+      </sc-for>
+    </div>
+    <div style="margin-top: auto; padding: 12px; border: 1px solid #26282F; border-radius: 8px; display: flex; flex-direction: column; gap: 8px">
+      <a href="Agent.dc.html" style="font-weight: 500; color: #E6E7EA; text-decoration: none">Agent access</a>
+      <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C3C6CD; background: #0E0F12; padding: 6px 8px; border-radius: 6px">unlighthouse mcp</code>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 640px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column">
+    <section aria-labelledby="new-h" style="padding: 56px 28px 40px; border-bottom: 1px solid #23252B">
+      <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+        <h1 id="new-h" style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Scan a whole site</h1>
+        <form style="display: flex; flex-wrap: wrap; gap: 8px">
+          <label for="url" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Site URL</label>
+          <input id="url" placeholder="https://your-site.com" style="flex: 1 1 320px; min-width: 0; font: inherit; font-size: 15px; font-family: 'JetBrains Mono', monospace; color: #E6E7EA; background: #121317; border: 1px solid #2A2C33; border-radius: 8px; padding: 0 14px; min-height: 46px">
+          <a href="Scan.dc.html" style="display: inline-flex; align-items: center; font-weight: 500; color: #0E0F12; background: {{accent}}; border-radius: 8px; padding: 0 22px; min-height: 46px; text-decoration: none">Scan</a>
+        </form>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <sc-for list="{{options}}" as="o" hint-placeholder-count="4">
+            <button type="button" onClick="{{o.toggle}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="sites-h" style="display: flex; flex-direction: column">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; border-bottom: 1px solid #23252B">
+        <h2 id="sites-h" style="margin: 0; font-size: 13px; font-weight: 600">Sites</h2>
+        <span style="color: #9BA0AA">4</span>
+      </div>
+      <div style="overflow-x: auto">
+        <div role="list" style="min-width: 760px">
+          <sc-for list="{{sites}}" as="s" hint-placeholder-count="4">
+            <a role="listitem" href="{{s.href}}" style="display: grid; grid-template-columns: minmax(0, 1fr) 150px 200px 140px; align-items: center; gap: 16px; padding: 0 28px; min-height: 60px; border-bottom: 1px solid #1C1E23; color: #E6E7EA; text-decoration: none">
+              <span style="display: flex; align-items: center; gap: 12px; min-width: 0">
+                <span style="width: 28px; height: 28px; border-radius: 6px; background: {{s.tint}}; color: #0E0F12; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex: none">{{s.letter}}</span>
+                <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-weight: 500">{{s.host}}</span>
+                  <span style="color: #9BA0AA; font-size: 12px">{{s.meta}}</span>
+                </span>
+              </span>
+              <span style="display: flex; align-items: baseline; gap: 6px">
+                <span style="font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums">{{s.issues}}</span>
+                <span style="color: #9BA0AA">issues</span>
+              </span>
+              <span style="display: flex; gap: 12px; font-variant-numeric: tabular-nums">
+                <sc-if value="{{s.running}}" hint-placeholder-val="{{false}}">
+                  <span style="display: flex; align-items: center; gap: 10px; width: 100%">
+                    <span style="flex: 1; height: 4px; border-radius: 2px; background: #23252B; overflow: hidden"><span style="display: block; height: 4px; width: {{s.progress}}; background: {{accent}}"></span></span>
+                    <span style="color: #C4C8FF">{{s.progress}}</span>
+                  </span>
+                </sc-if>
+                <sc-if value="{{s.idle}}" hint-placeholder-val="{{true}}">
+                  <span style="color: #F2A766">{{s.added}}</span>
+                  <span style="color: #7FD3A6">{{s.fixed}}</span>
+                </sc-if>
+              </span>
+              <span style="color: #9BA0AA; text-align: right">{{s.when}}</span>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#8B93FF","options":["#8B93FF","#F2B84B","#4CC38A"]},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { on: { mobile: true, desktop: true, sample: true, auth: false } };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#8B93FF';
+    const sites = [
+      { host: 'shop.example.com', letter: 'S', tint: '#8B93FF', meta: '1,284 pages · 19 templates', issues: '48', added: '+3 new', fixed: '5 fixed', when: 'today 14:05', href: 'Main.dc.html', running: false },
+      { host: 'docs.example.dev', letter: 'D', tint: '#4CC38A', meta: '412 pages · 6 templates', issues: '—', progress: '62%', when: 'scanning', href: 'Scan.dc.html', running: true },
+      { host: 'staging.example.com', letter: 'S', tint: '#F2B84B', meta: '1,301 pages · 19 templates · behind login', issues: '51', added: '+6 new', fixed: '1 fixed', when: 'yesterday', href: 'Main.dc.html', running: false },
+      { host: 'localhost:3000', letter: 'L', tint: '#C3C6CD', meta: '38 pages · 4 templates', issues: '17', added: '0 new', fixed: '2 fixed', when: '3 days ago', href: 'Main.dc.html', running: false }
+    ].map((s) => ({ ...s, idle: !s.running }));
+    const defs = [['mobile', 'Mobile'], ['desktop', 'Desktop'], ['sample', '5 pages per template'], ['auth', 'Requires login']];
+    const options = defs.map(([id, label]) => {
+      const on = this.state.on[id];
+      return {
+        label,
+        pressed: on ? 'true' : 'false',
+        toggle: () => this.setState({ on: { ...this.state.on, [id]: !on } }),
+        style: 'font: inherit; font-size: 12px; cursor: pointer; border-radius: 6px; padding: 0 12px; min-height: 32px; color: ' + (on ? '#E6E7EA' : '#9BA0AA') + '; background: ' + (on ? '#1E2026' : 'transparent') + '; border: 1px ' + (on ? 'solid #3A3F66' : 'dashed #33363E')
+      };
+    });
+    return { accent, sites, options };
+  }
+}
+</script>
+</body>
+</html>

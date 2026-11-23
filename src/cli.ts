@@ -777,6 +777,7 @@ function unavailableScanner(): Scanner {
   }
   return {
     start: fail,
+    defaults: fail,
     cancel: fail,
     rescanPage: fail,
     wait: fail,

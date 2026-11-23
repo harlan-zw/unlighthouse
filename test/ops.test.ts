@@ -65,7 +65,8 @@ describe('operations', () => {
     for (const site of ['file:///etc/passwd', 'javascript:alert(1)', 'data:text/html,hi'])
       await expect(call('scans.start', { site })).rejects.toMatchObject({ code: 'INVALID_INPUT' })
     expect((await call('sites.list')).map((entry: { origin: string }) => entry.origin)).not.toContain('null')
-    const ignored = await call('scans.start', { site: site.origin, chromePath: '/bin/sh', auth: { login: './evil.ts' } })
+    await expect(call('scans.start', { site: site.origin, auth: { login: './evil.ts' } })).rejects.toMatchObject({ code: 'INVALID_INPUT' })
+    const ignored = await call('scans.start', { site: site.origin, chromePath: '/bin/sh' })
     expect(ignored.options).not.toHaveProperty('chromePath')
     expect(ignored.options).not.toHaveProperty('auth.login')
     await expect(call('scans.get', { scanId: 'missing' })).rejects.toMatchObject({ code: 'NOT_FOUND' })
@@ -87,10 +88,12 @@ describe('operations', () => {
     expect(sites[0].lastScores.mobile.performance).toBeCloseTo(0.73, 2)
     expect(sites[0].lastScores.desktop.seo).toBe(0.8)
 
+    const scores = (performance: number) => ({ 'performance': performance, 'accessibility': 0.9, 'best-practices': 1, 'seo': 0.8, 'agentic-browsing': 0.5 })
+    const topIssue = { auditId: 'image-delivery-insight', title: 'Improve image delivery', pages: 4 }
     expect(await call('scans.templates', { scanId: scan.id })).toEqual([
-      { template: '/blog/*', pages: 4 },
-      { template: '/', pages: 1 },
-      { template: '/about', pages: 1 },
+      { template: '/blog/*', pages: 4, audited: 2, scores: scores(0.8), topIssue },
+      { template: '/', pages: 1, audited: 1, scores: scores(0.8), topIssue },
+      { template: '/about', pages: 1, audited: 1, scores: scores(0.5), topIssue },
     ])
 
     const pages = await call('pages.list', { scanId: scan.id, device: 'mobile', status: 'done', sort: 'performance', order: 'asc' })
@@ -106,7 +109,7 @@ describe('operations', () => {
     expect(issues.total).toBe(1)
     const issue = await call('issues.get', { scanId: scan.id, auditId: 'image-delivery-insight' })
     expect(issue.issue.pages).toBe(4)
-    expect(issue.items).toEqual([expect.objectContaining({ key: '/hero.png', pages: 4 })])
+    expect(issue.items).toEqual([expect.objectContaining({ key: '/hero.png', pages: 4, templates: ['/blog/*', '/', '/about'] })])
     expect(issue.pages).toHaveLength(8)
     expect(issue.pages[0]).toMatchObject({ items: 1 })
     await expect(call('issues.get', { scanId: scan.id, auditId: 'nope' })).rejects.toMatchObject({ code: 'NOT_FOUND' })
@@ -116,6 +119,7 @@ describe('operations', () => {
     const summary = await call('scans.summary', { scanId: scan.id })
     expect(summary.scan.id).toBe(scan.id)
     expect(summary.pages).toMatchObject({ discovered: 6, audited: 4, skippedBySampling: 2 })
+    expect(summary.findingCount).toBe(8)
     expect(summary.baseline).toBeUndefined()
   })
 
@@ -151,6 +155,29 @@ describe('operations', () => {
     expect(visible).not.toContain('secret')
     expect(visible).toContain('[redacted]')
     expect(JSON.stringify(store.getScan(withAuth.id)!.options)).toContain('secret')
+  })
+
+  test('config.defaults exposes scan defaults and whether auth is configured, without its values', async () => {
+    expect(await call('config.defaults')).toEqual({ devices: ['mobile'], sampling: { perTemplate: 5 }, authConfigured: false })
+
+    const fake = createFakePool()
+    const scanner = createScanner({ store, bus: new EventBus(), config: { devices: ['desktop'], sampling: { perTemplate: 3 }, auth: { headers: { authorization: 'Bearer secret' } } }, createPool: fake.createPool })
+    const authCtx: OperationContext = { store, scanner }
+    try {
+      const defaults = await invoke(operations, authCtx, 'config.defaults', {})
+      expect(defaults).toEqual({ devices: ['desktop'], sampling: { perTemplate: 3 }, authConfigured: true })
+      expect(JSON.stringify(defaults)).not.toContain('secret')
+
+      const withAuth = await invoke(operations, authCtx, 'scans.start', { site: site.origin, urls: ['/'] }) as Scan
+      await scanner.wait(withAuth.id, 5000)
+      const withoutAuth = await invoke(operations, authCtx, 'scans.start', { site: site.origin, urls: ['/'], auth: false }) as Scan
+      await scanner.wait(withoutAuth.id, 5000)
+      expect(fake.jobs.map(job => job.auth.headers)).toEqual([{ authorization: 'Bearer secret' }, {}])
+      expect(JSON.stringify(store.getScan(withoutAuth.id)!.options)).not.toContain('secret')
+    }
+    finally {
+      await scanner.close()
+    }
   })
 
   test('cancel, wait with timeout, rescan and delete', async () => {

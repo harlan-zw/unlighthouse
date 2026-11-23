@@ -75,6 +75,7 @@ export const startInput = z.object({
     onlyAudits: z.array(z.string().min(1)).optional().describe('Run only these Lighthouse audits; category scores then cover only them'),
   }).optional().describe('Lighthouse audit filters. Plugins, settings and the runner come from the config file only.'),
   budgets: budgetsSchema.partial().optional(),
+  auth: z.boolean().optional().describe('false scans without the auth headers, cookies, storage and login script from the config file; default uses them'),
   label: z.string().max(200).optional(),
   branch: z.string().max(200).optional(),
   commit: z.string().max(200).optional(),
@@ -243,7 +244,7 @@ export const operations: AnyOperation[] = [
   defineOperation({
     name: 'scans.templates',
     kind: 'read',
-    description: 'Lists the URL templates of a scan (e.g. /blog/*) with the number of distinct pages in each, largest first. Use the template values to filter pages.list and issues.list.',
+    description: 'Lists the URL templates of a scan (e.g. /blog/*), largest first: distinct pages, audited (pages done), median scores per category over audited pages on all devices (null when none), and topIssue, the highest-impact issue affecting the template (null when none). Use the template values to filter pages.list and issues.list.',
     input: z.object({ scanId }),
     handler({ store }, input) {
       getScan(store, input.scanId)
@@ -376,6 +377,15 @@ export const operations: AnyOperation[] = [
       if (!run)
         throw new UnlighthouseError('NOT_FOUND', `Flow not found: ${input.name} (${input.device}) in scan ${input.scanId}. Call flows.list for the flows of this scan.`)
       return run
+    },
+  }),
+  defineOperation({
+    name: 'config.defaults',
+    kind: 'read',
+    description: 'Returns the defaults scans.start uses when an option is left out: devices, sampling.perTemplate, and authConfigured (true when the config file sets auth headers, cookies, storage or a login script; their values are never returned). Pass auth: false to scans.start to scan without it.',
+    input: z.object({}),
+    handler({ scanner }) {
+      return scanner.defaults()
     },
   }),
   ...monitoringOperations(startInput),

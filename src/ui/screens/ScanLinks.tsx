@@ -1,9 +1,12 @@
 import type { BrokenLink } from '../../contracts.ts'
 import type { Scan } from '../../types.ts'
-import { useQuery } from '../hooks.ts'
-import { pathOf } from '../format.ts'
-import { Badge, EmptyState, ErrorState } from '../components/controls.tsx'
+import { useDocumentTitle, useQuery } from '../hooks.ts'
+import { hostOf, pathOf, plural } from '../format.ts'
+import { Badge, EmptyState, ErrorState, ScanPill, Skeleton } from '../components/controls.tsx'
 import { DataTable, type Column } from '../components/DataTable.tsx'
+import { Hero, TopBar } from '../components/layout.tsx'
+import { routeHref } from '../router.tsx'
+import { useScope } from '../scope.tsx'
 
 function statusText(status: number): string {
   if (status === 404)
@@ -17,7 +20,7 @@ function statusText(status: number): string {
   return 'Error'
 }
 
-export function ScanLinks({ scan, refresh }: { scan: Scan, refresh: number }) {
+function LinksTable({ scan, refresh }: { scan: Scan, refresh: number }) {
   const links = useQuery('scans.brokenLinks', { scanId: scan.id }, refresh)
   const columns: Column<BrokenLink>[] = [
     {
@@ -52,7 +55,26 @@ export function ScanLinks({ scan, refresh }: { scan: Scan, refresh: number }) {
       rowKey={link => `${link.url}|${link.from}`}
       loading={links.loading}
       defaultSort={{ key: 'status', order: 'asc' }}
-      empty={<EmptyState title="No broken links" compact>Every same-origin link the crawler followed returned a successful response.</EmptyState>}
+      empty={<EmptyState title="No broken links" compact />}
     />
+  )
+}
+
+export function LinksPage() {
+  const { scan, summary, refresh, error } = useScope()
+  const host = scan ? hostOf(scan.origin) : '…'
+  useDocumentTitle(host === '…' ? 'Links' : `Links · ${host}`)
+  if (error && !scan)
+    return <ErrorState error={error} />
+  if (!scan)
+    return <><TopBar crumbs={[{ label: host }, { label: 'Links' }]} /><div className="pad"><Skeleton lines={6} height={36} /></div></>
+  return (
+    <>
+      <TopBar crumbs={[{ label: host, href: routeHref({ name: 'site', siteId: scan.siteId }) }, { label: 'Links' }]} status={<ScanPill status={scan.status} />} />
+      <Hero title={summary ? plural(summary.brokenLinks, 'broken link') : 'Links'} />
+      <div className="table-wrap">
+        <LinksTable scan={scan} refresh={refresh} />
+      </div>
+    </>
   )
 }

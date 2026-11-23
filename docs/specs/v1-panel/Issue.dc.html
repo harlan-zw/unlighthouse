@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unlighthouse — Issue detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E0F12}
+a{color:#AEB4FF}a:hover{color:#D3D6FF}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0E0F12; color: #E6E7EA; font-family: Inter, system-ui, sans-serif; font-size: 13px; display: flex; flex-direction: column">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 28px; border-bottom: 1px solid #23252B">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+      <a href="Main.dc.html" style="color: #9BA0AA; text-decoration: none">shop.example.com</a>
+      <span style="color: #5C616B" aria-hidden="true">/</span>
+      <a href="Main.dc.html" style="color: #9BA0AA; text-decoration: none">Issues</a>
+      <span style="color: #5C616B" aria-hidden="true">/</span>
+      <span style="font-weight: 500">Images are missing alt text</span>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px">
+      <button style="font: inherit; color: #E6E7EA; background: #17181C; border: 1px solid #2A2C33; border-radius: 6px; padding: 0 12px; min-height: 32px; cursor: pointer">Copy for agent</button>
+      <button style="font: inherit; color: #E6E7EA; background: #17181C; border: 1px solid #2A2C33; border-radius: 6px; padding: 0 12px; min-height: 32px; cursor: pointer">Export CSV</button>
+    </div>
+  </header>
+
+  <div style="display: flex; flex-wrap: wrap; flex: 1">
+    <main style="flex: 999 1 640px; min-width: 0; box-sizing: border-box; padding: 28px; display: flex; flex-direction: column; gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 10px; max-width: 760px">
+        <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em">Images are missing alt text</h1>
+        <p style="margin: 0; color: #A9AEB8">1,140 of 1,284 pages · 38 elements · 3 templates</p>
+      </div>
+
+      <section aria-labelledby="items-h" style="display: flex; flex-direction: column; border: 1px solid #23252B; border-radius: 10px; overflow: hidden">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #121317; border-bottom: 1px solid #23252B">
+          <h2 id="items-h" style="margin: 0; font-size: 13px; font-weight: 600">Elements · 38</h2>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse; min-width: 560px">
+            <thead>
+              <tr style="color: #9BA0AA; font-size: 12px; text-align: left">
+                <th style="font-weight: 500; padding: 10px 16px; border-bottom: 1px solid #1C1E23">Element</th>
+                <th style="font-weight: 500; padding: 10px 16px; border-bottom: 1px solid #1C1E23">Comes from</th>
+                <th style="font-weight: 500; padding: 10px 16px; border-bottom: 1px solid #1C1E23; text-align: right">Pages</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+                <tr>
+                  <td style="padding: 10px 16px; border-bottom: 1px solid #1C1E23; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #D3D6DC">{{it.selector}}</td>
+                  <td style="padding: 10px 16px; border-bottom: 1px solid #1C1E23"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A9AEB8; background: #17181C; border: 1px solid #26282F; border-radius: 4px; padding: 2px 6px">{{it.template}}</span></td>
+                  <td style="padding: 10px 16px; border-bottom: 1px solid #1C1E23; text-align: right; font-variant-numeric: tabular-nums">{{it.pages}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <button style="all: unset; cursor: pointer; padding: 12px 16px; color: #AEB4FF; min-height: 20px">Show all 38 items</button>
+      </section>
+
+      <section aria-labelledby="pages-h" style="display: flex; flex-direction: column; gap: 12px">
+        <h2 id="pages-h" style="margin: 0; font-size: 13px; font-weight: 600">Templates</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+          <sc-for list="{{templates}}" as="t" hint-placeholder-count="3">
+            <div style="border: 1px solid #23252B; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; background: #121317">
+              <span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{t.pattern}}</span><span style="color: #9BA0AA">{{t.count}} pages</span></span>
+              <span style="height: 4px; border-radius: 2px; background: #23252B; overflow: hidden"><span style="display: block; height: 4px; width: {{t.share}}; background: #F2994A"></span></span>
+              <span style="color: #9BA0AA; font-size: 12px; font-family: 'JetBrains Mono', monospace">{{t.example}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </main>
+
+    <aside aria-label="Issue properties" style="flex: 1 1 280px; max-width: 340px; box-sizing: border-box; border-left: 1px solid #23252B; background: #121317; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px">
+      <dl style="margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); row-gap: 14px; column-gap: 12px">
+        <dt style="color: #9BA0AA">Category</dt><dd style="margin: 0">Accessibility</dd>
+        <dt style="color: #9BA0AA">Severity</dt><dd style="margin: 0; color: #F2A766">High</dd>
+        <dt style="color: #9BA0AA">Devices</dt><dd style="margin: 0">Mobile, desktop</dd>
+        <dt style="color: #9BA0AA">First seen</dt><dd style="margin: 0">Scan #39</dd>
+        <dt style="color: #9BA0AA">Trend</dt><dd style="margin: 0">−52 pages since #41</dd>
+        <dt style="color: #9BA0AA">Audit</dt><dd style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px">image-alt</dd>
+      </dl>
+      <div style="height: 1px; background: #23252B"></div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-weight: 500">Agent</span>
+        <code style="display: block; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; color: #C3C6CD; background: #0E0F12; border: 1px solid #23252B; padding: 10px; border-radius: 6px; white-space: pre-wrap">issues.get
+  scan: 42
+  audit: image-alt</code>
+      </div>
+      <a href="#" style="font-size: 12px">Lighthouse report</a>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const items = [
+      { selector: 'img.product-card__image', template: '/products/*', pages: '812' },
+      { selector: 'img.gallery__thumb', template: '/products/*', pages: '812' },
+      { selector: 'header img.logo', template: 'all templates', pages: '1,140' },
+      { selector: 'img.author-avatar', template: '/blog/*', pages: '214' },
+      { selector: 'img.promo-banner', template: '/category/*', pages: '114' }
+    ];
+    const templates = [
+      { pattern: '/products/*', count: '812', share: '100%', example: '/products/linen-shirt-blue' },
+      { pattern: '/blog/*', count: '214', share: '26%', example: '/blog/summer-lookbook' },
+      { pattern: '/category/*', count: '114', share: '14%', example: '/category/shoes' }
+    ];
+    return { items, templates };
+  }
+}
+</script>
+</body>
+</html>

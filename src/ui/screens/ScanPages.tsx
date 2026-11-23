@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
-import type { PageQuery } from '../../contracts.ts'
+import type { PageQuery, TemplateCount } from '../../contracts.ts'
 import { CATEGORIES, METRICS, type Device, type Page, type PageStatus, type Scan } from '../../types.ts'
-import { useDebounced, useQuery } from '../hooks.ts'
-import { CATEGORY_LABELS, CATEGORY_SHORT, METRIC_LABELS, METRIC_SHORT } from '../format.ts'
+import { useDebounced, useDocumentTitle, useQuery } from '../hooks.ts'
+import { CATEGORY_LABELS, CATEGORY_SHORT, hostOf, METRIC_LABELS, METRIC_SHORT, plural } from '../format.ts'
 import { Link, navigate, routeHref, useSearchParams } from '../router.tsx'
-import { DeviceToggle, EmptyState, ErrorState, StatusBadge, TemplateFilter } from '../components/controls.tsx'
+import { DeviceToggle, EmptyState, ErrorState, ScanPill, Skeleton, StatusBadge, TemplateFilter } from '../components/controls.tsx'
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx'
+import { Hero, TopBar } from '../components/layout.tsx'
 import { MetricValue, Score } from '../components/score.tsx'
+import { useScope } from '../scope.tsx'
 
 const LIMIT = 50
 const STATUSES: PageStatus[] = ['done', 'failed', 'skipped', 'queued', 'running']
 type SortKey = NonNullable<PageQuery['sort']>
 const SORT_KEYS: readonly string[] = [...CATEGORIES, ...METRICS, 'url', 'template']
 
-export function ScanPages({ scan, refresh }: { scan: Scan, refresh: number }) {
+function PagesTable({ scan, refresh, templates }: { scan: Scan, refresh: number, templates: TemplateCount[] | undefined }) {
   const [params, setParams] = useSearchParams()
   const device = (params.get('device') as Device | null) ?? 'all'
   const template = params.get('template') ?? ''
@@ -40,7 +42,6 @@ export function ScanPages({ scan, refresh }: { scan: Scan, refresh: number }) {
   if (debounced)
     input.search = debounced
   const pages = useQuery('pages.list', input, refresh)
-  const templates = useQuery('scans.templates', { scanId: scan.id }).data
 
   const pageHref = (page: Page) => routeHref({ name: 'page', scanId: scan.id, url: page.url, device: page.device })
   const columns: Column<Page>[] = [
@@ -91,7 +92,7 @@ export function ScanPages({ scan, refresh }: { scan: Scan, refresh: number }) {
   const onSort = (next: SortState) => setParams({ sort: next.key, order: next.order, offset: null })
 
   return (
-    <div className="card">
+    <div className="table-wrap">
       <div className="toolbar" role="search">
         <label className="field grow">
           <span>Search</span>
@@ -130,5 +131,22 @@ export function ScanPages({ scan, refresh }: { scan: Scan, refresh: number }) {
             />
           )}
     </div>
+  )
+}
+
+export function PagesPage() {
+  const { scan, summary, templates, refresh, error } = useScope()
+  const host = scan ? hostOf(scan.origin) : '…'
+  useDocumentTitle(host === '…' ? 'Pages' : `Pages · ${host}`)
+  if (error && !scan)
+    return <ErrorState error={error} />
+  if (!scan)
+    return <><TopBar crumbs={[{ label: host }, { label: 'Pages' }]} /><div className="pad"><Skeleton lines={6} height={36} /></div></>
+  return (
+    <>
+      <TopBar crumbs={[{ label: host, href: routeHref({ name: 'site', siteId: scan.siteId }) }, { label: 'Pages' }]} status={<ScanPill status={scan.status} />} />
+      <Hero title={summary ? plural(summary.pages.discovered, 'page') : 'Pages'} />
+      <PagesTable scan={scan} refresh={refresh} templates={templates} />
+    </>
   )
 }

@@ -279,7 +279,7 @@ describe('compareScans', () => {
     expect(result.issues.fixed.map(entry => entry.auditId).sort()).toEqual(['image-alt', 'uses-long-cache-ttl'])
     expect(result.issues.unknown.map(entry => entry.auditId)).toEqual(['unused-javascript'])
     expect(result.totals.issues).toEqual({ new: 0, fixed: 2, persisting: 0, unknown: 1 })
-    const summary = summarize({ scan: head, pages: [], issues: [], brokenLinks: [], comparison: result })
+    const summary = summarize({ findingCount: 0, scan: head, pages: [], issues: [], brokenLinks: [], comparison: result })
     expect(summary.baseline!.issues).toEqual({ new: 0, fixed: 2, unknown: 1 })
     expect(toMarkdown({ summary, comparison: result })).toContain('**Unknown: an affected page failed in this scan (1)**')
   })
@@ -295,7 +295,7 @@ describe('summarize', () => {
       page('s', { path: '/blog/d', template: '/blog/*', status: 'skipped' }),
       page('s', { path: '/', device: 'desktop', scores: { performance: 1 } }),
     ]
-    const summary = summarize({ scan: scan('s', { stats: { discovered: 5, queued: 0, done: 4, failed: 1, skipped: 1 } }), pages, issues: [], brokenLinks: [] })
+    const summary = summarize({ findingCount: 0, scan: scan('s', { stats: { discovered: 5, queued: 0, done: 4, failed: 1, skipped: 1 } }), pages, issues: [], brokenLinks: [] })
     const mobile = summary.devices.find(entry => entry.device === 'mobile')!
     expect(mobile.pages).toEqual({ done: 3, failed: 1, skipped: 1 })
     expect(mobile.scores.mean.performance).toBe(0.65)
@@ -314,7 +314,7 @@ describe('summarize', () => {
       { ...page('s', { path: '/b', status: 'skipped' }), error: 'Scan cancelled' },
       { ...page('s', { path: '/c', status: 'skipped' }), error: 'Scan failed before this page was audited' },
     ]
-    const summary = summarize({ scan: scan('s', { status: 'cancelled' }), pages, issues: [], brokenLinks: [] })
+    const summary = summarize({ findingCount: 0, scan: scan('s', { status: 'cancelled' }), pages, issues: [], brokenLinks: [] })
     expect(summary.pages).toEqual({ discovered: 4, audited: 1, skippedBySampling: 1, failed: 0 })
   })
 
@@ -325,14 +325,14 @@ describe('summarize', () => {
       issue('robots-txt', 2, { category: 'seo', severity: 'warn' }),
       issue('unused-javascript', 2),
     ]
-    const summary = summarize({ scan: scan('s'), pages, issues, brokenLinks: [] })
+    const summary = summarize({ findingCount: 0, scan: scan('s'), pages, issues, brokenLinks: [] })
     expect(summary.siteChecks).toEqual({ 'llms-txt': 'fail', 'ard-schema': 'pass', 'robots-txt': 'warn' })
     expect(summary.topIssues.map(entry => entry.auditId)).toEqual(['unused-javascript'])
   })
 
   test('marks site checks as not measured when their category did not run', () => {
     const pages = [page('s', { path: '/', scores: { 'agentic-browsing': null } })]
-    const summary = summarize({ scan: scan('s'), pages, issues: [], brokenLinks: [] })
+    const summary = summarize({ findingCount: 0, scan: scan('s'), pages, issues: [], brokenLinks: [] })
     expect(summary.siteChecks['llms-txt']).toBe('not-measured')
   })
 
@@ -345,7 +345,7 @@ describe('summarize', () => {
       page('s', { path: '/e', provenance: { lighthouseVersion: '13.4.1' } }),
       page('s', { path: '/f', provenance: { concurrency: 4, throttling: 'devtools' } }),
     ]
-    const summary = summarize({ scan: scan('s'), pages, issues: [], brokenLinks: [] })
+    const summary = summarize({ findingCount: 0, scan: scan('s'), pages, issues: [], brokenLinks: [] })
     expect(summary.warnings.map(warning => [warning.code, warning.pages])).toEqual([
       ['failed-pages', 1],
       ['high-sample-spread', 1],
@@ -362,7 +362,7 @@ describe('summarize', () => {
       page('s', { path: '/c', provenance: { runner: 'local' } }),
       page('s', { path: '/d' }),
     ]
-    const warnings = summarize({ scan: scan('s'), pages, issues: [], brokenLinks: [] }).warnings
+    const warnings = summarize({ findingCount: 0, scan: scan('s'), pages, issues: [], brokenLinks: [] }).warnings
     expect(warnings).toEqual([{ code: 'remote-runner', pages: 2, detail: 'cdp, psi' }])
     expect(describeWarning(warnings[0]!)).toContain('not comparable with local lab runs')
   })
@@ -372,7 +372,7 @@ describe('summarize', () => {
     const headPages = [page('h', { path: '/a', scores: { performance: 0.5 }, metrics: { lcp: 4000 } }), page('h', { path: '/b', scores: { performance: 0.8 } })]
     const comparison = compareScans({ scan: scan('b'), pages: basePages, issues: [] }, { scan: scan('h'), pages: headPages, issues: [issue('x', 1)] })
     const brokenLinks: BrokenLink[] = [{ url: `${ORIGIN}/gone`, status: 404, from: `${ORIGIN}/` }, { url: `${ORIGIN}/gone`, status: 404, from: `${ORIGIN}/a` }]
-    const summary = summarize({ scan: scan('h'), pages: headPages, issues: [], brokenLinks, comparison })
+    const summary = summarize({ findingCount: 0, scan: scan('h'), pages: headPages, issues: [], brokenLinks, comparison })
     expect(summary.brokenLinks).toBe(1)
     expect(summary.baseline!.topRegressions.map(entry => entry.path)).toEqual(['/a', '/b'])
     expect(summary.baseline!.topRegressions[0]).toEqual({ path: '/a', device: 'mobile', scores: { performance: -0.4 }, metrics: { lcp: 2000 } })
@@ -400,7 +400,7 @@ describe('summarize', () => {
     const headScan = scan('head', { stats: { discovered: 500, queued: 0, done: 290, failed: 10, skipped: 200 } })
     const comparison = compareScans({ scan: baseScan, pages: makePages('base', 0), issues: issues.slice(50) }, { scan: headScan, pages: makePages('head', 0.1), issues })
     const brokenLinks = Array.from({ length: 40 }, (_, i) => ({ url: `${ORIGIN}/missing-${i}`, status: 404, from: ORIGIN }))
-    const summary = summarize({ scan: headScan, pages: makePages('head', 0.1), issues, comparison, brokenLinks })
+    const summary = summarize({ findingCount: 0, scan: headScan, pages: makePages('head', 0.1), issues, comparison, brokenLinks })
     const size = new TextEncoder().encode(JSON.stringify(summary)).length
     expect(size).toBeLessThan(4096)
     expect(summary.topIssues).toHaveLength(5)
@@ -415,7 +415,7 @@ describe('checkBudgets', () => {
     page('h', { path: '/slow', scores: { performance: 0.6 }, metrics: { lcp: 5200 } }),
     page('h', { path: '/slower', scores: { performance: 0.6 }, metrics: { lcp: 6100 } }),
   ]
-  const summary = summarize({ scan: scan('h', { devices: ['mobile'] }), pages, issues: [], brokenLinks: [] })
+  const summary = summarize({ findingCount: 0, scan: scan('h', { devices: ['mobile'] }), pages, issues: [], brokenLinks: [] })
 
   test('checks minimum mean scores and maximum metric values, naming the worst URLs', () => {
     const report = checkBudgets({ summary, pages }, budgets({ scores: { performance: 0.9, seo: 0.9 }, metrics: { lcp: 4000, cls: 0.1 } }))
@@ -459,7 +459,7 @@ describe('template budgets', () => {
     page('h', { path: '/blog/a', template: '/blog/*', device: 'desktop', scores: { performance: 0.9 }, metrics: { lcp: 1200 } }),
     page('h', { path: '/docs/x/y', template: '/docs/*/*', scores: { performance: 0.99 }, metrics: { lcp: 900 } }),
   ]
-  const summary = summarize({ scan: scan('h'), pages, issues: [], brokenLinks: [] })
+  const summary = summarize({ findingCount: 0, scan: scan('h'), pages, issues: [], brokenLinks: [] })
 
   test('checks the mean score and the worst page of a template per device, scoped to the template', () => {
     const report = checkBudgets({ summary, pages }, budgets({ templates: [{ match: '/blog/*', scores: { performance: 0.8 }, metrics: { lcp: 4000 } }] }))
@@ -507,7 +507,7 @@ describe('toMarkdown', () => {
     const headPages = [page('h', { path: '/a', scores: { performance: 0.5 }, metrics: { lcp: 4500 } }), page('h', { path: '/b', scores: { performance: 0.9 } })]
     const newIssues = Array.from({ length: 7 }, (_, i) => issue(`audit-${i}`, 7 - i, { title: `Title|${i}`, items: 3 }))
     const comparison = compareScans({ scan: scan('base'), pages: basePages, issues: [issue('gone', 2)] }, { scan: scan('head'), pages: headPages, issues: newIssues })
-    const summary = summarize({ scan: scan('head'), pages: headPages, issues: newIssues, comparison, brokenLinks: [] })
+    const summary = summarize({ findingCount: 0, scan: scan('head'), pages: headPages, issues: newIssues, comparison, brokenLinks: [] })
     const report = checkBudgets({ summary, pages: headPages, comparison }, budgets({ scores: { performance: 0.9, seo: 0.5 } }))
     const markdown = toMarkdown({ summary, comparison, budgets: report, reportUrl: 'https://ci.example/report' })
     const lines = markdown.split('\n')
@@ -528,7 +528,7 @@ describe('toMarkdown', () => {
 
   test('works without baseline or budgets and shows warnings', () => {
     const pages = [page('s', { path: '/', provenance: { benchmarkIndex: 500 } })]
-    const summary = summarize({ scan: scan('s', { devices: ['mobile'] }), pages, issues: [issue('unused-css-rules', 1)], brokenLinks: [] })
+    const summary = summarize({ findingCount: 0, scan: scan('s', { devices: ['mobile'] }), pages, issues: [issue('unused-css-rules', 1)], brokenLinks: [] })
     const markdown = toMarkdown({ summary })
     expect(markdown).toContain('**Scan done**')
     expect(markdown).toContain('> [!WARNING]')
@@ -540,7 +540,7 @@ describe('toMarkdown', () => {
 describe('toJUnit', () => {
   test('emits one testcase per rule with failures and skips counted, as well-formed XML', () => {
     const pages = [page('h', { path: '/a&b', scores: { performance: 0.5 }, metrics: { lcp: 9000 } })]
-    const summary = summarize({ scan: scan('h', { devices: ['mobile'] }), pages, issues: [], brokenLinks: [] })
+    const summary = summarize({ findingCount: 0, scan: scan('h', { devices: ['mobile'] }), pages, issues: [], brokenLinks: [] })
     const report = checkBudgets({ summary, pages }, budgets({ scores: { performance: 0.9, seo: 0.5 }, metrics: { lcp: 4000 }, regression: { performance: 0.05 } }))
     const xml = toJUnit(report)
     expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true)

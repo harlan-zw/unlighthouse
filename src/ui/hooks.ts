@@ -15,6 +15,7 @@ export interface Query<T> {
   data: T | undefined
   error: Error | null
   loading: boolean
+  current: boolean
   reload: () => void
 }
 
@@ -48,7 +49,7 @@ export function useQuery<K extends Operation>(operation: K, input: Input<K> | nu
   }, [client, operation, key, nonce, refresh])
 
   const reload = useCallback(() => setNonce(n => n + 1), [])
-  return { data: state.data, error: state.error, loading: state.loading, reload }
+  return { data: state.data, error: state.error, loading: state.loading, current: state.key === key, reload }
 }
 
 export function useScanEvents(scanId: string | null, listener: (event: UnlighthouseEvent) => void): void {

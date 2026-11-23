@@ -1,7 +1,9 @@
 import { compareScans, type ScanComparison } from '../analysis/compare.ts'
-import { summarize, type ScanSummary } from '../analysis/summary.ts'
-import { groupIssues, issueItems, issuePages, type IssueHit } from '../analysis/issues.ts'
-import type { BrokenLink, IssueDetail, IssueQuery, Paged, PageQuery } from '../contracts.ts'
+import type { BudgetResult } from '../analysis/budgets.ts'
+import { median, present, roundScore } from '../analysis/stats.ts'
+import { SITE_CHECK_IDS, summarize, type ScanSummary } from '../analysis/summary.ts'
+import { groupIssues, issueDetailItems, issuePages, type IssueHit } from '../analysis/issues.ts'
+import type { BrokenLink, IssueDetail, IssueQuery, Paged, PageQuery, TemplateCount } from '../contracts.ts'
 import type { UnlighthouseEvent } from '../events.ts'
 import { CATEGORIES, type Category, type Device, type Finding, type Issue, type Metrics, type Page, type Scan, type Scores, type Severity, type Site } from '../types.ts'
 import { ApiError, reportUrl, type Client, type ConnectionState, type Input, type Operation, type Operations, type Output } from './api.ts'
@@ -638,7 +640,7 @@ class MockWorld {
         mock.pending.splice(mock.pending.indexOf(running), 1)
         const page = running.current
         const event: UnlighthouseEvent = { type: 'page:status', scanId: mock.scan.id, url: page.url, device: page.device, status: page.status, score: page.scores.performance }
-        this.emit(page.error ? { ...event, error: page.error } : event)
+        this.emit(page.error ? { ...event, error: page.error } : page.status === 'done' ? { ...event, findings: running.findings.length } : event)
       }
       const next = mock.pending.find(p => p.current.status === 'queued')
       if (next) {
@@ -696,7 +698,7 @@ class MockWorld {
     const mock = this.scan(id)
     const baseline = this.scans.find(s => s.scan.origin === mock.scan.origin && s.scan.status === 'done' && s.scan.createdAt < mock.scan.createdAt && s.scan.devices.join() === mock.scan.devices.join())
     const head = this.side(mock)
-    const input: Parameters<typeof summarize>[0] = { ...head, brokenLinks: mock.broken }
+    const input: Parameters<typeof summarize>[0] = { ...head, brokenLinks: mock.broken, findingCount: mock.pages.reduce((sum, page) => sum + (page.current.status === 'done' ? page.findings.length : 0), 0) }
     if (baseline)
       input.comparison = compareScans(this.side(baseline), head)
     return summarize(input)
@@ -775,7 +777,50 @@ class MockWorld {
     if (!issue)
       throw new ApiError('NOT_FOUND', `Issue ${auditId} not found`)
     const hits = this.hits(mock, {})
-    return { issue, items: issueItems(hits, auditId), pages: issuePages(hits, auditId) }
+    return { issue, items: issueDetailItems(hits, auditId), pages: issuePages(hits, auditId) }
+  }
+
+  templates(scanId: string): TemplateCount[] {
+    const mock = this.scan(scanId)
+    const groups = new Map<string, { urls: Set<string>, done: Page[] }>()
+    for (const { current } of mock.pages) {
+      const group = groups.get(current.template) ?? { urls: new Set<string>(), done: [] }
+      group.urls.add(current.url)
+      if (current.status === 'done')
+        group.done.push(current)
+      groups.set(current.template, group)
+    }
+    const issues = this.issues(mock, {}).filter(issue => !SITE_CHECK_IDS.has(issue.auditId))
+    return [...groups].map(([template, group]) => {
+      const scores = { ...NULL_SCORES }
+      for (const category of CATEGORIES) {
+        const value = median(present(group.done.map(page => page.scores[category])))
+        scores[category] = value === null ? null : roundScore(value)
+      }
+      const top = issues.find(issue => issue.templates.includes(template))
+      return {
+        template,
+        pages: group.urls.size,
+        audited: new Set(group.done.map(page => page.url)).size,
+        scores,
+        topIssue: top ? { auditId: top.auditId, title: top.title, pages: top.pages } : null,
+      }
+    }).sort((a, b) => b.pages - a.pages || (a.template < b.template ? -1 : a.template > b.template ? 1 : 0))
+  }
+
+  budgets(scanId: string): Output<'budgets.check'> {
+    const mock = this.scan(scanId)
+    if (!mock.spec.origin.includes('shop'))
+      return { passed: true, results: [], baseline: null }
+    const summary = this.summary(scanId)
+    const limit = 0.7
+    const results: BudgetResult[] = []
+    for (const device of summary.devices) {
+      const actual = device.scores.mean['agentic-browsing']
+      if (actual !== undefined)
+        results.push({ rule: 'score:agentic-browsing', scope: device.device, actual, limit, passed: actual >= limit })
+    }
+    return { passed: results.every(result => result.passed), results, baseline: summary.baseline?.scanId ?? null }
   }
 
   compare(baseId: string, headId: string): ScanComparison {
@@ -841,15 +886,7 @@ export function createMockClient(options: MockOptions = {}): MockClient {
     },
     'scans.summary': input => world.summary(input.scanId),
     'scans.brokenLinks': input => world.scan(input.scanId).broken,
-    'scans.templates': (input) => {
-      const urls = new Map<string, Set<string>>()
-      for (const page of world.scan(input.scanId).pages) {
-        const set = urls.get(page.current.template) ?? new Set()
-        set.add(page.current.url)
-        urls.set(page.current.template, set)
-      }
-      return [...urls].map(([template, set]) => ({ template, pages: set.size })).sort((a, b) => b.pages - a.pages || (a.template < b.template ? -1 : a.template > b.template ? 1 : 0))
-    },
+    'scans.templates': input => world.templates(input.scanId),
     'pages.list': input => world.listPages(input),
     'pages.get': input => world.getPage(input.scanId, input.url, input.device),
     'issues.list': (input: IssueQuery) => {
@@ -865,6 +902,8 @@ export function createMockClient(options: MockOptions = {}): MockClient {
     },
     'issues.get': input => world.getIssue(input.scanId, input.auditId),
     'compare': input => world.compare(input.base, input.head),
+    'budgets.check': input => world.budgets(input.scanId),
+    'config.defaults': () => ({ devices: ['mobile', 'desktop'], sampling: { perTemplate: 5 }, authConfigured: true }),
   }
 
   const ensureTimer = () => {

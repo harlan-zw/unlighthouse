@@ -306,12 +306,42 @@ describe('store', () => {
       page('/', 'mobile', '/'),
       page('/', 'desktop', '/'),
     ])
+    const unaudited = { audited: 0, scores: { 'performance': null, 'accessibility': null, 'best-practices': null, 'seo': null, 'agentic-browsing': null }, topIssue: null }
     expect(store.templates(scan.id)).toEqual([
-      { template: '/blog/*', pages: 2 },
-      { template: '/', pages: 1 },
-      { template: '/about', pages: 1 },
+      { template: '/blog/*', pages: 2, ...unaudited },
+      { template: '/', pages: 1, ...unaudited },
+      { template: '/about', pages: 1, ...unaudited },
     ])
     expect(store.templates('missing')).toEqual([])
+  })
+
+  test('picks the top issue of each template with the issue ranking, site checks excluded', () => {
+    const scan = newScan()
+    store.insertPages(scan.id, [page('/a/1', 'mobile', '/a/*'), page('/a/2', 'mobile', '/a/*'), page('/b', 'mobile', '/b'), page('/c', 'mobile', '/c'), page('/d', 'mobile', '/d')])
+    const save = (path: string, findings: Finding[]) => store.savePageResult(scan.id, `${ORIGIN}${path}`, 'mobile', result({ findings }))
+    const css = finding({ auditId: 'unused-css', title: 'Unused CSS' })
+    const contrast = finding({ auditId: 'color-contrast', title: 'Contrast', severity: 'warn', savingsMs: 3000 })
+    const meta = finding({ auditId: 'meta-description', title: 'Meta' })
+    const robots = finding({ auditId: 'robots-txt', title: 'robots.txt', savingsBytes: 10_000_000 })
+    save('/a/1', [css, robots])
+    save('/a/2', [css, robots])
+    save('/b', [css, contrast, robots])
+    save('/c', [contrast, meta, robots])
+    save('/d', [finding({ auditId: 'bbb', title: 'B' }), finding({ auditId: 'aaa', title: 'A' })])
+
+    const ranked = store.listIssues({ scanId: scan.id, limit: 100, offset: 0 }).items.filter(issue => issue.auditId !== 'robots-txt')
+    const expected = (template: string) => {
+      const top = ranked.find(issue => issue.templates.includes(template))!
+      return { auditId: top.auditId, title: top.title, pages: top.pages }
+    }
+    const top = Object.fromEntries(store.templates(scan.id).map(item => [item.template, item.topIssue]))
+    expect(top).toEqual({
+      '/a/*': { auditId: 'unused-css', title: 'Unused CSS', pages: 3 },
+      '/b': { auditId: 'color-contrast', title: 'Contrast', pages: 2 },
+      '/c': { auditId: 'color-contrast', title: 'Contrast', pages: 2 },
+      '/d': { auditId: 'aaa', title: 'A', pages: 1 },
+    })
+    for (const template of Object.keys(top)) expect(top[template]).toEqual(expected(template))
   })
 
   test('finds the baseline by origin, devices and branch preference', () => {

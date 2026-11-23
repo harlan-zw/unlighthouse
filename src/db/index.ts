@@ -3,7 +3,9 @@ import type { SQLQueryBindings } from 'bun:sqlite'
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { TOP_ITEMS } from '../analysis/issues.ts'
-import type { AuditResult, BrokenLink, FieldResult, HreflangProblem, IssuePage, NewPage, NewScan, PageQuery, Paged, ScanPatch, Store, TemplateCount } from '../contracts.ts'
+import { median, present, roundScore } from '../analysis/stats.ts'
+import { SITE_CHECK_IDS } from '../analysis/summary.ts'
+import type { AuditResult, BrokenLink, FieldResult, HreflangProblem, IssueDetailItem, IssuePage, NewPage, NewScan, PageQuery, Paged, ScanPatch, Store, TemplateCount } from '../contracts.ts'
 import { hashUrl } from '../discover/urls.ts'
 import { UnlighthouseError } from '../errors.ts'
 import { CATEGORIES, METRICS } from '../types.ts'
@@ -23,6 +25,8 @@ const EMPTY_STATS: ScanStats = { discovered: 0, queued: 0, done: 0, failed: 0, s
 const TERMINAL_PAGE_STATUSES: PageStatus[] = ['done', 'failed', 'skipped']
 
 const ISSUE_FROM = 'FROM findings f JOIN pages p ON p.scan_id = f.scan_id AND p.url = f.url AND p.device = f.device'
+
+const IMPACT = `pages * (CASE severity WHEN 'fail' THEN 1.0 ELSE 0.5 END) + savings_ms / 1000.0 + savings_bytes / 100000.0`
 
 const CRUX_CACHE_KEEP_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -445,9 +449,59 @@ export function openStore(dataDir: string): Store {
     },
 
     templates(scanId: string) {
-      return all(`SELECT template, count(DISTINCT url) AS pages FROM pages WHERE scan_id = $scanId
-        GROUP BY template ORDER BY pages DESC, template`, { scanId })
-        .map((row): TemplateCount => ({ template: row['template'] as string, pages: row['pages'] as number }))
+      const done = new Map<string, Page[]>()
+      for (const row of all(`SELECT * FROM pages WHERE scan_id = $scanId AND status = 'done'`, { scanId })) {
+        const page = toPage(row)
+        done.set(page.template, [...done.get(page.template) ?? [], page])
+      }
+      const siteChecks = [...SITE_CHECK_IDS]
+      const excluded: Bindings = { scanId }
+      siteChecks.forEach((id, index) => { excluded[`site${index}`] = id })
+      const top = new Map<string, { auditId: string, title: string, pages: number }>()
+      for (const row of all(`WITH per_page AS (
+          SELECT f.audit_id, f.url, f.device, max(f.title) AS title, min(f.severity) AS severity,
+            max(f.savings_ms) AS savings_ms, max(f.savings_bytes) AS savings_bytes
+          ${ISSUE_FROM} WHERE f.scan_id = $scanId
+          ${siteChecks.map((_, index) => `AND f.audit_id <> $site${index}`).join(' ')}
+          GROUP BY f.audit_id, f.url, f.device
+        ), grouped AS (
+          SELECT audit_id, max(title) AS title, min(severity) AS severity, count(DISTINCT url) AS pages,
+            coalesce(sum(savings_ms), 0) AS savings_ms, coalesce(sum(savings_bytes), 0) AS savings_bytes
+          FROM per_page GROUP BY audit_id
+        ), scored AS (
+          SELECT *, ${IMPACT} AS impact FROM grouped
+        ), pairs AS (
+          SELECT DISTINCT p.template, f.audit_id ${ISSUE_FROM} WHERE f.scan_id = $scanId
+        ), ranked AS (
+          SELECT pairs.template, scored.audit_id, scored.title, scored.pages,
+            row_number() OVER (PARTITION BY pairs.template ORDER BY scored.impact DESC, scored.pages DESC, scored.audit_id) AS rank
+          FROM pairs JOIN scored ON scored.audit_id = pairs.audit_id
+        )
+        SELECT template, audit_id, title, pages FROM ranked WHERE rank = 1`, excluded)) {
+        top.set(row['template'] as string, { auditId: row['audit_id'] as string, title: row['title'] as string, pages: row['pages'] as number })
+      }
+      return all(`SELECT template, count(DISTINCT url) AS pages, count(DISTINCT CASE WHEN status = 'done' THEN url END) AS audited
+        FROM pages WHERE scan_id = $scanId GROUP BY template ORDER BY pages DESC, template`, { scanId })
+        .map((row): TemplateCount => {
+          const template = row['template'] as string
+          const pages = done.get(template) ?? []
+          const scores = {} as Scores
+          for (const category of CATEGORIES) {
+            const value = median(present(pages.map(page => page.scores[category])))
+            scores[category] = value === null ? null : roundScore(value)
+          }
+          return {
+            template,
+            pages: row['pages'] as number,
+            audited: row['audited'] as number,
+            scores,
+            topIssue: top.get(template) ?? null,
+          }
+        })
+    },
+
+    countFindings(scanId: string) {
+      return get('SELECT count(*) AS total FROM findings WHERE scan_id = $scanId', { scanId })!['total'] as number
     },
 
     findings(scanId: string, url: string, device: Device) {
@@ -491,7 +545,7 @@ export function openStore(dataDir: string): Store {
             coalesce(sum(savings_bytes), 0) AS savings_bytes
           FROM per_page GROUP BY audit_id
         )
-        SELECT *, pages * (CASE severity WHEN 'fail' THEN 1.0 ELSE 0.5 END) + savings_ms / 1000.0 + savings_bytes / 100000.0 AS impact
+        SELECT *, ${IMPACT} AS impact
         FROM grouped ORDER BY impact DESC, pages DESC, audit_id LIMIT $limit OFFSET $offset`, { ...bindings, limit: query.limit, offset: query.offset })
       const filtered = `${scoped} AND f.audit_id = $issue`
       const examples = db.query<{ url: string }, Bindings>(`SELECT DISTINCT f.url ${filtered} ORDER BY f.url LIMIT 3`)
@@ -518,7 +572,19 @@ export function openStore(dataDir: string): Store {
     },
 
     issueItems(scanId: string, auditId: string) {
-      return issueItemRows(`${ISSUE_FROM} WHERE f.scan_id = $scanId AND f.audit_id = $issue`, { scanId, issue: auditId }, -1)
+      const bindings = { scanId, issue: auditId }
+      const templates = new Map<string, string[]>()
+      for (const row of all(`SELECT f.item_key, p.template, count(DISTINCT f.url) AS pages
+        ${ISSUE_FROM} WHERE f.scan_id = $scanId AND f.audit_id = $issue AND f.item_key <> ''
+        GROUP BY f.item_key, p.template
+        ORDER BY pages DESC, p.template`, bindings)) {
+        const key = row['item_key'] as string
+        const list = templates.get(key) ?? []
+        list.push(row['template'] as string)
+        templates.set(key, list)
+      }
+      return issueItemRows(`${ISSUE_FROM} WHERE f.scan_id = $scanId AND f.audit_id = $issue`, bindings, -1)
+        .map((item): IssueDetailItem => ({ ...item, templates: templates.get(item.key) ?? [] }))
     },
 
     issuePages(scanId: string, auditId: string) {

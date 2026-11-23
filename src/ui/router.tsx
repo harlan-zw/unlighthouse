@@ -1,18 +1,21 @@
-import { useSyncExternalStore, type AnchorHTMLAttributes, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useSyncExternalStore, type AnchorHTMLAttributes, type MouseEvent, type ReactNode } from 'react'
 import type { Device } from '../types.ts'
 
-export type ScanTab = 'overview' | 'pages' | 'issues' | 'links'
-
 export type Route =
-  | { name: 'sites' }
+  | { name: 'home' }
   | { name: 'site', siteId: number }
-  | { name: 'scan', scanId: string, tab: ScanTab }
+  | { name: 'scan', scanId: string }
+  | { name: 'issue', scanId: string, auditId: string }
+  | { name: 'templates', scanId: string }
+  | { name: 'pages', scanId: string }
+  | { name: 'links', scanId: string }
   | { name: 'page', scanId: string, url: string, device: Device }
   | { name: 'compare', siteId: number | null, base: string | null, head: string | null }
+  | { name: 'redirect', to: string }
   | { name: 'not-found', path: string }
 
 const PRESERVED = ['mock']
-const TABS: ScanTab[] = ['overview', 'pages', 'issues', 'links']
+const SECTIONS = ['templates', 'pages', 'links'] as const
 
 type Params = Record<string, string | number | null | undefined>
 
@@ -48,11 +51,16 @@ export function href(path: string, params: Params = {}): string {
 
 export function routeHref(route: Route): string {
   switch (route.name) {
-    case 'sites': return href('/')
+    case 'home': return href('/')
     case 'site': return href(`/sites/${route.siteId}`)
-    case 'scan': return href(route.tab === 'overview' ? `/scans/${encodeURIComponent(route.scanId)}` : `/scans/${encodeURIComponent(route.scanId)}/${route.tab}`)
+    case 'scan': return href(`/scans/${encodeURIComponent(route.scanId)}`)
+    case 'issue': return href(`/scans/${encodeURIComponent(route.scanId)}/issues/${encodeURIComponent(route.auditId)}`)
+    case 'templates':
+    case 'pages':
+    case 'links': return href(`/scans/${encodeURIComponent(route.scanId)}/${route.name}`)
     case 'page': return href(`/scans/${encodeURIComponent(route.scanId)}/page`, { url: route.url, device: route.device })
     case 'compare': return href('/compare', { site: route.siteId, base: route.base, head: route.head })
+    case 'redirect': return href(route.to)
     case 'not-found': return href(route.path)
   }
 }
@@ -61,21 +69,26 @@ export function parseRoute(pathname: string, search: string): Route {
   const params = new URLSearchParams(search)
   const parts = pathname.split('/').filter(Boolean).map(decodeURIComponent)
   if (parts.length === 0)
-    return { name: 'sites' }
+    return { name: 'home' }
   if (parts[0] === 'sites' && parts.length === 2 && /^\d+$/.test(parts[1] ?? ''))
     return { name: 'site', siteId: Number(parts[1]) }
   if (parts[0] === 'scans' && parts[1]) {
     const scanId = parts[1]
+    const section = parts[2]
     if (parts.length === 2)
-      return { name: 'scan', scanId, tab: 'overview' }
-    if (parts.length === 3 && parts[2] === 'page') {
+      return { name: 'scan', scanId }
+    if (parts.length === 3 && (section === 'issues' || section === 'overview'))
+      return { name: 'redirect', to: `/scans/${encodeURIComponent(scanId)}` }
+    if (parts.length === 3 && section === 'page') {
       const url = params.get('url')
       const device = params.get('device') === 'desktop' ? 'desktop' : 'mobile'
       if (url)
         return { name: 'page', scanId, url, device }
     }
-    if (parts.length === 3 && TABS.includes(parts[2] as ScanTab))
-      return { name: 'scan', scanId, tab: parts[2] as ScanTab }
+    if (parts.length === 3 && (SECTIONS as readonly string[]).includes(section ?? ''))
+      return { name: section as typeof SECTIONS[number], scanId }
+    if (parts.length === 4 && section === 'issues' && parts[3])
+      return { name: 'issue', scanId, auditId: parts[3] }
   }
   if (parts[0] === 'compare' && parts.length === 1) {
     const site = params.get('site')
@@ -162,4 +175,9 @@ export function Link({ to, children, onClick, ...rest }: { to: string, children:
       {children}
     </a>
   )
+}
+
+export function Redirect({ to }: { to: string }) {
+  useEffect(() => navigate(href(to), { replace: true }), [to])
+  return null
 }

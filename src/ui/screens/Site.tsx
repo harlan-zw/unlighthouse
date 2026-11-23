@@ -1,17 +1,32 @@
 import { useState } from 'react'
 import type { Scan } from '../../types.ts'
+import { EmptyState, ErrorState, ScanPill, Skeleton } from '../components/controls.tsx'
+import { PaginationBar } from '../components/DataTable.tsx'
+import { Hero, TopBar } from '../components/layout.tsx'
+import { FigureCells, useScanFigures } from '../components/rows.tsx'
+import { formatCount, hostOf, plural, shortCommit } from '../format.ts'
 import { useClient, useDocumentTitle, useQuery } from '../hooks.ts'
-import { formatCount, formatDate, formatDuration, formatRelative, hostOf } from '../format.ts'
-import { href, Link, navigate, routeHref } from '../router.tsx'
-import { DeviceLabel, EmptyState, ErrorState, Skeleton, StatusBadge } from '../components/controls.tsx'
-import { DataTable, type Column } from '../components/DataTable.tsx'
-import { Card, PageHead, useBreadcrumbs } from '../components/layout.tsx'
-import { StartScanForm } from './Sites.tsx'
+import { useRestart } from '../restart.ts'
+import { href, Link, routeHref } from '../router.tsx'
 
 const LIMIT = 25
 
-export function scanName(scan: Pick<Scan, 'id' | 'label'>): string {
-  return scan.label ?? `Scan ${scan.id}`
+function ScanRow({ scan, number }: { scan: Scan, number: number }) {
+  const figures = useScanFigures(scan)
+  const git = scan.branch ? [scan.branch, shortCommit(scan.commit)].filter(Boolean).join(' · ') : null
+  return (
+    <Link role="listitem" className="site-row scan-row" to={routeHref({ name: 'scan', scanId: scan.id })}>
+      <span className="stack-2 site-row-main-text">
+        <span className="site-row-host truncate">
+          {`#${number}`}
+          {scan.label && <span className="muted">{` · ${scan.label}`}</span>}
+        </span>
+        <span className="faint small truncate">{[git, scan.devices.join(' + '), `${formatCount(figures.stats?.discovered ?? scan.stats.discovered)} pages`].filter(Boolean).join(' · ')}</span>
+      </span>
+      <span>{figures.status && <ScanPill status={figures.status} />}</span>
+      <FigureCells figures={figures} scan={scan} />
+    </Link>
+  )
 }
 
 export function SitePage({ siteId }: { siteId: number }) {
@@ -20,98 +35,46 @@ export function SitePage({ siteId }: { siteId: number }) {
   const site = sites.data?.find(s => s.id === siteId)
   const [offset, setOffset] = useState(0)
   const scans = useQuery('scans.list', site ? { origin: site.origin, limit: LIMIT, offset } : null)
-  const [showForm, setShowForm] = useState(false)
+  const latest = scans.data?.items[0]
+  const { restart, busy, error } = useRestart(offset === 0 ? latest : undefined)
   const host = site ? hostOf(site.origin) : `Site ${siteId}`
-  useBreadcrumbs([{ label: 'Sites', href: href('/') }, { label: host }])
-  useDocumentTitle(host)
+  useDocumentTitle(`Scans · ${host}`)
+  const crumbs = [{ label: host }, { label: 'Scans' }]
 
   if (sites.error)
     return <ErrorState error={sites.error} onRetry={sites.reload} />
   if (!sites.data)
-    return <Skeleton lines={6} />
+    return <><TopBar crumbs={crumbs} /><div className="pad"><Skeleton lines={5} height={44} /></div></>
   if (!site)
-    return <EmptyState title="Site not found" action={<Link className="btn" to={href('/')}>All sites</Link>}>{`No site with id ${siteId}.`}</EmptyState>
+    return <><TopBar crumbs={[{ label: 'Home', href: href('/') }, { label: `Site ${siteId}` }]} /><EmptyState title="Site not found" /></>
 
-  const items = scans.data?.items
-  const previousDone = (scan: Scan) => items?.find(s => s.createdAt < scan.createdAt && s.status === 'done')
-
-  const columns: Column<Scan>[] = [
-    {
-      key: 'scan',
-      header: 'Scan',
-      render: scan => (
-        <span className="url-cell">
-          <Link to={routeHref({ name: 'scan', scanId: scan.id, tab: 'overview' })} className="truncate" style={{ fontWeight: 500 }}>{scanName(scan)}</Link>
-          <span className="cell-sub">{formatDate(scan.createdAt)}</span>
-        </span>
-      ),
-      sortValue: scan => scan.createdAt,
-      defaultOrder: 'desc',
-    },
-    { key: 'status', header: 'Status', render: scan => <StatusBadge status={scan.status} />, sortValue: scan => scan.status },
-    {
-      key: 'git',
-      header: 'Branch',
-      hideBelow: 'sm',
-      render: scan => scan.branch ? <span className="chip" title={scan.commit ?? undefined}>{scan.commit ? `${scan.branch} @ ${scan.commit.slice(0, 7)}` : scan.branch}</span> : <span className="faint">—</span>,
-      sortValue: scan => scan.branch,
-    },
-    { key: 'devices', header: 'Devices', hideBelow: 'md', render: scan => <span className="row">{scan.devices.map(d => <DeviceLabel key={d} device={d} />)}</span> },
-    { key: 'pages', header: 'Audits', align: 'right', render: scan => <span className="num">{`${formatCount(scan.stats.done)} / ${formatCount(scan.stats.done + scan.stats.failed + scan.stats.queued)}`}</span>, sortValue: scan => scan.stats.done },
-    { key: 'found', header: 'Discovered', align: 'right', hideBelow: 'sm', render: scan => <span className="num">{formatCount(scan.stats.discovered)}</span>, sortValue: scan => scan.stats.discovered },
-    { key: 'duration', header: 'Duration', align: 'right', hideBelow: 'md', render: scan => <span className="num">{scan.startedAt ? formatDuration((scan.finishedAt ?? Date.now()) - scan.startedAt) : '—'}</span> },
-    {
-      key: 'actions',
-      header: <span className="sr-only">Actions</span>,
-      align: 'right',
-      render: (scan) => {
-        const prev = previousDone(scan)
-        return scan.status === 'done' && prev
-          ? <Link className="btn btn-sm btn-ghost" to={routeHref({ name: 'compare', siteId, base: prev.id, head: scan.id })}>Compare</Link>
-          : null
-      },
-    },
-  ]
-
+  const total = scans.data?.total ?? 0
   return (
-    <div className="stack">
-      <PageHead
-        eyebrow="Site"
-        title={host}
-        meta={(
-          <>
-            <a className="link" href={site.origin} target="_blank" rel="noreferrer">{site.origin}</a>
-            <span>{`${site.scans} ${site.scans === 1 ? 'scan' : 'scans'}`}</span>
-            <span>{`Tracked since ${formatRelative(site.createdAt)}`}</span>
-          </>
-        )}
+    <>
+      <TopBar
+        crumbs={crumbs}
         actions={(
           <>
-            <Link className="btn" to={routeHref({ name: 'compare', siteId, base: null, head: null })}>Compare scans</Link>
-            {client.mode !== 'static' && <button type="button" className="btn btn-primary" onClick={() => setShowForm(v => !v)} aria-expanded={showForm}>New scan</button>}
+            <Link className="btn" to={routeHref({ name: 'compare', siteId, base: null, head: null })}>Compare</Link>
+            {client.mode !== 'static' && latest && <button type="button" className="btn btn-primary" onClick={() => void restart()} disabled={busy}>Rescan</button>}
           </>
         )}
       />
-      {showForm && (
-        <Card title="New scan">
-          <StartScanForm initialUrl={site.origin} />
-        </Card>
+      {error && <p className="field-error pad-x" role="alert">{error}</p>}
+      <Hero title={plural(total, 'scan')} sub={<a className="link" href={site.origin} target="_blank" rel="noreferrer">{site.origin}</a>} />
+      {scans.error && <ErrorState error={scans.error} onRetry={scans.reload} />}
+      {!scans.data && !scans.error && <div className="pad"><Skeleton lines={5} height={44} /></div>}
+      {scans.data && scans.data.items.length === 0 && <EmptyState title="No scans" compact />}
+      {scans.data && scans.data.items.length > 0 && (
+        <>
+          <div className="scroll-x">
+            <div role="list" className="site-rows">
+              {scans.data.items.map((scan, index) => <ScanRow key={scan.id} scan={scan} number={total - offset - index} />)}
+            </div>
+          </div>
+          <PaginationBar offset={offset} limit={LIMIT} total={total} onChange={setOffset} />
+        </>
       )}
-      {scans.error
-        ? <ErrorState error={scans.error} onRetry={scans.reload} />
-        : (
-            <DataTable
-              caption={`Scans of ${host}`}
-              columns={columns}
-              rows={items}
-              rowKey={scan => scan.id}
-              loading={scans.loading}
-              defaultSort={{ key: 'scan', order: 'desc' }}
-              onRowActivate={scan => navigate(routeHref({ name: 'scan', scanId: scan.id, tab: 'overview' }))}
-              empty={<EmptyState title="No scans yet" compact />}
-              pagination={{ offset, limit: LIMIT, total: scans.data?.total ?? 0, onChange: setOffset }}
-            />
-          )}
-    </div>
+    </>
   )
 }

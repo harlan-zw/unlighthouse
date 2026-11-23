@@ -1,4 +1,7 @@
-import { createContext, useContext, useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useClient } from '../hooks.ts'
+import { Link } from '../router.tsx'
+import { useTheme, type ThemePreference } from '../theme.ts'
 import type { Tone } from './controls.tsx'
 
 export interface Crumb {
@@ -6,26 +9,82 @@ export interface Crumb {
   href?: string
 }
 
-export const CrumbsContext = createContext<(crumbs: Crumb[]) => void>(() => {})
-
-export function useBreadcrumbs(crumbs: Crumb[]): void {
-  const set = useContext(CrumbsContext)
-  const key = JSON.stringify(crumbs)
-  useEffect(() => {
-    set(JSON.parse(key) as Crumb[])
-  }, [set, key])
+function ThemeToggle() {
+  const [theme, setTheme] = useTheme()
+  const order: ThemePreference[] = ['system', 'light', 'dark']
+  const next = order[(order.indexOf(theme) + 1) % order.length] ?? 'system'
+  const label = `Theme: ${theme}. Switch to ${next}.`
+  return (
+    <button type="button" className="btn btn-ghost btn-icon" onClick={() => setTheme(next)} aria-label={label} title={label}>
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        {theme === 'light' && <><circle cx="8" cy="8" r="3" /><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M3.4 12.6l1.06-1.06M11.54 4.46l1.06-1.06" /></>}
+        {theme === 'dark' && <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7Z" />}
+        {theme === 'system' && <><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M5.5 14h5M8 11.5V14" /><path d="M1.5 2.5h6.5v9H1.5Z" fill="currentColor" stroke="none" opacity="0.35" /></>}
+      </svg>
+    </button>
+  )
 }
 
-export function PageHead({ eyebrow, title, meta, actions, titleClass }: { eyebrow?: ReactNode, title: ReactNode, meta?: ReactNode, actions?: ReactNode, titleClass?: string }) {
+export function TopBar({ crumbs, status, actions }: { crumbs: Crumb[], status?: ReactNode, actions?: ReactNode }) {
+  const client = useClient()
   return (
-    <header className="page-head">
-      <div className="page-head-main">
-        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-        <h1 className={titleClass}>{title}</h1>
-        {meta && <div className="page-head-meta">{meta}</div>}
+    <header className="topbar">
+      <nav className="crumbs" aria-label="Breadcrumb">
+        <ol>
+          {crumbs.map((crumb, i) => (
+            <li key={`${crumb.label}-${i}`}>
+              {crumb.href && i < crumbs.length - 1
+                ? <Link to={crumb.href} className="truncate">{crumb.label}</Link>
+                : <span aria-current={i === crumbs.length - 1 ? 'page' : undefined} className="truncate">{crumb.label}</span>}
+            </li>
+          ))}
+        </ol>
+        {status}
+      </nav>
+      <div className="topbar-right">
+        {actions}
+        {client.mode !== 'live' && <span className="mode-pill" title={client.mode === 'mock' ? 'Generated demo data' : 'Static snapshot'}>{client.mode}</span>}
+        <ThemeToggle />
       </div>
-      {actions && <div className="page-head-actions">{actions}</div>}
     </header>
+  )
+}
+
+export function Hero({ title, sub, aside }: { title: ReactNode, sub?: ReactNode, aside?: ReactNode }) {
+  return (
+    <section className="hero">
+      <div className="hero-main">
+        <h1>{title}</h1>
+        {sub && <span className="hero-sub">{sub}</span>}
+      </div>
+      {aside}
+    </section>
+  )
+}
+
+export function CopyButton({ text, children, className = 'btn' }: { text: string, children: ReactNode, className?: string }) {
+  const [copied, setCopied] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (timer.current)
+      clearTimeout(timer.current)
+  }, [])
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+    }
+    catch {
+      return
+    }
+    setCopied(true)
+    if (timer.current)
+      clearTimeout(timer.current)
+    timer.current = setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <button type="button" className={className} onClick={() => void copy()} aria-live="polite">
+      {copied ? 'Copied' : children}
+    </button>
   )
 }
 
@@ -58,16 +117,6 @@ export function Callout({ tone = 'info', title, children }: { tone?: Tone, title
         {title && <div className="callout-title">{title}</div>}
         {children}
       </div>
-    </div>
-  )
-}
-
-export function Stat({ label, value, sub }: { label: ReactNode, value: ReactNode, sub?: ReactNode }) {
-  return (
-    <div className="stat">
-      <span className="stat-label">{label}</span>
-      <span className="stat-value">{value}</span>
-      {sub && <span className="stat-sub">{sub}</span>}
     </div>
   )
 }

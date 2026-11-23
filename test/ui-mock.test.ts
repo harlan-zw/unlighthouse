@@ -4,6 +4,7 @@ import type { UnlighthouseEvent } from '../src/events.ts'
 import { CATEGORIES, DEVICES, METRICS } from '../src/types.ts'
 import { ApiError } from '../src/ui/api.ts'
 import { createMockClient, type MockClient } from '../src/ui/mock.ts'
+import { startInputFrom } from '../src/ui/start-input.ts'
 
 const device = z.enum(DEVICES)
 const category = z.enum(CATEGORIES)
@@ -72,6 +73,7 @@ const finding = z.strictObject({
   savingsBytes: z.number().nullable(),
 })
 const issueItem = z.strictObject({ key: z.string().min(1), label: z.string().nullable(), pages: z.number().int().min(1), savingsMs: z.number().min(0), savingsBytes: z.number().min(0) })
+const issueDetailItem = issueItem.extend({ templates: z.array(z.string()).min(1) })
 const issue = z.strictObject({
   auditId: z.string(),
   category: category.nullable(),
@@ -90,12 +92,24 @@ const issue = z.strictObject({
 const issuePage = z.strictObject({ url: z.url(), device, template: z.string(), items: z.number().int().min(0), savingsMs: z.number().nullable(), savingsBytes: z.number().nullable(), displayValue: z.string().nullable() })
 const paged = <T extends z.ZodType>(item: T) => z.strictObject({ items: z.array(item), total: z.number().int().min(0) })
 const site = z.strictObject({ id: z.number().int(), origin: z.url(), createdAt: timestamp, scans: z.number().int().min(0), lastScan: scan.nullable(), lastScores: z.partialRecord(device, scores) })
+const template = z.strictObject({
+  template: z.string().min(1),
+  pages: z.number().int().min(1),
+  audited: z.number().int().min(0),
+  scores,
+  topIssue: z.strictObject({ auditId: z.string(), title: z.string(), pages: z.number().int().min(1) }).nullable(),
+})
+const budgetReport = z.strictObject({
+  passed: z.boolean(),
+  results: z.array(z.strictObject({ rule: z.string(), scope: z.string(), actual: z.number().nullable(), limit: z.number(), passed: z.boolean(), skipped: z.literal(true).optional(), detail: z.string().optional() })),
+  baseline: z.string().nullable(),
+})
 const brokenLink = z.strictObject({ url: z.url(), status: z.number().int(), from: z.url() })
 const event = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('scan:status'), scanId: z.string(), status: scanStatus, error: z.string().optional() }),
   z.strictObject({ type: z.literal('scan:progress'), scanId: z.string(), discovered: z.number(), queued: z.number(), done: z.number(), failed: z.number(), skipped: z.number() }),
   z.strictObject({ type: z.literal('page:discovered'), scanId: z.string(), url: z.url(), template: z.string() }),
-  z.strictObject({ type: z.literal('page:status'), scanId: z.string(), url: z.url(), device, status: pageStatus, score: score.optional(), error: z.string().optional() }),
+  z.strictObject({ type: z.literal('page:status'), scanId: z.string(), url: z.url(), device, status: pageStatus, score: score.optional(), findings: z.number().int().min(0).optional(), error: z.string().optional() }),
   z.strictObject({ type: z.literal('log'), scanId: z.string().optional(), level: z.enum(['info', 'warn', 'error']), message: z.string() }),
 ])
 
@@ -121,7 +135,18 @@ describe('mock client', () => {
     expect(sum.devices.map(d => d.device)).toEqual(['mobile', 'desktop'])
     expect(sum.siteChecks['llms-txt']).toBe('fail')
     expect(sum.baseline?.scanId).toBeDefined()
+    expect(sum.findingCount).toBeGreaterThan(sum.issueCount)
     z.array(brokenLink).parse(await client.call('scans.brokenLinks', { scanId: id }))
+
+    const templates = z.array(template).parse(await client.call('scans.templates', { scanId: id }))
+    expect(templates.reduce((total, t) => total + t.pages, 0)).toBe(300)
+    expect(templates.every(t => t.audited <= t.pages)).toBe(true)
+    const withScores = templates.filter(t => t.audited > 0)
+    expect(withScores.length).toBeGreaterThan(0)
+    expect(withScores.every(t => t.topIssue !== null && Object.values(t.scores).some(value => value !== null))).toBe(true)
+
+    const budgets = budgetReport.parse(await client.call('budgets.check', { scanId: id }))
+    expect(budgets.results.length).toBeGreaterThan(0)
 
     const pages = paged(page).parse(await client.call('pages.list', { scanId: id, limit: 1000, offset: 0 }))
     expect(pages.total).toBe(600)
@@ -132,7 +157,7 @@ describe('mock client', () => {
     const issues = paged(issue).parse(await client.call('issues.list', { scanId: id, limit: 50, offset: 0 }))
     const first = issues.items[0]!
     expect(new Set(issues.items.map(i => i.auditId)).size).toBe(issues.items.length)
-    const one = z.strictObject({ issue, items: z.array(issueItem), pages: z.array(issuePage) }).parse(await client.call('issues.get', { scanId: id, auditId: first.auditId }))
+    const one = z.strictObject({ issue, items: z.array(issueDetailItem), pages: z.array(issuePage) }).parse(await client.call('issues.get', { scanId: id, auditId: first.auditId }))
     expect(one.pages.length).toBe(new Set(one.pages.map(p => `${p.url}|${p.device}`)).size)
     expect(one.items).toHaveLength(first.items)
 
@@ -161,6 +186,9 @@ describe('mock client', () => {
       client.tick()
     for (const e of events)
       event.parse(e)
+    const finished = events.filter(e => e.type === 'page:status' && e.status === 'done')
+    expect(finished.length).toBeGreaterThan(0)
+    expect(finished.every(e => e.type === 'page:status' && typeof e.findings === 'number')).toBe(true)
     expect(events.at(-1)).toEqual({ type: 'scan:status', scanId: running.id, status: 'done' })
     const after = scan.parse(await client.call('scans.get', { scanId: running.id }))
     expect(after.stats.queued).toBe(0)
@@ -183,5 +211,20 @@ describe('mock client', () => {
     const error = await client.call('scans.get', { scanId: 'missing' }).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).code).toBe('NOT_FOUND')
+  })
+})
+
+describe('restart input', () => {
+  const base = { id: 'a', siteId: 1, origin: 'https://example.com', status: 'done' as const, label: 'Release', branch: 'main', commit: 'abc1234', devices: ['mobile' as const], error: null, lighthouseVersion: null, stats: { discovered: 1, queued: 0, done: 1, failed: 0, skipped: 0 }, createdAt: 1, startedAt: 1, finishedAt: 2 }
+  const empty = { headers: {}, cookies: [], localStorage: {}, sessionStorage: {} }
+
+  test('keeps an auth opt-out, budgets and git labels', () => {
+    const input = startInputFrom({ ...base, options: { sampling: { perTemplate: 3 }, budgets: { newIssues: 0 }, urls: ['/a'], dataDir: '.x', auth: empty } })
+    expect(input).toEqual({ site: 'https://example.com', devices: ['mobile'], sampling: { perTemplate: 3 }, budgets: { newIssues: 0 }, urls: ['/a'], auth: false, label: 'Release', branch: 'main', commit: 'abc1234' })
+  })
+
+  test('does not opt out of auth that was used', () => {
+    const input = startInputFrom({ ...base, options: { auth: { ...empty, headers: { authorization: '[redacted]' } } } })
+    expect(input).not.toHaveProperty('auth')
   })
 })

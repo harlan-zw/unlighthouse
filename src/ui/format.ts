@@ -1,3 +1,4 @@
+import type { ReliabilityWarning } from '../analysis/summary.ts'
 import { rateMetric, scoreBand } from '../analysis/thresholds.ts'
 import type { Category, Device, Metric } from '../types.ts'
 
@@ -150,4 +151,46 @@ export function pathOf(url: string): string {
   catch {
     return url
   }
+}
+
+export function formatWhen(ts: number | null | undefined, now = Date.now()): string {
+  if (!ts)
+    return '—'
+  const midnight = (value: number) => new Date(value).setHours(0, 0, 0, 0)
+  const days = Math.round((midnight(now) - midnight(ts)) / 86_400_000)
+  if (days <= 0)
+    return `today ${new Date(ts).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+  if (days === 1)
+    return 'yesterday'
+  if (days < 30)
+    return `${days} days ago`
+  return formatDate(ts)
+}
+
+export function shortCommit(commit: string | null): string | null {
+  return commit ? commit.slice(0, 7) : null
+}
+
+export function reliabilityText(warning: ReliabilityWarning): string {
+  switch (warning.code) {
+    case 'failed-pages': return `${warning.pages} pages failed`
+    case 'high-sample-spread': return `${warning.pages} pages with high sample spread`
+    case 'low-benchmark-index': return `Low benchmark index on ${warning.pages} pages`
+    case 'concurrent-simulated-throttling': return 'Parallel audits with simulated throttling'
+    case 'mixed-lighthouse-versions': return 'Mixed Lighthouse versions'
+    case 'remote-runner': return 'Remote runner'
+  }
+}
+
+const TINTS = ['#8B93FF', '#4CC38A', '#F2B84B', '#C3C6CD', '#F2785C', '#7FD3A6']
+
+export function siteTint(host: string): string {
+  let h = 0
+  for (const char of host)
+    h = (h * 31 + char.charCodeAt(0)) >>> 0
+  return TINTS[h % TINTS.length] ?? '#8B93FF'
+}
+
+export function plural(count: number, noun: string): string {
+  return `${formatCount(count)} ${count === 1 ? noun : `${noun}s`}`
 }

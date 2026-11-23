@@ -1,6 +1,7 @@
+import type { BudgetReport } from '../analysis/budgets.ts'
 import type { ScanComparison } from '../analysis/compare.ts'
 import type { ScanSummary } from '../analysis/summary.ts'
-import type { BrokenLink, IssueDetail, IssueQuery, Paged, PageQuery, TemplateCount } from '../contracts.ts'
+import type { BrokenLink, IssueDetail, IssueQuery, Paged, PageQuery, ScanDefaults, TemplateCount } from '../contracts.ts'
 import type { UnlighthouseEvent } from '../events.ts'
 import type { Device, Issue, Page, Scan, ScanStatus } from '../types.ts'
 import type { PageDetail, SiteListItem } from './shapes.ts'
@@ -8,7 +9,7 @@ import type { PageDetail, SiteListItem } from './shapes.ts'
 export interface Operations {
   'sites.list': { input: Record<string, never>, output: SiteListItem[] }
   'scans.list': { input: { origin?: string, status?: ScanStatus, limit: number, offset: number }, output: Paged<Scan> }
-  'scans.start': { input: { site: string, devices: Device[] }, output: Scan }
+  'scans.start': { input: { site: string, devices: Device[], sampling?: { perTemplate: number }, auth?: boolean, [key: string]: unknown }, output: Scan }
   'scans.get': { input: { scanId: string }, output: Scan }
   'scans.cancel': { input: { scanId: string }, output: Scan }
   'scans.summary': { input: { scanId: string }, output: ScanSummary }
@@ -19,6 +20,8 @@ export interface Operations {
   'issues.list': { input: IssueQuery, output: Paged<Issue> }
   'issues.get': { input: { scanId: string, auditId: string }, output: IssueDetail }
   'compare': { input: { base: string, head: string }, output: ScanComparison }
+  'config.defaults': { input: Record<string, never>, output: ScanDefaults }
+  'budgets.check': { input: { scanId: string }, output: BudgetReport & { baseline: string | null } }
 }
 
 export type Operation = keyof Operations

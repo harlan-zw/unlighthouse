@@ -3,7 +3,6 @@ import type { TemplateCount } from '../../contracts.ts'
 import type { Device, PageStatus, ScanStatus, Severity } from '../../types.ts'
 import { ApiError } from '../api.ts'
 import { formatCount } from '../format.ts'
-import { Link, navigate } from '../router.tsx'
 
 export type Tone = 'good' | 'average' | 'poor' | 'neutral' | 'info' | 'accent'
 
@@ -37,6 +36,20 @@ export function isActive(status: ScanStatus): boolean {
   return status === 'queued' || status === 'discovering' || status === 'auditing'
 }
 
+const SCAN_PILLS: Record<ScanStatus, { tone: Tone, label: string }> = {
+  queued: { tone: 'neutral', label: 'Queued' },
+  discovering: { tone: 'accent', label: 'Scanning' },
+  auditing: { tone: 'accent', label: 'Scanning' },
+  done: { tone: 'good', label: 'Finished' },
+  cancelled: { tone: 'neutral', label: 'Cancelled' },
+  failed: { tone: 'poor', label: 'Failed' },
+}
+
+export function ScanPill({ status }: { status: ScanStatus }) {
+  const { tone, label } = SCAN_PILLS[status]
+  return <Badge tone={tone} pulse={status === 'discovering' || status === 'auditing'}>{label}</Badge>
+}
+
 export function StatusBadge({ status }: { status: ScanStatus | PageStatus }) {
   const tone = status in SCAN_TONES ? SCAN_TONES[status as ScanStatus] : PAGE_TONES[status as PageStatus]
   const pulse = status === 'discovering' || status === 'auditing' || status === 'running'
@@ -45,85 +58,6 @@ export function StatusBadge({ status }: { status: ScanStatus | PageStatus }) {
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
   return <Badge tone={severity === 'fail' ? 'poor' : 'average'}>{severity === 'fail' ? 'Fail' : 'Warn'}</Badge>
-}
-
-export interface TabItem {
-  id: string
-  label: string
-  href: string
-  count?: number | null
-}
-
-export function Tabs({ items, active, label, idPrefix = 'tab' }: { items: TabItem[], active: string, label: string, idPrefix?: string }) {
-  const listRef = useRef<HTMLDivElement>(null)
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const index = items.findIndex(item => item.id === active)
-    let next = -1
-    if (event.key === 'ArrowRight')
-      next = (index + 1) % items.length
-    else if (event.key === 'ArrowLeft')
-      next = (index - 1 + items.length) % items.length
-    else if (event.key === 'Home')
-      next = 0
-    else if (event.key === 'End')
-      next = items.length - 1
-    const target = items[next]
-    if (!target)
-      return
-    event.preventDefault()
-    navigate(target.href, { replace: true })
-    requestAnimationFrame(() => listRef.current?.querySelector<HTMLElement>(`#${idPrefix}-${target.id}`)?.focus())
-  }
-  return (
-    <div className="tabs" role="tablist" aria-label={label} ref={listRef} onKeyDown={onKeyDown}>
-      {items.map(item => (
-        <Link
-          key={item.id}
-          id={`${idPrefix}-${item.id}`}
-          to={item.href}
-          role="tab"
-          className="tab"
-          aria-selected={item.id === active}
-          aria-controls={`${idPrefix}-panel`}
-          tabIndex={item.id === active ? 0 : -1}
-        >
-          {item.label}
-          {item.count !== undefined && item.count !== null && <span className="tab-count">{formatCount(item.count)}</span>}
-        </Link>
-      ))}
-    </div>
-  )
-}
-
-export interface ProgressSegment {
-  value: number
-  tone: Tone
-  label: string
-}
-
-export function ProgressBar({ value, max, segments, label, indeterminate }: { value: number, max: number, segments?: ProgressSegment[], label: string, indeterminate?: boolean }) {
-  const parts = segments ?? [{ value, tone: 'accent' as Tone, label }]
-  const percent = max > 0 ? Math.round((value / max) * 100) : 0
-  return (
-    <div
-      className={`progress${indeterminate ? ' indeterminate' : ''}`}
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={indeterminate ? undefined : max}
-      aria-valuenow={indeterminate ? undefined : value}
-      aria-valuetext={indeterminate ? 'in progress' : `${percent}%`}
-    >
-      {!indeterminate && parts.map(part => (
-        <span
-          key={part.label}
-          className={`progress-seg t-${part.tone}`}
-          style={{ width: `${max > 0 ? (part.value / max) * 100 : 0}%` }}
-          title={`${part.label}: ${formatCount(part.value)}`}
-        />
-      ))}
-    </div>
-  )
 }
 
 function DeviceIcon({ device }: { device: Device | 'all' }) {

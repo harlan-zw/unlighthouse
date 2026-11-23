@@ -57,7 +57,7 @@ function withoutUndefined<T extends Record<string, unknown>>(value: T): T {
 }
 
 export function configJsonSchema(scanInput: ScanInputSchema): Record<string, unknown> {
-  const ignored = Object.keys(configSchema.shape).filter(key => !(key in scanInput.shape))
+  const ignored = Object.keys(configSchema.shape).filter(key => key === 'auth' || !(key in scanInput.shape))
   const mask = Object.fromEntries(ignored.map(key => [key, true])) as Record<keyof typeof configSchema.shape, true>
   return z.toJSONSchema(configSchema.omit(mask), { io: 'input', unrepresentable: 'any' }) as Record<string, unknown>
 }

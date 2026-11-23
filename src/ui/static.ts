@@ -1,9 +1,9 @@
 import type { ScanComparison } from '../analysis/compare.ts'
 import type { IssueHit } from '../analysis/issues.ts'
-import { groupIssues, issueItems, issuePages } from '../analysis/issues.ts'
+import { groupIssues, issueDetailItems, issuePages } from '../analysis/issues.ts'
 import type { ScanSummary } from '../analysis/summary.ts'
 import type { BrokenLink, IssueQuery, Paged, PageQuery, TemplateCount } from '../contracts.ts'
-import { CATEGORIES } from '../types.ts'
+import { CATEGORIES, DEVICES } from '../types.ts'
 import type { Category, Device, Finding, Issue, Metrics, Page, Scan } from '../types.ts'
 import { ApiError } from './api.ts'
 import type { Client, Input, Operation, Operations, Output } from './api.ts'
@@ -145,7 +145,12 @@ export function createStaticClient(snapshot: Snapshot): Client {
       exported(input.scanId)
       const issue = listIssues(snapshot, { scanId: input.scanId, auditId: input.auditId, limit: 1, offset: 0 }).items[0] ?? missing(`Issue ${input.auditId}`)
       const all = hits(snapshot, {})
-      return { issue, items: issueItems(all, input.auditId), pages: issuePages(all, input.auditId) }
+      return { issue, items: issueDetailItems(all, input.auditId), pages: issuePages(all, input.auditId) }
+    },
+    'config.defaults': () => ({ devices: [...DEVICES], sampling: { perTemplate: 5 }, authConfigured: false }),
+    'budgets.check': (input) => {
+      exported(input.scanId)
+      return { passed: true, results: [], baseline: null }
     },
     'compare': (input) => {
       const comparison = snapshot.comparison

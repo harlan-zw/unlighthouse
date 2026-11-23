@@ -4,7 +4,7 @@ export type UnlighthouseEvent =
   | { type: 'scan:status', scanId: string, status: ScanStatus, error?: string }
   | { type: 'scan:progress', scanId: string, discovered: number, queued: number, done: number, failed: number, skipped: number }
   | { type: 'page:discovered', scanId: string, url: string, template: string }
-  | { type: 'page:status', scanId: string, url: string, device: Device, status: PageStatus, score?: number | null, error?: string }
+  | { type: 'page:status', scanId: string, url: string, device: Device, status: PageStatus, score?: number | null, findings?: number, error?: string }
   | { type: 'log', scanId?: string, level: 'info' | 'warn' | 'error', message: string }
 
 type Listener = (event: UnlighthouseEvent) => void

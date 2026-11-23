@@ -105,6 +105,7 @@ export interface ScanSummary {
   siteChecks: Record<SiteCheckId, SiteCheckStatus>
   topIssues: IssueBrief[]
   issueCount: number
+  findingCount: number
   brokenLinks: number
   baseline?: BaselineSummary
   fieldNote?: string
@@ -118,6 +119,7 @@ export interface SummaryInput {
   issues: Issue[]
   comparison?: ScanComparison
   brokenLinks: BrokenLink[]
+  findingCount: number
   field?: ScanField | null
 }
 
@@ -127,7 +129,7 @@ export const SITE_CHECKS: ReadonlyArray<{ auditId: SiteCheckId, category: Catego
   { auditId: 'robots-txt', category: 'seo', title: 'robots.txt' },
 ]
 
-const SITE_CHECK_IDS = new Set<string>(SITE_CHECKS.map(check => check.auditId))
+export const SITE_CHECK_IDS: ReadonlySet<string> = new Set<string>(SITE_CHECKS.map(check => check.auditId))
 const TOP_ISSUES = 5
 const WORST_TEMPLATES = 3
 const TOP_REGRESSIONS = 5
@@ -371,6 +373,7 @@ export function summarize(input: SummaryInput): ScanSummary {
     siteChecks: siteChecks(pages, issues),
     topIssues: topIssues(issues, scan.origin),
     issueCount: issues.filter(issue => !SITE_CHECK_IDS.has(issue.auditId)).length,
+    findingCount: input.findingCount,
     brokenLinks: new Set(brokenLinks.map(link => link.url)).size,
     warnings: reliabilityWarnings(pages),
   }

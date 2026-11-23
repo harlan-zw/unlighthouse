@@ -1,4 +1,4 @@
-import type { IssuePage } from '../contracts.ts'
+import type { IssueDetailItem, IssuePage } from '../contracts.ts'
 import type { Device, Finding, Issue, IssueItem, Page } from '../types.ts'
 
 export const TOP_ITEMS = 3
@@ -50,6 +50,25 @@ export function issueItems(hits: IssueHit[], auditId: string): IssueItem[] {
   return [...items.values()]
     .map(({ item, urls }) => ({ ...item, pages: urls.size }))
     .sort((a, b) => weight(b.savingsMs, b.savingsBytes) - weight(a.savingsMs, a.savingsBytes) || b.pages - a.pages || compareText(a.key, b.key))
+}
+
+export function issueDetailItems(hits: IssueHit[], auditId: string): IssueDetailItem[] {
+  const templates = new Map<string, Map<string, Set<string>>>()
+  for (const { page, finding } of hits) {
+    if (finding.auditId !== auditId || finding.itemKey === '')
+      continue
+    const byTemplate = templates.get(finding.itemKey) ?? new Map<string, Set<string>>()
+    const urls = byTemplate.get(page.template) ?? new Set<string>()
+    urls.add(page.url)
+    byTemplate.set(page.template, urls)
+    templates.set(finding.itemKey, byTemplate)
+  }
+  return issueItems(hits, auditId).map(item => ({
+    ...item,
+    templates: [...templates.get(item.key) ?? []]
+      .sort(([a, aUrls], [b, bUrls]) => bUrls.size - aUrls.size || compareText(a, b))
+      .map(([template]) => template),
+  }))
 }
 
 export function issuePages(hits: IssueHit[], auditId: string): IssuePage[] {

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unlighthouse — Agent primitive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E0F12}
+a{color:#AEB4FF}a:hover{color:#D3D6FF}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0E0F12; color: #E6E7EA; font-family: Inter, system-ui, sans-serif; font-size: 13px; box-sizing: border-box; padding: 40px 28px; display: flex; flex-direction: column; gap: 32px">
+  <div style="max-width: 1240px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 32px">
+
+    <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em">Scan, see, ask</h1>
+
+    <section aria-label="Primitives" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+      <div style="border: 1px solid #23252B; border-radius: 10px; background: #121317; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 12px; color: #9BA0AA">1 · Ingest</span>
+        <span style="font-weight: 600; font-size: 15px">Scan the whole site</span>
+        <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C3C6CD; background: #0E0F12; border: 1px solid #23252B; border-radius: 6px; padding: 8px 10px">unlighthouse scan https://shop.example.com</code>
+      </div>
+      <a href="Main.dc.html" style="border: 1px solid #23252B; border-radius: 10px; background: #121317; padding: 18px; display: flex; flex-direction: column; gap: 10px; color: #E6E7EA; text-decoration: none">
+        <span style="font-size: 12px; color: #9BA0AA">2 · See</span>
+        <span style="font-weight: 600; font-size: 15px">Issues, not pages</span>
+        <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C3C6CD; background: #0E0F12; border: 1px solid #23252B; border-radius: 6px; padding: 8px 10px">unlighthouse serve</code>
+      </a>
+      <div style="border: 1px solid {{accent}}; border-radius: 10px; background: #15162A; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 12px; color: #C4C8FF">3 · Ask</span>
+        <span style="font-weight: 600; font-size: 15px">Give it to your agent</span>
+        <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C3C6CD; background: #0E0F12; border: 1px solid #23252B; border-radius: 6px; padding: 8px 10px">unlighthouse mcp</code>
+      </div>
+    </section>
+
+    <section aria-label="Agent session" style="border: 1px solid #23252B; border-radius: 10px; overflow: hidden; background: #0B0C0F">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #23252B; background: #121317; color: #9BA0AA; font-size: 12px">
+        <span>agent session · shop-example repo</span>
+      </div>
+      <div style="padding: 20px 22px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.75; display: flex; flex-direction: column; gap: 14px">
+        <div><span style="color: {{accent}}">›</span> <span style="color: #E6E7EA">What should we fix first on shop.example.com?</span></div>
+        <div style="color: #9BA0AA">⏺ unlighthouse · scans.summary <span style="color: #6F7480">{ site: "shop.example.com" }</span></div>
+        <div style="color: #C3C6CD; padding-left: 18px; border-left: 1px solid #23252B; white-space: pre-wrap">scan #42 · 1,284 pages · 19 templates · 48 issues (+3 new, 5 fixed)
+top: image-alt 1,140p · unused-javascript 902p · button-name 1,284p (new)
+note: performance is lab-only, concurrency 4, treat as indicative</div>
+        <div style="color: #9BA0AA">⏺ unlighthouse · issues.get <span style="color: #6F7480">{ scan: 42, audit: "button-name" }</span></div>
+        <div style="color: #C3C6CD; padding-left: 18px; border-left: 1px solid #23252B; white-space: pre-wrap">6 items · button.wishlist-toggle on /products/* · button.icon-search in header</div>
+        <div style="color: #E6E7EA; white-space: pre-wrap; font-family: Inter, system-ui, sans-serif; font-size: 13px; line-height: 1.6">Start with the new one: the wishlist and search buttons have no accessible name, and they are on every page, so agents and screen readers cannot use them. Both live in two components:
+  components/ProductCard.vue:48
+  components/SiteHeader.vue:22
+Adding aria-labels there fixes all 1,284 pages. Want me to make the change and rescan /products/*?</div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#8B93FF","options":["#8B93FF","#F2B84B","#4CC38A"]},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#8B93FF' };
+  }
+}
+</script>
+</body>
+</html>

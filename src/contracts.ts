@@ -143,15 +143,34 @@ export interface IssuePage {
   displayValue: string | null
 }
 
+export interface IssueDetailItem extends IssueItem {
+  templates: string[]
+}
+
 export interface IssueDetail {
   issue: Issue
-  items: IssueItem[]
+  items: IssueDetailItem[]
   pages: IssuePage[]
+}
+
+export interface ScanDefaults {
+  devices: Device[]
+  sampling: { perTemplate: number }
+  authConfigured: boolean
+}
+
+export interface TemplateIssue {
+  auditId: string
+  title: string
+  pages: number
 }
 
 export interface TemplateCount {
   template: string
   pages: number
+  audited: number
+  scores: Scores
+  topIssue: TemplateIssue | null
 }
 
 export interface NewScan {
@@ -236,8 +255,9 @@ export interface Store extends MonitorStore {
   allPages(scanId: string): Page[]
   templates(scanId: string): TemplateCount[]
   findings(scanId: string, url: string, device: Device): Finding[]
+  countFindings(scanId: string): number
   listIssues(query: IssueQuery): Paged<Issue>
-  issueItems(scanId: string, auditId: string): IssueItem[]
+  issueItems(scanId: string, auditId: string): IssueDetailItem[]
   issuePages(scanId: string, auditId: string): IssuePage[]
   getReport(scanId: string, url: string, device: Device): Uint8Array | null
   getThumbnail(scanId: string, url: string, device: Device): Uint8Array | null

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unlighthouse — Templates</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E0F12}
+a{color:#AEB4FF}a:hover{color:#D3D6FF}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0E0F12; color: #E6E7EA; font-family: Inter, system-ui, sans-serif; font-size: 13px; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Main" style="flex: 1 1 232px; max-width: 260px; box-sizing: border-box; padding: 14px 10px; border-right: 1px solid #23252B; background: #121317; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B93FF" stroke-width="1.8" aria-hidden="true"><path d="M9 21h6M10 21l1-12h2l1 12M8 9h8M12 3v2M5 6l2 1M19 6l-2 1"></path></svg>
+      <span style="font-weight: 600; font-size: 14px">Unlighthouse</span>
+    </div>
+    <button style="all: unset; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid #26282F; border-radius: 8px; background: #17181C; min-height: 24px">
+      <span style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-weight: 500">shop.example.com</span>
+        <span style="color: #9BA0AA; font-size: 12px">Scan #42 · today 14:05</span>
+      </span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9BA0AA" stroke-width="2" aria-hidden="true"><path d="M7 10l5-5 5 5M7 14l5 5 5-5"></path></svg>
+    </button>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; color: #C3C6CD; text-decoration: none"><span>Issues</span><span style="color: #9BA0AA">48</span></a>
+      <a href="#" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; color: #C3C6CD; text-decoration: none"><span>Pages</span><span style="color: #9BA0AA">1,284</span></a>
+      <a href="Templates.dc.html" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; background: #1E2026; color: #E6E7EA; text-decoration: none"><span>Templates</span><span style="color: #9BA0AA">19</span></a>
+      <a href="Scan.dc.html" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; color: #C3C6CD; text-decoration: none"><span>Scans</span><span style="color: #9BA0AA">42</span></a>
+      <a href="Compare.dc.html" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; color: #C3C6CD; text-decoration: none"><span>Compare</span></a>
+    </div>
+    <div style="margin-top: auto; padding: 12px; border: 1px solid #26282F; border-radius: 8px; display: flex; flex-direction: column; gap: 8px">
+      <a href="Agent.dc.html" style="font-weight: 500; color: #E6E7EA; text-decoration: none">Agent access</a>
+      <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C3C6CD; background: #0E0F12; padding: 6px 8px; border-radius: 6px">unlighthouse mcp</code>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 640px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 28px; border-bottom: 1px solid #23252B; min-height: 32px">
+      <span style="color: #9BA0AA">shop.example.com</span>
+      <span style="color: #5C616B" aria-hidden="true">/</span>
+      <span style="font-weight: 500">Templates</span>
+    </header>
+
+    <section aria-label="Summary" style="display: flex; flex-direction: column; gap: 6px; padding: 28px 28px 24px; border-bottom: 1px solid #23252B">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">19 templates</h1>
+      <span style="color: #9BA0AA; font-size: 14px">1,284 pages · 5 audited per template</span>
+    </section>
+
+    <div style="overflow-x: auto">
+      <table style="width: 100%; min-width: 860px; border-collapse: collapse">
+        <thead>
+          <tr style="color: #9BA0AA; font-size: 12px; text-align: left">
+            <th scope="col" style="font-weight: 500; padding: 12px 28px; border-bottom: 1px solid #23252B">Template</th>
+            <th scope="col" style="font-weight: 500; padding: 12px 12px; border-bottom: 1px solid #23252B; text-align: right">Pages</th>
+            <th scope="col" style="font-weight: 500; padding: 12px 12px; border-bottom: 1px solid #23252B; text-align: right">Perf <span style="font-size: 11px; border: 1px solid #33363E; border-radius: 4px; padding: 0 4px">lab</span></th>
+            <th scope="col" style="font-weight: 500; padding: 12px 12px; border-bottom: 1px solid #23252B; text-align: right">A11y</th>
+            <th scope="col" style="font-weight: 500; padding: 12px 12px; border-bottom: 1px solid #23252B; text-align: right">Best pr.</th>
+            <th scope="col" style="font-weight: 500; padding: 12px 12px; border-bottom: 1px solid #23252B; text-align: right">SEO</th>
+            <th scope="col" style="font-weight: 500; padding: 12px 12px; border-bottom: 1px solid #23252B; text-align: right">Agentic</th>
+            <th scope="col" style="font-weight: 500; padding: 12px 28px 12px 12px; border-bottom: 1px solid #23252B">Top issue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+            <tr style="background: {{r.bg}}">
+              <th scope="row" style="text-align: left; font-weight: 400; padding: 0 28px; border-bottom: 1px solid #1C1E23; height: 48px">
+                <button onClick="{{r.toggle}}" aria-expanded="{{r.expanded}}" style="all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9BA0AA" stroke-width="2.5" aria-hidden="true" style="transform: {{r.rotate}}"><path d="M9 6l6 6-6 6"></path></svg>
+                  {{r.pattern}}
+                </button>
+              </th>
+              <td style="padding: 0 12px; border-bottom: 1px solid #1C1E23; text-align: right; font-variant-numeric: tabular-nums">{{r.pages}}</td>
+              <sc-for list="{{r.scores}}" as="s" hint-placeholder-count="5">
+                <td style="padding: 0 12px; border-bottom: 1px solid #1C1E23; text-align: right; font-variant-numeric: tabular-nums; color: {{s.color}}">{{s.v}}</td>
+              </sc-for>
+              <td style="padding: 0 28px 0 12px; border-bottom: 1px solid #1C1E23"><a href="Issue.dc.html" style="color: #C3C6CD; text-decoration: none">{{r.top}}</a></td>
+            </tr>
+            <sc-if value="{{r.isOpen}}" hint-placeholder-val="{{false}}">
+              <tr style="background: #121317">
+                <td colspan="8" style="padding: 6px 28px 14px 48px; border-bottom: 1px solid #23252B">
+                  <div style="display: flex; flex-direction: column">
+                    <sc-for list="{{r.samples}}" as="p" hint-placeholder-count="5">
+                      <a href="#" style="display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid #1C1E23; color: #C3C6CD; text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 12px">
+                        <span>{{p.url}}</span><span style="color: #9BA0AA; font-family: Inter, system-ui, sans-serif">{{p.issues}} issues</span>
+                      </a>
+                    </sc-for>
+                  </div>
+                </td>
+              </tr>
+            </sc-if>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: '/products/*' };
+  }
+  renderVals() {
+    const color = (v) => v >= 90 ? '#4CC38A' : v >= 50 ? '#E5B64A' : '#F2785C';
+    const data = [
+      { p: '/products/*', n: 812, s: [48, 71, 92, 90, 41], top: 'Images are missing alt text', samples: ['/products/linen-shirt-blue', '/products/canvas-tote', '/products/wool-beanie', '/products/denim-jacket', '/products/leather-belt'], iss: [21, 19, 20, 22, 19] },
+      { p: '/blog/*', n: 214, s: [66, 84, 92, 79, 62], top: 'Links do not have descriptive text', samples: ['/blog/summer-lookbook', '/blog/care-guide', '/blog/behind-the-seams', '/blog/gift-ideas', '/blog/new-store'], iss: [12, 11, 13, 12, 10] },
+      { p: '/category/*', n: 114, s: [58, 77, 92, 88, 55], top: 'Colors lack contrast', samples: ['/category/shoes', '/category/bags', '/category/sale', '/category/kids', '/category/new'], iss: [15, 14, 17, 14, 15] },
+      { p: '/tags/*', n: 82, s: [81, 90, 100, 69, 70], top: 'Document has no meta description', samples: ['/tags/linen', '/tags/summer', '/tags/organic', '/tags/gifts', '/tags/basics'], iss: [6, 6, 5, 6, 6] },
+      { p: '/help/*', n: 31, s: [88, 94, 100, 92, 81], top: 'Third-party cookies in use', samples: ['/help/shipping', '/help/returns', '/help/sizing', '/help/contact', '/help/faq'], iss: [3, 3, 4, 3, 3] },
+      { p: '/pages/*', n: 12, s: [79, 86, 92, 92, 74], top: 'Reduce unused JavaScript', samples: ['/pages/about', '/pages/stores', '/pages/press', '/pages/careers', '/pages/terms'], iss: [7, 8, 7, 6, 7] },
+      { p: '/checkout', n: 1, s: [52, 68, 83, 100, 38], top: 'Form fields have no associated label', samples: ['/checkout'], iss: [17] }
+    ];
+    const rows = data.map((d) => {
+      const isOpen = this.state.open === d.p;
+      return {
+        pattern: d.p,
+        pages: d.n.toLocaleString('en-US'),
+        scores: d.s.map((v) => ({ v, color: color(v) })),
+        top: d.top,
+        isOpen,
+        expanded: isOpen ? 'true' : 'false',
+        rotate: isOpen ? 'rotate(90deg)' : 'none',
+        bg: isOpen ? '#15161A' : 'transparent',
+        samples: d.samples.map((url, i) => ({ url, issues: d.iss[i] })),
+        toggle: () => this.setState({ open: isOpen ? '' : d.p })
+      };
+    });
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>
