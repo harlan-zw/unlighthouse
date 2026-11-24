@@ -70,7 +70,7 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
             # Build the dispatch commit so npm provenance identifies the source used.
             git diff --exit-code "$tag_commit" HEAD -- . \
-              ':(exclude,top).github/workflows/release.yml' ':(exclude,top)README.md'
+              ':(exclude,top).github/workflows/release.yml' ':(exclude,top)README.md' ':(exclude,top)docs/'
           else
             [[ "$(git rev-parse HEAD)" == "$tag_commit" ]]
           fi
