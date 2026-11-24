@@ -37,17 +37,18 @@ export function parseRobotsTxt(s: string) {
     _rules: [],
   }
   // read the contents
-  for (const line of s.split('\n')) {
+  for (const rawLine of s.split('\n')) {
+    const [line = ''] = rawLine.split('#', 1)
     const sepIndex = line.indexOf(':')
     // may not exist for comments
     if (sepIndex === -1)
       continue
     // get the rule, pop before the first :
-    const rule = line.substring(0, sepIndex).trim()
+    const rule = line.substring(0, sepIndex).trim().toLowerCase()
     const val = line.substring(sepIndex + 1).trim()
 
     switch (rule) {
-      case 'User-agent':
+      case 'user-agent':
         if (createNewGroup) {
           groups.push({
             ...currentGroup,
@@ -64,18 +65,19 @@ export function parseRobotsTxt(s: string) {
         }
         currentGroup.userAgent.push(val)
         break
-      case 'Allow':
+      case 'allow':
         currentGroup.allow.push(val)
         createNewGroup = true
         break
-      case 'Disallow':
+      case 'disallow':
         currentGroup.disallow.push(val)
         createNewGroup = true
         break
-      case 'Sitemap':
-        sitemaps.push(val)
+      case 'sitemap':
+        if (val)
+          sitemaps.push(val)
         break
-      case 'Host':
+      case 'host':
         currentGroup.host = val
         break
     }

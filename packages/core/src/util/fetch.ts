@@ -72,17 +72,14 @@ export function createFetchClient(resolvedConfig: FetchConfig): FetchUrlClient {
   const query = { ...(resolvedConfig.defaultQueryParams || {}) }
   const client: FetchUrlClient = {
     async get(url, opts = {}) {
+      const requestQuery = { ...query, ...(opts.params || {}), ...(opts.query || {}) }
       const response = await ofetch.raw<string, 'text'>(url, {
         ...opts,
         headers: {
           ...headers,
           ...headersToRecord(new Headers(opts.headers)),
         },
-        query: {
-          ...query,
-          ...(opts.params || {}),
-          ...(opts.query || {}),
-        },
+        query: Object.keys(requestQuery).length > 0 ? requestQuery : undefined,
         ignoreResponseError: true,
         redirect: opts.redirect ?? 'follow',
         responseType: 'text',
