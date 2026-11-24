@@ -12,7 +12,7 @@ import type { Auditor } from '@unlighthouse/contracts/ports'
 import { createServer } from 'node:http'
 import process from 'node:process'
 import { logOperationalError, logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { toNodeListener } from 'h3'
+import { toNodeHandler } from 'h3/node'
 import { createLighthouseContainerServer } from './server'
 
 // Heavy auditor module (lighthouse + puppeteer-core, ~5 MB of top-level
@@ -97,7 +97,7 @@ const app = createLighthouseContainerServer({
 // listen() implicitly binds to 0.0.0.0 on Node, but a few Container runtime
 // variants default to localhost-only which the Worker-side TCP probe can't
 // reach.
-const server = createServer(toNodeListener(app))
+const server = createServer(toNodeHandler(app))
 server.listen(PORT, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
   console.log(`[lighthouse-container] listening on 0.0.0.0:${PORT}`)

@@ -10,7 +10,7 @@ import type { Pack } from '@unlighthouse/contracts/packs'
 import type { CrawlSession, UnlighthouseCore, UnlighthouseCoreRunOverrides } from '@unlighthouse/contracts/ports'
 import type { WS } from '@unlighthouse/core/api'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
-import type { App } from 'h3'
+import type { H3 } from 'h3'
 import type { Hookable } from 'hookable'
 import type http from 'node:http'
 import type { IncomingMessage } from 'node:http'
@@ -59,7 +59,7 @@ export interface UnlighthouseHost {
   resolvedConfig: ResolvedUserConfig
   hooks: Hookable<HookMap>
   generateClient: (opts?: { static?: boolean }) => Promise<void>
-  setServerContext: (arg: { url: string, server: http.Server | https.Server, app: App }) => Promise<void>
+  setServerContext: (arg: { url: string, server: http.Server | https.Server, app: H3 }) => Promise<void>
   handlerCtx: HandlerCtx
   /**
    * Begin the scan via core.run(). Returns the started session's scanId.
@@ -272,7 +272,7 @@ export async function createUnlighthouseHost(opts: CreateUnlighthouseHostOptions
 
   // ── setServerContext ──────────────────────────────────────────────────────
 
-  const setServerContext = async ({ url, server, app }: { url: string, server: http.Server | https.Server, app: App }) => {
+  const setServerContext = async ({ url, server, app }: { url: string, server: http.Server | https.Server, app: H3 }) => {
     logger.debug?.(`setServerContext — url: ${url}`)
     const $server = new URL(url)
 

@@ -28,7 +28,7 @@
     "@unlighthouse/core": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "catalog:",
+    "@cloudflare/vitest-plugin": "catalog:",
     "@types/node": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"

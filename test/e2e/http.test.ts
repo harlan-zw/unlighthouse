@@ -18,7 +18,8 @@ import { createMockAuditor } from '@unlighthouse/core/auditors/mock'
 import { parallelMapCrawler } from '@unlighthouse/core/crawlers'
 import { manualSeeds } from '@unlighthouse/core/seeds'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
-import { createApp, toNodeListener } from 'h3'
+import { H3, withBase } from 'h3'
+import { toNodeHandler } from 'h3/node'
 
 // ── Fixture HTML server + API server ────────────────────────────────────────
 
@@ -63,12 +64,11 @@ beforeAll(async () => {
   }
 
   // 3. Project the command registry → h3 router → App → Node listener.
-  // toNodeListener requires an App (not a Router), so wrap.
   const router = createHttpRouter({ handlers: createHandlers(), ctx })
-  const app = createApp()
+  const app = new H3()
   // Mount router under /api so client baseUrl `${url}/api` lines up.
-  app.use('/api', router.handler)
-  apiServer = createServer(toNodeListener(app))
+  app.use('/api/**', withBase('/api', router.handler))
+  apiServer = createServer(toNodeHandler(app))
   await new Promise<void>((resolve) => {
     apiServer.listen(0, '127.0.0.1', () => resolve())
   })

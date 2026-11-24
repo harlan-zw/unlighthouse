@@ -1,18 +1,19 @@
 import type { Logger, ResolvedUserConfig, RuntimeSettings } from '@unlighthouse/contracts'
 import type { WS } from '@unlighthouse/core/api'
 import type { HandlerCtx } from '@unlighthouse/core/api/handlers'
-import type { App, H3Event } from 'h3'
+import type { H3Event } from 'h3'
 import type { Hookable } from 'hookable'
 import type { ServerHookMap } from './server-hooks'
 import { Buffer } from 'node:buffer'
 import { timingSafeEqual } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
+import { IncomingMessage } from 'node:http'
 import { join } from 'node:path'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createDashboardApi } from '@unlighthouse/core/api/dashboard'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
-import { createRouter, defineEventHandler, getHeader, getQuery, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, useBase } from 'h3'
+import { defineEventHandler, getHeader, getQuery, getRequestIP, H3, sendRedirect, serveStatic, setResponseHeader, setResponseStatus, withBase } from 'h3'
 import launch from 'launch-editor'
 import { joinURL } from 'ufo'
 import { checkApiOrigin, isExposedHost, normaliseOrigin, resolveLaunchPath } from './server-guards'
@@ -73,11 +74,11 @@ interface MountServerOptions {
  * Mount all HTTP surface area: command-driven /api router, dashboard router,
  * WebSocket upgrade endpoint, editor launch, typo redirect, and static SPA.
  */
-export async function mountServer(deps: MountServerDeps, app: App, opts: MountServerOptions): Promise<void> {
+export async function mountServer(deps: MountServerDeps, app: H3, opts: MountServerOptions): Promise<void> {
   const { ws, resolvedConfig, runtimeSettings, env, hooks, logger } = deps
   const log = logger?.withTag('server')
 
-  const root = createRouter()
+  const root = new H3()
 
   log?.debug(`Mounting — prefix: ${resolvedConfig.routerPrefix}, client: ${runtimeSettings.generatedClientPath}`)
 
@@ -116,21 +117,24 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
   // WebSocket upgrade (only when ws is enabled).
   if (ws) {
     log?.debug('WS upgrade endpoint registered at /api/ws')
-    apiRouter.get('/ws', defineEventHandler(event => ws.serve(event.node.req)))
+    apiRouter.get('/ws', defineEventHandler((event) => {
+      const request = event.runtime?.node?.req
+      return request instanceof IncomingMessage ? ws.serve(request) : false
+    }))
   }
 
   // Dashboard sub-router.
   // Host always passes a resolved HandlerCtx (not a factory); narrow here.
   const storage = opts.handlerCtx.storage
   const dashboardRouter = createDashboardApi(storage, logger)
-  apiRouter.use('/dashboard/**', useBase('/dashboard', dashboardRouter.handler))
+  apiRouter.use('/dashboard/**', withBase('/dashboard', dashboardRouter.handler))
 
-  root.use('/api/**', useBase('/api', apiRouter.handler))
+  root.use('/api/**', withBase('/api', apiRouter.handler))
 
   // Static client with SPA fallback.
   root.get('/**', defineEventHandler(async (event) => {
     await hooks.callHook('visited-client')
-    const path = event.path || '/'
+    const path = event.url.pathname
     const ext = path.substring(path.lastIndexOf('.'))
     const mimeType = mimeTypes[ext]
 
@@ -210,7 +214,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     }
     setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS')
     setResponseHeader(event, 'Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    if (event.node.req.method === 'OPTIONS') {
+    if (event.req.method === 'OPTIONS') {
       setResponseStatus(event, 204)
       return ''
     }
@@ -285,19 +289,17 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     log?.info(`rate-limit: ${rateLimitRpm} req/min per bucket (token+IP fallback)`)
 
     app.use(defineEventHandler((event) => {
-      const url = event.node.req.url ?? ''
-      if (!url.startsWith('/'))
-        return
+      const path = event.url.pathname
       // Don't rate-limit health / ready / OPTIONS — monitoring
       // shouldn't trip the limit and preflight is paired with a
       // request that will hit the limit anyway.
-      if (event.node.req.method === 'OPTIONS')
+      if (event.req.method === 'OPTIONS')
         return
       const apiBase = joinURL(resolvedConfig.routerPrefix, resolvedConfig.apiPrefix)
       const apiPathPrefix = apiBase.endsWith('/') ? apiBase : `${apiBase}/`
-      if (!url.startsWith(apiPathPrefix))
+      if (!path.startsWith(apiPathPrefix))
         return
-      const sub = url.slice(apiPathPrefix.length).split('?')[0]
+      const sub = path.slice(apiPathPrefix.length)
       if (sub === 'health' || sub === 'ready')
         return
 
@@ -326,7 +328,7 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
         const retryMs = Math.ceil((1 - b.tokens) / refillPerMs)
         const retrySec = Math.ceil(retryMs / 1000)
         setResponseStatus(event, 429)
-        setResponseHeader(event, 'Retry-After', retrySec)
+        setResponseHeader(event, 'Retry-After', String(retrySec))
         setResponseHeader(event, 'X-RateLimit-Limit', String(rateLimitRpm))
         setResponseHeader(event, 'X-RateLimit-Remaining', '0')
         return { error: 'rate_limited', message: `Try again in ${retrySec}s.` }
@@ -359,7 +361,11 @@ export async function mountServer(deps: MountServerDeps, app: App, opts: MountSe
     }))
   }
 
-  app.use(resolvedConfig.routerPrefix, root.handler)
+  const { routerPrefix } = resolvedConfig
+  if (routerPrefix === '/')
+    app.use(root)
+  else
+    app.use(joinURL(routerPrefix, '**'), withBase(routerPrefix, root.handler))
 }
 
 // Extracted out of mountServer so it can be tested without spinning up
@@ -393,11 +399,10 @@ export function createApiOriginGate(opts: ApiOriginGateOptions) {
   const apiPathPrefix = opts.apiBase.endsWith('/') ? opts.apiBase : `${opts.apiBase}/`
 
   return defineEventHandler((event) => {
-    const url = event.node.req.url ?? ''
-    const path = url.split('?')[0]
-    if (!url.startsWith(apiPathPrefix) && path !== opts.apiBase)
+    const path = event.url.pathname
+    if (!path.startsWith(apiPathPrefix) && path !== opts.apiBase)
       return
-    if (event.node.req.method === 'OPTIONS')
+    if (event.req.method === 'OPTIONS')
       return
     const decision = checkApiOrigin({
       host: getHeader(event, 'host') ?? null,
@@ -430,12 +435,12 @@ export function createBearerAuthGate(opts: BearerAuthGateOptions) {
   const apiPathPrefix = opts.apiBase.endsWith('/') ? opts.apiBase : `${opts.apiBase}/`
 
   return defineEventHandler((event) => {
-    const url = event.node.req.url ?? ''
-    if (!url.startsWith(apiPathPrefix))
+    const path = event.url.pathname
+    if (!path.startsWith(apiPathPrefix))
       return
-    if (event.node.req.method === 'OPTIONS')
+    if (event.req.method === 'OPTIONS')
       return
-    const sub = url.slice(apiPathPrefix.length).split('?')[0]
+    const sub = path.slice(apiPathPrefix.length)
     if (sub === 'health' || sub === 'ready')
       return
     if (opts.localBypass && isLoopback(getClientIp(event, opts.trustProxy)))
@@ -473,17 +478,7 @@ function parseBearer(event: H3Event): string | null {
 // (the original client per the standard). Otherwise use the socket peer
 // directly so a misconfigured deploy can't spoof identity via headers.
 export function getClientIp(event: H3Event, trustProxy: boolean): string | null {
-  if (trustProxy) {
-    const fwd = getHeader(event, 'x-forwarded-for')
-    if (fwd) {
-      // Header value is `client, proxy1, proxy2`. The left-most is the
-      // originator the closest proxy saw.
-      const first = fwd.split(',')[0]?.trim()
-      if (first)
-        return first
-    }
-  }
-  return event.node.req.socket?.remoteAddress ?? null
+  return getRequestIP(event, { xForwardedFor: trustProxy }) ?? null
 }
 
 // Loopback check used by the LOCAL_BYPASS escape hatch. Operates on a

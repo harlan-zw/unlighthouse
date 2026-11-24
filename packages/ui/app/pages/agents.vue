@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
+import { useIsStatic } from '~/composables/useIsStatic'
 import { agentShell, agentSkill, buildAgentPrompt, buildClaudeCommand, buildMcpConfig, parseAgentSetup } from '~/features/agents/setup'
 
 usePageTitle('Agents')
@@ -12,7 +13,6 @@ watch(() => route.query.site, (value) => {
   if (typeof value === 'string')
     site.value = value
 })
-const isStatic = useIsStatic()
 const { data: sitesData } = useApiQuery('sites.list', () => ({}))
 const sites = computed(() => sitesData.value?.sites ?? [])
 const parsedSetup = computed(() => parseAgentSetup({ root: root.value, site: site.value }))
@@ -56,7 +56,7 @@ async function copyText(text: string) {
     </UiPageHeader>
 
     <UiAlert
-      v-if="isStatic"
+      v-if="useIsStatic()"
       status="info"
       title="MCP needs the original scan output"
       description="This exported report cannot host MCP. Use the project that contains the scans."

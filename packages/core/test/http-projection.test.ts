@@ -9,6 +9,7 @@ import type { CrawlSession } from '@unlighthouse/contracts'
 import type { HandlerCtx, HandlerMap } from '@unlighthouse/core/api/handlers'
 import { commands, commandToRoute } from '@unlighthouse/contracts/commands'
 import { UnlighthouseError, UnlighthouseErrorEnvelopeSchema } from '@unlighthouse/contracts/errors'
+import { createHookEvent } from '@unlighthouse/contracts/hooks'
 import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createHttpRouter } from '@unlighthouse/core/api/http'
 import { memoryStorage } from '@unlighthouse/core/storage/memory'
@@ -60,6 +61,32 @@ describe('http projection — route table', () => {
 })
 
 describe('http projection — request handling', () => {
+  it('streams events as NDJSON and closes the source when the client cancels', async () => {
+    const session = busySession()
+    const event = createHookEvent('scan:progress', { scanId: session.scanId, ...session.stats() })
+    let closed = false
+    session.events = (async function* () {
+      try {
+        yield event
+        yield event
+      }
+      finally {
+        closed = true
+      }
+    })()
+    const ctx = makeCtx()
+    ctx.core = testCore({ session: () => session })
+    const response = await makeWebHandler(ctx)(new Request('http://x/events/subscribe'))
+    const reader = response.body?.getReader()
+    if (!reader)
+      throw new Error('Expected a streaming response')
+
+    const first = await reader.read()
+    expect(new TextDecoder().decode(first.value)).toBe(`${JSON.stringify(event)}\n`)
+    await reader.cancel()
+    expect(closed).toBe(true)
+  })
+
   it('gET /scan/current returns { scanId: null } when no session', async () => {
     const ctx = makeCtx()
     const handler = makeWebHandler(ctx)

@@ -6,7 +6,8 @@ import { setMaxListeners } from 'node:events'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { createLogger } from '@unlighthouse/core/logger'
 import open from 'better-opn'
-import { createApp, toNodeListener } from 'h3'
+import { H3 } from 'h3'
+import { toNodeHandler } from 'h3/node'
 import { listen } from 'listhen'
 import { joinURL } from 'ufo'
 import { createUnlighthouseHost } from '../index.ts'
@@ -31,8 +32,8 @@ type CliRuntime = ReturnType<typeof createCliRuntime>
 async function createServer(resolvedConfig: Pick<ResolvedUserConfig, 'server'>, runtime: CliRuntime) {
   const { log } = runtime
   log.debug('Creating h3 app + listener...')
-  const app = createApp()
-  const server = await listen(toNodeListener(app), {
+  const app = new H3()
+  const server = await listen(toNodeHandler(app), {
     ...resolvedConfig.server,
     open: false,
   })

@@ -15,10 +15,9 @@
 
 import type { BlobStore, Logger, Storage } from '@unlighthouse/contracts'
 import type { ScanId, ScanRoute } from '@unlighthouse/contracts/types/atoms'
-import type { Router } from 'h3'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
 import { parseScanId } from '@unlighthouse/contracts/types/atoms'
-import { createRouter, defineEventHandler, getQuery, getRouterParams, setResponseHeader, setResponseStatus } from 'h3'
+import { defineEventHandler, getQuery, getRouterParams, H3, setResponseHeader, setResponseStatus } from 'h3'
 import { decompressLhr } from '../report/extract'
 import { loadRouteContract } from '../report/route-contracts'
 import { base64ToBytes } from '../util/base64'
@@ -103,9 +102,9 @@ async function blobDownload(blobs: BlobStore, key: string): Promise<Uint8Array |
   return stream ?? blobs.get(key)
 }
 
-export function createDashboardApi(storage: Storage, logger?: Logger): Router {
+export function createDashboardApi(storage: Storage, logger?: Logger): H3 {
   const log = logger?.withTag('dashboard')
-  const router = createRouter()
+  const router = new H3()
 
   // Screenshot — try the dedicated screenshot blob first, fall back to
   // the fullPageScreenshot embedded in the LHR (older scans + the mock

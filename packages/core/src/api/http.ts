@@ -3,12 +3,12 @@
 
 import type { Logger } from '@unlighthouse/contracts'
 import type { Command, HttpMethod } from '@unlighthouse/contracts/commands'
-import type { H3Event, Router } from 'h3'
+import type { H3Event } from 'h3'
 import type { HandlerCtx, HandlerMap } from './handlers/types'
 import { commandEntries, commandToRoute, isAsyncIterable } from '@unlighthouse/contracts/commands'
 import { createErrorEnvelope, ErrorCodes, UnlighthouseError } from '@unlighthouse/contracts/errors'
 import { logOperationalError, logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { createRouter, defineEventHandler, getQuery, getRouterParams, readBody, setResponseHeader, setResponseStatus } from 'h3'
+import { defineEventHandler, getQuery, getRouterParams, H3, readBody, setResponseHeader, setResponseStatus } from 'h3'
 import { createCommandExecutor } from './handlers/execute'
 
 /**
@@ -105,14 +105,14 @@ function errorResponse(event: H3Event, err: unknown, opts: { exposeInternal?: bo
   return envelope
 }
 
-export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
+export function createHttpRouter(opts: CreateHttpRouterOptions): H3 {
   const { handlers, ctx: ctxOpt } = opts
   const log = opts.logger?.withTag('api')
   const ctxFactory: HandlerCtxFactory
     = typeof ctxOpt === 'function' ? ctxOpt : () => ctxOpt
   const validateOutput = opts.validateOutput ?? false
   const exposeInternal = opts.exposeInternal ?? false
-  const router = createRouter()
+  const router = new H3()
   const executor = createCommandExecutor({ handlers })
 
   for (const [name, cmd] of commandEntries()) {
@@ -137,40 +137,24 @@ export function createHttpRouter(opts: CreateHttpRouterOptions): Router {
         // Streaming commands → NDJSON.
         if (cmd.streaming) {
           setResponseHeader(event, 'Content-Type', 'application/x-ndjson')
-          const res = event.node.res
-          const req = event.node.req
-          if (isAsyncIterable(result)) {
-            // Manual iteration so a client disconnect closes the iterator (its
-            // `return()` unsubscribes and unblocks a pending next()) — a `for
-            // await` alone would keep pulling live events and hold the slot open
-            // for the whole scan after the client is gone.
-            const iterator = result[Symbol.asyncIterator]()
-            const onClose = () => { void iterator.return?.() }
-            req.on('close', onClose)
-            try {
-              while (true) {
-                const { value, done } = await iterator.next()
-                if (done)
-                  break
-                res.write(`${JSON.stringify(value)}\n`)
-              }
-            }
-            finally {
-              req.off('close', onClose)
-              await iterator.return?.()
-              res.end()
-            }
-          }
-          else {
-            // Handler resolved a single value instead of an iterable — emit one line.
-            try {
-              res.write(`${JSON.stringify(result)}\n`)
-            }
-            finally {
-              res.end()
-            }
-          }
-          return
+          if (!isAsyncIterable(result))
+            return `${JSON.stringify(result)}\n`
+
+          // Return the iterator on cancellation to release the live subscription.
+          const iterator = result[Symbol.asyncIterator]()
+          const encoder = new TextEncoder()
+          return new ReadableStream<Uint8Array>({
+            async pull(controller) {
+              const { value, done } = await iterator.next()
+              if (done)
+                controller.close()
+              else
+                controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`))
+            },
+            async cancel(reason) {
+              await iterator.return?.(reason)
+            },
+          })
         }
 
         // Non-streaming: handler may still return an AsyncIterable; collect it.
