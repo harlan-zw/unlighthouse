@@ -8,40 +8,62 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag on v1
+        required: true
+        type: string
 
 concurrency:
   group: npm-release
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   release:
+    if: github.event_name == 'push' || github.ref == 'refs/heads/v1'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Validate release tag
+      - name: Select release tag
         id: release
-        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
-            tag=beta
-          elif [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            tag=latest
+          if [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+            dist_tag=beta
+          elif [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            dist_tag=latest
           else
-            echo "Unsupported release tag: $GITHUB_REF_NAME" >&2
+            echo 'Use a stable or beta release tag.' >&2
             exit 1
           fi
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/v1
+          {
+            echo "tag=$RELEASE_TAG"
+            echo "version=${RELEASE_TAG#v}"
+            echo "dist_tag=$dist_tag"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ steps.release.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate release commit
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          git merge-base --is-ancestor HEAD origin/v1
           for manifest in package.json packages/*/package.json; do
             if [[ "$manifest" != package.json ]] && jq -e '.private == true' "$manifest" >/dev/null; then
               continue
             fi
-            jq -e --arg version "$version" '.version == $version' "$manifest" >/dev/null
+            jq -e --arg version "$RELEASE_VERSION" '.version == $version' "$manifest" >/dev/null
           done
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -50,11 +72,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: v24
-          cache: pnpm
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Force Set pnpm Registry
-        run: pnpm config set registry https://registry.npmjs.org
+          package-manager-cache: false
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -74,12 +92,45 @@ jobs:
       - name: Check package exports
         run: pnpm test:publint
 
-      - name: Publish packages
-        run: pnpm publish -r --access public --tag "${{ steps.release.outputs.tag }}" --provenance --no-git-checks
+      - name: Install npm CLI
+        run: npm install --global npm@12.2.2 --ignore-scripts
+
+      - name: Publish packages with npm Trusted Publishing
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DIST_TAG: ${{ steps.release.outputs.dist_tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          for manifest in packages/*/package.json; do
+            if jq -e '.private == true' "$manifest" >/dev/null; then
+              continue
+            fi
+            package_dir="${manifest%/package.json}"
+            package_name="$(jq -er '.name' "$manifest")"
+            archive="$RUNNER_TEMP/${package_dir##*/}.tgz"
+            pnpm --dir "$package_dir" pack --out "$archive" --silent
+
+            versions="$(npm view "$package_name" versions --json --prefer-online)"
+            if jq -e --arg version "$RELEASE_VERSION" 'index($version) != null' <<< "$versions" >/dev/null; then
+              expected="sha512-$(openssl dgst -sha512 -binary "$archive" | openssl base64 -A)"
+              published="$(npm view "$package_name@$RELEASE_VERSION" dist.integrity --prefer-online)"
+              if [[ "$published" != "$expected" ]]; then
+                echo "Published archive differs for $package_name@$RELEASE_VERSION" >&2
+                exit 1
+              fi
+              continue
+            fi
+
+            npm publish "$archive" --access public --tag "$DIST_TAG" --provenance
+          done
 
       - name: Create GitHub release
-        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes ${{ steps.release.outputs.tag == 'beta' && '--prerelease' || '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          DIST_TAG: ${{ steps.release.outputs.dist_tag }}
+        run: |
+          release_flags=(--verify-tag --generate-notes)
+          if [[ "$DIST_TAG" == beta ]]; then
+            release_flags+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" "${release_flags[@]}"
