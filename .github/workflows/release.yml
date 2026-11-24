@@ -1,47 +1,86 @@
 name: Release
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag on v1
+        required: true
+        type: string
 
 concurrency:
   group: npm-release
   cancel-in-progress: false
 
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+defaults:
+  run:
+    shell: bash
 
-      - name: Validate release tag
+jobs:
+  package:
+    if: github.event_name == 'push' || github.ref == 'refs/heads/v1'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      dist_tag: ${{ steps.release.outputs.dist_tag }}
+      tag_commit: ${{ steps.commit.outputs.sha }}
+      artifact_id: ${{ steps.tarballs.outputs.artifact-id }}
+    steps:
+      - name: Select release tag
         id: release
-        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
-            tag=beta
-          elif [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            tag=latest
+          if [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+            dist_tag=beta
+          elif [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            dist_tag=latest
           else
-            echo "Unsupported release tag: $GITHUB_REF_NAME" >&2
+            echo 'Use a stable or beta release tag.' >&2
             exit 1
           fi
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/v1
+          {
+            echo "tag=$RELEASE_TAG"
+            echo "version=${RELEASE_TAG#v}"
+            echo "dist_tag=$dist_tag"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate release commit
+        id: commit
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          tag_commit="$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")"
+          git merge-base --is-ancestor HEAD origin/v1
+          git merge-base --is-ancestor "$tag_commit" origin/v1
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            # Build the dispatch commit so npm provenance identifies the source used.
+            git diff --exit-code "$tag_commit" HEAD -- . \
+              ':(exclude,top).github/workflows/release.yml' ':(exclude,top)README.md' ':(exclude,top)docs/'
+          else
+            [[ "$(git rev-parse HEAD)" == "$tag_commit" ]]
+          fi
           for manifest in package.json packages/*/package.json; do
             if [[ "$manifest" != package.json ]] && jq -e '.private == true' "$manifest" >/dev/null; then
               continue
             fi
-            jq -e --arg version "$version" '.version == $version' "$manifest" >/dev/null
+            jq -e --arg version "$RELEASE_VERSION" '.version == $version' "$manifest" >/dev/null
           done
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$tag_commit" >> "$GITHUB_OUTPUT"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -50,11 +89,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: v24
-          cache: pnpm
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Force Set pnpm Registry
-        run: pnpm config set registry https://registry.npmjs.org
+          package-manager-cache: false
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -74,12 +109,93 @@ jobs:
       - name: Check package exports
         run: pnpm test:publint
 
-      - name: Publish packages
-        run: pnpm publish -r --access public --tag "${{ steps.release.outputs.tag }}" --provenance --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Pack public packages
+        run: |
+          mkdir "$RUNNER_TEMP/npm-release"
+          for manifest in packages/*/package.json; do
+            if jq -e '.private == true' "$manifest" >/dev/null; then
+              continue
+            fi
+            package_dir="${manifest%/package.json}"
+            pnpm --dir "$package_dir" pack --out "$RUNNER_TEMP/npm-release/${package_dir##*/}.tgz" --silent
+          done
 
-      - name: Create GitHub release
-        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes ${{ steps.release.outputs.tag == 'beta' && '--prerelease' || '' }}
+      - uses: actions/upload-artifact@v7.0.1
+        id: tarballs
+        with:
+          name: npm-release-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/npm-release/*.tgz
+          if-no-files-found: error
+          compression-level: 0
+
+  release:
+    needs: package
+    permissions:
+      contents: write
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify tag still points to the release commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.package.outputs.tag }}
+          TAG_COMMIT: ${{ needs.package.outputs.tag_commit }}
+        run: |
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/$RELEASE_TAG" --jq .sha)" == "$TAG_COMMIT" ]]
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          artifact-ids: ${{ needs.package.outputs.artifact_id }}
+          path: ${{ runner.temp }}/npm-release
+          merge-multiple: true
+          digest-mismatch: error
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: v24
+          package-manager-cache: false
+
+      - name: Install npm CLI
+        run: npm install --global npm@12.2.2 --ignore-scripts
+
+      - name: Publish packages with npm Trusted Publishing
+        env:
+          DIST_TAG: ${{ needs.package.outputs.dist_tag }}
+          RELEASE_VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          registry_metadata="$RUNNER_TEMP/npm-version.json"
+          for archive in "$RUNNER_TEMP"/npm-release/*.tgz; do
+            package_name="$(tar -xOzf "$archive" package/package.json | jq -er --arg version "$RELEASE_VERSION" 'select(.version == $version and .private != true).name')"
+            status="$(curl --silent --show-error --max-time 30 --retry 2 --output "$registry_metadata" --write-out '%{http_code}' \
+              "https://registry.npmjs.org/$package_name/$RELEASE_VERSION")"
+            case "$status" in
+              200)
+                expected="sha512-$(openssl dgst -sha512 -binary "$archive" | openssl base64 -A)"
+                published="$(jq -er --arg version "$RELEASE_VERSION" 'select(.version == $version).dist.integrity' "$registry_metadata")"
+                if [[ "$published" != "$expected" ]]; then
+                  echo "Published archive differs for $package_name@$RELEASE_VERSION" >&2
+                  echo 'Rerun the failed publish job from the original release run to reuse its tarballs.' >&2
+                  exit 1
+                fi
+                ;;
+              404)
+                npm publish "$archive" --access public --tag "$DIST_TAG" --provenance
+                ;;
+              *)
+                echo "npm returned HTTP $status while checking $package_name@$RELEASE_VERSION" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.package.outputs.tag }}
+          DIST_TAG: ${{ needs.package.outputs.dist_tag }}
+        run: |
+          release_flags=(--verify-tag --generate-notes)
+          if [[ "$DIST_TAG" == beta ]]; then
+            release_flags+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${release_flags[@]}"
