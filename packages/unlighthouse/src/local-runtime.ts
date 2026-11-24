@@ -69,7 +69,7 @@ export function configuredUrls(config: UnlighthouseConfig): string[] | (() => Pr
   return normaliseConfiguredUrls(configured, site)
 }
 
-function resolveSeeds(config: UnlighthouseConfig, logger: Logger) {
+function resolveSeeds(config: UnlighthouseConfig, logger: Logger, credentialOrigin: string | undefined) {
   const site = config.site || ''
   const isDashboardPlaceholder = site === 'http://localhost'
   const sources = [manualSeeds({
@@ -101,10 +101,14 @@ function resolveSeeds(config: UnlighthouseConfig, logger: Logger) {
   const sitemapEnabled = config.scanner?.sitemap !== false && !hasExplicitUrls && !isDashboardPlaceholder
   if (sitemapEnabled && site) {
     try {
+      const siteUrl = new URL(site)
       sources.push(sitemapSeeds({
-        resolvedConfig: config,
-        siteUrl: new URL(site),
+        resolvedConfig: siteUrl.origin === credentialOrigin
+          ? config
+          : { userAgent: config.userAgent, lighthouseOptions: config.lighthouseOptions },
+        siteUrl,
         sitemaps: Array.isArray(config.scanner?.sitemap) ? config.scanner.sitemap : true,
+        robotsTxt: config.scanner?.robotsTxt !== false,
         logger: logger.withTag('seeds/sitemap'),
       }))
     }
@@ -147,7 +151,8 @@ export async function createLocalRuntime(opts: CreateLocalRuntimeOptions): Promi
   // The matcher only reads paths, so the boot config's is valid for every run.
   // Seeds are resolved per run: a dashboard or MCP scan.start can override
   // `site`, and that scan must seed from its own root and sitemap.
-  const { routeMatcher } = resolveSeeds(opts.config, opts.logger)
+  const credentialOrigin = URL.parse(opts.config.site ?? '')?.origin
+  const { routeMatcher } = resolveSeeds(opts.config, opts.logger, credentialOrigin)
   const crawler = htmlCrawler({
     logger: opts.logger.withTag('crawler/html'),
     fetchConfig: opts.config,
@@ -156,7 +161,7 @@ export async function createLocalRuntime(opts: CreateLocalRuntimeOptions): Promi
   const core = createUnlighthouseCore({
     config: opts.config,
     auditor,
-    seeds: config => resolveSeeds(config, opts.logger).seeds,
+    seeds: config => resolveSeeds(config, opts.logger, credentialOrigin).seeds,
     routeMatcher,
     crawler,
     storage,

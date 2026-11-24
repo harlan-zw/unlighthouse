@@ -168,6 +168,32 @@ describe('extractSitemapRoutes', () => {
       'https://example.com/sitemaps/pages.xml',
     ])
   })
+
+  it('follows sitemap redirects only within the scan origin', async () => {
+    const requests: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      requests.push(url)
+      if (url.endsWith('/sitemap.xml'))
+        return Response.redirect('https://example.com/pages.xml')
+      if (url.endsWith('/other.xml'))
+        return Response.redirect('https://elsewhere.test/sitemap.xml')
+      return new Response('/from-sitemap', { headers: { 'content-type': 'text/plain' } })
+    }))
+
+    const out = await extractSitemapRoutes(
+      { resolvedConfig: config(), siteUrl: new URL('https://example.com') },
+      'https://example.com',
+      ['/sitemap.xml', '/other.xml'],
+    )
+
+    expect(out.paths).toEqual(['https://example.com/from-sitemap'])
+    expect(requests).toEqual([
+      'https://example.com/sitemap.xml',
+      'https://example.com/pages.xml',
+      'https://example.com/other.xml',
+    ])
+  })
 })
 
 describe('routeDefinitionSeeds (D-039)', () => {

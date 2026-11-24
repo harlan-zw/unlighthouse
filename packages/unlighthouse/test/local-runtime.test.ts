@@ -1,7 +1,10 @@
 import type { Pack } from '@unlighthouse/contracts/packs'
+import { once } from 'node:events'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createHandlers } from '@unlighthouse/core/api/handlers'
 import { createLogger } from '@unlighthouse/core/logger'
 import { afterEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
@@ -29,12 +32,117 @@ function closeRuntime(runtime: Awaited<ReturnType<typeof createLocalRuntime>>): 
   ;(runtime.storage.db as { close?: () => void } | undefined)?.close?.()
 }
 
+async function serveSite(pages: (origin: string) => Record<string, string>) {
+  const requests: { path: string, token: string | string[] | undefined }[] = []
+  const server = createServer()
+  server.listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  const address = server.address()
+  if (!address || typeof address === 'string')
+    throw new Error('Expected a TCP server address')
+  const origin = `http://127.0.0.1:${address.port}`
+  const sitePages = pages(origin)
+  server.on('request', (request, response) => {
+    const path = request.url ?? '/'
+    requests.push({ path, token: request.headers['x-private-token'] })
+    const body = sitePages[path]
+    const contentType = path.endsWith('.xml') ? 'application/xml' : 'text/html'
+    response.writeHead(body === undefined ? 404 : 200, {
+      'content-type': path === '/robots.txt' ? 'text/plain' : contentType,
+    })
+    response.end(body)
+  })
+  return { origin, requests, [Symbol.asyncDispose]: () => server[Symbol.asyncDispose]() }
+}
+
+function sitemap(url: string): string {
+  return `<urlset><url><loc>${url}</loc></url></urlset>`
+}
+
 afterEach(() => {
   for (const root of tempRoots.splice(0))
     rmSync(root, { recursive: true, force: true })
 })
 
 describe('createLocalRuntime interface', () => {
+  it.each([
+    {
+      label: 'discovers the selected site’s robots.txt sitemap',
+      scanner: {},
+      declaredSitemap: '/pages.xml',
+      expectedRoute: '/selected-only',
+      requestsRobots: true,
+    },
+    {
+      label: 'uses the default sitemap if robots.txt only lists a foreign sitemap',
+      scanner: {},
+      declaredSitemap: null,
+      expectedRoute: '/default-only',
+      requestsRobots: true,
+    },
+    {
+      label: 'uses the default sitemap with robots.txt discovery disabled',
+      scanner: { robotsTxt: false },
+      declaredSitemap: '/pages.xml',
+      expectedRoute: '/default-only',
+      requestsRobots: false,
+    },
+    {
+      label: 'uses an explicitly configured sitemap without fetching robots.txt',
+      scanner: { sitemap: ['/configured.xml'] },
+      declaredSitemap: '/pages.xml',
+      expectedRoute: '/configured-only',
+      requestsRobots: false,
+    },
+  ])('$label', async ({ scanner, declaredSitemap, expectedRoute, requestsRobots }) => {
+    await using boot = await serveSite(origin => ({
+      '/': '<h1>Boot</h1>',
+      '/sitemap.xml': sitemap(`${origin}/boot-only`),
+      '/boot-only': '<h1>Boot route</h1>',
+    }))
+    await using selected = await serveSite(origin => ({
+      '/': '<h1>Selected site</h1>',
+      '/robots.txt': [
+        `Sitemap: ${boot.origin}/sitemap.xml`,
+        ...(declaredSitemap ? [`Sitemap: ${origin}${declaredSitemap}`] : []),
+      ].join('\n'),
+      '/sitemap.xml': sitemap(`${origin}/default-only`),
+      '/pages.xml': sitemap(`${origin}/selected-only`),
+      '/configured.xml': sitemap(`${origin}/configured-only`),
+      '/default-only': '<h1>Default sitemap route</h1>',
+      '/selected-only': '<h1>Sitemap route</h1>',
+      '/configured-only': '<h1>Configured sitemap route</h1>',
+    }))
+    const runtime = await createLocalRuntime({
+      config: testConfig({
+        site: boot.origin,
+        auditor: { name: 'mock' },
+        scanner,
+        extraHeaders: { 'x-private-token': 'only-for-boot-site' },
+      }),
+      output: { path: tempOutput() },
+      logger: createLogger({ level: 0 }),
+      env: {},
+    })
+
+    try {
+      await createHandlers()['scan.start'].run({ site: selected.origin }, runtime.handlerCtx)
+      const scan = runtime.core.session()
+      if (!scan)
+        throw new Error('Expected an active scan')
+      await scan.done
+
+      const { items } = await runtime.storage.routes.listForScan(scan.scanId)
+      expect(items.map(route => route.url).toSorted()).toEqual([`${selected.origin}/`, `${selected.origin}${expectedRoute}`])
+      expect(boot.requests).toEqual([])
+      expect(selected.requests.some(request => request.path === '/robots.txt')).toBe(requestsRobots)
+      expect(selected.requests.some(request => request.token !== undefined)).toBe(false)
+    }
+    finally {
+      closeRuntime(runtime)
+    }
+  })
+
   it('refuses to reset a folder containing foreign files', async () => {
     const outputPath = tempOutput()
     const sentinel = join(outputPath, 'keep.txt')

@@ -1,8 +1,9 @@
 import type { Logger } from '@unlighthouse/contracts'
 import type { SeedSource } from '@unlighthouse/contracts/ports'
-import type { FetchConfig, FetchUrlResponse } from '../util/fetch'
+import type { FetchConfig, FetchUrlClient, FetchUrlResponse } from '../util/fetch'
 import { logOperationalWarn } from '@unlighthouse/contracts/logging'
-import { fetchUrlRaw } from '../util/fetch'
+import { parseRobotsTxt } from '../policies/robots/parser'
+import { createFetchClient, fetchUrlRaw } from '../util/fetch'
 import { isScanOrigin } from '../util/scan-origin'
 import { extractSitemapMetaRefreshUrl, parseSitemapDocument, resolveSitemapLocation } from './sitemap-parser'
 
@@ -21,11 +22,30 @@ interface FetchedSitemapText {
   url: string
 }
 
-async function fetchSitemapText(deps: ExtractSitemapDeps, sitemapUrl: string): Promise<FetchedSitemapText | null> {
+function createSitemapClient(config: FetchConfig, origin: string): FetchUrlClient {
+  const client = createFetchClient(config)
+  return {
+    async get(url, options) {
+      for (let redirects = 0; ; redirects++) {
+        const response = await client.get(url, { ...options, redirect: 'manual' })
+        if (redirects === 5 || ![301, 302, 303, 307, 308].includes(response.status))
+          return response
+        const location = response.headers.get('location')
+        const target = location && resolveSitemapLocation(location, response.url || url)
+        if (!target || new URL(target).origin !== origin)
+          return response
+        url = target
+      }
+    },
+  }
+}
+
+async function fetchSitemapText(deps: ExtractSitemapDeps, client: FetchUrlClient, sitemapUrl: string): Promise<FetchedSitemapText | null> {
   const fetched = await fetchUrlRaw(
     sitemapUrl,
     deps.resolvedConfig,
     {
+      client,
       logger: deps.logger,
       timeoutMs: deps.fetchTimeoutMs,
       maxRetries: deps.fetchMaxRetries,
@@ -49,6 +69,7 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
   // make sure we're working from the host name
   site = new URL(site).origin
   const logger = deps.logger
+  const client = createSitemapClient(deps.resolvedConfig, deps.siteUrl.origin)
   if (sitemaps === true || sitemaps.length === 0)
     sitemaps = [`${site}/sitemap.xml`]
   const seenSitemaps = new Set<string>()
@@ -71,7 +92,7 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
     fetchedSitemaps.push(sitemapUrl)
 
     logger?.debug(`Attempting to fetch sitemap at ${sitemapUrl}`)
-    const fetched = await fetchSitemapText(deps, sitemapUrl)
+    const fetched = await fetchSitemapText(deps, client, sitemapUrl)
     if (fetched == null) {
       logger?.debug(`Failed to fetch ${sitemapUrl}.`)
       return
@@ -127,9 +148,33 @@ export async function extractSitemapRoutes(deps: ExtractSitemapDeps, site: strin
 export interface SitemapSeedsOptions {
   resolvedConfig: FetchConfig
   siteUrl: URL
-  /** Sitemap URLs to fetch. `true` (default) resolves to `${site}/sitemap.xml`. */
+  /** Explicit sitemap URLs, or `true` (default) to discover them. */
   sitemaps?: true | string[]
+  /** Discover sitemap URLs from robots.txt when no explicit URLs are configured. */
+  robotsTxt?: boolean
   logger?: Logger
+}
+
+async function resolveSitemaps(opts: SitemapSeedsOptions): Promise<true | string[]> {
+  if (Array.isArray(opts.sitemaps) && opts.sitemaps.length > 0)
+    return opts.sitemaps
+  if (!opts.robotsTxt)
+    return true
+
+  const { origin } = opts.siteUrl
+  const robotsUrl = new URL('/robots.txt', origin)
+  const { valid, response } = await fetchUrlRaw(robotsUrl.href, opts.resolvedConfig, {
+    client: createSitemapClient(opts.resolvedConfig, origin),
+    logger: opts.logger,
+    timeoutMs: 8_000,
+    maxRetries: 1,
+  })
+  if (!valid || !response || new URL(response.url || robotsUrl).origin !== origin)
+    return true
+
+  const locations = parseRobotsTxt(response.data).sitemaps.map(location => resolveSitemapLocation(location, origin))
+  const sitemaps = locations.filter((url): url is string => url !== null && new URL(url).origin === origin)
+  return sitemaps.length > 0 ? sitemaps : true
 }
 
 /**
@@ -146,7 +191,7 @@ export function sitemapSeeds(opts: SitemapSeedsOptions): SeedSource {
         const { paths } = await extractSitemapRoutes(
           { resolvedConfig: opts.resolvedConfig, siteUrl: opts.siteUrl, logger: opts.logger },
           opts.siteUrl.toString(),
-          opts.sitemaps ?? true,
+          await resolveSitemaps(opts),
         )
         for (const url of paths)
           yield { url, source: 'sitemap' }
