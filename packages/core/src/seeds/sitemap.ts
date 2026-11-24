@@ -24,18 +24,24 @@ interface FetchedSitemapText {
 
 function createSitemapClient(config: FetchConfig, origin: string): FetchUrlClient {
   const client = createFetchClient(config)
+  const redirectClient = createFetchClient({ ...config, defaultQueryParams: false })
   return {
     async get(url, options) {
-      for (let redirects = 0; ; redirects++) {
-        const response = await client.get(url, { ...options, redirect: 'manual' })
-        if (redirects === 5 || ![301, 302, 303, 307, 308].includes(response.status))
+      const deadline = AbortSignal.timeout(options?.timeout ?? 30_000)
+      const signal = options?.signal ? AbortSignal.any([options.signal, deadline]) : deadline
+      const requestOptions = { ...options, signal, timeout: 0, redirect: 'manual' as const }
+      let response = await client.get(url, requestOptions)
+      for (let redirects = 0; redirects < 5; redirects++) {
+        if (![301, 302, 303, 307, 308].includes(response.status))
           return response
         const location = response.headers.get('location')
         const target = location && resolveSitemapLocation(location, response.url || url)
         if (!target || new URL(target).origin !== origin)
           return response
         url = target
+        response = await redirectClient.get(url, { ...requestOptions, params: undefined, query: undefined })
       }
+      return response
     },
   }
 }
@@ -155,12 +161,7 @@ export interface SitemapSeedsOptions {
   logger?: Logger
 }
 
-async function resolveSitemaps(opts: SitemapSeedsOptions): Promise<true | string[]> {
-  if (Array.isArray(opts.sitemaps) && opts.sitemaps.length > 0)
-    return opts.sitemaps
-  if (!opts.robotsTxt)
-    return true
-
+async function discoverRobotsSitemaps(opts: SitemapSeedsOptions): Promise<string[]> {
   const { origin } = opts.siteUrl
   const robotsUrl = new URL('/robots.txt', origin)
   const { valid, response } = await fetchUrlRaw(robotsUrl.href, opts.resolvedConfig, {
@@ -170,11 +171,17 @@ async function resolveSitemaps(opts: SitemapSeedsOptions): Promise<true | string
     maxRetries: 1,
   })
   if (!valid || !response || new URL(response.url || robotsUrl).origin !== origin)
-    return true
+    return []
 
-  const locations = parseRobotsTxt(response.data).sitemaps.map(location => resolveSitemapLocation(location, origin))
-  const sitemaps = locations.filter((url): url is string => url !== null && new URL(url).origin === origin)
-  return sitemaps.length > 0 ? sitemaps : true
+  return parseRobotsTxt(response.data).sitemaps
+}
+
+export async function discoverSitemapPaths(deps: ExtractSitemapDeps, declarations: string[]): Promise<string[]> {
+  const { origin } = deps.siteUrl
+  const result = await extractSitemapRoutes(deps, origin, declarations)
+  if (result.paths.length || result.sitemaps.includes(`${origin}/sitemap.xml`))
+    return result.paths
+  return (await extractSitemapRoutes(deps, origin, true)).paths
 }
 
 /**
@@ -188,11 +195,10 @@ export function sitemapSeeds(opts: SitemapSeedsOptions): SeedSource {
     async* seeds() {
       const logger = opts.logger
       try {
-        const { paths } = await extractSitemapRoutes(
-          { resolvedConfig: opts.resolvedConfig, siteUrl: opts.siteUrl, logger: opts.logger },
-          opts.siteUrl.toString(),
-          await resolveSitemaps(opts),
-        )
+        const deps = { resolvedConfig: opts.resolvedConfig, siteUrl: opts.siteUrl, logger }
+        const paths = Array.isArray(opts.sitemaps) && opts.sitemaps.length > 0
+          ? (await extractSitemapRoutes(deps, opts.siteUrl.origin, opts.sitemaps)).paths
+          : await discoverSitemapPaths(deps, opts.robotsTxt ? await discoverRobotsSitemaps(opts) : [])
         for (const url of paths)
           yield { url, source: 'sitemap' }
       }

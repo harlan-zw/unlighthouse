@@ -70,7 +70,15 @@ describe('createLocalRuntime interface', () => {
       label: 'discovers the selected site’s robots.txt sitemap',
       scanner: {},
       declaredSitemap: '/pages.xml',
+      lowercaseDirective: true,
       expectedRoute: '/selected-only',
+      requestsRobots: true,
+    },
+    {
+      label: 'falls back when the selected site declares a missing sitemap',
+      scanner: {},
+      declaredSitemap: '/missing.xml',
+      expectedRoute: '/default-only',
       requestsRobots: true,
     },
     {
@@ -94,7 +102,7 @@ describe('createLocalRuntime interface', () => {
       expectedRoute: '/configured-only',
       requestsRobots: false,
     },
-  ])('$label', async ({ scanner, declaredSitemap, expectedRoute, requestsRobots }) => {
+  ])('$label', async ({ scanner, declaredSitemap, lowercaseDirective, expectedRoute, requestsRobots }) => {
     await using boot = await serveSite(origin => ({
       '/': '<h1>Boot</h1>',
       '/sitemap.xml': sitemap(`${origin}/boot-only`),
@@ -104,7 +112,9 @@ describe('createLocalRuntime interface', () => {
       '/': '<h1>Selected site</h1>',
       '/robots.txt': [
         `Sitemap: ${boot.origin}/sitemap.xml`,
-        ...(declaredSitemap ? [`Sitemap: ${origin}${declaredSitemap}`] : []),
+        ...(declaredSitemap ? [
+          lowercaseDirective ? `sitemap: ${origin}${declaredSitemap} # primary` : `Sitemap: ${origin}${declaredSitemap}`,
+        ] : []),
       ].join('\n'),
       '/sitemap.xml': sitemap(`${origin}/default-only`),
       '/pages.xml': sitemap(`${origin}/selected-only`),

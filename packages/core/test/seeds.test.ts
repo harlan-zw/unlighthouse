@@ -1,10 +1,10 @@
 import type { SeedSource } from '@unlighthouse/contracts/ports'
+import { setTimeout } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { defaultConfig } from '@unlighthouse/contracts/config'
-import { fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
+import { extractSitemapRoutes, fuseSeeds, manualSeeds } from '@unlighthouse/core/seeds'
 import { routeDefinitionSeeds } from '@unlighthouse/core/seeds/route-definitions'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { extractSitemapRoutes } from '../src/seeds/sitemap'
 
 const fixture = (p: string) => fileURLToPath(new URL(`../../../test/fixtures/route-definitions/${p}`, import.meta.url))
 
@@ -193,6 +193,50 @@ describe('extractSitemapRoutes', () => {
       'https://example.com/pages.xml',
       'https://example.com/other.xml',
     ])
+  })
+
+  it('preserves the exact signed URL in a sitemap redirect', async () => {
+    mockFetch({
+      'https://example.com/signed.xml?sig=a%20b': '<urlset><url><loc>/signed</loc></url></urlset>',
+    })
+    const fetchSitemap = globalThis.fetch
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input) === 'https://example.com/sitemap.xml?token=fixture')
+        return Response.redirect('https://example.com/signed.xml?sig=a%20b')
+      return fetchSitemap(input)
+    }))
+
+    const { paths } = await extractSitemapRoutes(
+      {
+        resolvedConfig: { defaultQueryParams: { token: 'fixture' } },
+        siteUrl: new URL('https://example.com'),
+      },
+      'https://example.com',
+      true,
+    )
+    expect(paths).toEqual(['https://example.com/signed'])
+  })
+
+  it('shares the sitemap request deadline with redirect requests', async () => {
+    let initialSignal: AbortSignal | undefined
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/sitemap.xml')) {
+        initialSignal = init?.signal ?? undefined
+        await setTimeout(50)
+        return Response.redirect('https://example.com/slow.xml')
+      }
+      await setTimeout(1_000, undefined, { signal: initialSignal }).catch(() => {
+        init?.signal?.throwIfAborted()
+      })
+      return new Response('/late', { headers: { 'content-type': 'text/plain' } })
+    }))
+
+    const { paths } = await extractSitemapRoutes(
+      { resolvedConfig: {}, siteUrl: new URL('https://example.com'), fetchTimeoutMs: 250, fetchMaxRetries: 1 },
+      'https://example.com',
+      true,
+    )
+    expect(paths).toEqual([])
   })
 })
 

@@ -2,7 +2,7 @@ import type { CommandOutput, ScanPreview } from '@unlighthouse/contracts/command
 import type { FetchConfig } from '../util/fetch'
 import type { HttpProtection } from '../util/http-protection'
 import { parseRobotsTxt } from '../policies/robots/parser'
-import { extractSitemapRoutes } from '../seeds/sitemap'
+import { discoverSitemapPaths } from '../seeds/sitemap'
 import { fetchUrlRaw } from '../util/fetch'
 import { extractPageDiscovery } from '../util/html-discovery'
 import { detectHttpProtection } from '../util/http-protection'
@@ -145,9 +145,8 @@ export function createScanPreviewIo(config: FetchConfig): ScanPreviewIo {
       const sitemapLocations = robots._tag === 'Ok' && robots.value.valid && robots.value.response
         ? parseRobotsTxt(robots.value.response.data).sitemaps
         : []
-      const sitemapConfig = sitemapLocations.length > 0 ? sitemapLocations : true
       const protections: HttpProtection[] = []
-      const result = await extractSitemapRoutes(
+      const paths = await discoverSitemapPaths(
         {
           resolvedConfig: config,
           siteUrl,
@@ -159,8 +158,7 @@ export function createScanPreviewIo(config: FetchConfig): ScanPreviewIo {
             body: response.data,
           })),
         },
-        site,
-        sitemapConfig,
+        sitemapLocations,
       )
       const protection = protections.find(result => result._tag !== 'None')
       if (protection?._tag === 'RateLimited') {
@@ -177,7 +175,7 @@ export function createScanPreviewIo(config: FetchConfig): ScanPreviewIo {
           retryAfterSeconds: null,
         }
       }
-      return { _tag: 'Urls', urls: result.paths, cloudflareTrapLinks: 0 }
+      return { _tag: 'Urls', urls: paths, cloudflareTrapLinks: 0 }
     },
     async inspectHomepage(site) {
       const fetched = await fetchUrlRaw(site, config, { timeoutMs, maxRetries })
