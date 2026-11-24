@@ -11,6 +11,8 @@ trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800
 
 trustPolicyExclude:
+  # Published by chrome-devtools-npm and pinned by Puppeteer.
+  - chromium-bidi@157.0.8090-0
   - chokidar@4.0.3
   - semver@5.7.2
   - semver@6.3.1
@@ -59,7 +61,7 @@ catalog:
   '@cloudflare/workers-types': ^5.20261123.1
   '@iconify-json/lucide': ^1.2.158
   '@iconify/utils': ^3.1.7
-  '@lhci/utils': ^0.15.1
+  '@lhci/utils': ^0.16.1
   '@libsql/client': ^0.18.0
   '@mdream/js': ^2.2.0
   '@modelcontextprotocol/sdk': ^1.32.2
@@ -67,6 +69,7 @@ catalog:
   '@nuxtjs/color-mode': 4.1.0
   '@types/better-sqlite3': ^9.6.0
   '@types/node': ^26.6.6
+  '@typescript/native': npm:typescript@7.1.0-beta
   aws4fetch: 1.0.20
   bumpp: ^12.3.0
   drizzle-kit: ^0.31.11
@@ -85,7 +88,7 @@ catalog:
   tinypool: ^2.2.0
   tsdown: ^0.23.7
   tsx: ^4.23.15
-  typescript: 6.0.3
+  typescript: npm:@typescript/typescript6@^6.0.2
   unstorage: ^1.17.6
   vite: 8.3.8
   vitest: ^5.1.1
@@ -111,16 +114,16 @@ catalogs:
     citty: ^0.2.2
     consola: ^3.4.2
     defu: ^6.1.7
-    drizzle-orm: ^0.45.3
+    drizzle-orm: ^0.45.4
     fflate: ^0.8.3
     h3: ^2.0.8
     hookable: ^6.1.2
     launch-editor: ^2.14.2
-    lighthouse: ^13.5.0
+    lighthouse: ^13.6.0
     listhen: ^1.10.1
     ofetch: ^1.5.1
     pathe: ^2.0.3
-    puppeteer-core: ^25.12.0
+    puppeteer-core: 25.18.1
     radix3: ^1.1.2
     tailwindcss: ^4.3.5
     ufo: ^1.6.4
