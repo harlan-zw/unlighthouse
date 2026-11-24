@@ -111,9 +111,18 @@ jobs:
 
             versions="$(npm view "$package_name" versions --json --prefer-online)"
             if jq -e --arg version "$RELEASE_VERSION" 'index($version) != null' <<< "$versions" >/dev/null; then
-              expected="sha512-$(openssl dgst -sha512 -binary "$archive" | openssl base64 -A)"
-              published="$(npm view "$package_name@$RELEASE_VERSION" dist.integrity --prefer-online)"
-              if [[ "$published" != "$expected" ]]; then
+              published_file="$(npm pack "$package_name@$RELEASE_VERSION" --ignore-scripts --json --pack-destination "$RUNNER_TEMP" | jq -er '.[0].filename')"
+              expected="$(mktemp -d "$RUNNER_TEMP/current.XXXXXX")"
+              published="$(mktemp -d "$RUNNER_TEMP/published.XXXXXX")"
+              # pnpm pack can vary archive and dependency map order between runs.
+              tar --extract --gzip --file "$archive" --directory "$expected"
+              tar --extract --gzip --file "$RUNNER_TEMP/$published_file" --directory "$published"
+              for unpacked in "$expected" "$published"; do
+                jq 'with_entries(if (.key | IN("dependencies", "devDependencies", "optionalDependencies", "peerDependencies")) then .value |= (to_entries | sort_by(.key) | from_entries) else . end)' \
+                  "$unpacked/package/package.json" > "$unpacked/manifest.json"
+                mv "$unpacked/manifest.json" "$unpacked/package/package.json"
+              done
+              if ! diff -qr --no-dereference "$expected" "$published"; then
                 echo "Published archive differs for $package_name@$RELEASE_VERSION" >&2
                 exit 1
               fi
