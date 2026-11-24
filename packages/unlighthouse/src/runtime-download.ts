@@ -9,12 +9,13 @@ import { delimiter, dirname, join, resolve } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import { npmProjectConfig } from './audit-download-config'
+import { installedRuntimePackageVersion } from './runtime-package-versions'
 
 declare const __UNLIGHTHOUSE_RUNTIME_PACKAGES__: Record<string, string>
 
-// Replaced from installed package versions at build time. Source tests use these pins.
+// Embed workspace versions in the published build so optional packages can be downloaded.
 const versions = typeof __UNLIGHTHOUSE_RUNTIME_PACKAGES__ === 'undefined'
-  ? { 'lighthouse': '13.5.0', 'puppeteer-core': '25.12.0', '@puppeteer/browsers': '3.2.3', '@libsql/client': '0.18.0', '@modelcontextprotocol/sdk': '1.31.0', '@unlighthouse/ui': '1.0.0-beta.0', '@unlighthouse/lighthouse-runtime': '1.0.0-beta.1', 'unstorage': '1.17.5', 'aws4fetch': '1.0.20', 'jiti': '2.7.0', '@lhci/utils': '0.15.1' }
+  ? undefined
   : __UNLIGHTHOUSE_RUNTIME_PACKAGES__
 
 export interface RuntimeDownloadOptions {
@@ -273,13 +274,15 @@ export async function downloadRuntimePackages(packages: Record<string, string>, 
   }, options.signal)
 }
 
-export function downloadDependencies(names: string[], options: RuntimeDownloadOptions = {}) {
-  return downloadRuntimePackages(Object.fromEntries(names.map(name => [name, versions[name]!])), options)
+export async function downloadDependencies(names: string[], options: RuntimeDownloadOptions = {}) {
+  return downloadRuntimePackages(Object.fromEntries(names.map(name => [name, runtimePackageVersion(name)])), options)
 }
 
 export function runtimePackageVersion(name: string): string {
+  if (!versions)
+    return installedRuntimePackageVersion(name)
   const version = versions[name]
-  if (!version)
+  if (typeof version !== 'string' || !version)
     throw new Error(`Dependency has no version pin: ${name}`)
   return version
 }
