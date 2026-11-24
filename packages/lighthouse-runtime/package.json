@@ -1,7 +1,7 @@
 {
   "name": "@unlighthouse/lighthouse-runtime",
   "type": "module",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "On-demand English Lighthouse and Puppeteer runtime assets.",
   "license": "MIT",
   "repository": {
