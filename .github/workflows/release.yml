@@ -69,7 +69,8 @@ jobs:
           git merge-base --is-ancestor "$tag_commit" origin/v1
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
             # Build the dispatch commit so npm provenance identifies the source used.
-            git diff --exit-code "$tag_commit" HEAD -- . ':(exclude,top).github/workflows/release.yml'
+            git diff --exit-code "$tag_commit" HEAD -- . \
+              ':(exclude,top).github/workflows/release.yml' ':(exclude,top)README.md'
           else
             [[ "$(git rev-parse HEAD)" == "$tag_commit" ]]
           fi
@@ -162,21 +163,29 @@ jobs:
           DIST_TAG: ${{ needs.package.outputs.dist_tag }}
           RELEASE_VERSION: ${{ needs.package.outputs.version }}
         run: |
+          registry_metadata="$RUNNER_TEMP/npm-version.json"
           for archive in "$RUNNER_TEMP"/npm-release/*.tgz; do
             package_name="$(tar -xOzf "$archive" package/package.json | jq -er --arg version "$RELEASE_VERSION" 'select(.version == $version and .private != true).name')"
-            versions="$(npm view "$package_name" versions --json --prefer-online)"
-            if jq -e --arg version "$RELEASE_VERSION" 'index($version) != null' <<< "$versions" >/dev/null; then
-              expected="sha512-$(openssl dgst -sha512 -binary "$archive" | openssl base64 -A)"
-              published="$(npm view "$package_name@$RELEASE_VERSION" dist.integrity --prefer-online)"
-              if [[ "$published" != "$expected" ]]; then
-                echo "Published archive differs for $package_name@$RELEASE_VERSION" >&2
-                echo 'Rerun the failed publish job from the original release run to reuse its tarballs.' >&2
+            status="$(curl --silent --show-error --max-time 30 --retry 2 --output "$registry_metadata" --write-out '%{http_code}' \
+              "https://registry.npmjs.org/$package_name/$RELEASE_VERSION")"
+            case "$status" in
+              200)
+                expected="sha512-$(openssl dgst -sha512 -binary "$archive" | openssl base64 -A)"
+                published="$(jq -er --arg version "$RELEASE_VERSION" 'select(.version == $version).dist.integrity' "$registry_metadata")"
+                if [[ "$published" != "$expected" ]]; then
+                  echo "Published archive differs for $package_name@$RELEASE_VERSION" >&2
+                  echo 'Rerun the failed publish job from the original release run to reuse its tarballs.' >&2
+                  exit 1
+                fi
+                ;;
+              404)
+                npm publish "$archive" --access public --tag "$DIST_TAG" --provenance
+                ;;
+              *)
+                echo "npm returned HTTP $status while checking $package_name@$RELEASE_VERSION" >&2
                 exit 1
-              fi
-              continue
-            fi
-
-            npm publish "$archive" --access public --tag "$DIST_TAG" --provenance
+                ;;
+            esac
           done
 
       - name: Create GitHub release
