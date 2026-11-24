@@ -22,7 +22,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createApp, toNodeListener } from 'h3'
 import { createUnlighthouseHost } from 'unlighthouse'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 interface HostFixture {
   server: Server
@@ -79,10 +79,10 @@ const HOOK_TIMEOUT = 30_000
 describe('autoStartOnVisit — end-to-end (real host + real HTTP)', () => {
   describe('when behavior.autoStartOnVisit = true', () => {
     let fx: HostFixture
-    beforeAll(async () => {
+    beforeEach(async () => {
       fx = await bootHost({ autoStartOnVisit: true })
     }, HOOK_TIMEOUT)
-    afterAll(async () => {
+    afterEach(async () => {
       if (fx?.server)
         await new Promise(r => fx.server.close(() => r(null)))
     }, HOOK_TIMEOUT)
@@ -102,10 +102,10 @@ describe('autoStartOnVisit — end-to-end (real host + real HTTP)', () => {
 
   describe('when behavior.autoStartOnVisit = false', () => {
     let fx: HostFixture
-    beforeAll(async () => {
+    beforeEach(async () => {
       fx = await bootHost({ autoStartOnVisit: false })
     }, HOOK_TIMEOUT)
-    afterAll(async () => {
+    afterEach(async () => {
       if (fx?.server)
         await new Promise(r => fx.server.close(() => r(null)))
     }, HOOK_TIMEOUT)

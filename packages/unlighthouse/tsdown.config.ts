@@ -1,30 +1,13 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { defineConfig } from 'tsdown'
 import { writeBundledLicenses } from '../../scripts/bundled-licenses.ts'
 import { auditArtifactPin } from './src/audit-download-config.ts'
+import { installedRuntimePackageVersion, runtimePackageNames } from './src/runtime-package-versions.ts'
 
-const require = createRequire(import.meta.url)
-function installedVersion(name: string): string {
-  if (name === '@unlighthouse/ui' || name === '@unlighthouse/lighthouse-runtime')
-    return JSON.parse(readFileSync(require.resolve(`${name}/package.json`), 'utf8')).version
-  const entry = name === '@modelcontextprotocol/sdk' ? `${name}/server/index.js` : name === '@lhci/utils' ? `${name}/src/api-client.js` : name
-  let directory = dirname(require.resolve(entry))
-  while (true) {
-    const manifest = join(directory, 'package.json')
-    if (existsSync(manifest)) {
-      const parsed = JSON.parse(readFileSync(manifest, 'utf8'))
-      if (parsed.name === name && parsed.version)
-        return parsed.version
-    }
-    const parent = dirname(directory)
-    if (parent === directory)
-      throw new Error(`Cannot resolve runtime version: ${name}`)
-    directory = parent
-  }
-}
-const runtimePackages = Object.fromEntries(['lighthouse', 'puppeteer-core', '@puppeteer/browsers', '@libsql/client', '@modelcontextprotocol/sdk', '@unlighthouse/ui', '@unlighthouse/lighthouse-runtime', 'unstorage', 'aws4fetch', 'jiti', '@lhci/utils'].map(name => [name, installedVersion(name)]))
+const runtimePackages = Object.fromEntries(runtimePackageNames.map(name => [
+  name,
+  installedRuntimePackageVersion(name),
+]))
 const auditArtifact = auditArtifactPin()
 
 export default defineConfig({

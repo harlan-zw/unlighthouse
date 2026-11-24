@@ -6,8 +6,28 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
+import lhciPackage from '@lhci/utils/package.json' with { type: 'json' }
+import lighthousePackage from 'lighthouse/package.json' with { type: 'json' }
+import puppeteerPackage from 'puppeteer-core/package.json' with { type: 'json' }
 import { expect, it } from 'vitest'
-import { downloadRuntimePackages, npmCommand } from '../src/runtime-download'
+import { downloadDependencies, downloadRuntimePackages, npmCommand } from '../src/runtime-download'
+
+it('uses installed workspace versions for runtime downloads in source mode', async () => {
+  const packages = [lhciPackage, lighthousePackage, puppeteerPackage]
+  const expected = packages.map(({ name, version }) => `${name}@${version}`)
+  const cacheDir = await mkdtemp(join(tmpdir(), 'unlighthouse-workspace-pins-'))
+  const installs: string[][] = []
+  try {
+    await downloadDependencies(packages.map(pkg => pkg.name), {
+      cacheDir,
+      install: async (_directory, pins) => { installs.push(pins) },
+    })
+    expect(installs).toEqual([expected])
+  }
+  finally {
+    await rm(cacheDir, { recursive: true, force: true })
+  }
+})
 
 it('runs library audits without installing unused upstream error reporting', async () => {
   const root = await mkdtemp(join(tmpdir(), 'unlighthouse-telemetry-'))

@@ -39,6 +39,7 @@
     "@arethetypeswrong/cli": "catalog:",
     "@iconify/utils": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
+    "@typescript/native": "catalog:",
     "better-sqlite3": "catalog:dependencies",
     "bumpp": "catalog:",
     "drizzle-orm": "catalog:dependencies",

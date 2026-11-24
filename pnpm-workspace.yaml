@@ -11,6 +11,8 @@ trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800
 
 trustPolicyExclude:
+  # Published by chrome-devtools-npm and pinned by Puppeteer.
+  - chromium-bidi@157.0.8090-0
   - chokidar@4.0.3
   - semver@5.7.2
   - semver@6.3.1
@@ -28,9 +30,9 @@ packages:
   - '!docs'
 
 overrides:
-  '@nuxt/kit': 4.5.2
-  nuxt: 4.5.2
-  vite: 8.3.2
+  '@nuxt/kit': 4.6.4
+  nuxt: 4.6.4
+  vite: 8.3.8
 
 allowBuilds:
   '@parcel/watcher': true
@@ -52,77 +54,78 @@ onlyBuiltDependencies:
   - esbuild
 
 catalog:
-  '@antfu/eslint-config': ^9.5.1
+  '@antfu/eslint-config': ^10.0.0
   '@arethetypeswrong/cli': 0.18.5
   '@cloudflare/containers': ^0.3.7
-  '@cloudflare/vitest-pool-workers': ^0.22.0
-  '@cloudflare/workers-types': ^5.20261002.1
-  '@iconify-json/lucide': ^1.2.138
+  '@cloudflare/vitest-plugin': ^1.9.0
+  '@cloudflare/workers-types': ^5.20261123.1
+  '@iconify-json/lucide': ^1.2.158
   '@iconify/utils': ^3.1.7
-  '@lhci/utils': ^0.15.1
+  '@lhci/utils': ^0.16.1
   '@libsql/client': ^0.18.0
-  '@mdream/js': ^1.7.2
-  '@modelcontextprotocol/sdk': ^1.31.0
-  '@nuxt/icon': 2.5.1
-  '@nuxtjs/color-mode': 4.0.1
+  '@mdream/js': ^2.2.0
+  '@modelcontextprotocol/sdk': ^1.32.2
+  '@nuxt/icon': 2.6.3
+  '@nuxtjs/color-mode': 4.1.0
   '@types/better-sqlite3': ^9.6.0
-  '@types/node': ^26.6.4
+  '@types/node': ^26.6.6
+  '@typescript/native': npm:typescript@7.1.0-beta
   aws4fetch: 1.0.20
   bumpp: ^12.3.0
   drizzle-kit: ^0.31.11
-  eslint: ^10.11.0
+  eslint: ^10.15.0
   eslint-plugin-harlanzw: ^0.23.0
-  eslint-typegen: ^2.3.1
+  eslint-typegen: ^2.3.2
   jiti: ^2.7.0
-  motion-v: ^2.5.1
-  nuxt: ^4.5.2
+  motion-v: ^2.13.0
+  nuxt: ^4.6.4
   nuxt-use-query: ^1.0.1
-  obuild: ^0.4.43
+  obuild: ^0.4.45
   publint: ^0.3.25
   rangi: ^2.2.0
-  reka-ui: ^2.10.5
-  rolldown: ^1.2.12
+  reka-ui: ^2.11.0
+  rolldown: ~1.2.19
   tinypool: ^2.2.0
-  tsdown: ^0.23.0
+  tsdown: ^0.23.7
   tsx: ^4.23.15
-  typescript: 6.0.3
-  unstorage: ^1.17.5
-  vite: 8.3.2
-  vitest: ^4.1.11
-  vue-router: ^5.3.1
+  typescript: npm:@typescript/typescript6@^6.0.2
+  unstorage: ^1.17.6
+  vite: 8.3.8
+  vitest: ^5.1.1
+  vue-router: ^5.5.1
   vue-sonner: ^2.0.9
-  vue-tsc: ^3.3.11
-  wrangler: ^4.147.0
+  vue-tsc: ^3.3.14
+  wrangler: ^4.166.0
   yaml: ^2.9.1
-  zod: ^4.6.5
+  zod: ^4.6.7
 
 catalogs:
   dependencies:
-    '@nuxt/ui': ^4.11.3
-    '@puppeteer/browsers': ^3.2.3
-    '@tanstack/table-core': ^9.2.4
-    '@tanstack/vue-table': ^9.2.4
-    '@vueuse/core': ^15.0.0
+    '@nuxt/ui': ^4.13.0
+    '@puppeteer/browsers': ^3.2.7
+    '@tanstack/table-core': ^9.3.1
+    '@tanstack/vue-table': ^9.3.1
+    '@vueuse/core': ^15.1.0
     better-opn: ^3.0.2
-    better-sqlite3: ^13.0.3
+    better-sqlite3: ^13.2.0
     c12: ^3.3.4
-    cac: ^7.0.0
-    chrome-launcher: ^1.2.2
+    cac: ^7.1.1
+    chrome-launcher: ^1.2.3
     citty: ^0.2.2
     consola: ^3.4.2
     defu: ^6.1.7
-    drizzle-orm: ^0.45.3
+    drizzle-orm: ^0.45.4
     fflate: ^0.8.3
-    h3: ^1.15.11
+    h3: ^2.0.8
     hookable: ^6.1.2
-    launch-editor: ^2.14.1
-    lighthouse: ^13.5.0
+    launch-editor: ^2.14.2
+    lighthouse: ^13.6.0
     listhen: ^1.10.1
     ofetch: ^1.5.1
     pathe: ^2.0.3
-    puppeteer-core: ^25.12.0
+    puppeteer-core: 25.18.1
     radix3: ^1.1.2
-    tailwindcss: ^4.3.3
+    tailwindcss: ^4.3.5
     ufo: ^1.6.4
-    vue: ^3.5.43
-    ws: ^8.22.0
+    vue: ^3.5.46
+    ws: ^8.23.0

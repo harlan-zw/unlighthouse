@@ -11,10 +11,9 @@ import { timingSafeEqual } from 'node:crypto'
 import { logOperationalError } from '@unlighthouse/contracts/logging'
 import { parseLighthouseAuditRequest } from '@unlighthouse/contracts/ports'
 import {
-  createApp,
-  createRouter,
   defineEventHandler,
   getHeader,
+  H3,
   readBody,
 } from 'h3'
 
@@ -39,12 +38,11 @@ function constantTimeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb)
 }
 
-export function createLighthouseContainerServer(opts: CreateLighthouseContainerServerOptions) {
+export function createLighthouseContainerServer(opts: CreateLighthouseContainerServerOptions): H3 {
   const logger = opts.logger ?? console
-  const app = createApp()
-  const router = createRouter()
+  const app = new H3()
 
-  router.get(
+  app.get(
     '/health',
     defineEventHandler(() => ({
       ok: true,
@@ -53,17 +51,17 @@ export function createLighthouseContainerServer(opts: CreateLighthouseContainerS
     })),
   )
 
-  router.post(
+  app.post(
     '/audit',
     defineEventHandler(async (event) => {
       if (!opts.auditorConfigured) {
-        event.node.res.statusCode = 503
+        event.res.status = 503
         return { error: 'auditor_not_configured', detail: 'Container is missing required env vars' }
       }
 
       const auth = getHeader(event, 'authorization') ?? ''
       if (!constantTimeEqual(auth, `Bearer ${opts.token}`)) {
-        event.node.res.statusCode = 401
+        event.res.status = 401
         return { error: 'unauthorized' }
       }
 
@@ -73,7 +71,7 @@ export function createLighthouseContainerServer(opts: CreateLighthouseContainerS
         body = parseLighthouseAuditRequest(rawBody)
       }
       catch {
-        event.node.res.statusCode = 400
+        event.res.status = 400
         return { error: 'invalid audit request' }
       }
 
@@ -86,7 +84,7 @@ export function createLighthouseContainerServer(opts: CreateLighthouseContainerS
         })
       }
       catch (err) {
-        event.node.res.statusCode = 502
+        event.res.status = 502
         logOperationalError('lighthouse_container.audit_failed', err, { url: body.url }, logger)
         return {
           error: 'audit_failed',
@@ -96,6 +94,5 @@ export function createLighthouseContainerServer(opts: CreateLighthouseContainerS
     }),
   )
 
-  app.use(router)
   return app
 }
